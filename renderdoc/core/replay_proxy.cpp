@@ -1193,6 +1193,8 @@ bool ProxySerialiser::Tick()
 
 bool ProxySerialiser::IsRenderOutput(ResourceId id)
 {
+	// TODO this should go remote
+
 	for(int32_t i=0; i < m_D3D11PipelineState.m_OM.RenderTargets.count; i++)
 	{
 		if(m_D3D11PipelineState.m_OM.RenderTargets[i].View == id ||
@@ -1339,6 +1341,7 @@ void ProxySerialiser::SavePipelineState()
 		m_Remote->SavePipelineState();
 		m_D3D11PipelineState = m_Remote->GetD3D11PipelineState();
 		m_GLPipelineState = m_Remote->GetGLPipelineState();
+		m_VulkanPipelineState = m_Remote->GetVulkanPipelineState();
 	}
 	else
 	{
@@ -1347,10 +1350,13 @@ void ProxySerialiser::SavePipelineState()
 		
 		m_D3D11PipelineState = D3D11PipelineState();
 		m_GLPipelineState = GLPipelineState();
+		m_VulkanPipelineState = VulkanPipelineState();
 	}
 
 	m_FromReplaySerialiser->Serialise("", m_D3D11PipelineState);
 	m_FromReplaySerialiser->Serialise("", m_GLPipelineState);
+	// VKTODOLOW - serialise pipe state
+	//m_FromReplaySerialiser->Serialise("", m_VulkanPipelineState);
 }
 
 void ProxySerialiser::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)

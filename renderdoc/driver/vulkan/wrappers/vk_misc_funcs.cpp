@@ -546,6 +546,9 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkRenderPass rp = VK_NULL_HANDLE;
+		
+		// use original ID
+		m_CreationInfo.m_RenderPass[id].Init(&info);
 
 		VkResult ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, &rp);
 

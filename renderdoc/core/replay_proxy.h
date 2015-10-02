@@ -329,6 +329,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		void SavePipelineState();
 		D3D11PipelineState GetD3D11PipelineState() { return m_D3D11PipelineState; }
 		GLPipelineState GetGLPipelineState() { return m_GLPipelineState; }
+		VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
 		
 		void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
 		void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
@@ -442,4 +443,5 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		APIProperties m_APIProperties;
 		D3D11PipelineState m_D3D11PipelineState;
 		GLPipelineState m_GLPipelineState;
+		VulkanPipelineState m_VulkanPipelineState;
 };

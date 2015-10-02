@@ -62,6 +62,7 @@ class D3D11Replay : public IReplayDriver
 		void SavePipelineState() { m_CurPipelineState = MakePipelineState(); }
 		D3D11PipelineState GetD3D11PipelineState() { return m_CurPipelineState; }
 		GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
+		VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
 
 		void FreeTargetResource(ResourceId id);
 		void FreeCustomShader(ResourceId id);

@@ -428,7 +428,7 @@ APIProperties VulkanReplay::GetAPIProperties()
 {
 	APIProperties ret;
 
-	ret.pipelineType = ePipelineState_D3D11;
+	ret.pipelineType = ePipelineState_Vulkan;
 	ret.degraded = false;
 
 	return ret;
@@ -1197,7 +1197,7 @@ FetchBuffer VulkanReplay::GetBuffer(ResourceId id)
 
 ShaderReflection *VulkanReplay::GetShader(ResourceId id)
 {
-	RDCUNIMPLEMENTED("GetShader");
+	VULKANNOTIMP("GetShader");
 	return NULL;
 }
 
@@ -1297,6 +1297,7 @@ void VulkanReplay::SavePipelineState()
 						ResourceId src = (*srcs[p])[i];
 						VulkanPipelineState::Pipeline::DescriptorSet &dst = (*dsts[p])[i];
 
+						dst.descset = src;
 						dst.layout = m_pDriver->m_DescriptorSetInfo[src].layout;
 						create_array_uninit(dst.bindings, m_pDriver->m_DescriptorSetInfo[src].currentBindings.size());
 						for(size_t b=0; b < m_pDriver->m_DescriptorSetInfo[src].currentBindings.size(); b++)
@@ -1324,21 +1325,21 @@ void VulkanReplay::SavePipelineState()
 									RDCERR("Unexpected descriptor type");
 							}
 							
-							create_array_uninit(dst.bindings[b].elems, layoutBind.arraySize);
+							create_array_uninit(dst.bindings[b].binds, layoutBind.arraySize);
 							for(uint32_t a=0; a < layoutBind.arraySize; a++)
 							{
 								if(layoutBind.immutableSampler)
-									dst.bindings[b].elems[a].sampler = layoutBind.immutableSampler[a];
+									dst.bindings[b].binds[a].sampler = layoutBind.immutableSampler[a];
 								else if(info->sampler != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].sampler = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->sampler)->id);
+									dst.bindings[b].binds[a].sampler = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->sampler)->id);
 
 								// only one of these is ever set
 								if(info->imageView != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->imageView)->id);
+									dst.bindings[b].binds[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->imageView)->id);
 								if(info->bufferView != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->bufferView)->id);
+									dst.bindings[b].binds[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->bufferView)->id);
 								if(info->attachmentView != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->attachmentView)->id);
+									dst.bindings[b].binds[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->attachmentView)->id);
 							}
 						}
 					}
@@ -1451,14 +1452,18 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.DS.minDepthBounds = c.m_DepthStencil[state.dynamicDS].minDepthBounds;
 			m_VulkanPipelineState.DS.maxDepthBounds = c.m_DepthStencil[state.dynamicDS].maxDepthBounds;
 
-			m_VulkanPipelineState.DS.front.ref = c.m_DepthStencil[state.dynamicDS].stencilFrontRef;
-			m_VulkanPipelineState.DS.back.ref = c.m_DepthStencil[state.dynamicDS].stencilBackRef;
+			m_VulkanPipelineState.DS.front.stencilref = c.m_DepthStencil[state.dynamicDS].stencilFrontRef;
+			m_VulkanPipelineState.DS.back.stencilref = c.m_DepthStencil[state.dynamicDS].stencilBackRef;
 
 			m_VulkanPipelineState.DS.stencilReadMask = c.m_DepthStencil[state.dynamicDS].stencilReadMask;
 			m_VulkanPipelineState.DS.stencilWriteMask = c.m_DepthStencil[state.dynamicDS].stencilWriteMask;
 
 			// Renderpass
 			m_VulkanPipelineState.Pass.renderpass.obj = state.renderPass;
+			m_VulkanPipelineState.Pass.renderpass.inputAttachments = c.m_RenderPass[state.renderPass].inputAttachments;
+			m_VulkanPipelineState.Pass.renderpass.colorAttachments = c.m_RenderPass[state.renderPass].colorAttachments;
+			m_VulkanPipelineState.Pass.renderpass.depthstencilAttachment = c.m_RenderPass[state.renderPass].depthstencilAttachment;
+
 			m_VulkanPipelineState.Pass.framebuffer.obj = state.framebuffer;
 
 			m_VulkanPipelineState.Pass.framebuffer.width = c.m_Framebuffer[state.framebuffer].width;

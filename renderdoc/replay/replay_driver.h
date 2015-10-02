@@ -69,6 +69,7 @@ class IRemoteDriver
 		virtual void SavePipelineState() = 0;
 		virtual D3D11PipelineState GetD3D11PipelineState() = 0;
 		virtual GLPipelineState GetGLPipelineState() = 0;
+		virtual VulkanPipelineState GetVulkanPipelineState() = 0;
 
 		virtual vector<FetchFrameRecord> GetFrameRecord() = 0;
 

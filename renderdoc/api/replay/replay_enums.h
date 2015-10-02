@@ -211,6 +211,7 @@ enum APIPipelineStateType
 {
 	ePipelineState_D3D11,
 	ePipelineState_OpenGL,
+	ePipelineState_Vulkan,
 };
 
 enum PrimitiveTopology

@@ -34,24 +34,26 @@ namespace renderdocui.Code
     {
         private D3D11PipelineState m_D3D11 = null;
         private GLPipelineState m_GL = null;
+        private VulkanPipelineState m_VK = null;
         private APIProperties m_APIProps = null;
 
         public CommonPipelineState()
         {
         }
 
-        public void SetStates(APIProperties props, D3D11PipelineState d3d11, GLPipelineState gl)
+        public void SetStates(APIProperties props, D3D11PipelineState d3d11, GLPipelineState gl, VulkanPipelineState vk)
         {
             m_APIProps = props;
             m_D3D11 = d3d11;
             m_GL = gl;
+            m_VK = vk;
         }
 
         private bool LogLoaded
         {
             get
             {
-                return m_D3D11 != null || m_GL != null;
+                return m_D3D11 != null || m_GL != null || m_VK != null;
             }
         }
 
@@ -71,6 +73,14 @@ namespace renderdocui.Code
             }
         }
 
+        private bool IsLogVK
+        {
+            get
+            {
+                return LogLoaded && m_APIProps.pipelineType == APIPipelineStateType.Vulkan && m_VK != null;
+            }
+        }
+
         // add a bunch of generic properties that people can check to save having to see which pipeline state
         // is valid and look at the appropriate part of it
         public bool IsTessellationEnabled
@@ -84,6 +94,9 @@ namespace renderdocui.Code
 
                     if (IsLogGL)
                         return m_GL != null && m_GL.m_TES.Shader != ResourceId.Null;
+
+                    if (IsLogVK)
+                        return m_VK != null && m_VK.TES.Shader != ResourceId.Null;
                 }
 
                 return false;
@@ -120,6 +133,18 @@ namespace renderdocui.Code
                         case ShaderStageType.Compute: return m_GL.m_CS.BindpointMapping;
                     }
                 }
+                else if (IsLogVK)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_VK.VS.BindpointMapping;
+                        case ShaderStageType.Tess_Control: return m_VK.TCS.BindpointMapping;
+                        case ShaderStageType.Tess_Eval: return m_VK.TES.BindpointMapping;
+                        case ShaderStageType.Geometry: return m_VK.GS.BindpointMapping;
+                        case ShaderStageType.Fragment: return m_VK.FS.BindpointMapping;
+                        case ShaderStageType.Compute: return m_VK.CS.BindpointMapping;
+                    }
+                }
             }
 
             return null;
@@ -151,6 +176,18 @@ namespace renderdocui.Code
                         case ShaderStageType.Geometry: return m_GL.m_GS.ShaderDetails;
                         case ShaderStageType.Fragment: return m_GL.m_FS.ShaderDetails;
                         case ShaderStageType.Compute: return m_GL.m_CS.ShaderDetails;
+                    }
+                }
+                else if (IsLogVK)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_VK.VS.ShaderDetails;
+                        case ShaderStageType.Tess_Control: return m_VK.TCS.ShaderDetails;
+                        case ShaderStageType.Tess_Eval: return m_VK.TES.ShaderDetails;
+                        case ShaderStageType.Geometry: return m_VK.GS.ShaderDetails;
+                        case ShaderStageType.Fragment: return m_VK.FS.ShaderDetails;
+                        case ShaderStageType.Compute: return m_VK.CS.ShaderDetails;
                     }
                 }
             }
@@ -186,6 +223,18 @@ namespace renderdocui.Code
                         case ShaderStageType.Compute: return m_GL.m_CS.Shader;
                     }
                 }
+                else if (IsLogVK)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_VK.VS.Shader;
+                        case ShaderStageType.Tess_Control: return m_VK.TCS.Shader;
+                        case ShaderStageType.Tess_Eval: return m_VK.TES.Shader;
+                        case ShaderStageType.Geometry: return m_VK.GS.Shader;
+                        case ShaderStageType.Fragment: return m_VK.FS.Shader;
+                        case ShaderStageType.Compute: return m_VK.CS.Shader;
+                    }
+                }
             }
 
             return ResourceId.Null;
@@ -219,6 +268,18 @@ namespace renderdocui.Code
                         case ShaderStageType.Compute: return String.Format("Shader {0}", m_GL.m_CS.Shader);
                     }
                 }
+                else if (IsLogVK)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_VK.VS.ShaderName;
+                        case ShaderStageType.Domain: return m_VK.TCS.ShaderName;
+                        case ShaderStageType.Hull: return m_VK.TES.ShaderName;
+                        case ShaderStageType.Geometry: return m_VK.GS.ShaderName;
+                        case ShaderStageType.Pixel: return m_VK.FS.ShaderName;
+                        case ShaderStageType.Compute: return m_VK.CS.ShaderName;
+                    }
+                }
             }
 
             return "";
@@ -242,6 +303,14 @@ namespace renderdocui.Code
 
                     return;
                 }
+                else if (IsLogVK)
+                {
+                    buf = m_VK.IA.ibuffer.buf;
+                    // VKTODOLOW maybe increase parameter to ulong and upcast others?
+                    ByteOffset = (uint)m_VK.IA.ibuffer.offs;
+
+                    return;
+                }
             }
 
             buf = ResourceId.Null;
@@ -261,6 +330,10 @@ namespace renderdocui.Code
                 {
                     return m_GL.m_VtxIn.primitiveRestart;
                 }
+                else if (IsLogVK)
+                {
+                    return m_VK.IA.primitiveRestartEnable;
+                }
             }
 
             return false;
@@ -270,9 +343,9 @@ namespace renderdocui.Code
         {
             if (LogLoaded)
             {
-                if (IsLogD3D11)
+                if (IsLogD3D11 || IsLogVK)
                 {
-                    // D3D11 this is always '-1' in whichever size of index we're using
+                    // D3D11 or Vulkan this is always '-1' in whichever size of index we're using
                     return indexByteWidth == 2 ? ushort.MaxValue : uint.MaxValue;
                 }
                 else if (IsLogGL)
@@ -320,6 +393,19 @@ namespace renderdocui.Code
                         ret[i].Buffer = m_GL.m_VtxIn.vbuffers[i].Buffer;
                         ret[i].ByteOffset = m_GL.m_VtxIn.vbuffers[i].Offset;
                         ret[i].ByteStride = m_GL.m_VtxIn.vbuffers[i].Stride;
+                    }
+
+                    return ret;
+                }
+                else if (IsLogVK)
+                {
+                    VBuffer[] ret = new VBuffer[m_VK.VI.binds.Length];
+                    for (int i = 0; i < m_VK.VI.binds.Length; i++)
+                    {
+                        ret[i].Buffer = m_VK.VI.vbuffers[i].buffer;
+                        // VKTODOLOW maybe increase parameter to ulong and upcast others?
+                        ret[i].ByteOffset = (uint)m_VK.VI.vbuffers[i].offset;
+                        ret[i].ByteStride = m_VK.VI.binds[i].bytestride;
                     }
 
                     return ret;
@@ -465,6 +551,42 @@ namespace renderdocui.Code
                             }
                         }
 
+                        a++;
+                    }
+
+                    return ret;
+                }
+                else if (IsLogVK)
+                {
+                    var attrs = m_VK.VI.attrs;
+
+                    int num = 0;
+                    for (int i = 0; i < attrs.Length; i++)
+                    {
+                        int attrib = -1;
+                        if (m_VK.VS.BindpointMapping != null && m_VK.VS.ShaderDetails != null)
+                            attrib = m_VK.VS.BindpointMapping.InputAttributes[i];
+                        else
+                            attrib = i;
+
+                        if (attrib >= 0)
+                            num++;
+                    }
+
+                    int a = 0;
+                    VertexInputAttribute[] ret = new VertexInputAttribute[num];
+                    for (int i = 0; i < attrs.Length && a < num; i++)
+                    {
+                        ret[a].Name = String.Format("attr{0}", i);
+                        ret[a].GenericValue = null;
+                        ret[a].VertexBuffer = (int)attrs[i].binding;
+                        ret[a].RelativeByteOffset = attrs[i].byteoffset;
+                        ret[a].PerInstance = m_VK.VI.binds[attrs[i].binding].perInstance;
+                        ret[a].InstanceRate = 1;
+                        ret[a].Format = attrs[i].format;
+                        ret[a].Used = true;
+
+                        // VKTODOMED use shader reflection & attrs[i].location to get better name
                         a++;
                     }
 
@@ -622,6 +744,10 @@ namespace renderdocui.Code
                     return m_D3D11.m_OM.DepthTarget.Resource;
                 else if (IsLogGL)
                     return m_GL.m_FB.m_DrawFBO.Depth.Obj;
+                else if (IsLogVK)
+                    return m_VK.Pass.renderpass.depthstencilAttachment >= 0
+                        ? m_VK.Pass.framebuffer.attachments[m_VK.Pass.renderpass.depthstencilAttachment].img
+                        : ResourceId.Null;
             }
 
             return ResourceId.Null;
@@ -635,6 +761,10 @@ namespace renderdocui.Code
                     return m_D3D11.m_OM.DepthTarget.Resource;
                 else if (IsLogGL)
                     return m_GL.m_FB.m_DrawFBO.Stencil.Obj;
+                else if (IsLogVK)
+                    return m_VK.Pass.renderpass.depthstencilAttachment >= 0
+                        ? m_VK.Pass.framebuffer.attachments[m_VK.Pass.renderpass.depthstencilAttachment].img
+                        : ResourceId.Null;
             }
 
             return ResourceId.Null;
@@ -664,43 +794,17 @@ namespace renderdocui.Code
 
                     return ret;
                 }
+                else if (IsLogVK)
+                {
+                    ResourceId[] ret = new ResourceId[m_VK.Pass.renderpass.colorAttachments.Length];
+                    for (int i = 0; i < m_VK.Pass.renderpass.colorAttachments.Length; i++)
+                        ret[i] = m_VK.Pass.framebuffer.attachments[m_VK.Pass.renderpass.colorAttachments[i]].img;
+
+                    return ret;
+                }
             }
 
             return new ResourceId[0];
-        }
-
-        public ResourceId OutputDepth
-        {
-            get
-            {
-                if (LogLoaded)
-                {
-                    if (IsLogD3D11)
-                        return m_D3D11.m_OM.DepthTarget.Resource;
-
-                    if (IsLogGL)
-                        return m_GL.m_FB.m_DrawFBO.Depth.Obj;
-                }
-
-                return ResourceId.Null;
-            }
-        }
-
-        public ResourceId OutputStencil
-        {
-            get
-            {
-                if (LogLoaded)
-                {
-                    if (IsLogD3D11)
-                        return m_D3D11.m_OM.DepthTarget.Resource;
-
-                    if (IsLogGL)
-                        return m_GL.m_FB.m_DrawFBO.Stencil.Obj;
-                }
-
-                return ResourceId.Null;
-            }
         }
 
         // Still to add:

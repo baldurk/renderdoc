@@ -232,6 +232,17 @@ bool ReplayRenderer::GetGLPipelineState(GLPipelineState *state)
 	return false;
 }
 
+bool ReplayRenderer::GetVulkanPipelineState(VulkanPipelineState *state)
+{
+	if(state)
+	{
+		*state = m_VulkanPipelineState;
+		return true;
+	}
+	
+	return false;
+}
+
 bool ReplayRenderer::GetFrameInfo(rdctype::array<FetchFrameInfo> *arr)
 {
 	if(arr == NULL) return false;
@@ -1546,6 +1557,7 @@ void ReplayRenderer::FetchPipelineState()
 
 	m_D3D11PipelineState = m_pDevice->GetD3D11PipelineState();
 	m_GLPipelineState = m_pDevice->GetGLPipelineState();
+	m_VulkanPipelineState = m_pDevice->GetVulkanPipelineState();
 	
 	{
 		D3D11PipelineState::ShaderStage *stage = &m_D3D11PipelineState.m_VS;
@@ -1556,6 +1568,13 @@ void ReplayRenderer::FetchPipelineState()
 	
 	{
 		GLPipelineState::ShaderStage *stage = &m_GLPipelineState.m_VS;
+		for(int i=0; i < 6; i++)
+			if(stage[i].Shader != ResourceId())
+				stage[i].ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader));
+	}
+	
+	{
+		VulkanPipelineState::ShaderStage *stage = &m_VulkanPipelineState.VS;
 		for(int i=0; i < 6; i++)
 			if(stage[i].Shader != ResourceId())
 				stage[i].ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader));
@@ -1588,6 +1607,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetD3D11PipelineStat
 { return rend->GetD3D11PipelineState(state); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(ReplayRenderer *rend, GLPipelineState *state)
 { return rend->GetGLPipelineState(state); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetVulkanPipelineState(ReplayRenderer *rend, VulkanPipelineState *state)
+{ return rend->GetVulkanPipelineState(state); }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildCustomShader(ReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, ResourceId *shaderID, rdctype::str *errors)
 {

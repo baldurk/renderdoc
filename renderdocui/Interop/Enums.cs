@@ -74,6 +74,20 @@ namespace renderdoc
         TextureCubeArray,
     };
 
+    public enum ShaderBindType
+    {
+        Unknown = 0,
+        Sampler,
+        ImageSampler,
+        ReadOnlyImage,
+        ReadWriteImage,
+        ReadOnlyTBuffer,
+        ReadWriteTBuffer,
+        ReadOnlyBuffer,
+        ReadWriteBuffer,
+        InputAttachment,
+    };
+
     public enum SystemAttribute
     {
         None = 0,
@@ -190,6 +204,7 @@ namespace renderdoc
     {
         D3D11,
         OpenGL,
+        Vulkan,
     };
 
     public enum PrimitiveTopology
@@ -277,6 +292,20 @@ namespace renderdoc
         Fragment = Pixel,
 
         Compute,
+    };
+
+    [Flags]
+    public enum ShaderStageBits
+    {
+        Vertex       = (1 << ShaderStageType.Vertex),
+        Hull         = (1 << ShaderStageType.Hull),
+        Tess_Control = (1 << ShaderStageType.Tess_Control),
+        Domain       = (1 << ShaderStageType.Domain),
+        Tess_Eval    = (1 << ShaderStageType.Tess_Eval),
+        Geometry     = (1 << ShaderStageType.Geometry),
+        Pixel        = (1 << ShaderStageType.Pixel),
+        Fragment     = (1 << ShaderStageType.Fragment),
+        Compute      = (1 << ShaderStageType.Compute),
     };
 
     public enum DebugMessageSource

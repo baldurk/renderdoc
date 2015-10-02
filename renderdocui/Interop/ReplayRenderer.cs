@@ -213,6 +213,8 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetD3D11PipelineState(IntPtr real, IntPtr mem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetGLPipelineState(IntPtr real, IntPtr mem);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_GetVulkanPipelineState(IntPtr real, IntPtr mem);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayRenderer_BuildCustomShader(IntPtr real, IntPtr entry, IntPtr source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
@@ -356,6 +358,22 @@ namespace renderdoc
 
             if (success)
                 ret = (D3D11PipelineState)CustomMarshal.PtrToStructure(mem, typeof(D3D11PipelineState), true);
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public VulkanPipelineState GetVulkanPipelineState()
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(VulkanPipelineState));
+
+            bool success = ReplayRenderer_GetVulkanPipelineState(m_Real, mem);
+
+            VulkanPipelineState ret = null;
+
+            if (success)
+                ret = (VulkanPipelineState)CustomMarshal.PtrToStructure(mem, typeof(VulkanPipelineState), true);
 
             CustomMarshal.Free(mem);
 

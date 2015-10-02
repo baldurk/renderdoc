@@ -146,6 +146,24 @@ void VulkanCreationInfo::DepthStencil::Init(const VkDynamicDepthStencilStateCrea
 	stencilBackRef = pCreateInfo->stencilBackRef;
 }
 
+void VulkanCreationInfo::RenderPass::Init(const VkRenderPassCreateInfo* pCreateInfo)
+{
+	// VKTODOMED figure out how subpasses work
+	RDCASSERT(pCreateInfo->subpassCount > 0);
+	const VkSubpassDescription &subp = pCreateInfo->pSubpasses[0];
+
+	inputAttachments.resize(subp.inputCount);
+	for(uint32_t i=0; i < subp.inputCount; i++)
+		inputAttachments[i] = subp.inputAttachments[i].attachment;
+
+	colorAttachments.resize(subp.colorCount);
+	for(uint32_t i=0; i < subp.colorCount; i++)
+		colorAttachments[i] = subp.colorAttachments[i].attachment;
+	
+	depthstencilAttachment = (subp.depthStencilAttachment.attachment == VK_ATTACHMENT_UNUSED
+		? (int32_t)subp.depthStencilAttachment.attachment : -1);
+}
+
 void VulkanCreationInfo::Framebuffer::Init(const VkFramebufferCreateInfo* pCreateInfo)
 {
 	width = pCreateInfo->width;

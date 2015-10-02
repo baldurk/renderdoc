@@ -107,6 +107,7 @@
     <Compile Include="Code\CommonPipelineState.cs" />
     <Compile Include="Code\FormatElement.cs" />
     <Compile Include="Interop\Camera.cs" />
+    <Compile Include="Interop\VulkanPipelineState.cs" />
     <Compile Include="Interop\Formatter.cs" />
     <Compile Include="Code\Helpers.cs" />
     <Compile Include="Code\LogViewerForm.cs" />

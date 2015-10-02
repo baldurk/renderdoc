@@ -150,6 +150,7 @@ struct ReplayRenderer : public IReplayRenderer
 
 		bool GetD3D11PipelineState(D3D11PipelineState *state);
 		bool GetGLPipelineState(GLPipelineState *state);
+		bool GetVulkanPipelineState(VulkanPipelineState *state);
 		
 		ResourceId BuildCustomShader(const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, rdctype::str *errors);
 		bool FreeCustomShader(ResourceId id);
@@ -218,6 +219,7 @@ struct ReplayRenderer : public IReplayRenderer
 		
 		D3D11PipelineState m_D3D11PipelineState;
 		GLPipelineState m_GLPipelineState;
+		VulkanPipelineState m_VulkanPipelineState;
 
 		std::vector<ReplayOutput *> m_Outputs;
 

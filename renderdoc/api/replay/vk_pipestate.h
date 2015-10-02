@@ -36,6 +36,7 @@ struct VulkanPipelineState
 		struct DescriptorSet
 		{
 			ResourceId layout;
+			ResourceId descset;
 
 			struct DescriptorBinding
 			{
@@ -53,7 +54,7 @@ struct VulkanPipelineState
 				};
 
 				// may only be one element if not an array
-				rdctype::array<BindingElement> elems;
+				rdctype::array<BindingElement> binds;
 			};
 			rdctype::array<DescriptorBinding> bindings;
 		};
@@ -221,12 +222,12 @@ struct VulkanPipelineState
 		bool32 stencilTestEnable;
 		struct StencilOp
 		{
-			StencilOp() : ref(0) {}
+			StencilOp() : stencilref(0) {}
 			rdctype::str failOp;
 			rdctype::str depthFailOp;
 			rdctype::str passOp;
 			rdctype::str func;
-			uint32_t ref;
+			uint32_t stencilref;
 		} front, back;
 
 		ResourceId state;
@@ -240,6 +241,10 @@ struct VulkanPipelineState
 		{
 			ResourceId obj;
 			// VKTODOMED renderpass and subpass information here
+			
+			rdctype::array<uint32_t> inputAttachments;
+			rdctype::array<uint32_t> colorAttachments;
+			int32_t depthstencilAttachment;
 		} renderpass;
 
 		struct Framebuffer

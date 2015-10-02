@@ -117,6 +117,7 @@ class ImageViewer : public IReplayDriver
 		FetchBuffer GetBuffer(ResourceId id) { FetchBuffer ret; RDCEraseEl(ret); return ret; }
 		void SavePipelineState() {}
 		GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
+		VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
 		void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv) {}
 		void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType) {}
 		vector<EventUsage> GetUsage(ResourceId id) { return vector<EventUsage>(); }

@@ -151,6 +151,16 @@ struct VulkanCreationInfo
 		uint32_t stencilBackRef;
 	};
 	map<ResourceId, DepthStencil> m_DepthStencil;
+	
+	struct RenderPass
+	{
+		void Init(const VkRenderPassCreateInfo* pCreateInfo);
+
+		vector<uint32_t> inputAttachments;
+		vector<uint32_t> colorAttachments;
+		int32_t depthstencilAttachment;
+	};
+	map<ResourceId, RenderPass> m_RenderPass;
 
 	struct Framebuffer
 	{
