@@ -1009,6 +1009,153 @@ void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *gl, void *wndHan
 	windows[wndHandle] = Timing::GetUnixTimestamp();
 }
 
+void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
+{
+	// to let us display the overlay on old GL contexts, use as simple a subset of functionality as possible
+	// to upload the texture. VAO and shaders are used optionally on modern contexts, otherwise we fall back
+	// to immediate mode rendering by hand
+	if(gl.glGetIntegerv && gl.glGenTextures && gl.glBindTexture && gl.glTexImage2D && gl.glTexParameteri)
+	{
+		string ttfstring = GetEmbeddedResource(sourcecodepro_ttf);
+		byte *ttfdata = (byte *)ttfstring.c_str();
+
+		byte *buf = new byte[FONT_TEX_WIDTH * FONT_TEX_HEIGHT];
+
+		stbtt_BakeFontBitmap(ttfdata, 0, charPixelHeight, buf, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, firstChar, numChars, chardata);
+
+		CharSize = charPixelHeight;
+		CharAspect = chardata->xadvance / charPixelHeight;
+
+		stbtt_fontinfo f = {0};
+		stbtt_InitFont(&f, ttfdata, 0);
+
+		int ascent = 0;
+		stbtt_GetFontVMetrics(&f, &ascent, NULL, NULL);
+
+		float maxheight = float(ascent)*stbtt_ScaleForPixelHeight(&f, charPixelHeight);
+
+		{
+			GLuint curtex = 0;
+			gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curtex);
+
+			GLenum texFmt = eGL_R8;
+			if(Legacy())
+				texFmt = eGL_LUMINANCE;
+
+			gl.glGenTextures(1, &GlyphTexture);
+			gl.glBindTexture(eGL_TEXTURE_2D, GlyphTexture);
+			gl.glTexImage2D(eGL_TEXTURE_2D, 0, texFmt, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, 0, eGL_RED, eGL_UNSIGNED_BYTE, buf);
+			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
+			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
+
+			gl.glBindTexture(eGL_TEXTURE_2D, curtex);
+		}
+
+		delete[] buf;
+
+		Vec4f glyphData[2*(numChars+1)];
+
+		for(int i=0; i < numChars; i++)
+		{
+			stbtt_bakedchar *b = chardata+i;
+
+			float x = b->xoff;
+			float y = b->yoff + maxheight;
+
+			glyphData[(i+1)*2 + 0] = Vec4f(x/b->xadvance, y/charPixelHeight, b->xadvance/float(b->x1 - b->x0), charPixelHeight/float(b->y1 - b->y0));
+			glyphData[(i+1)*2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
+		}
+
+		if(Modern() && gl.glGenVertexArrays && gl.glBindVertexArray)
+		{
+			GLuint curvao = 0;
+			gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&curvao);
+
+			gl.glGenVertexArrays(1, &DummyVAO);
+			gl.glBindVertexArray(DummyVAO);
+
+			gl.glBindVertexArray(curvao);
+		}
+
+		if(Modern() && gl.glGenBuffers && gl.glBufferData && gl.glBindBuffer)
+		{
+			GLuint curubo = 0;
+			gl.glGetIntegerv(eGL_UNIFORM_BUFFER_BINDING, (GLint *)&curubo);
+
+			gl.glGenBuffers(1, &GlyphUBO);
+			gl.glBindBuffer(eGL_UNIFORM_BUFFER, GlyphUBO);
+			gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(glyphData), glyphData, eGL_STATIC_DRAW);
+
+			gl.glGenBuffers(1, &GeneralUBO);
+			gl.glBindBuffer(eGL_UNIFORM_BUFFER, GeneralUBO);
+			gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(FontUniforms), NULL, eGL_DYNAMIC_DRAW);
+
+			gl.glGenBuffers(1, &StringUBO);
+			gl.glBindBuffer(eGL_UNIFORM_BUFFER, StringUBO);
+			gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(uint32_t)*4*FONT_MAX_CHARS, NULL, eGL_DYNAMIC_DRAW);
+
+			gl.glBindBuffer(eGL_UNIFORM_BUFFER, curubo);
+		}
+
+		if(Modern() &&
+			gl.glCreateShader && gl.glShaderSource && gl.glCompileShader && gl.glGetShaderiv && gl.glGetShaderInfoLog && gl.glDeleteShader &&
+			gl.glCreateProgram && gl.glAttachShader && gl.glLinkProgram && gl.glGetProgramiv && gl.glGetProgramInfoLog)
+		{
+			string textvs = "#version 420 core\n\n";
+			textvs += GetEmbeddedResource(debuguniforms_h);
+			textvs += GetEmbeddedResource(text_vert);
+			string textfs = GetEmbeddedResource(text_frag);
+
+			GLuint vs = gl.glCreateShader(eGL_VERTEX_SHADER);
+			GLuint fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
+
+			const char *src = textvs.c_str();
+			gl.glShaderSource(vs, 1, &src, NULL);
+			src = textfs.c_str();
+			gl.glShaderSource(fs, 1, &src, NULL);
+
+			gl.glCompileShader(vs);
+			gl.glCompileShader(fs);
+
+			char buffer[1024] = {0};
+			GLint status = 0;
+
+			gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
+			if(status == 0)
+			{
+				gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
+				RDCERR("Shader error: %s", buffer);
+			}
+
+			gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
+			if(status == 0)
+			{
+				gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
+				RDCERR("Shader error: %s", buffer);
+			}
+
+			Program = gl.glCreateProgram();
+
+			gl.glAttachShader(Program, vs);
+			gl.glAttachShader(Program, fs);
+
+			gl.glLinkProgram(Program);
+
+			gl.glGetProgramiv(Program, eGL_LINK_STATUS, &status);
+			if(status == 0)
+			{
+				gl.glGetProgramInfoLog(Program, 1024, NULL, buffer);
+				RDCERR("Link error: %s", buffer);
+			}
+
+			gl.glDeleteShader(vs);
+			gl.glDeleteShader(fs);
+		}
+
+		ready = true;
+	}
+}
+
 void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core, bool attribsCreate)
 {
 	// TODO: support multiple GL contexts more explicitly
@@ -1145,150 +1292,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 					GLIsCore = ctxdata.isCore;
 					DoVendorChecks(gl, winData);
 				}
-			}
-
-			// to let us display the overlay on old GL contexts, use as simple a subset of functionality as possible
-			// to upload the texture. VAO and shaders are used optionally on modern contexts, otherwise we fall back
-			// to immediate mode rendering by hand
-			if(gl.glGetIntegerv && gl.glGenTextures && gl.glBindTexture && gl.glTexImage2D && gl.glTexParameteri)
-			{
-				string ttfstring = GetEmbeddedResource(sourcecodepro_ttf);
-				byte *ttfdata = (byte *)ttfstring.c_str();
-
-				byte *buf = new byte[FONT_TEX_WIDTH * FONT_TEX_HEIGHT];
-
-				stbtt_BakeFontBitmap(ttfdata, 0, charPixelHeight, buf, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, firstChar, numChars, chardata);
-
-				ctxdata.CharSize = charPixelHeight;
-				ctxdata.CharAspect = chardata->xadvance / charPixelHeight;
-
-				stbtt_fontinfo f = {0};
-				stbtt_InitFont(&f, ttfdata, 0);
-
-				int ascent = 0;
-				stbtt_GetFontVMetrics(&f, &ascent, NULL, NULL);
-
-				float maxheight = float(ascent)*stbtt_ScaleForPixelHeight(&f, charPixelHeight);
-
-				{
-					GLuint curtex = 0;
-					gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curtex);
-
-					GLenum texFmt = eGL_R8;
-					if(ctxdata.Legacy())
-						texFmt = eGL_LUMINANCE;
-
-					gl.glGenTextures(1, &ctxdata.GlyphTexture);
-					gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
-					gl.glTexImage2D(eGL_TEXTURE_2D, 0, texFmt, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, 0, eGL_RED, eGL_UNSIGNED_BYTE, buf);
-					gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
-					gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
-
-					gl.glBindTexture(eGL_TEXTURE_2D, curtex);
-				}
-
-				delete[] buf;
-
-				Vec4f glyphData[2*(numChars+1)];
-
-				for(int i=0; i < numChars; i++)
-				{
-					stbtt_bakedchar *b = chardata+i;
-
-					float x = b->xoff;
-					float y = b->yoff + maxheight;
-
-					glyphData[(i+1)*2 + 0] = Vec4f(x/b->xadvance, y/charPixelHeight, b->xadvance/float(b->x1 - b->x0), charPixelHeight/float(b->y1 - b->y0));
-					glyphData[(i+1)*2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
-				}
-
-				if(ctxdata.Modern() && gl.glGenVertexArrays && gl.glBindVertexArray)
-				{
-					GLuint curvao = 0;
-					gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&curvao);
-
-					gl.glGenVertexArrays(1, &ctxdata.DummyVAO);
-					gl.glBindVertexArray(ctxdata.DummyVAO);
-
-					gl.glBindVertexArray(curvao);
-				}
-
-				if(ctxdata.Modern() && gl.glGenBuffers && gl.glBufferData && gl.glBindBuffer)
-				{
-					GLuint curubo = 0;
-					gl.glGetIntegerv(eGL_UNIFORM_BUFFER_BINDING, (GLint *)&curubo);
-
-					gl.glGenBuffers(1, &ctxdata.GlyphUBO);
-					gl.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.GlyphUBO);
-					gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(glyphData), glyphData, eGL_STATIC_DRAW);
-
-					gl.glGenBuffers(1, &ctxdata.GeneralUBO);
-					gl.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.GeneralUBO);
-					gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(FontUniforms), NULL, eGL_DYNAMIC_DRAW);
-
-					gl.glGenBuffers(1, &ctxdata.StringUBO);
-					gl.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.StringUBO);
-					gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(uint32_t)*4*FONT_MAX_CHARS, NULL, eGL_DYNAMIC_DRAW);
-
-					gl.glBindBuffer(eGL_UNIFORM_BUFFER, curubo);
-				}
-
-				if(ctxdata.Modern() &&
-					gl.glCreateShader && gl.glShaderSource && gl.glCompileShader && gl.glGetShaderiv && gl.glGetShaderInfoLog && gl.glDeleteShader &&
-					gl.glCreateProgram && gl.glAttachShader && gl.glLinkProgram && gl.glGetProgramiv && gl.glGetProgramInfoLog)
-				{
-					string textvs = "#version 420 core\n\n";
-					textvs += GetEmbeddedResource(debuguniforms_h);
-					textvs += GetEmbeddedResource(text_vert);
-					string textfs = GetEmbeddedResource(text_frag);
-
-					GLuint vs = gl.glCreateShader(eGL_VERTEX_SHADER);
-					GLuint fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
-
-					const char *src = textvs.c_str();
-					gl.glShaderSource(vs, 1, &src, NULL);
-					src = textfs.c_str();
-					gl.glShaderSource(fs, 1, &src, NULL);
-
-					gl.glCompileShader(vs);
-					gl.glCompileShader(fs);
-
-					char buffer[1024] = {0};
-					GLint status = 0;
-
-					gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
-					if(status == 0)
-					{
-						gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
-						RDCERR("Shader error: %s", buffer);
-					}
-
-					gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
-					if(status == 0)
-					{
-						gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
-						RDCERR("Shader error: %s", buffer);
-					}
-
-					ctxdata.Program = gl.glCreateProgram();
-
-					gl.glAttachShader(ctxdata.Program, vs);
-					gl.glAttachShader(ctxdata.Program, fs);
-
-					gl.glLinkProgram(ctxdata.Program);
-
-					gl.glGetProgramiv(ctxdata.Program, eGL_LINK_STATUS, &status);
-					if(status == 0)
-					{
-						gl.glGetProgramInfoLog(ctxdata.Program, 1024, NULL, buffer);
-						RDCERR("Link error: %s", buffer);
-					}
-
-					gl.glDeleteShader(vs);
-					gl.glDeleteShader(fs);
-				}
-
-				ctxdata.ready = true;
 			}
 		}
 	}
@@ -2020,6 +2023,12 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 
 		ctxdata.AssociateWindow(this, windowHandle);
 	}
+
+	// do this as late as possible to avoid creating objects on contexts
+	// that might be shared later (wglShareLists requires contexts to be
+	// pristine, so can't create this from wglMakeCurrent)
+	if(!ctxdata.ready)
+		ctxdata.CreateDebugData(m_Real);
 	
 	bool activeWindow = RenderDoc::Inst().IsActiveWindow(ctxdata.ctx, windowHandle);
 	

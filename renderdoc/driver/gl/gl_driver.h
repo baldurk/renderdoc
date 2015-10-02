@@ -370,6 +370,8 @@ class WrappedOpenGL : public IFrameCapturer
 			// contexts to let them know to remove it
 			void UnassociateWindow(void *wndHandle);
 			void AssociateWindow(WrappedOpenGL *gl, void *wndHandle);
+		
+			void CreateDebugData(const GLHookSet &gl);
 
 			bool Legacy() { return !attribsCreate || version < 32; }
 			bool Modern() { return !Legacy(); }
