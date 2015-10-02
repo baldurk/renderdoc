@@ -160,7 +160,7 @@ void VulkanCreationInfo::RenderPass::Init(const VkRenderPassCreateInfo* pCreateI
 	for(uint32_t i=0; i < subp.colorCount; i++)
 		colorAttachments[i] = subp.colorAttachments[i].attachment;
 	
-	depthstencilAttachment = (subp.depthStencilAttachment.attachment == VK_ATTACHMENT_UNUSED
+	depthstencilAttachment = (subp.depthStencilAttachment.attachment != VK_ATTACHMENT_UNUSED
 		? (int32_t)subp.depthStencilAttachment.attachment : -1);
 }
 
