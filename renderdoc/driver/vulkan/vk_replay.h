@@ -55,7 +55,7 @@
 using std::map;
 
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the debugbreak.
-#define VULKANNOTIMP(...) RDCDEBUG("Vulkan not implemented - " __VA_ARGS__)
+#define VULKANNOTIMP(...) do { static bool msgprinted = false; if(!msgprinted) RDCDEBUG("Vulkan not implemented - " __VA_ARGS__); msgprinted = true; } while(0)
 
 class WrappedVulkan;
 class VulkanDebugManager;
