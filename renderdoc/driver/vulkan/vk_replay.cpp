@@ -1307,6 +1307,15 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId id)
 		return NULL;
 	}
 
+	// disassemble lazily on demand
+	if(it->second.refl.Disassembly.count == 0)
+	{
+		if(m_pDriver->m_ShaderModuleInfo[it->second.module].spirv.m_Disassembly.empty())
+			m_pDriver->m_ShaderModuleInfo[it->second.module].spirv.Disassemble();
+
+		it->second.refl.Disassembly = m_pDriver->m_ShaderModuleInfo[it->second.module].spirv.m_Disassembly;
+	}
+
 	return &it->second.refl;
 }
 
