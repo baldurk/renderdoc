@@ -1043,6 +1043,7 @@ struct SPVModule
 
 	vector<SPVInstruction*> ids; // pointers indexed by ID
 
+	vector<SPVInstruction*> sourceexts; // source extensions
 	vector<SPVInstruction*> entries; // entry points
 	vector<SPVInstruction*> globals; // global variables
 	vector<SPVInstruction*> funcs; // functions
@@ -1089,6 +1090,12 @@ struct SPVModule
 
 		disasm += StringFormat::Fmt("Version %u, Generator %08x (%s)\n", moduleVersion, generator, gen);
 		disasm += StringFormat::Fmt("IDs up to {%u}\n", (uint32_t)ids.size());
+
+		disasm += "\n";
+
+		disasm += StringFormat::Fmt("Source is %s %u\n", ToStr::Get(source.lang).c_str(), source.ver);
+		for(size_t s=0; s < sourceexts.size(); s++)
+			disasm += StringFormat::Fmt(" + %s\n", sourceexts[s]->str.c_str());
 
 		disasm += "\n";
 
@@ -1629,6 +1636,11 @@ struct SPVModule
 						disasm += funcops[o]->Disassemble(ids, false) + ";\n";
 					}
 				}
+				else if(funcops[o]->opcode == spv::OpReturn && o == funcops.size()-1)
+				{
+					// don't print the return statement if it's the last statement in a function
+					break;
+				}
 				else
 				{
 					disasm += string(indent, ' ');
@@ -1719,6 +1731,12 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				module.source.ver = spirv[it+2];
 				break;
 			}
+			case spv::OpSourceExtension:
+			{
+				op.str = (const char *)&spirv[it+1];
+				module.sourceexts.push_back(&op);
+				break;
+			}
 			case spv::OpMemoryModel:
 			{
 				module.model.addr = spv::AddressingModel(spirv[it+1]);
@@ -1749,11 +1767,6 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
-				break;
-			}
-			case spv::OpSourceExtension:
-			{
-				op.str = (const char *)&spirv[it+1];
 				break;
 			}
 			case spv::OpString:
