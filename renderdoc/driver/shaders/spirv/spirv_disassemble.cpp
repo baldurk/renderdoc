@@ -275,7 +275,7 @@ struct SPVTypeData
 
 struct SPVOperation
 {
-	SPVOperation() : type(NULL), complexity(0), inlineArgs(0) {}
+	SPVOperation() : type(NULL), access(spv::MemoryAccessMaskNone), funcCall(0), complexity(0), mathop(false), inlineArgs(0) {}
 
 	SPVTypeData *type;
 
@@ -292,6 +292,11 @@ struct SPVOperation
 	// can combine multiple statements into one line when displaying the
 	// disassembly.
 	int complexity;
+
+	// if this operation will be of the form 'a + b', we need to be sure
+	// to bracket any arguments that are mathops in nested expressions,
+	// to make order of operations clear.
+	bool mathop;
 
 	// bitfield indicating which arguments should be inlined
 	uint32_t inlineArgs;
@@ -822,39 +827,75 @@ struct SPVInstruction
 
 				return ret;
 			}
-			case spv::OpIAdd:
-			case spv::OpIMul:
-			case spv::OpFAdd:
-			case spv::OpFMul:
-			case spv::OpVectorTimesScalar:
-			case spv::OpMatrixTimesVector:
-			case spv::OpSLessThan:
+			case spv::OpFNegate:
 			{
+				// unary math operation
 				RDCASSERT(op);
 
 				char c = '?';
 				switch(opcode)
 				{
-				case spv::OpIAdd:
-				case spv::OpFAdd:
-					c = '+';
-					break;
-				case spv::OpIMul:
-				case spv::OpFMul:
-				case spv::OpVectorTimesScalar:
-				case spv::OpMatrixTimesVector:
-					c = '*';
-					break;
-				case spv::OpSLessThan:
-					c = '<';
-					break;
-				default:
-					break;
+					case spv::OpFNegate:
+						c = '-';
+						break;
+					default:
+						break;
+				}
+
+				string a;
+				op->GetArg(ids, 0, a);
+
+				if(op->arguments[0]->op && op->arguments[0]->op->mathop)
+					a = "(" + a + ")";
+
+				if(inlineOp)
+					return StringFormat::Fmt("%c%s", c, a.c_str());
+
+				return StringFormat::Fmt("%s %s = %c%s", op->type->GetName().c_str(), GetIDName().c_str(), c, a.c_str());
+			}
+			case spv::OpIAdd:
+			case spv::OpIMul:
+			case spv::OpFAdd:
+			case spv::OpFMul:
+			case spv::OpFDiv:
+			case spv::OpVectorTimesScalar:
+			case spv::OpMatrixTimesVector:
+			case spv::OpSLessThan:
+			{
+				// binary math operation
+				RDCASSERT(op);
+
+				char c = '?';
+				switch(opcode)
+				{
+					case spv::OpIAdd:
+					case spv::OpFAdd:
+						c = '+';
+						break;
+					case spv::OpIMul:
+					case spv::OpFMul:
+					case spv::OpVectorTimesScalar:
+					case spv::OpMatrixTimesVector:
+						c = '*';
+						break;
+					case spv::OpSLessThan:
+						c = '<';
+						break;
+					case spv::OpFDiv:
+						c = '/';
+						break;
+					default:
+						break;
 				}
 
 				string a, b;
 				op->GetArg(ids, 0, a);
 				op->GetArg(ids, 1, b);
+
+				if(op->arguments[0]->op && op->arguments[0]->op->mathop)
+					a = "(" + a + ")";
+				if(op->arguments[1]->op && op->arguments[1]->op->mathop)
+					b = "(" + b + ")";
 
 				if(inlineOp)
 					return StringFormat::Fmt("%s %c %s", a.c_str(), c, b.c_str());
@@ -1561,6 +1602,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 		op.opcode = spv::Op(spirv[it]&0xffff);
 
+		bool mathop = false;
+
 		switch(op.opcode)
 		{
 			//////////////////////////////////////////////////////////////////////
@@ -2147,20 +2190,24 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			//////////////////////////////////////////////////////////////////////
 			// Easy to handle opcodes with just some number of ID parameters
-			case spv::OpAccessChain:
 			case spv::OpIAdd:
 			case spv::OpIMul:
 			case spv::OpFAdd:
 			case spv::OpFMul:
+			case spv::OpFDiv:
 			case spv::OpVectorTimesScalar:
 			case spv::OpMatrixTimesVector:
 			case spv::OpSLessThan:
+			case spv::OpFNegate:
+				mathop = true; // deliberate fallthrough
+			case spv::OpAccessChain:
 			{
 				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.op = new SPVOperation();
 				op.op->type = typeInst->type;
+				op.op->mathop = mathop;
 				
 				for(int i=3; i < WordCount; i++)
 				{
