@@ -29,6 +29,8 @@
 
 #include "spirv_common.h"
 
+#include "api/replay/renderdoc_replay.h"
+
 #include <utility>
 #include <algorithm>
 using std::pair;
@@ -83,6 +85,40 @@ struct SPVDecoration
 	spv::Decoration decoration;
 
 	uint32_t val;
+
+	string Str() const
+	{
+		switch(decoration)
+		{
+			case spv::DecorationRowMajor:
+			case spv::DecorationColMajor:
+			case spv::DecorationPrecisionLow:
+			case spv::DecorationPrecisionMedium:
+			case spv::DecorationPrecisionHigh:
+			case spv::DecorationSmooth:
+			case spv::DecorationNoperspective:
+			case spv::DecorationFlat:
+			case spv::DecorationCentroid:
+			case spv::DecorationGLSLShared:
+			case spv::DecorationBlock:
+			case spv::DecorationNoStaticUse:
+				return ToStr::Get(decoration);
+			case spv::DecorationStride:
+				return StringFormat::Fmt("Stride=%u", val);
+			case spv::DecorationLocation:
+				return StringFormat::Fmt("Location=%u", val);
+			case spv::DecorationBinding:
+				return StringFormat::Fmt("Bind=%u", val);
+			case spv::DecorationDescriptorSet:
+				return StringFormat::Fmt("DescSet=%u", val);
+			case spv::DecorationBuiltIn:
+				return StringFormat::Fmt("Builtin %s", ToStr::Get((spv::BuiltIn)val).c_str());
+			case spv::DecorationSpecId:
+				return StringFormat::Fmt("Specialize[%u]", ToStr::Get(decoration).c_str(), val);
+		}
+
+		return StringFormat::Fmt("%s=%u", ToStr::Get(decoration).c_str(), val);
+	}
 };
 
 struct SPVExtInstSet
@@ -142,12 +178,31 @@ struct SPVTypeData
 		return type == eUInt || type == eSInt;
 	}
 
-	string DeclareVariable(const string &varName)
+	string DeclareVariable(const vector<SPVDecoration> &decorations, const string &varName)
 	{
-		if(type == eArray)
-			return StringFormat::Fmt("%s %s[%u]", baseType->GetName().c_str(), varName.c_str(), arraySize);
+		string ret = "";
 
-		return StringFormat::Fmt("%s %s", GetName().c_str(), varName.c_str());
+		const SPVDecoration *builtin = NULL;
+
+		for(size_t d=0; d < decorations.size(); d++)
+		{
+			if(decorations[d].decoration == spv::DecorationBuiltIn)
+			{
+				builtin = &decorations[d];
+				continue;
+			}
+			ret += decorations[d].Str() + " ";
+		}
+
+		if(type == eArray)
+			ret += StringFormat::Fmt("%s %s[%u]", baseType->GetName().c_str(), varName.c_str(), arraySize);
+		else
+			ret += StringFormat::Fmt("%s %s", GetName().c_str(), varName.c_str());
+
+		if(builtin)
+			ret += " = " + ToStr::Get((spv::BuiltIn)builtin->val);
+
+		return ret;
 	}
 
 	const string &GetName()
@@ -748,6 +803,7 @@ struct SPVInstruction
 			case spv::OpFAdd:
 			case spv::OpFMul:
 			case spv::OpVectorTimesScalar:
+			case spv::OpMatrixTimesVector:
 			case spv::OpSLessThan:
 			{
 				RDCASSERT(op);
@@ -762,6 +818,7 @@ struct SPVInstruction
 				case spv::OpIMul:
 				case spv::OpFMul:
 				case spv::OpVectorTimesScalar:
+				case spv::OpMatrixTimesVector:
 					c = '*';
 					break;
 				case spv::OpSLessThan:
@@ -929,7 +986,7 @@ struct SPVModule
 				if(varName.empty())
 					varName = StringFormat::Fmt("member%u", c);
 
-				disasm += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(varName).c_str());
+				disasm += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(member.first->decorations, varName).c_str());
 			}
 			disasm += StringFormat::Fmt("}; // struct %s\n", structs[i]->type->GetName().c_str());
 		}
@@ -939,7 +996,7 @@ struct SPVModule
 		for(size_t i=0; i < globals.size(); i++)
 		{
 			RDCASSERT(globals[i]->var && globals[i]->var->type);
-			disasm += StringFormat::Fmt("%s %s %s;\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->GetName().c_str(), globals[i]->str.c_str());
+			disasm += StringFormat::Fmt("%s %s;\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->DeclareVariable(globals[i]->decorations, globals[i]->str).c_str());
 		}
 
 		disasm += "\n";
@@ -1522,6 +1579,11 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
+			case spv::OpSourceExtension:
+			{
+				op.str = (const char *)&spirv[it+1];
+				break;
+			}
 			case spv::OpString:
 			{
 				op.str = (const char *)&spirv[it+2];
@@ -1580,6 +1642,24 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 				op.type->baseType = baseTypeInst->type;
 				op.type->vectorSize = spirv[it+3];
+				
+				op.id = spirv[it+1];
+				module.ids[spirv[it+1]] = &op;
+				break;
+			}
+			case spv::OpTypeMatrix:
+			{
+				op.type = new SPVTypeData();
+				op.type->type = SPVTypeData::eMatrix;
+
+				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+2]);
+				RDCASSERT(baseTypeInst && baseTypeInst->type);
+
+				RDCASSERT(baseTypeInst->type->type == SPVTypeData::eVector);
+
+				op.type->baseType = baseTypeInst->type->baseType;
+				op.type->vectorSize = baseTypeInst->type->vectorSize;
+				op.type->matrixSize = spirv[it+3];
 				
 				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
@@ -2049,6 +2129,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			case spv::OpFAdd:
 			case spv::OpFMul:
 			case spv::OpVectorTimesScalar:
+			case spv::OpMatrixTimesVector:
 			case spv::OpSLessThan:
 			{
 				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
@@ -2161,6 +2242,24 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				break;
 			}
 			case spv::OpMemberDecorate:
+			{
+				SPVInstruction *structInst = module.GetByID(spirv[it+1]);
+				RDCASSERT(structInst && structInst->type && structInst->type->type == SPVTypeData::eStruct);
+
+				uint32_t memberIdx = spirv[it+2];
+				RDCASSERT(memberIdx < structInst->type->children.size());
+
+				SPVDecoration d;
+				d.decoration = spv::Decoration(spirv[it+3]);
+				
+				// TODO this isn't enough for all decorations
+				RDCASSERT(WordCount <= 5);
+				if(WordCount > 4)
+					d.val = spirv[it+4];
+
+				structInst->type->children[memberIdx].first->decorations.push_back(d);
+				break;
+			}
 			case spv::OpGroupDecorate:
 			case spv::OpGroupMemberDecorate:
 			case spv::OpDecorationGroup:
@@ -2485,7 +2584,7 @@ string ToStrHelper<false, spv::SourceLanguage>::Get(const spv::SourceLanguage &e
 		default: break;
 	}
 	
-	return "Unrecognised";
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
 
 template<>
@@ -2499,7 +2598,7 @@ string ToStrHelper<false, spv::AddressingModel>::Get(const spv::AddressingModel 
 		default: break;
 	}
 	
-	return "Unrecognised";
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
 
 template<>
@@ -2513,7 +2612,7 @@ string ToStrHelper<false, spv::MemoryModel>::Get(const spv::MemoryModel &el)
 		default: break;
 	}
 	
-	return "Unrecognised";
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
 
 template<>
@@ -2531,7 +2630,7 @@ string ToStrHelper<false, spv::ExecutionModel>::Get(const spv::ExecutionModel &e
 		default: break;
 	}
 	
-	return "Unrecognised";
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
 
 template<>
@@ -2589,7 +2688,7 @@ string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
 	}
 #endif
 	
-	return "Unrecognised";
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
 
 template<>
@@ -2613,7 +2712,91 @@ string ToStrHelper<false, spv::StorageClass>::Get(const spv::StorageClass &el)
 	}
 #endif
 	
-	return "Unrecognised";
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+}
+
+SystemAttribute BuiltInToSystemAttribute(const spv::BuiltIn el)
+{
+	// not complete, might need to expand system attribute list
+
+	switch(el)
+	{
+		case spv::BuiltInPosition:                         return eAttr_Position;
+		case spv::BuiltInPointSize:                        return eAttr_PointSize;
+		case spv::BuiltInClipDistance:                     return eAttr_ClipDistance;
+		case spv::BuiltInCullDistance:                     return eAttr_CullDistance;
+		case spv::BuiltInVertexId:                         return eAttr_VertexIndex;
+		case spv::BuiltInInstanceId:                       return eAttr_InstanceIndex;
+		case spv::BuiltInPrimitiveId:                      return eAttr_PrimitiveIndex;
+		case spv::BuiltInInvocationId:                     return eAttr_InvocationIndex;
+		case spv::BuiltInLayer:                            return eAttr_RTIndex;
+		case spv::BuiltInViewportIndex:                    return eAttr_ViewportIndex;
+		case spv::BuiltInTessLevelOuter:                   return eAttr_OuterTessFactor;
+		case spv::BuiltInTessLevelInner:                   return eAttr_InsideTessFactor;
+		case spv::BuiltInPatchVertices:                    return eAttr_PatchNumVertices;
+		case spv::BuiltInFrontFacing:                      return eAttr_IsFrontFace;
+		case spv::BuiltInSampleId:                         return eAttr_MSAASampleIndex;
+		case spv::BuiltInSamplePosition:                   return eAttr_MSAASamplePosition;
+		case spv::BuiltInSampleMask:                       return eAttr_MSAACoverage;
+		case spv::BuiltInFragColor:                        return eAttr_ColourOutput;
+		case spv::BuiltInFragDepth:                        return eAttr_DepthOutput;
+		default: break;
+	}
+	
+	return eAttr_None;
+}
+
+template<>
+string ToStrHelper<false, spv::BuiltIn>::Get(const spv::BuiltIn &el)
+{
+	switch(el)
+	{
+		case spv::BuiltInPosition:                         return "Position";
+		case spv::BuiltInPointSize:                        return "PointSize";
+		case spv::BuiltInClipVertex:                       return "ClipVertex";
+		case spv::BuiltInClipDistance:                     return "ClipDistance";
+		case spv::BuiltInCullDistance:                     return "CullDistance";
+		case spv::BuiltInVertexId:                         return "VertexId";
+		case spv::BuiltInInstanceId:                       return "InstanceId";
+		case spv::BuiltInPrimitiveId:                      return "PrimitiveId";
+		case spv::BuiltInInvocationId:                     return "InvocationId";
+		case spv::BuiltInLayer:                            return "Layer";
+		case spv::BuiltInViewportIndex:                    return "ViewportIndex";
+		case spv::BuiltInTessLevelOuter:                   return "TessLevelOuter";
+		case spv::BuiltInTessLevelInner:                   return "TessLevelInner";
+		case spv::BuiltInTessCoord:                        return "TessCoord";
+		case spv::BuiltInPatchVertices:                    return "PatchVertices";
+		case spv::BuiltInFragCoord:                        return "FragCoord";
+		case spv::BuiltInPointCoord:                       return "PointCoord";
+		case spv::BuiltInFrontFacing:                      return "FrontFacing";
+		case spv::BuiltInSampleId:                         return "SampleId";
+		case spv::BuiltInSamplePosition:                   return "SamplePosition";
+		case spv::BuiltInSampleMask:                       return "SampleMask";
+		case spv::BuiltInFragColor:                        return "FragColor";
+		case spv::BuiltInFragDepth:                        return "FragDepth";
+		case spv::BuiltInHelperInvocation:                 return "HelperInvocation";
+		case spv::BuiltInNumWorkgroups:                    return "NumWorkgroups";
+		case spv::BuiltInWorkgroupSize:                    return "WorkgroupSize";
+		case spv::BuiltInWorkgroupId:                      return "WorkgroupId";
+		case spv::BuiltInLocalInvocationId:                return "LocalInvocationId";
+		case spv::BuiltInGlobalInvocationId:               return "GlobalInvocationId";
+		case spv::BuiltInLocalInvocationIndex:             return "LocalInvocationIndex";
+		case spv::BuiltInWorkDim:                          return "WorkDim";
+		case spv::BuiltInGlobalSize:                       return "GlobalSize";
+		case spv::BuiltInEnqueuedWorkgroupSize:            return "EnqueuedWorkgroupSize";
+		case spv::BuiltInGlobalOffset:                     return "GlobalOffset";
+		case spv::BuiltInGlobalLinearId:                   return "GlobalLinearId";
+		case spv::BuiltInWorkgroupLinearId:                return "WorkgroupLinearId";
+		case spv::BuiltInSubgroupSize:                     return "SubgroupSize";
+		case spv::BuiltInSubgroupMaxSize:                  return "SubgroupMaxSize";
+		case spv::BuiltInNumSubgroups:                     return "NumSubgroups";
+		case spv::BuiltInNumEnqueuedSubgroups:             return "NumEnqueuedSubgroups";
+		case spv::BuiltInSubgroupId:                       return "SubgroupId";
+		case spv::BuiltInSubgroupLocalInvocationId:        return "SubgroupLocalInvocationId";
+		default: break;
+	}
+	
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
 
 template<>
