@@ -335,19 +335,41 @@ namespace renderdocui.Windows.PipelineState
                 int i = 0;
                 foreach (var a in state.VI.attrs)
                 {
+                    bool filledSlot = true;
+                    bool usedSlot = false;
+
+                    string name = String.Format("Attribute {0}", i);
+
+                    if (state.VS.Shader != ResourceId.Null)
+                    {
+                        int attrib = state.VS.BindpointMapping.InputAttributes[a.location];
+
+                        if (attrib >= 0 && attrib < state.VS.ShaderDetails.InputSig.Length)
+                        {
+                            name = state.VS.ShaderDetails.InputSig[attrib].varName;
+                            usedSlot = true;
+                        }
+                    }
+                    
+                    // show if
+                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                        )
+                    {
+                        var node = viAttrs.Nodes.Add(new object[] {
+                                              i, name, a.location, a.binding, a.format, a.byteoffset });
+
+                        usedBindings[a.binding] = true;
+
+                        node.Image = global::renderdocui.Properties.Resources.action;
+                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+
+                        if (!usedSlot)
+                            InactiveRow(node);
+                    }
+
                     i++;
-
-                    var node = viAttrs.Nodes.Add(new object[] {
-                                              i, String.Format("attr{0}", i),
-                                              a.location, a.binding, a.format, a.byteoffset });
-
-                    usedBindings[a.binding] = true;
-
-                    node.Image = global::renderdocui.Properties.Resources.action;
-                    node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-
-                    // VKTODOMED use shader reflection to see if this attribute is used
-                    //InactiveRow(node);
                 }
             }
             viAttrs.NodesSelection.Clear();

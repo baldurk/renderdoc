@@ -1751,7 +1751,211 @@ SystemAttribute BuiltInToSystemAttribute(const spv::BuiltIn el)
 	return eAttr_None;
 }
 
-void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module, ShaderReflection *reflection)
+void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapping *mapping)
+{
+	vector<SigParameter> inputs;
+	vector<SigParameter> outputs;
+	vector<ConstantBlock> cblocks; vector<BindpointMap> cblockmap;
+	vector<ShaderResource> resources; vector<BindpointMap> resmap;
+
+	create_array_uninit(mapping->InputAttributes, 16);
+	for(size_t i=0; i < 16; i++) mapping->InputAttributes[i] = -1;
+
+	// TODO need to fetch these
+	reflection->DispatchThreadsDimension[0] = 0;
+	reflection->DispatchThreadsDimension[1] = 0;
+	reflection->DispatchThreadsDimension[2] = 0;
+
+	for(size_t i=0; i < globals.size(); i++)
+	{
+		SPVInstruction *inst = globals[i];
+		if(inst->var->storage == spv::StorageClassInput || inst->var->storage == spv::StorageClassOutput)
+		{
+			vector<SigParameter> *sigarray = (inst->var->storage == spv::StorageClassInput ? &inputs : &outputs);
+
+			SigParameter sig;
+
+			string nm = inst->str.empty() ? StringFormat::Fmt("sig%u", inst->id) : inst->str;
+
+			sig.varName = nm;
+			sig.semanticIndex = 0;
+			sig.needSemanticIndex = false;
+
+			bool rowmajor = true;
+
+			sig.regIndex = 0;
+			for(size_t d=0; d < inst->decorations.size(); d++)
+			{
+				if(inst->decorations[d].decoration == spv::DecorationLocation)
+					sig.regIndex = inst->decorations[d].val;
+				else if(inst->decorations[d].decoration == spv::DecorationBuiltIn)
+					sig.systemValue = BuiltInToSystemAttribute((spv::BuiltIn)inst->decorations[d].val);
+				else if(inst->decorations[d].decoration == spv::DecorationRowMajor)
+					rowmajor = true;
+				else if(inst->decorations[d].decoration == spv::DecorationColMajor)
+					rowmajor = false;
+			}
+
+			RDCASSERT(sig.regIndex < 16);
+
+			SPVTypeData *type = inst->var->type;
+			if(type->type == SPVTypeData::ePointer)
+				type = type->baseType;
+
+			switch(type->baseType ? type->baseType->type : type->type)
+			{
+				case SPVTypeData::eBool:
+				case SPVTypeData::eUInt:
+					sig.compType = eCompType_UInt;
+					break;
+				case SPVTypeData::eSInt:
+					sig.compType = eCompType_SInt;
+					break;
+				case SPVTypeData::eFloat:
+					sig.compType = eCompType_Float;
+					break;
+				default:
+					RDCERR("Unexpected base type of input signature %u", type->baseType->type);
+					break;
+			}
+
+			sig.compCount = type->vectorSize;
+			sig.stream = 0;
+
+			sig.regChannelMask = sig.channelUsedMask = (1<<type->vectorSize)-1;
+
+			if(type->matrixSize == 1)
+			{
+				if(inst->var->storage == spv::StorageClassInput && sig.systemValue == eAttr_None)
+					mapping->InputAttributes[sig.regIndex] = (int32_t)sigarray->size();
+				sigarray->push_back(sig);
+			}
+			else
+			{
+				for(uint32_t m=0; m < type->matrixSize; m++)
+				{
+					SigParameter s = sig;
+					s.varName = StringFormat::Fmt("%s:%s%u", nm, rowmajor ? "row" : "col", m);
+					s.regIndex += m;
+
+					RDCASSERT(s.regIndex < 16);
+					
+					if(inst->var->storage == spv::StorageClassInput && sig.systemValue == eAttr_None)
+						mapping->InputAttributes[s.regIndex] = (int32_t)sigarray->size();
+
+					sigarray->push_back(s);
+				}
+			}
+		}
+		else if(inst->var->storage == spv::StorageClassUniform || inst->var->storage == spv::StorageClassUniformConstant)
+		{
+			SPVTypeData *type = inst->var->type;
+			if(type->type == SPVTypeData::ePointer)
+				type = type->baseType;
+
+			if(type->type == SPVTypeData::eStruct)
+			{
+				ConstantBlock cblock;
+
+				cblock.name = inst->str.empty() ? StringFormat::Fmt("uniforms%u", inst->id) : inst->str;
+				cblock.bufferBacked = true;
+				cblock.bindPoint = (int32_t)cblocks.size();
+				
+				BindpointMap bindmap = {0};
+
+				// TODO this needs to go through the bindpoint mapping
+				for(size_t d=0; d < inst->decorations.size(); d++)
+				{
+					if(inst->decorations[d].decoration == spv::DecorationDescriptorSet)
+						bindmap.bindset = (int32_t)inst->decorations[d].val;
+					if(inst->decorations[d].decoration == spv::DecorationBinding)
+						bindmap.bind = (int32_t)inst->decorations[d].val;
+				}
+
+				MakeConstantBlockVariables(type, cblock.variables);
+
+				cblocks.push_back(cblock);
+
+				bindmap.used = true; // VKTODOLOW see if this declared struct is used anywhere in the code
+				cblockmap.push_back(bindmap);
+			}
+			else
+			{
+				ShaderResource res;
+
+				res.name = inst->str.empty() ? StringFormat::Fmt("res%u", inst->id) : inst->str;
+
+				if(type->multisampled)
+					res.resType = type->arrayed ? eResType_Texture2DMSArray : eResType_Texture2DMS;
+				else if(type->texdim == spv::Dim1D)
+					res.resType = type->arrayed ? eResType_Texture1DArray : eResType_Texture1D;
+				else if(type->texdim == spv::Dim2D)
+					res.resType = type->arrayed ? eResType_Texture2DArray : eResType_Texture2D;
+				else if(type->texdim == spv::DimCube)
+					res.resType = type->arrayed ? eResType_TextureCubeArray : eResType_TextureCube;
+				else if(type->texdim == spv::Dim3D)
+					res.resType = eResType_Texture3D;
+				else if(type->texdim == spv::DimRect)
+					res.resType = eResType_TextureRect;
+				else if(type->texdim == spv::DimBuffer)
+					res.resType = eResType_Buffer;
+
+				// TODO once we're on SPIR-V 1.0, update this handling
+				res.IsSampler = true;
+				res.IsTexture = true;
+				res.IsSRV = true;
+				res.IsReadWrite = false;
+
+				if(type->baseType->type == SPVTypeData::eFloat)
+					res.variableType.descriptor.type = eVar_Float;
+				else if(type->baseType->type == SPVTypeData::eUInt)
+					res.variableType.descriptor.type = eVar_UInt;
+				else if(type->baseType->type == SPVTypeData::eSInt)
+					res.variableType.descriptor.type = eVar_Int;
+				else
+					RDCERR("Unexpected base type of resource %u", type->baseType->type);
+
+				res.variableType.descriptor.rows = 1;
+				res.variableType.descriptor.cols = 1;
+				res.variableType.descriptor.elements = 1;
+				res.variableType.descriptor.rowMajorStorage = false;
+				res.variableType.descriptor.rowMajorStorage = false;
+
+				res.bindPoint = (int32_t)resources.size();
+				
+				BindpointMap bindmap = {0};
+
+				// TODO this needs to go through the bindpoint mapping
+				for(size_t d=0; d < inst->decorations.size(); d++)
+				{
+					if(inst->decorations[d].decoration == spv::DecorationDescriptorSet)
+						bindmap.bindset = (int32_t)inst->decorations[d].val;
+					if(inst->decorations[d].decoration == spv::DecorationBinding)
+						bindmap.bind = (int32_t)inst->decorations[d].val;
+				}
+				
+				bindmap.used = true; // VKTODOLOW see if this declared resource is used anywhere in the code
+
+				resources.push_back(res);
+				resmap.push_back(bindmap);
+			}
+		}
+		else
+		{
+			RDCWARN("Unexpected storage class for global: %s", ToStr::Get(inst->var->storage));
+		}
+	}
+
+	reflection->InputSig = inputs;
+	reflection->OutputSig = outputs;
+	reflection->Resources = resources;
+	reflection->ConstantBlocks = cblocks;
+
+	mapping->ConstantBlocks = cblockmap;
+	mapping->Resources = resmap;
+}
+
+void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 {
 	if(spirv[0] != (uint32_t)spv::MagicNumber)
 	{
@@ -2613,177 +2817,6 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module, ShaderRe
 	};
 
 	std::sort(module.globals.begin(), module.globals.end(), SortByVarClass());
-
-	if(reflection)
-	{
-		vector<SigParameter> inputs;
-		vector<SigParameter> outputs;
-		vector<ConstantBlock> cblocks;
-		vector<ShaderResource> resources;
-
-		// TODO need to fetch these
-		reflection->DispatchThreadsDimension[0] = 0;
-		reflection->DispatchThreadsDimension[1] = 0;
-		reflection->DispatchThreadsDimension[2] = 0;
-
-		for(size_t i=0; i < module.globals.size(); i++)
-		{
-			SPVInstruction *inst = module.globals[i];
-			if(inst->var->storage == spv::StorageClassInput || inst->var->storage == spv::StorageClassOutput)
-			{
-				vector<SigParameter> *sigarray = (inst->var->storage == spv::StorageClassInput ? &inputs : &outputs);
-
-				SigParameter sig;
-
-				string nm = inst->str.empty() ? StringFormat::Fmt("sig%u", inst->id) : inst->str;
-	
-				sig.varName = nm;
-				sig.semanticIndex = 0;
-				sig.needSemanticIndex = false;
-
-				bool rowmajor = true;
-
-				sig.regIndex = 0;
-				for(size_t d=0; d < inst->decorations.size(); d++)
-				{
-					if(inst->decorations[d].decoration == spv::DecorationLocation)
-						sig.regIndex = inst->decorations[d].val;
-					else if(inst->decorations[d].decoration == spv::DecorationBuiltIn)
-						sig.systemValue = BuiltInToSystemAttribute((spv::BuiltIn)inst->decorations[d].val);
-					else if(inst->decorations[d].decoration == spv::DecorationRowMajor)
-						rowmajor = true;
-					else if(inst->decorations[d].decoration == spv::DecorationColMajor)
-						rowmajor = false;
-				}
-
-				SPVTypeData *type = inst->var->type;
-				if(type->type == SPVTypeData::ePointer)
-					type = type->baseType;
-
-				switch(type->baseType ? type->baseType->type : type->type)
-				{
-					case SPVTypeData::eBool:
-					case SPVTypeData::eUInt:
-						sig.compType = eCompType_UInt;
-						break;
-					case SPVTypeData::eSInt:
-						sig.compType = eCompType_SInt;
-						break;
-					case SPVTypeData::eFloat:
-						sig.compType = eCompType_Float;
-						break;
-					default:
-						RDCERR("Unexpected base type of input signature %u", type->baseType->type);
-						break;
-				}
-
-				sig.compCount = type->vectorSize;
-				sig.stream = 0;
-
-				sig.regChannelMask = sig.channelUsedMask = (1<<type->vectorSize)-1;
-
-				if(type->matrixSize == 1)
-				{
-					sigarray->push_back(sig);
-				}
-				else
-				{
-					for(uint32_t m=0; m < type->matrixSize; m++)
-					{
-						SigParameter s = sig;
-						s.varName = StringFormat::Fmt("%s:%s%u", nm, rowmajor ? "row" : "col", m);
-						s.regIndex += m;
-						sigarray->push_back(s);
-					}
-				}
-			}
-			else if(inst->var->storage == spv::StorageClassUniform || inst->var->storage == spv::StorageClassUniformConstant)
-			{
-				SPVTypeData *type = inst->var->type;
-				if(type->type == SPVTypeData::ePointer)
-					type = type->baseType;
-
-				if(type->type == SPVTypeData::eStruct)
-				{
-					ConstantBlock cblock;
-					
-					cblock.name = inst->str.empty() ? StringFormat::Fmt("uniforms%u", inst->id) : inst->str;
-					cblock.bufferBacked = true;
-					
-					// TODO this needs to go through the bindpoint mapping
-					for(size_t d=0; d < inst->decorations.size(); d++)
-					{
-						if(inst->decorations[d].decoration == spv::DecorationBinding)
-							cblock.bindPoint = (int32_t)inst->decorations[d].val;
-					}
-					
-					MakeConstantBlockVariables(type, cblock.variables);
-
-					cblocks.push_back(cblock);
-				}
-				else
-				{
-					ShaderResource res;
-
-					res.name = inst->str.empty() ? StringFormat::Fmt("res%u", inst->id) : inst->str;
-
-					if(type->multisampled)
-						res.resType = type->arrayed ? eResType_Texture2DMSArray : eResType_Texture2DMS;
-					else if(type->texdim == spv::Dim1D)
-						res.resType = type->arrayed ? eResType_Texture1DArray : eResType_Texture1D;
-					else if(type->texdim == spv::Dim2D)
-						res.resType = type->arrayed ? eResType_Texture2DArray : eResType_Texture2D;
-					else if(type->texdim == spv::DimCube)
-						res.resType = type->arrayed ? eResType_TextureCubeArray : eResType_TextureCube;
-					else if(type->texdim == spv::Dim3D)
-						res.resType = eResType_Texture3D;
-					else if(type->texdim == spv::DimRect)
-						res.resType = eResType_TextureRect;
-					else if(type->texdim == spv::DimBuffer)
-						res.resType = eResType_Buffer;
-
-					// TODO once we're on SPIR-V 1.0, update this handling
-					res.IsSampler = true;
-					res.IsTexture = true;
-					res.IsSRV = true;
-					res.IsReadWrite = false;
-
-					if(type->baseType->type == SPVTypeData::eFloat)
-						res.variableType.descriptor.type = eVar_Float;
-					else if(type->baseType->type == SPVTypeData::eUInt)
-						res.variableType.descriptor.type = eVar_UInt;
-					else if(type->baseType->type == SPVTypeData::eSInt)
-						res.variableType.descriptor.type = eVar_Int;
-					else
-						RDCERR("Unexpected base type of resource %u", type->baseType->type);
-
-					res.variableType.descriptor.rows = 1;
-					res.variableType.descriptor.cols = 1;
-					res.variableType.descriptor.elements = 1;
-					res.variableType.descriptor.rowMajorStorage = false;
-					res.variableType.descriptor.rowMajorStorage = false;
-					
-					// TODO this needs to go through the bindpoint mapping
-					for(size_t d=0; d < inst->decorations.size(); d++)
-					{
-						if(inst->decorations[d].decoration == spv::DecorationBinding)
-							res.bindPoint = (int32_t)inst->decorations[d].val;
-					}
-
-					resources.push_back(res);
-				}
-			}
-			else
-			{
-				RDCWARN("Unexpected storage class for global: %s", ToStr::Get(inst->var->storage));
-			}
-		}
-
-		reflection->InputSig = inputs;
-		reflection->OutputSig = outputs;
-		reflection->Resources = resources;
-		reflection->ConstantBlocks = cblocks;
-	}
 }
 
 template<>

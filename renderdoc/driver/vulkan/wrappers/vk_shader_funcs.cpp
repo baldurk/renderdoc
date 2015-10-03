@@ -134,11 +134,17 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sh);
 			GetResourceManager()->AddLiveResource(id, sh);
 
-			SPVModule spvmod;
-			ShaderReflection refl;
+			if(id == ResourceId(60606, true) || id == ResourceId(60633, true))
+			{
+				FILE *f = FileIO::fopen(StringFormat::Fmt("T:/tmp/shad%llu", id).c_str(), "wb");
+				FileIO::fwrite(info.pCode, 1, info.codeSize, f);
+				FileIO::fclose(f);
+			}
 
 			RDCASSERT(info.codeSize % sizeof(uint32_t) == 0);
-			ParseSPIRV((uint32_t *)info.pCode, info.codeSize/sizeof(uint32_t), spvmod, &refl);
+			ParseSPIRV((uint32_t *)info.pCode, info.codeSize/sizeof(uint32_t), m_ShaderModuleInfo[live].spirv);
+
+			m_ShaderModuleInfo[live].spirv.MakeReflection(&m_ShaderModuleInfo[live].reflTemplate, &m_ShaderModuleInfo[live].mapping);
 		}
 	}
 
@@ -203,6 +209,13 @@ bool WrappedVulkan::Serialise_vkCreateShader(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sh);
 			GetResourceManager()->AddLiveResource(id, sh);
+
+			m_ShaderInfo[live].module = GetResourceManager()->GetNonDispWrapper(info.module)->id;
+			m_ShaderInfo[live].mapping = m_ShaderModuleInfo[m_ShaderInfo[live].module].mapping;
+			m_ShaderInfo[live].refl = m_ShaderModuleInfo[m_ShaderInfo[live].module].reflTemplate;
+			m_ShaderInfo[live].refl.DebugInfo.entryFunc = info.pName;
+			// VKTODOLOW set this properly
+			m_ShaderInfo[live].refl.DebugInfo.entryFile = 0;
 		}
 	}
 

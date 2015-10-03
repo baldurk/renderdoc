@@ -1284,8 +1284,15 @@ FetchBuffer VulkanReplay::GetBuffer(ResourceId id)
 
 ShaderReflection *VulkanReplay::GetShader(ResourceId id)
 {
-	VULKANNOTIMP("GetShader");
-	return NULL;
+	auto it = m_pDriver->m_ShaderInfo.find(id);
+	
+	if(it == m_pDriver->m_ShaderInfo.end())
+	{
+		RDCERR("Can't get shader details");
+		return NULL;
+	}
+
+	return &it->second.refl;
 }
 
 void VulkanReplay::SavePipelineState()
@@ -1360,6 +1367,7 @@ void VulkanReplay::SavePipelineState()
 				stages[i]->customName = false;
 				stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Shader);
 				stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
+				stages[i]->BindpointMapping = m_pDriver->m_ShaderInfo[p.shaders[i]].mapping;
 			}
 
 			// Descriptor sets

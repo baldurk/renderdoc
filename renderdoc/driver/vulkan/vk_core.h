@@ -36,6 +36,8 @@
 #include "vk_manager.h"
 #include "vk_replay.h"
 
+#include "driver/shaders/spirv/spirv_common.h"
+
 using std::vector;
 using std::list;
 
@@ -337,6 +339,22 @@ private:
 		vector<VkDescriptorInfo *> currentBindings;
 	};
 	map<ResourceId, DescriptorSetInfo> m_DescriptorSetInfo;
+
+	struct ShaderModuleInfo
+	{
+		SPVModule spirv;
+		ShaderReflection reflTemplate;
+		ShaderBindpointMapping mapping;
+	};
+	map<ResourceId, ShaderModuleInfo> m_ShaderModuleInfo;
+
+	struct ShaderInfo
+	{
+		ResourceId module;
+		ShaderReflection refl;
+		ShaderBindpointMapping mapping;
+	};
+	map<ResourceId, ShaderInfo> m_ShaderInfo;
 
 	VulkanCreationInfo m_CreationInfo;
 

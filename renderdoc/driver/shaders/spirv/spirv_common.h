@@ -48,6 +48,9 @@ void ShutdownSPIRVCompiler();
 
 struct SPVInstruction;
 
+struct ShaderReflection;
+struct ShaderBindpointMapping;
+
 struct SPVModule
 {
 	SPVModule();
@@ -72,9 +75,9 @@ struct SPVModule
 	
 	SPVInstruction *GetByID(uint32_t id);
 	void Disassemble();
+
+	void MakeReflection(ShaderReflection *reflection, ShaderBindpointMapping *mapping);
 };
 
-struct ShaderReflection;
-
 string CompileSPIRV(SPIRVShaderStage shadType, const vector<string> &sources, vector<uint32_t> &spirv);
-void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module, ShaderReflection *reflection = NULL);
+void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module);

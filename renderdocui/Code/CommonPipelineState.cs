@@ -565,7 +565,7 @@ namespace renderdocui.Code
                     {
                         int attrib = -1;
                         if (m_Vulkan.VS.BindpointMapping != null && m_Vulkan.VS.ShaderDetails != null)
-                            attrib = m_Vulkan.VS.BindpointMapping.InputAttributes[i];
+                            attrib = m_Vulkan.VS.BindpointMapping.InputAttributes[attrs[i].location];
                         else
                             attrib = i;
 
@@ -586,7 +586,16 @@ namespace renderdocui.Code
                         ret[a].Format = attrs[i].format;
                         ret[a].Used = true;
 
-                        // VKTODOMED use shader reflection & attrs[i].location to get better name
+                        if (m_Vulkan.VS.BindpointMapping != null && m_Vulkan.VS.ShaderDetails != null)
+                        {
+                            int attrib = m_Vulkan.VS.BindpointMapping.InputAttributes[attrs[i].location];
+
+                            if (attrib >= 0 && attrib < m_Vulkan.VS.ShaderDetails.InputSig.Length)
+                                ret[a].Name = m_Vulkan.VS.ShaderDetails.InputSig[attrib].varName;
+
+                            if (attrib == -1) continue;
+                        }
+
                         a++;
                     }
 

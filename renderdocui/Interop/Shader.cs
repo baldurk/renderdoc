@@ -449,6 +449,7 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class BindpointMap
     {
+        public Int32 bindset;
         public Int32 bind;
         public bool used;
     };
