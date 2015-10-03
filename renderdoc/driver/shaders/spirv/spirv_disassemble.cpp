@@ -924,6 +924,7 @@ struct SPVInstruction
 				return ret;
 			}
 			case spv::OpFNegate:
+			case spv::OpNot:
 			{
 				// unary math operation
 				RDCASSERT(op);
@@ -933,6 +934,9 @@ struct SPVInstruction
 				{
 					case spv::OpFNegate:
 						c = '-';
+						break;
+					case spv::OpNot:
+						c = '~';
 						break;
 					default:
 						break;
@@ -955,40 +959,70 @@ struct SPVInstruction
 			case spv::OpFSub:
 			case spv::OpIMul:
 			case spv::OpFMul:
+			case spv::OpFDiv:
+			case spv::OpFMod:
 			case spv::OpVectorTimesScalar:
 			case spv::OpMatrixTimesVector:
 			case spv::OpSLessThan:
-			case spv::OpFDiv:
-			case spv::OpFMod:
+			case spv::OpSLessThanEqual:
+			case spv::OpFOrdLessThan:
+			case spv::OpFOrdGreaterThan:
+			case spv::OpFOrdGreaterThanEqual:
+			case spv::OpLogicalAnd:
+			case spv::OpLogicalOr:
+			case spv::OpLogicalXor:
+			case spv::OpShiftLeftLogical:
 			{
 				// binary math operation
 				RDCASSERT(op);
 
-				char c = '?';
+				char opstr[3] = { '?', 0, 0 };
 				switch(opcode)
 				{
 					case spv::OpIAdd:
 					case spv::OpFAdd:
-						c = '+';
+						opstr[0] = '+';
 						break;
 					case spv::OpISub:
 					case spv::OpFSub:
-						c = '+';
+						opstr[0] = '+';
 						break;
 					case spv::OpIMul:
 					case spv::OpFMul:
 					case spv::OpVectorTimesScalar:
 					case spv::OpMatrixTimesVector:
-						c = '*';
+						opstr[0] = '*';
 						break;
 					case spv::OpSLessThan:
-						c = '<';
+					case spv::OpFOrdLessThan:
+						opstr[0] = '<';
+						break;
+					case spv::OpSLessThanEqual:
+						opstr[0] = '<'; opstr[1] = '=';
+						break;
+					case spv::OpFOrdGreaterThan:
+						opstr[0] = '>';
+						break;
+					case spv::OpFOrdGreaterThanEqual:
+						opstr[0] = '>'; opstr[1] = '=';
 						break;
 					case spv::OpFDiv:
-						c = '/';
+						opstr[0] = '/';
 						break;
 					case spv::OpFMod:
-						c = '%';
+						opstr[0] = '%';
+						break;
+					case spv::OpLogicalAnd:
+						opstr[0] = opstr[1] = '&';
+						break;
+					case spv::OpLogicalOr:
+						opstr[0] = opstr[1] = '|';
+						break;
+					case spv::OpLogicalXor:
+						opstr[0] = '!'; opstr[1] = '=';
+						break;
+					case spv::OpShiftLeftLogical:
+						opstr[0] = '<'; opstr[1] = '<';
 						break;
 					default:
 						break;
@@ -1004,9 +1038,23 @@ struct SPVInstruction
 					b = "(" + b + ")";
 
 				if(inlineOp)
-					return StringFormat::Fmt("%s %c %s", a.c_str(), c, b.c_str());
+					return StringFormat::Fmt("%s %s %s", a.c_str(), opstr, b.c_str());
 
-				return StringFormat::Fmt("%s %s = %s %c %s", op->type->GetName().c_str(), GetIDName().c_str(), a.c_str(), c, b.c_str());
+				return StringFormat::Fmt("%s %s = %s %s %s", op->type->GetName().c_str(), GetIDName().c_str(), a.c_str(), opstr, b.c_str());
+			}
+			case spv::OpDot:
+			{
+				// binary math function
+				RDCASSERT(op);
+
+				string a, b;
+				op->GetArg(ids, 0, a);
+				op->GetArg(ids, 1, b);
+
+				if(inlineOp)
+					return StringFormat::Fmt("%s(%s, %s)", ToStr::Get(opcode).c_str(), a.c_str(), b.c_str());
+
+				return StringFormat::Fmt("%s %s = %s(%s, %s)", op->type->GetName().c_str(), GetIDName().c_str(), ToStr::Get(opcode).c_str(), a.c_str(), b.c_str());
 			}
 			default:
 				break;
@@ -2683,14 +2731,26 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpFSub:
 			case spv::OpIMul:
 			case spv::OpFMul:
+			case spv::OpFDiv:
+			case spv::OpFMod:
 			case spv::OpVectorTimesScalar:
 			case spv::OpMatrixTimesVector:
 			case spv::OpSLessThan:
-			case spv::OpFDiv:
-			case spv::OpFMod:
+			case spv::OpSLessThanEqual:
+			case spv::OpFOrdLessThan:
+			case spv::OpFOrdGreaterThan:
+			case spv::OpFOrdGreaterThanEqual:
+			case spv::OpLogicalAnd:
+			case spv::OpLogicalOr:
+			case spv::OpLogicalXor:
+			case spv::OpShiftLeftLogical:
+
 			case spv::OpFNegate:
+			case spv::OpNot:
 				mathop = true; // deliberate fallthrough
+
 			case spv::OpAccessChain:
+			case spv::OpDot:
 			{
 				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
