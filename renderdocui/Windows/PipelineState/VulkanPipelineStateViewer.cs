@@ -688,6 +688,19 @@ namespace renderdocui.Windows.PipelineState
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
 
+                                if (!texs[t].customName && state.FS.ShaderDetails != null)
+                                {
+                                    for(int s=0; s < state.FS.ShaderDetails.OutputSig.Length; s++)
+                                    {
+                                        if(state.FS.ShaderDetails.OutputSig[s].regIndex == i &&
+                                            (state.FS.ShaderDetails.OutputSig[s].systemValue == SystemAttribute.None ||
+                                            state.FS.ShaderDetails.OutputSig[s].systemValue == SystemAttribute.ColourOutput))
+                                        {
+                                            name = String.Format("<{0}>", state.FS.ShaderDetails.OutputSig[s].varName);
+                                        }
+                                    }
+                                }
+
                                 tag = texs[t];
                             }
                         }
