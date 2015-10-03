@@ -152,6 +152,7 @@ struct SPVTypeData
 {
 	SPVTypeData() :
 		baseType(NULL), storage(spv::StorageClassUniformConstant),
+		texdim(spv::Dim2D), texcontent(2), arrayed(false), compare(false), multisampled(false),
 		bitCount(32), vectorSize(1), matrixSize(1), arraySize(1) {}
 
 	enum
@@ -266,6 +267,15 @@ struct SPVTypeData
 			{
 				name = StringFormat::Fmt("%s*", baseType->GetName().c_str());
 			}
+			else if(type == eSampler)
+			{
+				name = StringFormat::Fmt("%sSampler%s%s%s<%s>",
+					compare ? "Compare" : "",
+					multisampled ? "MS" : "",
+					arrayed ? "Array" : "",
+					ToStr::Get(texdim).c_str(),
+					baseType->GetName().c_str());
+			}
 		}
 
 		return name;
@@ -278,6 +288,13 @@ struct SPVTypeData
 
 	// pointer
 	spv::StorageClass storage;
+
+	// sampler/texture/whatever
+	spv::Dim texdim;
+	uint32_t texcontent;
+	bool arrayed;
+	bool compare;
+	bool multisampled;
 
 	// ints and floats
 	uint32_t bitCount;
@@ -805,6 +822,7 @@ struct SPVInstruction
 
 				return ret;
 			}
+			case spv::OpTextureSample:
 			case spv::OpFunctionCall:
 			{
 				RDCASSERT(op);
@@ -814,7 +832,10 @@ struct SPVInstruction
 				if(!inlineOp && op->type->type != SPVTypeData::eVoid)
 					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
 
-				ret += ids[op->funcCall]->GetIDName() + "(";
+				if(opcode == spv::OpFunctionCall)
+					ret += ids[op->funcCall]->GetIDName() + "(";
+				else
+					ret += ToStr::Get(opcode) + "(";
 
 				for(size_t i=0; i < op->arguments.size(); i++)
 				{
@@ -1904,6 +1925,28 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
+			case spv::OpTypeSampler:
+			{
+				op.type = new SPVTypeData();
+				op.type->type = SPVTypeData::eSampler;
+
+				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+2]);
+				RDCASSERT(baseTypeInst && baseTypeInst->type);
+
+				op.type->baseType = baseTypeInst->type;
+
+				op.type->texdim = spv::Dim(spirv[it+3]);
+				op.type->texcontent = spirv[it+4];
+				op.type->arrayed = spirv[it+5] != 0;
+				op.type->compare = spirv[it+6] != 0;
+				op.type->multisampled = spirv[it+7] != 0;
+
+				// not checking access qualifier
+				
+				op.id = spirv[it+1];
+				module.ids[spirv[it+1]] = &op;
+				break;
+			}
 			case spv::OpTypeFunction:
 			{
 				op.type = new SPVTypeData();
@@ -2220,26 +2263,38 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				curBlock->instructions.push_back(&op);
 				break;
 			}
+			case spv::OpTextureSample: // almost identical to function call
 			case spv::OpFunctionCall:
 			{
-				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
+				int word = 1;
+
+				SPVInstruction *typeInst = module.GetByID(spirv[it+word]);
 				RDCASSERT(typeInst && typeInst->type);
+
+				word++;
 
 				op.op = new SPVOperation();
 				op.op->type = typeInst->type;
 
-				op.op->funcCall = spirv[it+3];
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
 
-				for(int i=4; i < WordCount; i++)
+				word++;
+
+				if(op.opcode == spv::OpFunctionCall)
 				{
-					SPVInstruction *argInst = module.GetByID(spirv[it+i]);
+					op.op->funcCall = spirv[it+word];
+
+					word++;
+				}
+
+				for(; word < WordCount; word++)
+				{
+					SPVInstruction *argInst = module.GetByID(spirv[it+word]);
 					RDCASSERT(argInst);
 
 					op.op->arguments.push_back(argInst);
 				}
-
-				op.id = spirv[it+2];
-				module.ids[spirv[it+2]] = &op;
 
 				curBlock->instructions.push_back(&op);
 				break;
@@ -2922,6 +2977,23 @@ string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
 #endif
 	
 	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+}
+
+template<>
+string ToStrHelper<false, spv::Dim>::Get(const spv::Dim &el)
+{
+	switch(el)
+	{
+    case spv::Dim1D:     return "1D";
+    case spv::Dim2D:     return "2D";
+    case spv::Dim3D:     return "3D";
+    case spv::DimCube:   return "Cube";
+    case spv::DimRect:   return "Rect";
+		case spv::DimBuffer: return "Buffer";
+		default: break;
+	}
+	
+	return StringFormat::Fmt("{%u}D", (uint32_t)el);
 }
 
 template<>
