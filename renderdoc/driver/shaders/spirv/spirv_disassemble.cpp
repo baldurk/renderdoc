@@ -938,13 +938,16 @@ struct SPVInstruction
 				return StringFormat::Fmt("%s %s = %c%s", op->type->GetName().c_str(), GetIDName().c_str(), c, a.c_str());
 			}
 			case spv::OpIAdd:
-			case spv::OpIMul:
 			case spv::OpFAdd:
+			case spv::OpISub:
+			case spv::OpFSub:
+			case spv::OpIMul:
 			case spv::OpFMul:
-			case spv::OpFDiv:
 			case spv::OpVectorTimesScalar:
 			case spv::OpMatrixTimesVector:
 			case spv::OpSLessThan:
+			case spv::OpFDiv:
+			case spv::OpFMod:
 			{
 				// binary math operation
 				RDCASSERT(op);
@@ -954,6 +957,10 @@ struct SPVInstruction
 				{
 					case spv::OpIAdd:
 					case spv::OpFAdd:
+						c = '+';
+						break;
+					case spv::OpISub:
+					case spv::OpFSub:
 						c = '+';
 						break;
 					case spv::OpIMul:
@@ -967,6 +974,9 @@ struct SPVInstruction
 						break;
 					case spv::OpFDiv:
 						c = '/';
+						break;
+					case spv::OpFMod:
+						c = '%';
 						break;
 					default:
 						break;
@@ -2643,13 +2653,16 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			//////////////////////////////////////////////////////////////////////
 			// Easy to handle opcodes with just some number of ID parameters
 			case spv::OpIAdd:
-			case spv::OpIMul:
 			case spv::OpFAdd:
+			case spv::OpISub:
+			case spv::OpFSub:
+			case spv::OpIMul:
 			case spv::OpFMul:
-			case spv::OpFDiv:
 			case spv::OpVectorTimesScalar:
 			case spv::OpMatrixTimesVector:
 			case spv::OpSLessThan:
+			case spv::OpFDiv:
+			case spv::OpFMod:
 			case spv::OpFNegate:
 				mathop = true; // deliberate fallthrough
 			case spv::OpAccessChain:
