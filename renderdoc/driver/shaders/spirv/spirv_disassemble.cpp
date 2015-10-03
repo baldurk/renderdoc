@@ -281,10 +281,9 @@ struct SPVTypeData
 		return name;
 	}
 
-	vector<SPVDecoration> decorations;
-
 	// struct/function
 	vector< pair<SPVTypeData *, string> > children;
+	vector< vector<SPVDecoration> > decorations; // matches children
 
 	// pointer
 	spv::StorageClass storage;
@@ -1131,17 +1130,28 @@ void SPVModule::Disassemble()
 			if(varName.empty())
 				varName = StringFormat::Fmt("member%u", c);
 
-			m_Disassembly += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(member.first->decorations, varName).c_str());
+			m_Disassembly += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(structs[i]->type->decorations[c], varName).c_str());
 		}
-		m_Disassembly += StringFormat::Fmt("}; // struct %s\n", structs[i]->type->GetName().c_str());
+		m_Disassembly += StringFormat::Fmt("}; // struct %s\n\n", structs[i]->type->GetName().c_str());
 	}
-
-	m_Disassembly += "\n";
 
 	for(size_t i=0; i < globals.size(); i++)
 	{
 		RDCASSERT(globals[i]->var && globals[i]->var->type);
-		m_Disassembly += StringFormat::Fmt("%s %s;\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->DeclareVariable(globals[i]->decorations, globals[i]->str).c_str());
+
+		// if name is set to blank, inherit it from the underlying type
+		// we set this to the variable name, so it can be used in subsequent ops
+		// referring to this global.
+		if(globals[i]->str.empty())
+		{
+			if(globals[i]->var && !globals[i]->var->type->name.empty())
+				globals[i]->str = globals[i]->var->type->name;
+			else if(globals[i]->var && globals[i]->var->type->type == SPVTypeData::ePointer && !globals[i]->var->type->baseType->name.empty())
+				globals[i]->str = globals[i]->var->type->baseType->name;
+		}
+
+		string varName = globals[i]->str;
+		m_Disassembly += StringFormat::Fmt("%s %s;\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->DeclareVariable(globals[i]->decorations, varName).c_str());
 	}
 
 	m_Disassembly += "\n";
@@ -1701,8 +1711,8 @@ void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant
 
 			cblock[i].type.descriptor.rowMajorStorage = false;
 			
-			for(size_t d=0; d < t->decorations.size(); d++)
-				if(t->decorations[d].decoration == spv::DecorationRowMajor)
+			for(size_t d=0; d < type->decorations[i].size(); d++)
+				if(type->decorations[i][d].decoration == spv::DecorationRowMajor)
 					cblock[i].type.descriptor.rowMajorStorage = true;
 
 			cblock[i].type.descriptor.rows = t->vectorSize;
@@ -2204,6 +2214,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 					// names might come later from OpMemberName instructions
 					op.type->children.push_back(make_pair(memberInst->type, ""));
+					op.type->decorations.push_back(vector<SPVDecoration>());
 				}
 
 				module.structs.push_back(&op);
@@ -2261,6 +2272,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 					// function parameters have no name
 					op.type->children.push_back(make_pair(argInst->type, ""));
+					op.type->decorations.push_back(vector<SPVDecoration>());
 				}
 
 				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+2]);
@@ -2850,7 +2862,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				if(WordCount > 4)
 					d.val = spirv[it+4];
 
-				structInst->type->children[memberIdx].first->decorations.push_back(d);
+				structInst->type->decorations[memberIdx].push_back(d);
 				break;
 			}
 			case spv::OpGroupDecorate:
