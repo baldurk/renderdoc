@@ -1273,6 +1273,21 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	ret.name = (ret.ID == resid ? "WSI Presentable Image" : StringFormat::Fmt("Image %llu", ret.ID));
 	ret.numSubresources = 1;
 	ret.format = MakeResourceFormat(iminfo.format);
+	switch(iminfo.type)
+	{
+		case VK_IMAGE_TYPE_1D:
+			ret.resType = iminfo.arraySize > 1 ? eResType_Texture1DArray : eResType_Texture1D;
+			break;
+		default:
+			RDCWARN("Unexpected image type");
+		case VK_IMAGE_TYPE_2D:
+			// VKTODOLOW multisampled images
+			ret.resType = iminfo.arraySize > 1 ? eResType_Texture2DArray : eResType_Texture2D;
+			break;
+		case VK_IMAGE_TYPE_3D:
+			ret.resType = eResType_Texture3D;
+			break;
+	}
 	return ret;
 }
 
