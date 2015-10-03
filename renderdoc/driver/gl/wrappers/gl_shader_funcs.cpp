@@ -49,11 +49,15 @@ void WrappedOpenGL::ShaderData::Compile(const GLHookSet &gl)
 		prog = sepProg;
 		MakeShaderReflection(gl, type, sepProg, reflection, pointSizeUsed, clipDistanceUsed);
 
-		string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(type)), sources, spirv);
-		if(!spirv.empty())
-			DisassembleSPIRV(SPIRVShaderStage(ShaderIdx(type)), &spirv.front(), spirv.size(), s);
+		vector<uint32_t> spirvwords;
 
-		reflection.Disassembly = s;
+		string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(type)), sources, spirvwords);
+		if(!spirvwords.empty())
+			ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
+
+		spirv.Disassemble();
+
+		reflection.Disassembly = spirv.m_Disassembly;
 
 		create_array_uninit(reflection.DebugInfo.files, sources.size());
 		for(size_t i=0; i < sources.size(); i++)

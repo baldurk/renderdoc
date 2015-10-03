@@ -39,6 +39,8 @@
 #include "gl_renderstate.h"
 #include "gl_replay.h"
 
+#include "driver/shaders/spirv/spirv_common.h"
+
 #include <list>
 using std::list;
 
@@ -254,7 +256,7 @@ class WrappedOpenGL : public IFrameCapturer
 			GLenum type;
 			vector<string> sources;
 			vector<string> includepaths;
-			vector<uint32_t> spirv;
+			SPVModule spirv;
 			ShaderReflection reflection;
 			GLuint prog;
 

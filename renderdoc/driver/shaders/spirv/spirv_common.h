@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#pragma once
+
 #include <vector>
 #include <string>
 using std::string;
@@ -44,5 +46,35 @@ enum SPIRVShaderStage
 void InitSPIRVCompiler();
 void ShutdownSPIRVCompiler();
 
+struct SPVInstruction;
+
+struct SPVModule
+{
+	SPVModule();
+	~SPVModule();
+
+	uint32_t moduleVersion;
+	uint32_t generator;
+
+	string sourceLang; uint32_t sourceVer;
+
+	vector<SPVInstruction*> operations; // all operations (including those that don't generate an ID)
+
+	vector<SPVInstruction*> ids; // pointers indexed by ID
+
+	vector<SPVInstruction*> sourceexts; // source extensions
+	vector<SPVInstruction*> entries; // entry points
+	vector<SPVInstruction*> globals; // global variables
+	vector<SPVInstruction*> funcs; // functions
+	vector<SPVInstruction*> structs; // struct types
+
+	string m_Disassembly;
+	
+	SPVInstruction *GetByID(uint32_t id);
+	void Disassemble();
+};
+
+struct ShaderReflection;
+
 string CompileSPIRV(SPIRVShaderStage shadType, const vector<string> &sources, vector<uint32_t> &spirv);
-void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLength, string &disasm);
+void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module, ShaderReflection *reflection = NULL);

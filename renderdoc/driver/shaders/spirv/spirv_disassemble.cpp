@@ -1036,686 +1036,726 @@ void SPVOperation::GetArg(const vector<SPVInstruction *> &ids, size_t idx, strin
 		arg = arguments[idx]->GetIDName();
 }
 
-struct SPVModule
+SPVModule::SPVModule()
 {
-	SPVModule()
+	moduleVersion = 0;
+	generator = 0;
+	sourceVer = 0;
+}
+
+SPVModule::~SPVModule()
+{
+	for(size_t i=0; i < operations.size(); i++)
+		delete operations[i];
+	operations.clear();
+}
+
+SPVInstruction * SPVModule::GetByID(uint32_t id)
+{
+	if(ids[id]) return ids[id];
+
+	// if there's an unrecognised instruction (e.g. from an extension) that generates
+	// an ID, it won't be in our list so we have to add a dummy instruction for it
+	RDCWARN("Expected to find ID %u but didn't - returning dummy instruction", id);
+
+	operations.push_back(new SPVInstruction());
+	SPVInstruction &op = *operations.back();
+	op.opcode = spv::OpUnknown;
+	op.id = id;
+	ids[id] = &op;
+
+	return &op;
+}
+
+void SPVModule::Disassemble()
+{
+	m_Disassembly = "SPIR-V:\n\n";
+
+	const char *gen = "Unrecognised";
+
+	for(size_t i=0; i < ARRAY_COUNT(KnownGenerators); i++) if(KnownGenerators[i].magic == generator)	gen = KnownGenerators[i].name;
+
+	m_Disassembly += StringFormat::Fmt("Version %u, Generator %08x (%s)\n", moduleVersion, generator, gen);
+	m_Disassembly += StringFormat::Fmt("IDs up to {%u}\n", (uint32_t)ids.size());
+
+	m_Disassembly += "\n";
+
+	m_Disassembly += StringFormat::Fmt("Source is %s %u\n", sourceLang, sourceVer);
+	for(size_t s=0; s < sourceexts.size(); s++)
+		m_Disassembly += StringFormat::Fmt(" + %s\n", sourceexts[s]->str.c_str());
+
+	m_Disassembly += "\n";
+
+	for(size_t i=0; i < entries.size(); i++)
 	{
-		shadType = eSPIRVInvalid;
-		moduleVersion = 0;
-		generator = 0;
-		source.lang = spv::SourceLanguageUnknown; source.ver = 0;
-		model.addr = spv::AddressingModelLogical; model.mem = spv::MemoryModelSimple;
+		RDCASSERT(entries[i]->entry);
+		uint32_t func = entries[i]->entry->func;
+		RDCASSERT(ids[func]);
+		m_Disassembly += StringFormat::Fmt("Entry point '%s' (%s)\n", ids[func]->str.c_str(), ToStr::Get(entries[i]->entry->model).c_str());
 	}
 
-	~SPVModule()
+	m_Disassembly += "\n";
+
+	for(size_t i=0; i < structs.size(); i++)
 	{
-		for(size_t i=0; i < operations.size(); i++)
-			delete operations[i];
-		operations.clear();
+		m_Disassembly += StringFormat::Fmt("struct %s {\n", structs[i]->type->GetName().c_str());
+		for(size_t c=0; c < structs[i]->type->children.size(); c++)
+		{
+			auto member = structs[i]->type->children[c];
+
+			string varName = member.second;
+
+			if(varName.empty())
+				varName = StringFormat::Fmt("member%u", c);
+
+			m_Disassembly += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(member.first->decorations, varName).c_str());
+		}
+		m_Disassembly += StringFormat::Fmt("}; // struct %s\n", structs[i]->type->GetName().c_str());
 	}
 
-	SPIRVShaderStage shadType;
-	uint32_t moduleVersion;
-	uint32_t generator;
-	struct { spv::SourceLanguage lang; uint32_t ver; } source;
-	struct { spv::AddressingModel addr; spv::MemoryModel mem; } model;
+	m_Disassembly += "\n";
 
-	vector<SPVInstruction*> operations; // all operations (including those that don't generate an ID)
-
-	vector<SPVInstruction*> ids; // pointers indexed by ID
-
-	vector<SPVInstruction*> sourceexts; // source extensions
-	vector<SPVInstruction*> entries; // entry points
-	vector<SPVInstruction*> globals; // global variables
-	vector<SPVInstruction*> funcs; // functions
-	vector<SPVInstruction*> structs; // struct types
-	
-	SPVInstruction *GetByID(uint32_t id)
+	for(size_t i=0; i < globals.size(); i++)
 	{
-		if(ids[id]) return ids[id];
-
-		// if there's an unrecognised instruction (e.g. from an extension) that generates
-		// an ID, it won't be in our list so we have to add a dummy instruction for it
-		RDCWARN("Expected to find ID %u but didn't - returning dummy instruction", id);
-		
-		operations.push_back(new SPVInstruction());
-		SPVInstruction &op = *operations.back();
-		op.opcode = spv::OpUnknown;
-		op.id = id;
-		ids[id] = &op;
-
-		return &op;
+		RDCASSERT(globals[i]->var && globals[i]->var->type);
+		m_Disassembly += StringFormat::Fmt("%s %s;\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->DeclareVariable(globals[i]->decorations, globals[i]->str).c_str());
 	}
 
-	string Disassemble()
+	m_Disassembly += "\n";
+
+	for(size_t f=0; f < funcs.size(); f++)
 	{
-		string disasm;
+		SPVFunction *func = funcs[f]->func;
+		RDCASSERT(func && func->retType && func->funcType);
 
-		// temporary function until we build our own structure from the SPIR-V
-		const char *header[] = {
-			"Vertex Shader",
-			"Tessellation Control Shader",
-			"Tessellation Evaluation Shader",
-			"Geometry Shader",
-			"Fragment Shader",
-			"Compute Shader",
-			"Unknown Shader Target",
-		};
+		string args = "";
 
-		disasm = header[(int)shadType];
-		disasm += " SPIR-V:\n\n";
-
-		const char *gen = "Unrecognised";
-
-		for(size_t i=0; i < ARRAY_COUNT(KnownGenerators); i++) if(KnownGenerators[i].magic == generator)	gen = KnownGenerators[i].name;
-
-		disasm += StringFormat::Fmt("Version %u, Generator %08x (%s)\n", moduleVersion, generator, gen);
-		disasm += StringFormat::Fmt("IDs up to {%u}\n", (uint32_t)ids.size());
-
-		disasm += "\n";
-
-		disasm += StringFormat::Fmt("Source is %s %u\n", ToStr::Get(source.lang).c_str(), source.ver);
-		for(size_t s=0; s < sourceexts.size(); s++)
-			disasm += StringFormat::Fmt(" + %s\n", sourceexts[s]->str.c_str());
-
-		disasm += "\n";
-
-		for(size_t i=0; i < entries.size(); i++)
+		for(size_t a=0; a < func->funcType->children.size(); a++)
 		{
-			RDCASSERT(entries[i]->entry);
-			uint32_t func = entries[i]->entry->func;
-			RDCASSERT(ids[func]);
-			disasm += StringFormat::Fmt("Entry point '%s' (%s)\n", ids[func]->str.c_str(), ToStr::Get(entries[i]->entry->model).c_str());
+			const pair<SPVTypeData *,string> &arg = func->funcType->children[a];
+			RDCASSERT(a < func->arguments.size());
+			const SPVInstruction *argname = func->arguments[a];
+
+			if(argname->str.empty())
+				args += arg.first->GetName();
+			else
+				args += StringFormat::Fmt("%s %s", arg.first->GetName().c_str(), argname->str.c_str());
+
+			if(a+1 < func->funcType->children.size())
+				args += ", ";
 		}
 
-		disasm += "\n";
+		m_Disassembly += StringFormat::Fmt("%s %s(%s)%s {\n", func->retType->GetName().c_str(), funcs[f]->str.c_str(), args.c_str(), OptionalFlagString(func->control).c_str());
 
-		for(size_t i=0; i < structs.size(); i++)
+		// local copy of variables vector
+		vector<SPVInstruction *> vars = func->variables;
+		vector<SPVInstruction *> funcops;
+
+		for(size_t b=0; b < func->blocks.size(); b++)
 		{
-			disasm += StringFormat::Fmt("struct %s {\n", structs[i]->type->GetName().c_str());
-			for(size_t c=0; c < structs[i]->type->children.size(); c++)
+			SPVInstruction *block = func->blocks[b];
+
+			// don't push first label in a function
+			if(b > 0)
+				funcops.push_back(block); // OpLabel
+
+			set<SPVInstruction *> ignore_items;
+
+			for(size_t i=0; i < block->block->instructions.size(); i++)
 			{
-				auto member = structs[i]->type->children[c];
+				SPVInstruction *instr = block->block->instructions[i];
 
-				string varName = member.second;
+				if(ignore_items.find(instr) == ignore_items.end())
+					funcops.push_back(instr);
 
-				if(varName.empty())
-					varName = StringFormat::Fmt("member%u", c);
-
-				disasm += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(member.first->decorations, varName).c_str());
-			}
-			disasm += StringFormat::Fmt("}; // struct %s\n", structs[i]->type->GetName().c_str());
-		}
-
-		disasm += "\n";
-
-		for(size_t i=0; i < globals.size(); i++)
-		{
-			RDCASSERT(globals[i]->var && globals[i]->var->type);
-			disasm += StringFormat::Fmt("%s %s;\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->DeclareVariable(globals[i]->decorations, globals[i]->str).c_str());
-		}
-
-		disasm += "\n";
-
-		for(size_t f=0; f < funcs.size(); f++)
-		{
-			SPVFunction *func = funcs[f]->func;
-			RDCASSERT(func && func->retType && func->funcType);
-
-			string args = "";
-
-			for(size_t a=0; a < func->funcType->children.size(); a++)
-			{
-				const pair<SPVTypeData *,string> &arg = func->funcType->children[a];
-				RDCASSERT(a < func->arguments.size());
-				const SPVInstruction *argname = func->arguments[a];
-
-				if(argname->str.empty())
-					args += arg.first->GetName();
-				else
-					args += StringFormat::Fmt("%s %s", arg.first->GetName().c_str(), argname->str.c_str());
-
-				if(a+1 < func->funcType->children.size())
-					args += ", ";
-			}
-
-			disasm += StringFormat::Fmt("%s %s(%s)%s {\n", func->retType->GetName().c_str(), funcs[f]->str.c_str(), args.c_str(), OptionalFlagString(func->control).c_str());
-
-			// local copy of variables vector
-			vector<SPVInstruction *> vars = func->variables;
-			vector<SPVInstruction *> funcops;
-
-			for(size_t b=0; b < func->blocks.size(); b++)
-			{
-				SPVInstruction *block = func->blocks[b];
-
-				// don't push first label in a function
-				if(b > 0)
-					funcops.push_back(block); // OpLabel
-
-				set<SPVInstruction *> ignore_items;
-
-				for(size_t i=0; i < block->block->instructions.size(); i++)
+				if(instr->op)
 				{
-					SPVInstruction *instr = block->block->instructions[i];
+					for(size_t a=0; a < instr->op->arguments.size(); a++)
+					{
+						SPVInstruction *arg = instr->op->arguments[a];
 
-					if(ignore_items.find(instr) == ignore_items.end())
-						funcops.push_back(instr);
+						// don't fold up too complex an operation
+						if(arg->op)
+						{
+							// allow access chains to have multiple arguments
+							if(arg->op->complexity > 1 || (arg->op->arguments.size() > 2 && arg->opcode != spv::OpAccessChain))
+								continue;
+						}
 
-					if(instr->op)
+						erase_item(funcops, arg);
+
+						instr->op->inlineArgs |= (1<<a);
+					}
+
+					instr->op->complexity++;
+
+					// special handling for function call to inline temporary pointer variables
+					// created for passing parameters
+					if(instr->opcode == spv::OpFunctionCall)
 					{
 						for(size_t a=0; a < instr->op->arguments.size(); a++)
 						{
 							SPVInstruction *arg = instr->op->arguments[a];
 
-							// don't fold up too complex an operation
-							if(arg->op)
+							// if this argument has
+							//  - only one usage as a store target before the function call
+							//  = then it's an in parameter, and we can fold it in.
+							//
+							//  - only one usage as a load target after the function call
+							//  = then it's an out parameter, we can fold it in as long as
+							//    the usage after is in a Store(a) = Load(param) case
+							//
+							//  - exactly one usage as store before, and load after, such that
+							//    it is Store(param) = Load(a) .... Store(a) = Load(param)
+							//  = then it's an inout parameter, and we can fold it in
+
+							bool canReplace = true;
+							SPVInstruction *storeBefore = NULL;
+							SPVInstruction *loadAfter = NULL;
+							size_t storeIdx = block->block->instructions.size();
+							size_t loadIdx = block->block->instructions.size();
+
+							for(size_t j=0; j < i; j++)
 							{
-								// allow access chains to have multiple arguments
-								if(arg->op->complexity > 1 || (arg->op->arguments.size() > 2 && arg->opcode != spv::OpAccessChain))
-									continue;
+								SPVInstruction *searchInst = block->block->instructions[j];
+								for(size_t aa=0; searchInst->op && aa < searchInst->op->arguments.size(); aa++)
+								{
+									if(searchInst->op->arguments[aa]->id == arg->id)
+									{
+										if(searchInst->opcode == spv::OpStore)
+										{
+											// if it's used in multiple stores, it can't be folded
+											if(storeBefore)
+											{
+												canReplace = false;
+												break;
+											}
+											storeBefore = searchInst;
+											storeIdx = j;
+										}
+										else
+										{
+											// if it's used in anything but a store, it can't be folded
+											canReplace = false;
+											break;
+										}
+									}
+								}
+
+								// if it's used in a condition, it can't be folded
+								if(searchInst->flow && searchInst->flow->condition && searchInst->flow->condition->id == arg->id)
+									canReplace = false;
+
+								if(!canReplace)
+									break;
 							}
 
-							erase_item(funcops, arg);
-
-							instr->op->inlineArgs |= (1<<a);
-						}
-
-						instr->op->complexity++;
-
-						// special handling for function call to inline temporary pointer variables
-						// created for passing parameters
-						if(instr->opcode == spv::OpFunctionCall)
-						{
-							for(size_t a=0; a < instr->op->arguments.size(); a++)
+							for(size_t j=i+1; j < block->block->instructions.size(); j++)
 							{
-								SPVInstruction *arg = instr->op->arguments[a];
-
-								// if this argument has
-								//  - only one usage as a store target before the function call
-								//  = then it's an in parameter, and we can fold it in.
-								//
-								//  - only one usage as a load target after the function call
-								//  = then it's an out parameter, we can fold it in as long as
-								//    the usage after is in a Store(a) = Load(param) case
-								//
-								//  - exactly one usage as store before, and load after, such that
-								//    it is Store(param) = Load(a) .... Store(a) = Load(param)
-								//  = then it's an inout parameter, and we can fold it in
-
-								bool canReplace = true;
-								SPVInstruction *storeBefore = NULL;
-								SPVInstruction *loadAfter = NULL;
-								size_t storeIdx = block->block->instructions.size();
-								size_t loadIdx = block->block->instructions.size();
-
-								for(size_t j=0; j < i; j++)
+								SPVInstruction *searchInst = block->block->instructions[j];
+								for(size_t aa=0; searchInst->op && aa < searchInst->op->arguments.size(); aa++)
 								{
-									SPVInstruction *searchInst = block->block->instructions[j];
-									for(size_t aa=0; searchInst->op && aa < searchInst->op->arguments.size(); aa++)
+									if(searchInst->op->arguments[aa]->id == arg->id)
 									{
-										if(searchInst->op->arguments[aa]->id == arg->id)
+										if(searchInst->opcode == spv::OpLoad)
 										{
-											if(searchInst->opcode == spv::OpStore)
+											// if it's used in multiple load, it can't be folded
+											if(loadAfter)
 											{
-												// if it's used in multiple stores, it can't be folded
-												if(storeBefore)
-												{
-													canReplace = false;
-													break;
-												}
-												storeBefore = searchInst;
-												storeIdx = j;
-											}
-											else
-											{
-												// if it's used in anything but a store, it can't be folded
 												canReplace = false;
 												break;
 											}
+											loadAfter = searchInst;
+											loadIdx = j;
+										}
+										else
+										{
+											// if it's used in anything but a load, it can't be folded
+											canReplace = false;
+											break;
 										}
 									}
-
-									// if it's used in a condition, it can't be folded
-									if(searchInst->flow && searchInst->flow->condition && searchInst->flow->condition->id == arg->id)
-										canReplace = false;
-
-									if(!canReplace)
-										break;
 								}
 
-								for(size_t j=i+1; j < block->block->instructions.size(); j++)
+								// if it's used in a condition, it can't be folded
+								if(searchInst->flow && searchInst->flow->condition && searchInst->flow->condition->id == arg->id)
+									canReplace = false;
+
+								if(!canReplace)
+									break;
+							}
+
+							if(canReplace)
+							{
+								// in parameter
+								if(storeBefore && !loadAfter)
 								{
-									SPVInstruction *searchInst = block->block->instructions[j];
-									for(size_t aa=0; searchInst->op && aa < searchInst->op->arguments.size(); aa++)
-									{
-										if(searchInst->op->arguments[aa]->id == arg->id)
-										{
-											if(searchInst->opcode == spv::OpLoad)
-											{
-												// if it's used in multiple load, it can't be folded
-												if(loadAfter)
-												{
-													canReplace = false;
-													break;
-												}
-												loadAfter = searchInst;
-												loadIdx = j;
-											}
-											else
-											{
-												// if it's used in anything but a load, it can't be folded
-												canReplace = false;
-												break;
-											}
-										}
-									}
+									erase_item(funcops, storeBefore);
 
-									// if it's used in a condition, it can't be folded
-									if(searchInst->flow && searchInst->flow->condition && searchInst->flow->condition->id == arg->id)
-										canReplace = false;
+									erase_item(vars, instr->op->arguments[a]);
 
-									if(!canReplace)
-										break;
+									// pass function parameter directly from where the store was coming from
+									instr->op->arguments[a] = storeBefore->op->arguments[1];
 								}
 
-								if(canReplace)
+								// out or inout parameter
+								if(loadAfter)
 								{
-									// in parameter
-									if(storeBefore && !loadAfter)
+									// need to check the load afterwards is only ever used in a store operation
+
+									SPVInstruction *storeUse = NULL;
+
+									for(size_t j=loadIdx+1; j < block->block->instructions.size(); j++)
 									{
-										erase_item(funcops, storeBefore);
+										SPVInstruction *searchInst = block->block->instructions[j];
 
-										erase_item(vars, instr->op->arguments[a]);
-
-										// pass function parameter directly from where the store was coming from
-										instr->op->arguments[a] = storeBefore->op->arguments[1];
-									}
-
-									// out or inout parameter
-									if(loadAfter)
-									{
-										// need to check the load afterwards is only ever used in a store operation
-
-										SPVInstruction *storeUse = NULL;
-										
-										for(size_t j=loadIdx+1; j < block->block->instructions.size(); j++)
+										for(size_t aa=0; searchInst->op && aa < searchInst->op->arguments.size(); aa++)
 										{
-											SPVInstruction *searchInst = block->block->instructions[j];
-
-											for(size_t aa=0; searchInst->op && aa < searchInst->op->arguments.size(); aa++)
+											if(searchInst->op->arguments[aa] == loadAfter)
 											{
-												if(searchInst->op->arguments[aa] == loadAfter)
+												if(searchInst->opcode == spv::OpStore)
 												{
-													if(searchInst->opcode == spv::OpStore)
+													// if it's used in multiple stores, it can't be folded
+													if(storeUse)
 													{
-														// if it's used in multiple stores, it can't be folded
-														if(storeUse)
-														{
-															canReplace = false;
-															break;
-														}
-														storeUse = searchInst;
-													}
-													else
-													{
-														// if it's used in anything but a store, it can't be folded
 														canReplace = false;
 														break;
 													}
+													storeUse = searchInst;
+												}
+												else
+												{
+													// if it's used in anything but a store, it can't be folded
+													canReplace = false;
+													break;
 												}
 											}
-											
-											// if it's used in a condition, it can't be folded
-											if(searchInst->flow && searchInst->flow->condition == loadAfter)
-												canReplace = false;
-
-											if(!canReplace)
-												break;
-										}
-										
-										if(canReplace && storeBefore != NULL)
-										{
-											// for the inout parameter case, we also need to verify that
-											// the Store() before the function call comes from a Load(),
-											// and that the variable being Load()'d is identical to the
-											// variable in the Store() in storeUse that we've found
-
-											if(storeBefore->op->arguments[1]->opcode == spv::OpLoad &&
-												storeBefore->op->arguments[1]->op->arguments[0]->id ==
-												storeUse->op->arguments[0]->id)
-											{
-												erase_item(funcops, storeBefore);
-											}
-											else
-											{
-												canReplace = false;
-											}
 										}
 
-										if(canReplace)
-										{
-											// we haven't reached this store instruction yet, so need to mark that
-											// it has been folded and should be skipped
-											ignore_items.insert(storeUse);
+										// if it's used in a condition, it can't be folded
+										if(searchInst->flow && searchInst->flow->condition == loadAfter)
+											canReplace = false;
 
-											erase_item(vars, instr->op->arguments[a]);
-
-											// pass argument directly
-											instr->op->arguments[a] = storeUse->op->arguments[0];
-										}
+										if(!canReplace)
+											break;
 									}
-								}
-							}
-						}
-					}
-				}
 
-				if(block->block->mergeFlow)
-					funcops.push_back(block->block->mergeFlow);
-				if(block->block->exitFlow)
-				{
-					// branch conditions are inlined
-					if(block->block->exitFlow->flow->condition)
-							erase_item(funcops, block->block->exitFlow->flow->condition);
-
-					// return values are inlined
-					if(block->block->exitFlow->opcode == spv::OpReturnValue)
-					{
-						SPVInstruction *arg = ids[block->block->exitFlow->flow->targets[0]];
-
-						erase_item(funcops, arg);
-					}
-
-					funcops.push_back(block->block->exitFlow);
-				}
-			}
-
-			// find redundant branch/label pairs
-			for(size_t l=0; l < funcops.size()-1;)
-			{
-				if(funcops[l]->opcode == spv::OpBranch)
-				{
-					if(funcops[l+1]->opcode == spv::OpLabel && funcops[l]->flow->targets[0] == funcops[l+1]->id)
-					{
-						uint32_t label = funcops[l+1]->id;
-
-						bool refd = false;
-
-						// see if this label is a target anywhere else
-						for(size_t b=0; b < funcops.size(); b++)
-						{
-							if(l == b) continue;
-
-							if(funcops[b]->flow)
-							{
-								for(size_t t=0; t < funcops[b]->flow->targets.size(); t++)
-								{
-									if(funcops[b]->flow->targets[t] == label)
+									if(canReplace && storeBefore != NULL)
 									{
-										refd = true;
-										break;
+										// for the inout parameter case, we also need to verify that
+										// the Store() before the function call comes from a Load(),
+										// and that the variable being Load()'d is identical to the
+										// variable in the Store() in storeUse that we've found
+
+										if(storeBefore->op->arguments[1]->opcode == spv::OpLoad &&
+											storeBefore->op->arguments[1]->op->arguments[0]->id ==
+											storeUse->op->arguments[0]->id)
+										{
+											erase_item(funcops, storeBefore);
+										}
+										else
+										{
+											canReplace = false;
+										}
+									}
+
+									if(canReplace)
+									{
+										// we haven't reached this store instruction yet, so need to mark that
+										// it has been folded and should be skipped
+										ignore_items.insert(storeUse);
+
+										erase_item(vars, instr->op->arguments[a]);
+
+										// pass argument directly
+										instr->op->arguments[a] = storeUse->op->arguments[0];
 									}
 								}
-
-								if(refd)
-									break;
 							}
 						}
-
-						if(!refd)
-						{
-							funcops.erase(funcops.begin()+l);
-							funcops.erase(funcops.begin()+l);
-							continue;
-						}
-						else
-						{
-							// if it is refd, we can at least remove the goto
-							funcops.erase(funcops.begin()+l);
-							continue;
-						}
 					}
 				}
-
-				l++;
 			}
 
-			size_t tabSize = 2;
-			size_t indent = tabSize;
-
-			for(size_t v=0; v < vars.size(); v++)
+			if(block->block->mergeFlow)
+				funcops.push_back(block->block->mergeFlow);
+			if(block->block->exitFlow)
 			{
-				RDCASSERT(vars[v]->var && vars[v]->var->type);
-				disasm += StringFormat::Fmt("%s%s %s;\n", string(indent, ' ').c_str(), vars[v]->var->type->GetName().c_str(), vars[v]->str.c_str());
-			}
+				// branch conditions are inlined
+				if(block->block->exitFlow->flow->condition)
+					erase_item(funcops, block->block->exitFlow->flow->condition);
 
-			if(!vars.empty())
-				disasm += "\n";
-
-			vector<uint32_t> selectionstack;
-			vector<uint32_t> elsestack;
-
-			vector<uint32_t> loopheadstack;
-			vector<uint32_t> loopstartstack;
-			vector<uint32_t> loopmergestack;
-
-			for(size_t o=0; o < funcops.size(); o++)
-			{
-				if(funcops[o]->opcode == spv::OpLabel)
+				// return values are inlined
+				if(block->block->exitFlow->opcode == spv::OpReturnValue)
 				{
-					if(!elsestack.empty() && elsestack.back() == funcops[o]->id)
+					SPVInstruction *arg = ids[block->block->exitFlow->flow->targets[0]];
+
+					erase_item(funcops, arg);
+				}
+
+				funcops.push_back(block->block->exitFlow);
+			}
+		}
+
+		// find redundant branch/label pairs
+		for(size_t l=0; l < funcops.size()-1;)
+		{
+			if(funcops[l]->opcode == spv::OpBranch)
+			{
+				if(funcops[l+1]->opcode == spv::OpLabel && funcops[l]->flow->targets[0] == funcops[l+1]->id)
+				{
+					uint32_t label = funcops[l+1]->id;
+
+					bool refd = false;
+
+					// see if this label is a target anywhere else
+					for(size_t b=0; b < funcops.size(); b++)
 					{
-						// handle meeting an else block
-						disasm += string(indent - tabSize, ' ');
-						disasm += "} else {\n";
-						elsestack.pop_back();
+						if(l == b) continue;
+
+						if(funcops[b]->flow)
+						{
+							for(size_t t=0; t < funcops[b]->flow->targets.size(); t++)
+							{
+								if(funcops[b]->flow->targets[t] == label)
+								{
+									refd = true;
+									break;
+								}
+							}
+
+							if(refd)
+								break;
+						}
 					}
-					else if(!selectionstack.empty() && selectionstack.back() == funcops[o]->id)
+
+					if(!refd)
 					{
-						// handle meeting a selection merge block
-						indent -= tabSize;
-
-						disasm += string(indent, ' ');
-						disasm += "}\n";
-						selectionstack.pop_back();
-					}
-					else if(!loopmergestack.empty() && loopmergestack.back() == funcops[o]->id)
-					{
-						// handle meeting a loop merge block
-						indent -= tabSize;
-
-						disasm += string(indent, ' ');
-						disasm += "}\n";
-						loopmergestack.pop_back();
-					}
-					else if(!loopstartstack.empty() && loopstartstack.back() == funcops[o]->id)
-					{
-						// completely skip a label at the start of the loop. It's implicit from braces
-					}
-					else if(funcops[o]->block->mergeFlow && funcops[o]->block->mergeFlow->opcode == spv::OpLoopMerge)
-					{
-						// this block is a loop header
-						// TODO handle if the loop header condition expression isn't sufficiently in-lined.
-						// We need to force inline it.
-						disasm += string(indent, ' ');
-						disasm += "while(" + funcops[o]->block->exitFlow->flow->condition->Disassemble(ids, true) + ") {\n";
-
-						loopheadstack.push_back(funcops[o]->id);
-						loopstartstack.push_back(funcops[o]->block->exitFlow->flow->targets[0]);
-						loopmergestack.push_back(funcops[o]->block->mergeFlow->flow->targets[0]);
-
-						// false from the condition should jump straight to merge block
-						RDCASSERT(funcops[o]->block->exitFlow->flow->targets[1] == funcops[o]->block->mergeFlow->flow->targets[0]);
-
-						indent += tabSize;
+						funcops.erase(funcops.begin()+l);
+						funcops.erase(funcops.begin()+l);
+						continue;
 					}
 					else
 					{
-						disasm += funcops[o]->Disassemble(ids, false) + "\n";
+						// if it is refd, we can at least remove the goto
+						funcops.erase(funcops.begin()+l);
+						continue;
 					}
 				}
-				else if(funcops[o]->opcode == spv::OpBranch)
-				{
-					if(!selectionstack.empty() && funcops[o]->flow->targets[0] == selectionstack.back())
-					{
-						// if we're at the end of a true if path there will be a goto to
-						// the merge block before the false path label. Don't output it
-					}
-					else if(!loopheadstack.empty() && funcops[o]->flow->targets[0] == loopheadstack.back())
-					{
-						if(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpLabel &&
-							funcops[o+1]->id == loopmergestack.back())
-						{
-							// skip any gotos at the end of a loop jumping back to the header
-							// block to do another loop
-						}
-						else
-						{
-							// if we're skipping to the header of the loop before the end, this is a continue
-							disasm += string(indent, ' ');
-							disasm += "continue;\n";
-						}
-					}
-					else if(!loopmergestack.empty() && funcops[o]->flow->targets[0] == loopmergestack.back())
-					{
-						// if we're skipping to the merge of the loop without going through the
-						// branch conditional, this is a break
-						disasm += string(indent, ' ');
-						disasm += "break;\n";
-					}
-					else
-					{
-						disasm += string(indent, ' ');
-						disasm += funcops[o]->Disassemble(ids, false) + ";\n";
-					}
-				}
-				else if(funcops[o]->opcode == spv::OpLoopMerge)
-				{
-					// handled above when this block started
-					o++; // skip the branch conditional op
-				}
-				else if(funcops[o]->opcode == spv::OpSelectionMerge)
-				{
-					selectionstack.push_back(funcops[o]->flow->targets[0]);
+			}
 
-					RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpBranchConditional);
-					o++;
+			l++;
+		}
 
-					disasm += string(indent, ' ');
-					disasm += "if(" + funcops[o]->Disassemble(ids, false) + ") {\n";
+		size_t tabSize = 2;
+		size_t indent = tabSize;
+
+		for(size_t v=0; v < vars.size(); v++)
+		{
+			RDCASSERT(vars[v]->var && vars[v]->var->type);
+			m_Disassembly += StringFormat::Fmt("%s%s %s;\n", string(indent, ' ').c_str(), vars[v]->var->type->GetName().c_str(), vars[v]->str.c_str());
+		}
+
+		if(!vars.empty())
+			m_Disassembly += "\n";
+
+		vector<uint32_t> selectionstack;
+		vector<uint32_t> elsestack;
+
+		vector<uint32_t> loopheadstack;
+		vector<uint32_t> loopstartstack;
+		vector<uint32_t> loopmergestack;
+
+		for(size_t o=0; o < funcops.size(); o++)
+		{
+			if(funcops[o]->opcode == spv::OpLabel)
+			{
+				if(!elsestack.empty() && elsestack.back() == funcops[o]->id)
+				{
+					// handle meeting an else block
+					m_Disassembly += string(indent - tabSize, ' ');
+					m_Disassembly += "} else {\n";
+					elsestack.pop_back();
+				}
+				else if(!selectionstack.empty() && selectionstack.back() == funcops[o]->id)
+				{
+					// handle meeting a selection merge block
+					indent -= tabSize;
+
+					m_Disassembly += string(indent, ' ');
+					m_Disassembly += "}\n";
+					selectionstack.pop_back();
+				}
+				else if(!loopmergestack.empty() && loopmergestack.back() == funcops[o]->id)
+				{
+					// handle meeting a loop merge block
+					indent -= tabSize;
+
+					m_Disassembly += string(indent, ' ');
+					m_Disassembly += "}\n";
+					loopmergestack.pop_back();
+				}
+				else if(!loopstartstack.empty() && loopstartstack.back() == funcops[o]->id)
+				{
+					// completely skip a label at the start of the loop. It's implicit from braces
+				}
+				else if(funcops[o]->block->mergeFlow && funcops[o]->block->mergeFlow->opcode == spv::OpLoopMerge)
+				{
+					// this block is a loop header
+					// TODO handle if the loop header condition expression isn't sufficiently in-lined.
+					// We need to force inline it.
+					m_Disassembly += string(indent, ' ');
+					m_Disassembly += "while(" + funcops[o]->block->exitFlow->flow->condition->Disassemble(ids, true) + ") {\n";
+
+					loopheadstack.push_back(funcops[o]->id);
+					loopstartstack.push_back(funcops[o]->block->exitFlow->flow->targets[0]);
+					loopmergestack.push_back(funcops[o]->block->mergeFlow->flow->targets[0]);
+
+					// false from the condition should jump straight to merge block
+					RDCASSERT(funcops[o]->block->exitFlow->flow->targets[1] == funcops[o]->block->mergeFlow->flow->targets[0]);
 
 					indent += tabSize;
-
-					// does the branch have an else case
-					if(funcops[o]->flow->targets[1] != selectionstack.back())
-						elsestack.push_back(funcops[o]->flow->targets[1]);
-
-					RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpLabel &&
-						  funcops[o+1]->id == funcops[o]->flow->targets[0]);
-					o++; // skip outputting this label, it becomes our { essentially
-				}
-				else if(funcops[o]->opcode == spv::OpCompositeInsert && o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpStore)
-				{
-					// try to merge this load-hit-store construct:
-					// {id} = CompositeInsert <somevar> <foo> indices...
-					// Store <somevar> {id}
-
-					uint32_t loadID = 0;
-					
-					if(funcops[o]->op->arguments[0]->opcode == spv::OpLoad)
-						loadID = funcops[o]->op->arguments[0]->op->arguments[0]->id;
-
-					if(loadID == funcops[o+1]->op->arguments[0]->id)
-					{
-						// merge
-						SPVInstruction *loadhit = funcops[o];
-						SPVInstruction *store = funcops[o+1];
-
-						o++;
-
-						string storearg;
-						store->op->GetArg(ids, 0, storearg);
-
-						disasm += string(indent, ' ');
-						disasm += storearg;
-						disasm += loadhit->Disassemble(ids, true); // inline compositeinsert includes ' = '
-						disasm += ";\n";
-
-						loadhit->line = (int)o;
-					}
-					else
-					{
-						// print separately
-						disasm += string(indent, ' ');
-						disasm += funcops[o]->Disassemble(ids, false) + ";\n";
-						funcops[o]->line = (int)o;
-
-						o++;
-						
-						disasm += string(indent, ' ');
-						disasm += funcops[o]->Disassemble(ids, false) + ";\n";
-					}
-				}
-				else if(funcops[o]->opcode == spv::OpReturn && o == funcops.size()-1)
-				{
-					// don't print the return statement if it's the last statement in a function
-					break;
 				}
 				else
 				{
-					disasm += string(indent, ' ');
-					disasm += funcops[o]->Disassemble(ids, false) + ";\n";
+					m_Disassembly += funcops[o]->Disassemble(ids, false) + "\n";
 				}
+			}
+			else if(funcops[o]->opcode == spv::OpBranch)
+			{
+				if(!selectionstack.empty() && funcops[o]->flow->targets[0] == selectionstack.back())
+				{
+					// if we're at the end of a true if path there will be a goto to
+					// the merge block before the false path label. Don't output it
+				}
+				else if(!loopheadstack.empty() && funcops[o]->flow->targets[0] == loopheadstack.back())
+				{
+					if(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpLabel &&
+						funcops[o+1]->id == loopmergestack.back())
+					{
+						// skip any gotos at the end of a loop jumping back to the header
+						// block to do another loop
+					}
+					else
+					{
+						// if we're skipping to the header of the loop before the end, this is a continue
+						m_Disassembly += string(indent, ' ');
+						m_Disassembly += "continue;\n";
+					}
+				}
+				else if(!loopmergestack.empty() && funcops[o]->flow->targets[0] == loopmergestack.back())
+				{
+					// if we're skipping to the merge of the loop without going through the
+					// branch conditional, this is a break
+					m_Disassembly += string(indent, ' ');
+					m_Disassembly += "break;\n";
+				}
+				else
+				{
+					m_Disassembly += string(indent, ' ');
+					m_Disassembly += funcops[o]->Disassemble(ids, false) + ";\n";
+				}
+			}
+			else if(funcops[o]->opcode == spv::OpLoopMerge)
+			{
+				// handled above when this block started
+				o++; // skip the branch conditional op
+			}
+			else if(funcops[o]->opcode == spv::OpSelectionMerge)
+			{
+				selectionstack.push_back(funcops[o]->flow->targets[0]);
 
-				funcops[o]->line = (int)o;
+				RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpBranchConditional);
+				o++;
+
+				m_Disassembly += string(indent, ' ');
+				m_Disassembly += "if(" + funcops[o]->Disassemble(ids, false) + ") {\n";
+
+				indent += tabSize;
+
+				// does the branch have an else case
+				if(funcops[o]->flow->targets[1] != selectionstack.back())
+					elsestack.push_back(funcops[o]->flow->targets[1]);
+
+				RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpLabel &&
+					funcops[o+1]->id == funcops[o]->flow->targets[0]);
+				o++; // skip outputting this label, it becomes our { essentially
+			}
+			else if(funcops[o]->opcode == spv::OpCompositeInsert && o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpStore)
+			{
+				// try to merge this load-hit-store construct:
+				// {id} = CompositeInsert <somevar> <foo> indices...
+				// Store <somevar> {id}
+
+				uint32_t loadID = 0;
+
+				if(funcops[o]->op->arguments[0]->opcode == spv::OpLoad)
+					loadID = funcops[o]->op->arguments[0]->op->arguments[0]->id;
+
+				if(loadID == funcops[o+1]->op->arguments[0]->id)
+				{
+					// merge
+					SPVInstruction *loadhit = funcops[o];
+					SPVInstruction *store = funcops[o+1];
+
+					o++;
+
+					string storearg;
+					store->op->GetArg(ids, 0, storearg);
+
+					m_Disassembly += string(indent, ' ');
+					m_Disassembly += storearg;
+					m_Disassembly += loadhit->Disassemble(ids, true); // inline compositeinsert includes ' = '
+					m_Disassembly += ";\n";
+
+					loadhit->line = (int)o;
+				}
+				else
+				{
+					// print separately
+					m_Disassembly += string(indent, ' ');
+					m_Disassembly += funcops[o]->Disassemble(ids, false) + ";\n";
+					funcops[o]->line = (int)o;
+
+					o++;
+
+					m_Disassembly += string(indent, ' ');
+					m_Disassembly += funcops[o]->Disassemble(ids, false) + ";\n";
+				}
+			}
+			else if(funcops[o]->opcode == spv::OpReturn && o == funcops.size()-1)
+			{
+				// don't print the return statement if it's the last statement in a function
+				break;
+			}
+			else
+			{
+				m_Disassembly += string(indent, ' ');
+				m_Disassembly += funcops[o]->Disassemble(ids, false) + ";\n";
 			}
 
-			disasm += StringFormat::Fmt("} // %s\n\n", funcs[f]->str.c_str());
+			funcops[o]->line = (int)o;
 		}
 
-		// for each func:
-		//   declare instructino list
-		//   push variable declares
-		//
-		//   for each block:
-		//     for each instruction:
-		//       add to list
-		//       if instruction takes params:
-		//         if params instructions complexity are low enough
-		//           take param instructions out of list
-		//           incr. this instruction's complexity
-		//           mark params to be melded
-		//           aggressively meld function call parameters, remove variable declares
-		//
-		//   do magic secret sauce to analyse ifs and loops
-		//
-		//   for instructions in list:
-		//     mark line num to all 'child' instructions, for stepping
-		//     output combined line
-		//     if instruction pair is goto then label, skip
-		//
-		//
-
-		return disasm;
+		m_Disassembly += StringFormat::Fmt("} // %s\n\n", funcs[f]->str.c_str());
 	}
-};
+}
 
-void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLength, string &disasm)
+void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant> &cblock)
 {
-#if 1
-	return;
-#else
-	if(shadType >= eSPIRVInvalid)
-		return;
+	RDCASSERT(!type->children.empty());
 
-	SPVModule module;
+	create_array_uninit(cblock, type->children.size());
+	for(size_t i=0; i < type->children.size(); i++)
+	{
+		SPVTypeData *t = type->children[i].first;
+		cblock[i].name = type->children[i].second;
+		// TODO do we need to fill these out?
+		cblock[i].reg.vec = 0;
+		cblock[i].reg.comp = 0;
+		
+		if(t->type == SPVTypeData::eVector ||
+			 t->type == SPVTypeData::eMatrix ||
+			 t->type == SPVTypeData::eArray)
+		{
+			string suffix = "";
 
-	module.shadType = shadType;
+			if(t->type == SPVTypeData::eArray)
+			{
+				suffix += StringFormat::Fmt("[%u]", t->arraySize);
+				cblock[i].type.descriptor.elements = t->arraySize;
+				t = t->baseType;
+			}
 
+			if(t->baseType->type == SPVTypeData::eFloat)
+				cblock[i].type.descriptor.type = eVar_Float;
+			else if(t->baseType->type == SPVTypeData::eUInt)
+				cblock[i].type.descriptor.type = eVar_UInt;
+			else if(t->baseType->type == SPVTypeData::eSInt)
+				cblock[i].type.descriptor.type = eVar_Int;
+			else
+				RDCERR("Unexpected base type of constant variable %u", t->baseType->type);
+
+			cblock[i].type.descriptor.rowMajorStorage = false;
+			
+			for(size_t d=0; d < t->decorations.size(); d++)
+				if(t->decorations[d].decoration == spv::DecorationRowMajor)
+					cblock[i].type.descriptor.rowMajorStorage = true;
+
+			cblock[i].type.descriptor.rows = t->vectorSize;
+			cblock[i].type.descriptor.cols = t->matrixSize;
+
+			cblock[i].type.descriptor.name = t->GetName() + suffix;
+		}
+		else if(t->IsScalar())
+		{
+			if(t->type == SPVTypeData::eFloat)
+				cblock[i].type.descriptor.type = eVar_Float;
+			else if(t->type == SPVTypeData::eUInt)
+				cblock[i].type.descriptor.type = eVar_UInt;
+			else if(t->type == SPVTypeData::eSInt)
+				cblock[i].type.descriptor.type = eVar_Int;
+			else
+				RDCERR("Unexpected base type of constant variable %u", t->type);
+
+			cblock[i].type.descriptor.rowMajorStorage = false;
+			cblock[i].type.descriptor.rows = 1;
+			cblock[i].type.descriptor.cols = 1;
+			cblock[i].type.descriptor.elements = 1;
+
+			cblock[i].type.descriptor.name = t->GetName();
+		}
+		else
+		{
+			cblock[i].type.descriptor.type = eVar_Float;
+			cblock[i].type.descriptor.rowMajorStorage = false;
+			cblock[i].type.descriptor.rows = 0;
+			cblock[i].type.descriptor.cols = 0;
+			cblock[i].type.descriptor.elements = 0;
+
+			cblock[i].type.descriptor.name = t->GetName();
+
+			MakeConstantBlockVariables(t, cblock[i].type.members);
+		}
+	}
+}
+
+SystemAttribute BuiltInToSystemAttribute(const spv::BuiltIn el)
+{
+	// not complete, might need to expand system attribute list
+
+	switch(el)
+	{
+		case spv::BuiltInPosition:                         return eAttr_Position;
+		case spv::BuiltInPointSize:                        return eAttr_PointSize;
+		case spv::BuiltInClipDistance:                     return eAttr_ClipDistance;
+		case spv::BuiltInCullDistance:                     return eAttr_CullDistance;
+		case spv::BuiltInVertexId:                         return eAttr_VertexIndex;
+		case spv::BuiltInInstanceId:                       return eAttr_InstanceIndex;
+		case spv::BuiltInPrimitiveId:                      return eAttr_PrimitiveIndex;
+		case spv::BuiltInInvocationId:                     return eAttr_InvocationIndex;
+		case spv::BuiltInLayer:                            return eAttr_RTIndex;
+		case spv::BuiltInViewportIndex:                    return eAttr_ViewportIndex;
+		case spv::BuiltInTessLevelOuter:                   return eAttr_OuterTessFactor;
+		case spv::BuiltInTessLevelInner:                   return eAttr_InsideTessFactor;
+		case spv::BuiltInPatchVertices:                    return eAttr_PatchNumVertices;
+		case spv::BuiltInFrontFacing:                      return eAttr_IsFrontFace;
+		case spv::BuiltInSampleId:                         return eAttr_MSAASampleIndex;
+		case spv::BuiltInSamplePosition:                   return eAttr_MSAASamplePosition;
+		case spv::BuiltInSampleMask:                       return eAttr_MSAACoverage;
+		case spv::BuiltInFragColor:                        return eAttr_ColourOutput;
+		case spv::BuiltInFragDepth:                        return eAttr_DepthOutput;
+		default: break;
+	}
+	
+	return eAttr_None;
+}
+
+void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module, ShaderReflection *reflection)
+{
 	if(spirv[0] != (uint32_t)spv::MagicNumber)
 	{
-		disasm = StringFormat::Fmt("Unrecognised magic number %08x", spirv[0]);
+		RDCERR("Unrecognised SPIR-V magic number %08x", spirv[0]);
 		return;
 	}
 	
@@ -1729,7 +1769,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 	SPVFunction *curFunc = NULL;
 	SPVBlock *curBlock = NULL;
-
+	
 	size_t it = 5;
 	while(it < spirvLength)
 	{
@@ -1748,8 +1788,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			// 'Global' opcodes
 			case spv::OpSource:
 			{
-				module.source.lang = spv::SourceLanguage(spirv[it+1]);
-				module.source.ver = spirv[it+2];
+				module.sourceLang = ToStr::Get(spv::SourceLanguage(spirv[it+1]));
+				module.sourceVer = spirv[it+2];
 				break;
 			}
 			case spv::OpSourceExtension:
@@ -1760,8 +1800,9 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			case spv::OpMemoryModel:
 			{
-				module.model.addr = spv::AddressingModel(spirv[it+1]);
-				module.model.mem = spv::MemoryModel(spirv[it+2]);
+				// do we care about this?
+				spv::AddressingModel addr = spv::AddressingModel(spirv[it+1]);
+				spv::MemoryModel mem = spv::MemoryModel(spirv[it+2]);
 				break;
 			}
 			case spv::OpEntryPoint:
@@ -2573,10 +2614,176 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 	std::sort(module.globals.begin(), module.globals.end(), SortByVarClass());
 
-	disasm = module.Disassemble();
+	if(reflection)
+	{
+		vector<SigParameter> inputs;
+		vector<SigParameter> outputs;
+		vector<ConstantBlock> cblocks;
+		vector<ShaderResource> resources;
 
-	return;
-#endif
+		// TODO need to fetch these
+		reflection->DispatchThreadsDimension[0] = 0;
+		reflection->DispatchThreadsDimension[1] = 0;
+		reflection->DispatchThreadsDimension[2] = 0;
+
+		for(size_t i=0; i < module.globals.size(); i++)
+		{
+			SPVInstruction *inst = module.globals[i];
+			if(inst->var->storage == spv::StorageClassInput || inst->var->storage == spv::StorageClassOutput)
+			{
+				vector<SigParameter> *sigarray = (inst->var->storage == spv::StorageClassInput ? &inputs : &outputs);
+
+				SigParameter sig;
+
+				string nm = inst->str.empty() ? StringFormat::Fmt("sig%u", inst->id) : inst->str;
+	
+				sig.varName = nm;
+				sig.semanticIndex = 0;
+				sig.needSemanticIndex = false;
+
+				bool rowmajor = true;
+
+				sig.regIndex = 0;
+				for(size_t d=0; d < inst->decorations.size(); d++)
+				{
+					if(inst->decorations[d].decoration == spv::DecorationLocation)
+						sig.regIndex = inst->decorations[d].val;
+					else if(inst->decorations[d].decoration == spv::DecorationBuiltIn)
+						sig.systemValue = BuiltInToSystemAttribute((spv::BuiltIn)inst->decorations[d].val);
+					else if(inst->decorations[d].decoration == spv::DecorationRowMajor)
+						rowmajor = true;
+					else if(inst->decorations[d].decoration == spv::DecorationColMajor)
+						rowmajor = false;
+				}
+
+				SPVTypeData *type = inst->var->type;
+				if(type->type == SPVTypeData::ePointer)
+					type = type->baseType;
+
+				switch(type->baseType ? type->baseType->type : type->type)
+				{
+					case SPVTypeData::eBool:
+					case SPVTypeData::eUInt:
+						sig.compType = eCompType_UInt;
+						break;
+					case SPVTypeData::eSInt:
+						sig.compType = eCompType_SInt;
+						break;
+					case SPVTypeData::eFloat:
+						sig.compType = eCompType_Float;
+						break;
+					default:
+						RDCERR("Unexpected base type of input signature %u", type->baseType->type);
+						break;
+				}
+
+				sig.compCount = type->vectorSize;
+				sig.stream = 0;
+
+				sig.regChannelMask = sig.channelUsedMask = (1<<type->vectorSize)-1;
+
+				if(type->matrixSize == 1)
+				{
+					sigarray->push_back(sig);
+				}
+				else
+				{
+					for(uint32_t m=0; m < type->matrixSize; m++)
+					{
+						SigParameter s = sig;
+						s.varName = StringFormat::Fmt("%s:%s%u", nm, rowmajor ? "row" : "col", m);
+						s.regIndex += m;
+						sigarray->push_back(s);
+					}
+				}
+			}
+			else if(inst->var->storage == spv::StorageClassUniform || inst->var->storage == spv::StorageClassUniformConstant)
+			{
+				SPVTypeData *type = inst->var->type;
+				if(type->type == SPVTypeData::ePointer)
+					type = type->baseType;
+
+				if(type->type == SPVTypeData::eStruct)
+				{
+					ConstantBlock cblock;
+					
+					cblock.name = inst->str.empty() ? StringFormat::Fmt("uniforms%u", inst->id) : inst->str;
+					cblock.bufferBacked = true;
+					
+					// TODO this needs to go through the bindpoint mapping
+					for(size_t d=0; d < inst->decorations.size(); d++)
+					{
+						if(inst->decorations[d].decoration == spv::DecorationBinding)
+							cblock.bindPoint = (int32_t)inst->decorations[d].val;
+					}
+					
+					MakeConstantBlockVariables(type, cblock.variables);
+
+					cblocks.push_back(cblock);
+				}
+				else
+				{
+					ShaderResource res;
+
+					res.name = inst->str.empty() ? StringFormat::Fmt("res%u", inst->id) : inst->str;
+
+					if(type->multisampled)
+						res.resType = type->arrayed ? eResType_Texture2DMSArray : eResType_Texture2DMS;
+					else if(type->texdim == spv::Dim1D)
+						res.resType = type->arrayed ? eResType_Texture1DArray : eResType_Texture1D;
+					else if(type->texdim == spv::Dim2D)
+						res.resType = type->arrayed ? eResType_Texture2DArray : eResType_Texture2D;
+					else if(type->texdim == spv::DimCube)
+						res.resType = type->arrayed ? eResType_TextureCubeArray : eResType_TextureCube;
+					else if(type->texdim == spv::Dim3D)
+						res.resType = eResType_Texture3D;
+					else if(type->texdim == spv::DimRect)
+						res.resType = eResType_TextureRect;
+					else if(type->texdim == spv::DimBuffer)
+						res.resType = eResType_Buffer;
+
+					// TODO once we're on SPIR-V 1.0, update this handling
+					res.IsSampler = true;
+					res.IsTexture = true;
+					res.IsSRV = true;
+					res.IsReadWrite = false;
+
+					if(type->baseType->type == SPVTypeData::eFloat)
+						res.variableType.descriptor.type = eVar_Float;
+					else if(type->baseType->type == SPVTypeData::eUInt)
+						res.variableType.descriptor.type = eVar_UInt;
+					else if(type->baseType->type == SPVTypeData::eSInt)
+						res.variableType.descriptor.type = eVar_Int;
+					else
+						RDCERR("Unexpected base type of resource %u", type->baseType->type);
+
+					res.variableType.descriptor.rows = 1;
+					res.variableType.descriptor.cols = 1;
+					res.variableType.descriptor.elements = 1;
+					res.variableType.descriptor.rowMajorStorage = false;
+					res.variableType.descriptor.rowMajorStorage = false;
+					
+					// TODO this needs to go through the bindpoint mapping
+					for(size_t d=0; d < inst->decorations.size(); d++)
+					{
+						if(inst->decorations[d].decoration == spv::DecorationBinding)
+							res.bindPoint = (int32_t)inst->decorations[d].val;
+					}
+
+					resources.push_back(res);
+				}
+			}
+			else
+			{
+				RDCWARN("Unexpected storage class for global: %s", ToStr::Get(inst->var->storage));
+			}
+		}
+
+		reflection->InputSig = inputs;
+		reflection->OutputSig = outputs;
+		reflection->Resources = resources;
+		reflection->ConstantBlocks = cblocks;
+	}
 }
 
 template<>
@@ -3018,37 +3225,6 @@ string ToStrHelper<false, spv::StorageClass>::Get(const spv::StorageClass &el)
 #endif
 	
 	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
-}
-
-SystemAttribute BuiltInToSystemAttribute(const spv::BuiltIn el)
-{
-	// not complete, might need to expand system attribute list
-
-	switch(el)
-	{
-		case spv::BuiltInPosition:                         return eAttr_Position;
-		case spv::BuiltInPointSize:                        return eAttr_PointSize;
-		case spv::BuiltInClipDistance:                     return eAttr_ClipDistance;
-		case spv::BuiltInCullDistance:                     return eAttr_CullDistance;
-		case spv::BuiltInVertexId:                         return eAttr_VertexIndex;
-		case spv::BuiltInInstanceId:                       return eAttr_InstanceIndex;
-		case spv::BuiltInPrimitiveId:                      return eAttr_PrimitiveIndex;
-		case spv::BuiltInInvocationId:                     return eAttr_InvocationIndex;
-		case spv::BuiltInLayer:                            return eAttr_RTIndex;
-		case spv::BuiltInViewportIndex:                    return eAttr_ViewportIndex;
-		case spv::BuiltInTessLevelOuter:                   return eAttr_OuterTessFactor;
-		case spv::BuiltInTessLevelInner:                   return eAttr_InsideTessFactor;
-		case spv::BuiltInPatchVertices:                    return eAttr_PatchNumVertices;
-		case spv::BuiltInFrontFacing:                      return eAttr_IsFrontFace;
-		case spv::BuiltInSampleId:                         return eAttr_MSAASampleIndex;
-		case spv::BuiltInSamplePosition:                   return eAttr_MSAASamplePosition;
-		case spv::BuiltInSampleMask:                       return eAttr_MSAACoverage;
-		case spv::BuiltInFragColor:                        return eAttr_ColourOutput;
-		case spv::BuiltInFragDepth:                        return eAttr_DepthOutput;
-		default: break;
-	}
-	
-	return eAttr_None;
 }
 
 template<>

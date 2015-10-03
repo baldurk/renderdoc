@@ -134,9 +134,11 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sh);
 			GetResourceManager()->AddLiveResource(id, sh);
 
-			string disasm;
+			SPVModule spvmod;
+			ShaderReflection refl;
+
 			RDCASSERT(info.codeSize % sizeof(uint32_t) == 0);
-			DisassembleSPIRV(eSPIRVGeneric, (uint32_t *)info.pCode, info.codeSize/sizeof(uint32_t), disasm);
+			ParseSPIRV((uint32_t *)info.pCode, info.codeSize/sizeof(uint32_t), spvmod, &refl);
 		}
 	}
 
