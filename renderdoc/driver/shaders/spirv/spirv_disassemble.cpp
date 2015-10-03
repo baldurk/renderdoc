@@ -652,6 +652,22 @@ struct SPVInstruction
 			case spv::OpAccessChain:
 			{
 				RDCASSERT(op);
+				
+				string composite;
+				op->GetArg(ids, 0, composite);
+
+				// unknown argument, we can't access chain it
+				if(op->arguments[0]->var == NULL && op->arguments[0]->op == NULL)
+				{
+					string ret = "";
+
+					if(!inlineOp)
+						ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
+
+					ret += composite + "....";
+
+					return ret;
+				}
 
 				SPVTypeData *type = op->arguments[0]->var ? op->arguments[0]->var->type : op->arguments[0]->op->type;
 
@@ -759,9 +775,6 @@ struct SPVInstruction
 				}
 				
 				string ret = "";
-
-				string composite;
-				op->GetArg(ids, 0, composite);
 
 				if(opcode == spv::OpCompositeInsert)
 				{
