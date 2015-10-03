@@ -631,18 +631,10 @@ struct SPVInstruction
 #endif
 			}
 			case spv::OpCompositeExtract:
+			case spv::OpCompositeInsert:
 			case spv::OpAccessChain:
 			{
 				RDCASSERT(op);
-
-				string ret = "";
-
-				if(!inlineOp)
-					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
-				
-				string arg;
-				op->GetArg(ids, 0, arg);
-				ret += arg;
 
 				SPVTypeData *type = op->arguments[0]->var ? op->arguments[0]->var->type : op->arguments[0]->op->type;
 
@@ -654,11 +646,13 @@ struct SPVInstruction
 				size_t start = (opcode == spv::OpAccessChain ? 1                    : 0                  );
 				size_t count = (opcode == spv::OpAccessChain ? op->arguments.size() : op->literals.size());
 
+				string accessString = "";
+
 				for(size_t i=start; i < count; i++)
 				{
 					bool constant = false;
 					int32_t idx = -1;
-					if(opcode == spv::OpCompositeExtract)
+					if(opcode != spv::OpAccessChain)
 					{
 						idx = (int32_t)op->literals[i];
 						constant = true;
@@ -679,9 +673,9 @@ struct SPVInstruction
 						RDCASSERT(constant);
 						const pair<SPVTypeData*,string> &child = type->children[idx];
 						if(child.second.empty())
-							ret += StringFormat::Fmt("._member%u", idx);
+							accessString += StringFormat::Fmt("._member%u", idx);
 						else
-							ret += StringFormat::Fmt(".%s", child.second.c_str());
+							accessString += StringFormat::Fmt(".%s", child.second.c_str());
 						type = child.first;
 						continue;
 					}
@@ -689,14 +683,14 @@ struct SPVInstruction
 					{
 						if(constant)
 						{
-							ret += StringFormat::Fmt("[%u]", idx);
+							accessString += StringFormat::Fmt("[%u]", idx);
 						}
 						else
 						{
 							// dynamic indexing into this array
 							string arg;
 							op->GetArg(ids, i, arg);
-							ret += StringFormat::Fmt("[%s]", arg.c_str());
+							accessString += StringFormat::Fmt("[%s]", arg.c_str());
 						}
 						type = type->baseType;
 						continue;
@@ -705,14 +699,14 @@ struct SPVInstruction
 					{
 						if(constant)
 						{
-							ret += StringFormat::Fmt("[%u]", idx);
+							accessString += StringFormat::Fmt("[%u]", idx);
 						}
 						else
 						{
 							// dynamic indexing into this array
 							string arg;
 							op->GetArg(ids, i, arg);
-							ret += StringFormat::Fmt("[%s]", arg.c_str());
+							accessString += StringFormat::Fmt("[%s]", arg.c_str());
 						}
 
 						// fall through to vector if we have another index
@@ -721,7 +715,7 @@ struct SPVInstruction
 
 						i++;
 						
-						if(opcode == spv::OpCompositeExtract)
+						if(opcode != spv::OpAccessChain)
 						{
 							idx = (int32_t)op->literals[i];
 						}
@@ -737,14 +731,49 @@ struct SPVInstruction
 					{
 						char swizzle[] = "xyzw";
 						if(idx < 4)
-							ret += StringFormat::Fmt(".%c", swizzle[idx]);
+							accessString += StringFormat::Fmt(".%c", swizzle[idx]);
 						else
-							ret += StringFormat::Fmt("._%u", idx);
+							accessString += StringFormat::Fmt("._%u", idx);
 
 						// must be the last index, we're down to scalar granularity
 						type = NULL;
 						RDCASSERT(i == count-1);
 					}
+				}
+				
+				string ret = "";
+
+				string composite;
+				op->GetArg(ids, 0, composite);
+
+				if(opcode == spv::OpCompositeInsert)
+				{
+					string insertObj;
+					op->GetArg(ids, 1, insertObj);
+
+					// if we've been inlined, it means that there is a store of the result of
+					// this composite insert, to the same composite that we are cloning (first
+					// argument). If so, we can just leave the access and object assignment
+					if(inlineOp)
+					{
+						ret = StringFormat::Fmt("%s = %s", accessString.c_str(), insertObj.c_str());
+					}
+					else
+					{
+						ret = StringFormat::Fmt("%s %s = %s; %s%s = %s",
+							op->type->GetName().c_str(), GetIDName().c_str(),
+							composite.c_str(),
+							GetIDName().c_str(), accessString.c_str(),
+							insertObj.c_str()
+							);
+					}
+				}
+				else
+				{
+					if(!inlineOp)
+						ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
+
+					ret += composite + accessString;
 				}
 
 				return ret;
@@ -1558,6 +1587,48 @@ struct SPVModule
 						  funcops[o+1]->id == funcops[o]->flow->targets[0]);
 					o++; // skip outputting this label, it becomes our { essentially
 				}
+				else if(funcops[o]->opcode == spv::OpCompositeInsert && o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpStore)
+				{
+					// try to merge this load-hit-store construct:
+					// {id} = CompositeInsert <somevar> <foo> indices...
+					// Store <somevar> {id}
+
+					uint32_t loadID = 0;
+					
+					if(funcops[o]->op->arguments[0]->opcode == spv::OpLoad)
+						loadID = funcops[o]->op->arguments[0]->op->arguments[0]->id;
+
+					if(loadID == funcops[o+1]->op->arguments[0]->id)
+					{
+						// merge
+						SPVInstruction *loadhit = funcops[o];
+						SPVInstruction *store = funcops[o+1];
+
+						o++;
+
+						string storearg;
+						store->op->GetArg(ids, 0, storearg);
+
+						disasm += string(indent, ' ');
+						disasm += storearg;
+						disasm += loadhit->Disassemble(ids, true); // inline compositeinsert includes ' = '
+						disasm += ";\n";
+
+						loadhit->line = (int)o;
+					}
+					else
+					{
+						// print separately
+						disasm += string(indent, ' ');
+						disasm += funcops[o]->Disassemble(ids, false) + ";\n";
+						funcops[o]->line = (int)o;
+
+						o++;
+						
+						disasm += string(indent, ' ');
+						disasm += funcops[o]->Disassemble(ids, false) + ";\n";
+					}
+				}
 				else
 				{
 					disasm += string(indent, ' ');
@@ -2258,23 +2329,45 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				break;
 			}
 			case spv::OpCompositeExtract:
+			case spv::OpCompositeInsert:
 			{
-				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
+				int word = 1;
+
+				SPVInstruction *typeInst = module.GetByID(spirv[it+word]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.op = new SPVOperation();
 				op.op->type = typeInst->type;
+
+				word++;
 				
-				SPVInstruction *compInst = module.GetByID(spirv[it+3]);
+				op.id = spirv[it+word];
+				module.ids[spirv[it+word]] = &op;
+
+				word++;
+
+				SPVInstruction *objInst = NULL;
+				if(op.opcode == spv::OpCompositeInsert)
+				{
+					op.op->complexity = 100; // never combine composite insert
+
+					objInst = module.GetByID(spirv[it+word]);
+					RDCASSERT(objInst);
+
+					word++;
+				}
+				
+				SPVInstruction *compInst = module.GetByID(spirv[it+word]);
 				RDCASSERT(compInst);
+				
+				word++;
 
 				op.op->arguments.push_back(compInst);
+				if(objInst)
+					op.op->arguments.push_back(objInst);
 				
-				for(int i=4; i < WordCount; i++)
-					op.op->literals.push_back(spirv[it+i]);
-				
-				op.id = spirv[it+2];
-				module.ids[spirv[it+2]] = &op;
+				for(; word < WordCount; word++)
+					op.op->literals.push_back(spirv[it+word]);
 
 				curBlock->instructions.push_back(&op);
 				break;
