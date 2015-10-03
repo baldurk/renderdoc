@@ -1857,13 +1857,17 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 			{
 				ConstantBlock cblock;
 
-				cblock.name = inst->str.empty() ? StringFormat::Fmt("uniforms%u", inst->id) : inst->str;
+				if(!inst->str.empty())
+					cblock.name = inst->str;
+				else if(!type->name.empty())
+					cblock.name = type->name;
+				else
+					cblock.name = StringFormat::Fmt("uniforms%u", inst->id);
 				cblock.bufferBacked = true;
 				cblock.bindPoint = (int32_t)cblocks.size();
 				
 				BindpointMap bindmap = {0};
 
-				// TODO this needs to go through the bindpoint mapping
 				for(size_t d=0; d < inst->decorations.size(); d++)
 				{
 					if(inst->decorations[d].decoration == spv::DecorationDescriptorSet)
@@ -1876,7 +1880,23 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 
 				cblocks.push_back(cblock);
 
-				bindmap.used = true; // VKTODOLOW see if this declared struct is used anywhere in the code
+				bindmap.used = false;
+
+				for(size_t o=0; o < operations.size(); o++)
+				{
+					if(operations[o]->op)
+					{
+						for(size_t a=0; a < operations[o]->op->arguments.size(); a++)
+						{
+							if(operations[o]->op->arguments[a] == inst)
+							{
+								bindmap.used = true;
+								break;
+							}
+						}
+					}
+				}
+
 				cblockmap.push_back(bindmap);
 			}
 			else
@@ -1925,7 +1945,6 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				
 				BindpointMap bindmap = {0};
 
-				// TODO this needs to go through the bindpoint mapping
 				for(size_t d=0; d < inst->decorations.size(); d++)
 				{
 					if(inst->decorations[d].decoration == spv::DecorationDescriptorSet)
@@ -1933,8 +1952,23 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 					if(inst->decorations[d].decoration == spv::DecorationBinding)
 						bindmap.bind = (int32_t)inst->decorations[d].val;
 				}
-				
-				bindmap.used = true; // VKTODOLOW see if this declared resource is used anywhere in the code
+
+				bindmap.used = false;
+
+				for(size_t o=0; o < operations.size(); o++)
+				{
+					if(operations[o]->op)
+					{
+						for(size_t a=0; a < operations[o]->op->arguments.size(); a++)
+						{
+							if(operations[o]->op->arguments[a] == inst)
+							{
+								bindmap.used = true;
+								break;
+							}
+						}
+					}
+				}
 
 				resources.push_back(res);
 				resmap.push_back(bindmap);
