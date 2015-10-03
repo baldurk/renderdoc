@@ -43,6 +43,15 @@ using std::make_pair;
 #include "3rdparty/glslang/SPIRV/GLSL.std.450.h"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
+// I'm not sure yet if this makes things clearer or worse. On the one hand
+// it is explicit about stores/loads through pointers, but on the other it
+// produces a lot of noise.
+#define LOAD_STORE_CONSTRUCTORS 0
+
+// possibly for consistency all constants should construct themselves, but
+// for scalars it's potentially simpler just to drop it.
+#define SCALAR_CONSTRUCTORS 0
+
 namespace spv { Op OpUnknown = (Op)~0U; }
 
 const char *GLSL_STD_450_names[GLSLstd450Count] = {0};
@@ -176,6 +185,11 @@ struct SPVTypeData
 	bool IsBasicInt() const
 	{
 		return type == eUInt || type == eSInt;
+	}
+
+	bool IsScalar() const
+	{
+		return type < eBasicCount && type != eVoid;
 	}
 
 	string DeclareVariable(const vector<SPVDecoration> &decorations, const string &varName)
@@ -372,6 +386,11 @@ struct SPVConstant
 
 	string GetIDName()
 	{
+		if(type->IsScalar())
+		{
+			return GetValString();
+		}
+
 		string ret = type->GetName();
 		ret += "(";
 		if(children.empty())
@@ -572,8 +591,12 @@ struct SPVInstruction
 				// inlined only in function parameters, just return argument
 				if(inlineOp)
 					return arg;
-
+				
+#if LOAD_STORE_CONSTRUCTORS
 				return StringFormat::Fmt("Store(%s%s) = %s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), arg.c_str());
+#else
+				return StringFormat::Fmt("%s%s = %s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), arg.c_str());
+#endif
 			}
 			case spv::OpCopyMemory:
 			{
@@ -582,7 +605,11 @@ struct SPVInstruction
 				string arg;
 				op->GetArg(ids, 1, arg);
 
+#if LOAD_STORE_CONSTRUCTORS
 				return StringFormat::Fmt("Copy(%s%s) = Load(%s%s)", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
+#else
+				return StringFormat::Fmt("%s%s = %s%s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
+#endif
 			}
 			case spv::OpLoad:
 			{
@@ -590,11 +617,18 @@ struct SPVInstruction
 
 				string arg;
 				op->GetArg(ids, 0, arg);
-
+				
+#if LOAD_STORE_CONSTRUCTORS
 				if(inlineOp)
 					return StringFormat::Fmt("Load(%s%s)", arg.c_str(), OptionalFlagString(op->access).c_str());
 
 				return StringFormat::Fmt("%s %s = Load(%s%s)", op->type->GetName().c_str(), GetIDName().c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
+#else
+				if(inlineOp)
+					return StringFormat::Fmt("%s%s", arg.c_str(), OptionalFlagString(op->access).c_str());
+
+				return StringFormat::Fmt("%s %s = %s%s", op->type->GetName().c_str(), GetIDName().c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
+#endif
 			}
 			case spv::OpCompositeExtract:
 			case spv::OpAccessChain:
