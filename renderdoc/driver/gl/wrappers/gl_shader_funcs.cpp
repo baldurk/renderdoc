@@ -51,7 +51,7 @@ void WrappedOpenGL::ShaderData::Compile(const GLHookSet &gl)
 
 		string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(type)), sources, spirv);
 		if(!spirv.empty())
-			DisassembleSPIRV(SPIRVShaderStage(ShaderIdx(type)), spirv, s);
+			DisassembleSPIRV(SPIRVShaderStage(ShaderIdx(type)), &spirv.front(), spirv.size(), s);
 
 		reflection.Disassembly = s;
 

@@ -24,6 +24,8 @@
 
 #include "../vk_core.h"
 
+#include "driver/shaders/spirv/spirv_common.h"
+
 // Shader functions
 bool WrappedVulkan::Serialise_vkCreatePipelineLayout(
 		VkDevice                                    device,
@@ -131,6 +133,10 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sh);
 			GetResourceManager()->AddLiveResource(id, sh);
+
+			string disasm;
+			RDCASSERT(info.codeSize % sizeof(uint32_t) == 0);
+			DisassembleSPIRV(eSPIRVGeneric, (uint32_t *)info.pCode, info.codeSize/sizeof(uint32_t), disasm);
 		}
 	}
 

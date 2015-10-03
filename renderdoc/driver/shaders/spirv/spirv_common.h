@@ -37,6 +37,7 @@ enum SPIRVShaderStage
 	eSPIRVGeometry,
 	eSPIRVFragment,
 	eSPIRVCompute,
+	eSPIRVGeneric,
 	eSPIRVInvalid,
 };
 
@@ -44,4 +45,4 @@ void InitSPIRVCompiler();
 void ShutdownSPIRVCompiler();
 
 string CompileSPIRV(SPIRVShaderStage shadType, const vector<string> &sources, vector<uint32_t> &spirv);
-void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, string &disasm);
+void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLength, string &disasm);

@@ -862,6 +862,7 @@ struct SPVModule
 			"Geometry Shader",
 			"Fragment Shader",
 			"Compute Shader",
+			"Unknown Shader Target",
 		};
 
 		disasm = header[(int)shadType];
@@ -1410,7 +1411,7 @@ struct SPVModule
 	}
 };
 
-void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, string &disasm)
+void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLength, string &disasm)
 {
 #if 1
 	return;
@@ -1440,7 +1441,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 	SPVBlock *curBlock = NULL;
 
 	size_t it = 5;
-	while(it < spirv.size())
+	while(it < spirvLength)
 	{
 		uint16_t WordCount = spirv[it]>>16;
 
@@ -2062,7 +2063,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 	// second pass now that we have all ids set up, apply decorations/names/etc
 	it = 5;
-	while(it < spirv.size())
+	while(it < spirvLength)
 	{
 		uint16_t WordCount = spirv[it]>>16;
 		spv::Op op = spv::Op(spirv[it]&0xffff);
