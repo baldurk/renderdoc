@@ -41,6 +41,8 @@ using std::make_pair;
 #include "3rdparty/glslang/SPIRV/GLSL.std.450.h"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
+namespace spv { Op OpUnknown = (Op)~0U; }
+
 const char *GLSL_STD_450_names[GLSLstd450Count] = {0};
 
 // list of known generators, just for kicks
@@ -782,15 +784,26 @@ struct SPVInstruction
 				break;
 		}
 
-		string ret;
+		if(opcode == spv::OpUnknown)
+		{
+			// we don't know where this ID came from, this is a dummy op
+			return "UnknownOp(" + GetIDName() + ")";
+		}
 
-		ret = GetIDName() + " <=> " + ToStr::Get(opcode) + " ";
+		// fallback for operations that we don't disassemble
+		string ret = "!!";
+
+		if(!str.empty() || id != 0)
+			ret += GetIDName() + " <= ";
+
+		ret = ToStr::Get(opcode) + "(";
 		for(size_t a=0; op && a < op->arguments.size(); a++)
 		{
 			ret += op->arguments[a]->GetIDName();
 			if(a+1 < op->arguments.size())
-				ret += " ";
+				ret += ", ";
 		}
+		ret += ")";
 
 		return ret;
 	}
@@ -849,6 +862,23 @@ struct SPVModule
 	vector<SPVInstruction*> globals; // global variables
 	vector<SPVInstruction*> funcs; // functions
 	vector<SPVInstruction*> structs; // struct types
+	
+	SPVInstruction *GetByID(uint32_t id)
+	{
+		if(ids[id]) return ids[id];
+
+		// if there's an unrecognised instruction (e.g. from an extension) that generates
+		// an ID, it won't be in our list so we have to add a dummy instruction for it
+		RDCWARN("Expected to find ID %u but didn't - returning dummy instruction", id);
+		
+		operations.push_back(new SPVInstruction());
+		SPVInstruction &op = *operations.back();
+		op.opcode = spv::OpUnknown;
+		op.id = id;
+		ids[id] = &op;
+
+		return &op;
+	}
 
 	string Disassemble()
 	{
@@ -1545,7 +1575,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				op.type = new SPVTypeData();
 				op.type->type = SPVTypeData::eVector;
 
-				SPVInstruction *baseTypeInst = module.ids[spirv[it+2]];
+				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+2]);
 				RDCASSERT(baseTypeInst && baseTypeInst->type);
 
 				op.type->baseType = baseTypeInst->type;
@@ -1560,12 +1590,12 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				op.type = new SPVTypeData();
 				op.type->type = SPVTypeData::eArray;
 
-				SPVInstruction *baseTypeInst = module.ids[spirv[it+2]];
+				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+2]);
 				RDCASSERT(baseTypeInst && baseTypeInst->type);
 
 				op.type->baseType = baseTypeInst->type;
 
-				SPVInstruction *sizeInst = module.ids[spirv[it+3]];
+				SPVInstruction *sizeInst = module.GetByID(spirv[it+3]);
 				RDCASSERT(sizeInst && sizeInst->constant && sizeInst->constant->type->IsBasicInt());
 
 				op.type->arraySize = sizeInst->constant->u32;
@@ -1581,7 +1611,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 				for(int i=2; i < WordCount; i++)
 				{
-					SPVInstruction *memberInst = module.ids[spirv[it+i]];
+					SPVInstruction *memberInst = module.GetByID(spirv[it+i]);
 					RDCASSERT(memberInst && memberInst->type);
 
 					// names might come later from OpMemberName instructions
@@ -1599,7 +1629,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				op.type = new SPVTypeData();
 				op.type->type = SPVTypeData::ePointer;
 
-				SPVInstruction *baseTypeInst = module.ids[spirv[it+3]];
+				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+3]);
 				RDCASSERT(baseTypeInst && baseTypeInst->type);
 
 				op.type->baseType = baseTypeInst->type;
@@ -1616,14 +1646,14 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 				for(int i=3; i < WordCount; i++)
 				{
-					SPVInstruction *argInst = module.ids[spirv[it+i]];
+					SPVInstruction *argInst = module.GetByID(spirv[it+i]);
 					RDCASSERT(argInst && argInst->type);
 
 					// function parameters have no name
 					op.type->children.push_back(make_pair(argInst->type, ""));
 				}
 
-				SPVInstruction *baseTypeInst = module.ids[spirv[it+2]];
+				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+2]);
 				RDCASSERT(baseTypeInst && baseTypeInst->type);
 
 				// return type
@@ -1638,7 +1668,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			case spv::OpConstantTrue:
 			case spv::OpConstantFalse:
 			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.constant = new SPVConstant();
@@ -1652,7 +1682,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			case spv::OpConstant:
 			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.constant = new SPVConstant();
@@ -1677,7 +1707,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			case spv::OpConstantComposite:
 			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.constant = new SPVConstant();
@@ -1685,7 +1715,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 				for(int i=3; i < WordCount; i++)
 				{
-					SPVInstruction *constInst = module.ids[spirv[it+i]];
+					SPVInstruction *constInst = module.GetByID(spirv[it+i]);
 					RDCASSERT(constInst && constInst->constant);
 
 					op.constant->children.push_back(constInst->constant);
@@ -1700,10 +1730,10 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			// Functions
 			case spv::OpFunction:
 			{
-				SPVInstruction *retTypeInst = module.ids[spirv[it+1]];
+				SPVInstruction *retTypeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(retTypeInst && retTypeInst->type);
 
-				SPVInstruction *typeInst = module.ids[spirv[it+4]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+4]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.func = new SPVFunction();
@@ -1729,7 +1759,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			// Variables
 			case spv::OpVariable:
 			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.var = new SPVVariable();
@@ -1738,7 +1768,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 				if(WordCount > 4)
 				{
-					SPVInstruction *initInst = module.ids[spirv[it+4]];
+					SPVInstruction *initInst = module.GetByID(spirv[it+4]);
 					RDCASSERT(initInst && initInst->constant);
 					op.var->initialiser = initInst->constant;
 				}
@@ -1752,7 +1782,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			case spv::OpFunctionParameter:
 			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.var = new SPVVariable();
@@ -1815,7 +1845,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			{
 				op.flow = new SPVFlowControl();
 
-				SPVInstruction *condInst = module.ids[spirv[it+1]];
+				SPVInstruction *condInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(condInst);
 
 				op.flow->condition = condInst;
@@ -1856,13 +1886,13 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			// Operations with special parameters
 			case spv::OpLoad:
 			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.op = new SPVOperation();
 				op.op->type = typeInst->type;
 				
-				SPVInstruction *ptrInst = module.ids[spirv[it+3]];
+				SPVInstruction *ptrInst = module.GetByID(spirv[it+3]);
 				RDCASSERT(ptrInst);
 
 				op.op->arguments.push_back(ptrInst);
@@ -1896,10 +1926,10 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				op.op = new SPVOperation();
 				op.op->type = NULL;
 				
-				SPVInstruction *ptrInst = module.ids[spirv[it+1]];
+				SPVInstruction *ptrInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(ptrInst);
 				
-				SPVInstruction *valInst = module.ids[spirv[it+2]];
+				SPVInstruction *valInst = module.GetByID(spirv[it+2]);
 				RDCASSERT(valInst);
 
 				op.op->arguments.push_back(ptrInst);
@@ -1927,7 +1957,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			case spv::OpFunctionCall:
 			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.op = new SPVOperation();
@@ -1937,7 +1967,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 				for(int i=4; i < WordCount; i++)
 				{
-					SPVInstruction *argInst = module.ids[spirv[it+i]];
+					SPVInstruction *argInst = module.GetByID(spirv[it+i]);
 					RDCASSERT(argInst);
 
 					op.op->arguments.push_back(argInst);
@@ -1951,21 +1981,21 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			case spv::OpVectorShuffle:
 			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.op = new SPVOperation();
 				op.op->type = typeInst->type;
 
 				{
-					SPVInstruction *argInst = module.ids[spirv[it+3]];
+					SPVInstruction *argInst = module.GetByID(spirv[it+3]);
 					RDCASSERT(argInst);
 
 					op.op->arguments.push_back(argInst);
 				}
 
 				{
-					SPVInstruction *argInst = module.ids[spirv[it+4]];
+					SPVInstruction *argInst = module.GetByID(spirv[it+4]);
 					RDCASSERT(argInst);
 
 					op.op->arguments.push_back(argInst);
@@ -1982,14 +2012,14 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			case spv::OpExtInst:
 			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.op = new SPVOperation();
 				op.op->type = typeInst->type;
 
 				{
-					SPVInstruction *setInst = module.ids[spirv[it+3]];
+					SPVInstruction *setInst = module.GetByID(spirv[it+3]);
 					RDCASSERT(setInst);
 
 					op.op->arguments.push_back(setInst);
@@ -1999,7 +2029,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 
 				for(int i=5; i < WordCount; i++)
 				{
-					SPVInstruction *argInst = module.ids[spirv[it+i]];
+					SPVInstruction *argInst = module.GetByID(spirv[it+i]);
 					RDCASSERT(argInst);
 
 					op.op->arguments.push_back(argInst);
@@ -2021,7 +2051,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			case spv::OpVectorTimesScalar:
 			case spv::OpSLessThan:
 			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
 
 				op.op = new SPVOperation();
@@ -2029,7 +2059,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				
 				for(int i=3; i < WordCount; i++)
 				{
-					SPVInstruction *argInst = module.ids[spirv[it+i]];
+					SPVInstruction *argInst = module.GetByID(spirv[it+i]);
 					RDCASSERT(argInst);
 
 					op.op->arguments.push_back(argInst);
@@ -2053,7 +2083,10 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				break;
 			default:
 			{
-				RDCERR("Unhandled opcode %s - result ID will be missing", ToStr::Get(op.opcode).c_str());
+				// we should not crash if we don't recognise/handle an opcode - this may happen because of
+				// extended SPIR-V or simply custom instructions we don't recognise.
+				RDCWARN("Unhandled opcode %s - result ID will be missing", ToStr::Get(op.opcode).c_str());
+				curBlock->instructions.push_back(&op);
 				break;
 			}
 		}
@@ -2072,7 +2105,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 		{
 			case spv::OpName:
 			{
-				SPVInstruction *varInst = module.ids[spirv[it+1]];
+				SPVInstruction *varInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(varInst);
 
 				varInst->str = (const char *)&spirv[it+2];
@@ -2091,7 +2124,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			case spv::OpMemberName:
 			{
-				SPVInstruction *varInst = module.ids[spirv[it+1]];
+				SPVInstruction *varInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(varInst && varInst->type && varInst->type->type == SPVTypeData::eStruct);
 				uint32_t memIdx = spirv[it+2];
 				RDCASSERT(memIdx < varInst->type->children.size());
@@ -2100,10 +2133,10 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			case spv::OpLine:
 			{
-				SPVInstruction *varInst = module.ids[spirv[it+1]];
+				SPVInstruction *varInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(varInst);
 
-				SPVInstruction *fileInst = module.ids[spirv[it+2]];
+				SPVInstruction *fileInst = module.GetByID(spirv[it+2]);
 				RDCASSERT(fileInst);
 
 				varInst->source.filename = fileInst->str;
@@ -2113,15 +2146,15 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 			}
 			case spv::OpDecorate:
 			{
-				SPVInstruction *inst = module.ids[spirv[it+1]];
+				SPVInstruction *inst = module.GetByID(spirv[it+1]);
 				RDCASSERT(inst);
 
 				SPVDecoration d;
 				d.decoration = spv::Decoration(spirv[it+2]);
 				
 				// TODO this isn't enough for all decorations
-				RDCASSERT(WordCount <= 3);
-				if(WordCount > 2)
+				RDCASSERT(WordCount <= 4);
+				if(WordCount > 3)
 					d.val = spirv[it+3];
 
 				inst->decorations.push_back(d);
@@ -2640,3 +2673,4 @@ string ToStrHelper<false, spv::MemoryAccessMask>::Get(const spv::MemoryAccessMas
 
 	return ret;
 }
+
