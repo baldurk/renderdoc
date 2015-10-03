@@ -591,6 +591,7 @@ struct SPVInstruction
 
 				return StringFormat::Fmt("%s %s = Load(%s%s)", op->type->GetName().c_str(), GetIDName().c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
 			}
+			case spv::OpCompositeExtract:
 			case spv::OpAccessChain:
 			{
 				RDCASSERT(op);
@@ -599,29 +600,44 @@ struct SPVInstruction
 
 				if(!inlineOp)
 					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
+				
+				string arg;
+				op->GetArg(ids, 0, arg);
+				ret += arg;
 
-				ret += op->arguments[0]->GetIDName();
+				SPVTypeData *type = op->arguments[0]->var ? op->arguments[0]->var->type : op->arguments[0]->op->type;
 
-				SPVTypeData *type = op->arguments[0]->var->type;
+				RDCASSERT(type);
+
 				if(type->type == SPVTypeData::ePointer)
 					type = type->baseType;
 
-				for(size_t i=1; i < op->arguments.size(); i++)
+				size_t start = (opcode == spv::OpAccessChain ? 1                    : 0                  );
+				size_t count = (opcode == spv::OpAccessChain ? op->arguments.size() : op->literals.size());
+
+				for(size_t i=start; i < count; i++)
 				{
+					bool constant = false;
 					int32_t idx = -1;
-					if(op->arguments[i]->constant)
+					if(opcode == spv::OpCompositeExtract)
+					{
+						idx = (int32_t)op->literals[i];
+						constant = true;
+					}
+					else if(op->arguments[i]->constant)
 					{
 						RDCASSERT(op->arguments[i]->constant && op->arguments[i]->constant->type->IsBasicInt());
 						idx = op->arguments[i]->constant->i32;
+						constant = true;
 					}
-					RDCASSERT(type);
+
 					if(!type)
 						break;
 
 					if(type->type == SPVTypeData::eStruct)
 					{
 						// Assuming you can't dynamically index into a structure
-						RDCASSERT(op->arguments[i]->constant);
+						RDCASSERT(constant);
 						const pair<SPVTypeData*,string> &child = type->children[idx];
 						if(child.second.empty())
 							ret += StringFormat::Fmt("._member%u", idx);
@@ -632,7 +648,7 @@ struct SPVInstruction
 					}
 					else if(type->type == SPVTypeData::eArray)
 					{
-						if(op->arguments[i]->constant)
+						if(constant)
 						{
 							ret += StringFormat::Fmt("[%u]", idx);
 						}
@@ -648,7 +664,7 @@ struct SPVInstruction
 					}
 					else if(type->type == SPVTypeData::eMatrix)
 					{
-						if(op->arguments[i]->constant)
+						if(constant)
 						{
 							ret += StringFormat::Fmt("[%u]", idx);
 						}
@@ -661,13 +677,21 @@ struct SPVInstruction
 						}
 
 						// fall through to vector if we have another index
-						if(i == op->arguments.size()-1)
+						if(i == count-1)
 							break;
 
 						i++;
-						// assuming can't dynamically index into a vector (would be a OpVectorShuffle)
-						RDCASSERT(op->arguments[i]->constant && op->arguments[i]->constant->type->IsBasicInt());
-						idx = op->arguments[i]->constant->i32;
+						
+						if(opcode == spv::OpCompositeExtract)
+						{
+							idx = (int32_t)op->literals[i];
+						}
+						else
+						{
+							// assuming can't dynamically index into a vector (would be a OpVectorShuffle)
+							RDCASSERT(op->arguments[i]->constant && op->arguments[i]->constant->type->IsBasicInt());
+							idx = op->arguments[i]->constant->i32;
+						}
 					}
 
 					// vector (or matrix + extra)
@@ -680,7 +704,7 @@ struct SPVInstruction
 
 						// must be the last index, we're down to scalar granularity
 						type = NULL;
-						RDCASSERT(i == op->arguments.size()-1);
+						RDCASSERT(i == count-1);
 					}
 				}
 
@@ -2149,6 +2173,28 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, uint32_t *spirv, size_t spirvLe
 				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
 				
+				curBlock->instructions.push_back(&op);
+				break;
+			}
+			case spv::OpCompositeExtract:
+			{
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.op = new SPVOperation();
+				op.op->type = typeInst->type;
+				
+				SPVInstruction *compInst = module.GetByID(spirv[it+3]);
+				RDCASSERT(compInst);
+
+				op.op->arguments.push_back(compInst);
+				
+				for(int i=4; i < WordCount; i++)
+					op.op->literals.push_back(spirv[it+i]);
+				
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+
 				curBlock->instructions.push_back(&op);
 				break;
 			}
