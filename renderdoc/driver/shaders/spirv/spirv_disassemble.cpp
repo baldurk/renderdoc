@@ -1056,6 +1056,20 @@ struct SPVInstruction
 
 				return StringFormat::Fmt("%s %s = %s(%s, %s)", op->type->GetName().c_str(), GetIDName().c_str(), ToStr::Get(opcode).c_str(), a.c_str(), b.c_str());
 			}
+			case spv::OpSelect:
+			{
+				RDCASSERT(op);
+
+				string a, b, c;
+				op->GetArg(ids, 0, a);
+				op->GetArg(ids, 1, b);
+				op->GetArg(ids, 2, c);
+
+				if(inlineOp)
+					return StringFormat::Fmt("(%s) ? (%s) : (%s)", a.c_str(), b.c_str(), c.c_str());
+
+				return StringFormat::Fmt("%s %s = (%s) ? (%s) : (%s)", op->type->GetName().c_str(), GetIDName().c_str(), a.c_str(), b.c_str(), c.c_str());
+			}
 			default:
 				break;
 		}
@@ -1259,7 +1273,7 @@ void SPVModule::Disassemble()
 						if(arg->op)
 						{
 							// allow access chains to have multiple arguments
-							if(arg->op->complexity > 1 || (arg->op->arguments.size() > 2 && arg->opcode != spv::OpAccessChain))
+							if(arg->op->complexity > 1 || (arg->op->arguments.size() > 2 && arg->opcode != spv::OpAccessChain && arg->opcode != spv::OpSelect))
 								continue;
 						}
 
@@ -2751,6 +2765,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 			case spv::OpAccessChain:
 			case spv::OpDot:
+			case spv::OpSelect:
 			{
 				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
 				RDCASSERT(typeInst && typeInst->type);
