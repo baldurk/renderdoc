@@ -895,7 +895,10 @@ struct SPVInstruction
 
 				return ret;
 			}
+			// texture samples almost identical to function call
 			case spv::OpTextureSample:
+			case spv::OpTextureSampleLod:
+			case spv::OpTextureSampleLodOffset:
 			case spv::OpFunctionCall:
 			{
 				RDCASSERT(op);
@@ -2728,7 +2731,10 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				curBlock->instructions.push_back(&op);
 				break;
 			}
-			case spv::OpTextureSample: // almost identical to function call
+			// texture samples almost identical to function call
+			case spv::OpTextureSample:
+			case spv::OpTextureSampleLod:
+			case spv::OpTextureSampleLodOffset:
 			case spv::OpFunctionCall:
 			{
 				int word = 1;
