@@ -390,7 +390,7 @@ struct SPVConstant
 			if(type->bitCount == 8)
 				return StringFormat::Fmt("%hhi", i8);
 		}
-		else if(type->type == SPVTypeData::eSInt)
+		else if(type->type == SPVTypeData::eUInt)
 		{
 			if(type->bitCount == 64)
 				return StringFormat::Fmt("%llu", u64);
