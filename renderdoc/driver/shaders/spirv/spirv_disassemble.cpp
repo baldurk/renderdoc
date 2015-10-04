@@ -209,7 +209,9 @@ struct SPVTypeData
 			ret += decorations[d].Str() + " ";
 		}
 
-		if(type == eArray)
+		if(type == ePointer && baseType->type == eArray)
+			ret += StringFormat::Fmt("%s* %s[%u]", baseType->baseType->GetName().c_str(), varName.c_str(), baseType->arraySize);
+		else if(type == eArray)
 			ret += StringFormat::Fmt("%s %s[%u]", baseType->GetName().c_str(), varName.c_str(), arraySize);
 		else
 			ret += StringFormat::Fmt("%s %s", GetName().c_str(), varName.c_str());
