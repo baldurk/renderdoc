@@ -371,11 +371,11 @@ struct SPVConstant
 		if(type->type == SPVTypeData::eFloat)
 		{
 			if(type->bitCount == 64)
-				return StringFormat::Fmt("%lf", d);
+				return StringFormat::Fmt("%lgf", d);
 			if(type->bitCount == 32)
-				return StringFormat::Fmt("%f", f);
+				return StringFormat::Fmt("%gf", f);
 			if(type->bitCount == 16)
-				return StringFormat::Fmt("%f", ConvertFromHalf(u16));
+				return StringFormat::Fmt("%gf", ConvertFromHalf(u16));
 		}
 		else if(type->type == SPVTypeData::eSInt)
 		{
@@ -410,6 +410,29 @@ struct SPVConstant
 		if(type->IsScalar())
 		{
 			return GetValString();
+		}
+
+		// special case vectors with the same constant
+		// replicated across all channels
+		if(type->type == SPVTypeData::eVector)
+		{
+			bool identical = true;
+			for(size_t i=1; i < children.size(); i++)
+			{
+				if(children[i]->u64 != children[0]->u64)
+				{
+					identical = false;
+					break;
+				}
+			}
+
+			if(identical)
+			{
+				string ret = children[0]->GetValString() + ".";
+				for(size_t i=0; i < children.size(); i++)
+					ret += 'x';
+				return ret;
+			}
 		}
 
 		string ret = type->GetName();
