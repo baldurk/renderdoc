@@ -1046,7 +1046,7 @@ struct SPVInstruction
 						break;
 					case spv::OpISub:
 					case spv::OpFSub:
-						opstr[0] = '+';
+						opstr[0] = '-';
 						break;
 					case spv::OpIMul:
 					case spv::OpFMul:
