@@ -629,12 +629,13 @@ struct SPVInstruction
 			{
 				RDCASSERT(op);
 
-				string arg;
-				op->GetArg(ids, 1, arg);
+				string dest, src;
+				op->GetArg(ids, 0, dest);
+				op->GetArg(ids, 1, src);
 
 				// inlined only in function parameters, just return argument
 				if(inlineOp)
-					return arg;
+					return src;
 
 				char assignStr[] = " = ";
 
@@ -642,22 +643,23 @@ struct SPVInstruction
 					assignStr[0] = 0;
 				
 #if LOAD_STORE_CONSTRUCTORS
-				return StringFormat::Fmt("Store(%s%s)%s%s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), assignStr, arg.c_str());
+				return StringFormat::Fmt("Store(%s%s)%s%s", dest.c_str(), OptionalFlagString(op->access).c_str(), assignStr, src.c_str());
 #else
-				return StringFormat::Fmt("%s%s%s%s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), assignStr, arg.c_str());
+				return StringFormat::Fmt("%s%s%s%s", dest.c_str(), OptionalFlagString(op->access).c_str(), assignStr, src.c_str());
 #endif
 			}
 			case spv::OpCopyMemory:
 			{
 				RDCASSERT(!inlineOp && op);
-
-				string arg;
-				op->GetArg(ids, 1, arg);
+				
+				string dest, src;
+				op->GetArg(ids, 0, dest);
+				op->GetArg(ids, 1, src);
 
 #if LOAD_STORE_CONSTRUCTORS
-				return StringFormat::Fmt("Copy(%s%s) = Load(%s%s)", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
+				return StringFormat::Fmt("Copy(%s%s) = Load(%s%s)", dest.c_str(), OptionalFlagString(op->access).c_str(), src.c_str(), OptionalFlagString(op->access).c_str());
 #else
-				return StringFormat::Fmt("%s%s = %s%s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
+				return StringFormat::Fmt("%s%s = %s%s", dest.c_str(), OptionalFlagString(op->access).c_str(), src.c_str(), OptionalFlagString(op->access).c_str());
 #endif
 			}
 			case spv::OpLoad:
