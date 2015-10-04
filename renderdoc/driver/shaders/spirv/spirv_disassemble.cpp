@@ -1184,6 +1184,66 @@ void SPVOperation::GetArg(const vector<SPVInstruction *> &ids, size_t idx, strin
 		arg = arguments[idx]->GetIDName();
 }
 
+static bool IsUnmodified(SPVFunction *func, SPVInstruction *from, SPVInstruction *to)
+{
+	// if it's not a variable (e.g. constant or something), just return true,
+	// it's pure.
+	if(from->op == NULL) return true;
+	
+	// if we're looking at a load of a variable, ensure that it's pure
+	if(from->opcode == spv::OpLoad && from->op->arguments[0]->var)
+	{
+		SPVInstruction *var = from->op->arguments[0];
+
+		bool looking = false;
+		bool done = false;
+
+		for(size_t b=0; b < func->blocks.size(); b++)
+		{
+			SPVInstruction *block = func->blocks[b];
+
+			for(size_t i=0; i < block->block->instructions.size(); i++)
+			{
+				SPVInstruction *instr = block->block->instructions[i];
+				if(instr == from)
+				{
+					looking = true;
+				}
+				else if(instr == to)
+				{
+					looking = false;
+					done = true;
+					break;
+				}
+				else if(looking && instr->opcode == spv::OpStore && instr->op->arguments[0] == var)
+				{
+					return false;
+				}
+			}
+
+			if(done)
+				break;
+		}
+
+		return true;
+	}
+
+	// otherwise, recurse
+	bool ret = true;
+
+	for(size_t i=0; i < from->op->arguments.size(); i++)
+	{
+		if(from->opcode == spv::OpStore && i == 0)
+			continue;
+
+		// this operation is pure if all of its arguments are pure up to the point
+		// of use
+		ret &= IsUnmodified(func, from->op->arguments[i], to);
+	}
+
+	return ret;
+}
+
 SPVModule::SPVModule()
 {
 	moduleVersion = 0;
@@ -1352,6 +1412,16 @@ void SPVModule::Disassemble()
 									 arg->opcode != spv::OpCompositeConstruct))
 								continue;
 
+							// for anything but store's dest argument
+							if(instr->opcode != spv::OpStore || a > 0)
+							{
+								// Do not inline this argument if it relies on a load from a
+								// variable that is written to between the argument and this
+								// op that we're inlining into, as that changes the meaning.
+								if(!IsUnmodified(func, arg, instr))
+									continue;
+							}
+
 							maxcomplex = RDCMAX(arg->op->complexity, maxcomplex);
 						}
 
@@ -1368,19 +1438,75 @@ void SPVModule::Disassemble()
 						instr->op->inlineArgs)
 						instr->op->complexity++;
 
-					// TODO this should be more sophisticated but need a 'pure' check to make sure
-					// we can inline without moving over variable mutation.
-					// Same is true for just inlining arguments, so will be needed anyway
-					// try and merge/eliminate neighbouring store-loads where not too complex
+					// we try to merge away temp variables that are only used for a single store then a single
+					// load later. We can only do this if:
+					//  - The Load we're looking is the only load in this function of the variable
+					//  - The Load is preceeded by precisely one Store - not 0 or 2+
+					//  - The previous store is 'pure', ie. does not depend on any mutated variables
+					//    so it is safe to re-order to where the Load is.
+					//
+					// If those conditions are met then we can remove the previous store, inline it as the load
+					// function argument (instead of the variable), and remove the variable.
+
 					if(instr->opcode == spv::OpLoad && funcops.size() > 1)
 					{
-						SPVInstruction *previnstr = funcops[funcops.size()-2];
-						if(previnstr->opcode == spv::OpStore && 
-							 instr->op->arguments[0] == previnstr->op->arguments[0] &&
-							 previnstr->op->complexity < NO_INLINE_COMPLEXITY)
+						SPVInstruction *prevstore = NULL;
+						int storecount = 0;
+
+						for(size_t o=0; o < funcops.size(); o++)
 						{
-							erase_item(funcops, previnstr);
-							instr->op->arguments[0] = previnstr;
+							SPVInstruction *previnstr = funcops[o];
+							if(previnstr->opcode == spv::OpStore && previnstr->op->arguments[0] == instr->op->arguments[0])
+							{
+								prevstore = previnstr;
+								storecount++;
+								if(storecount > 1)
+									break;
+							}
+						}
+
+						if(storecount == 1 && IsUnmodified(func, prevstore, instr))
+						{
+							bool otherload = false;
+
+							// note variables have function scope, need to check all blocks in this function
+							for(size_t o=0; o < func->blocks.size(); o++)
+							{
+								SPVInstruction *otherblock = func->blocks[o];
+
+								for(size_t l=0; l < otherblock->block->instructions.size(); l++)
+								{
+									SPVInstruction *otherinstr = otherblock->block->instructions[l];
+									if(otherinstr != instr &&
+										otherinstr->opcode == spv::OpLoad &&
+										otherinstr->op->arguments[0] == instr->op->arguments[0])
+									{
+										otherload = true;
+										break;
+									}
+								}
+							}
+
+							if(!otherload)
+							{
+								instr->op->complexity = RDCMAX(instr->op->complexity, prevstore->op->complexity);
+								erase_item(vars, instr->op->arguments[0]);
+								erase_item(funcops, prevstore);
+								instr->op->arguments[0] = prevstore;
+							}
+						}
+					}
+
+					// if we have a store from a temp ID, immediately following the op
+					// that produced that temp ID, we can combine these trivially
+					if((instr->opcode == spv::OpStore || instr->opcode == spv::OpCompositeInsert) && funcops.size() > 1)
+					{
+						if(instr->op->arguments[1] == funcops[funcops.size()-2])
+						{
+							erase_item(funcops, instr->op->arguments[1]);
+							if(instr->op->arguments[1]->op)
+								instr->op->complexity = RDCMAX(instr->op->complexity, instr->op->arguments[1]->op->complexity);
+							instr->op->inlineArgs |= 2;
 						}
 					}
 
