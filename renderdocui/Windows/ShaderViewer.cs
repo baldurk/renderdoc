@@ -1017,6 +1017,23 @@ namespace renderdocui.Windows
                         break;
                 }
             }
+            else if(m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            {
+                // for vulkan, highlight the word since SPIR-V doesn't have marked up
+                // registers etc.
+
+                string pattern = "\\b" + word + "\\b";
+
+                // if a number is selected, highlight the matching ID
+                uint dummy = 0;
+                if (uint.TryParse(word, out dummy))
+                    pattern = "\\{" + word + "\\}";
+
+                var matches = Regex.Matches(scintilla1.Text, pattern);
+
+                foreach (Match m in matches)
+                    scintilla1.GetRange(m.Index, m.Index + m.Length).SetIndicator(4);
+            }
 
             if (!highlighted)
             {
