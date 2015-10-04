@@ -1065,13 +1065,17 @@ namespace renderdocui.Windows
 
                         if (response != "")
                         {
-                            BeginInvoke((MethodInvoker)delegate
+                            // window may have been closed while update check was on-going. If so, just return
+                            if (Visible)
                             {
-                                m_Core.Config.CheckUpdate_UpdateAvailable = true;
-                                m_Core.Config.CheckUpdate_UpdateResponse = response;
-                                SetUpdateAvailable();
-                                UpdatePopup();
-                            });
+                                BeginInvoke((MethodInvoker)delegate
+                                {
+                                    m_Core.Config.CheckUpdate_UpdateAvailable = true;
+                                    m_Core.Config.CheckUpdate_UpdateResponse = response;
+                                    SetUpdateAvailable();
+                                    UpdatePopup();
+                                });
+                            }
                             result = UpdateResult.Upgrade;
                         }
                         else if (callback != null)
@@ -1092,15 +1096,19 @@ namespace renderdocui.Windows
                     // and it's not worth trying to retry.
                 }
 
-                BeginInvoke((MethodInvoker)delegate
+                // window may have been closed while update check was on-going. If so, just return
+                if (Visible)
                 {
-                    statusText.Text = "";
-                    statusProgress.Visible = false;
-                    statusProgress.Style = ProgressBarStyle.Continuous;
-                    statusProgress.MarqueeAnimationSpeed = 0;
-                    if (callback != null && result != UpdateResult.Disabled)
-                        callback(result);
-                });
+                    BeginInvoke((MethodInvoker)delegate
+                    {
+                        statusText.Text = "";
+                        statusProgress.Visible = false;
+                        statusProgress.Style = ProgressBarStyle.Continuous;
+                        statusProgress.MarqueeAnimationSpeed = 0;
+                        if (callback != null && result != UpdateResult.Disabled)
+                            callback(result);
+                    });
+                }
             }));
 
             updateThread.Start();
