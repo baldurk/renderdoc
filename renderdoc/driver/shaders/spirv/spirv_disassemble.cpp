@@ -52,6 +52,9 @@ using std::make_pair;
 // for scalars it's potentially simpler just to drop it.
 #define SCALAR_CONSTRUCTORS 0
 
+// don't inline expressions of this complexity or higher
+#define NO_INLINE_COMPLEXITY 3
+
 namespace spv { Op OpUnknown = (Op)~0U; }
 
 const char *GLSL_STD_450_names[GLSLstd450Count] = {0};
@@ -609,11 +612,16 @@ struct SPVInstruction
 				// inlined only in function parameters, just return argument
 				if(inlineOp)
 					return arg;
+
+				char assignStr[] = " = ";
+
+				if(op->arguments[1]->opcode == spv::OpCompositeInsert && (op->inlineArgs & 2))
+					assignStr[0] = 0;
 				
 #if LOAD_STORE_CONSTRUCTORS
-				return StringFormat::Fmt("Store(%s%s) = %s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), arg.c_str());
+				return StringFormat::Fmt("Store(%s%s)%s%s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), assignStr, arg.c_str());
 #else
-				return StringFormat::Fmt("%s%s = %s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), arg.c_str());
+				return StringFormat::Fmt("%s%s%s%s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), assignStr, arg.c_str());
 #endif
 			}
 			case spv::OpCopyMemory:
@@ -1267,6 +1275,8 @@ void SPVModule::Disassemble()
 
 				if(instr->op)
 				{
+					int maxcomplex = 0;
+
 					for(size_t a=0; a < instr->op->arguments.size(); a++)
 					{
 						SPVInstruction *arg = instr->op->arguments[a];
@@ -1274,9 +1284,11 @@ void SPVModule::Disassemble()
 						// don't fold up too complex an operation
 						if(arg->op)
 						{
-							// allow access chains to have multiple arguments
-							if(arg->op->complexity > 1 || (arg->op->arguments.size() > 2 && arg->opcode != spv::OpAccessChain && arg->opcode != spv::OpSelect))
+							// allow some ops to have multiple arguments
+							if(arg->op->complexity >= NO_INLINE_COMPLEXITY || (arg->op->arguments.size() > 2 && arg->opcode != spv::OpAccessChain && arg->opcode != spv::OpSelect))
 								continue;
+
+							maxcomplex = RDCMAX(arg->op->complexity, maxcomplex);
 						}
 
 						erase_item(funcops, arg);
@@ -1284,7 +1296,23 @@ void SPVModule::Disassemble()
 						instr->op->inlineArgs |= (1<<a);
 					}
 
-					instr->op->complexity++;
+					instr->op->complexity = maxcomplex;
+					
+					if(instr->opcode != spv::OpStore && instr->opcode != spv::OpLoad && instr->op->inlineArgs)
+						instr->op->complexity++;
+
+					// try and merge/eliminate neighbouring store-loads where not too complex
+					if(instr->opcode == spv::OpLoad && funcops.size() > 1)
+					{
+						SPVInstruction *previnstr = funcops[funcops.size()-2];
+						if(previnstr->opcode == spv::OpStore && 
+							 instr->op->arguments[0] == previnstr->op->arguments[0] &&
+							 previnstr->op->complexity < NO_INLINE_COMPLEXITY)
+						{
+							erase_item(funcops, previnstr);
+							instr->op->arguments[0] = previnstr;
+						}
+					}
 
 					// special handling for function call to inline temporary pointer variables
 					// created for passing parameters
