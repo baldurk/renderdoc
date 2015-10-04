@@ -901,6 +901,12 @@ struct SPVInstruction
 			case spv::OpTextureSample:
 			case spv::OpTextureSampleLod:
 			case spv::OpTextureSampleLodOffset:
+			// conversions can be treated the same way
+			case spv::OpConvertFToS:
+			case spv::OpConvertFToU:
+			case spv::OpConvertUToF:
+			case spv::OpConvertSToF:
+			case spv::OpBitcast:
 			case spv::OpFunctionCall:
 			{
 				RDCASSERT(op);
@@ -912,6 +918,8 @@ struct SPVInstruction
 
 				if(opcode == spv::OpFunctionCall)
 					ret += ids[op->funcCall]->GetIDName() + "(";
+				else if(opcode == spv::OpBitcast)
+					ret += "Bitcast<" + op->type->GetName() + ">(";
 				else
 					ret += ToStr::Get(opcode) + "(";
 
@@ -2871,6 +2879,12 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpTextureSample:
 			case spv::OpTextureSampleLod:
 			case spv::OpTextureSampleLodOffset:
+			// conversions can be treated the same way
+			case spv::OpConvertFToS:
+			case spv::OpConvertFToU:
+			case spv::OpConvertUToF:
+			case spv::OpConvertSToF:
+			case spv::OpBitcast:
 			case spv::OpFunctionCall:
 			{
 				int word = 1;
@@ -2883,8 +2897,8 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				op.op = new SPVOperation();
 				op.op->type = typeInst->type;
 
-				op.id = spirv[it+2];
-				module.ids[spirv[it+2]] = &op;
+				op.id = spirv[it+word];
+				module.ids[spirv[it+word]] = &op;
 
 				word++;
 
