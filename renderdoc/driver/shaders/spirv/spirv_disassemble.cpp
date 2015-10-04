@@ -1337,10 +1337,15 @@ void SPVModule::Disassemble()
 
 						if(arg->op)
 						{
+							// allow less inlining in composite constructs
+							int maxAllowedComplexity = NO_INLINE_COMPLEXITY;
+							if(instr->opcode == spv::OpCompositeConstruct)
+								maxAllowedComplexity = RDCMIN(2, maxAllowedComplexity);
+
 							// don't fold up too complex an operation
 							// allow some ops to have multiple arguments, others with many
 							// arguments should not be inlined
-							if(arg->op->complexity >= NO_INLINE_COMPLEXITY ||
+							if(arg->op->complexity >= maxAllowedComplexity ||
 									(arg->op->arguments.size() > 2 &&
 									 arg->opcode != spv::OpAccessChain &&
 									 arg->opcode != spv::OpSelect &&
@@ -1357,7 +1362,10 @@ void SPVModule::Disassemble()
 
 					instr->op->complexity = maxcomplex;
 					
-					if(instr->opcode != spv::OpStore && instr->opcode != spv::OpLoad && instr->op->inlineArgs)
+					if(instr->opcode != spv::OpStore &&
+						instr->opcode != spv::OpLoad &&
+						instr->opcode != spv::OpCompositeExtract &&
+						instr->op->inlineArgs)
 						instr->op->complexity++;
 
 					// TODO this should be more sophisticated but need a 'pure' check to make sure
