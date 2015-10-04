@@ -370,12 +370,14 @@ struct SPVConstant
 
 		if(type->type == SPVTypeData::eFloat)
 		{
+			// @ is a custom printf flag that ensures we always print .0
+			// after a float, but without restricting precision or sigfigs
 			if(type->bitCount == 64)
-				return StringFormat::Fmt("%lgf", d);
+				return StringFormat::Fmt("%@lgf", d);
 			if(type->bitCount == 32)
-				return StringFormat::Fmt("%gf", f);
+				return StringFormat::Fmt("%@gf", f);
 			if(type->bitCount == 16)
-				return StringFormat::Fmt("%gf", ConvertFromHalf(u16));
+				return StringFormat::Fmt("%@gf", ConvertFromHalf(u16));
 		}
 		else if(type->type == SPVTypeData::eSInt)
 		{

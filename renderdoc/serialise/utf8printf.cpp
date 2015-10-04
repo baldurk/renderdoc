@@ -79,6 +79,8 @@ enum FormatterFlags
 	PrependSpace = 0x4,
 	AlternateForm = 0x8,
 	PadZeroes = 0x10,
+	// non standard
+	AlwaysDecimal = 0x20,
 };
 
 enum LengthModifier
@@ -380,6 +382,11 @@ void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend,
 	if(((e || f) && formatter.Precision > 0) || (formatter.Flags & AlternateForm))
 		numwidth++; // .
 
+	if(!e && !f && (formatter.Flags & AlwaysDecimal))
+	{
+		numwidth += 2; // .0
+	}
+
 	// sign space
 	if(prepend)	numwidth++;
 
@@ -417,6 +424,12 @@ void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend,
 	else
 	{
 		addchar(output, actualsize, end, '0');
+
+		if(!e && !f && (formatter.Flags & AlwaysDecimal))
+		{
+			addchar(output, actualsize, end, '.');
+			addchar(output, actualsize, end, '0');
+		}
 	}
 
 	if(padlen > 0 && (formatter.Flags & LeftJustify))
@@ -727,6 +740,9 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
 				if(expon < ndigits-1 || !g || (formatter.Flags & AlternateForm))
 					numwidth++; // .
 
+				if(g && (formatter.Flags & AlwaysDecimal))
+					numwidth += 2; // .0
+
 				if(padtrailing0s > 0 && (!g || (formatter.Flags & AlternateForm)))
 					numwidth += padtrailing0s;
 			}
@@ -798,6 +814,11 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
 						if(padtrailing0s > 0)
 							addchars(output, actualsize, end, size_t(padtrailing0s), '0');
 					}
+					else if(g && (formatter.Flags & AlwaysDecimal))
+					{
+						addchar(output, actualsize, end, '.');
+						addchar(output, actualsize, end, '0');
+					}
 				}
 				else if(expon > ndigits)
 				{
@@ -807,11 +828,23 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
 
 					if(padtrailing0s > 0 && (!g || (formatter.Flags & AlternateForm)))
 						addchars(output, actualsize, end, size_t(padtrailing0s), '0');
+
+					if(g && (formatter.Flags & AlwaysDecimal))
+					{
+						addchar(output, actualsize, end, '.');
+						addchar(output, actualsize, end, '0');
+					}
 				}
 				else
 				{
 					if(padtrailing0s > 0 && (!g || (formatter.Flags & AlternateForm)))
 						addchars(output, actualsize, end, size_t(padtrailing0s), '0');
+
+					if(ndigits-1 <= expon && g && (formatter.Flags & AlwaysDecimal))
+					{
+						addchar(output, actualsize, end, '.');
+						addchar(output, actualsize, end, '0');
+					}
 				}
 			}
 			// if exponent is less than 0 it's much easier - just print the number as
@@ -1113,6 +1146,7 @@ int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args)
 			else if(*iter == '+') formatter.Flags |= PrependPos;
 			else if(*iter == ' ') formatter.Flags |= PrependSpace;
 			else if(*iter == '#') formatter.Flags |= AlternateForm;
+			else if(*iter == '@') formatter.Flags |= AlwaysDecimal;
 			else if(*iter == '0') formatter.Flags |= PadZeroes;
 			else                  break;
 
