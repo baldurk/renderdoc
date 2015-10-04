@@ -134,13 +134,6 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sh);
 			GetResourceManager()->AddLiveResource(id, sh);
 
-			if(id == ResourceId(60606, true) || id == ResourceId(60633, true))
-			{
-				FILE *f = FileIO::fopen(StringFormat::Fmt("T:/tmp/shad%llu", id).c_str(), "wb");
-				FileIO::fwrite(info.pCode, 1, info.codeSize, f);
-				FileIO::fclose(f);
-			}
-
 			RDCASSERT(info.codeSize % sizeof(uint32_t) == 0);
 			ParseSPIRV((uint32_t *)info.pCode, info.codeSize/sizeof(uint32_t), m_ShaderModuleInfo[live].spirv);
 
