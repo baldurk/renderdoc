@@ -681,6 +681,32 @@ struct SPVInstruction
 				return StringFormat::Fmt("%s %s = %s%s", op->type->GetName().c_str(), GetIDName().c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
 #endif
 			}
+			case spv::OpCompositeConstruct:
+			{
+				RDCASSERT(op);
+
+				string ret = "";
+				
+				if(!inlineOp)
+					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
+
+				ret += op->type->GetName();
+				ret += "(";
+				
+				for(size_t i=0; i < op->arguments.size(); i++)
+				{
+					string constituent;
+					op->GetArg(ids, i, constituent);
+
+					ret += constituent;
+					if(i+1 < op->arguments.size())
+						ret += ", ";
+				}
+
+				ret += ")";
+
+				return ret;
+			}
 			case spv::OpCompositeExtract:
 			case spv::OpCompositeInsert:
 			case spv::OpAccessChain:
@@ -1306,11 +1332,16 @@ void SPVModule::Disassemble()
 					{
 						SPVInstruction *arg = instr->op->arguments[a];
 
-						// don't fold up too complex an operation
 						if(arg->op)
 						{
-							// allow some ops to have multiple arguments
-							if(arg->op->complexity >= NO_INLINE_COMPLEXITY || (arg->op->arguments.size() > 2 && arg->opcode != spv::OpAccessChain && arg->opcode != spv::OpSelect))
+							// don't fold up too complex an operation
+							// allow some ops to have multiple arguments, others with many
+							// arguments should not be inlined
+							if(arg->op->complexity >= NO_INLINE_COMPLEXITY ||
+									(arg->op->arguments.size() > 2 &&
+									 arg->opcode != spv::OpAccessChain &&
+									 arg->opcode != spv::OpSelect &&
+									 arg->opcode != spv::OpCompositeConstruct))
 								continue;
 
 							maxcomplex = RDCMAX(arg->op->complexity, maxcomplex);
@@ -1326,6 +1357,9 @@ void SPVModule::Disassemble()
 					if(instr->opcode != spv::OpStore && instr->opcode != spv::OpLoad && instr->op->inlineArgs)
 						instr->op->complexity++;
 
+					// TODO this should be more sophisticated but need a 'pure' check to make sure
+					// we can inline without moving over variable mutation.
+					// Same is true for just inlining arguments, so will be needed anyway
 					// try and merge/eliminate neighbouring store-loads where not too complex
 					if(instr->opcode == spv::OpLoad && funcops.size() > 1)
 					{
@@ -2817,7 +2851,8 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpFNegate:
 			case spv::OpNot:
 				mathop = true; // deliberate fallthrough
-
+				
+			case spv::OpCompositeConstruct:
 			case spv::OpAccessChain:
 			case spv::OpDot:
 			case spv::OpSelect:
