@@ -54,33 +54,31 @@ WrappedVulkan *shadowVulkan = NULL;
 
 #define HookDefine0(ret, function) \
 	ret VKAPI CONCAT(hooked_, function)() \
-	{ SCOPED_LOCK(vkLock); return shadowVulkan->function(); }
+	{ return shadowVulkan->function(); }
 #define HookDefine1(ret, function, t1, p1) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1) \
-	{ SCOPED_LOCK(vkLock); return shadowVulkan->function(p1); }
+	{ return shadowVulkan->function(p1); }
 #define HookDefine2(ret, function, t1, p1, t2, p2) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2) \
-	{ SCOPED_LOCK(vkLock); return shadowVulkan->function(p1, p2); }
+	{ return shadowVulkan->function(p1, p2); }
 #define HookDefine3(ret, function, t1, p1, t2, p2, t3, p3) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3) \
-	{ SCOPED_LOCK(vkLock); return shadowVulkan->function(p1, p2, p3); }
+	{ return shadowVulkan->function(p1, p2, p3); }
 #define HookDefine4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4) \
-	{ SCOPED_LOCK(vkLock); return shadowVulkan->function(p1, p2, p3, p4); }
+	{ return shadowVulkan->function(p1, p2, p3, p4); }
 #define HookDefine5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
-	{ SCOPED_LOCK(vkLock); return shadowVulkan->function(p1, p2, p3, p4, p5); }
+	{ return shadowVulkan->function(p1, p2, p3, p4, p5); }
 #define HookDefine6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
-	{ SCOPED_LOCK(vkLock); return shadowVulkan->function(p1, p2, p3, p4, p5, p6); }
+	{ return shadowVulkan->function(p1, p2, p3, p4, p5, p6); }
 #define HookDefine7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
-	{ SCOPED_LOCK(vkLock); return shadowVulkan->function(p1, p2, p3, p4, p5, p6, p7); }
+	{ return shadowVulkan->function(p1, p2, p3, p4, p5, p6, p7); }
 #define HookDefine8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
-	{ SCOPED_LOCK(vkLock); return shadowVulkan->function(p1, p2, p3, p4, p5, p6, p7, p8); }
-
-Threading::CriticalSection vkLock;
+	{ return shadowVulkan->function(p1, p2, p3, p4, p5, p6, p7, p8); }
 
 DefineHooks();
 
