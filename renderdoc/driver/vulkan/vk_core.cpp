@@ -425,6 +425,11 @@ Serialiser *WrappedVulkan::GetThreadSerialiser()
 
 	ser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
 
+	RDCDEBUG("Debug Text enabled - for development! remove before release!");
+	ser->SetDebugText(true);
+	
+	ser->SetChunkNameLookup(&GetChunkName);
+
 	Threading::SetTLSValue(threadSerialiserTLSSlot, (void *)ser);
 
 	{
@@ -438,7 +443,7 @@ Serialiser *WrappedVulkan::GetThreadSerialiser()
 void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 {
 	uint32_t FrameNumber = m_FrameCounter;
-	m_pSerialiser->Serialise("FrameNumber", FrameNumber); // must use m_pSerialiser here to match resource manager below
+	GetMainSerialiser()->Serialise("FrameNumber", FrameNumber); // must use main serialiser here to match resource manager below
 
 	if(m_State >= WRITING)
 	{
@@ -459,6 +464,7 @@ void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 
 void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 {
+	// must use main serialiser here to match resource manager
 	Serialiser *localSerialiser = GetMainSerialiser();
 
 	SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_FOOTER);
@@ -468,7 +474,7 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 	RDCASSERT(presentImage != VK_NULL_HANDLE);
 
 	bool HasCallstack = RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks != 0;
-	m_pSerialiser->Serialise("HasCallstack", HasCallstack);	
+	localSerialiser->Serialise("HasCallstack", HasCallstack);	
 
 	if(HasCallstack)
 	{
@@ -479,7 +485,7 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 		size_t numLevels = call->NumLevels();
 		uint64_t *stack = (uint64_t *)call->GetAddrs();
 
-		m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
+		localSerialiser->SerialisePODArray("callstack", stack, numLevels);
 
 		delete call;
 	}
@@ -558,7 +564,8 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 	
 void WrappedVulkan::BeginCaptureFrame()
 {
-	CACHE_THREAD_SERIALISER();
+	// must use main serialiser here to match resource manager
+	Serialiser *localSerialiser = GetMainSerialiser();
 
 	SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_HEADER);
 
@@ -1148,16 +1155,16 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 			m_FakeBBFmt = MakeResourceFormat(m_ImageInfo[liveBBid].format);
 
 			bool HasCallstack = false;
-			m_pSerialiser->Serialise("HasCallstack", HasCallstack);	
+			localSerialiser->Serialise("HasCallstack", HasCallstack);	
 
 			if(HasCallstack)
 			{
 				size_t numLevels = 0;
 				uint64_t *stack = NULL;
 
-				m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
+				localSerialiser->SerialisePODArray("callstack", stack, numLevels);
 
-				m_pSerialiser->SetCallstack(stack, numLevels);
+				localSerialiser->SetCallstack(stack, numLevels);
 
 				SAFE_DELETE_ARRAY(stack);
 			}

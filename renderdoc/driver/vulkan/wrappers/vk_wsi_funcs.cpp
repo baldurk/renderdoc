@@ -907,7 +907,7 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 			RDCDEBUG("Creating Capture Scope");	
 
 			{
-				CACHE_THREAD_SERIALISER();
+				Serialiser *localSerialiser = GetMainSerialiser();
 		
 				SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
 
