@@ -53,8 +53,10 @@ namespace renderdoc
                     public class BindingElement
                     {
                         public ResourceId view;
+                        public ResourceId res;
                         public ResourceId sampler;
-                        public UInt32 offset;
+                        public UInt64 offset;
+                        public UInt64 size;
                     };
                     [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
                     public BindingElement[] binds;

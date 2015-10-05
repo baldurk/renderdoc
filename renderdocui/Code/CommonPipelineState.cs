@@ -665,6 +665,39 @@ namespace renderdocui.Code
                         }
                     }
                 }
+                else if (IsLogVK)
+                {
+                    VulkanPipelineState.Pipeline pipe = m_Vulkan.graphics;
+                    if (stage == ShaderStageType.Compute)
+                        pipe = m_Vulkan.compute;
+
+                    VulkanPipelineState.ShaderStage s = null;
+
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: s = m_Vulkan.VS; break;
+                        case ShaderStageType.Tess_Control: s = m_Vulkan.TCS; break;
+                        case ShaderStageType.Tess_Eval: s = m_Vulkan.TES; break;
+                        case ShaderStageType.Geometry: s = m_Vulkan.GS; break;
+                        case ShaderStageType.Fragment: s = m_Vulkan.FS; break;
+                        case ShaderStageType.Compute: s = m_Vulkan.CS; break;
+                    }
+
+                    if (s.ShaderDetails != null && BufIdx < s.ShaderDetails.ConstantBlocks.Length)
+                    {
+                        var bind = s.BindpointMapping.ConstantBlocks[s.ShaderDetails.ConstantBlocks[BufIdx].bindPoint];
+
+                        // TODO do we need to worry about arrays of uniform buffers?
+                        var descriptorBind = pipe.DescSets[bind.bindset].bindings[bind.bind].binds[0];
+
+                        buf = descriptorBind.res;
+                        // VKTODOLOW maybe increase parameter to ulong and upcast others?
+                        ByteOffset = (uint)descriptorBind.offset;
+                        ByteSize = (uint)descriptorBind.size;
+
+                        return;
+                    }
+                }
             }
 
             buf = ResourceId.Null;

@@ -204,7 +204,7 @@ namespace renderdocui.Windows.PipelineState
 
         // Set a shader stage's resources and values
         private void SetShaderState(FetchTexture[] texs, FetchBuffer[] bufs,
-                                    VulkanPipelineState.ShaderStage stage,
+                                    VulkanPipelineState.ShaderStage stage, VulkanPipelineState.Pipeline pipe,
                                     Label shader, TreelistView.TreeListView resources, TreelistView.TreeListView samplers,
                                     TreelistView.TreeListView cbuffers, TreelistView.TreeListView classes)
         {
@@ -249,7 +249,63 @@ namespace renderdocui.Windows.PipelineState
             vs = cbuffers.VScrollValue();
             cbuffers.BeginUpdate();
             cbuffers.Nodes.Clear();
+            if(stage.ShaderDetails != null)
+            {
+                UInt32 i = 0;
+                foreach (var b in shaderDetails.ConstantBlocks)
+                {
+                    BindpointMap bindMap = stage.BindpointMapping.ConstantBlocks[b.bindPoint];
 
+                    // TODO do we need to worry about arrays of uniform buffers?
+                    var descriptorBind = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
+
+                    bool filledSlot = (descriptorBind.res != ResourceId.Null);
+                    bool usedSlot = bindMap.used;
+
+                    // show if
+                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                        )
+                    {
+                        string name = "Constant Buffer " + descriptorBind.res.ToString();
+                        UInt64 length = descriptorBind.size;
+                        int numvars = b.variables.Length;
+
+                        if (!filledSlot)
+                        {
+                            name = "Empty";
+                            length = 0;
+                        }
+
+                        for (int t = 0; t < bufs.Length; t++)
+                            if (bufs[t].ID == descriptorBind.res)
+                                name = bufs[t].name;
+
+                        if (name == "")
+                            name = "Constant Buffer " + descriptorBind.res.ToString();
+
+                        string slotname = i.ToString();
+                        slotname += ": " + b.name;
+
+                        string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                        string vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+
+                        var node = cbuffers.Nodes.Add(new object[] { slotname, name, vecrange, sizestr });
+
+                        node.Image = global::renderdocui.Properties.Resources.action;
+                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                        node.Tag = i;
+
+                        if (!filledSlot)
+                            EmptyRow(node);
+
+                        if (!usedSlot)
+                            InactiveRow(node);
+                    }
+                    i++;
+                }
+            }
             cbuffers.EndUpdate();
             cbuffers.NodesSelection.Clear();
             cbuffers.SetVScrollValue(vs);
@@ -562,12 +618,12 @@ namespace renderdocui.Windows.PipelineState
             viBuffers.EndUpdate();
             viBuffers.SetVScrollValue(vs);
 
-            SetShaderState(texs, bufs, state.VS, vsShader, vsResources, vsSamplers, vsCBuffers, vsClasses);
-            SetShaderState(texs, bufs, state.GS, gsShader, gsResources, gsSamplers, gsCBuffers, gsClasses);
-            SetShaderState(texs, bufs, state.TCS, hsShader, hsResources, hsSamplers, hsCBuffers, hsClasses);
-            SetShaderState(texs, bufs, state.TES, dsShader, dsResources, dsSamplers, dsCBuffers, dsClasses);
-            SetShaderState(texs, bufs, state.FS, psShader, psResources, psSamplers, psCBuffers, psClasses);
-            SetShaderState(texs, bufs, state.CS, csShader, csResources, csSamplers, csCBuffers, csClasses);
+            SetShaderState(texs, bufs, state.VS, state.graphics, vsShader, vsResources, vsSamplers, vsCBuffers, vsClasses);
+            SetShaderState(texs, bufs, state.GS, state.graphics, gsShader, gsResources, gsSamplers, gsCBuffers, gsClasses);
+            SetShaderState(texs, bufs, state.TCS, state.graphics, hsShader, hsResources, hsSamplers, hsCBuffers, hsClasses);
+            SetShaderState(texs, bufs, state.TES, state.graphics, dsShader, dsResources, dsSamplers, dsCBuffers, dsClasses);
+            SetShaderState(texs, bufs, state.FS, state.graphics, psShader, psResources, psSamplers, psCBuffers, psClasses);
+            SetShaderState(texs, bufs, state.CS, state.compute, csShader, csResources, csSamplers, csCBuffers, csClasses);
 
             vs = csUAVs.VScrollValue();
             csUAVs.Nodes.Clear();
@@ -1288,6 +1344,20 @@ namespace renderdocui.Windows.PipelineState
 
         private void ShowCBuffer(VulkanPipelineState.ShaderStage stage, UInt32 slot)
         {
+            VulkanPipelineState.Pipeline pipe = m_Core.CurVulkanPipelineState.graphics;
+            if(stage.stage == ShaderStageType.Compute)
+                pipe = m_Core.CurVulkanPipelineState.compute;
+
+            var existing = ConstantBufferPreviewer.Has(stage.stage, slot);
+            if (existing != null)
+            {
+                existing.Show();
+                return;
+            }
+
+            var prev = new ConstantBufferPreviewer(m_Core, stage.stage, slot);
+
+            prev.ShowDock(m_DockContent.Pane, DockAlignment.Right, 0.3);
         }
 
         private void cbuffers_NodeDoubleClicked(TreelistView.Node node)

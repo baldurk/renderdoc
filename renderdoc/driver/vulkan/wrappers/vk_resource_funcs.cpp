@@ -565,6 +565,9 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkBufferView view = VK_NULL_HANDLE;
+		
+		// use original ID
+		m_CreationInfo.m_BufferView[id].Init(&info);
 
 		VkResult ret = ObjDisp(device)->CreateBufferView(Unwrap(device), &info, &view);
 
@@ -748,6 +751,9 @@ bool WrappedVulkan::Serialise_vkCreateImageView(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkImageView view = VK_NULL_HANDLE;
+		
+		// use original ID
+		m_CreationInfo.m_ImageView[id].Init(&info);
 
 		VkResult ret = ObjDisp(device)->CreateImageView(Unwrap(device), &info, &view);
 

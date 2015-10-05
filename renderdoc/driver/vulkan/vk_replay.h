@@ -215,5 +215,7 @@ class VulkanReplay : public IReplayDriver
 		
 		WrappedVulkan *m_pDriver;
 
+		void FillCBufferVariables(rdctype::array<ShaderConstant>, vector<ShaderVariable> &outvars, const vector<byte> &data, size_t &offset);
+
 		VulkanDebugManager *GetDebugManager();
 };

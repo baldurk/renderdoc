@@ -175,6 +175,24 @@ struct VulkanCreationInfo
 		uint32_t width, height, layers;
 	};
 	map<ResourceId, Framebuffer> m_Framebuffer;
+	
+	struct BufferView
+	{
+		void Init(const VkBufferViewCreateInfo* pCreateInfo);
+
+		ResourceId buffer;
+		uint64_t offset;
+		uint64_t size;
+	};
+	map<ResourceId, BufferView> m_BufferView;
+
+	struct ImageView
+	{
+		void Init(const VkImageViewCreateInfo* pCreateInfo);
+
+		ResourceId image;
+	};
+	map<ResourceId, ImageView> m_ImageView;
 
 	struct AttachmentView
 	{

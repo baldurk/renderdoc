@@ -180,6 +180,18 @@ void VulkanCreationInfo::AttachmentView::Init(const VkAttachmentViewCreateInfo* 
 	image = VKMGR()->GetNonDispWrapper(pCreateInfo->image)->id;
 }
 
+void VulkanCreationInfo::BufferView::Init(const VkBufferViewCreateInfo* pCreateInfo)
+{
+	buffer = VKMGR()->GetNonDispWrapper(pCreateInfo->buffer)->id;
+	offset = pCreateInfo->offset;
+	size = pCreateInfo->range;
+}
+
+void VulkanCreationInfo::ImageView::Init(const VkImageViewCreateInfo* pCreateInfo)
+{
+	image = VKMGR()->GetNonDispWrapper(pCreateInfo->image)->id;
+}
+
 void VulkanCreationInfo::DescSetLayout::Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
 {
 	bindings.resize(pCreateInfo->count);

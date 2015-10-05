@@ -1145,7 +1145,16 @@ vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint3
 	VkQueue q = m_pDriver->GetQ();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	ResourceId memid = m_pDriver->m_BufferMemBinds[buff];
+	ResourceId memid;
+	
+	{
+		auto it = m_pDriver->m_BufferMemBinds.find(buff);
+		if(it == m_pDriver->m_BufferMemBinds.end())
+		{
+			RDCWARN("Buffer has no memory bound, or no buffer of this ID");
+			return vector<byte>();
+		}
+	}
 
 	VkBuffer srcBuf = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff);
 	
@@ -1454,11 +1463,23 @@ void VulkanReplay::SavePipelineState()
 
 								// only one of these is ever set
 								if(info->imageView != VK_NULL_HANDLE)
+								{
 									dst.bindings[b].binds[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->imageView)->id);
+									dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[dst.bindings[b].binds[a].view].image);
+								}
 								if(info->bufferView != VK_NULL_HANDLE)
+								{
 									dst.bindings[b].binds[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->bufferView)->id);
+									dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[dst.bindings[b].binds[a].view].buffer);
+									dst.bindings[b].binds[a].offset = *(uint32_t *)&info->imageLayout;
+									dst.bindings[b].binds[a].offset += c.m_BufferView[dst.bindings[b].binds[a].view].offset;
+									dst.bindings[b].binds[a].size = c.m_BufferView[dst.bindings[b].binds[a].view].size;
+								}
 								if(info->attachmentView != VK_NULL_HANDLE)
+								{
 									dst.bindings[b].binds[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->attachmentView)->id);
+									dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_AttachmentView[dst.bindings[b].binds[a].view].image);
+								}
 							}
 						}
 					}
@@ -1621,9 +1642,271 @@ void VulkanReplay::SavePipelineState()
 	}
 }
 
+void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, vector<ShaderVariable> &outvars, const vector<byte> &data, size_t &offset)
+{
+	for(int v=0; v < invars.count; v++)
+	{
+		string basename = invars[v].name.elems;
+		
+		uint32_t rows = invars[v].type.descriptor.rows;
+		uint32_t cols = invars[v].type.descriptor.cols;
+		uint32_t elems = RDCMAX(1U,invars[v].type.descriptor.elements);
+		bool rowMajor = invars[v].type.descriptor.rowMajorStorage != 0;
+		bool isArray = elems > 1;
+
+		if(invars[v].type.members.count > 0)
+		{
+			// structs are aligned
+			offset = AlignUp16(offset);
+
+			ShaderVariable var;
+			var.name = basename;
+			var.rows = var.columns = 0;
+			var.type = eVar_Float;
+			
+			vector<ShaderVariable> varmembers;
+
+			if(isArray)
+			{
+				for(uint32_t i=0; i < elems; i++)
+				{
+					// each struct in the array is aligned
+					offset = AlignUp16(offset);
+
+					ShaderVariable vr;
+					vr.name = StringFormat::Fmt("%s[%u]", basename.c_str(), i);
+					vr.rows = vr.columns = 0;
+					vr.type = eVar_Float;
+
+					vector<ShaderVariable> mems;
+
+					FillCBufferVariables(invars[v].type.members, mems, data, offset);
+
+					vr.isStruct = true;
+
+					vr.members = mems;
+
+					varmembers.push_back(vr);
+				}
+
+				var.isStruct = false;
+			}
+			else
+			{
+				var.isStruct = true;
+
+				FillCBufferVariables(invars[v].type.members, varmembers, data, offset);
+			}
+
+			{
+				var.members = varmembers;
+				outvars.push_back(var);
+			}
+
+			continue;
+		}
+		
+		// NOTE this won't work as-is for doubles, the below logic
+		// assumes 32-bit values. This code will all go away anyway
+		// once offsets & strides are correctly listed per-element
+		size_t elemByteSize = sizeof(uint32_t);
+		size_t sz = elemByteSize;
+
+		// vector
+		if(cols == 1)
+		{
+			if(isArray)
+			{
+				// arrays are aligned to float4 boundary
+				offset = AlignUp16(offset);
+
+				// array elements are also aligned - note, last
+				// element only takes up however much space it would
+				// so e.g. a float3 array leaves one float at the end
+				// that could be there
+				sz *= 4*elems;
+				sz -= (4-rows)*elemByteSize;
+			}
+			else if(rows > 2)
+			{
+				// float3s and float4s are aligned
+				offset = AlignUp16(offset);
+				sz *= rows;
+			}
+		}
+		else
+		{
+			// matrices are aligned to float4 boundary
+			offset = AlignUp16(offset);
+
+			// matrices act like an array of vectors, whether they
+			// are an array or not. We just need to determine if
+			// those vectors are the matrix's rows, or its columns,
+			// and adjust number of elements - even a float2x2 is
+			// stored in two float4s.
+			if(rowMajor)
+			{
+				// account for array elems as well as columns.
+				// Note the last array elem can have space after
+				// it which can be filled with another element, so
+				// need to ensure the 'stride' accounts for that.
+				sz *= 4*elems*cols;
+				sz -= (4-rows)*elemByteSize;
+			}
+			else
+			{
+				sz *= 4*elems*rows;
+				sz -= (4-cols)*elemByteSize;
+			}
+		}
+		
+		// after alignment, this is where we'll read from
+		size_t dataOffset = offset;
+
+		offset += sz;
+
+		size_t outIdx = outvars.size();
+		outvars.resize(outvars.size()+1);
+
+		{
+			outvars[outIdx].name = basename;
+			outvars[outIdx].rows = 1;
+			outvars[outIdx].type = invars[v].type.descriptor.type;
+			outvars[outIdx].isStruct = false;
+			outvars[outIdx].columns = cols;
+
+			ShaderVariable &var = outvars[outIdx];
+
+			if(!isArray)
+			{
+				outvars[outIdx].rows = rows;
+
+				if(dataOffset < data.size())
+				{
+					const byte *d = &data[dataOffset];
+
+					RDCASSERT(rows <= 4 && rows*cols <= 16);
+
+					if(!rowMajor)
+					{
+						uint32_t tmp[16] = {0};
+
+						for(uint32_t r=0; r < rows; r++)
+						{
+							size_t srcoffs = 4*elemByteSize*r;
+							size_t dstoffs = cols*elemByteSize*r;
+							memcpy((byte *)(tmp) + dstoffs, d + srcoffs,
+											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*cols));
+						}
+
+						// transpose
+						for(size_t r=0; r < rows; r++)
+							for(size_t c=0; c < cols; c++)
+								outvars[outIdx].value.uv[r*cols+c] = tmp[c*rows+r];
+					}
+					else
+					{
+						for(uint32_t r=0; r < rows; r++)
+						{
+							size_t srcoffs = 4*elemByteSize*r;
+							size_t dstoffs = cols*elemByteSize*r;
+							memcpy((byte *)(&outvars[outIdx].value.uv[0]) + dstoffs, d + srcoffs,
+											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*cols));
+						}
+					}
+				}
+			}
+			else
+			{
+				char buf[64] = {0};
+
+				var.name = outvars[outIdx].name;
+				var.rows = 0;
+				var.columns = 0;
+
+				bool isMatrix = rows > 1 && cols > 1;
+
+				vector<ShaderVariable> varmembers;
+				varmembers.resize(elems);
+				
+				string base = outvars[outIdx].name.elems;
+
+				uint32_t primaryDim = cols;
+				uint32_t secondaryDim = rows;
+				if(rowMajor)
+				{
+					primaryDim = rows;
+					secondaryDim = cols;
+				}
+
+				for(uint32_t e=0; e < elems; e++)
+				{
+					varmembers[e].name = StringFormat::Fmt("%s[%u]", base.c_str(), e);
+					varmembers[e].rows = rows;
+					varmembers[e].type = invars[v].type.descriptor.type;
+					varmembers[e].isStruct = false;
+					varmembers[e].columns = cols;
+					
+					size_t rowDataOffset = dataOffset+e*primaryDim*4*elemByteSize;
+
+					if(rowDataOffset < data.size())
+					{
+						const byte *d = &data[rowDataOffset];
+
+						// each primary element (row or column) is stored in a float4.
+						// we copy some padding here, but that will come out in the wash
+						// when we transpose
+						for(uint32_t p=0; p < primaryDim; p++)
+						{
+							memcpy(&(varmembers[e].value.uv[secondaryDim*p]), d + 4*elemByteSize*p,
+								RDCMIN(data.size()- rowDataOffset, elemByteSize*secondaryDim));
+						}
+
+						if(!rowMajor)
+						{
+							ShaderVariable tmp = varmembers[e];
+							// transpose
+							for(size_t ri=0; ri < rows; ri++)
+								for(size_t ci=0; ci < cols; ci++)
+									varmembers[e].value.uv[ri*cols+ci] = tmp.value.uv[ci*rows+ri];
+						}
+					}
+				}
+
+				{
+					var.isStruct = false;
+					var.members = varmembers;
+				}
+			}
+		}
+	}
+}
+
 void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
 {
-	RDCUNIMPLEMENTED("FillCBufferVariables");
+	// Correct SPIR-V will ultimately need to set explicit layout information for each type.
+	// For now, just assume D3D11 packing (float4 alignment on float4s, float3s, matrices, arrays and structures)
+
+	auto it = m_pDriver->m_ShaderInfo.find(shader);
+	
+	if(it == m_pDriver->m_ShaderInfo.end())
+	{
+		RDCERR("Can't get shader details");
+		return;
+	}
+
+	ShaderReflection &refl = it->second.refl;
+
+	if(cbufSlot >= (uint32_t)refl.ConstantBlocks.count)
+	{
+		RDCERR("Invalid cbuffer slot");
+		return;
+	}
+
+	ConstantBlock &c = refl.ConstantBlocks[cbufSlot];
+
+	size_t zero = 0;
+	FillCBufferVariables(c.variables, outvars, data, zero);
 }
 
 bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)

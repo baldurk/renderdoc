@@ -46,11 +46,11 @@ struct VulkanPipelineState
 
 				struct BindingElement
 				{
-					ResourceId view; // buffer, image, attachment
+					ResourceId view; // bufferview, imageview, attachmentview
+					ResourceId res; // buffer, image, attachment
 					ResourceId sampler;
-					uint32_t offset; // for dynamic offsets
-
-					// VKTODOLOW do we want image layout here?
+					uint64_t offset;
+					uint64_t size;
 				};
 
 				// may only be one element if not an array
