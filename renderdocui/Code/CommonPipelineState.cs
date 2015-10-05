@@ -737,6 +737,41 @@ namespace renderdocui.Code
 
                     return ret;
                 }
+                else if (IsLogVK)
+                {
+                    VulkanPipelineState.Pipeline.DescriptorSet[] descsets = m_Vulkan.graphics.DescSets;
+
+                    if (stage == ShaderStageType.Compute)
+                        descsets = m_Vulkan.compute.DescSets;
+                    
+                    List<ResourceId> ret = new List<ResourceId>();
+
+                    ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
+                    foreach(var descset in m_Vulkan.graphics.DescSets)
+                    {
+                        foreach (var bind in descset.bindings)
+                        {
+                            if ((bind.type == ShaderBindType.ImageSampler ||
+                                bind.type == ShaderBindType.InputAttachment ||
+                                bind.type == ShaderBindType.ReadOnlyBuffer ||
+                                bind.type == ShaderBindType.ReadOnlyImage ||
+                                bind.type == ShaderBindType.ReadOnlyTBuffer
+                               ) && (bind.stageFlags & mask) == mask)
+                            {
+                                // VKTODOMED handle bind.arraySize
+                                ret.Add(bind.binds[0].res);
+                            }
+                            else
+                            {
+                                // texture viewer currently expects binds to match up to resource list
+                                // so we need to pad with empty elements
+                                ret.Add(ResourceId.Null);
+                            }
+                        }
+                    }
+
+                    return ret.ToArray();
+                }
             }
 
             return new ResourceId[0];
@@ -772,6 +807,39 @@ namespace renderdocui.Code
                         ret[i] = m_GL.Images[i].Resource;
 
                     return ret;
+                }
+                else if (IsLogVK)
+                {
+                    VulkanPipelineState.Pipeline.DescriptorSet[] descsets = m_Vulkan.graphics.DescSets;
+
+                    if (stage == ShaderStageType.Compute)
+                        descsets = m_Vulkan.compute.DescSets;
+
+                    List<ResourceId> ret = new List<ResourceId>();
+
+                    ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
+                    foreach (var descset in m_Vulkan.graphics.DescSets)
+                    {
+                        foreach (var bind in descset.bindings)
+                        {
+                            if ((bind.type == ShaderBindType.ReadWriteBuffer ||
+                                bind.type == ShaderBindType.ReadWriteImage ||
+                                bind.type == ShaderBindType.ReadWriteTBuffer
+                               ) && (bind.stageFlags & mask) == mask)
+                            {
+                                // VKTODOMED handle bind.arraySize
+                                ret.Add(bind.binds[0].res);
+                            }
+                            else
+                            {
+                                // texture viewer currently expects binds to match up to resource list
+                                // so we need to pad with empty elements
+                                ret.Add(ResourceId.Null);
+                            }
+                        }
+                    }
+
+                    return ret.ToArray();
                 }
             }
 

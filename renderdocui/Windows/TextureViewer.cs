@@ -1342,6 +1342,9 @@ namespace renderdocui.Windows
             }
 
             rtPanel.RefreshLayout();
+
+            // VKTODOMED all this needs to be updated to account for multiple descriptor sets
+            // VKTODOMED also needs to handle array descriptors (ie. not texture arrays)
             
             i = 0;
             for(; i < Texs.Length; i++)
@@ -1365,6 +1368,7 @@ namespace renderdocui.Windows
                         {
                             used = true;
                             bindName = "<" + bind.name + ">";
+                            break;
                         }
                     }
                 }
