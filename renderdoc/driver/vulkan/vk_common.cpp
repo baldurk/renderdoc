@@ -1995,13 +1995,13 @@ void SerialiseOptionalObject(Serialiser *ser, const char *name, T *&el)
 template<>
 void Serialiser::Serialise(const char *name, VkGenericStruct &el)
 {
-	ScopedContext scope(this, this, name, "NextStructure", 0, true);
+	ScopedContext scope(this, name, "NextStructure", 0, true);
 }
 
 template<>
 void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkDeviceQueueCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkDeviceQueueCreateInfo", 0, true);
 
 	Serialise("queueFamilyIndex", el.queueFamilyIndex);
 	Serialise("queueCount", el.queueCount);
@@ -2012,7 +2012,7 @@ void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 {
-	ScopedContext scope(this, this, name, "VkPhysicalDeviceFeatures", 0, true);
+	ScopedContext scope(this, name, "VkPhysicalDeviceFeatures", 0, true);
 
 	Serialise("robustBufferAccess", el.robustBufferAccess);
 	Serialise("fullDrawIndexUint32", el.fullDrawIndexUint32);
@@ -2077,7 +2077,7 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 template<>
 void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkDeviceCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkDeviceCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2139,7 +2139,7 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkBufferCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkBufferCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2156,7 +2156,7 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkBufferViewCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkBufferViewCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2172,7 +2172,7 @@ void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkImageCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkImageCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkImageCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2195,7 +2195,7 @@ void Serialiser::Serialise(const char *name, VkImageCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkImageViewCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkImageViewCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2211,7 +2211,7 @@ void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkAttachmentBindInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkAttachmentBindInfo", 0, true);
+	ScopedContext scope(this, name, "VkAttachmentBindInfo", 0, true);
 	
 	SerialiseObject(VkAttachmentView, "view", el.view);
 	Serialise("layout", el.layout);
@@ -2220,7 +2220,7 @@ void Serialiser::Serialise(const char *name, VkAttachmentBindInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkFramebufferCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkFramebufferCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2236,7 +2236,7 @@ void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkAttachmentDescription &el)
 {
-	ScopedContext scope(this, this, name, "VkAttachmentDescription", 0, true);
+	ScopedContext scope(this, name, "VkAttachmentDescription", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION);
 	Serialise("sType", el.sType);
@@ -2255,7 +2255,7 @@ void Serialiser::Serialise(const char *name, VkAttachmentDescription &el)
 template<>
 void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 {
-	ScopedContext scope(this, this, name, "VkSubpassDescription", 0, true);
+	ScopedContext scope(this, name, "VkSubpassDescription", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION);
 	Serialise("sType", el.sType);
@@ -2288,7 +2288,7 @@ void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 template<>
 void Serialiser::Serialise(const char *name, VkSubpassDependency &el)
 {
-	ScopedContext scope(this, this, name, "VkSubpassDependency", 0, true);
+	ScopedContext scope(this, name, "VkSubpassDependency", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY);
 	Serialise("sType", el.sType);
@@ -2306,7 +2306,7 @@ void Serialiser::Serialise(const char *name, VkSubpassDependency &el)
 template<>
 void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkRenderPassCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkRenderPassCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2320,7 +2320,7 @@ void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkRenderPassBeginInfo", 0, true);
+	ScopedContext scope(this, name, "VkRenderPassBeginInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
 	Serialise("sType", el.sType);
@@ -2338,7 +2338,7 @@ void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkAttachmentViewCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkAttachmentViewCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkAttachmentViewCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_VIEW_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2354,7 +2354,7 @@ void Serialiser::Serialise(const char *name, VkAttachmentViewCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkDynamicViewportStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkDynamicVpStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkDynamicVpStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DYNAMIC_VIEWPORT_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2373,7 +2373,7 @@ void Serialiser::Serialise(const char *name, VkDynamicViewportStateCreateInfo &e
 template<>
 void Serialiser::Serialise(const char *name, VkDynamicRasterStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkDynamicRsStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkDynamicRsStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DYNAMIC_RASTER_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2388,7 +2388,7 @@ void Serialiser::Serialise(const char *name, VkDynamicRasterStateCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkDynamicColorBlendStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkDynamicCbStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkDynamicCbStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DYNAMIC_COLOR_BLEND_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2400,7 +2400,7 @@ void Serialiser::Serialise(const char *name, VkDynamicColorBlendStateCreateInfo 
 template<>
 void Serialiser::Serialise(const char *name, VkDynamicDepthStencilStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkDynamicDsStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkDynamicDsStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DYNAMIC_DEPTH_STENCIL_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2417,7 +2417,7 @@ void Serialiser::Serialise(const char *name, VkDynamicDepthStencilStateCreateInf
 template<>
 void Serialiser::Serialise(const char *name, VkVertexInputBindingDescription &el)
 {
-	ScopedContext scope(this, this, name, "VkVertexInputBindingDescription", 0, true);
+	ScopedContext scope(this, name, "VkVertexInputBindingDescription", 0, true);
 	
 	Serialise("binding", el.binding);
 	Serialise("strideInBytes", el.strideInBytes);
@@ -2427,7 +2427,7 @@ void Serialiser::Serialise(const char *name, VkVertexInputBindingDescription &el
 template<>
 void Serialiser::Serialise(const char *name, VkVertexInputAttributeDescription &el)
 {
-	ScopedContext scope(this, this, name, "VkVertexInputAttributeDescription", 0, true);
+	ScopedContext scope(this, name, "VkVertexInputAttributeDescription", 0, true);
 	
 	Serialise("location", el.location);
 	Serialise("binding", el.binding);
@@ -2438,7 +2438,7 @@ void Serialiser::Serialise(const char *name, VkVertexInputAttributeDescription &
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineVertexInputStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineVertexInputStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineVertexInputStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2451,7 +2451,7 @@ void Serialiser::Serialise(const char *name, VkPipelineVertexInputStateCreateInf
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineInputAssemblyStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineInputAssemblyStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineInputAssemblyStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2464,7 +2464,7 @@ void Serialiser::Serialise(const char *name, VkPipelineInputAssemblyStateCreateI
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineTessellationStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineTessStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineTessStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2476,7 +2476,7 @@ void Serialiser::Serialise(const char *name, VkPipelineTessellationStateCreateIn
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineViewportStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineViewportStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineViewportStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2488,7 +2488,7 @@ void Serialiser::Serialise(const char *name, VkPipelineViewportStateCreateInfo &
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineRasterStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineRasterStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineRasterStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_RASTER_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2504,7 +2504,7 @@ void Serialiser::Serialise(const char *name, VkPipelineRasterStateCreateInfo &el
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineMultisampleStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineMultisampleStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineMultisampleStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2519,7 +2519,7 @@ void Serialiser::Serialise(const char *name, VkPipelineMultisampleStateCreateInf
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineColorBlendAttachmentState &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineColorBlendAttachmentState", 0, true);
+	ScopedContext scope(this, name, "VkPipelineColorBlendAttachmentState", 0, true);
 
 	Serialise("blendEnable", el.blendEnable);
 	Serialise("srcBlendColor", el.srcBlendColor);
@@ -2534,7 +2534,7 @@ void Serialiser::Serialise(const char *name, VkPipelineColorBlendAttachmentState
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineColorBlendStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineColorBlendStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineColorBlendStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2552,7 +2552,7 @@ void Serialiser::Serialise(const char *name, VkPipelineColorBlendStateCreateInfo
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineDepthStencilStateCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineDepthStencilStateCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineDepthStencilStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2570,7 +2570,7 @@ void Serialiser::Serialise(const char *name, VkPipelineDepthStencilStateCreateIn
 template<>
 void Serialiser::Serialise(const char *name, VkCmdPoolCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkCmdPoolCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkCmdPoolCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2583,7 +2583,7 @@ void Serialiser::Serialise(const char *name, VkCmdPoolCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkCmdBufferCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkCmdBufferCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2599,7 +2599,7 @@ void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkCmdBufferBeginInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkCmdBufferBeginInfo", 0, true);
+	ScopedContext scope(this, name, "VkCmdBufferBeginInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO);
 	Serialise("sType", el.sType);
@@ -2613,7 +2613,7 @@ void Serialiser::Serialise(const char *name, VkCmdBufferBeginInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkStencilOpState &el)
 {
-	ScopedContext scope(this, this, name, "VkStencilOpState", 0, true);
+	ScopedContext scope(this, name, "VkStencilOpState", 0, true);
 	
 	Serialise("stencilFailOp", el.stencilFailOp);
 	Serialise("stencilPassOp", el.stencilPassOp);
@@ -2624,7 +2624,7 @@ void Serialiser::Serialise(const char *name, VkStencilOpState &el)
 template<>
 void Serialiser::Serialise(const char *name, VkQueryPoolCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkQueryPoolCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkQueryPoolCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2638,7 +2638,7 @@ void Serialiser::Serialise(const char *name, VkQueryPoolCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkSemaphoreCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkSemaphoreCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2652,7 +2652,7 @@ void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkFenceCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkFenceCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkFenceCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2664,7 +2664,7 @@ void Serialiser::Serialise(const char *name, VkFenceCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkSamplerCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkSamplerCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2687,7 +2687,7 @@ void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineShaderStageCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineShaderStageCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineShaderStageCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2702,7 +2702,7 @@ void Serialiser::Serialise(const char *name, VkPipelineShaderStageCreateInfo &el
 template<>
 void Serialiser::Serialise(const char *name, VkSpecializationMapEntry &el)
 {
-	ScopedContext scope(this, this, name, "VkSpecializationMapEntry", 0, true);
+	ScopedContext scope(this, name, "VkSpecializationMapEntry", 0, true);
 
 	Serialise("constantId", el.constantId);
 	uint64_t size = el.size;
@@ -2714,7 +2714,7 @@ void Serialiser::Serialise(const char *name, VkSpecializationMapEntry &el)
 template<>
 void Serialiser::Serialise(const char *name, VkSpecializationInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkSpecializationInfo", 0, true);
+	ScopedContext scope(this, name, "VkSpecializationInfo", 0, true);
 
 	uint64_t dataSize = el.dataSize;
 	Serialise("dataSize", el.dataSize);
@@ -2728,7 +2728,7 @@ void Serialiser::Serialise(const char *name, VkSpecializationInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineCacheCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineCacheCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2750,7 +2750,7 @@ void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkPipelineLayoutCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkPipelineLayoutCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2774,7 +2774,7 @@ void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkShaderModuleCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkShaderModuleCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2795,7 +2795,7 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkShaderCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkShaderCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkShaderCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SHADER_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2830,7 +2830,7 @@ void Serialiser::Serialise(const char *name, VkShaderCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkImageSubresourceRange &el)
 {
-	ScopedContext scope(this, this, name, "VkImageSubresourceRange", 0, true);
+	ScopedContext scope(this, name, "VkImageSubresourceRange", 0, true);
 
 	Serialise("aspect", el.aspect);
 	Serialise("baseMipLevel", el.baseMipLevel);
@@ -2842,7 +2842,7 @@ void Serialiser::Serialise(const char *name, VkImageSubresourceRange &el)
 template<>
 void Serialiser::Serialise(const char *name, VkImageSubresource &el)
 {
-	ScopedContext scope(this, this, name, "VkImageSubresource", 0, true);
+	ScopedContext scope(this, name, "VkImageSubresource", 0, true);
 	
 	Serialise("aspect", el.aspect);
 	Serialise("mipLevel", el.mipLevel);
@@ -2852,7 +2852,7 @@ void Serialiser::Serialise(const char *name, VkImageSubresource &el)
 template<>
 void Serialiser::Serialise(const char *name, VkMemoryAllocInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkMemoryAllocInfo", 0, true);
+	ScopedContext scope(this, name, "VkMemoryAllocInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO);
 	Serialise("sType", el.sType);
@@ -2865,7 +2865,7 @@ void Serialiser::Serialise(const char *name, VkMemoryAllocInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkMemoryBarrier &el)
 {
-	ScopedContext scope(this, this, name, "VkMemoryBarrier", 0, true);
+	ScopedContext scope(this, name, "VkMemoryBarrier", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_MEMORY_BARRIER);
 	Serialise("sType", el.sType);
@@ -2878,7 +2878,7 @@ void Serialiser::Serialise(const char *name, VkMemoryBarrier &el)
 template<>
 void Serialiser::Serialise(const char *name, VkBufferMemoryBarrier &el)
 {
-	ScopedContext scope(this, this, name, "VkBufferMemoryBarrier", 0, true);
+	ScopedContext scope(this, name, "VkBufferMemoryBarrier", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER);
 	Serialise("sType", el.sType);
@@ -2896,7 +2896,7 @@ void Serialiser::Serialise(const char *name, VkBufferMemoryBarrier &el)
 template<>
 void Serialiser::Serialise(const char *name, VkImageMemoryBarrier &el)
 {
-	ScopedContext scope(this, this, name, "VkImageMemoryBarrier", 0, true);
+	ScopedContext scope(this, name, "VkImageMemoryBarrier", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
 	Serialise("sType", el.sType);
@@ -2915,7 +2915,7 @@ void Serialiser::Serialise(const char *name, VkImageMemoryBarrier &el)
 template<>
 void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkGraphicsPipelineCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkGraphicsPipelineCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2943,7 +2943,7 @@ void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkComputePipelineCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkComputePipelineCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2959,7 +2959,7 @@ void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkDescriptorTypeCount &el)
 {
-	ScopedContext scope(this, this, name, "VkDescriptorTypeCount", 0, true);
+	ScopedContext scope(this, name, "VkDescriptorTypeCount", 0, true);
 
 	Serialise("type", el.type);
 	Serialise("count", el.count);
@@ -2968,7 +2968,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorTypeCount &el)
 template<>
 void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkDescriptorPoolCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkDescriptorPoolCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -2980,7 +2980,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkDescriptorInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkDescriptorInfo", 0, true);
+	ScopedContext scope(this, name, "VkDescriptorInfo", 0, true);
 	
 	SerialiseObject(VkBufferView, "bufferView", el.bufferView);
 	SerialiseObject(VkSampler, "sampler", el.sampler);
@@ -2992,7 +2992,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorInfo &el)
 template<>
 void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
 {
-	ScopedContext scope(this, this, name, "VkWriteDescriptorSet", 0, true);
+	ScopedContext scope(this, name, "VkWriteDescriptorSet", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 	Serialise("sType", el.sType);
@@ -3009,7 +3009,7 @@ void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
 template<>
 void Serialiser::Serialise(const char *name, VkCopyDescriptorSet &el)
 {
-	ScopedContext scope(this, this, name, "VkCopyDescriptorSet", 0, true);
+	ScopedContext scope(this, name, "VkCopyDescriptorSet", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET);
 	Serialise("sType", el.sType);
@@ -3028,7 +3028,7 @@ void Serialiser::Serialise(const char *name, VkCopyDescriptorSet &el)
 template<>
 void Serialiser::Serialise(const char *name, VkPushConstantRange &el)
 {
-	ScopedContext scope(this, this, name, "VkPushConstantRange", 0, true);
+	ScopedContext scope(this, name, "VkPushConstantRange", 0, true);
 
 	Serialise("stageFlags", (VkShaderStageFlagBits &)el.stageFlags);
 	Serialise("start", el.start);
@@ -3038,7 +3038,7 @@ void Serialiser::Serialise(const char *name, VkPushConstantRange &el)
 template<>
 void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el)
 {
-	ScopedContext scope(this, this, name, "VkDescriptorSetLayoutBinding", 0, true);
+	ScopedContext scope(this, name, "VkDescriptorSetLayoutBinding", 0, true);
 
 	Serialise("descriptorType", el.descriptorType);
 	Serialise("arraySize", el.arraySize);
@@ -3068,7 +3068,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el)
 template<>
 void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el)
 {
-	ScopedContext scope(this, this, name, "VkDescriptorSetLayoutCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkDescriptorSetLayoutCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
 	Serialise("sType", el.sType);
@@ -3080,7 +3080,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el
 template<>
 void Serialiser::Serialise(const char *name, VkChannelMapping &el)
 {
-	ScopedContext scope(this, this, name, "VkChannelMapping", 0, true);
+	ScopedContext scope(this, name, "VkChannelMapping", 0, true);
 
 	Serialise("r", el.r);
 	Serialise("g", el.g);
@@ -3091,7 +3091,7 @@ void Serialiser::Serialise(const char *name, VkChannelMapping &el)
 template<>
 void Serialiser::Serialise(const char *name, VkBufferImageCopy &el)
 {
-	ScopedContext scope(this, this, name, "VkBufferImageCopy", 0, true);
+	ScopedContext scope(this, name, "VkBufferImageCopy", 0, true);
 	
 	Serialise("memOffset", el.bufferOffset);
 	Serialise("bufferRowLength", el.bufferRowLength);
@@ -3104,7 +3104,7 @@ void Serialiser::Serialise(const char *name, VkBufferImageCopy &el)
 template<>
 void Serialiser::Serialise(const char *name, VkBufferCopy &el)
 {
-	ScopedContext scope(this, this, name, "VkBufferCopy", 0, true);
+	ScopedContext scope(this, name, "VkBufferCopy", 0, true);
 	
 	Serialise("srcOffset", el.srcOffset);
 	Serialise("destOffset", el.destOffset);
@@ -3114,7 +3114,7 @@ void Serialiser::Serialise(const char *name, VkBufferCopy &el)
 template<>
 void Serialiser::Serialise(const char *name, VkImageCopy &el)
 {
-	ScopedContext scope(this, this, name, "VkImageCopy", 0, true);
+	ScopedContext scope(this, name, "VkImageCopy", 0, true);
 
 	Serialise("srcSubresource", el.srcSubresource);
 	Serialise("srcOffset", el.srcOffset);
@@ -3126,7 +3126,7 @@ void Serialiser::Serialise(const char *name, VkImageCopy &el)
 template<>
 void Serialiser::Serialise(const char *name, VkImageBlit &el)
 {
-	ScopedContext scope(this, this, name, "VkImageBlit", 0, true);
+	ScopedContext scope(this, name, "VkImageBlit", 0, true);
 
 	Serialise("srcSubresource", el.srcSubresource);
 	Serialise("srcOffset", el.srcOffset);
@@ -3139,7 +3139,7 @@ void Serialiser::Serialise(const char *name, VkImageBlit &el)
 template<>
 void Serialiser::Serialise(const char *name, VkImageResolve &el)
 {
-	ScopedContext scope(this, this, name, "VkImageResolve", 0, true);
+	ScopedContext scope(this, name, "VkImageResolve", 0, true);
 	
 	Serialise("srcSubresource", el.srcSubresource);
 	Serialise("srcOffset", el.srcOffset);
@@ -3151,7 +3151,7 @@ void Serialiser::Serialise(const char *name, VkImageResolve &el)
 template<>
 void Serialiser::Serialise(const char *name, VkRect2D &el)
 {
-	ScopedContext scope(this, this, name, "VkRect2D", 0, true);
+	ScopedContext scope(this, name, "VkRect2D", 0, true);
 
 	Serialise("offset", el.offset);
 	Serialise("extent", el.extent);
@@ -3160,7 +3160,7 @@ void Serialiser::Serialise(const char *name, VkRect2D &el)
 template<>
 void Serialiser::Serialise(const char *name, VkRect3D &el)
 {
-	ScopedContext scope(this, this, name, "VkRect3D", 0, true);
+	ScopedContext scope(this, name, "VkRect3D", 0, true);
 
 	Serialise("offset", el.offset);
 	Serialise("extent", el.extent);
@@ -3169,7 +3169,7 @@ void Serialiser::Serialise(const char *name, VkRect3D &el)
 template<>
 void Serialiser::Serialise(const char *name, VkSwapChainCreateInfoWSI &el)
 {
-	ScopedContext scope(this, this, name, "VkSwapChainCreateInfoWSI", 0, true);
+	ScopedContext scope(this, name, "VkSwapChainCreateInfoWSI", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SWAP_CHAIN_CREATE_INFO_WSI);
 	Serialise("sType", el.sType);

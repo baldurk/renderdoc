@@ -152,7 +152,6 @@ class Serialiser
 			NONE = 0,
 			READING,
 			WRITING,
-			DEBUGWRITING,
 		};
 
 		enum SerialiserError
@@ -720,39 +719,17 @@ template<> void Serialiser::ReadInto(float &f);
 class ScopedContext
 {
 	public:
-		ScopedContext(Serialiser *s, Serialiser *debugser, const char *n, const char *t, uint32_t i, bool smallChunk)
+		ScopedContext(Serialiser *s, const char *n, const char *t, uint32_t i, bool smallChunk)
 			: m_Idx(i), m_Ser(s), m_Ended(false)
-#ifdef DEBUG_TEXT_SERIALISER
-			, m_DebugSer(debugser)
-#endif
 		{
 			m_Name = string(n) + " = " + t;
 			m_Ser->PushContext(m_Name.c_str(), m_Idx, smallChunk);
-			
-#ifdef DEBUG_TEXT_SERIALISER
-			if(m_DebugSer)
-			{
-				m_DebugSer->DebugLock();
-				m_DebugSer->PushContext(m_Name.c_str(), m_Idx, smallChunk);
-			}
-#endif
 		}
-		ScopedContext(Serialiser *s, Serialiser *debugser, const char *n, uint32_t i, bool smallChunk)
+		ScopedContext(Serialiser *s, const char *n, uint32_t i, bool smallChunk)
 			: m_Idx(i), m_Ser(s), m_Ended(false)
-#ifdef DEBUG_TEXT_SERIALISER
-			, m_DebugSer(debugser)
-#endif
 		{
 			m_Name = n;
 			m_Ser->PushContext(m_Name.c_str(), m_Idx, smallChunk);
-
-#ifdef DEBUG_TEXT_SERIALISER
-			if(m_DebugSer)
-			{
-				m_DebugSer->DebugLock();
-				m_DebugSer->PushContext(m_Name.c_str(), m_Idx, smallChunk);
-			}
-#endif
 		}
 		~ScopedContext()
 		{
@@ -769,9 +746,6 @@ class ScopedContext
 		std::string m_Name;
 		uint32_t m_Idx;
 		Serialiser *m_Ser;
-#ifdef DEBUG_TEXT_SERIALISER
-		Serialiser *m_DebugSer;
-#endif
 
 		bool m_Ended;
 
@@ -781,33 +755,12 @@ class ScopedContext
 
 			m_Ser->PopContext(m_Name.c_str(), m_Idx);
 
-#ifdef DEBUG_TEXT_SERIALISER
-			if(m_DebugSer)
-			{
-				m_DebugSer->PopContext(m_Name.c_str(), m_Idx);
-				m_DebugSer->DebugUnlock();
-			}
-#endif
-
 			m_Ended = true;
 		}
 };
 
-#ifdef DEBUG_TEXT_SERIALISER
-#define SCOPED_SERIALISE_CONTEXT(n) ScopedContext scope(m_pSerialiser, m_pDebugSerialiser, GetChunkName(n), n, false);
-#define SCOPED_SERIALISE_SMALL_CONTEXT(n) ScopedContext scope(m_pSerialiser, m_pDebugSerialiser, GetChunkName(n), n, true);
-
-#define SERIALISE_ELEMENT(type, name, inValue) type name; if(m_State >= WRITING) name = (inValue); m_pSerialiser->Serialise(#name, name); m_pDebugSerialiser->Serialise(#name, name);
-#define SERIALISE_ELEMENT_OPT(type, name, inValue, Condition) type name = type(); if(Condition) { if(m_State >= WRITING) name = (inValue); m_pSerialiser->Serialise(#name, name); m_pDebugSerialiser->Serialise(#name, name); }
-#define SERIALISE_ELEMENT_ARR(type, name, inValues, count) type *name = new type[count]; for(size_t serialiseIdx=0; serialiseIdx < count; serialiseIdx++) { if(m_State >= WRITING) name[serialiseIdx] = (inValues)[serialiseIdx]; m_pSerialiser->Serialise(#name, name[serialiseIdx]); m_pDebugSerialiser->Serialise(#name, name[serialiseIdx]); }
-#define SERIALISE_ELEMENT_ARR_OPT(type, name, inValues, count, Condition) type *name = NULL; if(Condition) { name = new type[count]; for(size_t serialiseIdx=0; serialiseIdx < count; serialiseIdx++) { if(m_State >= WRITING) name[serialiseIdx] = (inValues)[serialiseIdx]; m_pSerialiser->Serialise(#name, name[serialiseIdx]); m_pDebugSerialiser->Serialise(#name, name[serialiseIdx]); } }
-#define SERIALISE_ELEMENT_PTR(type, name, inValue) type name; if(inValue && m_State >= WRITING) name = *(inValue); m_pSerialiser->Serialise(#name, name); m_pDebugSerialiser->Serialise(#name, name);
-#define SERIALISE_ELEMENT_PTR_OPT(type, name, inValue, Condition) type name; if(Condition) { if(inValue && m_State >= WRITING) name = *(inValue); m_pSerialiser->Serialise(#name, name); m_pDebugSerialiser->Serialise(#name, name); }
-#define SERIALISE_ELEMENT_BUF(type, name, inBuf, Len) type name = (type)NULL; if(m_State >= WRITING) name = (type)(inBuf); size_t CONCAT(buflen, __LINE__) = Len; m_pSerialiser->SerialiseBuffer(#name, name, CONCAT(buflen, __LINE__)); m_pDebugSerialiser->SerialiseBuffer(#name, name, CONCAT(buflen, __LINE__));
-#define SERIALISE_ELEMENT_BUF_OPT(type, name, inBuf, Len, Condition) type name = (type)NULL; if(Condition) { if(m_State >= WRITING) name = (type)(inBuf); size_t CONCAT(buflen, __LINE__) = Len; m_pSerialiser->SerialiseBuffer(#name, name, CONCAT(buflen, __LINE__)); m_pDebugSerialiser->SerialiseBuffer(#name, name, CONCAT(buflen, __LINE__)); }
-#else
-#define SCOPED_SERIALISE_CONTEXT(n) ScopedContext scope(m_pSerialiser, NULL, GetChunkName(n), n, false);
-#define SCOPED_SERIALISE_SMALL_CONTEXT(n) ScopedContext scope(m_pSerialiser, NULL, GetChunkName(n), n, true);
+#define SCOPED_SERIALISE_CONTEXT(n) ScopedContext scope(m_pSerialiser, GetChunkName(n), n, false);
+#define SCOPED_SERIALISE_SMALL_CONTEXT(n) ScopedContext scope(m_pSerialiser, GetChunkName(n), n, true);
 
 #define SERIALISE_ELEMENT(type, name, inValue) type name; if(m_State >= WRITING) name = (inValue); m_pSerialiser->Serialise(#name, name);
 #define SERIALISE_ELEMENT_OPT(type, name, inValue, Condition) type name = type(); if(Condition) { if(m_State >= WRITING) name = (inValue); m_pSerialiser->Serialise(#name, name); }
@@ -817,7 +770,6 @@ class ScopedContext
 #define SERIALISE_ELEMENT_PTR_OPT(type, name, inValue, Condition) type name; if(Condition) { if(inValue && m_State >= WRITING) name = *(inValue); m_pSerialiser->Serialise(#name, name); }
 #define SERIALISE_ELEMENT_BUF(type, name, inBuf, Len) type name = (type)NULL; if(m_State >= WRITING) name = (type)(inBuf); size_t CONCAT(buflen, __LINE__) = Len; m_pSerialiser->SerialiseBuffer(#name, name, CONCAT(buflen, __LINE__));
 #define SERIALISE_ELEMENT_BUF_OPT(type, name, inBuf, Len, Condition) type name = (type)NULL; if(Condition) { if(m_State >= WRITING) name = (type)(inBuf); size_t CONCAT(buflen, __LINE__) = Len; m_pSerialiser->SerialiseBuffer(#name, name, CONCAT(buflen, __LINE__)); }
-#endif
 
 // forward declare generic pointer version to void*
 template<class T>

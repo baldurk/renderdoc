@@ -2857,7 +2857,7 @@ void WrappedOpenGL::Serialise_DebugMessages()
 
 	for(uint32_t i=0; i < NumMessages; i++)
 	{
-		ScopedContext msgscope(m_pSerialiser, NULL, "DebugMessage", "DebugMessage", 0, false);
+		ScopedContext msgscope(m_pSerialiser, "DebugMessage", "DebugMessage", 0, false);
 
 		string desc;
 		if(m_State >= WRITING)

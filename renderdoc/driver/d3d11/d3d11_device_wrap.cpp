@@ -2440,7 +2440,7 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(
 		}
 		else
 		{
-			ret = new WrappedID3D11DeviceContext(this, ret, m_pSerialiser, m_pDebugSerialiser);
+			ret = new WrappedID3D11DeviceContext(this, ret, m_pSerialiser);
 
 			AddDeferredContext((WrappedID3D11DeviceContext *)ret);
 
@@ -2466,7 +2466,7 @@ HRESULT WrappedID3D11Device::CreateDeferredContext(
 	{
 		SCOPED_LOCK(m_D3DLock);
 
-		WrappedID3D11DeviceContext *w = new WrappedID3D11DeviceContext(this, real, m_pSerialiser, m_pDebugSerialiser);
+		WrappedID3D11DeviceContext *w = new WrappedID3D11DeviceContext(this, real, m_pSerialiser);
 
 		wrapped = w;
 

@@ -1110,7 +1110,7 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_BUFFER_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_BUFFER_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_BUFFER_DESC", 0, true);
 	Serialise("ByteWidth", el.ByteWidth);
 	Serialise("Usage", el.Usage);
 	Serialise("BindFlags", (D3D11_BIND_FLAG&)el.BindFlags);
@@ -1122,7 +1122,7 @@ void Serialiser::Serialise(const char *name, D3D11_BUFFER_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_TEXTURE1D_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_TEXTURE1D_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_TEXTURE1D_DESC", 0, true);
     Serialise("Width", el.Width);
     Serialise("MipLevels", el.MipLevels);
     Serialise("ArraySize", el.ArraySize);
@@ -1136,7 +1136,7 @@ void Serialiser::Serialise(const char *name, D3D11_TEXTURE1D_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_TEXTURE2D_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_TEXTURE2D_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_TEXTURE2D_DESC", 0, true);
     Serialise("Width", el.Width);
     Serialise("Height", el.Height);
     Serialise("MipLevels", el.MipLevels);
@@ -1152,7 +1152,7 @@ void Serialiser::Serialise(const char *name, D3D11_TEXTURE2D_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_TEXTURE3D_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_TEXTURE3D_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_TEXTURE3D_DESC", 0, true);
     Serialise("Width", el.Width);
     Serialise("Height", el.Height);
     Serialise("Depth", el.Depth);
@@ -1167,7 +1167,7 @@ void Serialiser::Serialise(const char *name, D3D11_TEXTURE3D_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_SHADER_RESOURCE_VIEW_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_SHADER_RESOURCE_VIEW_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_SHADER_RESOURCE_VIEW_DESC", 0, true);
     Serialise("Format", el.Format);
     Serialise("ViewDimension", el.ViewDimension);
 
@@ -1232,7 +1232,7 @@ void Serialiser::Serialise(const char *name, D3D11_SHADER_RESOURCE_VIEW_DESC &el
 template<>
 void Serialiser::Serialise(const char *name, D3D11_RENDER_TARGET_VIEW_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_RENDER_TARGET_VIEW_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_RENDER_TARGET_VIEW_DESC", 0, true);
     Serialise("Format", el.Format);
     Serialise("ViewDimension", el.ViewDimension);
 
@@ -1279,7 +1279,7 @@ void Serialiser::Serialise(const char *name, D3D11_RENDER_TARGET_VIEW_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_UNORDERED_ACCESS_VIEW_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_UNORDERED_ACCESS_VIEW_DESC", 0, true);
     Serialise("Format", el.Format);
     Serialise("ViewDimension", el.ViewDimension);
 
@@ -1320,7 +1320,7 @@ void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC &e
 template<>
 void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_VIEW_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_DEPTH_STENCIL_VIEW_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_DEPTH_STENCIL_VIEW_DESC", 0, true);
     Serialise("Format", el.Format);
     Serialise("Flags", el.Flags);
     Serialise("ViewDimension", el.ViewDimension);
@@ -1359,13 +1359,13 @@ void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_VIEW_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_BLEND_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_BLEND_DESC", 0, true);
 
 	Serialise("AlphaToCoverageEnable", el.AlphaToCoverageEnable);
 	Serialise("IndependentBlendEnable", el.IndependentBlendEnable);
 	for(int i=0; i < 8; i++)
 	{
-		ScopedContext targetscope(this, this, name, "D3D11_RENDER_TARGET_BLEND_DESC", 0, true);
+		ScopedContext targetscope(this, name, "D3D11_RENDER_TARGET_BLEND_DESC", 0, true);
 
 		bool enable = el.RenderTarget[i].BlendEnable == TRUE;
 		Serialise("BlendEnable", enable);
@@ -1387,7 +1387,7 @@ void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_DEPTH_STENCIL_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_DEPTH_STENCIL_DESC", 0, true);
 
 	Serialise("DepthEnable", el.DepthEnable);
 	Serialise("DepthWriteMask", el.DepthWriteMask);
@@ -1397,14 +1397,14 @@ void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_DESC &el)
 	Serialise("StencilWriteMask", el.StencilWriteMask);
 
 	{
-		ScopedContext opscope(this, this, name, "D3D11_DEPTH_STENCILOP_DESC", 0, true);
+		ScopedContext opscope(this, name, "D3D11_DEPTH_STENCILOP_DESC", 0, true);
 		Serialise("FrontFace.StencilFailOp", el.FrontFace.StencilFailOp);
 		Serialise("FrontFace.StencilDepthFailOp", el.FrontFace.StencilDepthFailOp);
 		Serialise("FrontFace.StencilPassOp", el.FrontFace.StencilPassOp);
 		Serialise("FrontFace.StencilFunc", el.FrontFace.StencilFunc);
 	}
 	{
-		ScopedContext opscope(this, this, name, "D3D11_DEPTH_STENCILOP_DESC", 0, true);
+		ScopedContext opscope(this, name, "D3D11_DEPTH_STENCILOP_DESC", 0, true);
 		Serialise("BackFace.StencilFailOp", el.BackFace.StencilFailOp);
 		Serialise("BackFace.StencilDepthFailOp", el.BackFace.StencilDepthFailOp);
 		Serialise("BackFace.StencilPassOp", el.BackFace.StencilPassOp);
@@ -1415,7 +1415,7 @@ void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_RASTERIZER_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_RASTERIZER_DESC", 0, true);
 
 	Serialise("FillMode", el.FillMode);
 	Serialise("CullMode", el.CullMode);
@@ -1432,7 +1432,7 @@ void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_QUERY_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_QUERY_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_QUERY_DESC", 0, true);
 
 	Serialise("MiscFlags", el.MiscFlags);
 	Serialise("Query", el.Query);
@@ -1441,7 +1441,7 @@ void Serialiser::Serialise(const char *name, D3D11_QUERY_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_COUNTER_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_COUNTER_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_COUNTER_DESC", 0, true);
 
 	Serialise("MiscFlags", el.MiscFlags);
 	Serialise("Counter", el.Counter);
@@ -1450,7 +1450,7 @@ void Serialiser::Serialise(const char *name, D3D11_COUNTER_DESC &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_SAMPLER_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_SAMPLER_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_SAMPLER_DESC", 0, true);
 
 	Serialise("Filter", el.Filter);
 	Serialise("AddressU", el.AddressU);
@@ -1466,7 +1466,7 @@ void Serialiser::Serialise(const char *name, D3D11_SAMPLER_DESC &el)
 
 template<> void Serialiser::Serialise(const char *name, D3D11_SO_DECLARATION_ENTRY &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_SO_DECLARATION_ENTRY", 0, true);
+	ScopedContext scope(this, name, "D3D11_SO_DECLARATION_ENTRY", 0, true);
 	
 	string s = "";
 	if(m_Mode >= WRITING && el.SemanticName != NULL)
@@ -1503,7 +1503,7 @@ template<> void Serialiser::Serialise(const char *name, D3D11_SO_DECLARATION_ENT
 
 template<> void Serialiser::Serialise(const char *name, D3D11_INPUT_ELEMENT_DESC &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_INPUT_ELEMENT_DESC", 0, true);
+	ScopedContext scope(this, name, "D3D11_INPUT_ELEMENT_DESC", 0, true);
 	
 	string s;
 	if(m_Mode >= WRITING)
@@ -1534,7 +1534,7 @@ template<> void Serialiser::Serialise(const char *name, D3D11_INPUT_ELEMENT_DESC
 
 template<> void Serialiser::Serialise(const char *name, D3D11_SUBRESOURCE_DATA &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_SUBRESOURCE_DATA", 0, true);
+	ScopedContext scope(this, name, "D3D11_SUBRESOURCE_DATA", 0, true);
 	
 	// el.pSysMem
 	Serialise("SysMemPitch", el.SysMemPitch);
@@ -1545,13 +1545,13 @@ template<> void Serialiser::Serialise(const char *name, D3D11_SUBRESOURCE_DATA &
 template<>
 void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_BLEND_DESC1", 0, true);
+	ScopedContext scope(this, name, "D3D11_BLEND_DESC1", 0, true);
 
 	Serialise("AlphaToCoverageEnable", el.AlphaToCoverageEnable);
 	Serialise("IndependentBlendEnable", el.IndependentBlendEnable);
 	for(int i=0; i < 8; i++)
 	{
-		ScopedContext targetscope(this, this, name, "D3D11_RENDER_TARGET_BLEND_DESC1", 0, true);
+		ScopedContext targetscope(this, name, "D3D11_RENDER_TARGET_BLEND_DESC1", 0, true);
 
 		bool enable = el.RenderTarget[i].BlendEnable == TRUE;
 		Serialise("BlendEnable", enable);
@@ -1578,7 +1578,7 @@ void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC1 &el)
 {
-	ScopedContext scope(this, this, name, "D3D11_RASTERIZER_DESC1", 0, true);
+	ScopedContext scope(this, name, "D3D11_RASTERIZER_DESC1", 0, true);
 
 	Serialise("FillMode", el.FillMode);
 	Serialise("CullMode", el.CullMode);

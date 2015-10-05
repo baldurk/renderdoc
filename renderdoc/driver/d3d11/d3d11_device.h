@@ -223,7 +223,6 @@ private:
 	D3D11ResourceRecord *m_DeviceRecord;
 
 	Serialiser *m_pSerialiser;
-	Serialiser *m_pDebugSerialiser;
 	LogState m_State;
 	bool m_AppControlledCapture;
 	

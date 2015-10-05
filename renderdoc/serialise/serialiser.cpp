@@ -1434,17 +1434,6 @@ void Serialiser::DebugPrint(const char *fmt, ...)
 	
 	m_DebugText += GetIndent();
 	m_DebugText += tmpBuf;
-
-#ifdef DEBUG_TEXT_SERIALISER
-	FILE *f = FileIO::fopen(m_Filename.c_str(), "ab");
-
-	if(f)
-	{
-		FileIO::fwrite(tmpBuf, 1, strlen(tmpBuf), f);
-
-		FileIO::fclose(f);
-	}
-#endif
 }
 
 uint32_t Serialiser::PushContext(const char *name, uint32_t chunkIdx, bool smallChunk)

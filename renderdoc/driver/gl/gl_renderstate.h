@@ -278,4 +278,6 @@ private:
 	Serialiser *m_pSerialiser;
 	LogState m_State;
 	const GLHookSet *m_Real;
+
+	Serialiser *GetSerialiser() { return m_pSerialiser; }
 };

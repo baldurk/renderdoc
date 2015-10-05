@@ -125,13 +125,14 @@ enum ReplayLogType
 
 struct RDCInitParams
 {
-	RDCInitParams() { m_State = WRITING; m_pSerialiser = m_pDebugSerialiser = NULL; }
+	RDCInitParams() { m_State = WRITING; m_pSerialiser = NULL; }
 	virtual ~RDCInitParams() {}
 	virtual ReplayCreateStatus Serialise() = 0;
 
 	LogState m_State;
 	Serialiser *m_pSerialiser;
-	Serialiser *m_pDebugSerialiser;
+
+	Serialiser *GetSerialiser() { return m_pSerialiser; }
 };
 
 struct CaptureData

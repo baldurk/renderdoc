@@ -80,7 +80,7 @@ extern uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT]
 extern uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
 WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device* realDevice, ID3D11DeviceContext* context,
-														Serialiser *ser, Serialiser *debugser)
+														Serialiser *ser)
 	: RefCounter(context), m_pDevice(realDevice), m_pRealContext(context)
 {
 	if(RenderDoc::Inst().GetCrashHandler())
@@ -122,7 +122,6 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device* real
 	else
 	{
 		m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
-		m_pDebugSerialiser = debugser;
 		m_State = WRITING_IDLE;
 	}
 

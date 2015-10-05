@@ -3398,7 +3398,7 @@ void WrappedID3D11DeviceContext::Serialise_DebugMessages()
 
 	for(uint32_t i=0; i < NumMessages; i++)
 	{
-		ScopedContext msgscope(m_pSerialiser, m_pDebugSerialiser, "DebugMessage", "DebugMessage", 0, false);
+		ScopedContext msgscope(m_pSerialiser, "DebugMessage", "DebugMessage", 0, false);
 
 		string desc;
 		if(m_State >= WRITING)

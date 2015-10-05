@@ -430,6 +430,8 @@ private:
 	void AddRefs();
 	void ReleaseRefs();
 
+	Serialiser *GetSerialiser() { return m_pSerialiser; }
+
 	Serialiser *m_pSerialiser;
 	bool m_ImmediatePipeline;
 	WrappedID3D11Device *m_pDevice;

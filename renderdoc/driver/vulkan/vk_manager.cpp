@@ -30,7 +30,7 @@ VulkanResourceManager *VulkanResourceManager::m_Inst = NULL;
 template<>
 void Serialiser::Serialise(const char *name, ImageRegionState &el)
 {
-	ScopedContext scope(this, this, name, "ImageRegionState", 0, true);
+	ScopedContext scope(this, name, "ImageRegionState", 0, true);
 	
 	Serialise("range", el.range);
 	Serialise("prevstate", el.prevstate);

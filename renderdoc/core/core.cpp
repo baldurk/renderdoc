@@ -516,7 +516,7 @@ Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *par
 	Serialiser *chunkSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
 
 	{
-		ScopedContext scope(chunkSerialiser, NULL, "Thumbnail", THUMBNAIL_DATA, false);
+		ScopedContext scope(chunkSerialiser, "Thumbnail", THUMBNAIL_DATA, false);
 
 		bool HasThumbnail = (thpixels != NULL && thwidth > 0 && thheight > 0);
 		chunkSerialiser->Serialise("HasThumbnail", HasThumbnail);
@@ -533,13 +533,13 @@ Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *par
 	}
 
 	{
-		ScopedContext scope(chunkSerialiser, NULL, "Capture Create Parameters", CREATE_PARAMS, false);
+		ScopedContext scope(chunkSerialiser, "Capture Create Parameters", CREATE_PARAMS, false);
 
 		chunkSerialiser->Serialise("DriverType", m_CurrentDriver);
 		chunkSerialiser->SerialiseString("DriverName", m_CurrentDriverName);
 		
 		{
-			ScopedContext driverparams(chunkSerialiser, NULL, "Driver Specific", DRIVER_INIT_PARAMS, false);
+			ScopedContext driverparams(chunkSerialiser, "Driver Specific", DRIVER_INIT_PARAMS, false);
 
 			params->m_pSerialiser = chunkSerialiser;
 			params->m_State = WRITING;

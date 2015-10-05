@@ -100,7 +100,7 @@ const GLenum FramebufferInitialData::attachmentNames[10] = {
 template<>
 void Serialiser::Serialise(const char *name, VertexAttribInitialData &el)
 {
-	ScopedContext scope(this, this, name, "VertexArrayInitialData", 0, true);
+	ScopedContext scope(this, name, "VertexArrayInitialData", 0, true);
 	Serialise("enabled", el.enabled);
 	Serialise("vbslot", el.vbslot);
 	Serialise("offset", el.offset);
@@ -113,7 +113,7 @@ void Serialiser::Serialise(const char *name, VertexAttribInitialData &el)
 template<>
 void Serialiser::Serialise(const char *name, VertexBufferInitialData &el)
 {
-	ScopedContext scope(this, this, name, "VertexBufferInitialData", 0, true);
+	ScopedContext scope(this, name, "VertexBufferInitialData", 0, true);
 	Serialise("Buffer", el.Buffer);
 	Serialise("Stride", el.Stride);
 	Serialise("Offset", el.Offset);
@@ -123,7 +123,7 @@ void Serialiser::Serialise(const char *name, VertexBufferInitialData &el)
 template<>
 void Serialiser::Serialise(const char *name, FeedbackInitialData &el)
 {
-	ScopedContext scope(this, this, name, "FeedbackInitialData", 0, true);
+	ScopedContext scope(this, name, "FeedbackInitialData", 0, true);
 	Serialise("valid", el.valid);
 	SerialisePODArray<4>("Buffer", el.Buffer);
 	SerialisePODArray<4>("Offset", el.Offset);
@@ -133,7 +133,7 @@ void Serialiser::Serialise(const char *name, FeedbackInitialData &el)
 template<>
 void Serialiser::Serialise(const char *name, FramebufferAttachmentData &el)
 {
-	ScopedContext scope(this, this, name, "FramebufferAttachmentData", 0, true);
+	ScopedContext scope(this, name, "FramebufferAttachmentData", 0, true);
 	Serialise("renderbuffer", el.renderbuffer);
 	Serialise("layered", el.layered);
 	Serialise("layer", el.layer);
@@ -144,7 +144,7 @@ void Serialiser::Serialise(const char *name, FramebufferAttachmentData &el)
 template<>
 void Serialiser::Serialise(const char *name, FramebufferInitialData &el)
 {
-	ScopedContext scope(this, this, name, "FramebufferInitialData", 0, true);
+	ScopedContext scope(this, name, "FramebufferInitialData", 0, true);
 	Serialise("valid", el.valid);
 	SerialisePODArray<8>("DrawBuffers", el.DrawBuffers);
 	for(size_t i=0; i < ARRAY_COUNT(el.Attachments); i++)
@@ -173,7 +173,7 @@ struct TextureStateInitialData
 template<>
 void Serialiser::Serialise(const char *name, TextureStateInitialData &el)
 {
-	ScopedContext scope(this, this, name, "TextureStateInitialData", 0, true);
+	ScopedContext scope(this, name, "TextureStateInitialData", 0, true);
 	Serialise("baseLevel", el.baseLevel);
 	Serialise("maxLevel", el.maxLevel);
 	Serialise("minLod", el.minLod);
@@ -418,7 +418,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 	}
 	else if(res.Namespace == eResProgram)
 	{
-		ScopedContext scope(m_pSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
+		ScopedContext scope(m_pSerialiser, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
 
 		m_pSerialiser->Serialise("Id", Id);
 

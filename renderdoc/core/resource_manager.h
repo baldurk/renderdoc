@@ -433,6 +433,8 @@ class ResourceManager : public ResourceRecordHandler
 		LogState m_State;
 		Serialiser *m_pSerialiser;
 
+		Serialiser *GetSerialiser() { return m_pSerialiser; }
+
 		bool m_InFrame;
 
 		// very coarse lock, protects EVERYTHING. This could certainly be improved and it may be a bottleneck
@@ -941,7 +943,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 		}
 		else
 		{
-			ScopedContext scope(m_pSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
+			ScopedContext scope(m_pSerialiser, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
 
 			Serialise_InitialState(res);
 
@@ -963,7 +965,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 			}
 			else
 			{
-				ScopedContext scope(m_pSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
+				ScopedContext scope(m_pSerialiser, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
 
 				Serialise_InitialState(it->second);
 

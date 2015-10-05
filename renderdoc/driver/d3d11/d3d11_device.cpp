@@ -306,7 +306,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	{
 		m_State = READING;
 		m_pSerialiser = NULL;
-		m_pDebugSerialiser = NULL;
 
 		ResourceIDGen::SetReplayResourceIDs();
 	}
@@ -314,12 +313,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	{
 		m_State = WRITING_IDLE;
 		m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
-
-#ifdef DEBUG_TEXT_SERIALISER
-		m_pDebugSerialiser = new Serialiser("./debuglog.txt", Serialiser::DEBUGWRITING, true);
-#else
-		m_pDebugSerialiser = NULL;
-#endif
 	}
 	
 	m_ResourceManager = new D3D11ResourceManager(m_State, m_pSerialiser, this);
@@ -347,7 +340,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	ID3D11DeviceContext *context = NULL;
 	realDevice->GetImmediateContext(&context);
 
-	m_pImmediateContext = new WrappedID3D11DeviceContext(this, context, m_pSerialiser, m_pDebugSerialiser);
+	m_pImmediateContext = new WrappedID3D11DeviceContext(this, context, m_pSerialiser);
 
 	realDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&m_pInfoQueue);
 	realDevice->QueryInterface(__uuidof(ID3D11Debug), (void **)&m_WrappedDebug.m_pDebug);
@@ -459,7 +452,6 @@ WrappedID3D11Device::~WrappedID3D11Device()
 	SAFE_RELEASE(m_pDevice);
 
 	SAFE_DELETE(m_pSerialiser);
-	SAFE_DELETE(m_pDebugSerialiser);
 	
 	if(RenderDoc::Inst().GetCrashHandler())
 		RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);

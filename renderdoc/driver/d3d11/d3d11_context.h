@@ -186,7 +186,6 @@ private:
 	D3D11ResourceRecord *m_ContextRecord;
 
 	Serialiser *m_pSerialiser;
-	Serialiser *m_pDebugSerialiser;
 	LogState m_State;
 	CaptureFailReason m_FailureReason;
 	bool m_SuccessfulCapture;
@@ -244,7 +243,7 @@ public:
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11DeviceContext, AllocPoolCount, AllocPoolMaxByteSize);
 
-	WrappedID3D11DeviceContext(WrappedID3D11Device* realDevice, ID3D11DeviceContext* context, Serialiser *ser, Serialiser *debugser);
+	WrappedID3D11DeviceContext(WrappedID3D11Device* realDevice, ID3D11DeviceContext* context, Serialiser *ser);
 	void SetSerialiser(Serialiser *ser) { m_pSerialiser = ser; }
 	virtual ~WrappedID3D11DeviceContext();
 

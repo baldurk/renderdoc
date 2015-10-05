@@ -50,11 +50,6 @@ enum
 // force debugbreaks regardless of debug/release mode
 //#define FORCE_DEBUGBREAK
 
-// synchronously (ie. flushed to disk) write out the text-mode only serialised
-// data of ALL serialising. Helps in debugging crashes to know exactly which
-// calls have been made
-//#define DEBUG_TEXT_SERIALISER
-
 /////////////////////////////////////////////////
 // Logging configuration
 
