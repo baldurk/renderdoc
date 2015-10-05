@@ -92,7 +92,7 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 
 		void ApplyTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states);
 
-		void SerialiseImageStates(Serialiser *ser, map<ResourceId, ImgState> &states, vector<VkImageMemoryBarrier> &transitions);
+		void SerialiseImageStates(map<ResourceId, ImgState> &states, vector<VkImageMemoryBarrier> &transitions);
 
 		ResourceId GetID(WrappedVkRes *res)
 		{

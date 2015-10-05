@@ -488,7 +488,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 	vector<VkImageMemoryBarrier> imgTransitions;
 	
-	GetResourceManager()->SerialiseImageStates(m_pSerialiser, m_ImageInfo, imgTransitions);
+	GetResourceManager()->SerialiseImageStates(m_ImageInfo, imgTransitions);
 
 	if(applyInitialState && !imgTransitions.empty())
 	{

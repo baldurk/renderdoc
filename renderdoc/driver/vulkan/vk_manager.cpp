@@ -205,7 +205,7 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 	TRDBG("Post-record, there are %u transitions", (uint32_t)trans.size());
 }
 
-void VulkanResourceManager::SerialiseImageStates(Serialiser *m_pSerialiser, map<ResourceId, ImgState> &states, vector<VkImageMemoryBarrier> &transitions)
+void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImgState> &states, vector<VkImageMemoryBarrier> &transitions)
 {
 	SERIALISE_ELEMENT(uint32_t, NumMems, (uint32_t)states.size());
 
