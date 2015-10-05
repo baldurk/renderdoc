@@ -127,6 +127,8 @@ struct SPVDecoration
 				return StringFormat::Fmt("Builtin %s", ToStr::Get((spv::BuiltIn)val).c_str());
 			case spv::DecorationSpecId:
 				return StringFormat::Fmt("Specialize[%u]", ToStr::Get(decoration).c_str(), val);
+			default:
+				break;
 		}
 
 		return StringFormat::Fmt("%s=%u", ToStr::Get(decoration).c_str(), val);
@@ -1298,7 +1300,7 @@ void SPVModule::Disassemble()
 
 	m_Disassembly += "\n";
 
-	m_Disassembly += StringFormat::Fmt("Source is %s %u\n", sourceLang, sourceVer);
+	m_Disassembly += StringFormat::Fmt("Source is %s %u\n", sourceLang.c_str(), sourceVer);
 	for(size_t s=0; s < sourceexts.size(); s++)
 		m_Disassembly += StringFormat::Fmt(" + %s\n", sourceexts[s]->str.c_str());
 
@@ -2166,7 +2168,7 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				for(uint32_t m=0; m < type->matrixSize; m++)
 				{
 					SigParameter s = sig;
-					s.varName = StringFormat::Fmt("%s:%s%u", nm, rowmajor ? "row" : "col", m);
+					s.varName = StringFormat::Fmt("%s:%s%u", nm.c_str(), rowmajor ? "row" : "col", m);
 					s.regIndex += m;
 
 					RDCASSERT(s.regIndex < 16);
@@ -2307,7 +2309,7 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 		}
 		else
 		{
-			RDCWARN("Unexpected storage class for global: %s", ToStr::Get(inst->var->storage));
+			RDCWARN("Unexpected storage class for global: %s", ToStr::Get(inst->var->storage).c_str());
 		}
 	}
 
