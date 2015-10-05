@@ -111,6 +111,7 @@ class Core
 
 		D3D11PipelineState CurD3D11PipelineState;
 		GLPipelineState CurGLPipelineState;
+		VulkanPipelineState CurVulkanPipelineState;
 		//CommonPipelineState CurPipelineState;
 
 	private:

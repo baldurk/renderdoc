@@ -106,6 +106,7 @@ void Core::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, b
 
 		r->GetD3D11PipelineState(&CurD3D11PipelineState);
 		r->GetGLPipelineState(&CurGLPipelineState);
+		r->GetVulkanPipelineState(&CurVulkanPipelineState);
 		//CurPipelineState.SetStates(m_APIProps, CurD3D11PipelineState, CurGLPipelineState);
 
 		UnreadMessageCount = 0;
@@ -140,6 +141,7 @@ void Core::SetEventID(ILogViewerForm *exclude, uint32_t frameID, uint32_t eventI
 		r->SetFrameEvent(frameID, eventID);
 		r->GetD3D11PipelineState(&CurD3D11PipelineState);
 		r->GetGLPipelineState(&CurGLPipelineState);
+		r->GetVulkanPipelineState(&CurVulkanPipelineState);
 		//CurPipelineState.SetStates(m_APIProps, CurD3D11PipelineState, CurGLPipelineState);
 	});
 

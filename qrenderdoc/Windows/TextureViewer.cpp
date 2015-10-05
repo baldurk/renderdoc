@@ -127,9 +127,19 @@ void TextureViewer::on_render_clicked(QMouseEvent *e)
 
             ResourceId id;
             if(m_Core->APIProps().pipelineType == ePipelineState_D3D11)
-                id = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
+            {
+              id = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
+            }
+            else if(m_Core->APIProps().pipelineType == ePipelineState_OpenGL)
+            {
+              id = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
+            }
             else
-                id = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
+            {
+              const VulkanPipelineState &pipe = m_Core->CurVulkanPipelineState;
+              if(pipe.Pass.renderpass.colorAttachments.count > 0)
+              id = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.colorAttachments[0]].img;
+            }
 
             PixelValue val;
             ReplayOutput_PickPixel(m_Output, id, false, x, y, 0, 0, 0, &val);
@@ -183,9 +193,19 @@ void TextureViewer::OnEventSelected(uint32_t frameID, uint32_t eventID)
 	m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
 		TextureDisplay d;
 		if(m_Core->APIProps().pipelineType == ePipelineState_D3D11)
+		{
 			d.texid = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
-		else
+		}
+		else if(m_Core->APIProps().pipelineType == ePipelineState_OpenGL)
+		{
 			d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
+		}
+		else
+		{
+			const VulkanPipelineState &pipe = m_Core->CurVulkanPipelineState;
+			if(pipe.Pass.renderpass.colorAttachments.count > 0)
+			d.texid = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.colorAttachments[0]].img;
+		}
 		d.mip = 0;
 		d.sampleIdx = ~0U;
 		d.overlay = eTexOverlay_None;
