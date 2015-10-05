@@ -1280,7 +1280,7 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	ret.msQual = 0;
 	ret.msSamp = 1;
 	ret.name = (ret.ID == resid ? "WSI Presentable Image" : StringFormat::Fmt("Image %llu", ret.ID));
-	ret.numSubresources = 1;
+	ret.numSubresources = ret.mips*ret.arraysize;
 	ret.format = MakeResourceFormat(iminfo.format);
 	switch(iminfo.type)
 	{
