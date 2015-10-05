@@ -1154,6 +1154,8 @@ vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint3
 			RDCWARN("Buffer has no memory bound, or no buffer of this ID");
 			return vector<byte>();
 		}
+
+		memid = it->second;
 	}
 
 	VkBuffer srcBuf = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff);
