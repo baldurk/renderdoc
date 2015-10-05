@@ -25,6 +25,7 @@
 #include "../vk_core.h"
 
 bool WrappedVulkan::Serialise_vkCmdDraw(
+	Serialiser*    localSerialiser,
 	VkCmdBuffer cmdBuffer,
 	uint32_t       firstVertex,
 	uint32_t       vertexCount,
@@ -54,7 +55,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 
 		ObjDisp(cmdBuffer)->CmdDraw(Unwrap(cmdBuffer), firstVtx, vtxCount, firstInst, instCount);
 
-		const string desc = GetSerialiser()->GetDebugStr();
+		const string desc = localSerialiser->GetDebugStr();
 
 		{
 			AddEvent(DRAW, desc);
@@ -92,14 +93,17 @@ void WrappedVulkan::vkCmdDraw(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(DRAW);
-		Serialise_vkCmdDraw(cmdBuffer, firstVertex, vertexCount, firstInstance, instanceCount);
+		Serialise_vkCmdDraw(localSerialiser, cmdBuffer, firstVertex, vertexCount, firstInstance, instanceCount);
 
 		record->AddChunk(scope.Get());
 	}
 }
 
 bool WrappedVulkan::Serialise_vkCmdBlitImage(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
@@ -164,8 +168,10 @@ void WrappedVulkan::vkCmdBlitImage(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+		
 		SCOPED_SERIALISE_CONTEXT(BLIT_IMG);
-		Serialise_vkCmdBlitImage(cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions, filter);
+		Serialise_vkCmdBlitImage(localSerialiser, cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions, filter);
 
 		record->AddChunk(scope.Get());
 
@@ -181,6 +187,7 @@ void WrappedVulkan::vkCmdBlitImage(
 }
 
 bool WrappedVulkan::Serialise_vkCmdResolveImage(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
@@ -241,8 +248,10 @@ void WrappedVulkan::vkCmdResolveImage(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(RESOLVE_IMG);
-		Serialise_vkCmdResolveImage(cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions);
+		Serialise_vkCmdResolveImage(localSerialiser, cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions);
 
 		record->AddChunk(scope.Get());
 
@@ -258,6 +267,7 @@ void WrappedVulkan::vkCmdResolveImage(
 }
 
 bool WrappedVulkan::Serialise_vkCmdCopyImage(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
@@ -317,9 +327,11 @@ void WrappedVulkan::vkCmdCopyImage(
 	if(m_State >= WRITING)
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
+		
+		CACHE_THREAD_SERIALISER();
 
 		SCOPED_SERIALISE_CONTEXT(COPY_IMG);
-		Serialise_vkCmdCopyImage(cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions);
+		Serialise_vkCmdCopyImage(localSerialiser, cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(srcImage), eFrameRef_Read);
@@ -335,6 +347,7 @@ void WrappedVulkan::vkCmdCopyImage(
 }
 
 bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkBuffer                                    srcBuffer,
 			VkImage                                     destImage,
@@ -371,7 +384,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 
 		ObjDisp(cmdBuffer)->CmdCopyBufferToImage(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destImage), destImageLayout, count, regions);
 
-		const string desc = GetSerialiser()->GetDebugStr();
+		const string desc = localSerialiser->GetDebugStr();
 
 		{
 			AddEvent(COPY_BUF2IMG, desc);
@@ -406,8 +419,10 @@ void WrappedVulkan::vkCmdCopyBufferToImage(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(COPY_BUF2IMG);
-		Serialise_vkCmdCopyBufferToImage(cmdBuffer, srcBuffer, destImage, destImageLayout, regionCount, pRegions);
+		Serialise_vkCmdCopyBufferToImage(localSerialiser, cmdBuffer, srcBuffer, destImage, destImageLayout, regionCount, pRegions);
 
 		record->AddChunk(scope.Get());
 
@@ -423,6 +438,7 @@ void WrappedVulkan::vkCmdCopyBufferToImage(
 }
 
 bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
+		Serialiser*                                 localSerialiser,
     VkCmdBuffer                                 cmdBuffer,
 		VkImage                                     srcImage,
 		VkImageLayout                               srcImageLayout,
@@ -481,8 +497,10 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(COPY_IMG2BUF);
-		Serialise_vkCmdCopyImageToBuffer(cmdBuffer, srcImage, srcImageLayout, destBuffer, regionCount, pRegions);
+		Serialise_vkCmdCopyImageToBuffer(localSerialiser, cmdBuffer, srcImage, srcImageLayout, destBuffer, regionCount, pRegions);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(srcImage), eFrameRef_Read);
@@ -498,6 +516,7 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(
 }
 
 bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
+		Serialiser*                                 localSerialiser,
     VkCmdBuffer                                 cmdBuffer,
 		VkBuffer                                    srcBuffer,
 		VkBuffer                                    destBuffer,
@@ -533,7 +552,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 
 		ObjDisp(cmdBuffer)->CmdCopyBuffer(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destBuffer), count, regions);
 
-		const string desc = GetSerialiser()->GetDebugStr();
+		const string desc = localSerialiser->GetDebugStr();
 
 		{
 			AddEvent(COPY_BUF, desc);
@@ -567,8 +586,10 @@ void WrappedVulkan::vkCmdCopyBuffer(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(COPY_BUF);
-		Serialise_vkCmdCopyBuffer(cmdBuffer, srcBuffer, destBuffer, regionCount, pRegions);
+		Serialise_vkCmdCopyBuffer(localSerialiser, cmdBuffer, srcBuffer, destBuffer, regionCount, pRegions);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(srcBuffer), eFrameRef_Read);
@@ -584,6 +605,7 @@ void WrappedVulkan::vkCmdCopyBuffer(
 }
 
 bool WrappedVulkan::Serialise_vkCmdClearColorImage(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
@@ -639,8 +661,10 @@ void WrappedVulkan::vkCmdClearColorImage(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(CLEAR_COLOR);
-		Serialise_vkCmdClearColorImage(cmdBuffer, image, imageLayout, pColor, rangeCount, pRanges);
+		Serialise_vkCmdClearColorImage(localSerialiser, cmdBuffer, image, imageLayout, pColor, rangeCount, pRanges);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);
@@ -648,6 +672,7 @@ void WrappedVulkan::vkCmdClearColorImage(
 }
 
 bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
@@ -705,8 +730,10 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(CLEAR_DEPTHSTENCIL);
-		Serialise_vkCmdClearDepthStencilImage(cmdBuffer, image, imageLayout, depth, stencil, rangeCount, pRanges);
+		Serialise_vkCmdClearDepthStencilImage(localSerialiser, cmdBuffer, image, imageLayout, depth, stencil, rangeCount, pRanges);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);
@@ -714,6 +741,7 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(
 }
 
 bool WrappedVulkan::Serialise_vkCmdClearColorAttachment(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			uint32_t                                    colorAttachment,
 			VkImageLayout                               imageLayout,
@@ -746,7 +774,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorAttachment(
 
 		ObjDisp(cmdBuffer)->CmdClearColorAttachment(Unwrap(cmdBuffer), att, layout, &col, count, rects);
 
-		const string desc = GetSerialiser()->GetDebugStr();
+		const string desc = localSerialiser->GetDebugStr();
 
 		{
 			AddEvent(CLEAR_COLOR_ATTACH, desc);
@@ -781,8 +809,10 @@ void WrappedVulkan::vkCmdClearColorAttachment(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(CLEAR_COLOR_ATTACH);
-		Serialise_vkCmdClearColorAttachment(cmdBuffer, colorAttachment, imageLayout, pColor, rectCount, pRects);
+		Serialise_vkCmdClearColorAttachment(localSerialiser, cmdBuffer, colorAttachment, imageLayout, pColor, rectCount, pRects);
 
 		record->AddChunk(scope.Get());
 		// VKTODOHIGH mark referenced the image under the attachment
@@ -791,6 +821,7 @@ void WrappedVulkan::vkCmdClearColorAttachment(
 }
 
 bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImageAspectFlags                          imageAspectMask,
 			VkImageLayout                               imageLayout,
@@ -824,7 +855,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 
 		ObjDisp(cmdBuffer)->CmdClearDepthStencilAttachment(Unwrap(cmdBuffer), asp, lay, d, s, count, rects);
 
-		const string desc = GetSerialiser()->GetDebugStr();
+		const string desc = localSerialiser->GetDebugStr();
 
 		{
 			AddEvent(CLEAR_DEPTHSTENCIL_ATTACH, desc);
@@ -860,8 +891,10 @@ void WrappedVulkan::vkCmdClearDepthStencilAttachment(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(CLEAR_DEPTHSTENCIL_ATTACH);
-		Serialise_vkCmdClearDepthStencilAttachment(cmdBuffer, imageAspectMask, imageLayout, depth, stencil, rectCount, pRects);
+		Serialise_vkCmdClearDepthStencilAttachment(localSerialiser, cmdBuffer, imageAspectMask, imageLayout, depth, stencil, rectCount, pRects);
 
 		record->AddChunk(scope.Get());
 		// VKTODOHIGH mark referenced the image under the attachment
@@ -870,6 +903,7 @@ void WrappedVulkan::vkCmdClearDepthStencilAttachment(
 }
 
 bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
+	Serialiser*    localSerialiser,
 	VkCmdBuffer cmdBuffer,
 	uint32_t       firstIndex,
 	uint32_t       indexCount,
@@ -901,7 +935,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 
 		ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), firstIdx, idxCount, vtxOffs, firstInst, instCount);
 
-		const string desc = GetSerialiser()->GetDebugStr();
+		const string desc = localSerialiser->GetDebugStr();
 
 		{
 			AddEvent(DRAW_INDEXED, desc);
@@ -940,14 +974,17 @@ void WrappedVulkan::vkCmdDrawIndexed(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(DRAW_INDEXED);
-		Serialise_vkCmdDrawIndexed(cmdBuffer, firstIndex, indexCount, vertexOffset, firstInstance, instanceCount);
+		Serialise_vkCmdDrawIndexed(localSerialiser, cmdBuffer, firstIndex, indexCount, vertexOffset, firstInstance, instanceCount);
 
 		record->AddChunk(scope.Get());
 	}
 }
 
 bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
+		Serialiser*                                 localSerialiser,
 		VkCmdBuffer                                 cmdBuffer,
 		VkBuffer                                    buffer,
 		VkDeviceSize                                offset,
@@ -998,14 +1035,17 @@ void WrappedVulkan::vkCmdDrawIndirect(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(DRAW_INDIRECT);
-		Serialise_vkCmdDrawIndirect(cmdBuffer, buffer, offset, count, stride);
+		Serialise_vkCmdDrawIndirect(localSerialiser, cmdBuffer, buffer, offset, count, stride);
 
 		record->AddChunk(scope.Get());
 	}
 }
 
 bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
+		Serialiser*                                 localSerialiser,
 		VkCmdBuffer                                 cmdBuffer,
 		VkBuffer                                    buffer,
 		VkDeviceSize                                offset,
@@ -1056,14 +1096,17 @@ void WrappedVulkan::vkCmdDrawIndexedIndirect(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(DRAW_INDEXED_INDIRECT);
-		Serialise_vkCmdDrawIndexedIndirect(cmdBuffer, buffer, offset, count, stride);
+		Serialise_vkCmdDrawIndexedIndirect(localSerialiser, cmdBuffer, buffer, offset, count, stride);
 
 		record->AddChunk(scope.Get());
 	}
 }
 
 bool WrappedVulkan::Serialise_vkCmdDispatch(
+	Serialiser*    localSerialiser,
 	VkCmdBuffer cmdBuffer,
 	uint32_t       x,
 	uint32_t       y,
@@ -1107,14 +1150,17 @@ void WrappedVulkan::vkCmdDispatch(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(DISPATCH);
-		Serialise_vkCmdDispatch(cmdBuffer, x, y, z);
+		Serialise_vkCmdDispatch(localSerialiser, cmdBuffer, x, y, z);
 
 		record->AddChunk(scope.Get());
 	}
 }
 
 bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkBuffer                                    buffer,
 			VkDeviceSize                                offset)
@@ -1158,8 +1204,10 @@ void WrappedVulkan::vkCmdDispatchIndirect(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(DISPATCH_INDIRECT);
-		Serialise_vkCmdDispatchIndirect(cmdBuffer, buffer, offset);
+		Serialise_vkCmdDispatchIndirect(localSerialiser, cmdBuffer, buffer, offset);
 
 		record->AddChunk(scope.Get());
 	}

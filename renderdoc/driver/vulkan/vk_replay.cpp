@@ -451,17 +451,17 @@ ResourceId VulkanReplay::GetLiveID(ResourceId id)
 
 void VulkanReplay::InitCallstackResolver()
 {
-	m_pDriver->GetSerialiser()->InitCallstackResolver();
+	m_pDriver->GetMainSerialiser()->InitCallstackResolver();
 }
 
 bool VulkanReplay::HasCallstacks()
 {
-	return m_pDriver->GetSerialiser()->HasCallstacks();
+	return m_pDriver->GetMainSerialiser()->HasCallstacks();
 }
 
 Callstack::StackResolver *VulkanReplay::GetCallstackResolver()
 {
-	return m_pDriver->GetSerialiser()->GetCallstackResolver();
+	return m_pDriver->GetMainSerialiser()->GetCallstackResolver();
 }
 
 vector<FetchFrameRecord> VulkanReplay::GetFrameRecord()

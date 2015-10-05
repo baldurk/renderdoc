@@ -207,6 +207,8 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 
 void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImgState> &states, vector<VkImageMemoryBarrier> &transitions)
 {
+	Serialiser *localSerialiser = m_pSerialiser;
+
 	SERIALISE_ELEMENT(uint32_t, NumMems, (uint32_t)states.size());
 
 	auto srcit = states.begin();

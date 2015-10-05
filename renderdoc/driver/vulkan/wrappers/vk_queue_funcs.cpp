@@ -25,6 +25,7 @@
 #include "../vk_core.h"
 
 bool WrappedVulkan::Serialise_vkGetDeviceQueue(
+		Serialiser*                                 localSerialiser,
     VkDevice                                    device,
     uint32_t                                    queueNodeIndex,
     uint32_t                                    queueIndex,
@@ -82,8 +83,10 @@ VkResult WrappedVulkan::vkGetDeviceQueue(
 				Chunk *chunk = NULL;
 
 				{
+					CACHE_THREAD_SERIALISER();
+
 					SCOPED_SERIALISE_CONTEXT(GET_DEVICE_QUEUE);
-					Serialise_vkGetDeviceQueue(device, queueNodeIndex, queueIndex, pQueue);
+					Serialise_vkGetDeviceQueue(localSerialiser, device, queueNodeIndex, queueIndex, pQueue);
 
 					chunk = scope.Get();
 				}
@@ -106,6 +109,7 @@ VkResult WrappedVulkan::vkGetDeviceQueue(
 }
 
 bool WrappedVulkan::Serialise_vkQueueSubmit(
+		Serialiser*                                 localSerialiser,
     VkQueue                                     queue,
     uint32_t                                    cmdBufferCount,
     const VkCmdBuffer*                          pCmdBuffers,
@@ -151,7 +155,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			fence = VK_NULL_HANDLE;
 	}
 
-	const string desc = GetSerialiser()->GetDebugStr();
+	const string desc = localSerialiser->GetDebugStr();
 
 	if(m_State == READING)
 	{
@@ -369,8 +373,10 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 	if(m_State == WRITING_CAPFRAME)
 	{
+		CACHE_THREAD_SERIALISER();
+		
 		SCOPED_SERIALISE_CONTEXT(QUEUE_SUBMIT);
-		Serialise_vkQueueSubmit(queue, cmdBufferCount, pCmdBuffers, fence);
+		Serialise_vkQueueSubmit(localSerialiser, queue, cmdBufferCount, pCmdBuffers, fence);
 
 		m_FrameCaptureRecord->AddChunk(scope.Get());
 	}
@@ -416,7 +422,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	return ret;
 }
 
-bool WrappedVulkan::Serialise_vkQueueSignalSemaphore(VkQueue queue, VkSemaphore semaphore)
+bool WrappedVulkan::Serialise_vkQueueSignalSemaphore(Serialiser* localSerialiser, VkQueue queue, VkSemaphore semaphore)
 {
 	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queue));
 	SERIALISE_ELEMENT(ResourceId, sid, GetResID(semaphore));
@@ -436,8 +442,10 @@ VkResult WrappedVulkan::vkQueueSignalSemaphore(VkQueue queue, VkSemaphore semaph
 	
 	if(m_State >= WRITING)
 	{
+		CACHE_THREAD_SERIALISER();
+		
 		SCOPED_SERIALISE_CONTEXT(QUEUE_SIGNAL_SEMAPHORE);
-		Serialise_vkQueueSignalSemaphore(queue, semaphore);
+		Serialise_vkQueueSignalSemaphore(localSerialiser, queue, semaphore);
 
 		m_FrameCaptureRecord->AddChunk(scope.Get());
 		GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
@@ -447,7 +455,7 @@ VkResult WrappedVulkan::vkQueueSignalSemaphore(VkQueue queue, VkSemaphore semaph
 	return ret;
 }
 
-bool WrappedVulkan::Serialise_vkQueueWaitSemaphore(VkQueue queue, VkSemaphore semaphore)
+bool WrappedVulkan::Serialise_vkQueueWaitSemaphore(Serialiser* localSerialiser, VkQueue queue, VkSemaphore semaphore)
 {
 	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queue));
 	SERIALISE_ELEMENT(ResourceId, sid, GetResID(semaphore));
@@ -467,8 +475,10 @@ VkResult WrappedVulkan::vkQueueWaitSemaphore(VkQueue queue, VkSemaphore semaphor
 	
 	if(m_State >= WRITING_CAPFRAME)
 	{
+		CACHE_THREAD_SERIALISER();
+		
 		SCOPED_SERIALISE_CONTEXT(QUEUE_WAIT_SEMAPHORE);
-		Serialise_vkQueueWaitSemaphore(queue, semaphore);
+		Serialise_vkQueueWaitSemaphore(localSerialiser, queue, semaphore);
 
 		m_FrameCaptureRecord->AddChunk(scope.Get());
 		GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
@@ -478,7 +488,7 @@ VkResult WrappedVulkan::vkQueueWaitSemaphore(VkQueue queue, VkSemaphore semaphor
 	return ret;
 }
 
-bool WrappedVulkan::Serialise_vkQueueWaitIdle(VkQueue queue)
+bool WrappedVulkan::Serialise_vkQueueWaitIdle(Serialiser* localSerialiser, VkQueue queue)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(queue));
 	
@@ -497,8 +507,10 @@ VkResult WrappedVulkan::vkQueueWaitIdle(VkQueue queue)
 	
 	if(m_State >= WRITING_CAPFRAME)
 	{
+		CACHE_THREAD_SERIALISER();
+		
 		SCOPED_SERIALISE_CONTEXT(QUEUE_WAIT_IDLE);
-		Serialise_vkQueueWaitIdle(queue);
+		Serialise_vkQueueWaitIdle(localSerialiser, queue);
 
 		m_FrameCaptureRecord->AddChunk(scope.Get());
 		GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);

@@ -217,6 +217,7 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 // Sampler functions
 
 bool WrappedVulkan::Serialise_vkCreateSampler(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkSamplerCreateInfo*                  pCreateInfo,
 			VkSampler*                                  pSampler)
@@ -262,8 +263,10 @@ VkResult WrappedVulkan::vkCreateSampler(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+
 				SCOPED_SERIALISE_CONTEXT(CREATE_SAMPLER);
-				Serialise_vkCreateSampler(device, pCreateInfo, pSampler);
+				Serialise_vkCreateSampler(localSerialiser, device, pCreateInfo, pSampler);
 
 				chunk = scope.Get();
 			}
@@ -281,6 +284,7 @@ VkResult WrappedVulkan::vkCreateSampler(
 }
 
 bool WrappedVulkan::Serialise_vkCreateSemaphore(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkSemaphoreCreateInfo*                pCreateInfo,
 			VkSemaphore*                                pSemaphore)
@@ -326,8 +330,10 @@ VkResult WrappedVulkan::vkCreateSemaphore(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+
 				SCOPED_SERIALISE_CONTEXT(CREATE_SEMAPHORE);
-				Serialise_vkCreateSemaphore(device, pCreateInfo, pSemaphore);
+				Serialise_vkCreateSemaphore(localSerialiser, device, pCreateInfo, pSemaphore);
 
 				chunk = scope.Get();
 			}
@@ -345,6 +351,7 @@ VkResult WrappedVulkan::vkCreateSemaphore(
 }
 
 bool WrappedVulkan::Serialise_vkCreateFramebuffer(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkFramebufferCreateInfo*              pCreateInfo,
 			VkFramebuffer*                              pFramebuffer)
@@ -378,6 +385,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 }
 
 bool WrappedVulkan::Serialise_vkCreateFence(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkFenceCreateInfo*                pCreateInfo,
 			VkFence*                                pFence)
@@ -423,8 +431,10 @@ VkResult WrappedVulkan::vkCreateFence(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+
 				SCOPED_SERIALISE_CONTEXT(CREATE_FENCE);
-				Serialise_vkCreateFence(device, pCreateInfo, pFence);
+				Serialise_vkCreateFence(localSerialiser, device, pCreateInfo, pFence);
 
 				chunk = scope.Get();
 			}
@@ -442,6 +452,7 @@ VkResult WrappedVulkan::vkCreateFence(
 }
 
 bool WrappedVulkan::Serialise_vkGetFenceStatus(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                device,
 			VkFence                                 fence)
 {
@@ -468,8 +479,10 @@ VkResult WrappedVulkan::vkGetFenceStatus(
 	
 	if(m_State >= WRITING_CAPFRAME)
 	{
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(GET_FENCE_STATUS);
-		Serialise_vkGetFenceStatus(device, fence);
+		Serialise_vkGetFenceStatus(localSerialiser, device, fence);
 
 		m_FrameCaptureRecord->AddChunk(scope.Get());
 	}
@@ -508,8 +521,10 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+
 				SCOPED_SERIALISE_CONTEXT(CREATE_FRAMEBUFFER);
-				Serialise_vkCreateFramebuffer(device, pCreateInfo, pFramebuffer);
+				Serialise_vkCreateFramebuffer(localSerialiser, device, pCreateInfo, pFramebuffer);
 
 				chunk = scope.Get();
 			}
@@ -534,6 +549,7 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 }
 
 bool WrappedVulkan::Serialise_vkCreateRenderPass(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkRenderPassCreateInfo*               pCreateInfo,
 			VkRenderPass*                               pRenderPass)
@@ -582,8 +598,10 @@ VkResult WrappedVulkan::vkCreateRenderPass(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+
 				SCOPED_SERIALISE_CONTEXT(CREATE_RENDERPASS);
-				Serialise_vkCreateRenderPass(device, pCreateInfo, pRenderPass);
+				Serialise_vkCreateRenderPass(localSerialiser, device, pCreateInfo, pRenderPass);
 
 				chunk = scope.Get();
 			}
@@ -603,6 +621,7 @@ VkResult WrappedVulkan::vkCreateRenderPass(
 // State object functions
 
 bool WrappedVulkan::Serialise_vkCreateDynamicViewportState(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                         device,
 			const VkDynamicViewportStateCreateInfo*          pCreateInfo,
 			VkDynamicViewportState*                          pState)
@@ -651,8 +670,10 @@ VkResult WrappedVulkan::vkCreateDynamicViewportState(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_VIEWPORT_STATE);
-				Serialise_vkCreateDynamicViewportState(device, pCreateInfo, pState);
+				Serialise_vkCreateDynamicViewportState(localSerialiser, device, pCreateInfo, pState);
 
 				chunk = scope.Get();
 			}
@@ -670,6 +691,7 @@ VkResult WrappedVulkan::vkCreateDynamicViewportState(
 }
 
 bool WrappedVulkan::Serialise_vkCreateDynamicRasterState(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                        device,
 			const VkDynamicRasterStateCreateInfo*           pCreateInfo,
 			VkDynamicRasterState*                           pState)
@@ -718,8 +740,10 @@ VkResult WrappedVulkan::vkCreateDynamicRasterState(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_RASTER_STATE);
-				Serialise_vkCreateDynamicRasterState(device, pCreateInfo, pState);
+				Serialise_vkCreateDynamicRasterState(localSerialiser, device, pCreateInfo, pState);
 
 				chunk = scope.Get();
 			}
@@ -737,6 +761,7 @@ VkResult WrappedVulkan::vkCreateDynamicRasterState(
 }
 
 bool WrappedVulkan::Serialise_vkCreateDynamicColorBlendState(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                            device,
 			const VkDynamicColorBlendStateCreateInfo*           pCreateInfo,
 			VkDynamicColorBlendState*                           pState)
@@ -785,8 +810,10 @@ VkResult WrappedVulkan::vkCreateDynamicColorBlendState(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_BLEND_STATE);
-				Serialise_vkCreateDynamicColorBlendState(device, pCreateInfo, pState);
+				Serialise_vkCreateDynamicColorBlendState(localSerialiser, device, pCreateInfo, pState);
 
 				chunk = scope.Get();
 			}
@@ -804,6 +831,7 @@ VkResult WrappedVulkan::vkCreateDynamicColorBlendState(
 }
 
 bool WrappedVulkan::Serialise_vkCreateDynamicDepthStencilState(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkDynamicDepthStencilStateCreateInfo*           pCreateInfo,
 			VkDynamicDepthStencilState*                           pState)
@@ -852,8 +880,10 @@ VkResult WrappedVulkan::vkCreateDynamicDepthStencilState(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_DEPTH_STATE);
-				Serialise_vkCreateDynamicDepthStencilState(device, pCreateInfo, pState);
+				Serialise_vkCreateDynamicDepthStencilState(localSerialiser, device, pCreateInfo, pState);
 
 				chunk = scope.Get();
 			}
@@ -871,6 +901,7 @@ VkResult WrappedVulkan::vkCreateDynamicDepthStencilState(
 }
 
 bool WrappedVulkan::Serialise_vkCreateQueryPool(
+		Serialiser*                                 localSerialiser,
 		VkDevice                                    device,
 		const VkQueryPoolCreateInfo*                pCreateInfo,
 		VkQueryPool*                                pQueryPool)
@@ -916,8 +947,10 @@ VkResult WrappedVulkan::vkCreateQueryPool(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_QUERY_POOL);
-				Serialise_vkCreateQueryPool(device, pCreateInfo, pQueryPool);
+				Serialise_vkCreateQueryPool(localSerialiser, device, pCreateInfo, pQueryPool);
 
 				chunk = scope.Get();
 			}

@@ -86,6 +86,17 @@ struct DrawcallTreeNode
 	}
 };
 
+// use locally cached serialiser, per-thread
+#undef GET_SERIALISER
+#define GET_SERIALISER localSerialiser
+
+// must be at the start of any function that serialises
+#define CACHE_THREAD_SERIALISER() Serialiser *localSerialiser = GetThreadSerialiser();
+
+// pass the cached serialiser into Serialised_ function
+#undef SERIALISED_PARAMETER
+#define SERIALISED_PARAMETER Serialiser *localSerialiser,
+
 class WrappedVulkan
 {
 private:
@@ -362,7 +373,8 @@ private:
 		
 	static const char *GetChunkName(uint32_t idx);
 	
-	Serialiser *GetSerialiser() { return m_pSerialiser; }
+	Serialiser *GetThreadSerialiser();
+	Serialiser *GetMainSerialiser() { return m_pSerialiser; }
 
 	void Serialise_CaptureScope(uint64_t offset);
 	bool HasSuccessfulCapture();
@@ -454,469 +466,469 @@ public:
 
 	// Device initialization
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateInstance(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateInstance,
 		const VkInstanceCreateInfo*                 pCreateInfo,
-		VkInstance*                                 pInstance));
+		VkInstance*                                 pInstance);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyInstance(
-		VkInstance                                  instance));
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyInstance,
+		VkInstance                                  instance);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkEnumeratePhysicalDevices(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkEnumeratePhysicalDevices,
 		VkInstance                                  instance,
 		uint32_t*                                   pPhysicalDeviceCount,
-		VkPhysicalDevice*                           pPhysicalDevices));
+		VkPhysicalDevice*                           pPhysicalDevices);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceFeatures(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceFeatures,
     VkPhysicalDevice                            physicalDevice,
-    VkPhysicalDeviceFeatures*                   pFeatures));
+    VkPhysicalDeviceFeatures*                   pFeatures);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceFormatProperties(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceFormatProperties,
     VkPhysicalDevice                            physicalDevice,
     VkFormat                                    format,
-    VkFormatProperties*                         pFormatProperties));
+    VkFormatProperties*                         pFormatProperties);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceImageFormatProperties(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceImageFormatProperties,
     VkPhysicalDevice                            physicalDevice,
     VkFormat                                    format,
     VkImageType                                 type,
     VkImageTiling                               tiling,
     VkImageUsageFlags                           usage,
-    VkImageFormatProperties*                    pImageFormatProperties));
+    VkImageFormatProperties*                    pImageFormatProperties);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceLimits(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceLimits,
     VkPhysicalDevice                            physicalDevice,
-    VkPhysicalDeviceLimits*                     pLimits));
+    VkPhysicalDeviceLimits*                     pLimits);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceProperties(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceProperties,
     VkPhysicalDevice                            physicalDevice,
-    VkPhysicalDeviceProperties*                 pProperties));
+    VkPhysicalDeviceProperties*                 pProperties);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceQueueCount(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceQueueCount,
     VkPhysicalDevice                            physicalDevice,
-    uint32_t*                                   pCount));
+    uint32_t*                                   pCount);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceQueueProperties(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceQueueProperties,
     VkPhysicalDevice                            physicalDevice,
     uint32_t                                    count,
-    VkPhysicalDeviceQueueProperties*            pQueueProperties));
+    VkPhysicalDeviceQueueProperties*            pQueueProperties);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceMemoryProperties(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceMemoryProperties,
     VkPhysicalDevice                            physicalDevice,
-    VkPhysicalDeviceMemoryProperties*           pMemoryProperties));
+    VkPhysicalDeviceMemoryProperties*           pMemoryProperties);
 
 	// Device functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDevice(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDevice,
 		VkPhysicalDevice                            physicalDevice,
 		const VkDeviceCreateInfo*                   pCreateInfo,
-		VkDevice*                                   pDevice));
+		VkDevice*                                   pDevice);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDevice(
-		VkDevice                                    device));
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDevice,
+		VkDevice                                    device);
 	
 	// Queue functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetDeviceQueue(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetDeviceQueue,
 			VkDevice                                    device,
 			uint32_t                                    queueFamilyIndex,
 			uint32_t                                    queueIndex,
-			VkQueue*                                    pQueue));
+			VkQueue*                                    pQueue);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueSubmit(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueSubmit,
 			VkQueue                                     queue,
 			uint32_t                                    cmdBufferCount,
 			const VkCmdBuffer*                          pCmdBuffers,
-			VkFence                                     fence));
+			VkFence                                     fence);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueAddMemReferences(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueAddMemReferences,
 			VkQueue                                     queue,
 			uint32_t                                    count,
-			const VkDeviceMemory*                       pMems));
+			const VkDeviceMemory*                       pMems);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueRemoveMemReferences(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueRemoveMemReferences,
 			VkQueue                                     queue,
 			uint32_t                                    count,
-			const VkDeviceMemory*                       pMems));
+			const VkDeviceMemory*                       pMems);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueWaitIdle(
-			VkQueue                                     queue));
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueWaitIdle,
+			VkQueue                                     queue);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDeviceWaitIdle(
-			VkDevice                                    device));
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDeviceWaitIdle,
+			VkDevice                                    device);
 
 	// Query pool functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateQueryPool(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateQueryPool,
 			VkDevice                                    device,
 			const VkQueryPoolCreateInfo*                pCreateInfo,
-			VkQueryPool*                                pQueryPool));
+			VkQueryPool*                                pQueryPool);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyQueryPool(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyQueryPool,
 			VkDevice                                    device,
-			VkQueryPool                                 queryPool));
+			VkQueryPool                                 queryPool);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetQueryPoolResults(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetQueryPoolResults,
 			VkDevice                                    device,
 			VkQueryPool                                 queryPool,
 			uint32_t                                    startQuery,
 			uint32_t                                    queryCount,
 			size_t*                                     pDataSize,
 			void*                                       pData,
-			VkQueryResultFlags                          flags));
+			VkQueryResultFlags                          flags);
 
 	// Semaphore functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSemaphore(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSemaphore,
 			VkDevice                                    device,
 			const VkSemaphoreCreateInfo*                pCreateInfo,
-			VkSemaphore*                                pSemaphore));
+			VkSemaphore*                                pSemaphore);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySemaphore(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySemaphore,
 			VkDevice                                    device,
-			VkSemaphore                                 semaphore));
+			VkSemaphore                                 semaphore);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueSignalSemaphore(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueSignalSemaphore,
 			VkQueue                                     queue,
-			VkSemaphore                                 semaphore));
+			VkSemaphore                                 semaphore);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueWaitSemaphore(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueWaitSemaphore,
 			VkQueue                                     queue,
-			VkSemaphore                                 semaphore));
+			VkSemaphore                                 semaphore);
 
 	// Fence functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateFence(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateFence,
 			VkDevice                                    device,
 			const VkFenceCreateInfo*                    pCreateInfo,
-			VkFence*                                    pFence));
+			VkFence*                                    pFence);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyFence(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyFence,
 			VkDevice                                    device,
-			VkFence                                     fence));
+			VkFence                                     fence);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetFenceStatus(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetFenceStatus,
 			VkDevice                                    device,
-			VkFence                                     fence));
+			VkFence                                     fence);
 
 	// Memory functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAllocMemory(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAllocMemory,
 			VkDevice                                    device,
 			const VkMemoryAllocInfo*                    pAllocInfo,
-			VkDeviceMemory*                             pMem));
+			VkDeviceMemory*                             pMem);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkFreeMemory(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkFreeMemory,
 			VkDevice                                    device,
-			VkDeviceMemory                              mem));
+			VkDeviceMemory                              mem);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkMapMemory(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkMapMemory,
 			VkDevice                                    device,
 			VkDeviceMemory                              mem,
 			VkDeviceSize                                offset,
 			VkDeviceSize                                size,
 			VkMemoryMapFlags                            flags,
-			void**                                      ppData));
+			void**                                      ppData);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkUnmapMemory(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkUnmapMemory,
 			VkDevice                                    device,
-			VkDeviceMemory                              mem));
+			VkDeviceMemory                              mem);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkFlushMappedMemoryRanges(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkFlushMappedMemoryRanges,
 			VkDevice                                    device,
 			uint32_t                                    memRangeCount,
-			const VkMappedMemoryRange*                  pMemRanges));
+			const VkMappedMemoryRange*                  pMemRanges);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetBufferMemoryRequirements(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetBufferMemoryRequirements,
 			VkDevice                                    device,
 			VkBuffer                                    buffer,
-			VkMemoryRequirements*                       pMemoryRequirements));
+			VkMemoryRequirements*                       pMemoryRequirements);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetImageMemoryRequirements(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetImageMemoryRequirements,
 			VkDevice                                    device,
 			VkImage                                     image,
-			VkMemoryRequirements*                       pMemoryRequirements));
+			VkMemoryRequirements*                       pMemoryRequirements);
 
 	// Memory management API functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkBindBufferMemory(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkBindBufferMemory,
     VkDevice                                    device,
     VkBuffer                                    buffer,
     VkDeviceMemory                              mem,
-    VkDeviceSize                                memOffset));
+    VkDeviceSize                                memOffset);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkBindImageMemory(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkBindImageMemory,
     VkDevice                                    device,
     VkImage                                     image,
     VkDeviceMemory                              mem,
-    VkDeviceSize                                memOffset));
+    VkDeviceSize                                memOffset);
 
 	// Buffer functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateBuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateBuffer,
 			VkDevice                                    device,
 			const VkBufferCreateInfo*                   pCreateInfo,
-			VkBuffer*                                   pBuffer));
+			VkBuffer*                                   pBuffer);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyBuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyBuffer,
 			VkDevice                                    device,
-			VkBuffer                                    buffer));
+			VkBuffer                                    buffer);
 
 	// Buffer view functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateBufferView(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateBufferView,
 			VkDevice                                    device,
 			const VkBufferViewCreateInfo*               pCreateInfo,
-			VkBufferView*                               pView));
+			VkBufferView*                               pView);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyBufferView(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyBufferView,
 			VkDevice                                    device,
-			VkBufferView                                view));
+			VkBufferView                                view);
 
 	// Image functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateImage(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateImage,
 			VkDevice                                    device,
 			const VkImageCreateInfo*                    pCreateInfo,
-			VkImage*                                    pImage));
+			VkImage*                                    pImage);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyImage(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyImage,
 			VkDevice                                    device,
-			VkImage                                     image));
+			VkImage                                     image);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetImageSubresourceLayout(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetImageSubresourceLayout,
 			VkDevice                                    device,
 			VkImage                                     image,
 			const VkImageSubresource*                   pSubresource,
-			VkSubresourceLayout*                        pLayout));
+			VkSubresourceLayout*                        pLayout);
 
 	// Image view functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateImageView(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateImageView,
 			VkDevice                                    device,
 			const VkImageViewCreateInfo*                pCreateInfo,
-			VkImageView*                                pView));
+			VkImageView*                                pView);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyImageView(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyImageView,
 			VkDevice                                    device,
-			VkImageView                                 view));
+			VkImageView                                 view);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateAttachmentView(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateAttachmentView,
 			VkDevice                                    device,
 			const VkAttachmentViewCreateInfo*           pCreateInfo,
-			VkAttachmentView*                           pView));
+			VkAttachmentView*                           pView);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyAttachmentView(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyAttachmentView,
 			VkDevice                                    device,
-			VkAttachmentView                            view));
+			VkAttachmentView                            view);
 
 	// Shader functions
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateShaderModule(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateShaderModule,
 			VkDevice                                    device,
 			const VkShaderModuleCreateInfo*             pCreateInfo,
-			VkShaderModule*                             pShaderModule));
+			VkShaderModule*                             pShaderModule);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyShaderModule(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyShaderModule,
 			VkDevice                                    device,
-			VkShaderModule                              shaderModule));
+			VkShaderModule                              shaderModule);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateShader(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateShader,
 			VkDevice                                    device,
 			const VkShaderCreateInfo*                   pCreateInfo,
-			VkShader*                                   pShader));
+			VkShader*                                   pShader);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyShader(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyShader,
 			VkDevice                                    device,
-			VkShader                                    shader));
+			VkShader                                    shader);
 
 	// Pipeline functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateGraphicsPipelines(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateGraphicsPipelines,
 			VkDevice                                    device,
 			VkPipelineCache                             pipelineCache,
 			uint32_t                                    count,
 			const VkGraphicsPipelineCreateInfo*         pCreateInfos,
-			VkPipeline*                                 pPipelines));
+			VkPipeline*                                 pPipelines);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyPipeline(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyPipeline,
 			VkDevice                                    device,
-			VkPipeline                                  pipeline));
+			VkPipeline                                  pipeline);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreatePipelineCache(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreatePipelineCache,
 			VkDevice                                    device,
 			const VkPipelineCacheCreateInfo*            pCreateInfo,
-			VkPipelineCache*                            pPipelineCache));
+			VkPipelineCache*                            pPipelineCache);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyPipelineCache(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyPipelineCache,
 			VkDevice                                    device,
-			VkPipelineCache                             pipelineCache));
+			VkPipelineCache                             pipelineCache);
 
 	// Pipeline layout functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreatePipelineLayout(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreatePipelineLayout,
 			VkDevice                                    device,
 			const VkPipelineLayoutCreateInfo*           pCreateInfo,
-			VkPipelineLayout*                           pPipelineLayout));
+			VkPipelineLayout*                           pPipelineLayout);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyPipelineLayout(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyPipelineLayout,
 			VkDevice                                    device,
-			VkPipelineLayout                            pipelineLayout));
+			VkPipelineLayout                            pipelineLayout);
 
 	// Sampler functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSampler(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSampler,
 			VkDevice                                    device,
 			const VkSamplerCreateInfo*                  pCreateInfo,
-			VkSampler*                                  pSampler));
+			VkSampler*                                  pSampler);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySampler(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySampler,
 			VkDevice                                    device,
-			VkSampler                                   sampler));
+			VkSampler                                   sampler);
 
 	// Descriptor set functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorSetLayout(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorSetLayout,
 			VkDevice                                    device,
 			const VkDescriptorSetLayoutCreateInfo*      pCreateInfo,
-			VkDescriptorSetLayout*                      pSetLayout));
+			VkDescriptorSetLayout*                      pSetLayout);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDescriptorSetLayout(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDescriptorSetLayout,
 			VkDevice                                    device,
-			VkDescriptorSetLayout                       setLayout));
+			VkDescriptorSetLayout                       setLayout);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorPool(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorPool,
 			VkDevice                                    device,
 			VkDescriptorPoolUsage                       poolUsage,
 			uint32_t                                    maxSets,
 			const VkDescriptorPoolCreateInfo*           pCreateInfo,
-			VkDescriptorPool*                           pDescriptorPool));
+			VkDescriptorPool*                           pDescriptorPool);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDescriptorPool(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDescriptorPool,
 			VkDevice                                    device,
-			VkDescriptorPool                            descriptorPool));
+			VkDescriptorPool                            descriptorPool);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAllocDescriptorSets(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAllocDescriptorSets,
 			VkDevice                                    device,
 			VkDescriptorPool                            descriptorPool,
 			VkDescriptorSetUsage                        setUsage,
 			uint32_t                                    count,
 			const VkDescriptorSetLayout*                pSetLayouts,
 			VkDescriptorSet*                            pDescriptorSets,
-			uint32_t*                                   pCount));
+			uint32_t*                                   pCount);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkUpdateDescriptorSets(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkUpdateDescriptorSets,
 			VkDevice                                    device,
 			uint32_t                                    writeCount,
 			const VkWriteDescriptorSet*                 pDescriptorWrites,
 			uint32_t                                    copyCount,
-			const VkCopyDescriptorSet*                  pDescriptorCopies));
+			const VkCopyDescriptorSet*                  pDescriptorCopies);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkFreeDescriptorSets(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkFreeDescriptorSets,
 			VkDevice                                    device,
 			VkDescriptorPool                            descriptorPool,
 			uint32_t                                    count,
-			const VkDescriptorSet*                      pDescriptorSets));
+			const VkDescriptorSet*                      pDescriptorSets);
 
 	// State object functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicViewportState(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicViewportState,
 			VkDevice                                    device,
 			const VkDynamicViewportStateCreateInfo*           pCreateInfo,
-			VkDynamicViewportState*                           pState));
+			VkDynamicViewportState*                           pState);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicViewportState(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicViewportState,
 			VkDevice                                    device,
-			VkDynamicViewportState                      state));
+			VkDynamicViewportState                      state);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicRasterState(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicRasterState,
 			VkDevice                                    device,
 			const VkDynamicRasterStateCreateInfo*           pCreateInfo,
-			VkDynamicRasterState*                           pState));
+			VkDynamicRasterState*                           pState);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicRasterState(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicRasterState,
 			VkDevice                                    device,
-			VkDynamicRasterState                        state));
+			VkDynamicRasterState                        state);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicColorBlendState(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicColorBlendState,
 			VkDevice                                    device,
 			const VkDynamicColorBlendStateCreateInfo*           pCreateInfo,
-			VkDynamicColorBlendState*                           pState));
+			VkDynamicColorBlendState*                           pState);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicColorBlendState(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicColorBlendState,
 			VkDevice                                    device,
-			VkDynamicColorBlendState                    state));
+			VkDynamicColorBlendState                    state);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicDepthStencilState(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicDepthStencilState,
 			VkDevice                                    device,
 			const VkDynamicDepthStencilStateCreateInfo*           pCreateInfo,
-			VkDynamicDepthStencilState*                           pState));
+			VkDynamicDepthStencilState*                           pState);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicDepthStencilState(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicDepthStencilState,
 			VkDevice                                    device,
-			VkDynamicDepthStencilState                  state));
+			VkDynamicDepthStencilState                  state);
 
 	// Command pool functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool,
 			VkDevice                                  device,
 			const VkCmdPoolCreateInfo*                pCreateInfo,
-			VkCmdPool*                                pCmdPool));
+			VkCmdPool*                                pCmdPool);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyCommandPool(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyCommandPool,
 			VkDevice                                  device,
-			VkCmdPool                                 VkCmdPool));
+			VkCmdPool                                 VkCmdPool);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkResetCommandPool(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkResetCommandPool,
 			VkDevice                                  device,
 			VkCmdPool                                 VkCmdPool,
-    	VkCmdPoolResetFlags                       flags));
+    	VkCmdPoolResetFlags                       flags);
 
 	// Command buffer functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateCommandBuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateCommandBuffer,
 			VkDevice                                    device,
 			const VkCmdBufferCreateInfo*                pCreateInfo,
-			VkCmdBuffer*                                pCmdBuffer));
+			VkCmdBuffer*                                pCmdBuffer);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyCommandBuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyCommandBuffer,
 			VkDevice                                    device,
-			VkCmdBuffer                                 cmdBuffer));
+			VkCmdBuffer                                 cmdBuffer);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkBeginCommandBuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkBeginCommandBuffer,
 			VkCmdBuffer                                 cmdBuffer,
-			const VkCmdBufferBeginInfo*                 pBeginInfo));
+			const VkCmdBufferBeginInfo*                 pBeginInfo);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkEndCommandBuffer(
-			VkCmdBuffer                                 cmdBuffer));
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkEndCommandBuffer,
+			VkCmdBuffer                                 cmdBuffer);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkResetCommandBuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkResetCommandBuffer,
 			VkCmdBuffer                                 cmdBuffer,
-    	VkCmdBufferResetFlags                       flags));
+    	VkCmdBufferResetFlags                       flags);
 
 	// Command buffer building functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindPipeline(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindPipeline,
 			VkCmdBuffer                                 cmdBuffer,
 			VkPipelineBindPoint                         pipelineBindPoint,
-			VkPipeline                                  pipeline));
+			VkPipeline                                  pipeline);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicViewportState(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicViewportState,
 			VkCmdBuffer                                 cmdBuffer,
-			VkDynamicViewportState                      dynamicViewportState));
+			VkDynamicViewportState                      dynamicViewportState);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicRasterState(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicRasterState,
 			VkCmdBuffer                                 cmdBuffer,
-			VkDynamicRasterState                        dynamicRasterState));
+			VkDynamicRasterState                        dynamicRasterState);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicColorBlendState(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicColorBlendState,
 			VkCmdBuffer                                 cmdBuffer,
-			VkDynamicColorBlendState                    dynamicColorBlendState));
+			VkDynamicColorBlendState                    dynamicColorBlendState);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicDepthStencilState(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicDepthStencilState,
 			VkCmdBuffer                                 cmdBuffer,
-			VkDynamicDepthStencilState                  dynamicDepthStencilState));
+			VkDynamicDepthStencilState                  dynamicDepthStencilState);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDescriptorSets(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDescriptorSets,
 			VkCmdBuffer                                 cmdBuffer,
 			VkPipelineBindPoint                         pipelineBindPoint,
 			VkPipelineLayout                            layout,
@@ -924,78 +936,78 @@ public:
 			uint32_t                                    setCount,
 			const VkDescriptorSet*                      pDescriptorSets,
 			uint32_t                                    dynamicOffsetCount,
-			const uint32_t*                             pDynamicOffsets));
+			const uint32_t*                             pDynamicOffsets);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindIndexBuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindIndexBuffer,
 			VkCmdBuffer                                 cmdBuffer,
 			VkBuffer                                    buffer,
 			VkDeviceSize                                offset,
-			VkIndexType                                 indexType));
+			VkIndexType                                 indexType);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers,
 			VkCmdBuffer                                 cmdBuffer,
 			uint32_t                                    startBinding,
 			uint32_t                                    bindingCount,
 			const VkBuffer*                             pBuffers,
-			const VkDeviceSize*                         pOffsets));
+			const VkDeviceSize*                         pOffsets);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDraw(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDraw,
 			VkCmdBuffer                                 cmdBuffer,
 			uint32_t                                    firstVertex,
 			uint32_t                                    vertexCount,
 			uint32_t                                    firstInstance,
-			uint32_t                                    instanceCount));
+			uint32_t                                    instanceCount);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndexed(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndexed,
 			VkCmdBuffer                                 cmdBuffer,
 			uint32_t                                    firstIndex,
 			uint32_t                                    indexCount,
 			int32_t                                     vertexOffset,
 			uint32_t                                    firstInstance,
-			uint32_t                                    instanceCount));
+			uint32_t                                    instanceCount);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndirect(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndirect,
 			VkCmdBuffer                                 cmdBuffer,
 			VkBuffer                                    buffer,
 			VkDeviceSize                                offset,
 			uint32_t                                    count,
-			uint32_t                                    stride));
+			uint32_t                                    stride);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirect(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirect,
 			VkCmdBuffer                                 cmdBuffer,
 			VkBuffer                                    buffer,
 			VkDeviceSize                                offset,
 			uint32_t                                    count,
-			uint32_t                                    stride));
+			uint32_t                                    stride);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDispatch(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDispatch,
 			VkCmdBuffer                                 cmdBuffer,
 			uint32_t                                    x,
 			uint32_t                                    y,
-			uint32_t                                    z));
+			uint32_t                                    z);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDispatchIndirect(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDispatchIndirect,
 			VkCmdBuffer                                 cmdBuffer,
 			VkBuffer                                    buffer,
-			VkDeviceSize                                offset));
+			VkDeviceSize                                offset);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBuffer,
 			VkCmdBuffer                                 cmdBuffer,
 			VkBuffer                                    srcBuffer,
 			VkBuffer                                    destBuffer,
 			uint32_t                                    regionCount,
-			const VkBufferCopy*                         pRegions));
+			const VkBufferCopy*                         pRegions);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImage(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImage,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
 			VkImage                                     destImage,
 			VkImageLayout                               destImageLayout,
 			uint32_t                                    regionCount,
-			const VkImageCopy*                          pRegions));
+			const VkImageCopy*                          pRegions);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBlitImage(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBlitImage,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
@@ -1003,177 +1015,177 @@ public:
 			VkImageLayout                               destImageLayout,
 			uint32_t                                    regionCount,
 			const VkImageBlit*                          pRegions,
-			VkTexFilter                                 filter));
+			VkTexFilter                                 filter);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResolveImage(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResolveImage,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
 			VkImage                                     destImage,
 			VkImageLayout                               destImageLayout,
 			uint32_t                                    regionCount,
-			const VkImageResolve*                       pRegions));
+			const VkImageResolve*                       pRegions);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBufferToImage(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBufferToImage,
 			VkCmdBuffer                                 cmdBuffer,
 			VkBuffer                                    srcBuffer,
 			VkImage                                     destImage,
 			VkImageLayout                               destImageLayout,
 			uint32_t                                    regionCount,
-			const VkBufferImageCopy*                    pRegions));
+			const VkBufferImageCopy*                    pRegions);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImageToBuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImageToBuffer,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
 			VkBuffer                                    destBuffer,
 			uint32_t                                    regionCount,
-			const VkBufferImageCopy*                    pRegions));
+			const VkBufferImageCopy*                    pRegions);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdClearColorImage(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdClearColorImage,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
 			const VkClearColorValue*                    pColor,
 			uint32_t                                    rangeCount,
-			const VkImageSubresourceRange*              pRanges));
+			const VkImageSubresourceRange*              pRanges);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdClearDepthStencilImage(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdClearDepthStencilImage,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
 			float                                       depth,
 			uint32_t                                    stencil,
 			uint32_t                                    rangeCount,
-			const VkImageSubresourceRange*              pRanges));
+			const VkImageSubresourceRange*              pRanges);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdClearColorAttachment(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdClearColorAttachment,
 			VkCmdBuffer                                 cmdBuffer,
 			uint32_t                                    colorAttachment,
 			VkImageLayout                               imageLayout,
 			const VkClearColorValue*                    pColor,
 			uint32_t                                    rectCount,
-			const VkRect3D*                             pRects));
+			const VkRect3D*                             pRects);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdClearDepthStencilAttachment(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdClearDepthStencilAttachment,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImageAspectFlags                          imageAspectMask,
 			VkImageLayout                               imageLayout,
 			float                                       depth,
 			uint32_t                                    stencil,
 			uint32_t                                    rectCount,
-			const VkRect3D*                             pRects));
+			const VkRect3D*                             pRects);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPipelineBarrier(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPipelineBarrier,
 			VkCmdBuffer                                 cmdBuffer,
 			VkPipelineStageFlags                        srcStageMask,
 			VkPipelineStageFlags                        destStageMask,
 			VkBool32                                    byRegion,
 			uint32_t                                    memBarrierCount,
-			const void* const*                          ppMemBarriers));
+			const void* const*                          ppMemBarriers);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginQuery(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginQuery,
 			VkCmdBuffer                                 cmdBuffer,
 			VkQueryPool                                 queryPool,
 			uint32_t                                    slot,
-			VkQueryControlFlags                         flags));
+			VkQueryControlFlags                         flags);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndQuery(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndQuery,
 			VkCmdBuffer                                 cmdBuffer,
 			VkQueryPool                                 queryPool,
-			uint32_t                                    slot));
+			uint32_t                                    slot);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResetQueryPool(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResetQueryPool,
 			VkCmdBuffer                                 cmdBuffer,
 			VkQueryPool                                 queryPool,
 			uint32_t                                    startQuery,
-			uint32_t                                    queryCount));
+			uint32_t                                    queryCount);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateFramebuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateFramebuffer,
 			VkDevice                                    device,
 			const VkFramebufferCreateInfo*              pCreateInfo,
-			VkFramebuffer*                              pFramebuffer));
+			VkFramebuffer*                              pFramebuffer);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyFramebuffer(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyFramebuffer,
 			VkDevice                                    device,
-			VkFramebuffer                               framebuffer));
+			VkFramebuffer                               framebuffer);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass,
 			VkDevice                                    device,
 			const VkRenderPassCreateInfo*               pCreateInfo,
-			VkRenderPass*                               pRenderPass));
+			VkRenderPass*                               pRenderPass);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyRenderPass(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyRenderPass,
 			VkDevice                                    device,
-			VkRenderPass                                renderPass));
+			VkRenderPass                                renderPass);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginRenderPass(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginRenderPass,
 			VkCmdBuffer                                 cmdBuffer,
 			const VkRenderPassBeginInfo*                pRenderPassBegin,
-			VkRenderPassContents                        contents));
+			VkRenderPassContents                        contents);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRenderPass(
-			VkCmdBuffer                                 cmdBuffer));
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRenderPass,
+			VkCmdBuffer                                 cmdBuffer);
 
 	// Debug functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgCreateMsgCallback(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgCreateMsgCallback,
     VkInstance                          instance,
     VkFlags                             msgFlags,
     const PFN_vkDbgMsgCallback          pfnMsgCallback,
     void*                               pUserData,
-    VkDbgMsgCallback*                   pMsgCallback));
+    VkDbgMsgCallback*                   pMsgCallback);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgDestroyMsgCallback(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgDestroyMsgCallback,
     VkInstance                          instance,
-    VkDbgMsgCallback                    msgCallback));
+    VkDbgMsgCallback                    msgCallback);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDbgMarkerBegin(
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDbgMarkerBegin,
 			VkCmdBuffer  cmdBuffer,
-			const char*     pMarker));
+			const char*     pMarker);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDbgMarkerEnd(
-			VkCmdBuffer  cmdBuffer));
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDbgMarkerEnd,
+			VkCmdBuffer  cmdBuffer);
 
 	// WSI functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceSurfaceSupportWSI(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceSurfaceSupportWSI,
 			VkPhysicalDevice                        physicalDevice,
 			uint32_t                                queueFamilyIndex,
 			const VkSurfaceDescriptionWSI*          pSurfaceDescription,
-			VkBool32*                               pSupported));
+			VkBool32*                               pSupported);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSwapChainWSI(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSwapChainWSI,
 			VkDevice                                device,
 			const VkSwapChainCreateInfoWSI*         pCreateInfo,
-			VkSwapChainWSI*                         pSwapChain));
+			VkSwapChainWSI*                         pSwapChain);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySwapChainWSI(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySwapChainWSI,
 			VkDevice                                 device,
-			VkSwapChainWSI                           swapChain));
+			VkSwapChainWSI                           swapChain);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSurfaceInfoWSI(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSurfaceInfoWSI,
 			VkDevice                                 device,
 			const VkSurfaceDescriptionWSI*           pSurfaceDescription,
 			VkSurfaceInfoTypeWSI                     infoType,
 			size_t*                                  pDataSize,
-			void*                                    pData));
+			void*                                    pData);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSwapChainInfoWSI(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSwapChainInfoWSI,
 			VkDevice                                 device,
 			VkSwapChainWSI                           swapChain,
 			VkSwapChainInfoTypeWSI                   infoType,
 			size_t*                                  pDataSize,
-			void*                                    pData));
+			void*                                    pData);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAcquireNextImageWSI(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAcquireNextImageWSI,
 			VkDevice                                 device,
 			VkSwapChainWSI                           swapChain,
 			uint64_t                                 timeout,
 			VkSemaphore                              semaphore,
-			uint32_t*                                pImageIndex));
+			uint32_t*                                pImageIndex);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueuePresentWSI(
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueuePresentWSI,
 			VkQueue                                 queue,
-			VkPresentInfoWSI*                       pPresentInfo));
+			VkPresentInfoWSI*                       pPresentInfo);
 };

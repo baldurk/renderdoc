@@ -89,6 +89,7 @@ VkResult WrappedVulkan::vkDestroyInstance(
 }
 
 bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
+		Serialiser*                                 localSerialiser,
 		VkInstance                                  instance,
 		uint32_t*                                   pPhysicalDeviceCount,
 		VkPhysicalDevice*                           pPhysicalDevices)
@@ -175,8 +176,10 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 
 			if(m_State >= WRITING)
 			{
+				CACHE_THREAD_SERIALISER();
+
 				SCOPED_SERIALISE_CONTEXT(ENUM_PHYSICALS);
-				Serialise_vkEnumeratePhysicalDevices(instance, &i, &devices[i]);
+				Serialise_vkEnumeratePhysicalDevices(localSerialiser, instance, &i, &devices[i]);
 
 				m_InstanceRecord->AddChunk(scope.Get());
 			}
@@ -192,6 +195,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 }
 
 bool WrappedVulkan::Serialise_vkCreateDevice(
+		Serialiser*                                 localSerialiser,
 		VkPhysicalDevice                            physicalDevice,
 		const VkDeviceCreateInfo*                   pCreateInfo,
 		VkDevice*                                   pDevice)
@@ -410,8 +414,10 @@ VkResult WrappedVulkan::vkCreateDevice(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+
 				SCOPED_SERIALISE_CONTEXT(CREATE_DEVICE);
-				Serialise_vkCreateDevice(physicalDevice, &createInfo, pDevice);
+				Serialise_vkCreateDevice(localSerialiser, physicalDevice, &createInfo, pDevice);
 
 				chunk = scope.Get();
 			}
@@ -505,7 +511,7 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 	return ret;
 }
 
-bool WrappedVulkan::Serialise_vkDeviceWaitIdle(VkDevice device)
+bool WrappedVulkan::Serialise_vkDeviceWaitIdle(Serialiser* localSerialiser, VkDevice device)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(device));
 	
@@ -524,8 +530,10 @@ VkResult WrappedVulkan::vkDeviceWaitIdle(VkDevice device)
 	
 	if(m_State >= WRITING_CAPFRAME)
 	{
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(DEVICE_WAIT_IDLE);
-		Serialise_vkDeviceWaitIdle(device);
+		Serialise_vkDeviceWaitIdle(localSerialiser, device);
 
 		m_FrameCaptureRecord->AddChunk(scope.Get());
 	}

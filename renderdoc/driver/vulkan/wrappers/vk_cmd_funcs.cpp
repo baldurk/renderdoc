@@ -27,6 +27,7 @@
 // Command pool functions
 
 bool WrappedVulkan::Serialise_vkCreateCommandPool(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkCmdPoolCreateInfo*                  pCreateInfo,
 			VkCmdPool*                                  pCmdPool)
@@ -70,10 +71,12 @@ VkResult WrappedVulkan::vkCreateCommandPool(
 		if(m_State >= WRITING)
 		{
 			Chunk *chunk = NULL;
-
+			
 			{
+				CACHE_THREAD_SERIALISER();
+
 				SCOPED_SERIALISE_CONTEXT(CREATE_CMD_POOL);
-				Serialise_vkCreateCommandPool(device, pCreateInfo, pCmdPool);
+				Serialise_vkCreateCommandPool(localSerialiser, device, pCreateInfo, pCmdPool);
 
 				chunk = scope.Get();
 			}
@@ -139,6 +142,7 @@ VkResult WrappedVulkan::vkCreateCommandBuffer(
 }
 
 bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			const VkCmdBufferBeginInfo*                 pBeginInfo)
 {
@@ -173,7 +177,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 	}
 	
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	GetSerialiser()->Serialise("createInfo", createInfo);
+	localSerialiser->Serialise("createInfo", createInfo);
 
 	if(m_State < WRITING)
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
@@ -281,8 +285,10 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(
 		record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
 
 		{
+			CACHE_THREAD_SERIALISER();
+
 			SCOPED_SERIALISE_CONTEXT(BEGIN_CMD_BUFFER);
-			Serialise_vkBeginCommandBuffer(cmdBuffer, pBeginInfo);
+			Serialise_vkBeginCommandBuffer(localSerialiser, cmdBuffer, pBeginInfo);
 			
 			record->AddChunk(scope.Get());
 		}
@@ -295,7 +301,7 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(
 	return ObjDisp(cmdBuffer)->BeginCommandBuffer(Unwrap(cmdBuffer), &unwrappedInfo);
 }
 
-bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
+bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, VkCmdBuffer cmdBuffer)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdId, GetResID(cmdBuffer));
 
@@ -389,8 +395,10 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 		RDCASSERT(record->bakedCommands);
 
 		{
+			CACHE_THREAD_SERIALISER();
+
 			SCOPED_SERIALISE_CONTEXT(END_CMD_BUFFER);
-			Serialise_vkEndCommandBuffer(cmdBuffer);
+			Serialise_vkEndCommandBuffer(localSerialiser, cmdBuffer);
 			
 			record->AddChunk(scope.Get());
 		}
@@ -401,7 +409,7 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 	return ObjDisp(cmdBuffer)->EndCommandBuffer(Unwrap(cmdBuffer));
 }
 
-bool WrappedVulkan::Serialise_vkResetCommandBuffer(VkCmdBuffer cmdBuffer, VkCmdBufferResetFlags flags)
+bool WrappedVulkan::Serialise_vkResetCommandBuffer(Serialiser* localSerialiser, VkCmdBuffer cmdBuffer, VkCmdBufferResetFlags flags)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdId, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(VkCmdBufferResetFlags, fl, flags);
@@ -428,7 +436,7 @@ bool WrappedVulkan::Serialise_vkResetCommandBuffer(VkCmdBuffer cmdBuffer, VkCmdB
 	}
 	
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	GetSerialiser()->Serialise("createInfo", info);
+	localSerialiser->Serialise("createInfo", info);
 
 	if(m_State == EXECUTING)
 	{
@@ -488,8 +496,10 @@ VkResult WrappedVulkan::vkResetCommandBuffer(
 		// serialising this (as we never re-begin a cmd buffer, we make a new copy
 		// for each bake).
 		{
+			CACHE_THREAD_SERIALISER();
+
 			SCOPED_SERIALISE_CONTEXT(RESET_CMD_BUFFER);
-			Serialise_vkResetCommandBuffer(cmdBuffer, flags);
+			Serialise_vkResetCommandBuffer(localSerialiser, cmdBuffer, flags);
 			
 			record->AddChunk(scope.Get());
 		}
@@ -501,6 +511,7 @@ VkResult WrappedVulkan::vkResetCommandBuffer(
 // Command buffer building functions
 
 bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			const VkRenderPassBeginInfo*                pRenderPassBegin,
 			VkRenderPassContents                        contents)
@@ -532,7 +543,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 
 		ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), &beginInfo, cont);
 
-		const string desc = GetSerialiser()->GetDebugStr();
+		const string desc = localSerialiser->GetDebugStr();
 
 		// VKTODOMED change the name to show render pass load-op
 		AddEvent(BEGIN_RENDERPASS, desc);
@@ -560,8 +571,10 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BEGIN_RENDERPASS);
-		Serialise_vkCmdBeginRenderPass(cmdBuffer, pRenderPassBegin, contents);
+		Serialise_vkCmdBeginRenderPass(localSerialiser, cmdBuffer, pRenderPassBegin, contents);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(pRenderPassBegin->renderPass), eFrameRef_Read);
@@ -571,6 +584,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 }
 
 bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
@@ -611,14 +625,17 @@ void WrappedVulkan::vkCmdEndRenderPass(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(END_RENDERPASS);
-		Serialise_vkCmdEndRenderPass(cmdBuffer);
+		Serialise_vkCmdEndRenderPass(localSerialiser, cmdBuffer);
 
 		record->AddChunk(scope.Get());
 	}
 }
 
 bool WrappedVulkan::Serialise_vkCmdBindPipeline(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkPipelineBindPoint                         pipelineBindPoint,
 			VkPipeline                                  pipeline)
@@ -672,8 +689,10 @@ void WrappedVulkan::vkCmdBindPipeline(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BIND_PIPELINE);
-		Serialise_vkCmdBindPipeline(cmdBuffer, pipelineBindPoint, pipeline);
+		Serialise_vkCmdBindPipeline(localSerialiser, cmdBuffer, pipelineBindPoint, pipeline);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(pipeline), eFrameRef_Read);
@@ -681,6 +700,7 @@ void WrappedVulkan::vkCmdBindPipeline(
 }
 
 bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkPipelineBindPoint                         pipelineBindPoint,
 			VkPipelineLayout                            layout,
@@ -709,7 +729,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 	for(uint32_t i=0; i < numSets; i++)
 	{
 		if(m_State >= WRITING) descriptorIDs[i] = GetResID(sets[i]);
-		GetSerialiser()->Serialise("DescriptorSet", descriptorIDs[i]);
+		localSerialiser->Serialise("DescriptorSet", descriptorIDs[i]);
 		if(m_State < WRITING)  sets[i] = Unwrap(GetResourceManager()->GetLiveHandle<VkDescriptorSet>(descriptorIDs[i]));
 	}
 
@@ -813,8 +833,10 @@ void WrappedVulkan::vkCmdBindDescriptorSets(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BIND_DESCRIPTOR_SET);
-		Serialise_vkCmdBindDescriptorSets(cmdBuffer, pipelineBindPoint, layout, firstSet, setCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
+		Serialise_vkCmdBindDescriptorSets(localSerialiser, cmdBuffer, pipelineBindPoint, layout, firstSet, setCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(layout), eFrameRef_Read);
@@ -823,6 +845,7 @@ void WrappedVulkan::vkCmdBindDescriptorSets(
 }
 
 bool WrappedVulkan::Serialise_vkCmdBindDynamicViewportState(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkDynamicViewportState                      dynamicViewportState)
 {
@@ -865,8 +888,10 @@ void WrappedVulkan::vkCmdBindDynamicViewportState(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BIND_VP_STATE);
-		Serialise_vkCmdBindDynamicViewportState(cmdBuffer, dynamicViewportState);
+		Serialise_vkCmdBindDynamicViewportState(localSerialiser, cmdBuffer, dynamicViewportState);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(dynamicViewportState), eFrameRef_Read);
@@ -874,6 +899,7 @@ void WrappedVulkan::vkCmdBindDynamicViewportState(
 }
 
 bool WrappedVulkan::Serialise_vkCmdBindDynamicRasterState(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkDynamicRasterState                        dynamicRasterState)
 {
@@ -916,8 +942,10 @@ void WrappedVulkan::vkCmdBindDynamicRasterState(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BIND_RS_STATE);
-		Serialise_vkCmdBindDynamicRasterState(cmdBuffer, dynamicRasterState);
+		Serialise_vkCmdBindDynamicRasterState(localSerialiser, cmdBuffer, dynamicRasterState);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(dynamicRasterState), eFrameRef_Read);
@@ -925,6 +953,7 @@ void WrappedVulkan::vkCmdBindDynamicRasterState(
 }
 
 bool WrappedVulkan::Serialise_vkCmdBindDynamicColorBlendState(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkDynamicColorBlendState                    dynamicColorBlendState)
 {
@@ -966,8 +995,10 @@ void WrappedVulkan::vkCmdBindDynamicColorBlendState(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BIND_CB_STATE);
-		Serialise_vkCmdBindDynamicColorBlendState(cmdBuffer, dynamicColorBlendState);
+		Serialise_vkCmdBindDynamicColorBlendState(localSerialiser, cmdBuffer, dynamicColorBlendState);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(dynamicColorBlendState), eFrameRef_Read);
@@ -975,6 +1006,7 @@ void WrappedVulkan::vkCmdBindDynamicColorBlendState(
 }
 
 bool WrappedVulkan::Serialise_vkCmdBindDynamicDepthStencilState(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkDynamicDepthStencilState                  dynamicDepthStencilState)
 {
@@ -1016,8 +1048,10 @@ void WrappedVulkan::vkCmdBindDynamicDepthStencilState(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BIND_DS_STATE);
-		Serialise_vkCmdBindDynamicDepthStencilState(cmdBuffer, dynamicDepthStencilState);
+		Serialise_vkCmdBindDynamicDepthStencilState(localSerialiser, cmdBuffer, dynamicDepthStencilState);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(dynamicDepthStencilState), eFrameRef_Read);
@@ -1025,6 +1059,7 @@ void WrappedVulkan::vkCmdBindDynamicDepthStencilState(
 }
 
 bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
+		Serialiser*                                 localSerialiser,
     VkCmdBuffer                                 cmdBuffer,
     uint32_t                                    startBinding,
     uint32_t                                    bindingCount,
@@ -1052,8 +1087,8 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 			o = pOffsets[i];
 		}
 
-		GetSerialiser()->Serialise("pBuffers[]", id);
-		GetSerialiser()->Serialise("pOffsets[]", o);
+		localSerialiser->Serialise("pBuffers[]", id);
+		localSerialiser->Serialise("pOffsets[]", o);
 
 		if(m_State < WRITING)
 		{
@@ -1111,8 +1146,10 @@ void WrappedVulkan::vkCmdBindVertexBuffers(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BIND_VERTEX_BUFFERS);
-		Serialise_vkCmdBindVertexBuffers(cmdBuffer, startBinding, bindingCount, pBuffers, pOffsets);
+		Serialise_vkCmdBindVertexBuffers(localSerialiser, cmdBuffer, startBinding, bindingCount, pBuffers, pOffsets);
 
 		record->AddChunk(scope.Get());
 		for(uint32_t i=0; i < bindingCount; i++)
@@ -1122,6 +1159,7 @@ void WrappedVulkan::vkCmdBindVertexBuffers(
 
 
 bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
+		Serialiser*                                 localSerialiser,
     VkCmdBuffer                                 cmdBuffer,
     VkBuffer                                    buffer,
     VkDeviceSize                                offset,
@@ -1175,8 +1213,10 @@ void WrappedVulkan::vkCmdBindIndexBuffer(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BIND_INDEX_BUFFER);
-		Serialise_vkCmdBindIndexBuffer(cmdBuffer, buffer, offset, indexType);
+		Serialise_vkCmdBindIndexBuffer(localSerialiser, cmdBuffer, buffer, offset, indexType);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
@@ -1184,6 +1224,7 @@ void WrappedVulkan::vkCmdBindIndexBuffer(
 }
 
 bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
 			VkPipelineStageFlags                        srcStageMask,
 			VkPipelineStageFlags                        destStageMask,
@@ -1316,8 +1357,10 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(PIPELINE_BARRIER);
-		Serialise_vkCmdPipelineBarrier(cmdBuffer, srcStageMask, destStageMask, byRegion, memBarrierCount, ppMemBarriers);
+		Serialise_vkCmdPipelineBarrier(localSerialiser, cmdBuffer, srcStageMask, destStageMask, byRegion, memBarrierCount, ppMemBarriers);
 
 		record->AddChunk(scope.Get());
 
@@ -1340,6 +1383,7 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 }
 
 bool WrappedVulkan::Serialise_vkCmdBeginQuery(
+		Serialiser*                                 localSerialiser,
     VkCmdBuffer                                 cmdBuffer,
     VkQueryPool                                 queryPool,
     uint32_t                                    slot,
@@ -1386,8 +1430,10 @@ void WrappedVulkan::vkCmdBeginQuery(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BEGIN_QUERY);
-		Serialise_vkCmdBeginQuery(cmdBuffer, queryPool, slot, flags);
+		Serialise_vkCmdBeginQuery(localSerialiser, cmdBuffer, queryPool, slot, flags);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
@@ -1395,6 +1441,7 @@ void WrappedVulkan::vkCmdBeginQuery(
 }
 
 bool WrappedVulkan::Serialise_vkCmdEndQuery(
+		Serialiser*                                 localSerialiser,
     VkCmdBuffer                                 cmdBuffer,
     VkQueryPool                                 queryPool,
     uint32_t                                    slot)
@@ -1438,8 +1485,10 @@ void WrappedVulkan::vkCmdEndQuery(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(END_QUERY);
-		Serialise_vkCmdEndQuery(cmdBuffer, queryPool, slot);
+		Serialise_vkCmdEndQuery(localSerialiser, cmdBuffer, queryPool, slot);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
@@ -1447,6 +1496,7 @@ void WrappedVulkan::vkCmdEndQuery(
 }
 
 bool WrappedVulkan::Serialise_vkCmdResetQueryPool(
+		Serialiser*                                 localSerialiser,
     VkCmdBuffer                                 cmdBuffer,
     VkQueryPool                                 queryPool,
     uint32_t                                    startQuery,
@@ -1493,8 +1543,10 @@ void WrappedVulkan::vkCmdResetQueryPool(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(RESET_QUERY_POOL);
-		Serialise_vkCmdResetQueryPool(cmdBuffer, queryPool, startQuery, queryCount);
+		Serialise_vkCmdResetQueryPool(localSerialiser, cmdBuffer, queryPool, startQuery, queryCount);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
@@ -1502,6 +1554,7 @@ void WrappedVulkan::vkCmdResetQueryPool(
 }
 
 bool WrappedVulkan::Serialise_vkCmdDbgMarkerBegin(
+			Serialiser*                                 localSerialiser,
 			VkCmdBuffer  cmdBuffer,
 			const char*     pMarker)
 {
@@ -1531,14 +1584,16 @@ void WrappedVulkan::vkCmdDbgMarkerBegin(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(BEGIN_EVENT);
-		Serialise_vkCmdDbgMarkerBegin(cmdBuffer, pMarker);
+		Serialise_vkCmdDbgMarkerBegin(localSerialiser, cmdBuffer, pMarker);
 
 		record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(VkCmdBuffer cmdBuffer)
+bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(Serialiser* localSerialiser, VkCmdBuffer cmdBuffer)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	
@@ -1564,8 +1619,10 @@ void WrappedVulkan::vkCmdDbgMarkerEnd(
 	{
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
+		CACHE_THREAD_SERIALISER();
+
 		SCOPED_SERIALISE_CONTEXT(END_EVENT);
-		Serialise_vkCmdDbgMarkerEnd(cmdBuffer);
+		Serialise_vkCmdDbgMarkerEnd(localSerialiser, cmdBuffer);
 
 		record->AddChunk(scope.Get());
 	}

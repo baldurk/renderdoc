@@ -74,7 +74,7 @@ struct VkGenericStruct
 	const VkGenericStruct *pNext;
 };
 
-#define IMPLEMENT_FUNCTION_SERIALISED(ret, func) ret func; bool CONCAT(Serialise_, func);
+#define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) ret func(__VA_ARGS__); bool CONCAT(Serialise_, func(Serialiser *localSerialiser, __VA_ARGS__));
 
 template<> void Serialiser::Serialise(const char *name, VkRect2D &el);
 template<> void Serialiser::Serialise(const char *name, VkRect3D &el);

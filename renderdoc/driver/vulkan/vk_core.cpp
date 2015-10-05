@@ -154,6 +154,8 @@ VkInitParams::VkInitParams()
 
 ReplayCreateStatus VkInitParams::Serialise()
 {
+	Serialiser *localSerialiser = GetSerialiser();
+
 	SERIALISE_ELEMENT(uint32_t, ver, VK_SERIALISE_VERSION); SerialiseVersion = ver;
 
 	if(ver != VK_SERIALISE_VERSION)
@@ -162,16 +164,16 @@ ReplayCreateStatus VkInitParams::Serialise()
 		return eReplayCreate_APIIncompatibleVersion;
 	}
 
-	GetSerialiser()->Serialise("AppName", AppName);
-	GetSerialiser()->Serialise("EngineName", EngineName);
-	GetSerialiser()->Serialise("AppVersion", AppVersion);
-	GetSerialiser()->Serialise("EngineVersion", EngineVersion);
-	GetSerialiser()->Serialise("APIVersion", APIVersion);
+	localSerialiser->Serialise("AppName", AppName);
+	localSerialiser->Serialise("EngineName", EngineName);
+	localSerialiser->Serialise("AppVersion", AppVersion);
+	localSerialiser->Serialise("EngineVersion", EngineVersion);
+	localSerialiser->Serialise("APIVersion", APIVersion);
 
-	GetSerialiser()->Serialise("Layers", Layers);
-	GetSerialiser()->Serialise("Extensions", Extensions);
+	localSerialiser->Serialise("Layers", Layers);
+	localSerialiser->Serialise("Extensions", Extensions);
 
-	GetSerialiser()->Serialise("InstanceID", InstanceID);
+	localSerialiser->Serialise("InstanceID", InstanceID);
 
 	return eReplayCreate_Success;
 }
@@ -408,6 +410,11 @@ const char * WrappedVulkan::GetChunkName(uint32_t idx)
 	return VkChunkNames[idx-FIRST_CHUNK_ID];
 }
 
+Serialiser *WrappedVulkan::GetThreadSerialiser()
+{
+	return m_pSerialiser;
+}
+
 void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 {
 	uint32_t FrameNumber = m_FrameCounter;
@@ -432,6 +439,8 @@ void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 
 void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 {
+	Serialiser *localSerialiser = GetMainSerialiser();
+
 	SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_FOOTER);
 	
 	SERIALISE_ELEMENT(ResourceId, bbid, GetResID(presentImage));
@@ -529,6 +538,8 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 	
 void WrappedVulkan::BeginCaptureFrame()
 {
+	CACHE_THREAD_SERIALISER();
+
 	SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_HEADER);
 
 	Serialise_BeginCaptureFrame(false);
@@ -839,265 +850,265 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 			break;
 		}
 	case ENUM_PHYSICALS:
-		Serialise_vkEnumeratePhysicalDevices(NULL, NULL, NULL);
+		Serialise_vkEnumeratePhysicalDevices(GetMainSerialiser(), NULL, NULL, NULL);
 		break;
 	case CREATE_DEVICE:
-		Serialise_vkCreateDevice(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateDevice(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case GET_DEVICE_QUEUE:
-		Serialise_vkGetDeviceQueue(VK_NULL_HANDLE, 0, 0, NULL);
+		Serialise_vkGetDeviceQueue(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, NULL);
 		break;
 
 	case ALLOC_MEM:
-		Serialise_vkAllocMemory(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkAllocMemory(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case UNMAP_MEM:
-		Serialise_vkUnmapMemory(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		Serialise_vkUnmapMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 	case FLUSH_MEM:
-		Serialise_vkFlushMappedMemoryRanges(VK_NULL_HANDLE, 0, NULL);
+		Serialise_vkFlushMappedMemoryRanges(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL);
 		break;
 	case FREE_MEM:
 		// VKTODOMED see vkFreeMemory
-		//Serialise_vkFreeMemory(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		//Serialise_vkFreeMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		//break;
 	case CREATE_CMD_POOL:
-		Serialise_vkCreateCommandPool(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateCommandPool(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_CMD_BUFFER:
 		RDCERR("vkCreateCommandBuffer should not be serialised directly");
 		break;
 	case CREATE_FRAMEBUFFER:
-		Serialise_vkCreateFramebuffer(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateFramebuffer(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_RENDERPASS:
-		Serialise_vkCreateRenderPass(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateRenderPass(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_DESCRIPTOR_POOL:
-		Serialise_vkCreateDescriptorPool(VK_NULL_HANDLE, VK_DESCRIPTOR_POOL_USAGE_MAX_ENUM, 0, NULL, NULL);
+		Serialise_vkCreateDescriptorPool(GetMainSerialiser(), VK_NULL_HANDLE, VK_DESCRIPTOR_POOL_USAGE_MAX_ENUM, 0, NULL, NULL);
 		break;
 	case CREATE_DESCRIPTOR_SET_LAYOUT:
-		Serialise_vkCreateDescriptorSetLayout(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateDescriptorSetLayout(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_BUFFER:
-		Serialise_vkCreateBuffer(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateBuffer(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_BUFFER_VIEW:
-		Serialise_vkCreateBufferView(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateBufferView(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_IMAGE:
-		Serialise_vkCreateImage(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateImage(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_IMAGE_VIEW:
-		Serialise_vkCreateImageView(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateImageView(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_ATTACHMENT_VIEW:
-		Serialise_vkCreateAttachmentView(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateAttachmentView(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_VIEWPORT_STATE:
-		Serialise_vkCreateDynamicViewportState(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateDynamicViewportState(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_RASTER_STATE:
-		Serialise_vkCreateDynamicRasterState(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateDynamicRasterState(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_BLEND_STATE:
-		Serialise_vkCreateDynamicColorBlendState(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateDynamicColorBlendState(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_DEPTH_STATE:
-		Serialise_vkCreateDynamicDepthStencilState(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateDynamicDepthStencilState(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_SAMPLER:
-		Serialise_vkCreateSampler(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateSampler(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_SHADER:
-		Serialise_vkCreateShader(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateShader(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_SHADER_MODULE:
-		Serialise_vkCreateShaderModule(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateShaderModule(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_PIPE_LAYOUT:
-		Serialise_vkCreatePipelineLayout(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreatePipelineLayout(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_PIPE_CACHE:
-		Serialise_vkCreatePipelineCache(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreatePipelineCache(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_GRAPHICS_PIPE:
-		Serialise_vkCreateGraphicsPipelines(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL, NULL);
+		Serialise_vkCreateGraphicsPipelines(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL, NULL);
 		break;
 	case CREATE_COMPUTE_PIPE:
 		//VKTODOMED:
-		//Serialise_vkCreateComputePipelines(VK_NULL_HANDLE, NULL, NULL);
+		//Serialise_vkCreateComputePipelines(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case PRESENT_IMAGE:
-		Serialise_vkGetSwapChainInfoWSI(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_SWAP_CHAIN_INFO_TYPE_MAX_ENUM_WSI, NULL, NULL);
+		Serialise_vkGetSwapChainInfoWSI(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_SWAP_CHAIN_INFO_TYPE_MAX_ENUM_WSI, NULL, NULL);
 		break;
 
 	case CREATE_SEMAPHORE:
-		Serialise_vkCreateSemaphore(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateSemaphore(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_FENCE:
-		Serialise_vkCreateFence(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateFence(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case GET_FENCE_STATUS:
-		Serialise_vkGetFenceStatus(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		Serialise_vkGetFenceStatus(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 	case WAIT_FENCES:
 		//VKTODOMED:
-		//Serialise_vkWaitForFences(VK_NULL_HANDLE, 0, NULL, VK_FALSE, 0.0f);
+		//Serialise_vkWaitForFences(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, VK_FALSE, 0.0f);
 		break;
 
 	case CREATE_QUERY_POOL:
-		Serialise_vkCreateQueryPool(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateQueryPool(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 
 	case ALLOC_DESC_SET:
-		Serialise_vkAllocDescriptorSets(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_DESCRIPTOR_SET_USAGE_MAX_ENUM, 0, NULL, NULL, NULL);
+		Serialise_vkAllocDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_DESCRIPTOR_SET_USAGE_MAX_ENUM, 0, NULL, NULL, NULL);
 		break;
 	case UPDATE_DESC_SET:
-		Serialise_vkUpdateDescriptorSets(VK_NULL_HANDLE, 0, NULL, 0, NULL);
+		Serialise_vkUpdateDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, 0, NULL);
 		break;
 
 	case RESET_CMD_BUFFER:
-		Serialise_vkResetCommandBuffer(VK_NULL_HANDLE, 0);
+		Serialise_vkResetCommandBuffer(GetMainSerialiser(), VK_NULL_HANDLE, 0);
 		break;
 	case BEGIN_CMD_BUFFER:
-		Serialise_vkBeginCommandBuffer(VK_NULL_HANDLE, NULL);
+		Serialise_vkBeginCommandBuffer(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
 		break;
 	case END_CMD_BUFFER:
-		Serialise_vkEndCommandBuffer(VK_NULL_HANDLE);
+		Serialise_vkEndCommandBuffer(GetMainSerialiser(), VK_NULL_HANDLE);
 		break;
 
 	case QUEUE_SIGNAL_SEMAPHORE:
-		Serialise_vkQueueSignalSemaphore(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		Serialise_vkQueueSignalSemaphore(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 	case QUEUE_WAIT_SEMAPHORE:
-		Serialise_vkQueueWaitSemaphore(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		Serialise_vkQueueWaitSemaphore(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 	case QUEUE_WAIT_IDLE:
-		Serialise_vkQueueWaitIdle(VK_NULL_HANDLE);
+		Serialise_vkQueueWaitIdle(GetMainSerialiser(), VK_NULL_HANDLE);
 		break;
 	case DEVICE_WAIT_IDLE:
-		Serialise_vkDeviceWaitIdle(VK_NULL_HANDLE);
+		Serialise_vkDeviceWaitIdle(GetMainSerialiser(), VK_NULL_HANDLE);
 		break;
 
 	case QUEUE_SUBMIT:
-		Serialise_vkQueueSubmit(VK_NULL_HANDLE, 0, NULL, VK_NULL_HANDLE);
+		Serialise_vkQueueSubmit(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, VK_NULL_HANDLE);
 		break;
 	case BIND_BUFFER_MEM:
-		Serialise_vkBindBufferMemory(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
+		Serialise_vkBindBufferMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
 		break;
 	case BIND_IMAGE_MEM:
-		Serialise_vkBindImageMemory(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
+		Serialise_vkBindImageMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
 		break;
 
 	case BEGIN_RENDERPASS:
-		Serialise_vkCmdBeginRenderPass(VK_NULL_HANDLE, NULL, VK_RENDER_PASS_CONTENTS_MAX_ENUM);
+		Serialise_vkCmdBeginRenderPass(GetMainSerialiser(), VK_NULL_HANDLE, NULL, VK_RENDER_PASS_CONTENTS_MAX_ENUM);
 		break;
 	case END_RENDERPASS:
-		Serialise_vkCmdEndRenderPass(VK_NULL_HANDLE);
+		Serialise_vkCmdEndRenderPass(GetMainSerialiser(), VK_NULL_HANDLE);
 		break;
 
 	case BIND_PIPELINE:
-		Serialise_vkCmdBindPipeline(VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_NULL_HANDLE);
+		Serialise_vkCmdBindPipeline(GetMainSerialiser(), VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_NULL_HANDLE);
 		break;
 	case BIND_VP_STATE:
-		Serialise_vkCmdBindDynamicViewportState(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		Serialise_vkCmdBindDynamicViewportState(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 	case BIND_RS_STATE:
-		Serialise_vkCmdBindDynamicRasterState(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		Serialise_vkCmdBindDynamicRasterState(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 	case BIND_CB_STATE:
-		Serialise_vkCmdBindDynamicColorBlendState(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		Serialise_vkCmdBindDynamicColorBlendState(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 	case BIND_DS_STATE:
-		Serialise_vkCmdBindDynamicDepthStencilState(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		Serialise_vkCmdBindDynamicDepthStencilState(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 	case BIND_DESCRIPTOR_SET:
-		Serialise_vkCmdBindDescriptorSets(VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_NULL_HANDLE, 0, 0, NULL, 0, NULL);
+		Serialise_vkCmdBindDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_NULL_HANDLE, 0, 0, NULL, 0, NULL);
 		break;
 	case BIND_INDEX_BUFFER:
-		Serialise_vkCmdBindIndexBuffer(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, VK_INDEX_TYPE_MAX_ENUM);
+		Serialise_vkCmdBindIndexBuffer(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, VK_INDEX_TYPE_MAX_ENUM);
 		break;
 	case BIND_VERTEX_BUFFERS:
-		Serialise_vkCmdBindVertexBuffers(VK_NULL_HANDLE, 0, 0, NULL, NULL);
+		Serialise_vkCmdBindVertexBuffers(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, NULL, NULL);
 		break;
 	case COPY_BUF2IMG:
-		Serialise_vkCmdCopyBufferToImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
+		Serialise_vkCmdCopyBufferToImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
 		break;
 	case COPY_IMG2BUF:
-		Serialise_vkCmdCopyImageToBuffer(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, 0, NULL);
+		Serialise_vkCmdCopyImageToBuffer(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, 0, NULL);
 		break;
 	case COPY_IMG:
-		Serialise_vkCmdCopyImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
+		Serialise_vkCmdCopyImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
 		break;
 	case BLIT_IMG:
-		Serialise_vkCmdBlitImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL, VK_TEX_FILTER_MAX_ENUM);
+		Serialise_vkCmdBlitImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL, VK_TEX_FILTER_MAX_ENUM);
 		break;
 	case RESOLVE_IMG:
-		Serialise_vkCmdResolveImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
+		Serialise_vkCmdResolveImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
 		break;
 	case COPY_BUF:
-		Serialise_vkCmdCopyBuffer(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
+		Serialise_vkCmdCopyBuffer(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
 		break;
 	case CLEAR_COLOR:
-		Serialise_vkCmdClearColorImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
+		Serialise_vkCmdClearColorImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
 	case CLEAR_DEPTHSTENCIL:
-		Serialise_vkCmdClearDepthStencilImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0.0f, 0, 0, NULL);
+		Serialise_vkCmdClearDepthStencilImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0.0f, 0, 0, NULL);
 		break;
 	case CLEAR_COLOR_ATTACH:
-		Serialise_vkCmdClearColorAttachment(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
+		Serialise_vkCmdClearColorAttachment(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
 	case CLEAR_DEPTHSTENCIL_ATTACH:
-		Serialise_vkCmdClearDepthStencilAttachment(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0.0f, 0, 0, NULL);
+		Serialise_vkCmdClearDepthStencilAttachment(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0.0f, 0, 0, NULL);
 		break;
 	case PIPELINE_BARRIER:
-		Serialise_vkCmdPipelineBarrier(VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL);
+		Serialise_vkCmdPipelineBarrier(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL);
 		break;
 	case WRITE_TIMESTAMP:
 		//VKTODOMED:
-		//Serialise_vkCmdWriteTimestamp(VK_NULL_HANDLE, VK_TIMESTAMP_TYPE_MAX_ENUM, VK_NULL_HANDLE, 0);
+		//Serialise_vkCmdWriteTimestamp(GetMainSerialiser(), VK_NULL_HANDLE, VK_TIMESTAMP_TYPE_MAX_ENUM, VK_NULL_HANDLE, 0);
 		break;
 	case BEGIN_QUERY:
-		Serialise_vkCmdBeginQuery(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+		Serialise_vkCmdBeginQuery(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
 		break;
 	case END_QUERY:
-		Serialise_vkCmdEndQuery(VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
+		Serialise_vkCmdEndQuery(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
 		break;
 	case RESET_QUERY_POOL:
-		Serialise_vkCmdResetQueryPool(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+		Serialise_vkCmdResetQueryPool(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
 		break;
 	case DRAW:
-		Serialise_vkCmdDraw(VK_NULL_HANDLE, 0, 0, 0, 0);
+		Serialise_vkCmdDraw(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, 0, 0);
 		break;
 	case DRAW_INDIRECT:
-		Serialise_vkCmdDrawIndirect(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+		Serialise_vkCmdDrawIndirect(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
 		break;
 	case DRAW_INDEXED:
-		Serialise_vkCmdDrawIndexed(VK_NULL_HANDLE, 0, 0, 0, 0, 0);
+		Serialise_vkCmdDrawIndexed(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, 0, 0, 0);
 		break;
 	case DRAW_INDEXED_INDIRECT:
-		Serialise_vkCmdDrawIndexedIndirect(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+		Serialise_vkCmdDrawIndexedIndirect(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
 		break;
 	case DISPATCH:
-		Serialise_vkCmdDispatch(VK_NULL_HANDLE, 0, 0, 0);
+		Serialise_vkCmdDispatch(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, 0);
 		break;
 	case DISPATCH_INDIRECT:
-		Serialise_vkCmdDispatchIndirect(VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
+		Serialise_vkCmdDispatchIndirect(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
 		break;
 
 	case BEGIN_EVENT:
-		Serialise_vkCmdDbgMarkerBegin(VK_NULL_HANDLE, NULL);
+		Serialise_vkCmdDbgMarkerBegin(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
 		break;
 	case SET_MARKER:
 		RDCFATAL("No such function vkCmdDbgMarker");
 		break;
 	case END_EVENT:
-		Serialise_vkCmdDbgMarkerEnd(VK_NULL_HANDLE);
+		Serialise_vkCmdDbgMarkerEnd(GetMainSerialiser(), VK_NULL_HANDLE);
 		break;
 
 	case CREATE_SWAP_BUFFER:
-		Serialise_vkCreateSwapChainWSI(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateSwapChainWSI(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 
 	case CAPTURE_SCOPE:
@@ -1105,6 +1116,8 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 	case CONTEXT_CAPTURE_FOOTER:
 		{
+			Serialiser *localSerialiser = GetMainSerialiser();
+
 			SERIALISE_ELEMENT(ResourceId, bbid, ResourceId());
 
 			ResourceId liveBBid = GetResourceManager()->GetLiveID(bbid);

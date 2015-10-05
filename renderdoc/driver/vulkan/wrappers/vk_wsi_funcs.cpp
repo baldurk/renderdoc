@@ -60,6 +60,7 @@ VkResult WrappedVulkan::vkGetSurfaceInfoWSI(
 }
 
 bool WrappedVulkan::Serialise_vkGetSwapChainInfoWSI(
+		Serialiser*                              localSerialiser,
 		VkDevice                                 device,
     VkSwapChainWSI                           swapChain,
     VkSwapChainInfoTypeWSI                   infoType,
@@ -123,8 +124,10 @@ VkResult WrappedVulkan::vkGetSwapChainInfoWSI(
 					Chunk *chunk = NULL;
 
 					{
+						CACHE_THREAD_SERIALISER();
+						
 						SCOPED_SERIALISE_CONTEXT(PRESENT_IMAGE);
-						Serialise_vkGetSwapChainInfoWSI(device, swapChain, infoType, &i, (void *)&images[i]);
+						Serialise_vkGetSwapChainInfoWSI(localSerialiser, device, swapChain, infoType, &i, (void *)&images[i]);
 
 						chunk = scope.Get();
 					}
@@ -165,6 +168,7 @@ VkResult WrappedVulkan::vkAcquireNextImageWSI(
 }
 
 bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
+		Serialiser*                             localSerialiser,
 		VkDevice                                device,
 		const VkSwapChainCreateInfoWSI*         pCreateInfo,
 		VkSwapChainWSI*                         pSwapChain)
@@ -310,8 +314,10 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_SWAP_BUFFER);
-				Serialise_vkCreateSwapChainWSI(device, pCreateInfo, pSwapChain);
+				Serialise_vkCreateSwapChainWSI(localSerialiser, device, pCreateInfo, pSwapChain);
 
 				chunk = scope.Get();
 			}
@@ -883,6 +889,8 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 			Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
 
 				m_pFileSerialiser->Insert(scope.Get(true));
@@ -899,6 +907,8 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 			RDCDEBUG("Creating Capture Scope");	
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
 
 				Serialise_CaptureScope(0);

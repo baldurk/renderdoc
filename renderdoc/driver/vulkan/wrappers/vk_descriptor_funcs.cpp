@@ -25,6 +25,7 @@
 #include "../vk_core.h"
 
 bool WrappedVulkan::Serialise_vkCreateDescriptorPool(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			VkDescriptorPoolUsage                       poolUsage,
 			uint32_t                                    maxSets,
@@ -77,8 +78,10 @@ VkResult WrappedVulkan::vkCreateDescriptorPool(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+
 				SCOPED_SERIALISE_CONTEXT(CREATE_DESCRIPTOR_POOL);
-				Serialise_vkCreateDescriptorPool(device, poolUsage, maxSets, pCreateInfo, pDescriptorPool);
+				Serialise_vkCreateDescriptorPool(localSerialiser, device, poolUsage, maxSets, pCreateInfo, pDescriptorPool);
 
 				chunk = scope.Get();
 			}
@@ -96,6 +99,7 @@ VkResult WrappedVulkan::vkCreateDescriptorPool(
 }
 
 bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
+		Serialiser*                                 localSerialiser,
 		VkDevice                                    device,
 		const VkDescriptorSetLayoutCreateInfo*      pCreateInfo,
 		VkDescriptorSetLayout*                      pSetLayout)
@@ -168,8 +172,10 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+
 				SCOPED_SERIALISE_CONTEXT(CREATE_DESCRIPTOR_SET_LAYOUT);
-				Serialise_vkCreateDescriptorSetLayout(device, pCreateInfo, pSetLayout);
+				Serialise_vkCreateDescriptorSetLayout(localSerialiser, device, pCreateInfo, pSetLayout);
 
 				chunk = scope.Get();
 			}
@@ -186,6 +192,7 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 	return ret;
 }
 bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
+		Serialiser*                                 localSerialiser,
 		VkDevice                                    device,
 		VkDescriptorPool                            descriptorPool,
 		VkDescriptorSetUsage                        setUsage,
@@ -261,8 +268,10 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 				Chunk *chunk = NULL;
 
 				{
+					CACHE_THREAD_SERIALISER();
+
 					SCOPED_SERIALISE_CONTEXT(ALLOC_DESC_SET);
-					Serialise_vkAllocDescriptorSets(device, descriptorPool, setUsage, 1, &pSetLayouts[i], &pDescriptorSets[i], NULL);
+					Serialise_vkAllocDescriptorSets(localSerialiser, device, descriptorPool, setUsage, 1, &pSetLayouts[i], &pDescriptorSets[i], NULL);
 
 					chunk = scope.Get();
 				}
@@ -317,6 +326,7 @@ VkResult WrappedVulkan::vkFreeDescriptorSets(
 }
 
 bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
+		Serialiser*                                 localSerialiser,
 		VkDevice                                    device,
 		uint32_t                                    writeCount,
 		const VkWriteDescriptorSet*                 pDescriptorWrites,
@@ -491,8 +501,10 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 			for(uint32_t i=0; i < writeCount; i++)
 			{
 				{
+					CACHE_THREAD_SERIALISER();
+
 					SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
-					Serialise_vkUpdateDescriptorSets(device, 1, &pDescriptorWrites[i], 0, NULL);
+					Serialise_vkUpdateDescriptorSets(localSerialiser, device, 1, &pDescriptorWrites[i], 0, NULL);
 
 					m_FrameCaptureRecord->AddChunk(scope.Get());
 				}
@@ -505,8 +517,10 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 			for(uint32_t i=0; i < copyCount; i++)
 			{
 				{
+					CACHE_THREAD_SERIALISER();
+
 					SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
-					Serialise_vkUpdateDescriptorSets(device, 0, NULL, 1, &pDescriptorCopies[i]);
+					Serialise_vkUpdateDescriptorSets(localSerialiser, device, 0, NULL, 1, &pDescriptorCopies[i]);
 
 					m_FrameCaptureRecord->AddChunk(scope.Get());
 				}

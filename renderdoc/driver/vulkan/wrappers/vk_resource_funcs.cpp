@@ -27,6 +27,7 @@
 // Memory functions
 
 bool WrappedVulkan::Serialise_vkAllocMemory(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkMemoryAllocInfo*                    pAllocInfo,
 			VkDeviceMemory*                             pMem)
@@ -77,8 +78,10 @@ VkResult WrappedVulkan::vkAllocMemory(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+					
 				SCOPED_SERIALISE_CONTEXT(ALLOC_MEM);
-				Serialise_vkAllocMemory(device, pAllocInfo, pMem);
+				Serialise_vkAllocMemory(localSerialiser, device, pAllocInfo, pMem);
 
 				chunk = scope.Get();
 			}
@@ -164,6 +167,7 @@ VkResult WrappedVulkan::vkMapMemory(
 }
 
 bool WrappedVulkan::Serialise_vkUnmapMemory(
+		Serialiser*                                 localSerialiser,
     VkDevice                                    device,
     VkDeviceMemory                              mem)
 {
@@ -238,8 +242,10 @@ VkResult WrappedVulkan::vkUnmapMemory(
 				{
 					if(!it->second.mapFlushed)
 					{
+						CACHE_THREAD_SERIALISER();
+							
 						SCOPED_SERIALISE_CONTEXT(UNMAP_MEM);
-						Serialise_vkUnmapMemory(device, mem);
+						Serialise_vkUnmapMemory(localSerialiser, device, mem);
 
 						VkResourceRecord *record = GetRecord(mem);
 
@@ -274,6 +280,7 @@ VkResult WrappedVulkan::vkUnmapMemory(
 }
 
 bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			uint32_t                                    memRangeCount,
 			const VkMappedMemoryRange*                  pMemRanges)
@@ -349,8 +356,10 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 
 		if(ret == VK_SUCCESS && m_State >= WRITING_CAPFRAME)
 		{
+			CACHE_THREAD_SERIALISER();
+		
 			SCOPED_SERIALISE_CONTEXT(FLUSH_MEM);
-			Serialise_vkFlushMappedMemoryRanges(device, 1, pMemRanges+i);
+			Serialise_vkFlushMappedMemoryRanges(localSerialiser, device, 1, pMemRanges+i);
 
 			m_FrameCaptureRecord->AddChunk(scope.Get());
 			GetResourceManager()->MarkResourceFrameReferenced(GetResID(pMemRanges[i].mem), eFrameRef_Write);
@@ -363,6 +372,7 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 // Generic API object functions
 
 bool WrappedVulkan::Serialise_vkBindBufferMemory(
+		Serialiser*                                 localSerialiser,
     VkDevice                                    device,
     VkBuffer                                    buffer,
     VkDeviceMemory                              mem,
@@ -400,8 +410,10 @@ VkResult WrappedVulkan::vkBindBufferMemory(
 		Chunk *chunk = NULL;
 
 		{
+			CACHE_THREAD_SERIALISER();
+		
 			SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_MEM);
-			Serialise_vkBindBufferMemory(device, buffer, mem, memOffset);
+			Serialise_vkBindBufferMemory(localSerialiser, device, buffer, mem, memOffset);
 
 			chunk = scope.Get();
 		}
@@ -425,6 +437,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(
 }
 
 bool WrappedVulkan::Serialise_vkBindImageMemory(
+		Serialiser*                                 localSerialiser,
     VkDevice                                    device,
     VkImage                                     image,
     VkDeviceMemory                              mem,
@@ -460,8 +473,10 @@ VkResult WrappedVulkan::vkBindImageMemory(
 		Chunk *chunk = NULL;
 
 		{
+			CACHE_THREAD_SERIALISER();
+		
 			SCOPED_SERIALISE_CONTEXT(BIND_IMAGE_MEM);
-			Serialise_vkBindImageMemory(device, image, mem, memOffset);
+			Serialise_vkBindImageMemory(localSerialiser, device, image, mem, memOffset);
 
 			chunk = scope.Get();
 		}
@@ -485,6 +500,7 @@ VkResult WrappedVulkan::vkBindImageMemory(
 }
 
 bool WrappedVulkan::Serialise_vkCreateBuffer(
+		Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkBufferCreateInfo*                   pCreateInfo,
 			VkBuffer*                                   pBuffer)
@@ -534,8 +550,10 @@ VkResult WrappedVulkan::vkCreateBuffer(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_BUFFER);
-				Serialise_vkCreateBuffer(device, pCreateInfo, pBuffer);
+				Serialise_vkCreateBuffer(localSerialiser, device, pCreateInfo, pBuffer);
 
 				chunk = scope.Get();
 			}
@@ -553,6 +571,7 @@ VkResult WrappedVulkan::vkCreateBuffer(
 }
 
 bool WrappedVulkan::Serialise_vkCreateBufferView(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkBufferViewCreateInfo*               pCreateInfo,
 			VkBufferView*                               pView)
@@ -603,8 +622,10 @@ VkResult WrappedVulkan::vkCreateBufferView(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_BUFFER_VIEW);
-				Serialise_vkCreateBufferView(device, pCreateInfo, pView);
+				Serialise_vkCreateBufferView(localSerialiser, device, pCreateInfo, pView);
 
 				chunk = scope.Get();
 			}
@@ -623,6 +644,7 @@ VkResult WrappedVulkan::vkCreateBufferView(
 }
 
 bool WrappedVulkan::Serialise_vkCreateImage(
+			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkImageCreateInfo*                    pCreateInfo,
 			VkImage*                                    pImage)
@@ -693,8 +715,10 @@ VkResult WrappedVulkan::vkCreateImage(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_IMAGE);
-				Serialise_vkCreateImage(device, pCreateInfo, pImage);
+				Serialise_vkCreateImage(localSerialiser, device, pCreateInfo, pImage);
 
 				chunk = scope.Get();
 			}
@@ -739,6 +763,7 @@ VkResult WrappedVulkan::vkCreateImage(
 // Image view functions
 
 bool WrappedVulkan::Serialise_vkCreateImageView(
+		Serialiser*                                 localSerialiser,
     VkDevice                                    device,
     const VkImageViewCreateInfo*                pCreateInfo,
     VkImageView*                                pView)
@@ -789,8 +814,10 @@ VkResult WrappedVulkan::vkCreateImageView(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_IMAGE_VIEW);
-				Serialise_vkCreateImageView(device, pCreateInfo, pView);
+				Serialise_vkCreateImageView(localSerialiser, device, pCreateInfo, pView);
 
 				chunk = scope.Get();
 			}
@@ -809,6 +836,7 @@ VkResult WrappedVulkan::vkCreateImageView(
 }
 
 bool WrappedVulkan::Serialise_vkCreateAttachmentView(
+		Serialiser*                                 localSerialiser,
     VkDevice                                    device,
     const VkAttachmentViewCreateInfo*           pCreateInfo,
     VkAttachmentView*                           pView)
@@ -859,8 +887,10 @@ VkResult WrappedVulkan::vkCreateAttachmentView(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_ATTACHMENT_VIEW);
-				Serialise_vkCreateAttachmentView(device, pCreateInfo, pView);
+				Serialise_vkCreateAttachmentView(localSerialiser, device, pCreateInfo, pView);
 
 				chunk = scope.Get();
 			}

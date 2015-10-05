@@ -28,6 +28,7 @@
 
 // Shader functions
 bool WrappedVulkan::Serialise_vkCreatePipelineLayout(
+		Serialiser*                                 localSerialiser,
 		VkDevice                                    device,
 		const VkPipelineLayoutCreateInfo*           pCreateInfo,
 		VkPipelineLayout*                           pPipelineLayout)
@@ -85,8 +86,10 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_PIPE_LAYOUT);
-				Serialise_vkCreatePipelineLayout(device, pCreateInfo, pPipelineLayout);
+				Serialise_vkCreatePipelineLayout(localSerialiser, device, pCreateInfo, pPipelineLayout);
 
 				chunk = scope.Get();
 			}
@@ -110,6 +113,7 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(
 }
 
 bool WrappedVulkan::Serialise_vkCreateShaderModule(
+		Serialiser*                                 localSerialiser,
 		VkDevice                                    device,
 		const VkShaderModuleCreateInfo*             pCreateInfo,
 		VkShaderModule*                             pShaderModule)
@@ -160,8 +164,10 @@ VkResult WrappedVulkan::vkCreateShaderModule(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_SHADER_MODULE);
-				Serialise_vkCreateShaderModule(device, pCreateInfo, pShaderModule);
+				Serialise_vkCreateShaderModule(localSerialiser, device, pCreateInfo, pShaderModule);
 
 				chunk = scope.Get();
 			}
@@ -179,6 +185,7 @@ VkResult WrappedVulkan::vkCreateShaderModule(
 }
 
 bool WrappedVulkan::Serialise_vkCreateShader(
+		Serialiser*                                 localSerialiser,
     VkDevice                                    device,
     const VkShaderCreateInfo*                   pCreateInfo,
     VkShader*                                   pShader)
@@ -233,8 +240,10 @@ VkResult WrappedVulkan::vkCreateShader(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_SHADER);
-				Serialise_vkCreateShader(device, pCreateInfo, pShader);
+				Serialise_vkCreateShader(localSerialiser, device, pCreateInfo, pShader);
 
 				chunk = scope.Get();
 			}
@@ -257,6 +266,7 @@ VkResult WrappedVulkan::vkCreateShader(
 // Pipeline functions
 
 bool WrappedVulkan::Serialise_vkCreatePipelineCache(
+		Serialiser*                                 localSerialiser,
 		VkDevice                                    device,
 		const VkPipelineCacheCreateInfo*            pCreateInfo,
 		VkPipelineCache*                            pPipelineCache)
@@ -302,8 +312,10 @@ VkResult WrappedVulkan::vkCreatePipelineCache(
 			Chunk *chunk = NULL;
 
 			{
+				CACHE_THREAD_SERIALISER();
+		
 				SCOPED_SERIALISE_CONTEXT(CREATE_PIPE_CACHE);
-				Serialise_vkCreatePipelineCache(device, pCreateInfo, pPipelineCache);
+				Serialise_vkCreatePipelineCache(localSerialiser, device, pCreateInfo, pPipelineCache);
 
 				chunk = scope.Get();
 			}
@@ -321,6 +333,7 @@ VkResult WrappedVulkan::vkCreatePipelineCache(
 }
 
 bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
+		Serialiser*                                 localSerialiser,
 		VkDevice                                    device,
 		VkPipelineCache                             pipelineCache,
 		uint32_t                                    count,
@@ -401,8 +414,10 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 				Chunk *chunk = NULL;
 
 				{
+					CACHE_THREAD_SERIALISER();
+		
 					SCOPED_SERIALISE_CONTEXT(CREATE_GRAPHICS_PIPE);
-					Serialise_vkCreateGraphicsPipelines(device, pipelineCache, 1, &pCreateInfos[i], &pPipelines[i]);
+					Serialise_vkCreateGraphicsPipelines(localSerialiser, device, pipelineCache, 1, &pCreateInfos[i], &pPipelines[i]);
 
 					chunk = scope.Get();
 				}

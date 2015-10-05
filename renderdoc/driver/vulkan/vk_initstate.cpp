@@ -156,6 +156,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 {
+	// use same serialiser as resource manager
+	Serialiser *localSerialiser = GetMainSerialiser();
+
 	SERIALISE_ELEMENT(VkResourceType, type, IdentifyTypeByPtr(res));
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(res));
 
