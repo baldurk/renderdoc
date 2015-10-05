@@ -54,7 +54,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 
 		ObjDisp(cmdBuffer)->CmdDraw(Unwrap(cmdBuffer), firstVtx, vtxCount, firstInst, instCount);
 
-		const string desc = m_pSerialiser->GetDebugStr();
+		const string desc = GetSerialiser()->GetDebugStr();
 
 		{
 			AddEvent(DRAW, desc);
@@ -371,7 +371,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 
 		ObjDisp(cmdBuffer)->CmdCopyBufferToImage(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destImage), destImageLayout, count, regions);
 
-		const string desc = m_pSerialiser->GetDebugStr();
+		const string desc = GetSerialiser()->GetDebugStr();
 
 		{
 			AddEvent(COPY_BUF2IMG, desc);
@@ -533,7 +533,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 
 		ObjDisp(cmdBuffer)->CmdCopyBuffer(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destBuffer), count, regions);
 
-		const string desc = m_pSerialiser->GetDebugStr();
+		const string desc = GetSerialiser()->GetDebugStr();
 
 		{
 			AddEvent(COPY_BUF, desc);
@@ -746,7 +746,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorAttachment(
 
 		ObjDisp(cmdBuffer)->CmdClearColorAttachment(Unwrap(cmdBuffer), att, layout, &col, count, rects);
 
-		const string desc = m_pSerialiser->GetDebugStr();
+		const string desc = GetSerialiser()->GetDebugStr();
 
 		{
 			AddEvent(CLEAR_COLOR_ATTACH, desc);
@@ -824,7 +824,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 
 		ObjDisp(cmdBuffer)->CmdClearDepthStencilAttachment(Unwrap(cmdBuffer), asp, lay, d, s, count, rects);
 
-		const string desc = m_pSerialiser->GetDebugStr();
+		const string desc = GetSerialiser()->GetDebugStr();
 
 		{
 			AddEvent(CLEAR_DEPTHSTENCIL_ATTACH, desc);
@@ -901,7 +901,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 
 		ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), firstIdx, idxCount, vtxOffs, firstInst, instCount);
 
-		const string desc = m_pSerialiser->GetDebugStr();
+		const string desc = GetSerialiser()->GetDebugStr();
 
 		{
 			AddEvent(DRAW_INDEXED, desc);

@@ -173,7 +173,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 	}
 	
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	m_pSerialiser->Serialise("createInfo", createInfo);
+	GetSerialiser()->Serialise("createInfo", createInfo);
 
 	if(m_State < WRITING)
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
@@ -428,7 +428,7 @@ bool WrappedVulkan::Serialise_vkResetCommandBuffer(VkCmdBuffer cmdBuffer, VkCmdB
 	}
 	
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	m_pSerialiser->Serialise("createInfo", info);
+	GetSerialiser()->Serialise("createInfo", info);
 
 	if(m_State == EXECUTING)
 	{
@@ -532,7 +532,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 
 		ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), &beginInfo, cont);
 
-		const string desc = m_pSerialiser->GetDebugStr();
+		const string desc = GetSerialiser()->GetDebugStr();
 
 		// VKTODOMED change the name to show render pass load-op
 		AddEvent(BEGIN_RENDERPASS, desc);
@@ -709,7 +709,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 	for(uint32_t i=0; i < numSets; i++)
 	{
 		if(m_State >= WRITING) descriptorIDs[i] = GetResID(sets[i]);
-		m_pSerialiser->Serialise("DescriptorSet", descriptorIDs[i]);
+		GetSerialiser()->Serialise("DescriptorSet", descriptorIDs[i]);
 		if(m_State < WRITING)  sets[i] = Unwrap(GetResourceManager()->GetLiveHandle<VkDescriptorSet>(descriptorIDs[i]));
 	}
 
@@ -1052,8 +1052,8 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 			o = pOffsets[i];
 		}
 
-		m_pSerialiser->Serialise("pBuffers[]", id);
-		m_pSerialiser->Serialise("pOffsets[]", o);
+		GetSerialiser()->Serialise("pBuffers[]", id);
+		GetSerialiser()->Serialise("pOffsets[]", o);
 
 		if(m_State < WRITING)
 		{
@@ -1505,10 +1505,8 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerBegin(
 			VkCmdBuffer  cmdBuffer,
 			const char*     pMarker)
 {
-	string name = pMarker ? string(pMarker) : "";
-
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
-	m_pSerialiser->Serialise("Name", name);
+	SERIALISE_ELEMENT(string, name, pMarker ? string(pMarker) : "");
 	
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;

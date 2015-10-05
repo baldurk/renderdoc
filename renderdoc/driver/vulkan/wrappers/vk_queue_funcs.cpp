@@ -151,7 +151,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			fence = VK_NULL_HANDLE;
 	}
 
-	const string desc = m_pSerialiser->GetDebugStr();
+	const string desc = GetSerialiser()->GetDebugStr();
 
 	if(m_State == READING)
 	{

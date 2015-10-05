@@ -162,16 +162,16 @@ ReplayCreateStatus VkInitParams::Serialise()
 		return eReplayCreate_APIIncompatibleVersion;
 	}
 
-	m_pSerialiser->Serialise("AppName", AppName);
-	m_pSerialiser->Serialise("EngineName", EngineName);
-	m_pSerialiser->Serialise("AppVersion", AppVersion);
-	m_pSerialiser->Serialise("EngineVersion", EngineVersion);
-	m_pSerialiser->Serialise("APIVersion", APIVersion);
+	GetSerialiser()->Serialise("AppName", AppName);
+	GetSerialiser()->Serialise("EngineName", EngineName);
+	GetSerialiser()->Serialise("AppVersion", AppVersion);
+	GetSerialiser()->Serialise("EngineVersion", EngineVersion);
+	GetSerialiser()->Serialise("APIVersion", APIVersion);
 
-	m_pSerialiser->Serialise("Layers", Layers);
-	m_pSerialiser->Serialise("Extensions", Extensions);
+	GetSerialiser()->Serialise("Layers", Layers);
+	GetSerialiser()->Serialise("Extensions", Extensions);
 
-	m_pSerialiser->Serialise("InstanceID", InstanceID);
+	GetSerialiser()->Serialise("InstanceID", InstanceID);
 
 	return eReplayCreate_Success;
 }
@@ -410,7 +410,8 @@ const char * WrappedVulkan::GetChunkName(uint32_t idx)
 
 void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 {
-	SERIALISE_ELEMENT(uint32_t, FrameNumber, m_FrameCounter);
+	uint32_t FrameNumber = m_FrameCounter;
+	m_pSerialiser->Serialise("FrameNumber", FrameNumber); // must use m_pSerialiser here to match resource manager below
 
 	if(m_State >= WRITING)
 	{
