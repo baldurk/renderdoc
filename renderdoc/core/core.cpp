@@ -600,7 +600,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
 	ser.Rewind();
 
 	{
-		int chunkType = ser.PushContext(NULL, 1, false);
+		int chunkType = ser.PushContext(NULL, NULL, 1, false);
 
 		if(chunkType != THUMBNAIL_DATA)
 		{
@@ -610,11 +610,11 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
 
 		ser.SkipCurrentChunk();
 
-		ser.PopContext(NULL, 1);
+		ser.PopContext(1);
 	}
 
 	{
-		int chunkType = ser.PushContext(NULL, 1, false);
+		int chunkType = ser.PushContext(NULL, NULL, 1, false);
 
 		if(chunkType != CREATE_PARAMS)
 		{
@@ -625,7 +625,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
 		ser.Serialise("DriverType", driverType);
 		ser.SerialiseString("DriverName", driverName);
 
-		chunkType = ser.PushContext(NULL, 1, false);
+		chunkType = ser.PushContext(NULL, NULL, 1, false);
 
 		if(chunkType != DRIVER_INIT_PARAMS)
 		{

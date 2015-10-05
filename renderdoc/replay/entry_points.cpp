@@ -352,7 +352,7 @@ bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, byte *buf, uint
 
 	ser.Rewind();
 
-	int chunkType = ser.PushContext(NULL, 1, false);
+	int chunkType = ser.PushContext(NULL, NULL, 1, false);
 
 	if(chunkType != THUMBNAIL_DATA)
 		return false;

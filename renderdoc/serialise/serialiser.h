@@ -265,7 +265,7 @@ class Serialiser
 			{
 				size_t offs = m_BufferHead-m_Buffer + (size_t)m_ReadOffset;
 
-				uint32_t c = PushContext(NULL, 1, false);
+				uint32_t c = PushContext(NULL, NULL, 1, false);
 
 				// found
 				if(c == chunkIdx)
@@ -277,7 +277,7 @@ class Serialiser
 				else
 				{
 					SkipCurrentChunk();
-					PopContext(NULL, 1);
+					PopContext(1);
 				}
 
 				if(idx) (*idx)++;
@@ -312,8 +312,8 @@ class Serialiser
 		// Public serialisation interface
 
 		int GetContextLevel() { return m_Indent; }
-		uint32_t PushContext(const char *name, uint32_t chunkIdx, bool smallChunk);
-		void PopContext(const char *name, uint32_t chunkIdx);
+		uint32_t PushContext(const char *name, const char *typeName, uint32_t chunkIdx, bool smallChunk);
+		void PopContext(uint32_t chunkIdx);
 
 		// Write a chunk to disk
 		void Insert(Chunk *el);
@@ -722,14 +722,12 @@ class ScopedContext
 		ScopedContext(Serialiser *s, const char *n, const char *t, uint32_t i, bool smallChunk)
 			: m_Idx(i), m_Ser(s), m_Ended(false)
 		{
-			m_Name = string(n) + " = " + t;
-			m_Ser->PushContext(m_Name.c_str(), m_Idx, smallChunk);
+			m_Ser->PushContext(n, t, m_Idx, smallChunk);
 		}
 		ScopedContext(Serialiser *s, const char *n, uint32_t i, bool smallChunk)
 			: m_Idx(i), m_Ser(s), m_Ended(false)
 		{
-			m_Name = n;
-			m_Ser->PushContext(m_Name.c_str(), m_Idx, smallChunk);
+			m_Ser->PushContext(n, NULL, m_Idx, smallChunk);
 		}
 		~ScopedContext()
 		{
@@ -743,7 +741,6 @@ class ScopedContext
 			return new Chunk(m_Ser, m_Idx, temporary);
 		}
 	private:
-		std::string m_Name;
 		uint32_t m_Idx;
 		Serialiser *m_Ser;
 
@@ -753,7 +750,7 @@ class ScopedContext
 		{
 			RDCASSERT(!m_Ended);
 
-			m_Ser->PopContext(m_Name.c_str(), m_Idx);
+			m_Ser->PopContext(m_Idx);
 
 			m_Ended = true;
 		}

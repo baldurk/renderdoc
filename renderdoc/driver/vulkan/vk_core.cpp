@@ -567,9 +567,9 @@ void WrappedVulkan::ReadLogInitialisation()
 				firstFrame = m_pSerialiser->GetOffset();
 
 			// skip this chunk
-			m_pSerialiser->PushContext(NULL, CAPTURE_SCOPE, false);
+			m_pSerialiser->PushContext(NULL, NULL, CAPTURE_SCOPE, false);
 			m_pSerialiser->SkipCurrentChunk();
-			m_pSerialiser->PopContext(NULL, CAPTURE_SCOPE);
+			m_pSerialiser->PopContext(CAPTURE_SCOPE);
 		}
 	}
 
@@ -595,7 +595,7 @@ void WrappedVulkan::ReadLogInitialisation()
 
 		uint64_t offset = m_pSerialiser->GetOffset();
 
-		VulkanChunkType context = (VulkanChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+		VulkanChunkType context = (VulkanChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
 		if(context == CAPTURE_SCOPE)
 		{
@@ -607,7 +607,7 @@ void WrappedVulkan::ReadLogInitialisation()
 
 		ProcessChunk(offset, context);
 
-		m_pSerialiser->PopContext(NULL, context);
+		m_pSerialiser->PopContext(context);
 		
 		RenderDoc::Inst().SetProgress(FileInitialRead, float(m_pSerialiser->GetOffset())/float(m_pSerialiser->GetSize()));
 
@@ -668,7 +668,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 {
 	m_State = readType;
 
-	VulkanChunkType header = (VulkanChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+	VulkanChunkType header = (VulkanChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 	RDCASSERT(header == CONTEXT_CAPTURE_HEADER);
 
 	WrappedVulkan *context = this;
@@ -677,7 +677,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	
 	ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
 
-	m_pSerialiser->PopContext(NULL, header);
+	m_pSerialiser->PopContext(header);
 
 	m_RootEvents.clear();
 
@@ -727,7 +727,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 		uint64_t offset = m_pSerialiser->GetOffset();
 
-		VulkanChunkType context = (VulkanChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+		VulkanChunkType context = (VulkanChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
 		m_LastCmdBufferID = ResourceId();
 
@@ -795,7 +795,7 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
 
 	ProcessChunk(offset, chunk);
 
-	m_pSerialiser->PopContext(NULL, chunk);
+	m_pSerialiser->PopContext(chunk);
 	
 	if(m_State == READING && chunk == SET_MARKER)
 	{
@@ -1172,13 +1172,13 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 		partial = false;
 	}
 	
-	VulkanChunkType header = (VulkanChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+	VulkanChunkType header = (VulkanChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
 	RDCASSERT(header == CAPTURE_SCOPE);
 
 	m_pSerialiser->SkipCurrentChunk();
 
-	m_pSerialiser->PopContext(NULL, header);
+	m_pSerialiser->PopContext(header);
 	
 	if(!partial)
 	{

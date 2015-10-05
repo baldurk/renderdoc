@@ -2999,7 +2999,7 @@ void WrappedOpenGL::ReadLogInitialisation()
 
 		uint64_t offset = m_pSerialiser->GetOffset();
 
-		GLChunkType context = (GLChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+		GLChunkType context = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 		
 		if(context == CAPTURE_SCOPE)
 		{
@@ -3011,7 +3011,7 @@ void WrappedOpenGL::ReadLogInitialisation()
 
 		ProcessChunk(offset, context);
 
-		m_pSerialiser->PopContext(NULL, context);
+		m_pSerialiser->PopContext(context);
 		
 		RenderDoc::Inst().SetProgress(FileInitialRead, float(offset)/float(m_pSerialiser->GetSize()));
 
@@ -3891,7 +3891,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	m_DoStateVerify = true;
 
-	GLChunkType header = (GLChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+	GLChunkType header = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 	RDCASSERT(header == CONTEXT_CAPTURE_HEADER);
 
 	WrappedOpenGL *context = this;
@@ -3928,7 +3928,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	Serialise_BeginCaptureFrame(!partial);
 
-	m_pSerialiser->PopContext(NULL, header);
+	m_pSerialiser->PopContext(header);
 
 	m_CurEvents.clear();
 	
@@ -3962,7 +3962,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 		uint64_t offset = m_pSerialiser->GetOffset();
 
-		GLChunkType chunktype = (GLChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+		GLChunkType chunktype = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
 		ContextProcessChunk(offset, chunktype, false);
 		
@@ -4009,14 +4009,14 @@ void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool
 			GetResourceManager()->MarkInFrame(false);
 
 			ProcessChunk(offset, chunk);
-			m_pSerialiser->PopContext(NULL, chunk);
+			m_pSerialiser->PopContext(chunk);
 
 			GetResourceManager()->MarkInFrame(true);
 		}
 		else if(m_State == EXECUTING)
 		{
 			m_pSerialiser->SkipCurrentChunk();
-			m_pSerialiser->PopContext(NULL, chunk);
+			m_pSerialiser->PopContext(chunk);
 		}
 		return;
 	}*/
@@ -4038,7 +4038,7 @@ void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool
 
 	ProcessChunk(offset, chunk);
 
-	m_pSerialiser->PopContext(NULL, chunk);
+	m_pSerialiser->PopContext(chunk);
 	
 	if(context->m_State == READING && chunk == SET_MARKER)
 	{
@@ -4494,13 +4494,13 @@ void WrappedOpenGL::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 		partial = false;
 	}
 	
-	GLChunkType header = (GLChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+	GLChunkType header = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
 	RDCASSERT(header == CAPTURE_SCOPE);
 
 	m_pSerialiser->SkipCurrentChunk();
 
-	m_pSerialiser->PopContext(NULL, header);
+	m_pSerialiser->PopContext(header);
 	
 	if(!partial)
 	{

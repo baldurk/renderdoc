@@ -580,14 +580,14 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 			m_pDevice->GetResourceManager()->MarkInFrame(false);
 
 			m_pDevice->ProcessChunk(offset, chunk);
-			m_pSerialiser->PopContext(NULL, chunk);
+			m_pSerialiser->PopContext(chunk);
 
 			m_pDevice->GetResourceManager()->MarkInFrame(true);
 		}
 		else if(m_State == EXECUTING)
 		{
 			m_pSerialiser->SkipCurrentChunk();
-			m_pSerialiser->PopContext(NULL, chunk);
+			m_pSerialiser->PopContext(chunk);
 		}
 		return;
 	}
@@ -611,7 +611,7 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 		{
 			m_pSerialiser->SetOffset(cOffs);
 			m_pSerialiser->SkipCurrentChunk();
-			m_pSerialiser->PopContext(NULL, chunk);
+			m_pSerialiser->PopContext(chunk);
 			return;
 		}
 	}
@@ -931,7 +931,7 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 		break;
 	}
 
-	m_pSerialiser->PopContext(NULL, chunk);
+	m_pSerialiser->PopContext(chunk);
 	
 	if(context->m_State == READING && chunk == SET_MARKER)
 	{
@@ -1180,7 +1180,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 	m_DoStateVerify = true;
 
-	D3D11ChunkType header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+	D3D11ChunkType header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 	RDCASSERT(header == CONTEXT_CAPTURE_HEADER);
 
 	ResourceId id;
@@ -1192,7 +1192,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 	Serialise_BeginCaptureFrame(!partial);
 
-	m_pSerialiser->PopContext(NULL, header);
+	m_pSerialiser->PopContext(header);
 
 	m_CurEvents.clear();
 	
@@ -1231,7 +1231,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 		uint64_t offset = m_pSerialiser->GetOffset();
 
-		D3D11ChunkType chunktype = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+		D3D11ChunkType chunktype = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
 		ProcessChunk(offset, chunktype, false);
 		

@@ -145,7 +145,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 			return E_NOTIMPL;
 		}
 
-		int ctx = m_Ser->PushContext(NULL, 1, false);
+		int ctx = m_Ser->PushContext(NULL, NULL, 1, false);
 
 		if(ctx != THUMBNAIL_DATA)
 		{

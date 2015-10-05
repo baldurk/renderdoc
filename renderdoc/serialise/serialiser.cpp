@@ -1436,7 +1436,7 @@ void Serialiser::DebugPrint(const char *fmt, ...)
 	m_DebugText += tmpBuf;
 }
 
-uint32_t Serialiser::PushContext(const char *name, uint32_t chunkIdx, bool smallChunk)
+uint32_t Serialiser::PushContext(const char *name, const char *typeName, uint32_t chunkIdx, bool smallChunk)
 {
 	// if writing, and chunkidx isn't 0 (debug non-scope), then either we're nested
 	// or we should be writing into the start of the serialiser. A serialiser should
@@ -1505,7 +1505,10 @@ uint32_t Serialiser::PushContext(const char *name, uint32_t chunkIdx, bool small
 
 		if(m_DebugTextWriting)
 		{
-			DebugPrint("%s (%d)\n", name, chunkIdx);
+			if(typeName)
+				DebugPrint("%s = %s (%d)\n", name, typeName, chunkIdx);
+			else
+				DebugPrint("%s (%d)\n", name, chunkIdx);
 			DebugPrint("{\n");
 		}
 	}
@@ -1593,7 +1596,10 @@ uint32_t Serialiser::PushContext(const char *name, uint32_t chunkIdx, bool small
 		
 		if(m_DebugTextWriting)
 		{
-			DebugPrint("%s\n", name ? name : "Unknown");
+			if(typeName)
+				DebugPrint("%s = %s\n", name ? name : "Unknown", typeName);
+			else
+				DebugPrint("%s\n", name ? name : "Unknown");
 			DebugPrint("{\n");
 		}
 	}
@@ -1603,7 +1609,7 @@ uint32_t Serialiser::PushContext(const char *name, uint32_t chunkIdx, bool small
 	return chunkIdx;
 }
 
-void Serialiser::PopContext(const char *name, uint32_t chunkIdx)
+void Serialiser::PopContext(uint32_t chunkIdx)
 {
 	m_Indent = RDCMAX(m_Indent-1, 0);
 
@@ -1645,7 +1651,7 @@ void Serialiser::PopContext(const char *name, uint32_t chunkIdx)
 		}
 		
 		if(m_DebugTextWriting)
-			DebugPrint("} // %s\n", name);
+			DebugPrint("}\n");
 	}
 	else
 	{

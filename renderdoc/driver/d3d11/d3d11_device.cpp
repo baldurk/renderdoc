@@ -1030,7 +1030,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 
 		uint64_t offset = m_pSerialiser->GetOffset();
 
-		D3D11ChunkType context = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+		D3D11ChunkType context = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 	
 		if(context == CAPTURE_SCOPE)
 		{
@@ -1042,7 +1042,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 
 		ProcessChunk(offset, context);
 
-		m_pSerialiser->PopContext(NULL, context);
+		m_pSerialiser->PopContext(context);
 		
 		RenderDoc::Inst().SetProgress(FileInitialRead, float(offset)/float(m_pSerialiser->GetSize()));
 
@@ -2253,13 +2253,13 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 		partial = false;
 	}
 	
-	D3D11ChunkType header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+	D3D11ChunkType header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
 	RDCASSERT(header == CAPTURE_SCOPE);
 
 	m_pSerialiser->SkipCurrentChunk();
 
-	m_pSerialiser->PopContext(NULL, header);
+	m_pSerialiser->PopContext(header);
 	
 	if(!partial)
 	{
@@ -2289,9 +2289,9 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 
 		m_pSerialiser->SetOffset(offs);
 		
-		header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+		header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 		m_pSerialiser->SkipCurrentChunk();
-		m_pSerialiser->PopContext(NULL, header);
+		m_pSerialiser->PopContext(header);
 
 		m_pImmediateContext->ReplayFakeContext(m_ReplayDefCtx);
 		
