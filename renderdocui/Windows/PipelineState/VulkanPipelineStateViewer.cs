@@ -57,18 +57,15 @@ namespace renderdocui.Windows.PipelineState
             viAttrs.Font = core.Config.PreferredFont;
             viBuffers.Font = core.Config.PreferredFont;
 
-            csUAVs.Font = core.Config.PreferredFont;
-            gsStreams.Font = core.Config.PreferredFont;
-
             groupX.Font = groupY.Font = groupZ.Font = core.Config.PreferredFont;
             threadX.Font = threadY.Font = threadZ.Font = core.Config.PreferredFont;
 
-            vsShader.Font = vsResources.Font = vsSamplers.Font = vsCBuffers.Font = vsClasses.Font = core.Config.PreferredFont;
-            gsShader.Font = gsResources.Font = gsSamplers.Font = gsCBuffers.Font = gsClasses.Font = core.Config.PreferredFont;
-            hsShader.Font = hsResources.Font = hsSamplers.Font = hsCBuffers.Font = hsClasses.Font = core.Config.PreferredFont;
-            dsShader.Font = dsResources.Font = dsSamplers.Font = dsCBuffers.Font = dsClasses.Font = core.Config.PreferredFont;
-            psShader.Font = psResources.Font = psSamplers.Font = psCBuffers.Font = psClasses.Font = core.Config.PreferredFont;
-            csShader.Font = csResources.Font = csSamplers.Font = csCBuffers.Font = csClasses.Font = core.Config.PreferredFont;
+            vsShader.Font = vsResources.Font = vsCBuffers.Font = core.Config.PreferredFont;
+            gsShader.Font = gsResources.Font = gsCBuffers.Font = core.Config.PreferredFont;
+            hsShader.Font = hsResources.Font = hsCBuffers.Font = core.Config.PreferredFont;
+            dsShader.Font = dsResources.Font = dsCBuffers.Font = core.Config.PreferredFont;
+            psShader.Font = psResources.Font = psCBuffers.Font = core.Config.PreferredFont;
+            csShader.Font = csResources.Font = csCBuffers.Font = core.Config.PreferredFont;
 
             viewports.Font = core.Config.PreferredFont;
             scissors.Font = core.Config.PreferredFont;
@@ -125,15 +122,12 @@ namespace renderdocui.Windows.PipelineState
             topology.Text = "";
             topologyDiagram.Image = null;
 
-            ClearShaderState(vsShader, vsResources, vsSamplers, vsCBuffers, vsClasses);
-            ClearShaderState(gsShader, gsResources, gsSamplers, gsCBuffers, gsClasses);
-            ClearShaderState(hsShader, hsResources, hsSamplers, hsCBuffers, hsClasses);
-            ClearShaderState(dsShader, dsResources, dsSamplers, dsCBuffers, dsClasses);
-            ClearShaderState(psShader, psResources, psSamplers, psCBuffers, psClasses);
-            ClearShaderState(csShader, csResources, csSamplers, csCBuffers, csClasses);
-
-            csUAVs.Nodes.Clear();
-            gsStreams.Nodes.Clear();
+            ClearShaderState(vsShader, vsResources, vsCBuffers);
+            ClearShaderState(gsShader, gsResources, gsCBuffers);
+            ClearShaderState(hsShader, hsResources, hsCBuffers);
+            ClearShaderState(dsShader, dsResources, dsCBuffers);
+            ClearShaderState(psShader, psResources, psCBuffers);
+            ClearShaderState(csShader, csResources, csCBuffers);
 
             var tick = global::renderdocui.Properties.Resources.tick;
 
@@ -192,21 +186,19 @@ namespace renderdocui.Windows.PipelineState
             node.Italic = true;
         }
 
-        private void ClearShaderState(Label shader, TreelistView.TreeListView resources, TreelistView.TreeListView samplers,
-                                      TreelistView.TreeListView cbuffers, TreelistView.TreeListView classes)
+        private void ClearShaderState(Label shader, TreelistView.TreeListView resources,
+                                      TreelistView.TreeListView cbuffers)
         {
             shader.Text = "Unbound";
             resources.Nodes.Clear();
-            samplers.Nodes.Clear();
             cbuffers.Nodes.Clear();
-            classes.Nodes.Clear();
         }
 
         // Set a shader stage's resources and values
         private void SetShaderState(FetchTexture[] texs, FetchBuffer[] bufs,
                                     VulkanPipelineState.ShaderStage stage, VulkanPipelineState.Pipeline pipe,
-                                    Label shader, TreelistView.TreeListView resources, TreelistView.TreeListView samplers,
-                                    TreelistView.TreeListView cbuffers, TreelistView.TreeListView classes)
+                                    Label shader, TreelistView.TreeListView resources,
+                                    TreelistView.TreeListView cbuffers)
         {
             ShaderReflection shaderDetails = stage.ShaderDetails;
 
@@ -234,17 +226,111 @@ namespace renderdocui.Windows.PipelineState
             resources.BeginUpdate();
             resources.Nodes.Clear();
 
+            // don't have a column layout for resources yet, so second column is just a
+            // string formatted with all the relevant data
+            if (stage.ShaderDetails != null)
+            {
+                int i = 0;
+                foreach (var shaderRes in stage.ShaderDetails.Resources)
+                {
+                    BindpointMap bindMap = stage.BindpointMapping.Resources[shaderRes.bindPoint];
+
+                    // TODO do we need to worry about arrays of uniform buffers?
+                    var descriptorBind = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
+
+                    bool filledSlot = (descriptorBind.res != ResourceId.Null);
+                    bool usedSlot = bindMap.used;
+
+                    // show if
+                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                        )
+                    {
+                        string slotname = i.ToString();
+
+                        if (shaderRes.name.Length > 0)
+                            slotname += ": " + shaderRes.name;
+
+                        UInt32 w = 1, h = 1, d = 1;
+                        UInt32 a = 1;
+                        string format = "Unknown";
+                        string name = "Shader Resource " + descriptorBind.res.ToString();
+                        string typename = "Unknown";
+                        object tag = null;
+
+                        if (!filledSlot)
+                        {
+                            name = "Empty";
+                            format = "-";
+                            typename = "-";
+                            w = h = d = a = 0;
+                        }
+
+                        // check to see if it's a texture
+                        for (int t = 0; t < texs.Length; t++)
+                        {
+                            if (texs[t].ID == descriptorBind.res)
+                            {
+                                w = texs[t].width;
+                                h = texs[t].height;
+                                d = texs[t].depth;
+                                a = texs[t].arraysize;
+                                format = texs[t].format.ToString();
+                                name = texs[t].name;
+                                typename = texs[t].resType.Str();
+
+                                tag = texs[t];
+                            }
+                        }
+
+                        // if not a texture, it must be a buffer
+                        for (int t = 0; t < bufs.Length; t++)
+                        {
+                            if (bufs[t].ID == descriptorBind.res)
+                            {
+                                w = bufs[t].length;
+                                h = 0;
+                                d = 0;
+                                a = 0;
+                                format = "";
+                                name = bufs[t].name;
+                                typename = "Buffer";
+
+                                tag = bufs[t];
+                            }
+                        }
+
+                        string contents;
+
+                        if (descriptorBind.res == ResourceId.Null)
+                        {
+                            contents = "sampler " + descriptorBind.sampler.ToString();
+                        }
+                        else
+                        {
+                            contents = String.Format("{0} ({1}) {2}x{3}x{4} [{5}] {6}", name, typename, w, h, d, a, format);
+                        }
+
+                        var node = resources.Nodes.Add(new object[] { slotname, contents });
+
+                        node.Image = global::renderdocui.Properties.Resources.action;
+                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                        node.Tag = tag;
+
+                        if (!filledSlot)
+                            EmptyRow(node);
+
+                        if (!usedSlot)
+                            InactiveRow(node);
+                    }
+                    i++;
+                }
+            }
+
             resources.EndUpdate();
             resources.NodesSelection.Clear();
             resources.SetVScrollValue(vs);
-
-            vs = samplers.VScrollValue();
-            samplers.BeginUpdate();
-            samplers.Nodes.Clear();
-
-            samplers.EndUpdate();
-            samplers.NodesSelection.Clear();
-            samplers.SetVScrollValue(vs);
 
             vs = cbuffers.VScrollValue();
             cbuffers.BeginUpdate();
@@ -309,16 +395,6 @@ namespace renderdocui.Windows.PipelineState
             cbuffers.EndUpdate();
             cbuffers.NodesSelection.Clear();
             cbuffers.SetVScrollValue(vs);
-
-            vs = classes.VScrollValue();
-            classes.BeginUpdate();
-            classes.Nodes.Clear();
-
-            classes.EndUpdate();
-            classes.NodesSelection.Clear();
-            classes.SetVScrollValue(vs);
-
-            classes.Visible = classes.Parent.Visible = false;
         }
 
         // from https://gist.github.com/mjijackson/5311256
@@ -618,35 +694,12 @@ namespace renderdocui.Windows.PipelineState
             viBuffers.EndUpdate();
             viBuffers.SetVScrollValue(vs);
 
-            SetShaderState(texs, bufs, state.VS, state.graphics, vsShader, vsResources, vsSamplers, vsCBuffers, vsClasses);
-            SetShaderState(texs, bufs, state.GS, state.graphics, gsShader, gsResources, gsSamplers, gsCBuffers, gsClasses);
-            SetShaderState(texs, bufs, state.TCS, state.graphics, hsShader, hsResources, hsSamplers, hsCBuffers, hsClasses);
-            SetShaderState(texs, bufs, state.TES, state.graphics, dsShader, dsResources, dsSamplers, dsCBuffers, dsClasses);
-            SetShaderState(texs, bufs, state.FS, state.graphics, psShader, psResources, psSamplers, psCBuffers, psClasses);
-            SetShaderState(texs, bufs, state.CS, state.compute, csShader, csResources, csSamplers, csCBuffers, csClasses);
-
-            vs = csUAVs.VScrollValue();
-            csUAVs.Nodes.Clear();
-            csUAVs.BeginUpdate();
-
-            csUAVs.NodesSelection.Clear();
-            csUAVs.EndUpdate();
-            csUAVs.SetVScrollValue(vs);
-
-            bool streamoutSet = false;
-            vs = gsStreams.VScrollValue();
-            gsStreams.BeginUpdate();
-            gsStreams.Nodes.Clear();
-
-            gsStreams.EndUpdate();
-            gsStreams.NodesSelection.Clear();
-            gsStreams.SetVScrollValue(vs);
-
-            gsStreams.Visible = gsStreams.Parent.Visible = streamoutSet;
-            if (streamoutSet)
-                geomTableLayout.ColumnStyles[1].Width = 50.0f;
-            else
-                geomTableLayout.ColumnStyles[1].Width = 0;
+            SetShaderState(texs, bufs, state.VS, state.graphics, vsShader, vsResources, vsCBuffers);
+            SetShaderState(texs, bufs, state.GS, state.graphics, gsShader, gsResources, gsCBuffers);
+            SetShaderState(texs, bufs, state.TCS, state.graphics, hsShader, hsResources, hsCBuffers);
+            SetShaderState(texs, bufs, state.TES, state.graphics, dsShader, dsResources, dsCBuffers);
+            SetShaderState(texs, bufs, state.FS, state.graphics, psShader, psResources, psCBuffers);
+            SetShaderState(texs, bufs, state.CS, state.compute, csShader, csResources, csCBuffers);
 
             ////////////////////////////////////////////////
             // Rasterizer
@@ -926,6 +979,44 @@ namespace renderdocui.Windows.PipelineState
         // launch the appropriate kind of viewer, depending on the type of resource that's in this node
         private void textureCell_CellDoubleClick(TreelistView.Node node)
         {
+            object tag = node.Tag;
+
+            VulkanPipelineState.ShaderStage stage = GetStageForSender(node.OwnerView);
+
+            if (stage == null) return;
+
+            if (tag is FetchTexture)
+            {
+                FetchTexture tex = (FetchTexture)tag;
+
+                if (tex.resType == ShaderResourceType.Buffer)
+                {
+                    var viewer = new BufferViewer(m_Core, false);
+                    viewer.ViewRawBuffer(false, tex.ID);
+                    viewer.Show(m_DockContent.DockPanel);
+                }
+                else
+                {
+                    var viewer = m_Core.GetTextureViewer();
+                    viewer.Show(m_DockContent.DockPanel);
+                    if (!viewer.IsDisposed)
+                        viewer.ViewTexture(tex.ID, true);
+                }
+            }
+            else if (tag is FetchBuffer)
+            {
+                FetchBuffer buf = (FetchBuffer)tag;
+
+                // no format detection yet
+                var deets = stage.ShaderDetails;
+
+                if (buf.ID != ResourceId.Null)
+                {
+                    var viewer = new BufferViewer(m_Core, false);
+                    viewer.ViewRawBuffer(true, buf.ID);
+                    viewer.Show(m_DockContent.DockPanel);
+                }
+            }
         }
 
         private void defaultCopyPaste_KeyDown(object sender, KeyEventArgs e)
