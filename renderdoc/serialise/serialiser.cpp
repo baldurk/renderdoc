@@ -260,7 +260,8 @@ Chunk::Chunk(Serialiser *ser, uint32_t chunkType, bool temporary)
 
 	memcpy(m_Data, ser->GetRawPtr(0), m_Length);
 
-	m_DebugStr = ser->GetDebugStr();
+	if(ser->GetDebugText())
+		m_DebugStr = ser->GetDebugStr();
 
 	ser->Rewind();
 	
