@@ -122,6 +122,71 @@ namespace Threading
 		return NULL;
 	}
 	
+	// to not exhaust OS slots, we only allocate one that points
+	// to our own array
+	pthread_key_t OSTLSHandle;
+	int64_t nextTLSSlot = 0;
+
+	struct TLSData
+	{
+		vector<void *> data;
+	};
+
+	void Init()
+	{
+		int err = pthread_key_create(&OSTLSHandle, NULL);
+		if(err != 0)
+			RDCFATAL("Can't allocate OS TLS slot");
+	}
+
+	void Shutdown()
+	{
+		// let the TLS data leak. It's not great, but it's only a few kb per thread
+		// that we actually use (ie. not short-lived threads that don't use our TLS).
+		// We don't have a realistic alternative as the threads aren't ours when in-app
+		// and there may not be a way to have something call on thread death.
+		pthread_key_delete(OSTLSHandle);
+	}
+
+	// allocate a TLS slot in our per-thread vectors with an atomic increment.
+	// Note this is going to be 1-indexed because Inc64 returns the post-increment
+	// value
+	uint64_t AllocateTLSSlot()
+	{
+		return Atomic::Inc64(&nextTLSSlot);
+	}
+
+	// look up our per-thread vector.
+	void *GetTLSValue(uint64_t slot)
+	{
+		TLSData *slots = (TLSData *)pthread_getspecific(OSTLSHandle);
+		if(slots == NULL || slot-1 >= slots->data.size())
+			return NULL;
+		return slots->data[slot-1];
+	}
+
+	void SetTLSValue(uint64_t slot, void *value)
+	{
+		TLSData *slots = (TLSData *)pthread_getspecific(OSTLSHandle);
+
+		// resize or allocate slot data if needed.
+		// We don't need to lock this, as it is by definition thread local so we are
+		// blocking on the only possible concurrent access.
+		if(slots == NULL || slot-1 >= slots->data.size())
+		{
+			if(slots == NULL)
+			{
+				slots = new TLSData;
+				pthread_setspecific(OSTLSHandle, slots);
+			}
+
+			if(slot-1 >= slots->data.size())
+				slots->data.resize(slot);
+		}
+
+		slots->data[slot-1] = value;
+	}
+
 	ThreadHandle CreateThread(ThreadEntry entryFunc, void *userData)
 	{
 		pthread_t thread;

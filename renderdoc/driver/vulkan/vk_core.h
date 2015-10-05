@@ -111,6 +111,11 @@ private:
 
 	Serialiser *m_pSerialiser;
 	LogState m_State;
+
+	uint64_t threadSerialiserTLSSlot;
+
+	Threading::CriticalSection m_ThreadSerialisersLock;
+	vector<Serialiser *> m_ThreadSerialisers;
 	
 	VulkanReplay m_Replay;
 

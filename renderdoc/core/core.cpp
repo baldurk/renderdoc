@@ -189,6 +189,8 @@ void RenderDoc::Initialise()
 
 	Network::Init();
 
+	Threading::Init();
+
 	m_RemoteIdent = 0;
 
 	if(!IsReplayApp())
@@ -297,6 +299,8 @@ RenderDoc::~RenderDoc()
 	}
 
 	Network::Shutdown();
+
+	Threading::Shutdown();
 
 	FileIO::Delete(m_LoggingFilename.c_str());
 }

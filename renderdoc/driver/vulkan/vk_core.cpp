@@ -412,7 +412,27 @@ const char * WrappedVulkan::GetChunkName(uint32_t idx)
 
 Serialiser *WrappedVulkan::GetThreadSerialiser()
 {
-	return m_pSerialiser;
+	Serialiser *ser = (Serialiser *)Threading::GetTLSValue(threadSerialiserTLSSlot);
+	if(ser) return ser;
+
+	// slow path, but rare
+
+#if defined(RELEASE)
+	const bool debugSerialiser = false;
+#else
+	const bool debugSerialiser = true;
+#endif
+
+	ser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
+
+	Threading::SetTLSValue(threadSerialiserTLSSlot, (void *)ser);
+
+	{
+		SCOPED_LOCK(m_ThreadSerialisersLock);
+		m_ThreadSerialisers.push_back(ser);
+	}
+	
+	return ser;
 }
 
 void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)

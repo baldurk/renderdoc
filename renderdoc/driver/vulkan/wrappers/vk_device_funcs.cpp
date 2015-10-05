@@ -39,6 +39,11 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	VkResult ret = GetInstanceDispatchTable(*pInstance)->CreateInstance(pCreateInfo, &inst);
 
+	// VKTODOHIGH need to deallocate this
+	threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
+
+	// VKTODOHIGH need to deallocate m_ThreadSerialisers
+
 	GetResourceManager()->WrapResource(inst, inst);
 
 	if(ret != VK_SUCCESS)

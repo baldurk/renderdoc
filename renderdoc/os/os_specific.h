@@ -82,6 +82,13 @@ namespace Threading
 			data m_Data;
 	};
 
+	void Init();
+	void Shutdown();
+	uint64_t AllocateTLSSlot();
+
+	void *GetTLSValue(uint64_t slot);
+	void SetTLSValue(uint64_t slot, void *value);
+
 	// must typedef CriticalSectionTemplate<X> CriticalSection
 
 	typedef void (*ThreadEntry)(void *);
