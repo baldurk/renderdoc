@@ -341,8 +341,10 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 		ResourceIDGen::SetReplayResourceIDs();
 	}
 		
+#if !defined(RELEASE)
 	RDCDEBUG("Debug Text enabled - for development! remove before release!");
 	m_pSerialiser->SetDebugText(true);
+#endif
 	
 	m_pSerialiser->SetChunkNameLookup(&GetChunkName);
 
@@ -424,9 +426,11 @@ Serialiser *WrappedVulkan::GetThreadSerialiser()
 #endif
 
 	ser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
-
+	
+#if !defined(RELEASE)
 	RDCDEBUG("Debug Text enabled - for development! remove before release!");
 	ser->SetDebugText(true);
+#endif
 	
 	ser->SetChunkNameLookup(&GetChunkName);
 
