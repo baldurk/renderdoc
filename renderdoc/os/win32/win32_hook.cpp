@@ -310,22 +310,32 @@ static void HookAllModules()
 
 HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DWORD flags)
 {
+	bool dohook = true;
+	if(flags == 0 && GetModuleHandleA(lpLibFileName))
+		dohook = false;
+
 	// we can use the function naked, as when setting up the hook for LoadLibraryExA, our own module
 	// was excluded from IAT patching
 	HMODULE mod = LoadLibraryExA(lpLibFileName, fileHandle, flags);
 
-	HookAllModules();
+	if(dohook)
+		HookAllModules();
 
 	return mod;
 }
 
 HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, DWORD flags)
 {
+	bool dohook = true;
+	if(flags == 0 && GetModuleHandleW(lpLibFileName))
+		dohook = false;
+
 	// we can use the function naked, as when setting up the hook for LoadLibraryExA, our own module
 	// was excluded from IAT patching
 	HMODULE mod = LoadLibraryExW(lpLibFileName, fileHandle, flags);
 
-	HookAllModules();
+	if(dohook)
+		HookAllModules();
 
 	return mod;
 }
