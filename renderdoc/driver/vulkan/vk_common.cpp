@@ -3094,6 +3094,8 @@ void Serialiser::Serialise(const char *name, VkBufferImageCopy &el)
 	ScopedContext scope(this, this, name, "VkBufferImageCopy", 0, true);
 	
 	Serialise("memOffset", el.bufferOffset);
+	Serialise("bufferRowLength", el.bufferRowLength);
+	Serialise("bufferImageHeight", el.bufferImageHeight);
 	Serialise("imageSubresource", el.imageSubresource);
 	Serialise("imageOffset", el.imageOffset);
 	Serialise("imageExtent", el.imageExtent);
