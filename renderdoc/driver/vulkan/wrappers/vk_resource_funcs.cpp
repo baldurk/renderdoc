@@ -94,7 +94,10 @@ VkResult WrappedVulkan::vkAllocMemory(
 
 			// VKTODOMED always treat memory as dirty for now, so its initial state
 			// is guaranteed to be prepared
-			GetResourceManager()->MarkDirtyResource(id);
+			if(m_State != WRITING_CAPFRAME)
+				GetResourceManager()->MarkDirtyResource(id);
+			else
+				GetResourceManager()->MarkPendingDirty(id);
 		}
 		else
 		{
@@ -156,10 +159,6 @@ VkResult WrappedVulkan::vkMapMemory(
 				it->second.mapFlushed = false;
 				it->second.refData = NULL;
 			}
-		}
-		else if(m_State >= WRITING)
-		{
-			GetResourceManager()->MarkDirtyResource(id);
 		}
 	}
 

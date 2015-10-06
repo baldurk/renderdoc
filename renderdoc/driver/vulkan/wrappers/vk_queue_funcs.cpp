@@ -387,8 +387,17 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
 
 		VkResourceRecord *record = GetRecord(pCmdBuffers[i]);
-		for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
-			GetResourceManager()->MarkDirtyResource(*it);
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
+				GetResourceManager()->MarkPendingDirty(*it);
+		}
+		else
+		{
+			for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
+				GetResourceManager()->MarkDirtyResource(*it);
+		}
 
 		if(m_State == WRITING_CAPFRAME)
 		{

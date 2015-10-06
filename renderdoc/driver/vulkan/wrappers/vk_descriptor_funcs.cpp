@@ -285,7 +285,10 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 				record->AddParent(GetResourceManager()->GetResourceRecord(layoutID));
 
 				// just always treat descriptor sets as dirty
-				GetResourceManager()->MarkDirtyResource(id);
+				if(m_State != WRITING_CAPFRAME)
+					GetResourceManager()->MarkDirtyResource(id);
+				else
+					GetResourceManager()->MarkPendingDirty(id);
 
 				record->layout = layoutID;
 				m_CreationInfo.m_DescSetLayout[layoutID].CreateBindingsArray(record->descBindings);

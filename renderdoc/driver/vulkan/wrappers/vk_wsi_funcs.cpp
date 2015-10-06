@@ -958,6 +958,8 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 			GetResourceManager()->MarkUnwrittenResources();
 
 			GetResourceManager()->ClearReferencedResources();
+
+			GetResourceManager()->FlushPendingDirty();
 		}
 	}
 
