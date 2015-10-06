@@ -24,13 +24,17 @@
 
 #include "../vk_core.h"
 
+// note, for threading reasons we ensure to release the wrappers before
+// releasing the underlying object. Otherwise after releasing the vulkan object
+// that same handle could be returned by create on another thread, and we
+// could end up trying to re-wrap it.
 #define DESTROY_IMPL(type, func) \
 	VkResult WrappedVulkan::vk ## func(VkDevice device, type obj) \
 	{ \
 		if(m_ImageInfo.find(GetResID(obj)) != m_ImageInfo.end()) m_ImageInfo.erase(GetResID(obj)); \
-		VkResult ret = ObjDisp(device)->func(Unwrap(device), Unwrap(obj)); \
+		type unwrappedObj = Unwrap(obj); \
 		GetResourceManager()->ReleaseWrappedResource(obj, true); \
-		return ret; \
+		return ObjDisp(device)->func(Unwrap(device), unwrappedObj); \
 	}
 
 DESTROY_IMPL(VkBuffer, DestroyBuffer)
