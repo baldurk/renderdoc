@@ -155,6 +155,8 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 #endif
 				{
 					RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
+					m_pDevice->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+						"Replaying a call to UpdateSubresource1() without D3D11.1 available");
 				}
 			}
 
@@ -319,6 +321,8 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(ID3D11Resource
 		else
 		{
 			RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
+			m_pDevice->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+				"Replaying a call to CopySubresourceRegion1() without D3D11.1 available");
 		}
 	}
 
@@ -540,6 +544,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers1(UINT StartSlot_
 		else
 		{
 			RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
+			m_pDevice->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+				"Replaying a call to VSSetConstantBuffers1() without D3D11.1 available");
 		}
 		VerifyState();
 	}
@@ -643,6 +649,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers1(UINT StartSlot_
 		else
 		{
 			RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
+			m_pDevice->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+				"Replaying a call to HSSetConstantBuffers1() without D3D11.1 available");
 		}
 		VerifyState();
 	}
@@ -747,6 +755,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers1(UINT StartSlot_
 		else
 		{
 			RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
+			m_pDevice->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+				"Replaying a call to DSSetConstantBuffers1() without D3D11.1 available");
 		}
 		VerifyState();
 	}
@@ -851,6 +861,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers1(UINT StartSlot_
 		else
 		{
 			RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
+			m_pDevice->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+				"Replaying a call to GSSetConstantBuffers1() without D3D11.1 available");
 		}
 		VerifyState();
 	}
@@ -955,6 +967,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers1(UINT StartSlot_
 		else
 		{
 			RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
+			m_pDevice->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+				"Replaying a call to PSSetConstantBuffers1() without D3D11.1 available");
 		}
 		VerifyState();
 	}
@@ -1059,6 +1073,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers1(UINT StartSlot_
 		else
 		{
 			RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
+			m_pDevice->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+				"Replaying a call to CSSetConstantBuffers1() without D3D11.1 available");
 		}
 		VerifyState();
 	}
