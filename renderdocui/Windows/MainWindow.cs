@@ -983,6 +983,13 @@ namespace renderdocui.Windows
             updateToolStripMenuItem.Text = "An update is available";
         }
 
+        private void SetNoUpdate()
+        {
+            helpToolStripMenuItem.Image = null;
+            updateToolStripMenuItem.Enabled = false;
+            updateToolStripMenuItem.Text = "No update available";
+        }
+
         private void UpdatePopup()
         {
             (new Dialogs.UpdateDialog(m_Core)).ShowDialog();
@@ -1080,6 +1087,15 @@ namespace renderdocui.Windows
                         }
                         else if (callback != null)
                         {
+                            if (Visible)
+                            {
+                                BeginInvoke((MethodInvoker)delegate
+                                {
+                                    m_Core.Config.CheckUpdate_UpdateAvailable = false;
+                                    m_Core.Config.CheckUpdate_UpdateResponse = "";
+                                    SetNoUpdate();
+                                });
+                            }
                             result = UpdateResult.Latest;
                         }
                     }
