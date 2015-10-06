@@ -1368,12 +1368,14 @@ void WrappedVulkan::AddEvent(VulkanChunkType type, string description)
 	}
 
 	if(m_LastCmdBufferID != ResourceId())
+	{
 		m_CmdBufferInfo[m_LastCmdBufferID].curEvents.push_back(apievent);
+	}
 	else
+	{
 		m_RootEvents.push_back(apievent);
-
-	if(m_State == READING && m_CmdBuffersInProgress == 0)
 		m_Events.push_back(apievent);
+	}
 }
 
 FetchAPIEvent WrappedVulkan::GetEvent(uint32_t eventID)
