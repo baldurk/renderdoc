@@ -28,8 +28,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 {
 	ResourceId id = GetResourceManager()->GetID(res);
 
-	RDCDEBUG("Prepare_InitialState %llu", id);
-
 	VkResourceType type = IdentifyTypeByPtr(res);
 	
 	if(type == eResDescriptorSet)
