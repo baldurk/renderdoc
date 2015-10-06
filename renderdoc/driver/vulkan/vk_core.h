@@ -199,6 +199,7 @@ private:
 	// VKTODO all these m_*Info things need to be locked and ensure we only access
 	// them in slow path functions like creation, or just moved elsewhere like inside
 	// the wrapped objects
+	// VKTODOHIGH all of these need to be locked
 	map<ResourceId, MemState> m_MemoryInfo;
 	map<ResourceId, ImgState> m_ImageInfo;
 	map<ResourceId, ResourceId> m_BufferMemBinds;
