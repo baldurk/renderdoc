@@ -876,6 +876,8 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertR
 template<typename WrappedResourceType, typename RealResourceType, typename RecordType>
 void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::PrepareInitialContents()
 {
+	SCOPED_LOCK(m_Lock);
+
 	for(auto it=m_DirtyResources.begin(); it != m_DirtyResources.end(); ++it)
 	{
 		ResourceId id = *it;
