@@ -2216,11 +2216,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			uint32_t rowPitch = srv ? 0 : global.uavs[resIndex].rowPitch;
 			uint32_t depthPitch = srv ? 0 : global.uavs[resIndex].depthPitch;
 
-			if(load && !srv && (fmt.numComps != 1 || fmt.byteWidth != 4))
+			if(load && !srv && !gsm && (fmt.numComps != 1 || fmt.byteWidth != 4))
 			{
 				device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
 						StringFormat::Fmt("Shader debugging %d: %s\n" \
-						"UAV loads aren't supported from anything but 32-bit single channel resources", s.nextInstruction-1, op.str));
+						"UAV loads aren't supported from anything but 32-bit single channel resources", s.nextInstruction-1, op.str.c_str()));
 			}
 
 			if(gsm)
