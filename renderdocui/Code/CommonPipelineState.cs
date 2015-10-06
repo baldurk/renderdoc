@@ -851,13 +851,22 @@ namespace renderdocui.Code
             if (LogLoaded)
             {
                 if (IsLogD3D11)
+                {
                     return m_D3D11.m_OM.DepthTarget.Resource;
+                }
                 else if (IsLogGL)
+                {
                     return m_GL.m_FB.m_DrawFBO.Depth.Obj;
+                }
                 else if (IsLogVK)
-                    return m_Vulkan.Pass.renderpass.depthstencilAttachment >= 0
-                        ? m_Vulkan.Pass.framebuffer.attachments[m_Vulkan.Pass.renderpass.depthstencilAttachment].img
+                {
+                    var rp = m_Vulkan.Pass.renderpass;
+                    var fb = m_Vulkan.Pass.framebuffer;
+
+                    return rp.depthstencilAttachment >= 0 && rp.depthstencilAttachment < fb.attachments.Length
+                        ? fb.attachments[rp.depthstencilAttachment].img
                         : ResourceId.Null;
+                }
             }
 
             return ResourceId.Null;
@@ -868,13 +877,22 @@ namespace renderdocui.Code
             if (LogLoaded)
             {
                 if (IsLogD3D11)
+                {
                     return m_D3D11.m_OM.DepthTarget.Resource;
+                }
                 else if (IsLogGL)
+                {
                     return m_GL.m_FB.m_DrawFBO.Stencil.Obj;
+                }
                 else if (IsLogVK)
-                    return m_Vulkan.Pass.renderpass.depthstencilAttachment >= 0
-                        ? m_Vulkan.Pass.framebuffer.attachments[m_Vulkan.Pass.renderpass.depthstencilAttachment].img
+                {
+                    var rp = m_Vulkan.Pass.renderpass;
+                    var fb = m_Vulkan.Pass.framebuffer;
+
+                    return rp.depthstencilAttachment >= 0 && rp.depthstencilAttachment < fb.attachments.Length
+                        ? fb.attachments[rp.depthstencilAttachment].img
                         : ResourceId.Null;
+                }
             }
 
             return ResourceId.Null;
@@ -906,9 +924,13 @@ namespace renderdocui.Code
                 }
                 else if (IsLogVK)
                 {
-                    ResourceId[] ret = new ResourceId[m_Vulkan.Pass.renderpass.colorAttachments.Length];
-                    for (int i = 0; i < m_Vulkan.Pass.renderpass.colorAttachments.Length; i++)
-                        ret[i] = m_Vulkan.Pass.framebuffer.attachments[m_Vulkan.Pass.renderpass.colorAttachments[i]].img;
+                    var rp = m_Vulkan.Pass.renderpass;
+                    var fb = m_Vulkan.Pass.framebuffer;
+                    ResourceId[] ret = new ResourceId[rp.colorAttachments.Length];
+                    for (int i = 0; i < rp.colorAttachments.Length; i++)
+                        ret[i] = rp.colorAttachments[i] < fb.attachments.Length
+                            ? fb.attachments[rp.colorAttachments[i]].img
+                            : ResourceId.Null;
 
                     return ret;
                 }
