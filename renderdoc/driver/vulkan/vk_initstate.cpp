@@ -382,7 +382,12 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 	
 	if(type == eResDescriptorSet)
 	{
-		RDCERR("Unexpected attempt to create initial state for descriptor set");
+		// VKTODOMED need to create some default initial state for descriptor sets.
+		// if a descriptor set is alloc'd then used in frame we won't have prepared anything,
+		// but likewise all writes must happen within that frame so the initial state doesn't
+		// technically matter. We assume the app doesn't try to read from an uninitialised
+		// descriptor, so for now we can leave the initial state empty.
+		VULKANNOTIMP("Need to create initial state for descriptor set");
 	}
 	else if(type == eResImage)
 	{

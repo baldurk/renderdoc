@@ -363,7 +363,11 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 			// will be invalid with some missing handles. It's safe though to just skip this
 			// update as we only get here if it's never used.
 
-			bool valid = true;
+			// if a set was never bind, it will have been omitted and we just drop any writes to it
+			bool valid = (writeDesc.destSet != VK_NULL_HANDLE);
+
+			if(!valid)
+				return true;
 
 			switch(writeDesc.descriptorType)
 			{
@@ -501,6 +505,9 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 	{
 		if(m_State == WRITING_CAPFRAME)
 		{
+			// don't have to mark referenced any of the resources pointed to by the descriptor set - that's handled
+			// on queue submission by marking ref'd all the current bindings of the sets referenced by the cmd buffer
+
 			for(uint32_t i=0; i < writeCount; i++)
 			{
 				{
@@ -512,9 +519,11 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 					m_FrameCaptureRecord->AddChunk(scope.Get());
 				}
 
-				// don't have to mark referenced any of the resources pointed to by the descriptor set - that's handled
-				// on queue submission by marking ref'd all the current bindings of the sets referenced by the cmd buffer
-				GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorWrites[i].destSet), eFrameRef_Write);
+				// as long as descriptor sets are forced to have initial states, we don't have to mark them ref'd for
+				// write here. The reason being that as long as we only mark them as ref'd when they're actually bound,
+				// we can safely skip the ref here and it means any descriptor set updates of descriptor sets that are
+				// never used in the frame can be ignored.
+				//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorWrites[i].destSet), eFrameRef_Write);
 			}
 
 			for(uint32_t i=0; i < copyCount; i++)
@@ -528,8 +537,12 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 					m_FrameCaptureRecord->AddChunk(scope.Get());
 				}
 				
-				GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].destSet), eFrameRef_Write);
-				GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet), eFrameRef_Read);
+				// as long as descriptor sets are forced to have initial states, we don't have to mark them ref'd for
+				// write here. The reason being that as long as we only mark them as ref'd when they're actually bound,
+				// we can safely skip the ref here and it means any descriptor set updates of descriptor sets that are
+				// never used in the frame can be ignored.
+				//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].destSet), eFrameRef_Write);
+				//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet), eFrameRef_Read);
 			}
 		}
 
