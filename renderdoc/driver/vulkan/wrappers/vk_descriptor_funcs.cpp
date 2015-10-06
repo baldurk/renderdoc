@@ -315,15 +315,12 @@ VkResult WrappedVulkan::vkFreeDescriptorSets(
 	for(uint32_t i=0; i < count; i++)
 		unwrapped[i] = Unwrap(pDescriptorSets[i]);
 
+	for(uint32_t i=0; i < count; i++)
+		GetResourceManager()->ReleaseWrappedResource(pDescriptorSets[i]);
+
 	VkResult ret = ObjDisp(device)->FreeDescriptorSets(Unwrap(device), Unwrap(descriptorPool), count, unwrapped);
 
 	SAFE_DELETE_ARRAY(unwrapped);
-
-	if(ret == VK_SUCCESS)
-	{
-		for(uint32_t i=0; i < count; i++)
-			GetResourceManager()->ReleaseWrappedResource(pDescriptorSets[i]);
-	}
 
 	return ret;
 }

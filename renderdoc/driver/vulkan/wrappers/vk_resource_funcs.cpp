@@ -122,11 +122,12 @@ VkResult WrappedVulkan::vkFreeMemory(
 	// we just need to clean up after ourselves on replay
 	WrappedVkNonDispRes *wrapped = (WrappedVkNonDispRes *)GetWrapped(mem);
 	m_MemoryInfo.erase(wrapped->id);
-	VkResult res = ObjDisp(device)->FreeMemory(Unwrap(device), wrapped->real.As<VkDeviceMemory>());
+
+	VkDeviceMemory unwrappedMem = wrapped->real.As<VkDeviceMemory>();
 
 	GetResourceManager()->ReleaseWrappedResource(mem);
 
-	return res;
+	return ObjDisp(device)->FreeMemory(Unwrap(device), unwrappedMem);
 }
 
 VkResult WrappedVulkan::vkMapMemory(
