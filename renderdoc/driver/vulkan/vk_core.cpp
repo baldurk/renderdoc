@@ -1333,24 +1333,7 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 	{
 		vector<FetchAPIEvent> &srcEvents = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].curEvents : m_RootEvents;
 
-		// VKTODOLOW the whole 'context' filter thing will go away so this will be
-		// a straight copy
-		vector<FetchAPIEvent> evs;
-		evs.reserve(srcEvents.size());
-		for(size_t i=0; i < srcEvents.size(); )
-		{
-			if(srcEvents[i].context == draw.context)
-			{
-				evs.push_back(srcEvents[i]);
-				srcEvents.erase(srcEvents.begin()+i);
-			}
-			else
-			{
-				i++;
-			}
-		}
-
-		draw.events = evs;
+		draw.events = srcEvents; srcEvents.clear();
 	}
 
 	//AddUsage(draw);
