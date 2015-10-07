@@ -867,6 +867,10 @@ namespace renderdocui.Windows
                     if (nl != -1)
                         text = text.Substring(0, nl);
 
+                    nl = text.IndexOf('\r');
+                    if (nl != -1)
+                        text = text.Substring(0, nl);
+
                     m_FindResultsDisplay.Text += String.Format("{0}  {1}({2}): {3}", Environment.NewLine, filename, result.StartingLine.Number + 1, text);
 
                     m_FindResults.Add(new KeyValuePair<ScintillaNET.Scintilla, ScintillaNET.Range>(kv.Key, result));
