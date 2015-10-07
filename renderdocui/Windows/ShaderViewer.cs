@@ -818,6 +818,8 @@ namespace renderdocui.Windows
                 m_FindResultsDisplay.Parent.Show();
             }
 
+            m_FindResults.Clear();
+
             var findResultsByEd = new Dictionary<ScintillaNET.Scintilla, List<ScintillaNET.Range>>();
 
             if (m_FindAll.Regexs)
