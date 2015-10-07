@@ -814,6 +814,7 @@ namespace renderdocui.Windows
             }
             else
             {
+                m_FindResultsDisplay.IsReadOnly = false;
                 m_FindResultsDisplay.Text = "";
                 m_FindResultsDisplay.Parent.Show();
             }
@@ -881,6 +882,8 @@ namespace renderdocui.Windows
 
             m_FindResultsDisplay.Text += String.Format("{0}Matching lines: {1} Matching files: {2} Total files searched: {3}",
                 Environment.NewLine, m_FindResults.Count, fileCount, m_Scintillas.Count - (m_DisassemblyView != null ? 1 : 0));
+
+            m_FindResultsDisplay.IsReadOnly = true;
         }
 
         void findResults_DoubleClick(object sender, EventArgs e)
