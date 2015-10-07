@@ -3253,6 +3253,24 @@ void WrappedID3D11Device::SetResourceName(ID3D11DeviceChild *res, const char *na
 			SCOPED_SERIALISE_CONTEXT(SET_RESOURCE_NAME);
 
 			Serialise_SetResourceName(res, name);
+			
+			// don't serialise many SetResourceName chunks to the
+			// object record, but we can't afford to drop any.
+			record->LockChunks();
+			while(record->HasChunks())
+			{
+				Chunk *end = record->GetLastChunk();
+
+				if(end->GetChunkType() == SET_RESOURCE_NAME)
+				{
+					SAFE_DELETE(end);
+					record->PopChunk();
+					continue;
+				}
+
+				break;
+			}
+			record->UnlockChunks();
 
 			record->AddChunk(scope.Get());
 		}
