@@ -2218,6 +2218,28 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	SerialiseOptionalObject(this, "pEnabledFeatures", (VkPhysicalDeviceFeatures *&)el.pEnabledFeatures);
 }
 
+//template<>
+//class Serialiser::Deserialize : VkDeviceCreateInfo {
+//  public:
+//	~Deserialise()
+//	{
+//		delete ppEnabledExtensionNames;
+//		delete ppEnabledLayerNames;
+//	}
+//}
+
+//template <> class Serialiser::Deserialise<VkDeviceCreateInfo>;
+
+template<>
+Serialiser::Deserialise<VkDeviceCreateInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		delete ppEnabledExtensionNames;
+		delete ppEnabledLayerNames;
+	}
+}
+
 template<>
 void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 {
@@ -2830,6 +2852,13 @@ void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 }
 
 template<>
+Serialiser::Deserialise<VkPipelineLayoutCreateInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+		delete pSetLayouts;
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 {
 	ScopedContext scope(this, name, "VkShaderModuleCreateInfo", 0, true);
@@ -3138,6 +3167,13 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el)
 	{
 		SerialiseObject(VkSampler, "pImmutableSampler", samplers[i]);
 	}
+}
+
+template<>
+Serialiser::Deserialise<VkDescriptorSetLayoutBinding>::~Deserialise()
+{
+	if(m_Mode == READING)
+		delete pImmutableSamplers;
 }
 
 template<>

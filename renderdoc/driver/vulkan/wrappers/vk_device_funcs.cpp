@@ -200,7 +200,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		VkDevice*                                   pDevice)
 {
 	SERIALISE_ELEMENT(ResourceId, physId, GetResID(physicalDevice));
-	SERIALISE_ELEMENT(VkDeviceCreateInfo, createInfo, *pCreateInfo);
+	SERIALISE_ELEMENT_CLASS(VkDeviceCreateInfo, createInfo, *pCreateInfo);
+	//SERIALISE_ELEMENT(VkDeviceCreateInfo, createInfo, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(*pDevice));
 
 	if(m_State == READING)

@@ -34,7 +34,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(
 		VkPipelineLayout*                           pPipelineLayout)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT(VkPipelineLayoutCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT_CLASS(VkPipelineLayoutCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pPipelineLayout));
 
 	if(m_State == READING)
