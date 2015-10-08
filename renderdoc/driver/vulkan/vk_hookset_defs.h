@@ -132,6 +132,7 @@
 	HookInit(CmdCopyImage); \
 	HookInit(CmdBlitImage); \
 	HookInit(CmdResolveImage); \
+	HookInit(CmdUpdateBuffer); \
 	HookInit(CmdClearColorImage); \
 	HookInit(CmdClearDepthStencilImage); \
 	HookInit(CmdClearColorAttachment); \
@@ -258,6 +259,7 @@
 	HookDefine7(void, vkCmdCopyImage, VkCmdBuffer, cmdBuffer, VkImage, srcImage, VkImageLayout, srcImageLayout, VkImage, destImage, VkImageLayout, destImageLayout, uint32_t, regionCount, const VkImageCopy*, pRegions); \
 	HookDefine8(void, vkCmdBlitImage, VkCmdBuffer, cmdBuffer, VkImage, srcImage, VkImageLayout, srcImageLayout, VkImage, destImage, VkImageLayout, destImageLayout, uint32_t, regionCount, const VkImageBlit*, pRegions, VkTexFilter, filter); \
 	HookDefine7(void, vkCmdResolveImage, VkCmdBuffer, cmdBuffer, VkImage, srcImage, VkImageLayout, srcImageLayout, VkImage, destImage, VkImageLayout, destImageLayout, uint32_t, regionCount, const VkImageResolve*, pRegions); \
+	HookDefine5(void, vkCmdUpdateBuffer, VkCmdBuffer, cmdBuffer, VkBuffer, destBuffer, VkDeviceSize, destOffset, VkDeviceSize, dataSize, const uint32_t*, pData); \
 	HookDefine6(void, vkCmdClearColorImage, VkCmdBuffer, cmdBuffer, VkImage, image, VkImageLayout, imageLayout, const VkClearColorValue*, pColor, uint32_t, rangeCount, const VkImageSubresourceRange*, pRanges); \
 	HookDefine7(void, vkCmdClearDepthStencilImage, VkCmdBuffer, cmdBuffer, VkImage, image, VkImageLayout, imageLayout, float, depth, uint32_t, stencil, uint32_t, rangeCount, const VkImageSubresourceRange*, pRanges); \
 	HookDefine6(void, vkCmdClearColorAttachment, VkCmdBuffer, cmdBuffer, uint32_t, colorAttachment, VkImageLayout, imageLayout, const VkClearColorValue*, pColor, uint32_t, rectCount, const VkRect3D*, pRects); \

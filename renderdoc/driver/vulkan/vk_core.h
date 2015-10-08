@@ -1062,6 +1062,13 @@ public:
 			uint32_t                                    regionCount,
 			const VkBufferImageCopy*                    pRegions);
 
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdUpdateBuffer,
+			VkCmdBuffer                                 cmdBuffer,
+			VkBuffer                                    destBuffer,
+			VkDeviceSize                                destOffset,
+			VkDeviceSize                                dataSize,
+			const uint32_t*                             pData);
+
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdClearColorImage,
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     image,

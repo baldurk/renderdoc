@@ -120,6 +120,7 @@ const char *VkChunkNames[] =
 	"vkCmdCopyImage",
 	"vkCmdBlitImage",
 	"vkCmdResolveImage",
+	"vkCmdUpdateBuffer",
 	"vkCmdClearColorImage",
 	"vkCmdClearDepthStencilImage",
 	"vkCmdClearColorAttachment",
@@ -1109,6 +1110,9 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 	case COPY_BUF:
 		Serialise_vkCmdCopyBuffer(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
+		break;
+	case UPDATE_BUF:
+		Serialise_vkCmdUpdateBuffer(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, NULL);
 		break;
 	case CLEAR_COLOR:
 		Serialise_vkCmdClearColorImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
