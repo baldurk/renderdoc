@@ -206,9 +206,8 @@ class OpenGLHook : LibraryHook
 	public:
 		OpenGLHook()
 		{
-			// temp hack
-			if(GetModuleHandleA("vulkan.0.dll") == NULL)
-				LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
+			// VKTODOHIGH temporary hack while GL hooks are crashing vulkan
+			//LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
 
 			m_GLDriver = NULL;
 
