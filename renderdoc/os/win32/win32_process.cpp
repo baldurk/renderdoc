@@ -251,9 +251,33 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 		wcscat_s(paramsAlloc, len, wcmd.c_str());
 	}
 
+	// VKTODOHIGH make this environment string modification more flexible (like linux's
+	// which will account for pre-existing variables and prepend/append). Perhaps
+	// via callbacks registered to API hooks?
+	const wchar_t *myEnv = GetEnvironmentStringsW();
+
+	wstring newEnv;
+
+	// copy up to the terminating "\0\0"
+	while(myEnv[0] != L'\0' || myEnv[1] != L'\0')
+		newEnv.push_back(*(myEnv++));
+	
+	newEnv.push_back(L'\0');
+
+	newEnv += L"VK_LAYER_PATH=";
+	newEnv += dirname(StringFormat::UTF82Wide(FileIO::GetReplayAppFilename()));
+	newEnv.push_back(L'\0');
+
+	newEnv += L"VK_DEVICE_LAYERS=RenderDoc";
+	newEnv.push_back(L'\0');
+	newEnv += L"VK_INSTANCE_LAYERS=RenderDoc";
+	newEnv.push_back(L'\0');
+	
+	newEnv.push_back(L'\0');
+
 	BOOL retValue = CreateProcessW(NULL, paramsAlloc,
-		&pSec, &tSec, false, CREATE_SUSPENDED,
-		NULL, workdir.c_str(), &si, &pi);
+		&pSec, &tSec, false, CREATE_SUSPENDED|CREATE_UNICODE_ENVIRONMENT,
+		(void *)newEnv.c_str(), workdir.c_str(), &si, &pi);
 
 	SAFE_DELETE_ARRAY(paramsAlloc);
 
