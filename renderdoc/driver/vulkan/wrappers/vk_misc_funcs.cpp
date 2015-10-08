@@ -499,9 +499,7 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 			const VkFramebufferCreateInfo*              pCreateInfo,
 			VkFramebuffer*                              pFramebuffer)
 {
-	// VKTODOLOW this should be a persistent per-thread array that resizes up
-	// to a high water mark, so we don't have to allocate
-	VkAttachmentBindInfo *unwrapped = new VkAttachmentBindInfo[pCreateInfo->attachmentCount];
+	VkAttachmentBindInfo *unwrapped = GetTempArray<VkAttachmentBindInfo>(pCreateInfo->attachmentCount);
 	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
 	{
 		unwrapped[i] = pCreateInfo->pAttachments[i];
@@ -513,8 +511,6 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 	unwrappedInfo.pAttachments = unwrapped;
 
 	VkResult ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrappedInfo, pFramebuffer);
-
-	SAFE_DELETE_ARRAY(unwrapped);
 
 	if(ret == VK_SUCCESS)
 	{

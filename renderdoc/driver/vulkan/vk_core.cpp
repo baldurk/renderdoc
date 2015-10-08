@@ -412,6 +412,35 @@ const char * WrappedVulkan::GetChunkName(uint32_t idx)
 	return VkChunkNames[idx-FIRST_CHUNK_ID];
 }
 
+byte *WrappedVulkan::GetTempMemory(size_t s)
+{
+	TempMem *mem = (TempMem *)Threading::GetTLSValue(tempMemoryTLSSlot);
+	if(mem && mem->size >= s) return mem->memory;
+
+	// alloc or grow alloc
+	TempMem *newmem = mem;
+
+	if(!newmem) newmem = new TempMem();
+
+	// free old memory, don't need to keep contents
+	if(newmem->memory) delete[] newmem->memory;
+
+	// alloc new memory
+	newmem->size = s;
+	newmem->memory = new byte[s];
+
+	Threading::SetTLSValue(tempMemoryTLSSlot, (void *)newmem);
+
+	// if this is entirely new, save it for deletion on shutdown
+	if(!mem)
+	{
+		SCOPED_LOCK(m_ThreadTempMemLock);
+		m_ThreadTempMem.push_back(newmem);
+	}
+
+	return newmem->memory;
+}
+
 Serialiser *WrappedVulkan::GetThreadSerialiser()
 {
 	Serialiser *ser = (Serialiser *)Threading::GetTLSValue(threadSerialiserTLSSlot);

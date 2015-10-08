@@ -39,10 +39,11 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	VkResult ret = GetInstanceDispatchTable(*pInstance)->CreateInstance(pCreateInfo, &inst);
 
-	// VKTODOHIGH need to deallocate this
+	// VKTODOHIGH need to deallocate these
 	threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
+	tempMemoryTLSSlot = Threading::AllocateTLSSlot();
 
-	// VKTODOHIGH need to deallocate m_ThreadSerialisers
+	// VKTODOHIGH need to deallocate m_ThreadSerialisers and m_ThreadTempMem
 
 	GetResourceManager()->WrapResource(inst, inst);
 

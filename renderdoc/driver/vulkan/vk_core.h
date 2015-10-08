@@ -116,6 +116,16 @@ private:
 
 	Threading::CriticalSection m_ThreadSerialisersLock;
 	vector<Serialiser *> m_ThreadSerialisers;
+
+	uint64_t tempMemoryTLSSlot;
+	struct TempMem
+	{
+		TempMem() : memory(NULL), size(0) {}
+		byte *memory;
+		size_t size;
+	};
+	Threading::CriticalSection m_ThreadTempMemLock;
+	vector<TempMem*> m_ThreadTempMem;
 	
 	VulkanReplay m_Replay;
 
@@ -378,6 +388,10 @@ private:
 	set<ResourceId> m_SubmittedFences;
 		
 	static const char *GetChunkName(uint32_t idx);
+	
+	// returns thread-local temporary memory
+	byte *GetTempMemory(size_t s);
+	template<class T> T *GetTempArray(uint32_t arraycount) { return (T*)GetTempMemory(sizeof(T)*arraycount); }
 	
 	Serialiser *GetThreadSerialiser();
 	Serialiser *GetMainSerialiser() { return m_pSerialiser; }

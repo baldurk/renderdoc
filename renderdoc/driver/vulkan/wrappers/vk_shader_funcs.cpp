@@ -64,18 +64,13 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(
 		const VkPipelineLayoutCreateInfo*           pCreateInfo,
 		VkPipelineLayout*                           pPipelineLayout)
 {
-	// VKTODOLOW this should be a persistent per-thread array that resizes up
-	// to a high water mark, so we don't have to allocate
-	VkDescriptorSetLayout *unwrapped = new VkDescriptorSetLayout[pCreateInfo->descriptorSetCount];
-	for(uint32_t i=0; i < pCreateInfo->descriptorSetCount; i++)
-		unwrapped[i] = Unwrap(pCreateInfo->pSetLayouts[i]);
+	VkDescriptorSetLayout *unwrapped = GetTempArray<VkDescriptorSetLayout>(pCreateInfo->descriptorSetCount);
+	for(uint32_t i=0; i < pCreateInfo->descriptorSetCount; i++) unwrapped[i] = Unwrap(pCreateInfo->pSetLayouts[i]);
 
 	VkPipelineLayoutCreateInfo unwrappedInfo = *pCreateInfo;
 	unwrappedInfo.pSetLayouts = unwrapped;
 
 	VkResult ret = ObjDisp(device)->CreatePipelineLayout(Unwrap(device), &unwrappedInfo, pPipelineLayout);
-
-	SAFE_DELETE_ARRAY(unwrapped);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -378,12 +373,17 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 			const VkGraphicsPipelineCreateInfo*         pCreateInfos,
 			VkPipeline*                                 pPipelines)
 {
-	// VKTODOLOW this should be a persistent per-thread array that resizes up
-	// to a high water mark, so we don't have to allocate
-	VkGraphicsPipelineCreateInfo *unwrappedInfos = new VkGraphicsPipelineCreateInfo[count];
+	// conservatively request memory for 5 stages on each pipeline
+	// (worst case - can't have compute stage). Avoids needing to count
+	byte *unwrapped = GetTempMemory(sizeof(VkGraphicsPipelineCreateInfo)*count + sizeof(VkPipelineShaderStageCreateInfo)*count*5);
+
+	// keep pipelines first in the memory, then the stages
+	VkGraphicsPipelineCreateInfo *unwrappedInfos = (VkGraphicsPipelineCreateInfo *)unwrapped;
+	VkPipelineShaderStageCreateInfo *nextUnwrappedStages = (VkPipelineShaderStageCreateInfo *)(unwrappedInfos + count);
+
 	for(uint32_t i=0; i < count; i++)
 	{
-		VkPipelineShaderStageCreateInfo *unwrappedStages = new VkPipelineShaderStageCreateInfo[pCreateInfos[i].stageCount];
+		VkPipelineShaderStageCreateInfo *unwrappedStages = nextUnwrappedStages; nextUnwrappedStages += pCreateInfos[i].stageCount;
 		for(uint32_t j=0; j < pCreateInfos[i].stageCount; j++)
 		{
 			unwrappedStages[j] = pCreateInfos[i].pStages[j];
@@ -399,10 +399,6 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 
 	VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), count, unwrappedInfos, pPipelines);
 	
-	for(uint32_t i=0; i < count; i++)
-		delete[] unwrappedInfos[i].pStages;
-	SAFE_DELETE_ARRAY(unwrappedInfos);
-
 	if(ret == VK_SUCCESS)
 	{
 		for(uint32_t i=0; i < count; i++)

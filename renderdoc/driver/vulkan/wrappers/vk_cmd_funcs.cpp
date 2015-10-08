@@ -819,15 +819,10 @@ void WrappedVulkan::vkCmdBindDescriptorSets(
 			uint32_t                                    dynamicOffsetCount,
 			const uint32_t*                             pDynamicOffsets)
 {
-	// VKTODOLOW this should be a persistent per-thread array that resizes up
-	// to a high water mark, so we don't have to allocate
-	VkDescriptorSet *unwrapped = new VkDescriptorSet[setCount];
-	for(uint32_t i=0; i < setCount; i++)
-		unwrapped[i] = Unwrap(pDescriptorSets[i]);
+	VkDescriptorSet *unwrapped = GetTempArray<VkDescriptorSet>(setCount);
+	for(uint32_t i=0; i < setCount; i++) unwrapped[i] = Unwrap(pDescriptorSets[i]);
 
 	ObjDisp(cmdBuffer)->CmdBindDescriptorSets(Unwrap(cmdBuffer), pipelineBindPoint, Unwrap(layout), firstSet, setCount, unwrapped, dynamicOffsetCount, pDynamicOffsets);
-
-	SAFE_DELETE_ARRAY(unwrapped);
 
 	if(m_State >= WRITING)
 	{
@@ -1132,15 +1127,10 @@ void WrappedVulkan::vkCmdBindVertexBuffers(
     const VkBuffer*                             pBuffers,
     const VkDeviceSize*                         pOffsets)
 {
-	// VKTODOLOW this should be a persistent per-thread array that resizes up
-	// to a high water mark, so we don't have to allocate
-	VkBuffer *unwrapped = new VkBuffer[bindingCount];
-	for(uint32_t i=0; i < bindingCount; i++)
-		unwrapped[i] = Unwrap(pBuffers[i]);
+	VkBuffer *unwrapped = GetTempArray<VkBuffer>(bindingCount);
+	for(uint32_t i=0; i < bindingCount; i++) unwrapped[i] = Unwrap(pBuffers[i]);
 
 	ObjDisp(cmdBuffer)->CmdBindVertexBuffers(Unwrap(cmdBuffer), startBinding, bindingCount, unwrapped, pOffsets);
-
-	SAFE_DELETE_ARRAY(unwrapped);
 
 	if(m_State >= WRITING)
 	{
@@ -1313,16 +1303,16 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 {
 
 	{
-		// VKTODOLOW this should be a persistent per-thread array that resizes up
-		// to a high water mark, so we don't have to allocate
-		vector<VkImageMemoryBarrier> im;
-		vector<VkBufferMemoryBarrier> buf;
+		// conservatively request memory for worst case to avoid needing to iterate
+		// twice to count
+		byte *memory = GetTempMemory( ( sizeof(void*) + sizeof(VkImageMemoryBarrier) + sizeof(VkBufferMemoryBarrier) )*memBarrierCount);
 
-		// ensure we don't resize while looping so we can take pointers
-		im.reserve(memBarrierCount);
-		buf.reserve(memBarrierCount);
+		VkImageMemoryBarrier *im = (VkImageMemoryBarrier *)memory;
+		VkBufferMemoryBarrier *buf = (VkBufferMemoryBarrier *)(im + memBarrierCount);
 
-		void **unwrappedBarriers = new void*[memBarrierCount];
+		size_t imCount = 0, bufCount = 0;
+		
+		void **unwrappedBarriers = (void **)(buf + memBarrierCount);
 
 		for(uint32_t i=0; i < memBarrierCount; i++)
 		{
@@ -1330,17 +1320,21 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 
 			if(header->sType == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
 			{
-				VkImageMemoryBarrier barrier = *(VkImageMemoryBarrier *)header;
+				VkImageMemoryBarrier &barrier = im[imCount];
+				barrier = *(VkImageMemoryBarrier *)header;
 				barrier.image = Unwrap(barrier.image);
-				im.push_back(barrier);
-				unwrappedBarriers[i] = &im.back();
+				unwrappedBarriers[i] = &im[imCount];
+
+				imCount++;
 			}
 			else if(header->sType == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER)
 			{
-				VkBufferMemoryBarrier barrier = *(VkBufferMemoryBarrier *)header;
+				VkBufferMemoryBarrier &barrier = buf[bufCount];
+				barrier = *(VkBufferMemoryBarrier *)header;
 				barrier.buffer = Unwrap(barrier.buffer);
-				buf.push_back(barrier);
-				unwrappedBarriers[i] = &buf.back();
+				unwrappedBarriers[i] = &buf[bufCount];
+
+				bufCount++;
 			}
 			else
 			{
@@ -1349,8 +1343,6 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 		}
 
 		ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), srcStageMask, destStageMask, byRegion, memBarrierCount, unwrappedBarriers);
-
-		SAFE_DELETE_ARRAY(unwrappedBarriers);
 	}
 
 	if(m_State >= WRITING)

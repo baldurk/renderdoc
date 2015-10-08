@@ -139,16 +139,24 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 		const VkDescriptorSetLayoutCreateInfo*      pCreateInfo,
 		VkDescriptorSetLayout*                      pSetLayout)
 {
-	// VKTODOLOW this should be a persistent per-thread array that resizes up
-	// to a high water mark, so we don't have to allocate
-	VkDescriptorSetLayoutBinding *unwrapped = new VkDescriptorSetLayoutBinding[pCreateInfo->count];
+	size_t tempmemSize = sizeof(VkDescriptorSetLayoutBinding)*pCreateInfo->count;
+	
+	// need to count how many VkSampler arrays to allocate for
+	for(uint32_t i=0; i < pCreateInfo->count; i++)
+		if(pCreateInfo->pBinding[i].pImmutableSamplers) tempmemSize += pCreateInfo->pBinding[i].arraySize;
+
+	byte *memory = GetTempMemory(tempmemSize);
+
+	VkDescriptorSetLayoutBinding *unwrapped = (VkDescriptorSetLayoutBinding *)memory;
+	VkSampler *nextSampler = (VkSampler *)(unwrapped + pCreateInfo->count);
+
 	for(uint32_t i=0; i < pCreateInfo->count; i++)
 	{
 		unwrapped[i] = pCreateInfo->pBinding[i];
 
 		if(unwrapped[i].pImmutableSamplers)
 		{
-			VkSampler *unwrappedSamplers = new VkSampler[unwrapped[i].arraySize];
+			VkSampler *unwrappedSamplers = nextSampler; nextSampler += unwrapped[i].arraySize;
 			for(uint32_t j=0; j < unwrapped[i].arraySize; j++)
 				unwrappedSamplers[j] = Unwrap(unwrapped[i].pImmutableSamplers[j]);
 			unwrapped[i].pImmutableSamplers = unwrappedSamplers;
@@ -158,10 +166,6 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 	VkDescriptorSetLayoutCreateInfo unwrappedInfo = *pCreateInfo;
 	unwrappedInfo.pBinding = unwrapped;
 	VkResult ret = ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), &unwrappedInfo, pSetLayout);
-	
-	for(uint32_t i=0; i < pCreateInfo->count; i++)
-		delete[] unwrapped[i].pImmutableSamplers;
-	SAFE_DELETE_ARRAY(unwrapped);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -245,15 +249,10 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 		VkDescriptorSet*                            pDescriptorSets,
 		uint32_t*                                   pCount)
 {
-	// VKTODOLOW this should be a persistent per-thread array that resizes up
-	// to a high water mark, so we don't have to allocate
-	VkDescriptorSetLayout *unwrapped = new VkDescriptorSetLayout[count];
-	for(uint32_t i=0; i < count; i++)
-		unwrapped[i] = Unwrap(pSetLayouts[i]);
+	VkDescriptorSetLayout *unwrapped = GetTempArray<VkDescriptorSetLayout>(count);
+	for(uint32_t i=0; i < count; i++) unwrapped[i] = Unwrap(pSetLayouts[i]);
 
 	VkResult ret = ObjDisp(device)->AllocDescriptorSets(Unwrap(device), Unwrap(descriptorPool), setUsage, count, unwrapped, pDescriptorSets, pCount);
-
-	SAFE_DELETE_ARRAY(unwrapped);
 	
 	RDCASSERT(pCount == NULL || *pCount == count); // VKTODOMED: find out what *pCount < count means
 
@@ -309,11 +308,8 @@ VkResult WrappedVulkan::vkFreeDescriptorSets(
     uint32_t                                    count,
     const VkDescriptorSet*                      pDescriptorSets)
 {
-	// VKTODOLOW this should be a persistent per-thread array that resizes up
-	// to a high water mark, so we don't have to allocate
-	VkDescriptorSet *unwrapped = new VkDescriptorSet[count];
-	for(uint32_t i=0; i < count; i++)
-		unwrapped[i] = Unwrap(pDescriptorSets[i]);
+	VkDescriptorSet *unwrapped = GetTempArray<VkDescriptorSet>(count);
+	for(uint32_t i=0; i < count; i++) unwrapped[i] = Unwrap(pDescriptorSets[i]);
 
 	for(uint32_t i=0; i < count; i++)
 		GetResourceManager()->ReleaseWrappedResource(pDescriptorSets[i]);
@@ -451,27 +447,24 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 	VkResult ret = VK_SUCCESS;
 	
 	{
-		// VKTODOLOW this should be a persistent per-thread array that resizes up
-		// to a high water mark, so we don't have to allocate
-		vector<VkDescriptorInfo> desc;
-
+		// need to count up number of descriptor infos, to be able to alloc enough space
 		uint32_t numInfos = 0;
 		for(uint32_t i=0; i < writeCount; i++) numInfos += pDescriptorWrites[i].count;
-
-		// ensure we don't resize while looping so we can take pointers
-		desc.resize(numInfos);
-
-		VkWriteDescriptorSet *unwrappedWrites = new VkWriteDescriptorSet[writeCount];
-		VkCopyDescriptorSet *unwrappedCopies = new VkCopyDescriptorSet[copyCount];
 		
-		uint32_t curInfo = 0;
+		byte *memory = GetTempMemory(sizeof(VkDescriptorInfo)*numInfos +
+			sizeof(VkWriteDescriptorSet)*writeCount + sizeof(VkCopyDescriptorSet)*copyCount);
+
+		VkWriteDescriptorSet *unwrappedWrites = (VkWriteDescriptorSet *)memory;
+		VkCopyDescriptorSet *unwrappedCopies = (VkCopyDescriptorSet *)(unwrappedWrites + writeCount);
+		VkDescriptorInfo *nextDescriptors = (VkDescriptorInfo *)(unwrappedCopies + copyCount);
+		
 		for(uint32_t i=0; i < writeCount; i++)
 		{
 			unwrappedWrites[i] = pDescriptorWrites[i];
 			unwrappedWrites[i].destSet = Unwrap(unwrappedWrites[i].destSet);
 
-			VkDescriptorInfo *unwrappedInfos = &desc[curInfo];
-			curInfo += pDescriptorWrites[i].count;
+			VkDescriptorInfo *unwrappedInfos = nextDescriptors;
+			nextDescriptors += pDescriptorWrites[i].count;
 
 			for(uint32_t j=0; j < pDescriptorWrites[i].count; j++)
 			{
@@ -493,9 +486,6 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 		}
 
 		ret = ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), writeCount, unwrappedWrites, copyCount, unwrappedCopies);
-		
-		SAFE_DELETE_ARRAY(unwrappedWrites);
-		SAFE_DELETE_ARRAY(unwrappedCopies);
 	}
 
 	if(ret == VK_SUCCESS)

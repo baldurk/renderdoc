@@ -325,15 +325,10 @@ VkResult WrappedVulkan::vkQueueSubmit(
     const VkCmdBuffer*                          pCmdBuffers,
     VkFence                                     fence)
 {
-	// VKTODOLOW this should be a persistent per-thread array that resizes up
-	// to a high water mark, so we don't have to allocate
-	VkCmdBuffer *unwrapped = new VkCmdBuffer[cmdBufferCount];
-	for(uint32_t i=0; i < cmdBufferCount; i++)
-		unwrapped[i] = Unwrap(pCmdBuffers[i]);
+	VkCmdBuffer *unwrapped = GetTempArray<VkCmdBuffer>(cmdBufferCount);
+	for(uint32_t i=0; i < cmdBufferCount; i++) unwrapped[i] = Unwrap(pCmdBuffers[i]);
 
 	VkResult ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), cmdBufferCount, unwrapped, Unwrap(fence));
-
-	SAFE_DELETE_ARRAY(unwrapped);
 
 	// VKTODOHIGH when maps are intercepted with local buffers, this will have to be
 	// done when not in capframe :(.
