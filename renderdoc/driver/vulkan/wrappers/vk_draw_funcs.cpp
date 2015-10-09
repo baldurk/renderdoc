@@ -27,16 +27,16 @@
 bool WrappedVulkan::Serialise_vkCmdDraw(
 	Serialiser*    localSerialiser,
 	VkCmdBuffer cmdBuffer,
-	uint32_t       firstVertex,
 	uint32_t       vertexCount,
-	uint32_t       firstInstance,
-	uint32_t       instanceCount)
+	uint32_t       instanceCount,
+	uint32_t       firstVertex,
+	uint32_t       firstInstance)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
-	SERIALISE_ELEMENT(uint32_t, firstVtx, firstVertex);
 	SERIALISE_ELEMENT(uint32_t, vtxCount, vertexCount);
-	SERIALISE_ELEMENT(uint32_t, firstInst, firstInstance);
 	SERIALISE_ELEMENT(uint32_t, instCount, instanceCount);
+	SERIALISE_ELEMENT(uint32_t, firstVtx, firstVertex);
+	SERIALISE_ELEMENT(uint32_t, firstInst, firstInstance);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -46,14 +46,14 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
-			ObjDisp(cmdBuffer)->CmdDraw(Unwrap(cmdBuffer), firstVtx, vtxCount, firstInst, instCount);
+			ObjDisp(cmdBuffer)->CmdDraw(Unwrap(cmdBuffer), vtxCount, instCount, firstVtx, firstInst);
 		}
 	}
 	else if(m_State == READING)
 	{
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
-		ObjDisp(cmdBuffer)->CmdDraw(Unwrap(cmdBuffer), firstVtx, vtxCount, firstInst, instCount);
+		ObjDisp(cmdBuffer)->CmdDraw(Unwrap(cmdBuffer), vtxCount, instCount, firstVtx, firstInst);
 
 		const string desc = localSerialiser->GetDebugStr();
 
@@ -82,12 +82,12 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 
 void WrappedVulkan::vkCmdDraw(
 	VkCmdBuffer cmdBuffer,
-	uint32_t       firstVertex,
 	uint32_t       vertexCount,
-	uint32_t       firstInstance,
-	uint32_t       instanceCount)
+	uint32_t       instanceCount,
+	uint32_t       firstVertex,
+	uint32_t       firstInstance)
 {
-	ObjDisp(cmdBuffer)->CmdDraw(Unwrap(cmdBuffer), firstVertex, vertexCount, firstInstance, instanceCount);
+	ObjDisp(cmdBuffer)->CmdDraw(Unwrap(cmdBuffer), vertexCount, instanceCount, firstVertex, firstInstance);
 
 	if(m_State >= WRITING)
 	{
@@ -96,7 +96,7 @@ void WrappedVulkan::vkCmdDraw(
 		CACHE_THREAD_SERIALISER();
 
 		SCOPED_SERIALISE_CONTEXT(DRAW);
-		Serialise_vkCmdDraw(localSerialiser, cmdBuffer, firstVertex, vertexCount, firstInstance, instanceCount);
+		Serialise_vkCmdDraw(localSerialiser, cmdBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 
 		record->AddChunk(scope.Get());
 	}
@@ -899,18 +899,18 @@ void WrappedVulkan::vkCmdClearDepthStencilAttachment(
 bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 	Serialiser*    localSerialiser,
 	VkCmdBuffer cmdBuffer,
-	uint32_t       firstIndex,
 	uint32_t       indexCount,
+	uint32_t       instanceCount,
+	uint32_t       firstIndex,
 	int32_t        vertexOffset,
-	uint32_t       firstInstance,
-	uint32_t       instanceCount)
+	uint32_t       firstInstance)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
-	SERIALISE_ELEMENT(uint32_t, firstIdx, firstIndex);
 	SERIALISE_ELEMENT(uint32_t, idxCount, indexCount);
-	SERIALISE_ELEMENT(int32_t, vtxOffs, vertexOffset);
-	SERIALISE_ELEMENT(uint32_t, firstInst, firstInstance);
 	SERIALISE_ELEMENT(uint32_t, instCount, instanceCount);
+	SERIALISE_ELEMENT(uint32_t, firstIdx, firstIndex);
+	SERIALISE_ELEMENT(int32_t,  vtxOffs, vertexOffset);
+	SERIALISE_ELEMENT(uint32_t, firstInst, firstInstance);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -920,14 +920,14 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
-			ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), firstIdx, idxCount, vtxOffs, firstInst, instCount);
+			ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
 		}
 	}
 	else if(m_State == READING)
 	{
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
-		ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), firstIdx, idxCount, vtxOffs, firstInst, instCount);
+		ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
 
 		const string desc = localSerialiser->GetDebugStr();
 
@@ -956,13 +956,13 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 
 void WrappedVulkan::vkCmdDrawIndexed(
 	VkCmdBuffer cmdBuffer,
-	uint32_t       firstIndex,
 	uint32_t       indexCount,
+	uint32_t       instanceCount,
+	uint32_t       firstIndex,
 	int32_t        vertexOffset,
-	uint32_t       firstInstance,
-	uint32_t       instanceCount)
+	uint32_t       firstInstance)
 {
-	ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), firstIndex, indexCount, vertexOffset, firstInstance, instanceCount);
+	ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 
 	if(m_State >= WRITING)
 	{
@@ -971,7 +971,7 @@ void WrappedVulkan::vkCmdDrawIndexed(
 		CACHE_THREAD_SERIALISER();
 
 		SCOPED_SERIALISE_CONTEXT(DRAW_INDEXED);
-		Serialise_vkCmdDrawIndexed(localSerialiser, cmdBuffer, firstIndex, indexCount, vertexOffset, firstInstance, instanceCount);
+		Serialise_vkCmdDrawIndexed(localSerialiser, cmdBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 
 		record->AddChunk(scope.Get());
 	}

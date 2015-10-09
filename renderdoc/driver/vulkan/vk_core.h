@@ -946,18 +946,18 @@ public:
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDraw,
 			VkCmdBuffer                                 cmdBuffer,
-			uint32_t                                    firstVertex,
 			uint32_t                                    vertexCount,
-			uint32_t                                    firstInstance,
-			uint32_t                                    instanceCount);
+			uint32_t                                    instanceCount,
+			uint32_t                                    firstVertex,
+			uint32_t                                    firstInstance);
 	
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndexed,
 			VkCmdBuffer                                 cmdBuffer,
-			uint32_t                                    firstIndex,
 			uint32_t                                    indexCount,
+			uint32_t                                    instanceCount,
+			uint32_t                                    firstIndex,
 			int32_t                                     vertexOffset,
-			uint32_t                                    firstInstance,
-			uint32_t                                    instanceCount);
+			uint32_t                                    firstInstance);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndirect,
 			VkCmdBuffer                                 cmdBuffer,

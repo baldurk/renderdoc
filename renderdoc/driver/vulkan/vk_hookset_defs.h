@@ -179,8 +179,8 @@
 	HookDefine3(VkResult, vkCreateImage, VkDevice, device, const VkImageCreateInfo*, pCreateInfo, VkImage*, pImage); \
 	HookDefine2(void, vkDestroyImage, VkDevice, device, VkImage, image); \
 	HookDefine4(VkResult, vkGetImageSubresourceLayout, VkDevice, device, VkImage, image, const VkImageSubresource*, pSubresource, VkSubresourceLayout*, pLayout); \
-	HookDefine3(VkResult, vkGetBufferMemoryRequirements, VkDevice, device, VkBuffer, buffer, VkMemoryRequirements*, VkMemoryRequirements); \
-	HookDefine3(VkResult, vkGetImageMemoryRequirements, VkDevice, device, VkImage, image, VkMemoryRequirements*, VkMemoryRequirements); \
+	HookDefine3(VkResult, vkGetBufferMemoryRequirements, VkDevice, device, VkBuffer, buffer, VkMemoryRequirements*, pMemoryRequirements); \
+	HookDefine3(VkResult, vkGetImageMemoryRequirements, VkDevice, device, VkImage, image, VkMemoryRequirements*, pMemoryRequirements); \
 	HookDefine3(VkResult, vkCreateImageView, VkDevice, device, const VkImageViewCreateInfo*, pCreateInfo, VkImageView*, pView); \
 	HookDefine2(void, vkDestroyImageView, VkDevice, device, VkImageView, imageView); \
 	HookDefine3(VkResult, vkCreateShader, VkDevice, device, const VkShaderCreateInfo*, pCreateInfo, VkShader*, pShader); \
@@ -233,8 +233,8 @@
 	HookDefine8(void, vkCmdBindDescriptorSets, VkCmdBuffer, cmdBuffer, VkPipelineBindPoint, pipelineBindPoint, VkPipelineLayout, layout, uint32_t, firstSet, uint32_t, setCount, const VkDescriptorSet*, pDescriptorSets, uint32_t, dynamicOffsetCount, const uint32_t*, pDynamicOffsets); \
 	HookDefine4(void, vkCmdBindIndexBuffer, VkCmdBuffer, cmdBuffer, VkBuffer, buffer, VkDeviceSize, offset, VkIndexType, indexType); \
 	HookDefine5(void, vkCmdBindVertexBuffers, VkCmdBuffer, cmdBuffer, uint32_t, startBinding, uint32_t, bindingCount, const VkBuffer*, pBuffers, const VkDeviceSize*, pOffsets); \
-	HookDefine5(void, vkCmdDraw, VkCmdBuffer, cmdBuffer, uint32_t, firstVertex, uint32_t, vertexCount, uint32_t, firstInstance, uint32_t, instanceCount); \
-	HookDefine6(void, vkCmdDrawIndexed, VkCmdBuffer, cmdBuffer, uint32_t, firstIndex, uint32_t, indexCount, int32_t, vertexOffset, uint32_t, firstInstance, uint32_t, instanceCount); \
+	HookDefine5(void, vkCmdDraw, VkCmdBuffer, cmdBuffer, uint32_t, vertexCount, uint32_t, instanceCount, uint32_t, firstVertex, uint32_t, firstInstance); \
+	HookDefine6(void, vkCmdDrawIndexed, VkCmdBuffer, cmdBuffer, uint32_t, indexCount, uint32_t, instanceCount, uint32_t, firstIndex, int32_t, vertexOffset, uint32_t, firstInstance); \
 	HookDefine5(void, vkCmdDrawIndirect, VkCmdBuffer, cmdBuffer, VkBuffer, buffer, VkDeviceSize, offset, uint32_t, count, uint32_t, stride); \
 	HookDefine5(void, vkCmdDrawIndexedIndirect, VkCmdBuffer, cmdBuffer, VkBuffer, buffer, VkDeviceSize, offset, uint32_t, count, uint32_t, stride); \
 	HookDefine4(void, vkCmdDispatch, VkCmdBuffer, cmdBuffer, uint32_t, x, uint32_t, y, uint32_t, z); \
@@ -249,7 +249,7 @@
 	HookDefine6(void, vkCmdClearColorImage, VkCmdBuffer, cmdBuffer, VkImage, image, VkImageLayout, imageLayout, const VkClearColorValue*, pColor, uint32_t, rangeCount, const VkImageSubresourceRange*, pRanges); \
 	HookDefine6(void, vkCmdClearDepthStencilImage, VkCmdBuffer, cmdBuffer, VkImage, image, VkImageLayout, imageLayout, const VkClearDepthStencilValue*, pDepthStencil, uint32_t, rangeCount, const VkImageSubresourceRange*, pRanges); \
 	HookDefine6(void, vkCmdClearColorAttachment, VkCmdBuffer, cmdBuffer, uint32_t, colorAttachment, VkImageLayout, imageLayout, const VkClearColorValue*, pColor, uint32_t, rectCount, const VkRect3D*, pRects); \
-	HookDefine6(void, vkCmdClearDepthStencilAttachment, VkCmdBuffer, cmdBuffer, VkImageAspectFlags, imageAspectMask, VkImageLayout, imageLayout, const VkClearDepthStencilValue*, pDepthStencil, uint32_t, rectCount, const VkRect3D*, pRects); \
+	HookDefine6(void, vkCmdClearDepthStencilAttachment, VkCmdBuffer, cmdBuffer, VkImageAspectFlags, aspectMask, VkImageLayout, imageLayout, const VkClearDepthStencilValue*, pDepthStencil, uint32_t, rectCount, const VkRect3D*, pRects); \
 	HookDefine6(void, vkCmdPipelineBarrier, VkCmdBuffer, cmdBuffer, VkPipelineStageFlags, srcStageMask, VkPipelineStageFlags, destStageMask, VkBool32, byRegion, uint32_t, memBarrierCount, const void* const*, ppMemBarriers); \
 	HookDefine4(void, vkCmdBeginQuery, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, slot, VkQueryControlFlags, flags); \
 	HookDefine3(void, vkCmdEndQuery, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, slot); \

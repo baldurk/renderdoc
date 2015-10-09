@@ -1013,7 +1013,7 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 
 		// VKTODOMED strip + instance ID doesn't seem to work atm? instance ID comes through 0
 		// for now, do lists, but want to change back 
-		vt->CmdDraw(Unwrap(textstate.cmd), 0, 6*(uint32_t)strlen(text), 0, 1);
+		vt->CmdDraw(Unwrap(textstate.cmd), 6*(uint32_t)strlen(text), 1, 0, 0);
 		vt->CmdEndRenderPass(Unwrap(textstate.cmd));
 	}
 

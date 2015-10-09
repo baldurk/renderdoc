@@ -795,7 +795,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 		VkViewport viewport = { 0.0f, 0.0f, (float)outw.width, (float)outw.height, 0.0f, 1.0f };
 		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 
-		vt->CmdDraw(Unwrap(cmd), 0, 4, 0, 1);
+		vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 		vt->CmdEndRenderPass(Unwrap(cmd));
 	}
 
@@ -863,8 +863,8 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)outw.width, (float)outw.height, 0.0f, 1.0f };
 		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
-
-		vt->CmdDraw(Unwrap(cmd), 0, 4, 0, 1);
+		
+		vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 		vt->CmdEndRenderPass(Unwrap(cmd));
 	}
 
@@ -932,8 +932,8 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 
 		VkDeviceSize zero = 0;
 		vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_OutlineStripVBO.buf), &zero);
-
-		vt->CmdDraw(Unwrap(cmd), 0, 8, 0, 1);
+		
+		vt->CmdDraw(Unwrap(cmd), 8, 1, 0, 0);
 
 		genericuniforms secondOutline;
 		secondOutline.Offset = Vec4f(-xpixdim, ypixdim, 0.0f, 0.0f);
@@ -941,8 +941,8 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 		secondOutline.Color = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
 
 		vt->CmdUpdateBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_GenericUBO.buf), 0, sizeof(genericuniforms), (uint32_t *)&secondOutline);
-
-		vt->CmdDraw(Unwrap(cmd), 0, 8, 0, 1);
+		
+		vt->CmdDraw(Unwrap(cmd), 8, 1, 0, 0);
 
 		vt->CmdEndRenderPass(Unwrap(cmd));
 	}
