@@ -35,7 +35,7 @@
 #undef CreateSemaphore
 #endif
 
-#include "vk_layer.h"
+#include <vulkan/vk_layer.h>
 
 #if defined(WIN32)
 
