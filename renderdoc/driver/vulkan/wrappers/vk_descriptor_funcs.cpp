@@ -99,7 +99,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 		VkDescriptorSetLayout*                      pSetLayout)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT(VkDescriptorSetLayoutCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT_CLASS(VkDescriptorSetLayoutCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pSetLayout));
 
 	// this creation info is needed at capture time (for creating/updating descriptor set bindings)
