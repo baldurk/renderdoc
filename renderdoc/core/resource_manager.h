@@ -235,6 +235,11 @@ struct ResourceRecord
 		return DataPtr + DataOffset;
 	}
 
+	bool HasDataPtr()
+	{
+		return DataPtr != NULL;
+	}
+
 	void SetDataOffset(uint64_t offs)
 	{
 		DataOffset = offs;

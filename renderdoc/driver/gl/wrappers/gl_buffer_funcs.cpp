@@ -475,7 +475,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 		RDCASSERT(record);
 		
 		// detect buffer orphaning and just update backing store
-		if(m_State == WRITING_IDLE && record->GetDataPtr() != NULL && size == record->Length && usage == record->usage)
+		if(m_State == WRITING_IDLE && record->HasDataPtr() && size == record->Length && usage == record->usage)
 		{
 			if(data)
 				memcpy(record->GetDataPtr(), data, (size_t)size);
@@ -492,7 +492,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 		// data, but we don't support (if it's even possible) querying out size etc.
 		// we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
 		// and this buffer storage. All other chunks have no effect
-		if(m_State == WRITING_IDLE && (record->GetDataPtr() != NULL || (record->Length > 0 && size != record->Length)))
+		if(m_State == WRITING_IDLE && (record->HasDataPtr() || (record->Length > 0 && size != record->Length)))
 		{
 			// we need to maintain chunk ordering, so fetch the first two chunk IDs.
 			// We should have at least two by this point - glGenBuffers and whatever gave the record
@@ -551,7 +551,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 		// the frame record so we can 'update' the buffer as it goes in the frame.
 		// if we haven't created the buffer at all, it could be a mid-frame create and we
 		// should place it in the resource record, to happen before the frame.
-		if(m_State == WRITING_CAPFRAME && record->GetDataPtr())
+		if(m_State == WRITING_CAPFRAME && record->HasDataPtr())
 		{
 			// we could perhaps substitute this for a 'fake' glBufferSubData chunk?
 			m_ContextRecord->AddChunk(chunk);
@@ -601,7 +601,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 		RDCASSERT(record);
 
 		// detect buffer orphaning and just update backing store
-		if(m_State == WRITING_IDLE && record->GetDataPtr() != NULL && size == record->Length && usage == record->usage)
+		if(m_State == WRITING_IDLE && record->HasDataPtr() && size == record->Length && usage == record->usage)
 		{
 			if(data)
 				memcpy(record->GetDataPtr(), data, (size_t)size);
@@ -620,7 +620,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 		// data, but we don't support (if it's even possible) querying out size etc.
 		// we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
 		// and this buffer storage. All other chunks have no effect
-		if(m_State == WRITING_IDLE && (record->GetDataPtr() != NULL || (record->Length > 0 && size != record->Length)))
+		if(m_State == WRITING_IDLE && (record->HasDataPtr() || (record->Length > 0 && size != record->Length)))
 		{
 			// we need to maintain chunk ordering, so fetch the first two chunk IDs.
 			// We should have at least two by this point - glGenBuffers and whatever gave the record
