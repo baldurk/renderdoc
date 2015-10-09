@@ -32,7 +32,7 @@
 #undef CreateSemaphore
 #endif
 
-#include <vulkan/vk_layer.h>
+#include <vk_layer.h>
 
 void InitReplayTables();
 void InitDeviceReplayTables(VkDevice device);

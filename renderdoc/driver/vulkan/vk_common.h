@@ -54,11 +54,11 @@
 #include <xcb/xcb.h>
 #endif
 
-#include <vulkan/vulkan.h>
-#include <vulkan/vk_debug_marker_lunarg.h>
-#include <vulkan/vk_debug_report_lunarg.h>
-#include <vulkan/vk_ext_khr_swapchain.h>
-#include <vulkan/vk_ext_khr_device_swapchain.h>
+#include <vulkan.h>
+#include <vk_debug_marker_lunarg.h>
+#include <vk_debug_report_lunarg.h>
+#include <vk_ext_khr_swapchain.h>
+#include <vk_ext_khr_device_swapchain.h>
 
 #include "api/replay/renderdoc_replay.h"
 
