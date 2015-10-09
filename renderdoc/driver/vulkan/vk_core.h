@@ -351,7 +351,7 @@ private:
 			VkDeviceMemory mem;
 			VkImage im;
 
-			VkAttachmentView view;
+			VkImageView view;
 			VkFramebuffer fb;
 		};
 		vector<SwapImage> images;
@@ -731,15 +731,6 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyImageView,
 			VkDevice                                    device,
 			VkImageView                                 view);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateAttachmentView,
-			VkDevice                                    device,
-			const VkAttachmentViewCreateInfo*           pCreateInfo,
-			VkAttachmentView*                           pView);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyAttachmentView,
-			VkDevice                                    device,
-			VkAttachmentView                            view);
 
 	// Shader functions
 	

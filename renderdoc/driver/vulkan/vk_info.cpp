@@ -172,12 +172,7 @@ void VulkanCreationInfo::Framebuffer::Init(const VkFramebufferCreateInfo* pCreat
 
 	attachments.resize(pCreateInfo->attachmentCount);
 	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
-		attachments[i].view = VKMGR()->GetNonDispWrapper(pCreateInfo->pAttachments[i].view)->id;
-}
-
-void VulkanCreationInfo::AttachmentView::Init(const VkAttachmentViewCreateInfo* pCreateInfo)
-{
-	image = VKMGR()->GetNonDispWrapper(pCreateInfo->image)->id;
+		attachments[i].view = VKMGR()->GetNonDispWrapper(pCreateInfo->pAttachments[i])->id;
 }
 
 void VulkanCreationInfo::BufferView::Init(const VkBufferViewCreateInfo* pCreateInfo)

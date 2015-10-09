@@ -51,7 +51,6 @@ enum VkResourceType
 	eResBufferView,
 	eResImage,
 	eResImageView,
-	eResAttachmentView,
 	eResFramebuffer,
 	eResRenderPass,
 	eResShaderModule,
@@ -288,15 +287,6 @@ struct WrappedVkImageView : WrappedVkNonDispRes
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImageView, AllocPoolCount, AllocPoolMaxByteSize, false);
 	enum { TypeEnum = eResImageView, };
 };
-struct WrappedVkAttachmentView : WrappedVkNonDispRes
-{
-	WrappedVkAttachmentView(VkAttachmentView obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
-	typedef VkAttachmentView InnerType;
-	static const int AllocPoolCount = 128*1024;
-	static const int AllocPoolMaxByteSize = 3*1024*1024;
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkAttachmentView, AllocPoolCount, AllocPoolMaxByteSize, false);
-	enum { TypeEnum = eResAttachmentView, };
-};
 struct WrappedVkShaderModule : WrappedVkNonDispRes
 {
 	WrappedVkShaderModule(VkShaderModule obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
@@ -459,7 +449,6 @@ UNWRAP_NONDISP_HELPER(VkEvent)
 UNWRAP_NONDISP_HELPER(VkQueryPool)
 UNWRAP_NONDISP_HELPER(VkBufferView)
 UNWRAP_NONDISP_HELPER(VkImageView)
-UNWRAP_NONDISP_HELPER(VkAttachmentView)
 UNWRAP_NONDISP_HELPER(VkShaderModule)
 UNWRAP_NONDISP_HELPER(VkShader)
 UNWRAP_NONDISP_HELPER(VkPipelineCache)

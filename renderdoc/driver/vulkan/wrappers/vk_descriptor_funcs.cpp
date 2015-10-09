@@ -381,6 +381,7 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 				}
 				case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
 				case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+				case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
 				{
 					for(uint32_t i=0; i < writeDesc.count; i++)
 						valid &= (writeDesc.pDescriptors[i].imageView != VK_NULL_HANDLE);
@@ -395,12 +396,6 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 				{
 					for(uint32_t i=0; i < writeDesc.count; i++)
 						valid &= (writeDesc.pDescriptors[i].bufferView != VK_NULL_HANDLE);
-					break;
-				}
-				case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-				{
-					for(uint32_t i=0; i < writeDesc.count; i++)
-						valid &= (writeDesc.pDescriptors[i].attachmentView != VK_NULL_HANDLE);
 					break;
 				}
 				default:
@@ -472,7 +467,7 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 				unwrappedInfos[j].bufferView = Unwrap(unwrappedInfos[j].bufferView);
 				unwrappedInfos[j].sampler = Unwrap(unwrappedInfos[j].sampler);
 				unwrappedInfos[j].imageView = Unwrap(unwrappedInfos[j].imageView);
-				unwrappedInfos[j].attachmentView = Unwrap(unwrappedInfos[j].attachmentView);
+				unwrappedInfos[j].bufferInfo.buffer = Unwrap(unwrappedInfos[j].bufferInfo.buffer);
 			}
 			
 			unwrappedWrites[i].pDescriptors = unwrappedInfos;
@@ -587,25 +582,25 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 				{
 					VkDescriptorInfo &bind = binding[pDescriptorWrites[i].destArrayElement + d];
 
-					if(bind.attachmentView != VK_NULL_HANDLE)
-						record->RemoveBindFrameRef(GetResID(bind.attachmentView));
 					if(bind.bufferView != VK_NULL_HANDLE)
 						record->RemoveBindFrameRef(GetResID(bind.bufferView));
 					if(bind.imageView != VK_NULL_HANDLE)
 						record->RemoveBindFrameRef(GetResID(bind.imageView));
 					if(bind.sampler != VK_NULL_HANDLE)
 						record->RemoveBindFrameRef(GetResID(bind.sampler));
+					if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
+						record->RemoveBindFrameRef(GetResID(bind.bufferInfo.buffer));
 
 					bind = pDescriptorWrites[i].pDescriptors[d];
 
-					if(bind.attachmentView != VK_NULL_HANDLE)
-						record->AddBindFrameRef(GetResID(bind.attachmentView), ref);
 					if(bind.bufferView != VK_NULL_HANDLE)
 						record->AddBindFrameRef(GetResID(bind.bufferView), ref);
 					if(bind.imageView != VK_NULL_HANDLE)
 						record->AddBindFrameRef(GetResID(bind.imageView), ref);
 					if(bind.sampler != VK_NULL_HANDLE)
 						record->AddBindFrameRef(GetResID(bind.sampler), ref);
+					if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
+						record->AddBindFrameRef(GetResID(bind.bufferInfo.buffer), ref);
 				}
 			}
 

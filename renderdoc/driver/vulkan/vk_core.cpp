@@ -65,7 +65,6 @@ const char *VkChunkNames[] =
 	"vkCreateBufferView",
 	"vkCreateImage",
 	"vkCreateImageView",
-	"vkCreateAttachmentView",
 	"vkCreateDepthTargetView",
 	"vkCreateDynamicViewportState",
 	"vkCreateDynamicRasterState",
@@ -378,7 +377,7 @@ WrappedVulkan::~WrappedVulkan()
 				//ObjDisp(GetDev())->DestroyFramebuffer(Unwrap(GetDev()), it->second.images[i].fb);
 			
 			//if(it->second.images[i].view != VK_NULL_HANDLE)
-				//ObjDisp(GetDev())->DestroyAttachmentView(Unwrap(GetDev()), it->second.images[i].view);
+				//ObjDisp(GetDev())->DestroyImageView(Unwrap(GetDev()), it->second.images[i].view);
 		}
 
 		//if(it->second.rp != VK_NULL_HANDLE)
@@ -962,9 +961,6 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 	case CREATE_IMAGE_VIEW:
 		Serialise_vkCreateImageView(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
-		break;
-	case CREATE_ATTACHMENT_VIEW:
-		Serialise_vkCreateAttachmentView(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_VIEWPORT_STATE:
 		Serialise_vkCreateDynamicViewportState(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);

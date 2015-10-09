@@ -188,7 +188,7 @@ class VulkanReplay : public IReplayDriver
 			VkImageMemoryBarrier coltrans[8];
 
 			VkImage bb;
-			VkAttachmentView bbview;
+			VkImageView bbview;
 			VkDeviceMemory bbmem;
 			VkImageMemoryBarrier bbtrans;
 			VkFramebuffer fb, fbdepth;
@@ -198,7 +198,7 @@ class VulkanReplay : public IReplayDriver
 
 			VkImage dsimg;
 			VkDeviceMemory dsmem;
-			VkAttachmentView dsview;
+			VkImageView dsview;
 			VkImageMemoryBarrier depthtrans;
 			VkImageMemoryBarrier stenciltrans;
 		};

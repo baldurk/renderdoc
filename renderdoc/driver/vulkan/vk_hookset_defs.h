@@ -65,8 +65,6 @@
 	HookInit(GetImageMemoryRequirements); \
 	HookInit(CreateImageView); \
 	HookInit(DestroyImageView); \
-	HookInit(CreateAttachmentView); \
-	HookInit(DestroyAttachmentView); \
 	HookInit(CreateShader); \
 	HookInit(DestroyShader); \
 	HookInit(CreateShaderModule); \
@@ -192,8 +190,6 @@
 	HookDefine3(VkResult, vkGetImageMemoryRequirements, VkDevice, device, VkImage, image, VkMemoryRequirements*, VkMemoryRequirements); \
 	HookDefine3(VkResult, vkCreateImageView, VkDevice, device, const VkImageViewCreateInfo*, pCreateInfo, VkImageView*, pView); \
 	HookDefine2(VkResult, vkDestroyImageView, VkDevice, device, VkImageView, imageView); \
-	HookDefine3(VkResult, vkCreateAttachmentView, VkDevice, device, const VkAttachmentViewCreateInfo*, pCreateInfo, VkAttachmentView*, pView); \
-	HookDefine2(VkResult, vkDestroyAttachmentView, VkDevice, device, VkAttachmentView, attachmentView); \
 	HookDefine3(VkResult, vkCreateShader, VkDevice, device, const VkShaderCreateInfo*, pCreateInfo, VkShader*, pShader); \
 	HookDefine2(VkResult, vkDestroyShader, VkDevice, device, VkShader, shader); \
 	HookDefine3(VkResult, vkCreateShaderModule, VkDevice, device, const VkShaderModuleCreateInfo*, pCreateInfo, VkShaderModule*, pShaderModule); \

@@ -38,7 +38,6 @@ WRAPPED_POOL_INST(WrappedVkEvent)
 WRAPPED_POOL_INST(WrappedVkQueryPool)
 WRAPPED_POOL_INST(WrappedVkBufferView)
 WRAPPED_POOL_INST(WrappedVkImageView)
-WRAPPED_POOL_INST(WrappedVkAttachmentView)
 WRAPPED_POOL_INST(WrappedVkShaderModule)
 WRAPPED_POOL_INST(WrappedVkShader)
 WRAPPED_POOL_INST(WrappedVkPipelineCache)
@@ -75,7 +74,6 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
 	if(WrappedVkBufferView::IsAlloc(ptr))               return eResBufferView;
 	if(WrappedVkImage::IsAlloc(ptr))                    return eResImage;
 	if(WrappedVkImageView::IsAlloc(ptr))                return eResImageView;
-	if(WrappedVkAttachmentView::IsAlloc(ptr))           return eResAttachmentView;
 	if(WrappedVkFramebuffer::IsAlloc(ptr))              return eResFramebuffer;
 	if(WrappedVkRenderPass::IsAlloc(ptr))               return eResRenderPass;
 	if(WrappedVkShaderModule::IsAlloc(ptr))             return eResShaderModule;

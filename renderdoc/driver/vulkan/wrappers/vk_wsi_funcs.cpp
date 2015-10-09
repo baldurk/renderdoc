@@ -429,13 +429,16 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 					m_ImageInfo[imid].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
 
 					{
-						VkAttachmentViewCreateInfo info = {
+						VkImageViewCreateInfo info = {
 							VK_STRUCTURE_TYPE_ATTACHMENT_VIEW_CREATE_INFO, NULL,
-							Unwrap(images[i].image), pCreateInfo->imageFormat, 0, 0, 1,
-							0
+							Unwrap(images[i].image), VK_IMAGE_VIEW_TYPE_2D,
+							pCreateInfo->imageFormat,
+							{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+							{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
+							0 // flags
 						};
 
-						vkr = vt->CreateAttachmentView(Unwrap(device), &info, &swapImInfo.view);
+						vkr = vt->CreateImageView(Unwrap(device), &info, &swapImInfo.view);
 						RDCASSERT(vkr == VK_SUCCESS);
 
 						GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.view);

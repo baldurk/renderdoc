@@ -117,7 +117,7 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 		fullVP = VK_NULL_HANDLE;
 		
 		vt->DestroyImage(Unwrap(device), Unwrap(bb));
-		vt->DestroyAttachmentView(Unwrap(device), Unwrap(bbview));
+		vt->DestroyImageView(Unwrap(device), Unwrap(bbview));
 		vt->FreeMemory(Unwrap(device), Unwrap(bbmem));
 		vt->DestroyFramebuffer(Unwrap(device), Unwrap(fb));
 		
@@ -133,7 +133,7 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 
 	if(dsimg != VK_NULL_HANDLE)
 	{
-		vt->DestroyAttachmentView(Unwrap(device), Unwrap(dsview));
+		vt->DestroyImageView(Unwrap(device), Unwrap(dsview));
 		vt->DestroyImage(Unwrap(device), Unwrap(dsimg));
 		vt->FreeMemory(Unwrap(device), Unwrap(dsmem));
 		vt->DestroyFramebuffer(Unwrap(device), Unwrap(fbdepth));
@@ -372,12 +372,16 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	}
 
 	{
-		VkAttachmentViewCreateInfo info = {
+		VkImageViewCreateInfo info = {
 			VK_STRUCTURE_TYPE_ATTACHMENT_VIEW_CREATE_INFO, NULL,
-			Unwrap(bb), imformat, 0, 0, 1,
-			0 };
+			Unwrap(bb), VK_IMAGE_VIEW_TYPE_2D,
+			imformat,
+			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
+			0
+		};
 
-		vkr = vt->CreateAttachmentView(Unwrap(device), &info, &bbview);
+		vkr = vt->CreateImageView(Unwrap(device), &info, &bbview);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VKMGR()->WrapResource(Unwrap(device), bbview);
@@ -397,12 +401,16 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 	if(dsimg != VK_NULL_HANDLE)
 	{
-		VkAttachmentViewCreateInfo info = {
+		VkImageViewCreateInfo info = {
 			VK_STRUCTURE_TYPE_ATTACHMENT_VIEW_CREATE_INFO, NULL,
-			Unwrap(dsimg), VK_FORMAT_D32_SFLOAT_S8_UINT, 0, 0, 1,
-			0 };
+			Unwrap(dsimg), VK_IMAGE_VIEW_TYPE_2D,
+			VK_FORMAT_D32_SFLOAT_S8_UINT,
+			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 },
+			0
+		};
 
-		vkr = vt->CreateAttachmentView(Unwrap(device), &info, &dsview);
+		vkr = vt->CreateImageView(Unwrap(device), &info, &dsview);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VKMGR()->WrapResource(Unwrap(device), dsview);
@@ -1556,10 +1564,10 @@ void VulkanReplay::SavePipelineState()
 									dst.bindings[b].binds[a].offset += c.m_BufferView[dst.bindings[b].binds[a].view].offset;
 									dst.bindings[b].binds[a].size = c.m_BufferView[dst.bindings[b].binds[a].view].size;
 								}
-								if(info->attachmentView != VK_NULL_HANDLE)
+								if(info->bufferInfo.buffer != VK_NULL_HANDLE)
 								{
-									dst.bindings[b].binds[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->attachmentView)->id);
-									dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_AttachmentView[dst.bindings[b].binds[a].view].image);
+									dst.bindings[b].binds[a].view = VK_NULL_HANDLE;
+									dst.bindings[b].binds[a].res = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->bufferInfo.buffer)->id);
 								}
 							}
 						}
@@ -1697,7 +1705,7 @@ void VulkanReplay::SavePipelineState()
 				ResourceId viewid = rm->GetOriginalID(c.m_Framebuffer[state.framebuffer].attachments[i].view);
 
 				m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = viewid;
-				m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = rm->GetOriginalID(c.m_AttachmentView[viewid].image);
+				m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = rm->GetOriginalID(c.m_ImageView[viewid].image);
 			}
 
 			m_VulkanPipelineState.Pass.renderArea.x = state.renderArea.offset.x;

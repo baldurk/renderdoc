@@ -251,7 +251,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 				if(writes[i].pDescriptors->bufferView == VK_NULL_HANDLE &&
 						writes[i].pDescriptors->sampler == VK_NULL_HANDLE &&
 						writes[i].pDescriptors->imageView == VK_NULL_HANDLE &&
-						writes[i].pDescriptors->attachmentView == VK_NULL_HANDLE)
+						writes[i].pDescriptors->bufferInfo.buffer == VK_NULL_HANDLE)
 				{
 					valid = false;
 				}
@@ -276,6 +276,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 						}
 						case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
 						case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+						case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
 						{
 							for(uint32_t d=0; d < writes[i].count; d++)
 								valid &= (writes[i].pDescriptors[d].imageView != VK_NULL_HANDLE);
@@ -290,12 +291,6 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 						{
 							for(uint32_t d=0; d < writes[i].count; d++)
 								valid &= (writes[i].pDescriptors[d].bufferView != VK_NULL_HANDLE);
-							break;
-						}
-						case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-						{
-							for(uint32_t d=0; d < writes[i].count; d++)
-								valid &= (writes[i].pDescriptors[d].attachmentView != VK_NULL_HANDLE);
 							break;
 						}
 						default:

@@ -41,7 +41,6 @@ DESTROY_IMPL(VkBuffer, DestroyBuffer)
 DESTROY_IMPL(VkBufferView, DestroyBufferView)
 DESTROY_IMPL(VkImage, DestroyImage)
 DESTROY_IMPL(VkImageView, DestroyImageView)
-DESTROY_IMPL(VkAttachmentView, DestroyAttachmentView)
 DESTROY_IMPL(VkShader, DestroyShader)
 DESTROY_IMPL(VkShaderModule, DestroyShaderModule)
 DESTROY_IMPL(VkPipeline, DestroyPipeline)
@@ -152,9 +151,6 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			break;
 		case eResImageView:
 			vt->DestroyImageView(Unwrap(dev), nondisp->real.As<VkImageView>());
-			break;
-		case eResAttachmentView:
-			vt->DestroyAttachmentView(Unwrap(dev), nondisp->real.As<VkAttachmentView>());
 			break;
 		case eResFramebuffer:
 			vt->DestroyFramebuffer(Unwrap(dev), nondisp->real.As<VkFramebuffer>());

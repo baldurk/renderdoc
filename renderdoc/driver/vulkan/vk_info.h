@@ -194,14 +194,6 @@ struct VulkanCreationInfo
 	};
 	map<ResourceId, ImageView> m_ImageView;
 
-	struct AttachmentView
-	{
-		void Init(const VkAttachmentViewCreateInfo* pCreateInfo);
-
-		ResourceId image;
-	};
-	map<ResourceId, AttachmentView> m_AttachmentView;
-
 	struct DescSetLayout
 	{
 		void Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo);

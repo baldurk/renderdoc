@@ -476,7 +476,6 @@ void VulkanResourceManager::Hack_PropagateReferencesToMemory()
 
 			if(WrappedVkBufferView::IsAlloc(res) ||
 					WrappedVkImageView::IsAlloc(res) ||
-					WrappedVkAttachmentView::IsAlloc(res) ||
 					WrappedVkFramebuffer::IsAlloc(res))
 			{
 				record->MarkParentsReferenced(this, eFrameRef_Read);

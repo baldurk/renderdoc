@@ -87,7 +87,6 @@ template<> void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &e
 template<> void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el);
-template<> void Serialiser::Serialise(const char *name, VkAttachmentViewCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkDynamicViewportStateCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkDynamicRasterStateCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkDynamicColorBlendStateCreateInfo &el);

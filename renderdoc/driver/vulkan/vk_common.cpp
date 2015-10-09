@@ -739,7 +739,6 @@ string ToStrHelper<false, VkResourceType>::Get(const VkResourceType &el)
 		TOSTR_CASE_STRINGIZE(eResBufferView)
 		TOSTR_CASE_STRINGIZE(eResImage)
 		TOSTR_CASE_STRINGIZE(eResImageView)
-		TOSTR_CASE_STRINGIZE(eResAttachmentView)
 		TOSTR_CASE_STRINGIZE(eResFramebuffer)
 		TOSTR_CASE_STRINGIZE(eResRenderPass)
 		TOSTR_CASE_STRINGIZE(eResShaderModule)
@@ -2337,22 +2336,6 @@ void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkAttachmentViewCreateInfo &el)
-{
-	ScopedContext scope(this, name, "VkAttachmentViewCreateInfo", 0, true);
-
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_VIEW_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
-
-	SerialiseObject(VkImage, "image", el.image);
-	Serialise("format", el.format);
-	Serialise("mipLevel", el.mipLevel);
-	Serialise("baseArraySlice", el.baseArraySlice);
-	Serialise("arraySize", el.arraySize);
-}
-
-template<>
 void Serialiser::Serialise(const char *name, VkDynamicViewportStateCreateInfo &el)
 {
 	ScopedContext scope(this, name, "VkDynamicVpStateCreateInfo", 0, true);
@@ -2986,8 +2969,10 @@ void Serialiser::Serialise(const char *name, VkDescriptorInfo &el)
 	SerialiseObject(VkBufferView, "bufferView", el.bufferView);
 	SerialiseObject(VkSampler, "sampler", el.sampler);
 	SerialiseObject(VkImageView, "imageView", el.imageView);
-	SerialiseObject(VkAttachmentView, "attachmentView", el.attachmentView);
 	Serialise("imageLayout", el.imageLayout);
+	SerialiseObject(VkBuffer, "bufferInfo.buffer", el.bufferInfo.buffer);
+	SerialiseObject(VkDeviceSize, "bufferInfo.offset", el.bufferInfo.offset);
+	SerialiseObject(VkDeviceSize, "bufferInfo.range", el.bufferInfo.range);
 }
 
 template<>
