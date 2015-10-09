@@ -297,9 +297,9 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
 		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, res.name);
 
 		//need to serialise out which objects are bound
-		GLenum type;
-		GLuint object;
-		GLint layered;
+		GLenum type = eGL_TEXTURE;
+		GLuint object = 0;
+		GLint layered = 0;
 		for(int i=0; i < (int)ARRAY_COUNT(data->Attachments); i++)
 		{
 			FramebufferAttachmentData &a = data->Attachments[i];
@@ -581,13 +581,6 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
 		int depth = details.depth;
 		if(details.curType != eGL_TEXTURE_3D) depth = 1;
-
-		GLint isComp = 0;
-
-		GLenum queryType = details.curType;
-		if(queryType == eGL_TEXTURE_CUBE_MAP)
-			queryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
-		gl.glGetTextureLevelParameterivEXT(res.name, queryType, 0, eGL_TEXTURE_COMPRESSED, &isComp);
 
 		int mips = GetNumMips(gl, details.curType, res.name, details.width, details.height, details.depth);
 
@@ -937,14 +930,6 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 				gl.glPixelStorei(eGL_PACK_SKIP_IMAGES, 0);
 				gl.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
 				
-				GLint isComp = 0;
-
-				GLenum queryType = details.curType;
-				if(queryType == eGL_TEXTURE_CUBE_MAP)
-					queryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
-			
-				gl.glGetTextureLevelParameterivEXT(res.name, queryType, 0, eGL_TEXTURE_COMPRESSED, &isComp);
-
 				int imgmips = GetNumMips(gl, details.curType, tex, details.width, details.height, details.depth);
 
 				TextureStateInitialData *state = (TextureStateInitialData *)GetInitialContents(Id).blob;
@@ -959,7 +944,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 				SERIALISE_ELEMENT(GLenum, t, details.curType);
 				SERIALISE_ELEMENT(int, mips, imgmips);
 
-				SERIALISE_ELEMENT(bool, isCompressed, isComp != 0);
+				SERIALISE_ELEMENT(bool, isCompressed, IsCompressedFormat(details.internalFormat));
 
 				if(details.curType == eGL_TEXTURE_BUFFER)
 				{
