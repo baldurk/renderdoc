@@ -214,6 +214,8 @@ class OpenGLHook : LibraryHook
 
 			m_EnabledHooks = true;
 			m_PopulatedHooks = false;
+
+			m_CreatingContext = false;
 		}
 		~OpenGLHook()
 		{
@@ -273,7 +275,9 @@ class OpenGLHook : LibraryHook
 					0, 0,
 				};
 				ret.DC = share.DC;
+				m_CreatingContext = true;
 				ret.ctx = wglCreateContextAttribsARB_realfunc(share.DC, share.ctx, attribs);
+				m_CreatingContext = false;
 			}
 			return ret;
 		}
@@ -372,9 +376,17 @@ class OpenGLHook : LibraryHook
 			return ret;
 		}
 
+		bool m_CreatingContext;
+
 		static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
 		{
 			HGLRC ret = glhooks.wglCreateContext_hook()(dc);
+
+			// don't recurse
+			if(glhooks.m_CreatingContext)
+				return ret;
+
+			glhooks.m_CreatingContext = true;
 
 			GLWindowingData data;
 			data.DC = dc;
@@ -386,6 +398,8 @@ class OpenGLHook : LibraryHook
 			glhooks.m_HaveContextCreation = true;
 
 			SetLastError(0);
+
+			glhooks.m_CreatingContext = false;
 
 			return ret;
 		}
@@ -404,6 +418,12 @@ class OpenGLHook : LibraryHook
 		{
 			HGLRC ret = glhooks.wglCreateLayerContext_hook()(dc, iLayerPlane);
 
+			// don't recurse
+			if(glhooks.m_CreatingContext)
+				return ret;
+
+			glhooks.m_CreatingContext = true;
+
 			GLWindowingData data;
 			data.DC = dc;
 			data.wnd = WindowFromDC(dc);
@@ -415,11 +435,19 @@ class OpenGLHook : LibraryHook
 
 			SetLastError(0);
 
+			glhooks.m_CreatingContext = false;
+
 			return ret;
 		}
 
 		static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContext, const int *attribList)
 		{
+			// don't recurse
+			if(glhooks.m_CreatingContext)
+				return glhooks.wglCreateContextAttribsARB_realfunc(dc, hShareContext, attribList);
+
+			glhooks.m_CreatingContext = true;
+
 			const int *attribs = attribList;
 			vector<int> attribVec;
 
@@ -493,6 +521,8 @@ class OpenGLHook : LibraryHook
 			glhooks.m_HaveContextCreation = true;
 
 			SetLastError(0);
+
+			glhooks.m_CreatingContext = false;
 
 			return ret;
 		}
