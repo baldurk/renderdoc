@@ -27,14 +27,10 @@
 bool WrappedVulkan::Serialise_vkCreateDescriptorPool(
 			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
-			VkDescriptorPoolUsage                       poolUsage,
-			uint32_t                                    maxSets,
 			const VkDescriptorPoolCreateInfo*           pCreateInfo,
 			VkDescriptorPool*                           pDescriptorPool)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT(VkDescriptorPoolUsage, pooluse, poolUsage);
-	SERIALISE_ELEMENT(uint32_t, maxs, maxSets);
 	SERIALISE_ELEMENT(VkDescriptorPoolCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pDescriptorPool));
 
@@ -44,7 +40,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(
 
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 
-		VkResult ret = ObjDisp(device)->CreateDescriptorPool(Unwrap(device), pooluse, maxs, &info, &pool);
+		VkResult ret = ObjDisp(device)->CreateDescriptorPool(Unwrap(device), &info, &pool);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -62,12 +58,10 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(
 
 VkResult WrappedVulkan::vkCreateDescriptorPool(
 			VkDevice                                    device,
-			VkDescriptorPoolUsage                       poolUsage,
-			uint32_t                                    maxSets,
 			const VkDescriptorPoolCreateInfo*           pCreateInfo,
 			VkDescriptorPool*                           pDescriptorPool)
 {
-	VkResult ret = ObjDisp(device)->CreateDescriptorPool(Unwrap(device), poolUsage, maxSets, pCreateInfo, pDescriptorPool);
+	VkResult ret = ObjDisp(device)->CreateDescriptorPool(Unwrap(device), pCreateInfo, pDescriptorPool);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -81,7 +75,7 @@ VkResult WrappedVulkan::vkCreateDescriptorPool(
 				CACHE_THREAD_SERIALISER();
 
 				SCOPED_SERIALISE_CONTEXT(CREATE_DESCRIPTOR_POOL);
-				Serialise_vkCreateDescriptorPool(localSerialiser, device, poolUsage, maxSets, pCreateInfo, pDescriptorPool);
+				Serialise_vkCreateDescriptorPool(localSerialiser, device, pCreateInfo, pDescriptorPool);
 
 				chunk = scope.Get();
 			}
@@ -202,8 +196,7 @@ bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
 		VkDescriptorSetUsage                        setUsage,
 		uint32_t                                    count,
 		const VkDescriptorSetLayout*                pSetLayouts,
-		VkDescriptorSet*                            pDescriptorSets,
-		uint32_t*                                   pCount)
+		VkDescriptorSet*                            pDescriptorSets)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, poolId, GetResID(descriptorPool));
@@ -219,8 +212,7 @@ bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
 		descriptorPool = GetResourceManager()->GetLiveHandle<VkDescriptorPool>(poolId);
 		VkDescriptorSetLayout layout = GetResourceManager()->GetLiveHandle<VkDescriptorSetLayout>(layoutId);
 
-		uint32_t cnt = 0;
-		VkResult ret = ObjDisp(device)->AllocDescriptorSets(Unwrap(device), Unwrap(descriptorPool), usage, 1, UnwrapPtr(layout), &descset, &cnt);
+		VkResult ret = ObjDisp(device)->AllocDescriptorSets(Unwrap(device), Unwrap(descriptorPool), usage, 1, UnwrapPtr(layout), &descset);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -240,66 +232,58 @@ bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
 	return true;
 }
 
-VkResult WrappedVulkan::vkAllocDescriptorSets(
+void WrappedVulkan::vkAllocDescriptorSets(
 		VkDevice                                    device,
 		VkDescriptorPool                            descriptorPool,
 		VkDescriptorSetUsage                        setUsage,
 		uint32_t                                    count,
 		const VkDescriptorSetLayout*                pSetLayouts,
-		VkDescriptorSet*                            pDescriptorSets,
-		uint32_t*                                   pCount)
+		VkDescriptorSet*                            pDescriptorSets)
 {
 	VkDescriptorSetLayout *unwrapped = GetTempArray<VkDescriptorSetLayout>(count);
 	for(uint32_t i=0; i < count; i++) unwrapped[i] = Unwrap(pSetLayouts[i]);
 
-	VkResult ret = ObjDisp(device)->AllocDescriptorSets(Unwrap(device), Unwrap(descriptorPool), setUsage, count, unwrapped, pDescriptorSets, pCount);
-	
-	RDCASSERT(pCount == NULL || *pCount == count); // VKTODOMED: find out what *pCount < count means
+	ObjDisp(device)->AllocDescriptorSets(Unwrap(device), Unwrap(descriptorPool), setUsage, count, unwrapped, pDescriptorSets);
 
-	if(ret == VK_SUCCESS)
+	for(uint32_t i=0; i < count; i++)
 	{
-		for(uint32_t i=0; i < count; i++)
+		ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pDescriptorSets[i]);
+
+		if(m_State >= WRITING)
 		{
-			ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pDescriptorSets[i]);
+			Chunk *chunk = NULL;
 
-			if(m_State >= WRITING)
 			{
-				Chunk *chunk = NULL;
+				CACHE_THREAD_SERIALISER();
 
-				{
-					CACHE_THREAD_SERIALISER();
+				SCOPED_SERIALISE_CONTEXT(ALLOC_DESC_SET);
+				Serialise_vkAllocDescriptorSets(localSerialiser, device, descriptorPool, setUsage, 1, &pSetLayouts[i], &pDescriptorSets[i]);
 
-					SCOPED_SERIALISE_CONTEXT(ALLOC_DESC_SET);
-					Serialise_vkAllocDescriptorSets(localSerialiser, device, descriptorPool, setUsage, 1, &pSetLayouts[i], &pDescriptorSets[i], NULL);
-
-					chunk = scope.Get();
-				}
-
-				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pDescriptorSets[i]);
-				record->AddChunk(chunk);
-
-				ResourceId layoutID = GetResID(pSetLayouts[i]);
-
-				record->AddParent(GetRecord(descriptorPool));
-				record->AddParent(GetResourceManager()->GetResourceRecord(layoutID));
-
-				// just always treat descriptor sets as dirty
-				if(m_State != WRITING_CAPFRAME)
-					GetResourceManager()->MarkDirtyResource(id);
-				else
-					GetResourceManager()->MarkPendingDirty(id);
-
-				record->layout = layoutID;
-				m_CreationInfo.m_DescSetLayout[layoutID].CreateBindingsArray(record->descBindings);
+				chunk = scope.Get();
 			}
+
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pDescriptorSets[i]);
+			record->AddChunk(chunk);
+
+			ResourceId layoutID = GetResID(pSetLayouts[i]);
+
+			record->AddParent(GetRecord(descriptorPool));
+			record->AddParent(GetResourceManager()->GetResourceRecord(layoutID));
+
+			// just always treat descriptor sets as dirty
+			if(m_State != WRITING_CAPFRAME)
+				GetResourceManager()->MarkDirtyResource(id);
 			else
-			{
-				GetResourceManager()->AddLiveResource(id, pDescriptorSets[i]);
-			}
+				GetResourceManager()->MarkPendingDirty(id);
+
+			record->layout = layoutID;
+			m_CreationInfo.m_DescSetLayout[layoutID].CreateBindingsArray(record->descBindings);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, pDescriptorSets[i]);
 		}
 	}
-
-	return ret;
 }
 
 VkResult WrappedVulkan::vkFreeDescriptorSets(
@@ -432,15 +416,13 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 	return true;
 }
 
-VkResult WrappedVulkan::vkUpdateDescriptorSets(
+void WrappedVulkan::vkUpdateDescriptorSets(
 		VkDevice                                    device,
 		uint32_t                                    writeCount,
 		const VkWriteDescriptorSet*                 pDescriptorWrites,
 		uint32_t                                    copyCount,
 		const VkCopyDescriptorSet*                  pDescriptorCopies)
 {
-	VkResult ret = VK_SUCCESS;
-	
 	{
 		// need to count up number of descriptor infos, to be able to alloc enough space
 		uint32_t numInfos = 0;
@@ -480,137 +462,132 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 			unwrappedCopies[i].srcSet = Unwrap(unwrappedCopies[i].srcSet);
 		}
 
-		ret = ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), writeCount, unwrappedWrites, copyCount, unwrappedCopies);
+		ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), writeCount, unwrappedWrites, copyCount, unwrappedCopies);
 	}
 
-	if(ret == VK_SUCCESS)
+	if(m_State == WRITING_CAPFRAME)
 	{
-		if(m_State == WRITING_CAPFRAME)
+		// don't have to mark referenced any of the resources pointed to by the descriptor set - that's handled
+		// on queue submission by marking ref'd all the current bindings of the sets referenced by the cmd buffer
+
+		for(uint32_t i=0; i < writeCount; i++)
 		{
-			// don't have to mark referenced any of the resources pointed to by the descriptor set - that's handled
-			// on queue submission by marking ref'd all the current bindings of the sets referenced by the cmd buffer
-
-			for(uint32_t i=0; i < writeCount; i++)
 			{
-				{
-					CACHE_THREAD_SERIALISER();
+				CACHE_THREAD_SERIALISER();
 
-					SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
-					Serialise_vkUpdateDescriptorSets(localSerialiser, device, 1, &pDescriptorWrites[i], 0, NULL);
+				SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
+				Serialise_vkUpdateDescriptorSets(localSerialiser, device, 1, &pDescriptorWrites[i], 0, NULL);
 
-					m_FrameCaptureRecord->AddChunk(scope.Get());
-				}
-
-				// as long as descriptor sets are forced to have initial states, we don't have to mark them ref'd for
-				// write here. The reason being that as long as we only mark them as ref'd when they're actually bound,
-				// we can safely skip the ref here and it means any descriptor set updates of descriptor sets that are
-				// never used in the frame can be ignored.
-				//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorWrites[i].destSet), eFrameRef_Write);
+				m_FrameCaptureRecord->AddChunk(scope.Get());
 			}
 
-			for(uint32_t i=0; i < copyCount; i++)
-			{
-				{
-					CACHE_THREAD_SERIALISER();
-
-					SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
-					Serialise_vkUpdateDescriptorSets(localSerialiser, device, 0, NULL, 1, &pDescriptorCopies[i]);
-
-					m_FrameCaptureRecord->AddChunk(scope.Get());
-				}
-				
-				// as long as descriptor sets are forced to have initial states, we don't have to mark them ref'd for
-				// write here. The reason being that as long as we only mark them as ref'd when they're actually bound,
-				// we can safely skip the ref here and it means any descriptor set updates of descriptor sets that are
-				// never used in the frame can be ignored.
-				//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].destSet), eFrameRef_Write);
-				//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet), eFrameRef_Read);
-			}
+			// as long as descriptor sets are forced to have initial states, we don't have to mark them ref'd for
+			// write here. The reason being that as long as we only mark them as ref'd when they're actually bound,
+			// we can safely skip the ref here and it means any descriptor set updates of descriptor sets that are
+			// never used in the frame can be ignored.
+			//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorWrites[i].destSet), eFrameRef_Write);
 		}
 
-		// need to track descriptor set contents whether capframing or idle
-		if(m_State >= WRITING)
+		for(uint32_t i=0; i < copyCount; i++)
 		{
-			for(uint32_t i=0; i < writeCount; i++)
 			{
-				VkResourceRecord *record = GetRecord(pDescriptorWrites[i].destSet);
-				const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[record->layout];
+				CACHE_THREAD_SERIALISER();
 
-				RDCASSERT(pDescriptorWrites[i].destBinding < record->descBindings.size());
-				
-				VkDescriptorInfo *binding = record->descBindings[pDescriptorWrites[i].destBinding];
+				SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
+				Serialise_vkUpdateDescriptorSets(localSerialiser, device, 0, NULL, 1, &pDescriptorCopies[i]);
 
-				FrameRefType ref = eFrameRef_Write;
-
-				switch(layout.bindings[pDescriptorWrites[i].destBinding].descriptorType)
-				{
-					case VK_DESCRIPTOR_TYPE_SAMPLER:
-					case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-					case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-					case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-					case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-					case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-					case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-						ref = eFrameRef_Read;
-						break;
-					case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-					case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-					case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-					case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-						ref = eFrameRef_Write;
-						break;
-					default:
-						RDCERR("Unexpected descriptor type");
-				}
-
-				// We need to handle the cases where these bindings are stale:
-				// ie. image handle 0xf00baa is allocated
-				// bound into a descriptor set
-				// image is released
-				// descriptor set is bound but this image is never used by shader etc.
-				//
-				// worst case, a new image or something has been added with this handle -
-				// in this case we end up ref'ing an image that isn't actually used.
-				// Worst worst case, we ref an image as write when actually it's not, but
-				// this is likewise not a serious problem, and rather difficult to solve
-				// (would need to version handles somehow, but don't have enough bits
-				// to do that reliably).
-				//
-				// This is handled by RemoveBindFrameRef silently dropping id == ResourceId()
-
-				for(uint32_t d=0; d < pDescriptorWrites[i].count; d++)
-				{
-					VkDescriptorInfo &bind = binding[pDescriptorWrites[i].destArrayElement + d];
-
-					if(bind.bufferView != VK_NULL_HANDLE)
-						record->RemoveBindFrameRef(GetResID(bind.bufferView));
-					if(bind.imageView != VK_NULL_HANDLE)
-						record->RemoveBindFrameRef(GetResID(bind.imageView));
-					if(bind.sampler != VK_NULL_HANDLE)
-						record->RemoveBindFrameRef(GetResID(bind.sampler));
-					if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
-						record->RemoveBindFrameRef(GetResID(bind.bufferInfo.buffer));
-
-					bind = pDescriptorWrites[i].pDescriptors[d];
-
-					if(bind.bufferView != VK_NULL_HANDLE)
-						record->AddBindFrameRef(GetResID(bind.bufferView), ref);
-					if(bind.imageView != VK_NULL_HANDLE)
-						record->AddBindFrameRef(GetResID(bind.imageView), ref);
-					if(bind.sampler != VK_NULL_HANDLE)
-						record->AddBindFrameRef(GetResID(bind.sampler), ref);
-					if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
-						record->AddBindFrameRef(GetResID(bind.bufferInfo.buffer), ref);
-				}
+				m_FrameCaptureRecord->AddChunk(scope.Get());
 			}
-
-			if(copyCount > 0)
-			{
-				// don't want to implement this blindly
-				RDCUNIMPLEMENTED("Copying descriptors not implemented");
-			}
+			
+			// as long as descriptor sets are forced to have initial states, we don't have to mark them ref'd for
+			// write here. The reason being that as long as we only mark them as ref'd when they're actually bound,
+			// we can safely skip the ref here and it means any descriptor set updates of descriptor sets that are
+			// never used in the frame can be ignored.
+			//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].destSet), eFrameRef_Write);
+			//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet), eFrameRef_Read);
 		}
 	}
 
-	return ret;
+	// need to track descriptor set contents whether capframing or idle
+	if(m_State >= WRITING)
+	{
+		for(uint32_t i=0; i < writeCount; i++)
+		{
+			VkResourceRecord *record = GetRecord(pDescriptorWrites[i].destSet);
+			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[record->layout];
+
+			RDCASSERT(pDescriptorWrites[i].destBinding < record->descBindings.size());
+			
+			VkDescriptorInfo *binding = record->descBindings[pDescriptorWrites[i].destBinding];
+
+			FrameRefType ref = eFrameRef_Write;
+
+			switch(layout.bindings[pDescriptorWrites[i].destBinding].descriptorType)
+			{
+				case VK_DESCRIPTOR_TYPE_SAMPLER:
+				case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+				case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+				case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+				case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+					ref = eFrameRef_Read;
+					break;
+				case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+				case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+					ref = eFrameRef_Write;
+					break;
+				default:
+					RDCERR("Unexpected descriptor type");
+			}
+
+			// We need to handle the cases where these bindings are stale:
+			// ie. image handle 0xf00baa is allocated
+			// bound into a descriptor set
+			// image is released
+			// descriptor set is bound but this image is never used by shader etc.
+			//
+			// worst case, a new image or something has been added with this handle -
+			// in this case we end up ref'ing an image that isn't actually used.
+			// Worst worst case, we ref an image as write when actually it's not, but
+			// this is likewise not a serious problem, and rather difficult to solve
+			// (would need to version handles somehow, but don't have enough bits
+			// to do that reliably).
+			//
+			// This is handled by RemoveBindFrameRef silently dropping id == ResourceId()
+
+			for(uint32_t d=0; d < pDescriptorWrites[i].count; d++)
+			{
+				VkDescriptorInfo &bind = binding[pDescriptorWrites[i].destArrayElement + d];
+
+				if(bind.bufferView != VK_NULL_HANDLE)
+					record->RemoveBindFrameRef(GetResID(bind.bufferView));
+				if(bind.imageView != VK_NULL_HANDLE)
+					record->RemoveBindFrameRef(GetResID(bind.imageView));
+				if(bind.sampler != VK_NULL_HANDLE)
+					record->RemoveBindFrameRef(GetResID(bind.sampler));
+				if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
+					record->RemoveBindFrameRef(GetResID(bind.bufferInfo.buffer));
+
+				bind = pDescriptorWrites[i].pDescriptors[d];
+
+				if(bind.bufferView != VK_NULL_HANDLE)
+					record->AddBindFrameRef(GetResID(bind.bufferView), ref);
+				if(bind.imageView != VK_NULL_HANDLE)
+					record->AddBindFrameRef(GetResID(bind.imageView), ref);
+				if(bind.sampler != VK_NULL_HANDLE)
+					record->AddBindFrameRef(GetResID(bind.sampler), ref);
+				if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
+					record->AddBindFrameRef(GetResID(bind.bufferInfo.buffer), ref);
+			}
+		}
+
+		if(copyCount > 0)
+		{
+			// don't want to implement this blindly
+			RDCUNIMPLEMENTED("Copying descriptors not implemented");
+		}
+	}
 }

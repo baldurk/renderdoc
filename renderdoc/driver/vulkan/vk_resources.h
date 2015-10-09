@@ -73,7 +73,7 @@ enum VkResourceType
 	eResQueryPool,
 	eResSemaphore,
 	
-	eResWSISwapChain,
+	eResSwapchain,
 };
 
 // dummy standin for a typeless real resource
@@ -374,11 +374,11 @@ struct WrappedVkCmdPool : WrappedVkNonDispRes
 	typedef VkCmdPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdPool);
 	enum { TypeEnum = eResCmdPool, };
 };
-struct WrappedVkSwapChainWSI : WrappedVkNonDispRes
+struct WrappedVkSwapchainKHR : WrappedVkNonDispRes
 {
-	WrappedVkSwapChainWSI(VkSwapChainWSI obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
-	typedef VkSwapChainWSI InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSwapChainWSI);
-	enum { TypeEnum = eResWSISwapChain, };
+	WrappedVkSwapchainKHR(VkSwapchainKHR obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
+	typedef VkSwapchainKHR InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSwapchainKHR);
+	enum { TypeEnum = eResSwapchain, };
 };
 
 // VKTODOMED Need to find out which resources can validly return duplicate
@@ -435,7 +435,7 @@ UNWRAP_NONDISP_HELPER(VkDescriptorPool)
 UNWRAP_NONDISP_HELPER(VkDescriptorSet)
 UNWRAP_NONDISP_HELPER(VkFramebuffer)
 UNWRAP_NONDISP_HELPER(VkCmdPool)
-UNWRAP_NONDISP_HELPER(VkSwapChainWSI)
+UNWRAP_NONDISP_HELPER(VkSwapchainKHR)
 
 #define WRAPPING_DEBUG 0
 
@@ -536,8 +536,8 @@ struct ImageRegionState
 	ImageRegionState()
 		: prevstate(UNTRANSITIONED_IMG_STATE), state(UNTRANSITIONED_IMG_STATE)
 	{
-		range.aspect = VK_IMAGE_ASPECT_COLOR;
-		range.baseArraySlice = 0; range.arraySize = 0;
+		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		range.baseArrayLayer = 0; range.arraySize = 0;
 		range.baseMipLevel = 0; range.mipLevels = 0;
 	}
 	ImageRegionState(VkImageSubresourceRange r, VkImageLayout pr, VkImageLayout st)

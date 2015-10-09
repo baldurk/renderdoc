@@ -73,7 +73,7 @@ const char *VkChunkNames[] =
 	"vkCreatePipelineCache",
 	"vkCreateGraphicsPipelines",
 	"vkCreateComputePipelines",
-	"vkGetSwapChainInfoWSI",
+	"vkGetSwapchainImagesKHR",
 
 	"vkCreateSemaphore",
 	"vkCreateFence",
@@ -123,11 +123,13 @@ const char *VkChunkNames[] =
 	"vkCmdBlitImage",
 	"vkCmdResolveImage",
 	"vkCmdUpdateBuffer",
+
 	"vkCmdClearColorImage",
 	"vkCmdClearDepthStencilImage",
 	"vkCmdClearColorAttachment",
 	"vkCmdClearDepthStencilAttachment",
 	"vkCmdPipelineBarrier",
+
 	"vkCmdWriteTimestamp",
 	"vkCmdBeginQuery",
 	"vkCmdEndQuery",
@@ -143,7 +145,7 @@ const char *VkChunkNames[] =
 	"vkCmdDbgMarker", // no equivalent function at the moment
 	"vkCmdDbgMarkerEnd",
 
-	"vkCreateSwapChainWSI",
+	"vkCreateSwapchainKHR",
 
 	"Capture",
 	"BeginCapture",
@@ -946,7 +948,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCreateRenderPass(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_DESCRIPTOR_POOL:
-		Serialise_vkCreateDescriptorPool(GetMainSerialiser(), VK_NULL_HANDLE, VK_DESCRIPTOR_POOL_USAGE_MAX_ENUM, 0, NULL, NULL);
+		Serialise_vkCreateDescriptorPool(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_DESCRIPTOR_SET_LAYOUT:
 		Serialise_vkCreateDescriptorSetLayout(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
@@ -985,8 +987,8 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		//VKTODOMED:
 		//Serialise_vkCreateComputePipelines(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
-	case PRESENT_IMAGE:
-		Serialise_vkGetSwapChainInfoWSI(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_SWAP_CHAIN_INFO_TYPE_MAX_ENUM_WSI, NULL, NULL);
+	case GET_SWAPCHAIN_IMAGE:
+		Serialise_vkGetSwapchainImagesKHR(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, NULL, NULL);
 		break;
 
 	case CREATE_SEMAPHORE:
@@ -1008,7 +1010,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 
 	case ALLOC_DESC_SET:
-		Serialise_vkAllocDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_DESCRIPTOR_SET_USAGE_MAX_ENUM, 0, NULL, NULL, NULL);
+		Serialise_vkAllocDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_DESCRIPTOR_SET_USAGE_MAX_ENUM, 0, NULL, NULL);
 		break;
 	case UPDATE_DESC_SET:
 		Serialise_vkUpdateDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, 0, NULL);
@@ -1064,25 +1066,25 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdSetScissor(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL);
 		break;
 	case SET_LINE_WIDTH:
-		Serialise_vkCmdSetLineWidth(GetMainSerialiser(), 0);
+		Serialise_vkCmdSetLineWidth(GetMainSerialiser(), VK_NULL_HANDLE, 0);
 		break;
 	case SET_DEPTH_BIAS:
-		Serialise_vkCmdSetDepthBias(GetMainSerialiser(), 0.0f, 0.0f, 0.0f);
+		Serialise_vkCmdSetDepthBias(GetMainSerialiser(), VK_NULL_HANDLE, 0.0f, 0.0f, 0.0f);
 		break;
 	case SET_BLEND_CONST:
-		Serialise_vkCmdSetLineWidth(GetMainSerialiser(), NULL);
+		Serialise_vkCmdSetLineWidth(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
 		break;
 	case SET_DEPTH_BOUNDS:
-		Serialise_vkCmdSetDepthBounds(GetMainSerialiser(), 0.0f, 0.0f);
+		Serialise_vkCmdSetDepthBounds(GetMainSerialiser(), VK_NULL_HANDLE, 0.0f, 0.0f);
 		break;
 	case SET_STENCIL_COMP_MASK:
-		Serialise_vkCmdSetStencilCompareMask(GetMainSerialiser(), VK_STENCIL_FACE_NONE, 0);
+		Serialise_vkCmdSetStencilCompareMask(GetMainSerialiser(), VK_NULL_HANDLE, VK_STENCIL_FACE_NONE, 0);
 		break;
 	case SET_STENCIL_WRITE_MASK:
-		Serialise_vkCmdSetStencilWriteMask(GetMainSerialiser(), VK_STENCIL_FACE_NONE, 0);
+		Serialise_vkCmdSetStencilWriteMask(GetMainSerialiser(), VK_NULL_HANDLE, VK_STENCIL_FACE_NONE, 0);
 		break;
 	case SET_STENCIL_REF:
-		Serialise_vkCmdSetStencilReference(GetMainSerialiser(), VK_STENCIL_FACE_NONE, 0);
+		Serialise_vkCmdSetStencilReference(GetMainSerialiser(), VK_NULL_HANDLE, VK_STENCIL_FACE_NONE, 0);
 		break;
 	case BIND_DESCRIPTOR_SET:
 		Serialise_vkCmdBindDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_NULL_HANDLE, 0, 0, NULL, 0, NULL);
@@ -1118,13 +1120,13 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdClearColorImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
 	case CLEAR_DEPTHSTENCIL:
-		Serialise_vkCmdClearDepthStencilImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0.0f, 0, 0, NULL);
+		Serialise_vkCmdClearDepthStencilImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
 	case CLEAR_COLOR_ATTACH:
 		Serialise_vkCmdClearColorAttachment(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
 	case CLEAR_DEPTHSTENCIL_ATTACH:
-		Serialise_vkCmdClearDepthStencilAttachment(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0.0f, 0, 0, NULL);
+		Serialise_vkCmdClearDepthStencilAttachment(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
 	case PIPELINE_BARRIER:
 		Serialise_vkCmdPipelineBarrier(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL);
@@ -1172,7 +1174,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 
 	case CREATE_SWAP_BUFFER:
-		Serialise_vkCreateSwapChainWSI(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateSwapchainKHR(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 
 	case CAPTURE_SCOPE:
@@ -1208,10 +1210,10 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 
 			if(m_State == READING)
 			{
-				AddEvent(CONTEXT_CAPTURE_FOOTER, "vkQueuePresentWSI()");
+				AddEvent(CONTEXT_CAPTURE_FOOTER, "vkQueuePresentKHR()");
 
 				FetchDrawcall draw;
-				draw.name = "vkQueuePresentWSI()";
+				draw.name = "vkQueuePresentKHR()";
 				draw.flags |= eDraw_Present;
 
 				AddDrawcall(draw, true);

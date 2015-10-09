@@ -676,16 +676,14 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
-			float                                       depth,
-			uint32_t                                    stencil,
+			const VkClearDepthStencilValue*             pDepthStencil,
 			uint32_t                                    rangeCount,
 			const VkImageSubresourceRange*              pRanges)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(ResourceId, imgid, GetResID(image));
 	SERIALISE_ELEMENT(VkImageLayout, l, imageLayout);
-	SERIALISE_ELEMENT(float, d, depth);
-	SERIALISE_ELEMENT(byte, s, stencil);
+	SERIALISE_ELEMENT(VkClearDepthStencilValue, ds, *pDepthStencil);
 	SERIALISE_ELEMENT(uint32_t, count, rangeCount);
 	SERIALISE_ELEMENT_ARR(VkImageSubresourceRange, ranges, pRanges, count);
 	
@@ -699,7 +697,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
-			ObjDisp(cmdBuffer)->CmdClearDepthStencilImage(Unwrap(cmdBuffer), Unwrap(image), l, d, s, count, ranges);
+			ObjDisp(cmdBuffer)->CmdClearDepthStencilImage(Unwrap(cmdBuffer), Unwrap(image), l, &ds, count, ranges);
 		}
 	}
 	else if(m_State == READING)
@@ -707,7 +705,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 		image = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
-		ObjDisp(cmdBuffer)->CmdClearDepthStencilImage(Unwrap(cmdBuffer), Unwrap(image), l, d, s, count, ranges);
+		ObjDisp(cmdBuffer)->CmdClearDepthStencilImage(Unwrap(cmdBuffer), Unwrap(image), l, &ds, count, ranges);
 	}
 
 	SAFE_DELETE_ARRAY(ranges);
@@ -719,12 +717,11 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
-			float                                       depth,
-			uint32_t                                    stencil,
+			const VkClearDepthStencilValue*             pDepthStencil,
 			uint32_t                                    rangeCount,
 			const VkImageSubresourceRange*              pRanges)
 {
-	ObjDisp(cmdBuffer)->CmdClearDepthStencilImage(Unwrap(cmdBuffer), Unwrap(image), imageLayout, depth, stencil, rangeCount, pRanges);
+	ObjDisp(cmdBuffer)->CmdClearDepthStencilImage(Unwrap(cmdBuffer), Unwrap(image), imageLayout, pDepthStencil, rangeCount, pRanges);
 
 	if(m_State >= WRITING)
 	{
@@ -733,7 +730,7 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(
 		CACHE_THREAD_SERIALISER();
 
 		SCOPED_SERIALISE_CONTEXT(CLEAR_DEPTHSTENCIL);
-		Serialise_vkCmdClearDepthStencilImage(localSerialiser, cmdBuffer, image, imageLayout, depth, stencil, rangeCount, pRanges);
+		Serialise_vkCmdClearDepthStencilImage(localSerialiser, cmdBuffer, image, imageLayout, pDepthStencil, rangeCount, pRanges);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);
@@ -825,16 +822,14 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 			VkCmdBuffer                                 cmdBuffer,
 			VkImageAspectFlags                          imageAspectMask,
 			VkImageLayout                               imageLayout,
-			float                                       depth,
-			uint32_t                                    stencil,
+			const VkClearDepthStencilValue*             pDepthStencil,
 			uint32_t                                    rectCount,
 			const VkRect3D*                             pRects)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(VkImageAspectFlags, asp, imageAspectMask);
 	SERIALISE_ELEMENT(VkImageLayout, lay, imageLayout);
-	SERIALISE_ELEMENT(float, d, depth);
-	SERIALISE_ELEMENT(byte, s, stencil);
+	SERIALISE_ELEMENT(VkClearDepthStencilValue, ds, *pDepthStencil);
 	SERIALISE_ELEMENT(uint32_t, count, rectCount);
 	SERIALISE_ELEMENT_ARR(VkRect3D, rects, pRects, count);
 	
@@ -846,22 +841,22 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
-			ObjDisp(cmdBuffer)->CmdClearDepthStencilAttachment(Unwrap(cmdBuffer), asp, lay, d, s, count, rects);
+			ObjDisp(cmdBuffer)->CmdClearDepthStencilAttachment(Unwrap(cmdBuffer), asp, lay, &ds, count, rects);
 		}
 	}
 	else if(m_State == READING)
 	{
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
-		ObjDisp(cmdBuffer)->CmdClearDepthStencilAttachment(Unwrap(cmdBuffer), asp, lay, d, s, count, rects);
+		ObjDisp(cmdBuffer)->CmdClearDepthStencilAttachment(Unwrap(cmdBuffer), asp, lay, &ds, count, rects);
 
 		const string desc = localSerialiser->GetDebugStr();
 
 		{
 			AddEvent(CLEAR_DEPTHSTENCIL_ATTACH, desc);
 			string name = "vkCmdClearDepthStencilAttachment(" +
-				ToStr::Get(d) + "," +
-				ToStr::Get(s) + ")";
+				ToStr::Get(ds.depth) + "," +
+				ToStr::Get(ds.stencil) + ")";
 
 			FetchDrawcall draw;
 			draw.name = name;
@@ -880,12 +875,11 @@ void WrappedVulkan::vkCmdClearDepthStencilAttachment(
 			VkCmdBuffer                                 cmdBuffer,
 			VkImageAspectFlags                          imageAspectMask,
 			VkImageLayout                               imageLayout,
-			float                                       depth,
-			uint32_t                                    stencil,
+			const VkClearDepthStencilValue*             pDepthStencil,
 			uint32_t                                    rectCount,
 			const VkRect3D*                             pRects)
 {
-	ObjDisp(cmdBuffer)->CmdClearDepthStencilAttachment(Unwrap(cmdBuffer), imageAspectMask, imageLayout, depth, stencil, rectCount, pRects);
+	ObjDisp(cmdBuffer)->CmdClearDepthStencilAttachment(Unwrap(cmdBuffer), imageAspectMask, imageLayout, pDepthStencil, rectCount, pRects);
 
 	if(m_State >= WRITING)
 	{
@@ -894,7 +888,7 @@ void WrappedVulkan::vkCmdClearDepthStencilAttachment(
 		CACHE_THREAD_SERIALISER();
 
 		SCOPED_SERIALISE_CONTEXT(CLEAR_DEPTHSTENCIL_ATTACH);
-		Serialise_vkCmdClearDepthStencilAttachment(localSerialiser, cmdBuffer, imageAspectMask, imageLayout, depth, stencil, rectCount, pRects);
+		Serialise_vkCmdClearDepthStencilAttachment(localSerialiser, cmdBuffer, imageAspectMask, imageLayout, pDepthStencil, rectCount, pRects);
 
 		record->AddChunk(scope.Get());
 		// VKTODOHIGH mark referenced the image under the attachment

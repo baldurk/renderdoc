@@ -112,7 +112,7 @@ static const VkLayerProperties globalLayers[] = {
 VkResult getProps(uint32_t *dstCount, void *dstProps, uint32_t srcCount, void *srcProps, size_t elemSize)
 {
 	if(dstCount == NULL)
-		return VK_ERROR_INVALID_POINTER;
+		return VK_RESULT_MAX_ENUM;
 
 	if(dstProps == NULL)
 	{

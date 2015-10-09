@@ -91,7 +91,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			meminfo.size, VK_BUFFER_USAGE_GENERAL, 0,
+			meminfo.size, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
@@ -336,7 +336,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			VkBufferCreateInfo bufInfo = {
 				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-				dataSize, VK_BUFFER_USAGE_GENERAL, 0,
+				dataSize, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
 				VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 			};
 
@@ -399,7 +399,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 
 		ImgState &img = m_ImageInfo[liveid];
 
-		if(img.subresourceStates[0].range.aspect == VK_IMAGE_ASPECT_COLOR)
+		if(img.subresourceStates[0].range.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT)
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearColorImage, NULL));
 		else
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearDepthStencilImage, NULL));
@@ -436,8 +436,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		if(initial.num == 0)
 			return;
 
-		VkResult vkr = ObjDisp(GetDev())->UpdateDescriptorSets(Unwrap(GetDev()), initial.num, writes, 0, NULL);
-		RDCASSERT(vkr == VK_SUCCESS);
+		ObjDisp(GetDev())->UpdateDescriptorSets(Unwrap(GetDev()), initial.num, writes, 0, NULL);
 
 		// need to blat over the current descriptor set contents, so these are available
 		// when we want to fetch pipeline state
@@ -482,7 +481,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			meminfo.size, VK_BUFFER_USAGE_GENERAL, 0,
+			meminfo.size, VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 

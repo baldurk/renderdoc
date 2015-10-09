@@ -115,6 +115,7 @@ template<> void Serialiser::Serialise(const char *name, VkShaderCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkImageSubresourceRange &el);
 template<> void Serialiser::Serialise(const char *name, VkImageSubresource &el);
+template<> void Serialiser::Serialise(const char *name, VkImageSubresourceCopy &el);
 template<> void Serialiser::Serialise(const char *name, VkMemoryAllocInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkMemoryBarrier &el);
 template<> void Serialiser::Serialise(const char *name, VkBufferMemoryBarrier &el);
@@ -129,7 +130,7 @@ template<> void Serialiser::Serialise(const char *name, VkImageCopy &el);
 template<> void Serialiser::Serialise(const char *name, VkImageBlit &el);
 template<> void Serialiser::Serialise(const char *name, VkImageResolve &el);
 
-template<> void Serialiser::Serialise(const char *name, VkSwapChainCreateInfoWSI &el);
+template<> void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el);
 
 #pragma region Chunks
 
@@ -158,12 +159,7 @@ enum VulkanChunkType
 	CREATE_BUFFER_VIEW,
 	CREATE_IMAGE,
 	CREATE_IMAGE_VIEW,
-	CREATE_ATTACHMENT_VIEW,
 	CREATE_DEPTH_TARGET_VIEW,
-	CREATE_VIEWPORT_STATE,
-	CREATE_RASTER_STATE,
-	CREATE_BLEND_STATE,
-	CREATE_DEPTH_STATE,
 	CREATE_SAMPLER,
 	CREATE_SHADER,
 	CREATE_SHADER_MODULE,
@@ -171,7 +167,7 @@ enum VulkanChunkType
 	CREATE_PIPE_CACHE,
 	CREATE_GRAPHICS_PIPE,
 	CREATE_COMPUTE_PIPE,
-	PRESENT_IMAGE,
+	GET_SWAPCHAIN_IMAGE,
 
 	CREATE_SEMAPHORE,
 	CREATE_FENCE,
@@ -200,6 +196,7 @@ enum VulkanChunkType
 	END_RENDERPASS,
 
 	BIND_PIPELINE,
+
 	SET_VP,
 	SET_SCISSOR,
 	SET_LINE_WIDTH,
@@ -209,6 +206,7 @@ enum VulkanChunkType
 	SET_STENCIL_COMP_MASK,
 	SET_STENCIL_WRITE_MASK,
 	SET_STENCIL_REF,
+
 	BIND_DESCRIPTOR_SET,
 	BIND_VERTEX_BUFFERS,
 	BIND_INDEX_BUFFER,
@@ -219,11 +217,13 @@ enum VulkanChunkType
 	BLIT_IMG,
 	RESOLVE_IMG,
 	UPDATE_BUF,
+
 	CLEAR_COLOR,
 	CLEAR_DEPTHSTENCIL,
 	CLEAR_COLOR_ATTACH,
 	CLEAR_DEPTHSTENCIL_ATTACH,
 	PIPELINE_BARRIER,
+
 	WRITE_TIMESTAMP,
 	BEGIN_QUERY,
 	END_QUERY,

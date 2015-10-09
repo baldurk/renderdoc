@@ -45,16 +45,10 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
     VkImageType                                 type,
     VkImageTiling                               tiling,
     VkImageUsageFlags                           usage,
+    VkImageCreateFlags                          flags,
     VkImageFormatProperties*                    pImageFormatProperties)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceImageFormatProperties(Unwrap(physicalDevice), format, type, tiling, usage, pImageFormatProperties);
-}
-
-VkResult WrappedVulkan::vkGetPhysicalDeviceLimits(
-    VkPhysicalDevice                            physicalDevice,
-    VkPhysicalDeviceLimits*                     pLimits)
-{
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceLimits(Unwrap(physicalDevice), pLimits);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceImageFormatProperties(Unwrap(physicalDevice), format, type, tiling, usage, flags, pImageFormatProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceProperties(
@@ -70,19 +64,12 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceProperties(
 	return ret;
 }
 
-VkResult WrappedVulkan::vkGetPhysicalDeviceQueueCount(
+VkResult WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties(
     VkPhysicalDevice                            physicalDevice,
-    uint32_t*                                   pCount)
+    uint32_t*                                   pCount,
+    VkQueueFamilyProperties*                    pQueueFamilyProperties)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceQueueCount(Unwrap(physicalDevice), pCount);
-}
-
-VkResult WrappedVulkan::vkGetPhysicalDeviceQueueProperties(
-    VkPhysicalDevice                            physicalDevice,
-    uint32_t                                    count,
-    VkPhysicalDeviceQueueProperties*            pQueueProperties)
-{
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceQueueProperties(Unwrap(physicalDevice), count, pQueueProperties);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), pCount, pQueueFamilyProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceMemoryProperties(

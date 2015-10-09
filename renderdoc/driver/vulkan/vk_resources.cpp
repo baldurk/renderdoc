@@ -51,7 +51,7 @@ WRAPPED_POOL_INST(WrappedVkDescriptorSet)
 WRAPPED_POOL_INST(WrappedVkFramebuffer)
 WRAPPED_POOL_INST(WrappedVkCmdPool)
 
-WRAPPED_POOL_INST(WrappedVkSwapChainWSI)
+WRAPPED_POOL_INST(WrappedVkSwapchainKHR)
 
 bool IsDispatchableRes(WrappedVkRes *ptr)
 {
@@ -87,7 +87,7 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
 	if(WrappedVkEvent::IsAlloc(ptr))                    return eResEvent;
 	if(WrappedVkQueryPool::IsAlloc(ptr))                return eResQueryPool;
 	if(WrappedVkSemaphore::IsAlloc(ptr))                return eResSemaphore;
-	if(WrappedVkSwapChainWSI::IsAlloc(ptr))             return eResWSISwapChain;
+	if(WrappedVkSwapchainKHR::IsAlloc(ptr))             return eResSwapchain;
 
 	RDCERR("Unknown type for ptr 0x%p", ptr);
 
@@ -165,7 +165,7 @@ bool IsDepthStencilFormat(VkFormat f)
 	switch(f)
 	{
 		case VK_FORMAT_D16_UNORM:
-		case VK_FORMAT_D24_UNORM:
+		case VK_FORMAT_D24_UNORM_X8:
 		case VK_FORMAT_D32_SFLOAT:
 		case VK_FORMAT_S8_UINT:
 		case VK_FORMAT_D16_UNORM_S8_UINT:

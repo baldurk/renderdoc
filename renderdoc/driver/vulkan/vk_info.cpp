@@ -76,13 +76,13 @@ void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCre
 		rasterSamples = pCreateInfo->pMultisampleState->rasterSamples;
 		sampleShadingEnable = pCreateInfo->pMultisampleState->sampleShadingEnable ? true : false;
 		minSampleShading = pCreateInfo->pMultisampleState->minSampleShading;
-		sampleMask = pCreateInfo->pMultisampleState->sampleMask;
+		sampleMask = pCreateInfo->pMultisampleState->pSampleMask ? *pCreateInfo->pMultisampleState->pSampleMask : ~0U;
 
 		// VkPipelineDepthStencilStateCreateInfo
 		depthTestEnable = pCreateInfo->pDepthStencilState->depthTestEnable ? true : false;
 		depthWriteEnable = pCreateInfo->pDepthStencilState->depthWriteEnable ? true : false;
 		depthCompareOp = pCreateInfo->pDepthStencilState->depthCompareOp;
-		depthBoundsEnable = pCreateInfo->pDepthStencilState->depthBoundsEnable ? true : false;
+		depthBoundsEnable = pCreateInfo->pDepthStencilState->depthBoundsTestEnable ? true : false;
 		stencilTestEnable = pCreateInfo->pDepthStencilState->stencilTestEnable ? true : false;
 		front = pCreateInfo->pDepthStencilState->front;
 		back = pCreateInfo->pDepthStencilState->back;
@@ -118,11 +118,11 @@ void VulkanCreationInfo::RenderPass::Init(const VkRenderPassCreateInfo* pCreateI
 
 	inputAttachments.resize(subp.inputCount);
 	for(uint32_t i=0; i < subp.inputCount; i++)
-		inputAttachments[i] = subp.inputAttachments[i].attachment;
+		inputAttachments[i] = subp.pInputAttachments[i].attachment;
 
 	colorAttachments.resize(subp.colorCount);
 	for(uint32_t i=0; i < subp.colorCount; i++)
-		colorAttachments[i] = subp.colorAttachments[i].attachment;
+		colorAttachments[i] = subp.pColorAttachments[i].attachment;
 	
 	depthstencilAttachment = (subp.depthStencilAttachment.attachment != VK_ATTACHMENT_UNUSED
 		? (int32_t)subp.depthStencilAttachment.attachment : -1);

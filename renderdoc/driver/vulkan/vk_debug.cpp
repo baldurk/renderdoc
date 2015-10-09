@@ -90,9 +90,11 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 {
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
+	sz = size;
+
 	VkBufferCreateInfo bufInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-		size, VK_BUFFER_USAGE_GENERAL, 0,
+		size, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
 		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 	};
 
@@ -118,33 +120,22 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 
 	vkr = vt->BindBufferMemory(Unwrap(dev), Unwrap(buf), Unwrap(mem), 0);
 	RDCASSERT(vkr == VK_SUCCESS);
+}
 
-	VkBufferViewCreateInfo bufviewInfo = {
-		VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, NULL,
-		Unwrap(buf), VK_BUFFER_VIEW_TYPE_RAW,
-		VK_FORMAT_UNDEFINED, 0, size,
-	};
-
-	vkr = vt->CreateBufferView(Unwrap(dev), &bufviewInfo, &view);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	VKMGR()->WrapResource(Unwrap(dev), view);
+void VulkanDebugManager::GPUBuffer::FillDescriptor(VkDescriptorInfo &desc)
+{
+	desc.bufferInfo.buffer = Unwrap(buf);
+	desc.bufferInfo.offset = 0;
+	desc.bufferInfo.range = sz;
 }
 
 void VulkanDebugManager::GPUBuffer::Destroy(const VkLayerDispatchTable *vt, VkDevice dev)
 {
 	VkResult vkr = VK_SUCCESS;
-	if(view != VK_NULL_HANDLE)
-	{
-		vkr = vt->DestroyBufferView(Unwrap(dev), Unwrap(view));
-		RDCASSERT(vkr == VK_SUCCESS);
-		VKMGR()->ReleaseWrappedResource(view);
-		view = VK_NULL_HANDLE;
-	}
-	
+
 	if(buf != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyBuffer(Unwrap(dev), Unwrap(buf));
+		vt->DestroyBuffer(Unwrap(dev), Unwrap(buf));
 		RDCASSERT(vkr == VK_SUCCESS);
 		VKMGR()->ReleaseWrappedResource(buf);
 		buf = VK_NULL_HANDLE;
@@ -152,7 +143,7 @@ void VulkanDebugManager::GPUBuffer::Destroy(const VkLayerDispatchTable *vt, VkDe
 
 	if(mem != VK_NULL_HANDLE)
 	{
-		vkr = vt->FreeMemory(Unwrap(dev), Unwrap(mem));
+		vt->FreeMemory(Unwrap(dev), Unwrap(mem));
 		RDCASSERT(vkr == VK_SUCCESS);
 		VKMGR()->ReleaseWrappedResource(mem);
 		mem = VK_NULL_HANDLE;
@@ -219,7 +210,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, NULL,
 		VK_TEX_FILTER_LINEAR, VK_TEX_FILTER_LINEAR,
 		VK_TEX_MIPMAP_MODE_LINEAR, 
-		VK_TEX_ADDRESS_CLAMP, VK_TEX_ADDRESS_CLAMP, VK_TEX_ADDRESS_CLAMP,
+		VK_TEX_ADDRESS_MODE_CLAMP, VK_TEX_ADDRESS_MODE_CLAMP, VK_TEX_ADDRESS_MODE_CLAMP,
 		0.0f, // lod bias
 		1.0f, // max aniso
 		false, VK_COMPARE_OP_NEVER,
@@ -339,35 +330,35 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	VkDescriptorPoolCreateInfo descpoolInfo = {
 		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, NULL,
+		VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 4,
 		ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
 	};
 	
-	vkr = vt->CreateDescriptorPool(Unwrap(dev), VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 4, &descpoolInfo, &m_DescriptorPool);
+	vkr = vt->CreateDescriptorPool(Unwrap(dev), &descpoolInfo, &m_DescriptorPool);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VKMGR()->WrapResource(Unwrap(dev), m_DescriptorPool);
 	
-	uint32_t count;
 	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
-		UnwrapPtr(m_CheckerboardDescSetLayout), &m_CheckerboardDescSet, &count);
+		UnwrapPtr(m_CheckerboardDescSetLayout), &m_CheckerboardDescSet);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VKMGR()->WrapResource(Unwrap(dev), m_CheckerboardDescSet);
 	
 	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
-		UnwrapPtr(m_TexDisplayDescSetLayout), &m_TexDisplayDescSet, &count);
+		UnwrapPtr(m_TexDisplayDescSetLayout), &m_TexDisplayDescSet);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayDescSet);
 	
 	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
-		UnwrapPtr(m_TextDescSetLayout), &m_TextDescSet, &count);
+		UnwrapPtr(m_TextDescSetLayout), &m_TextDescSet);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VKMGR()->WrapResource(Unwrap(dev), m_TextDescSet);
 	
 	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
-		UnwrapPtr(m_GenericDescSetLayout), &m_GenericDescSet, &count);
+		UnwrapPtr(m_GenericDescSetLayout), &m_GenericDescSet);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VKMGR()->WrapResource(Unwrap(dev), m_GenericDescSet);
@@ -484,7 +475,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VkPipelineMultisampleStateCreateInfo msaa = {
 		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL,
-		1, false, 0.0f, 1,
+		1, false, 0.0f, NULL,
 	};
 
 	VkPipelineDepthStencilStateCreateInfo ds = {
@@ -504,7 +495,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VkPipelineColorBlendStateCreateInfo cb = {
 		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, NULL,
-		false, false, VK_LOGIC_OP_NOOP,
+		false, false, false, VK_LOGIC_OP_NOOP,
 		1, &attState,
 		{ 1.0f, 1.0f, 1.0f, 1.0f }
 	};
@@ -606,12 +597,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
-		vkr = vt->DestroyShader(Unwrap(dev), Unwrap(shader[i]));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyShader(Unwrap(dev), Unwrap(shader[i]));
 		VKMGR()->ReleaseWrappedResource(shader[i]);
 		
-		vkr = vt->DestroyShaderModule(Unwrap(dev), Unwrap(module[i]));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyShaderModule(Unwrap(dev), Unwrap(module[i]));
 		VKMGR()->ReleaseWrappedResource(module[i]);
 	}
 
@@ -744,8 +733,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				buf += width;
 			}
 
-			vkr = vt->UnmapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem));
-			RDCASSERT(vkr == VK_SUCCESS);
+			vt->UnmapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem));
 		}
 
 		m_TextGlyphUBO.Create(driver, dev, 4096);
@@ -771,22 +759,22 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCEraseEl(desc);
 	
 	// checkerboard
-	desc[0].bufferView = Unwrap(m_CheckerboardUBO.view);
+	m_CheckerboardUBO.FillDescriptor(desc[0]);
 
 	// tex display
-	desc[1].bufferView = Unwrap(m_TexDisplayUBO.view);
+	m_TexDisplayUBO.FillDescriptor(desc[1]);
 	// image descriptor is updated right before rendering
 
 	// text
-	desc[2].bufferView = Unwrap(m_TextGeneralUBO.view);
-	desc[3].bufferView = Unwrap(m_TextGlyphUBO.view);
-	desc[4].bufferView = Unwrap(m_TextStringUBO.view);
+	m_TextGeneralUBO.FillDescriptor(desc[2]);
+	m_TextGlyphUBO.FillDescriptor(desc[3]);
+	m_TextStringUBO.FillDescriptor(desc[4]);
 	desc[5].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	desc[5].imageView = Unwrap(m_TextAtlasView);
 	desc[5].sampler = Unwrap(m_LinearSampler);
 	
 	// generic
-	desc[6].bufferView = Unwrap(m_GenericUBO.view);
+	m_GenericUBO.FillDescriptor(desc[6]);
 
 	VkWriteDescriptorSet writeSet[] = {
 		{
@@ -819,8 +807,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		},
 	};
 
-	vkr = vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
-	RDCASSERT(vkr == VK_SUCCESS);
+	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
 }
 
 VulkanDebugManager::~VulkanDebugManager()
@@ -832,71 +819,61 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	if(m_DescriptorPool != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyDescriptorPool(Unwrap(dev), Unwrap(m_DescriptorPool));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyDescriptorPool(Unwrap(dev), Unwrap(m_DescriptorPool));
 		VKMGR()->ReleaseWrappedResource(m_DescriptorPool);
 	}
 
 	if(m_LinearSampler != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroySampler(Unwrap(dev), Unwrap(m_LinearSampler));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroySampler(Unwrap(dev), Unwrap(m_LinearSampler));
 		VKMGR()->ReleaseWrappedResource(m_LinearSampler);
 	}
 
 	if(m_PointSampler != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroySampler(Unwrap(dev), Unwrap(m_PointSampler));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroySampler(Unwrap(dev), Unwrap(m_PointSampler));
 		VKMGR()->ReleaseWrappedResource(m_PointSampler);
 	}
 
 	if(m_CheckerboardDescSetLayout != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_CheckerboardDescSetLayout));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_CheckerboardDescSetLayout));
 		VKMGR()->ReleaseWrappedResource(m_CheckerboardDescSetLayout);
 	}
 
 	if(m_CheckerboardPipeLayout != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_CheckerboardPipeLayout));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_CheckerboardPipeLayout));
 		VKMGR()->ReleaseWrappedResource(m_CheckerboardPipeLayout);
 	}
 
 	if(m_CheckerboardPipeline != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyPipeline(Unwrap(dev), Unwrap(m_CheckerboardPipeline));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_CheckerboardPipeline));
 		VKMGR()->ReleaseWrappedResource(m_CheckerboardPipeline);
 	}
 
 	if(m_TexDisplayDescSetLayout != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_TexDisplayDescSetLayout));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_TexDisplayDescSetLayout));
 		VKMGR()->ReleaseWrappedResource(m_TexDisplayDescSetLayout);
 	}
 
 	if(m_TexDisplayPipeLayout != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_TexDisplayPipeLayout));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_TexDisplayPipeLayout));
 		VKMGR()->ReleaseWrappedResource(m_TexDisplayPipeLayout);
 	}
 
 	if(m_TexDisplayPipeline != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TexDisplayPipeline));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TexDisplayPipeline));
 		VKMGR()->ReleaseWrappedResource(m_TexDisplayPipeline);
 	}
 
 	if(m_TexDisplayBlendPipeline != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TexDisplayBlendPipeline));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TexDisplayBlendPipeline));
 		VKMGR()->ReleaseWrappedResource(m_TexDisplayBlendPipeline);
 	}
 
@@ -905,22 +882,19 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	if(m_TextDescSetLayout != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_TextDescSetLayout));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_TextDescSetLayout));
 		VKMGR()->ReleaseWrappedResource(m_TextDescSetLayout);
 	}
 
 	if(m_TextPipeLayout != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_TextPipeLayout));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_TextPipeLayout));
 		VKMGR()->ReleaseWrappedResource(m_TextPipeLayout);
 	}
 
 	if(m_TextPipeline != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TextPipeline));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TextPipeline));
 		VKMGR()->ReleaseWrappedResource(m_TextPipeline);
 	}
 
@@ -930,43 +904,37 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	if(m_TextAtlasView != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyImageView(Unwrap(dev), Unwrap(m_TextAtlasView));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyImageView(Unwrap(dev), Unwrap(m_TextAtlasView));
 		VKMGR()->ReleaseWrappedResource(m_TextAtlasView);
 	}
 
 	if(m_TextAtlas != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyImage(Unwrap(dev), Unwrap(m_TextAtlas));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyImage(Unwrap(dev), Unwrap(m_TextAtlas));
 		VKMGR()->ReleaseWrappedResource(m_TextAtlas);
 	}
 
 	if(m_TextAtlasMem != VK_NULL_HANDLE)
 	{
-		vkr = vt->FreeMemory(Unwrap(dev), Unwrap(m_TextAtlasMem));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->FreeMemory(Unwrap(dev), Unwrap(m_TextAtlasMem));
 		VKMGR()->ReleaseWrappedResource(m_TextAtlasMem);
 	}
 	
 	if(m_GenericDescSetLayout != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_GenericDescSetLayout));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_GenericDescSetLayout));
 		VKMGR()->ReleaseWrappedResource(m_GenericDescSetLayout);
 	}
 
 	if(m_GenericPipeLayout != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_GenericPipeLayout));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_GenericPipeLayout));
 		VKMGR()->ReleaseWrappedResource(m_GenericPipeLayout);
 	}
 
 	if(m_GenericPipeline != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyPipeline(Unwrap(dev), Unwrap(m_GenericPipeline));
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_GenericPipeline));
 		VKMGR()->ReleaseWrappedResource(m_GenericPipeline);
 	}
 
@@ -1041,7 +1009,7 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 		vt->CmdBindDescriptorSets(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 0, NULL);
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)textstate.w, (float)textstate.h, 0.0f, 1.0f };
-		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+		vt->CmdSetViewport(Unwrap(textstate.cmd), 1, &viewport);
 
 		// VKTODOMED strip + instance ID doesn't seem to work atm? instance ID comes through 0
 		// for now, do lists, but want to change back 

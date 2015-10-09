@@ -175,14 +175,14 @@ class VulkanReplay : public IReplayDriver
 			void Destroy(WrappedVulkan *driver, VkDevice device);
 
 			// implemented in vk_replay_platform.cpp
-			void InitSurfaceDescription(VkSurfaceDescriptionWindowWSI &surfDesc);
+			void InitSurfaceDescription(VkSurfaceDescriptionWindowKHR &surfDesc);
 			void SetWindowHandle(void *wn);
 
 			WINDOW_HANDLE_DECL
 
 			int32_t width, height;
 
-			VkSwapChainWSI swap;
+			VkSwapchainKHR swap;
 			uint32_t numImgs;
 			VkImage colimg[8];
 			VkImageMemoryBarrier coltrans[8];

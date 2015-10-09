@@ -64,8 +64,8 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 		
 		uint32_t nummips = t.subresourceRange.mipLevels;
 		uint32_t numslices = t.subresourceRange.arraySize;
-		if(nummips == VK_LAST_MIP_LEVEL) nummips = states[id].mipLevels;
-		if(numslices == VK_LAST_ARRAY_SLICE) numslices = states[id].arraySize;
+		if(nummips == VK_REMAINING_MIP_LEVELS) nummips = states[id].mipLevels - t.subresourceRange.baseMipLevel;
+		if(numslices == VK_REMAINING_ARRAY_LAYERS) numslices = states[id].arraySize - t.subresourceRange.baseArrayLayer;
 
 		bool done = false;
 
@@ -81,7 +81,7 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 			if(it->first < id) continue;
 			if(it->first != id) break;
 
-			if(it->second.range.aspect == t.subresourceRange.aspect)
+			if(it->second.range.aspectMask == t.subresourceRange.aspectMask)
 			{
 				// we've found a range that completely matches our region, doesn't matter if that's
 				// a whole image and the transition is the whole image, or it's one subresource.
@@ -89,7 +89,7 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 				// really have to worry about the else{} branch
 				if(it->second.range.baseMipLevel == t.subresourceRange.baseMipLevel &&
 				   it->second.range.mipLevels == nummips &&
-				   it->second.range.baseArraySlice == t.subresourceRange.baseArraySlice &&
+				   it->second.range.baseArrayLayer == t.subresourceRange.baseArrayLayer &&
 				   it->second.range.arraySize == numslices)
 				{
 					// verify
@@ -119,8 +119,8 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 					   it->second.range.arraySize == 1 &&
 					   it->second.range.baseMipLevel >= t.subresourceRange.baseMipLevel &&
 					   it->second.range.baseMipLevel < t.subresourceRange.baseMipLevel+nummips &&
-					   it->second.range.baseArraySlice >= t.subresourceRange.baseArraySlice &&
-					   it->second.range.baseArraySlice < t.subresourceRange.baseArraySlice+numslices)
+					   it->second.range.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
+					   it->second.range.baseArrayLayer < t.subresourceRange.baseArrayLayer+numslices)
 					{
 						// apply it (prevstate is from the start of all transitions, so only set once)
 						if(it->second.prevstate == UNTRANSITIONED_IMG_STATE)
@@ -158,7 +158,7 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 							it->second.range.arraySize = 1;
 
 							// slice-major
-							it->second.range.baseArraySlice = uint32_t(i / existing.second.range.mipLevels);
+							it->second.range.baseArrayLayer = uint32_t(i / existing.second.range.mipLevels);
 							it->second.range.baseMipLevel = uint32_t(i % existing.second.range.mipLevels);
 							it++;
 						}
@@ -170,8 +170,8 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 						// so we need to check to see if the first subresource lies in the range here
 						if(it->second.range.baseMipLevel >= t.subresourceRange.baseMipLevel &&
 						   it->second.range.baseMipLevel < t.subresourceRange.baseMipLevel+nummips &&
-						   it->second.range.baseArraySlice >= t.subresourceRange.baseArraySlice &&
-						   it->second.range.baseArraySlice < t.subresourceRange.baseArraySlice+numslices)
+						   it->second.range.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
+						   it->second.range.baseArrayLayer < t.subresourceRange.baseArrayLayer+numslices)
 						{
 							// apply it (prevstate is from the start of all transitions, so only set once)
 							if(it->second.prevstate == UNTRANSITIONED_IMG_STATE)
@@ -189,7 +189,7 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 			}
 
 			// if we've gone past where the new subresource range would sit
-			if(it->second.range.aspect > t.subresourceRange.aspect)
+			if(it->second.range.aspectMask > t.subresourceRange.aspectMask)
 				break;
 
 			// otherwise continue to try and find the subresource range
@@ -291,8 +291,8 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 
 		uint32_t nummips = t.range.mipLevels;
 		uint32_t numslices = t.range.arraySize;
-		if(nummips == VK_LAST_MIP_LEVEL) nummips = states[id].mipLevels;
-		if(numslices == VK_LAST_ARRAY_SLICE) numslices = states[id].arraySize;
+		if(nummips == VK_REMAINING_MIP_LEVELS) nummips = states[id].mipLevels;
+		if(numslices == VK_REMAINING_ARRAY_LAYERS) numslices = states[id].arraySize;
 
 		// VKTODOHIGH check, does this mean the sensible thing?
 		if(nummips == 0) nummips = 1;
@@ -303,7 +303,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 		TRDBG("Transition of %s (%u->%u, %u->%u) from %s to %s",
 				ToStr::Get(t.range.aspect).c_str(),
 				t.range.baseMipLevel, t.range.mipLevels,
-				t.range.baseArraySlice, t.range.arraySize,
+				t.range.baseArrayLayer, t.range.arraySize,
 				ToStr::Get(t.prevstate).c_str(), ToStr::Get(t.state).c_str());
 
 		bool done = false;
@@ -316,7 +316,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 			TRDBG(".. state %s (%u->%u, %u->%u) from %s to %s",
 				ToStr::Get(it->range.aspect).c_str(),
 				it->range.baseMipLevel, it->range.mipLevels,
-				it->range.baseArraySlice, it->range.arraySize,
+				it->range.baseArrayLayer, it->range.arraySize,
 				ToStr::Get(it->prevstate).c_str(), ToStr::Get(it->state).c_str());
 
 			// image transitions are handled by initially inserting one subresource range for each aspect,
@@ -324,7 +324,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 			// each subresource in that aspect. Thereafter if a transition comes in that covers multiple
 			// subresources, we transition all matching ranges.
 
-			if(it->range.aspect == t.range.aspect)
+			if(it->range.aspectMask == t.range.aspectMask)
 			{
 				// we've found a range that completely matches our region, doesn't matter if that's
 				// a whole image and the transition is the whole image, or it's one subresource.
@@ -332,7 +332,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 				// really have to worry about the else{} branch
 				if(it->range.baseMipLevel == t.range.baseMipLevel &&
 				   it->range.mipLevels == nummips &&
-				   it->range.baseArraySlice == t.range.baseArraySlice &&
+				   it->range.baseArrayLayer == t.range.baseArrayLayer &&
 				   it->range.arraySize == numslices)
 				{
 					/*
@@ -362,8 +362,8 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 					   it->range.arraySize == 1 &&
 					   it->range.baseMipLevel >= t.range.baseMipLevel &&
 					   it->range.baseMipLevel < t.range.baseMipLevel+nummips &&
-					   it->range.baseArraySlice >= t.range.baseArraySlice &&
-					   it->range.baseArraySlice < t.range.baseArraySlice+numslices)
+					   it->range.baseArrayLayer >= t.range.baseArrayLayer &&
+					   it->range.baseArrayLayer < t.range.baseArrayLayer+numslices)
 					{
 						// apply it (prevstate is from the start of all transitions, so only set once)
 						if(it->prevstate == UNTRANSITIONED_IMG_STATE)
@@ -401,7 +401,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 							it->range.arraySize = 1;
 
 							// slice-major
-							it->range.baseArraySlice = uint32_t(i / existing.range.mipLevels);
+							it->range.baseArrayLayer = uint32_t(i / existing.range.mipLevels);
 							it->range.baseMipLevel = uint32_t(i % existing.range.mipLevels);
 							it++;
 						}
@@ -413,8 +413,8 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 						// so we need to check to see if the first subresource lies in the range here
 						if(it->range.baseMipLevel >= t.range.baseMipLevel &&
 						   it->range.baseMipLevel < t.range.baseMipLevel+nummips &&
-						   it->range.baseArraySlice >= t.range.baseArraySlice &&
-						   it->range.baseArraySlice < t.range.baseArraySlice+numslices)
+						   it->range.baseArrayLayer >= t.range.baseArrayLayer &&
+						   it->range.baseArrayLayer < t.range.baseArrayLayer+numslices)
 						{
 							// apply it (prevstate is from the start of all transitions, so only set once)
 							if(it->prevstate == UNTRANSITIONED_IMG_STATE)
@@ -432,7 +432,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 			}
 
 			// if we've gone past where the new subresource range would sit
-			if(it->range.aspect > t.range.aspect)
+			if(it->range.aspectMask > t.range.aspectMask)
 				break;
 
 			// otherwise continue to try and find the subresource range

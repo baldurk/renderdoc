@@ -200,7 +200,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 		case VK_FORMAT_R32_SFLOAT:
 		case VK_FORMAT_R64_SFLOAT:
 		case VK_FORMAT_D16_UNORM:
-		case VK_FORMAT_D24_UNORM:
+		case VK_FORMAT_D24_UNORM_X8:
 		case VK_FORMAT_D32_SFLOAT:
 		case VK_FORMAT_S8_UINT:
 		case VK_FORMAT_BC4_UNORM:
@@ -561,7 +561,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 			ret.compType = eCompType_Double;
 			break;
 		case VK_FORMAT_D16_UNORM:
-		case VK_FORMAT_D24_UNORM:
+		case VK_FORMAT_D24_UNORM_X8:
 		case VK_FORMAT_D32_SFLOAT:
 			ret.compType = eCompType_Depth;
 			break;
@@ -647,7 +647,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 		case VK_FORMAT_D16_UNORM:
 			ret.compByteWidth = 2;
 			break;
-		case VK_FORMAT_D24_UNORM:
+		case VK_FORMAT_D24_UNORM_X8:
 			ret.compByteWidth = 3;
 			break;
 		case VK_FORMAT_R32_UINT:
@@ -760,24 +760,11 @@ string ToStrHelper<false, VkResourceType>::Get(const VkResourceType &el)
 		TOSTR_CASE_STRINGIZE(eResEvent)
 		TOSTR_CASE_STRINGIZE(eResQueryPool)
 		TOSTR_CASE_STRINGIZE(eResSemaphore)
-		TOSTR_CASE_STRINGIZE(eResWSISwapChain)
+		TOSTR_CASE_STRINGIZE(eResSwapchain)
 		default: break;
 	}
 	
 	return StringFormat::Fmt("VkResourceType<%d>", el);
-}
-
-template<>
-string ToStrHelper<false, VkDeviceCreateFlagBits>::Get(const VkDeviceCreateFlagBits &el)
-{
-	string ret;
-
-	if(el & VK_DEVICE_CREATE_VALIDATION_BIT)              ret += " | VK_DEVICE_CREATE_VALIDATION_BIT";
-	
-	if(!ret.empty())
-		ret = ret.substr(3);
-
-	return ret;
 }
 
 template<>
@@ -835,14 +822,14 @@ string ToStrHelper<false, VkImageUsageFlagBits>::Get(const VkImageUsageFlagBits 
 {
 	string ret = "VK_IMAGE_USAGE_GENERAL";
 
-	if(el & VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT)       ret += " | VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT";
-	if(el & VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT)  ret += " | VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT";
-	if(el & VK_IMAGE_USAGE_SAMPLED_BIT)               ret += " | VK_IMAGE_USAGE_SAMPLED_BIT";
-	if(el & VK_IMAGE_USAGE_STORAGE_BIT)               ret += " | VK_IMAGE_USAGE_STORAGE_BIT";
-	if(el & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)      ret += " | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT";
-	if(el & VK_IMAGE_USAGE_DEPTH_STENCIL_BIT)         ret += " | VK_IMAGE_USAGE_DEPTH_STENCIL_BIT";
-	if(el & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT)  ret += " | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT";
-	if(el & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)      ret += " | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT";
+	if(el & VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT)          ret += " | VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT";
+	if(el & VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT)     ret += " | VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT";
+	if(el & VK_IMAGE_USAGE_SAMPLED_BIT)                  ret += " | VK_IMAGE_USAGE_SAMPLED_BIT";
+	if(el & VK_IMAGE_USAGE_STORAGE_BIT)                  ret += " | VK_IMAGE_USAGE_STORAGE_BIT";
+	if(el & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)         ret += " | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT";
+	if(el & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) ret += " | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT";
+	if(el & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT)     ret += " | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT";
+	if(el & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)         ret += " | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT";
 
 	return ret;
 }
@@ -852,7 +839,7 @@ string ToStrHelper<false, VkBufferCreateFlagBits>::Get(const VkBufferCreateFlagB
 {
 	string ret;
 
-	if(el & VK_BUFFER_CREATE_SPARSE_BIT)           ret += " | VK_BUFFER_CREATE_SPARSE_BIT";
+	if(el & VK_BUFFER_CREATE_SPARSE_BINDING_BIT)   ret += " | VK_BUFFER_CREATE_SPARSE_BINDING_BIT";
 	if(el & VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT) ret += " | VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT";
 	if(el & VK_BUFFER_CREATE_SPARSE_ALIASED_BIT)   ret += " | VK_BUFFER_CREATE_SPARSE_ALIASED_BIT";
 	
@@ -867,10 +854,9 @@ string ToStrHelper<false, VkImageCreateFlagBits>::Get(const VkImageCreateFlagBit
 {
 	string ret;
 
-	if(el & VK_IMAGE_CREATE_SPARSE_BIT)           ret += " | VK_IMAGE_CREATE_SPARSE_BIT";
+	if(el & VK_IMAGE_CREATE_SPARSE_BINDING_BIT)   ret += " | VK_IMAGE_CREATE_SPARSE_BINDING_BIT";
 	if(el & VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT) ret += " | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT";
 	if(el & VK_IMAGE_CREATE_SPARSE_ALIASED_BIT)   ret += " | VK_IMAGE_CREATE_SPARSE_ALIASED_BIT";
-	if(el & VK_IMAGE_CREATE_INVARIANT_DATA_BIT)   ret += " | VK_IMAGE_CREATE_INVARIANT_DATA_BIT";
 	if(el & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT)   ret += " | VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT";
 	if(el & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT)  ret += " | VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT";
 	
@@ -899,7 +885,7 @@ string ToStrHelper<false, VkCmdPoolResetFlagBits>::Get(const VkCmdPoolResetFlagB
 {
 	string ret;
 
-	if(el & VK_CMD_POOL_RESET_RELEASE_RESOURCES)           ret += " | VK_CMD_POOL_RESET_RELEASE_RESOURCES";
+	if(el & VK_CMD_POOL_RESET_RELEASE_RESOURCES_BIT)          ret += " | VK_CMD_POOL_RESET_RELEASE_RESOURCES_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1003,6 +989,38 @@ string ToStrHelper<false, VkSubpassDescriptionFlagBits>::Get(const VkSubpassDesc
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkImageAspectFlagBits>::Get(const VkImageAspectFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_IMAGE_ASPECT_COLOR_BIT)    ret += " | VK_IMAGE_ASPECT_COLOR_BIT";
+	if(el & VK_IMAGE_ASPECT_DEPTH_BIT)    ret += " | VK_IMAGE_ASPECT_DEPTH_BIT";
+	if(el & VK_IMAGE_ASPECT_STENCIL_BIT)  ret += " | VK_IMAGE_ASPECT_STENCIL_BIT";
+	if(el & VK_IMAGE_ASPECT_METADATA_BIT) ret += " | VK_IMAGE_ASPECT_METADATA_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkStencilFaceFlagBits>::Get(const VkStencilFaceFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_STENCIL_FACE_FRONT_BIT)    ret += " | VK_STENCIL_FACE_FRONT_BIT";
+	if(el & VK_STENCIL_FACE_BACK_BIT)     ret += " | VK_STENCIL_FACE_BACK_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+	if(ret.empty())
+		ret = "VK_STENCIL_FACE_NONE";
 
 	return ret;
 }
@@ -1309,19 +1327,19 @@ string ToStrHelper<false, VkTexMipmapMode>::Get(const VkTexMipmapMode &el)
 }
 
 template<>
-string ToStrHelper<false, VkTexAddress>::Get(const VkTexAddress &el)
+string ToStrHelper<false, VkTexAddressMode>::Get(const VkTexAddressMode &el)
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_TEX_ADDRESS_WRAP)
-		TOSTR_CASE_STRINGIZE(VK_TEX_ADDRESS_MIRROR)
-		TOSTR_CASE_STRINGIZE(VK_TEX_ADDRESS_CLAMP)
-		TOSTR_CASE_STRINGIZE(VK_TEX_ADDRESS_MIRROR_ONCE)
-		TOSTR_CASE_STRINGIZE(VK_TEX_ADDRESS_CLAMP_BORDER)
+		TOSTR_CASE_STRINGIZE(VK_TEX_ADDRESS_MODE_WRAP)
+		TOSTR_CASE_STRINGIZE(VK_TEX_ADDRESS_MODE_MIRROR)
+		TOSTR_CASE_STRINGIZE(VK_TEX_ADDRESS_MODE_CLAMP)
+		TOSTR_CASE_STRINGIZE(VK_TEX_ADDRESS_MODE_MIRROR_ONCE)
+		TOSTR_CASE_STRINGIZE(VK_TEX_ADDRESS_MODE_CLAMP_BORDER)
 		default: break;		 
 	}
 	
-	return StringFormat::Fmt("VkTexAddress<%d>", el);
+	return StringFormat::Fmt("VkTexAddressMode<%d>", el);
 }
 
 template<>
@@ -1443,7 +1461,7 @@ string ToStrHelper<false, VkMemoryHeapFlagBits>::Get(const VkMemoryHeapFlagBits 
 {
 	string ret;
 
-	if(el & VK_MEMORY_HEAP_HOST_LOCAL)          ret += " | VK_MEMORY_HEAP_HOST_LOCAL";
+	if(el & VK_MEMORY_HEAP_HOST_LOCAL_BIT)          ret += " | VK_MEMORY_HEAP_HOST_LOCAL_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1523,19 +1541,6 @@ string ToStrHelper<false, VkSharingMode>::Get(const VkSharingMode &el)
 }
 
 template<>
-string ToStrHelper<false, VkBufferViewType>::Get(const VkBufferViewType &el)
-{
-	switch(el)
-	{
-		TOSTR_CASE_STRINGIZE(VK_BUFFER_VIEW_TYPE_RAW)
-		TOSTR_CASE_STRINGIZE(VK_BUFFER_VIEW_TYPE_FORMATTED)
-		default: break;
-	}
-	
-	return StringFormat::Fmt("VkBufferViewType<%d>", el);
-}
-
-template<>
 string ToStrHelper<false, VkCmdBufferLevel>::Get(const VkCmdBufferLevel &el)
 {
 	switch(el)
@@ -1575,7 +1580,7 @@ string ToStrHelper<false, VkImageLayout>::Get(const VkImageLayout &el)
 		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL)
 		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL)
-		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI)
+		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR)
 		default: break;
 	}
 	
@@ -1592,16 +1597,11 @@ string ToStrHelper<false, VkStructureType>::Get(const VkStructureType &el)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_ATTACHMENT_VIEW_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SHADER_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DYNAMIC_VIEWPORT_STATE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DYNAMIC_RASTER_STATE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DYNAMIC_COLOR_BLEND_STATE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DYNAMIC_DEPTH_STENCIL_STATE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_EVENT_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
@@ -1638,7 +1638,7 @@ string ToStrHelper<false, VkStructureType>::Get(const VkStructureType &el)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO)
-		TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SWAP_CHAIN_CREATE_INFO_WSI)
+		TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
 		default: break;
 	}
 
@@ -1774,7 +1774,7 @@ string ToStrHelper<false, VkFormat>::Get(const VkFormat &el)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R11G11B10_UFLOAT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R9G9B9E5_UFLOAT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_D16_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_D24_UNORM)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_D24_UNORM_X8)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_D32_SFLOAT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_S8_UINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_D16_UNORM_S8_UINT)
@@ -1904,14 +1904,20 @@ template<>
 string ToStrHelper<false, VkClearColorValue>::Get(const VkClearColorValue &el)
 {
 	return StringFormat::Fmt("VkClearColorValue<%f,%f,%f,%f>"
-			, el.f32[0], el.f32[1], el.f32[2], el.f32[3]);
+			, el.float32[0], el.float32[1], el.float32[2], el.float32[3]);
+}
+template<>
+string ToStrHelper<false, VkClearDepthStencilValue>::Get(const VkClearDepthStencilValue &el)
+{
+	return StringFormat::Fmt("VkClearDepthStencilValue<%f %u>"
+			, el.depth, el.stencil);
 }
 template<>
 string ToStrHelper<false, VkClearValue>::Get(const VkClearValue &el)
 {
 	return StringFormat::Fmt("VkClearValue[ col:<%f,%f,%f,%f> / d:%f s:%u ]"
-			, el.color.f32[0], el.color.f32[1], el.color.f32[2], el.color.f32[3]
-			, el.ds.depth, el.ds.stencil);
+			, el.color.float32[0], el.color.float32[1], el.color.float32[2], el.color.float32[3]
+			, el.depthStencil.depth, el.depthStencil.stencil);
 }
 
 template<>
@@ -1921,37 +1927,69 @@ string ToStrHelper<false, VkAttachmentReference>::Get(const VkAttachmentReferenc
 }
 
 template<>
-string ToStrHelper<false, VkSurfaceTransformWSI>::Get(const VkSurfaceTransformWSI &el)
+string ToStrHelper<false, VkSurfaceTransformKHR>::Get(const VkSurfaceTransformKHR &el)
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_NONE_WSI)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_ROT90_WSI)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_ROT180_WSI)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_ROT270_WSI)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_WSI)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_ROT90_WSI)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_ROT180_WSI)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_ROT270_WSI)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_INHERIT_WSI)
+		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_NONE_KHR)
+		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_ROT90_KHR)
+		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_ROT180_KHR)
+		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_ROT270_KHR)
+		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_KHR)
+		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_ROT90_KHR)
+		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_ROT180_KHR)
+		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_ROT270_KHR)
+		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_INHERIT_KHR)
 		default: break;
 	}
 
-	return StringFormat::Fmt("VkSurfaceTransformWSI<%d>", el);
+	return StringFormat::Fmt("VkSurfaceTransformKHR<%d>", el);
 }
 
 template<>
-string ToStrHelper<false, VkPresentModeWSI>::Get(const VkPresentModeWSI &el)
+string ToStrHelper<false, VkSurfaceTransformFlagBitsKHR>::Get(const VkSurfaceTransformFlagBitsKHR &el)
+{
+	string ret;
+
+	if(el & VK_SURFACE_TRANSFORM_ROT90_BIT_KHR)           ret += " | VK_SURFACE_TRANSFORM_ROT90_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_ROT180_BIT_KHR)          ret += " | VK_SURFACE_TRANSFORM_ROT180_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_ROT270_BIT_KHR)          ret += " | VK_SURFACE_TRANSFORM_ROT270_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_HMIRROR_BIT_KHR)         ret += " | VK_SURFACE_TRANSFORM_HMIRROR_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_HMIRROR_ROT90_BIT_KHR)   ret += " | VK_SURFACE_TRANSFORM_HMIRROR_ROT90_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_HMIRROR_ROT180_BIT_KHR)  ret += " | VK_SURFACE_TRANSFORM_HMIRROR_ROT180_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_HMIRROR_ROT270_BIT_KHR)  ret += " | VK_SURFACE_TRANSFORM_HMIRROR_ROT270_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR)         ret += " | VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkColorSpaceKHR>::Get(const VkColorSpaceKHR &el)
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_PRESENT_MODE_IMMEDIATE_WSI)
-		TOSTR_CASE_STRINGIZE(VK_PRESENT_MODE_MAILBOX_WSI)
-		TOSTR_CASE_STRINGIZE(VK_PRESENT_MODE_FIFO_WSI)
+		TOSTR_CASE_STRINGIZE(VK_COLORSPACE_SRGB_NONLINEAR_KHR)
 		default: break;
 	}
 
-	return StringFormat::Fmt("VkPresentModeWSI<%d>", el);
+	return StringFormat::Fmt("VkColorSpaceKHR<%d>", el);
+}
+
+template<>
+string ToStrHelper<false, VkPresentModeKHR>::Get(const VkPresentModeKHR &el)
+{
+	switch(el)
+	{
+		TOSTR_CASE_STRINGIZE(VK_PRESENT_MODE_IMMEDIATE_KHR)
+		TOSTR_CASE_STRINGIZE(VK_PRESENT_MODE_MAILBOX_KHR)
+		TOSTR_CASE_STRINGIZE(VK_PRESENT_MODE_FIFO_KHR)
+		default: break;
+	}
+
+	return StringFormat::Fmt("VkPresentModeKHR<%d>", el);
 }
 
 // we know the object will be a non-dispatchable object type
@@ -2022,7 +2060,7 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 	Serialise("sampleRateShading", el.sampleRateShading);
 	Serialise("dualSourceBlend", el.dualSourceBlend);
 	Serialise("logicOp", el.logicOp);
-	Serialise("instancedDrawIndirect", el.instancedDrawIndirect);
+	Serialise("multiDrawIndirect", el.multiDrawIndirect);
 	Serialise("depthClip", el.depthClip);
 	Serialise("depthBiasClamp", el.depthBiasClamp);
 	Serialise("fillModeNonSolid", el.fillModeNonSolid);
@@ -2039,11 +2077,9 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 	Serialise("fragmentSideEffects", el.fragmentSideEffects);
 	Serialise("shaderTessellationPointSize", el.shaderTessellationPointSize);
 	Serialise("shaderGeometryPointSize", el.shaderGeometryPointSize);
-	Serialise("shaderTextureGatherExtended", el.shaderTextureGatherExtended);
+	Serialise("shaderTextureGatherExtended", el.shaderImageGatherExtended);
 	Serialise("shaderStorageImageExtendedFormats", el.shaderStorageImageExtendedFormats);
 	Serialise("shaderStorageImageMultisample", el.shaderStorageImageMultisample);
-	Serialise("shaderStorageBufferArrayConstantIndexing", el.shaderStorageBufferArrayConstantIndexing);
-	Serialise("shaderStorageImageArrayConstantIndexing", el.shaderStorageImageArrayConstantIndexing);
 	Serialise("shaderUniformBufferArrayDynamicIndexing", el.shaderUniformBufferArrayDynamicIndexing);
 	Serialise("shaderSampledImageArrayDynamicIndexing", el.shaderSampledImageArrayDynamicIndexing);
 	Serialise("shaderStorageBufferArrayDynamicIndexing", el.shaderStorageBufferArrayDynamicIndexing);
@@ -2052,11 +2088,10 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 	Serialise("shaderCullDistance", el.shaderCullDistance);
 	Serialise("shaderFloat64", el.shaderFloat64);
 	Serialise("shaderInt64", el.shaderInt64);
-	Serialise("shaderFloat16", el.shaderFloat16);
 	Serialise("shaderInt16", el.shaderInt16);
 	Serialise("shaderResourceResidency", el.shaderResourceResidency);
 	Serialise("shaderResourceMinLOD", el.shaderResourceMinLOD);
-	Serialise("sparse", el.sparse);
+	Serialise("sparseBinding", el.sparseBinding);
 	Serialise("sparseResidencyBuffer", el.sparseResidencyBuffer);
 	Serialise("sparseResidencyImage2D", el.sparseResidencyImage2D);
 	Serialise("sparseResidencyImage3D", el.sparseResidencyImage3D);
@@ -2064,12 +2099,6 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 	Serialise("sparseResidency4Samples", el.sparseResidency4Samples);
 	Serialise("sparseResidency8Samples", el.sparseResidency8Samples);
 	Serialise("sparseResidency16Samples", el.sparseResidency16Samples);
-	Serialise("sparseResidencyStandard2DBlockShape", el.sparseResidencyStandard2DBlockShape);
-	Serialise("sparseResidencyStandard2DMSBlockShape", el.sparseResidencyStandard2DMSBlockShape);
-	Serialise("sparseResidencyStandard3DBlockShape", el.sparseResidencyStandard3DBlockShape);
-	Serialise("sparseResidencyAlignedMipSize", el.sparseResidencyAlignedMipSize);
-	Serialise("sparseResidencyNonResident", el.sparseResidencyNonResident);
-	Serialise("sparseResidencyNonResidentStrict", el.sparseResidencyNonResidentStrict);
 	Serialise("sparseResidencyAliased", el.sparseResidencyAliased);
 }
 
@@ -2081,8 +2110,6 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
-
-	Serialise("flags", (VkDeviceCreateFlagBits &)el.flags);
 
 	SerialiseComplexArray("pRequestedQueues", (VkDeviceQueueCreateInfo *&)el.pRequestedQueues, el.queueRecordCount);
 
@@ -2162,7 +2189,6 @@ void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el)
 	SerialiseNext(this, el.pNext);
 
 	SerialiseObject(VkBuffer, "buffer", el.buffer);
-	Serialise("viewType", el.viewType);
 	Serialise("format", el.format);
 	Serialise("offset", el.offset);
 	Serialise("range", el.range);
@@ -2267,22 +2293,22 @@ void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 
 	if(m_Mode == READING)
 	{
-		el.inputAttachments = NULL;
-		el.colorAttachments = NULL;
-		el.resolveAttachments = NULL;
-		el.preserveAttachments = NULL;
+		el.pInputAttachments = NULL;
+		el.pColorAttachments = NULL;
+		el.pResolveAttachments = NULL;
+		el.pPreserveAttachments = NULL;
 	}
 	
-	SerialisePODArray("inputAttachments", (VkAttachmentReference *&)el.inputAttachments, el.inputCount);
-	SerialisePODArray("colorAttachments", (VkAttachmentReference *&)el.colorAttachments, el.colorCount);
+	SerialisePODArray("inputAttachments", (VkAttachmentReference *&)el.pInputAttachments, el.inputCount);
+	SerialisePODArray("colorAttachments", (VkAttachmentReference *&)el.pColorAttachments, el.colorCount);
 
-	bool hasResolves = (el.resolveAttachments != NULL);
+	bool hasResolves = (el.pResolveAttachments != NULL);
 	Serialise("hasResolves", hasResolves);
 
 	if(hasResolves)
-		SerialisePODArray("resolveAttachments", (VkAttachmentReference *&)el.resolveAttachments, el.colorCount);
+		SerialisePODArray("resolveAttachments", (VkAttachmentReference *&)el.pResolveAttachments, el.colorCount);
 	
-	SerialisePODArray("preserveAttachments", (VkAttachmentReference *&)el.preserveAttachments, el.preserveCount);
+	SerialisePODArray("preserveAttachments", (VkAttachmentReference *&)el.pPreserveAttachments, el.preserveCount);
 }
 
 template<>
@@ -2331,8 +2357,8 @@ void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 	Serialise("renderArea", el.renderArea);
 
 	if(m_Mode == READING)
-		el.pAttachmentClearValues = NULL;
-	SerialisePODArray("pAttachmentClearValues", (VkClearValue *&)el.pAttachmentClearValues, el.attachmentCount);
+		el.pClearValues = NULL;
+	SerialisePODArray("pClearValues", (VkClearValue *&)el.pClearValues, el.clearValueCount);
 }
 
 template<>
@@ -2434,7 +2460,7 @@ void Serialiser::Serialise(const char *name, VkPipelineMultisampleStateCreateInf
 	Serialise("rasterSamples", el.rasterSamples);
 	Serialise("sampleShadingEnable", el.sampleShadingEnable);
 	Serialise("minSampleShading", el.minSampleShading);
-	Serialise("sampleMask", el.sampleMask);
+	SerialiseOptionalObject(this, "sampleMask", (VkSampleMask *&)el.pSampleMask);
 }
 
 template<>
@@ -2482,10 +2508,12 @@ void Serialiser::Serialise(const char *name, VkPipelineDepthStencilStateCreateIn
 	Serialise("depthTestEnable", el.depthTestEnable);
 	Serialise("depthWriteEnable", el.depthWriteEnable);
 	Serialise("depthCompareOp", el.depthCompareOp);
-	Serialise("depthBoundsEnable", el.depthBoundsEnable);
+	Serialise("depthBoundsTestEnable", el.depthBoundsTestEnable);
 	Serialise("stencilEnable", el.stencilTestEnable);
 	Serialise("front", el.front);
 	Serialise("back", el.back);
+	Serialise("minDepthBounds", el.minDepthBounds);
+	Serialise("maxDepthBounds", el.maxDepthBounds);
 }
 
 template<>
@@ -2594,9 +2622,9 @@ void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el)
 	Serialise("minFilter", el.minFilter);
 	Serialise("magFilter", el.magFilter);
 	Serialise("mipMode", el.mipMode);
-	Serialise("addressU", el.addressU);
-	Serialise("addressV", el.addressV);
-	Serialise("addressW", el.addressW);
+	Serialise("addressModeU", el.addressModeU);
+	Serialise("addressModeV", el.addressModeV);
+	Serialise("addressModeW", el.addressModeW);
 	Serialise("mipLodBias", el.mipLodBias);
 	Serialise("maxAnisotropy", el.maxAnisotropy);
 	Serialise("compareOp", el.compareOp);
@@ -2753,10 +2781,21 @@ void Serialiser::Serialise(const char *name, VkImageSubresourceRange &el)
 {
 	ScopedContext scope(this, name, "VkImageSubresourceRange", 0, true);
 
-	Serialise("aspect", el.aspect);
+	Serialise("aspectMask", (VkImageAspectFlagBits &)el.aspectMask);
 	Serialise("baseMipLevel", el.baseMipLevel);
 	Serialise("mipLevels", el.mipLevels);
-	Serialise("baseArraySlice", el.baseArraySlice);
+	Serialise("baseArrayLayer", el.baseArrayLayer);
+	Serialise("arraySize", el.arraySize);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkImageSubresourceCopy &el)
+{
+	ScopedContext scope(this, name, "VkImageSubresourceCopy", 0, true);
+
+	Serialise("aspect", el.aspect);
+	Serialise("mipLevel", el.mipLevel);
+	Serialise("arrayLayer", el.arrayLayer);
 	Serialise("arraySize", el.arraySize);
 }
 
@@ -2767,7 +2806,7 @@ void Serialiser::Serialise(const char *name, VkImageSubresource &el)
 	
 	Serialise("aspect", el.aspect);
 	Serialise("mipLevel", el.mipLevel);
-	Serialise("arraySlice", el.arraySlice);
+	Serialise("arrayLayer", el.arrayLayer);
 }
 
 template<>
@@ -2870,7 +2909,7 @@ void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el)
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
-	Serialise("cs", el.cs);
+	Serialise("stage", el.stage);
 	Serialise("flags", (VkPipelineCreateFlagBits &)el.flags);
 	SerialiseObject(VkPipelineLayout, "layout", el.layout);
 	SerialiseObject(VkPipeline, "basePipelineHandle", el.basePipelineHandle);
@@ -2908,8 +2947,8 @@ void Serialiser::Serialise(const char *name, VkDescriptorInfo &el)
 	SerialiseObject(VkImageView, "imageView", el.imageView);
 	Serialise("imageLayout", el.imageLayout);
 	SerialiseObject(VkBuffer, "bufferInfo.buffer", el.bufferInfo.buffer);
-	SerialiseObject(VkDeviceSize, "bufferInfo.offset", el.bufferInfo.offset);
-	SerialiseObject(VkDeviceSize, "bufferInfo.range", el.bufferInfo.range);
+	Serialise("bufferInfo.offset", el.bufferInfo.offset);
+	Serialise("bufferInfo.range", el.bufferInfo.range);
 }
 
 template<>
@@ -3090,11 +3129,11 @@ void Serialiser::Serialise(const char *name, VkRect3D &el)
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkSwapChainCreateInfoWSI &el)
+void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el)
 {
-	ScopedContext scope(this, name, "VkSwapChainCreateInfoWSI", 0, true);
+	ScopedContext scope(this, name, "VkSwapchainCreateInfoKHR", 0, true);
 	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SWAP_CHAIN_CREATE_INFO_WSI);
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 	
@@ -3103,10 +3142,13 @@ void Serialiser::Serialise(const char *name, VkSwapChainCreateInfoWSI &el)
 	
 	Serialise("minImageCount", el.minImageCount);
 	Serialise("imageFormat", el.imageFormat);
+	Serialise("imageColorSpace", el.imageColorSpace);
 	Serialise("imageExtent", el.imageExtent);
 	Serialise("imageUsageFlags", el.imageUsageFlags);
 	Serialise("preTransform", el.preTransform);
 	Serialise("imageArraySize", el.imageArraySize);
+
+	// VKTODOLOW: do we need sharingMode, queueFamilyCount, pQueueFamilyIndices?
 	
 	Serialise("presentMode", el.presentMode);
 

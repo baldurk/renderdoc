@@ -29,12 +29,12 @@
 // that same handle could be returned by create on another thread, and we
 // could end up trying to re-wrap it.
 #define DESTROY_IMPL(type, func) \
-	VkResult WrappedVulkan::vk ## func(VkDevice device, type obj) \
+	void WrappedVulkan::vk ## func(VkDevice device, type obj) \
 	{ \
 		if(m_ImageInfo.find(GetResID(obj)) != m_ImageInfo.end()) m_ImageInfo.erase(GetResID(obj)); \
 		type unwrappedObj = Unwrap(obj); \
 		if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true); \
-		return ObjDisp(device)->func(Unwrap(device), unwrappedObj); \
+		ObjDisp(device)->func(Unwrap(device), unwrappedObj); \
 	}
 
 DESTROY_IMPL(VkBuffer, DestroyBuffer)
@@ -55,12 +55,20 @@ DESTROY_IMPL(VkCmdPool, DestroyCommandPool)
 DESTROY_IMPL(VkQueryPool, DestroyQueryPool)
 DESTROY_IMPL(VkFramebuffer, DestroyFramebuffer)
 DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
-DESTROY_IMPL(VkSwapChainWSI, DestroySwapChainWSI)
 
 #undef DESTROY_IMPL
 
+// needs to be separate because it returns VkResult still
+VkResult WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj)
+{
+	if(m_ImageInfo.find(GetResID(obj)) != m_ImageInfo.end()) m_ImageInfo.erase(GetResID(obj));
+	VkSwapchainKHR unwrappedObj = Unwrap(obj);
+	if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true);
+	return ObjDisp(device)->DestroySwapchainKHR(Unwrap(device), unwrappedObj);
+}
+
 // needs to be separate since it's dispatchable
-VkResult WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
+void WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
 {
 	WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(obj);
 
@@ -74,11 +82,12 @@ VkResult WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
 		wrapped->record->Delete(GetResourceManager());
 		wrapped->record = NULL;
 	}
-	VkResult ret = ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), wrapped->real.As<VkCmdBuffer>());
 
+	VkCmdBuffer unwrapped = wrapped->real.As<VkCmdBuffer>();
+	
 	GetResourceManager()->ReleaseWrappedResource(obj);
 
-	return ret;
+	ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), unwrapped);
 }
 
 bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
@@ -102,7 +111,7 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 
 	switch(IdentifyTypeByPtr(res))
 	{
-		case eResWSISwapChain:
+		case eResSwapchain:
 			RDCERR("Should be no swapchain objects created on replay");
 			break;
 
@@ -530,7 +539,7 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 				record->AddParent(GetRecord(pCreateInfo->renderPass));
 			for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
 			{
-				record->AddParent(GetRecord(pCreateInfo->pAttachments[i].view));
+				record->AddParent(GetRecord(pCreateInfo->pAttachments[i]));
 			}
 		}
 		else

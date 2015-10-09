@@ -263,7 +263,7 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(
 		{
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetBlendConstants(Unwrap(cmdBuffer), blendFactor);
-			memcpy(m_PartialReplayData.state.blendConst, blendFactor, sizeof(blendFactor);
+			memcpy(m_PartialReplayData.state.blendConst, blendFactor, sizeof(blendFactor));
 		}
 	}
 	else if(m_State == READING)
@@ -288,7 +288,7 @@ void WrappedVulkan::vkCmdSetBlendConstants(
 
 		CACHE_THREAD_SERIALISER();
 
-		SCOPED_SERIALISE_CONTEXT(CmdSetBlendConstants);
+		SCOPED_SERIALISE_CONTEXT(SET_BLEND_CONST);
 		Serialise_vkCmdSetBlendConstants(localSerialiser, cmdBuffer, blendConst);
 
 		record->AddChunk(scope.Get());
@@ -355,7 +355,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(
 			uint32_t                                    stencilCompareMask)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
-	SERIALISE_ELEMENT(VkStencilFaceFlagsBits, face, faceMask);
+	SERIALISE_ELEMENT(VkStencilFaceFlagBits, face, (VkStencilFaceFlagBits)faceMask);
 	SERIALISE_ELEMENT(uint32_t, mask, stencilCompareMask);
 
 	if(m_State < WRITING)
@@ -411,7 +411,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(
 			uint32_t                                    stencilWriteMask)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
-	SERIALISE_ELEMENT(VkStencilFaceFlagsBits, face, faceMask);
+	SERIALISE_ELEMENT(VkStencilFaceFlagBits, face, (VkStencilFaceFlagBits)faceMask);
 	SERIALISE_ELEMENT(uint32_t, mask, stencilWriteMask);
 
 	if(m_State < WRITING)
@@ -467,7 +467,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(
 			uint32_t                                    stencilReference)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
-	SERIALISE_ELEMENT(VkStencilFaceFlagsBits, face, faceMask);
+	SERIALISE_ELEMENT(VkStencilFaceFlagBits, face, (VkStencilFaceFlagBits)faceMask);
 	SERIALISE_ELEMENT(uint32_t, mask, stencilReference);
 
 	if(m_State < WRITING)

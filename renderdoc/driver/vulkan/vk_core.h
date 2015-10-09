@@ -492,7 +492,7 @@ public:
 		const VkInstanceCreateInfo*                 pCreateInfo,
 		VkInstance*                                 pInstance);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyInstance,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyInstance,
 		VkInstance                                  instance);
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkEnumeratePhysicalDevices,
@@ -515,24 +515,17 @@ public:
     VkImageType                                 type,
     VkImageTiling                               tiling,
     VkImageUsageFlags                           usage,
+    VkImageCreateFlags                          flags,
     VkImageFormatProperties*                    pImageFormatProperties);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceLimits,
-    VkPhysicalDevice                            physicalDevice,
-    VkPhysicalDeviceLimits*                     pLimits);
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceProperties,
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceProperties*                 pProperties);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceQueueCount,
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceQueueFamilyProperties,
     VkPhysicalDevice                            physicalDevice,
-    uint32_t*                                   pCount);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceQueueProperties,
-    VkPhysicalDevice                            physicalDevice,
-    uint32_t                                    count,
-    VkPhysicalDeviceQueueProperties*            pQueueProperties);
+    uint32_t*                                   pCount,
+    VkQueueFamilyProperties*                    pQueueFamilyProperties);
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceMemoryProperties,
     VkPhysicalDevice                            physicalDevice,
@@ -545,7 +538,7 @@ public:
 		const VkDeviceCreateInfo*                   pCreateInfo,
 		VkDevice*                                   pDevice);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDevice,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyDevice,
 		VkDevice                                    device);
 	
 	// Queue functions
@@ -585,7 +578,7 @@ public:
 			const VkQueryPoolCreateInfo*                pCreateInfo,
 			VkQueryPool*                                pQueryPool);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyQueryPool,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyQueryPool,
 			VkDevice                                    device,
 			VkQueryPool                                 queryPool);
 
@@ -605,7 +598,7 @@ public:
 			const VkSemaphoreCreateInfo*                pCreateInfo,
 			VkSemaphore*                                pSemaphore);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySemaphore,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroySemaphore,
 			VkDevice                                    device,
 			VkSemaphore                                 semaphore);
 
@@ -624,7 +617,7 @@ public:
 			const VkFenceCreateInfo*                    pCreateInfo,
 			VkFence*                                    pFence);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyFence,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyFence,
 			VkDevice                                    device,
 			VkFence                                     fence);
 
@@ -639,7 +632,7 @@ public:
 			const VkMemoryAllocInfo*                    pAllocInfo,
 			VkDeviceMemory*                             pMem);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkFreeMemory,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkFreeMemory,
 			VkDevice                                    device,
 			VkDeviceMemory                              mem);
 
@@ -651,7 +644,7 @@ public:
 			VkMemoryMapFlags                            flags,
 			void**                                      ppData);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkUnmapMemory,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkUnmapMemory,
 			VkDevice                                    device,
 			VkDeviceMemory                              mem);
 
@@ -691,7 +684,7 @@ public:
 			const VkBufferCreateInfo*                   pCreateInfo,
 			VkBuffer*                                   pBuffer);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyBuffer,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyBuffer,
 			VkDevice                                    device,
 			VkBuffer                                    buffer);
 
@@ -702,7 +695,7 @@ public:
 			const VkBufferViewCreateInfo*               pCreateInfo,
 			VkBufferView*                               pView);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyBufferView,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyBufferView,
 			VkDevice                                    device,
 			VkBufferView                                view);
 
@@ -713,7 +706,7 @@ public:
 			const VkImageCreateInfo*                    pCreateInfo,
 			VkImage*                                    pImage);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyImage,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyImage,
 			VkDevice                                    device,
 			VkImage                                     image);
 
@@ -730,7 +723,7 @@ public:
 			const VkImageViewCreateInfo*                pCreateInfo,
 			VkImageView*                                pView);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyImageView,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyImageView,
 			VkDevice                                    device,
 			VkImageView                                 view);
 
@@ -741,7 +734,7 @@ public:
 			const VkShaderModuleCreateInfo*             pCreateInfo,
 			VkShaderModule*                             pShaderModule);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyShaderModule,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyShaderModule,
 			VkDevice                                    device,
 			VkShaderModule                              shaderModule);
 
@@ -750,7 +743,7 @@ public:
 			const VkShaderCreateInfo*                   pCreateInfo,
 			VkShader*                                   pShader);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyShader,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyShader,
 			VkDevice                                    device,
 			VkShader                                    shader);
 
@@ -763,7 +756,7 @@ public:
 			const VkGraphicsPipelineCreateInfo*         pCreateInfos,
 			VkPipeline*                                 pPipelines);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyPipeline,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyPipeline,
 			VkDevice                                    device,
 			VkPipeline                                  pipeline);
 
@@ -772,7 +765,7 @@ public:
 			const VkPipelineCacheCreateInfo*            pCreateInfo,
 			VkPipelineCache*                            pPipelineCache);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyPipelineCache,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyPipelineCache,
 			VkDevice                                    device,
 			VkPipelineCache                             pipelineCache);
 
@@ -783,7 +776,7 @@ public:
 			const VkPipelineLayoutCreateInfo*           pCreateInfo,
 			VkPipelineLayout*                           pPipelineLayout);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyPipelineLayout,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyPipelineLayout,
 			VkDevice                                    device,
 			VkPipelineLayout                            pipelineLayout);
 
@@ -794,7 +787,7 @@ public:
 			const VkSamplerCreateInfo*                  pCreateInfo,
 			VkSampler*                                  pSampler);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySampler,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroySampler,
 			VkDevice                                    device,
 			VkSampler                                   sampler);
 
@@ -805,31 +798,28 @@ public:
 			const VkDescriptorSetLayoutCreateInfo*      pCreateInfo,
 			VkDescriptorSetLayout*                      pSetLayout);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDescriptorSetLayout,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyDescriptorSetLayout,
 			VkDevice                                    device,
 			VkDescriptorSetLayout                       setLayout);
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDescriptorPool,
 			VkDevice                                    device,
-			VkDescriptorPoolUsage                       poolUsage,
-			uint32_t                                    maxSets,
 			const VkDescriptorPoolCreateInfo*           pCreateInfo,
 			VkDescriptorPool*                           pDescriptorPool);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDescriptorPool,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyDescriptorPool,
 			VkDevice                                    device,
 			VkDescriptorPool                            descriptorPool);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAllocDescriptorSets,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkAllocDescriptorSets,
 			VkDevice                                    device,
 			VkDescriptorPool                            descriptorPool,
 			VkDescriptorSetUsage                        setUsage,
 			uint32_t                                    count,
 			const VkDescriptorSetLayout*                pSetLayouts,
-			VkDescriptorSet*                            pDescriptorSets,
-			uint32_t*                                   pCount);
+			VkDescriptorSet*                            pDescriptorSets);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkUpdateDescriptorSets,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkUpdateDescriptorSets,
 			VkDevice                                    device,
 			uint32_t                                    writeCount,
 			const VkWriteDescriptorSet*                 pDescriptorWrites,
@@ -849,7 +839,7 @@ public:
 			const VkCmdPoolCreateInfo*                pCreateInfo,
 			VkCmdPool*                                pCmdPool);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyCommandPool,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyCommandPool,
 			VkDevice                                  device,
 			VkCmdPool                                 VkCmdPool);
 
@@ -865,7 +855,7 @@ public:
 			const VkCmdBufferCreateInfo*                pCreateInfo,
 			VkCmdBuffer*                                pCmdBuffer);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyCommandBuffer,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyCommandBuffer,
 			VkDevice                                    device,
 			VkCmdBuffer                                 cmdBuffer);
 
@@ -1064,8 +1054,7 @@ public:
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
-			float                                       depth,
-			uint32_t                                    stencil,
+			const VkClearDepthStencilValue*             pDepthStencil,
 			uint32_t                                    rangeCount,
 			const VkImageSubresourceRange*              pRanges);
 	
@@ -1081,8 +1070,7 @@ public:
 			VkCmdBuffer                                 cmdBuffer,
 			VkImageAspectFlags                          imageAspectMask,
 			VkImageLayout                               imageLayout,
-			float                                       depth,
-			uint32_t                                    stencil,
+			const VkClearDepthStencilValue*             pDepthStencil,
 			uint32_t                                    rectCount,
 			const VkRect3D*                             pRects);
 
@@ -1116,7 +1104,7 @@ public:
 			const VkFramebufferCreateInfo*              pCreateInfo,
 			VkFramebuffer*                              pFramebuffer);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyFramebuffer,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyFramebuffer,
 			VkDevice                                    device,
 			VkFramebuffer                               framebuffer);
 
@@ -1125,7 +1113,7 @@ public:
 			const VkRenderPassCreateInfo*               pCreateInfo,
 			VkRenderPass*                               pRenderPass);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyRenderPass,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyRenderPass,
 			VkDevice                                    device,
 			VkRenderPass                                renderPass);
 
@@ -1157,45 +1145,54 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDbgMarkerEnd,
 			VkCmdBuffer  cmdBuffer);
 
-	// WSI functions
+	// KHR functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceSurfaceSupportWSI,
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceSurfaceSupportKHR,
 			VkPhysicalDevice                        physicalDevice,
 			uint32_t                                queueFamilyIndex,
-			const VkSurfaceDescriptionWSI*          pSurfaceDescription,
+			const VkSurfaceDescriptionKHR*          pSurfaceDescription,
 			VkBool32*                               pSupported);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSwapChainWSI,
-			VkDevice                                device,
-			const VkSwapChainCreateInfoWSI*         pCreateInfo,
-			VkSwapChainWSI*                         pSwapChain);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySwapChainWSI,
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSurfacePropertiesKHR,
 			VkDevice                                 device,
-			VkSwapChainWSI                           swapChain);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSurfaceInfoWSI,
+			const VkSurfaceDescriptionKHR*           pSurfaceDescription,
+			VkSurfacePropertiesKHR*                  pSurfaceProperties);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSurfaceFormatsKHR,
 			VkDevice                                 device,
-			const VkSurfaceDescriptionWSI*           pSurfaceDescription,
-			VkSurfaceInfoTypeWSI                     infoType,
-			size_t*                                  pDataSize,
-			void*                                    pData);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSwapChainInfoWSI,
+			const VkSurfaceDescriptionKHR*           pSurfaceDescription,
+			uint32_t*                                pCount,
+			VkSurfaceFormatKHR*                      pSurfaceFormats);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSurfacePresentModesKHR,
 			VkDevice                                 device,
-			VkSwapChainWSI                           swapChain,
-			VkSwapChainInfoTypeWSI                   infoType,
-			size_t*                                  pDataSize,
-			void*                                    pData);
+			const VkSurfaceDescriptionKHR*           pSurfaceDescription,
+			uint32_t*                                pCount,
+			VkPresentModeKHR*                        pPresentModes);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAcquireNextImageWSI,
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSwapchainKHR,
 			VkDevice                                 device,
-			VkSwapChainWSI                           swapChain,
+			const VkSwapchainCreateInfoKHR*          pCreateInfo,
+			VkSwapchainKHR*                          pSwapchain);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySwapchainKHR,
+			VkDevice                                 device,
+			VkSwapchainKHR                           swapchain);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSwapchainImagesKHR,
+			VkDevice                                 device,
+			VkSwapchainKHR                           swapchain,
+			uint32_t*                                pCount,
+			VkImage*                                 pSwapchainImages);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAcquireNextImageKHR,
+			VkDevice                                 device,
+			VkSwapchainKHR                           swapChain,
 			uint64_t                                 timeout,
 			VkSemaphore                              semaphore,
 			uint32_t*                                pImageIndex);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueuePresentWSI,
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueuePresentKHR,
 			VkQueue                                 queue,
-			VkPresentInfoWSI*                       pPresentInfo);
+			VkPresentInfoKHR*                       pPresentInfo);
 };

@@ -75,13 +75,15 @@ void InitDeviceReplayTables(VkDevice device)
 	RDCASSERT(table);
 
 #define DeviceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetDeviceProcAddr(device, STRINGIZE(CONCAT(vk, func)));
-
-	DeviceGPA(CreateSwapChainWSI)
-	DeviceGPA(DestroySwapChainWSI)
-	DeviceGPA(GetSurfaceInfoWSI)
-	DeviceGPA(GetSwapChainInfoWSI)
-	DeviceGPA(AcquireNextImageWSI)
-	DeviceGPA(QueuePresentWSI)
+	
+	DeviceGPA(GetSurfacePropertiesKHR)
+	DeviceGPA(GetSurfaceFormatsKHR)
+	DeviceGPA(GetSurfacePresentModesKHR)
+	DeviceGPA(CreateSwapchainKHR)
+	DeviceGPA(DestroySwapchainKHR)
+	DeviceGPA(GetSwapchainImagesKHR)
+	DeviceGPA(AcquireNextImageKHR)
+	DeviceGPA(QueuePresentKHR)
 
 #undef DeviceGPA
 }

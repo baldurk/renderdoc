@@ -49,16 +49,18 @@ class VulkanDebugManager
 		
 		struct GPUBuffer
 		{
-			GPUBuffer() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE), view(VK_NULL_HANDLE) {}
+			GPUBuffer() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE) {}
 			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size);
 			void Destroy(const VkLayerDispatchTable *vt, VkDevice dev);
+
+			void FillDescriptor(VkDescriptorInfo &desc);
 
 			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize offset = 0, VkDeviceSize size = 0);
 			void Unmap(const VkLayerDispatchTable *vt, VkDevice dev);
 
+			VkDeviceSize sz;
 			VkBuffer buf;
 			VkDeviceMemory mem;
-			VkBufferView view;
 		};
 
 		// VKTODOLOW make this all private/wrapped up

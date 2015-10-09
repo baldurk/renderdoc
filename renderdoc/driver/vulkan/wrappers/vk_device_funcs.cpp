@@ -29,8 +29,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 		const VkInstanceCreateInfo*                 pCreateInfo,
 		VkInstance*                                 pInstance)
 {
-	if(pCreateInfo == NULL)
-		return VK_ERROR_INVALID_POINTER;
+	RDCASSERT(pCreateInfo);
 
 	RDCASSERT(pCreateInfo->pAppInfo == NULL || pCreateInfo->pAppInfo->pNext == NULL);
 	RDCASSERT(pCreateInfo->pNext == NULL);
@@ -69,13 +68,9 @@ VkResult WrappedVulkan::vkCreateInstance(
 	return VK_SUCCESS;
 }
 
-VkResult WrappedVulkan::vkDestroyInstance(
-		VkInstance                                  instance)
+void WrappedVulkan::vkDestroyInstance(VkInstance instance)
 {
-	VkResult ret = ObjDisp(instance)->DestroyInstance(Unwrap(instance));
-
-	if(ret != VK_SUCCESS)
-		return ret;
+	ObjDisp(instance)->DestroyInstance(Unwrap(instance));
 
 	if(m_FrameCaptureRecord)
 	{
@@ -90,8 +85,6 @@ VkResult WrappedVulkan::vkDestroyInstance(
 	GetResourceManager()->ReleaseWrappedResource(instance);
 
 	m_ResourceManager->Shutdown();
-
-	return VK_SUCCESS;
 }
 
 bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
@@ -217,11 +210,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		VkDevice device;
 
 		uint32_t qCount = 0;
-		VkResult vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueCount(Unwrap(physicalDevice), &qCount);
+		VkResult vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, NULL);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkPhysicalDeviceQueueProperties *props = new VkPhysicalDeviceQueueProperties[qCount];
-		vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueProperties(Unwrap(physicalDevice), qCount, props);
+		VkQueueFamilyProperties *props = new VkQueueFamilyProperties[qCount];
+		vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, props);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		bool found = false;
@@ -342,11 +335,11 @@ VkResult WrappedVulkan::vkCreateDevice(
 	VkDeviceCreateInfo createInfo = *pCreateInfo;
 
 	uint32_t qCount = 0;
-	VkResult vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueCount(Unwrap(physicalDevice), &qCount);
+	VkResult vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, NULL);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VkPhysicalDeviceQueueProperties *props = new VkPhysicalDeviceQueueProperties[qCount];
-	vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueProperties(Unwrap(physicalDevice), qCount, props);
+	VkQueueFamilyProperties *props = new VkQueueFamilyProperties[qCount];
+	vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, props);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// find a queue that supports all capabilities, and if one doesn't exist, add it.
@@ -482,7 +475,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 	return ret;
 }
 
-VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
+void WrappedVulkan::vkDestroyDevice(VkDevice device)
 {
 	// VKTODOHIGH this stuff should all be in vkDestroyInstance
 	if(m_State >= WRITING)
@@ -507,14 +500,12 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 			GetResourceManager()->ReleaseWrappedResource(queues[i]);
 	}
 
-	VkResult ret = ObjDisp(device)->DestroyDevice(Unwrap(device));
+	ObjDisp(device)->DestroyDevice(Unwrap(device));
 	
 	// VKTODOLOW on replay we're releasing this after resource manager
 	// shutdown. Yes it's a hack, yes it's ugly.
 	if(m_State >= WRITING)
 		GetResourceManager()->ReleaseWrappedResource(device);
-
-	return ret;
 }
 
 bool WrappedVulkan::Serialise_vkDeviceWaitIdle(Serialiser* localSerialiser, VkDevice device)

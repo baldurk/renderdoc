@@ -31,13 +31,13 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 	wnd = (HWND)wn;
 }
 
-void VulkanReplay::OutputWindow::InitSurfaceDescription(VkSurfaceDescriptionWindowWSI &surfDesc)
+void VulkanReplay::OutputWindow::InitSurfaceDescription(VkSurfaceDescriptionWindowKHR &surfDesc)
 {
 	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
 		(const char *)&dllLocator, (HMODULE *)&surfDesc.pPlatformHandle);
-
+	
 	surfDesc.pPlatformWindow = wnd;
-	surfDesc.platform = VK_PLATFORM_WIN32_WSI;
+	surfDesc.platform = VK_PLATFORM_WIN32_KHR;
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)

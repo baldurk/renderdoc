@@ -111,7 +111,7 @@ VkResult WrappedVulkan::vkAllocMemory(
 	return ret;
 }
 
-VkResult WrappedVulkan::vkFreeMemory(
+void WrappedVulkan::vkFreeMemory(
     VkDevice                                    device,
     VkDeviceMemory                              mem)
 {
@@ -127,7 +127,7 @@ VkResult WrappedVulkan::vkFreeMemory(
 
 	GetResourceManager()->ReleaseWrappedResource(mem);
 
-	return ObjDisp(device)->FreeMemory(Unwrap(device), unwrappedMem);
+	ObjDisp(device)->FreeMemory(Unwrap(device), unwrappedMem);
 }
 
 VkResult WrappedVulkan::vkMapMemory(
@@ -207,10 +207,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 		{
 			memcpy((byte *)mapPtr+memOffset, data, (size_t)memSize);
 
-			ret = ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
-			
-			if(ret != VK_SUCCESS)
-				RDCERR("Error unmapping memory on replay: 0x%08x", ret);
+			ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
 		}
 
 		SAFE_DELETE_ARRAY(data);
@@ -219,11 +216,11 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 	return true;
 }
 
-VkResult WrappedVulkan::vkUnmapMemory(
+void WrappedVulkan::vkUnmapMemory(
     VkDevice                                    device,
     VkDeviceMemory                              mem)
 {
-	VkResult ret = ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
+	ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
 	
 	if(m_State >= WRITING)
 	{
@@ -238,7 +235,7 @@ VkResult WrappedVulkan::vkUnmapMemory(
 			}
 			else
 			{
-				if(ret == VK_SUCCESS && m_State >= WRITING_CAPFRAME)
+				if(m_State >= WRITING_CAPFRAME)
 				{
 					if(!it->second.mapFlushed)
 					{
@@ -275,8 +272,6 @@ VkResult WrappedVulkan::vkUnmapMemory(
 			}
 		}
 	}
-
-	return ret;
 }
 
 bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
@@ -321,10 +316,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 		{
 			memcpy((byte *)mapPtr+memOffset, data, (size_t)memSize);
 
-			ret = ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
-			
-			if(ret != VK_SUCCESS)
-				RDCERR("Error unmapping memory on replay: 0x%08x", ret);
+			ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
 		}
 
 		SAFE_DELETE_ARRAY(data);
@@ -515,8 +507,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(
 		VkBuffer buf = VK_NULL_HANDLE;
 
 		// ensure we can always readback from buffers
-		if(info.usage != VK_BUFFER_USAGE_GENERAL)
-			info.usage |= VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
+		info.usage |= VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
 
 		VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &info, &buf);
 
@@ -676,7 +667,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 			m_ImageInfo[live].arraySize = info.arraySize;
 			
 			VkImageSubresourceRange range;
-			range.baseMipLevel = range.baseArraySlice = 0;
+			range.baseMipLevel = range.baseArrayLayer = 0;
 			range.mipLevels = info.mipLevels;
 			range.arraySize = info.arraySize;
 			if(info.imageType == VK_IMAGE_TYPE_3D)
@@ -686,12 +677,12 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 			
 			if(!IsDepthStencilFormat(info.format))
 			{
-				range.aspect = VK_IMAGE_ASPECT_COLOR;  m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+				range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
 			}
 			else
 			{
-				range.aspect = VK_IMAGE_ASPECT_DEPTH;  m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
-				range.aspect = VK_IMAGE_ASPECT_STENCIL;m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+				range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;  m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+				range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
 			}
 		}
 	}
@@ -738,7 +729,7 @@ VkResult WrappedVulkan::vkCreateImage(
 		m_ImageInfo[id].arraySize = pCreateInfo->arraySize;
 
 		VkImageSubresourceRange range;
-		range.baseMipLevel = range.baseArraySlice = 0;
+		range.baseMipLevel = range.baseArrayLayer = 0;
 		range.mipLevels = pCreateInfo->mipLevels;
 		range.arraySize = pCreateInfo->arraySize;
 		if(pCreateInfo->imageType == VK_IMAGE_TYPE_3D)
@@ -748,12 +739,12 @@ VkResult WrappedVulkan::vkCreateImage(
 
 		if(!IsDepthStencilFormat(pCreateInfo->format))
 		{
-			range.aspect = VK_IMAGE_ASPECT_COLOR;  m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
 		}
 		else
 		{
-			range.aspect = VK_IMAGE_ASPECT_DEPTH;  m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
-			range.aspect = VK_IMAGE_ASPECT_STENCIL;m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;  m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
 		}
 	}
 
