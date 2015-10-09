@@ -2209,15 +2209,6 @@ void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el)
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkAttachmentBindInfo &el)
-{
-	ScopedContext scope(this, name, "VkAttachmentBindInfo", 0, true);
-	
-	SerialiseObject(VkAttachmentView, "view", el.view);
-	Serialise("layout", el.layout);
-}
-
-template<>
 void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 {
 	ScopedContext scope(this, name, "VkFramebufferCreateInfo", 0, true);
@@ -2227,10 +2218,20 @@ void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 	SerialiseNext(this, el.pNext);
 	
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
-	SerialiseComplexArray("pAttachments", (VkAttachmentBindInfo *&)el.pAttachments, el.attachmentCount);
 	Serialise("width", el.width);
 	Serialise("height", el.height);
 	Serialise("layers", el.layers);
+
+	// do this one by hand because it's an array of objects that aren't Serialise
+	// overloaded
+	Serialise("attachmentCount", el.attachmentCount);
+
+	if(m_Mode == READING)
+		el.pAttachments = el.attachmentCount ? new VkImageView[el.attachmentCount] : NULL;
+
+	VkImageView *attaches = (VkImageView *)el.pAttachments;
+	for(uint32_t i=0; i < el.attachmentCount; i++)
+		SerialiseObject(VkImageView, "pAttachments", attaches[i]);
 }
 
 template<>

@@ -382,12 +382,10 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 		VKMGR()->WrapResource(Unwrap(device), bbview);
 
-		VkAttachmentBindInfo attBind = { Unwrap(bbview), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-
 		VkFramebufferCreateInfo fbinfo = {
 			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
 			Unwrap(renderpass),
-			1, &attBind,
+			1, UnwrapPtr(bbview),
 			(uint32_t)width, (uint32_t)height, 1,
 		};
 

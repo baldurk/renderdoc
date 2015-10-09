@@ -516,12 +516,9 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 			const VkFramebufferCreateInfo*              pCreateInfo,
 			VkFramebuffer*                              pFramebuffer)
 {
-	VkAttachmentBindInfo *unwrapped = GetTempArray<VkAttachmentBindInfo>(pCreateInfo->attachmentCount);
+	VkImageView *unwrapped = GetTempArray<VkImageView>(pCreateInfo->attachmentCount);
 	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
-	{
-		unwrapped[i] = pCreateInfo->pAttachments[i];
-		unwrapped[i].view = Unwrap(unwrapped[i].view);
-	}
+		unwrapped[i] = Unwrap(pCreateInfo->pAttachments[i]);
 
 	VkFramebufferCreateInfo unwrappedInfo = *pCreateInfo;
 	unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);

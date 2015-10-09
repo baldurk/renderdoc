@@ -440,12 +440,10 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 
 						GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.view);
 
-						VkAttachmentBindInfo attBind = { Unwrap(swapImInfo.view), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-
 						VkFramebufferCreateInfo fbinfo = {
 							VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
 							Unwrap(swapInfo.rp),
-							1, &attBind,
+							1, UnwrapPtr(swapImInfo.view),
 							(uint32_t)pCreateInfo->imageExtent.width, (uint32_t)pCreateInfo->imageExtent.height, 1,
 						};
 
