@@ -64,7 +64,7 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceProperties(
 	VkResult ret = ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), pProperties);
 	
 	// assign a random UUID, so that we get SPIR-V instead of cached pipeline data.
-	srand((unsigned int)pProperties);
+	srand((unsigned int)(uintptr_t)pProperties);
 	for(int i=0; i < VK_UUID_LENGTH; i++) pProperties->pipelineCacheUUID[i] = (rand()>>6)&0xff;
 
 	return ret;
