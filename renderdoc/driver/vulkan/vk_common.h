@@ -94,6 +94,7 @@ template<> void Serialiser::Serialise(const char *name, VkPipelineRasterStateCre
 template<> void Serialiser::Serialise(const char *name, VkPipelineMultisampleStateCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPipelineDepthStencilStateCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPipelineColorBlendStateCreateInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkPipelineDynamicStateCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPushConstantRange &el);
 template<> void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el);
