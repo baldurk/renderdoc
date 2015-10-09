@@ -371,21 +371,6 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 				GetResourceManager()->WrapResource(Unwrap(device), swapInfo.rp);
 			}
 
-			{
-				VkViewport vp = { 0.0f, 0.0f, (float)pCreateInfo->imageExtent.width, (float)pCreateInfo->imageExtent.height, 0.0f, 1.0f, };
-				VkRect2D sc = { { 0, 0 }, { pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height } };
-
-				VkDynamicViewportStateCreateInfo vpInfo = {
-					VK_STRUCTURE_TYPE_DYNAMIC_VIEWPORT_STATE_CREATE_INFO, NULL,
-					1, &vp, &sc
-				};
-
-				vkr = vt->CreateDynamicViewportState(Unwrap(device), &vpInfo, &swapInfo.vp);
-				RDCASSERT(vkr == VK_SUCCESS);
-
-				GetResourceManager()->WrapResource(Unwrap(device), swapInfo.vp);
-			}
-
 			// serialise out the swap chain images
 			{
 				size_t swapChainImagesSize;
@@ -534,7 +519,6 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 		if(overlay & eRENDERDOC_Overlay_Enabled)
 		{
 			VkRenderPass rp = swapInfo.rp;
-			VkDynamicViewportState vp = swapInfo.vp;
 			VkFramebuffer fb = swapInfo.images[pPresentInfo->imageIndices[0]].fb;
 
 			// VKTODOLOW only handling queue == GetQ()

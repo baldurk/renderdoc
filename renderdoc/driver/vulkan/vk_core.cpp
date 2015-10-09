@@ -66,10 +66,6 @@ const char *VkChunkNames[] =
 	"vkCreateImage",
 	"vkCreateImageView",
 	"vkCreateDepthTargetView",
-	"vkCreateDynamicViewportState",
-	"vkCreateDynamicRasterState",
-	"vkCreateDynamicBlendState",
-	"vkCreateDynamicDepthStencilState",
 	"vkCreateSampler",
 	"vkCreateShader",
 	"vkCreateShaderModule",
@@ -106,10 +102,17 @@ const char *VkChunkNames[] =
 	"vkCmdEndRenderPass",
 
 	"vkCmdBindPipeline",
-	"vkCmdBindDynamicViewportState",
-	"vkCmdBindDynamicRasterState",
-	"vkCmdBindDynamicColorBlendState",
-	"vkCmdBindDynamicDepthStencilState",
+
+	"vkCmdSetViewport",
+	"vkCmdSetScissor",
+	"vkCmdSetLineWidth",
+	"vkCmdSetDepthBias",
+	"vkCmdSetBlendConstants",
+	"vkCmdSetDepthBounds",
+	"vkCmdSetStencilCompareMask",
+	"vkCmdSetStencilWriteMask",
+	"vkCmdSetStencilReference",
+
 	"vkCmdBindDescriptorSet",
 	"vkCmdBindVertexBuffers",
 	"vkCmdBindIndexBuffer",
@@ -382,8 +385,6 @@ WrappedVulkan::~WrappedVulkan()
 
 		//if(it->second.rp != VK_NULL_HANDLE)
 			//ObjDisp(GetDev())->DestroyRenderPass(Unwrap(GetDev()), it->second.rp);
-		//if(it->second.vp != VK_NULL_HANDLE)
-			//ObjDisp(GetDev())->DestroyDynamicViewportState(Unwrap(GetDev()), it->second.vp);
 	}
 
 	m_SwapChainInfo.clear();
@@ -962,18 +963,6 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	case CREATE_IMAGE_VIEW:
 		Serialise_vkCreateImageView(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
-	case CREATE_VIEWPORT_STATE:
-		Serialise_vkCreateDynamicViewportState(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
-		break;
-	case CREATE_RASTER_STATE:
-		Serialise_vkCreateDynamicRasterState(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
-		break;
-	case CREATE_BLEND_STATE:
-		Serialise_vkCreateDynamicColorBlendState(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
-		break;
-	case CREATE_DEPTH_STATE:
-		Serialise_vkCreateDynamicDepthStencilState(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
-		break;
 	case CREATE_SAMPLER:
 		Serialise_vkCreateSampler(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
@@ -1068,17 +1057,32 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	case BIND_PIPELINE:
 		Serialise_vkCmdBindPipeline(GetMainSerialiser(), VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_NULL_HANDLE);
 		break;
-	case BIND_VP_STATE:
-		Serialise_vkCmdBindDynamicViewportState(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
+	case SET_VP:
+		Serialise_vkCmdSetViewport(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL);
 		break;
-	case BIND_RS_STATE:
-		Serialise_vkCmdBindDynamicRasterState(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
+	case SET_SCISSOR:
+		Serialise_vkCmdSetScissor(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL);
 		break;
-	case BIND_CB_STATE:
-		Serialise_vkCmdBindDynamicColorBlendState(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
+	case SET_LINE_WIDTH:
+		Serialise_vkCmdSetLineWidth(GetMainSerialiser(), 0);
 		break;
-	case BIND_DS_STATE:
-		Serialise_vkCmdBindDynamicDepthStencilState(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
+	case SET_DEPTH_BIAS:
+		Serialise_vkCmdSetDepthBias(GetMainSerialiser(), 0.0f, 0.0f, 0.0f);
+		break;
+	case SET_BLEND_CONST:
+		Serialise_vkCmdSetLineWidth(GetMainSerialiser(), NULL);
+		break;
+	case SET_DEPTH_BOUNDS:
+		Serialise_vkCmdSetDepthBounds(GetMainSerialiser(), 0.0f, 0.0f);
+		break;
+	case SET_STENCIL_COMP_MASK:
+		Serialise_vkCmdSetStencilCompareMask(GetMainSerialiser(), VK_STENCIL_FACE_NONE, 0);
+		break;
+	case SET_STENCIL_WRITE_MASK:
+		Serialise_vkCmdSetStencilWriteMask(GetMainSerialiser(), VK_STENCIL_FACE_NONE, 0);
+		break;
+	case SET_STENCIL_REF:
+		Serialise_vkCmdSetStencilReference(GetMainSerialiser(), VK_STENCIL_FACE_NONE, 0);
 		break;
 	case BIND_DESCRIPTOR_SET:
 		Serialise_vkCmdBindDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_NULL_HANDLE, 0, 0, NULL, 0, NULL);

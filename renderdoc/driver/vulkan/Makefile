@@ -21,6 +21,7 @@ vk_replay.o \
 vk_info.o \
 vk_replay_linux.o \
 wrappers/vk_cmd_funcs.o \
+wrappers/vk_dynamic_funcs.o \
 wrappers/vk_descriptor_funcs.o \
 wrappers/vk_device_funcs.o \
 wrappers/vk_draw_funcs.o \

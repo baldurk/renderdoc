@@ -134,8 +134,6 @@ struct VulkanPipelineState
 
 	struct ViewState
 	{
-		ResourceId state;
-
 		struct ViewportScissor
 		{
 			struct Viewport
@@ -164,8 +162,7 @@ struct VulkanPipelineState
 		TriangleFillMode FillMode;
 		TriangleCullMode CullMode;
 
-		// from dynamic state
-		ResourceId state;
+		// dynamic
 		float depthBias, depthBiasClamp, slopeScaledDepthBias, lineWidth;
 	} RS;
 
@@ -206,7 +203,7 @@ struct VulkanPipelineState
 		};
 		rdctype::array<Attachment> attachments;
 
-		ResourceId state;
+		// dynamic
 		float blendConst[4];
 	} CB;
 
@@ -214,7 +211,7 @@ struct VulkanPipelineState
 	{
 		DepthStencil()
 			: depthTestEnable(false), depthWriteEnable(false), depthBoundsEnable(false), stencilTestEnable(false)
-			, minDepthBounds(0), maxDepthBounds(0), stencilReadMask(0), stencilWriteMask(0) {}
+			, minDepthBounds(0), maxDepthBounds(0) {}
 
 		bool32 depthTestEnable, depthWriteEnable, depthBoundsEnable;
 		rdctype::str depthCompareOp;
@@ -222,17 +219,18 @@ struct VulkanPipelineState
 		bool32 stencilTestEnable;
 		struct StencilOp
 		{
-			StencilOp() : stencilref(0) {}
+			StencilOp() : ref(0), compareMask(0xff), writeMask(0xff) {}
 			rdctype::str failOp;
 			rdctype::str depthFailOp;
 			rdctype::str passOp;
 			rdctype::str func;
-			uint32_t stencilref;
+
+			// dynamic
+			uint32_t ref, compareMask, writeMask;
 		} front, back;
 
-		ResourceId state;
+		// dynamic
 		float minDepthBounds, maxDepthBounds;
-		uint32_t stencilReadMask, stencilWriteMask;
 	} DS;
 
 	struct CurrentPass

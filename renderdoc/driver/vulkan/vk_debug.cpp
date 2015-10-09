@@ -177,9 +177,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	// VKTODOLOW needs tidy up - isn't scalable. Needs more classes like UBO above.
 
 	m_DescriptorPool = VK_NULL_HANDLE;
-	m_DynamicCBStateWhite = VK_NULL_HANDLE;
-	m_DynamicRSState = VK_NULL_HANDLE;
-	m_DynamicDSStateDisabled = VK_NULL_HANDLE;
 	m_LinearSampler = VK_NULL_HANDLE;
 	m_PointSampler = VK_NULL_HANDLE;
 
@@ -413,36 +410,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	m_TextStringUBO.Create(driver, dev, 4096);
 	RDCCOMPILE_ASSERT(sizeof(stringdata) <= 4096, "font uniforms size");
-
-	VkDynamicRasterStateCreateInfo rsInfo = {
-		VK_STRUCTURE_TYPE_DYNAMIC_RASTER_STATE_CREATE_INFO, NULL,
-		0.0f, 0.0f, 0.0f, 1.0f,
-	};
-
-	vkr = vt->CreateDynamicRasterState(Unwrap(dev), &rsInfo, &m_DynamicRSState);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	VKMGR()->WrapResource(Unwrap(dev), m_DynamicRSState);
-	
-	VkDynamicColorBlendStateCreateInfo cbInfo = {
-		VK_STRUCTURE_TYPE_DYNAMIC_COLOR_BLEND_STATE_CREATE_INFO, NULL,
-		{ 1.0f, 1.0f, 1.0f, 1.0f },
-	};
-
-	vkr = vt->CreateDynamicColorBlendState(Unwrap(dev), &cbInfo, &m_DynamicCBStateWhite);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	VKMGR()->WrapResource(Unwrap(dev), m_DynamicCBStateWhite);
-	
-	VkDynamicDepthStencilStateCreateInfo dsInfo = {
-		VK_STRUCTURE_TYPE_DYNAMIC_DEPTH_STENCIL_STATE_CREATE_INFO, NULL,
-		0.0f, 1.0f, 0xff, 0xff, 0, 0,
-	};
-
-	vkr = vt->CreateDynamicDepthStencilState(Unwrap(dev), &dsInfo, &m_DynamicDSStateDisabled);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	VKMGR()->WrapResource(Unwrap(dev), m_DynamicDSStateDisabled);
 	
 	string shaderSources[] = {
 		GetEmbeddedResource(blitvs_spv),
@@ -501,14 +468,18 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, false,
 	};
 
+	VkRect2D scissor = { { 0, 0 }, { 4096, 4096 } };
+
 	VkPipelineViewportStateCreateInfo vp = {
 		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL,
-		1,
+		1, NULL,
+		1, &scissor
 	};
 
 	VkPipelineRasterStateCreateInfo rs = {
 		VK_STRUCTURE_TYPE_PIPELINE_RASTER_STATE_CREATE_INFO, NULL,
 		true, false, VK_FILL_MODE_SOLID, VK_CULL_MODE_NONE, VK_FRONT_FACE_CW,
+		false, 0.0f, 0.0f, 0.0f, 1.0f,
 	};
 
 	VkPipelineMultisampleStateCreateInfo msaa = {
@@ -519,8 +490,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	VkPipelineDepthStencilStateCreateInfo ds = {
 		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, NULL,
 		false, false, VK_COMPARE_OP_ALWAYS, false, false,
-		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS },
-		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS },
+		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
+		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
+		0.0f, 1.0f,
 	};
 
 	VkPipelineColorBlendAttachmentState attState = {
@@ -534,6 +506,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, NULL,
 		false, false, VK_LOGIC_OP_NOOP,
 		1, &attState,
+		{ 1.0f, 1.0f, 1.0f, 1.0f }
+	};
+
+	VkDynamicState dynstates[] = { VK_DYNAMIC_STATE_VIEWPORT };
+
+	VkPipelineDynamicStateCreateInfo dyn = {
+		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, NULL,
+		ARRAY_COUNT(dynstates), dynstates,
 	};
 
 	VkGraphicsPipelineCreateInfo pipeInfo = {
@@ -547,6 +527,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		&msaa,
 		&ds,
 		&cb,
+		&dyn,
 		0, // flags
 		Unwrap(m_CheckerboardPipeLayout),
 		VK_NULL_HANDLE, // render pass
@@ -856,27 +837,6 @@ VulkanDebugManager::~VulkanDebugManager()
 		VKMGR()->ReleaseWrappedResource(m_DescriptorPool);
 	}
 
-	if(m_DynamicCBStateWhite != VK_NULL_HANDLE)
-	{
-		vkr = vt->DestroyDynamicColorBlendState(Unwrap(dev), Unwrap(m_DynamicCBStateWhite));
-		RDCASSERT(vkr == VK_SUCCESS);
-		VKMGR()->ReleaseWrappedResource(m_DynamicCBStateWhite);
-	}
-
-	if(m_DynamicRSState != VK_NULL_HANDLE)
-	{
-		vkr = vt->DestroyDynamicRasterState(Unwrap(dev), Unwrap(m_DynamicRSState));
-		RDCASSERT(vkr == VK_SUCCESS);
-		VKMGR()->ReleaseWrappedResource(m_DynamicRSState);
-	}
-
-	if(m_DynamicDSStateDisabled != VK_NULL_HANDLE)
-	{
-		vkr = vt->DestroyDynamicDepthStencilState(Unwrap(dev), Unwrap(m_DynamicDSStateDisabled));
-		RDCASSERT(vkr == VK_SUCCESS);
-		VKMGR()->ReleaseWrappedResource(m_DynamicDSStateDisabled);
-	}
-
 	if(m_LinearSampler != VK_NULL_HANDLE)
 	{
 		vkr = vt->DestroySampler(Unwrap(dev), Unwrap(m_LinearSampler));
@@ -1080,10 +1040,8 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 		vt->CmdBindPipeline(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 0, NULL);
 
-		vt->CmdBindDynamicViewportState(Unwrap(textstate.cmd), Unwrap(textstate.vp));
-		vt->CmdBindDynamicRasterState(Unwrap(textstate.cmd), Unwrap(m_DynamicRSState));
-		vt->CmdBindDynamicColorBlendState(Unwrap(textstate.cmd), Unwrap(m_DynamicCBStateWhite));
-		vt->CmdBindDynamicDepthStencilState(Unwrap(textstate.cmd), Unwrap(m_DynamicDSStateDisabled));
+		VkViewport viewport = { 0.0f, 0.0f, (float)textstate.w, (float)textstate.h, 0.0f, 1.0f };
+		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 
 		// VKTODOMED strip + instance ID doesn't seem to work atm? instance ID comes through 0
 		// for now, do lists, but want to change back 

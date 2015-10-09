@@ -94,14 +94,6 @@
 	HookInit(AllocDescriptorSets); \
 	HookInit(UpdateDescriptorSets); \
 	HookInit(FreeDescriptorSets); \
-	HookInit(CreateDynamicViewportState); \
-	HookInit(DestroyDynamicViewportState); \
-	HookInit(CreateDynamicRasterState); \
-	HookInit(DestroyDynamicRasterState); \
-	HookInit(CreateDynamicColorBlendState); \
-	HookInit(DestroyDynamicColorBlendState); \
-	HookInit(CreateDynamicDepthStencilState); \
-	HookInit(DestroyDynamicDepthStencilState); \
 	HookInit(CreateCommandPool); \
 	HookInit(DestroyCommandPool); \
 	HookInit(ResetCommandPool); \
@@ -111,10 +103,15 @@
 	HookInit(EndCommandBuffer); \
 	HookInit(ResetCommandBuffer); \
 	HookInit(CmdBindPipeline); \
-	HookInit(CmdBindDynamicViewportState); \
-	HookInit(CmdBindDynamicRasterState); \
-	HookInit(CmdBindDynamicColorBlendState); \
-	HookInit(CmdBindDynamicDepthStencilState); \
+	HookInit(CmdSetViewport); \
+	HookInit(CmdSetScissor); \
+	HookInit(CmdSetLineWidth); \
+	HookInit(CmdSetDepthBias); \
+	HookInit(CmdSetBlendConstants); \
+	HookInit(CmdSetDepthBounds); \
+	HookInit(CmdSetStencilCompareMask); \
+	HookInit(CmdSetStencilWriteMask); \
+	HookInit(CmdSetStencilReference); \
 	HookInit(CmdBindDescriptorSets); \
 	HookInit(CmdBindVertexBuffers); \
 	HookInit(CmdBindIndexBuffer); \
@@ -219,14 +216,6 @@
 	HookDefine7(VkResult, vkAllocDescriptorSets, VkDevice, device, VkDescriptorPool, descriptorPool, VkDescriptorSetUsage, setUsage, uint32_t, count, const VkDescriptorSetLayout*, pSetLayouts, VkDescriptorSet*, pDescriptorSets, uint32_t*, pCount); \
 	HookDefine5(VkResult, vkUpdateDescriptorSets, VkDevice, device, uint32_t, writeCount, const VkWriteDescriptorSet*, pDescriptorWrites, uint32_t, copyCount, const VkCopyDescriptorSet*, pDescriptorCopies); \
 	HookDefine4(VkResult, vkFreeDescriptorSets, VkDevice, device, VkDescriptorPool, descriptorPool, uint32_t, count, const VkDescriptorSet*, pDescriptorSets); \
-	HookDefine3(VkResult, vkCreateDynamicViewportState, VkDevice, device, const VkDynamicViewportStateCreateInfo*, pCreateInfo, VkDynamicViewportState*, pState); \
-	HookDefine2(VkResult, vkDestroyDynamicViewportState, VkDevice, device, VkDynamicViewportState, state); \
-	HookDefine3(VkResult, vkCreateDynamicRasterState, VkDevice, device, const VkDynamicRasterStateCreateInfo*, pCreateInfo, VkDynamicRasterState*, pState); \
-	HookDefine2(VkResult, vkDestroyDynamicRasterState, VkDevice, device, VkDynamicRasterState, state); \
-	HookDefine3(VkResult, vkCreateDynamicColorBlendState, VkDevice, device, const VkDynamicColorBlendStateCreateInfo*, pCreateInfo, VkDynamicColorBlendState*, pState); \
-	HookDefine2(VkResult, vkDestroyDynamicColorBlendState, VkDevice, device, VkDynamicColorBlendState, state); \
-	HookDefine3(VkResult, vkCreateDynamicDepthStencilState, VkDevice, device, const VkDynamicDepthStencilStateCreateInfo*, pCreateInfo, VkDynamicDepthStencilState*, pState); \
-	HookDefine2(VkResult, vkDestroyDynamicDepthStencilState, VkDevice, device, VkDynamicDepthStencilState, state); \
 	HookDefine3(VkResult, vkCreateCommandPool, VkDevice, device, const VkCmdPoolCreateInfo*, pCreateInfo, VkCmdPool*, pCmdPool); \
 	HookDefine2(VkResult, vkDestroyCommandPool, VkDevice, device, VkCmdPool, cmdPool); \
 	HookDefine3(VkResult, vkResetCommandPool, VkDevice, device, VkCmdPool, cmdPool, VkCmdPoolResetFlags, flags); \
@@ -236,10 +225,15 @@
 	HookDefine1(VkResult, vkEndCommandBuffer, VkCmdBuffer, cmdBuffer); \
 	HookDefine2(VkResult, vkResetCommandBuffer, VkCmdBuffer, cmdBuffer, VkCmdBufferResetFlags, flags); \
 	HookDefine3(void, vkCmdBindPipeline, VkCmdBuffer, cmdBuffer, VkPipelineBindPoint, pipelineBindPoint, VkPipeline, pipeline); \
-	HookDefine2(void, vkCmdBindDynamicViewportState, VkCmdBuffer, cmdBuffer, VkDynamicViewportState, dynamicViewportState); \
-	HookDefine2(void, vkCmdBindDynamicRasterState, VkCmdBuffer, cmdBuffer, VkDynamicRasterState, dynamicRasterState); \
-	HookDefine2(void, vkCmdBindDynamicColorBlendState, VkCmdBuffer, cmdBuffer, VkDynamicColorBlendState, dynamicColorBlendState); \
-	HookDefine2(void, vkCmdBindDynamicDepthStencilState, VkCmdBuffer, cmdBuffer, VkDynamicDepthStencilState, dynamicDepthStencilState); \
+	HookDefine3(void, vkCmdSetViewport, VkCmdBuffer, cmdBuffer, uint32_t, viewportCount, const VkViewport* pViewports); \
+	HookDefine3(void, vkCmdSetScissor, VkCmdBuffer, cmdBuffer, uint32_t, scissorCount, const VkRect2D*, pScissors); \
+	HookDefine2(void, vkCmdSetLineWidth, VkCmdBuffer, cmdBuffer, float, lineWidth); \
+	HookDefine4(void, vkCmdSetDepthBias, VkCmdBuffer, cmdBuffer, float, depthBias, float, depthBiasClamp, float, slopeScaledDepthBias); \
+	HookDefine2(void, vkCmdSetBlendConstants, VkCmdBuffer, cmdBuffer, const float*, blendConst); \
+	HookDefine3(void, vkCmdSetDepthBounds, VkCmdBuffer, cmdBuffer, float, minDepthBounds, float, maxDepthBounds); \
+	HookDefine3(void, vkCmdSetStencilCompareMask, VkCmdBuffer, cmdBuffer, VkStencilFaceFlags, faceMask, uint32_t, stencilCompareMask); \
+	HookDefine3(void, vkCmdSetStencilWriteMask, VkCmdBuffer, cmdBuffer, VkStencilFaceFlags, faceMask, uint32_t, stencilWriteMask); \
+	HookDefine3(void, vkCmdSetStencilReference, VkCmdBuffer, cmdBuffer, VkStencilFaceFlags, faceMask, uint32_t, stencilReference); \
 	HookDefine8(void, vkCmdBindDescriptorSets, VkCmdBuffer, cmdBuffer, VkPipelineBindPoint, pipelineBindPoint, VkPipelineLayout, layout, uint32_t, firstSet, uint32_t, setCount, const VkDescriptorSet*, pDescriptorSets, uint32_t, dynamicOffsetCount, const uint32_t*, pDynamicOffsets); \
 	HookDefine4(void, vkCmdBindIndexBuffer, VkCmdBuffer, cmdBuffer, VkBuffer, buffer, VkDeviceSize, offset, VkIndexType, indexType); \
 	HookDefine5(void, vkCmdBindVertexBuffers, VkCmdBuffer, cmdBuffer, uint32_t, startBinding, uint32_t, bindingCount, const VkBuffer*, pBuffers, const VkDeviceSize*, pOffsets); \

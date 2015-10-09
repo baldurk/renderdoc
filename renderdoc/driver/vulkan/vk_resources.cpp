@@ -48,10 +48,6 @@ WRAPPED_POOL_INST(WrappedVkDescriptorSetLayout)
 WRAPPED_POOL_INST(WrappedVkSampler)
 WRAPPED_POOL_INST(WrappedVkDescriptorPool)
 WRAPPED_POOL_INST(WrappedVkDescriptorSet)
-WRAPPED_POOL_INST(WrappedVkDynamicViewportState)
-WRAPPED_POOL_INST(WrappedVkDynamicRasterState)
-WRAPPED_POOL_INST(WrappedVkDynamicColorBlendState)
-WRAPPED_POOL_INST(WrappedVkDynamicDepthStencilState)
 WRAPPED_POOL_INST(WrappedVkFramebuffer)
 WRAPPED_POOL_INST(WrappedVkCmdPool)
 
@@ -85,10 +81,6 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
 	if(WrappedVkDescriptorPool::IsAlloc(ptr))           return eResDescriptorPool;
 	if(WrappedVkDescriptorSetLayout::IsAlloc(ptr))      return eResDescriptorSetLayout;
 	if(WrappedVkDescriptorSet::IsAlloc(ptr))            return eResDescriptorSet;
-	if(WrappedVkDynamicViewportState::IsAlloc(ptr))     return eResViewportState;
-	if(WrappedVkDynamicRasterState::IsAlloc(ptr))       return eResRasterState;
-	if(WrappedVkDynamicColorBlendState::IsAlloc(ptr))   return eResColorBlendState;
-	if(WrappedVkDynamicDepthStencilState::IsAlloc(ptr)) return eResDepthStencilState;
 	if(WrappedVkCmdPool::IsAlloc(ptr))                  return eResCmdPool;
 	if(WrappedVkCmdBuffer::IsAlloc(ptr))                return eResCmdBuffer;
 	if(WrappedVkFence::IsAlloc(ptr))                    return eResFence;

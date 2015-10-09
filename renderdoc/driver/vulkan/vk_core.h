@@ -291,8 +291,7 @@ private:
 		{
 			StateVector()
 			{
-				compute.pipeline = graphics.pipeline = renderPass = framebuffer = 
-					dynamicVP = dynamicRS = dynamicCB = dynamicDS = ResourceId();
+				compute.pipeline = graphics.pipeline = renderPass = framebuffer = ResourceId();
 				compute.descSets.clear();
 				graphics.descSets.clear();
 
@@ -302,10 +301,14 @@ private:
 				vbuffers.clear();
 			}
 
-			ResourceId dynamicVP;
-			ResourceId dynamicRS;
-			ResourceId dynamicCB;
-			ResourceId dynamicDS;
+			// dynamic state
+			vector<VkViewport> views;
+			vector<VkRect2D> scissors;
+			float lineWidth;
+			struct { float depth, biasclamp, slope; } bias;
+			float blendConst[4];
+			float mindepth, maxdepth;
+			struct { uint32_t compare, write, ref; } front, back;
 
 			ResourceId renderPass;
 			ResourceId framebuffer;
@@ -344,7 +347,6 @@ private:
 		int arraySize;
 
 		VkRenderPass rp;
-		VkDynamicViewportState vp;
 
 		struct SwapImage
 		{
@@ -840,44 +842,6 @@ public:
 			uint32_t                                    count,
 			const VkDescriptorSet*                      pDescriptorSets);
 
-	// State object functions
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicViewportState,
-			VkDevice                                    device,
-			const VkDynamicViewportStateCreateInfo*           pCreateInfo,
-			VkDynamicViewportState*                           pState);
-	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicViewportState,
-			VkDevice                                    device,
-			VkDynamicViewportState                      state);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicRasterState,
-			VkDevice                                    device,
-			const VkDynamicRasterStateCreateInfo*           pCreateInfo,
-			VkDynamicRasterState*                           pState);
-	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicRasterState,
-			VkDevice                                    device,
-			VkDynamicRasterState                        state);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicColorBlendState,
-			VkDevice                                    device,
-			const VkDynamicColorBlendStateCreateInfo*           pCreateInfo,
-			VkDynamicColorBlendState*                           pState);
-	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicColorBlendState,
-			VkDevice                                    device,
-			VkDynamicColorBlendState                    state);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicDepthStencilState,
-			VkDevice                                    device,
-			const VkDynamicDepthStencilStateCreateInfo*           pCreateInfo,
-			VkDynamicDepthStencilState*                           pState);
-	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDynamicDepthStencilState,
-			VkDevice                                    device,
-			VkDynamicDepthStencilState                  state);
-
 	// Command pool functions
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool,
@@ -923,21 +887,49 @@ public:
 			VkPipelineBindPoint                         pipelineBindPoint,
 			VkPipeline                                  pipeline);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicViewportState,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetViewport,
 			VkCmdBuffer                                 cmdBuffer,
-			VkDynamicViewportState                      dynamicViewportState);
+			uint32_t                                    viewportCount,
+			const VkViewport*                           pViewports);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicRasterState,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetScissor,
 			VkCmdBuffer                                 cmdBuffer,
-			VkDynamicRasterState                        dynamicRasterState);
+			uint32_t                                    scissorCount,
+			const VkRect2D*                             pScissors);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicColorBlendState,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLineWidth,
 			VkCmdBuffer                                 cmdBuffer,
-			VkDynamicColorBlendState                    dynamicColorBlendState);
+			float                                       lineWidth);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDynamicDepthStencilState,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthBias,
 			VkCmdBuffer                                 cmdBuffer,
-			VkDynamicDepthStencilState                  dynamicDepthStencilState);
+			float                                       depthBias,
+			float                                       depthBiasClamp,
+			float                                       slopeScaledDepthBias);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetBlendConstants,
+			VkCmdBuffer                                 cmdBuffer,
+			const float                                 blendConst[4]);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthBounds,
+			VkCmdBuffer                                 cmdBuffer,
+			float                                       minDepthBounds,
+			float                                       maxDepthBounds);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetStencilCompareMask,
+			VkCmdBuffer                                 cmdBuffer,
+			VkStencilFaceFlags                          faceMask,
+			uint32_t                                    stencilCompareMask);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetStencilWriteMask,
+			VkCmdBuffer                                 cmdBuffer,
+			VkStencilFaceFlags                          faceMask,
+			uint32_t                                    stencilWriteMask);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetStencilReference,
+			VkCmdBuffer                                 cmdBuffer,
+			VkStencilFaceFlags                          faceMask,
+			uint32_t                                    stencilReference);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindDescriptorSets,
 			VkCmdBuffer                                 cmdBuffer,

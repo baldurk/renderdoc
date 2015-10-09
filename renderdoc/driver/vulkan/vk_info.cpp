@@ -110,42 +110,6 @@ void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCre
 		}
 }
 
-void VulkanCreationInfo::ViewportScissor::Init(const VkDynamicViewportStateCreateInfo* pCreateInfo)
-{
-	viewports.resize(pCreateInfo->viewportAndScissorCount);
-	scissors.resize(pCreateInfo->viewportAndScissorCount);
-
-	for(uint32_t i=0; i < pCreateInfo->viewportAndScissorCount; i++)
-	{
-		viewports[i] = pCreateInfo->pViewports[i];
-		scissors[i] = pCreateInfo->pScissors[i];
-	}
-}
-
-void VulkanCreationInfo::Raster::Init(const VkDynamicRasterStateCreateInfo* pCreateInfo)
-{
-	depthBias = pCreateInfo->depthBias;
-	depthBiasClamp = pCreateInfo->depthBiasClamp;
-	slopeScaledDepthBias = pCreateInfo->slopeScaledDepthBias;
-	lineWidth = pCreateInfo->lineWidth;
-}
-
-void VulkanCreationInfo::Blend::Init(const VkDynamicColorBlendStateCreateInfo* pCreateInfo)
-{
-	RDCCOMPILE_ASSERT(sizeof(blendConst) == sizeof(pCreateInfo->blendConst), "blend constant size mismatch!");
-	memcpy(blendConst, pCreateInfo->blendConst, sizeof(blendConst));
-}
-
-void VulkanCreationInfo::DepthStencil::Init(const VkDynamicDepthStencilStateCreateInfo* pCreateInfo)
-{
-	minDepthBounds = pCreateInfo->minDepthBounds;
-	maxDepthBounds = pCreateInfo->maxDepthBounds;
-	stencilReadMask = pCreateInfo->stencilReadMask;
-	stencilWriteMask = pCreateInfo->stencilWriteMask;
-	stencilFrontRef = pCreateInfo->stencilFrontRef;
-	stencilBackRef = pCreateInfo->stencilBackRef;
-}
-
 void VulkanCreationInfo::RenderPass::Init(const VkRenderPassCreateInfo* pCreateInfo)
 {
 	// VKTODOMED figure out how subpasses work

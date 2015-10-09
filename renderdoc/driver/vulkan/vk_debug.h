@@ -36,7 +36,6 @@ struct TextPrintState
 	VkCmdBuffer cmd;
 	VkRenderPass rp;
 	VkFramebuffer fb;
-	VkDynamicViewportState vp;
 	int32_t w, h;
 };
 
@@ -64,9 +63,6 @@ class VulkanDebugManager
 
 		// VKTODOLOW make this all private/wrapped up
 		VkDescriptorPool m_DescriptorPool;
-		VkDynamicColorBlendState m_DynamicCBStateWhite;
-		VkDynamicRasterState m_DynamicRSState;
-		VkDynamicDepthStencilState m_DynamicDSStateDisabled;
 		VkSampler m_LinearSampler, m_PointSampler;
 
 		VkDescriptorSetLayout m_CheckerboardDescSetLayout;

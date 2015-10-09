@@ -2336,69 +2336,6 @@ void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkDynamicViewportStateCreateInfo &el)
-{
-	ScopedContext scope(this, name, "VkDynamicVpStateCreateInfo", 0, true);
-	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DYNAMIC_VIEWPORT_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
-
-	if(m_Mode == READING)
-	{
-		el.pViewports = NULL;
-		el.pScissors = NULL;
-	}
-
-	SerialisePODArray("viewports", (VkViewport *&)el.pViewports, el.viewportAndScissorCount);
-	SerialisePODArray("scissors", (VkRect2D *&)el.pScissors, el.viewportAndScissorCount);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, VkDynamicRasterStateCreateInfo &el)
-{
-	ScopedContext scope(this, name, "VkDynamicRsStateCreateInfo", 0, true);
-	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DYNAMIC_RASTER_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
-
-	Serialise("depthBias", el.depthBias);
-	Serialise("depthBiasClamp", el.depthBiasClamp);
-	Serialise("slopeScaledDepthBias", el.slopeScaledDepthBias);
-	Serialise("lineWidth", el.lineWidth);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, VkDynamicColorBlendStateCreateInfo &el)
-{
-	ScopedContext scope(this, name, "VkDynamicCbStateCreateInfo", 0, true);
-	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DYNAMIC_COLOR_BLEND_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
-
-	SerialisePODArray<4>("blendConst", el.blendConst);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, VkDynamicDepthStencilStateCreateInfo &el)
-{
-	ScopedContext scope(this, name, "VkDynamicDsStateCreateInfo", 0, true);
-	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DYNAMIC_DEPTH_STENCIL_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
-	
-	Serialise("minDepthBounds", el.minDepthBounds);
-	Serialise("maxDepthBounds", el.maxDepthBounds);
-	Serialise("stencilReadMask", el.stencilReadMask);
-	Serialise("stencilWriteMask", el.stencilWriteMask);
-	Serialise("stencilFrontRef", el.stencilFrontRef);
-	Serialise("stencilBackRef", el.stencilBackRef);
-}
-
-template<>
 void Serialiser::Serialise(const char *name, VkVertexInputBindingDescription &el)
 {
 	ScopedContext scope(this, name, "VkVertexInputBindingDescription", 0, true);

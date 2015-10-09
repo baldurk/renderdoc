@@ -193,7 +193,6 @@ class VulkanReplay : public IReplayDriver
 			VkImageMemoryBarrier bbtrans;
 			VkFramebuffer fb, fbdepth;
 			VkRenderPass renderpass;
-			VkDynamicViewportState fullVP;
 			uint32_t curidx;
 
 			VkImage dsimg;

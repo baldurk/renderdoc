@@ -87,10 +87,6 @@ template<> void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &e
 template<> void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el);
-template<> void Serialiser::Serialise(const char *name, VkDynamicViewportStateCreateInfo &el);
-template<> void Serialiser::Serialise(const char *name, VkDynamicRasterStateCreateInfo &el);
-template<> void Serialiser::Serialise(const char *name, VkDynamicColorBlendStateCreateInfo &el);
-template<> void Serialiser::Serialise(const char *name, VkDynamicDepthStencilStateCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPipelineInputAssemblyStateCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPipelineTessellationStateCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPipelineViewportStateCreateInfo &el);
@@ -204,10 +200,15 @@ enum VulkanChunkType
 	END_RENDERPASS,
 
 	BIND_PIPELINE,
-	BIND_VP_STATE,
-	BIND_RS_STATE,
-	BIND_CB_STATE,
-	BIND_DS_STATE,
+	SET_VP,
+	SET_SCISSOR,
+	SET_LINE_WIDTH,
+	SET_DEPTH_BIAS,
+	SET_BLEND_CONST,
+	SET_DEPTH_BOUNDS,
+	SET_STENCIL_COMP_MASK,
+	SET_STENCIL_WRITE_MASK,
+	SET_STENCIL_REF,
 	BIND_DESCRIPTOR_SET,
 	BIND_VERTEX_BUFFERS,
 	BIND_INDEX_BUFFER,

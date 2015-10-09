@@ -112,9 +112,6 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	{
 		vt->DestroyRenderPass(Unwrap(device), Unwrap(renderpass));
 		renderpass = VK_NULL_HANDLE;
-
-		vt->DestroyDynamicViewportState(Unwrap(device), Unwrap(fullVP));
-		fullVP = VK_NULL_HANDLE;
 		
 		vt->DestroyImage(Unwrap(device), Unwrap(bb));
 		vt->DestroyImageView(Unwrap(device), Unwrap(bbview));
@@ -316,21 +313,6 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VKMGR()->WrapResource(Unwrap(device), renderpass);
-	}
-
-	{
-		VkViewport vp = { 0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f, };
-		VkRect2D sc = { { 0, 0 }, { width, height } };
-
-		VkDynamicViewportStateCreateInfo vpInfo = {
-			VK_STRUCTURE_TYPE_DYNAMIC_VIEWPORT_STATE_CREATE_INFO, NULL,
-			1, &vp, &sc
-		};
-
-		VkResult vkr = vt->CreateDynamicViewportState(Unwrap(device), &vpInfo, &fullVP);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		VKMGR()->WrapResource(Unwrap(device), fullVP);
 	}
 
 	{
@@ -812,10 +794,8 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, cfg.rawoutput ? Unwrap(GetDebugManager()->m_TexDisplayPipeline) : Unwrap(GetDebugManager()->m_TexDisplayBlendPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_TexDisplayDescSet), 0, NULL);
 
-		vt->CmdBindDynamicViewportState(Unwrap(cmd), Unwrap(outw.fullVP));
-		vt->CmdBindDynamicRasterState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicRSState));
-		vt->CmdBindDynamicColorBlendState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicCBStateWhite));
-		vt->CmdBindDynamicDepthStencilState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicDSStateDisabled));
+		VkViewport viewport = { 0.0f, 0.0f, (float)outw.width, (float)outw.height, 0.0f, 1.0f };
+		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 
 		vt->CmdDraw(Unwrap(cmd), 0, 4, 0, 1);
 		vt->CmdEndRenderPass(Unwrap(cmd));
@@ -884,10 +864,8 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 0, NULL);
 
-		vt->CmdBindDynamicViewportState(Unwrap(cmd), Unwrap(outw.fullVP));
-		vt->CmdBindDynamicRasterState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicRSState));
-		vt->CmdBindDynamicColorBlendState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicCBStateWhite));
-		vt->CmdBindDynamicDepthStencilState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicDSStateDisabled));
+		VkViewport viewport = { 0.0f, 0.0f, (float)outw.width, (float)outw.height, 0.0f, 1.0f };
+		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 
 		vt->CmdDraw(Unwrap(cmd), 0, 4, 0, 1);
 		vt->CmdEndRenderPass(Unwrap(cmd));
@@ -952,10 +930,8 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_GenericPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_GenericPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_GenericDescSet), 0, NULL);
 
-		vt->CmdBindDynamicViewportState(Unwrap(cmd), Unwrap(outw.fullVP));
-		vt->CmdBindDynamicRasterState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicRSState));
-		vt->CmdBindDynamicColorBlendState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicCBStateWhite));
-		vt->CmdBindDynamicDepthStencilState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicDSStateDisabled));
+		VkViewport viewport = { 0.0f, 0.0f, (float)outw.width, (float)outw.height, 0.0f, 1.0f };
+		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 
 		VkDeviceSize zero = 0;
 		vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_OutlineStripVBO.buf), &zero);
@@ -1579,21 +1555,20 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.Tess.numControlPoints = p.patchControlPoints;
 
 			// Viewport/Scissors
-			m_VulkanPipelineState.VP.state = state.dynamicVP;
-			create_array_uninit(m_VulkanPipelineState.VP.viewportScissors, c.m_VPScissor[state.dynamicVP].viewports.size());
-			for(size_t i=0; i < c.m_VPScissor[state.dynamicVP].viewports.size(); i++)
+			create_array_uninit(m_VulkanPipelineState.VP.viewportScissors, RDCMIN(state.views.size(), state.scissors.size()));
+			for(size_t i=0; i < state.views.size(); i++)
 			{
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.x = c.m_VPScissor[state.dynamicVP].viewports[i].originX;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.y = c.m_VPScissor[state.dynamicVP].viewports[i].originY;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.width = c.m_VPScissor[state.dynamicVP].viewports[i].width;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.height = c.m_VPScissor[state.dynamicVP].viewports[i].height;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.minDepth = c.m_VPScissor[state.dynamicVP].viewports[i].minDepth;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.maxDepth = c.m_VPScissor[state.dynamicVP].viewports[i].maxDepth;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.x = state.views[i].originX;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.y = state.views[i].originY;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.width = state.views[i].width;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.height = state.views[i].height;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.minDepth = state.views[i].minDepth;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.maxDepth = state.views[i].maxDepth;
 
-				m_VulkanPipelineState.VP.viewportScissors[i].scissor.x = c.m_VPScissor[state.dynamicVP].scissors[i].offset.x;
-				m_VulkanPipelineState.VP.viewportScissors[i].scissor.y = c.m_VPScissor[state.dynamicVP].scissors[i].offset.y;
-				m_VulkanPipelineState.VP.viewportScissors[i].scissor.width = c.m_VPScissor[state.dynamicVP].scissors[i].extent.width;
-				m_VulkanPipelineState.VP.viewportScissors[i].scissor.height = c.m_VPScissor[state.dynamicVP].scissors[i].extent.height;
+				m_VulkanPipelineState.VP.viewportScissors[i].scissor.x = state.scissors[i].offset.x;
+				m_VulkanPipelineState.VP.viewportScissors[i].scissor.y = state.scissors[i].offset.y;
+				m_VulkanPipelineState.VP.viewportScissors[i].scissor.width = state.scissors[i].extent.width;
+				m_VulkanPipelineState.VP.viewportScissors[i].scissor.height = state.scissors[i].extent.height;
 			}
 
 			// Rasterizer
@@ -1624,11 +1599,10 @@ void VulkanReplay::SavePipelineState()
 					break;
 			}
 
-			m_VulkanPipelineState.RS.state = state.dynamicRS;
-			m_VulkanPipelineState.RS.depthBias = c.m_Raster[state.dynamicRS].depthBias;
-			m_VulkanPipelineState.RS.depthBiasClamp = c.m_Raster[state.dynamicRS].depthBiasClamp;
-			m_VulkanPipelineState.RS.slopeScaledDepthBias = c.m_Raster[state.dynamicRS].slopeScaledDepthBias;
-			m_VulkanPipelineState.RS.lineWidth = c.m_Raster[state.dynamicRS].lineWidth;
+			m_VulkanPipelineState.RS.depthBias = state.bias.depth;
+			m_VulkanPipelineState.RS.depthBiasClamp = state.bias.biasclamp;
+			m_VulkanPipelineState.RS.slopeScaledDepthBias = state.bias.slope;
+			m_VulkanPipelineState.RS.lineWidth = state.lineWidth;
 
 			// MSAA
 			m_VulkanPipelineState.MSAA.rasterSamples = p.rasterSamples;
@@ -1657,8 +1631,7 @@ void VulkanReplay::SavePipelineState()
 				m_VulkanPipelineState.CB.attachments[i].writeMask = p.attachments[i].channelWriteMask;
 			}
 
-			m_VulkanPipelineState.CB.state = state.dynamicCB;
-			memcpy(m_VulkanPipelineState.CB.blendConst, c.m_Blend[state.dynamicCB].blendConst, sizeof(float)*4);
+			memcpy(m_VulkanPipelineState.CB.blendConst, state.blendConst, sizeof(float)*4);
 
 			// Depth Stencil
 			m_VulkanPipelineState.DS.depthTestEnable = p.depthTestEnable;
@@ -1677,15 +1650,16 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.DS.back.depthFailOp = ToStr::Get(p.back.stencilDepthFailOp);
 			m_VulkanPipelineState.DS.back.func = ToStr::Get(p.back.stencilCompareOp);
 
-			m_VulkanPipelineState.DS.state = state.dynamicDS;
-			m_VulkanPipelineState.DS.minDepthBounds = c.m_DepthStencil[state.dynamicDS].minDepthBounds;
-			m_VulkanPipelineState.DS.maxDepthBounds = c.m_DepthStencil[state.dynamicDS].maxDepthBounds;
+			m_VulkanPipelineState.DS.minDepthBounds = state.mindepth;
+			m_VulkanPipelineState.DS.maxDepthBounds = state.maxdepth;
 
-			m_VulkanPipelineState.DS.front.stencilref = c.m_DepthStencil[state.dynamicDS].stencilFrontRef;
-			m_VulkanPipelineState.DS.back.stencilref = c.m_DepthStencil[state.dynamicDS].stencilBackRef;
+			m_VulkanPipelineState.DS.front.ref = state.front.ref;
+			m_VulkanPipelineState.DS.front.compareMask = state.compareMask;
+			m_VulkanPipelineState.DS.front.writeMask = state.writeMask;
 
-			m_VulkanPipelineState.DS.stencilReadMask = c.m_DepthStencil[state.dynamicDS].stencilReadMask;
-			m_VulkanPipelineState.DS.stencilWriteMask = c.m_DepthStencil[state.dynamicDS].stencilWriteMask;
+			m_VulkanPipelineState.DS.back.ref = state.back.ref;
+			m_VulkanPipelineState.DS.back.compareMask = state.compareMask;
+			m_VulkanPipelineState.DS.back.writeMask = state.writeMask;
 
 			// Renderpass
 			m_VulkanPipelineState.Pass.renderpass.obj = state.renderPass;

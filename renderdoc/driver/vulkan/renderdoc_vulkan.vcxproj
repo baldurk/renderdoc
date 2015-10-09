@@ -35,6 +35,7 @@
     </ClCompile>
     <ClCompile Include="vk_resources.cpp" />
     <ClCompile Include="wrappers\vk_cmd_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_dynamic_funcs.cpp" />
     <ClCompile Include="wrappers\vk_descriptor_funcs.cpp" />
     <ClCompile Include="wrappers\vk_device_funcs.cpp" />
     <ClCompile Include="wrappers\vk_draw_funcs.cpp" />

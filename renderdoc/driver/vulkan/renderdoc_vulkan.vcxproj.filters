@@ -46,6 +46,9 @@
     <ClCompile Include="wrappers\vk_cmd_funcs.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
+    <ClCompile Include="wrappers\vk_dynamic_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
     <ClCompile Include="wrappers\vk_descriptor_funcs.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>

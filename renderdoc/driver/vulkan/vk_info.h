@@ -111,47 +111,6 @@ struct VulkanCreationInfo
 	};
 	map<ResourceId, Pipeline> m_Pipeline;
 
-	struct ViewportScissor
-	{
-		void Init(const VkDynamicViewportStateCreateInfo* pCreateInfo);
-		
-		vector<VkViewport> viewports;
-		vector<VkRect2D> scissors;
-	};
-	map<ResourceId, ViewportScissor> m_VPScissor;
-
-	struct Raster
-	{
-		void Init(const VkDynamicRasterStateCreateInfo* pCreateInfo);
-		
-		float depthBias;
-		float depthBiasClamp;
-		float slopeScaledDepthBias;
-		float lineWidth;
-	};
-	map<ResourceId, Raster> m_Raster;
-
-	struct Blend
-	{
-		void Init(const VkDynamicColorBlendStateCreateInfo* pCreateInfo);
-		
-		float blendConst[4];
-	};
-	map<ResourceId, Blend> m_Blend;
-
-	struct DepthStencil
-	{
-		void Init(const VkDynamicDepthStencilStateCreateInfo* pCreateInfo);
-
-		float minDepthBounds;
-		float maxDepthBounds;
-		uint32_t stencilReadMask;
-		uint32_t stencilWriteMask;
-		uint32_t stencilFrontRef;
-		uint32_t stencilBackRef;
-	};
-	map<ResourceId, DepthStencil> m_DepthStencil;
-	
 	struct RenderPass
 	{
 		void Init(const VkRenderPassCreateInfo* pCreateInfo);

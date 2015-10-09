@@ -362,32 +362,6 @@ struct WrappedVkDescriptorSet : WrappedVkNonDispRes
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSet, AllocPoolCount, AllocPoolMaxByteSize);
 	enum { TypeEnum = eResDescriptorSet, };
 };
-struct WrappedVkDynamicViewportState : WrappedVkNonDispRes
-{
-	WrappedVkDynamicViewportState(VkDynamicViewportState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
-	typedef VkDynamicViewportState InnerType;
-	static const int AllocPoolCount = 32*1024;
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicViewportState, AllocPoolCount);
-	enum { TypeEnum = eResViewportState, };
-};
-struct WrappedVkDynamicRasterState : WrappedVkNonDispRes
-{
-	WrappedVkDynamicRasterState(VkDynamicRasterState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
-	typedef VkDynamicRasterState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicRasterState);
-	enum { TypeEnum = eResRasterState, };
-};
-struct WrappedVkDynamicColorBlendState : WrappedVkNonDispRes
-{
-	WrappedVkDynamicColorBlendState(VkDynamicColorBlendState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
-	typedef VkDynamicColorBlendState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicColorBlendState);
-	enum { TypeEnum = eResColorBlendState, };
-};
-struct WrappedVkDynamicDepthStencilState : WrappedVkNonDispRes
-{
-	WrappedVkDynamicDepthStencilState(VkDynamicDepthStencilState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
-	typedef VkDynamicDepthStencilState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicDepthStencilState);
-	enum { TypeEnum = eResDepthStencilState, };
-};
 struct WrappedVkFramebuffer : WrappedVkNonDispRes
 {
 	WrappedVkFramebuffer(VkFramebuffer obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
@@ -459,10 +433,6 @@ UNWRAP_NONDISP_HELPER(VkDescriptorSetLayout)
 UNWRAP_NONDISP_HELPER(VkSampler)
 UNWRAP_NONDISP_HELPER(VkDescriptorPool)
 UNWRAP_NONDISP_HELPER(VkDescriptorSet)
-UNWRAP_NONDISP_HELPER(VkDynamicViewportState)
-UNWRAP_NONDISP_HELPER(VkDynamicRasterState)
-UNWRAP_NONDISP_HELPER(VkDynamicColorBlendState)
-UNWRAP_NONDISP_HELPER(VkDynamicDepthStencilState)
 UNWRAP_NONDISP_HELPER(VkFramebuffer)
 UNWRAP_NONDISP_HELPER(VkCmdPool)
 UNWRAP_NONDISP_HELPER(VkSwapChainWSI)
