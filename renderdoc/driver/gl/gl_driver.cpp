@@ -987,6 +987,15 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 			m_Real.glDeleteTextures(1, &ctxdata.GlyphTexture);
 	}
 
+	for(auto it = m_LastContexts.begin(); it != m_LastContexts.end(); ++it)
+	{
+		if(it->ctx == contextHandle)
+		{
+			m_LastContexts.erase(it);
+			break;
+		}
+	}
+
 	m_ContextData.erase(contextHandle);
 }
 
@@ -1181,7 +1190,21 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 {
 	m_ActiveContexts[Threading::GetCurrentID()] = winData;
 	if(winData.ctx)
-		m_DefaultContexts[Threading::GetCurrentID()] = winData;
+	{
+		for(auto it = m_LastContexts.begin(); it != m_LastContexts.end(); ++it)
+		{
+			if(it->ctx == winData.ctx)
+			{
+				m_LastContexts.erase(it);
+				break;
+			}
+		}
+
+		m_LastContexts.push_back(winData);
+
+		if(m_LastContexts.size() > 10)
+			m_LastContexts.erase(m_LastContexts.begin());
+	}
 
 	// TODO: support multiple GL contexts more explicitly
 	Keyboard::AddInputWindow((void *)winData.wnd);
@@ -2225,6 +2248,9 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 				ClearGLErrors(m_Real);
 		}
 	}
+
+	if(m_State == WRITING_CAPFRAME && m_AppControlledCapture)
+		m_BackbufferImages[windowHandle] = SaveBackbufferImage();
 	
 	if(!activeWindow)
 		return;
@@ -2247,6 +2273,43 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 	}
 }
 
+void WrappedOpenGL::MakeValidContextCurrent(GLWindowingData &prevctx, void *favourWnd)
+{
+	if(prevctx.ctx == NULL)
+	{
+		for(size_t i=m_LastContexts.size(); i > 0; i--)
+		{
+			// need to find a context for fetching most initial states
+			GLWindowingData ctx = m_LastContexts[i-1];
+
+			// check this context isn't current elsewhere
+			bool usedElsewhere = false;
+			for(auto it=m_ActiveContexts.begin(); it != m_ActiveContexts.end(); ++it)
+			{
+				if(it->second.ctx == ctx.ctx)
+				{
+					usedElsewhere = true;
+					break;
+				}
+			}
+
+			if(!usedElsewhere)
+			{
+				prevctx = ctx;
+				break;
+			}
+		}
+
+		if(prevctx.ctx == NULL)
+		{
+			RDCERR("Couldn't find GL context to make current on this thread %llu.", Threading::GetCurrentID());
+		}
+
+		m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
+		MakeContextCurrent(prevctx);
+	}
+}
+
 void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 {
 	if(m_State != WRITING_IDLE) return;
@@ -2261,14 +2324,9 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 	m_FailedFrame = 0;
 	m_FailedReason = CaptureSucceeded;
 
-	GLWindowingData &prevctx = m_ActiveContexts[Threading::GetCurrentID()];
-
-	bool switchedContext = false;
-	if(prevctx.ctx == NULL)
-	{
-		MakeContextCurrent(m_DefaultContexts[Threading::GetCurrentID()]);
-		switchedContext = true;
-	}
+	GLWindowingData prevctx = m_ActiveContexts[Threading::GetCurrentID()];
+	GLWindowingData switchctx = prevctx;
+	MakeValidContextCurrent(switchctx, wnd);
 
 	FetchFrameRecord record;
 	record.frameInfo.frameNumber = m_FrameCounter+1;
@@ -2285,8 +2343,11 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 	AttemptCapture();
 	BeginCaptureFrame();
 
-	if(switchedContext)
+	if(switchctx.ctx != prevctx.ctx)
+	{
 		MakeContextCurrent(prevctx);
+		m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
+	}
 
 	RDCLOG("Starting capture, frame %u", m_FrameCounter);
 }
@@ -2296,6 +2357,10 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 	if(m_State != WRITING_CAPFRAME) return true;
 	
 	CaptureFailReason reason = CaptureSucceeded;
+	
+	GLWindowingData prevctx = m_ActiveContexts[Threading::GetCurrentID()];
+	GLWindowingData switchctx = prevctx;
+	MakeValidContextCurrent(switchctx, wnd);
 
 	if(HasSuccessfulCapture(reason))
 	{
@@ -2308,95 +2373,33 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 		ContextEndFrame();
 		FinishCapture();
 
-		const uint32_t maxSize = 1024;
+		BackbufferImage *bbim = NULL;
 
-		byte *thpixels = NULL;
-		uint32_t thwidth = 0;
-		uint32_t thheight = 0;
-
-		if(m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
+		// if the specified context isn't current, try and see if we've saved
+		// an appropriate backbuffer image during capture.
+		if( (dev != NULL && prevctx.ctx != dev) || (wnd != NULL && prevctx.wnd != wnd) )
 		{
-			RDCGLenum prevReadBuf = eGL_BACK;
-			GLint prevBuf = 0;
-			GLint packBufBind = 0;
-			GLint prevPackRowLen = 0;
-			GLint prevPackSkipRows = 0;
-			GLint prevPackSkipPixels = 0;
-			GLint prevPackAlignment = 0;
-			m_Real.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&prevReadBuf);
-			m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &prevBuf);
-			m_Real.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, &packBufBind);
-			m_Real.glGetIntegerv(eGL_PACK_ROW_LENGTH, &prevPackRowLen);
-			m_Real.glGetIntegerv(eGL_PACK_SKIP_ROWS, &prevPackSkipRows);
-			m_Real.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &prevPackSkipPixels);
-			m_Real.glGetIntegerv(eGL_PACK_ALIGNMENT, &prevPackAlignment);
-
-			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
-			m_Real.glReadBuffer(eGL_BACK);
-			m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
-			m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
-			m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
-			m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
-			m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
-
-			thwidth = m_InitParams.width;
-			thheight = m_InitParams.height;
-
-			thpixels = new byte[thwidth*thheight*3];
-
-			m_Real.glReadPixels(0, 0, thwidth, thheight, eGL_RGB, eGL_UNSIGNED_BYTE, thpixels);
-
-			for(uint32_t y=0; y <= thheight/2; y++)
+			auto it = m_BackbufferImages.find(wnd);
+			if(it != m_BackbufferImages.end())
 			{
-				for(uint32_t x=0; x < thwidth; x++)
-				{
-					byte save[3];
-					save[0] = thpixels[y*(thwidth*3) + x*3 + 0];
-					save[1] = thpixels[y*(thwidth*3) + x*3 + 1];
-					save[2] = thpixels[y*(thwidth*3) + x*3 + 2];
-
-					thpixels[y*(thwidth*3) + x*3 + 0] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0];
-					thpixels[y*(thwidth*3) + x*3 + 1] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1];
-					thpixels[y*(thwidth*3) + x*3 + 2] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2];
-
-					thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0] = save[0];
-					thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1] = save[1];
-					thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2] = save[2];
-				}
-			}
-
-			m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packBufBind);
-			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevBuf);
-			m_Real.glReadBuffer(prevReadBuf);
-			m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, prevPackRowLen);
-			m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, prevPackSkipRows);
-			m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, prevPackSkipPixels);
-			m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
-		}
-
-		byte *jpgbuf = NULL;
-		int len = thwidth*thheight;
-
-		if(len > 0)
-		{
-			jpgbuf = new byte[len];
-
-			jpge::params p;
-
-			p.m_quality = 40;
-
-			bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
-
-			if(!success)
-			{
-				RDCERR("Failed to compress to jpg");
-				SAFE_DELETE_ARRAY(jpgbuf);
-				thwidth = 0;
-				thheight = 0;
+				// pop this backbuffer image out of the map
+				bbim = it->second;
+				m_BackbufferImages.erase(it);
 			}
 		}
 
-		Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
+		// if we don't have one selected, save the backbuffer image from the
+		// current context
+		if(bbim == NULL)
+			bbim = SaveBackbufferImage();
+
+		Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, bbim->jpgbuf, bbim->len, bbim->thwidth, bbim->thheight);
+
+		SAFE_DELETE(bbim);
+
+		for(auto it=m_BackbufferImages.begin(); it != m_BackbufferImages.end(); ++it)
+			delete it->second;
+		m_BackbufferImages.clear();
 
 		{
 			SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
@@ -2452,6 +2455,12 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 		GetResourceManager()->MarkUnwrittenResources();
 
 		GetResourceManager()->ClearReferencedResources();
+
+		if(switchctx.ctx != prevctx.ctx)
+		{
+			MakeContextCurrent(prevctx);
+			m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
+		}
 
 		return true;
 	}
@@ -2520,9 +2529,114 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 			AttemptCapture();
 			BeginCaptureFrame();
 		}
+		
+		if(switchctx.ctx != prevctx.ctx)
+		{
+			MakeContextCurrent(prevctx);
+			m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
+		}
 
 		return false;
 	}
+}
+
+WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
+{
+	const uint32_t maxSize = 1024;
+
+	byte *thpixels = NULL;
+	uint32_t thwidth = 0;
+	uint32_t thheight = 0;
+
+	if(m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
+	{
+		RDCGLenum prevReadBuf = eGL_BACK;
+		GLint prevBuf = 0;
+		GLint packBufBind = 0;
+		GLint prevPackRowLen = 0;
+		GLint prevPackSkipRows = 0;
+		GLint prevPackSkipPixels = 0;
+		GLint prevPackAlignment = 0;
+		m_Real.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&prevReadBuf);
+		m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &prevBuf);
+		m_Real.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, &packBufBind);
+		m_Real.glGetIntegerv(eGL_PACK_ROW_LENGTH, &prevPackRowLen);
+		m_Real.glGetIntegerv(eGL_PACK_SKIP_ROWS, &prevPackSkipRows);
+		m_Real.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &prevPackSkipPixels);
+		m_Real.glGetIntegerv(eGL_PACK_ALIGNMENT, &prevPackAlignment);
+
+		m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
+		m_Real.glReadBuffer(eGL_BACK);
+		m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+		m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
+		m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
+		m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
+		m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
+
+		thwidth = m_InitParams.width;
+		thheight = m_InitParams.height;
+
+		thpixels = new byte[thwidth*thheight*3];
+
+		m_Real.glReadPixels(0, 0, thwidth, thheight, eGL_RGB, eGL_UNSIGNED_BYTE, thpixels);
+
+		for(uint32_t y=0; y <= thheight/2; y++)
+		{
+			for(uint32_t x=0; x < thwidth; x++)
+			{
+				byte save[3];
+				save[0] = thpixels[y*(thwidth*3) + x*3 + 0];
+				save[1] = thpixels[y*(thwidth*3) + x*3 + 1];
+				save[2] = thpixels[y*(thwidth*3) + x*3 + 2];
+
+				thpixels[y*(thwidth*3) + x*3 + 0] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0];
+				thpixels[y*(thwidth*3) + x*3 + 1] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1];
+				thpixels[y*(thwidth*3) + x*3 + 2] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2];
+
+				thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0] = save[0];
+				thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1] = save[1];
+				thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2] = save[2];
+			}
+		}
+
+		m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packBufBind);
+		m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevBuf);
+		m_Real.glReadBuffer(prevReadBuf);
+		m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, prevPackRowLen);
+		m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, prevPackSkipRows);
+		m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, prevPackSkipPixels);
+		m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
+	}
+
+	byte *jpgbuf = NULL;
+	int len = thwidth*thheight;
+
+	if(len > 0)
+	{
+		jpgbuf = new byte[len];
+
+		jpge::params p;
+
+		p.m_quality = 40;
+
+		bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
+
+		if(!success)
+		{
+			RDCERR("Failed to compress to jpg");
+			SAFE_DELETE_ARRAY(jpgbuf);
+			thwidth = 0;
+			thheight = 0;
+		}
+	}
+
+	BackbufferImage *bbim = new BackbufferImage();
+	bbim->jpgbuf = jpgbuf;
+	bbim->len = len;
+	bbim->thwidth = thwidth;
+	bbim->thheight = thheight;
+
+	return bbim;
 }
 
 void WrappedOpenGL::Serialise_CaptureScope(uint64_t offset)

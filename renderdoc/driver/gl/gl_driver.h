@@ -138,9 +138,7 @@ class WrappedOpenGL : public IFrameCapturer
 
 		map<uint64_t, GLWindowingData> m_ActiveContexts;
 
-		// we use this context if we need one e.g. for fetching initial states
-		// if no context is current
-		map<uint64_t, GLWindowingData> m_DefaultContexts;
+		vector<GLWindowingData> m_LastContexts;
 
 		bool m_ActiveQueries[8][8]; // first index type, second index (for some, always 0)
 		bool m_ActiveConditional;
@@ -407,6 +405,8 @@ class WrappedOpenGL : public IFrameCapturer
 		
 		ContextData &GetCtxData();
 		GLuint GetUniformProgram();
+
+		void MakeValidContextCurrent(GLWindowingData &prevctx, void *favourWnd);
 		
 		void ReplaceResource(ResourceId from, ResourceId to);
 		void RemoveReplacement(ResourceId id);
@@ -433,6 +433,20 @@ class WrappedOpenGL : public IFrameCapturer
 
 		void RenderOverlayText(float x, float y, const char *fmt, ...);
 		void RenderOverlayStr(float x, float y, const char *str);
+
+		struct BackbufferImage
+		{
+			BackbufferImage() : jpgbuf(NULL), len(0), thwidth(0), thheight(0) {}
+			~BackbufferImage() { SAFE_DELETE_ARRAY(jpgbuf); }
+
+			byte *jpgbuf;
+			size_t len;
+			uint32_t thwidth;
+			uint32_t thheight;
+		};
+
+		BackbufferImage *SaveBackbufferImage();
+		map<void *, BackbufferImage *> m_BackbufferImages;
 
 		vector<string> globalExts;
 
