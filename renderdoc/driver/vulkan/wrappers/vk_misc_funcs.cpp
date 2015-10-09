@@ -33,7 +33,7 @@
 	{ \
 		if(m_ImageInfo.find(GetResID(obj)) != m_ImageInfo.end()) m_ImageInfo.erase(GetResID(obj)); \
 		type unwrappedObj = Unwrap(obj); \
-		GetResourceManager()->ReleaseWrappedResource(obj, true); \
+		if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true); \
 		return ObjDisp(device)->func(Unwrap(device), unwrappedObj); \
 	}
 
@@ -310,8 +310,18 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sem);
-			GetResourceManager()->AddLiveResource(id, sem);
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(sem)))
+			{
+				// VKTODOMED need to handle duplicate objects better than this, perhaps
+				ResourceId live = GetResourceManager()->GetNonDispWrapper(sem)->id;
+				RDCDEBUG("Doing hack for duplicate objects that replay expects to be distinct - %llu -> %llu", id, live);
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+			}
+			else
+			{
+				ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sem);
+				GetResourceManager()->AddLiveResource(id, sem);
+			}
 		}
 	}
 
@@ -327,27 +337,34 @@ VkResult WrappedVulkan::vkCreateSemaphore(
 
 	if(ret == VK_SUCCESS)
 	{
-		ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pSemaphore);
-		
-		if(m_State >= WRITING)
+		if(GetResourceManager()->HasWrapper(ToTypedHandle(*pSemaphore)))
 		{
-			Chunk *chunk = NULL;
-
-			{
-				CACHE_THREAD_SERIALISER();
-
-				SCOPED_SERIALISE_CONTEXT(CREATE_SEMAPHORE);
-				Serialise_vkCreateSemaphore(localSerialiser, device, pCreateInfo, pSemaphore);
-
-				chunk = scope.Get();
-			}
-
-			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSemaphore);
-			record->AddChunk(chunk);
+			*pSemaphore = (VkSemaphore)(uint64_t)GetResourceManager()->GetWrapper(ToTypedHandle(*pSemaphore));
 		}
 		else
 		{
-			GetResourceManager()->AddLiveResource(id, *pSemaphore);
+			ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pSemaphore);
+
+			if(m_State >= WRITING)
+			{
+				Chunk *chunk = NULL;
+
+				{
+					CACHE_THREAD_SERIALISER();
+
+					SCOPED_SERIALISE_CONTEXT(CREATE_SEMAPHORE);
+					Serialise_vkCreateSemaphore(localSerialiser, device, pCreateInfo, pSemaphore);
+
+					chunk = scope.Get();
+				}
+
+				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSemaphore);
+				record->AddChunk(chunk);
+			}
+			else
+			{
+				GetResourceManager()->AddLiveResource(id, *pSemaphore);
+			}
 		}
 	}
 
