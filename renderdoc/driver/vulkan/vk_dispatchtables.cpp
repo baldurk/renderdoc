@@ -65,8 +65,22 @@ void InitReplayTables()
 
 	{
 		VkLayerInstanceDispatchTable &table = replayInstanceTable;
+		HookInit(GetInstanceProcAddr);
 		HookInitVulkanInstance();
 	}
+}
+
+void InitInstanceReplayTables(VkInstance instance)
+{
+	VkLayerInstanceDispatchTable *table = GetInstanceDispatchTable(NULL);
+	RDCASSERT(table);
+
+#define InstanceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetInstanceProcAddr(instance, STRINGIZE(CONCAT(vk, func)));
+
+	InstanceGPA(DbgCreateMsgCallback)
+	InstanceGPA(DbgDestroyMsgCallback)
+
+#undef InstanceGPA
 }
 
 void InitDeviceReplayTables(VkDevice device)

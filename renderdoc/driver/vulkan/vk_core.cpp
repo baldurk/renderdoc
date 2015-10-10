@@ -257,8 +257,14 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 
 	VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, &inst);
 
+	InitInstanceReplayTables(inst);
+
 	GetResourceManager()->WrapResource(inst, inst);
 	GetResourceManager()->AddLiveResource(params.InstanceID, inst);
+
+	// VKTODOHIGH this must be deallocated
+	VkDbgMsgCallback dummy;
+	ObjDisp(inst)->DbgCreateMsgCallback(Unwrap(inst), 0x1e, (PFN_vkDbgMsgCallback)&DebugCallbackStatic, this, &dummy);
 
 	SAFE_DELETE_ARRAY(layerscstr);
 	SAFE_DELETE_ARRAY(extscstr);

@@ -35,6 +35,7 @@
 #include <vk_layer.h>
 
 void InitReplayTables();
+void InitInstanceReplayTables(VkInstance instance);
 void InitDeviceReplayTables(VkDevice device);
 
 VkLayerDispatchTable *GetDeviceDispatchTable(void *device);
