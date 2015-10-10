@@ -131,7 +131,7 @@ VkResult getProps(uint32_t *dstCount, void *dstProps, uint32_t srcCount, void *s
 
 extern "C" {
 
-VK_LAYER_EXPORT VkResult VKAPI RenderDocGetPhysicalDeviceLayerProperties(
+VK_LAYER_EXPORT VkResult VKAPI RenderDocEnumerateDeviceLayerProperties(
 	VkPhysicalDevice                            physicalDevice,
 	uint32_t*                                   pCount,
 	VkLayerProperties*                          pProperties)
@@ -139,7 +139,7 @@ VK_LAYER_EXPORT VkResult VKAPI RenderDocGetPhysicalDeviceLayerProperties(
 	return getProps(pCount, pProperties, ARRAY_COUNT(physLayers), (void *)physLayers, sizeof(VkLayerProperties));
 }
 
-VK_LAYER_EXPORT VkResult VKAPI RenderDocGetPhysicalDeviceExtensionProperties(
+VK_LAYER_EXPORT VkResult VKAPI RenderDocEnumerateDeviceExtensionProperties(
 	VkPhysicalDevice        physicalDevice,
 	const char             *pLayerName,
 	uint32_t               *pCount,
@@ -148,20 +148,12 @@ VK_LAYER_EXPORT VkResult VKAPI RenderDocGetPhysicalDeviceExtensionProperties(
 	return getProps(pCount, pProperties, ARRAY_COUNT(physExts), (void *)physExts, sizeof(VkExtensionProperties));
 }
 
-// VKTODOLOW this can't be intercepted? no dispatchable object
-VK_LAYER_EXPORT VkResult VKAPI vkGetGlobalLayerProperties(
-	uint32_t *pCount,
-	VkLayerProperties*    pProperties)
-{
-	return getProps(pCount, pProperties, ARRAY_COUNT(globalLayers), (void *)globalLayers, sizeof(VkLayerProperties));
-}
-
 #undef HookInit
 #define HookInit(function) if (!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) return (PFN_vkVoidFunction) &CONCAT(hooked_vk, function);
 
 // proc addr routines
 
-VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDocGetDeviceProcAddr(VkDevice device, const char* pName)
+VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDoc_GetDeviceProcAddr(VkDevice device, const char* pName)
 {
 	if (device == NULL)
 		return NULL;
@@ -169,7 +161,7 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDocGetDeviceProcAddr(VkDevice dev
 	/* loader uses this to force layer initialization; device object is wrapped */
 	if (!strcmp("vkGetDeviceProcAddr", pName)) {
 		InitDeviceTable((const VkBaseLayerObject *) device);
-		return (PFN_vkVoidFunction) &RenderDocGetDeviceProcAddr;
+		return (PFN_vkVoidFunction) &RenderDoc_GetDeviceProcAddr;
 	}
 
 	if (!strcmp("vkCreateDevice", pName))
@@ -184,7 +176,7 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDocGetDeviceProcAddr(VkDevice dev
 	return GetDeviceDispatchTable(device)->GetDeviceProcAddr(device, pName);
 }
 
-VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDocGetInstanceProcAddr(VkInstance instance, const char* pName)
+VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDoc_GetInstanceProcAddr(VkInstance instance, const char* pName)
 {
 	if (instance == NULL)
 		return NULL;
@@ -197,15 +189,13 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDocGetInstanceProcAddr(VkInstance
 		if (shadowVulkan == NULL) {
 			shadowVulkan = new WrappedVulkan("");
 		}
-		return (PFN_vkVoidFunction) &RenderDocGetInstanceProcAddr;
+		return (PFN_vkVoidFunction) &RenderDoc_GetInstanceProcAddr;
 	}
 
 	if (!strcmp("vkGetPhysicalDeviceLayerProperties", pName))
-		return (PFN_vkVoidFunction) &RenderDocGetPhysicalDeviceLayerProperties;
+		return (PFN_vkVoidFunction) &RenderDocEnumerateDeviceLayerProperties;
 	if (!strcmp("vkGetPhysicalDeviceExtensionProperties", pName))
-		return (PFN_vkVoidFunction) &RenderDocGetPhysicalDeviceExtensionProperties;
-	if (!strcmp("vkGetGlobalLayerProperties", pName))
-		return (PFN_vkVoidFunction) &vkGetGlobalLayerProperties;
+		return (PFN_vkVoidFunction) &RenderDocEnumerateDeviceExtensionProperties;
 
 	HookInitVulkanInstance();
 

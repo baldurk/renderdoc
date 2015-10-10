@@ -4,7 +4,7 @@ all:
 	cd renderdoc && $(MAKE) librenderdoc.so
 	cd renderdoccmd && $(MAKE) bin/renderdoccmd
 	cd qrenderdoc && qmake "CONFIG+=debug" && $(MAKE)
-	cp renderdoc/librenderdoc.so renderdoc/driver/vulkan/renderdoc.json renderdoccmd/bin/renderdoccmd bin/
+	cp renderdoc/librenderdoc.so renderdoc/driver/vulkan/linux/renderdoc.json renderdoccmd/bin/renderdoccmd bin/
 
 .PHONY: clean
 clean:

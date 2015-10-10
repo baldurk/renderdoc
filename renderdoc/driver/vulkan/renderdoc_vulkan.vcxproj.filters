@@ -129,4 +129,9 @@
       <UniqueIdentifier>{346edd99-3a86-4782-8ad5-f6efecf8bb0b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="windows\renderdoc.json">
+      <Filter>Layer</Filter>
+    </None>
+  </ItemGroup>
 </Project>

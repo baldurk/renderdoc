@@ -6,6 +6,10 @@
         "library_path": "./librenderdoc.so",
         "abi_versions": "1.0.0",
         "implementation_version": "1.0.0",
-        "description": "Debugging capture layer for RenderDoc"
+        "description": "Debugging capture layer for RenderDoc",
+        "functions": {
+          "vkGetInstanceProcAddr": "RenderDoc_GetInstanceProcAddr",
+          "vkGetDeviceProcAddr": "RenderDoc_GetDeviceProcAddr"
+        }
     }
 }

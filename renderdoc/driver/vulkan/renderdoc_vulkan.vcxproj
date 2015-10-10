@@ -67,6 +67,15 @@
     <ClInclude Include="vk_replay.h" />
     <ClInclude Include="vk_resources.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="windows\renderdoc.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="windows\renderdoc.json">
+      <Link>renderdoc.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
