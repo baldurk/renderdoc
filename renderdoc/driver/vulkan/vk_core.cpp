@@ -262,9 +262,14 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	GetResourceManager()->WrapResource(inst, inst);
 	GetResourceManager()->AddLiveResource(params.InstanceID, inst);
 
-	// VKTODOHIGH this must be deallocated
-	VkDbgMsgCallback dummy;
-	ObjDisp(inst)->DbgCreateMsgCallback(Unwrap(inst), 0x1e, (PFN_vkDbgMsgCallback)&DebugCallbackStatic, this, &dummy);
+	if(ObjDisp(inst)->DbgCreateMsgCallback)
+	{
+		// VKTODOHIGH this must be deallocated
+		VkDbgMsgCallback dummy;
+		ObjDisp(inst)->DbgCreateMsgCallback(Unwrap(inst),
+			VK_DBG_REPORT_WARN_BIT|VK_DBG_REPORT_PERF_WARN_BIT|VK_DBG_REPORT_ERROR_BIT,
+			(PFN_vkDbgMsgCallback)&DebugCallbackStatic, this, &dummy);
+	}
 
 	SAFE_DELETE_ARRAY(layerscstr);
 	SAFE_DELETE_ARRAY(extscstr);
