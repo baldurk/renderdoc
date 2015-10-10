@@ -2493,8 +2493,23 @@ void Serialiser::Serialise(const char *name, VkPipelineViewportStateCreateInfo &
 		el.pViewports = NULL;
 		el.pScissors = NULL;
 	}
-	SerialisePODArray("viewports", (VkViewport *&)el.pViewports, el.viewportCount);
-	SerialisePODArray("scissors", (VkRect2D *&)el.pScissors, el.scissorCount);
+
+	// need to handle these arrays potentially being NULL if they're dynamic
+	bool hasViews = (el.pViewports != NULL);
+	bool hasScissors = (el.pScissors != NULL);
+	
+	Serialise("hasViews", hasViews);
+	Serialise("hasScissors", hasScissors);
+
+	if(hasViews)
+		SerialisePODArray("viewports", (VkViewport *&)el.pViewports, el.viewportCount);
+	else
+		Serialise("viewportCount", el.viewportCount);
+
+	if(hasScissors)
+		SerialisePODArray("scissors", (VkRect2D *&)el.pScissors, el.scissorCount);
+	else
+		Serialise("scissorCount", el.scissorCount);
 }
 
 template<>
