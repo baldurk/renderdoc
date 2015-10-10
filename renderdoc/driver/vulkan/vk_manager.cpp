@@ -81,7 +81,7 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 			if(it->first < id) continue;
 			if(it->first != id) break;
 
-			if(it->second.range.aspectMask == t.subresourceRange.aspectMask)
+			if(it->second.range.aspectMask & t.subresourceRange.aspectMask)
 			{
 				// we've found a range that completely matches our region, doesn't matter if that's
 				// a whole image and the transition is the whole image, or it's one subresource.
@@ -324,7 +324,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 			// each subresource in that aspect. Thereafter if a transition comes in that covers multiple
 			// subresources, we transition all matching ranges.
 
-			if(it->range.aspectMask == t.range.aspectMask)
+			if(it->range.aspectMask & t.range.aspectMask)
 			{
 				// we've found a range that completely matches our region, doesn't matter if that's
 				// a whole image and the transition is the whole image, or it's one subresource.
