@@ -221,21 +221,18 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 
 		const VkImageCreateInfo imInfo = {
-			/*.sType =*/ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-			/*.pNext =*/ NULL,
-			/*.imageType =*/ VK_IMAGE_TYPE_2D,
-			/*.format =*/ info.imageFormat,
-			/*.extent =*/ { info.imageExtent.width, info.imageExtent.height, 1 },
-			/*.mipLevels =*/ 1,
-			/*.arraySize =*/ info.imageArraySize,
-			/*.samples =*/ 1,
-			/*.tiling =*/ VK_IMAGE_TILING_OPTIMAL,
-			/*.usage =*/
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_IMAGE_TYPE_2D, info.imageFormat,
+			{ info.imageExtent.width, info.imageExtent.height, 1 },
+			1, info.imageArraySize, 1,
+			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|
 			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT|
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|
 			VK_IMAGE_USAGE_SAMPLED_BIT,
-			/*.flags =*/ 0,
+			0,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
 		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
@@ -347,7 +344,8 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 					pCreateInfo->imageFormat, 1,
 					VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 					VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+					0
 				};
 
 				VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
@@ -652,18 +650,13 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 				// create identical image
 				VkImageCreateInfo imInfo = {
-					/*.sType =*/ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-					/*.pNext =*/ NULL,
-					/*.imageType =*/ VK_IMAGE_TYPE_2D,
-					/*.format =*/ swapInfo.format,
-					/*.extent =*/ { swapInfo.extent.width, swapInfo.extent.height, 1 },
-					/*.mipLevels =*/ 1,
-					/*.arraySize =*/ 1,
-					/*.samples =*/ 1,
-					/*.tiling =*/ VK_IMAGE_TILING_LINEAR,
-					/*.usage =*/
-					VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
-					/*.flags =*/ 0,
+					VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+					VK_IMAGE_TYPE_2D, swapInfo.format,
+					{ swapInfo.extent.width, swapInfo.extent.height, 1 }, 1, 1, 1,
+					VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
+					0,
+					VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+					VK_IMAGE_LAYOUT_UNDEFINED,
 				};
 				vt->CreateImage(Unwrap(dev), &imInfo, &readbackIm);
 				RDCASSERT(vkr == VK_SUCCESS);
@@ -707,13 +700,15 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 				VkImageMemoryBarrier bbTrans = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 					0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
-					0, 0, Unwrap(backbuffer),
+					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+					Unwrap(backbuffer),
 					{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
 
 				VkImageMemoryBarrier readTrans = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 					0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
-					0, 0, readbackIm, // was never wrapped
+					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+					readbackIm, // was never wrapped
 					{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
 
 				VkImageMemoryBarrier *barriers[] = {

@@ -241,8 +241,8 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImgState> &stat
 				// barrier happened.
 				t.inputMask = 0;
 				t.outputMask = 0;
-				t.srcQueueFamilyIndex = 0;
-				t.destQueueFamilyIndex = 0;
+				t.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				t.destQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
 				t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				t.newLayout = state.state;

@@ -216,6 +216,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		false, VK_COMPARE_OP_NEVER,
 		0.0f, 0.0f, // min/max lod
 		VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+		false, // unnormalized
 	};
 
 	vkr = vt->CreateSampler(Unwrap(dev), &sampInfo, &m_LinearSampler);
@@ -411,6 +412,16 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		GetEmbeddedResource(genericvs_spv),
 		GetEmbeddedResource(genericfs_spv),
 	};
+
+	bool vtxShader[] = {
+		true,
+		false,
+		false,
+		true,
+		false,
+		true,
+		false,
+	};
 	
 	enum shaderIdx
 	{
@@ -441,6 +452,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VkShaderCreateInfo shadinfo = {
 			VK_STRUCTURE_TYPE_SHADER_CREATE_INFO, NULL,
 			Unwrap(module[i]), "main", 0,
+			vtxShader[i] ? VK_SHADER_STAGE_VERTEX : VK_SHADER_STAGE_FRAGMENT,
 		};
 
 		vkr = vt->CreateShader(Unwrap(dev), &shadinfo, &shader[i]);
@@ -608,17 +620,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		int width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
 
 		VkImageCreateInfo imInfo = {
-			/*.sType =*/ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-			/*.pNext =*/ NULL,
-			/*.imageType =*/ VK_IMAGE_TYPE_2D,
-			/*.format =*/ VK_FORMAT_R8_UNORM,
-			/*.extent =*/ { width, height, 1 },
-			/*.mipLevels =*/ 1,
-			/*.arraySize =*/ 1,
-			/*.samples =*/ 1,
-			/*.tiling =*/ VK_IMAGE_TILING_LINEAR,
-			/*.usage =*/ VK_IMAGE_USAGE_SAMPLED_BIT,
-			/*.flags =*/ 0,
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_IMAGE_TYPE_2D, VK_FORMAT_R8_UNORM,
+			{ width, height, 1 }, 1, 1, 1,
+			VK_IMAGE_TILING_LINEAR,
+			VK_IMAGE_USAGE_SAMPLED_BIT,
+			0,
+			VK_SHARING_MODE_EXCLUSIVE,
+			0, NULL,
+			VK_IMAGE_LAYOUT_PREINITIALIZED,
 		};
 
 		string font = GetEmbeddedResource(sourcecodepro_ttf);
@@ -680,7 +690,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				Unwrap(m_TextAtlas), VK_IMAGE_VIEW_TYPE_2D,
 				imInfo.format,
 				{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-				{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, }
+				{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, },
+				0,
 			};
 
 			// VKTODOMED used for texture display, but eventually will have to be created on the fly
@@ -703,8 +714,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			
 			VkImageMemoryBarrier trans = {
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-				0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-				0, 0, Unwrap(m_TextAtlas),
+				0, 0,
+				VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+				Unwrap(m_TextAtlas),
 				{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
 
 			void *barrier = (void *)&trans;

@@ -78,7 +78,8 @@ VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), hei
 	VkImageMemoryBarrier t = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED,
-		0, 0, VK_NULL_HANDLE,
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		VK_NULL_HANDLE,
 		{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 }
 	};
 	for(size_t i=0; i < ARRAY_COUNT(coltrans); i++)
@@ -323,8 +324,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			1, 1, 1,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
-			0, VK_SHARING_MODE_EXCLUSIVE,
-			0, NULL,
+			0, VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
 		VkResult vkr = vt->CreateImage(Unwrap(device), &imInfo, &bb);
@@ -558,8 +559,10 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		VkImageMemoryBarrier fakeTrans = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 			0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
-			0, 0, Unwrap(fakeBBIm),
-			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(fakeBBIm),
+			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 }
+		};
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
@@ -655,7 +658,8 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
 			iminfo.format,
 			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, }
+			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, },
+			0
 		};
 
 		// VKTODOMED used for texture display, but eventually will have to be created on the fly
@@ -765,8 +769,10 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	VkImageMemoryBarrier srcimTrans = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 		0, 0, origLayout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		0, 0, Unwrap(liveIm),
-		{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		Unwrap(liveIm),
+		{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 }
+	};
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 	

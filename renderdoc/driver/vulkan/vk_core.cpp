@@ -240,24 +240,17 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 		extscstr[i] = params.Extensions[i].c_str();
 
 	VkApplicationInfo appinfo = {
-			/*.sType =*/ VK_STRUCTURE_TYPE_APPLICATION_INFO,
-			/*.pNext =*/ NULL,
-			/*.pAppName =*/ params.AppName.c_str(),
-			/*.appVersion =*/ params.AppVersion,
-			/*.pEngineName =*/ params.EngineName.c_str(),
-			/*.engineVersion =*/ params.EngineVersion,
-			/*.apiVersion =*/ VK_API_VERSION,
+			VK_STRUCTURE_TYPE_APPLICATION_INFO, NULL,
+			params.AppName.c_str(), params.AppVersion,
+			params.EngineName.c_str(), params.EngineVersion,
+			VK_API_VERSION,
 	};
 
 	VkInstanceCreateInfo instinfo = {
-			/*.sType =*/ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-			/*.pNext =*/ NULL,
-			/*.pAppInfo =*/ &appinfo,
-			/*.pAllocCb =*/ NULL,
-			/*.layerCount =*/ (uint32_t)params.Layers.size(),
-			/*.ppEnabledLayerNames =*/ layerscstr,
-			/*.extensionCount =*/ (uint32_t)params.Extensions.size(),
-			/*.ppEnabledExtensionNames =*/ extscstr,
+			VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, NULL,
+			&appinfo, NULL,
+			(uint32_t)params.Layers.size(), layerscstr,
+			(uint32_t)params.Extensions.size(), extscstr,
 	};
 
 	VkInstance inst = {0};
