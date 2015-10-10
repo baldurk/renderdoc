@@ -51,7 +51,7 @@ void InitReplayTables()
 	#undef HookInit
 
 #ifdef WIN32
-	#define HookInit(name) table.name = (CONCAT(PFN_vk, name))GetProcAddress(LoadLibraryA("vulkan.0.dll"), STRINGIZE(CONCAT(vk, name)))
+	#define HookInit(name) table.name = (CONCAT(PFN_vk, name))GetProcAddress(LoadLibraryA("vulkan-0.dll"), STRINGIZE(CONCAT(vk, name)))
 #else
 	void *libhandle = dlopen("libvulkan.so", RTLD_NOW);
 	#define HookInit(name) table.name = (CONCAT(PFN_vk, name))dlsym(libhandle, STRINGIZE(CONCAT(vk, name)))

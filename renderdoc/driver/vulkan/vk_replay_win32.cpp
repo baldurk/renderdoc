@@ -63,5 +63,5 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 
 bool LoadVulkanLibrary()
 {
-	return Process::LoadModule("vulkan.0.dll");
+	return Process::LoadModule("vulkan-0.dll");
 }
