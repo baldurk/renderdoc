@@ -466,8 +466,10 @@ bool WrappedVulkan::Serialise_vkQueueWaitSemaphore(Serialiser* localSerialiser, 
 	
 	if(m_State < WRITING)
 	{
+		// we don't track semaphore state so we don't know whether this semaphore was signalled
+		// or unsignalled. To be conservative, we wait for idle.
 		queue = GetResourceManager()->GetLiveHandle<VkQueue>(qid);
-		ObjDisp(queue)->QueueWaitSemaphore(Unwrap(queue), Unwrap(GetResourceManager()->GetLiveHandle<VkSemaphore>(sid)));
+		ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
 	}
 
 	return true;
