@@ -165,8 +165,6 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class ViewState
         {
-            public ResourceId state;
-
             [StructLayout(LayoutKind.Sequential)]
             public class ViewportScissor
             {
@@ -205,7 +203,6 @@ namespace renderdoc
             public TriangleCullMode CullMode;
 
             // from dynamic state
-            public ResourceId state;
             public float depthBias;
             public float depthBiasClamp;
             public float slopeScaledDepthBias;
@@ -257,7 +254,6 @@ namespace renderdoc
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public Attachment[] attachments;
 
-            public ResourceId state;
             [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
             public float[] blendConst;
         };
@@ -286,16 +282,14 @@ namespace renderdoc
                 public string passOp;
                 [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string func;
-                public UInt32 stencilref;
+
+                public UInt32 stencilref, compareMask, writeMask;
             };
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
             public StencilOp front, back;
 
-            public ResourceId State;
             public float minDepthBounds;
             public float maxDepthBounds;
-            public UInt32 StencilReadMask;
-            public UInt32 StencilWriteMask;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public DepthStencil DS;

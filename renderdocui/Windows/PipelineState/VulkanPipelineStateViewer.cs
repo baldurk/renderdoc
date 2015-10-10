@@ -905,8 +905,8 @@ namespace renderdocui.Windows.PipelineState
             depthWrite.Image = state.DS.depthWriteEnable ? tick : cross;
 
             stencilEnable.Image = state.DS.stencilTestEnable ? tick : cross;
-            stencilReadMask.Text = state.DS.StencilReadMask.ToString("X2");
-            stencilWriteMask.Text = state.DS.StencilWriteMask.ToString("X2");
+            stencilReadMask.Text = state.DS.front.compareMask.ToString("X2");
+            stencilWriteMask.Text = state.DS.front.writeMask.ToString("X2");
             stencilRef.Text = state.DS.front.stencilref.ToString("X2");
 
             stencilFuncs.BeginUpdate();
