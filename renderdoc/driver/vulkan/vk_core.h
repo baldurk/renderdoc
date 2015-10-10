@@ -295,6 +295,13 @@ private:
 				compute.descSets.clear();
 				graphics.descSets.clear();
 
+				lineWidth = 1.0f;
+				RDCEraseEl(bias);
+				RDCEraseEl(blendConst);
+				mindepth = 0.0f; maxdepth = 1.0f;
+				RDCEraseEl(front);
+				RDCEraseEl(back);
+
 				RDCEraseEl(renderArea);
 
 				RDCEraseEl(ibuffer);
