@@ -145,6 +145,8 @@ namespace renderdocui.Windows
             }
         }
 
+        private const int MaxRowCount = 200000;
+
         // one UI state for each stage
         private UIState m_VSIn = new UIState(MeshDataStage.VSIn);
         private UIState m_VSOut = new UIState(MeshDataStage.VSOut);
@@ -225,6 +227,9 @@ namespace renderdocui.Windows
             m_VSIn.m_GridView = vsInBufferView;
             m_VSOut.m_GridView = vsOutBufferView;
             m_GSOut.m_GridView = gsOutBufferView;
+
+            largeBufferWarning.Visible = false;
+            byteOffset.Enabled = false;
 
             rowOffset.Font =
                 byteOffset.Font =
@@ -518,6 +523,8 @@ namespace renderdocui.Windows
 
             var draw = m_Core.CurDrawcall;
 
+            byteOffset.Enabled = false;
+
             instanceIdxToolitem.Enabled = (draw != null && draw.numInstances > 1);
 
             if (!instanceIdxToolitem.Enabled)
@@ -692,6 +699,9 @@ namespace renderdocui.Windows
             input.IndexBuffer = ResourceId.Null;
             input.BufferFormats = elems;
             input.IndexOffset = 0;
+
+            largeBufferWarning.Visible = false;
+            byteOffset.Enabled = false;
 
             m_VSIn.m_Input = input;
 
@@ -882,9 +892,9 @@ namespace renderdocui.Windows
                     ret.Buffers = new byte[1][];
 
                     if(input.Buffers[0] != ResourceId.Null)
-                        ret.Buffers[0] = r.GetBufferData(input.Buffers[0], 0, 0);
+                        ret.Buffers[0] = r.GetBufferData(input.Buffers[0], ByteOffset, 0);
                     else if (input.Buffers[1] != ResourceId.Null)
-                        ret.Buffers[0] = r.GetTextureData(input.Buffers[1], 0, 0);
+                        ret.Buffers[0] = r.GetTextureData(input.Buffers[1], ByteOffset, 0);
 
                     ret.Indices = null;
                     ret.DataIndices = null;
@@ -1475,9 +1485,6 @@ namespace renderdocui.Windows
 
                             uint offs = input.Strides[bufferFormats[el].buffer] * instIdx + bufferFormats[el].offset;
 
-                            if (!MeshView)
-                                offs += ByteOffset;
-
                             bool outofBounds = false;
 
                             if (bytedata == null)
@@ -1599,10 +1606,14 @@ namespace renderdocui.Windows
             }
 
             bufView.RowCount = 0;
+            if(!MeshView) byteOffset.Enabled = true;
 
             if (state.m_Rows != null)
             {
-                bufView.RowCount = state.m_Rows.Length;
+                bufView.RowCount = Math.Min(state.m_Rows.Length, MaxRowCount);
+
+                if (state.m_Rows.Length > MaxRowCount)
+                    largeBufferWarning.Visible = true;
 
                 ScrollToRow(bufView, RowOffset);
 
@@ -1775,9 +1786,6 @@ namespace renderdocui.Windows
                                 instIdx = dataIndex;
 
                             uint offs = input.Strides[bufferFormats[el].buffer] * instIdx + bufferFormats[el].offset;
-
-                            if (!MeshView)
-                                offs += ByteOffset;
 
                             if (bytedata == null)
                             {
@@ -2919,22 +2927,41 @@ namespace renderdocui.Windows
             }
         }
 
+        private void SetByteOffset()
+        {
+            largeBufferWarning.Visible = false;
+
+            m_VSIn.m_GridView.RowCount = 0;
+            m_VSIn.m_Rows = null;
+            m_VSIn.m_GridView.RowCount = 1;
+
+            byteOffset.Enabled = false;
+
+            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+            {
+                var contents = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input);
+
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (m_VSIn.m_Input != null)
+                    {
+                        UI_SetRowsData(MeshDataStage.VSIn, contents, 0);
+                    }
+                }));
+            });
+        }
+
+        private void largeBufferWarning_Click(object sender, EventArgs e)
+        {
+            byteOffset.Text = (ByteOffset + m_VSIn.m_Input.Strides[0]*MaxRowCount).ToString();
+            SetByteOffset();
+        }
+
         private void byteOffset_KeyPress(object sender, KeyPressEventArgs e)
         {
             if (e.KeyChar == '\n' || e.KeyChar == '\r')
             {
-                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
-                {
-                    var contents = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input);
-
-                    this.BeginInvoke(new Action(() =>
-                    {
-                        if (m_VSIn.m_Input != null)
-                        {
-                            UI_SetRowsData(MeshDataStage.VSIn, contents, 0);
-                        }
-                    }));
-                });
+                SetByteOffset();
             }
         }
 
