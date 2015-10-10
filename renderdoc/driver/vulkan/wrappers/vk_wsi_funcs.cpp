@@ -702,14 +702,14 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 					0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
 					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 					Unwrap(backbuffer),
-					{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } };
 
 				VkImageMemoryBarrier readTrans = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 					0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 					readbackIm, // was never wrapped
-					{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } };
 
 				VkImageMemoryBarrier *barriers[] = {
 					&bbTrans,

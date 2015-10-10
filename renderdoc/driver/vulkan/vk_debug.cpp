@@ -718,7 +718,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 				Unwrap(m_TextAtlas),
-				{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } };
 
 			void *barrier = (void *)&trans;
 
