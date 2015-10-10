@@ -104,19 +104,17 @@ struct SPVDecoration
 		{
 			case spv::DecorationRowMajor:
 			case spv::DecorationColMajor:
-			case spv::DecorationPrecisionLow:
-			case spv::DecorationPrecisionMedium:
-			case spv::DecorationPrecisionHigh:
 			case spv::DecorationSmooth:
-			case spv::DecorationNoperspective:
+			case spv::DecorationNoPerspective:
 			case spv::DecorationFlat:
 			case spv::DecorationCentroid:
 			case spv::DecorationGLSLShared:
 			case spv::DecorationBlock:
-			case spv::DecorationNoStaticUse:
 				return ToStr::Get(decoration);
-			case spv::DecorationStride:
-				return StringFormat::Fmt("Stride=%u", val);
+			case spv::DecorationArrayStride: // might hide these, it adds no value
+				return StringFormat::Fmt("ArrayStride=%u", val);
+			case spv::DecorationMatrixStride: // might hide these, it adds no value
+				return StringFormat::Fmt("MatrixStride=%u", val);
 			case spv::DecorationLocation:
 				return StringFormat::Fmt("Location=%u", val);
 			case spv::DecorationBinding:
@@ -151,13 +149,14 @@ struct SPVEntryPoint
 	// so we reference the function by ID
 	uint32_t func;
 	spv::ExecutionModel model;
+	string name;
 };
 
 struct SPVTypeData
 {
 	SPVTypeData() :
 		baseType(NULL), storage(spv::StorageClassUniformConstant),
-		texdim(spv::Dim2D), texcontent(2), arrayed(false), compare(false), multisampled(false),
+			texdim(spv::Dim2D), sampled(2), arrayed(false), depth(false), multisampled(false), imgformat(spv::ImageFormatUnknown),
 		bitCount(32), vectorSize(1), matrixSize(1), arraySize(1) {}
 
 	enum
@@ -178,8 +177,9 @@ struct SPVTypeData
 		eFunction,
 
 		eStruct,
+		eImage,
 		eSampler,
-		eFilter,
+		eSampledImage,
 
 		eTypeCount,
 	} type;
@@ -274,14 +274,18 @@ struct SPVTypeData
 			{
 				name = StringFormat::Fmt("%s*", baseType->GetName().c_str());
 			}
-			else if(type == eSampler)
+			else if(type == eImage)
 			{
-				name = StringFormat::Fmt("%sSampler%s%s%s<%s>",
-					compare ? "Compare" : "",
+				string typestring = baseType->GetName();
+				if(imgformat != spv::ImageFormatUnknown)
+					typestring += ", " + ToStr::Get(imgformat);
+
+				name = StringFormat::Fmt("%sImage%s%s%s<%s>",
+					depth ? "Depth" : "",
 					multisampled ? "MS" : "",
 					arrayed ? "Array" : "",
 					ToStr::Get(texdim).c_str(),
-					baseType->GetName().c_str());
+					typestring.c_str());
 			}
 		}
 
@@ -297,10 +301,11 @@ struct SPVTypeData
 
 	// sampler/texture/whatever
 	spv::Dim texdim;
-	uint32_t texcontent;
+	uint32_t sampled;
 	bool arrayed;
-	bool compare;
+	bool depth;
 	bool multisampled;
+	spv::ImageFormat imgformat;
 
 	// ints and floats
 	uint32_t bitCount;
@@ -349,6 +354,13 @@ struct SPVConstant
 {
 	SPVConstant() : type(NULL), u64(0) {}
 
+	struct SamplerData
+	{
+		spv::SamplerAddressingMode addressing;
+		bool normalised;
+		spv::SamplerFilterMode filter;
+	};
+
 	SPVTypeData *type;
 	union
 	{
@@ -362,6 +374,7 @@ struct SPVConstant
 		int8_t i8;
 		float f;
 		double d;
+		SamplerData sampler;
 	};
 
 	vector<SPVConstant *> children;
@@ -900,9 +913,8 @@ struct SPVInstruction
 				return ret;
 			}
 			// texture samples almost identical to function call
-			case spv::OpTextureSample:
-			case spv::OpTextureSampleLod:
-			case spv::OpTextureSampleLodOffset:
+			case spv::OpImageSampleImplicitLod:
+			case spv::OpImageSampleExplicitLod:
 			// conversions can be treated the same way
 			case spv::OpConvertFToS:
 			case spv::OpConvertFToU:
@@ -967,14 +979,19 @@ struct SPVInstruction
 				// sane path for 4-vectors or less
 				if(maxShuffle < 4)
 				{
-					char swizzle[] = "xyzw";
+					char swizzle[] = "xyzw_";
 
 					int lastvec = -1;
 					for(size_t i=0; i < op->literals.size(); i++)
 					{
 						int vec = 0;
 						uint32_t s = op->literals[i];
-						if(s > vec1type->vectorSize)
+						if(s == 0xFFFFFFFF)
+						{
+							// undefined component
+							s = 4;
+						}
+						else if(s > vec1type->vectorSize)
 						{
 							s -= vec1type->vectorSize;
 							vec = 1;
@@ -1046,7 +1063,7 @@ struct SPVInstruction
 			case spv::OpFOrdGreaterThanEqual:
 			case spv::OpLogicalAnd:
 			case spv::OpLogicalOr:
-			case spv::OpLogicalXor:
+			case spv::OpLogicalNot:
 			case spv::OpShiftLeftLogical:
 			{
 				// binary math operation
@@ -1094,7 +1111,7 @@ struct SPVInstruction
 					case spv::OpLogicalOr:
 						opstr[0] = opstr[1] = '|';
 						break;
-					case spv::OpLogicalXor:
+					case spv::OpLogicalNot:
 						opstr[0] = '!'; opstr[1] = '=';
 						break;
 					case spv::OpShiftLeftLogical:
@@ -2078,6 +2095,8 @@ SystemAttribute BuiltInToSystemAttribute(const spv::BuiltIn el)
 		case spv::BuiltInSampleMask:                       return eAttr_MSAACoverage;
 		case spv::BuiltInFragColor:                        return eAttr_ColourOutput;
 		case spv::BuiltInFragDepth:                        return eAttr_DepthOutput;
+		//case spv::BuiltInVertexIndex:                      return eAttr_Vertex0Index;
+		//case spv::BuiltInInstanceIndex:                    return eAttr_Instance0Index;
 		default: break;
 	}
 	
@@ -2259,14 +2278,18 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				res.IsSRV = true;
 				res.IsReadWrite = false;
 
-				if(type->baseType->type == SPVTypeData::eFloat)
+				SPVTypeData *sampledType = type->baseType;
+				if(sampledType->type == SPVTypeData::eImage)
+					sampledType = sampledType->baseType;
+
+				if(sampledType->type == SPVTypeData::eFloat)
 					res.variableType.descriptor.type = eVar_Float;
-				else if(type->baseType->type == SPVTypeData::eUInt)
+				else if(sampledType->type == SPVTypeData::eUInt)
 					res.variableType.descriptor.type = eVar_UInt;
-				else if(type->baseType->type == SPVTypeData::eSInt)
+				else if(sampledType->type == SPVTypeData::eSInt)
 					res.variableType.descriptor.type = eVar_Int;
 				else
-					RDCERR("Unexpected base type of resource %u", type->baseType->type);
+					RDCERR("Unexpected base type of resource %u", sampledType->type);
 
 				res.variableType.descriptor.rows = 1;
 				res.variableType.descriptor.cols = 1;
@@ -2361,6 +2384,25 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			{
 				module.sourceLang = ToStr::Get(spv::SourceLanguage(spirv[it+1]));
 				module.sourceVer = spirv[it+2];
+
+				if(WordCount > 3)
+				{
+					RDCDEBUG("Filename provided");
+					// VKTODOLOW spirv[it+3] is an id of an OpString with a filename
+				}
+
+				if(WordCount > 4)
+				{
+					RDCDEBUG("File source provided");
+					// VKTODOLOW spirv[it+4] is a literal string with source of the file
+				}
+
+				break;
+			}
+			case spv::OpSourceContinued:
+			{
+				RDCDEBUG("File source continued");
+				// VKTODOLOW spirv[it+1] is a literal string to append to the last OpSource
 				break;
 			}
 			case spv::OpSourceExtension:
@@ -2381,6 +2423,9 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				op.entry = new SPVEntryPoint();
 				op.entry->func = spirv[it+2];
 				op.entry->model = spv::ExecutionModel(spirv[it+1]);
+				op.entry->name = (const char *)&spirv[it+3];
+
+				// VKTODOLOW look at interface IDs?
 				module.entries.push_back(&op);
 				break;
 			}
@@ -2538,10 +2583,10 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
-			case spv::OpTypeSampler:
+			case spv::OpTypeImage:
 			{
 				op.type = new SPVTypeData();
-				op.type->type = SPVTypeData::eSampler;
+				op.type->type = SPVTypeData::eImage;
 
 				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+2]);
 				RDCASSERT(baseTypeInst && baseTypeInst->type);
@@ -2549,12 +2594,36 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				op.type->baseType = baseTypeInst->type;
 
 				op.type->texdim = spv::Dim(spirv[it+3]);
-				op.type->texcontent = spirv[it+4];
+				op.type->depth = spirv[it+4] != 0;
 				op.type->arrayed = spirv[it+5] != 0;
-				op.type->compare = spirv[it+6] != 0;
-				op.type->multisampled = spirv[it+7] != 0;
+				op.type->multisampled = spirv[it+6] != 0;
+				op.type->sampled = spirv[it+7];
+				op.type->imgformat = spv::ImageFormat(spirv[it+8]);
 
 				// not checking access qualifier
+				
+				op.id = spirv[it+1];
+				module.ids[spirv[it+1]] = &op;
+				break;
+			}
+			case spv::OpTypeSampler:
+			{
+				op.type = new SPVTypeData();
+				op.type->type = SPVTypeData::eSampler;
+				
+				op.id = spirv[it+1];
+				module.ids[spirv[it+1]] = &op;
+				break;
+			}
+			case spv::OpTypeSampledImage:
+			{
+				op.type = new SPVTypeData();
+				op.type->type = SPVTypeData::eSampledImage;
+
+				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+2]);
+				RDCASSERT(baseTypeInst && baseTypeInst->type);
+
+				op.type->baseType = baseTypeInst->type;
 				
 				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
@@ -2642,6 +2711,23 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 					op.constant->children.push_back(constInst->constant);
 				}
+
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+
+				break;
+			}
+			case spv::OpConstantSampler:
+			{
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.constant = new SPVConstant();
+				op.constant->type = typeInst->type;
+
+				op.constant->sampler.addressing = spv::SamplerAddressingMode(spirv[it+3]);
+				op.constant->sampler.normalised = (spirv[it+4] != 0);
+				op.constant->sampler.filter = spv::SamplerFilterMode(spirv[it+5]);
 
 				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
@@ -2820,21 +2906,8 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				op.op->arguments.push_back(ptrInst);
 
 				op.op->access = spv::MemoryAccessMaskNone;
-
-				for(int i=4; i < WordCount; i++)
-				{
-					if(i == WordCount-1)
-					{
-						op.op->access = spv::MemoryAccessMask(spirv[it+i]);
-					}
-					else
-					{
-						uint32_t lit = spirv[it+i];
-						// don't understand what these literals are - seems like OpAccessChain handles
-						// struct member/array access so it doesn't seem to be for array indices
-						RDCBREAK(); 
-					}
-				}
+				if(WordCount > 4)
+						op.op->access = spv::MemoryAccessMask(spirv[it+4]);
 				
 				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
@@ -2858,30 +2931,50 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				op.op->arguments.push_back(valInst);
 
 				op.op->access = spv::MemoryAccessMaskNone;
+				if(WordCount > 3)
+						op.op->access = spv::MemoryAccessMask(spirv[it+4]);
+				
+				curBlock->instructions.push_back(&op);
+				break;
+			}
+			case spv::OpImageSampleImplicitLod:
+			case spv::OpImageSampleExplicitLod:
+			{
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
+				RDCASSERT(typeInst && typeInst->type);
+				
+				op.op = new SPVOperation();
+				op.op->type = typeInst->type;
 
-				for(int i=3; i < WordCount; i++)
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+
+				// sampled image
 				{
-					if(i == WordCount-1)
-					{
-						op.op->access = spv::MemoryAccessMask(spirv[it+i]);
-					}
-					else
-					{
-						uint32_t lit = spirv[it+i];
-						// don't understand what these literals are - seems like OpAccessChain handles
-						// struct member/array access so it doesn't seem to be for array indices
-						RDCBREAK(); 
-					}
+					SPVInstruction *argInst = module.GetByID(spirv[it+3]);
+					RDCASSERT(argInst);
+
+					op.op->arguments.push_back(argInst);
+				}
+				
+				// co-ords
+				{
+					SPVInstruction *argInst = module.GetByID(spirv[it+4]);
+					RDCASSERT(argInst);
+
+					op.op->arguments.push_back(argInst);
+				}
+
+				// const argument bitfield
+
+				// optional arguments
+				{
 				}
 				
 				curBlock->instructions.push_back(&op);
 				break;
 			}
-			// texture samples almost identical to function call
-			case spv::OpTextureSample:
-			case spv::OpTextureSampleLod:
-			case spv::OpTextureSampleLodOffset:
-			// conversions can be treated the same way
+			// conversions can be treated as if they were function calls
 			case spv::OpConvertFToS:
 			case spv::OpConvertFToU:
 			case spv::OpConvertUToF:
@@ -3003,7 +3096,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpFOrdGreaterThanEqual:
 			case spv::OpLogicalAnd:
 			case spv::OpLogicalOr:
-			case spv::OpLogicalXor:
+			case spv::OpLogicalNot:
 			case spv::OpShiftLeftLogical:
 
 			case spv::OpFNegate:
@@ -3095,7 +3188,8 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				// we should not crash if we don't recognise/handle an opcode - this may happen because of
 				// extended SPIR-V or simply custom instructions we don't recognise.
 				RDCWARN("Unhandled opcode %s - result ID will be missing", ToStr::Get(op.opcode).c_str());
-				curBlock->instructions.push_back(&op);
+				if(curBlock)
+					curBlock->instructions.push_back(&op);
 				break;
 			}
 		}
@@ -3217,25 +3311,33 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 template<>
 string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 {
-#if 0
 	switch(el)
 	{
 		case spv::OpNop:                                      return "Nop";
+		case spv::OpUndef:                                    return "Undef";
+		case spv::OpSourceContinued:                          return "SourceContinued";
 		case spv::OpSource:                                   return "Source";
 		case spv::OpSourceExtension:                          return "SourceExtension";
+		case spv::OpName:                                     return "Name";
+		case spv::OpMemberName:                               return "MemberName";
+		case spv::OpString:                                   return "String";
+		case spv::OpLine:                                     return "Line";
 		case spv::OpExtension:                                return "Extension";
 		case spv::OpExtInstImport:                            return "ExtInstImport";
+		case spv::OpExtInst:                                  return "ExtInst";
 		case spv::OpMemoryModel:                              return "MemoryModel";
 		case spv::OpEntryPoint:                               return "EntryPoint";
 		case spv::OpExecutionMode:                            return "ExecutionMode";
+		case spv::OpCapability:                               return "Capability";
 		case spv::OpTypeVoid:                                 return "TypeVoid";
 		case spv::OpTypeBool:                                 return "TypeBool";
 		case spv::OpTypeInt:                                  return "TypeInt";
 		case spv::OpTypeFloat:                                return "TypeFloat";
 		case spv::OpTypeVector:                               return "TypeVector";
 		case spv::OpTypeMatrix:                               return "TypeMatrix";
+		case spv::OpTypeImage:                                return "TypeImage";
 		case spv::OpTypeSampler:                              return "TypeSampler";
-		case spv::OpTypeFilter:                               return "TypeFilter";
+		case spv::OpTypeSampledImage:                         return "TypeSampledImage";
 		case spv::OpTypeArray:                                return "TypeArray";
 		case spv::OpTypeRuntimeArray:                         return "TypeRuntimeArray";
 		case spv::OpTypeStruct:                               return "TypeStruct";
@@ -3247,37 +3349,39 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpTypeReserveId:                            return "TypeReserveId";
 		case spv::OpTypeQueue:                                return "TypeQueue";
 		case spv::OpTypePipe:                                 return "TypePipe";
+		case spv::OpTypeForwardPointer:                       return "TypeForwardPointer";
 		case spv::OpConstantTrue:                             return "ConstantTrue";
 		case spv::OpConstantFalse:                            return "ConstantFalse";
 		case spv::OpConstant:                                 return "Constant";
 		case spv::OpConstantComposite:                        return "ConstantComposite";
 		case spv::OpConstantSampler:                          return "ConstantSampler";
-		case spv::OpConstantNullPointer:                      return "ConstantNullPointer";
-		case spv::OpConstantNullObject:                       return "ConstantNullObject";
+		case spv::OpConstantNull:                             return "ConstantNull";
 		case spv::OpSpecConstantTrue:                         return "SpecConstantTrue";
 		case spv::OpSpecConstantFalse:                        return "SpecConstantFalse";
 		case spv::OpSpecConstant:                             return "SpecConstant";
 		case spv::OpSpecConstantComposite:                    return "SpecConstantComposite";
-		case spv::OpVariable:                                 return "Variable";
-		case spv::OpVariableArray:                            return "VariableArray";
+		case spv::OpSpecConstantOp:                           return "SpecConstantOp";
 		case spv::OpFunction:                                 return "Function";
 		case spv::OpFunctionParameter:                        return "FunctionParameter";
 		case spv::OpFunctionEnd:                              return "FunctionEnd";
 		case spv::OpFunctionCall:                             return "FunctionCall";
-		case spv::OpExtInst:                                  return "ExtInst";
-		case spv::OpUndef:                                    return "Undef";
+		case spv::OpVariable:                                 return "Variable";
+		case spv::OpImageTexelPointer:                        return "ImageTexelPointer";
 		case spv::OpLoad:                                     return "Load";
 		case spv::OpStore:                                    return "Store";
-		case spv::OpPhi:                                      return "Phi";
-		case spv::OpDecorationGroup:                          return "DecorationGroup";
+		case spv::OpCopyMemory:                               return "CopyMemory";
+		case spv::OpCopyMemorySized:                          return "CopyMemorySized";
+		case spv::OpAccessChain:                              return "AccessChain";
+		case spv::OpInBoundsAccessChain:                      return "InBoundsAccessChain";
+		case spv::OpPtrAccessChain:                           return "PtrAccessChain";
+		case spv::OpArrayLength:                              return "ArrayLength";
+		case spv::OpGenericPtrMemSemantics:                   return "GenericPtrMemSemantics";
+		case spv::OpInBoundsPtrAccessChain:                   return "InBoundsPtrAccessChain";
 		case spv::OpDecorate:                                 return "Decorate";
 		case spv::OpMemberDecorate:                           return "MemberDecorate";
+		case spv::OpDecorationGroup:                          return "DecorationGroup";
 		case spv::OpGroupDecorate:                            return "GroupDecorate";
 		case spv::OpGroupMemberDecorate:                      return "GroupMemberDecorate";
-		case spv::OpName:                                     return "Name";
-		case spv::OpMemberName:                               return "MemberName";
-		case spv::OpString:                                   return "String";
-		case spv::OpLine:                                     return "Line";
 		case spv::OpVectorExtractDynamic:                     return "VectorExtractDynamic";
 		case spv::OpVectorInsertDynamic:                      return "VectorInsertDynamic";
 		case spv::OpVectorShuffle:                            return "VectorShuffle";
@@ -3285,41 +3389,28 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpCompositeExtract:                         return "CompositeExtract";
 		case spv::OpCompositeInsert:                          return "CompositeInsert";
 		case spv::OpCopyObject:                               return "CopyObject";
-		case spv::OpCopyMemory:                               return "CopyMemory";
-		case spv::OpCopyMemorySized:                          return "CopyMemorySized";
-		case spv::OpSampler:                                  return "Sampler";
-		case spv::OpTextureSample:                            return "TextureSample";
-		case spv::OpTextureSampleDref:                        return "TextureSampleDref";
-		case spv::OpTextureSampleLod:                         return "TextureSampleLod";
-		case spv::OpTextureSampleProj:                        return "TextureSampleProj";
-		case spv::OpTextureSampleGrad:                        return "TextureSampleGrad";
-		case spv::OpTextureSampleOffset:                      return "TextureSampleOffset";
-		case spv::OpTextureSampleProjLod:                     return "TextureSampleProjLod";
-		case spv::OpTextureSampleProjGrad:                    return "TextureSampleProjGrad";
-		case spv::OpTextureSampleLodOffset:                   return "TextureSampleLodOffset";
-		case spv::OpTextureSampleProjOffset:                  return "TextureSampleProjOffset";
-		case spv::OpTextureSampleGradOffset:                  return "TextureSampleGradOffset";
-		case spv::OpTextureSampleProjLodOffset:               return "TextureSampleProjLodOffset";
-		case spv::OpTextureSampleProjGradOffset:              return "TextureSampleProjGradOffset";
-		case spv::OpTextureFetchTexelLod:                     return "TextureFetchTexelLod";
-		case spv::OpTextureFetchTexelOffset:                  return "TextureFetchTexelOffset";
-		case spv::OpTextureFetchSample:                       return "TextureFetchSample";
-		case spv::OpTextureFetchTexel:                        return "TextureFetchTexel";
-		case spv::OpTextureGather:                            return "TextureGather";
-		case spv::OpTextureGatherOffset:                      return "TextureGatherOffset";
-		case spv::OpTextureGatherOffsets:                     return "TextureGatherOffsets";
-		case spv::OpTextureQuerySizeLod:                      return "TextureQuerySizeLod";
-		case spv::OpTextureQuerySize:                         return "TextureQuerySize";
-		case spv::OpTextureQueryLod:                          return "TextureQueryLod";
-		case spv::OpTextureQueryLevels:                       return "TextureQueryLevels";
-		case spv::OpTextureQuerySamples:                      return "TextureQuerySamples";
-		case spv::OpAccessChain:                              return "AccessChain";
-		case spv::OpInBoundsAccessChain:                      return "InBoundsAccessChain";
-		case spv::OpSNegate:                                  return "SNegate";
-		case spv::OpFNegate:                                  return "FNegate";
-		case spv::OpNot:                                      return "Not";
-		case spv::OpAny:                                      return "Any";
-		case spv::OpAll:                                      return "All";
+		case spv::OpTranspose:                                return "Transpose";
+		case spv::OpSampledImage:                             return "SampledImage";
+		case spv::OpImageSampleImplicitLod:                   return "ImageSampleImplicitLod";
+		case spv::OpImageSampleExplicitLod:                   return "ImageSampleExplicitLod";
+		case spv::OpImageSampleDrefImplicitLod:               return "ImageSampleDrefImplicitLod";
+		case spv::OpImageSampleDrefExplicitLod:               return "ImageSampleDrefExplicitLod";
+		case spv::OpImageSampleProjImplicitLod:               return "ImageSampleProjImplicitLod";
+		case spv::OpImageSampleProjExplicitLod:               return "ImageSampleProjExplicitLod";
+		case spv::OpImageSampleProjDrefImplicitLod:           return "ImageSampleProjDrefImplicitLod";
+		case spv::OpImageSampleProjDrefExplicitLod:           return "ImageSampleProjDrefExplicitLod";
+		case spv::OpImageFetch:                               return "ImageFetch";
+		case spv::OpImageGather:                              return "ImageGather";
+		case spv::OpImageDrefGather:                          return "ImageDrefGather";
+		case spv::OpImageRead:                                return "ImageRead";
+		case spv::OpImageWrite:                               return "ImageWrite";
+		case spv::OpImageQueryFormat:                         return "ImageQueryFormat";
+		case spv::OpImageQueryOrder:                          return "ImageQueryOrder";
+		case spv::OpImageQuerySizeLod:                        return "ImageQuerySizeLod";
+		case spv::OpImageQuerySize:                           return "ImageQuerySize";
+		case spv::OpImageQueryLod:                            return "ImageQueryLod";
+		case spv::OpImageQueryLevels:                         return "ImageQueryLevels";
+		case spv::OpImageQuerySamples:                        return "ImageQuerySamples";
 		case spv::OpConvertFToU:                              return "ConvertFToU";
 		case spv::OpConvertFToS:                              return "ConvertFToS";
 		case spv::OpConvertSToF:                              return "ConvertSToF";
@@ -3327,21 +3418,17 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpUConvert:                                 return "UConvert";
 		case spv::OpSConvert:                                 return "SConvert";
 		case spv::OpFConvert:                                 return "FConvert";
+		case spv::OpQuantizeToF16:                            return "QuantizeToF16";
 		case spv::OpConvertPtrToU:                            return "ConvertPtrToU";
+		case spv::OpSatConvertSToU:                           return "SatConvertSToU";
+		case spv::OpSatConvertUToS:                           return "SatConvertUToS";
 		case spv::OpConvertUToPtr:                            return "ConvertUToPtr";
 		case spv::OpPtrCastToGeneric:                         return "PtrCastToGeneric";
 		case spv::OpGenericCastToPtr:                         return "GenericCastToPtr";
+		case spv::OpGenericCastToPtrExplicit:                 return "GenericCastToPtrExplicit";
 		case spv::OpBitcast:                                  return "Bitcast";
-		case spv::OpTranspose:                                return "Transpose";
-		case spv::OpIsNan:                                    return "IsNan";
-		case spv::OpIsInf:                                    return "IsInf";
-		case spv::OpIsFinite:                                 return "IsFinite";
-		case spv::OpIsNormal:                                 return "IsNormal";
-		case spv::OpSignBitSet:                               return "SignBitSet";
-		case spv::OpLessOrGreater:                            return "LessOrGreater";
-		case spv::OpOrdered:                                  return "Ordered";
-		case spv::OpUnordered:                                return "Unordered";
-		case spv::OpArrayLength:                              return "ArrayLength";
+		case spv::OpSNegate:                                  return "SNegate";
+		case spv::OpFNegate:                                  return "FNegate";
 		case spv::OpIAdd:                                     return "IAdd";
 		case spv::OpFAdd:                                     return "FAdd";
 		case spv::OpISub:                                     return "ISub";
@@ -3363,38 +3450,60 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpMatrixTimesMatrix:                        return "MatrixTimesMatrix";
 		case spv::OpOuterProduct:                             return "OuterProduct";
 		case spv::OpDot:                                      return "Dot";
+		case spv::OpIAddCarry:                                return "IAddCarry";
+		case spv::OpISubBorrow:                               return "ISubBorrow";
+		case spv::OpUMulExtended:                             return "UMulExtended";
+		case spv::OpSMulExtended:                             return "SMulExtended";
+		case spv::OpAny:                                      return "Any";
+		case spv::OpAll:                                      return "All";
+		case spv::OpIsNan:                                    return "IsNan";
+		case spv::OpIsInf:                                    return "IsInf";
+		case spv::OpIsFinite:                                 return "IsFinite";
+		case spv::OpIsNormal:                                 return "IsNormal";
+		case spv::OpSignBitSet:                               return "SignBitSet";
+		case spv::OpLessOrGreater:                            return "LessOrGreater";
+		case spv::OpOrdered:                                  return "Ordered";
+		case spv::OpUnordered:                                return "Unordered";
+		case spv::OpLogicalEqual:                             return "LogicalEqual";
+		case spv::OpLogicalNotEqual:                          return "LogicalNotEqual";
+		case spv::OpLogicalOr:                                return "LogicalOr";
+		case spv::OpLogicalAnd:                               return "LogicalAnd";
+		case spv::OpLogicalNot:                               return "LogicalNot";
+		case spv::OpSelect:                                   return "Select";
+		case spv::OpIEqual:                                   return "IEqual";
+		case spv::OpINotEqual:                                return "INotEqual";
+		case spv::OpUGreaterThan:                             return "UGreaterThan";
+		case spv::OpSGreaterThan:                             return "SGreaterThan";
+		case spv::OpUGreaterThanEqual:                        return "UGreaterThanEqual";
+		case spv::OpSGreaterThanEqual:                        return "SGreaterThanEqual";
+		case spv::OpULessThan:                                return "ULessThan";
+		case spv::OpSLessThan:                                return "SLessThan";
+		case spv::OpULessThanEqual:                           return "ULessThanEqual";
+		case spv::OpSLessThanEqual:                           return "SLessThanEqual";
+		case spv::OpFOrdEqual:                                return "FOrdEqual";
+		case spv::OpFUnordEqual:                              return "FUnordEqual";
+		case spv::OpFOrdNotEqual:                             return "FOrdNotEqual";
+		case spv::OpFUnordNotEqual:                           return "FUnordNotEqual";
+		case spv::OpFOrdLessThan:                             return "FOrdLessThan";
+		case spv::OpFUnordLessThan:                           return "FUnordLessThan";
+		case spv::OpFOrdGreaterThan:                          return "FOrdGreaterThan";
+		case spv::OpFUnordGreaterThan:                        return "FUnordGreaterThan";
+		case spv::OpFOrdLessThanEqual:                        return "FOrdLessThanEqual";
+		case spv::OpFUnordLessThanEqual:                      return "FUnordLessThanEqual";
+		case spv::OpFOrdGreaterThanEqual:                     return "FOrdGreaterThanEqual";
+		case spv::OpFUnordGreaterThanEqual:                   return "FUnordGreaterThanEqual";
 		case spv::OpShiftRightLogical:                        return "ShiftRightLogical";
 		case spv::OpShiftRightArithmetic:                     return "ShiftRightArithmetic";
 		case spv::OpShiftLeftLogical:                         return "ShiftLeftLogical";
-		case spv::OpLogicalOr:                                return "LogicalOr";
-		case spv::OpLogicalXor:                               return "LogicalXor";
-		case spv::OpLogicalAnd:                               return "LogicalAnd";
 		case spv::OpBitwiseOr:                                return "BitwiseOr";
 		case spv::OpBitwiseXor:                               return "BitwiseXor";
 		case spv::OpBitwiseAnd:                               return "BitwiseAnd";
-		case spv::OpSelect:                                   return "Select";
-		case spv::OpIEqual:                                   return "IEqual";
-		case spv::OpFOrdEqual:                                return "FOrdEqual";
-		case spv::OpFUnordEqual:                              return "FUnordEqual";
-		case spv::OpINotEqual:                                return "INotEqual";
-		case spv::OpFOrdNotEqual:                             return "FOrdNotEqual";
-		case spv::OpFUnordNotEqual:                           return "FUnordNotEqual";
-		case spv::OpULessThan:                                return "ULessThan";
-		case spv::OpSLessThan:                                return "SLessThan";
-		case spv::OpFOrdLessThan:                             return "FOrdLessThan";
-		case spv::OpFUnordLessThan:                           return "FUnordLessThan";
-		case spv::OpUGreaterThan:                             return "UGreaterThan";
-		case spv::OpSGreaterThan:                             return "SGreaterThan";
-		case spv::OpFOrdGreaterThan:                          return "FOrdGreaterThan";
-		case spv::OpFUnordGreaterThan:                        return "FUnordGreaterThan";
-		case spv::OpULessThanEqual:                           return "ULessThanEqual";
-		case spv::OpSLessThanEqual:                           return "SLessThanEqual";
-		case spv::OpFOrdLessThanEqual:                        return "FOrdLessThanEqual";
-		case spv::OpFUnordLessThanEqual:                      return "FUnordLessThanEqual";
-		case spv::OpUGreaterThanEqual:                        return "UGreaterThanEqual";
-		case spv::OpSGreaterThanEqual:                        return "SGreaterThanEqual";
-		case spv::OpFOrdGreaterThanEqual:                     return "FOrdGreaterThanEqual";
-		case spv::OpFUnordGreaterThanEqual:                   return "FUnordGreaterThanEqual";
+		case spv::OpNot:                                      return "Not";
+		case spv::OpBitFieldInsert:                           return "BitFieldInsert";
+		case spv::OpBitFieldSExtract:                         return "BitFieldSExtract";
+		case spv::OpBitFieldUExtract:                         return "BitFieldUExtract";
+		case spv::OpBitReverse:                               return "BitReverse";
+		case spv::OpBitCount:                                 return "BitCount";
 		case spv::OpDPdx:                                     return "DPdx";
 		case spv::OpDPdy:                                     return "DPdy";
 		case spv::OpFwidth:                                   return "Fwidth";
@@ -3410,8 +3519,6 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpEndStreamPrimitive:                       return "EndStreamPrimitive";
 		case spv::OpControlBarrier:                           return "ControlBarrier";
 		case spv::OpMemoryBarrier:                            return "MemoryBarrier";
-		case spv::OpImagePointer:                             return "ImagePointer";
-		case spv::OpAtomicInit:                               return "AtomicInit";
 		case spv::OpAtomicLoad:                               return "AtomicLoad";
 		case spv::OpAtomicStore:                              return "AtomicStore";
 		case spv::OpAtomicExchange:                           return "AtomicExchange";
@@ -3421,11 +3528,14 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpAtomicIDecrement:                         return "AtomicIDecrement";
 		case spv::OpAtomicIAdd:                               return "AtomicIAdd";
 		case spv::OpAtomicISub:                               return "AtomicISub";
+		case spv::OpAtomicSMin:                               return "AtomicSMin";
 		case spv::OpAtomicUMin:                               return "AtomicUMin";
+		case spv::OpAtomicSMax:                               return "AtomicSMax";
 		case spv::OpAtomicUMax:                               return "AtomicUMax";
 		case spv::OpAtomicAnd:                                return "AtomicAnd";
 		case spv::OpAtomicOr:                                 return "AtomicOr";
 		case spv::OpAtomicXor:                                return "AtomicXor";
+		case spv::OpPhi:                                      return "Phi";
 		case spv::OpLoopMerge:                                return "LoopMerge";
 		case spv::OpSelectionMerge:                           return "SelectionMerge";
 		case spv::OpLabel:                                    return "Label";
@@ -3438,7 +3548,6 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpUnreachable:                              return "Unreachable";
 		case spv::OpLifetimeStart:                            return "LifetimeStart";
 		case spv::OpLifetimeStop:                             return "LifetimeStop";
-		case spv::OpCompileFlag:                              return "CompileFlag";
 		case spv::OpAsyncGroupCopy:                           return "AsyncGroupCopy";
 		case spv::OpWaitGroupEvents:                          return "WaitGroupEvents";
 		case spv::OpGroupAll:                                 return "GroupAll";
@@ -3452,8 +3561,6 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpGroupFMax:                                return "GroupFMax";
 		case spv::OpGroupUMax:                                return "GroupUMax";
 		case spv::OpGroupSMax:                                return "GroupSMax";
-		case spv::OpGenericCastToPtrExplicit:                 return "GenericCastToPtrExplicit";
-		case spv::OpGenericPtrMemSemantics:                   return "GenericPtrMemSemantics";
 		case spv::OpReadPipe:                                 return "ReadPipe";
 		case spv::OpWritePipe:                                return "WritePipe";
 		case spv::OpReservedReadPipe:                         return "ReservedReadPipe";
@@ -3483,13 +3590,23 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpCaptureEventProfilingInfo:                return "CaptureEventProfilingInfo";
 		case spv::OpGetDefaultQueue:                          return "GetDefaultQueue";
 		case spv::OpBuildNDRange:                             return "BuildNDRange";
-		case spv::OpSatConvertSToU:                           return "SatConvertSToU";
-		case spv::OpSatConvertUToS:                           return "SatConvertUToS";
-		case spv::OpAtomicIMin:                               return "AtomicIMin";
-		case spv::OpAtomicIMax:                               return "AtomicIMax";
+		case spv::OpImageSparseSampleImplicitLod:             return "ImageSparseSampleImplicitLod";
+		case spv::OpImageSparseSampleExplicitLod:             return "ImageSparseSampleExplicitLod";
+		case spv::OpImageSparseSampleDrefImplicitLod:         return "ImageSparseSampleDrefImplicitLod";
+		case spv::OpImageSparseSampleDrefExplicitLod:         return "ImageSparseSampleDrefExplicitLod";
+		case spv::OpImageSparseSampleProjImplicitLod:         return "ImageSparseSampleProjImplicitLod";
+		case spv::OpImageSparseSampleProjExplicitLod:         return "ImageSparseSampleProjExplicitLod";
+		case spv::OpImageSparseSampleProjDrefImplicitLod:     return "ImageSparseSampleProjDrefImplicitLod";
+		case spv::OpImageSparseSampleProjDrefExplicitLod:     return "ImageSparseSampleProjDrefExplicitLod";
+		case spv::OpImageSparseFetch:                         return "ImageSparseFetch";
+		case spv::OpImageSparseGather:                        return "ImageSparseGather";
+		case spv::OpImageSparseDrefGather:                    return "ImageSparseDrefGather";
+		case spv::OpImageSparseTexelsResident:                return "ImageSparseTexelsResident";
+		case spv::OpNoLine:                                   return "NoLine";
+		case spv::OpAtomicFlagTestAndSet:                     return "AtomicFlagTestAndSet";
+		case spv::OpAtomicFlagClear:                          return "AtomicFlagClear";
 		default: break;
 	}
-#endif
 
 	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
@@ -3559,57 +3676,54 @@ string ToStrHelper<false, spv::ExecutionModel>::Get(const spv::ExecutionModel &e
 template<>
 string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
 {
-#if 0
 	switch(el)
 	{
-    case spv::DecorationPrecisionLow:         return "PrecisionLow";
-    case spv::DecorationPrecisionMedium:      return "PrecisionMedium";
-    case spv::DecorationPrecisionHigh:        return "PrecisionHigh";
-    case spv::DecorationBlock:                return "Block";
-    case spv::DecorationBufferBlock:          return "BufferBlock";
-    case spv::DecorationRowMajor:             return "RowMajor";
-    case spv::DecorationColMajor:             return "ColMajor";
-    case spv::DecorationGLSLShared:           return "GLSLShared";
-    case spv::DecorationGLSLStd140:           return "GLSLStd140";
-    case spv::DecorationGLSLStd430:           return "GLSLStd430";
-    case spv::DecorationGLSLPacked:           return "GLSLPacked";
-    case spv::DecorationSmooth:               return "Smooth";
-    case spv::DecorationNoperspective:        return "Noperspective";
-    case spv::DecorationFlat:                 return "Flat";
-    case spv::DecorationPatch:                return "Patch";
-    case spv::DecorationCentroid:             return "Centroid";
-    case spv::DecorationSample:               return "Sample";
-    case spv::DecorationInvariant:            return "Invariant";
-    case spv::DecorationRestrict:             return "Restrict";
-    case spv::DecorationAliased:              return "Aliased";
-    case spv::DecorationVolatile:             return "Volatile";
-    case spv::DecorationConstant:             return "Constant";
-    case spv::DecorationCoherent:             return "Coherent";
-    case spv::DecorationNonwritable:          return "Nonwritable";
-    case spv::DecorationNonreadable:          return "Nonreadable";
-    case spv::DecorationUniform:              return "Uniform";
-    case spv::DecorationNoStaticUse:          return "NoStaticUse";
-    case spv::DecorationCPacked:              return "CPacked";
-    case spv::DecorationSaturatedConversion:  return "SaturatedConversion";
-    case spv::DecorationStream:               return "Stream";
-    case spv::DecorationLocation:             return "Location";
-    case spv::DecorationComponent:            return "Component";
-    case spv::DecorationIndex:                return "Index";
-    case spv::DecorationBinding:              return "Binding";
-    case spv::DecorationDescriptorSet:        return "DescriptorSet";
-    case spv::DecorationOffset:               return "Offset";
-    case spv::DecorationAlignment:            return "Alignment";
-    case spv::DecorationXfbBuffer:            return "XfbBuffer";
-    case spv::DecorationStride:               return "Stride";
-    case spv::DecorationBuiltIn:              return "BuiltIn";
-    case spv::DecorationFuncParamAttr:        return "FuncParamAttr";
-    case spv::DecorationFPRoundingMode:       return "FPRoundingMode";
-    case spv::DecorationFPFastMathMode:       return "FPFastMathMode";
-    case spv::DecorationLinkageAttributes:    return "LinkageAttributes";
-    case spv::DecorationSpecId:               return "SpecId";
+		case spv::DecorationRelaxedPrecision:                           return "RelaxedPrecision";
+		case spv::DecorationSpecId:                                     return "SpecId";
+		case spv::DecorationBlock:                                      return "Block";
+		case spv::DecorationBufferBlock:                                return "BufferBlock";
+		case spv::DecorationRowMajor:                                   return "RowMajor";
+		case spv::DecorationColMajor:                                   return "ColMajor";
+		case spv::DecorationArrayStride:                                return "ArrayStride";
+		case spv::DecorationMatrixStride:                               return "MatrixStride";
+		case spv::DecorationGLSLShared:                                 return "GLSLShared";
+		case spv::DecorationGLSLPacked:                                 return "GLSLPacked";
+		case spv::DecorationCPacked:                                    return "CPacked";
+		case spv::DecorationBuiltIn:                                    return "BuiltIn";
+		case spv::DecorationSmooth:                                     return "Smooth";
+		case spv::DecorationNoPerspective:                              return "NoPerspective";
+		case spv::DecorationFlat:                                       return "Flat";
+		case spv::DecorationPatch:                                      return "Patch";
+		case spv::DecorationCentroid:                                   return "Centroid";
+		case spv::DecorationSample:                                     return "Sample";
+		case spv::DecorationInvariant:                                  return "Invariant";
+		case spv::DecorationRestrict:                                   return "Restrict";
+		case spv::DecorationAliased:                                    return "Aliased";
+		case spv::DecorationVolatile:                                   return "Volatile";
+		case spv::DecorationConstant:                                   return "Constant";
+		case spv::DecorationCoherent:                                   return "Coherent";
+		case spv::DecorationNonWritable:                                return "NonWritable";
+		case spv::DecorationNonReadable:                                return "NonReadable";
+		case spv::DecorationUniform:                                    return "Uniform";
+		case spv::DecorationSaturatedConversion:                        return "SaturatedConversion";
+		case spv::DecorationStream:                                     return "Stream";
+		case spv::DecorationLocation:                                   return "Location";
+		case spv::DecorationComponent:                                  return "Component";
+		case spv::DecorationIndex:                                      return "Index";
+		case spv::DecorationBinding:                                    return "Binding";
+		case spv::DecorationDescriptorSet:                              return "DescriptorSet";
+		case spv::DecorationOffset:                                     return "Offset";
+		case spv::DecorationXfbBuffer:                                  return "XfbBuffer";
+		case spv::DecorationXfbStride:                                  return "XfbStride";
+		case spv::DecorationFuncParamAttr:                              return "FuncParamAttr";
+		case spv::DecorationFPRoundingMode:                             return "FPRoundingMode";
+		case spv::DecorationFPFastMathMode:                             return "FPFastMathMode";
+		case spv::DecorationLinkageAttributes:                          return "LinkageAttributes";
+		case spv::DecorationNoContraction:                              return "NoContraction";
+		case spv::DecorationInputTargetIndex:                           return "InputTargetIndex";
+		case spv::DecorationAlignment:                                  return "Alignment";
 		default: break;
 	}
-#endif
 	
 	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
@@ -3634,23 +3748,73 @@ string ToStrHelper<false, spv::Dim>::Get(const spv::Dim &el)
 template<>
 string ToStrHelper<false, spv::StorageClass>::Get(const spv::StorageClass &el)
 {
-#if 0
 	switch(el)
 	{
-    case spv::StorageClassUniformConstant:    return "UniformConstant";
-    case spv::StorageClassInput:              return "Input";
-    case spv::StorageClassUniform:            return "Uniform";
-    case spv::StorageClassOutput:             return "Output";
-    case spv::StorageClassWorkgroupLocal:     return "WorkgroupLocal";
-    case spv::StorageClassWorkgroupGlobal:    return "WorkgroupGlobal";
-    case spv::StorageClassPrivateGlobal:      return "PrivateGlobal";
-    case spv::StorageClassFunction:           return "Function";
-    case spv::StorageClassGeneric:            return "Generic";
-    case spv::StorageClassPrivate:            return "Private";
-    case spv::StorageClassAtomicCounter:      return "AtomicCounter";
+		case spv::StorageClassUniformConstant:    return "UniformConstant";
+		case spv::StorageClassInput:              return "Input";
+		case spv::StorageClassUniform:            return "Uniform";
+		case spv::StorageClassOutput:             return "Output";
+		case spv::StorageClassWorkgroupLocal:     return "WorkgroupLocal";
+		case spv::StorageClassWorkgroupGlobal:    return "WorkgroupGlobal";
+		case spv::StorageClassPrivateGlobal:      return "PrivateGlobal";
+		case spv::StorageClassFunction:           return "Function";
+		case spv::StorageClassGeneric:            return "Generic";
+		case spv::StorageClassPushConstant:       return "PushConstant";
+		case spv::StorageClassAtomicCounter:      return "AtomicCounter";
+		case spv::StorageClassImage:              return "Image";
 		default: break;
 	}
-#endif
+	
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+}
+
+template<>
+string ToStrHelper<false, spv::ImageFormat>::Get(const spv::ImageFormat &el)
+{
+	switch(el)
+	{
+		case spv::ImageFormatUnknown:        return "Unknown";
+		case spv::ImageFormatRgba32f:        return "RGBA32f";
+		case spv::ImageFormatRgba16f:        return "RGBA16f";
+		case spv::ImageFormatR32f:           return "R32f";
+		case spv::ImageFormatRgba8:          return "RGBA8";
+		case spv::ImageFormatRgba8Snorm:     return "RGBA8SNORM";
+		case spv::ImageFormatRg32f:          return "RG32F";
+		case spv::ImageFormatRg16f:          return "RG16F";
+		case spv::ImageFormatR11fG11fB10f:   return "R11FG11FB10F";
+		case spv::ImageFormatR16f:           return "R16F";
+		case spv::ImageFormatRgba16:         return "RGBA16";
+		case spv::ImageFormatRgb10A2:        return "RGB10A2";
+		case spv::ImageFormatRg16:           return "RG16";
+		case spv::ImageFormatRg8:            return "RG8";
+		case spv::ImageFormatR16:            return "R16";
+		case spv::ImageFormatR8:             return "R8";
+		case spv::ImageFormatRgba16Snorm:    return "RGBA16SNORM";
+		case spv::ImageFormatRg16Snorm:      return "RG16SNORM";
+		case spv::ImageFormatRg8Snorm:       return "RG8SNORM";
+		case spv::ImageFormatR16Snorm:       return "R16SNORM";
+		case spv::ImageFormatR8Snorm:        return "R8SNORM";
+		case spv::ImageFormatRgba32i:        return "RGBA32I";
+		case spv::ImageFormatRgba16i:        return "RGBA16I";
+		case spv::ImageFormatRgba8i:         return "RGBA8I";
+		case spv::ImageFormatR32i:           return "R32I";
+		case spv::ImageFormatRg32i:          return "RG32I";
+		case spv::ImageFormatRg16i:          return "RG16I";
+		case spv::ImageFormatRg8i:           return "RG8I";
+		case spv::ImageFormatR16i:           return "R16I";
+		case spv::ImageFormatR8i:            return "R8I";
+		case spv::ImageFormatRgba32ui:       return "RGBA32UI";
+		case spv::ImageFormatRgba16ui:       return "RGBA16UI";
+		case spv::ImageFormatRgba8ui:        return "RGBA8UI";
+		case spv::ImageFormatR32ui:          return "R32UI";
+		case spv::ImageFormatRgb10a2ui:      return "RGB10A2UI";
+		case spv::ImageFormatRg32ui:         return "RG32UI";
+		case spv::ImageFormatRg16ui:         return "RG16UI";
+		case spv::ImageFormatRg8ui:          return "RG8UI";
+		case spv::ImageFormatR16ui:          return "R16UI";
+		case spv::ImageFormatR8ui:           return "R8UI";
+		default: break;
+	}
 	
 	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
@@ -3662,7 +3826,6 @@ string ToStrHelper<false, spv::BuiltIn>::Get(const spv::BuiltIn &el)
 	{
 		case spv::BuiltInPosition:                         return "Position";
 		case spv::BuiltInPointSize:                        return "PointSize";
-		case spv::BuiltInClipVertex:                       return "ClipVertex";
 		case spv::BuiltInClipDistance:                     return "ClipDistance";
 		case spv::BuiltInCullDistance:                     return "CullDistance";
 		case spv::BuiltInVertexId:                         return "VertexId";
@@ -3702,6 +3865,8 @@ string ToStrHelper<false, spv::BuiltIn>::Get(const spv::BuiltIn &el)
 		case spv::BuiltInNumEnqueuedSubgroups:             return "NumEnqueuedSubgroups";
 		case spv::BuiltInSubgroupId:                       return "SubgroupId";
 		case spv::BuiltInSubgroupLocalInvocationId:        return "SubgroupLocalInvocationId";
+		case spv::BuiltInVertexIndex:                      return "VertexIndex";
+		case spv::BuiltInInstanceIndex:                    return "InstanceIndex";
 		default: break;
 	}
 	
@@ -3765,4 +3930,3 @@ string ToStrHelper<false, spv::MemoryAccessMask>::Get(const spv::MemoryAccessMas
 
 	return ret;
 }
-
