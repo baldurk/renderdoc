@@ -1065,7 +1065,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdSetDepthBias(GetMainSerialiser(), VK_NULL_HANDLE, 0.0f, 0.0f, 0.0f);
 		break;
 	case SET_BLEND_CONST:
-		Serialise_vkCmdSetLineWidth(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
+		Serialise_vkCmdSetBlendConstants(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
 		break;
 	case SET_DEPTH_BOUNDS:
 		Serialise_vkCmdSetDepthBounds(GetMainSerialiser(), VK_NULL_HANDLE, 0.0f, 0.0f);
@@ -1116,10 +1116,10 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdClearDepthStencilImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
 	case CLEAR_COLOR_ATTACH:
-		Serialise_vkCmdClearColorAttachment(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
+		Serialise_vkCmdClearColorAttachment(GetMainSerialiser(), VK_NULL_HANDLE, 0, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
 	case CLEAR_DEPTHSTENCIL_ATTACH:
-		Serialise_vkCmdClearDepthStencilAttachment(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
+		Serialise_vkCmdClearDepthStencilAttachment(GetMainSerialiser(), VK_NULL_HANDLE, 0, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
 	case PIPELINE_BARRIER:
 		Serialise_vkCmdPipelineBarrier(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL);
@@ -1141,13 +1141,13 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdDraw(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, 0, 0);
 		break;
 	case DRAW_INDIRECT:
-		Serialise_vkCmdDrawIndirect(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+		Serialise_vkCmdDrawIndirect(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0);
 		break;
 	case DRAW_INDEXED:
 		Serialise_vkCmdDrawIndexed(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, 0, 0, 0);
 		break;
 	case DRAW_INDEXED_INDIRECT:
-		Serialise_vkCmdDrawIndexedIndirect(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+		Serialise_vkCmdDrawIndexedIndirect(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0);
 		break;
 	case DISPATCH:
 		Serialise_vkCmdDispatch(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, 0);

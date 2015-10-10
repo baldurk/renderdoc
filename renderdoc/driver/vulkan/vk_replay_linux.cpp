@@ -39,15 +39,15 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 	screen = iter.data;
 }
 
-void VulkanReplay::OutputWindow::InitSurfaceDescription(VkSurfaceDescriptionWindowWSI &surfDesc)
+void VulkanReplay::OutputWindow::InitSurfaceDescription(VkSurfaceDescriptionWindowKHR &surfDesc)
 {
-	static VkPlatformHandleXcbWSI handle;
+	static VkPlatformHandleXcbKHR handle;
 	handle.connection = connection;
 	handle.root = screen->root;
 
 	surfDesc.pPlatformHandle = &handle;
 	surfDesc.pPlatformWindow = &wnd;
-	surfDesc.platform = VK_PLATFORM_X11_WSI;
+	surfDesc.platform = VK_PLATFORM_X11_KHR;
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)

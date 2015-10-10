@@ -77,7 +77,7 @@ enum VkResourceType
 // if we know what type it is
 struct RealVkRes
 {
-	RealVkRes() : handle(VK_NULL_HANDLE) {} 
+	RealVkRes() : handle((uint64_t)VK_NULL_HANDLE) {} 
 	RealVkRes(void *disp) : handle((uint64_t)disp) {}
 	RealVkRes(uint64_t nondisp) : handle(nondisp) {}
 
