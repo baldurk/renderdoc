@@ -2091,7 +2091,7 @@ void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el)
 {
 	ScopedContext scope(this, name, "VkDeviceQueueCreateInfo", 0, true);
 	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+	//RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
