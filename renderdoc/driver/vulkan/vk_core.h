@@ -811,7 +811,7 @@ public:
 			VkDevice                                    device,
 			VkDescriptorPool                            descriptorPool);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkAllocDescriptorSets,
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAllocDescriptorSets,
 			VkDevice                                    device,
 			VkDescriptorPool                            descriptorPool,
 			VkDescriptorSetUsage                        setUsage,

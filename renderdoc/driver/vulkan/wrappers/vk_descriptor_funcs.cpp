@@ -232,7 +232,7 @@ bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
 	return true;
 }
 
-void WrappedVulkan::vkAllocDescriptorSets(
+VkResult WrappedVulkan::vkAllocDescriptorSets(
 		VkDevice                                    device,
 		VkDescriptorPool                            descriptorPool,
 		VkDescriptorSetUsage                        setUsage,
@@ -243,7 +243,9 @@ void WrappedVulkan::vkAllocDescriptorSets(
 	VkDescriptorSetLayout *unwrapped = GetTempArray<VkDescriptorSetLayout>(count);
 	for(uint32_t i=0; i < count; i++) unwrapped[i] = Unwrap(pSetLayouts[i]);
 
-	ObjDisp(device)->AllocDescriptorSets(Unwrap(device), Unwrap(descriptorPool), setUsage, count, unwrapped, pDescriptorSets);
+	VkResult ret = ObjDisp(device)->AllocDescriptorSets(Unwrap(device), Unwrap(descriptorPool), setUsage, count, unwrapped, pDescriptorSets);
+
+	if(ret != VK_SUCCESS) return ret;
 
 	for(uint32_t i=0; i < count; i++)
 	{
@@ -284,6 +286,8 @@ void WrappedVulkan::vkAllocDescriptorSets(
 			GetResourceManager()->AddLiveResource(id, pDescriptorSets[i]);
 		}
 	}
+
+	return ret;
 }
 
 VkResult WrappedVulkan::vkFreeDescriptorSets(
