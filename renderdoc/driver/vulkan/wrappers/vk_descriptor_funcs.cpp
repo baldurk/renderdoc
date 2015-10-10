@@ -377,13 +377,18 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 				}
 				case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
 				case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+				{
+					for(uint32_t i=0; i < writeDesc.count; i++)
+						valid &= (writeDesc.pDescriptors[i].bufferView != VK_NULL_HANDLE);
+					break;
+				}
 				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
 				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
 				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
 				{
 					for(uint32_t i=0; i < writeDesc.count; i++)
-						valid &= (writeDesc.pDescriptors[i].bufferView != VK_NULL_HANDLE);
+						valid &= (writeDesc.pDescriptors[i].bufferInfo.buffer != VK_NULL_HANDLE);
 					break;
 				}
 				default:
