@@ -399,7 +399,11 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		for(auto it = m_MemoryInfo.begin(); it != m_MemoryInfo.end(); ++it)
 		{
 			// potential persistent map, force a full flush
-			if(it->second.mappedPtr)
+			// VKTODOHIGH need better detection than just 'has not been flushed and has
+			// been mapped for many frames'. Once we are duplicating coherent memory types
+			// to offer a non-coherent version, we'll have to treat all maps into coherent
+			// memory the same.
+			if(it->second.mappedPtr && !it->second.mapFlushed && it->second.mapFrame + 4 < m_FrameCounter)
 			{
 				size_t diffStart = 0, diffEnd = 0;
 				bool found = true;
@@ -414,7 +418,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 				if(found)
 				{
 					{
-						RDCLOG("Persistent map flush forced for %llu (%llu -> %llu)", it->first, (uint64_t)diffStart, (uint64_t)diffEnd);
+						RDCLOG("Persistent map flush forced for %llu (%llu -> %llu) [mapped in %u, flushed %u]", it->first, (uint64_t)diffStart, (uint64_t)diffEnd, it->second.mapFrame, it->second.mapFlushed);
 						VkMappedMemoryRange range = { VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, GetResourceManager()->GetCurrentHandle<VkDeviceMemory>(it->first), it->second.mapOffset+diffStart, diffEnd-diffStart };
 						vkFlushMappedMemoryRanges(it->second.device, 1, &range);
 					}

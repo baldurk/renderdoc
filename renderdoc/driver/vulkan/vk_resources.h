@@ -658,12 +658,13 @@ struct VkResourceRecord : public ResourceRecord
 struct MemState
 {
 	MemState()
-		: device(VK_NULL_HANDLE), mapOffset(0), mapSize(0), size(0), mapFlags(0), mappedPtr(NULL), mapFlushed(false), refData(NULL)
+		: device(VK_NULL_HANDLE), mapOffset(0), mapSize(0), size(0), mapFlags(0), mapFrame(0), mappedPtr(NULL), mapFlushed(false), refData(NULL)
 	{ }
 	VkDevice device;
 	VkDeviceSize mapOffset, mapSize;
 	VkDeviceSize size;
 	VkMemoryMapFlags mapFlags;
+	uint32_t mapFrame;
 	bool mapFlushed;
 	void *mappedPtr;
 	byte *refData;

@@ -159,6 +159,7 @@ VkResult WrappedVulkan::vkMapMemory(
 				it->second.mappedPtr = *ppData;
 				it->second.mapOffset = offset;
 				it->second.mapSize = size == 0 ? it->second.size : size;
+				it->second.mapFrame = m_FrameCounter;
 				it->second.mapFlags = flags;
 				it->second.mapFlushed = false;
 				it->second.refData = NULL;
