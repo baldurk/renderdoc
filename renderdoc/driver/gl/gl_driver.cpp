@@ -2377,7 +2377,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
 		// if the specified context isn't current, try and see if we've saved
 		// an appropriate backbuffer image during capture.
-		if( (dev != NULL && prevctx.ctx != dev) || (wnd != 0 && prevctx.wnd != wnd) )
+		if( (dev != NULL && prevctx.ctx != dev) || (wnd != 0 && (void *)prevctx.wnd != wnd) )
 		{
 			auto it = m_BackbufferImages.find(wnd);
 			if(it != m_BackbufferImages.end())
