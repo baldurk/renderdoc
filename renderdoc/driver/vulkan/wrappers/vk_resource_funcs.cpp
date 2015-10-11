@@ -422,7 +422,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(
 			chunk = scope.Get();
 		}
 
-		if(m_State == WRITING_CAPFRAME)
+		if(m_State == WRITING_CAPFRAME && record->GetMemoryRecord())
 		{
 			m_FrameCaptureRecord->AddChunk(chunk);
 
@@ -485,7 +485,7 @@ VkResult WrappedVulkan::vkBindImageMemory(
 			chunk = scope.Get();
 		}
 
-		if(m_State == WRITING_CAPFRAME)
+		if(m_State == WRITING_CAPFRAME && record->GetMemoryRecord())
 		{
 			m_FrameCaptureRecord->AddChunk(chunk);
 
