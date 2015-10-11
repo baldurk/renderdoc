@@ -1018,6 +1018,7 @@ struct SPVInstruction
 			}
 			case spv::OpFNegate:
 			case spv::OpNot:
+			case spv::OpLogicalNot:
 			{
 				// unary math operation
 				RDCASSERT(op);
@@ -1030,6 +1031,9 @@ struct SPVInstruction
 						break;
 					case spv::OpNot:
 						c = '~';
+						break;
+					case spv::OpLogicalNot:
+						c = '!';
 						break;
 					default:
 						break;
@@ -1063,7 +1067,7 @@ struct SPVInstruction
 			case spv::OpFOrdGreaterThanEqual:
 			case spv::OpLogicalAnd:
 			case spv::OpLogicalOr:
-			case spv::OpLogicalNot:
+			case spv::OpLogicalNotEqual:
 			case spv::OpShiftLeftLogical:
 			{
 				// binary math operation
@@ -1111,7 +1115,7 @@ struct SPVInstruction
 					case spv::OpLogicalOr:
 						opstr[0] = opstr[1] = '|';
 						break;
-					case spv::OpLogicalNot:
+					case spv::OpLogicalNotEqual:
 						opstr[0] = '!'; opstr[1] = '=';
 						break;
 					case spv::OpShiftLeftLogical:
@@ -3096,11 +3100,12 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpFOrdGreaterThanEqual:
 			case spv::OpLogicalAnd:
 			case spv::OpLogicalOr:
-			case spv::OpLogicalNot:
+			case spv::OpLogicalNotEqual:
 			case spv::OpShiftLeftLogical:
 
 			case spv::OpFNegate:
 			case spv::OpNot:
+			case spv::OpLogicalNot:
 				mathop = true; // deliberate fallthrough
 				
 			case spv::OpCompositeConstruct:
