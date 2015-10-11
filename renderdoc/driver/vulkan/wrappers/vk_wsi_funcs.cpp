@@ -619,8 +619,12 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 			GetResourceManager()->MarkResourceFrameReferenced(swapid, eFrameRef_Read);
 
-			EndCaptureFrame(backbuffer);
-			FinishCapture();
+			// transition back to IDLE atomically
+			{
+				SCOPED_LOCK(m_CapTransitionLock);
+				EndCaptureFrame(backbuffer);
+				FinishCapture();
+			}
 
 			byte *thpixels = NULL;
 			uint32_t thwidth = 0;
@@ -943,8 +947,6 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE && m_FrameRecord.empty())
 	{
-		m_State = WRITING_CAPFRAME;
-
 		FetchFrameRecord record;
 		record.frameInfo.frameNumber = m_FrameCounter+1;
 		record.frameInfo.captureTime = Timing::GetUnixTimestamp();
@@ -953,10 +955,19 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 		GetResourceManager()->ClearReferencedResources();
 
 		GetResourceManager()->MarkResourceFrameReferenced(m_InstanceRecord->GetResourceID(), eFrameRef_Read);
-		GetResourceManager()->PrepareInitialContents();
-		
-		AttemptCapture();
-		BeginCaptureFrame();
+
+		// need to do all this atomically so that no other commands
+		// will check to see if they need to markdirty or markpendingdirty
+		// and go into the frame record.
+		{
+			SCOPED_LOCK(m_CapTransitionLock);
+			GetResourceManager()->PrepareInitialContents();
+
+			AttemptCapture();
+			BeginCaptureFrame();
+
+			m_State = WRITING_CAPFRAME;
+		}
 
 		RDCLOG("Starting capture, frame %u", m_FrameCounter);
 	}

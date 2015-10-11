@@ -535,8 +535,6 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 
 void WrappedVulkan::AttemptCapture()
 {
-	m_State = WRITING_CAPFRAME;
-
 	{
 		RDCDEBUG("Attempting capture");
 

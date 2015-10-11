@@ -330,10 +330,72 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 	VkResult ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), cmdBufferCount, unwrapped, Unwrap(fence));
 
-	// VKTODOHIGH when maps are intercepted with local buffers, this will have to be
-	// done when not in capframe :(.
-	if(m_State == WRITING_CAPFRAME)
+	bool capframe = false;
+
+	for(uint32_t i=0; i < cmdBufferCount; i++)
 	{
+		ResourceId cmd = GetResID(pCmdBuffers[i]);
+		GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+
+		VkResourceRecord *record = GetRecord(pCmdBuffers[i]);
+
+		// need to lock the whole section of code, not just the check on
+		// m_State, as we also need to make sure we don't check the state,
+		// start marking dirty resources then while we're doing so the
+		// state becomes capframe.
+		// the next sections where we mark resources referenced and add
+		// the submit chunk to the frame record don't have to be protected.
+		// Only the decision of whether we're inframe or not, and marking
+		// dirty.
+		{
+			SCOPED_LOCK(m_CapTransitionLock);
+			if(m_State == WRITING_CAPFRAME)
+			{
+				for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
+					GetResourceManager()->MarkPendingDirty(*it);
+
+				capframe = true;
+			}
+			else
+			{
+				for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
+					GetResourceManager()->MarkDirtyResource(*it);
+			}
+		}
+
+		if(capframe)
+		{
+			// for each bound descriptor set, mark it referenced as well as all resources currently bound to it
+			for(auto it = record->bakedCommands->boundDescSets.begin(); it != record->bakedCommands->boundDescSets.end(); ++it)
+			{
+				GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
+
+				VkResourceRecord *setrecord = GetRecord(*it);
+
+				for(auto refit = setrecord->bindFrameRefs.begin(); refit != setrecord->bindFrameRefs.end(); ++refit)
+					GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
+			}
+
+			// pull in frame refs from this baked command buffer
+			record->bakedCommands->AddResourceReferences(GetResourceManager());
+
+			// ref the parent command buffer by itself, this will pull in the cmd buffer pool
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			
+			if(fence != VK_NULL_HANDLE)
+				GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
+
+			m_CmdBufferRecords.push_back(record->bakedCommands);
+			record->bakedCommands->AddRef();
+		}
+
+		record->dirtied.clear();
+	}
+	
+	if(capframe)
+	{
+		// VKTODOHIGH when maps are intercepted with local buffers, this will have to be
+		// done when not in capframe :(.
 		for(auto it = m_MemoryInfo.begin(); it != m_MemoryInfo.end(); ++it)
 		{
 			// potential persistent map, force a full flush
@@ -364,65 +426,17 @@ VkResult WrappedVulkan::vkQueueSubmit(
 				}
 			}
 		}
-	}
 
-	if(m_State == WRITING_CAPFRAME)
-	{
-		CACHE_THREAD_SERIALISER();
-		
-		SCOPED_SERIALISE_CONTEXT(QUEUE_SUBMIT);
-		Serialise_vkQueueSubmit(localSerialiser, queue, cmdBufferCount, pCmdBuffers, fence);
-
-		m_FrameCaptureRecord->AddChunk(scope.Get());
-	}
-
-	for(uint32_t i=0; i < cmdBufferCount; i++)
-	{
-		ResourceId cmd = GetResID(pCmdBuffers[i]);
-		GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
-
-		VkResourceRecord *record = GetRecord(pCmdBuffers[i]);
-
-		if(m_State == WRITING_CAPFRAME)
 		{
-			for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
-				GetResourceManager()->MarkPendingDirty(*it);
+			CACHE_THREAD_SERIALISER();
+
+			SCOPED_SERIALISE_CONTEXT(QUEUE_SUBMIT);
+			Serialise_vkQueueSubmit(localSerialiser, queue, cmdBufferCount, pCmdBuffers, fence);
+
+			m_FrameCaptureRecord->AddChunk(scope.Get());
 		}
-		else
-		{
-			for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
-				GetResourceManager()->MarkDirtyResource(*it);
-		}
-
-		if(m_State == WRITING_CAPFRAME)
-		{
-			// for each bound descriptor set, mark it referenced as well as all resources currently bound to it
-			for(auto it = record->bakedCommands->boundDescSets.begin(); it != record->bakedCommands->boundDescSets.end(); ++it)
-			{
-				GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
-
-				VkResourceRecord *setrecord = GetRecord(*it);
-
-				for(auto refit = setrecord->bindFrameRefs.begin(); refit != setrecord->bindFrameRefs.end(); ++refit)
-					GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
-			}
-
-			// pull in frame refs from this baked command buffer
-			record->bakedCommands->AddResourceReferences(GetResourceManager());
-
-			// ref the parent command buffer by itself, this will pull in the cmd buffer pool
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-			
-			if(fence != VK_NULL_HANDLE)
-				GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
-
-			m_CmdBufferRecords.push_back(record->bakedCommands);
-			record->bakedCommands->AddRef();
-		}
-
-		record->dirtied.clear();
 	}
-
+	
 	return ret;
 }
 

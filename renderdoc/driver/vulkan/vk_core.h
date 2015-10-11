@@ -145,6 +145,8 @@ private:
 	vector<VkResourceRecord *> m_CmdBufferRecords;
 
 	VulkanResourceManager *m_ResourceManager;
+
+	Threading::CriticalSection m_CapTransitionLock;
 	
 	uint32_t m_FrameCounter;
 

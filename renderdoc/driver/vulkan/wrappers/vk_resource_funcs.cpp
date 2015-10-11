@@ -94,10 +94,13 @@ VkResult WrappedVulkan::vkAllocMemory(
 
 			// VKTODOMED always treat memory as dirty for now, so its initial state
 			// is guaranteed to be prepared
-			if(m_State != WRITING_CAPFRAME)
-				GetResourceManager()->MarkDirtyResource(id);
-			else
-				GetResourceManager()->MarkPendingDirty(id);
+			{
+				SCOPED_LOCK(m_CapTransitionLock);
+				if(m_State != WRITING_CAPFRAME)
+					GetResourceManager()->MarkDirtyResource(id);
+				else
+					GetResourceManager()->MarkPendingDirty(id);
+			}
 		}
 		else
 		{
@@ -235,7 +238,20 @@ void WrappedVulkan::vkUnmapMemory(
 			}
 			else
 			{
-				if(m_State >= WRITING_CAPFRAME)
+				// decide atomically if this chunk should be in-frame or not
+				// so that we're not in the else branch but haven't marked
+				// dirty when capframe starts, then we mark dirty while in-frame
+
+				bool capframe = false;
+				{
+					SCOPED_LOCK(m_CapTransitionLock);
+					capframe = (m_State == WRITING_CAPFRAME);
+
+					if(!capframe)
+						GetResourceManager()->MarkDirtyResource(GetResID(mem));
+				}
+
+				if(capframe)
 				{
 					if(!it->second.mapFlushed)
 					{
@@ -261,10 +277,6 @@ void WrappedVulkan::vkUnmapMemory(
 						// VKTODOLOW for now assuming flushes cover all writes. Technically
 						// this is true for all non-coherent memory types.
 					}
-				}
-				else
-				{
-					GetResourceManager()->MarkDirtyResource(GetResID(mem));
 				}
 
 				it->second.mappedPtr = NULL;

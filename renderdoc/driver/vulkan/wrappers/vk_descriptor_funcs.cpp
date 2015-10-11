@@ -273,10 +273,13 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 			record->AddParent(GetResourceManager()->GetResourceRecord(layoutID));
 
 			// just always treat descriptor sets as dirty
-			if(m_State != WRITING_CAPFRAME)
-				GetResourceManager()->MarkDirtyResource(id);
-			else
-				GetResourceManager()->MarkPendingDirty(id);
+			{
+				SCOPED_LOCK(m_CapTransitionLock);
+				if(m_State != WRITING_CAPFRAME)
+					GetResourceManager()->MarkDirtyResource(id);
+				else
+					GetResourceManager()->MarkPendingDirty(id);
+			}
 
 			record->layout = layoutID;
 			m_CreationInfo.m_DescSetLayout[layoutID].CreateBindingsArray(record->descBindings);
@@ -473,8 +476,14 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 
 		ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), writeCount, unwrappedWrites, copyCount, unwrappedCopies);
 	}
+	
+	bool capframe = false;
+	{
+		SCOPED_LOCK(m_CapTransitionLock);
+		capframe = (m_State == WRITING_CAPFRAME);
+	}
 
-	if(m_State == WRITING_CAPFRAME)
+	if(capframe)
 	{
 		// don't have to mark referenced any of the resources pointed to by the descriptor set - that's handled
 		// on queue submission by marking ref'd all the current bindings of the sets referenced by the cmd buffer
