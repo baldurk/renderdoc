@@ -463,7 +463,7 @@ void VulkanResourceManager::Hack_PropagateReferencesToMemory()
 
 		if(record && record->GetMemoryRecord())
 		{
-			RDCLOG("Propagating reference from %llu to %llu", record->GetResourceID(), record->GetMemoryRecord()->GetResourceID());
+			RDCDEBUG("Propagating reference from %llu to %llu", record->GetResourceID(), record->GetMemoryRecord()->GetResourceID());
 			// mark it as read-before-write so that we ensure there are initial states serialised for it.
 			MarkResourceFrameReferenced(record->GetMemoryRecord()->GetResourceID(), eFrameRef_ReadBeforeWrite);
 		}
@@ -480,7 +480,7 @@ void VulkanResourceManager::Hack_PropagateReferencesToMemory()
 			{
 				record->MarkParentsReferenced(this, eFrameRef_Read);
 
-				RDCLOG("Propagating references to parents from %llu", record->GetResourceID());
+				RDCDEBUG("Propagating references to parents from %llu", record->GetResourceID());
 
 				// reset to start so we can do this recursively - nasty I know.
 				it = m_FrameReferencedResources.begin();
