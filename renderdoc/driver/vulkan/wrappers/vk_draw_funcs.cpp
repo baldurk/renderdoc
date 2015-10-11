@@ -362,6 +362,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
 
+	SERIALISE_ELEMENT(VkImageLayout, layout, destImageLayout);
+
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkBufferImageCopy, regions, pRegions, count);
 	
@@ -373,7 +375,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
-			ObjDisp(cmdBuffer)->CmdCopyBufferToImage(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destImage), destImageLayout, count, regions);
+			ObjDisp(cmdBuffer)->CmdCopyBufferToImage(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destImage), layout, count, regions);
 		}
 	}
 	else if(m_State == READING)
@@ -382,7 +384,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 		srcBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
-		ObjDisp(cmdBuffer)->CmdCopyBufferToImage(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destImage), destImageLayout, count, regions);
+		ObjDisp(cmdBuffer)->CmdCopyBufferToImage(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destImage), layout, count, regions);
 
 		const string desc = localSerialiser->GetDebugStr();
 
