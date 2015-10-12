@@ -2171,7 +2171,7 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 					sig.compType = eCompType_Float;
 					break;
 				default:
-					RDCERR("Unexpected base type of input signature %u", type->baseType->type);
+					RDCERR("Unexpected base type of input signature %u", type->baseType ? type->baseType->type : type->type);
 					break;
 			}
 
