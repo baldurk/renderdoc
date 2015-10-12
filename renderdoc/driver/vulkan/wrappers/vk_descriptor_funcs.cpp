@@ -269,7 +269,17 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 
 			ResourceId layoutID = GetResID(pSetLayouts[i]);
 
-			record->AddParent(GetRecord(descriptorPool));
+			VkResourceRecord *poolrecord = GetRecord(descriptorPool);
+
+			{
+				poolrecord->LockChunks();
+				poolrecord->pooledChildren.push_back(record);
+				poolrecord->UnlockChunks();
+			}
+
+			record->pool = poolrecord;
+
+			record->AddParent(poolrecord);
 			record->AddParent(GetResourceManager()->GetResourceRecord(layoutID));
 
 			// just always treat descriptor sets as dirty

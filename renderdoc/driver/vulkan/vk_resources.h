@@ -557,6 +557,7 @@ struct VkResourceRecord : public ResourceRecord
 		VkResourceRecord(ResourceId id) :
 			ResourceRecord(id, true),
 			bakedCommands(NULL),
+			pool(NULL),
 			memory(NULL)
 		{
 		}
@@ -640,6 +641,11 @@ struct VkResourceRecord : public ResourceRecord
 
 		// queues associated with this instance, so they can be shut down on destruction
 		vector<VkQueue> queues;
+
+		// pointer to either the pool this item is allocated from, or the children allocated
+		// from this pool. Protected by the chunk lock 
+		VkResourceRecord *pool;
+		vector<VkResourceRecord *> pooledChildren;
 
 		// descriptor set bindings for this descriptor set. Filled out on
 		// create from the layout.

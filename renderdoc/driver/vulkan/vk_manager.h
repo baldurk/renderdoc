@@ -141,7 +141,40 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 			ResourceManager::MarkCleanResource(id);
 			ResourceManager::RemoveWrapper(ToTypedHandle(Unwrap(obj)));
 			ResourceManager::ReleaseCurrentResource(id);
-			if(GetRecord(obj)) GetRecord(obj)->Delete(this);
+			VkResourceRecord *record = GetRecord(obj);
+			if(record)
+			{
+				// we need to lock here because the app could be creating
+				// and deleting from this pool at the same time. We do know
+				// though that the pool isn't going to be destroyed while
+				// either allocation or freeing happens, so we only need to
+				// lock against concurrent allocs or deletes of children.
+
+				if(record->pool)
+				{
+					// here we lock against concurrent alloc/delete
+					record->pool->LockChunks();
+					for(auto it = record->pool->pooledChildren.begin(); it != record->pool->pooledChildren.end(); ++it)
+					{
+						if(*it == record)
+						{
+							// remove it from our pool so we don't try and destroy it
+							record->pool->pooledChildren.erase(it);
+							break;
+						}
+					}
+					record->pool->UnlockChunks();
+				}
+				else if(record->pooledChildren.size())
+				{
+					// delete all of our children
+					for(auto it = record->pooledChildren.begin(); it != record->pooledChildren.end(); ++it)
+						(*it)->Delete(this);
+					record->pooledChildren.clear();
+				}
+				
+				record->Delete(this);
+			}
 			if(clearID)
 			{
 				// note the nulling of the wrapped object's ID here is rather unpleasant,
