@@ -73,11 +73,7 @@ void main(void)
 
 	vec4 col = textureLod(tex, scr.xy / texdisplay.TextureResolutionPS.xy, float(texdisplay.MipLevel));
 
-	if(texdisplay.RawOutput != 0)
-	{
-		color_out = col;
-		return;
-	}
+	vec4 rawcol = col;
 
 	// RGBM encoding
 	if(texdisplay.HDRMul > 0.0f)
@@ -107,5 +103,5 @@ void main(void)
 		}
 	}
 
-	color_out = col;
+	color_out = (texdisplay.RawOutput != 0 ? rawcol : col);
 }
