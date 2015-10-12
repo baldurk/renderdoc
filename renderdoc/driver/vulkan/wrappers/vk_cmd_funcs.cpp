@@ -1107,14 +1107,18 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 		{
 			SERIALISE_ELEMENT(VkBufferMemoryBarrier, barrier, *((VkBufferMemoryBarrier *)ppMemBarriers[i]));
 
-			if(m_State < WRITING)
+			// it's possible for buffer to be NULL if it refers to a buffer that is otherwise
+			// not in the log (barriers do not mark resources referenced). If the buffer does
+			// not exist, then it's safe to skip this barrier.
+			if(m_State < WRITING && barrier.buffer != VK_NULL_HANDLE)
 				mems.push_back((VkGenericStruct *)new VkBufferMemoryBarrier(barrier));
 		}
 		else if(stype == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
 		{
 			SERIALISE_ELEMENT(VkImageMemoryBarrier, barrier, *((VkImageMemoryBarrier *)ppMemBarriers[i]));
 
-			if(m_State < WRITING)
+			// same as buffers above, allow images to not exist and skip their barriers.
+			if(m_State < WRITING && barrier.image != VK_NULL_HANDLE)
 			{
 				mems.push_back((VkGenericStruct *)new VkImageMemoryBarrier(barrier));
 				imTrans.push_back(barrier);
@@ -1127,7 +1131,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
-			ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), src, dest, region, memCount, (const void **)&mems[0]);
+			ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), src, dest, region, (uint32_t)mems.size(), (const void **)&mems[0]);
 
 			ResourceId cmd = GetResID(PartialCmdBuf());
 			GetResourceManager()->RecordTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
@@ -1137,7 +1141,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 	{
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
-		ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), src, dest, region, memCount, (const void **)&mems[0]);
+		ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), src, dest, region, (uint32_t)mems.size(), (const void **)&mems[0]);
 		
 		ResourceId cmd = GetResID(cmdBuffer);
 		GetResourceManager()->RecordTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
