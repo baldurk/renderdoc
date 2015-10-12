@@ -235,8 +235,11 @@ namespace renderdocui.Windows.PipelineState
                 {
                     BindpointMap bindMap = stage.BindpointMapping.Resources[shaderRes.bindPoint];
 
+                    var descriptorBind = new VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement();
+
                     // TODO do we need to worry about arrays of uniform buffers?
-                    var descriptorBind = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
+                    if(bindMap.bindset < pipe.DescSets.Length && bindMap.bind < pipe.DescSets[bindMap.bindset].bindings.Length)
+                        descriptorBind = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
 
                     bool filledSlot = (descriptorBind.res != ResourceId.Null);
                     bool usedSlot = bindMap.used;
