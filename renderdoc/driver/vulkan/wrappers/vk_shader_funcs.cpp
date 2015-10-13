@@ -337,7 +337,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, cacheId, GetResID(pipelineCache));
-	SERIALISE_ELEMENT(VkGraphicsPipelineCreateInfo, info, *pCreateInfos);
+	SERIALISE_ELEMENT_CLASS(VkGraphicsPipelineCreateInfo, info, *pCreateInfos);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pPipelines));
 
 	if(m_State == READING)

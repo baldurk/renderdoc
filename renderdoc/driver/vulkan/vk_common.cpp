@@ -2225,8 +2225,11 @@ Serialiser::Deserialise<VkDeviceCreateInfo>::~Deserialise()
 {
 	if(m_Mode == READING)
 	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		delete [] pRequestedQueues;
 		delete ppEnabledExtensionNames;
 		delete ppEnabledLayerNames;
+		delete pEnabledFeatures;
 	}
 }
 
@@ -2330,6 +2333,16 @@ void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 }
 
 template<>
+Serialiser::Deserialise<VkFramebufferCreateInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		delete [] pAttachments;
+	}
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkAttachmentDescription &el)
 {
 	ScopedContext scope(this, name, "VkAttachmentDescription", 0, true);
@@ -2412,6 +2425,34 @@ void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el)
 	SerialiseComplexArray("pAttachments", (VkAttachmentDescription *&)el.pAttachments, el.attachmentCount);
 	SerialiseComplexArray("pSubpasses", (VkSubpassDescription *&)el.pSubpasses, el.subpassCount);
 	SerialiseComplexArray("pDependencies", (VkSubpassDependency *&)el.pDependencies, el.dependencyCount);
+}
+
+template<>
+Serialiser::Deserialise<VkRenderPassCreateInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		for (uint32_t i=0; i<attachmentCount; i++)
+		{
+			RDCASSERT(pAttachments[i].pNext == NULL); // otherwise delete
+		}
+		delete [] pAttachments;
+		for (uint32_t i=0; i<subpassCount; i++)
+		{
+			RDCASSERT(pSubpasses[i].pNext == NULL); // otherwise delete
+			delete pSubpasses[i].inputAttachments;
+			delete pSubpasses[i].colorAttachments;
+			delete pSubpasses[i].resolveAttachments;
+			delete pSubpasses[i].preserveAttachments;
+		}
+		delete [] pSubpasses;
+		for (uint32_t i=0; i<dependencyCount; i++)
+		{
+			RDCASSERT(pDependencies[i].pNext == NULL); // otherwise delete
+		}
+		delete [] pDependencies;
+	}
 }
 
 template<>
@@ -2845,7 +2886,11 @@ template<>
 Serialiser::Deserialise<VkPipelineLayoutCreateInfo>::~Deserialise()
 {
 	if(m_Mode == READING)
-		delete pSetLayouts;
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		delete [] pSetLayouts;
+		delete [] pPushConstantRanges;
+	}
 }
 
 template<>
@@ -3031,6 +3076,69 @@ void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el)
 }
 
 template<>
+Serialiser::Deserialise<VkGraphicsPipelineCreateInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		if (pVertexInputState)
+		{
+			RDCASSERT(pVertexInputState->pNext == NULL); // otherwise delete
+			delete pVertexInputState->pVertexBindingDescriptions;
+			delete pVertexInputState->pVertexAttributeDescriptions;
+			delete pVertexInputState;
+		}
+		if (pInputAssemblyState)
+		{
+			RDCASSERT(pInputAssemblyState->pNext == NULL); // otherwise delete
+			delete pInputAssemblyState;
+		}
+		if (pTessellationState)
+		{
+			RDCASSERT(pTessellationState->pNext == NULL); // otherwise delete
+			delete pTessellationState;
+		}
+		if (pViewportState)
+		{
+			RDCASSERT(pViewportState->pNext == NULL); // otherwise delete
+			delete pViewportState;
+		}
+		if (pRasterState)
+		{
+			RDCASSERT(pRasterState->pNext == NULL); // otherwise delete
+			delete pRasterState;
+		}
+		if (pMultisampleState)
+		{
+			RDCASSERT(pMultisampleState->pNext == NULL); // otherwise delete
+			delete pMultisampleState;
+		}
+		if (pDepthStencilState)
+		{
+			RDCASSERT(pDepthStencilState->pNext == NULL); // otherwise delete
+			delete pDepthStencilState;
+		}
+		if (pColorBlendState)
+		{
+			RDCASSERT(pColorBlendState->pNext == NULL); // otherwise delete
+			delete [] pColorBlendState->pAttachments;
+			delete pColorBlendState;
+		}
+		for (uint32_t i=0; i<stageCount; i++)
+		{
+			RDCASSERT(pStages[i].pNext == NULL); // otherwise delete
+			if (pStages[i].pSpecializationInfo)
+			{
+				delete [] (byte *)pStages[i].pSpecializationInfo->pData;
+				delete [] pStages[i].pSpecializationInfo->pMap;
+				delete pStages[i].pSpecializationInfo;
+			}
+		}
+		delete [] pStages;
+	}
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el)
 {
 	ScopedContext scope(this, name, "VkComputePipelineCreateInfo", 0, true);
@@ -3070,6 +3178,16 @@ void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el)
 }
 
 template<>
+Serialiser::Deserialise<VkDescriptorPoolCreateInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		delete [] pTypeCount;
+	}
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkDescriptorInfo &el)
 {
 	ScopedContext scope(this, name, "VkDescriptorInfo", 0, true);
@@ -3098,6 +3216,16 @@ void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
 	Serialise("descriptorType", el.descriptorType);
 
 	SerialiseComplexArray("pDescriptors", (VkDescriptorInfo*&)el.pDescriptors, el.count);
+}
+
+template<>
+Serialiser::Deserialise<VkWriteDescriptorSet>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		delete [] pDescriptors;
+	}
 }
 
 template<>
@@ -3176,11 +3304,12 @@ Serialiser::Deserialise<VkDescriptorSetLayoutCreateInfo>::~Deserialise()
 {
 	if(m_Mode == READING)
 	{
+		RDCASSERT(pNext == NULL); // otherwise delete
 		for (uint32_t i=0; i<count; i++)
 		{
-			delete pBinding[i].pImmutableSamplers;
+			delete [] pBinding[i].pImmutableSamplers;
 		}
-		delete pBinding;
+		delete [] pBinding;
 	}
 }
 
