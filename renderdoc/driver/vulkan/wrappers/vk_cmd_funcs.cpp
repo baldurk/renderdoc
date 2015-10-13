@@ -517,7 +517,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 			VkRenderPassContents                        contents)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
-	SERIALISE_ELEMENT(VkRenderPassBeginInfo, beginInfo, *pRenderPassBegin);
+	SERIALISE_ELEMENT_CLASS(VkRenderPassBeginInfo, beginInfo, *pRenderPassBegin);
 	SERIALISE_ELEMENT(VkRenderPassContents, cont, contents);
 
 	if(m_State < WRITING)

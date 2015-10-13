@@ -2251,6 +2251,16 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 }
 
 template<>
+Serialiser::Deserialise<VkBufferCreateInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		delete [] pQueueFamilyIndices;
+	}
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el)
 {
 	ScopedContext scope(this, name, "VkBufferViewCreateInfo", 0, true);
@@ -2287,6 +2297,16 @@ void Serialiser::Serialise(const char *name, VkImageCreateInfo &el)
 	if(m_Mode == READING) el.pQueueFamilyIndices = NULL;
 	SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices, el.queueFamilyCount);
 	Serialise("initialLayout", el.initialLayout);
+}
+
+template<>
+Serialiser::Deserialise<VkImageCreateInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		delete [] pQueueFamilyIndices;
+	}
 }
 
 template<>
@@ -2471,6 +2491,16 @@ void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 	if(m_Mode == READING)
 		el.pClearValues = NULL;
 	SerialisePODArray("pClearValues", (VkClearValue *&)el.pClearValues, el.clearValueCount);
+}
+
+template<>
+Serialiser::Deserialise<VkRenderPassBeginInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		delete [] pClearValues;
+	}
 }
 
 template<>

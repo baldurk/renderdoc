@@ -511,7 +511,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(
 			VkBuffer*                                   pBuffer)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT(VkBufferCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT_CLASS(VkBufferCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pBuffer));
 
 	if(m_State == READING)
@@ -654,7 +654,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 			VkImage*                                    pImage)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT(VkImageCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT_CLASS(VkImageCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pImage));
 
 	if(m_State == READING)
