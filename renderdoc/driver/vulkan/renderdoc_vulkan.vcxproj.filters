@@ -73,6 +73,9 @@
     <ClCompile Include="wrappers\vk_draw_funcs.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
+    <ClCompile Include="wrappers\vk_sync_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">

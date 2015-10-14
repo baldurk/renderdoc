@@ -645,6 +645,41 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetFenceStatus,
 			VkDevice                                    device,
 			VkFence                                     fence);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkResetFences,
+			VkDevice                                    device,
+			uint32_t                                    fenceCount,
+			const VkFence*                              pFences);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkWaitForFences,
+			VkDevice                                    device,
+			uint32_t                                    fenceCount,
+			const VkFence*                              pFences,
+			VkBool32                                    waitAll,
+			uint64_t                                    timeout);
+
+	// Event functions
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateEvent,
+			VkDevice                                    device,
+			const VkEventCreateInfo*                    pCreateInfo,
+			VkEvent*                                    pEvent);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyEvent,
+			VkDevice                                    device,
+			VkEvent                                     event);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetEventStatus,
+			VkDevice                                    device,
+			VkEvent                                     event);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkSetEvent,
+			VkDevice                                    device,
+			VkEvent                                     event);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkResetEvent,
+			VkDevice                                    device,
+			VkEvent                                     event);
 
 	// Memory functions
 
@@ -1215,6 +1250,25 @@ public:
 			VkQueryPool                                 queryPool,
 			uint32_t                                    startQuery,
 			uint32_t                                    queryCount);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetEvent,
+			VkCmdBuffer                                 cmdBuffer,
+			VkEvent                                     event,
+			VkPipelineStageFlags                        stageMask);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResetEvent,
+			VkCmdBuffer                                 cmdBuffer,
+			VkEvent                                     event,
+			VkPipelineStageFlags                        stageMask);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWaitEvents,
+			VkCmdBuffer                                 cmdBuffer,
+			uint32_t                                    eventCount,
+			const VkEvent*                              pEvents,
+			VkPipelineStageFlags                        srcStageMask,
+			VkPipelineStageFlags                        destStageMask,
+			uint32_t                                    memBarrierCount,
+			const void* const*                          ppMemBarriers);
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateFramebuffer,
 			VkDevice                                    device,

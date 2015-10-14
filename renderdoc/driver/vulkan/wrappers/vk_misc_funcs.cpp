@@ -51,6 +51,7 @@ DESTROY_IMPL(VkDescriptorSetLayout, DestroyDescriptorSetLayout)
 DESTROY_IMPL(VkDescriptorPool, DestroyDescriptorPool)
 DESTROY_IMPL(VkSemaphore, DestroySemaphore)
 DESTROY_IMPL(VkFence, DestroyFence)
+DESTROY_IMPL(VkEvent, DestroyEvent)
 DESTROY_IMPL(VkCmdPool, DestroyCommandPool)
 DESTROY_IMPL(VkQueryPool, DestroyQueryPool)
 DESTROY_IMPL(VkFramebuffer, DestroyFramebuffer)
@@ -194,10 +195,10 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			vt->DestroyFence(Unwrap(dev), nondisp->real.As<VkFence>());
 			break;
 		case eResEvent:
-			// VKTODOLOW
+			vt->DestroyEvent(Unwrap(dev), nondisp->real.As<VkEvent>());
 			break;
 		case eResQueryPool:
-			// VKTODOLOW
+			vt->DestroyQueryPool(Unwrap(dev), nondisp->real.As<VkQueryPool>());
 			break;
 		case eResSemaphore:
 			vt->DestroySemaphore(Unwrap(dev), nondisp->real.As<VkSemaphore>());
@@ -276,90 +277,6 @@ VkResult WrappedVulkan::vkCreateSampler(
 	return ret;
 }
 
-bool WrappedVulkan::Serialise_vkCreateSemaphore(
-			Serialiser*                                 localSerialiser,
-			VkDevice                                    device,
-			const VkSemaphoreCreateInfo*                pCreateInfo,
-			VkSemaphore*                                pSemaphore)
-{
-	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT(VkSemaphoreCreateInfo, info, *pCreateInfo);
-	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pSemaphore));
-
-	if(m_State == READING)
-	{
-		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-		VkSemaphore sem = VK_NULL_HANDLE;
-
-		VkResult ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), &info, &sem);
-
-		if(ret != VK_SUCCESS)
-		{
-			RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
-		}
-		else
-		{
-			if(GetResourceManager()->HasWrapper(ToTypedHandle(sem)))
-			{
-				// VKTODOMED need to handle duplicate objects better than this, perhaps
-				ResourceId live = GetResourceManager()->GetNonDispWrapper(sem)->id;
-				RDCDEBUG("Doing hack for duplicate objects that replay expects to be distinct - %llu -> %llu", id, live);
-				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
-			}
-			else
-			{
-				ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sem);
-				GetResourceManager()->AddLiveResource(id, sem);
-			}
-		}
-	}
-
-	return true;
-}
-
-VkResult WrappedVulkan::vkCreateSemaphore(
-			VkDevice                                    device,
-			const VkSemaphoreCreateInfo*                pCreateInfo,
-			VkSemaphore*                                pSemaphore)
-{
-	VkResult ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), pCreateInfo, pSemaphore);
-
-	if(ret == VK_SUCCESS)
-	{
-		if(GetResourceManager()->HasWrapper(ToTypedHandle(*pSemaphore)))
-		{
-			*pSemaphore = (VkSemaphore)(uint64_t)GetResourceManager()->GetWrapper(ToTypedHandle(*pSemaphore));
-		}
-		else
-		{
-			ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pSemaphore);
-
-			if(m_State >= WRITING)
-			{
-				Chunk *chunk = NULL;
-
-				{
-					CACHE_THREAD_SERIALISER();
-
-					SCOPED_SERIALISE_CONTEXT(CREATE_SEMAPHORE);
-					Serialise_vkCreateSemaphore(localSerialiser, device, pCreateInfo, pSemaphore);
-
-					chunk = scope.Get();
-				}
-
-				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSemaphore);
-				record->AddChunk(chunk);
-			}
-			else
-			{
-				GetResourceManager()->AddLiveResource(id, *pSemaphore);
-			}
-		}
-	}
-
-	return ret;
-}
-
 bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
@@ -392,112 +309,6 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 	}
 
 	return true;
-}
-
-bool WrappedVulkan::Serialise_vkCreateFence(
-			Serialiser*                                 localSerialiser,
-			VkDevice                                    device,
-			const VkFenceCreateInfo*                pCreateInfo,
-			VkFence*                                pFence)
-{
-	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT(VkFenceCreateInfo, info, *pCreateInfo);
-	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pFence));
-
-	if(m_State == READING)
-	{
-		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-		VkFence sem = VK_NULL_HANDLE;
-
-		VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), &info, &sem);
-
-		if(ret != VK_SUCCESS)
-		{
-			RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
-		}
-		else
-		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sem);
-			GetResourceManager()->AddLiveResource(id, sem);
-		}
-	}
-
-	return true;
-}
-
-VkResult WrappedVulkan::vkCreateFence(
-			VkDevice                                device,
-			const VkFenceCreateInfo*                pCreateInfo,
-			VkFence*                                pFence)
-{
-	VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), pCreateInfo, pFence);
-
-	if(ret == VK_SUCCESS)
-	{
-		ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pFence);
-		
-		if(m_State >= WRITING)
-		{
-			Chunk *chunk = NULL;
-
-			{
-				CACHE_THREAD_SERIALISER();
-
-				SCOPED_SERIALISE_CONTEXT(CREATE_FENCE);
-				Serialise_vkCreateFence(localSerialiser, device, pCreateInfo, pFence);
-
-				chunk = scope.Get();
-			}
-
-			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFence);
-			record->AddChunk(chunk);
-		}
-		else
-		{
-			GetResourceManager()->AddLiveResource(id, *pFence);
-		}
-	}
-
-	return ret;
-}
-
-bool WrappedVulkan::Serialise_vkGetFenceStatus(
-			Serialiser*                                 localSerialiser,
-			VkDevice                                device,
-			VkFence                                 fence)
-{
-	SERIALISE_ELEMENT(ResourceId, id, GetResID(device));
-	SERIALISE_ELEMENT(ResourceId, fid, GetResID(fence));
-	
-	if(m_State < WRITING)
-	{
-		device = GetResourceManager()->GetLiveHandle<VkDevice>(id);
-
-		// VKTODOLOW conservatively assume we have to wait for the device to be idle
-		// this could probably be smarter
-		ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
-	}
-
-	return true;
-}
-
-VkResult WrappedVulkan::vkGetFenceStatus(
-			VkDevice                                device,
-			VkFence                                 fence)
-{
-	VkResult ret = ObjDisp(device)->GetFenceStatus(Unwrap(device), Unwrap(fence));
-	
-	if(m_State >= WRITING_CAPFRAME)
-	{
-		CACHE_THREAD_SERIALISER();
-
-		SCOPED_SERIALISE_CONTEXT(GET_FENCE_STATUS);
-		Serialise_vkGetFenceStatus(localSerialiser, device, fence);
-
-		m_FrameCaptureRecord->AddChunk(scope.Get());
-	}
-
-	return ret;
 }
 
 VkResult WrappedVulkan::vkCreateFramebuffer(

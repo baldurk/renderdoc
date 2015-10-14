@@ -794,6 +794,38 @@ string ToStrHelper<false, VkPipelineCreateFlagBits>::Get(const VkPipelineCreateF
 }
 
 template<>
+string ToStrHelper<false, VkPipelineStageFlagBits>::Get(const VkPipelineStageFlagBits &el)
+{
+	string ret;
+
+	if(el == VK_PIPELINE_STAGE_ALL_GRAPHICS)
+		return "VK_PIPELINE_STAGE_ALL_GRAPHICS";
+
+	if(el == VK_PIPELINE_STAGE_ALL_GPU_COMMANDS)
+		return "VK_PIPELINE_STAGE_ALL_GPU_COMMANDS";
+
+	if(el & VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)                 ret += " | VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT";
+	if(el & VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT)               ret += " | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT";
+	if(el & VK_PIPELINE_STAGE_VERTEX_INPUT_BIT)                ret += " | VK_PIPELINE_STAGE_VERTEX_INPUT_BIT";
+	if(el & VK_PIPELINE_STAGE_VERTEX_SHADER_BIT)               ret += " | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_TESS_CONTROL_SHADER_BIT)         ret += " | VK_PIPELINE_STAGE_TESS_CONTROL_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_TESS_EVALUATION_SHADER_BIT)      ret += " | VK_PIPELINE_STAGE_TESS_EVALUATION_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT)             ret += " | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)             ret += " | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT)        ret += " | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT";
+	if(el & VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT)         ret += " | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT";
+	if(el & VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)     ret += " | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT";
+	if(el & VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT)              ret += " | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_TRANSFER_BIT)                    ret += " | VK_PIPELINE_STAGE_TRANSFER_BIT";
+	if(el & VK_PIPELINE_STAGE_HOST_BIT)                        ret += " | VK_PIPELINE_STAGE_HOST_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
 string ToStrHelper<false, VkBufferUsageFlagBits>::Get(const VkBufferUsageFlagBits &el)
 {
 	string ret = "VK_BUFFER_USAGE_GENERAL";
@@ -2800,6 +2832,20 @@ void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el)
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
+	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
+	// for strongly typed serialising
+	Serialise("flags", el.flags);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkEventCreateInfo &el)
+{
+	ScopedContext scope(this, name, "VkEventCreateInfo", 0, true);
+
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_EVENT_CREATE_INFO);
+	Serialise("sType", el.sType);
+	SerialiseNext(this, el.pNext);
+	
 	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
 	// for strongly typed serialising
 	Serialise("flags", el.flags);

@@ -67,6 +67,7 @@
 	HookInit(GetImageSubresourceLayout); \
 	HookInit(GetBufferMemoryRequirements); \
 	HookInit(GetImageMemoryRequirements); \
+	HookInit(GetImageSparseMemoryRequirements); \
 	HookInit(CreateImageView); \
 	HookInit(DestroyImageView); \
 	HookInit(CreateShader); \
@@ -89,7 +90,14 @@
 	HookInit(QueueWaitSemaphore); \
 	HookInit(CreateFence); \
 	HookInit(GetFenceStatus); \
+	HookInit(ResetFences); \
+	HookInit(WaitForFences); \
 	HookInit(DestroyFence); \
+	HookInit(CreateEvent); \
+	HookInit(GetEventStatus); \
+	HookInit(ResetEvent); \
+	HookInit(SetEvent); \
+	HookInit(DestroyEvent); \
 	HookInit(CreateQueryPool); \
 	HookInit(GetQueryPoolResults); \
 	HookInit(DestroyQueryPool); \
@@ -150,6 +158,9 @@
 	HookInit(CmdBeginQuery); \
 	HookInit(CmdEndQuery); \
 	HookInit(CmdResetQueryPool); \
+	HookInit(CmdSetEvent); \
+	HookInit(CmdResetEvent); \
+	HookInit(CmdWaitEvents); \
 	HookInit(CreateFramebuffer); \
 	HookInit(DestroyFramebuffer); \
 	HookInit(CreateRenderPass); \
@@ -205,6 +216,7 @@
 	HookDefine4(VkResult, vkGetImageSubresourceLayout, VkDevice, device, VkImage, image, const VkImageSubresource*, pSubresource, VkSubresourceLayout*, pLayout); \
 	HookDefine3(VkResult, vkGetBufferMemoryRequirements, VkDevice, device, VkBuffer, buffer, VkMemoryRequirements*, pMemoryRequirements); \
 	HookDefine3(VkResult, vkGetImageMemoryRequirements, VkDevice, device, VkImage, image, VkMemoryRequirements*, pMemoryRequirements); \
+	HookDefine4(VkResult, vkGetImageSparseMemoryRequirements, VkDevice, device, VkImage, image, uint32_t*, pNumRequirements, VkSparseImageMemoryRequirements*, pSparseMemoryRequirements); \
 	HookDefine3(VkResult, vkCreateImageView, VkDevice, device, const VkImageViewCreateInfo*, pCreateInfo, VkImageView*, pView); \
 	HookDefine2(void, vkDestroyImageView, VkDevice, device, VkImageView, imageView); \
 	HookDefine3(VkResult, vkCreateShader, VkDevice, device, const VkShaderCreateInfo*, pCreateInfo, VkShader*, pShader); \
@@ -227,10 +239,17 @@
 	HookDefine2(VkResult, vkQueueWaitSemaphore, VkQueue, queue, VkSemaphore, semaphore); \
 	HookDefine3(VkResult, vkCreateFence, VkDevice, device, const VkFenceCreateInfo*, pCreateInfo, VkFence*, pFence); \
 	HookDefine2(void, vkDestroyFence, VkDevice, device, VkFence, fence); \
+	HookDefine3(VkResult, vkCreateEvent, VkDevice, device, const VkEventCreateInfo*, pCreateInfo, VkEvent*, pEvent); \
+	HookDefine2(void, vkDestroyEvent, VkDevice, device, VkEvent, event); \
+	HookDefine2(VkResult, vkGetEventStatus, VkDevice, device, VkEvent, event); \
+	HookDefine2(VkResult, vkSetEvent, VkDevice, device, VkEvent, event); \
+	HookDefine2(VkResult, vkResetEvent, VkDevice, device, VkEvent, event); \
 	HookDefine3(VkResult, vkCreateQueryPool, VkDevice, device, const VkQueryPoolCreateInfo*, pCreateInfo, VkQueryPool*, pQueryPool); \
 	HookDefine2(void, vkDestroyQueryPool, VkDevice, device, VkQueryPool, queryPool); \
 	HookDefine7(VkResult, vkGetQueryPoolResults, VkDevice, device, VkQueryPool, queryPool, uint32_t, startQuery, uint32_t, queryCount, size_t*, pDataSize, void*, pData, VkQueryResultFlags, flags); \
 	HookDefine2(VkResult, vkGetFenceStatus, VkDevice, device, VkFence, fence); \
+	HookDefine3(VkResult, vkResetFences, VkDevice, device, uint32_t, fenceCount, const VkFence*, pFences); \
+	HookDefine5(VkResult, vkWaitForFences, VkDevice, device, uint32_t, fenceCount, const VkFence*, pFences, VkBool32, waitAll, uint64_t, timeout); \
 	HookDefine3(VkResult, vkCreateSampler, VkDevice, device, const VkSamplerCreateInfo*, pCreateInfo, VkSampler*, pSampler); \
 	HookDefine2(void, vkDestroySampler, VkDevice, device, VkSampler, sampler); \
 	HookDefine3(VkResult, vkCreateDescriptorSetLayout, VkDevice, device, const VkDescriptorSetLayoutCreateInfo*, pCreateInfo, VkDescriptorSetLayout*, pSetLayout); \
@@ -287,6 +306,9 @@
 	HookDefine4(void, vkCmdBeginQuery, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, slot, VkQueryControlFlags, flags); \
 	HookDefine3(void, vkCmdEndQuery, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, slot); \
 	HookDefine4(void, vkCmdResetQueryPool, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, startQuery, uint32_t, queryCount); \
+	HookDefine3(void, vkCmdSetEvent, VkCmdBuffer, cmdBuffer, VkEvent, event, VkPipelineStageFlags, stageMask); \
+	HookDefine3(void, vkCmdResetEvent, VkCmdBuffer, cmdBuffer, VkEvent, event, VkPipelineStageFlags, stageMask); \
+	HookDefine7(void, vkCmdWaitEvents, VkCmdBuffer, cmdBuffer, uint32_t, eventCount, const VkEvent*, pEvents, VkPipelineStageFlags, srcStageMask, VkPipelineStageFlags, destStageMask, uint32_t, memBarrierCount, const void* const*, ppMemBarriers); \
 	HookDefine3(VkResult, vkCreateFramebuffer, VkDevice, device, const VkFramebufferCreateInfo*, pCreateInfo, VkFramebuffer*, pFramebuffer); \
 	HookDefine2(void, vkDestroyFramebuffer, VkDevice, device, VkFramebuffer, framebuffer); \
 	HookDefine3(VkResult, vkCreateRenderPass, VkDevice, device, const VkRenderPassCreateInfo*, pCreateInfo, VkRenderPass*, pRenderPass); \

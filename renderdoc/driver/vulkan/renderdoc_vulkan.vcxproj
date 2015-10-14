@@ -44,6 +44,7 @@
     <ClCompile Include="wrappers\vk_queue_funcs.cpp" />
     <ClCompile Include="wrappers\vk_resource_funcs.cpp" />
     <ClCompile Include="wrappers\vk_shader_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_sync_funcs.cpp" />
     <ClCompile Include="wrappers\vk_wsi_funcs.cpp" />
   </ItemGroup>
   <ItemGroup>

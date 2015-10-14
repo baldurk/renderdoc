@@ -25,14 +25,17 @@ Known Issues
 On capture:
 
 * Multiple VkQueues are untested and may likely not work.
-* Some API functions are not currently hooked and will crash if called by the application to be debugged (see note 1).
-* Subpasses aren't supported.
-* Push constants aren't supported.
+* Some API functions are not currently implemented. They will work while capturing but will not replay correctly.
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
-* Sparse resources are not supported.
 * Memory maps are not intercepted, so any modifications are saved by reading back from the mapped pointer, even if it is uncached/write combined.
 * Image contents are saved out by copying aliasing their backing memory to a buffer, so will not be GPU-portable.
 * Captures will not be GPU-portable where memory indices etc change.
+* Unsupported or untested features:
+	* Subpasses
+	* Nested command buffer execution
+	* Push constants
+	* Most event, fence and semaphore operations for synchronisation, apart from simple use in WSI extensions.
+	* Sparse resources
 
 On replay:
 
@@ -58,18 +61,3 @@ In no particular order, features that are not planned until after 1.0.
 * Linux support with Qt UI
 * Shader edit & replace
 * Mesh output data capture and visualisation
-
-
-Note 1, unsupported entry points:
-
-* vkResetFences
-* vkWaitForFences
-
-* vkCreateEvent
-* vkDestroyEvent
-* vkGetEventStatus
-* vkSetEvent
-* vkResetEvent
-* vkCmdSetEvent
-* vkCmdResetEvent
-* vkCmdWaitEvents

@@ -28,6 +28,7 @@ wrappers/vk_draw_funcs.o \
 wrappers/vk_get_funcs.o \
 wrappers/vk_misc_funcs.o \
 wrappers/vk_queue_funcs.o \
+wrappers/vk_sync_funcs.o \
 wrappers/vk_resource_funcs.o \
 wrappers/vk_shader_funcs.o \
 wrappers/vk_wsi_funcs.o

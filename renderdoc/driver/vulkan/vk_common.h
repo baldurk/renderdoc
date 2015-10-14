@@ -109,6 +109,7 @@ template<> void Serialiser::Serialise(const char *name, VkCmdBufferBeginInfo &el
 template<> void Serialiser::Serialise(const char *name, VkStencilOpState &el);
 template<> void Serialiser::Serialise(const char *name, VkQueryPoolCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkEventCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkFenceCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el);
@@ -187,7 +188,13 @@ enum VulkanChunkType
 	CREATE_SEMAPHORE,
 	CREATE_FENCE,
 	GET_FENCE_STATUS,
+	RESET_FENCE,
 	WAIT_FENCES,
+
+	CREATE_EVENT,
+	GET_EVENT_STATUS,
+	SET_EVENT,
+	RESET_EVENT,
 
 	CREATE_QUERY_POOL,
 
@@ -248,6 +255,11 @@ enum VulkanChunkType
 	BEGIN_QUERY,
 	END_QUERY,
 	RESET_QUERY_POOL,
+
+	CMD_SET_EVENT,
+	CMD_RESET_EVENT,
+	CMD_WAIT_EVENTS,
+
 	DRAW,
 	DRAW_INDIRECT,
 	DRAW_INDEXED,

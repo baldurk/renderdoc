@@ -78,7 +78,13 @@ const char *VkChunkNames[] =
 	"vkCreateSemaphore",
 	"vkCreateFence",
 	"vkGetFenceStatus",
+	"vkResetFences",
 	"vkWaitForFences",
+	
+	"vkCreateEvent",
+	"vkGetEventStatus",
+	"vkSetEvent",
+	"vkResetEvent",
 
 	"vkCreateQueryPool",
 
@@ -139,6 +145,11 @@ const char *VkChunkNames[] =
 	"vkCmdBeginQuery",
 	"vkCmdEndQuery",
 	"vkCmdResetQueryPool",
+
+	"vkCmdSetEvent",
+	"vkCmdResetEvent",
+	"vkCmdWaitEvents",
+
 	"vkCmdDraw",
 	"vkCmdDrawIndirect",
 	"vkCmdDrawIndexed",
@@ -1006,9 +1017,24 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	case GET_FENCE_STATUS:
 		Serialise_vkGetFenceStatus(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
+	case RESET_FENCE:
+		Serialise_vkResetFences(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL);
+		break;
 	case WAIT_FENCES:
-		//VKTODOMED:
-		//Serialise_vkWaitForFences(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, VK_FALSE, 0.0f);
+		Serialise_vkWaitForFences(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, VK_FALSE, 0);
+		break;
+		
+	case CREATE_EVENT:
+		Serialise_vkCreateEvent(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		break;
+	case GET_EVENT_STATUS:
+		Serialise_vkGetEventStatus(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
+		break;
+	case SET_EVENT:
+		Serialise_vkSetEvent(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
+		break;
+	case RESET_EVENT:
+		Serialise_vkResetEvent(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 
 	case CREATE_QUERY_POOL:
@@ -1164,6 +1190,17 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	case RESET_QUERY_POOL:
 		Serialise_vkCmdResetQueryPool(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
 		break;
+		
+	case CMD_SET_EVENT:
+		Serialise_vkCmdSetEvent(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_GPU_COMMANDS);
+		break;
+	case CMD_RESET_EVENT:
+		Serialise_vkCmdResetEvent(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_GPU_COMMANDS);
+		break;
+	case CMD_WAIT_EVENTS:
+		Serialise_vkCmdWaitEvents(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, VK_PIPELINE_STAGE_ALL_GPU_COMMANDS, VK_PIPELINE_STAGE_ALL_GPU_COMMANDS, 0, NULL);
+		break;
+
 	case DRAW:
 		Serialise_vkCmdDraw(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, 0, 0);
 		break;
