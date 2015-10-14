@@ -2889,6 +2889,16 @@ void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el)
 }
 
 template<>
+Serialiser::Deserialise<VkPipelineCacheCreateInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		delete [] (byte *)initialData;
+	}
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 {
 	ScopedContext scope(this, name, "VkPipelineLayoutCreateInfo", 0, true);
@@ -2942,6 +2952,16 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
 	// for strongly typed serialising
 	Serialise("flags", el.flags);
+}
+
+template<>
+Serialiser::Deserialise<VkShaderModuleCreateInfo>::~Deserialise()
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(pNext == NULL); // otherwise delete
+		delete [] (byte *)pCode;
+	}
 }
 
 template<>
