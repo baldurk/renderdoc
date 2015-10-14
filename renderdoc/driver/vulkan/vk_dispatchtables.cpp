@@ -77,6 +77,7 @@ void InitInstanceReplayTables(VkInstance instance)
 
 #define InstanceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetInstanceProcAddr(instance, STRINGIZE(CONCAT(vk, func)));
 
+	InstanceGPA(GetPhysicalDeviceSurfaceSupportKHR)
 	InstanceGPA(DbgCreateMsgCallback)
 	InstanceGPA(DbgDestroyMsgCallback)
 

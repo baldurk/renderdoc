@@ -374,6 +374,23 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 	return ret;
 }
 
+VkResult WrappedVulkan::vkInvalidateMappedMemoryRanges(
+		VkDevice                                    device,
+		uint32_t                                    memRangeCount,
+		const VkMappedMemoryRange*                  pMemRanges)
+{
+	// VKTODOHIGH stub function
+	return ObjDisp(device)->InvalidateMappedMemoryRanges(Unwrap(device), memRangeCount, pMemRanges);
+}
+
+VkResult WrappedVulkan::vkGetDeviceMemoryCommitment(
+		VkDevice                                    device,
+		VkDeviceMemory                              memory,
+		VkDeviceSize*                               pCommittedMemoryInBytes)
+{
+	return ObjDisp(device)->GetDeviceMemoryCommitment(Unwrap(device), Unwrap(memory), pCommittedMemoryInBytes);
+}
+
 // Generic API object functions
 
 bool WrappedVulkan::Serialise_vkBindBufferMemory(
@@ -502,6 +519,72 @@ VkResult WrappedVulkan::vkBindImageMemory(
 	}
 
 	return ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(mem), memOffset);
+}
+
+bool WrappedVulkan::Serialise_vkQueueBindSparseBufferMemory(
+	Serialiser*                                 localSerialiser,
+	VkQueue                                     queue,
+	VkBuffer                                    buffer,
+	uint32_t                                    numBindings,
+	const VkSparseMemoryBindInfo*               pBindInfo)
+{
+	// VKTODOHIGH stub function
+	return true;
+}
+
+VkResult WrappedVulkan::vkQueueBindSparseBufferMemory(
+	VkQueue                                     queue,
+	VkBuffer                                    buffer,
+	uint32_t                                    numBindings,
+	const VkSparseMemoryBindInfo*               pBindInfo)
+{
+	// VKTODOHIGH stub function
+	RDCWARN("Sparse memory operations are not yet implemented");
+	return ObjDisp(queue)->QueueBindSparseBufferMemory(Unwrap(queue), Unwrap(buffer), numBindings, pBindInfo);
+}
+
+bool WrappedVulkan::Serialise_vkQueueBindSparseImageOpaqueMemory(
+	Serialiser*                                 localSerialiser,
+	VkQueue                                     queue,
+	VkImage                                     image,
+	uint32_t                                    numBindings,
+	const VkSparseMemoryBindInfo*               pBindInfo)
+{
+	// VKTODOHIGH stub function
+	return true;
+}
+
+VkResult WrappedVulkan::vkQueueBindSparseImageOpaqueMemory(
+	VkQueue                                     queue,
+	VkImage                                     image,
+	uint32_t                                    numBindings,
+	const VkSparseMemoryBindInfo*               pBindInfo)
+{
+	// VKTODOHIGH stub function
+	RDCWARN("Sparse memory operations are not yet implemented");
+	return ObjDisp(queue)->QueueBindSparseImageOpaqueMemory(Unwrap(queue), Unwrap(image), numBindings, pBindInfo);
+}
+
+bool WrappedVulkan::Serialise_vkQueueBindSparseImageMemory(
+	Serialiser*                                 localSerialiser,
+	VkQueue                                     queue,
+	VkImage                                     image,
+	uint32_t                                    numBindings,
+	const VkSparseImageMemoryBindInfo*          pBindInfo)
+{
+	// VKTODOHIGH stub function
+	return true;
+}
+
+VkResult WrappedVulkan::vkQueueBindSparseImageMemory(
+	VkQueue                                     queue,
+	VkImage                                     image,
+	uint32_t                                    numBindings,
+	const VkSparseImageMemoryBindInfo*          pBindInfo)
+{
+	// VKTODOHIGH stub function
+	RDCWARN("Sparse memory operations are not yet implemented");
+	return ObjDisp(queue)->QueueBindSparseImageMemory(Unwrap(queue), Unwrap(image), numBindings, pBindInfo);
 }
 
 bool WrappedVulkan::Serialise_vkCreateBuffer(

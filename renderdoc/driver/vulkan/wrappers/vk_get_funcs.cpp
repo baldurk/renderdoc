@@ -51,6 +51,19 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
 	return ObjDisp(physicalDevice)->GetPhysicalDeviceImageFormatProperties(Unwrap(physicalDevice), format, type, tiling, usage, flags, pImageFormatProperties);
 }
 
+VkResult WrappedVulkan::vkGetPhysicalDeviceSparseImageFormatProperties(
+			VkPhysicalDevice                            physicalDevice,
+			VkFormat                                    format,
+			VkImageType                                 type,
+			uint32_t                                    samples,
+			VkImageUsageFlags                           usage,
+			VkImageTiling                               tiling,
+			uint32_t*                                   pNumProperties,
+			VkSparseImageFormatProperties*              pProperties)
+{
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceSparseImageFormatProperties(Unwrap(physicalDevice), format, type, samples, usage, tiling, pNumProperties, pProperties);
+}
+
 VkResult WrappedVulkan::vkGetPhysicalDeviceProperties(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceProperties*                 pProperties)
@@ -102,4 +115,53 @@ VkResult WrappedVulkan::vkGetImageMemoryRequirements(
 		VkMemoryRequirements*                       pMemoryRequirements)
 {
 	return ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), pMemoryRequirements);
+}
+
+VkResult WrappedVulkan::vkGetImageSparseMemoryRequirements(
+		VkDevice                                    device,
+		VkImage                                     image,
+		uint32_t*                                   pNumRequirements,
+		VkSparseImageMemoryRequirements*            pSparseMemoryRequirements)
+{
+	return ObjDisp(device)->GetImageSparseMemoryRequirements(Unwrap(device), Unwrap(image), pNumRequirements, pSparseMemoryRequirements);
+}
+
+VkResult WrappedVulkan::vkGetRenderAreaGranularity(
+		VkDevice                                    device,
+		VkRenderPass                                renderPass,
+		VkExtent2D*                                 pGranularity)
+{
+	return ObjDisp(device)->GetRenderAreaGranularity(Unwrap(device), Unwrap(renderPass), pGranularity);
+}
+
+size_t WrappedVulkan::vkGetPipelineCacheSize(
+	VkDevice                                    device,
+	VkPipelineCache                             pipelineCache)
+{
+	// we don't want the application to use pipeline caches at all, and especially
+	// don't want to return any data for future use.
+	return 0;
+}
+
+VkResult WrappedVulkan::vkGetPipelineCacheData(
+	VkDevice                                    device,
+	VkPipelineCache                             pipelineCache,
+	void*                                       pData)
+{
+	// we don't want the application to use pipeline caches at all, and especially
+	// don't want to return any data for future use.
+	return VK_UNSUPPORTED;
+}
+
+VkResult WrappedVulkan::vkMergePipelineCaches(
+	VkDevice                                    device,
+	VkPipelineCache                             destCache,
+	uint32_t                                    srcCacheCount,
+	const VkPipelineCache*                      pSrcCaches)
+{
+	// hopefully we'll never get here, because we don't ever return a valid pipeline
+	// cache ourselves, our UUID should not match anyone's so the application should
+	// not upload a pipeline cache from elsewhere. So there will be nothing to merge,
+	// in theory.
+	return VK_UNSUPPORTED;
 }

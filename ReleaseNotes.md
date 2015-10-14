@@ -55,16 +55,6 @@ In no particular order, features that are not planned until after 1.0.
 
 Note 1, unsupported entry points:
 
-* vkGetPhysicalDeviceSparseImageFormatProperties
-* vkEnumerateDeviceExtensionProperties
-* vkEnumerateDeviceLayerProperties
-* vkGetPhysicalDeviceSurfaceSupportKHR
-* vkInvalidateMappedMemoryRanges
-* vkGetDeviceMemoryCommitment
-* vkGetImageSparseMemoryRequirements
-* vkQueueBindSparseBufferMemory
-* vkQueueBindSparseImageOpaqueMemory
-* vkQueueBindSparseImageMemory
 * vkResetFences
 * vkWaitForFences
 * vkCreateEvent
@@ -72,12 +62,6 @@ Note 1, unsupported entry points:
 * vkGetEventStatus
 * vkSetEvent
 * vkResetEvent
-* vkGetPipelineCacheSize
-* vkGetPipelineCacheData
-* vkMergePipelineCaches
-* vkCreateComputePipelines
-* vkResetDescriptorPool
-* vkGetRenderAreaGranularity
 * vkCmdFillBuffer
 * vkCmdSetEvent
 * vkCmdResetEvent

@@ -529,6 +529,16 @@ public:
     VkImageCreateFlags                          flags,
     VkImageFormatProperties*                    pImageFormatProperties);
 
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceSparseImageFormatProperties,
+			VkPhysicalDevice                            physicalDevice,
+			VkFormat                                    format,
+			VkImageType                                 type,
+			uint32_t                                    samples,
+			VkImageUsageFlags                           usage,
+			VkImageTiling                               tiling,
+			uint32_t*                                   pNumProperties,
+			VkSparseImageFormatProperties*              pProperties);
+
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceProperties,
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceProperties*                 pProperties);
@@ -664,6 +674,16 @@ public:
 			uint32_t                                    memRangeCount,
 			const VkMappedMemoryRange*                  pMemRanges);
 
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkInvalidateMappedMemoryRanges,
+			VkDevice                                    device,
+			uint32_t                                    memRangeCount,
+			const VkMappedMemoryRange*                  pMemRanges);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetDeviceMemoryCommitment,
+			VkDevice                                    device,
+			VkDeviceMemory                              memory,
+			VkDeviceSize*                               pCommittedMemoryInBytes);
+
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetBufferMemoryRequirements,
 			VkDevice                                    device,
 			VkBuffer                                    buffer,
@@ -673,6 +693,12 @@ public:
 			VkDevice                                    device,
 			VkImage                                     image,
 			VkMemoryRequirements*                       pMemoryRequirements);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetImageSparseMemoryRequirements,
+			VkDevice                                    device,
+			VkImage                                     image,
+			uint32_t*                                   pNumRequirements,
+			VkSparseImageMemoryRequirements*            pSparseMemoryRequirements);
 
 	// Memory management API functions
 
@@ -687,6 +713,24 @@ public:
     VkImage                                     image,
     VkDeviceMemory                              mem,
     VkDeviceSize                                memOffset);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueBindSparseBufferMemory,
+		VkQueue                                     queue,
+		VkBuffer                                    buffer,
+		uint32_t                                    numBindings,
+		const VkSparseMemoryBindInfo*               pBindInfo);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueBindSparseImageOpaqueMemory,
+		VkQueue                                     queue,
+		VkImage                                     image,
+		uint32_t                                    numBindings,
+		const VkSparseMemoryBindInfo*               pBindInfo);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueBindSparseImageMemory,
+		VkQueue                                     queue,
+		VkImage                                     image,
+		uint32_t                                    numBindings,
+		const VkSparseImageMemoryBindInfo*          pBindInfo);
 
 	// Buffer functions
 
@@ -766,6 +810,13 @@ public:
 			uint32_t                                    count,
 			const VkGraphicsPipelineCreateInfo*         pCreateInfos,
 			VkPipeline*                                 pPipelines);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateComputePipelines,
+			VkDevice                                    device,
+			VkPipelineCache                             pipelineCache,
+			uint32_t                                    count,
+			const VkComputePipelineCreateInfo*          pCreateInfos,
+			VkPipeline*                                 pPipelines);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyPipeline,
 			VkDevice                                    device,
@@ -779,6 +830,21 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyPipelineCache,
 			VkDevice                                    device,
 			VkPipelineCache                             pipelineCache);
+		
+	IMPLEMENT_FUNCTION_SERIALISED(size_t, vkGetPipelineCacheSize,
+			VkDevice                                    device,
+			VkPipelineCache                             pipelineCache);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPipelineCacheData,
+			VkDevice                                    device,
+			VkPipelineCache                             pipelineCache,
+			void*                                       pData);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkMergePipelineCaches,
+			VkDevice                                    device,
+			VkPipelineCache                             destCache,
+			uint32_t                                    srcCacheCount,
+			const VkPipelineCache*                      pSrcCaches);
 
 	// Pipeline layout functions
 
@@ -829,6 +895,10 @@ public:
 			uint32_t                                    count,
 			const VkDescriptorSetLayout*                pSetLayouts,
 			VkDescriptorSet*                            pDescriptorSets);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkResetDescriptorPool,
+			VkDevice                                    device,
+			VkDescriptorPool                            descriptorPool);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkUpdateDescriptorSets,
 			VkDevice                                    device,
@@ -844,6 +914,11 @@ public:
 			const VkDescriptorSet*                      pDescriptorSets);
 
 	// Command pool functions
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetRenderAreaGranularity,
+			VkDevice                                    device,
+			VkRenderPass                                renderPass,
+			VkExtent2D*                                 pGranularity);
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool,
 			VkDevice                                  device,
@@ -1156,7 +1231,7 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDbgMarkerEnd,
 			VkCmdBuffer  cmdBuffer);
 
-	// KHR functions
+	// Windowing extension functions
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceSurfaceSupportKHR,
 			VkPhysicalDevice                        physicalDevice,

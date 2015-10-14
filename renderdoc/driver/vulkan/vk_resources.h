@@ -631,6 +631,8 @@ struct VkResourceRecord : public ResourceRecord
 
 		VkResourceRecord *bakedCommands;
 
+		WrappedVkRes *Resource;
+
 		// a list of resources that are made dirty by submitting this command buffer
 		set<ResourceId> dirtied;
 

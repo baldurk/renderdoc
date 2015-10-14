@@ -110,6 +110,51 @@ void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCre
 		}
 }
 
+void VulkanCreationInfo::Pipeline::Init(const VkComputePipelineCreateInfo* pCreateInfo)
+{
+		flags = pCreateInfo->flags;
+
+		// need to figure out which states are valid to be NULL
+		
+		// VkPipelineShaderStageCreateInfo
+		RDCEraseEl(shaders);
+		shaders[0] = VKMGR()->GetNonDispWrapper(pCreateInfo->stage.shader)->id;
+
+		topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		primitiveRestartEnable = false;
+
+		patchControlPoints = 0;
+
+		viewportCount = 0;
+
+		// VkPipelineRasterStateCreateInfo
+		depthClipEnable = false;
+		rasterizerDiscardEnable = false;
+		fillMode = VK_FILL_MODE_SOLID;
+		cullMode = VK_CULL_MODE_NONE;
+		frontFace = VK_FRONT_FACE_CW;
+
+		// VkPipelineMultisampleStateCreateInfo
+		rasterSamples = 1;
+		sampleShadingEnable = false;
+		minSampleShading = 1.0f;
+		sampleMask = ~0U;
+
+		// VkPipelineDepthStencilStateCreateInfo
+		depthTestEnable = false;
+		depthWriteEnable = false;
+		depthCompareOp = VK_COMPARE_OP_ALWAYS;
+		depthBoundsEnable = false;
+		stencilTestEnable = false;
+		RDCEraseEl(front);
+		RDCEraseEl(back);
+
+		// VkPipelineColorBlendStateCreateInfo
+		alphaToCoverageEnable = false;
+		logicOpEnable = false;
+		logicOp = VK_LOGIC_OP_NOOP;
+}
+
 void VulkanCreationInfo::RenderPass::Init(const VkRenderPassCreateInfo* pCreateInfo)
 {
 	// VKTODOMED figure out how subpasses work

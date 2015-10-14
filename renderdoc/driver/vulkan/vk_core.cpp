@@ -986,8 +986,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCreateGraphicsPipelines(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL, NULL);
 		break;
 	case CREATE_COMPUTE_PIPE:
-		//VKTODOMED:
-		//Serialise_vkCreateComputePipelines(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateComputePipelines(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL, NULL);
 		break;
 	case GET_SWAPCHAIN_IMAGE:
 		Serialise_vkGetSwapchainImagesKHR(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, NULL, NULL);

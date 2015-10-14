@@ -424,14 +424,113 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 				VkResourceRecord *cacherecord = GetRecord(pipelineCache);
 				record->AddParent(cacherecord);
 
-				VkResourceRecord *layoutrecord = GetRecord(pCreateInfos->layout);
+				VkResourceRecord *layoutrecord = GetRecord(pCreateInfos[i].layout);
 				record->AddParent(layoutrecord);
 
-				for(uint32_t i=0; i < pCreateInfos->stageCount; i++)
+				for(uint32_t s=0; s < pCreateInfos[i].stageCount; s++)
 				{
-					VkResourceRecord *shaderrecord = GetRecord(pCreateInfos->pStages[i].shader);
+					VkResourceRecord *shaderrecord = GetRecord(pCreateInfos[i].pStages[s].shader);
 					record->AddParent(shaderrecord);
 				}
+			}
+			else
+			{
+				GetResourceManager()->AddLiveResource(id, pPipelines[i]);
+			}
+		}
+	}
+
+	return ret;
+}
+
+bool WrappedVulkan::Serialise_vkCreateComputePipelines(
+		Serialiser*                                 localSerialiser,
+		VkDevice                                    device,
+		VkPipelineCache                             pipelineCache,
+		uint32_t                                    count,
+		const VkComputePipelineCreateInfo*          pCreateInfos,
+		VkPipeline*                                 pPipelines)
+{
+	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
+	SERIALISE_ELEMENT(ResourceId, cacheId, GetResID(pipelineCache));
+	SERIALISE_ELEMENT(VkComputePipelineCreateInfo, info, *pCreateInfos);
+	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pPipelines));
+
+	if(m_State == READING)
+	{
+		VkPipeline pipe = VK_NULL_HANDLE;
+		
+		// use original ID
+		m_CreationInfo.m_Pipeline[id].Init(&info);
+
+		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
+		pipelineCache = GetResourceManager()->GetLiveHandle<VkPipelineCache>(cacheId);
+
+		VkResult ret = ObjDisp(device)->CreateComputePipelines(Unwrap(device), Unwrap(pipelineCache), 1, &info, &pipe);
+
+		if(ret != VK_SUCCESS)
+		{
+			RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+		}
+		else
+		{
+			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
+			GetResourceManager()->AddLiveResource(id, pipe);
+		}
+	}
+
+	return true;
+}
+
+VkResult WrappedVulkan::vkCreateComputePipelines(
+			VkDevice                                    device,
+			VkPipelineCache                             pipelineCache,
+			uint32_t                                    count,
+			const VkComputePipelineCreateInfo*          pCreateInfos,
+			VkPipeline*                                 pPipelines)
+{
+	VkComputePipelineCreateInfo *unwrapped = GetTempArray<VkComputePipelineCreateInfo>(count);
+
+	for(uint32_t i=0; i < count; i++)
+	{
+		unwrapped[i] = pCreateInfos[i];
+		unwrapped[i].stage.shader = Unwrap(unwrapped[i].stage.shader);
+		unwrapped[i].layout = Unwrap(unwrapped[i].layout);
+		unwrapped[i].basePipelineHandle = Unwrap(unwrapped[i].basePipelineHandle);
+	}
+
+	VkResult ret = ObjDisp(device)->CreateComputePipelines(Unwrap(device), Unwrap(pipelineCache), count, unwrapped, pPipelines);
+	
+	if(ret == VK_SUCCESS)
+	{
+		for(uint32_t i=0; i < count; i++)
+		{
+			ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pPipelines[i]);
+
+			if(m_State >= WRITING)
+			{
+				Chunk *chunk = NULL;
+
+				{
+					CACHE_THREAD_SERIALISER();
+		
+					SCOPED_SERIALISE_CONTEXT(CREATE_COMPUTE_PIPE);
+					Serialise_vkCreateComputePipelines(localSerialiser, device, pipelineCache, 1, &pCreateInfos[i], &pPipelines[i]);
+
+					chunk = scope.Get();
+				}
+
+				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pPipelines[i]);
+				record->AddChunk(chunk);
+
+				VkResourceRecord *cacherecord = GetRecord(pipelineCache);
+				record->AddParent(cacherecord);
+
+				VkResourceRecord *layoutrecord = GetRecord(pCreateInfos[i].layout);
+				record->AddParent(layoutrecord);
+
+				VkResourceRecord *shaderrecord = GetRecord(pCreateInfos[i].stage.shader);
+				record->AddParent(shaderrecord);
 			}
 			else
 			{

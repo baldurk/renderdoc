@@ -65,6 +65,8 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 			typename UnwrapHelper<realtype>::Outer *wrapped = GetWrapped(obj);
 			VkResourceRecord *ret = wrapped->record = ResourceManager::AddResourceRecord(wrapped->id);
 
+			ret->Resource = (WrappedVkRes *)wrapped;
+
 			return ret;
 		}
 		
@@ -169,7 +171,11 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 				{
 					// delete all of our children
 					for(auto it = record->pooledChildren.begin(); it != record->pooledChildren.end(); ++it)
-						(*it)->Delete(this);
+					{
+						// unset record->pool so we don't recurse
+						(*it)->pool = NULL;
+						ReleaseWrappedResource((VkDescriptorSet)(uint64_t)(*it)->Resource, true);
+					}
 					record->pooledChildren.clear();
 				}
 				

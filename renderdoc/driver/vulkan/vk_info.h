@@ -32,6 +32,7 @@ struct VulkanCreationInfo
 	struct Pipeline
 	{
 		void Init(const VkGraphicsPipelineCreateInfo* pCreateInfo);
+		void Init(const VkComputePipelineCreateInfo* pCreateInfo);
 		
 		// VkGraphicsPipelineCreateInfo
 		VkPipelineCreateFlags flags;
