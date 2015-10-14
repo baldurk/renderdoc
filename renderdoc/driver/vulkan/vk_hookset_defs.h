@@ -138,11 +138,15 @@
 	HookInit(CmdBlitImage); \
 	HookInit(CmdResolveImage); \
 	HookInit(CmdUpdateBuffer); \
+	HookInit(CmdFillBuffer); \
+	HookInit(CmdPushConstants); \
 	HookInit(CmdClearColorImage); \
 	HookInit(CmdClearDepthStencilImage); \
 	HookInit(CmdClearColorAttachment); \
 	HookInit(CmdClearDepthStencilAttachment); \
 	HookInit(CmdPipelineBarrier); \
+	HookInit(CmdWriteTimestamp); \
+	HookInit(CmdCopyQueryPoolResults); \
 	HookInit(CmdBeginQuery); \
 	HookInit(CmdEndQuery); \
 	HookInit(CmdResetQueryPool); \
@@ -151,6 +155,8 @@
 	HookInit(CreateRenderPass); \
 	HookInit(DestroyRenderPass); \
 	HookInit(CmdBeginRenderPass); \
+	HookInit(CmdNextSubpass); \
+	HookInit(CmdExecuteCommands); \
 	HookInit(CmdEndRenderPass); \
 	HookInit(GetSurfacePropertiesKHR); \
 	HookInit(GetSurfaceFormatsKHR); \
@@ -269,11 +275,15 @@
 	HookDefine8(void, vkCmdBlitImage, VkCmdBuffer, cmdBuffer, VkImage, srcImage, VkImageLayout, srcImageLayout, VkImage, destImage, VkImageLayout, destImageLayout, uint32_t, regionCount, const VkImageBlit*, pRegions, VkTexFilter, filter); \
 	HookDefine7(void, vkCmdResolveImage, VkCmdBuffer, cmdBuffer, VkImage, srcImage, VkImageLayout, srcImageLayout, VkImage, destImage, VkImageLayout, destImageLayout, uint32_t, regionCount, const VkImageResolve*, pRegions); \
 	HookDefine5(void, vkCmdUpdateBuffer, VkCmdBuffer, cmdBuffer, VkBuffer, destBuffer, VkDeviceSize, destOffset, VkDeviceSize, dataSize, const uint32_t*, pData); \
+	HookDefine5(void, vkCmdFillBuffer, VkCmdBuffer, cmdBuffer, VkBuffer, destBuffer, VkDeviceSize, destOffset, VkDeviceSize, fillSize, uint32_t, data); \
+	HookDefine6(void, vkCmdPushConstants, VkCmdBuffer, cmdBuffer, VkPipelineLayout, layout, VkShaderStageFlags, stageFlags, uint32_t, start, uint32_t, length, const void*, values); \
 	HookDefine6(void, vkCmdClearColorImage, VkCmdBuffer, cmdBuffer, VkImage, image, VkImageLayout, imageLayout, const VkClearColorValue*, pColor, uint32_t, rangeCount, const VkImageSubresourceRange*, pRanges); \
 	HookDefine6(void, vkCmdClearDepthStencilImage, VkCmdBuffer, cmdBuffer, VkImage, image, VkImageLayout, imageLayout, const VkClearDepthStencilValue*, pDepthStencil, uint32_t, rangeCount, const VkImageSubresourceRange*, pRanges); \
 	HookDefine6(void, vkCmdClearColorAttachment, VkCmdBuffer, cmdBuffer, uint32_t, colorAttachment, VkImageLayout, imageLayout, const VkClearColorValue*, pColor, uint32_t, rectCount, const VkRect3D*, pRects); \
 	HookDefine6(void, vkCmdClearDepthStencilAttachment, VkCmdBuffer, cmdBuffer, VkImageAspectFlags, aspectMask, VkImageLayout, imageLayout, const VkClearDepthStencilValue*, pDepthStencil, uint32_t, rectCount, const VkRect3D*, pRects); \
 	HookDefine6(void, vkCmdPipelineBarrier, VkCmdBuffer, cmdBuffer, VkPipelineStageFlags, srcStageMask, VkPipelineStageFlags, destStageMask, VkBool32, byRegion, uint32_t, memBarrierCount, const void* const*, ppMemBarriers); \
+	HookDefine4(void, vkCmdWriteTimestamp, VkCmdBuffer, cmdBuffer, VkTimestampType, timestampType, VkBuffer, destBuffer, VkDeviceSize, destOffset); \
+	HookDefine8(void, vkCmdCopyQueryPoolResults, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, startQuery, uint32_t, queryCount, VkBuffer, destBuffer, VkDeviceSize, destOffset, VkDeviceSize, destStride, VkQueryResultFlags, flags); \
 	HookDefine4(void, vkCmdBeginQuery, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, slot, VkQueryControlFlags, flags); \
 	HookDefine3(void, vkCmdEndQuery, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, slot); \
 	HookDefine4(void, vkCmdResetQueryPool, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, startQuery, uint32_t, queryCount); \
@@ -283,6 +293,8 @@
 	HookDefine2(void, vkDestroyRenderPass, VkDevice, device, VkRenderPass, renderPass); \
 	HookDefine3(VkResult, vkGetRenderAreaGranularity, VkDevice, device, VkRenderPass, renderPass, VkExtent2D*, pGranularity); \
 	HookDefine3(void, vkCmdBeginRenderPass, VkCmdBuffer, cmdBuffer, const VkRenderPassBeginInfo*, pRenderPassBegin, VkRenderPassContents, contents); \
+	HookDefine2(void, vkCmdNextSubpass, VkCmdBuffer, cmdBuffer, VkRenderPassContents, contents); \
+	HookDefine3(void, vkCmdExecuteCommands, VkCmdBuffer, cmdBuffer, uint32_t, cmdBuffersCount, const VkCmdBuffer*, pCmdBuffers); \
 	HookDefine1(void, vkCmdEndRenderPass, VkCmdBuffer, cmdBuffer); \
 	HookDefine5(VkResult, vkDbgCreateMsgCallback, VkInstance, instance, VkFlags, msgFlags, const PFN_vkDbgMsgCallback, pfnMsgCallback, void*, pUserData, VkDbgMsgCallback*, pMsgCallback); \
 	HookDefine2(VkResult, vkDbgDestroyMsgCallback, VkInstance, instance, VkDbgMsgCallback, msgCallback); \

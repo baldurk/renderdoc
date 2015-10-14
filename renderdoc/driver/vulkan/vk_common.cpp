@@ -968,6 +968,25 @@ string ToStrHelper<false, VkQueryControlFlagBits>::Get(const VkQueryControlFlagB
 }
 
 template<>
+string ToStrHelper<false, VkQueryResultFlagBits>::Get(const VkQueryResultFlagBits &el)
+{
+	string ret;
+
+	if(el == VK_QUERY_RESULT_DEFAULT)
+		return "VK_QUERY_RESULT_DEFAULT";
+
+	if(el & VK_QUERY_RESULT_64_BIT)                    ret += " | VK_QUERY_RESULT_64_BIT";
+	if(el & VK_QUERY_RESULT_WAIT_BIT)                  ret += " | VK_QUERY_RESULT_WAIT_BIT";
+	if(el & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)     ret += " | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT";
+	if(el & VK_QUERY_RESULT_PARTIAL_BIT)               ret += " | VK_QUERY_RESULT_PARTIAL_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
 string ToStrHelper<false, VkShaderStageFlagBits>::Get(const VkShaderStageFlagBits &el)
 {
 	string ret;

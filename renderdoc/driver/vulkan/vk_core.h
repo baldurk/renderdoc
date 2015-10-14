@@ -1127,6 +1127,21 @@ public:
 			VkDeviceSize                                destOffset,
 			VkDeviceSize                                dataSize,
 			const uint32_t*                             pData);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdFillBuffer,
+			VkCmdBuffer                                 cmdBuffer,
+			VkBuffer                                    destBuffer,
+			VkDeviceSize                                destOffset,
+			VkDeviceSize                                fillSize,
+			uint32_t                                    data);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPushConstants,
+			VkCmdBuffer                                 cmdBuffer,
+			VkPipelineLayout                            layout,
+			VkShaderStageFlags                          stageFlags,
+			uint32_t                                    start,
+			uint32_t                                    length,
+			const void*                                 values);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdClearColorImage,
 			VkCmdBuffer                                 cmdBuffer,
@@ -1167,6 +1182,22 @@ public:
 			VkBool32                                    byRegion,
 			uint32_t                                    memBarrierCount,
 			const void* const*                          ppMemBarriers);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteTimestamp,
+			VkCmdBuffer                                 cmdBuffer,
+			VkTimestampType                             timestampType,
+			VkBuffer                                    destBuffer,
+			VkDeviceSize                                destOffset);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyQueryPoolResults,
+			VkCmdBuffer                                 cmdBuffer,
+			VkQueryPool                                 queryPool,
+			uint32_t                                    startQuery,
+			uint32_t                                    queryCount,
+			VkBuffer                                    destBuffer,
+			VkDeviceSize                                destOffset,
+			VkDeviceSize                                destStride,
+			VkQueryResultFlags                          flags);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginQuery,
 			VkCmdBuffer                                 cmdBuffer,
@@ -1207,6 +1238,15 @@ public:
 			VkCmdBuffer                                 cmdBuffer,
 			const VkRenderPassBeginInfo*                pRenderPassBegin,
 			VkRenderPassContents                        contents);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdNextSubpass,
+			VkCmdBuffer                                 cmdBuffer,
+			VkRenderPassContents                        contents);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdExecuteCommands,
+			VkCmdBuffer                                 cmdBuffer,
+			uint32_t                                    cmdBuffersCount,
+			const VkCmdBuffer*                          pCmdBuffers);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRenderPass,
 			VkCmdBuffer                                 cmdBuffer);

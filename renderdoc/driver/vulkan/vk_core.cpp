@@ -99,6 +99,8 @@ const char *VkChunkNames[] =
 	"vkBindImageMemory",
 
 	"vkCmdBeginRenderPass",
+	"vkCmdNextSubpass",
+	"vkCmdExecuteCommands",
 	"vkCmdEndRenderPass",
 
 	"vkCmdBindPipeline",
@@ -123,6 +125,8 @@ const char *VkChunkNames[] =
 	"vkCmdBlitImage",
 	"vkCmdResolveImage",
 	"vkCmdUpdateBuffer",
+	"vkCmdFillBuffer",
+	"vkCmdPushConstants",
 
 	"vkCmdClearColorImage",
 	"vkCmdClearDepthStencilImage",
@@ -131,6 +135,7 @@ const char *VkChunkNames[] =
 	"vkCmdPipelineBarrier",
 
 	"vkCmdWriteTimestamp",
+	"vkCmdCopyQueryPoolResults",
 	"vkCmdBeginQuery",
 	"vkCmdEndQuery",
 	"vkCmdResetQueryPool",
@@ -1053,6 +1058,12 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	case BEGIN_RENDERPASS:
 		Serialise_vkCmdBeginRenderPass(GetMainSerialiser(), VK_NULL_HANDLE, NULL, VK_RENDER_PASS_CONTENTS_MAX_ENUM);
 		break;
+	case NEXT_SUBPASS:
+		Serialise_vkCmdNextSubpass(GetMainSerialiser(), VK_NULL_HANDLE, VK_RENDER_PASS_CONTENTS_MAX_ENUM);
+		break;
+	case EXEC_CMDS:
+		Serialise_vkCmdExecuteCommands(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL);
+		break;
 	case END_RENDERPASS:
 		Serialise_vkCmdEndRenderPass(GetMainSerialiser(), VK_NULL_HANDLE);
 		break;
@@ -1117,6 +1128,12 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	case UPDATE_BUF:
 		Serialise_vkCmdUpdateBuffer(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, NULL);
 		break;
+	case FILL_BUF:
+		Serialise_vkCmdFillBuffer(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0);
+		break;
+	case PUSH_CONST:
+		Serialise_vkCmdPushConstants(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_SHADER_STAGE_ALL, 0, 0, NULL);
+		break;
 	case CLEAR_COLOR:
 		Serialise_vkCmdClearColorImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
@@ -1133,8 +1150,10 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdPipelineBarrier(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL);
 		break;
 	case WRITE_TIMESTAMP:
-		//VKTODOMED:
-		//Serialise_vkCmdWriteTimestamp(GetMainSerialiser(), VK_NULL_HANDLE, VK_TIMESTAMP_TYPE_MAX_ENUM, VK_NULL_HANDLE, 0);
+		Serialise_vkCmdWriteTimestamp(GetMainSerialiser(), VK_NULL_HANDLE, VK_TIMESTAMP_TYPE_MAX_ENUM, VK_NULL_HANDLE, 0);
+		break;
+	case COPY_QUERY_RESULTS:
+		Serialise_vkCmdCopyQueryPoolResults(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, VK_NULL_HANDLE, 0, 0, VK_QUERY_RESULT_DEFAULT);
 		break;
 	case BEGIN_QUERY:
 		Serialise_vkCmdBeginQuery(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);

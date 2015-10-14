@@ -583,6 +583,118 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 	}
 }
 
+bool WrappedVulkan::Serialise_vkCmdNextSubpass(
+	Serialiser*                                 localSerialiser,
+	VkCmdBuffer                                 cmdBuffer,
+	VkRenderPassContents                        contents)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(VkRenderPassContents, cont, contents);
+	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
+	if(m_State == EXECUTING)
+	{
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			cmdBuffer = PartialCmdBuf();
+
+			// VKTODOMED subpass tracking here
+			ObjDisp(cmdBuffer)->CmdNextSubpass(Unwrap(cmdBuffer), cont);
+		}
+	}
+	else if(m_State == READING)
+	{
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+
+		ObjDisp(cmdBuffer)->CmdNextSubpass(Unwrap(cmdBuffer), cont);
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdNextSubpass(
+	VkCmdBuffer                                 cmdBuffer,
+	VkRenderPassContents                        contents)
+{
+	ObjDisp(cmdBuffer)->CmdNextSubpass(Unwrap(cmdBuffer), contents);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(cmdBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(NEXT_SUBPASS);
+		Serialise_vkCmdNextSubpass(localSerialiser, cmdBuffer, contents);
+
+		record->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdExecuteCommands(
+	Serialiser*                                 localSerialiser,
+	VkCmdBuffer                                 cmdBuffer,
+	uint32_t                                    cmdBuffersCount,
+	const VkCmdBuffer*                          pCmdBuffers)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(uint32_t, count, cmdBuffersCount);
+	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
+	vector<ResourceId> cmdids;
+	vector<VkCmdBuffer> cmds;
+
+	for(uint32_t i=0; i < count; i++)
+	{
+		ResourceId id;
+		if(m_State >= WRITING)
+			id = GetResID(pCmdBuffers[i]);
+
+		localSerialiser->Serialise("pCmdBuffers[]", id);
+
+		if(m_State < WRITING)
+		{
+			cmdids.push_back(id);
+			cmds.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkCmdBuffer>(id)));
+		}
+	}
+
+	if(m_State == EXECUTING)
+	{
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			cmdBuffer = PartialCmdBuf();
+			
+			// VKTODOHIGH proper handling of partial sub-executes
+			ObjDisp(cmdBuffer)->CmdExecuteCommands(Unwrap(cmdBuffer), count, &cmds[0]);
+		}
+	}
+	else if(m_State == READING)
+	{
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+
+		ObjDisp(cmdBuffer)->CmdExecuteCommands(Unwrap(cmdBuffer), count, &cmds[0]);
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdExecuteCommands(
+	VkCmdBuffer                                 cmdBuffer,
+	uint32_t                                    cmdBuffersCount,
+	const VkCmdBuffer*                          pCmdBuffers)
+{
+	VkCmdBuffer *unwrapped = GetTempArray<VkCmdBuffer>(cmdBuffersCount);
+	for(uint32_t i=0; i < cmdBuffersCount; i++) unwrapped[i] = Unwrap(pCmdBuffers[i]);
+	ObjDisp(cmdBuffer)->CmdExecuteCommands(Unwrap(cmdBuffer), cmdBuffersCount, unwrapped);
+
+	// VKTODOHIGH stub function
+}
+
 bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer)
@@ -1069,6 +1181,138 @@ void WrappedVulkan::vkCmdUpdateBuffer(
 	}
 }
 
+bool WrappedVulkan::Serialise_vkCmdFillBuffer(
+	Serialiser*                                 localSerialiser,
+	VkCmdBuffer                                 cmdBuffer,
+	VkBuffer                                    destBuffer,
+	VkDeviceSize                                destOffset,
+	VkDeviceSize                                fillSize,
+	uint32_t                                    data)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(destBuffer));
+	SERIALISE_ELEMENT(VkDeviceSize, offs, destOffset);
+	SERIALISE_ELEMENT(VkDeviceSize, sz, fillSize);
+	SERIALISE_ELEMENT(uint32_t, d, data);
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
+	if(m_State == EXECUTING)
+	{
+		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			cmdBuffer = PartialCmdBuf();
+			ObjDisp(cmdBuffer)->CmdFillBuffer(Unwrap(cmdBuffer), Unwrap(destBuffer), offs, sz, d);
+		}
+	}
+	else if(m_State == READING)
+	{
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		ObjDisp(cmdBuffer)->CmdFillBuffer(Unwrap(cmdBuffer), Unwrap(destBuffer), offs, sz, d);
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdFillBuffer(
+	VkCmdBuffer                                 cmdBuffer,
+	VkBuffer                                    destBuffer,
+	VkDeviceSize                                destOffset,
+	VkDeviceSize                                fillSize,
+	uint32_t                                    data)
+{
+	ObjDisp(cmdBuffer)->CmdFillBuffer(Unwrap(cmdBuffer), Unwrap(destBuffer), destOffset, fillSize, data);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(cmdBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(FILL_BUF);
+		Serialise_vkCmdFillBuffer(localSerialiser, cmdBuffer, destBuffer, destOffset, fillSize, data);
+
+		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResID(destBuffer), eFrameRef_Write);
+		
+		// Don't dirty the buffer, just the memory behind it.
+		{
+			VkResourceRecord *buf = GetRecord(destBuffer);
+			if(buf->GetMemoryRecord())
+				record->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
+		}
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdPushConstants(
+	Serialiser*                                 localSerialiser,
+	VkCmdBuffer                                 cmdBuffer,
+	VkPipelineLayout                            layout,
+	VkShaderStageFlags                          stageFlags,
+	uint32_t                                    start,
+	uint32_t                                    length,
+	const void*                                 values)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(ResourceId, layid, GetResID(layout));
+	SERIALISE_ELEMENT(VkShaderStageFlagBits, flags, (VkShaderStageFlagBits)stageFlags);
+	SERIALISE_ELEMENT(uint32_t, s, start);
+	SERIALISE_ELEMENT(uint32_t, len, length);
+	SERIALISE_ELEMENT_BUF(byte *, vals, (byte *)values, (size_t)(len*4));
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
+	if(m_State == EXECUTING)
+	{
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			cmdBuffer = PartialCmdBuf();
+			ObjDisp(cmdBuffer)->CmdPushConstants(Unwrap(cmdBuffer), Unwrap(layout), flags, s, len, vals);
+
+			// VKTODOMED update pipeline state
+		}
+	}
+	else if(m_State == READING)
+	{
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+
+		ObjDisp(cmdBuffer)->CmdPushConstants(Unwrap(cmdBuffer), Unwrap(layout), flags, s, len, vals);
+	}
+
+	SAFE_DELETE_ARRAY(vals);
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdPushConstants(
+	VkCmdBuffer                                 cmdBuffer,
+	VkPipelineLayout                            layout,
+	VkShaderStageFlags                          stageFlags,
+	uint32_t                                    start,
+	uint32_t                                    length,
+	const void*                                 values)
+{
+	ObjDisp(cmdBuffer)->CmdPushConstants(Unwrap(cmdBuffer), Unwrap(layout), stageFlags, start, length, values);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(cmdBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(PUSH_CONST);
+		Serialise_vkCmdPushConstants(localSerialiser, cmdBuffer, layout, stageFlags, start, length, values);
+
+		record->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 			Serialiser*                                 localSerialiser,
 			VkCmdBuffer                                 cmdBuffer,
@@ -1231,6 +1475,151 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 
 		// VKTODOMED do we need to mark frame referenced the resources in the barrier? if they're not referenced
 		// elsewhere, perhaps they can be dropped
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdWriteTimestamp(
+		Serialiser*                                 localSerialiser,
+		VkCmdBuffer                                 cmdBuffer,
+		VkTimestampType                             timestampType,
+		VkBuffer                                    destBuffer,
+		VkDeviceSize                                destOffset)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(VkTimestampType, type, timestampType);
+	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(destBuffer));
+	SERIALISE_ELEMENT(VkDeviceSize, offs, destOffset);
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
+	if(m_State == EXECUTING)
+	{
+		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			cmdBuffer = PartialCmdBuf();
+			ObjDisp(cmdBuffer)->CmdWriteTimestamp(Unwrap(cmdBuffer), type, Unwrap(destBuffer), offs);
+		}
+	}
+	else if(m_State == READING)
+	{
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		ObjDisp(cmdBuffer)->CmdWriteTimestamp(Unwrap(cmdBuffer), type, Unwrap(destBuffer), offs);
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdWriteTimestamp(
+		VkCmdBuffer                                 cmdBuffer,
+		VkTimestampType                             timestampType,
+		VkBuffer                                    destBuffer,
+		VkDeviceSize                                destOffset)
+{
+	ObjDisp(cmdBuffer)->CmdWriteTimestamp(Unwrap(cmdBuffer), timestampType, Unwrap(destBuffer), destOffset);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(cmdBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(WRITE_TIMESTAMP);
+		Serialise_vkCmdWriteTimestamp(localSerialiser, cmdBuffer, timestampType, destBuffer, destOffset);
+
+		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResID(destBuffer), eFrameRef_Write);
+		
+		// Don't dirty the buffer, just the memory behind it.
+		{
+			VkResourceRecord *buf = GetRecord(destBuffer);
+			if(buf->GetMemoryRecord())
+				record->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
+		}
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdCopyQueryPoolResults(
+		Serialiser*                                 localSerialiser,
+		VkCmdBuffer                                 cmdBuffer,
+		VkQueryPool                                 queryPool,
+		uint32_t                                    startQuery,
+		uint32_t                                    queryCount,
+		VkBuffer                                    destBuffer,
+		VkDeviceSize                                destOffset,
+		VkDeviceSize                                destStride,
+		VkQueryResultFlags                          flags)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queryPool));
+	SERIALISE_ELEMENT(uint32_t, start, startQuery);
+	SERIALISE_ELEMENT(uint32_t, count, queryCount);
+	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(destBuffer));
+	SERIALISE_ELEMENT(VkDeviceSize, offs, destOffset);
+	SERIALISE_ELEMENT(VkDeviceSize, stride, destStride);
+	SERIALISE_ELEMENT(VkQueryResultFlagBits, f, (VkQueryResultFlagBits)flags);
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
+	if(m_State == EXECUTING)
+	{
+		queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
+		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			cmdBuffer = PartialCmdBuf();
+			ObjDisp(cmdBuffer)->CmdCopyQueryPoolResults(Unwrap(cmdBuffer), Unwrap(queryPool), start, count, Unwrap(destBuffer), offs, stride, f);
+		}
+	}
+	else if(m_State == READING)
+	{
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
+		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		ObjDisp(cmdBuffer)->CmdCopyQueryPoolResults(Unwrap(cmdBuffer), Unwrap(queryPool), start, count, Unwrap(destBuffer), offs, stride, f);
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdCopyQueryPoolResults(
+		VkCmdBuffer                                 cmdBuffer,
+		VkQueryPool                                 queryPool,
+		uint32_t                                    startQuery,
+		uint32_t                                    queryCount,
+		VkBuffer                                    destBuffer,
+		VkDeviceSize                                destOffset,
+		VkDeviceSize                                destStride,
+		VkQueryResultFlags                          flags)
+{
+	ObjDisp(cmdBuffer)->CmdCopyQueryPoolResults(Unwrap(cmdBuffer), Unwrap(queryPool), startQuery, queryCount, Unwrap(destBuffer), destOffset, destStride, flags);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(cmdBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(COPY_QUERY_RESULTS);
+		Serialise_vkCmdCopyQueryPoolResults(localSerialiser, cmdBuffer, queryPool, startQuery, queryCount, destBuffer, destOffset, destStride, flags);
+
+		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetResID(destBuffer), eFrameRef_Write);
+		
+		// Don't dirty the buffer, just the memory behind it.
+		{
+			VkResourceRecord *buf = GetRecord(destBuffer);
+			if(buf->GetMemoryRecord())
+				record->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
+		}
 	}
 }
 
