@@ -42,9 +42,9 @@ On replay:
 
 * Only 2D non-array non-integer textures can currently be displayed.
 * Pixel values aren't fetched.
+* Thumbnail images aren't rendered (causes crashes/halts on nvidia's driver).
 * Auto texture range-fit or histogram display is not implemented.
 * Debug overlays aren't implemented.
-* The display pipeline is not yet gamma correct.
 * Saving textures is not supported.
 * Queue-level API events are not properly listed. API calls between draw-type vkCmd... are listed.
 * Meshes are not rendered as a preview.

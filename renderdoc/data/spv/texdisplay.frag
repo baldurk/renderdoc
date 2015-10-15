@@ -102,6 +102,11 @@ void main(void)
 				col = vec4(dot(col.rgb, 1.0f.xxx).xxx, 1.0f);
 		}
 	}
+	
+	if(texdisplay.OutputDisplayFormat > 0)
+	{
+		col.rgb = pow(clamp(col.rgb, 0.0f.xxx, 1.0f.xxx), 2.2f.xxx);
+	}
 
 	color_out = (texdisplay.RawOutput != 0 ? rawcol : col);
 }

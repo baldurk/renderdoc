@@ -193,9 +193,26 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			}
 			else
 			{
-				// since we don't care, if the driver has a preference just pick the first
-				imformat = formats[0].format;
+				// try and find a format with SRGB correction
+				imformat = VK_FORMAT_UNDEFINED;
 				imcolspace = formats[0].colorSpace;
+
+				for(uint32_t i=0; i < numFormats; i++)
+				{
+					if(IsSRGBFormat(formats[i].format))
+					{
+						imformat = formats[i].format;
+						imcolspace = formats[i].colorSpace;
+						RDCASSERT(imcolspace == VK_COLORSPACE_SRGB_NONLINEAR_KHR);
+						break;
+					}
+				}
+
+				if(imformat == VK_FORMAT_UNDEFINED)
+				{
+					RDCWARN("Couldn't find SRGB correcting output swapchain format");
+					imformat = formats[0].format;
+				}
 			}
 
 			SAFE_DELETE_ARRAY(formats);
@@ -747,6 +764,11 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 
 	// VKTODOMED handle different texture types/displays
 	data->OutputDisplayFormat = 0;
+	
+	if(!IsSRGBFormat(iminfo.format) && cfg.linearDisplayAsGamma)
+	{
+		data->OutputDisplayFormat |= 1; // VKTODOMED constants TEXDISPLAY_GAMMA_CURVE;
+	}
 	
 	data->RawOutput = cfg.rawoutput ? 1 : 0;
 

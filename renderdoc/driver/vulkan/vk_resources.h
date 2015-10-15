@@ -698,3 +698,4 @@ struct ImgState
 
 bool IsBlockFormat(VkFormat f);
 bool IsDepthStencilFormat(VkFormat f);
+bool IsSRGBFormat(VkFormat f);

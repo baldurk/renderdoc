@@ -178,3 +178,43 @@ bool IsDepthStencilFormat(VkFormat f)
 
 	return false;
 }
+
+bool IsSRGBFormat(VkFormat f)
+{
+	switch(f)
+	{
+		case VK_FORMAT_R8_SRGB:
+		case VK_FORMAT_R8G8_SRGB:
+		case VK_FORMAT_R8G8B8_SRGB:
+		case VK_FORMAT_R8G8B8A8_SRGB:
+		case VK_FORMAT_BC1_RGB_SRGB:
+		case VK_FORMAT_BC1_RGBA_SRGB:
+		case VK_FORMAT_BC2_SRGB:
+		case VK_FORMAT_BC3_SRGB:
+		case VK_FORMAT_BC7_SRGB:
+		case VK_FORMAT_ETC2_R8G8B8_SRGB:
+		case VK_FORMAT_ETC2_R8G8B8A1_SRGB:
+		case VK_FORMAT_ETC2_R8G8B8A8_SRGB:
+		case VK_FORMAT_ASTC_4x4_SRGB:
+		case VK_FORMAT_ASTC_5x4_SRGB:
+		case VK_FORMAT_ASTC_5x5_SRGB:
+		case VK_FORMAT_ASTC_6x5_SRGB:
+		case VK_FORMAT_ASTC_6x6_SRGB:
+		case VK_FORMAT_ASTC_8x5_SRGB:
+		case VK_FORMAT_ASTC_8x6_SRGB:
+		case VK_FORMAT_ASTC_8x8_SRGB:
+		case VK_FORMAT_ASTC_10x5_SRGB:
+		case VK_FORMAT_ASTC_10x6_SRGB:
+		case VK_FORMAT_ASTC_10x8_SRGB:
+		case VK_FORMAT_ASTC_10x10_SRGB:
+		case VK_FORMAT_ASTC_12x10_SRGB:
+		case VK_FORMAT_ASTC_12x12_SRGB:
+		case VK_FORMAT_B8G8R8_SRGB:
+		case VK_FORMAT_B8G8R8A8_SRGB:
+			return true;
+		default:
+			break;
+	}
+
+	return false;
+}
