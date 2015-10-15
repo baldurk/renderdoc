@@ -745,6 +745,11 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkImage img = VK_NULL_HANDLE;
 
+		VkImageUsageFlags origFlags = info.usage;
+
+		// ensure we can always display and copy from textures
+		info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT;
+
 		VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &info, &img);
 
 		if(ret != VK_SUCCESS)
@@ -763,13 +768,13 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 			m_ImageInfo[live].arraySize = info.arraySize;
 			m_ImageInfo[live].samples = info.samples;
 
-			if(info.usage & VK_IMAGE_USAGE_SAMPLED_BIT)
+			if(origFlags & VK_IMAGE_USAGE_SAMPLED_BIT)
 				m_ImageInfo[live].creationFlags |= eTextureCreate_SRV;
-			if(info.usage & (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT))
+			if(origFlags & (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT))
 				m_ImageInfo[live].creationFlags |= eTextureCreate_RTV;
-			if(info.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+			if(origFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
 				m_ImageInfo[live].creationFlags |= eTextureCreate_DSV;
-			if(info.usage & VK_IMAGE_USAGE_STORAGE_BIT)
+			if(origFlags & VK_IMAGE_USAGE_STORAGE_BIT)
 				m_ImageInfo[live].creationFlags |= eTextureCreate_UAV;
 
 			if(info.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT)
