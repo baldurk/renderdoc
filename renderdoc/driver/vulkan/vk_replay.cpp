@@ -658,7 +658,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
 			iminfo.format,
 			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, },
+			{ VK_IMAGE_ASPECT_COLOR, 0, RDCMAX(1, iminfo.mipLevels), 0, 1, },
 			0
 		};
 

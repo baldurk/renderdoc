@@ -17,7 +17,8 @@ Current Support
 * On replay you can step into each vkQueueSubmit call to see the command buffers submitted, and step into them to browse through the commands.
 * The pipeline state will be displayed at each command, roughly showing the data contained in each member of the pipeline createinfo struct, as well as dynamic state.
 * Simple disassembly/reflection of SPIR-V to determine which descriptors to read for read-only resources and uniform buffers. The uniform buffers will be listed separately and the member variables filled out.
-* Simple display of most 2D textures in the texture viewer.
+* Simple display of most 2D textures with mips in the texture viewer.
+* Threading should be pretty efficient - no heavy locks on common paths (outside of creation/deletion)
 
 Known Issues
 ========
@@ -39,7 +40,7 @@ On capture:
 
 On replay:
 
-* Only 2D non-array non-integer textures can currently be displayed, and only the first mip.
+* Only 2D non-array non-integer textures can currently be displayed.
 * Pixel values aren't fetched.
 * Auto texture range-fit or histogram display is not implemented.
 * Debug overlays aren't implemented.

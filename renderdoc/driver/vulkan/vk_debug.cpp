@@ -214,7 +214,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		0.0f, // lod bias
 		1.0f, // max aniso
 		false, VK_COMPARE_OP_NEVER,
-		0.0f, 0.0f, // min/max lod
+		0.0f, 128.0f, // min/max lod
 		VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
 		false, // unnormalized
 	};
