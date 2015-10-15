@@ -46,11 +46,15 @@ class VulkanDebugManager
 		~VulkanDebugManager();
 
 		void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
-		
+
 		struct GPUBuffer
 		{
+			enum CreateFlags
+			{
+				eGPUBufferReadback = 0x1,
+			};
 			GPUBuffer() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE) {}
-			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size);
+			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t flags);
 			void Destroy(const VkLayerDispatchTable *vt, VkDevice dev);
 
 			void FillDescriptor(VkDescriptorInfo &desc);
@@ -85,6 +89,13 @@ class VulkanDebugManager
 		VkDescriptorSet m_TexDisplayDescSet;
 		VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline;
 		GPUBuffer m_TexDisplayUBO;
+
+		VkDeviceMemory m_PickPixelImageMem;
+		VkImage m_PickPixelImage;
+		VkImageView m_PickPixelImageView;
+		GPUBuffer m_PickPixelReadbackBuffer;
+		VkFramebuffer m_PickPixelFB;
+		VkRenderPass m_PickPixelRP;
 		
 		VkDescriptorSetLayout m_TextDescSetLayout;
 		VkPipelineLayout m_TextPipeLayout;

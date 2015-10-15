@@ -41,7 +41,6 @@ On capture:
 On replay:
 
 * Only 2D non-array non-integer textures can currently be displayed.
-* Pixel values aren't fetched.
 * Thumbnail images aren't rendered (causes crashes/halts on nvidia's driver).
 * Auto texture range-fit or histogram display is not implemented.
 * Debug overlays aren't implemented.

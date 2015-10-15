@@ -86,7 +86,7 @@ struct stringdata
 	uint32_t str[256][4];
 };
 
-void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size)
+void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t flags)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
@@ -94,9 +94,13 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 
 	VkBufferCreateInfo bufInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-		size, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
+		size, 0, 0,
 		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 	};
+
+	bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
+	bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT;
+	bufInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
 	VkResult vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, &buf);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -110,7 +114,10 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 	// VKTODOMED maybe don't require host visible, and do map & copy?
 	VkMemoryAllocInfo allocInfo = {
 		VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-		size, driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
+		size,
+		(flags & eGPUBufferReadback)
+		? driver->GetReadbackMemoryIndex(mrq.memoryTypeBits)
+		: driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
 	};
 
 	vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &mem);
@@ -364,7 +371,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VKMGR()->WrapResource(Unwrap(dev), m_GenericDescSet);
 
-	m_GenericUBO.Create(driver, dev, 128);
+	m_GenericUBO.Create(driver, dev, 128, 0);
 	RDCCOMPILE_ASSERT(sizeof(genericuniforms) <= 128, "outline strip VBO size");
 
 	{
@@ -382,7 +389,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			0.0f, -1.0f, 0.0f, 1.0f,
 		};
 		
-		m_OutlineStripVBO.Create(driver, dev, 128);
+		m_OutlineStripVBO.Create(driver, dev, 128, 0);
 		RDCCOMPILE_ASSERT(sizeof(data) <= 128, "outline strip VBO size");
 		
 		float *mapped = (float *)m_OutlineStripVBO.Map(vt, dev);
@@ -392,15 +399,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		m_OutlineStripVBO.Unmap(vt, dev);
 	}
 
-	m_CheckerboardUBO.Create(driver, dev, 128);
-	m_TexDisplayUBO.Create(driver, dev, 128);
+	m_CheckerboardUBO.Create(driver, dev, 128, 0);
+	m_TexDisplayUBO.Create(driver, dev, 128, 0);
 
 	RDCCOMPILE_ASSERT(sizeof(displayuniforms) <= 128, "tex display size");
 		
-	m_TextGeneralUBO.Create(driver, dev, 128);
+	m_TextGeneralUBO.Create(driver, dev, 128, 0);
 	RDCCOMPILE_ASSERT(sizeof(fontuniforms) <= 128, "font uniforms size");
 
-	m_TextStringUBO.Create(driver, dev, 4096);
+	m_TextStringUBO.Create(driver, dev, 4096, 0);
 	RDCCOMPILE_ASSERT(sizeof(stringdata) <= 4096, "font uniforms size");
 	
 	string shaderSources[] = {
@@ -749,7 +756,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			vt->UnmapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem));
 		}
 
-		m_TextGlyphUBO.Create(driver, dev, 4096);
+		m_TextGlyphUBO.Create(driver, dev, 4096, 0);
 		RDCCOMPILE_ASSERT(sizeof(Vec4f)*2*(numChars+1) < 4096, "font uniform size");
 
 		Vec4f *glyphData = (Vec4f *)m_TextGlyphUBO.Map(vt, dev);
@@ -766,6 +773,147 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		}
 
 		m_TextGlyphUBO.Unmap(vt, dev);
+	}
+
+	// pick pixel data
+	{
+		// create image
+		
+		VkImageCreateInfo imInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_IMAGE_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT,
+			{ 1, 1, 1 }, 1, 1, 1,
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT,
+			0,
+			VK_SHARING_MODE_EXCLUSIVE,
+			0, NULL,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+		};
+		
+		vkr = vt->CreateImage(Unwrap(dev), &imInfo, &m_PickPixelImage);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VKMGR()->WrapResource(Unwrap(dev), m_PickPixelImage);
+
+		VkMemoryRequirements mrq;
+		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_PickPixelImage), &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR, 0, 0 };
+		VkSubresourceLayout layout = { 0 };
+		vt->GetImageSubresourceLayout(Unwrap(dev), Unwrap(m_PickPixelImage), &subr, &layout);
+
+		// allocate readback memory
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &m_PickPixelImageMem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VKMGR()->WrapResource(Unwrap(dev), m_PickPixelImageMem);
+
+		vkr = vt->BindImageMemory(Unwrap(dev), Unwrap(m_PickPixelImage), Unwrap(m_PickPixelImageMem), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkImageViewCreateInfo viewInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+			Unwrap(m_PickPixelImage), VK_IMAGE_VIEW_TYPE_2D,
+			VK_FORMAT_R32G32B32A32_SFLOAT,
+			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, },
+			0,
+		};
+
+		// VKTODOMED used for texture display, but eventually will have to be created on the fly
+		// for whichever image we're viewing (and cached), not specifically created here.
+		vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, &m_PickPixelImageView);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VKMGR()->WrapResource(Unwrap(dev), m_PickPixelImageView);
+
+		// need to transition image into valid state
+		VkCmdBuffer cmd = driver->GetCmd();
+		VkQueue q = driver->GetQ();
+
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+		vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkImageMemoryBarrier trans = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			0, 0,
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(m_PickPixelImage),
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
+
+		void *barrier = (void *)&trans;
+
+		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+		vt->EndCommandBuffer(Unwrap(cmd));
+
+		vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
+
+		// VKTODOMED ideally all the commands from Bind to Flip would be recorded
+		// into a single command buffer and we can just have several allocated
+		// ring-buffer style
+		vt->QueueWaitIdle(Unwrap(q));
+
+		// create render pass
+		VkAttachmentDescription attDesc = {
+			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
+			VK_FORMAT_R32G32B32A32_SFLOAT, 1,
+			VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		};
+
+		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+		VkSubpassDescription sub = {
+			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
+			VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+			0, NULL, // inputs
+			1, &attRef, // color
+			NULL, // resolve
+			{ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED }, // depth-stencil
+			0, NULL, // preserve
+		};
+
+		VkRenderPassCreateInfo rpinfo = {
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+				1, &attDesc,
+				1, &sub,
+				0, NULL, // dependencies
+		};
+
+		vkr = vt->CreateRenderPass(Unwrap(dev), &rpinfo, &m_PickPixelRP);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VKMGR()->WrapResource(Unwrap(dev), m_PickPixelRP);
+
+		// create framebuffer
+		VkFramebufferCreateInfo fbinfo = {
+			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
+			Unwrap(m_PickPixelRP),
+			1, UnwrapPtr(m_PickPixelImageView),
+			1, 1, 1,
+		};
+
+		vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, &m_PickPixelFB);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VKMGR()->WrapResource(Unwrap(dev), m_PickPixelFB);
+
+		m_PickPixelReadbackBuffer.Create(driver, dev, sizeof(float)*4, GPUBuffer::eGPUBufferReadback);
 	}
 
 	VkDescriptorInfo desc[7];
@@ -892,6 +1040,38 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	m_CheckerboardUBO.Destroy(vt, dev);
 	m_TexDisplayUBO.Destroy(vt, dev);
+
+	m_PickPixelReadbackBuffer.Destroy(vt, dev);
+
+	if(m_PickPixelFB != VK_NULL_HANDLE)
+	{
+		vt->DestroyFramebuffer(Unwrap(dev), Unwrap(m_PickPixelFB));
+		VKMGR()->ReleaseWrappedResource(m_PickPixelFB);
+	}
+
+	if(m_PickPixelRP != VK_NULL_HANDLE)
+	{
+		vt->DestroyRenderPass(Unwrap(dev), Unwrap(m_PickPixelRP));
+		VKMGR()->ReleaseWrappedResource(m_PickPixelRP);
+	}
+
+	if(m_PickPixelImageView != VK_NULL_HANDLE)
+	{
+		vt->DestroyImageView(Unwrap(dev), Unwrap(m_PickPixelImageView));
+		VKMGR()->ReleaseWrappedResource(m_PickPixelImageView);
+	}
+
+	if(m_PickPixelImage != VK_NULL_HANDLE)
+	{
+		vt->DestroyImage(Unwrap(dev), Unwrap(m_PickPixelImage));
+		VKMGR()->ReleaseWrappedResource(m_PickPixelImage);
+	}
+
+	if(m_PickPixelImageMem != VK_NULL_HANDLE)
+	{
+		vt->FreeMemory(Unwrap(dev), Unwrap(m_PickPixelImageMem));
+		VKMGR()->ReleaseWrappedResource(m_PickPixelImageMem);
+	}
 
 	if(m_TextDescSetLayout != VK_NULL_HANDLE)
 	{

@@ -426,6 +426,8 @@ VulkanReplay::VulkanReplay()
 	m_OutputWinID = 1;
 	m_ActiveWinID = 0;
 	m_BindDepth = false;
+
+	m_DebugWidth = m_DebugHeight = 1;
 }
 
 VulkanDebugManager *VulkanReplay::GetDebugManager()
@@ -522,18 +524,39 @@ vector<ResourceId> VulkanReplay::GetBuffers()
 
 void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 {
-	//VULKANNOTIMP("PickPixel");
+	int oldW = m_DebugWidth, oldH = m_DebugHeight;
 
-	ResourceId resid;
-	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkExtent3D fakeBBext;
-	ResourceFormat fakeBBfmt;
-	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext, fakeBBfmt);
+	m_DebugWidth = m_DebugHeight = 1;
 
-	if(x >= (uint32_t)fakeBBext.width || y >= (uint32_t)fakeBBext.height)
+	// render picked pixel to readback F32 RGBA texture
 	{
-		RDCEraseEl(pixel);
-		return;
+		TextureDisplay texDisplay;
+
+		texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+		texDisplay.HDRMul = -1.0f;
+		texDisplay.linearDisplayAsGamma = true;
+		texDisplay.FlipY = false;
+		texDisplay.mip = mip;
+		texDisplay.sampleIdx = sample;
+		texDisplay.CustomShader = ResourceId();
+		texDisplay.sliceFace = sliceFace;
+		texDisplay.rangemin = 0.0f;
+		texDisplay.rangemax = 1.0f;
+		texDisplay.scale = 1.0f;
+		texDisplay.texid = texture;
+		texDisplay.rawoutput = true;
+		texDisplay.offx = -float(x);
+		texDisplay.offy = -float(y);
+		
+		VkClearValue clearval = {0};
+		VkRenderPassBeginInfo rpbegin = {
+			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+			Unwrap(GetDebugManager()->m_PickPixelRP), Unwrap(GetDebugManager()->m_PickPixelFB),
+			{ { 0, 0, }, { 1, 1 } },
+			1, &clearval,
+		};
+
+		RenderTextureInternal(texDisplay, rpbegin, false);
 	}
 
 	VkDevice dev = m_pDriver->GetDev();
@@ -541,45 +564,20 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	VkQueue q = m_pDriver->GetQ();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	// VKTODOMED this should be all created offline, including separate host and
-	// readback buffers
-	// for now while these are very short lived, they are not wrapped 
-	VkDeviceMemory readbackmem = VK_NULL_HANDLE;
-	VkBuffer destbuf = VK_NULL_HANDLE;
+	VkResult vkr = VK_SUCCESS;
 
 	{
-		VkBufferCreateInfo bufInfo = {
-			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			128, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
-			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
-		};
-
-		VkResult vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, &destbuf);
-		RDCASSERT(vkr == VK_SUCCESS);
-		
-		VkMemoryRequirements mrq;
-		vkr = vt->GetBufferMemoryRequirements(Unwrap(dev), destbuf, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-			128, m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
-		};
-
-		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &readbackmem);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		vkr = vt->BindBufferMemory(Unwrap(dev), destbuf, readbackmem, 0);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		// VKTODOHIGH find out the actual current image state
-		VkImageMemoryBarrier fakeTrans = {
+		VkImageMemoryBarrier pickimTrans = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
+			0, 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-			Unwrap(fakeBBIm),
+			Unwrap(GetDebugManager()->m_PickPixelImage),
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 		};
+
+		// transition from color attachment to transfer source, with proper memory barriers
+		pickimTrans.outputMask = VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT;
+		pickimTrans.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
@@ -588,18 +586,23 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		void *barrier = (void *)&fakeTrans;
+		void *barrier = (void *)&pickimTrans;
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
-		fakeTrans.oldLayout = fakeTrans.newLayout;
+		pickimTrans.oldLayout = pickimTrans.newLayout;
 
+		pickimTrans.outputMask = 0;
+		pickimTrans.inputMask = 0;
+
+		// do copy
 		VkBufferImageCopy region = {
 			0, 128, 1,
-			{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { (int)x, (int)y, 0 },
+			{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { 0, 0, 0 },
 			{ 1, 1, 1 },
 		};
-		vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(fakeBBIm), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, destbuf, 1, &region);
+		vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_PickPixelImage), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.buf), 1, &region);
 
-		fakeTrans.newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR;
+		// transition back to color attachment
+		pickimTrans.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
 		vt->EndCommandBuffer(Unwrap(cmd));
@@ -609,34 +612,24 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		vt->QueueWaitIdle(Unwrap(q));
 	}
 
-	byte *pData = NULL;
-	vt->MapMemory(Unwrap(dev), readbackmem, 0, 0, 0, (void **)&pData);
+	float *pData = NULL;
+	vt->MapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem), 0, 0, 0, (void **)&pData);
 
 	RDCASSERT(pData != NULL);
 
-	// VKTODOMED this should go through render texture so that we
-	// just get pure F32 RGBA data out
-	if(fakeBBfmt.specialFormat == eSpecial_B8G8R8A8)
+	if(pData == NULL)
 	{
-		pixel[0] = float(pData[2])/255.0f;
-		pixel[1] = float(pData[1])/255.0f;
-		pixel[2] = float(pData[0])/255.0f;
-		pixel[3] = float(pData[3])/255.0f;
+		RDCERR("Failed ot map readback buffer memory");
 	}
 	else
 	{
-		pixel[0] = float(pData[0])/255.0f;
-		pixel[1] = float(pData[1])/255.0f;
-		pixel[2] = float(pData[2])/255.0f;
-		pixel[3] = float(pData[3])/255.0f;
+		pixel[0] = pData[0];
+		pixel[1] = pData[1];
+		pixel[2] = pData[2];
+		pixel[3] = pData[3];
 	}
 
-	vt->UnmapMemory(Unwrap(dev), readbackmem);
-
-	vt->DeviceWaitIdle(Unwrap(dev));
-
-	vt->DestroyBuffer(Unwrap(dev), destbuf);
-	vt->FreeMemory(Unwrap(dev), readbackmem);
+	vt->UnmapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem));
 }
 
 uint32_t VulkanReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
@@ -655,7 +648,20 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	}
 
 	OutputWindow &outw = it->second;
+	
+	VkClearValue clearval = {0};
+	VkRenderPassBeginInfo rpbegin = {
+		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+		Unwrap(outw.renderpass), Unwrap(outw.fb),
+		{ { 0, 0, }, { m_DebugWidth, m_DebugHeight } },
+		1, &clearval,
+	};
 
+	return RenderTextureInternal(cfg, rpbegin, true);
+}
+
+bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, bool blendAlpha)
+{
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
@@ -707,20 +713,20 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 
 	if(cfg.scale <= 0.0f)
 	{
-		float xscale = float(outw.width)/float(tex_x);
-		float yscale = float(outw.height)/float(tex_y);
+		float xscale = float(m_DebugWidth)/float(tex_x);
+		float yscale = float(m_DebugHeight)/float(tex_y);
 
 		float scale = data->Scale = RDCMIN(xscale, yscale);
 
 		if(yscale > xscale)
 		{
 			data->Position.x = 0;
-			data->Position.y = (float(outw.width)-(tex_y*scale) )*0.5f;
+			data->Position.y = (float(m_DebugWidth)-(tex_y*scale) )*0.5f;
 		}
 		else
 		{
 			data->Position.y = 0;
-			data->Position.x = (float(outw.height)-(tex_x*scale) )*0.5f;
+			data->Position.x = (float(m_DebugHeight)-(tex_x*scale) )*0.5f;
 		}
 	}
 
@@ -759,8 +765,8 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	data->NumSamples = 1;
 	data->SampleIdx = 0;
 
-	data->OutputRes.x = (float)outw.width;
-	data->OutputRes.y = (float)outw.height;
+	data->OutputRes.x = (float)m_DebugWidth;
+	data->OutputRes.y = (float)m_DebugHeight;
 
 	// VKTODOMED handle different texture types/displays
 	data->OutputDisplayFormat = 0;
@@ -807,20 +813,14 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	srcimTrans.oldLayout = srcimTrans.newLayout;
 
 	{
-		VkClearValue clearval = {0};
-		VkRenderPassBeginInfo rpbegin = {
-			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-			Unwrap(outw.renderpass), Unwrap(outw.fb),
-			{ { 0, 0, }, { outw.width, outw.height } },
-			1, &clearval,
-		};
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
-		// VKTODOMED will need a way to disable blend for other things
-		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, cfg.rawoutput ? Unwrap(GetDebugManager()->m_TexDisplayPipeline) : Unwrap(GetDebugManager()->m_TexDisplayBlendPipeline));
+		bool noblend = !cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId();
+
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, noblend ? Unwrap(GetDebugManager()->m_TexDisplayPipeline) : Unwrap(GetDebugManager()->m_TexDisplayBlendPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_TexDisplayDescSet), 0, NULL);
 
-		VkViewport viewport = { 0.0f, 0.0f, (float)outw.width, (float)outw.height, 0.0f, 1.0f };
+		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
 		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 
 		vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
@@ -881,7 +881,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		VkRenderPassBeginInfo rpbegin = {
 			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 			Unwrap(outw.renderpass), Unwrap(outw.fb),
-			{ { 0, 0, }, { outw.width, outw.height } },
+			{ { 0, 0, }, { m_DebugWidth, m_DebugHeight } },
 			1, &clearval,
 		};
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
@@ -889,7 +889,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 0, NULL);
 
-		VkViewport viewport = { 0.0f, 0.0f, (float)outw.width, (float)outw.height, 0.0f, 1.0f };
+		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
 		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 		
 		vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
@@ -947,7 +947,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 		VkRenderPassBeginInfo rpbegin = {
 			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 			Unwrap(outw.renderpass), Unwrap(outw.fb),
-			{ { 0, 0, }, { outw.width, outw.height } },
+			{ { 0, 0, }, { m_DebugWidth, m_DebugHeight } },
 			1, &clearval,
 		};
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
@@ -955,7 +955,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_GenericPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_GenericPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_GenericDescSet), 0, NULL);
 
-		VkViewport viewport = { 0.0f, 0.0f, (float)outw.width, (float)outw.height, 0.0f, 1.0f };
+		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
 		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 
 		VkDeviceSize zero = 0;
@@ -1040,6 +1040,9 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 		return;
 
 	OutputWindow &outw = it->second;
+
+	m_DebugWidth = (int32_t)outw.width;
+	m_DebugHeight = (int32_t)outw.height;
 
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
