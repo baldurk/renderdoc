@@ -496,14 +496,6 @@ vector<ResourceId> VulkanReplay::GetTextures()
 	VULKANNOTIMP("GetTextures");
 	vector<ResourceId> texs;
 
-	ResourceId id;
-	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkExtent3D fakeBBext;
-	ResourceFormat fakeBBfmt;
-	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext, fakeBBfmt);
-
-	texs.push_back(m_pDriver->GetResourceManager()->GetLiveID(id));
-
 	for(auto it = m_pDriver->m_ImageInfo.begin(); it != m_pDriver->m_ImageInfo.end(); ++it)
 	{
 		// skip textures that aren't from the capture
@@ -1347,12 +1339,6 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 {
 	VULKANNOTIMP("GetTexture");
 	
-	ResourceId resid;
-	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkExtent3D fakeBBext;
-	ResourceFormat fakeBBfmt;
-	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext, fakeBBfmt);
-	
 	const ImgState &iminfo = m_pDriver->m_ImageInfo[id];
 
 	// VKTODOMED this should be fleshed out
@@ -1360,7 +1346,7 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 	ret.arraysize = iminfo.arraySize;
 	ret.byteSize = iminfo.extent.width*iminfo.extent.height*4; // VKTODOMED calculate proper byte size
-	ret.creationFlags = (ret.ID == resid ? eTextureCreate_SwapBuffer : 0)|eTextureCreate_SRV|eTextureCreate_RTV;
+	ret.creationFlags = (ret.ID == m_pDriver->m_FakeBBImgId ? eTextureCreate_SwapBuffer : 0)|eTextureCreate_SRV|eTextureCreate_RTV;
 	ret.cubemap = false;
 	ret.customName = false;
 	ret.width = iminfo.extent.width;
@@ -1370,7 +1356,7 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	ret.mips = iminfo.mipLevels;
 	ret.msQual = 0;
 	ret.msSamp = 1;
-	ret.name = (ret.ID == resid ? "WSI Presentable Image" : StringFormat::Fmt("Image %llu", ret.ID));
+	ret.name = (ret.ID == m_pDriver->m_FakeBBImgId ? "WSI Presentable Image" : StringFormat::Fmt("Image %llu", ret.ID));
 	ret.numSubresources = ret.mips*ret.arraysize;
 	ret.format = MakeResourceFormat(iminfo.format);
 	switch(iminfo.type)
@@ -1713,21 +1699,6 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.Pass.renderArea.width = state.renderArea.extent.width;
 			m_VulkanPipelineState.Pass.renderArea.height = state.renderArea.extent.height;
 		}
-	}
-
-	{
-		create_array_uninit(m_D3D11PipelineState.m_OM.RenderTargets, 1);
-
-		ResourceId id;
-		VkImage fakeBBIm = VK_NULL_HANDLE;
-		VkExtent3D fakeBBext;
-		ResourceFormat fakeBBfmt;
-		m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext, fakeBBfmt);
-
-		if(m_VulkanPipelineState.Pass.framebuffer.attachments.count > 0 && m_VulkanPipelineState.Pass.framebuffer.attachments[0].img != ResourceId())
-			id = m_VulkanPipelineState.Pass.framebuffer.attachments[0].img;
-
-		m_D3D11PipelineState.m_OM.RenderTargets[0].Resource = id;
 	}
 }
 

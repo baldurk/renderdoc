@@ -202,11 +202,6 @@ private:
 	uint32_t GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask);
 
 	ResourceId m_FakeBBImgId;
-	VkImage m_FakeBBIm;
-	VkExtent3D m_FakeBBExtent;
-	ResourceFormat m_FakeBBFmt;
-	void GetFakeBB(ResourceId &id, VkImage &im, VkExtent3D &extent, ResourceFormat &fmt)
-	{ id = m_FakeBBImgId; im = m_FakeBBIm; extent = m_FakeBBExtent; fmt = m_FakeBBFmt; }
 	
 	// VKTODO all these m_*Info things need to be locked and ensure we only access
 	// them in slow path functions like creation, or just moved elsewhere like inside

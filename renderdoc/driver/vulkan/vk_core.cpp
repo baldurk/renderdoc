@@ -343,8 +343,6 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 	m_DrawcallStack.push_back(&m_ParentDrawcall);
 
 	m_FakeBBImgId = ResourceId();
-	m_FakeBBIm = VK_NULL_HANDLE;
-	RDCEraseEl(m_FakeBBExtent);
 
 	m_ResourceManager = new VulkanResourceManager(m_State, m_pSerialiser, this);
 
@@ -1246,9 +1244,6 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 			ResourceId liveBBid = GetResourceManager()->GetLiveID(bbid);
 
 			m_FakeBBImgId = bbid;
-			m_FakeBBIm = GetResourceManager()->GetLiveHandle<VkImage>(bbid);
-			m_FakeBBExtent = m_ImageInfo[liveBBid].extent;
-			m_FakeBBFmt = MakeResourceFormat(m_ImageInfo[liveBBid].format);
 
 			bool HasCallstack = false;
 			localSerialiser->Serialise("HasCallstack", HasCallstack);	
@@ -1346,7 +1341,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			t.outputMask = 0;
 			t.srcQueueFamilyIndex = 0;
 			t.destQueueFamilyIndex = 0;
-			t.image = Unwrap(m_FakeBBIm);
+			t.image = Unwrap(GetResourceManager()->GetLiveHandle<VkImage>(m_FakeBBImgId));
 			t.oldLayout = st.subresourceStates[0].state;
 			t.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			t.subresourceRange = st.subresourceStates[0].range;
@@ -1357,7 +1352,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&barrier);
 
 			VkClearColorValue clearColor = { { 0.0f, 0.0f, 0.0f, 1.0f, } };
-			ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), Unwrap(m_FakeBBIm), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &clearColor, 1, &t.subresourceRange);
+			ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), t.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &clearColor, 1, &t.subresourceRange);
 
 			vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERT(vkr == VK_SUCCESS);

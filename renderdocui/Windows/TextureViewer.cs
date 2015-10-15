@@ -274,7 +274,18 @@ namespace renderdocui.Windows
                 else if(compute)
                     return new ResourceId[0];
                 else
-                    return core.CurPipelineState.GetOutputTargets();
+                {
+                    var ret = core.CurPipelineState.GetOutputTargets();
+
+                    if (ret.Length == 0 && curDraw != null && (curDraw.flags & DrawcallFlags.Present) != 0)
+                    {
+                        foreach (var t in core.CurTextures)
+                            if ((t.creationFlags & TextureCreationFlags.SwapBuffer) != 0)
+                                return new ResourceId[] { t.ID };
+                    }
+
+                    return ret;
+                }
             }
 
             public static ResourceId GetDepthTarget(Core core)
