@@ -111,12 +111,18 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	if(bb != VK_NULL_HANDLE)
 	{
 		vt->DestroyRenderPass(Unwrap(device), Unwrap(renderpass));
+		VKMGR()->ReleaseWrappedResource(renderpass);
 		renderpass = VK_NULL_HANDLE;
 		
 		vt->DestroyImage(Unwrap(device), Unwrap(bb));
+		VKMGR()->ReleaseWrappedResource(bb);
+		
 		vt->DestroyImageView(Unwrap(device), Unwrap(bbview));
+		VKMGR()->ReleaseWrappedResource(bbview);
 		vt->FreeMemory(Unwrap(device), Unwrap(bbmem));
+		VKMGR()->ReleaseWrappedResource(bbmem);
 		vt->DestroyFramebuffer(Unwrap(device), Unwrap(fb));
+		VKMGR()->ReleaseWrappedResource(fb);
 		
 		bb = VK_NULL_HANDLE;
 		bbview = VK_NULL_HANDLE;
@@ -126,7 +132,11 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 
 	// not owned - freed with the swapchain
 	for(size_t i=0; i < ARRAY_COUNT(colimg); i++)
+	{
+		if(colimg[i] != VK_NULL_HANDLE)
+			VKMGR()->ReleaseWrappedResource(colimg[i]);
 		colimg[i] = VK_NULL_HANDLE;
+	}
 
 	if(dsimg != VK_NULL_HANDLE)
 	{
@@ -142,7 +152,10 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	}
 
 	if(swap != VK_NULL_HANDLE)
+	{
 		vt->DestroySwapchainKHR(Unwrap(device), Unwrap(swap));
+		VKMGR()->ReleaseWrappedResource(swap);
+	}
 }
 
 void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, bool depth)
@@ -268,7 +281,10 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	VKMGR()->WrapResource(Unwrap(device), swap);
 
 	if(old != VK_NULL_HANDLE)
+	{
 		vt->DestroySwapchainKHR(Unwrap(device), Unwrap(old));
+		VKMGR()->ReleaseWrappedResource(old);
+	}
 
 	vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, NULL);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -713,12 +729,12 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		if(yscale > xscale)
 		{
 			data->Position.x = 0;
-			data->Position.y = (float(m_DebugWidth)-(tex_y*scale) )*0.5f;
+			data->Position.y = (float(m_DebugHeight)-(tex_y*scale) )*0.5f;
 		}
 		else
 		{
 			data->Position.y = 0;
-			data->Position.x = (float(m_DebugHeight)-(tex_x*scale) )*0.5f;
+			data->Position.x = (float(m_DebugWidth)-(tex_x*scale) )*0.5f;
 		}
 	}
 
@@ -1009,7 +1025,7 @@ bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
 		outw.height = h;
 
 		// VKTODOHIGH Currently the resize code crashes - unsure why
-		if(outw.width > 0 && outw.height > 0 && 0)
+		if(outw.width > 0 && outw.height > 0)
 		{
 			bool depth = (outw.dsimg != VK_NULL_HANDLE);
 

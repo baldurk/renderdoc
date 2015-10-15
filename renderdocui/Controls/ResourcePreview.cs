@@ -146,7 +146,7 @@ namespace renderdocui.Controls
 
         private void thumbnail_Paint(object sender, PaintEventArgs e)
         {
-            if (m_Output == null || m_Core.Renderer == null || true)
+            if (m_Output == null || m_Core.Renderer == null)
             {
                 e.Graphics.Clear(Color.Black);
                 return;
