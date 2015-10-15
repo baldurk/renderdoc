@@ -284,6 +284,9 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			m_ImageInfo[liveId].extent.depth = 1;
 			m_ImageInfo[liveId].mipLevels = 1;
 			m_ImageInfo[liveId].arraySize = info.imageArraySize;
+			m_ImageInfo[liveId].creationFlags = eTextureCreate_SRV|eTextureCreate_RTV|eTextureCreate_SwapBuffer;
+
+			m_ObjectNames[liveId] = StringFormat::Fmt("Presentable Image %u", i);
 
 			VkImageSubresourceRange range;
 			range.baseMipLevel = range.baseArrayLayer = 0;

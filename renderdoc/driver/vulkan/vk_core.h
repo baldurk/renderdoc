@@ -210,6 +210,7 @@ private:
 	map<ResourceId, MemState> m_MemoryInfo;
 	map<ResourceId, ImgState> m_ImageInfo;
 	map<ResourceId, ResourceId> m_BufferMemBinds;
+	map<ResourceId, string> m_ObjectNames;
 
 	struct CmdBufferInfo
 	{

@@ -1268,6 +1268,8 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 				draw.name = "vkQueuePresentKHR()";
 				draw.flags |= eDraw_Present;
 
+				draw.copyDestination = bbid;
+
 				AddDrawcall(draw, true);
 			}
 		}

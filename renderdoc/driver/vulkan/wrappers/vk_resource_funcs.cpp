@@ -761,6 +761,19 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 			m_ImageInfo[live].extent = info.extent;
 			m_ImageInfo[live].mipLevels = info.mipLevels;
 			m_ImageInfo[live].arraySize = info.arraySize;
+			m_ImageInfo[live].samples = info.samples;
+
+			if(info.usage & VK_IMAGE_USAGE_SAMPLED_BIT)
+				m_ImageInfo[live].creationFlags |= eTextureCreate_SRV;
+			if(info.usage & (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT))
+				m_ImageInfo[live].creationFlags |= eTextureCreate_RTV;
+			if(info.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+				m_ImageInfo[live].creationFlags |= eTextureCreate_DSV;
+			if(info.usage & VK_IMAGE_USAGE_STORAGE_BIT)
+				m_ImageInfo[live].creationFlags |= eTextureCreate_UAV;
+
+			if(info.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT)
+				m_ImageInfo[live].cube = true;
 			
 			VkImageSubresourceRange range;
 			range.baseMipLevel = range.baseArrayLayer = 0;

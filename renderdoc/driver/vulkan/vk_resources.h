@@ -680,7 +680,7 @@ struct MemState
 struct ImgState
 {
 	ImgState()
-		: mem(VK_NULL_HANDLE), arraySize(0), mipLevels(0)
+		: mem(VK_NULL_HANDLE), arraySize(0), mipLevels(0), samples(0), cube(false), creationFlags(0)
 	{
 		type = VK_IMAGE_TYPE_MAX_ENUM;
 		format = VK_FORMAT_UNDEFINED;
@@ -693,9 +693,14 @@ struct ImgState
 	VkImageType type;
 	VkFormat format;
 	VkExtent3D extent;
-	int arraySize, mipLevels;
+	int arraySize, mipLevels, samples;
+
+	bool cube;
+	uint32_t creationFlags;
 };
 
 bool IsBlockFormat(VkFormat f);
 bool IsDepthStencilFormat(VkFormat f);
 bool IsSRGBFormat(VkFormat f);
+
+uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip);

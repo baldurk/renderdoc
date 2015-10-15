@@ -828,7 +828,7 @@ string ToStrHelper<false, VkPipelineStageFlagBits>::Get(const VkPipelineStageFla
 template<>
 string ToStrHelper<false, VkBufferUsageFlagBits>::Get(const VkBufferUsageFlagBits &el)
 {
-	string ret = "VK_BUFFER_USAGE_GENERAL";
+	string ret = "";
 
 	if(el & VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT)       ret += " | VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT";
 	if(el & VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT)  ret += " | VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT";
@@ -839,6 +839,9 @@ string ToStrHelper<false, VkBufferUsageFlagBits>::Get(const VkBufferUsageFlagBit
 	if(el & VK_BUFFER_USAGE_INDEX_BUFFER_BIT)          ret += " | VK_BUFFER_USAGE_INDEX_BUFFER_BIT";
 	if(el & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)         ret += " | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT";
 	if(el & VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT)       ret += " | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
 
 	return ret;
 }
@@ -846,7 +849,7 @@ string ToStrHelper<false, VkBufferUsageFlagBits>::Get(const VkBufferUsageFlagBit
 template<>
 string ToStrHelper<false, VkImageUsageFlagBits>::Get(const VkImageUsageFlagBits &el)
 {
-	string ret = "VK_IMAGE_USAGE_GENERAL";
+	string ret = "";
 
 	if(el & VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT)          ret += " | VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT";
 	if(el & VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT)     ret += " | VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT";
@@ -856,6 +859,9 @@ string ToStrHelper<false, VkImageUsageFlagBits>::Get(const VkImageUsageFlagBits 
 	if(el & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) ret += " | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT";
 	if(el & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT)     ret += " | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT";
 	if(el & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)         ret += " | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
 
 	return ret;
 }

@@ -1341,39 +1341,81 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	
 	const ImgState &iminfo = m_pDriver->m_ImageInfo[id];
 
-	// VKTODOMED this should be fleshed out
 	FetchTexture ret;
 	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 	ret.arraysize = iminfo.arraySize;
-	ret.byteSize = iminfo.extent.width*iminfo.extent.height*4; // VKTODOMED calculate proper byte size
-	ret.creationFlags = (ret.ID == m_pDriver->m_FakeBBImgId ? eTextureCreate_SwapBuffer : 0)|eTextureCreate_SRV|eTextureCreate_RTV;
-	ret.cubemap = false;
-	ret.customName = false;
+	ret.creationFlags = iminfo.creationFlags;
+	ret.cubemap = iminfo.cube;
 	ret.width = iminfo.extent.width;
 	ret.height = iminfo.extent.height;
 	ret.depth = iminfo.extent.depth;
-	ret.dimension = 2;
 	ret.mips = iminfo.mipLevels;
-	ret.msQual = 0;
-	ret.msSamp = 1;
-	ret.name = (ret.ID == m_pDriver->m_FakeBBImgId ? "WSI Presentable Image" : StringFormat::Fmt("Image %llu", ret.ID));
 	ret.numSubresources = ret.mips*ret.arraysize;
+	
+	ret.byteSize = 0;
+	for(uint32_t s=0; s < ret.mips; s++)
+		ret.byteSize += GetByteSize(ret.width, ret.height, ret.depth, iminfo.format, s);
+	ret.byteSize *= ret.arraysize;
+
+	ret.msQual = 0;
+	ret.msSamp = iminfo.samples;
+
 	ret.format = MakeResourceFormat(iminfo.format);
+
 	switch(iminfo.type)
 	{
 		case VK_IMAGE_TYPE_1D:
 			ret.resType = iminfo.arraySize > 1 ? eResType_Texture1DArray : eResType_Texture1D;
+			ret.dimension = 1;
 			break;
-		default:
-			RDCWARN("Unexpected image type");
 		case VK_IMAGE_TYPE_2D:
-			// VKTODOLOW multisampled images
-			ret.resType = iminfo.arraySize > 1 ? eResType_Texture2DArray : eResType_Texture2D;
+			     if(ret.msSamp > 1) ret.resType = iminfo.arraySize > 1 ? eResType_Texture2DMSArray : eResType_Texture2DMS;
+			else if(ret.cubemap)    ret.resType = iminfo.arraySize > 6 ? eResType_TextureCubeArray : eResType_TextureCube;
+			else                    ret.resType = iminfo.arraySize > 1 ? eResType_Texture2DArray : eResType_Texture2D;
+			ret.dimension = 2;
 			break;
 		case VK_IMAGE_TYPE_3D:
 			ret.resType = eResType_Texture3D;
+			ret.dimension = 3;
+			break;
+		default:
+			RDCERR("Unexpected image type");
 			break;
 	}
+
+	ret.customName = true;
+	ret.name = m_pDriver->m_ObjectNames[id];
+	if(ret.name.count == 0)
+	{
+		ret.customName = false;
+		
+		const char *suffix = "";
+		const char *ms = "";
+
+		if(ret.msSamp > 1)
+			ms = "MS";
+
+		if(ret.creationFlags & eTextureCreate_RTV)
+			suffix = " RTV";
+		if(ret.creationFlags & eTextureCreate_DSV)
+			suffix = " DSV";
+
+		if(ret.cubemap)
+		{
+			if(ret.arraysize > 6)
+				ret.name = StringFormat::Fmt("TextureCube%sArray%s %llu", ms, suffix, ret.ID);
+			else
+				ret.name = StringFormat::Fmt("TextureCube%s%s %llu", ms, suffix, ret.ID);
+		}
+		else
+		{
+			if(ret.arraysize > 1)
+				ret.name = StringFormat::Fmt("Texture%dD%sArray%s %llu", ret.dimension, ms, suffix, ret.ID);
+			else
+				ret.name = StringFormat::Fmt("Texture%dD%s%s %llu", ret.dimension, ms, suffix, ret.ID);
+		}
+	}
+
 	return ret;
 }
 

@@ -3869,6 +3869,8 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 				draw.name = "SwapBuffers()";
 				draw.flags |= eDraw_Present;
 
+				draw.copyDestination = GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color)));
+
 				AddDrawcall(draw, true);
 			}
 		}

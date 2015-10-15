@@ -279,6 +279,9 @@ namespace renderdocui.Windows
 
                     if (ret.Length == 0 && curDraw != null && (curDraw.flags & DrawcallFlags.Present) != 0)
                     {
+                        if (curDraw.copyDestination != ResourceId.Null)
+                            return new ResourceId[] { curDraw.copyDestination };
+
                         foreach (var t in core.CurTextures)
                             if ((t.creationFlags & TextureCreationFlags.SwapBuffer) != 0)
                                 return new ResourceId[] { t.ID };
