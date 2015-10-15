@@ -13,7 +13,7 @@ Current Support
 ========
 
 * A single VkInstance/VkQueue/VkDevice triple is supported.
-* Capture and replay of a single frame at a time.
+* Capture and replay of single-frame captures.
 * On replay you can step into each vkQueueSubmit call to see the command buffers submitted, and step into them to browse through the commands.
 * The pipeline state will be displayed at each command, roughly showing the data contained in each member of the pipeline createinfo struct, as well as dynamic state.
 * Simple disassembly/reflection of SPIR-V to determine which descriptors to read for read-only resources and uniform buffers. The uniform buffers will be listed separately and the member variables filled out.
@@ -31,6 +31,8 @@ On capture:
 * Memory maps are not intercepted, so any modifications are saved by reading back from the mapped pointer, even if it is uncached/write combined.
 * Image contents are saved out by copying aliasing their backing memory to a buffer, so will not be GPU-portable.
 * Captures will not be GPU-portable where memory indices etc change.
+* There might be memory leaks per-capture.
+* Memory leaks each time a new capture is loaded in the replay UI.
 * Unsupported or untested features:
 	* Subpasses
 	* Nested command buffer execution

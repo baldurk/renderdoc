@@ -936,6 +936,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 			// delete cmd buffers now - had to keep them alive until after serialiser flush.
 			for(size_t i=0; i < m_CmdBufferRecords.size(); i++)
 				m_CmdBufferRecords[i]->Delete(GetResourceManager());
+
+			m_CmdBufferRecords.clear();
 			
 			GetResourceManager()->MarkUnwrittenResources();
 
@@ -945,7 +947,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 		}
 	}
 
-	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE && m_FrameRecord.empty())
+	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
 	{
 		FetchFrameRecord record;
 		record.frameInfo.frameNumber = m_FrameCounter+1;
