@@ -160,7 +160,6 @@ private:
 
 	struct ReplayData
 	{
-		// VKTODOHIGH need to release/destroy these somewhere
 		ReplayData()
 			: inst(VK_NULL_HANDLE), phys(VK_NULL_HANDLE)
 			, qFamilyIdx(0), dev(VK_NULL_HANDLE), q(VK_NULL_HANDLE)
@@ -258,7 +257,7 @@ private:
 		// vkCmd chunks) is NOT unique.
 		// However, a single baked command list can be submitted multiple
 		// times - so we have to have a list of base events
-		// VKTODO change this to a sorted vector similar to the image
+		// VKTODOLOW change this to a sorted vector similar to the image
 		// states
 		// Map from bakeID -> vector<baseEventID>
 		map<ResourceId, vector<uint32_t> > cmdBufferSubmits;

@@ -772,7 +772,6 @@ void WrappedVulkan::ReadLogInitialisation()
 	            m_PhysicalReplayData[m_SwapPhysDevice].cmdpool != VK_NULL_HANDLE);
 
 	// VKTODOLOW maybe better place to put this?
-	// VKTODOLOW leaking debug manager
 	m_PhysicalReplayData[m_SwapPhysDevice].debugMan = new VulkanDebugManager(this, GetDev());
 }
 
@@ -823,11 +822,6 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		m_LastEventID = ~0U;
 	}
 
-	// VKTODOMED I think this is a legacy concept that doesn't really mean anything anymore,
-	// even on GL/D3D11. Creates are all shifted before the frame, only command bfufers remain
-	// in vulkan
-	//GetResourceManager()->MarkInFrame(true);
-
 	while(1)
 	{
 		if(m_State == EXECUTING && m_RootEventID > endEventID)
@@ -876,9 +870,6 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		std::sort(m_Events.begin(), m_Events.end(), SortEID());
 		m_ParentDrawcall.children.clear();
 	}
-
-	// VKTODOMED See above
-	//GetResourceManager()->MarkInFrame(false);
 
 	if(m_PartialReplayData.resultPartialCmdBuffer != VK_NULL_HANDLE)
 	{
@@ -969,9 +960,8 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkFlushMappedMemoryRanges(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL);
 		break;
 	case FREE_MEM:
-		// VKTODOMED see vkFreeMemory
-		//Serialise_vkFreeMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
-		//break;
+		RDCERR("vkFreeMemory should not be serialised directly");
+		break;
 	case CREATE_CMD_POOL:
 		Serialise_vkCreateCommandPool(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;

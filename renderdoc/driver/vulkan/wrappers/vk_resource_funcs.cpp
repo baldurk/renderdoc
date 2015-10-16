@@ -118,10 +118,6 @@ void WrappedVulkan::vkFreeMemory(
     VkDevice                                    device,
     VkDeviceMemory                              mem)
 {
-	// VKTODOMED I don't think I need to serialise this.
-	// the resource record just stays around until there are
-	// no references (which should be the same since lifetime
-	// tracking is app responsibility)
 	// we just need to clean up after ourselves on replay
 	WrappedVkNonDispRes *wrapped = (WrappedVkNonDispRes *)GetWrapped(mem);
 	m_MemoryInfo.erase(wrapped->id);
