@@ -409,14 +409,17 @@ WrappedVulkan::~WrappedVulkan()
 
 	m_SwapChainInfo.clear();
 
+	// VKTODOLOW shutdown order is really up in the air
+	for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+		SAFE_DELETE(m_PhysicalReplayData[i].debugMan);
+	
 	m_ResourceManager->Shutdown();
 	delete m_ResourceManager;
-	
-	// VKTODOLOW shutdown order is really up in the air
+		
 	for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
 		if(m_PhysicalReplayData[i].dev != VK_NULL_HANDLE)
 			vkDestroyDevice(m_PhysicalReplayData[i].dev);
-
+	
 	// VKTODOLOW only one instance
 	if(m_PhysicalReplayData[0].inst != VK_NULL_HANDLE)
 	{
@@ -424,6 +427,8 @@ WrappedVulkan::~WrappedVulkan()
 
 		ObjDisp(m_PhysicalReplayData[0].inst)->DestroyInstance(instance);
 	}
+
+	SAFE_DELETE(m_pSerialiser);
 }
 
 const char * WrappedVulkan::GetChunkName(uint32_t idx)
