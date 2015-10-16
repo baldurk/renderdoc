@@ -358,7 +358,6 @@ void ReplayOutput::DisplayContext()
 	if(m_PixelContext.outputID == 0) return;
 	float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 	m_pDevice->BindOutputWindow(m_PixelContext.outputID, false);
-	m_pDevice->ClearOutputWindowColour(m_PixelContext.outputID, color);
 	
 	if(
 			(m_Config.m_Type != eOutputType_TexDisplay) ||
@@ -366,9 +365,12 @@ void ReplayOutput::DisplayContext()
 			(m_RenderData.texDisplay.texid == ResourceId())
 		)
 	{
+		m_pDevice->RenderCheckerboard(Vec3f(0.666f, 0.666f, 0.666f), Vec3f(0.333f, 0.333f, 0.333f));
 		m_pDevice->FlipOutputWindow(m_PixelContext.outputID);
 		return;
 	}
+	
+	m_pDevice->ClearOutputWindowColour(m_PixelContext.outputID, color);
 
 	TextureDisplay disp = m_RenderData.texDisplay;
 	disp.rawoutput = false;

@@ -2315,12 +2315,9 @@ namespace renderdocui.Windows
 
         private void pixelContext_Paint(object sender, PaintEventArgs e)
         {
-            if (m_Output == null || m_Core.Renderer == null || PixelPicked == false)
+            if (m_Output == null || m_Core.Renderer == null)
             {
-                if (backcolorPick.Checked)
-                    e.Graphics.Clear(colorDialog.Color);
-                else
-                    DrawCheckerboard(e.Graphics, pixelContext.DisplayRectangle);
+                DrawCheckerboard(e.Graphics, pixelContext.DisplayRectangle);
                 return;
             }
 
