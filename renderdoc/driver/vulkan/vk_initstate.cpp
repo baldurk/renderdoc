@@ -368,7 +368,8 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			SAFE_DELETE_ARRAY(data);
 
-			// VKTODOMED leaking the memory here! needs to be cleaned up with the buffer
+			m_FreeMems.push_back(mem);
+
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(buf), eInitialContents_Copy, NULL));
 		}
 		else if(type == eResImage)

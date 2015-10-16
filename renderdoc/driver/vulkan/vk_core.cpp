@@ -411,8 +411,24 @@ WrappedVulkan::~WrappedVulkan()
 
 	// VKTODOLOW shutdown order is really up in the air
 	for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+	{
 		SAFE_DELETE(m_PhysicalReplayData[i].debugMan);
+		
+		if(m_PhysicalReplayData[i].cmdpool != VK_NULL_HANDLE)
+		{
+			ObjDisp(m_PhysicalReplayData[i].dev)->DestroyCommandPool(Unwrap(m_PhysicalReplayData[i].dev), Unwrap(m_PhysicalReplayData[i].cmdpool));
+			GetResourceManager()->ReleaseWrappedResource(m_PhysicalReplayData[i].cmdpool);
+		}
+	}
 	
+	VkDevice dev = GetDev();
+	for(size_t i=0; i < m_FreeMems.size(); i++)
+	{
+		ObjDisp(dev)->FreeMemory(Unwrap(dev), Unwrap(m_FreeMems[i]));
+		GetResourceManager()->ReleaseWrappedResource(m_FreeMems[i]);
+	}
+	m_FreeMems.clear();
+
 	m_ResourceManager->Shutdown();
 	delete m_ResourceManager;
 		

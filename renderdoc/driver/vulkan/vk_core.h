@@ -190,6 +190,8 @@ private:
 	};
 	vector<ReplayData> m_PhysicalReplayData;
 	int m_SwapPhysDevice;
+
+	vector<VkDeviceMemory> m_FreeMems;
 	
 	VulkanDebugManager *GetDebugManager()
 	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].debugMan; }
