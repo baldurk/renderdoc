@@ -31,8 +31,7 @@ On capture:
 * Memory maps are not intercepted, so any modifications are saved by reading back from the mapped pointer, even if it is uncached/write combined.
 * Image contents are saved out by copying aliasing their backing memory to a buffer, so will not be GPU-portable.
 * Captures will not be GPU-portable where memory indices etc change.
-* There might be memory leaks per-capture.
-* Memory leaks each time a new capture is loaded in the replay UI.
+* Memory leaks each time a new capture is created.
 * Unsupported or untested features:
 	* Subpasses
 	* Nested command buffer execution
@@ -42,6 +41,7 @@ On capture:
 
 On replay:
 
+* Memory leaks each time a new capture is loaded in the replay UI.
 * Only 2D non-array non-integer textures can currently be displayed.
 * Auto texture range-fit or histogram display is not implemented.
 * Debug overlays aren't implemented.
