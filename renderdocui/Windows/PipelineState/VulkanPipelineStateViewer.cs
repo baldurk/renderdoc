@@ -135,36 +135,35 @@ namespace renderdocui.Windows.PipelineState
             cullMode.Text = "Front";
             frontCCW.Image = tick;
 
-            scissorEnable.Image = tick;
-            lineAAEnable.Image = tick;
-            multisampleEnable.Image = tick;
-
-            depthClip.Image = tick;
-            depthBias.Text = "0";
+            depthBias.Text = "0.0";
             depthBiasClamp.Text = "0.0";
             slopeScaledBias.Text = "0.0";
 
+            depthClip.Image = tick;
+            rasterizerDiscard.Image = tick;
+            lineWidth.Text = "1.0";
+
+            sampleCount.Text = "1";
+            sampleShading.Image = tick;
+            minSampleShading.Text = "0.0";
+            sampleMask.Text = "FFFFFFFF";
+            
             viewports.Nodes.Clear();
             scissors.Nodes.Clear();
 
             targetOutputs.Nodes.Clear();
             blendOperations.Nodes.Clear();
 
-            alphaToCoverage.Image = tick;
-            independentBlend.Image = tick;
-
             blendFactor.Text = "0.00, 0.00, 0.00, 0.00";
-
-            sampleMask.Text = "FFFFFFFF";
+            logicOp.Text = "-";
+            alphaToOne.Image = tick;
 
             depthEnable.Image = tick;
             depthFunc.Text = "GREATER_EQUAL";
             depthWrite.Image = tick;
 
-            stencilEnable.Image = tick;
-            stencilReadMask.Text = "FF";
-            stencilWriteMask.Text = "FF";
-            stencilRef.Text = "FF";
+            depthBounds.Text = "0.0-1.0";
+            depthBounds.Image = null;
 
             stencilFuncs.Nodes.Clear();
 
@@ -207,17 +206,23 @@ namespace renderdocui.Windows.PipelineState
             else
                 shader.Text = stage.ShaderName;
 
-            if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
+            if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc.Length > 0)
             {
-                string shaderfn = "";
+                if (shaderDetails.DebugInfo.files.Length > 0 || shaderDetails.DebugInfo.entryFunc != "main")
+                    shader.Text = shaderDetails.DebugInfo.entryFunc + "()";
 
-                int entryFile = shaderDetails.DebugInfo.entryFile;
-                if (entryFile < 0 || entryFile >= shaderDetails.DebugInfo.files.Length)
-                    entryFile = 0;
+                if (shaderDetails.DebugInfo.files.Length > 0)
+                {
+                    string shaderfn = "";
 
-                shaderfn = shaderDetails.DebugInfo.files[entryFile].BaseFilename;
+                    int entryFile = shaderDetails.DebugInfo.entryFile;
+                    if (entryFile < 0 || entryFile >= shaderDetails.DebugInfo.files.Length)
+                        entryFile = 0;
 
-                shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " + shaderfn;
+                    shaderfn = shaderDetails.DebugInfo.files[entryFile].BaseFilename;
+
+                    shader.Text += " - " + shaderfn;
+                }
             }
 
             int vs = 0;
@@ -452,10 +457,9 @@ namespace renderdocui.Windows.PipelineState
             var cross = global::renderdocui.Properties.Resources.cross;
 
             bool[] usedBindings = new bool[128];
-            bool[] usedVBuffers = new bool[128];
 
             for (int i = 0; i < 128; i++)
-                usedBindings[i] = usedVBuffers[i] = false;
+                usedBindings[i] = false;
 
             ////////////////////////////////////////////////
             // Vertex Input
@@ -513,33 +517,6 @@ namespace renderdocui.Windows.PipelineState
 
             m_BindNodes.Clear();
 
-            vs = viBindings.VScrollValue();
-            viBindings.Nodes.Clear();
-            viBindings.BeginUpdate();
-            if (state.VI.binds != null)
-            {
-                foreach (var a in state.VI.binds)
-                {
-                    if (showDisabled.Checked || usedBindings[a.vbufferBinding])
-                    {
-                        var node = viBindings.Nodes.Add(new object[] { a.vbufferBinding, a.bytestride, a.perInstance ? "Instance" : "Vertex" });
-
-                        usedVBuffers[a.vbufferBinding] = true;
-
-                        node.Image = global::renderdocui.Properties.Resources.action;
-                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-
-                        if (!usedBindings[a.vbufferBinding])
-                            InactiveRow(node);
-
-                        m_BindNodes.Add(node);
-                    }
-                }
-            }
-            viBindings.NodesSelection.Clear();
-            viBindings.EndUpdate();
-            viBindings.SetVScrollValue(vs);
-
             PrimitiveTopology topo = draw != null ? draw.topology : PrimitiveTopology.Unknown;
 
             topology.Text = topo.ToString();
@@ -549,6 +526,8 @@ namespace renderdocui.Windows.PipelineState
 
                 topology.Text = string.Format("PatchList ({0} Control Points)", numCPs);
             }
+
+            primRestart.Visible = state.IA.primitiveRestartEnable;
 
             switch (topo)
             {
@@ -612,7 +591,7 @@ namespace renderdocui.Windows.PipelineState
                         }
                     }
 
-                    var node = viBuffers.Nodes.Add(new object[] { "Index", name, state.IA.ibuffer.offs, length });
+                    var node = viBuffers.Nodes.Add(new object[] { "Index", name, "Index", state.IA.ibuffer.offs, draw.indexByteWidth, length });
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -629,7 +608,7 @@ namespace renderdocui.Windows.PipelineState
             {
                 if (ibufferUsed || showEmpty.Checked)
                 {
-                    var node = viBuffers.Nodes.Add(new object[] { "Index", "No Buffer Set", "-", "-" });
+                    var node = viBuffers.Nodes.Add(new object[] { "Index", "No Buffer Set", "-", "-", "-", "-" });
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -646,11 +625,19 @@ namespace renderdocui.Windows.PipelineState
 
             if (state.VI.vbuffers != null)
             {
-                int i = 0;
-                foreach (var v in state.VI.vbuffers)
+                for(int i=0; i < Math.Max(state.VI.vbuffers.Length, state.VI.binds.Length); i++)
                 {
-                    bool filledSlot = (v.buffer != ResourceId.Null);
-                    bool usedSlot = (usedVBuffers[i]);
+                    var vbuff = (i < state.VI.vbuffers.Length ? state.VI.vbuffers[i] : null);
+                    VulkanPipelineState.VertexInput.Binding bind = null;
+
+                    for (int b = 0; b < state.VI.binds.Length; b++)
+                    {
+                        if (state.VI.binds[b].vbufferBinding == i)
+                            bind = state.VI.binds[b];
+                    }
+
+                    bool filledSlot = ((vbuff != null && vbuff.buffer != ResourceId.Null) || bind != null);
+                    bool usedSlot = (usedBindings[i]);
 
                     // show if
                     if (usedSlot || // it's referenced by the shader - regardless of empty or not
@@ -658,30 +645,49 @@ namespace renderdocui.Windows.PipelineState
                         (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
                         )
                     {
-                        string name = "Buffer " + v.buffer.ToString();
+                        string name = "No Buffer";
+                        string rate = "-";
                         UInt32 length = 1;
+                        UInt64 offset = 0;
+                        UInt32 stride = 0;
 
-                        for (int t = 0; t < bufs.Length; t++)
+                        if (vbuff != null)
                         {
-                            if (bufs[t].ID == v.buffer)
+                            name = "Buffer " + vbuff.buffer.ToString();
+                            offset = vbuff.offset;
+
+                            for (int t = 0; t < bufs.Length; t++)
                             {
-                                name = bufs[t].name;
-                                length = bufs[t].length;
+                                if (bufs[t].ID == vbuff.buffer)
+                                {
+                                    name = bufs[t].name;
+                                    length = bufs[t].length;
+                                }
                             }
+                        }
+
+                        if (bind != null)
+                        {
+                            stride = bind.bytestride;
+                            rate = bind.perInstance ? "Instance" : "Vertex";
+                        }
+                        else
+                        {
+                            name += ", No Binding";
                         }
 
                         TreelistView.Node node = null;
                         
                         if(filledSlot)
-                            node = viBuffers.Nodes.Add(new object[] { i, name, v.offset, length });
+                            node = viBuffers.Nodes.Add(new object[] { i, name, rate, offset, stride, length });
                         else
-                            node = viBuffers.Nodes.Add(new object[] { i, "No Buffer Set", "-", "-" });
+                            node = viBuffers.Nodes.Add(new object[] { i, "No Binding", "-", "-", "-", "-" });
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                        node.Tag = v.buffer;
+                        node.Tag = vbuff != null ? vbuff.buffer : ResourceId.Null;
 
-                        if (!filledSlot)
+                        if (!filledSlot || bind == null || vbuff == null)
                             EmptyRow(node);
 
                         if (!usedSlot)
@@ -689,8 +695,6 @@ namespace renderdocui.Windows.PipelineState
 
                         m_VBNodes.Add(node);
                     }
-
-                    i++;
                 }
             }
             viBuffers.NodesSelection.Clear();
@@ -714,6 +718,14 @@ namespace renderdocui.Windows.PipelineState
             int vs2 = scissors.VScrollValue();
             scissors.BeginUpdate();
             scissors.Nodes.Clear();
+
+            if (state.Pass.renderpass.obj != ResourceId.Null)
+            {
+                scissors.Nodes.Add(new object[] { "Render Area",
+                    state.Pass.renderArea.x, state.Pass.renderArea.y, 
+                    state.Pass.renderArea.width, state.Pass.renderArea.height });
+            }
+
             {
                 int i = 0;
                 foreach (var v in state.VP.viewportScissors)
@@ -744,17 +756,19 @@ namespace renderdocui.Windows.PipelineState
             cullMode.Text = state.RS.CullMode.ToString();
             frontCCW.Image = state.RS.FrontCCW ? tick : cross;
 
-            // VKTODOLOW update these states
-            scissorEnable.Image = tick;
-            lineAAEnable.Image = tick;
-            multisampleEnable.Image = tick;
-
-            depthClip.Image = state.RS.depthClipEnable ? tick : cross;
-            depthBias.Text = state.RS.depthBias.ToString();
+            depthBias.Text = Formatter.Format(state.RS.depthBias);
             depthBiasClamp.Text = Formatter.Format(state.RS.depthBiasClamp);
             slopeScaledBias.Text = Formatter.Format(state.RS.slopeScaledDepthBias);
-            forcedSampleCount.Text = "1";
 
+            depthClip.Image = state.RS.depthClipEnable ? tick : cross;
+            rasterizerDiscard.Image = state.RS.rasterizerDiscardEnable ? tick : cross;
+            lineWidth.Text = Formatter.Format(state.RS.lineWidth);
+
+            sampleCount.Text = state.MSAA.rasterSamples.ToString();
+            sampleShading.Image = state.MSAA.sampleShadingEnable ? tick : cross;
+            minSampleShading.Text = Formatter.Format(state.MSAA.minSampleShading);
+            sampleMask.Text = state.MSAA.sampleMask.ToString("X8");
+            
             ////////////////////////////////////////////////
             // Output Merger
 
@@ -859,7 +873,6 @@ namespace renderdocui.Windows.PipelineState
                     {
                         var node = blendOperations.Nodes.Add(new object[] { i,
                                                         true,
-                                                        state.CB.logicOpEnable,
 
                                                         blend.m_Blend.Source,
                                                         blend.m_Blend.Destination,
@@ -868,8 +881,6 @@ namespace renderdocui.Windows.PipelineState
                                                         blend.m_AlphaBlend.Source,
                                                         blend.m_AlphaBlend.Destination,
                                                         blend.m_AlphaBlend.Operation,
-
-                                                        state.CB.LogicOp,
 
                                                         ((blend.WriteMask & 0x1) == 0 ? "_" : "R") +
                                                         ((blend.WriteMask & 0x2) == 0 ? "_" : "G") +
@@ -892,32 +903,48 @@ namespace renderdocui.Windows.PipelineState
             blendOperations.EndUpdate();
             blendOperations.SetVScrollValue(vs);
 
-
-            alphaToCoverage.Image = state.CB.alphaToCoverageEnable ? tick : cross;
-            independentBlend.Image = tick;
-
             blendFactor.Text = state.CB.blendConst[0].ToString("F2") + ", " +
                                 state.CB.blendConst[1].ToString("F2") + ", " +
                                 state.CB.blendConst[2].ToString("F2") + ", " +
                                 state.CB.blendConst[3].ToString("F2");
-
-            sampleMask.Text = state.MSAA.sampleMask.ToString("X8");
+            logicOp.Text = state.CB.logicOpEnable ? state.CB.LogicOp : "-";
+            alphaToOne.Image = state.CB.alphaToOneEnable ? tick : cross;
 
             depthEnable.Image = state.DS.depthTestEnable ? tick : cross;
             depthFunc.Text = state.DS.depthCompareOp;
             depthWrite.Image = state.DS.depthWriteEnable ? tick : cross;
 
-            stencilEnable.Image = state.DS.stencilTestEnable ? tick : cross;
-            stencilReadMask.Text = state.DS.front.compareMask.ToString("X2");
-            stencilWriteMask.Text = state.DS.front.writeMask.ToString("X2");
-            stencilRef.Text = state.DS.front.stencilref.ToString("X2");
+            if (state.DS.depthBoundsEnable)
+            {
+                depthBounds.Text = Formatter.Format(state.DS.minDepthBounds) + "-" + Formatter.Format(state.DS.maxDepthBounds);
+                depthBounds.Image = null;
+            }
+            else
+            {
+                depthBounds.Text = "";
+                depthBounds.Image = cross;
+            }
 
             stencilFuncs.BeginUpdate();
             stencilFuncs.Nodes.Clear();
-            stencilFuncs.Nodes.Add(new object[] { "Front", state.DS.front.func, state.DS.front.failOp, 
-                                                 state.DS.front.depthFailOp, state.DS.front.passOp });
-            stencilFuncs.Nodes.Add(new object[] { "Back", state.DS.back.func, state.DS.back.failOp, 
-                                                 state.DS.back.depthFailOp, state.DS.back.passOp });
+            if (state.DS.stencilTestEnable)
+            {
+                stencilFuncs.Nodes.Add(new object[] { "Front", state.DS.front.func, state.DS.front.failOp, 
+                                                 state.DS.front.depthFailOp, state.DS.front.passOp,
+                                                 state.DS.front.writeMask.ToString("X2"),
+                                                 state.DS.front.compareMask.ToString("X2"),
+                                                 state.DS.front.stencilref.ToString("X2")});
+                stencilFuncs.Nodes.Add(new object[] { "Back", state.DS.back.func, state.DS.back.failOp, 
+                                                 state.DS.back.depthFailOp, state.DS.back.passOp,
+                                                 state.DS.back.writeMask.ToString("X2"),
+                                                 state.DS.back.compareMask.ToString("X2"),
+                                                 state.DS.back.stencilref.ToString("X2")});
+            }
+            else
+            {
+                stencilFuncs.Nodes.Add(new object[] { "Front", "-", "-", "-", "-", "-", "-", "-" });
+                stencilFuncs.Nodes.Add(new object[] { "Back", "-", "-", "-", "-", "-", "-", "-" });
+            }
             stencilFuncs.EndUpdate();
             stencilFuncs.NodesSelection.Clear();
 
@@ -1677,7 +1704,6 @@ namespace renderdocui.Windows.PipelineState
             }
 
             viAttrs.Invalidate();
-            viBindings.Invalidate();
             viBuffers.Invalidate();
         }
 
@@ -1702,25 +1728,6 @@ namespace renderdocui.Windows.PipelineState
 
                     HighlightIABind(binding);
                 }
-            }
-        }
-
-        private void iabinds_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (m_Core.CurVulkanPipelineState == null) return;
-
-            Point mousePoint = viBindings.PointToClient(Cursor.Position);
-            var hoverNode = viBindings.CalcHitNode(mousePoint);
-
-            ia_MouseLeave(sender, e);
-
-            if (hoverNode != null)
-            {
-                int idx = m_BindNodes.IndexOf(hoverNode);
-                if (idx >= 0)
-                    HighlightIABind((uint)idx);
-                else
-                    hoverNode.DefaultBackColor = SystemColors.ControlLight;
             }
         }
 
@@ -1751,11 +1758,7 @@ namespace renderdocui.Windows.PipelineState
             foreach (var n in viAttrs.Nodes)
                 n.DefaultBackColor = Color.Transparent;
 
-            foreach (var n in viBindings.Nodes)
-                n.DefaultBackColor = Color.Transparent;
-
             viAttrs.Invalidate();
-            viBindings.Invalidate();
             viBuffers.Invalidate();
         }
 

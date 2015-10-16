@@ -793,6 +793,7 @@ template<>
 void Serialiser::Serialise(const char *name, VulkanPipelineState::ColorBlend &el)
 {
 	Serialise("", el.alphaToCoverageEnable);
+	Serialise("", el.alphaToOneEnable);
 	Serialise("", el.logicOpEnable);
 	Serialise("", el.logicOp);
 
@@ -800,7 +801,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ColorBlend &el
 
 	SerialisePODArray<4>("", el.blendConst);
 
-	SIZE_CHECK(VulkanPipelineState::ColorBlend, 40);
+	SIZE_CHECK(VulkanPipelineState::ColorBlend, 44);
 }
 
 template<>
@@ -879,7 +880,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState &el)
 	Serialise("", el.DS);
 	Serialise("", el.Pass);
 
-	SIZE_CHECK(VulkanPipelineState, 736);
+	SIZE_CHECK(VulkanPipelineState, 744);
 }
 
 #pragma endregion Vulkan pipeline state

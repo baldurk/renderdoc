@@ -226,6 +226,7 @@ namespace renderdoc
         public class ColorBlend
         {
             public bool alphaToCoverageEnable;
+            public bool alphaToOneEnable;
             public bool logicOpEnable;
 
             [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]

@@ -181,7 +181,7 @@ struct VulkanPipelineState
 			blendConst[0] = blendConst[1] = blendConst[2] = blendConst[3] = 0.0f;
 		}
 
-		bool32 alphaToCoverageEnable, logicOpEnable;
+		bool32 alphaToCoverageEnable, alphaToOneEnable, logicOpEnable;
 		rdctype::str logicOp;
 
 		struct Attachment

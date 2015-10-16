@@ -1617,6 +1617,8 @@ void VulkanReplay::SavePipelineState()
 								{
 									dst.bindings[b].binds[a].view = ResourceId();
 									dst.bindings[b].binds[a].res = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->bufferInfo.buffer)->id);
+									dst.bindings[b].binds[a].offset = info->bufferInfo.offset;
+									dst.bindings[b].binds[a].size = info->bufferInfo.range;
 								}
 							}
 						}
@@ -1686,6 +1688,7 @@ void VulkanReplay::SavePipelineState()
 			// Color Blend
 			m_VulkanPipelineState.CB.logicOpEnable = p.logicOpEnable;
 			m_VulkanPipelineState.CB.alphaToCoverageEnable = p.alphaToCoverageEnable;
+			m_VulkanPipelineState.CB.alphaToOneEnable = p.alphaToOneEnable;
 			m_VulkanPipelineState.CB.logicOp = ToStr::Get(p.logicOp);
 
 			create_array_uninit(m_VulkanPipelineState.CB.attachments, p.attachments.size());
