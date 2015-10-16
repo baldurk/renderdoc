@@ -157,7 +157,7 @@ namespace Threading
 		TLSData *slots = (TLSData *)TlsGetValue(OSTLSHandle);
 		if(slots == NULL || slot-1 >= slots->data.size())
 			return NULL;
-		return slots->data[slot-1];
+		return slots->data[(size_t)slot-1];
 	}
 
 	void SetTLSValue(uint64_t slot, void *value)
@@ -176,10 +176,10 @@ namespace Threading
 			}
 
 			if(slot-1 >= slots->data.size())
-				slots->data.resize(slot);
+				slots->data.resize((size_t)slot);
 		}
 
-		slots->data[slot-1] = value;
+		slots->data[(size_t)slot-1] = value;
 	}
 
 	ThreadHandle CreateThread(ThreadEntry entryFunc, void *userData)
