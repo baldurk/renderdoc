@@ -62,8 +62,6 @@ struct VulkanPipelineState
 		rdctype::array<DescriptorSet> DescSets;
 	} compute, graphics;
 
-	// VKTODOMED renderpass/subpass?
-	
 	struct InputAssembly
 	{
 		InputAssembly() : primitiveRestartEnable(false) {}

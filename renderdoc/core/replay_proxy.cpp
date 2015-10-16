@@ -690,6 +690,200 @@ void Serialiser::Serialise(const char *name, GLPipelineState &el)
 
 #pragma endregion OpenGL pipeline state
 
+#pragma region Vulkan pipeline state
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding &el)
+{
+	Serialise("", el.arraySize);
+	Serialise("", el.type);
+	Serialise("", el.stageFlags);
+
+	Serialise("", el.binds);
+
+	SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding, 20);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::Pipeline::DescriptorSet &el)
+{
+	Serialise("", el.layout);
+	Serialise("", el.descset);
+
+	Serialise("", el.bindings);
+
+	SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet, 24);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::Pipeline &el)
+{
+	Serialise("", el.obj);
+	Serialise("", el.flags);
+
+	Serialise("", el.DescSets);
+
+	SIZE_CHECK(VulkanPipelineState::Pipeline, 24);
+}
+
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::VertexInput::Attribute &el)
+{
+	Serialise("", el.location);
+	Serialise("", el.binding);
+	Serialise("", el.format);
+	Serialise("", el.byteoffset);
+
+	SIZE_CHECK(VulkanPipelineState::VertexInput::Attribute, 48);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::VertexInput &el)
+{
+	Serialise("", el.attrs);
+	Serialise("", el.binds);
+	Serialise("", el.vbuffers);
+
+	SIZE_CHECK(VulkanPipelineState::VertexInput, 24);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::ShaderStage &el)
+{
+	Serialise("", el.Shader);
+	Serialise("", el.ShaderName);
+	Serialise("", el.customName);
+	Serialise("", el.BindpointMapping);
+	Serialise("", el.stage);
+
+	if(m_Mode == READING)
+		el.ShaderDetails = NULL;
+
+	SIZE_CHECK(VulkanPipelineState::ShaderStage, 56);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::ViewState &el)
+{
+	Serialise("", el.viewportScissors);
+
+	SIZE_CHECK(VulkanPipelineState::ViewState, 8);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::ColorBlend::Attachment &el)
+{
+	Serialise("", el.blendEnable);
+
+	Serialise("", el.blend.Source);
+	Serialise("", el.blend.Destination);
+	Serialise("", el.blend.Operation);
+
+	Serialise("", el.alphaBlend.Source);
+	Serialise("", el.alphaBlend.Destination);
+	Serialise("", el.alphaBlend.Operation);
+
+	Serialise("", el.writeMask);
+
+	SIZE_CHECK(VulkanPipelineState::ColorBlend::Attachment, 56);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::ColorBlend &el)
+{
+	Serialise("", el.alphaToCoverageEnable);
+	Serialise("", el.logicOpEnable);
+	Serialise("", el.logicOp);
+
+	Serialise("", el.attachments);
+
+	SerialisePODArray<4>("", el.blendConst);
+
+	SIZE_CHECK(VulkanPipelineState::ColorBlend, 40);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::DepthStencil &el)
+{
+	Serialise("", el.depthTestEnable);
+	Serialise("", el.depthWriteEnable);
+	Serialise("", el.depthBoundsEnable);
+	Serialise("", el.depthCompareOp);
+	
+	Serialise("", el.stencilTestEnable);
+	
+	Serialise("", el.front.failOp);
+	Serialise("", el.front.depthFailOp);
+	Serialise("", el.front.passOp);
+	Serialise("", el.front.func);
+	Serialise("", el.front.ref);
+	Serialise("", el.front.compareMask);
+	Serialise("", el.front.writeMask);
+	
+	Serialise("", el.back.failOp);
+	Serialise("", el.back.depthFailOp);
+	Serialise("", el.back.passOp);
+	Serialise("", el.back.func);
+	Serialise("", el.back.ref);
+	Serialise("", el.back.compareMask);
+	Serialise("", el.back.writeMask);
+	
+	Serialise("", el.minDepthBounds);
+	Serialise("", el.maxDepthBounds);
+
+	SIZE_CHECK(VulkanPipelineState::DepthStencil, 120);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::CurrentPass &el)
+{
+	Serialise("", el.renderpass.obj);
+	Serialise("", el.renderpass.inputAttachments);
+	Serialise("", el.renderpass.colorAttachments);
+	Serialise("", el.renderpass.depthstencilAttachment);
+	
+	Serialise("", el.framebuffer.obj);
+	Serialise("", el.framebuffer.attachments);
+	Serialise("", el.framebuffer.width);
+	Serialise("", el.framebuffer.height);
+	Serialise("", el.framebuffer.layers);
+	
+	Serialise("", el.renderArea);
+
+	SIZE_CHECK(VulkanPipelineState::CurrentPass, 80);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState &el)
+{
+	Serialise("", el.compute);
+	Serialise("", el.graphics);
+
+	Serialise("", el.IA);
+	Serialise("", el.VI);
+
+	Serialise("", el.VS);
+	Serialise("", el.TCS);
+	Serialise("", el.TES);
+	Serialise("", el.GS);
+	Serialise("", el.FS);
+	Serialise("", el.CS);
+
+	Serialise("", el.Tess);
+
+	Serialise("", el.VP);
+	Serialise("", el.RS);
+	Serialise("", el.MSAA);
+	Serialise("", el.CB);
+	Serialise("", el.DS);
+	Serialise("", el.Pass);
+
+	SIZE_CHECK(VulkanPipelineState, 736);
+}
+
+#pragma endregion Vulkan pipeline state
+
 #pragma region Data descriptors
 
 template<>
@@ -907,6 +1101,10 @@ string ToStrHelper<false, PrimitiveTopology>::Get(const PrimitiveTopology &el) {
 template<>
 string ToStrHelper<false, ShaderStageType>::Get(const ShaderStageType &el) { return "<...>"; }
 template<>
+string ToStrHelper<false, ShaderStageBits>::Get(const ShaderStageBits &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, ShaderBindType>::Get(const ShaderBindType &el) { return "<...>"; }
+template<>
 string ToStrHelper<false, ShaderResourceType>::Get(const ShaderResourceType &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, DebugMessageCategory>::Get(const DebugMessageCategory &el) { return "<...>"; }
@@ -958,6 +1156,26 @@ template<>
 string ToStrHelper<false, GLPipelineState::Rasterizer::RasterizerState>::Get(const GLPipelineState::Rasterizer::RasterizerState &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, GLPipelineState::Hints>::Get(const GLPipelineState::Hints &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, VulkanPipelineState::CurrentPass::RenderArea>::Get(const VulkanPipelineState::CurrentPass::RenderArea &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, VulkanPipelineState::InputAssembly>::Get(const VulkanPipelineState::InputAssembly &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, VulkanPipelineState::Tessellation>::Get(const VulkanPipelineState::Tessellation &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, VulkanPipelineState::Raster>::Get(const VulkanPipelineState::Raster &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, VulkanPipelineState::MultiSample>::Get(const VulkanPipelineState::MultiSample &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement>::Get(const VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, VulkanPipelineState::VertexInput::Binding>::Get(const VulkanPipelineState::VertexInput::Binding &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, VulkanPipelineState::VertexInput::VertexBuffer>::Get(const VulkanPipelineState::VertexInput::VertexBuffer &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, VulkanPipelineState::ViewState::ViewportScissor>::Get(const VulkanPipelineState::ViewState::ViewportScissor &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, VulkanPipelineState::CurrentPass::Framebuffer::Attachment>::Get(const VulkanPipelineState::CurrentPass::Framebuffer::Attachment &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, EventUsage>::Get(const EventUsage &el) { return "<...>"; }
 template<>
@@ -1355,8 +1573,7 @@ void ProxySerialiser::SavePipelineState()
 
 	m_FromReplaySerialiser->Serialise("", m_D3D11PipelineState);
 	m_FromReplaySerialiser->Serialise("", m_GLPipelineState);
-	// VKTODOLOW - serialise pipe state
-	//m_FromReplaySerialiser->Serialise("", m_VulkanPipelineState);
+	m_FromReplaySerialiser->Serialise("", m_VulkanPipelineState);
 }
 
 void ProxySerialiser::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
