@@ -360,9 +360,15 @@ void ReplayOutput::DisplayContext()
 	m_pDevice->BindOutputWindow(m_PixelContext.outputID, false);
 	m_pDevice->ClearOutputWindowColour(m_PixelContext.outputID, color);
 	
-	if(m_Config.m_Type != eOutputType_TexDisplay) return;
-	if(m_ContextX < 0.0f && m_ContextY < 0.0f) return;
-	if(m_RenderData.texDisplay.texid == ResourceId()) return;
+	if(
+			(m_Config.m_Type != eOutputType_TexDisplay) ||
+			(m_ContextX < 0.0f && m_ContextY < 0.0f) ||
+			(m_RenderData.texDisplay.texid == ResourceId())
+		)
+	{
+		m_pDevice->FlipOutputWindow(m_PixelContext.outputID);
+		return;
+	}
 
 	TextureDisplay disp = m_RenderData.texDisplay;
 	disp.rawoutput = false;

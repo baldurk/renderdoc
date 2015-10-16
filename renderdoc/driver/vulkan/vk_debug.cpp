@@ -701,8 +701,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				0,
 			};
 
-			// VKTODOMED used for texture display, but eventually will have to be created on the fly
-			// for whichever image we're viewing (and cached), not specifically created here.
 			vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, &m_TextAtlasView);
 			RDCASSERT(vkr == VK_SUCCESS);
 				
