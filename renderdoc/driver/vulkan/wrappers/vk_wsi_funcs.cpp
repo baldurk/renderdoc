@@ -307,7 +307,12 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 		const VkSwapchainCreateInfoKHR*         pCreateInfo,
 		VkSwapchainKHR*                         pSwapChain)
 {
-	VkResult ret = ObjDisp(device)->CreateSwapchainKHR(Unwrap(device), pCreateInfo, pSwapChain);
+	VkSwapchainCreateInfoKHR createInfo = *pCreateInfo;
+
+	// make sure we can readback to get the screenshot
+	createInfo.imageUsageFlags |= VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT;
+
+	VkResult ret = ObjDisp(device)->CreateSwapchainKHR(Unwrap(device), &createInfo, pSwapChain);
 	
 	if(ret == VK_SUCCESS)
 	{
