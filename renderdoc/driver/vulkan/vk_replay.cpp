@@ -190,7 +190,6 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->GetSurfaceFormatsKHR(Unwrap(device), (const VkSurfaceDescriptionKHR *)&surfDesc, &numFormats, NULL);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		// VKTODOLOW make sure whole pipeline is SRGB correct
 		if(numFormats > 0)
 		{
 			VkSurfaceFormatKHR *formats = new VkSurfaceFormatKHR[numFormats];
