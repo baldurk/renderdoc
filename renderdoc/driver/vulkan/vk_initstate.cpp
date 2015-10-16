@@ -67,27 +67,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		VkCmdBuffer cmd = GetCmd();
 
 		VkDeviceMemory mem = VK_NULL_HANDLE;
-		
-		// VKTODOMED should get mem requirements for buffer - copy might enforce
-		// some restrictions?
-		VkMemoryRequirements mrq = { meminfo.size, 16, ~0U };
-
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-			meminfo.size, GetReadbackMemoryIndex(mrq.memoryTypeBits),
-		};
-
-		vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &mem);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(d), mem);
-
-		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
-
-		vkr = ObjDisp(d)->ResetCommandBuffer(Unwrap(cmd), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
-		vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
@@ -102,10 +81,34 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		RDCASSERT(vkr == VK_SUCCESS);
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &dstBuf);
 		RDCASSERT(vkr == VK_SUCCESS);
+		
+		VkMemoryRequirements mrq = { 0 };
 
+		vkr = ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), srcBuf, &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			meminfo.size, GetReadbackMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		allocInfo.allocationSize = AlignUp(allocInfo.allocationSize, mrq.alignment);
+
+		vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &mem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(d), mem);
+		
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), srcBuf, ToHandle<VkDeviceMemory>(res), 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(mem), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+		vkr = ObjDisp(d)->ResetCommandBuffer(Unwrap(cmd), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkBufferCopy region = { 0, 0, meminfo.size };
