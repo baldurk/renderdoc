@@ -509,7 +509,6 @@ vector<DebugMessage> VulkanReplay::GetDebugMessages()
 
 vector<ResourceId> VulkanReplay::GetTextures()
 {
-	VULKANNOTIMP("GetTextures");
 	vector<ResourceId> texs;
 
 	for(auto it = m_pDriver->m_ImageInfo.begin(); it != m_pDriver->m_ImageInfo.end(); ++it)
@@ -1343,7 +1342,13 @@ vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint3
 
 bool VulkanReplay::IsRenderOutput(ResourceId id)
 {
-	RDCUNIMPLEMENTED("IsRenderOutput");
+	for(int32_t i=0; i < m_VulkanPipelineState.Pass.framebuffer.attachments.count; i++)
+	{
+		if(m_VulkanPipelineState.Pass.framebuffer.attachments[i].view == id ||
+			 m_VulkanPipelineState.Pass.framebuffer.attachments[i].img == id)
+				return true;
+	}
+
 	return false;
 }
 
@@ -1353,8 +1358,6 @@ void VulkanReplay::FileChanged()
 
 FetchTexture VulkanReplay::GetTexture(ResourceId id)
 {
-	VULKANNOTIMP("GetTexture");
-	
 	const ImgState &iminfo = m_pDriver->m_ImageInfo[id];
 
 	FetchTexture ret;
