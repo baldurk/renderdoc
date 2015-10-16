@@ -1022,7 +1022,6 @@ bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
 		outw.width = w;
 		outw.height = h;
 
-		// VKTODOHIGH Currently the resize code crashes - unsure why
 		if(outw.width > 0 && outw.height > 0)
 		{
 			bool depth = (outw.dsimg != VK_NULL_HANDLE);
