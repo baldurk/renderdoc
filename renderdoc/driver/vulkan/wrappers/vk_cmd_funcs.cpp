@@ -771,6 +771,49 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 				m_PartialReplayData.state.graphics.pipeline = pipeid;
 			else
 				m_PartialReplayData.state.compute.pipeline = pipeid;
+
+			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
+			{
+				m_PartialReplayData.state.views = m_CreationInfo.m_Pipeline[pipeid].viewports;
+			}
+			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
+			{
+				m_PartialReplayData.state.scissors = m_CreationInfo.m_Pipeline[pipeid].scissors;
+			}
+			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
+			{
+				m_PartialReplayData.state.lineWidth = m_CreationInfo.m_Pipeline[pipeid].lineWidth;
+			}
+			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
+			{
+				m_PartialReplayData.state.bias.depth = m_CreationInfo.m_Pipeline[pipeid].depthBias;
+				m_PartialReplayData.state.bias.biasclamp = m_CreationInfo.m_Pipeline[pipeid].depthBiasClamp;
+				m_PartialReplayData.state.bias.slope = m_CreationInfo.m_Pipeline[pipeid].slopeScaledDepthBias;
+			}
+			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
+			{
+				memcpy(m_PartialReplayData.state.blendConst, m_CreationInfo.m_Pipeline[pipeid].blendConst, sizeof(float)*4);
+			}
+			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
+			{
+				m_PartialReplayData.state.mindepth = m_CreationInfo.m_Pipeline[pipeid].minDepthBounds;
+				m_PartialReplayData.state.maxdepth = m_CreationInfo.m_Pipeline[pipeid].maxDepthBounds;
+			}
+			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
+			{
+				m_PartialReplayData.state.front.compare = m_CreationInfo.m_Pipeline[pipeid].front.stencilCompareMask;
+				m_PartialReplayData.state.back.compare = m_CreationInfo.m_Pipeline[pipeid].back.stencilCompareMask;
+			}
+			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
+			{
+				m_PartialReplayData.state.front.write = m_CreationInfo.m_Pipeline[pipeid].front.stencilWriteMask;
+				m_PartialReplayData.state.back.write = m_CreationInfo.m_Pipeline[pipeid].back.stencilWriteMask;
+			}
+			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
+			{
+				m_PartialReplayData.state.front.ref = m_CreationInfo.m_Pipeline[pipeid].front.stencilReference;
+				m_PartialReplayData.state.back.ref = m_CreationInfo.m_Pipeline[pipeid].back.stencilReference;
+			}
 		}
 	}
 	else if(m_State == READING)

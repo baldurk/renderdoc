@@ -67,6 +67,8 @@ struct VulkanCreationInfo
 
 		// VkPipelineViewportStateCreateInfo
 		uint32_t viewportCount;
+		vector<VkViewport> viewports;
+		vector<VkRect2D> scissors;
 
 		// VkPipelineRasterStateCreateInfo
 		bool depthClipEnable;
@@ -74,6 +76,11 @@ struct VulkanCreationInfo
 		VkFillMode fillMode;
 		VkCullMode cullMode;
 		VkFrontFace frontFace;
+		bool depthBiasEnable;
+		float depthBias;
+		float depthBiasClamp;
+		float slopeScaledDepthBias;
+		float lineWidth;
 
 		// VkPipelineMultisampleStateCreateInfo
 		uint32_t rasterSamples;
@@ -89,11 +96,15 @@ struct VulkanCreationInfo
 		bool stencilTestEnable;
 		VkStencilOpState front;
 		VkStencilOpState back;
+		float minDepthBounds;
+		float maxDepthBounds;
 
 		// VkPipelineColorBlendStateCreateInfo
 		bool alphaToCoverageEnable;
+		bool alphaToOneEnable;
 		bool logicOpEnable;
 		VkLogicOp logicOp;
+		float blendConst[4];
 
 		struct Attachment
 		{
@@ -109,6 +120,9 @@ struct VulkanCreationInfo
 			uint8_t channelWriteMask;
 		};
 		vector<Attachment> attachments;
+
+		// VkPipelineDynamicStateCreateInfo
+		bool dynamicStates[VK_DYNAMIC_STATE_NUM];
 	};
 	map<ResourceId, Pipeline> m_Pipeline;
 

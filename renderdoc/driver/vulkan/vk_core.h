@@ -308,8 +308,6 @@ private:
 			}
 
 			// dynamic state
-			// VKTODOHIGH this needs to come from the pipeline state
-			// first, then get overridden by dynamic state.
 			vector<VkViewport> views;
 			vector<VkRect2D> scissors;
 			float lineWidth;

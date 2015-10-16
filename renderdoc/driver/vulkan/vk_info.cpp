@@ -65,12 +65,29 @@ void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCre
 
 		viewportCount = pCreateInfo->pViewportState->viewportCount;
 
+		viewports.resize(viewportCount);
+		scissors.resize(viewportCount);
+
+		for(size_t i=0; i < viewports.size(); i++)
+		{
+			if(pCreateInfo->pViewportState->pViewports)
+				viewports[i] = pCreateInfo->pViewportState->pViewports[i];
+
+			if(pCreateInfo->pViewportState->pScissors)
+				scissors[i] = pCreateInfo->pViewportState->pScissors[i];
+		}
+
 		// VkPipelineRasterStateCreateInfo
 		depthClipEnable = pCreateInfo->pRasterState->depthClipEnable ? true : false;
 		rasterizerDiscardEnable = pCreateInfo->pRasterState->rasterizerDiscardEnable ? true : false;
 		fillMode = pCreateInfo->pRasterState->fillMode;
 		cullMode = pCreateInfo->pRasterState->cullMode;
 		frontFace = pCreateInfo->pRasterState->frontFace;
+		depthBiasEnable = pCreateInfo->pRasterState->depthBiasEnable ? true : false;
+		depthBias = pCreateInfo->pRasterState->depthBias;
+		depthBiasClamp = pCreateInfo->pRasterState->depthBiasClamp;
+		slopeScaledDepthBias = pCreateInfo->pRasterState->slopeScaledDepthBias;
+		lineWidth = pCreateInfo->pRasterState->lineWidth;
 
 		// VkPipelineMultisampleStateCreateInfo
 		rasterSamples = pCreateInfo->pMultisampleState->rasterSamples;
@@ -86,11 +103,15 @@ void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCre
 		stencilTestEnable = pCreateInfo->pDepthStencilState->stencilTestEnable ? true : false;
 		front = pCreateInfo->pDepthStencilState->front;
 		back = pCreateInfo->pDepthStencilState->back;
+		minDepthBounds = pCreateInfo->pDepthStencilState->minDepthBounds;
+		maxDepthBounds = pCreateInfo->pDepthStencilState->maxDepthBounds;
 
 		// VkPipelineColorBlendStateCreateInfo
 		alphaToCoverageEnable = pCreateInfo->pColorBlendState->alphaToCoverageEnable ? true : false;
+		alphaToOneEnable = pCreateInfo->pColorBlendState->alphaToOneEnable ? true : false;
 		logicOpEnable = pCreateInfo->pColorBlendState->logicOpEnable ? true : false;
 		logicOp = pCreateInfo->pColorBlendState->logicOp;
+		memcpy(blendConst, pCreateInfo->pColorBlendState->blendConst, sizeof(blendConst));
 
 		attachments.resize(pCreateInfo->pColorBlendState->attachmentCount);
 
@@ -107,6 +128,13 @@ void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCre
 			attachments[i].alphaBlend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].blendOpAlpha;
 
 			attachments[i].channelWriteMask = pCreateInfo->pColorBlendState->pAttachments[i].channelWriteMask;
+		}
+
+		RDCEraseEl(dynamicStates);
+		if(pCreateInfo->pDynamicState)
+		{
+			for(uint32_t i=0; i < pCreateInfo->pDynamicState->dynamicStateCount; i++)
+				dynamicStates[ pCreateInfo->pDynamicState->pDynamicStates[i] ] = true;
 		}
 }
 
