@@ -311,6 +311,8 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 					i++;
 			}
 
+			SAFE_DELETE_ARRAY(bindings);
+
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, validBinds, blob));
 		}
 		else if(type == eResDeviceMemory)
@@ -363,6 +365,8 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			memcpy(ptr, data, dataSize);
 
 			ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mem));
+
+			SAFE_DELETE_ARRAY(data);
 
 			// VKTODOMED leaking the memory here! needs to be cleaned up with the buffer
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(buf), eInitialContents_Copy, NULL));
