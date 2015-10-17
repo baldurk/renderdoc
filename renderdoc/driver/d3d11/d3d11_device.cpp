@@ -3163,7 +3163,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 	// kill any current capture that isn't application defined
 	if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
-		EndFrameCapture(this, swapdesc.OutputWindow);
+		RenderDoc::Inst().EndFrameCapture((ID3D11Device *)this, swapdesc.OutputWindow);
 
 	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
 	{
