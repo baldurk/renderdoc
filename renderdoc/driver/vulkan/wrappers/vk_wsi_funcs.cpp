@@ -276,7 +276,6 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			m_SwapChainInfo[id].images[i].im = im;
 
 			// fill out image info so we track resource state transitions
-			m_ImageInfo[liveId].mem = mem;
 			m_ImageInfo[liveId].type = VK_IMAGE_TYPE_2D;
 			m_ImageInfo[liveId].format = info.imageFormat;
 			m_ImageInfo[liveId].extent.width = info.imageExtent.width;

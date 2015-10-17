@@ -673,32 +673,32 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	VkQueue q = m_pDriver->GetQ();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	const ImgState &iminfo = m_pDriver->m_ImageInfo[cfg.texid];
+	ImgState &iminfo = m_pDriver->m_ImageInfo[cfg.texid];
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.texid);
 
 	// VKTODOMED handle multiple subresources with different layouts etc
 	VkImageLayout origLayout = iminfo.subresourceStates[0].state;
-	VkImageView liveImView = VK_NULL_HANDLE;
+	VkImageView liveImView = iminfo.view;
 
-	// VKTODOLOW this view should be cached
+	if(liveImView == VK_NULL_HANDLE)
 	{
 		VkImageViewCreateInfo viewInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
 			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
 			iminfo.format,
 			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ VK_IMAGE_ASPECT_COLOR, 0, RDCMAX(1, iminfo.mipLevels), 0, 1, },
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, RDCMAX(1, iminfo.mipLevels), 0, 1, },
 			0
 		};
 
-		// VKTODOMED used for texture display, but eventually will have to be created on the fly
-		// for whichever image we're viewing (and cached), not specifically created here.
-		VkResult vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, &liveImView);
+		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, &iminfo.view);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), liveImView);
+		m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
+
+		liveImView = iminfo.view;
 	}
-	
+
 	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
 	// needs to be ring-buffered
 	displayuniforms *data = (displayuniforms *)GetDebugManager()->m_TexDisplayUBO.Map(vt, dev);
@@ -845,10 +845,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	// ring-buffer style
 	vt->QueueWaitIdle(Unwrap(q));
 
-	vt->DestroyImageView(Unwrap(dev), Unwrap(liveImView));
-	VKMGR()->ReleaseWrappedResource(liveImView);
-
-	return false;
+	return true;
 }
 	
 void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)

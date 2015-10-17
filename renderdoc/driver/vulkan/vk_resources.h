@@ -680,14 +680,14 @@ struct MemState
 struct ImgState
 {
 	ImgState()
-		: mem(VK_NULL_HANDLE), arraySize(0), mipLevels(0), samples(0), cube(false), creationFlags(0)
+		: view(VK_NULL_HANDLE), arraySize(0), mipLevels(0), samples(0), cube(false), creationFlags(0)
 	{
 		type = VK_IMAGE_TYPE_MAX_ENUM;
 		format = VK_FORMAT_UNDEFINED;
 		extent.width = extent.height = extent.depth = 0;
 	}
 
-	VkDeviceMemory mem;
+	VkImageView view;
 	vector<ImageRegionState> subresourceStates;
 
 	VkImageType type;

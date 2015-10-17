@@ -756,25 +756,27 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), img);
 			GetResourceManager()->AddLiveResource(id, img);
+
+			ImgState &iminfo = m_ImageInfo[live];
 			
-			m_ImageInfo[live].type = info.imageType;
-			m_ImageInfo[live].format = info.format;
-			m_ImageInfo[live].extent = info.extent;
-			m_ImageInfo[live].mipLevels = info.mipLevels;
-			m_ImageInfo[live].arraySize = info.arraySize;
-			m_ImageInfo[live].samples = info.samples;
+			iminfo.type = info.imageType;
+			iminfo.format = info.format;
+			iminfo.extent = info.extent;
+			iminfo.mipLevels = info.mipLevels;
+			iminfo.arraySize = info.arraySize;
+			iminfo.samples = info.samples;
 
 			if(origFlags & VK_IMAGE_USAGE_SAMPLED_BIT)
-				m_ImageInfo[live].creationFlags |= eTextureCreate_SRV;
+				iminfo.creationFlags |= eTextureCreate_SRV;
 			if(origFlags & (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT))
-				m_ImageInfo[live].creationFlags |= eTextureCreate_RTV;
+				iminfo.creationFlags |= eTextureCreate_RTV;
 			if(origFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-				m_ImageInfo[live].creationFlags |= eTextureCreate_DSV;
+				iminfo.creationFlags |= eTextureCreate_DSV;
 			if(origFlags & VK_IMAGE_USAGE_STORAGE_BIT)
-				m_ImageInfo[live].creationFlags |= eTextureCreate_UAV;
+				iminfo.creationFlags |= eTextureCreate_UAV;
 
 			if(info.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT)
-				m_ImageInfo[live].cube = true;
+				iminfo.cube = true;
 			
 			VkImageSubresourceRange range;
 			range.baseMipLevel = range.baseArrayLayer = 0;
@@ -783,16 +785,16 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 			if(info.imageType == VK_IMAGE_TYPE_3D)
 				range.arraySize = info.extent.depth;
 
-			m_ImageInfo[live].subresourceStates.clear();
+			iminfo.subresourceStates.clear();
 			
 			if(!IsDepthStencilFormat(info.format))
 			{
-				range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+				range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  iminfo.subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
 			}
 			else
 			{
-				range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;  m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
-				range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+				range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;  iminfo.subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+				range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;iminfo.subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
 			}
 		}
 	}
