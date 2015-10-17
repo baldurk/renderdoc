@@ -525,15 +525,9 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 			VkRenderPass rp = swapInfo.rp;
 			VkFramebuffer fb = swapInfo.images[pPresentInfo->imageIndices[0]].fb;
 
-			// VKTODOLOW only handling queue == GetQ()
-			RDCASSERT(GetQ() == queue);
-			VkQueue q = GetQ();
-
 			VkLayerDispatchTable *vt = ObjDisp(GetDev());
 
-			vt->QueueWaitIdle(Unwrap(q));
-
-			TextPrintState textstate = { q, GetCmd(), rp, fb, swapInfo.extent.width, swapInfo.extent.height };
+			TextPrintState textstate = { VK_NULL_HANDLE, rp, fb, swapInfo.extent.width, swapInfo.extent.height };
 
 			if(activeWindow)
 			{
@@ -566,13 +560,19 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 				if(!overlayText.empty())
 				{
+					textstate.cmd = GetNextCmd();
 					GetDebugManager()->RenderText(textstate, 0.0f, y, overlayText.c_str());
+					SubmitCmds();
+					FlushQ();
 					y += 1.0f;
 				}
 
 				if(overlay & eRENDERDOC_Overlay_CaptureList)
 				{
+					textstate.cmd = GetNextCmd();
 					GetDebugManager()->RenderText(textstate, 0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
+					SubmitCmds();
+					FlushQ();
 					y += 1.0f;
 
 					uint64_t now = Timing::GetUnixTimestamp();
@@ -580,7 +580,10 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 					{
 						if(now - m_FrameRecord[i].frameInfo.captureTime < 20)
 						{
+							textstate.cmd = GetNextCmd();
 							GetDebugManager()->RenderText(textstate, 0.0f, y, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
+							SubmitCmds();
+							FlushQ();
 							y += 1.0f;
 						}
 					}
@@ -589,7 +592,10 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 				// VKTODOLOW failed frames
 
 #if !defined(RELEASE)
+				textstate.cmd = GetNextCmd();
 				GetDebugManager()->RenderText(textstate, 0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
+				SubmitCmds();
+				FlushQ();
 				y += 1.0f;
 #endif
 			}
@@ -611,9 +617,16 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 				if(!keys.empty())
 					str += " to cycle between swapchains";
-
+				
+				textstate.cmd = GetNextCmd();
 				GetDebugManager()->RenderText(textstate, 0.0f, 0.0f, str.c_str());
+				SubmitCmds();
+				FlushQ();
 			}
+
+			// VKTODOLOW once rendertext can be called multiple times (with e.g. dynamic UBO)
+			// submit cmds here and don't flush
+			//SubmitCmds();
 		}
 	}
 	
@@ -644,8 +657,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 			if(1)//if(wnd)
 			{
 				VkDevice dev = GetDev();
-				VkQueue q = GetQ();
-				VkCmdBuffer cmd = GetCmd();
+				VkCmdBuffer cmd = GetNextCmd();
 
 				const VkLayerDispatchTable *vt = ObjDisp(dev);
 
@@ -743,11 +755,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 				vkr = vt->EndCommandBuffer(Unwrap(cmd));
 				RDCASSERT(vkr == VK_SUCCESS);
 
-				vkr = vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-				RDCASSERT(vkr == VK_SUCCESS);
-
-				// wait queue idle
-				vt->QueueWaitIdle(Unwrap(q));
+				SubmitCmds();
+				FlushQ(); // need to wait so we can readback
 
 				// map memory and readback
 				byte *pData = NULL;

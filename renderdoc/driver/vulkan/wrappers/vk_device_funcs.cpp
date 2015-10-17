@@ -307,12 +307,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 				GetResourceManager()->WrapResource(Unwrap(device), m_PhysicalReplayData[i].cmdpool);
 
-				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, Unwrap(m_PhysicalReplayData[i].cmdpool), VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				vkr = ObjDisp(device)->CreateCommandBuffer(Unwrap(device), &cmdInfo, &m_PhysicalReplayData[i].cmd);
-				RDCASSERT(vkr == VK_SUCCESS);
-
-				GetResourceManager()->WrapResource(Unwrap(device), m_PhysicalReplayData[i].cmd);
-
 				found = true;
 				break;
 			}
@@ -450,18 +444,13 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 				GetResourceManager()->WrapResource(Unwrap(*pDevice), m_PhysicalReplayData[i].cmdpool);
 
-				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, Unwrap(m_PhysicalReplayData[i].cmdpool), VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				vkr = ObjDisp(*pDevice)->CreateCommandBuffer(Unwrap(*pDevice), &cmdInfo, &m_PhysicalReplayData[i].cmd);
-				RDCASSERT(vkr == VK_SUCCESS);
-				found = true;
-
-				GetResourceManager()->WrapResource(Unwrap(*pDevice), m_PhysicalReplayData[i].cmd);
-
 				// VKTODOHIGH hack, need to properly handle multiple devices etc and
 				// not have this 'current swap chain device' thing.
 				m_SwapPhysDevice = (int)i;
 				
 				m_PhysicalReplayData[i].debugMan = new VulkanDebugManager(this, *pDevice);
+
+				found = true;
 				break;
 			}
 		}
@@ -484,9 +473,6 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device)
 		{
 			if(m_PhysicalReplayData[i].dev == device)
 			{
-				if(m_PhysicalReplayData[i].cmd != VK_NULL_HANDLE)
-					ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), Unwrap(m_PhysicalReplayData[i].cmd));
-
 				if(m_PhysicalReplayData[i].cmdpool != VK_NULL_HANDLE)
 					ObjDisp(device)->DestroyCommandPool(Unwrap(device), Unwrap(m_PhysicalReplayData[i].cmdpool));
 

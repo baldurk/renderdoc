@@ -623,6 +623,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VKMGR()->ReleaseWrappedResource(module[i]);
 	}
 
+	VkCmdBuffer cmd = driver->GetNextCmd();
+
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+	vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
+	RDCASSERT(vkr == VK_SUCCESS);
+	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	RDCASSERT(vkr == VK_SUCCESS);
+
 	{
 		int width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
 
@@ -707,15 +716,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			VKMGR()->WrapResource(Unwrap(dev), m_TextAtlasView);
 
 			// need to transition image into valid state, then upload
-			VkCmdBuffer cmd = driver->GetCmd();
-			VkQueue q = driver->GetQ();
-			
-			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
-
-			vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-			RDCASSERT(vkr == VK_SUCCESS);
-			vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-			RDCASSERT(vkr == VK_SUCCESS);
 			
 			VkImageMemoryBarrier trans = {
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -728,15 +728,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			void *barrier = (void *)&trans;
 
 			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
-
-			vt->EndCommandBuffer(Unwrap(cmd));
-
-			vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-
-			// VKTODOMED ideally all the commands from Bind to Flip would be recorded
-			// into a single command buffer and we can just have several allocated
-			// ring-buffer style
-			vt->QueueWaitIdle(Unwrap(q));
 
 			byte *pData = NULL;
 			vkr = vt->MapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem), 0, 0, 0, (void **)&pData);
@@ -833,15 +824,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VKMGR()->WrapResource(Unwrap(dev), m_PickPixelImageView);
 
 		// need to transition image into valid state
-		VkCmdBuffer cmd = driver->GetCmd();
-		VkQueue q = driver->GetQ();
-
-		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
-
-		vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
-		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkImageMemoryBarrier trans = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -855,15 +837,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		void *barrier = (void *)&trans;
 
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
-
-		vt->EndCommandBuffer(Unwrap(cmd));
-
-		vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-
-		// VKTODOMED ideally all the commands from Bind to Flip would be recorded
-		// into a single command buffer and we can just have several allocated
-		// ring-buffer style
-		vt->QueueWaitIdle(Unwrap(q));
 
 		// create render pass
 		VkAttachmentDescription attDesc = {
@@ -967,6 +940,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	};
 
 	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+	
+	vt->EndCommandBuffer(Unwrap(cmd));
+	driver->SubmitCmds();
 }
 
 VulkanDebugManager::~VulkanDebugManager()
@@ -1209,8 +1185,4 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 	}
 
 	vt->EndCommandBuffer(Unwrap(textstate.cmd));
-
-	vt->QueueSubmit(Unwrap(textstate.q), 1, UnwrapPtr(textstate.cmd), VK_NULL_HANDLE);
-
-	vt->QueueWaitIdle(Unwrap(textstate.q));
 }

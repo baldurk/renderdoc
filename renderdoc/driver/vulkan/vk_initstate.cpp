@@ -63,8 +63,10 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		VkResult vkr = VK_SUCCESS;
 
 		VkDevice d = GetDev();
-		VkQueue q = GetQ();
-		VkCmdBuffer cmd = GetCmd();
+		// VKTODOLOW ideally the prepares could be batched up
+		// a bit more - maybe not all in one command buffer, but
+		// at least more than one each
+		VkCmdBuffer cmd = GetNextCmd();
 
 		VkDeviceMemory mem = VK_NULL_HANDLE;
 
@@ -118,13 +120,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = ObjDisp(d)->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		// VKTODOMED would be nice to store a fence too at this point
-		// so we can sync on that on serialise rather than syncing
-		// every time.
-		ObjDisp(d)->QueueWaitIdle(Unwrap(q));
+		// VKTODOLOW would be nice to store up all these buffers so that
+		// we don't have to submit & flush here before destroying, but
+		// instead could submit all cmds, then flush once, then destroy
+		// buffers. (or even not flush at all until capture is over)
+		SubmitCmds();
+		FlushQ();
 
 		ObjDisp(d)->DestroyBuffer(Unwrap(d), srcBuf);
 		ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf);
@@ -482,8 +483,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		VkResult vkr = VK_SUCCESS;
 
 		VkDevice d = GetDev();
-		VkQueue q = GetQ();
-		VkCmdBuffer cmd = GetCmd();
+		VkCmdBuffer cmd = GetNextCmd();
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 		
@@ -516,13 +516,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		// VKTODOMED would be nice to store a fence too at this point
-		// so we can sync on that on serialise rather than syncing
-		// every time.
-		ObjDisp(q)->QueueWaitIdle(Unwrap(q));
+		// VKTODOLOW if this dstBuf was persistent or at least cached
+		// we could batch these command buffers better and wouldn't
+		// need to flush at all until application of all init states
+		// is over
+		SubmitCmds();
+		FlushQ();
 
 		ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf);
 	}

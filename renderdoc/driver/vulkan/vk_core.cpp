@@ -447,6 +447,67 @@ WrappedVulkan::~WrappedVulkan()
 	SAFE_DELETE(m_pSerialiser);
 }
 
+VkCmdBuffer WrappedVulkan::GetNextCmd()
+{
+	RDCASSERT(m_SwapPhysDevice >= 0);
+	ReplayData &rd = m_PhysicalReplayData[m_SwapPhysDevice];
+
+	VkCmdBuffer ret;
+
+	if(!rd.freecmds.empty())
+	{
+		ret = rd.freecmds.back();
+		rd.freecmds.pop_back();
+	}
+	else
+	{	
+		VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, Unwrap(rd.cmdpool), VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
+		VkResult vkr = ObjDisp(rd.dev)->CreateCommandBuffer(Unwrap(rd.dev), &cmdInfo, &ret);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(rd.dev), ret);
+	}
+
+	rd.pendingcmds.push_back(ret);
+
+	return ret;
+}
+
+void WrappedVulkan::SubmitCmds()
+{
+	RDCASSERT(m_SwapPhysDevice >= 0);
+	ReplayData &rd = m_PhysicalReplayData[m_SwapPhysDevice];
+
+	// nothing to do
+	if(rd.pendingcmds.empty())
+		return;
+
+	vector<VkCmdBuffer> cmds = rd.pendingcmds;
+	for(size_t i=0; i < cmds.size(); i++) cmds[i] = Unwrap(cmds[i]);
+
+	ObjDisp(rd.q)->QueueSubmit(Unwrap(rd.q), (uint32_t)cmds.size(), &cmds[0], VK_NULL_HANDLE);
+
+	rd.submittedcmds.insert(rd.submittedcmds.end(), rd.pendingcmds.begin(), rd.pendingcmds.end());
+	rd.pendingcmds.clear();
+}
+
+void WrappedVulkan::FlushQ()
+{
+	RDCASSERT(m_SwapPhysDevice >= 0);
+	ReplayData &rd = m_PhysicalReplayData[m_SwapPhysDevice];
+
+	// VKTODOLOW could do away with the need for this function by keeping
+	// commands until N presents later, or something, or checking on fences
+
+	ObjDisp(rd.q)->QueueWaitIdle(Unwrap(rd.q));
+
+	if(!rd.submittedcmds.empty())
+	{
+		rd.freecmds.insert(rd.freecmds.end(), rd.submittedcmds.begin(), rd.submittedcmds.end());
+		rd.submittedcmds.clear();
+	}
+}
+
 const char * WrappedVulkan::GetChunkName(uint32_t idx)
 {
 	if(idx < FIRST_CHUNK_ID || idx >= NUM_VULKAN_CHUNKS)
@@ -601,8 +662,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 	if(applyInitialState && !imgTransitions.empty())
 	{
-		VkCmdBuffer cmd = GetCmd();
-		VkQueue q = GetQ();
+		VkCmdBuffer cmd = GetNextCmd();
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
@@ -624,12 +684,9 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
-		vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-		RDCASSERT(vkr == VK_SUCCESS);
-		// VKTODOMED while we're reusing cmd buffer, we have to ensure this one
-		// is done before continuing
-		vkr = ObjDisp(q)->QueueWaitIdle(Unwrap(q));
-		RDCASSERT(vkr == VK_SUCCESS);
+
+		SubmitCmds();
+		// don't need to flush here
 	}
 
 	return true;
@@ -768,7 +825,6 @@ void WrappedVulkan::ReadLogInitialisation()
 	RDCASSERT(m_SwapPhysDevice >= 0 &&
 	            m_PhysicalReplayData[m_SwapPhysDevice].dev != VK_NULL_HANDLE &&
 	            m_PhysicalReplayData[m_SwapPhysDevice].q != VK_NULL_HANDLE &&
-	            m_PhysicalReplayData[m_SwapPhysDevice].cmd != VK_NULL_HANDLE &&
 	            m_PhysicalReplayData[m_SwapPhysDevice].cmdpool != VK_NULL_HANDLE);
 
 	// VKTODOLOW maybe better place to put this?
@@ -1334,8 +1390,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 		if(m_FakeBBImgId != ResourceId())
 		{
 			VkDevice dev = GetDev();
-			VkCmdBuffer cmd = GetCmd();
-			VkQueue q = GetQ();
+			VkCmdBuffer cmd = GetNextCmd();
 
 			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
@@ -1370,12 +1425,8 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-			RDCASSERT(vkr == VK_SUCCESS);
-			// VKTODOMED while we're reusing cmd buffer, we have to ensure this one
-			// is done before continuing
-			vkr = ObjDisp(q)->QueueWaitIdle(Unwrap(q));
-			RDCASSERT(vkr == VK_SUCCESS);
+			SubmitCmds();
+			// don't need to flush here
 		}
 	}
 	

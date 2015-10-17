@@ -163,14 +163,21 @@ private:
 		ReplayData()
 			: inst(VK_NULL_HANDLE), phys(VK_NULL_HANDLE)
 			, qFamilyIdx(0), dev(VK_NULL_HANDLE), q(VK_NULL_HANDLE)
-			, cmd(VK_NULL_HANDLE), cmdpool(VK_NULL_HANDLE), debugMan(NULL) {}
+			, cmdpool(VK_NULL_HANDLE), debugMan(NULL) {}
 
 		VkInstance inst;
 		VkPhysicalDevice phys;
 		VkDevice dev;
 		uint32_t qFamilyIdx;
 		VkQueue q;
-		VkCmdBuffer cmd;
+		
+		vector<VkCmdBuffer> freecmds;
+		// -> record ->
+		vector<VkCmdBuffer> pendingcmds;
+		// -> submit ->
+		vector<VkCmdBuffer> submittedcmds;
+		// -> flush/waitidle -> freecmds
+
 		VkCmdPool cmdpool;
 
 		VulkanDebugManager *debugMan;
@@ -196,8 +203,11 @@ private:
 	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].debugMan; }
 
 	VkDevice GetDev()    { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].dev; }
-	VkQueue GetQ()       { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].q;   }
-	VkCmdBuffer GetCmd(){ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].cmd; }
+	VkQueue  GetQ()      { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].q; }
+	VkCmdBuffer GetNextCmd();
+	void SubmitCmds();
+	void FlushQ();
+
 	uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
 	uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);
 	uint32_t GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask);

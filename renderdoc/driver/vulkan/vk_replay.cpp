@@ -566,8 +566,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	}
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetCmd();
-	VkQueue q = m_pDriver->GetQ();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkResult vkr = VK_SUCCESS;
@@ -612,11 +611,11 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
 		vt->EndCommandBuffer(Unwrap(cmd));
-
-		vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-
-		vt->QueueWaitIdle(Unwrap(q));
 	}
+
+	// submit cmds and wait for idle so we can readback
+	m_pDriver->SubmitCmds();
+	m_pDriver->FlushQ();
 
 	float *pData = NULL;
 	vt->MapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem), 0, 0, 0, (void **)&pData);
@@ -669,8 +668,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, bool blendAlpha)
 {
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetCmd();
-	VkQueue q = m_pDriver->GetQ();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	ImgState &iminfo = m_pDriver->m_ImageInfo[cfg.texid];
@@ -698,8 +696,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 		liveImView = iminfo.view;
 	}
-
-	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
+	
+	// VKTODOHIGH once we stop doing QueueWaitIdle after each flip, this
 	// needs to be ring-buffered
 	displayuniforms *data = (displayuniforms *)GetDebugManager()->m_TexDisplayUBO.Map(vt, dev);
 
@@ -838,13 +836,6 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 
-	vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-
-	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
-	// into a single command buffer and we can just have several allocated
-	// ring-buffer style
-	vt->QueueWaitIdle(Unwrap(q));
-
 	return true;
 }
 	
@@ -857,8 +848,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	OutputWindow &outw = it->second;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetCmd();
-	VkQueue q = m_pDriver->GetQ();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -868,7 +858,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
+	// VKTODOHIGH once we stop doing QueueWaitIdle after each flip, this
 	// needs to be ring-buffered
 	Vec4f *data = (Vec4f *)GetDebugManager()->m_CheckerboardUBO.Map(vt, dev);
 	data[0].x = light.x;
@@ -901,14 +891,6 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
-
-	vkr = vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
-	// into a single command buffer and we can just have several allocated
-	// ring-buffer style
-	vt->QueueWaitIdle(Unwrap(q));
 }
 	
 void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
@@ -920,8 +902,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 	OutputWindow &outw = it->second;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetCmd();
-	VkQueue q = m_pDriver->GetQ();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -937,7 +918,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 	const float xdim = scale*xpixdim;
 	const float ydim = scale*ypixdim;
 
-	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
+	// VKTODOHIGH once we stop doing QueueWaitIdle after each flip, this
 	// needs to be ring-buffered
 	genericuniforms *data = (genericuniforms *)GetDebugManager()->m_GenericUBO.Map(vt, dev);
 	data->Offset = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
@@ -980,14 +961,6 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
-
-	vkr = vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
-	// into a single command buffer and we can just have several allocated
-	// ring-buffer style
-	vt->QueueWaitIdle(Unwrap(q));
 }
 
 ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
@@ -1047,8 +1020,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	m_DebugHeight = (int32_t)outw.height;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetCmd();
-	VkQueue q = m_pDriver->GetQ();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 	
 	// semaphore is short lived, so not wrapped, if it's cached (ideally)
@@ -1062,7 +1034,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, &outw.curidx);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vkr = vt->QueueWaitSemaphore(Unwrap(q), sem);
+	vkr = vt->QueueWaitSemaphore(Unwrap(m_pDriver->GetQ()), sem);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	vt->DestroySemaphore(Unwrap(dev), sem);
@@ -1088,13 +1060,6 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	outw.coltrans[outw.curidx].oldLayout = outw.bbtrans.newLayout;
 
 	vt->EndCommandBuffer(Unwrap(cmd));
-
-	vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-	
-	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
-	// into a single command buffer and we can just have several allocated
-	// ring-buffer style
-	vt->QueueWaitIdle(Unwrap(q));
 }
 
 void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
@@ -1106,8 +1071,7 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	OutputWindow &outw = it->second;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetCmd();
-	VkQueue q = m_pDriver->GetQ();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -1120,20 +1084,13 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	vt->CmdClearColorImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)col, 1, &outw.bbtrans.subresourceRange);
 
 	vt->EndCommandBuffer(Unwrap(cmd));
-
-	vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-	
-	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
-	// into a single command buffer and we can just have several allocated
-	// ring-buffer style
-	vt->QueueWaitIdle(Unwrap(q));
 }
 
 void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
 {
 	VULKANNOTIMP("ClearOutputWindowDepth");
 
-	// VKTODOMED: same as FlipOutputWindow but do a depth clear
+	// VKTODOMED: same as ClearOutputWindowColour but do a depth clear
 }
 
 void VulkanReplay::FlipOutputWindow(uint64_t id)
@@ -1145,8 +1102,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	OutputWindow &outw = it->second;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetCmd();
-	VkQueue q = m_pDriver->GetQ();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -1185,15 +1141,14 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 	
-	vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
+	// submit all the cmds we recorded
+	m_pDriver->SubmitCmds();
 
 	VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, NULL, 1, UnwrapPtr(outw.swap), &outw.curidx };
 
-	vt->QueuePresentKHR(Unwrap(q), &presentInfo);
+	vt->QueuePresentKHR(Unwrap(m_pDriver->GetQ()), &presentInfo);
 
-	vt->QueueWaitIdle(Unwrap(q));
-
-	vt->DeviceWaitIdle(Unwrap(dev));
+	m_pDriver->FlushQ();
 }
 
 void VulkanReplay::DestroyOutputWindow(uint64_t id)
@@ -1233,8 +1188,7 @@ uint64_t VulkanReplay::MakeOutputWindow(void *wn, bool depth)
 vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len)
 {
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetCmd();
-	VkQueue q = m_pDriver->GetQ();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	ResourceId memid;
@@ -1311,13 +1265,10 @@ vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint3
 
 		vkr = vt->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
-
-		vkr = vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		vkr = vt->QueueWaitIdle(Unwrap(q));
-		RDCASSERT(vkr == VK_SUCCESS);
 	}
+
+	m_pDriver->SubmitCmds();
+	m_pDriver->FlushQ();
 
 	vkr = vt->MapMemory(Unwrap(dev), readbackmem, 0, 0, 0, (void **)&pData);
 	RDCASSERT(vkr == VK_SUCCESS);
