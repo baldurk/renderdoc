@@ -207,7 +207,8 @@ struct VulkanCreationInfo
 		ShaderBindpointMapping mapping;
 	};
 	map<ResourceId, Shader> m_Shader;
-
+	
+	map<ResourceId, string> m_Names;
 	map<ResourceId, SwapchainInfo> m_SwapChain;
 	map<ResourceId, DescSetLayout> m_DescSetLayout;
 };

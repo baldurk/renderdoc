@@ -939,7 +939,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 						for(uint32_t a=0; a < layout.bindings[b].arraySize; a++)
 						{
 							RDCASSERT(o < offsCount);
-							uint32_t *alias = (uint32_t *)&m_DescriptorSetInfo[descriptorIDs[i]].currentBindings[b][a].imageLayout;
+							uint32_t *alias = (uint32_t *)&m_DescriptorSetState[descriptorIDs[i]].currentBindings[b][a].imageLayout;
 							*alias = offs[o++];
 						}
 					}

@@ -360,12 +360,13 @@ private:
 	map<ResourceId, ImgState> m_ImageInfo;
 	map<ResourceId, CmdBufferInfo> m_CmdBufferInfo;
 
-	// READING only
-	map<ResourceId, ResourceId> m_BufferMemBinds;
-	map<ResourceId, string> m_ObjectNames;
-	map<ResourceId, DescriptorSetInfo> m_DescriptorSetInfo;
+	// below are replay-side data only, doesn't have to be thread protected
 
-	// only used in replay side, so doesn't need to be thread protected
+	// current memory bindings, image/buffer id -> memory id
+	map<ResourceId, ResourceId> m_MemBindState;
+	// current descriptor set contents
+	map<ResourceId, DescriptorSetInfo> m_DescriptorSetState;
+	// immutable creation data
 	VulkanCreationInfo m_CreationInfo;
 		
 	static const char *GetChunkName(uint32_t idx);

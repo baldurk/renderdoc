@@ -407,7 +407,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufId);
 		mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(memId);
 
-		m_BufferMemBinds[GetResID(buffer)] = GetResID(mem);
+		m_MemBindState[GetResID(buffer)] = GetResID(mem);
 
 		ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(mem), offs);
 	}

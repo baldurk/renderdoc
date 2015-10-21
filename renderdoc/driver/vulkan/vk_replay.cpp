@@ -1194,8 +1194,8 @@ vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint3
 	ResourceId memid;
 	
 	{
-		auto it = m_pDriver->m_BufferMemBinds.find(buff);
-		if(it == m_pDriver->m_BufferMemBinds.end())
+		auto it = m_pDriver->m_MemBindState.find(buff);
+		if(it == m_pDriver->m_MemBindState.end())
 		{
 			RDCWARN("Buffer has no memory bound, or no buffer of this ID");
 			return vector<byte>();
@@ -1349,7 +1349,7 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	}
 
 	ret.customName = true;
-	ret.name = m_pDriver->m_ObjectNames[id];
+	ret.name = m_pDriver->m_CreationInfo.m_Names[id];
 	if(ret.name.count == 0)
 	{
 		ret.customName = false;
@@ -1512,11 +1512,11 @@ void VulkanReplay::SavePipelineState()
 						VulkanPipelineState::Pipeline::DescriptorSet &dst = (*dsts[p])[i];
 
 						dst.descset = src;
-						dst.layout = m_pDriver->m_DescriptorSetInfo[src].layout;
-						create_array_uninit(dst.bindings, m_pDriver->m_DescriptorSetInfo[src].currentBindings.size());
-						for(size_t b=0; b < m_pDriver->m_DescriptorSetInfo[src].currentBindings.size(); b++)
+						dst.layout = m_pDriver->m_DescriptorSetState[src].layout;
+						create_array_uninit(dst.bindings, m_pDriver->m_DescriptorSetState[src].currentBindings.size());
+						for(size_t b=0; b < m_pDriver->m_DescriptorSetState[src].currentBindings.size(); b++)
 						{
-							VkDescriptorInfo *info = m_pDriver->m_DescriptorSetInfo[src].currentBindings[b];
+							VkDescriptorInfo *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
 							const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[dst.layout].bindings[b];
 
 							dst.bindings[b].arraySize = layoutBind.arraySize;
