@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_resources.h"
+#include "vk_info.h"
 
 WRAPPED_POOL_INST(WrappedVkInstance)
 WRAPPED_POOL_INST(WrappedVkPhysicalDevice)
@@ -476,4 +477,13 @@ uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat F
 	}
 
 	return ret;
+}
+
+VkResourceRecord::~VkResourceRecord()
+{
+	for(size_t i=0; i < descBindings.size(); i++)
+		delete[] descBindings[i];
+	descBindings.clear();
+
+	SAFE_DELETE(layout);
 }

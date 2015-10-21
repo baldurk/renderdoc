@@ -36,8 +36,6 @@
 #include "vk_manager.h"
 #include "vk_replay.h"
 
-#include "driver/shaders/spirv/spirv_common.h"
-
 using std::vector;
 using std::list;
 
@@ -372,34 +370,21 @@ private:
 		vector<VkDescriptorInfo *> currentBindings;
 	};
 
-	struct ShaderModuleInfo
-	{
-		SPVModule spirv;
-		ShaderReflection reflTemplate;
-		ShaderBindpointMapping mapping;
-	};
-
-	struct ShaderInfo
-	{
-		ResourceId module;
-		ShaderReflection refl;
-		ShaderBindpointMapping mapping;
-	};
-
 	// VKTODO all these m_*Info things need to be locked and ensure we only access
 	// them in slow path functions like creation, or just moved elsewhere like inside
 	// the wrapped objects
 	// VKTODOHIGH all of these need to be locked
 	map<ResourceId, MemState> m_MemoryInfo;
 	map<ResourceId, ImgState> m_ImageInfo;
-	map<ResourceId, ResourceId> m_BufferMemBinds;
-	map<ResourceId, string> m_ObjectNames;
 	map<ResourceId, CmdBufferInfo> m_CmdBufferInfo;
 	map<ResourceId, SwapInfo> m_SwapChainInfo;
-	map<ResourceId, DescriptorSetInfo> m_DescriptorSetInfo;
-	map<ResourceId, ShaderModuleInfo> m_ShaderModuleInfo;
-	map<ResourceId, ShaderInfo> m_ShaderInfo;
 
+	// READING only
+	map<ResourceId, ResourceId> m_BufferMemBinds;
+	map<ResourceId, string> m_ObjectNames;
+	map<ResourceId, DescriptorSetInfo> m_DescriptorSetInfo;
+
+	// only used in replay side, so doesn't need to be thread protected
 	VulkanCreationInfo m_CreationInfo;
 		
 	static const char *GetChunkName(uint32_t idx);

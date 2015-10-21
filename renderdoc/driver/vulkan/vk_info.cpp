@@ -24,6 +24,35 @@
 
 #include "vk_info.h"
 
+void DescSetLayout::Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
+{
+	bindings.resize(pCreateInfo->count);
+	for(uint32_t i=0; i < pCreateInfo->count; i++)
+	{
+		bindings[i].arraySize = pCreateInfo->pBinding[i].arraySize;
+		bindings[i].descriptorType = pCreateInfo->pBinding[i].descriptorType;
+		bindings[i].stageFlags = pCreateInfo->pBinding[i].stageFlags;
+
+		if(pCreateInfo->pBinding[i].pImmutableSamplers)
+		{
+			bindings[i].immutableSampler = new ResourceId[bindings[i].arraySize];
+
+			for(uint32_t s=0; s < bindings[i].arraySize; s++)
+				bindings[i].immutableSampler[s] = VKMGR()->GetNonDispWrapper(pCreateInfo->pBinding[i].pImmutableSamplers[s])->id;
+		}
+	}
+}
+
+void DescSetLayout::CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings)
+{
+	descBindings.resize(bindings.size());
+	for(size_t i=0; i < bindings.size(); i++)
+	{
+		descBindings[i] = new VkDescriptorInfo[bindings[i].arraySize];
+		memset(descBindings[i], 0, sizeof(VkDescriptorInfo)*bindings[i].arraySize);
+	}
+}
+
 void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCreateInfo)
 {
 		flags = pCreateInfo->flags;
@@ -224,31 +253,20 @@ void VulkanCreationInfo::ImageView::Init(const VkImageViewCreateInfo* pCreateInf
 	image = VKMGR()->GetNonDispWrapper(pCreateInfo->image)->id;
 }
 
-void VulkanCreationInfo::DescSetLayout::Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
+void VulkanCreationInfo::ShaderModule::Init(const VkShaderModuleCreateInfo* pCreateInfo)
 {
-	bindings.resize(pCreateInfo->count);
-	for(uint32_t i=0; i < pCreateInfo->count; i++)
-	{
-		bindings[i].arraySize = pCreateInfo->pBinding[i].arraySize;
-		bindings[i].descriptorType = pCreateInfo->pBinding[i].descriptorType;
-		bindings[i].stageFlags = pCreateInfo->pBinding[i].stageFlags;
+	RDCASSERT(pCreateInfo->codeSize % sizeof(uint32_t) == 0);
+	ParseSPIRV((uint32_t *)pCreateInfo->pCode, pCreateInfo->codeSize/sizeof(uint32_t), spirv);
 
-		if(pCreateInfo->pBinding[i].pImmutableSamplers)
-		{
-			bindings[i].immutableSampler = new ResourceId[bindings[i].arraySize];
-
-			for(uint32_t s=0; s < bindings[i].arraySize; s++)
-				bindings[i].immutableSampler[s] = VKMGR()->GetNonDispWrapper(pCreateInfo->pBinding[i].pImmutableSamplers[s])->id;
-		}
-	}
+	spirv.MakeReflection(&reflTemplate, &mapping);
 }
 
-void VulkanCreationInfo::DescSetLayout::CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings)
+void VulkanCreationInfo::Shader::Init(const VkShaderCreateInfo* pCreateInfo, VulkanCreationInfo::ShaderModule &moduleinfo)
 {
-	descBindings.resize(bindings.size());
-	for(size_t i=0; i < bindings.size(); i++)
-	{
-		descBindings[i] = new VkDescriptorInfo[bindings[i].arraySize];
-		memset(descBindings[i], 0, sizeof(VkDescriptorInfo)*bindings[i].arraySize);
-	}
+	module = VKMGR()->GetNonDispWrapper(pCreateInfo->module)->id;
+	mapping = moduleinfo.mapping;
+	refl = moduleinfo.reflTemplate;
+	refl.DebugInfo.entryFunc = pCreateInfo->pName;
+	// VKTODOLOW set this properly
+	refl.DebugInfo.entryFile = 0;
 }

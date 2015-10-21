@@ -27,6 +27,26 @@
 #include "vk_common.h"
 #include "vk_manager.h"
 
+#include "driver/shaders/spirv/spirv_common.h"
+
+struct DescSetLayout
+{
+	void Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo);
+
+	void CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings);
+
+	struct Binding
+	{
+		Binding() : immutableSampler(NULL) {}
+		~Binding() { SAFE_DELETE_ARRAY(immutableSampler); }
+
+		VkDescriptorType descriptorType;
+		uint32_t arraySize;
+		VkShaderStageFlags stageFlags;
+		ResourceId *immutableSampler;
+	};
+	vector<Binding> bindings;
+};
 struct VulkanCreationInfo
 {
 	struct Pipeline
@@ -168,23 +188,25 @@ struct VulkanCreationInfo
 	};
 	map<ResourceId, ImageView> m_ImageView;
 
-	struct DescSetLayout
-	{
-		void Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo);
-
-		void CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings);
-
-		struct Binding
-		{
-			Binding() : immutableSampler(NULL) {}
-			~Binding() { SAFE_DELETE_ARRAY(immutableSampler); }
-
-			VkDescriptorType descriptorType;
-			uint32_t arraySize;
-			VkShaderStageFlags stageFlags;
-			ResourceId *immutableSampler;
-		};
-		vector<Binding> bindings;
-	};
 	map<ResourceId, DescSetLayout> m_DescSetLayout;
+	
+	struct ShaderModule
+	{
+		void Init(const VkShaderModuleCreateInfo* pCreateInfo);
+
+		SPVModule spirv;
+		ShaderReflection reflTemplate;
+		ShaderBindpointMapping mapping;
+	};
+	map<ResourceId, ShaderModule> m_ShaderModule;
+
+	struct Shader
+	{
+		void Init(const VkShaderCreateInfo* pCreateInfo, VulkanCreationInfo::ShaderModule &moduleinfo);
+
+		ResourceId module;
+		ShaderReflection refl;
+		ShaderBindpointMapping mapping;
+	};
+	map<ResourceId, Shader> m_Shader;
 };

@@ -102,15 +102,13 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 	SERIALISE_ELEMENT(VkDescriptorSetLayoutCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pSetLayout));
 
-	// this creation info is needed at capture time (for creating/updating descriptor set bindings)
-	// uses original ID in replay
-	m_CreationInfo.m_DescSetLayout[id].Init(&info);
-
 	if(m_State == READING)
 	{
 		VkDescriptorSetLayout layout = VK_NULL_HANDLE;
 
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
+		
+		m_CreationInfo.m_DescSetLayout[id].Init(&info);
 
 		VkResult ret = ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), &info, &layout);
 
@@ -180,6 +178,9 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSetLayout);
 			record->AddChunk(chunk);
+
+			record->layout = new DescSetLayout();
+			record->layout->Init(pCreateInfo);
 		}
 		else
 		{
@@ -268,6 +269,7 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 			record->AddChunk(chunk);
 
 			ResourceId layoutID = GetResID(pSetLayouts[i]);
+			VkResourceRecord *layoutRecord = GetRecord(pSetLayouts[i]);
 
 			VkResourceRecord *poolrecord = GetRecord(descriptorPool);
 
@@ -291,8 +293,9 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 					GetResourceManager()->MarkPendingDirty(id);
 			}
 
-			record->layout = layoutID;
-			m_CreationInfo.m_DescSetLayout[layoutID].CreateBindingsArray(record->descBindings);
+			record->layout = new DescSetLayout();
+			*record->layout = *layoutRecord->layout;
+			record->layout->CreateBindingsArray(record->descBindings);
 		}
 		else
 		{
@@ -563,7 +566,8 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 		for(uint32_t i=0; i < writeCount; i++)
 		{
 			VkResourceRecord *record = GetRecord(pDescriptorWrites[i].destSet);
-			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[record->layout];
+			RDCASSERT(record->layout);
+			const DescSetLayout &layout = *record->layout;
 
 			RDCASSERT(pDescriptorWrites[i].destBinding < record->descBindings.size());
 			

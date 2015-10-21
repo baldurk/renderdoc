@@ -926,7 +926,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 				// and in array element order within a binding
 				for(uint32_t i=0; i < numSets; i++)
 				{
-					const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[descriptorIDs[i]];
+					const DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[descriptorIDs[i]];
 
 					for(size_t b=0; b < layout.bindings.size(); b++)
 					{

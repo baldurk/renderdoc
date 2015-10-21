@@ -1392,24 +1392,26 @@ FetchBuffer VulkanReplay::GetBuffer(ResourceId id)
 
 ShaderReflection *VulkanReplay::GetShader(ResourceId id)
 {
-	auto it = m_pDriver->m_ShaderInfo.find(id);
+	auto shad = m_pDriver->m_CreationInfo.m_Shader.find(m_pDriver->GetResourceManager()->GetOriginalID(id));
 	
-	if(it == m_pDriver->m_ShaderInfo.end())
+	if(shad == m_pDriver->m_CreationInfo.m_Shader.end())
 	{
 		RDCERR("Can't get shader details");
 		return NULL;
 	}
 
 	// disassemble lazily on demand
-	if(it->second.refl.Disassembly.count == 0)
+	if(shad->second.refl.Disassembly.count == 0)
 	{
-		if(m_pDriver->m_ShaderModuleInfo[it->second.module].spirv.m_Disassembly.empty())
-			m_pDriver->m_ShaderModuleInfo[it->second.module].spirv.Disassemble();
+		auto &shadmod = m_pDriver->m_CreationInfo.m_ShaderModule[m_pDriver->GetResourceManager()->GetOriginalID(shad->second.module)];
 
-		it->second.refl.Disassembly = m_pDriver->m_ShaderModuleInfo[it->second.module].spirv.m_Disassembly;
+		if(shadmod.spirv.m_Disassembly.empty())
+			shadmod.spirv.Disassemble();
+
+		shad->second.refl.Disassembly = shadmod.spirv.m_Disassembly;
 	}
 
-	return &it->second.refl;
+	return &shad->second.refl;
 }
 
 void VulkanReplay::SavePipelineState()
@@ -1484,7 +1486,7 @@ void VulkanReplay::SavePipelineState()
 				stages[i]->customName = false;
 				stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Shader);
 				stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
-				stages[i]->BindpointMapping = m_pDriver->m_ShaderInfo[p.shaders[i]].mapping;
+				stages[i]->BindpointMapping = m_pDriver->m_CreationInfo.m_Shader[stages[i]->Shader].mapping;
 			}
 
 			// Descriptor sets
@@ -1515,7 +1517,7 @@ void VulkanReplay::SavePipelineState()
 						for(size_t b=0; b < m_pDriver->m_DescriptorSetInfo[src].currentBindings.size(); b++)
 						{
 							VkDescriptorInfo *info = m_pDriver->m_DescriptorSetInfo[src].currentBindings[b];
-							const VulkanCreationInfo::DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[dst.layout].bindings[b];
+							const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[dst.layout].bindings[b];
 
 							dst.bindings[b].arraySize = layoutBind.arraySize;
 							dst.bindings[b].stageFlags = (ShaderStageBits)layoutBind.stageFlags;
@@ -1957,9 +1959,9 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, ve
 	// Correct SPIR-V will ultimately need to set explicit layout information for each type.
 	// For now, just assume D3D11 packing (float4 alignment on float4s, float3s, matrices, arrays and structures)
 
-	auto it = m_pDriver->m_ShaderInfo.find(shader);
+	auto it = m_pDriver->m_CreationInfo.m_Shader.find(m_pDriver->GetResourceManager()->GetOriginalID(shader));
 	
-	if(it == m_pDriver->m_ShaderInfo.end())
+	if(it == m_pDriver->m_CreationInfo.m_Shader.end())
 	{
 		RDCERR("Can't get shader details");
 		return;

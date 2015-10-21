@@ -549,6 +549,8 @@ inline bool operator <(const VkDescriptorSet a, const VkDescriptorSet b)
 	return a.handle < b.handle;
 }
 
+struct DescSetLayout;
+
 struct VkResourceRecord : public ResourceRecord
 {
 	public:
@@ -558,16 +560,12 @@ struct VkResourceRecord : public ResourceRecord
 			ResourceRecord(id, true),
 			bakedCommands(NULL),
 			pool(NULL),
-			memory(NULL)
+			memory(NULL),
+			layout(NULL)
 		{
 		}
 
-		~VkResourceRecord()
-		{
-			for(size_t i=0; i < descBindings.size(); i++)
-				delete[] descBindings[i];
-			descBindings.clear();
-		}
+		~VkResourceRecord();
 
 		void Bake()
 		{
@@ -651,7 +649,7 @@ struct VkResourceRecord : public ResourceRecord
 
 		// descriptor set bindings for this descriptor set. Filled out on
 		// create from the layout.
-		ResourceId layout;
+		DescSetLayout *layout;
 		vector<VkDescriptorInfo *> descBindings;
 
 		// contains the framerefs (ref counted) for the bound resources
