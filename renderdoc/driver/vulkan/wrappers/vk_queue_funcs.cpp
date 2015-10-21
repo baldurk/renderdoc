@@ -159,8 +159,6 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 	if(m_State == READING)
 	{
-		m_SubmittedFences.insert(fenceId);
-
 		ObjDisp(queue)->QueueSubmit(Unwrap(queue), numCmds, cmds, Unwrap(fence));
 
 		for(uint32_t i=0; i < numCmds; i++)
@@ -272,8 +270,6 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 			RDCASSERT(trimmedCmds.size() > 0);
 
-			m_SubmittedFences.insert(fenceId);
-
 			ObjDisp(queue)->QueueSubmit(Unwrap(queue), (uint32_t)trimmedCmds.size(), &trimmedCmds[0], Unwrap(fence));
 
 			for(uint32_t i=0; i < numCmds; i++)
@@ -284,8 +280,6 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		}
 		else
 		{
-			m_SubmittedFences.insert(fenceId);
-
 			ObjDisp(queue)->QueueSubmit(Unwrap(queue), numCmds, cmds, Unwrap(fence));
 
 			for(uint32_t i=0; i < numCmds; i++)
@@ -387,7 +381,11 @@ VkResult WrappedVulkan::vkQueueSubmit(
 			if(fence != VK_NULL_HANDLE)
 				GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
 
-			m_CmdBufferRecords.push_back(record->bakedCommands);
+			{
+				SCOPED_LOCK(m_CmdBufferRecordsLock);
+				m_CmdBufferRecords.push_back(record->bakedCommands);
+			}
+
 			record->bakedCommands->AddRef();
 		}
 

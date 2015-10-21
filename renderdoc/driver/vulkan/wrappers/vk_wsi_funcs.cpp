@@ -916,6 +916,10 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 				m_pFileSerialiser->Insert(m_HeaderChunk);
 			}
 
+			// don't need to lock access to m_CmdBufferRecords as we are no longer 
+			// in capframe (the transition is thread-protected) so nothing will be
+			// pushed to the vector
+
 			{
 				RDCDEBUG("Flushing %u command buffer records to file serialiser", (uint32_t)m_CmdBufferRecords.size());	
 
@@ -940,7 +944,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 				RDCDEBUG("Done");	
 			}
 
-			m_CurFileSize += m_pFileSerialiser->FlushToDisk();
+			m_pFileSerialiser->FlushToDisk();
 
 			RenderDoc::Inst().SuccessfullyWrittenLog();
 

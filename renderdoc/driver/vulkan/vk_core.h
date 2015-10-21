@@ -142,6 +142,7 @@ private:
 	// much easier to process (we will enforce/display ordering
 	// by queue submit order anyway, so it's OK to lose the record
 	// order).
+	Threading::CriticalSection m_CmdBufferRecordsLock;
 	vector<VkResourceRecord *> m_CmdBufferRecords;
 
 	VulkanResourceManager *m_ResourceManager;
@@ -149,8 +150,6 @@ private:
 	Threading::CriticalSection m_CapTransitionLock;
 	
 	uint32_t m_FrameCounter;
-
-	uint64_t m_CurFileSize;
 
 	PerformanceTimer m_FrameTimer;
 	vector<double> m_FrameTimes;
@@ -214,15 +213,6 @@ private:
 
 	ResourceId m_FakeBBImgId;
 	
-	// VKTODO all these m_*Info things need to be locked and ensure we only access
-	// them in slow path functions like creation, or just moved elsewhere like inside
-	// the wrapped objects
-	// VKTODOHIGH all of these need to be locked
-	map<ResourceId, MemState> m_MemoryInfo;
-	map<ResourceId, ImgState> m_ImageInfo;
-	map<ResourceId, ResourceId> m_BufferMemBinds;
-	map<ResourceId, string> m_ObjectNames;
-
 	struct CmdBufferInfo
 	{
 		VkDevice device;
@@ -239,7 +229,6 @@ private:
 		uint32_t curEventID; // current event ID while reading or executing
 		uint32_t drawCount; // similar to above
 	};
-	map<ResourceId, CmdBufferInfo> m_CmdBufferInfo;
 
 	// on replay, the current command buffer for the last chunk we
 	// handled.
@@ -374,7 +363,6 @@ private:
 		};
 		vector<SwapImage> images;
 	};
-	map<ResourceId, SwapInfo> m_SwapChainInfo;
 
 	// this info is stored in the record on capture, but we
 	// need it on replay too
@@ -383,7 +371,6 @@ private:
 		ResourceId layout;
 		vector<VkDescriptorInfo *> currentBindings;
 	};
-	map<ResourceId, DescriptorSetInfo> m_DescriptorSetInfo;
 
 	struct ShaderModuleInfo
 	{
@@ -391,7 +378,6 @@ private:
 		ShaderReflection reflTemplate;
 		ShaderBindpointMapping mapping;
 	};
-	map<ResourceId, ShaderModuleInfo> m_ShaderModuleInfo;
 
 	struct ShaderInfo
 	{
@@ -399,11 +385,22 @@ private:
 		ShaderReflection refl;
 		ShaderBindpointMapping mapping;
 	};
+
+	// VKTODO all these m_*Info things need to be locked and ensure we only access
+	// them in slow path functions like creation, or just moved elsewhere like inside
+	// the wrapped objects
+	// VKTODOHIGH all of these need to be locked
+	map<ResourceId, MemState> m_MemoryInfo;
+	map<ResourceId, ImgState> m_ImageInfo;
+	map<ResourceId, ResourceId> m_BufferMemBinds;
+	map<ResourceId, string> m_ObjectNames;
+	map<ResourceId, CmdBufferInfo> m_CmdBufferInfo;
+	map<ResourceId, SwapInfo> m_SwapChainInfo;
+	map<ResourceId, DescriptorSetInfo> m_DescriptorSetInfo;
+	map<ResourceId, ShaderModuleInfo> m_ShaderModuleInfo;
 	map<ResourceId, ShaderInfo> m_ShaderInfo;
 
 	VulkanCreationInfo m_CreationInfo;
-
-	set<ResourceId> m_SubmittedFences;
 		
 	static const char *GetChunkName(uint32_t idx);
 	
