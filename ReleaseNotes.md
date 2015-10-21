@@ -40,7 +40,6 @@ On capture:
 
 On replay:
 
-* Memory leaks each time a new capture is loaded in the replay UI.
 * Only 2D non-array non-integer textures can currently be displayed.
 * Auto texture range-fit or histogram display is not implemented.
 * Debug overlays aren't implemented.
