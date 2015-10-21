@@ -394,9 +394,15 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	
 	if(capframe)
 	{
+		map<ResourceId, MapState> maps;
+		{
+			SCOPED_LOCK(m_CurrentMapsLock);
+			maps = m_CurrentMaps;
+		}
+
 		// VKTODOHIGH when maps are intercepted with local buffers, this will have to be
 		// done when not in capframe :(.
-		for(auto it = m_MemoryInfo.begin(); it != m_MemoryInfo.end(); ++it)
+		for(auto it = maps.begin(); it != maps.end(); ++it)
 		{
 			// potential persistent map, force a full flush
 			// VKTODOHIGH need better detection than just 'has not been flushed and has

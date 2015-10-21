@@ -1191,30 +1191,19 @@ vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint3
 	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	ResourceId memid;
-	
-	{
-		auto it = m_pDriver->m_MemBindState.find(buff);
-		if(it == m_pDriver->m_MemBindState.end())
-		{
-			RDCWARN("Buffer has no memory bound, or no buffer of this ID");
-			return vector<byte>();
-		}
-
-		memid = it->second;
-	}
-
 	VkBuffer srcBuf = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff);
+
+	ResourceId origid = m_pDriver->GetResourceManager()->GetOriginalID(buff);
 	
 	if(len == 0)
 	{
-		len = uint32_t(m_pDriver->m_MemoryInfo[memid].size - offset);
+		len = uint32_t(m_pDriver->m_CreationInfo.m_Buffer[origid].size - offset);
 	}
 
-	if(len > 0 && VkDeviceSize(offset+len) > m_pDriver->m_MemoryInfo[memid].size)
+	if(len > 0 && VkDeviceSize(offset+len) > m_pDriver->m_CreationInfo.m_Buffer[origid].size)
 	{
 		RDCWARN("Attempting to read off the end of the array. Will be clamped");
-		len = RDCMIN(len, uint32_t(m_pDriver->m_MemoryInfo[memid].size - offset));
+		len = RDCMIN(len, uint32_t(m_pDriver->m_CreationInfo.m_Buffer[origid].size - offset));
 	}
 
 	vector<byte> ret;

@@ -241,6 +241,11 @@ void VulkanCreationInfo::Framebuffer::Init(const VkFramebufferCreateInfo* pCreat
 		attachments[i].view = VKMGR()->GetNonDispWrapper(pCreateInfo->pAttachments[i])->id;
 }
 
+void VulkanCreationInfo::Buffer::Init(const VkBufferCreateInfo* pCreateInfo)
+{
+	size = pCreateInfo->size;
+}
+
 void VulkanCreationInfo::BufferView::Init(const VkBufferViewCreateInfo* pCreateInfo)
 {
 	buffer = VKMGR()->GetNonDispWrapper(pCreateInfo->buffer)->id;

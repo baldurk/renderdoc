@@ -170,6 +170,14 @@ struct VulkanCreationInfo
 	};
 	map<ResourceId, Framebuffer> m_Framebuffer;
 	
+	struct Buffer
+	{
+		void Init(const VkBufferCreateInfo* pCreateInfo);
+
+		uint64_t size;
+	};
+	map<ResourceId, Buffer> m_Buffer;
+
 	struct BufferView
 	{
 		void Init(const VkBufferViewCreateInfo* pCreateInfo);

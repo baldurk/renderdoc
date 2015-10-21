@@ -54,8 +54,6 @@ bool WrappedVulkan::Serialise_vkAllocMemory(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), mem);
 			GetResourceManager()->AddLiveResource(id, mem);
-
-			m_MemoryInfo[live].size = info.allocationSize;
 		}
 	}
 
@@ -92,6 +90,10 @@ VkResult WrappedVulkan::vkAllocMemory(
 
 			record->AddChunk(chunk);
 
+			// VKTODOLOW Change record->Length to at least int64_t (maybe uint64_t)
+			record->Length = (int32_t)pAllocInfo->allocationSize;
+			RDCASSERT(pAllocInfo->allocationSize < 0x7FFFFFFF);
+
 			// VKTODOMED always treat memory as dirty for now, so its initial state
 			// is guaranteed to be prepared
 			{
@@ -106,9 +108,6 @@ VkResult WrappedVulkan::vkAllocMemory(
 		{
 			GetResourceManager()->AddLiveResource(id, *pMem);
 		}
-
-		m_MemoryInfo[id].device = device;
-		m_MemoryInfo[id].size = pAllocInfo->allocationSize;
 	}
 
 	return ret;
@@ -120,7 +119,6 @@ void WrappedVulkan::vkFreeMemory(
 {
 	// we just need to clean up after ourselves on replay
 	WrappedVkNonDispRes *wrapped = (WrappedVkNonDispRes *)GetWrapped(mem);
-	m_MemoryInfo.erase(wrapped->id);
 
 	VkDeviceMemory unwrappedMem = wrapped->real.As<VkDeviceMemory>();
 
@@ -145,20 +143,20 @@ VkResult WrappedVulkan::vkMapMemory(
 
 		if(m_State >= WRITING)
 		{
-			auto it = m_MemoryInfo.find(id);
-			if(it == m_MemoryInfo.end())
+			MapState state;
+			state.device = device;
+			state.mappedPtr = *ppData;
+			state.mapOffset = offset;
+			state.mapSize = size == 0 ? GetRecord(mem)->Length : size;
+			state.mapFrame = m_FrameCounter;
+			state.mapFlags = flags;
+			state.mapFlushed = false;
+			state.refData = NULL;
+
 			{
-				RDCERR("vkMapMemory for unknown memory handle");
-			}
-			else
-			{
-				it->second.mappedPtr = *ppData;
-				it->second.mapOffset = offset;
-				it->second.mapSize = size == 0 ? it->second.size : size;
-				it->second.mapFrame = m_FrameCounter;
-				it->second.mapFlags = flags;
-				it->second.mapFlushed = false;
-				it->second.refData = NULL;
+				SCOPED_LOCK(m_CurrentMapsLock);
+				RDCASSERT(m_CurrentMaps.find(id) == m_CurrentMaps.end());
+				m_CurrentMaps[id] = state;
 			}
 		}
 	}
@@ -174,11 +172,16 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(mem));
 
-	auto it = m_MemoryInfo.find(id);
+	MapState state;
+	if(m_State >= WRITING)
+	{
+		SCOPED_LOCK(m_CurrentMapsLock);
+		state = m_CurrentMaps[id];
+	}
 
-	SERIALISE_ELEMENT(VkMemoryMapFlags, flags, it->second.mapFlags);
-	SERIALISE_ELEMENT(uint64_t, memOffset, it->second.mapOffset);
-	SERIALISE_ELEMENT(uint64_t, memSize, it->second.mapSize);
+	SERIALISE_ELEMENT(VkMemoryMapFlags, flags, state.mapFlags);
+	SERIALISE_ELEMENT(uint64_t, memOffset, state.mapOffset);
+	SERIALISE_ELEMENT(uint64_t, memSize, state.mapSize);
 
 	// VKTODOHIGH: this is really horrible - this could be write-combined memory that we're
 	// reading from to get the latest data. This saves on having to fetch the data some
@@ -186,7 +189,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 	// we're also not doing any diff range checks, just serialising the whole memory region.
 	// In vulkan the common case will be one memory region for a large number of distinct
 	// bits of data so most maps will not change the whole region.
-	SERIALISE_ELEMENT_BUF(byte*, data, (byte *)it->second.mappedPtr + it->second.mapOffset, (size_t)memSize);
+	SERIALISE_ELEMENT_BUF(byte*, data, (byte *)state.mappedPtr + state.mapOffset, (size_t)memSize);
 
 	if(m_State < WRITING)
 	{
@@ -226,59 +229,73 @@ void WrappedVulkan::vkUnmapMemory(
 	{
 		ResourceId id = GetResID(mem);
 
-		if(m_State >= WRITING)
+		MapState state;
+
 		{
-			auto it = m_MemoryInfo.find(id);
-			if(it == m_MemoryInfo.end())
+			SCOPED_LOCK(m_CurrentMapsLock);
+
+			auto it = m_CurrentMaps.find(id);
+			if(it == m_CurrentMaps.end())
+				RDCERR("vkUnmapMemory for memory handle that's not currently mapped");
+
+			state = it->second;
+		}
+
+		{
+			// decide atomically if this chunk should be in-frame or not
+			// so that we're not in the else branch but haven't marked
+			// dirty when capframe starts, then we mark dirty while in-frame
+
+			bool capframe = false;
 			{
-				RDCERR("vkMapMemory for unknown memory handle");
+				SCOPED_LOCK(m_CapTransitionLock);
+				capframe = (m_State == WRITING_CAPFRAME);
+
+				if(!capframe)
+					GetResourceManager()->MarkDirtyResource(GetResID(mem));
 			}
-			else
+
+			if(capframe)
 			{
-				// decide atomically if this chunk should be in-frame or not
-				// so that we're not in the else branch but haven't marked
-				// dirty when capframe starts, then we mark dirty while in-frame
-
-				bool capframe = false;
+				if(!state.mapFlushed)
 				{
-					SCOPED_LOCK(m_CapTransitionLock);
-					capframe = (m_State == WRITING_CAPFRAME);
+					CACHE_THREAD_SERIALISER();
 
-					if(!capframe)
-						GetResourceManager()->MarkDirtyResource(GetResID(mem));
-				}
+					SCOPED_SERIALISE_CONTEXT(UNMAP_MEM);
+					Serialise_vkUnmapMemory(localSerialiser, device, mem);
 
-				if(capframe)
-				{
-					if(!it->second.mapFlushed)
+					VkResourceRecord *record = GetRecord(mem);
+
+					if(m_State == WRITING_IDLE)
 					{
-						CACHE_THREAD_SERIALISER();
-							
-						SCOPED_SERIALISE_CONTEXT(UNMAP_MEM);
-						Serialise_vkUnmapMemory(localSerialiser, device, mem);
-
-						VkResourceRecord *record = GetRecord(mem);
-
-						if(m_State == WRITING_IDLE)
-						{
-							record->AddChunk(scope.Get());
-						}
-						else
-						{
-							m_FrameCaptureRecord->AddChunk(scope.Get());
-							GetResourceManager()->MarkResourceFrameReferenced(GetResID(mem), eFrameRef_Write);
-						}
+						record->AddChunk(scope.Get());
 					}
 					else
 					{
-						// VKTODOLOW for now assuming flushes cover all writes. Technically
-						// this is true for all non-coherent memory types.
+						m_FrameCaptureRecord->AddChunk(scope.Get());
+						GetResourceManager()->MarkResourceFrameReferenced(GetResID(mem), eFrameRef_Write);
 					}
 				}
-
-				it->second.mappedPtr = NULL;
-				SAFE_DELETE_ARRAY(it->second.refData);
+				else
+				{
+					// VKTODOLOW for now assuming flushes cover all writes. Technically
+					// this is true for all non-coherent memory types.
+				}
 			}
+
+			state.mappedPtr = NULL;
+			SAFE_DELETE_ARRAY(state.refData);
+		}
+
+		{
+			SCOPED_LOCK(m_CurrentMapsLock);
+
+			auto it = m_CurrentMaps.find(id);
+			if(it == m_CurrentMaps.end())
+				RDCERR("vkUnmapMemory for memory handle that's not currently mapped");
+
+			state = it->second;
+			m_CurrentMaps.erase(it);
 		}
 	}
 }
@@ -291,10 +308,15 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(pMemRanges->mem));
+	
+	MapState state;
+	if(m_State >= WRITING)
+	{
+		SCOPED_LOCK(m_CurrentMapsLock);
+		state = m_CurrentMaps[id];
+	}
 
-	auto it = m_MemoryInfo.find(id);
-
-	SERIALISE_ELEMENT(VkMemoryMapFlags, flags, it->second.mapFlags);
+	SERIALISE_ELEMENT(VkMemoryMapFlags, flags, state.mapFlags);
 	SERIALISE_ELEMENT(uint64_t, memOffset, pMemRanges->offset);
 	SERIALISE_ELEMENT(uint64_t, memSize, pMemRanges->size);
 
@@ -304,7 +326,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 	// we're also not doing any diff range checks, just serialising the whole memory region.
 	// In vulkan the common case will be one memory region for a large number of distinct
 	// bits of data so most maps will not change the whole region.
-	SERIALISE_ELEMENT_BUF(byte*, data, (byte *)it->second.mappedPtr + (size_t)memOffset, (size_t)memSize);
+	SERIALISE_ELEMENT_BUF(byte*, data, (byte *)state.mappedPtr + (size_t)memOffset, (size_t)memSize);
 
 	if(m_State < WRITING)
 	{
@@ -352,8 +374,14 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 
 	for(uint32_t i=0; i < memRangeCount; i++)
 	{
-		auto it = m_MemoryInfo.find(GetResID(pMemRanges[i].mem));
-		it->second.mapFlushed = true;
+		ResourceId memid = GetResID(pMemRanges[i].mem);
+
+		{
+			SCOPED_LOCK(m_CurrentMapsLock);
+			auto it = m_CurrentMaps.find(memid);
+			RDCASSERT(it != m_CurrentMaps.end());
+			it->second.mapFlushed = true;
+		}
 
 		if(ret == VK_SUCCESS && m_State >= WRITING_CAPFRAME)
 		{
@@ -406,8 +434,6 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufId);
 		mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(memId);
-
-		m_MemBindState[GetResID(buffer)] = GetResID(mem);
 
 		ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(mem), offs);
 	}
@@ -597,6 +623,8 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkBuffer buf = VK_NULL_HANDLE;
+
+		m_CreationInfo.m_Buffer[id].Init(&info);
 
 		// ensure we can always readback from buffers
 		info.usage |= VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;

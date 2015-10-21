@@ -348,17 +348,35 @@ private:
 		vector<VkDescriptorInfo *> currentBindings;
 	};
 
-	// VKTODO all these m_*Info things need to be locked and ensure we only access
-	// them in slow path functions like creation, or just moved elsewhere like inside
-	// the wrapped objects
-	// VKTODOHIGH all of these need to be locked
-	map<ResourceId, MemState> m_MemoryInfo;
+	struct MapState
+	{
+		MapState()
+			: device(VK_NULL_HANDLE), mapOffset(0), mapSize(0), mapFlags(0)
+			, mapFrame(0), mapFlushed(false), mappedPtr(NULL), refData(NULL)
+		{ }
+		VkDevice device;
+		VkDeviceSize mapOffset, mapSize;
+		VkMemoryMapFlags mapFlags;
+		uint32_t mapFrame;
+		bool mapFlushed;
+		void *mappedPtr;
+		byte *refData;
+	};
+
+	// capture-side data
+
+	// holds the current list of mapped memory. Locked against concurrent use
+	// VKTODOLOW once maps are handled properly we will know which maps must be
+	// treated as coherent and this will be a vector of VkResourceRecords to
+	// iterate over and flush changes out at any queuesubmit. Then the main
+	// MapState can be moved into the resource record
+	map<ResourceId, MapState> m_CurrentMaps;
+	Threading::CriticalSection m_CurrentMapsLock;
+
 	map<ResourceId, ImgState> m_ImageInfo;
 
 	// below are replay-side data only, doesn't have to be thread protected
 
-	// current memory bindings, image/buffer id -> memory id
-	map<ResourceId, ResourceId> m_MemBindState;
 	// current descriptor set contents
 	map<ResourceId, DescriptorSetInfo> m_DescriptorSetState;
 	// data for a baked command buffer - its drawcalls and events, ready to submit

@@ -53,13 +53,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 	}
 	else if(type == eResDeviceMemory)
 	{
-		if(m_MemoryInfo.find(id) == m_MemoryInfo.end())
-		{
-			RDCERR("Couldn't find memory info");
-			return false;
-		}
-
-		MemState &meminfo = m_MemoryInfo[id];
+		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+		RDCASSERT(record->Length > 0);
 
 		VkResult vkr = VK_SUCCESS;
 
@@ -73,7 +68,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			meminfo.size, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
+			record->Length, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
@@ -92,7 +87,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkMemoryAllocInfo allocInfo = {
 			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-			meminfo.size, GetReadbackMemoryIndex(mrq.memoryTypeBits),
+			record->Length, GetReadbackMemoryIndex(mrq.memoryTypeBits),
 		};
 
 		allocInfo.allocationSize = AlignUp(allocInfo.allocationSize, mrq.alignment);
@@ -114,7 +109,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkBufferCopy region = { 0, 0, meminfo.size };
+		VkBufferCopy region = { 0, 0, record->Length };
 
 		ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), srcBuf, dstBuf, 1, &region);
 
@@ -131,7 +126,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		ObjDisp(d)->DestroyBuffer(Unwrap(d), srcBuf);
 		ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf);
 
-		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(mem), (uint32_t)meminfo.size, NULL));
+		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(mem), (uint32_t)record->Length, NULL));
 
 		return true;
 	}
@@ -376,7 +371,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			m_FreeMems.push_back(mem);
 
-			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(buf), eInitialContents_Copy, NULL));
+			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(buf), (uint32_t)dataSize, NULL));
 		}
 		else if(type == eResImage)
 		{
@@ -471,15 +466,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 	}
 	else if(type == eResDeviceMemory)
 	{
-		if(m_MemoryInfo.find(id) == m_MemoryInfo.end())
-		{
-			RDCERR("Couldn't find memory info");
-			return;
-		}
-
-		MemState &meminfo = m_MemoryInfo[id];
-		
 		VkBuffer srcBuf = (VkBuffer)(uint64_t)initial.resource;
+		uint32_t memsize = initial.num;
 		VkDeviceMemory dstMem = (VkDeviceMemory)(uint64_t)live; // maintain the wrapping, for consistency
 
 		VkResult vkr = VK_SUCCESS;
@@ -496,7 +484,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			meminfo.size, VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
+			memsize, VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
@@ -511,7 +499,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(dstMem), 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkBufferCopy region = { 0, 0, meminfo.size };
+		VkBufferCopy region = { 0, 0, memsize };
 
 		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), dstBuf, 1, &region);
 	
