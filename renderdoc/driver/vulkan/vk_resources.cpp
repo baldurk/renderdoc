@@ -486,4 +486,5 @@ VkResourceRecord::~VkResourceRecord()
 	descBindings.clear();
 
 	SAFE_DELETE(layout);
+	SAFE_DELETE(swapInfo);
 }

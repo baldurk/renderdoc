@@ -343,24 +343,6 @@ private:
 	bool InPartialRange() { return m_CmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent; }
 	VkCmdBuffer PartialCmdBuf() { return m_PartialReplayData.resultPartialCmdBuffer; }
 
-	struct SwapInfo
-	{
-		VkFormat format;
-		VkExtent2D extent;
-		int arraySize;
-
-		VkRenderPass rp;
-
-		struct SwapImage
-		{
-			VkDeviceMemory mem;
-			VkImage im;
-
-			VkImageView view;
-			VkFramebuffer fb;
-		};
-		vector<SwapImage> images;
-	};
 
 	// this info is stored in the record on capture, but we
 	// need it on replay too
@@ -377,7 +359,6 @@ private:
 	map<ResourceId, MemState> m_MemoryInfo;
 	map<ResourceId, ImgState> m_ImageInfo;
 	map<ResourceId, CmdBufferInfo> m_CmdBufferInfo;
-	map<ResourceId, SwapInfo> m_SwapChainInfo;
 
 	// READING only
 	map<ResourceId, ResourceId> m_BufferMemBinds;

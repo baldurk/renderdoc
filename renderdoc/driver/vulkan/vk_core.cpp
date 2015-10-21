@@ -379,36 +379,6 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 WrappedVulkan::~WrappedVulkan()
 {
-	// VKTODOLOW should only have one swapchain, since we are only handling the simple case
-	// of one device, etc for now.
-	RDCASSERT(m_SwapChainInfo.size() == 1);
-	for(auto it = m_SwapChainInfo.begin(); it != m_SwapChainInfo.end(); ++it)
-	{
-		for(size_t i=0; i < it->second.images.size(); i++)
-		{
-			// only in the replay app are these 'real' images to be destroyed
-			if(RenderDoc::Inst().IsReplayApp())
-			{
-				// go through our wrapped functions, since the resources need to be deregistered
-				vkDestroyImage(GetDev(), it->second.images[i].im);
-				vkFreeMemory(GetDev(), it->second.images[i].mem);
-			}
-			
-			// VKTODOHIGH this device has been destroyed already - need to kill these when
-			// swapchain is destroyed?
-			//if(it->second.images[i].fb != VK_NULL_HANDLE)
-				//ObjDisp(GetDev())->DestroyFramebuffer(Unwrap(GetDev()), it->second.images[i].fb);
-			
-			//if(it->second.images[i].view != VK_NULL_HANDLE)
-				//ObjDisp(GetDev())->DestroyImageView(Unwrap(GetDev()), it->second.images[i].view);
-		}
-
-		//if(it->second.rp != VK_NULL_HANDLE)
-			//ObjDisp(GetDev())->DestroyRenderPass(Unwrap(GetDev()), it->second.rp);
-	}
-
-	m_SwapChainInfo.clear();
-
 	// VKTODOLOW shutdown order is really up in the air
 	for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
 	{

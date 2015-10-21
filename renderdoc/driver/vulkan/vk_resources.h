@@ -549,6 +549,24 @@ inline bool operator <(const VkDescriptorSet a, const VkDescriptorSet b)
 	return a.handle < b.handle;
 }
 
+struct SwapchainInfo
+{
+	VkFormat format;
+	VkExtent2D extent;
+	int arraySize;
+
+	VkRenderPass rp;
+
+	struct SwapImage
+	{
+		VkImage im;
+
+		VkImageView view;
+		VkFramebuffer fb;
+	};
+	vector<SwapImage> images;
+};
+
 struct DescSetLayout;
 
 struct VkResourceRecord : public ResourceRecord
@@ -561,7 +579,8 @@ struct VkResourceRecord : public ResourceRecord
 			bakedCommands(NULL),
 			pool(NULL),
 			memory(NULL),
-			layout(NULL)
+			layout(NULL),
+			swapInfo(NULL)
 		{
 		}
 
@@ -630,6 +649,8 @@ struct VkResourceRecord : public ResourceRecord
 		VkResourceRecord *bakedCommands;
 
 		WrappedVkRes *Resource;
+
+		SwapchainInfo *swapInfo;
 
 		// a list of resources that are made dirty by submitting this command buffer
 		set<ResourceId> dirtied;

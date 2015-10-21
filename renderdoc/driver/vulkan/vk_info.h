@@ -187,8 +187,6 @@ struct VulkanCreationInfo
 		ResourceId image;
 	};
 	map<ResourceId, ImageView> m_ImageView;
-
-	map<ResourceId, DescSetLayout> m_DescSetLayout;
 	
 	struct ShaderModule
 	{
@@ -209,4 +207,7 @@ struct VulkanCreationInfo
 		ShaderBindpointMapping mapping;
 	};
 	map<ResourceId, Shader> m_Shader;
+
+	map<ResourceId, SwapchainInfo> m_SwapChain;
+	map<ResourceId, DescSetLayout> m_DescSetLayout;
 };

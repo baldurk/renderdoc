@@ -90,8 +90,8 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(
 	if(m_State == READING)
 	{
 		// VKTODOLOW what if num images is less than on capture?
-		RDCASSERT(idx < m_SwapChainInfo[swapId].images.size());
-		GetResourceManager()->AddLiveResource(id, m_SwapChainInfo[swapId].images[idx].im);
+		RDCASSERT(idx < m_CreationInfo.m_SwapChain[swapId].images.size());
+		GetResourceManager()->AddLiveResource(id, m_CreationInfo.m_SwapChain[swapId].images[idx].im);
 	}
 
 	return true;
@@ -210,14 +210,16 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 
 	SERIALISE_ELEMENT(uint32_t, numSwapImages, numIms);
 
-	m_SwapChainInfo[id].format = info.imageFormat;
-	m_SwapChainInfo[id].extent = info.imageExtent;
-	m_SwapChainInfo[id].arraySize = info.imageArraySize;
-
-	m_SwapChainInfo[id].images.resize(numSwapImages);
-
 	if(m_State == READING)
 	{
+		SwapchainInfo &swapinfo = m_CreationInfo.m_SwapChain[id];
+
+		swapinfo.format = info.imageFormat;
+		swapinfo.extent = info.imageExtent;
+		swapinfo.arraySize = info.imageArraySize;
+
+		swapinfo.images.resize(numSwapImages);
+
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 
 		const VkImageCreateInfo imInfo = {
@@ -272,8 +274,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			// image live ID will be assigned separately in Serialise_vkGetSwapChainInfoWSI
 			// memory doesn't have a live ID
 
-			m_SwapChainInfo[id].images[i].mem = mem;
-			m_SwapChainInfo[id].images[i].im = im;
+			swapinfo.images[i].im = im;
 
 			// fill out image info so we track resource state transitions
 			m_ImageInfo[liveId].type = VK_IMAGE_TYPE_2D;
@@ -339,7 +340,12 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 					m_SwapPhysDevice = (int)i;
 			}
 			
-			SwapInfo &swapInfo = m_SwapChainInfo[id];
+			record->swapInfo = new SwapchainInfo();
+			SwapchainInfo &swapInfo = *record->swapInfo;
+			
+			swapInfo.format = pCreateInfo->imageFormat;
+			swapInfo.extent = pCreateInfo->imageExtent;
+			swapInfo.arraySize = pCreateInfo->imageArraySize;
 
 			VkResult vkr = VK_SUCCESS;
 
@@ -385,6 +391,8 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 				uint32_t numSwapImages;
 				VkResult ret = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(*pSwapChain), &numSwapImages, NULL);
 				RDCASSERT(ret == VK_SUCCESS);
+				
+				swapInfo.images.resize(numSwapImages);
 
 				VkImage* images = new VkImage[numSwapImages];
 
@@ -394,10 +402,9 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 
 				for(uint32_t i=0; i < numSwapImages; i++)
 				{
-					SwapInfo::SwapImage &swapImInfo = swapInfo.images[i];
+					SwapchainInfo::SwapImage &swapImInfo = swapInfo.images[i];
 
 					// memory doesn't exist for genuine WSI created images
-					swapImInfo.mem = VK_NULL_HANDLE;
 					swapImInfo.im = images[i];
 
 					ResourceId imid = GetResID(images[i]);
@@ -481,8 +488,10 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 	RDCASSERT(pPresentInfo->pNext == NULL);
 	
 	ResourceId swapid = GetResID(pPresentInfo->swapchains[0]);
+	VkResourceRecord *swaprecord = GetRecord(pPresentInfo->swapchains[0]);
+	RDCASSERT(swaprecord->swapInfo);
 
-	const SwapInfo &swapInfo = m_SwapChainInfo[swapid];
+	const SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 
 	VkImage backbuffer = swapInfo.images[pPresentInfo->imageIndices[0]].im;
 	
