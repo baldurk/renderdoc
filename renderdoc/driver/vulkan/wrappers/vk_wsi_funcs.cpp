@@ -959,6 +959,14 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 			GetResourceManager()->ClearReferencedResources();
 
+			// VKTODOHIGH This is a huuuge hack while the shutdown order is all
+			// messed up and normal calls to WrappedVulkan::ReleaseResource are
+			// ignored while WRITING to avoid shutdown problems.
+			extern bool releasingInitContents;
+			releasingInitContents = true;
+			GetResourceManager()->FreeInitialContents();
+			releasingInitContents = false;
+
 			GetResourceManager()->FlushPendingDirty();
 		}
 	}

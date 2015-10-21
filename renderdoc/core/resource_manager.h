@@ -406,6 +406,9 @@ class ResourceManager : public ResourceRecordHandler
 
 		// Serialise in which resources need initial contents and set them up.
 		void CreateInitialContents();
+		
+		// Free any initial contents that are prepared (for after capture is complete)
+		void FreeInitialContents();
 
 		// Apply the initial contents for the resources that need them, used at the start of a frame
 		void ApplyInitialContents();
@@ -509,15 +512,8 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Shutdow
 		if(!m_InframeResourceMap.empty())
 			m_InframeResourceMap.erase(m_InframeResourceMap.begin());
 	}
-	
-	while(!m_InitialContents.empty())
-	{
-		auto it = m_InitialContents.begin();
-		ResourceTypeRelease(it->second.resource);
-		Serialiser::FreeAlignedBuffer(it->second.blob);
-		if(!m_InitialContents.empty())
-			m_InitialContents.erase(m_InitialContents.begin());
-	}
+
+	FreeInitialContents();
 
 	RDCASSERT(m_ResourceRecords.empty());
 }
@@ -759,6 +755,19 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Seriali
 	{
 		m_pSerialiser->Serialise("id", it->id);
 		m_pSerialiser->Serialise("WrittenData", it->written);
+	}
+}
+
+template<typename WrappedResourceType, typename RealResourceType, typename RecordType>
+void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::FreeInitialContents()
+{
+	while(!m_InitialContents.empty())
+	{
+		auto it = m_InitialContents.begin();
+		ResourceTypeRelease(it->second.resource);
+		Serialiser::FreeAlignedBuffer(it->second.blob);
+		if(!m_InitialContents.empty())
+			m_InitialContents.erase(m_InitialContents.begin());
 	}
 }
 
@@ -1285,5 +1294,3 @@ ResourceId ResourceManager<WrappedResourceType, RealResourceType, RecordType>::G
 	RDCASSERT(m_LiveIDs.find(id) != m_LiveIDs.end());
 	return m_LiveIDs[id];
 }
-
-

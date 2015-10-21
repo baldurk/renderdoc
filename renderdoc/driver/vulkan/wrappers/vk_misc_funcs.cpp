@@ -91,6 +91,9 @@ void WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
 	ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), unwrapped);
 }
 
+// VKTODOHIGH huge hack, see WrappedVulkan::vkQueuePresentKHR
+bool releasingInitContents = false;
+
 bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 {
 	if(res == NULL) return true;
@@ -98,7 +101,7 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 	// VKTODOHIGH: Device-associated resources must be released before the device is
 	// shutdown. This needs a rethink while writing - really everything should be cleaned
 	// up explicitly by us or the app.
-	if(m_State >= WRITING) return true;
+	if(m_State >= WRITING && !releasingInitContents) return true;
 
 	// VKTODOHIGH: release resource with device from resource record
 
