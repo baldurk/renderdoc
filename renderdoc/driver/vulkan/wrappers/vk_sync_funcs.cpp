@@ -24,6 +24,54 @@
 
 #include "../vk_core.h"
 
+/*
+ * Events and fences need careful handling.
+ *
+ * Primary goal by far is correctness - these primitives are used to synchronise
+ * operations between GPU-CPU and GPU-GPU, and we need to be sure that we don't
+ * introduce any bugs with bad handling.
+ *
+ * Secondary goal and worth compromising is to be efficient in replaying them.
+ *
+ * Fences are comparatively 'easy'. Since the GPU can't wait on them, for the
+ * moment we just implement fences as-is and do a hard sync via DeviceWaitIdle
+ * whenever the status of a fence would have been fetched on the GPU. Obviously
+ * this is very conservative, but it's correct and it doesn't impact efficiency
+ * too badly (The replay can be bottlenecked in different ways to the real
+ * application, and often has different realtime requirements for the actual
+ * frame replay).
+ * 
+ * Events are harder because the GPU can wait on them. We need to be particularly
+ * careful the GPU never waits on an event that will never become set, or the GPU
+ * will lock up.
+ * 
+ * For now the implementation is simple, conservative and inefficient. We keep
+ * events Set always, never replaying any Reset (CPU or GPU). This means any
+ * wait will always succeed on the GPU.
+ * 
+ * On the CPU-side with GetEventStatus we do another hard sync with
+ * DeviceWaitIdle.
+ * 
+ * On the GPU-side, whenever a command buffer contains a CmdWaitEvents we
+ * currently just ignore it, assuming any previous work that it was intended
+ * to wait on has completed. VKTODOMED this might not be the case. Probably we
+ * will need to record any command buffers that do a CmdWaitEvents and ensure
+ * there's a sync. E.g. on submit, submit only that command buffer alone and
+ * then do DeviceWaitIdle, or at least do a GPU stall by inserting an event
+ * of our own - not the replays - to make the GPU wait.
+ * 
+ * In future it would be nice to save the state of events at the start of
+ * the frame and restore them, via GetEventStatus/SetEvent/ResetEvent. However
+ * this will not be sufficient to make sure all events are set when they should
+ * be - e.g. an event which is reset at start of frame, but a GPU cmd buffer is
+ * in-flight that will set it, but hasn't been recorded as part of the frame.
+ * Then a cmd buffer in the frame which does CmdWaitEvents will never have that
+ * event set. I'm not sure if there's a way around this, we might just have to
+ * make slight improvements to the current method by ensuring events are
+ * properly hard-synced on the GPU.
+ * 
+ */
+
 bool WrappedVulkan::Serialise_vkCreateFence(
 			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
@@ -260,9 +308,12 @@ bool WrappedVulkan::Serialise_vkCreateEvent(
 	if(m_State == READING)
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-		VkEvent sem = VK_NULL_HANDLE;
+		VkEvent ev = VK_NULL_HANDLE;
 
-		VkResult ret = ObjDisp(device)->CreateEvent(Unwrap(device), &info, &sem);
+		VkResult ret = ObjDisp(device)->CreateEvent(Unwrap(device), &info, &ev);
+
+		// see top of this file for current event/fence handling
+		ObjDisp(device)->SetEvent(Unwrap(device), ev);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -270,8 +321,8 @@ bool WrappedVulkan::Serialise_vkCreateEvent(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sem);
-			GetResourceManager()->AddLiveResource(id, sem);
+			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), ev);
+			GetResourceManager()->AddLiveResource(id, ev);
 		}
 	}
 
@@ -324,9 +375,7 @@ bool WrappedVulkan::Serialise_vkSetEvent(
 	
 	if(m_State < WRITING)
 	{
-		// VKTODOMED does it make sense to set/reset events?
-		// when we wait on them, we wait for device idle (as we can't track
-		// and save/restore signalled status of fence).
+		// see top of this file for current event/fence handling
 	}
 
 	return true;
@@ -361,9 +410,7 @@ bool WrappedVulkan::Serialise_vkResetEvent(
 	
 	if(m_State < WRITING)
 	{
-		// VKTODOMED does it make sense to set/reset events?
-		// when we wait on them, we wait for device idle (as we can't track
-		// and save/restore signalled status of fence).
+		// see top of this file for current event/fence handling
 	}
 
 	return true;
@@ -524,11 +571,13 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
+
+	// see top of this file for current event/fence handling
 	
 	if(m_State == EXECUTING)
 	{
 		event = GetResourceManager()->GetLiveHandle<VkEvent>(eid);
-
+		
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
@@ -580,6 +629,8 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
 	
+	// see top of this file for current event/fence handling
+
 	if(m_State == EXECUTING)
 	{
 		event = GetResourceManager()->GetLiveHandle<VkEvent>(eid);
@@ -587,7 +638,7 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
-			ObjDisp(cmdBuffer)->CmdResetEvent(Unwrap(cmdBuffer), Unwrap(event), mask);
+			//ObjDisp(cmdBuffer)->CmdResetEvent(Unwrap(cmdBuffer), Unwrap(event), mask);
 		}
 	}
 	else if(m_State == READING)
@@ -595,7 +646,7 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 		event = GetResourceManager()->GetLiveHandle<VkEvent>(eid);
 		
-		ObjDisp(cmdBuffer)->CmdResetEvent(Unwrap(cmdBuffer), Unwrap(event), mask);
+		//ObjDisp(cmdBuffer)->CmdResetEvent(Unwrap(cmdBuffer), Unwrap(event), mask);
 	}
 
 	return true;
@@ -691,9 +742,8 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 		}
 	}
 
-	// VKTODOHIGH executing VkCmdWaitEvents is risky - need to ensure events will be set by the time we wait.
-	// We can save event status as initial status, and restore it.
-	
+	// see top of this file for current event/fence handling
+
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())

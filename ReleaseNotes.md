@@ -35,7 +35,7 @@ On capture:
 	* Subpasses
 	* Nested command buffer execution
 	* Push constants
-	* Most event, fence and semaphore operations for synchronisation, apart from simple use in WSI extensions.
+	* GPU-GPU synchronisation with events.
 	* Sparse resources
 
 On replay:
