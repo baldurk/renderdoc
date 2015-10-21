@@ -1434,7 +1434,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 			ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), src, dest, region, (uint32_t)mems.size(), (const void **)&mems[0]);
 
 			ResourceId cmd = GetResID(PartialCmdBuf());
-			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
 		}
 	}
 	else if(m_State == READING)
@@ -1444,7 +1444,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 		ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), src, dest, region, (uint32_t)mems.size(), (const void **)&mems[0]);
 		
 		ResourceId cmd = GetResID(cmdBuffer);
-		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
 	}
 
 	for(size_t i=0; i < mems.size(); i++)
@@ -1527,7 +1527,10 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 		}
 		
 		ResourceId cmd = GetResID(cmdBuffer);
-		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+		{
+			SCOPED_LOCK(m_ImageLayoutsLock);
+			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
+		}
 
 		// VKTODOMED do we need to mark frame referenced the resources in the barrier? if they're not referenced
 		// elsewhere, perhaps they can be dropped

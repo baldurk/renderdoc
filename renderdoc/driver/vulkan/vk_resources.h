@@ -693,26 +693,12 @@ struct VkResourceRecord : public ResourceRecord
 		VkResourceRecord *memory;
 };
 
-struct ImgState
+struct ImageLayouts
 {
-	ImgState()
-		: view(VK_NULL_HANDLE), arraySize(0), mipLevels(0), samples(0), cube(false), creationFlags(0)
-	{
-		type = VK_IMAGE_TYPE_MAX_ENUM;
-		format = VK_FORMAT_UNDEFINED;
-		extent.width = extent.height = extent.depth = 0;
-	}
+	ImageLayouts() : arraySize(1), mipLevels(1) {}
 
-	VkImageView view;
 	vector<ImageRegionState> subresourceStates;
-
-	VkImageType type;
-	VkFormat format;
-	VkExtent3D extent;
-	int arraySize, mipLevels, samples;
-
-	bool cube;
-	uint32_t creationFlags;
+	int arraySize, mipLevels;
 };
 
 bool IsBlockFormat(VkFormat f);

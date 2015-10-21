@@ -134,12 +134,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 	{
 		VULKANNOTIMP("image initial states not implemented");
 
-		if(m_ImageInfo.find(id) == m_ImageInfo.end())
-		{
-			RDCERR("Couldn't find image info");
-			return false;
-		}
-
 		// VKTODOHIGH: need to copy off contents to memory somewhere else
 
 		return true;
@@ -401,16 +395,16 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 
 		ResourceId liveid = GetResourceManager()->GetLiveID(id);
 
-		if(m_ImageInfo.find(liveid) == m_ImageInfo.end())
+		if(m_ImageLayouts.find(liveid) == m_ImageLayouts.end())
 		{
 			RDCERR("Couldn't find image info for %llu", id);
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearColorImage, NULL));
 			return;
 		}
 
-		ImgState &img = m_ImageInfo[liveid];
+		ImageLayouts &layouts = m_ImageLayouts[liveid];
 
-		if(img.subresourceStates[0].range.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT)
+		if(layouts.subresourceStates[0].range.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT)
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearColorImage, NULL));
 		else
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearDepthStencilImage, NULL));

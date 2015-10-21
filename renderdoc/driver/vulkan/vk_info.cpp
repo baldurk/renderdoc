@@ -253,6 +253,32 @@ void VulkanCreationInfo::BufferView::Init(const VkBufferViewCreateInfo* pCreateI
 	size = pCreateInfo->range;
 }
 
+void VulkanCreationInfo::Image::Init(const VkImageCreateInfo* pCreateInfo)
+{
+	view = VK_NULL_HANDLE;
+
+	type = pCreateInfo->imageType;
+	format = pCreateInfo->format;
+	extent = pCreateInfo->extent;
+	arraySize = pCreateInfo->arraySize;
+	mipLevels = pCreateInfo->mipLevels;
+	samples = pCreateInfo->samples;
+
+	creationFlags = 0;
+
+	if(pCreateInfo->usage & VK_IMAGE_USAGE_SAMPLED_BIT)
+		creationFlags |= eTextureCreate_SRV;
+	if(pCreateInfo->usage & (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT))
+		creationFlags |= eTextureCreate_RTV;
+	if(pCreateInfo->usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+		creationFlags |= eTextureCreate_DSV;
+	if(pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT)
+		creationFlags |= eTextureCreate_UAV;
+
+	if(pCreateInfo->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT)
+		cube = true;
+}
+
 void VulkanCreationInfo::ImageView::Init(const VkImageViewCreateInfo* pCreateInfo)
 {
 	image = VKMGR()->GetNonDispWrapper(pCreateInfo->image)->id;

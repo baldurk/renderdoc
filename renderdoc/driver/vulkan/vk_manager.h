@@ -89,12 +89,12 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 		void Hack_PropagateReferencesToMemory();
 		
 		// handling memory & image transitions
-		void RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states,
+		void RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states,
 			                   uint32_t numTransitions, const VkImageMemoryBarrier *transitions);
 
-		void ApplyTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states);
+		void ApplyTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states);
 
-		void SerialiseImageStates(map<ResourceId, ImgState> &states, vector<VkImageMemoryBarrier> &transitions);
+		void SerialiseImageStates(map<ResourceId, ImageLayouts> &states, vector<VkImageMemoryBarrier> &transitions);
 
 		ResourceId GetID(WrappedVkRes *res)
 		{

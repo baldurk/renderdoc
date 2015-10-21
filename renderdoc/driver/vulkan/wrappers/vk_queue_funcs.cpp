@@ -164,7 +164,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		for(uint32_t i=0; i < numCmds; i++)
 		{
 			ResourceId cmd = GetResourceManager()->GetLiveID(cmdIds[i]);
-			GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+			GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts);
 		}
 
 		AddEvent(QUEUE_SUBMIT, desc);
@@ -275,7 +275,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			for(uint32_t i=0; i < numCmds; i++)
 			{
 				ResourceId cmd = trimmedCmdIds[i];
-				GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+				GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts);
 			}
 		}
 		else
@@ -285,7 +285,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			for(uint32_t i=0; i < numCmds; i++)
 			{
 				ResourceId cmd = GetResourceManager()->GetLiveID(cmdIds[i]);
-				GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+				GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts);
 			}
 		}
 	}
@@ -329,7 +329,11 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	for(uint32_t i=0; i < cmdBufferCount; i++)
 	{
 		ResourceId cmd = GetResID(pCmdBuffers[i]);
-		GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+
+		{
+			SCOPED_LOCK(m_ImageLayoutsLock);
+			GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts);
+		}
 
 		VkResourceRecord *record = GetRecord(pCmdBuffers[i]);
 

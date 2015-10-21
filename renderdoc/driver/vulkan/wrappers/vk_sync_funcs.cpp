@@ -702,7 +702,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 			ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), evcount, &events[0], src, dest, (uint32_t)mems.size(), (const void **)&mems[0]);
 
 			ResourceId cmd = GetResID(PartialCmdBuf());
-			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
 		}
 	}
 	else if(m_State == READING)
@@ -712,7 +712,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 		ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), evcount, &events[0], src, dest, (uint32_t)mems.size(), (const void **)&mems[0]);
 		
 		ResourceId cmd = GetResID(cmdBuffer);
-		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
 	}
 
 	for(size_t i=0; i < mems.size(); i++)
@@ -797,7 +797,10 @@ void WrappedVulkan::vkCmdWaitEvents(
 		}
 		
 		ResourceId cmd = GetResID(cmdBuffer);
-		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+		{
+			SCOPED_LOCK(m_ImageLayoutsLock);
+			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
+		}
 
 		record->AddChunk(scope.Get());
 		for(uint32_t i=0; i < eventCount; i++)

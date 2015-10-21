@@ -628,7 +628,10 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 	vector<VkImageMemoryBarrier> imgTransitions;
 	
-	GetResourceManager()->SerialiseImageStates(m_ImageInfo, imgTransitions);
+	{
+		SCOPED_LOCK(m_ImageLayoutsLock); // not needed on replay, but harmless also
+		GetResourceManager()->SerialiseImageStates(m_ImageLayouts, imgTransitions);
+	}
 
 	if(applyInitialState && !imgTransitions.empty())
 	{
@@ -1369,7 +1372,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			ImgState &st = m_ImageInfo[GetResourceManager()->GetLiveID(m_FakeBBImgId)];
+			ImageLayouts &st = m_ImageLayouts[GetResourceManager()->GetLiveID(m_FakeBBImgId)];
 			RDCASSERT(st.subresourceStates.size() == 1);
 
 			VkImageMemoryBarrier t;

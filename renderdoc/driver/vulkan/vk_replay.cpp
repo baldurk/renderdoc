@@ -510,7 +510,7 @@ vector<ResourceId> VulkanReplay::GetTextures()
 {
 	vector<ResourceId> texs;
 
-	for(auto it = m_pDriver->m_ImageInfo.begin(); it != m_pDriver->m_ImageInfo.end(); ++it)
+	for(auto it = m_pDriver->m_ImageLayouts.begin(); it != m_pDriver->m_ImageLayouts.end(); ++it)
 	{
 		// skip textures that aren't from the capture
 		if(m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
@@ -671,11 +671,12 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	ImgState &iminfo = m_pDriver->m_ImageInfo[cfg.texid];
+	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[cfg.texid];
+	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[m_pDriver->GetResourceManager()->GetOriginalID(cfg.texid)];
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.texid);
 
 	// VKTODOMED handle multiple subresources with different layouts etc
-	VkImageLayout origLayout = iminfo.subresourceStates[0].state;
+	VkImageLayout origLayout = layouts.subresourceStates[0].state;
 	VkImageView liveImView = iminfo.view;
 
 	if(liveImView == VK_NULL_HANDLE)
@@ -1293,10 +1294,11 @@ void VulkanReplay::FileChanged()
 
 FetchTexture VulkanReplay::GetTexture(ResourceId id)
 {
-	const ImgState &iminfo = m_pDriver->m_ImageInfo[id];
-
 	FetchTexture ret;
 	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
+	
+	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[ret.ID];
+
 	ret.arraysize = iminfo.arraySize;
 	ret.creationFlags = iminfo.creationFlags;
 	ret.cubemap = iminfo.cube;

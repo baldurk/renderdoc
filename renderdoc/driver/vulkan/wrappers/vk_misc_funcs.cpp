@@ -31,7 +31,6 @@
 #define DESTROY_IMPL(type, func) \
 	void WrappedVulkan::vk ## func(VkDevice device, type obj) \
 	{ \
-		if(m_ImageInfo.find(GetResID(obj)) != m_ImageInfo.end()) m_ImageInfo.erase(GetResID(obj)); \
 		type unwrappedObj = Unwrap(obj); \
 		if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true); \
 		ObjDisp(device)->func(Unwrap(device), unwrappedObj); \
@@ -39,7 +38,6 @@
 
 DESTROY_IMPL(VkBuffer, DestroyBuffer)
 DESTROY_IMPL(VkBufferView, DestroyBufferView)
-DESTROY_IMPL(VkImage, DestroyImage)
 DESTROY_IMPL(VkImageView, DestroyImageView)
 DESTROY_IMPL(VkShader, DestroyShader)
 DESTROY_IMPL(VkShaderModule, DestroyShaderModule)
@@ -62,10 +60,18 @@ DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
 // needs to be separate because it returns VkResult still
 VkResult WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj)
 {
-	if(m_ImageInfo.find(GetResID(obj)) != m_ImageInfo.end()) m_ImageInfo.erase(GetResID(obj));
 	VkSwapchainKHR unwrappedObj = Unwrap(obj);
 	if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true);
 	return ObjDisp(device)->DestroySwapchainKHR(Unwrap(device), unwrappedObj);
+}
+
+// needs to be separate so we don't erase from m_ImageLayouts in other destroy functions
+void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj)
+{
+	m_ImageLayouts.erase(GetResID(obj));
+	VkImage unwrappedObj = Unwrap(obj);
+	if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true);
+	return ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedObj);
 }
 
 // needs to be separate since it's dispatchable

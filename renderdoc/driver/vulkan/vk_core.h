@@ -373,7 +373,10 @@ private:
 	map<ResourceId, MapState> m_CurrentMaps;
 	Threading::CriticalSection m_CurrentMapsLock;
 
-	map<ResourceId, ImgState> m_ImageInfo;
+	// used both on capture and replay side to track image layouts. Only locked
+	// in capture
+	map<ResourceId, ImageLayouts> m_ImageLayouts;
+	Threading::CriticalSection m_ImageLayoutsLock;
 
 	// below are replay-side data only, doesn't have to be thread protected
 

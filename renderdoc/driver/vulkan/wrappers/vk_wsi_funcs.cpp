@@ -92,6 +92,8 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(
 		// VKTODOLOW what if num images is less than on capture?
 		RDCASSERT(idx < m_CreationInfo.m_SwapChain[swapId].images.size());
 		GetResourceManager()->AddLiveResource(id, m_CreationInfo.m_SwapChain[swapId].images[idx].im);
+
+		m_CreationInfo.m_Image[id] = m_CreationInfo.m_Image[swapId];
 	}
 
 	return true;
@@ -277,14 +279,17 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			swapinfo.images[i].im = im;
 
 			// fill out image info so we track resource state transitions
-			m_ImageInfo[liveId].type = VK_IMAGE_TYPE_2D;
-			m_ImageInfo[liveId].format = info.imageFormat;
-			m_ImageInfo[liveId].extent.width = info.imageExtent.width;
-			m_ImageInfo[liveId].extent.height = info.imageExtent.height;
-			m_ImageInfo[liveId].extent.depth = 1;
-			m_ImageInfo[liveId].mipLevels = 1;
-			m_ImageInfo[liveId].arraySize = info.imageArraySize;
-			m_ImageInfo[liveId].creationFlags = eTextureCreate_SRV|eTextureCreate_RTV|eTextureCreate_SwapBuffer;
+			VulkanCreationInfo::Image &iminfo = m_CreationInfo.m_Image[id];
+			iminfo.type = VK_IMAGE_TYPE_2D;
+			iminfo.format = info.imageFormat;
+			iminfo.extent.width = info.imageExtent.width;
+			iminfo.extent.height = info.imageExtent.height;
+			iminfo.extent.depth = 1;
+			iminfo.mipLevels = 1;
+			iminfo.arraySize = info.imageArraySize;
+			iminfo.creationFlags = eTextureCreate_SRV|eTextureCreate_RTV|eTextureCreate_SwapBuffer;
+			iminfo.cube = false;
+			iminfo.samples = 1;
 
 			m_CreationInfo.m_Names[liveId] = StringFormat::Fmt("Presentable Image %u", i);
 
@@ -294,8 +299,8 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			range.arraySize = info.imageArraySize;
 			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
-			m_ImageInfo[liveId].subresourceStates.clear();
-			m_ImageInfo[liveId].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			m_ImageLayouts[liveId].subresourceStates.clear();
+			m_ImageLayouts[liveId].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
 		}
 	}
 
@@ -409,23 +414,18 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 
 					ResourceId imid = GetResID(images[i]);
 
-					// fill out image info so we track resource state transitions
-					m_ImageInfo[imid].type = VK_IMAGE_TYPE_2D;
-					m_ImageInfo[imid].format = pCreateInfo->imageFormat;
-					m_ImageInfo[imid].extent.width = pCreateInfo->imageExtent.width;
-					m_ImageInfo[imid].extent.height = pCreateInfo->imageExtent.height;
-					m_ImageInfo[imid].extent.depth = 1;
-					m_ImageInfo[imid].mipLevels = 1;
-					m_ImageInfo[imid].arraySize = pCreateInfo->imageArraySize;
-
 					VkImageSubresourceRange range;
 					range.baseMipLevel = range.baseArrayLayer = 0;
 					range.mipLevels = 1;
 					range.arraySize = pCreateInfo->imageArraySize;
 					range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-					m_ImageInfo[imid].subresourceStates.clear();
-					m_ImageInfo[imid].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+					
+					// fill out image info so we track resource state transitions
+					{
+						SCOPED_LOCK(m_ImageLayoutsLock);
+						m_ImageLayouts[imid].subresourceStates.clear();
+						m_ImageLayouts[imid].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+					}
 
 					{
 						VkImageViewCreateInfo info = {

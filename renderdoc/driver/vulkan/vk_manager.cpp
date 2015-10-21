@@ -51,7 +51,7 @@ bool VulkanResourceManager::SerialisableResource(ResourceId id, VkResourceRecord
 #define TRDBG(...)
 #endif
 
-void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states,
+void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states,
 											  uint32_t numTransitions, const VkImageMemoryBarrier *transitions)
 {
 	TRDBG("Recording %u transitions", numTransitions);
@@ -205,7 +205,7 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 	TRDBG("Post-record, there are %u transitions", (uint32_t)trans.size());
 }
 
-void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImgState> &states, vector<VkImageMemoryBarrier> &transitions)
+void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &states, vector<VkImageMemoryBarrier> &transitions)
 {
 	Serialiser *localSerialiser = m_pSerialiser;
 
@@ -270,7 +270,7 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImgState> &stat
 	}
 }
 
-void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states)
+void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states)
 {
 	TRDBG("Applying %u transitions", (uint32_t)trans.size());
 

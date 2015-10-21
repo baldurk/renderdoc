@@ -187,6 +187,22 @@ struct VulkanCreationInfo
 		uint64_t size;
 	};
 	map<ResourceId, BufferView> m_BufferView;
+	
+	struct Image
+	{
+		void Init(const VkImageCreateInfo* pCreateInfo);
+	
+		VkImageView view;
+
+		VkImageType type;
+		VkFormat format;
+		VkExtent3D extent;
+		int arraySize, mipLevels, samples;
+
+		bool cube;
+		uint32_t creationFlags;
+	};
+	map<ResourceId, Image> m_Image;
 
 	struct ImageView
 	{
