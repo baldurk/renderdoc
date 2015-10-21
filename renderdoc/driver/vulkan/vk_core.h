@@ -210,17 +210,13 @@ private:
 	uint32_t GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask);
 
 	ResourceId m_FakeBBImgId;
-	
-	struct CmdBufferInfo
-	{
-		VkDevice device;
-		VkCmdBufferCreateInfo createInfo;
 		
-		vector< pair<ResourceId, ImageRegionState> > imgtransitions;
-
-		// used on replay
+	struct BakedCmdBufferInfo
+	{
 		vector<FetchAPIEvent> curEvents;
 		list<DrawcallTreeNode *> drawStack;
+
+		vector< pair<ResourceId, ImageRegionState> > imgtransitions;
 
 		DrawcallTreeNode *draw; // the root draw to copy from when submitting
 		uint32_t eventCount; // how many events are in this cmd buffer, for quick skipping
@@ -340,7 +336,7 @@ private:
 	} m_PartialReplayData;
 
 	bool IsPartialCmd(ResourceId cmdid) { return cmdid == m_PartialReplayData.partialParent; }
-	bool InPartialRange() { return m_CmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent; }
+	bool InPartialRange() { return m_BakedCmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent; }
 	VkCmdBuffer PartialCmdBuf() { return m_PartialReplayData.resultPartialCmdBuffer; }
 
 
@@ -358,7 +354,6 @@ private:
 	// VKTODOHIGH all of these need to be locked
 	map<ResourceId, MemState> m_MemoryInfo;
 	map<ResourceId, ImgState> m_ImageInfo;
-	map<ResourceId, CmdBufferInfo> m_CmdBufferInfo;
 
 	// below are replay-side data only, doesn't have to be thread protected
 
@@ -366,6 +361,8 @@ private:
 	map<ResourceId, ResourceId> m_MemBindState;
 	// current descriptor set contents
 	map<ResourceId, DescriptorSetInfo> m_DescriptorSetState;
+	// data for a baked command buffer - its drawcalls and events, ready to submit
+	map<ResourceId, BakedCmdBufferInfo> m_BakedCmdBufferInfo;
 	// immutable creation data
 	VulkanCreationInfo m_CreationInfo;
 		
@@ -404,7 +401,7 @@ private:
 	list<DrawcallTreeNode *> &GetDrawcallStack()
 	{
 		if(m_LastCmdBufferID != ResourceId())
-			return m_CmdBufferInfo[m_LastCmdBufferID].drawStack;
+			return m_BakedCmdBufferInfo[m_LastCmdBufferID].drawStack;
 
 		return m_DrawcallStack;
 	}

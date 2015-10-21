@@ -876,7 +876,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		{
 			// these events are completely omitted, so don't increment the curEventID
 			if(context != BEGIN_CMD_BUFFER && context != END_CMD_BUFFER)
-				m_CmdBufferInfo[m_LastCmdBufferID].curEventID++;
+				m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 		}
 		else
 		{
@@ -1429,8 +1429,8 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 	m_AddedDrawcall = true;
 
 	FetchDrawcall draw = d;
-	draw.eventID = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].curEventID : m_RootEventID;
-	draw.drawcallID = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].drawCount : m_RootDrawcallID;
+	draw.eventID = m_LastCmdBufferID != ResourceId() ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID : m_RootEventID;
+	draw.drawcallID = m_LastCmdBufferID != ResourceId() ? m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount : m_RootDrawcallID;
 
 	for(int i=0; i < 8; i++)
 		draw.outputs[i] = ResourceId();
@@ -1446,13 +1446,13 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 	draw.indexByteWidth = m_PartialReplayData.state.ibuffer.bytewidth;
 
 	if(m_LastCmdBufferID != ResourceId())
-		m_CmdBufferInfo[m_LastCmdBufferID].drawCount++;
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount++;
 	else
 		m_RootDrawcallID++;
 
 	if(hasEvents)
 	{
-		vector<FetchAPIEvent> &srcEvents = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].curEvents : m_RootEvents;
+		vector<FetchAPIEvent> &srcEvents = m_LastCmdBufferID != ResourceId() ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents : m_RootEvents;
 
 		draw.events = srcEvents; srcEvents.clear();
 	}
@@ -1477,7 +1477,7 @@ void WrappedVulkan::AddEvent(VulkanChunkType type, string description)
 
 	apievent.context = ResourceId();
 	apievent.fileOffset = m_CurChunkOffset;
-	apievent.eventID = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].curEventID : m_RootEventID;
+	apievent.eventID = m_LastCmdBufferID != ResourceId() ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID : m_RootEventID;
 
 	apievent.eventDesc = description;
 
@@ -1490,7 +1490,7 @@ void WrappedVulkan::AddEvent(VulkanChunkType type, string description)
 
 	if(m_LastCmdBufferID != ResourceId())
 	{
-		m_CmdBufferInfo[m_LastCmdBufferID].curEvents.push_back(apievent);
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.push_back(apievent);
 	}
 	else
 	{

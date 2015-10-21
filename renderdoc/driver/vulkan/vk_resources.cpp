@@ -487,4 +487,5 @@ VkResourceRecord::~VkResourceRecord()
 
 	SAFE_DELETE(layout);
 	SAFE_DELETE(swapInfo);
+	SAFE_DELETE(cmdInfo);
 }

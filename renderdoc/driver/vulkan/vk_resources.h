@@ -566,6 +566,22 @@ struct SwapchainInfo
 	};
 	vector<SwapImage> images;
 };
+	
+struct CmdBufferRecordingInfo
+{
+	VkDevice device;
+	VkCmdBufferCreateInfo createInfo;
+
+	vector< pair<ResourceId, ImageRegionState> > imgtransitions;
+
+	// a list of all resources dirtied by this command buffer
+	set<ResourceId> dirtied;
+
+	// a list of descriptor sets that are bound at any point in this command buffer
+	// used to look up all the frame refs per-desc set and apply them on queue
+	// submit with latest binding refs.
+	set<VkDescriptorSet> boundDescSets;
+};
 
 struct DescSetLayout;
 
@@ -580,7 +596,8 @@ struct VkResourceRecord : public ResourceRecord
 			pool(NULL),
 			memory(NULL),
 			layout(NULL),
-			swapInfo(NULL)
+			swapInfo(NULL),
+			cmdInfo(NULL)
 		{
 		}
 
@@ -588,9 +605,10 @@ struct VkResourceRecord : public ResourceRecord
 
 		void Bake()
 		{
+			RDCASSERT(cmdInfo);
 			SwapChunks(bakedCommands);
-			dirtied.swap(bakedCommands->dirtied);
-			boundDescSets.swap(bakedCommands->boundDescSets);
+			cmdInfo->dirtied.swap(bakedCommands->cmdInfo->dirtied);
+			cmdInfo->boundDescSets.swap(bakedCommands->cmdInfo->boundDescSets);
 		}
 
 		// need to only track current memory binding,
@@ -646,19 +664,12 @@ struct VkResourceRecord : public ResourceRecord
 				bindFrameRefs.erase(id);
 		}
 
+		WrappedVkRes *Resource;
+	
 		VkResourceRecord *bakedCommands;
 
-		WrappedVkRes *Resource;
-
 		SwapchainInfo *swapInfo;
-
-		// a list of resources that are made dirty by submitting this command buffer
-		set<ResourceId> dirtied;
-
-		// a list of descriptor sets that are bound at any point in this command buffer
-		// used to look up all the frame refs per-desc set and apply them on queue
-		// submit with latest binding refs.
-		set<VkDescriptorSet> boundDescSets;
+		CmdBufferRecordingInfo *cmdInfo;
 
 		// queues associated with this instance, so they can be shut down on destruction
 		vector<VkQueue> queues;

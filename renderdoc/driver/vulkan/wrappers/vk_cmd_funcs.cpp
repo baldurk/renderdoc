@@ -128,14 +128,19 @@ VkResult WrappedVulkan::vkCreateCommandBuffer(
 
 			// we don't serialise this as we never create this command buffer directly.
 			// Instead we create a command buffer for each baked list that we find.
+
+			// if pNext is non-NULL, need to do a deep copy
+			RDCASSERT(pCreateInfo->pNext == NULL);
+
+			record->cmdInfo = new CmdBufferRecordingInfo();
+
+			record->cmdInfo->device = device;
+			record->cmdInfo->createInfo = *pCreateInfo;
 		}
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pCmdBuffer);
 		}
-
-		m_CmdBufferInfo[id].device = device;
-		m_CmdBufferInfo[id].createInfo = *pCreateInfo;
 	}
 
 	return ret;
@@ -149,6 +154,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 	SERIALISE_ELEMENT(ResourceId, cmdId, GetResID(cmdBuffer));
 
 	ResourceId bakedCmdId;
+	VkCmdBufferCreateInfo createInfo;
+	VkDevice device = VK_NULL_HANDLE;
 
 	if(m_State >= WRITING)
 	{
@@ -156,19 +163,14 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 		RDCASSERT(record->bakedCommands);
 		if(record->bakedCommands)
 			bakedCmdId = record->bakedCommands->GetResourceID();
+		
+		RDCASSERT(record->cmdInfo);
+		device = record->cmdInfo->device;
+		createInfo = record->cmdInfo->createInfo;
 	}
 
 	SERIALISE_ELEMENT(VkCmdBufferBeginInfo, info, *pBeginInfo);
 	SERIALISE_ELEMENT(ResourceId, bakeId, bakedCmdId);
-	
-	VkCmdBufferCreateInfo createInfo;
-	VkDevice device = VK_NULL_HANDLE;
-
-	if(m_State >= WRITING)
-	{
-		device = m_CmdBufferInfo[cmdId].device;
-		createInfo = m_CmdBufferInfo[cmdId].createInfo;
-	}
 
 	if(m_State < WRITING)
 	{
@@ -185,7 +187,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 	if(m_State == EXECUTING)
 	{
 		const vector<uint32_t> &baseEvents = m_PartialReplayData.cmdBufferSubmits[bakeId];
-		uint32_t length = m_CmdBufferInfo[bakeId].eventCount;
+		uint32_t length = m_BakedCmdBufferInfo[bakeId].eventCount;
 
 		for(auto it=baseEvents.begin(); it != baseEvents.end(); ++it)
 		{
@@ -219,7 +221,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 			}
 		}
 
-		m_CmdBufferInfo[cmdId].curEventID = 1;
+		m_BakedCmdBufferInfo[cmdId].curEventID = 1;
 	}
 	else if(m_State == READING)
 	{
@@ -253,15 +255,15 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 
 		{
 			DrawcallTreeNode *draw = new DrawcallTreeNode;
-			m_CmdBufferInfo[cmdId].draw = draw;
+			m_BakedCmdBufferInfo[cmdId].draw = draw;
 			
 			// On queue submit we increment all child events/drawcalls by
 			// m_RootEventID insert them into the tree.
-			m_CmdBufferInfo[cmdId].curEventID = 1;
-			m_CmdBufferInfo[cmdId].eventCount = 0;
-			m_CmdBufferInfo[cmdId].drawCount = 0;
+			m_BakedCmdBufferInfo[cmdId].curEventID = 1;
+			m_BakedCmdBufferInfo[cmdId].eventCount = 0;
+			m_BakedCmdBufferInfo[cmdId].drawCount = 0;
 
-			m_CmdBufferInfo[cmdId].drawStack.push_back(draw);
+			m_BakedCmdBufferInfo[cmdId].drawStack.push_back(draw);
 		}
 
 		ObjDisp(device)->BeginCommandBuffer(Unwrap(cmd), &info);
@@ -283,6 +285,10 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(
 			record->bakedCommands->Delete(GetResourceManager());
 
 		record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+		record->bakedCommands->cmdInfo = new CmdBufferRecordingInfo();
+
+		record->bakedCommands->cmdInfo->device = record->cmdInfo->device;
+		record->bakedCommands->cmdInfo->createInfo = record->cmdInfo->createInfo;
 
 		{
 			CACHE_THREAD_SERIALISER();
@@ -338,7 +344,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 			m_PartialReplayData.partialParent = ResourceId();
 		}
 
-		m_CmdBufferInfo[cmdId].curEventID = 0;
+		m_BakedCmdBufferInfo[cmdId].curEventID = 0;
 	}
 	else if(m_State == READING)
 	{
@@ -348,7 +354,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 
 		ObjDisp(cmdBuffer)->EndCommandBuffer(Unwrap(cmdBuffer));
 
-		if(!m_CmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
+		if(!m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
 		{
 			FetchDrawcall draw;
 			draw.name = "API Calls";
@@ -356,11 +362,11 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 
 			// VKTODOLOW hack, give this drawcall the same event ID as its last child, by
 			// decrementing then incrementing again.
-			m_CmdBufferInfo[m_LastCmdBufferID].curEventID--;
+			m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID--;
 
 			AddDrawcall(draw, true);
 			
-			m_CmdBufferInfo[m_LastCmdBufferID].curEventID++;
+			m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 		}
 
 		{
@@ -369,16 +375,16 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 		}
 
 		{
-			m_CmdBufferInfo[bakeId].draw = m_CmdBufferInfo[m_LastCmdBufferID].draw;
-			m_CmdBufferInfo[bakeId].curEventID = 0;
-			m_CmdBufferInfo[bakeId].eventCount = m_CmdBufferInfo[m_LastCmdBufferID].curEventID-1;
-			RDCASSERT(m_CmdBufferInfo[m_LastCmdBufferID].curEventID >= 1);
-			m_CmdBufferInfo[bakeId].drawCount = m_CmdBufferInfo[m_LastCmdBufferID].drawCount;
+			m_BakedCmdBufferInfo[bakeId].draw = m_BakedCmdBufferInfo[m_LastCmdBufferID].draw;
+			m_BakedCmdBufferInfo[bakeId].curEventID = 0;
+			m_BakedCmdBufferInfo[bakeId].eventCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID-1;
+			RDCASSERT(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID >= 1);
+			m_BakedCmdBufferInfo[bakeId].drawCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount;
 			
-			m_CmdBufferInfo[m_LastCmdBufferID].draw = NULL;
-			m_CmdBufferInfo[m_LastCmdBufferID].curEventID = 0;
-			m_CmdBufferInfo[m_LastCmdBufferID].eventCount = 0;
-			m_CmdBufferInfo[m_LastCmdBufferID].drawCount = 0;
+			m_BakedCmdBufferInfo[m_LastCmdBufferID].draw = NULL;
+			m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID = 0;
+			m_BakedCmdBufferInfo[m_LastCmdBufferID].eventCount = 0;
+			m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount = 0;
 		}
 	}
 
@@ -415,6 +421,8 @@ bool WrappedVulkan::Serialise_vkResetCommandBuffer(Serialiser* localSerialiser, 
 	SERIALISE_ELEMENT(VkCmdBufferResetFlags, fl, flags);
 
 	ResourceId bakedCmdId;
+	VkCmdBufferCreateInfo createInfo;
+	VkDevice device = VK_NULL_HANDLE;
 
 	if(m_State >= WRITING)
 	{
@@ -422,21 +430,22 @@ bool WrappedVulkan::Serialise_vkResetCommandBuffer(Serialiser* localSerialiser, 
 		RDCASSERT(record->bakedCommands);
 		if(record->bakedCommands)
 			bakedCmdId = record->bakedCommands->GetResourceID();
+		
+		RDCASSERT(record->cmdInfo);
+		device = record->cmdInfo->device;
+		createInfo = record->cmdInfo->createInfo;
 	}
 
 	SERIALISE_ELEMENT(ResourceId, bakeId, bakedCmdId);
-	
-	VkCmdBufferCreateInfo info;
-	VkDevice device = VK_NULL_HANDLE;
 
-	if(m_State >= WRITING)
+	if(m_State < WRITING)
 	{
-		device = m_CmdBufferInfo[cmdId].device;
-		info = m_CmdBufferInfo[cmdId].createInfo;
+		m_LastCmdBufferID = cmdId;
+		m_CmdBuffersInProgress++;
 	}
 	
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	localSerialiser->Serialise("createInfo", info);
+	localSerialiser->Serialise("createInfo", createInfo);
 
 	if(m_State == EXECUTING)
 	{
@@ -449,7 +458,7 @@ bool WrappedVulkan::Serialise_vkResetCommandBuffer(Serialiser* localSerialiser, 
 
 		if(!GetResourceManager()->HasLiveResource(bakeId))
 		{
-			VkResult ret = ObjDisp(device)->CreateCommandBuffer(Unwrap(device), &info, &cmd);
+			VkResult ret = ObjDisp(device)->CreateCommandBuffer(Unwrap(device), &createInfo, &cmd);
 
 			if(ret != VK_SUCCESS)
 			{
@@ -489,6 +498,10 @@ VkResult WrappedVulkan::vkResetCommandBuffer(
 			record->bakedCommands->Delete(GetResourceManager());
 		
 		record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+		record->bakedCommands->cmdInfo = new CmdBufferRecordingInfo();
+
+		record->bakedCommands->cmdInfo->device = record->cmdInfo->device;
+		record->bakedCommands->cmdInfo->createInfo = record->cmdInfo->createInfo;
 
 		// VKTODOHIGH do we need to actually serialise this at all? all it does is
 		// reset a command buffer to be able to begin again. We could just move the
@@ -990,7 +1003,7 @@ void WrappedVulkan::vkCmdBindDescriptorSets(
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(layout), eFrameRef_Read);
-		record->boundDescSets.insert(pDescriptorSets, pDescriptorSets + setCount);
+		record->cmdInfo->boundDescSets.insert(pDescriptorSets, pDescriptorSets + setCount);
 	}
 }
 
@@ -1219,7 +1232,7 @@ void WrappedVulkan::vkCmdUpdateBuffer(
 		{
 			VkResourceRecord *buf = GetRecord(destBuffer);
 			if(buf->GetMemoryRecord())
-				record->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
+				record->cmdInfo->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
 		}
 	}
 }
@@ -1287,7 +1300,7 @@ void WrappedVulkan::vkCmdFillBuffer(
 		{
 			VkResourceRecord *buf = GetRecord(destBuffer);
 			if(buf->GetMemoryRecord())
-				record->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
+				record->cmdInfo->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
 		}
 	}
 }
@@ -1421,7 +1434,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 			ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), src, dest, region, (uint32_t)mems.size(), (const void **)&mems[0]);
 
 			ResourceId cmd = GetResID(PartialCmdBuf());
-			GetResourceManager()->RecordTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
 		}
 	}
 	else if(m_State == READING)
@@ -1431,7 +1444,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 		ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), src, dest, region, (uint32_t)mems.size(), (const void **)&mems[0]);
 		
 		ResourceId cmd = GetResID(cmdBuffer);
-		GetResourceManager()->RecordTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
 	}
 
 	for(size_t i=0; i < mems.size(); i++)
@@ -1514,7 +1527,7 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 		}
 		
 		ResourceId cmd = GetResID(cmdBuffer);
-		GetResourceManager()->RecordTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
 
 		// VKTODOMED do we need to mark frame referenced the resources in the barrier? if they're not referenced
 		// elsewhere, perhaps they can be dropped
@@ -1581,7 +1594,7 @@ void WrappedVulkan::vkCmdWriteTimestamp(
 		{
 			VkResourceRecord *buf = GetRecord(destBuffer);
 			if(buf->GetMemoryRecord())
-				record->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
+				record->cmdInfo->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
 		}
 	}
 }
@@ -1661,7 +1674,7 @@ void WrappedVulkan::vkCmdCopyQueryPoolResults(
 		{
 			VkResourceRecord *buf = GetRecord(destBuffer);
 			if(buf->GetMemoryRecord())
-				record->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
+				record->cmdInfo->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
 		}
 	}
 }
@@ -1884,7 +1897,7 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(Serialiser* localSerialiser, VkC
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
 	
-	if(m_State == READING && !m_CmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
+	if(m_State == READING && !m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
 	{
 		FetchDrawcall draw;
 		draw.name = "API Calls";

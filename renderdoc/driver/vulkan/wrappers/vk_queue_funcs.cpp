@@ -164,7 +164,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		for(uint32_t i=0; i < numCmds; i++)
 		{
 			ResourceId cmd = GetResourceManager()->GetLiveID(cmdIds[i]);
-			GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+			GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
 		}
 
 		AddEvent(QUEUE_SUBMIT, desc);
@@ -199,7 +199,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			DrawcallTreeNode &d = GetDrawcallStack().back()->children.back();
 
 			// copy DrawcallTreeNode children
-			d.children = m_CmdBufferInfo[cmdIds[c]].draw->children;
+			d.children = m_BakedCmdBufferInfo[cmdIds[c]].draw->children;
 
 			// assign new event and drawIDs
 			RefreshIDs(d.children, m_RootEventID, m_RootDrawcallID);
@@ -207,8 +207,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			m_PartialReplayData.cmdBufferSubmits[cmdIds[c]].push_back(m_RootEventID);
 
 			// 1 extra for the [0] virtual event for the command buffer
-			m_RootEventID += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
-			m_RootDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
+			m_RootEventID += 1+m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
+			m_RootDrawcallID += m_BakedCmdBufferInfo[cmdIds[c]].drawCount;
 		}
 
 		// the outer loop will increment the event ID but we've handled
@@ -228,8 +228,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		for(uint32_t c=0; c < numCmds; c++)
 		{
 			// 1 extra for the [0] virtual event for the command buffer
-			m_RootEventID += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
-			m_RootDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
+			m_RootEventID += 1+m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
+			m_RootDrawcallID += m_BakedCmdBufferInfo[cmdIds[c]].drawCount;
 		}
 
 		m_RootEventID--;
@@ -245,7 +245,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 			for(uint32_t c=0; c < numCmds; c++)
 			{
-				uint32_t end = eid + m_CmdBufferInfo[cmdIds[c]].eventCount;
+				uint32_t end = eid + m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
 
 				if(eid == m_PartialReplayData.baseEvent)
 				{
@@ -265,7 +265,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 					RDCDEBUG("Queue not submitting %llu", cmdIds[c]);
 				}
 
-				eid += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
+				eid += 1+m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
 			}
 
 			RDCASSERT(trimmedCmds.size() > 0);
@@ -275,7 +275,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			for(uint32_t i=0; i < numCmds; i++)
 			{
 				ResourceId cmd = trimmedCmdIds[i];
-				GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+				GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
 			}
 		}
 		else
@@ -285,7 +285,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			for(uint32_t i=0; i < numCmds; i++)
 			{
 				ResourceId cmd = GetResourceManager()->GetLiveID(cmdIds[i]);
-				GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+				GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
 			}
 		}
 	}
@@ -329,7 +329,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	for(uint32_t i=0; i < cmdBufferCount; i++)
 	{
 		ResourceId cmd = GetResID(pCmdBuffers[i]);
-		GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+		GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
 
 		VkResourceRecord *record = GetRecord(pCmdBuffers[i]);
 
@@ -345,14 +345,14 @@ VkResult WrappedVulkan::vkQueueSubmit(
 			SCOPED_LOCK(m_CapTransitionLock);
 			if(m_State == WRITING_CAPFRAME)
 			{
-				for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
+				for(auto it = record->bakedCommands->cmdInfo->dirtied.begin(); it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
 					GetResourceManager()->MarkPendingDirty(*it);
 
 				capframe = true;
 			}
 			else
 			{
-				for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
+				for(auto it = record->bakedCommands->cmdInfo->dirtied.begin(); it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
 					GetResourceManager()->MarkDirtyResource(*it);
 			}
 		}
@@ -360,7 +360,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		if(capframe)
 		{
 			// for each bound descriptor set, mark it referenced as well as all resources currently bound to it
-			for(auto it = record->bakedCommands->boundDescSets.begin(); it != record->bakedCommands->boundDescSets.end(); ++it)
+			for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin(); it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
 			{
 				GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
 
@@ -389,7 +389,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 			record->bakedCommands->AddRef();
 		}
 
-		record->dirtied.clear();
+		record->cmdInfo->dirtied.clear();
 	}
 	
 	if(capframe)
