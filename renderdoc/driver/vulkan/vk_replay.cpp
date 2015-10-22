@@ -672,7 +672,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[cfg.texid];
-	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[m_pDriver->GetResourceManager()->GetOriginalID(cfg.texid)];
+	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[cfg.texid];
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.texid);
 
 	// VKTODOMED handle multiple subresources with different layouts etc
@@ -1193,18 +1193,16 @@ vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint3
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkBuffer srcBuf = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff);
-
-	ResourceId origid = m_pDriver->GetResourceManager()->GetOriginalID(buff);
 	
 	if(len == 0)
 	{
-		len = uint32_t(m_pDriver->m_CreationInfo.m_Buffer[origid].size - offset);
+		len = uint32_t(m_pDriver->m_CreationInfo.m_Buffer[buff].size - offset);
 	}
 
-	if(len > 0 && VkDeviceSize(offset+len) > m_pDriver->m_CreationInfo.m_Buffer[origid].size)
+	if(len > 0 && VkDeviceSize(offset+len) > m_pDriver->m_CreationInfo.m_Buffer[buff].size)
 	{
 		RDCWARN("Attempting to read off the end of the array. Will be clamped");
-		len = RDCMIN(len, uint32_t(m_pDriver->m_CreationInfo.m_Buffer[origid].size - offset));
+		len = RDCMIN(len, uint32_t(m_pDriver->m_CreationInfo.m_Buffer[buff].size - offset));
 	}
 
 	vector<byte> ret;
@@ -1294,11 +1292,10 @@ void VulkanReplay::FileChanged()
 
 FetchTexture VulkanReplay::GetTexture(ResourceId id)
 {
+	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[id];
+
 	FetchTexture ret;
 	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
-	
-	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[ret.ID];
-
 	ret.arraysize = iminfo.arraySize;
 	ret.creationFlags = iminfo.creationFlags;
 	ret.cubemap = iminfo.cube;
@@ -1383,7 +1380,7 @@ FetchBuffer VulkanReplay::GetBuffer(ResourceId id)
 
 ShaderReflection *VulkanReplay::GetShader(ResourceId id)
 {
-	auto shad = m_pDriver->m_CreationInfo.m_Shader.find(m_pDriver->GetResourceManager()->GetOriginalID(id));
+	auto shad = m_pDriver->m_CreationInfo.m_Shader.find(id);
 	
 	if(shad == m_pDriver->m_CreationInfo.m_Shader.end())
 	{
@@ -1394,7 +1391,7 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId id)
 	// disassemble lazily on demand
 	if(shad->second.refl.Disassembly.count == 0)
 	{
-		auto &shadmod = m_pDriver->m_CreationInfo.m_ShaderModule[m_pDriver->GetResourceManager()->GetOriginalID(shad->second.module)];
+		auto &shadmod = m_pDriver->m_CreationInfo.m_ShaderModule[shad->second.module];
 
 		if(shadmod.spirv.m_Disassembly.empty())
 			shadmod.spirv.Disassemble();
@@ -1418,8 +1415,8 @@ void VulkanReplay::SavePipelineState()
 		m_VulkanPipelineState = VulkanPipelineState();
 		
 		// General pipeline properties
-		m_VulkanPipelineState.compute.obj = state.compute.pipeline;
-		m_VulkanPipelineState.graphics.obj = state.graphics.pipeline;
+		m_VulkanPipelineState.compute.obj = rm->GetOriginalID(state.compute.pipeline);
+		m_VulkanPipelineState.graphics.obj = rm->GetOriginalID(state.graphics.pipeline);
 
 		if(state.compute.pipeline != ResourceId())
 			m_VulkanPipelineState.compute.flags = c.m_Pipeline[state.compute.pipeline].flags;
@@ -1431,7 +1428,7 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.graphics.flags = p.flags;
 
 			// Input Assembly
-			m_VulkanPipelineState.IA.ibuffer.buf = state.ibuffer.buf;
+			m_VulkanPipelineState.IA.ibuffer.buf = rm->GetOriginalID(state.ibuffer.buf);
 			m_VulkanPipelineState.IA.ibuffer.offs = state.ibuffer.offs;
 			m_VulkanPipelineState.IA.primitiveRestartEnable = p.primitiveRestartEnable;
 
@@ -1456,7 +1453,7 @@ void VulkanReplay::SavePipelineState()
 			create_array_uninit(m_VulkanPipelineState.VI.vbuffers, state.vbuffers.size());
 			for(size_t i=0; i < state.vbuffers.size(); i++)
 			{
-				m_VulkanPipelineState.VI.vbuffers[i].buffer = state.vbuffers[i].buf;
+				m_VulkanPipelineState.VI.vbuffers[i].buffer = rm->GetOriginalID(state.vbuffers[i].buf);
 				m_VulkanPipelineState.VI.vbuffers[i].offset = state.vbuffers[i].offs;
 			}
 
@@ -1477,92 +1474,7 @@ void VulkanReplay::SavePipelineState()
 				stages[i]->customName = false;
 				stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Shader);
 				stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
-				stages[i]->BindpointMapping = m_pDriver->m_CreationInfo.m_Shader[stages[i]->Shader].mapping;
-			}
-
-			// Descriptor sets
-			create_array_uninit(m_VulkanPipelineState.graphics.DescSets, state.graphics.descSets.size());
-			create_array_uninit(m_VulkanPipelineState.compute.DescSets, state.compute.descSets.size());
-
-			{
-				rdctype::array<VulkanPipelineState::Pipeline::DescriptorSet> *dsts[] = {
-					&m_VulkanPipelineState.graphics.DescSets,
-					&m_VulkanPipelineState.compute.DescSets,
-				};
-				
-				const vector<ResourceId> *srcs[] = {
-					&state.graphics.descSets,
-					&state.compute.descSets,
-				};
-				
-				for(size_t p=0; p < ARRAY_COUNT(srcs); p++)
-				{
-					for(size_t i=0; i < srcs[p]->size(); i++)
-					{
-						ResourceId src = (*srcs[p])[i];
-						VulkanPipelineState::Pipeline::DescriptorSet &dst = (*dsts[p])[i];
-
-						dst.descset = src;
-						dst.layout = m_pDriver->m_DescriptorSetState[src].layout;
-						create_array_uninit(dst.bindings, m_pDriver->m_DescriptorSetState[src].currentBindings.size());
-						for(size_t b=0; b < m_pDriver->m_DescriptorSetState[src].currentBindings.size(); b++)
-						{
-							VkDescriptorInfo *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
-							const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[dst.layout].bindings[b];
-
-							dst.bindings[b].arraySize = layoutBind.arraySize;
-							dst.bindings[b].stageFlags = (ShaderStageBits)layoutBind.stageFlags;
-							switch(layoutBind.descriptorType)
-							{
-								case VK_DESCRIPTOR_TYPE_SAMPLER:                 dst.bindings[b].type = eBindType_Sampler; break;
-								case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:  dst.bindings[b].type = eBindType_ImageSampler; break;
-								case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:           dst.bindings[b].type = eBindType_ReadOnlyImage; break;
-								case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:           dst.bindings[b].type = eBindType_ReadWriteImage; break;
-								case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:    dst.bindings[b].type = eBindType_ReadOnlyTBuffer; break;
-								case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:    dst.bindings[b].type = eBindType_ReadWriteTBuffer; break;
-								case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:          dst.bindings[b].type = eBindType_ReadOnlyBuffer; break;
-								case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:          dst.bindings[b].type = eBindType_ReadWriteBuffer; break;
-								case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:  dst.bindings[b].type = eBindType_ReadOnlyBuffer; break;
-								case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:  dst.bindings[b].type = eBindType_ReadWriteBuffer; break;
-								case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:        dst.bindings[b].type = eBindType_InputAttachment; break;
-								default:
-									dst.bindings[b].type = eBindType_Unknown;
-									RDCERR("Unexpected descriptor type");
-							}
-							
-							create_array_uninit(dst.bindings[b].binds, layoutBind.arraySize);
-							for(uint32_t a=0; a < layoutBind.arraySize; a++)
-							{
-								if(layoutBind.immutableSampler)
-									dst.bindings[b].binds[a].sampler = layoutBind.immutableSampler[a];
-								else if(info->sampler != VK_NULL_HANDLE)
-									dst.bindings[b].binds[a].sampler = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->sampler)->id);
-
-								// only one of these is ever set
-								if(info->imageView != VK_NULL_HANDLE)
-								{
-									dst.bindings[b].binds[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->imageView)->id);
-									dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[dst.bindings[b].binds[a].view].image);
-								}
-								if(info->bufferView != VK_NULL_HANDLE)
-								{
-									dst.bindings[b].binds[a].view = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->bufferView)->id);
-									dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[dst.bindings[b].binds[a].view].buffer);
-									dst.bindings[b].binds[a].offset = *(uint32_t *)&info->imageLayout;
-									dst.bindings[b].binds[a].offset += c.m_BufferView[dst.bindings[b].binds[a].view].offset;
-									dst.bindings[b].binds[a].size = c.m_BufferView[dst.bindings[b].binds[a].view].size;
-								}
-								if(info->bufferInfo.buffer != VK_NULL_HANDLE)
-								{
-									dst.bindings[b].binds[a].view = ResourceId();
-									dst.bindings[b].binds[a].res = rm->GetOriginalID(VKMGR()->GetNonDispWrapper(info->bufferInfo.buffer)->id);
-									dst.bindings[b].binds[a].offset = info->bufferInfo.offset;
-									dst.bindings[b].binds[a].size = info->bufferInfo.range;
-								}
-							}
-						}
-					}
-				}
+				stages[i]->BindpointMapping = c.m_Shader[p.shaders[i]].mapping;
 			}
 
 			// Tessellation
@@ -1677,12 +1589,12 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.DS.back.writeMask = state.back.write;
 
 			// Renderpass
-			m_VulkanPipelineState.Pass.renderpass.obj = state.renderPass;
+			m_VulkanPipelineState.Pass.renderpass.obj = rm->GetOriginalID(state.renderPass);
 			m_VulkanPipelineState.Pass.renderpass.inputAttachments = c.m_RenderPass[state.renderPass].inputAttachments;
 			m_VulkanPipelineState.Pass.renderpass.colorAttachments = c.m_RenderPass[state.renderPass].colorAttachments;
 			m_VulkanPipelineState.Pass.renderpass.depthstencilAttachment = c.m_RenderPass[state.renderPass].depthstencilAttachment;
 
-			m_VulkanPipelineState.Pass.framebuffer.obj = state.framebuffer;
+			m_VulkanPipelineState.Pass.framebuffer.obj = rm->GetOriginalID(state.framebuffer);
 
 			m_VulkanPipelineState.Pass.framebuffer.width = c.m_Framebuffer[state.framebuffer].width;
 			m_VulkanPipelineState.Pass.framebuffer.height = c.m_Framebuffer[state.framebuffer].height;
@@ -1691,9 +1603,9 @@ void VulkanReplay::SavePipelineState()
 			create_array_uninit(m_VulkanPipelineState.Pass.framebuffer.attachments, c.m_Framebuffer[state.framebuffer].attachments.size());
 			for(size_t i=0; i < c.m_Framebuffer[state.framebuffer].attachments.size(); i++)
 			{
-				ResourceId viewid = rm->GetOriginalID(c.m_Framebuffer[state.framebuffer].attachments[i].view);
+				ResourceId viewid = c.m_Framebuffer[state.framebuffer].attachments[i].view;
 
-				m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = viewid;
+				m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = rm->GetOriginalID(viewid);
 				m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = rm->GetOriginalID(c.m_ImageView[viewid].image);
 			}
 
@@ -1701,6 +1613,97 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.Pass.renderArea.y = state.renderArea.offset.y;
 			m_VulkanPipelineState.Pass.renderArea.width = state.renderArea.extent.width;
 			m_VulkanPipelineState.Pass.renderArea.height = state.renderArea.extent.height;
+		}
+
+		// Descriptor sets
+		create_array_uninit(m_VulkanPipelineState.graphics.DescSets, state.graphics.descSets.size());
+		create_array_uninit(m_VulkanPipelineState.compute.DescSets, state.compute.descSets.size());
+
+		{
+			rdctype::array<VulkanPipelineState::Pipeline::DescriptorSet> *dsts[] = {
+				&m_VulkanPipelineState.graphics.DescSets,
+				&m_VulkanPipelineState.compute.DescSets,
+			};
+			
+			const vector<ResourceId> *srcs[] = {
+				&state.graphics.descSets,
+				&state.compute.descSets,
+			};
+			
+			for(size_t p=0; p < ARRAY_COUNT(srcs); p++)
+			{
+				for(size_t i=0; i < srcs[p]->size(); i++)
+				{
+					ResourceId src = (*srcs[p])[i];
+					VulkanPipelineState::Pipeline::DescriptorSet &dst = (*dsts[p])[i];
+
+					ResourceId layoutId = m_pDriver->m_DescriptorSetState[src].layout;
+
+					dst.descset = rm->GetOriginalID(src);
+					dst.layout = rm->GetOriginalID(layoutId);
+					create_array_uninit(dst.bindings, m_pDriver->m_DescriptorSetState[src].currentBindings.size());
+					for(size_t b=0; b < m_pDriver->m_DescriptorSetState[src].currentBindings.size(); b++)
+					{
+						VkDescriptorInfo *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
+						const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
+
+						dst.bindings[b].arraySize = layoutBind.arraySize;
+						dst.bindings[b].stageFlags = (ShaderStageBits)layoutBind.stageFlags;
+						switch(layoutBind.descriptorType)
+						{
+							case VK_DESCRIPTOR_TYPE_SAMPLER:                 dst.bindings[b].type = eBindType_Sampler; break;
+							case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:  dst.bindings[b].type = eBindType_ImageSampler; break;
+							case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:           dst.bindings[b].type = eBindType_ReadOnlyImage; break;
+							case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:           dst.bindings[b].type = eBindType_ReadWriteImage; break;
+							case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:    dst.bindings[b].type = eBindType_ReadOnlyTBuffer; break;
+							case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:    dst.bindings[b].type = eBindType_ReadWriteTBuffer; break;
+							case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:          dst.bindings[b].type = eBindType_ReadOnlyBuffer; break;
+							case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:          dst.bindings[b].type = eBindType_ReadWriteBuffer; break;
+							case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:  dst.bindings[b].type = eBindType_ReadOnlyBuffer; break;
+							case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:  dst.bindings[b].type = eBindType_ReadWriteBuffer; break;
+							case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:        dst.bindings[b].type = eBindType_InputAttachment; break;
+							default:
+								dst.bindings[b].type = eBindType_Unknown;
+								RDCERR("Unexpected descriptor type");
+						}
+						
+						create_array_uninit(dst.bindings[b].binds, layoutBind.arraySize);
+						for(uint32_t a=0; a < layoutBind.arraySize; a++)
+						{
+							if(layoutBind.immutableSampler)
+								dst.bindings[b].binds[a].sampler = layoutBind.immutableSampler[a];
+							else if(info->sampler != VK_NULL_HANDLE)
+								dst.bindings[b].binds[a].sampler = rm->GetOriginalID(rm->GetNonDispWrapper(info->sampler)->id);
+
+							// only one of these is ever set
+							if(info->imageView != VK_NULL_HANDLE)
+							{
+								ResourceId viewid = rm->GetNonDispWrapper(info->imageView)->id;
+
+								dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
+								dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[viewid].image);
+							}
+							if(info->bufferView != VK_NULL_HANDLE)
+							{
+								ResourceId viewid = rm->GetNonDispWrapper(info->bufferView)->id;
+
+								dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
+								dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
+								dst.bindings[b].binds[a].offset = *(uint32_t *)&info->imageLayout;
+								dst.bindings[b].binds[a].offset += c.m_BufferView[viewid].offset;
+								dst.bindings[b].binds[a].size = c.m_BufferView[viewid].size;
+							}
+							if(info->bufferInfo.buffer != VK_NULL_HANDLE)
+							{
+								dst.bindings[b].binds[a].view = ResourceId();
+								dst.bindings[b].binds[a].res = rm->GetOriginalID(rm->GetNonDispWrapper(info->bufferInfo.buffer)->id);
+								dst.bindings[b].binds[a].offset = info->bufferInfo.offset;
+								dst.bindings[b].binds[a].size = info->bufferInfo.range;
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }
@@ -1950,7 +1953,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, ve
 	// Correct SPIR-V will ultimately need to set explicit layout information for each type.
 	// For now, just assume D3D11 packing (float4 alignment on float4s, float3s, matrices, arrays and structures)
 
-	auto it = m_pDriver->m_CreationInfo.m_Shader.find(m_pDriver->GetResourceManager()->GetOriginalID(shader));
+	auto it = m_pDriver->m_CreationInfo.m_Shader.find(shader);
 	
 	if(it == m_pDriver->m_CreationInfo.m_Shader.end())
 	{

@@ -624,12 +624,14 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkBuffer buf = VK_NULL_HANDLE;
 
-		m_CreationInfo.m_Buffer[id].Init(&info);
+		VkBufferUsageFlags origusage = info.usage;
 
 		// ensure we can always readback from buffers
 		info.usage |= VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
 
 		VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &info, &buf);
+
+		info.usage = origusage;
 
 		if(ret != VK_SUCCESS)
 		{
@@ -639,6 +641,8 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), buf);
 			GetResourceManager()->AddLiveResource(id, buf);
+
+			m_CreationInfo.m_Buffer[live].Init(&info);
 		}
 	}
 
@@ -695,9 +699,6 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkBufferView view = VK_NULL_HANDLE;
-		
-		// use original ID
-		m_CreationInfo.m_BufferView[id].Init(&info);
 
 		VkResult ret = ObjDisp(device)->CreateBufferView(Unwrap(device), &info, &view);
 
@@ -709,6 +710,8 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), view);
 			GetResourceManager()->AddLiveResource(id, view);
+		
+			m_CreationInfo.m_BufferView[live].Init(&info);
 		}
 	}
 
@@ -769,12 +772,14 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkImage img = VK_NULL_HANDLE;
 
-		m_CreationInfo.m_Image[id].Init(&info);
+		VkImageUsageFlags origusage = info.usage;
 
 		// ensure we can always display and copy from textures
 		info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT;
 
 		VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &info, &img);
+
+		info.usage = origusage;
 
 		if(ret != VK_SUCCESS)
 		{
@@ -784,7 +789,8 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), img);
 			GetResourceManager()->AddLiveResource(id, img);
-
+			
+			m_CreationInfo.m_Image[live].Init(&info);
 			
 			VkImageSubresourceRange range;
 			range.baseMipLevel = range.baseArrayLayer = 0;
@@ -884,9 +890,6 @@ bool WrappedVulkan::Serialise_vkCreateImageView(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkImageView view = VK_NULL_HANDLE;
-		
-		// use original ID
-		m_CreationInfo.m_ImageView[id].Init(&info);
 
 		VkResult ret = ObjDisp(device)->CreateImageView(Unwrap(device), &info, &view);
 
@@ -898,6 +901,8 @@ bool WrappedVulkan::Serialise_vkCreateImageView(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), view);
 			GetResourceManager()->AddLiveResource(id, view);
+		
+			m_CreationInfo.m_ImageView[live].Init(&info);
 		}
 	}
 

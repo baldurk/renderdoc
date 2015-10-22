@@ -89,11 +89,14 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(
 
 	if(m_State == READING)
 	{
-		// VKTODOLOW what if num images is less than on capture?
-		RDCASSERT(idx < m_CreationInfo.m_SwapChain[swapId].images.size());
-		GetResourceManager()->AddLiveResource(id, m_CreationInfo.m_SwapChain[swapId].images[idx].im);
+		// use original ID because we don't create a live version of the swapchain
+		auto &swapInfo = m_CreationInfo.m_SwapChain[swapId];
 
-		m_CreationInfo.m_Image[id] = m_CreationInfo.m_Image[swapId];
+		// VKTODOLOW what if num images is less than on capture?
+		RDCASSERT(idx < swapInfo.images.size());
+		GetResourceManager()->AddLiveResource(id, swapInfo.images[idx].im);
+
+		m_CreationInfo.m_Image[GetResID(swapInfo.images[idx].im)] = m_CreationInfo.m_Image[swapId];
 	}
 
 	return true;
@@ -214,6 +217,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 
 	if(m_State == READING)
 	{
+		// use original ID because we don't create a live version of the swapchain
 		SwapchainInfo &swapinfo = m_CreationInfo.m_SwapChain[id];
 
 		swapinfo.format = info.imageFormat;
@@ -279,6 +283,10 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			swapinfo.images[i].im = im;
 
 			// fill out image info so we track resource state transitions
+			// sneaky-cheeky use of the swapchain's ID here (it's not a live ID because
+			// we don't create a live swapchain). This will be picked up in
+			// Serialise_vkGetSwapchainImagesKHR to set the data for the live IDs on the
+			// swapchain images.
 			VulkanCreationInfo::Image &iminfo = m_CreationInfo.m_Image[id];
 			iminfo.type = VK_IMAGE_TYPE_2D;
 			iminfo.format = info.imageFormat;

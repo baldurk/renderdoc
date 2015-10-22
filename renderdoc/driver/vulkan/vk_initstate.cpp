@@ -196,6 +196,8 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 	{
 		RDCASSERT(res != NULL);
 
+		ResourceId liveid = GetResourceManager()->GetLiveID(id);
+
 		if(type == eResDescriptorSet)
 		{
 			uint32_t numElems;
@@ -203,7 +205,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			m_pSerialiser->SerialiseComplexArray("Bindings", bindings, numElems);
 
-			const DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[ m_DescriptorSetState[id].layout ];
+			const DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[ m_DescriptorSetState[liveid].layout ];
 
 			uint32_t numBinds = (uint32_t)layout.bindings.size();
 
@@ -445,7 +447,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 		// need to blat over the current descriptor set contents, so these are available
 		// when we want to fetch pipeline state
-		vector<VkDescriptorInfo *> &bindings = m_DescriptorSetState[GetResourceManager()->GetOriginalID(id)].currentBindings;
+		vector<VkDescriptorInfo *> &bindings = m_DescriptorSetState[id].currentBindings;
 
 		for(uint32_t i=0; i < initial.num; i++)
 		{

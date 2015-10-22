@@ -545,8 +545,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 			m_PartialReplayData.renderPassActive = true;
 			ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), &beginInfo, cont);
 
-			m_PartialReplayData.state.renderPass = GetResourceManager()->GetOriginalID(VKMGR()->GetNonDispWrapper(beginInfo.renderPass)->id);
-			m_PartialReplayData.state.framebuffer = GetResourceManager()->GetOriginalID(VKMGR()->GetNonDispWrapper(beginInfo.framebuffer)->id);
+			m_PartialReplayData.state.renderPass = VKMGR()->GetNonDispWrapper(beginInfo.renderPass)->id;
+			m_PartialReplayData.state.framebuffer = VKMGR()->GetNonDispWrapper(beginInfo.framebuffer)->id;
 			m_PartialReplayData.state.renderArea = beginInfo.renderArea;
 		}
 	}
@@ -780,52 +780,55 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 			cmdBuffer = PartialCmdBuf();
 
 			ObjDisp(cmdBuffer)->CmdBindPipeline(Unwrap(cmdBuffer), bind, Unwrap(pipeline));
-			if(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
-				m_PartialReplayData.state.graphics.pipeline = pipeid;
-			else
-				m_PartialReplayData.state.compute.pipeline = pipeid;
 
-			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
+			ResourceId liveid = GetResID(pipeline);
+
+			if(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
+				m_PartialReplayData.state.graphics.pipeline = liveid;
+			else
+				m_PartialReplayData.state.compute.pipeline = liveid;
+
+			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
 			{
-				m_PartialReplayData.state.views = m_CreationInfo.m_Pipeline[pipeid].viewports;
+				m_PartialReplayData.state.views = m_CreationInfo.m_Pipeline[liveid].viewports;
 			}
-			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
+			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
 			{
-				m_PartialReplayData.state.scissors = m_CreationInfo.m_Pipeline[pipeid].scissors;
+				m_PartialReplayData.state.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
 			}
-			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
+			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
 			{
-				m_PartialReplayData.state.lineWidth = m_CreationInfo.m_Pipeline[pipeid].lineWidth;
+				m_PartialReplayData.state.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
 			}
-			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
+			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
 			{
-				m_PartialReplayData.state.bias.depth = m_CreationInfo.m_Pipeline[pipeid].depthBias;
-				m_PartialReplayData.state.bias.biasclamp = m_CreationInfo.m_Pipeline[pipeid].depthBiasClamp;
-				m_PartialReplayData.state.bias.slope = m_CreationInfo.m_Pipeline[pipeid].slopeScaledDepthBias;
+				m_PartialReplayData.state.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBias;
+				m_PartialReplayData.state.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
+				m_PartialReplayData.state.bias.slope = m_CreationInfo.m_Pipeline[liveid].slopeScaledDepthBias;
 			}
-			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
+			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
 			{
-				memcpy(m_PartialReplayData.state.blendConst, m_CreationInfo.m_Pipeline[pipeid].blendConst, sizeof(float)*4);
+				memcpy(m_PartialReplayData.state.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst, sizeof(float)*4);
 			}
-			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
+			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
 			{
-				m_PartialReplayData.state.mindepth = m_CreationInfo.m_Pipeline[pipeid].minDepthBounds;
-				m_PartialReplayData.state.maxdepth = m_CreationInfo.m_Pipeline[pipeid].maxDepthBounds;
+				m_PartialReplayData.state.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
+				m_PartialReplayData.state.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
 			}
-			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
+			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
 			{
-				m_PartialReplayData.state.front.compare = m_CreationInfo.m_Pipeline[pipeid].front.stencilCompareMask;
-				m_PartialReplayData.state.back.compare = m_CreationInfo.m_Pipeline[pipeid].back.stencilCompareMask;
+				m_PartialReplayData.state.front.compare = m_CreationInfo.m_Pipeline[liveid].front.stencilCompareMask;
+				m_PartialReplayData.state.back.compare = m_CreationInfo.m_Pipeline[liveid].back.stencilCompareMask;
 			}
-			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
+			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
 			{
-				m_PartialReplayData.state.front.write = m_CreationInfo.m_Pipeline[pipeid].front.stencilWriteMask;
-				m_PartialReplayData.state.back.write = m_CreationInfo.m_Pipeline[pipeid].back.stencilWriteMask;
+				m_PartialReplayData.state.front.write = m_CreationInfo.m_Pipeline[liveid].front.stencilWriteMask;
+				m_PartialReplayData.state.back.write = m_CreationInfo.m_Pipeline[liveid].back.stencilWriteMask;
 			}
-			if(!m_CreationInfo.m_Pipeline[pipeid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
+			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
 			{
-				m_PartialReplayData.state.front.ref = m_CreationInfo.m_Pipeline[pipeid].front.stencilReference;
-				m_PartialReplayData.state.back.ref = m_CreationInfo.m_Pipeline[pipeid].back.stencilReference;
+				m_PartialReplayData.state.front.ref = m_CreationInfo.m_Pipeline[liveid].front.stencilReference;
+				m_PartialReplayData.state.back.ref = m_CreationInfo.m_Pipeline[liveid].back.stencilReference;
 			}
 		}
 	}
@@ -836,9 +839,9 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 
 		// track this while reading, as we need to bind current topology & index byte width to draws
 		if(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
-			m_PartialReplayData.state.graphics.pipeline = pipeid;
+			m_PartialReplayData.state.graphics.pipeline = GetResID(pipeline);
 		else
-			m_PartialReplayData.state.compute.pipeline = pipeid;
+			m_PartialReplayData.state.compute.pipeline = GetResID(pipeline);
 
 		ObjDisp(cmdBuffer)->CmdBindPipeline(Unwrap(cmdBuffer), bind, Unwrap(pipeline));
 	}
@@ -896,9 +899,17 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 
 	for(uint32_t i=0; i < numSets; i++)
 	{
-		if(m_State >= WRITING) descriptorIDs[i] = GetResID(sets[i]);
+		if(m_State >= WRITING)
+			descriptorIDs[i] = GetResID(sets[i]);
+
 		localSerialiser->Serialise("DescriptorSet", descriptorIDs[i]);
-		if(m_State < WRITING)  sets[i] = Unwrap(GetResourceManager()->GetLiveHandle<VkDescriptorSet>(descriptorIDs[i]));
+
+		if(m_State < WRITING)
+		{
+			sets[i] = GetResourceManager()->GetLiveHandle<VkDescriptorSet>(descriptorIDs[i]);
+			descriptorIDs[i] = GetResID(sets[i]);
+			sets[i] = Unwrap(sets[i]);
+		}
 	}
 
 	SERIALISE_ELEMENT(uint32_t, offsCount, dynamicOffsetCount);
@@ -1041,8 +1052,9 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 
 		if(m_State < WRITING)
 		{
-			bufids.push_back(id);
-			bufs.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkBuffer>(id)));
+			VkBuffer buf = GetResourceManager()->GetLiveHandle<VkBuffer>(id);
+			bufids.push_back(GetResID(buf));
+			bufs.push_back(Unwrap(buf));
 			offs.push_back(o);
 		}
 	}
@@ -1126,7 +1138,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdBindIndexBuffer(Unwrap(cmdBuffer), Unwrap(buffer), offs, idxType);
 
-			m_PartialReplayData.state.ibuffer.buf = bufid;
+			m_PartialReplayData.state.ibuffer.buf = GetResID(buffer);
 			m_PartialReplayData.state.ibuffer.offs = offs;
 			m_PartialReplayData.state.ibuffer.bytewidth = idxType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
 		}

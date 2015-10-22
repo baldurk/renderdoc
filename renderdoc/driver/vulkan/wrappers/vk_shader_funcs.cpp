@@ -122,8 +122,6 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkShaderModule sh = VK_NULL_HANDLE;
 
-		m_CreationInfo.m_ShaderModule[id].Init(&info);
-
 		VkResult ret = ObjDisp(device)->CreateShaderModule(Unwrap(device), &info, &sh);
 
 		if(ret != VK_SUCCESS)
@@ -134,6 +132,8 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sh);
 			GetResourceManager()->AddLiveResource(id, sh);
+
+			m_CreationInfo.m_ShaderModule[live].Init(&info);
 		}
 	}
 
@@ -193,9 +193,6 @@ bool WrappedVulkan::Serialise_vkCreateShader(
 
 		VkResult ret = ObjDisp(device)->CreateShader(Unwrap(device), &info, &sh);
 
-		ResourceId moduleid = GetResourceManager()->GetNonDispWrapper(info.module)->id;
-		m_CreationInfo.m_Shader[id].Init(&info, m_CreationInfo.m_ShaderModule[GetResourceManager()->GetOriginalID(moduleid)]);
-
 		if(ret != VK_SUCCESS)
 		{
 			RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
@@ -204,6 +201,9 @@ bool WrappedVulkan::Serialise_vkCreateShader(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sh);
 			GetResourceManager()->AddLiveResource(id, sh);
+
+			ResourceId moduleid = GetResourceManager()->GetNonDispWrapper(info.module)->id;
+			m_CreationInfo.m_Shader[live].Init(&info, m_CreationInfo.m_ShaderModule[moduleid]);
 		}
 	}
 
@@ -336,9 +336,6 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 	if(m_State == READING)
 	{
 		VkPipeline pipe = VK_NULL_HANDLE;
-		
-		// use original ID
-		m_CreationInfo.m_Pipeline[id].Init(&info);
 
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		pipelineCache = GetResourceManager()->GetLiveHandle<VkPipelineCache>(cacheId);
@@ -353,6 +350,8 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
 			GetResourceManager()->AddLiveResource(id, pipe);
+		
+			m_CreationInfo.m_Pipeline[live].Init(&info);
 		}
 	}
 
@@ -452,9 +451,6 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(
 	if(m_State == READING)
 	{
 		VkPipeline pipe = VK_NULL_HANDLE;
-		
-		// use original ID
-		m_CreationInfo.m_Pipeline[id].Init(&info);
 
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		pipelineCache = GetResourceManager()->GetLiveHandle<VkPipelineCache>(cacheId);
@@ -469,6 +465,8 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
 			GetResourceManager()->AddLiveResource(id, pipe);
+		
+			m_CreationInfo.m_Pipeline[live].Init(&info);
 		}
 	}
 

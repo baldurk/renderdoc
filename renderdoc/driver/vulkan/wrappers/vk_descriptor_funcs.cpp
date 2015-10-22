@@ -107,8 +107,6 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 		VkDescriptorSetLayout layout = VK_NULL_HANDLE;
 
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-		
-		m_CreationInfo.m_DescSetLayout[id].Init(&info);
 
 		VkResult ret = ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), &info, &layout);
 
@@ -120,6 +118,8 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), layout);
 			GetResourceManager()->AddLiveResource(id, layout);
+		
+			m_CreationInfo.m_DescSetLayout[live].Init(&info);
 		}
 	}
 
@@ -225,8 +225,8 @@ bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
 			GetResourceManager()->AddLiveResource(id, descset);
 
 			// this is stored in the resource record on capture, we need to be able to look to up
-			m_DescriptorSetState[id].layout = layoutId;
-			m_CreationInfo.m_DescSetLayout[layoutId].CreateBindingsArray(m_DescriptorSetState[id].currentBindings);
+			m_DescriptorSetState[live].layout = GetResID(layout);
+			m_CreationInfo.m_DescSetLayout[GetResID(layout)].CreateBindingsArray(m_DescriptorSetState[live].currentBindings);
 		}
 	}
 
@@ -437,7 +437,7 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 				ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), 1, &writeDesc, 0, NULL);
 
 				// update our local tracking
-				vector<VkDescriptorInfo *> &bindings = m_DescriptorSetState[GetResourceManager()->GetOriginalID(GetResourceManager()->GetNonDispWrapper(writeDesc.destSet)->id)].currentBindings;
+				vector<VkDescriptorInfo *> &bindings = m_DescriptorSetState[GetResourceManager()->GetNonDispWrapper(writeDesc.destSet)->id].currentBindings;
 
 				{
 					RDCASSERT(writeDesc.destBinding < bindings.size());

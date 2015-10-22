@@ -300,9 +300,6 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkFramebuffer fb = VK_NULL_HANDLE;
-		
-		// use original ID
-		m_CreationInfo.m_Framebuffer[id].Init(&info);
 
 		VkResult ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &info, &fb);
 
@@ -314,6 +311,8 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), fb);
 			GetResourceManager()->AddLiveResource(id, fb);
+		
+			m_CreationInfo.m_Framebuffer[live].Init(&info);
 		}
 	}
 
@@ -385,9 +384,6 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkRenderPass rp = VK_NULL_HANDLE;
-		
-		// use original ID
-		m_CreationInfo.m_RenderPass[id].Init(&info);
 
 		VkResult ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, &rp);
 
@@ -399,6 +395,8 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), rp);
 			GetResourceManager()->AddLiveResource(id, rp);
+		
+			m_CreationInfo.m_RenderPass[live].Init(&info);
 		}
 	}
 
