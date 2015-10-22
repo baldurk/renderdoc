@@ -86,15 +86,19 @@ struct stringdata
 	uint32_t str[256][4];
 };
 
-void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t flags)
+void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	sz = size;
+	// offset must be 256-aligned, so ensure we have at least ringSize
+	// copies accounting for that
+	totalsize = ringSize == 1 ? size : AlignUp(size, 256ULL)*ringSize;
+	curoffset = 0;
 
 	VkBufferCreateInfo bufInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-		size, 0, 0,
+		totalsize, 0, 0,
 		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 	};
 
@@ -114,7 +118,7 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 	// VKTODOMED maybe don't require host visible, and do map & copy?
 	VkMemoryAllocInfo allocInfo = {
 		VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-		size,
+		mrq.size,
 		(flags & eGPUBufferReadback)
 		? driver->GetReadbackMemoryIndex(mrq.memoryTypeBits)
 		: driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
@@ -157,8 +161,22 @@ void VulkanDebugManager::GPUBuffer::Destroy(const VkLayerDispatchTable *vt, VkDe
 	}
 }
 
-void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize offset, VkDeviceSize size)
+void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevice dev, uint32_t *bindoffset, VkDeviceSize usedsize)
 {
+	VkDeviceSize offset = bindoffset ? curoffset : 0;
+	VkDeviceSize size = usedsize > 0 ? usedsize : sz;
+
+	// wrap around the ring, assuming the ring is large enough
+	// that this memory is now free
+	if(offset + size > totalsize)
+		offset = 0;
+	RDCASSERT(offset + size <= totalsize);
+	
+	// offset must be 256-aligned
+	curoffset = AlignUp(offset+size, 256ULL);
+
+	if(bindoffset) *bindoffset = (uint32_t)offset;
+
 	void *ptr = NULL;
 	VkResult vkr = vt->MapMemory(Unwrap(dev), Unwrap(mem), offset, size, 0, (void **)&ptr);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -243,7 +261,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	{
 		// VKTODOLOW not sure if these stage flags VK_SHADER_STAGE_... work yet?
 		VkDescriptorSetLayoutBinding layoutBinding[] = {
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, }
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL, }
 		};
 
 		VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
@@ -265,7 +283,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	{
 		VkDescriptorSetLayoutBinding layoutBinding[] = {
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL, },
 			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, }
 		};
 
@@ -282,9 +300,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	{
 		VkDescriptorSetLayoutBinding layoutBinding[] = {
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL, },
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL, },
 			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, }
 		};
 
@@ -333,6 +351,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VkDescriptorTypeCount descPoolTypes[] = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024, },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1024, },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024, },
 	};
 	
@@ -371,7 +390,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VKMGR()->WrapResource(Unwrap(dev), m_GenericDescSet);
 
-	m_GenericUBO.Create(driver, dev, 128, 0);
+	m_GenericUBO.Create(driver, dev, 128, 10, 0);
 	RDCCOMPILE_ASSERT(sizeof(genericuniforms) <= 128, "outline strip VBO size");
 
 	{
@@ -389,25 +408,25 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			0.0f, -0.1f, 0.0f, 1.0f,
 		};
 		
-		m_OutlineStripVBO.Create(driver, dev, 128, 0);
+		m_OutlineStripVBO.Create(driver, dev, 128, 1, 0); // doesn't need to be ring buffered
 		RDCCOMPILE_ASSERT(sizeof(data) <= 128, "outline strip VBO size");
 		
-		float *mapped = (float *)m_OutlineStripVBO.Map(vt, dev);
+		float *mapped = (float *)m_OutlineStripVBO.Map(vt, dev, NULL);
 
 		memcpy(mapped, data, sizeof(data));
 
 		m_OutlineStripVBO.Unmap(vt, dev);
 	}
 
-	m_CheckerboardUBO.Create(driver, dev, 128, 0);
-	m_TexDisplayUBO.Create(driver, dev, 128, 0);
+	m_CheckerboardUBO.Create(driver, dev, 128, 10, 0);
+	m_TexDisplayUBO.Create(driver, dev, 128, 10, 0);
 
 	RDCCOMPILE_ASSERT(sizeof(displayuniforms) <= 128, "tex display size");
 		
-	m_TextGeneralUBO.Create(driver, dev, 128, 0);
+	m_TextGeneralUBO.Create(driver, dev, 128, 100, 0); // make the ring conservatively large to handle many lines of text * several frames
 	RDCCOMPILE_ASSERT(sizeof(fontuniforms) <= 128, "font uniforms size");
 
-	m_TextStringUBO.Create(driver, dev, 4096, 0);
+	m_TextStringUBO.Create(driver, dev, 4096, 10, 0); // we only use a subset of the [256] array needed for each line, so this ring can be smaller
 	RDCCOMPILE_ASSERT(sizeof(stringdata) <= 4096, "font uniforms size");
 	
 	string shaderSources[] = {
@@ -743,10 +762,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			vt->UnmapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem));
 		}
 
-		m_TextGlyphUBO.Create(driver, dev, 4096, 0);
+		m_TextGlyphUBO.Create(driver, dev, 4096, 1, 0); // doesn't need to be ring'd, as it's static
 		RDCCOMPILE_ASSERT(sizeof(Vec4f)*2*(numChars+1) < 4096, "font uniform size");
 
-		Vec4f *glyphData = (Vec4f *)m_TextGlyphUBO.Map(vt, dev);
+		Vec4f *glyphData = (Vec4f *)m_TextGlyphUBO.Map(vt, dev, NULL);
 
 		for(int i=0; i < numChars; i++)
 		{
@@ -882,7 +901,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 		VKMGR()->WrapResource(Unwrap(dev), m_PickPixelFB);
 
-		m_PickPixelReadbackBuffer.Create(driver, dev, sizeof(float)*4, GPUBuffer::eGPUBufferReadback);
+		// since we always sync for readback, doesn't need to be ring'd
+		m_PickPixelReadbackBuffer.Create(driver, dev, sizeof(float)*4, 1, GPUBuffer::eGPUBufferReadback);
 	}
 
 	VkDescriptorInfo desc[7];
@@ -909,15 +929,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	VkWriteDescriptorSet writeSet[] = {
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_CheckerboardDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[0]
+			Unwrap(m_CheckerboardDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[0]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TexDisplayDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[1]
+			Unwrap(m_TexDisplayDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[1]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[2]
+			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[2]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
@@ -925,7 +945,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[4]
+			Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[4]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
@@ -933,7 +953,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_GenericDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[6]
+			Unwrap(m_GenericDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[6]
 		},
 	};
 
@@ -1107,6 +1127,30 @@ VulkanDebugManager::~VulkanDebugManager()
 	m_GenericUBO.Destroy(vt, dev);
 }
 
+void VulkanDebugManager::BeginText(const TextPrintState &textstate)
+{
+	const VkLayerDispatchTable *vt = ObjDisp(textstate.cmd);
+	
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	
+	VkResult vkr = vt->BeginCommandBuffer(Unwrap(textstate.cmd), &beginInfo);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	VkClearValue clearval = {0};
+	VkRenderPassBeginInfo rpbegin = {
+		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+		Unwrap(textstate.rp), Unwrap(textstate.fb),
+		{ { 0, 0, }, { textstate.w, textstate.h} },
+		1, &clearval,
+	};
+	vt->CmdBeginRenderPass(Unwrap(textstate.cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+
+	vt->CmdBindPipeline(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeline));
+
+	VkViewport viewport = { 0.0f, 0.0f, (float)textstate.w, (float)textstate.h, 0.0f, 1.0f };
+	vt->CmdSetViewport(Unwrap(textstate.cmd), 1, &viewport);
+}
+
 void VulkanDebugManager::RenderText(const TextPrintState &textstate, float x, float y, const char *textfmt, ...)
 {
 	static char tmpBuf[4096];
@@ -1123,16 +1167,12 @@ void VulkanDebugManager::RenderText(const TextPrintState &textstate, float x, fl
 void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(textstate.cmd);
-
-	// VKTODOMED needs to be optimised to do all in one cmd buffer with
-	// a start/stop pair of calls that map a UBO, then do each draw with
-	// a push constant to tell it what the line should be.
 	
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
-
 	VkResult vkr = VK_SUCCESS;
 
-	fontuniforms *ubo = (fontuniforms *)m_TextGeneralUBO.Map(vt, m_Device);
+	uint32_t offsets[2] = { 0 };
+
+	fontuniforms *ubo = (fontuniforms *)m_TextGeneralUBO.Map(vt, m_Device, &offsets[0]);
 
 	ubo->TextPosition.x = x;
 	ubo->TextPosition.y = y;
@@ -1148,37 +1188,23 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 
 	m_TextGeneralUBO.Unmap(vt, m_Device);
 
-	stringdata *stringData = (stringdata *)m_TextStringUBO.Map(vt, m_Device);
+	// only map enough for our string
+	stringdata *stringData = (stringdata *)m_TextStringUBO.Map(vt, m_Device, &offsets[1], strlen(text)*sizeof(Vec4f));
 
 	for(size_t i=0; i < strlen(text); i++)
 		stringData->str[i][0] = uint32_t(text[i] - ' ');
 
 	m_TextStringUBO.Unmap(vt, m_Device);
+	
+	vt->CmdBindDescriptorSets(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 2, offsets);
 
-	vkr = vt->BeginCommandBuffer(Unwrap(textstate.cmd), &beginInfo);
-	RDCASSERT(vkr == VK_SUCCESS);
+	// VKTODOMED strip + instance ID doesn't seem to work atm? instance ID comes through 0
+	// for now, do lists, but want to change back 
+	vt->CmdDraw(Unwrap(textstate.cmd), 6*(uint32_t)strlen(text), 1, 0, 0);
+}
 
-	{
-		VkClearValue clearval = {0};
-		VkRenderPassBeginInfo rpbegin = {
-			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-			Unwrap(textstate.rp), Unwrap(textstate.fb),
-			{ { 0, 0, }, { textstate.w, textstate.h} },
-			1, &clearval,
-		};
-		vt->CmdBeginRenderPass(Unwrap(textstate.cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
-
-		vt->CmdBindPipeline(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeline));
-		vt->CmdBindDescriptorSets(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 0, NULL);
-
-		VkViewport viewport = { 0.0f, 0.0f, (float)textstate.w, (float)textstate.h, 0.0f, 1.0f };
-		vt->CmdSetViewport(Unwrap(textstate.cmd), 1, &viewport);
-
-		// VKTODOMED strip + instance ID doesn't seem to work atm? instance ID comes through 0
-		// for now, do lists, but want to change back 
-		vt->CmdDraw(Unwrap(textstate.cmd), 6*(uint32_t)strlen(text), 1, 0, 0);
-		vt->CmdEndRenderPass(Unwrap(textstate.cmd));
-	}
-
-	vt->EndCommandBuffer(Unwrap(textstate.cmd));
+void VulkanDebugManager::EndText(const TextPrintState &textstate)
+{
+	ObjDisp(textstate.cmd)->CmdEndRenderPass(Unwrap(textstate.cmd));
+	ObjDisp(textstate.cmd)->EndCommandBuffer(Unwrap(textstate.cmd));
 }

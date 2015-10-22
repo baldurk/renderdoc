@@ -44,7 +44,9 @@ class VulkanDebugManager
 		VulkanDebugManager(WrappedVulkan *driver, VkDevice dev);
 		~VulkanDebugManager();
 
+		void BeginText(const TextPrintState &textstate);
 		void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
+		void EndText(const TextPrintState &textstate);
 
 		struct GPUBuffer
 		{
@@ -53,17 +55,21 @@ class VulkanDebugManager
 				eGPUBufferReadback = 0x1,
 			};
 			GPUBuffer() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE) {}
-			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t flags);
+			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags);
 			void Destroy(const VkLayerDispatchTable *vt, VkDevice dev);
 
 			void FillDescriptor(VkDescriptorInfo &desc);
 
-			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize offset = 0, VkDeviceSize size = 0);
+			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, uint32_t *bindoffset, VkDeviceSize usedsize = 0);
 			void Unmap(const VkLayerDispatchTable *vt, VkDevice dev);
 
 			VkDeviceSize sz;
 			VkBuffer buf;
 			VkDeviceMemory mem;
+
+			// for handling ring allocations
+			VkDeviceSize totalsize;
+			VkDeviceSize curoffset;
 		};
 
 		// VKTODOLOW make this all private/wrapped up

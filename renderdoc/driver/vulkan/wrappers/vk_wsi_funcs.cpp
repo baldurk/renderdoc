@@ -544,7 +544,9 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 			VkLayerDispatchTable *vt = ObjDisp(GetDev());
 
-			TextPrintState textstate = { VK_NULL_HANDLE, rp, fb, swapInfo.extent.width, swapInfo.extent.height };
+			TextPrintState textstate = { GetNextCmd(), rp, fb, swapInfo.extent.width, swapInfo.extent.height };
+
+			GetDebugManager()->BeginText(textstate);
 
 			if(activeWindow)
 			{
@@ -577,19 +579,13 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 				if(!overlayText.empty())
 				{
-					textstate.cmd = GetNextCmd();
 					GetDebugManager()->RenderText(textstate, 0.0f, y, overlayText.c_str());
-					SubmitCmds();
-					FlushQ();
 					y += 1.0f;
 				}
 
 				if(overlay & eRENDERDOC_Overlay_CaptureList)
 				{
-					textstate.cmd = GetNextCmd();
 					GetDebugManager()->RenderText(textstate, 0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
-					SubmitCmds();
-					FlushQ();
 					y += 1.0f;
 
 					uint64_t now = Timing::GetUnixTimestamp();
@@ -597,10 +593,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 					{
 						if(now - m_FrameRecord[i].frameInfo.captureTime < 20)
 						{
-							textstate.cmd = GetNextCmd();
 							GetDebugManager()->RenderText(textstate, 0.0f, y, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
-							SubmitCmds();
-							FlushQ();
 							y += 1.0f;
 						}
 					}
@@ -609,10 +602,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 				// VKTODOLOW failed frames
 
 #if !defined(RELEASE)
-				textstate.cmd = GetNextCmd();
 				GetDebugManager()->RenderText(textstate, 0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
-				SubmitCmds();
-				FlushQ();
 				y += 1.0f;
 #endif
 			}
@@ -635,15 +625,12 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 				if(!keys.empty())
 					str += " to cycle between swapchains";
 				
-				textstate.cmd = GetNextCmd();
 				GetDebugManager()->RenderText(textstate, 0.0f, 0.0f, str.c_str());
-				SubmitCmds();
-				FlushQ();
 			}
+			
+			GetDebugManager()->EndText(textstate);
 
-			// VKTODOLOW once rendertext can be called multiple times (with e.g. dynamic UBO)
-			// submit cmds here and don't flush
-			//SubmitCmds();
+			SubmitCmds();
 		}
 	}
 	

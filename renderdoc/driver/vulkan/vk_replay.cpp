@@ -695,10 +695,10 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 		liveImView = iminfo.view;
 	}
+
+	uint32_t uboOffs = 0;
 	
-	// VKTODOHIGH once we stop doing QueueWaitIdle after each flip, this
-	// needs to be ring-buffered
-	displayuniforms *data = (displayuniforms *)GetDebugManager()->m_TexDisplayUBO.Map(vt, dev);
+	displayuniforms *data = (displayuniforms *)GetDebugManager()->m_TexDisplayUBO.Map(vt, dev, &uboOffs);
 
 	data->Padding = 0;
 	
@@ -815,7 +815,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		bool noblend = !cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId();
 
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, noblend ? Unwrap(GetDebugManager()->m_TexDisplayPipeline) : Unwrap(GetDebugManager()->m_TexDisplayBlendPipeline));
-		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_TexDisplayDescSet), 0, NULL);
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_TexDisplayDescSet), 1, &uboOffs);
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
 		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
@@ -849,9 +849,9 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	// VKTODOHIGH once we stop doing QueueWaitIdle after each flip, this
-	// needs to be ring-buffered
-	Vec4f *data = (Vec4f *)GetDebugManager()->m_CheckerboardUBO.Map(vt, dev);
+	uint32_t uboOffs = 0;
+
+	Vec4f *data = (Vec4f *)GetDebugManager()->m_CheckerboardUBO.Map(vt, dev, &uboOffs);
 	data[0].x = light.x;
 	data[0].y = light.y;
 	data[0].z = light.z;
@@ -871,7 +871,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeline));
-		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 0, NULL);
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 1, &uboOffs);
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
 		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
@@ -907,9 +907,9 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 	const float xdim = scale*xpixdim;
 	const float ydim = scale*ypixdim;
 
-	// VKTODOHIGH once we stop doing QueueWaitIdle after each flip, this
-	// needs to be ring-buffered
-	genericuniforms *data = (genericuniforms *)GetDebugManager()->m_GenericUBO.Map(vt, dev);
+	uint32_t uboOffs = 0;
+
+	genericuniforms *data = (genericuniforms *)GetDebugManager()->m_GenericUBO.Map(vt, dev, &uboOffs);
 	data->Offset = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
 	data->Scale = Vec4f(xdim, ydim, 1.0f, 1.0f);
 	data->Color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -926,7 +926,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_GenericPipeline));
-		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_GenericPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_GenericDescSet), 0, NULL);
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_GenericPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_GenericDescSet), 1, &uboOffs);
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
 		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
