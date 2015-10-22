@@ -709,7 +709,6 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	
 	data->Position.x = x;
 	data->Position.y = y;
-	data->Scale = cfg.scale;
 	data->HDRMul = -1.0f;
 
 	int32_t tex_x = iminfo.extent.width;
@@ -721,7 +720,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		float xscale = float(m_DebugWidth)/float(tex_x);
 		float yscale = float(m_DebugHeight)/float(tex_y);
 
-		float scale = data->Scale = RDCMIN(xscale, yscale);
+		// update cfg.scale for use below
+		float scale = cfg.scale = RDCMIN(xscale, yscale);
 
 		if(yscale > xscale)
 		{
@@ -749,26 +749,21 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	data->MipLevel = (float)cfg.mip;
 	data->Slice = 0;
-	if(1 /* VKTODOLOW check texture type texDetails.curType != eGL_TEXTURE_3D*/)
+	if(iminfo.type != VK_IMAGE_TYPE_3D)
 		data->Slice = (float)cfg.sliceFace;
 	else
 		data->Slice = (float)(cfg.sliceFace>>cfg.mip);
-	
-	data->TextureResolutionPS.x = float(tex_x);
-	data->TextureResolutionPS.y = float(tex_y);
-	data->TextureResolutionPS.z = float(tex_z);
 
 	float mipScale = float(1<<cfg.mip);
-
-	// VKTODOMED reading from data pointer (should not)
-	data->Scale *= mipScale;
-	data->TextureResolutionPS.x /= mipScale;
-	data->TextureResolutionPS.y /= mipScale;
-	data->TextureResolutionPS.z /= mipScale;
 	
-	// VKTODOLOW multisampled texture display
-	data->NumSamples = 1;
-	data->SampleIdx = 0;
+	data->TextureResolutionPS.x = float(tex_x)/mipScale;
+	data->TextureResolutionPS.y = float(tex_y)/mipScale;
+	data->TextureResolutionPS.z = float(tex_z)/mipScale;
+	
+	data->Scale = cfg.scale*mipScale;
+	
+	data->NumSamples = iminfo.samples;
+	data->SampleIdx = cfg.sampleIdx;
 
 	data->OutputRes.x = (float)m_DebugWidth;
 	data->OutputRes.y = (float)m_DebugHeight;
