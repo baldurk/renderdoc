@@ -48,6 +48,8 @@ class VulkanDebugManager
 		void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
 		void EndText(const TextPrintState &textstate);
 
+		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
+
 		struct GPUBuffer
 		{
 			enum CreateFlags
@@ -119,6 +121,12 @@ class VulkanDebugManager
 		VkImage m_TextAtlas;
 		VkDeviceMemory m_TextAtlasMem;
 		VkImageView m_TextAtlasView;
+		
+		VkDeviceMemory m_OverlayImageMem;
+		VkImage m_OverlayImage;
+		VkImageView m_OverlayImageView;
+		VkExtent2D m_OverlayDim;
+		VkDeviceSize m_OverlayMemSize;
 
 	private:
 		void InitDebugData();

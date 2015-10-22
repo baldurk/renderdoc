@@ -822,10 +822,10 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	{
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+		
+		bool doblend = !cfg.rawoutput && blendAlpha && cfg.CustomShader == ResourceId();
 
-		bool noblend = !cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId();
-
-		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, noblend ? Unwrap(GetDebugManager()->m_TexDisplayPipeline) : Unwrap(GetDebugManager()->m_TexDisplayBlendPipeline));
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, doblend ? Unwrap(GetDebugManager()->m_TexDisplayBlendPipeline) : Unwrap(GetDebugManager()->m_TexDisplayPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, UnwrapPtr(descset), 1, &uboOffs);
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
@@ -965,8 +965,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 
 ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
-	RDCUNIMPLEMENTED("RenderOverlay");
-	return ResourceId();
+	return GetDebugManager()->RenderOverlay(texid, overlay, frameID, eventID, passEvents);
 }
 	
 void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)

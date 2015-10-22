@@ -191,6 +191,7 @@ void VulkanDebugManager::GPUBuffer::Unmap(const VkLayerDispatchTable *vt, VkDevi
 VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 {
 	// VKTODOLOW needs tidy up - isn't scalable. Needs more classes like UBO above.
+	m_pDriver = driver;
 
 	m_DescriptorPool = VK_NULL_HANDLE;
 	m_LinearSampler = VK_NULL_HANDLE;
@@ -225,6 +226,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_GenericPipeLayout = VK_NULL_HANDLE;
 	m_GenericDescSet = VK_NULL_HANDLE;
 	m_GenericPipeline = VK_NULL_HANDLE;
+		
+	m_OverlayImageMem = VK_NULL_HANDLE;
+	m_OverlayImage = VK_NULL_HANDLE;
+	m_OverlayImageView = VK_NULL_HANDLE;
+	RDCEraseEl(m_OverlayDim);
+	m_OverlayMemSize = 0;
 
 	m_Device = dev;
 	
@@ -1123,6 +1130,25 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	m_OutlineStripVBO.Destroy(vt, dev);
 	m_GenericUBO.Destroy(vt, dev);
+
+	if(m_OverlayImageView != VK_NULL_HANDLE)
+	{
+		vt->DestroyImageView(Unwrap(dev), Unwrap(m_OverlayImageView));
+		VKMGR()->ReleaseWrappedResource(m_OverlayImageView);
+	}
+
+	if(m_OverlayImage != VK_NULL_HANDLE)
+	{
+		// overlay image was allocated through driver so that its ID is
+		// registered, so go back through the same path to destroy
+		m_pDriver->vkDestroyImage(dev, m_OverlayImage);
+	}
+
+	if(m_OverlayImageMem != VK_NULL_HANDLE)
+	{
+		vt->FreeMemory(Unwrap(dev), Unwrap(m_OverlayImageMem));
+		VKMGR()->ReleaseWrappedResource(m_OverlayImageMem);
+	}
 }
 
 void VulkanDebugManager::BeginText(const TextPrintState &textstate)
@@ -1205,4 +1231,125 @@ void VulkanDebugManager::EndText(const TextPrintState &textstate)
 {
 	ObjDisp(textstate.cmd)->CmdEndRenderPass(Unwrap(textstate.cmd));
 	ObjDisp(textstate.cmd)->EndCommandBuffer(Unwrap(textstate.cmd));
+}
+
+ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
+{
+	const VkLayerDispatchTable *vt = ObjDisp(m_Device);
+
+	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
+	
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	
+	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+	// if the overlay image is the wrong size, free it
+	if(m_OverlayImage != VK_NULL_HANDLE && (iminfo.extent.width != m_OverlayDim.width || iminfo.extent.height != m_OverlayDim.height))
+	{
+		vt->DestroyImageView(Unwrap(m_Device), Unwrap(m_OverlayImageView));
+		VKMGR()->ReleaseWrappedResource(m_OverlayImageView);
+
+		m_pDriver->vkDestroyImage(m_Device, m_OverlayImage);
+
+		m_OverlayImage = VK_NULL_HANDLE;
+		m_OverlayImageView = VK_NULL_HANDLE;
+	}
+
+	// create the overlay image if we don't have one already
+	// we go through the driver's vkCreateImage so a live resource gets registered
+	// for this ID (just identity ID->ID map)
+	if(m_OverlayImage == VK_NULL_HANDLE)
+	{
+		m_OverlayDim.width = iminfo.extent.width;
+		m_OverlayDim.height = iminfo.extent.height;
+
+		VkImageCreateInfo imInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_IMAGE_TYPE_2D, VK_FORMAT_R16G16B16A16_SFLOAT,
+			{ m_OverlayDim.width, m_OverlayDim.height, 1 }, 1, 1, 1,
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT,
+			0,
+			VK_SHARING_MODE_EXCLUSIVE,
+			0, NULL,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+		};
+
+		vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, &m_OverlayImage);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkMemoryRequirements mrq;
+		vkr = vt->GetImageMemoryRequirements(Unwrap(m_Device), Unwrap(m_OverlayImage), &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// if no memory is allocated, or it's not enough,
+		// then allocate
+		if(m_OverlayImageMem == VK_NULL_HANDLE || mrq.size > m_OverlayMemSize)
+		{
+			if(m_OverlayImageMem != VK_NULL_HANDLE)
+			{
+				vt->FreeMemory(Unwrap(m_Device), Unwrap(m_OverlayImageMem));
+				VKMGR()->ReleaseWrappedResource(m_OverlayImageMem);
+			}
+
+			VkMemoryAllocInfo allocInfo = {
+				VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+				mrq.size, m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+			};
+
+			vkr = vt->AllocMemory(Unwrap(m_Device), &allocInfo, &m_OverlayImageMem);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			VKMGR()->WrapResource(Unwrap(m_Device), m_OverlayImageMem);
+			m_OverlayMemSize = mrq.size;
+		}
+
+		vkr = vt->BindImageMemory(Unwrap(m_Device), Unwrap(m_OverlayImage), Unwrap(m_OverlayImageMem), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkImageViewCreateInfo viewInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+			Unwrap(m_OverlayImage), VK_IMAGE_VIEW_TYPE_2D,
+			imInfo.format,
+			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, },
+			0,
+		};
+
+		vkr = vt->CreateImageView(Unwrap(m_Device), &viewInfo, &m_OverlayImageView);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VKMGR()->WrapResource(Unwrap(m_Device), m_OverlayImageView);
+
+		// need to transition image into valid state
+
+		VkImageMemoryBarrier trans = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			0, 0,
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(m_OverlayImage),
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
+
+		m_pDriver->m_ImageLayouts[GetResID(m_OverlayImage)].subresourceStates[0].state = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		void *barrier = (void *)&trans;
+
+		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	}
+
+	float col[] = { 0.1f, 0.2f, 0.3f, 0.4f };
+	VkImageSubresourceRange subresourceRange = {
+		VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1
+	};
+	
+	vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)col, 1, &subresourceRange);
+
+	vkr = vt->EndCommandBuffer(Unwrap(cmd));
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	return GetResID(m_OverlayImage);
 }

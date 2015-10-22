@@ -847,6 +847,8 @@ VkResult WrappedVulkan::vkCreateImage(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pImage);
+			
+			m_CreationInfo.m_Image[id].Init(pCreateInfo);
 		}
 
 		VkImageSubresourceRange range;
