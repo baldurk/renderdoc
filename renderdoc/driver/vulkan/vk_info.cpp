@@ -64,6 +64,8 @@ void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCre
 		flags = pCreateInfo->flags;
 
 		layout = VKMGR()->GetNonDispWrapper(pCreateInfo->layout)->id;
+		renderpass = VKMGR()->GetNonDispWrapper(pCreateInfo->renderPass)->id;
+		subpass = pCreateInfo->subpass;
 
 		// need to figure out which states are valid to be NULL
 		

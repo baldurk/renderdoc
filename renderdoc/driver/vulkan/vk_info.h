@@ -57,6 +57,8 @@ struct VulkanCreationInfo
 		void Init(const VkComputePipelineCreateInfo* pCreateInfo);
 
 		ResourceId layout;
+		ResourceId renderpass;
+		uint32_t subpass;
 		
 		// VkGraphicsPipelineCreateInfo
 		VkPipelineCreateFlags flags;
