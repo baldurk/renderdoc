@@ -679,6 +679,8 @@ VkResult WrappedVulkan::vkCreateBuffer(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pBuffer);
+
+			m_CreationInfo.m_Buffer[id].Init(pCreateInfo);
 		}
 	}
 
@@ -751,6 +753,8 @@ VkResult WrappedVulkan::vkCreateBufferView(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pView);
+		
+			m_CreationInfo.m_BufferView[id].Init(&unwrappedInfo);
 		}
 	}
 
@@ -944,6 +948,8 @@ VkResult WrappedVulkan::vkCreateImageView(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pView);
+		
+			m_CreationInfo.m_ImageView[id].Init(&unwrappedInfo);
 		}
 	}
 

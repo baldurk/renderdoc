@@ -104,7 +104,7 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(
 		{
 			GetResourceManager()->AddLiveResource(id, *pPipelineLayout);
 
-			m_CreationInfo.m_PipelineLayout[id].Init(pCreateInfo);
+			m_CreationInfo.m_PipelineLayout[id].Init(&unwrappedInfo);
 		}
 	}
 
@@ -174,6 +174,8 @@ VkResult WrappedVulkan::vkCreateShaderModule(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pShaderModule);
+
+			m_CreationInfo.m_ShaderModule[id].Init(pCreateInfo);
 		}
 	}
 
@@ -249,6 +251,9 @@ VkResult WrappedVulkan::vkCreateShader(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pShader);
+
+			ResourceId moduleid = GetResID(pCreateInfo->module);
+			m_CreationInfo.m_Shader[id].Init(&unwrappedInfo, m_CreationInfo.m_ShaderModule[moduleid]);
 		}
 	}
 
@@ -433,7 +438,7 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 			{
 				GetResourceManager()->AddLiveResource(id, pPipelines[i]);
 
-				m_CreationInfo.m_Pipeline[id].Init(&pCreateInfos[i]);
+				m_CreationInfo.m_Pipeline[id].Init(&unwrappedInfos[i]);
 			}
 		}
 	}
@@ -533,7 +538,7 @@ VkResult WrappedVulkan::vkCreateComputePipelines(
 			{
 				GetResourceManager()->AddLiveResource(id, pPipelines[i]);
 
-				m_CreationInfo.m_Pipeline[id].Init(&pCreateInfos[i]);
+				m_CreationInfo.m_Pipeline[id].Init(&unwrapped[i]);
 			}
 		}
 	}

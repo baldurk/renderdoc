@@ -185,6 +185,8 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pSetLayout);
+		
+			m_CreationInfo.m_DescSetLayout[id].Init(&unwrappedInfo);
 		}
 	}
 

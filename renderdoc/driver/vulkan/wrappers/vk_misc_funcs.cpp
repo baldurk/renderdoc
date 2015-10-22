@@ -364,6 +364,8 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pFramebuffer);
+		
+			m_CreationInfo.m_Framebuffer[id].Init(&unwrappedInfo);
 		}
 	}
 
@@ -459,6 +461,33 @@ VkResult WrappedVulkan::vkCreateRenderPass(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pRenderPass);
+			
+			VulkanCreationInfo::RenderPass rpinfo;
+			rpinfo.Init(pCreateInfo);
+
+			VkRenderPassCreateInfo info = *pCreateInfo;
+
+			VkAttachmentDescription atts[16];
+			RDCASSERT(ARRAY_COUNT(atts) >= (size_t)info.attachmentCount);
+
+			// make a version of the render pass that loads from its attachments,
+			// so it can be used for replaying a single draw after a render pass
+			// without doing a clear or a DONT_CARE load.
+			for(uint32_t i=0; i < info.attachmentCount; i++)
+			{
+				atts[i] = info.pAttachments[i];
+				atts[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+				atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			}
+			
+			info.pAttachments = atts;
+
+			ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, &rpinfo.loadRP);
+			RDCASSERT(ret == VK_SUCCESS);
+
+			GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
+
+			m_CreationInfo.m_RenderPass[id] = rpinfo;
 		}
 	}
 
