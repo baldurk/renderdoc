@@ -189,6 +189,7 @@ private:
 		uint32_t uploadMemIndex;
 		uint32_t GPULocalMemIndex;
 
+		VkPhysicalDeviceFeatures features;
 		VkPhysicalDeviceMemoryProperties memProps;
 	};
 	vector<ReplayData> m_PhysicalReplayData;
@@ -204,6 +205,9 @@ private:
 	VkCmdBuffer GetNextCmd();
 	void SubmitCmds();
 	void FlushQ();
+
+	const VkPhysicalDeviceFeatures &GetDeviceFeatures()
+	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].features; }
 
 	uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
 	uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);

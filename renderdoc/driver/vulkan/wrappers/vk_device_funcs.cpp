@@ -134,6 +134,8 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 
 	ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &data.memProps);
 
+	ObjDisp(pd)->GetPhysicalDeviceFeatures(Unwrap(pd), &data.features);
+
 	data.readbackMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
 	data.uploadMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
 	data.GPULocalMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
@@ -275,6 +277,31 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		
 		SAFE_DELETE_ARRAY(props);
 
+		VkPhysicalDeviceFeatures enabledFeatures = {0};
+		if(createInfo.pEnabledFeatures != NULL) enabledFeatures = *createInfo.pEnabledFeatures;
+		createInfo.pEnabledFeatures = &enabledFeatures;
+
+		VkPhysicalDeviceFeatures availFeatures = {0};
+		
+		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+		{
+			if(m_PhysicalReplayData[i].phys == physicalDevice)
+			{
+				availFeatures = m_PhysicalReplayData[i].features;
+				break;
+			}
+		}
+
+		if(availFeatures.fillModeNonSolid)
+			enabledFeatures.fillModeNonSolid = true;
+		else
+			RDCWARN("fillModeNonSolid = false, wireframe overlay will be solid");
+		
+		if(availFeatures.robustBufferAccess)
+			enabledFeatures.robustBufferAccess = true;
+		else
+			RDCWARN("robustBufferAccess = false, out of bounds access due to bugs in application or RenderDoc may cause crashes");
+		
 		// VKTODOLOW: check that extensions and layers supported in capture (from createInfo) are supported in replay
 
 		VkResult ret = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, &device);
