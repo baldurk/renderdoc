@@ -26,12 +26,18 @@
 
 void DescSetLayout::Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
 {
+	dynamicCount = 0;
+
 	bindings.resize(pCreateInfo->count);
 	for(uint32_t i=0; i < pCreateInfo->count; i++)
 	{
 		bindings[i].arraySize = pCreateInfo->pBinding[i].arraySize;
 		bindings[i].descriptorType = pCreateInfo->pBinding[i].descriptorType;
 		bindings[i].stageFlags = pCreateInfo->pBinding[i].stageFlags;
+
+		if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
+			 bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+			dynamicCount++;
 
 		if(pCreateInfo->pBinding[i].pImmutableSamplers)
 		{
@@ -56,6 +62,8 @@ void DescSetLayout::CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings)
 void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCreateInfo)
 {
 		flags = pCreateInfo->flags;
+
+		layout = VKMGR()->GetNonDispWrapper(pCreateInfo->layout)->id;
 
 		// need to figure out which states are valid to be NULL
 		
@@ -171,6 +179,8 @@ void VulkanCreationInfo::Pipeline::Init(const VkComputePipelineCreateInfo* pCrea
 {
 		flags = pCreateInfo->flags;
 
+		layout = VKMGR()->GetNonDispWrapper(pCreateInfo->layout)->id;
+
 		// need to figure out which states are valid to be NULL
 		
 		// VkPipelineShaderStageCreateInfo
@@ -212,8 +222,17 @@ void VulkanCreationInfo::Pipeline::Init(const VkComputePipelineCreateInfo* pCrea
 		logicOp = VK_LOGIC_OP_NOOP;
 }
 
+void VulkanCreationInfo::PipelineLayout::Init(const VkPipelineLayoutCreateInfo* pCreateInfo)
+{
+	descSetLayouts.resize(pCreateInfo->descriptorSetCount);
+	for(uint32_t i=0; i < pCreateInfo->descriptorSetCount; i++)
+		descSetLayouts[i] = VKMGR()->GetNonDispWrapper(pCreateInfo->pSetLayouts[i])->id;
+}
+
 void VulkanCreationInfo::RenderPass::Init(const VkRenderPassCreateInfo* pCreateInfo)
 {
+	attachCount = pCreateInfo->attachmentCount;
+
 	// VKTODOMED figure out how subpasses work
 	RDCASSERT(pCreateInfo->subpassCount > 0);
 	const VkSubpassDescription &subp = pCreateInfo->pSubpasses[0];

@@ -234,7 +234,11 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 		m_RootEventID--;
 
-		if(m_LastEventID < m_RootEventID)
+		if(m_LastEventID == startEID)
+		{
+			RDCDEBUG("Queue Submit no replay %u == %u", m_LastEventID, startEID);
+		}
+		else if(m_LastEventID > startEID && m_LastEventID < m_RootEventID)
 		{
 			RDCDEBUG("Queue Submit partial replay %u < %u", m_LastEventID, m_RootEventID);
 
@@ -272,7 +276,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 			ObjDisp(queue)->QueueSubmit(Unwrap(queue), (uint32_t)trimmedCmds.size(), &trimmedCmds[0], Unwrap(fence));
 
-			for(uint32_t i=0; i < numCmds; i++)
+			for(uint32_t i=0; i < trimmedCmdIds.size(); i++)
 			{
 				ResourceId cmd = trimmedCmdIds[i];
 				GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts);

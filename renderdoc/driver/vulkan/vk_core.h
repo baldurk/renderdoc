@@ -239,6 +239,11 @@ private:
 		VkCmdBuffer resultPartialCmdBuffer;
 		VkDevice partialDevice; // device for above cmd buffer
 
+		// if we're replaying just a single draw we don't go through the
+		// whole original command buffers to set up the partial replay,
+		// so we just set this command buffer
+		VkCmdBuffer singleDrawCmdBuffer;
+
 		// this records where in the frame a command buffer was submitted,
 		// so that we know if our replay range ends in one of these ranges
 		// we need to construct a partial command buffer for future
@@ -286,6 +291,8 @@ private:
 				compute.pipeline = graphics.pipeline = renderPass = framebuffer = ResourceId();
 				compute.descSets.clear();
 				graphics.descSets.clear();
+				compute.offsets.clear();
+				graphics.offsets.clear();
 
 				lineWidth = 1.0f;
 				RDCEraseEl(bias);
@@ -317,6 +324,7 @@ private:
 			{
 				ResourceId pipeline;
 				vector<ResourceId> descSets;
+				vector< vector<uint32_t> > offsets;
 			} compute, graphics;
 
 			struct IdxBuffer
@@ -335,9 +343,22 @@ private:
 		} state;
 	} m_PartialReplayData;
 
-	bool IsPartialCmd(ResourceId cmdid) { return cmdid == m_PartialReplayData.partialParent; }
-	bool InPartialRange() { return m_BakedCmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent; }
-	VkCmdBuffer PartialCmdBuf() { return m_PartialReplayData.resultPartialCmdBuffer; }
+	bool IsPartialCmd(ResourceId cmdid)
+	{
+		return m_PartialReplayData.singleDrawCmdBuffer != VK_NULL_HANDLE ||
+			cmdid == m_PartialReplayData.partialParent;
+	}
+	bool InPartialRange()
+	{
+		return m_PartialReplayData.singleDrawCmdBuffer != VK_NULL_HANDLE ||
+			m_BakedCmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent;
+	}
+	VkCmdBuffer PartialCmdBuf()
+	{
+		if(m_PartialReplayData.singleDrawCmdBuffer != VK_NULL_HANDLE)
+			return m_PartialReplayData.singleDrawCmdBuffer;
+		return m_PartialReplayData.resultPartialCmdBuffer;
+	}
 
 
 	// this info is stored in the record on capture, but we

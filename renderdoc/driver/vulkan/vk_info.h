@@ -46,6 +46,8 @@ struct DescSetLayout
 		ResourceId *immutableSampler;
 	};
 	vector<Binding> bindings;
+
+	uint32_t dynamicCount;
 };
 struct VulkanCreationInfo
 {
@@ -53,6 +55,8 @@ struct VulkanCreationInfo
 	{
 		void Init(const VkGraphicsPipelineCreateInfo* pCreateInfo);
 		void Init(const VkComputePipelineCreateInfo* pCreateInfo);
+
+		ResourceId layout;
 		
 		// VkGraphicsPipelineCreateInfo
 		VkPipelineCreateFlags flags;
@@ -146,6 +150,14 @@ struct VulkanCreationInfo
 	};
 	map<ResourceId, Pipeline> m_Pipeline;
 
+	struct PipelineLayout
+	{
+		void Init(const VkPipelineLayoutCreateInfo* pCreateInfo);
+
+		vector<ResourceId> descSetLayouts;
+	};
+	map<ResourceId, PipelineLayout> m_PipelineLayout;
+
 	struct RenderPass
 	{
 		void Init(const VkRenderPassCreateInfo* pCreateInfo);
@@ -153,6 +165,10 @@ struct VulkanCreationInfo
 		vector<uint32_t> inputAttachments;
 		vector<uint32_t> colorAttachments;
 		int32_t depthstencilAttachment;
+
+		uint32_t attachCount;
+
+		VkRenderPass loadRP;
 	};
 	map<ResourceId, RenderPass> m_RenderPass;
 

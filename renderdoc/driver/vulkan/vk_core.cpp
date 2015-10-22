@@ -337,6 +337,7 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 	m_PartialReplayData.renderPassActive = false;
 	m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;
+	m_PartialReplayData.singleDrawCmdBuffer = VK_NULL_HANDLE;
 	m_PartialReplayData.partialParent = ResourceId();
 	m_PartialReplayData.baseEvent = 0;
 
@@ -835,12 +836,6 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 		m_FirstEventID = startEventID;
 		m_LastEventID = endEventID;
-
-		m_PartialReplayData.renderPassActive = false;
-		RDCASSERT(m_PartialReplayData.resultPartialCmdBuffer == VK_NULL_HANDLE);
-		m_PartialReplayData.partialParent = ResourceId();
-		m_PartialReplayData.baseEvent = 0;
-		m_PartialReplayData.state = PartialReplayData::StateVector();
 	}
 	else if(m_State == READING)
 	{
@@ -872,6 +867,10 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		// for now just abort after capture scope. Really we'd need to support multiple frames
 		// but for now this will do.
 		if(context == CONTEXT_CAPTURE_FOOTER)
+			break;
+		
+		// break out if we were only executing one event
+		if(m_State == EXECUTING && startEventID == endEventID)
 			break;
 
 		if(m_LastCmdBufferID != ResourceId())
@@ -1329,10 +1328,6 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 {
 	RDCASSERT(frameID < (uint32_t)m_FrameRecord.size());
 
-	// VKTODOHIGH figure out how replaying only a draw will work.
-	if(replayType == eReplay_OnlyDraw) return;
-	if(replayType == eReplay_WithoutDraw) { replayType = eReplay_Full; }
-
 	uint64_t offs = m_FrameRecord[frameID].frameInfo.fileOffset;
 
 	m_pSerialiser->SetOffset(offs);
@@ -1401,12 +1396,142 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 	}
 	
 	{
+		if(!partial)
+		{
+			m_PartialReplayData.renderPassActive = false;
+			RDCASSERT(m_PartialReplayData.resultPartialCmdBuffer == VK_NULL_HANDLE);
+			m_PartialReplayData.partialParent = ResourceId();
+			m_PartialReplayData.baseEvent = 0;
+			m_PartialReplayData.state = PartialReplayData::StateVector();
+		}
+
 		if(replayType == eReplay_Full)
+		{
 			ContextReplayLog(EXECUTING, startEventID, endEventID, partial);
+		}
 		else if(replayType == eReplay_WithoutDraw)
+		{
 			ContextReplayLog(EXECUTING, startEventID, RDCMAX(1U,endEventID)-1, partial);
+		}
 		else if(replayType == eReplay_OnlyDraw)
+		{
+			VkCmdBuffer cmd = m_PartialReplayData.singleDrawCmdBuffer = GetNextCmd();
+			
+			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+			VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			// if a render pass was active, begin it and set up the partial replay state
+			if(m_PartialReplayData.renderPassActive)
+			{
+				auto &s = m_PartialReplayData.state;
+
+				RDCASSERT(s.renderPass != ResourceId());
+
+				// clear values don't matter as we're using the load renderpass here, that
+				// has all load ops set to load (as we're doing a partial replay - can't
+				// just clear the targets that are partially written to).
+
+				VkClearValue empty[16] = {0};
+
+				RDCASSERT(ARRAY_COUNT(empty) >= m_CreationInfo.m_RenderPass[s.renderPass].attachCount);
+
+				VkRenderPassBeginInfo rpbegin = {
+					VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+					Unwrap(m_CreationInfo.m_RenderPass[s.renderPass].loadRP),
+					Unwrap(GetResourceManager()->GetCurrentHandle<VkFramebuffer>(s.framebuffer)),
+					s.renderArea,
+					m_CreationInfo.m_RenderPass[s.renderPass].attachCount, empty,
+				};
+				ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+
+				if(s.graphics.pipeline != ResourceId())
+				{
+					ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetResourceManager()->GetCurrentHandle<VkPipeline>(s.graphics.pipeline)));
+
+					ResourceId pipeLayoutId = m_CreationInfo.m_Pipeline[s.graphics.pipeline].layout;
+					VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
+
+					const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[pipeLayoutId].descSetLayouts;
+
+					// only iterate over the desc sets that this layout actually uses, not all that were bound
+					for(size_t i=0; i < descSetLayouts.size(); i++)
+					{
+						const DescSetLayout &descLayout = m_CreationInfo.m_DescSetLayout[ descSetLayouts[i] ];
+
+						if(s.graphics.descSets[i] != ResourceId())
+						{
+							// if there are dynamic buffers, pass along the offsets
+							ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(layout), (uint32_t)i,
+									1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(s.graphics.descSets[i])),
+									descLayout.dynamicCount, descLayout.dynamicCount == 0 ? NULL : &s.graphics.offsets[i][0]);
+						}
+						else
+						{
+							RDCERR("Descriptor set is not bound but pipeline layout expects one");
+						}
+					}
+				}
+
+				if(s.compute.pipeline != ResourceId())
+				{
+					ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetResourceManager()->GetCurrentHandle<VkPipeline>(s.compute.pipeline)));
+
+					ResourceId pipeLayoutId = m_CreationInfo.m_Pipeline[s.compute.pipeline].layout;
+					VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
+
+					const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[pipeLayoutId].descSetLayouts;
+
+					for(size_t i=0; i < descSetLayouts.size(); i++)
+					{
+						const DescSetLayout &descLayout = m_CreationInfo.m_DescSetLayout[ descSetLayouts[i] ];
+
+						if(s.compute.descSets[i] != ResourceId())
+						{
+							ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(layout), (uint32_t)i,
+									1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(s.compute.descSets[i])),
+									descLayout.dynamicCount, descLayout.dynamicCount == 0 ? NULL : &s.compute.offsets[i][0]);
+						}
+					}
+				}
+				
+				if(!s.views.empty())
+					ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), (uint32_t)s.views.size(), &s.views[0]);
+				if(!s.scissors.empty())
+					ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), (uint32_t)s.scissors.size(), &s.scissors[0]);
+
+				ObjDisp(cmd)->CmdSetBlendConstants(Unwrap(cmd), s.blendConst);
+				ObjDisp(cmd)->CmdSetDepthBounds(Unwrap(cmd), s.mindepth, s.maxdepth);
+				ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), s.lineWidth);
+				ObjDisp(cmd)->CmdSetDepthBias(Unwrap(cmd), s.bias.depth, s.bias.biasclamp, s.bias.slope);
+				
+				ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, s.back.ref);
+				ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, s.back.compare);
+				ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, s.back.write);
+				
+				ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, s.front.ref);
+				ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, s.front.compare);
+				ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, s.front.write);
+
+				if(s.ibuffer.buf != ResourceId())
+					ObjDisp(cmd)->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(s.ibuffer.buf)), s.ibuffer.offs, s.ibuffer.bytewidth == 4 ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16);
+
+				for(size_t i=0; i < s.vbuffers.size(); i++)
+					ObjDisp(cmd)->CmdBindVertexBuffers(Unwrap(cmd), (uint32_t)i, 1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(s.vbuffers[i].buf)), &s.vbuffers[i].offs);
+			}
+
 			ContextReplayLog(EXECUTING, endEventID, endEventID, partial);
+
+			if(m_PartialReplayData.renderPassActive)
+				ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+			
+			ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+
+			SubmitCmds();
+
+			m_PartialReplayData.singleDrawCmdBuffer = VK_NULL_HANDLE;
+		}
 		else
 			RDCFATAL("Unexpected replay type");
 	}

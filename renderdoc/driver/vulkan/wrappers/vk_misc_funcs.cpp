@@ -385,6 +385,18 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkRenderPass rp = VK_NULL_HANDLE;
 
+		VulkanCreationInfo::RenderPass rpinfo;
+		rpinfo.Init(&info);
+
+		// we want to store off the data so we can display it after the pass.
+		// override any user-specified DONT_CARE.
+		VkAttachmentDescription *att = (VkAttachmentDescription *)info.pAttachments;
+		for(uint32_t i=0; i < info.attachmentCount; i++)
+		{
+			att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+		}
+
 		VkResult ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, &rp);
 
 		if(ret != VK_SUCCESS)
@@ -395,8 +407,22 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), rp);
 			GetResourceManager()->AddLiveResource(id, rp);
+
+			// make a version of the render pass that loads from its attachments,
+			// so it can be used for replaying a single draw after a render pass
+			// without doing a clear or a DONT_CARE load.
+			for(uint32_t i=0; i < info.attachmentCount; i++)
+			{
+				att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+				att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			}
+
+			ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, &rpinfo.loadRP);
+			RDCASSERT(ret == VK_SUCCESS);
+
+			GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
 		
-			m_CreationInfo.m_RenderPass[live].Init(&info);
+			m_CreationInfo.m_RenderPass[live] = rpinfo;
 		}
 	}
 

@@ -191,7 +191,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 
 		for(auto it=baseEvents.begin(); it != baseEvents.end(); ++it)
 		{
-			if(*it < m_LastEventID && m_LastEventID < (*it + length))
+			if(*it <= m_LastEventID && m_LastEventID < (*it + length))
 			{
 				RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", *it, m_LastEventID, *it + length, cmdId, bakeId);
 
@@ -929,13 +929,33 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 				(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
 				? m_PartialReplayData.state.graphics.descSets
 				: m_PartialReplayData.state.compute.descSets;
+			
+			vector< vector<uint32_t> > &offsets =
+				(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
+				? m_PartialReplayData.state.graphics.offsets
+				: m_PartialReplayData.state.compute.offsets;
 
 			// expand as necessary
 			if(descsets.size() < first + numSets)
+			{
 				descsets.resize(first + numSets);
+				offsets.resize(first + numSets);
+			}
 
+			const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
+
+			uint32_t *offsIter = offs;
+			uint32_t dynConsumed = 0;
+
+			// consume the offsets linearly along the descriptor set layouts
 			for(uint32_t i=0; i < numSets; i++)
+			{
 				descsets[first+i] = descriptorIDs[i];
+				uint32_t dynCount = m_CreationInfo.m_DescSetLayout[ descSetLayouts[first+i] ].dynamicCount;
+				offsets[first+i].assign(offsIter, offsIter+dynCount);
+				dynConsumed += dynCount;
+				RDCASSERT(dynConsumed <= offsCount);
+			}
 
 			// if there are dynamic offsets, bake them into the current bindings by alias'ing
 			// the image layout member (which is never used for buffer views).

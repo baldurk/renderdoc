@@ -53,6 +53,8 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), layout);
 			GetResourceManager()->AddLiveResource(id, layout);
+
+			m_CreationInfo.m_PipelineLayout[live].Init(&info);
 		}
 	}
 
@@ -101,6 +103,8 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pPipelineLayout);
+
+			m_CreationInfo.m_PipelineLayout[id].Init(pCreateInfo);
 		}
 	}
 
@@ -428,6 +432,8 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 			else
 			{
 				GetResourceManager()->AddLiveResource(id, pPipelines[i]);
+
+				m_CreationInfo.m_Pipeline[id].Init(&pCreateInfos[i]);
 			}
 		}
 	}
@@ -526,6 +532,8 @@ VkResult WrappedVulkan::vkCreateComputePipelines(
 			else
 			{
 				GetResourceManager()->AddLiveResource(id, pPipelines[i]);
+
+				m_CreationInfo.m_Pipeline[id].Init(&pCreateInfos[i]);
 			}
 		}
 	}
