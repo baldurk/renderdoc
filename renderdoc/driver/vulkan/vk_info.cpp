@@ -275,8 +275,7 @@ void VulkanCreationInfo::Image::Init(const VkImageCreateInfo* pCreateInfo)
 	if(pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT)
 		creationFlags |= eTextureCreate_UAV;
 
-	if(pCreateInfo->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT)
-		cube = true;
+	cube = (pCreateInfo->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) ? true : false;
 }
 
 void VulkanCreationInfo::ImageView::Init(const VkImageViewCreateInfo* pCreateInfo)
