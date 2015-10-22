@@ -104,8 +104,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-		vkr = ObjDisp(d)->ResetCommandBuffer(Unwrap(cmd), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
 		vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
@@ -473,8 +471,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 		
-		vkr = ObjDisp(cmd)->ResetCommandBuffer(Unwrap(cmd), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
 		vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 

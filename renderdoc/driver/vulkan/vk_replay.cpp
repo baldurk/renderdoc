@@ -586,8 +586,6 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-		vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
 		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
@@ -804,7 +802,6 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 	
-	vt->ResetCommandBuffer(Unwrap(cmd), 0);
 	vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
 	void *barrier = (void *)&srcimTrans;
@@ -849,9 +846,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 	
-	VkResult vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-	RDCASSERT(vkr == VK_SUCCESS);
-	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// VKTODOHIGH once we stop doing QueueWaitIdle after each flip, this
@@ -903,9 +898,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 	
-	VkResult vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-	RDCASSERT(vkr == VK_SUCCESS);
-	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	const float xpixdim = 2.0f/w;
@@ -1037,8 +1030,6 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-	vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-	RDCASSERT(vkr == VK_SUCCESS);
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
@@ -1072,9 +1063,7 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-	VkResult vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-	RDCASSERT(vkr == VK_SUCCESS);
-	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	vt->CmdClearColorImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)col, 1, &outw.bbtrans.subresourceRange);
@@ -1103,9 +1092,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-	VkResult vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-	RDCASSERT(vkr == VK_SUCCESS);
-	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	void *barrier[] = {
@@ -1214,8 +1201,6 @@ vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint3
 	{
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-		vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
 		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 

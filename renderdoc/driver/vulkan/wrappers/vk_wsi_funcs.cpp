@@ -723,8 +723,6 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 				VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
 				// do image copy
-				vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-				RDCASSERT(vkr == VK_SUCCESS);
 				vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 				RDCASSERT(vkr == VK_SUCCESS);
 

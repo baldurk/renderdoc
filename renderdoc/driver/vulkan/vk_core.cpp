@@ -428,6 +428,8 @@ VkCmdBuffer WrappedVulkan::GetNextCmd()
 	{
 		ret = rd.freecmds.back();
 		rd.freecmds.pop_back();
+
+		ObjDisp(ret)->ResetCommandBuffer(Unwrap(ret), 0);
 	}
 	else
 	{	
@@ -639,10 +641,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-		VkResult vkr = ObjDisp(cmd)->ResetCommandBuffer(Unwrap(cmd), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
-		ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
+		VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		
 		VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -1367,9 +1366,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 
 			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-			VkResult vkr = ObjDisp(cmd)->ResetCommandBuffer(Unwrap(cmd), 0);
-			RDCASSERT(vkr == VK_SUCCESS);
-			vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+			VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			ImageLayouts &st = m_ImageLayouts[GetResourceManager()->GetLiveID(m_FakeBBImgId)];

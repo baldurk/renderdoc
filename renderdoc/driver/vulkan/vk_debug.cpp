@@ -627,8 +627,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-	vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
-	RDCASSERT(vkr == VK_SUCCESS);
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
@@ -1157,8 +1155,6 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 
 	m_TextStringUBO.Unmap(vt, m_Device);
 
-	vkr = vt->ResetCommandBuffer(Unwrap(textstate.cmd), 0);
-	RDCASSERT(vkr == VK_SUCCESS);
 	vkr = vt->BeginCommandBuffer(Unwrap(textstate.cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
