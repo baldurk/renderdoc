@@ -949,7 +949,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 		vt->CmdDraw(Unwrap(cmd), 8, 1, 0, 0);
 
 		genericuniforms secondOutline;
-		secondOutline.Offset = Vec4f(-xpixdim, ypixdim, 0.0f, 0.0f);
+		secondOutline.Offset = Vec4f(-xpixdim, -ypixdim, 0.0f, 0.0f);
 		secondOutline.Scale = Vec4f(xdim+xpixdim*2, ydim+ypixdim*2, 1.0f, 1.0f);
 		secondOutline.Color = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
 

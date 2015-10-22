@@ -376,17 +376,17 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	{
 		float data[] = {
-			0.0f, -1.0f, 0.0f, 1.0f,
-			1.0f, -1.0f, 0.0f, 1.0f,
-
-			1.0f, -1.0f, 0.0f, 1.0f,
-			1.0f,  0.0f, 0.0f, 1.0f,
-
-			1.0f,  0.0f, 0.0f, 1.0f,
 			0.0f,  0.0f, 0.0f, 1.0f,
+			1.0f,  0.0f, 0.0f, 1.0f,
 
-			0.0f,  0.1f, 0.0f, 1.0f,
-			0.0f, -1.0f, 0.0f, 1.0f,
+			1.0f,  0.0f, 0.0f, 1.0f,
+			1.0f,  1.0f, 0.0f, 1.0f,
+
+			1.0f,  1.0f, 0.0f, 1.0f,
+			0.0f,  1.0f, 0.0f, 1.0f,
+
+			0.0f,  1.0f, 0.0f, 1.0f,
+			0.0f, -0.1f, 0.0f, 1.0f,
 		};
 		
 		m_OutlineStripVBO.Create(driver, dev, 128, 0);
