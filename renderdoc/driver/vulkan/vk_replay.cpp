@@ -785,12 +785,23 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	if(cfg.mip == 0 && cfg.scale < 1.0f)
 		desc.sampler = Unwrap(GetDebugManager()->m_LinearSampler);
 
-	VkWriteDescriptorSet writeSet = {
-		VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-		Unwrap(GetDebugManager()->m_TexDisplayDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
+	VkDescriptorSet descset = GetDebugManager()->GetTexDisplayDescSet();
+
+	VkDescriptorInfo ubodesc = {0};
+	GetDebugManager()->m_TexDisplayUBO.FillDescriptor(ubodesc);
+
+	VkWriteDescriptorSet writeSet[] = {
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(descset), 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(descset), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &ubodesc
+		},
 	};
 
-	vt->UpdateDescriptorSets(Unwrap(dev), 1, &writeSet, 0, NULL);
+	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
 
 	VkImageMemoryBarrier srcimTrans = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -815,7 +826,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		bool noblend = !cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId();
 
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, noblend ? Unwrap(GetDebugManager()->m_TexDisplayPipeline) : Unwrap(GetDebugManager()->m_TexDisplayBlendPipeline));
-		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_TexDisplayDescSet), 1, &uboOffs);
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, UnwrapPtr(descset), 1, &uboOffs);
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
 		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);

@@ -204,7 +204,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	m_TexDisplayDescSetLayout = VK_NULL_HANDLE;
 	m_TexDisplayPipeLayout = VK_NULL_HANDLE;
-	m_TexDisplayDescSet = VK_NULL_HANDLE;
+	RDCEraseEl(m_TexDisplayDescSet);
+	m_TexDisplayNextSet = 0;
 	m_TexDisplayPipeline = VK_NULL_HANDLE;
 	m_TexDisplayBlendPipeline = VK_NULL_HANDLE;
 	RDCEraseEl(m_TexDisplayUBO);
@@ -357,7 +358,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	VkDescriptorPoolCreateInfo descpoolInfo = {
 		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, NULL,
-		VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 4,
+		VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 3+ARRAY_COUNT(m_TexDisplayDescSet),
 		ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
 	};
 	
@@ -372,11 +373,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VKMGR()->WrapResource(Unwrap(dev), m_CheckerboardDescSet);
 	
-	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
-		UnwrapPtr(m_TexDisplayDescSetLayout), &m_TexDisplayDescSet);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayDescSet);
+	for(size_t i=0; i < ARRAY_COUNT(m_TexDisplayDescSet); i++)
+	{
+		vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
+			UnwrapPtr(m_TexDisplayDescSetLayout), &m_TexDisplayDescSet[i]);
+		RDCASSERT(vkr == VK_SUCCESS);
+		
+		VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayDescSet[i]);
+	}
 	
 	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
 		UnwrapPtr(m_TextDescSetLayout), &m_TextDescSet);
@@ -905,26 +909,24 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		m_PickPixelReadbackBuffer.Create(driver, dev, sizeof(float)*4, 1, GPUBuffer::eGPUBufferReadback);
 	}
 
-	VkDescriptorInfo desc[7];
+	VkDescriptorInfo desc[6];
 	RDCEraseEl(desc);
 	
 	// checkerboard
 	m_CheckerboardUBO.FillDescriptor(desc[0]);
 
-	// tex display
-	m_TexDisplayUBO.FillDescriptor(desc[1]);
-	// image descriptor is updated right before rendering
+	// tex display is updated right before rendering
 
 	// text
-	m_TextGeneralUBO.FillDescriptor(desc[2]);
-	m_TextGlyphUBO.FillDescriptor(desc[3]);
-	m_TextStringUBO.FillDescriptor(desc[4]);
-	desc[5].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	desc[5].imageView = Unwrap(m_TextAtlasView);
-	desc[5].sampler = Unwrap(m_LinearSampler);
+	m_TextGeneralUBO.FillDescriptor(desc[1]);
+	m_TextGlyphUBO.FillDescriptor(desc[2]);
+	m_TextStringUBO.FillDescriptor(desc[3]);
+	desc[4].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	desc[4].imageView = Unwrap(m_TextAtlasView);
+	desc[4].sampler = Unwrap(m_LinearSampler);
 	
 	// generic
-	m_GenericUBO.FillDescriptor(desc[6]);
+	m_GenericUBO.FillDescriptor(desc[5]);
 
 	VkWriteDescriptorSet writeSet[] = {
 		{
@@ -933,27 +935,23 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TexDisplayDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[1]
+			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[1]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[2]
+			Unwrap(m_TextDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[2]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[3]
+			Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[3]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[4]
+			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc[4]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc[5]
-		},
-		{
-			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_GenericDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[6]
+			Unwrap(m_GenericDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[5]
 		},
 	};
 

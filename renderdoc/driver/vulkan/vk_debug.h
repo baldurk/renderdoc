@@ -91,9 +91,16 @@ class VulkanDebugManager
 
 		VkDescriptorSetLayout m_TexDisplayDescSetLayout;
 		VkPipelineLayout m_TexDisplayPipeLayout;
-		VkDescriptorSet m_TexDisplayDescSet;
+		VkDescriptorSet m_TexDisplayDescSet[16]; // ring buffered to allow multiple texture renders between flushes
+		uint32_t m_TexDisplayNextSet;
 		VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline;
 		GPUBuffer m_TexDisplayUBO;
+
+		VkDescriptorSet GetTexDisplayDescSet()
+		{
+			m_TexDisplayNextSet = (m_TexDisplayNextSet+1)%ARRAY_COUNT(m_TexDisplayDescSet);
+			return m_TexDisplayDescSet[m_TexDisplayNextSet];
+		}
 
 		VkDeviceMemory m_PickPixelImageMem;
 		VkImage m_PickPixelImage;
