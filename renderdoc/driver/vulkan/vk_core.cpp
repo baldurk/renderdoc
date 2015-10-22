@@ -326,6 +326,12 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 	m_FrameTimer.Restart();
 
+	threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
+	tempMemoryTLSSlot = Threading::AllocateTLSSlot();
+	
+
+	// VKTODOHIGH need to deallocate m_ThreadSerialisers and m_ThreadTempMem
+
 	m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
 	
 	m_RootEventID = 1;
@@ -416,6 +422,15 @@ WrappedVulkan::~WrappedVulkan()
 	}
 
 	SAFE_DELETE(m_pSerialiser);
+
+	for(size_t i=0; i < m_ThreadSerialisers.size(); i++)
+		delete m_ThreadSerialisers[i];
+
+	for(size_t i=0; i < m_ThreadTempMem.size(); i++)
+	{
+		delete[] m_ThreadTempMem[i]->memory;
+		delete m_ThreadTempMem[i];
+	}
 }
 
 VkCmdBuffer WrappedVulkan::GetNextCmd()
