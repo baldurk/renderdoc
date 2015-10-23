@@ -232,13 +232,12 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
 				VkImageMemoryBarrier t;
 				t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 				t.pNext = NULL;
-				// VKTODOHIGH losing information? what are in/out mask and queues
-				// if input/output mask are just same as memory barriers, for
-				// the memory bound to the image, it's maybe fine as we don't need
-				// those for this purpose, they were replayed when the non-collapsed
-				// barrier happened.
+				// these input masks aren't used, we need to apply a global memory barrier
+				// to memory each time we restart log replaying. These transitions are just
+				// to get images into the right layout
 				t.inputMask = 0;
 				t.outputMask = 0;
+				// VKTODOLOW need to handle multiple queues better than this maybe
 				t.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				t.destQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
@@ -292,7 +291,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 		if(nummips == VK_REMAINING_MIP_LEVELS) nummips = states[id].mipLevels;
 		if(numslices == VK_REMAINING_ARRAY_LAYERS) numslices = states[id].arraySize;
 
-		// VKTODOHIGH check, does this mean the sensible thing?
+		// VKTODOLOW check, does this mean the sensible thing?
 		if(nummips == 0) nummips = 1;
 		if(numslices == 0) numslices = 1;
 
