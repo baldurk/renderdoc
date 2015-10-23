@@ -243,9 +243,9 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
-		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+		for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
 		{
-			if(m_PhysicalReplayData[i].dev == device)
+			if(m_PhysicalDeviceData[i].dev == device)
 				m_SwapPhysDevice = (int)i;
 		}
 
@@ -347,9 +347,9 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSwapChain);
 			record->AddChunk(chunk);
 
-			for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+			for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
 			{
-				if(m_PhysicalReplayData[i].dev == device)
+				if(m_PhysicalDeviceData[i].dev == device)
 					m_SwapPhysDevice = (int)i;
 			}
 			
@@ -965,13 +965,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 			GetResourceManager()->ClearReferencedResources();
 
-			// VKTODOHIGH This is a huuuge hack while the shutdown order is all
-			// messed up and normal calls to WrappedVulkan::ReleaseResource are
-			// ignored while WRITING to avoid shutdown problems.
-			extern bool releasingInitContents;
-			releasingInitContents = true;
 			GetResourceManager()->FreeInitialContents();
-			releasingInitContents = false;
 
 			GetResourceManager()->FlushPendingDirty();
 		}

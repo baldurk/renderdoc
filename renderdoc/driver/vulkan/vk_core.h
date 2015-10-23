@@ -155,9 +155,9 @@ private:
 
 	vector<FetchFrameRecord> m_FrameRecord;
 
-	struct ReplayData
+	struct PhysicalDeviceData
 	{
-		ReplayData()
+		PhysicalDeviceData()
 			: inst(VK_NULL_HANDLE), phys(VK_NULL_HANDLE)
 			, qFamilyIdx(0), dev(VK_NULL_HANDLE), q(VK_NULL_HANDLE)
 			, cmdpool(VK_NULL_HANDLE), debugMan(NULL) {}
@@ -192,22 +192,26 @@ private:
 		VkPhysicalDeviceFeatures features;
 		VkPhysicalDeviceMemoryProperties memProps;
 	};
-	vector<ReplayData> m_PhysicalReplayData;
+	vector<PhysicalDeviceData> m_PhysicalDeviceData;
 	int m_SwapPhysDevice;
+
+	VkInstance m_Instance; // the instance corresponding to this WrappedVulkan
+	vector<VkDevice> m_Devices; // the devices created under this instance
+	VkDbgMsgCallback m_DbgMsgCallback; // the instance's dbg msg callback handle
 
 	vector<VkDeviceMemory> m_FreeMems;
 	
 	VulkanDebugManager *GetDebugManager()
-	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].debugMan; }
+	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalDeviceData[m_SwapPhysDevice].debugMan; }
 
-	VkDevice GetDev()    { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].dev; }
-	VkQueue  GetQ()      { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].q; }
+	VkDevice GetDev()    { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalDeviceData[m_SwapPhysDevice].dev; }
+	VkQueue  GetQ()      { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalDeviceData[m_SwapPhysDevice].q; }
 	VkCmdBuffer GetNextCmd();
 	void SubmitCmds();
 	void FlushQ();
 
 	const VkPhysicalDeviceFeatures &GetDeviceFeatures()
-	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].features; }
+	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalDeviceData[m_SwapPhysDevice].features; }
 
 	uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
 	uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);
@@ -503,6 +507,7 @@ public:
 	bool ReleaseResource(WrappedVkRes *res);
 
 	void Initialise(VkInitParams &params);
+	void Shutdown();
 	void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 	void ReadLogInitialisation();
 

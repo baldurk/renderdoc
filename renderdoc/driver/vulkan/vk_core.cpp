@@ -236,61 +236,6 @@ void VkInitParams::Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst)
 	InstanceID = inst;
 }
 
-void WrappedVulkan::Initialise(VkInitParams &params)
-{
-	params.AppName = string("RenderDoc (") + params.AppName + ")";
-	params.EngineName = string("RenderDoc (") + params.EngineName + ")";
-
-	// VKTODOLOW verify that layers/extensions are available
-
-	const char **layerscstr = new const char *[params.Layers.size()];
-	for(size_t i=0; i < params.Layers.size(); i++)
-		layerscstr[i] = params.Layers[i].c_str();
-
-#if defined(FORCE_VALIDATION_LAYER)
-	params.Extensions.push_back("DEBUG_REPORT");
-#endif
-
-	const char **extscstr = new const char *[params.Extensions.size()];
-	for(size_t i=0; i < params.Extensions.size(); i++)
-		extscstr[i] = params.Extensions[i].c_str();
-
-	VkApplicationInfo appinfo = {
-			VK_STRUCTURE_TYPE_APPLICATION_INFO, NULL,
-			params.AppName.c_str(), params.AppVersion,
-			params.EngineName.c_str(), params.EngineVersion,
-			VK_API_VERSION,
-	};
-
-	VkInstanceCreateInfo instinfo = {
-			VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, NULL,
-			&appinfo, NULL,
-			(uint32_t)params.Layers.size(), layerscstr,
-			(uint32_t)params.Extensions.size(), extscstr,
-	};
-
-	VkInstance inst = {0};
-
-	VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, &inst);
-
-	InitInstanceReplayTables(inst);
-
-	GetResourceManager()->WrapResource(inst, inst);
-	GetResourceManager()->AddLiveResource(params.InstanceID, inst);
-
-	if(ObjDisp(inst)->DbgCreateMsgCallback)
-	{
-		// VKTODOHIGH this must be deallocated
-		VkDbgMsgCallback dummy;
-		ObjDisp(inst)->DbgCreateMsgCallback(Unwrap(inst),
-			VK_DBG_REPORT_WARN_BIT|VK_DBG_REPORT_PERF_WARN_BIT|VK_DBG_REPORT_ERROR_BIT,
-			(PFN_vkDbgMsgCallback)&DebugCallbackStatic, this, &dummy);
-	}
-
-	SAFE_DELETE_ARRAY(layerscstr);
-	SAFE_DELETE_ARRAY(extscstr);
-}
-
 WrappedVulkan::WrappedVulkan(const char *logFilename)
 {
 #if defined(RELEASE)
@@ -386,38 +331,29 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 WrappedVulkan::~WrappedVulkan()
 {
 	// VKTODOLOW shutdown order is really up in the air
-	for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+	for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
 	{
-		SAFE_DELETE(m_PhysicalReplayData[i].debugMan);
+		SAFE_DELETE(m_PhysicalDeviceData[i].debugMan);
 		
-		if(m_PhysicalReplayData[i].cmdpool != VK_NULL_HANDLE)
+		if(m_PhysicalDeviceData[i].cmdpool != VK_NULL_HANDLE)
 		{
-			ObjDisp(m_PhysicalReplayData[i].dev)->DestroyCommandPool(Unwrap(m_PhysicalReplayData[i].dev), Unwrap(m_PhysicalReplayData[i].cmdpool));
-			GetResourceManager()->ReleaseWrappedResource(m_PhysicalReplayData[i].cmdpool);
+			ObjDisp(m_PhysicalDeviceData[i].dev)->DestroyCommandPool(Unwrap(m_PhysicalDeviceData[i].dev), Unwrap(m_PhysicalDeviceData[i].cmdpool));
+			GetResourceManager()->ReleaseWrappedResource(m_PhysicalDeviceData[i].cmdpool);
 		}
 	}
-	
-	VkDevice dev = GetDev();
-	for(size_t i=0; i < m_FreeMems.size(); i++)
-	{
-		ObjDisp(dev)->FreeMemory(Unwrap(dev), Unwrap(m_FreeMems[i]));
-		GetResourceManager()->ReleaseWrappedResource(m_FreeMems[i]);
-	}
-	m_FreeMems.clear();
 
-	m_ResourceManager->Shutdown();
-	delete m_ResourceManager;
+	SAFE_DELETE(m_ResourceManager);
 		
-	for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
-		if(m_PhysicalReplayData[i].dev != VK_NULL_HANDLE)
-			vkDestroyDevice(m_PhysicalReplayData[i].dev);
+	for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
+		if(m_PhysicalDeviceData[i].dev != VK_NULL_HANDLE)
+			vkDestroyDevice(m_PhysicalDeviceData[i].dev);
 	
 	// VKTODOLOW only one instance
-	if(m_PhysicalReplayData[0].inst != VK_NULL_HANDLE)
+	if(m_PhysicalDeviceData[0].inst != VK_NULL_HANDLE)
 	{
-		VkInstance instance = Unwrap(m_PhysicalReplayData[0].inst);
+		VkInstance instance = Unwrap(m_PhysicalDeviceData[0].inst);
 
-		ObjDisp(m_PhysicalReplayData[0].inst)->DestroyInstance(instance);
+		ObjDisp(m_PhysicalDeviceData[0].inst)->DestroyInstance(instance);
 	}
 
 	SAFE_DELETE(m_pSerialiser);
@@ -435,7 +371,7 @@ WrappedVulkan::~WrappedVulkan()
 VkCmdBuffer WrappedVulkan::GetNextCmd()
 {
 	RDCASSERT(m_SwapPhysDevice >= 0);
-	ReplayData &rd = m_PhysicalReplayData[m_SwapPhysDevice];
+	PhysicalDeviceData &rd = m_PhysicalDeviceData[m_SwapPhysDevice];
 
 	VkCmdBuffer ret;
 
@@ -463,7 +399,7 @@ VkCmdBuffer WrappedVulkan::GetNextCmd()
 void WrappedVulkan::SubmitCmds()
 {
 	RDCASSERT(m_SwapPhysDevice >= 0);
-	ReplayData &rd = m_PhysicalReplayData[m_SwapPhysDevice];
+	PhysicalDeviceData &rd = m_PhysicalDeviceData[m_SwapPhysDevice];
 
 	// nothing to do
 	if(rd.pendingcmds.empty())
@@ -481,7 +417,7 @@ void WrappedVulkan::SubmitCmds()
 void WrappedVulkan::FlushQ()
 {
 	RDCASSERT(m_SwapPhysDevice >= 0);
-	ReplayData &rd = m_PhysicalReplayData[m_SwapPhysDevice];
+	PhysicalDeviceData &rd = m_PhysicalDeviceData[m_SwapPhysDevice];
 
 	// VKTODOLOW could do away with the need for this function by keeping
 	// commands until N presents later, or something, or checking on fences
@@ -811,12 +747,12 @@ void WrappedVulkan::ReadLogInitialisation()
 	m_pSerialiser->SetDebugText(false);
 
 	RDCASSERT(m_SwapPhysDevice >= 0 &&
-	            m_PhysicalReplayData[m_SwapPhysDevice].dev != VK_NULL_HANDLE &&
-	            m_PhysicalReplayData[m_SwapPhysDevice].q != VK_NULL_HANDLE &&
-	            m_PhysicalReplayData[m_SwapPhysDevice].cmdpool != VK_NULL_HANDLE);
+	            m_PhysicalDeviceData[m_SwapPhysDevice].dev != VK_NULL_HANDLE &&
+	            m_PhysicalDeviceData[m_SwapPhysDevice].q != VK_NULL_HANDLE &&
+	            m_PhysicalDeviceData[m_SwapPhysDevice].cmdpool != VK_NULL_HANDLE);
 
 	// VKTODOLOW maybe better place to put this?
-	m_PhysicalReplayData[m_SwapPhysDevice].debugMan = new VulkanDebugManager(this, GetDev());
+	m_PhysicalDeviceData[m_SwapPhysDevice].debugMan = new VulkanDebugManager(this, GetDev());
 }
 
 void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial)

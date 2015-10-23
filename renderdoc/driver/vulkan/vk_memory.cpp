@@ -26,35 +26,35 @@
 
 uint32_t WrappedVulkan::GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask)
 {
-	if(resourceRequiredBitmask & (1 << m_PhysicalReplayData[m_SwapPhysDevice].readbackMemIndex))
-		return m_PhysicalReplayData[m_SwapPhysDevice].readbackMemIndex;
+	if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData[m_SwapPhysDevice].readbackMemIndex))
+		return m_PhysicalDeviceData[m_SwapPhysDevice].readbackMemIndex;
 
-	return m_PhysicalReplayData[m_SwapPhysDevice].GetMemoryIndex(
+	return m_PhysicalDeviceData[m_SwapPhysDevice].GetMemoryIndex(
 		resourceRequiredBitmask,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
 }
 
 uint32_t WrappedVulkan::GetUploadMemoryIndex(uint32_t resourceRequiredBitmask)
 {
-	if(resourceRequiredBitmask & (1 << m_PhysicalReplayData[m_SwapPhysDevice].uploadMemIndex))
-		return m_PhysicalReplayData[m_SwapPhysDevice].uploadMemIndex;
+	if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData[m_SwapPhysDevice].uploadMemIndex))
+		return m_PhysicalDeviceData[m_SwapPhysDevice].uploadMemIndex;
 
-	return m_PhysicalReplayData[m_SwapPhysDevice].GetMemoryIndex(
+	return m_PhysicalDeviceData[m_SwapPhysDevice].GetMemoryIndex(
 		resourceRequiredBitmask,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
 }
 
 uint32_t WrappedVulkan::GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask)
 {
-	if(resourceRequiredBitmask & (1 << m_PhysicalReplayData[m_SwapPhysDevice].GPULocalMemIndex))
-		return m_PhysicalReplayData[m_SwapPhysDevice].GPULocalMemIndex;
+	if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData[m_SwapPhysDevice].GPULocalMemIndex))
+		return m_PhysicalDeviceData[m_SwapPhysDevice].GPULocalMemIndex;
 
-	return m_PhysicalReplayData[m_SwapPhysDevice].GetMemoryIndex(
+	return m_PhysicalDeviceData[m_SwapPhysDevice].GetMemoryIndex(
 		resourceRequiredBitmask,
 		VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
 }
 
-uint32_t WrappedVulkan::ReplayData::GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps, uint32_t allocUndesiredProps)
+uint32_t WrappedVulkan::PhysicalDeviceData::GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps, uint32_t allocUndesiredProps)
 {
 	uint32_t best = memProps.memoryTypeCount;
 	

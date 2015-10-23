@@ -457,6 +457,7 @@ VulkanResourceManager *VulkanReplay::GetResourceManager()
 
 void VulkanReplay::Shutdown()
 {
+	m_pDriver->Shutdown();
 	delete m_pDriver;
 }
 

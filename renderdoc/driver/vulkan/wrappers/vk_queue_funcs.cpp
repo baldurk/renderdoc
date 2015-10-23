@@ -50,8 +50,8 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(
 		
 		// VKTODOMED hack - fixup unwrapped queue objects, because we tried to fill them
 		// out early
-		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
-			if(m_PhysicalReplayData[i].q == real) m_PhysicalReplayData[i].q = queue;
+		for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
+			if(m_PhysicalDeviceData[i].q == real) m_PhysicalDeviceData[i].q = queue;
 	}
 
 	return true;

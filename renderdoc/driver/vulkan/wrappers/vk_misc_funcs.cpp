@@ -97,19 +97,9 @@ void WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
 	ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), unwrapped);
 }
 
-// VKTODOHIGH huge hack, see WrappedVulkan::vkQueuePresentKHR
-bool releasingInitContents = false;
-
 bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 {
 	if(res == NULL) return true;
-
-	// VKTODOHIGH: Device-associated resources must be released before the device is
-	// shutdown. This needs a rethink while writing - really everything should be cleaned
-	// up explicitly by us or the app.
-	if(m_State >= WRITING && !releasingInitContents) return true;
-
-	// VKTODOHIGH: release resource with device from resource record
 
 	// VKTODOLOW - this will break if we have multiple devices and resources from each,
 	// but that will likely break other things too.
@@ -122,7 +112,10 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 	switch(IdentifyTypeByPtr(res))
 	{
 		case eResSwapchain:
-			RDCERR("Should be no swapchain objects created on replay");
+			if(m_State >= WRITING)
+				RDCERR("Swapchain object is leaking");
+			else
+				RDCERR("Should be no swapchain objects created on replay");
 			break;
 
 		case eResUnknown:
@@ -136,22 +129,12 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			// nothing to do - destroyed with parent object
 			break;
 			
-		// VKTODOLOW shut down order needs examining, in future need to figure
-		// out when/how to shut these down
 		case eResInstance:
 		case eResDevice:
+			// these are explicitly released elsewhere, do not need to destroy
+			// any API objects
 			break;
-		/*
-		case eResInstance:
-		{
-			VkInstance instance = disp->real.As<VkInstance>();
-			((WrappedVkInstance::DispatchTableType *)disp->table)->DestroyInstance(instance);
-			break;
-		}
-		case eResDevice:
-			//vt->DestroyDevice(disp->real.As<VkDevice>());
-			break;
-		*/
+
 		case eResDeviceMemory:
 			vt->FreeMemory(Unwrap(dev), nondisp->real.As<VkDeviceMemory>());
 			break;
@@ -580,6 +563,7 @@ VkResult WrappedVulkan::vkDbgCreateMsgCallback(
 	void*                               pUserData,
 	VkDbgMsgCallback*                   pMsgCallback)
 {
+	// VKTODOLOW intercept this and point to our own callback
 	return ObjDisp(instance)->DbgCreateMsgCallback(Unwrap(instance), msgFlags, pfnMsgCallback, pUserData, pMsgCallback);
 }
 
