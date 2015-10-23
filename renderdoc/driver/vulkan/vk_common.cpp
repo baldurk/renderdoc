@@ -2101,10 +2101,11 @@ string ToStrHelper<false, VkPresentModeKHR>::Get(const VkPresentModeKHR &el)
 // we know the object will be a non-dispatchable object type
 #define SerialiseObject(type, name, obj) \
 			{ \
+				VulkanResourceManager *rm = (VulkanResourceManager *)GetUserData(); \
 				ResourceId id; \
 				if(m_Mode >= WRITING) id = GetResID(obj); \
 				Serialise(name, id); \
-				if(m_Mode < WRITING) obj = (id == ResourceId() || !VKMGR()->HasLiveResource(id)) ? VK_NULL_HANDLE : Unwrap(VKMGR()->GetLiveHandle<type>(id)); \
+				if(m_Mode < WRITING) obj = (id == ResourceId() || !rm->HasLiveResource(id)) ? VK_NULL_HANDLE : Unwrap(rm->GetLiveHandle<type>(id)); \
 			}
 
 static void SerialiseNext(Serialiser *ser, const void *&pNext)

@@ -883,6 +883,8 @@ void Serialiser::Reset()
 		m_ResolverThread = 0;
 	}
 
+	m_pUserData = NULL;
+
 	m_DebugText = "";
 	m_DebugTextWriting = false;
 	

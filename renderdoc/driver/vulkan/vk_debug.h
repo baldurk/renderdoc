@@ -38,6 +38,8 @@ struct TextPrintState
 	int32_t w, h;
 };
 
+class VulkanResourceManager;
+
 class VulkanDebugManager
 {
 	public:
@@ -72,6 +74,9 @@ class VulkanDebugManager
 			// for handling ring allocations
 			VkDeviceSize totalsize;
 			VkDeviceSize curoffset;
+			
+			VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
+			VulkanResourceManager *m_ResourceManager;
 		};
 
 		// VKTODOLOW make this all private/wrapped up
@@ -133,6 +138,8 @@ class VulkanDebugManager
 	private:
 		void InitDebugData();
 		void ShutdownDebugData();
+
+		VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
 		
 		void PatchFixedColShader(VkShaderModule &mod, VkShader &shad, float col[4]);
 		
@@ -143,9 +150,9 @@ class VulkanDebugManager
 
 		float m_FontCharAspect;
 		float m_FontCharSize;
-
 		
 		WrappedVulkan *m_pDriver;
+		VulkanResourceManager *m_ResourceManager;
 
 		VkDevice m_Device;
 };

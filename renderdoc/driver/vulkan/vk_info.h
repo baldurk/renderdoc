@@ -31,7 +31,7 @@
 
 struct DescSetLayout
 {
-	void Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo);
+	void Init(VulkanResourceManager *resourceMan, const VkDescriptorSetLayoutCreateInfo* pCreateInfo);
 
 	void CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings);
 
@@ -53,8 +53,8 @@ struct VulkanCreationInfo
 {
 	struct Pipeline
 	{
-		void Init(const VkGraphicsPipelineCreateInfo* pCreateInfo);
-		void Init(const VkComputePipelineCreateInfo* pCreateInfo);
+		void Init(VulkanResourceManager *resourceMan, const VkGraphicsPipelineCreateInfo* pCreateInfo);
+		void Init(VulkanResourceManager *resourceMan, const VkComputePipelineCreateInfo* pCreateInfo);
 
 		ResourceId layout;
 		ResourceId renderpass;
@@ -154,7 +154,7 @@ struct VulkanCreationInfo
 
 	struct PipelineLayout
 	{
-		void Init(const VkPipelineLayoutCreateInfo* pCreateInfo);
+		void Init(VulkanResourceManager *resourceMan, const VkPipelineLayoutCreateInfo* pCreateInfo);
 
 		vector<ResourceId> descSetLayouts;
 	};
@@ -162,7 +162,7 @@ struct VulkanCreationInfo
 
 	struct RenderPass
 	{
-		void Init(const VkRenderPassCreateInfo* pCreateInfo);
+		void Init(VulkanResourceManager *resourceMan, const VkRenderPassCreateInfo* pCreateInfo);
 
 		vector<uint32_t> inputAttachments;
 		vector<uint32_t> colorAttachments;
@@ -176,7 +176,7 @@ struct VulkanCreationInfo
 
 	struct Framebuffer
 	{
-		void Init(const VkFramebufferCreateInfo* pCreateInfo);
+		void Init(VulkanResourceManager *resourceMan, const VkFramebufferCreateInfo* pCreateInfo);
 
 		struct Attachment
 		{
@@ -190,7 +190,7 @@ struct VulkanCreationInfo
 	
 	struct Buffer
 	{
-		void Init(const VkBufferCreateInfo* pCreateInfo);
+		void Init(VulkanResourceManager *resourceMan, const VkBufferCreateInfo* pCreateInfo);
 
 		uint64_t size;
 	};
@@ -198,7 +198,7 @@ struct VulkanCreationInfo
 
 	struct BufferView
 	{
-		void Init(const VkBufferViewCreateInfo* pCreateInfo);
+		void Init(VulkanResourceManager *resourceMan, const VkBufferViewCreateInfo* pCreateInfo);
 
 		ResourceId buffer;
 		uint64_t offset;
@@ -208,7 +208,7 @@ struct VulkanCreationInfo
 	
 	struct Image
 	{
-		void Init(const VkImageCreateInfo* pCreateInfo);
+		void Init(VulkanResourceManager *resourceMan, const VkImageCreateInfo* pCreateInfo);
 	
 		VkImageView view;
 
@@ -224,7 +224,7 @@ struct VulkanCreationInfo
 
 	struct ImageView
 	{
-		void Init(const VkImageViewCreateInfo* pCreateInfo);
+		void Init(VulkanResourceManager *resourceMan, const VkImageViewCreateInfo* pCreateInfo);
 
 		ResourceId image;
 	};
@@ -232,7 +232,7 @@ struct VulkanCreationInfo
 	
 	struct ShaderModule
 	{
-		void Init(const VkShaderModuleCreateInfo* pCreateInfo);
+		void Init(VulkanResourceManager *resourceMan, const VkShaderModuleCreateInfo* pCreateInfo);
 
 		SPVModule spirv;
 		ShaderReflection reflTemplate;
@@ -242,7 +242,7 @@ struct VulkanCreationInfo
 
 	struct Shader
 	{
-		void Init(const VkShaderCreateInfo* pCreateInfo, VulkanCreationInfo::ShaderModule &moduleinfo);
+		void Init(VulkanResourceManager *resourceMan, const VkShaderCreateInfo* pCreateInfo, VulkanCreationInfo::ShaderModule &moduleinfo);
 
 		ResourceId module;
 		ShaderReflection refl;

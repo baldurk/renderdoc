@@ -35,21 +35,13 @@ using std::pair;
 
 class WrappedVulkan;
 
-// VKTODOLOW maybe make this a bit nicer? I'm not sure.
-#define VKMGR() VulkanResourceManager::GetInstance()
-
 class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHandle, VkResourceRecord>
 {
 	public: 
 		VulkanResourceManager(LogState s, Serialiser *ser, WrappedVulkan *core)
 			: ResourceManager(s, ser), m_Core(core)
-		{
-			if(m_Inst) RDCFATAL("Multiple resource managers");
-			m_Inst = this;
-		}
-		~VulkanResourceManager() { m_Inst = NULL; }
-		
-		static VulkanResourceManager *GetInstance() { return m_Inst; }
+		{	}
+		~VulkanResourceManager() { }
 		
 		template<typename realtype>
 		void AddLiveResource(ResourceId id, realtype obj)
@@ -213,8 +205,6 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 		bool Serialise_InitialState(WrappedVkRes *res);
 		void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
 		void Apply_InitialState(WrappedVkRes *live, InitialContentData initial);
-
-		static VulkanResourceManager *m_Inst;
 
 		WrappedVulkan *m_Core;
 };

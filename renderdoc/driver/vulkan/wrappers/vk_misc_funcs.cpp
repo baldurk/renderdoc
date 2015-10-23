@@ -312,7 +312,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), fb);
 			GetResourceManager()->AddLiveResource(id, fb);
 		
-			m_CreationInfo.m_Framebuffer[live].Init(&info);
+			m_CreationInfo.m_Framebuffer[live].Init(GetResourceManager(), &info);
 		}
 	}
 
@@ -365,7 +365,7 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 		{
 			GetResourceManager()->AddLiveResource(id, *pFramebuffer);
 		
-			m_CreationInfo.m_Framebuffer[id].Init(&unwrappedInfo);
+			m_CreationInfo.m_Framebuffer[id].Init(GetResourceManager(), &unwrappedInfo);
 		}
 	}
 
@@ -388,7 +388,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 		VkRenderPass rp = VK_NULL_HANDLE;
 
 		VulkanCreationInfo::RenderPass rpinfo;
-		rpinfo.Init(&info);
+		rpinfo.Init(GetResourceManager(), &info);
 
 		// we want to store off the data so we can display it after the pass.
 		// override any user-specified DONT_CARE.
@@ -463,7 +463,7 @@ VkResult WrappedVulkan::vkCreateRenderPass(
 			GetResourceManager()->AddLiveResource(id, *pRenderPass);
 			
 			VulkanCreationInfo::RenderPass rpinfo;
-			rpinfo.Init(pCreateInfo);
+			rpinfo.Init(GetResourceManager(), pCreateInfo);
 
 			VkRenderPassCreateInfo info = *pCreateInfo;
 

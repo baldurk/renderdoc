@@ -198,6 +198,16 @@ class Serialiser
 		//////////////////////////////////////////
 		// Utility functions
 
+		void *GetUserData()
+		{
+			return m_pUserData;
+		}
+
+		void SetUserData(void *userData)
+		{
+			m_pUserData = userData;
+		}
+
 		bool AtEnd()
 		{
 			return GetOffset() >= m_BufferSize;
@@ -650,6 +660,8 @@ class Serialiser
 		SerialiserError m_ErrorCode;
 		bool m_HasError;
 		bool m_DebugEnabled;
+
+		void *m_pUserData;
 
 		int m_Indent;
 

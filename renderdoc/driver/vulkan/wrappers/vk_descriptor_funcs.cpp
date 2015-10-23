@@ -119,7 +119,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), layout);
 			GetResourceManager()->AddLiveResource(id, layout);
 		
-			m_CreationInfo.m_DescSetLayout[live].Init(&info);
+			m_CreationInfo.m_DescSetLayout[live].Init(GetResourceManager(), &info);
 		}
 	}
 
@@ -180,13 +180,13 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 			record->AddChunk(chunk);
 
 			record->layout = new DescSetLayout();
-			record->layout->Init(pCreateInfo);
+			record->layout->Init(GetResourceManager(), pCreateInfo);
 		}
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pSetLayout);
 		
-			m_CreationInfo.m_DescSetLayout[id].Init(&unwrappedInfo);
+			m_CreationInfo.m_DescSetLayout[id].Init(GetResourceManager(), &unwrappedInfo);
 		}
 	}
 

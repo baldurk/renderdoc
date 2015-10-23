@@ -545,8 +545,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 			m_PartialReplayData.renderPassActive = true;
 			ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), &beginInfo, cont);
 
-			m_PartialReplayData.state.renderPass = VKMGR()->GetNonDispWrapper(beginInfo.renderPass)->id;
-			m_PartialReplayData.state.framebuffer = VKMGR()->GetNonDispWrapper(beginInfo.framebuffer)->id;
+			m_PartialReplayData.state.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
+			m_PartialReplayData.state.framebuffer = GetResourceManager()->GetNonDispWrapper(beginInfo.framebuffer)->id;
 			m_PartialReplayData.state.renderArea = beginInfo.renderArea;
 		}
 	}

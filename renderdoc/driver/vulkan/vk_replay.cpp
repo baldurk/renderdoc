@@ -111,18 +111,18 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	if(bb != VK_NULL_HANDLE)
 	{
 		vt->DestroyRenderPass(Unwrap(device), Unwrap(renderpass));
-		VKMGR()->ReleaseWrappedResource(renderpass);
+		GetResourceManager()->ReleaseWrappedResource(renderpass);
 		renderpass = VK_NULL_HANDLE;
 		
 		vt->DestroyImage(Unwrap(device), Unwrap(bb));
-		VKMGR()->ReleaseWrappedResource(bb);
+		GetResourceManager()->ReleaseWrappedResource(bb);
 		
 		vt->DestroyImageView(Unwrap(device), Unwrap(bbview));
-		VKMGR()->ReleaseWrappedResource(bbview);
+		GetResourceManager()->ReleaseWrappedResource(bbview);
 		vt->FreeMemory(Unwrap(device), Unwrap(bbmem));
-		VKMGR()->ReleaseWrappedResource(bbmem);
+		GetResourceManager()->ReleaseWrappedResource(bbmem);
 		vt->DestroyFramebuffer(Unwrap(device), Unwrap(fb));
-		VKMGR()->ReleaseWrappedResource(fb);
+		GetResourceManager()->ReleaseWrappedResource(fb);
 		
 		bb = VK_NULL_HANDLE;
 		bbview = VK_NULL_HANDLE;
@@ -134,7 +134,7 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	for(size_t i=0; i < ARRAY_COUNT(colimg); i++)
 	{
 		if(colimg[i] != VK_NULL_HANDLE)
-			VKMGR()->ReleaseWrappedResource(colimg[i]);
+			GetResourceManager()->ReleaseWrappedResource(colimg[i]);
 		colimg[i] = VK_NULL_HANDLE;
 	}
 
@@ -154,7 +154,7 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	if(swap != VK_NULL_HANDLE)
 	{
 		vt->DestroySwapchainKHR(Unwrap(device), Unwrap(swap));
-		VKMGR()->ReleaseWrappedResource(swap);
+		GetResourceManager()->ReleaseWrappedResource(swap);
 	}
 }
 
@@ -277,12 +277,12 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	vkr = vt->CreateSwapchainKHR(Unwrap(device), &swapInfo, &swap);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(Unwrap(device), swap);
+	GetResourceManager()->WrapResource(Unwrap(device), swap);
 
 	if(old != VK_NULL_HANDLE)
 	{
 		vt->DestroySwapchainKHR(Unwrap(device), Unwrap(old));
-		VKMGR()->ReleaseWrappedResource(old);
+		GetResourceManager()->ReleaseWrappedResource(old);
 	}
 
 	vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, NULL);
@@ -295,7 +295,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	for(size_t i=0; i < numImgs; i++)
 	{
 		colimg[i] = imgs[i];
-		VKMGR()->WrapResource(Unwrap(device), colimg[i]);
+		GetResourceManager()->WrapResource(Unwrap(device), colimg[i]);
 		coltrans[i].image = Unwrap(colimg[i]);
 		coltrans[i].oldLayout = coltrans[i].newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	}
@@ -346,7 +346,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, &renderpass);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(Unwrap(device), renderpass);
+		GetResourceManager()->WrapResource(Unwrap(device), renderpass);
 	}
 
 	{
@@ -363,7 +363,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		VkResult vkr = vt->CreateImage(Unwrap(device), &imInfo, &bb);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(Unwrap(device), bb);
+		GetResourceManager()->WrapResource(Unwrap(device), bb);
 
 		VkMemoryRequirements mrq = {0};
 
@@ -378,7 +378,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->AllocMemory(Unwrap(device), &allocInfo, &bbmem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(Unwrap(device), bbmem);
+		GetResourceManager()->WrapResource(Unwrap(device), bbmem);
 
 		vkr = vt->BindImageMemory(Unwrap(device), Unwrap(bb), Unwrap(bbmem), 0);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -400,7 +400,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->CreateImageView(Unwrap(device), &info, &bbview);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(Unwrap(device), bbview);
+		GetResourceManager()->WrapResource(Unwrap(device), bbview);
 
 		VkFramebufferCreateInfo fbinfo = {
 			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
@@ -412,7 +412,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, &fb);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(Unwrap(device), fb);
+		GetResourceManager()->WrapResource(Unwrap(device), fb);
 	}
 
 	if(dsimg != VK_NULL_HANDLE)
@@ -429,7 +429,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->CreateImageView(Unwrap(device), &info, &dsview);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(Unwrap(device), dsview);
+		GetResourceManager()->WrapResource(Unwrap(device), dsview);
 	}
 }
 
@@ -448,6 +448,11 @@ VulkanReplay::VulkanReplay()
 VulkanDebugManager *VulkanReplay::GetDebugManager()
 {
 	return m_pDriver->GetDebugManager();
+}
+
+VulkanResourceManager *VulkanReplay::GetResourceManager()
+{
+	return m_pDriver->GetResourceManager();
 }
 
 void VulkanReplay::Shutdown()
@@ -1198,6 +1203,7 @@ uint64_t VulkanReplay::MakeOutputWindow(void *wn, bool depth)
 	m_OutputWinID++;
 
 	m_OutputWindows[id].SetWindowHandle(wn);
+	m_OutputWindows[id].m_ResourceManager = GetResourceManager();
 
 	if(wn != NULL)
 	{

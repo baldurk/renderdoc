@@ -25,8 +25,6 @@
 #include "vk_manager.h"
 #include "vk_core.h"
 
-VulkanResourceManager *VulkanResourceManager::m_Inst = NULL;
-
 template<>
 void Serialiser::Serialise(const char *name, ImageRegionState &el)
 {

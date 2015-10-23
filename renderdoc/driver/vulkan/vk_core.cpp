@@ -350,6 +350,8 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 	m_ResourceManager = new VulkanResourceManager(m_State, m_pSerialiser, this);
 
+	m_pSerialiser->SetUserData(m_ResourceManager);
+
 	m_HeaderChunk = NULL;
 
 	if(!RenderDoc::Inst().IsReplayApp())
@@ -543,6 +545,7 @@ Serialiser *WrappedVulkan::GetThreadSerialiser()
 #endif
 
 	ser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
+	ser->SetUserData(m_ResourceManager);
 	
 #if !defined(RELEASE)
 	RDCDEBUG("Debug Text enabled - for development! remove before release!");

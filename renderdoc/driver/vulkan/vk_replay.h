@@ -59,6 +59,7 @@ using std::map;
 
 class WrappedVulkan;
 class VulkanDebugManager;
+class VulkanResourceManager;
 
 class VulkanReplay : public IReplayDriver
 {
@@ -200,6 +201,9 @@ class VulkanReplay : public IReplayDriver
 			VkImageView dsview;
 			VkImageMemoryBarrier depthtrans;
 			VkImageMemoryBarrier stenciltrans;
+
+			VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
+			VulkanResourceManager *m_ResourceManager;
 		};
 
 		VulkanPipelineState m_VulkanPipelineState;
@@ -220,4 +224,5 @@ class VulkanReplay : public IReplayDriver
 		void FillCBufferVariables(rdctype::array<ShaderConstant>, vector<ShaderVariable> &outvars, const vector<byte> &data, size_t &offset);
 
 		VulkanDebugManager *GetDebugManager();
+		VulkanResourceManager *GetResourceManager();
 };
