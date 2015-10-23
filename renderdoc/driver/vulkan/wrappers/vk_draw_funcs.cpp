@@ -814,8 +814,8 @@ void WrappedVulkan::vkCmdClearColorAttachment(
 		Serialise_vkCmdClearColorAttachment(localSerialiser, cmdBuffer, colorAttachment, imageLayout, pColor, rectCount, pRects);
 
 		record->AddChunk(scope.Get());
-		// VKTODOHIGH mark referenced the image under the attachment
-		//record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);
+
+		// image/attachments are referenced when the render pass is started and the framebuffer is bound.
 	}
 }
 
@@ -893,8 +893,8 @@ void WrappedVulkan::vkCmdClearDepthStencilAttachment(
 		Serialise_vkCmdClearDepthStencilAttachment(localSerialiser, cmdBuffer, imageAspectMask, imageLayout, pDepthStencil, rectCount, pRects);
 
 		record->AddChunk(scope.Get());
-		// VKTODOHIGH mark referenced the image under the attachment
-		//record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);
+
+		// image/attachments are referenced when the render pass is started and the framebuffer is bound.
 	}
 }
 
