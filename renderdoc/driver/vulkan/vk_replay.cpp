@@ -815,6 +815,15 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 	};
 
+	// ensure all previous writes have completed
+	srcimTrans.outputMask =
+		VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
+		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
+		VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
+		VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	// before we go reading
+	srcimTrans.inputMask = VK_MEMORY_INPUT_SHADER_READ_BIT;
+
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 	
 	vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
@@ -823,6 +832,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 	srcimTrans.oldLayout = srcimTrans.newLayout;
+
+	srcimTrans.outputMask = 0;
+	srcimTrans.inputMask = 0;
 
 	{
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
@@ -1062,7 +1074,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
 
 	outw.bbtrans.oldLayout = outw.bbtrans.newLayout;
-	outw.coltrans[outw.curidx].oldLayout = outw.bbtrans.newLayout;
+	outw.coltrans[outw.curidx].oldLayout = outw.coltrans[outw.curidx].newLayout;
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 }
@@ -1117,10 +1129,15 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 		(void *)&outw.bbtrans,
 		(void *)&outw.coltrans[outw.curidx],
 	};
-	
+
+	// ensure rendering has completed before copying
+	outw.bbtrans.outputMask = VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT;
+	outw.bbtrans.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
 	outw.bbtrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, barrier);
 	outw.bbtrans.oldLayout = outw.bbtrans.newLayout;
+	outw.bbtrans.outputMask = 0;
+	outw.bbtrans.inputMask = 0;
 
 	VkImageCopy cpy = {
 		{ VK_IMAGE_ASPECT_COLOR, 0, 0 },
@@ -1135,10 +1152,19 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	outw.bbtrans.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	outw.coltrans[outw.curidx].newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR;
 
+	// not sure what input mask should be for present, so be conservative.
+	// make sure copy has completed before present
+
+	outw.coltrans[outw.curidx].outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	outw.coltrans[outw.curidx].inputMask = VK_MEMORY_INPUT_TRANSFER_BIT|VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT|VK_MEMORY_INPUT_SHADER_READ_BIT;
+
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
 
 	outw.bbtrans.oldLayout = outw.bbtrans.newLayout;
 	outw.coltrans[outw.curidx].oldLayout = outw.coltrans[outw.curidx].newLayout;
+	
+	outw.coltrans[outw.curidx].outputMask = 0;
+	outw.coltrans[outw.curidx].inputMask = 0;
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 	
