@@ -519,7 +519,5 @@ void VulkanResourceManager::Apply_InitialState(WrappedVkRes *live, InitialConten
 
 bool VulkanResourceManager::ResourceTypeRelease(WrappedVkRes *res)
 {
-	bool ret = m_Core->ReleaseResource(res);
-	ReleaseWrappedResource(res);
-	return ret;
+	return m_Core->ReleaseResource(res);
 }

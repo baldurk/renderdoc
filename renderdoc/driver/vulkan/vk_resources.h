@@ -671,9 +671,6 @@ struct VkResourceRecord : public ResourceRecord
 		SwapchainInfo *swapInfo;
 		CmdBufferRecordingInfo *cmdInfo;
 
-		// queues associated with this instance, so they can be shut down on destruction
-		vector<VkQueue> queues;
-
 		// pointer to either the pool this item is allocated from, or the children allocated
 		// from this pool. Protected by the chunk lock 
 		VkResourceRecord *pool;

@@ -501,16 +501,20 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Shutdow
 	{
 		auto it = m_LiveResourceMap.begin();
 		ResourceTypeRelease(it->second);
-		if(!m_LiveResourceMap.empty())
-			m_LiveResourceMap.erase(m_LiveResourceMap.begin());
+
+		auto removeit = m_LiveResourceMap.find(it->first);
+		if(removeit != m_LiveResourceMap.end())
+			m_LiveResourceMap.erase(removeit);
 	}
 	
 	while(!m_InframeResourceMap.empty())
 	{
 		auto it = m_InframeResourceMap.begin();
 		ResourceTypeRelease(it->second);
-		if(!m_InframeResourceMap.empty())
-			m_InframeResourceMap.erase(m_InframeResourceMap.begin());
+
+		auto removeit = m_InframeResourceMap.find(it->first);
+		if(removeit != m_InframeResourceMap.end())
+			m_InframeResourceMap.erase(removeit);
 	}
 
 	FreeInitialContents();

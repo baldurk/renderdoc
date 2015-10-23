@@ -702,7 +702,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, &iminfo.view);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
+		ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
+		// register as a live-only resource, so it is cleaned up properly
+		m_pDriver->GetResourceManager()->AddLiveResource(viewid, iminfo.view);
 
 		liveImView = iminfo.view;
 	}

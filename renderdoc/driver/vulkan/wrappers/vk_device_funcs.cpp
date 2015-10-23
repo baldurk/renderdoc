@@ -33,6 +33,11 @@
 // The class constructor and destructor handle only *non-API* work. All API objects must be created and
 // torn down in the latter functions (vkCreateInstance/vkDestroyInstance during capture, and
 // Initialise/Shutdown during replay).
+//
+// Note that during capture we have vkDestroyDevice before vkDestroyDevice that does most of the work.
+//
+// Also we assume correctness from the application, that all objects are destroyed before the device and
+// instance are destroyed. We only clean up after our own objects.
 
 void WrappedVulkan::Initialise(VkInitParams &params)
 {
@@ -79,6 +84,10 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	GetResourceManager()->AddLiveResource(params.InstanceID, m_Instance);
 
 	m_DbgMsgCallback = VK_NULL_HANDLE;
+	m_Device = VK_NULL_HANDLE;
+	m_QueueFamilyIdx = ~0U;
+	m_Queue = VK_NULL_HANDLE;
+	m_InternalCmds.Reset();
 
 	if(ObjDisp(m_Instance)->DbgCreateMsgCallback)
 	{
@@ -108,92 +117,90 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	if(ret != VK_SUCCESS)
 		return ret;
-	
-	if(m_State >= WRITING)
-	{
-		m_InitParams.Set(pCreateInfo, GetResID(m_Instance));
-		m_InstanceRecord = GetResourceManager()->AddResourceRecord(m_Instance);
-	}
+
+	// should only be called during capture
+	RDCASSERT(m_State >= WRITING);
+
+	m_InitParams.Set(pCreateInfo, GetResID(m_Instance));
+	GetResourceManager()->AddResourceRecord(m_Instance);
 
 	*pInstance = m_Instance;
+	
+	m_DbgMsgCallback = VK_NULL_HANDLE;
+	m_Device = VK_NULL_HANDLE;
+	m_QueueFamilyIdx = ~0U;
+	m_Queue = VK_NULL_HANDLE;
+	m_InternalCmds.Reset();
 
 	return VK_SUCCESS;
 }
 
 void WrappedVulkan::Shutdown()
 {
+	// flush out any pending commands
+	SubmitCmds();
+	FlushQ();
+	
+	// since we didn't create proper registered resources for our command buffers,
+	// they won't be taken down properly with the pool. So we release them (just our
+	// data) here.
+	for(size_t i=0; i < m_InternalCmds.freecmds.size(); i++)
+		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freecmds[i]);
+
+	// destroy the pool
+	ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.m_CmdPool));
+	GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.m_CmdPool);
+	
+	// we do more in Shutdown than the equivalent vkDestroyInstance since on replay there's
+	// no explicit vkDestroyDevice, we destroy the device here then the instance
+
 	// destroy any replay objects that aren't specifically to do with the frame capture
-	VkDevice dev = GetDev();
 	for(size_t i=0; i < m_FreeMems.size(); i++)
 	{
-		ObjDisp(dev)->FreeMemory(Unwrap(dev), Unwrap(m_FreeMems[i]));
+		ObjDisp(m_Device)->FreeMemory(Unwrap(m_Device), Unwrap(m_FreeMems[i]));
 		GetResourceManager()->ReleaseWrappedResource(m_FreeMems[i]);
 	}
 	m_FreeMems.clear();
-	
+
+	// destroy debug manager and any objects it created
+	SAFE_DELETE(m_DebugManager);
+
 	if(ObjDisp(m_Instance)->DbgDestroyMsgCallback && m_DbgMsgCallback != VK_NULL_HANDLE)
 		ObjDisp(m_Instance)->DbgDestroyMsgCallback(Unwrap(m_Instance), m_DbgMsgCallback);
 
-	// need to store the unwrapped devices and instance to destroy the
+	// need to store the unwrapped device and instance to destroy the
 	// API object after resource manager shutdown
-	vector<VkDevice> devs;
 	VkInstance inst = Unwrap(m_Instance);
+	VkDevice dev = Unwrap(m_Device);
 	
-	for(size_t i=0; i < m_Devices.size(); i++)
-		devs.push_back(Unwrap(m_Devices[i]));
-
-	m_Devices.clear();
-	m_Instance = VK_NULL_HANDLE;
+	const VkLayerDispatchTable *vt = ObjDisp(m_Device);
+	const VkLayerInstanceDispatchTable *vit = ObjDisp(m_Instance);
 
 	// this destroys the wrapped objects for the devices and instances
 	m_ResourceManager->Shutdown();
 
-	// second last step, destroy devices
-	for(size_t i=0; i < devs.size(); i++)
-	{
-		VkDevice dev = devs[i];
-		ObjDisp(dev)->DestroyDevice(Unwrap(dev));
-	}
+	delete GetWrapped(m_Device);
+	delete GetWrapped(m_Instance);
 
-	// finally destroy instance
-	ObjDisp(inst)->DestroyInstance(Unwrap(inst));
+	m_Device = VK_NULL_HANDLE;
+	m_Instance = VK_NULL_HANDLE;
+
+	// finally destroy device then instance
+	vt->DestroyDevice(dev);
+	vit->DestroyInstance(inst);
 }
 
 void WrappedVulkan::vkDestroyInstance(VkInstance instance)
 {
 	RDCASSERT(m_Instance == instance);
 
-	// records must be deleted before resource manager shutdown
-	if(m_FrameCaptureRecord)
-	{
-		RDCASSERT(m_FrameCaptureRecord->GetRefCount() == 1);
-		m_FrameCaptureRecord->Delete(GetResourceManager());
-		m_FrameCaptureRecord = NULL;
-	}
+	// the device should already have been destroyed, assuming that the
+	// application is well behaved. If not, we just leak.
 
-	// need to store the unwrapped devices and instance to destroy the
-	// API object after resource manager shutdown
-	vector<VkDevice> devs;
-	VkInstance inst = Unwrap(m_Instance);
-	
-	for(size_t i=0; i < m_Devices.size(); i++)
-		devs.push_back(Unwrap(m_Devices[i]));
+	ObjDisp(m_Instance)->DestroyInstance(Unwrap(m_Instance));
+	GetResourceManager()->ReleaseWrappedResource(m_Instance);
 
-	m_Devices.clear();
 	m_Instance = VK_NULL_HANDLE;
-
-	// this destroys the wrapped objects for the devices and instances
-	m_ResourceManager->Shutdown();
-
-	// second last step, destroy devices
-	for(size_t i=0; i < devs.size(); i++)
-	{
-		VkDevice dev = devs[i];
-		ObjDisp(dev)->DestroyDevice(Unwrap(dev));
-	}
-
-	// finally destroy instance
-	ObjDisp(inst)->DestroyInstance(Unwrap(inst));
 }
 
 bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
@@ -237,20 +244,6 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 		GetResourceManager()->AddLiveResource(physId, pd);
 	}
 
-	PhysicalDeviceData data;
-	data.inst = instance;
-	data.phys = pd;
-
-	ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &data.memProps);
-
-	ObjDisp(pd)->GetPhysicalDeviceFeatures(Unwrap(pd), &data.features);
-
-	data.readbackMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
-	data.uploadMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
-	data.GPULocalMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
-
-	m_PhysicalDeviceData.push_back(data);
-
 	return true;
 }
 
@@ -291,7 +284,21 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 				SCOPED_SERIALISE_CONTEXT(ENUM_PHYSICALS);
 				Serialise_vkEnumeratePhysicalDevices(localSerialiser, instance, &i, &devices[i]);
 
-				m_InstanceRecord->AddChunk(scope.Get());
+				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(devices[i]);
+				RDCASSERT(record);
+
+				record->AddChunk(scope.Get());
+
+				VkResourceRecord *instrecord = GetRecord(instance);
+
+				instrecord->AddParent(record);
+
+				// treat physical devices as pool members of the instance (ie. freed when the instance dies)
+				{
+					instrecord->LockChunks();
+					instrecord->pooledChildren.push_back(record);
+					instrecord->UnlockChunks();
+				}
 			}
 		}
 	}
@@ -395,15 +402,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		createInfo.pEnabledFeatures = &enabledFeatures;
 
 		VkPhysicalDeviceFeatures availFeatures = {0};
-		
-		for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
-		{
-			if(m_PhysicalDeviceData[i].phys == physicalDevice)
-			{
-				availFeatures = m_PhysicalDeviceData[i].features;
-				break;
-			}
-		}
+		ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &availFeatures);
 
 		if(availFeatures.fillModeNonSolid)
 			enabledFeatures.fillModeNonSolid = true;
@@ -421,41 +420,35 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 		GetResourceManager()->WrapResource(device, device);
 		GetResourceManager()->AddLiveResource(devId, device);
+		
+		InitDeviceReplayTables(Unwrap(device));
 
-		found = false;
+		RDCASSERT(m_Device == VK_NULL_HANDLE); // VKTODOLOW multiple devices are not supported
 
-		for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
+		m_Device = device;
+
+		m_QueueFamilyIdx = qFamilyIdx;
+
+		if(m_InternalCmds.m_CmdPool == VK_NULL_HANDLE)
 		{
-			if(m_PhysicalDeviceData[i].phys == physicalDevice)
-			{
-				InitDeviceReplayTables(Unwrap(device));
+			VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
+			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, &m_InternalCmds.m_CmdPool);
+			RDCASSERT(vkr == VK_SUCCESS);
 
-				// VKTODOLOW not handling multiple devices per physical devices
-				RDCASSERT(m_PhysicalDeviceData[i].dev == VK_NULL_HANDLE);
-				m_PhysicalDeviceData[i].dev = device;
-
-				m_PhysicalDeviceData[i].qFamilyIdx = qFamilyIdx;
-				
-				// VKTODOMED this is a hack - need a more reliable way of doing this
-				// when we serialise the relevant vkGetDeviceQueue, we'll search for this handle and replace it with the wrapped version
-				VkResult vkr = ObjDisp(device)->GetDeviceQueue(Unwrap(device), qFamilyIdx, 0, &m_PhysicalDeviceData[i].q);
-				RDCASSERT(vkr == VK_SUCCESS);
-
-				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
-				vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, &m_PhysicalDeviceData[i].cmdpool);
-				RDCASSERT(vkr == VK_SUCCESS);
-
-				GetResourceManager()->WrapResource(Unwrap(device), m_PhysicalDeviceData[i].cmdpool);
-
-				found = true;
-				break;
-			}
+			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.m_CmdPool);
 		}
 
-		SAFE_DELETE_ARRAY(modQueues);
+		ObjDisp(physicalDevice)->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.memProps);
 
-		if(!found)
-			RDCERR("Couldn't find VkPhysicalDevice for vkCreateDevice!");
+		ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
+
+		m_PhysicalDeviceData.readbackMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
+		m_PhysicalDeviceData.uploadMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
+		m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
+
+		m_DebugManager = new VulkanDebugManager(this, device);
+
+		SAFE_DELETE_ARRAY(modQueues);
 	}
 
 	return true;
@@ -555,48 +548,39 @@ VkResult WrappedVulkan::vkCreateDevice(
 				chunk = scope.Get();
 			}
 
-			m_InstanceRecord->AddChunk(chunk);
+			GetRecord(m_Instance)->AddChunk(chunk);
 		}
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pDevice);
 		}
-		
-		found = false;
 
-		for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
+		VkDevice device = *pDevice;
+
+		RDCASSERT(m_Device == VK_NULL_HANDLE); // VKTODOLOW multiple devices are not supported
+
+		m_Device = device;
+
+		m_QueueFamilyIdx = qFamilyIdx;
+
+		if(m_InternalCmds.m_CmdPool == VK_NULL_HANDLE)
 		{
-			if(m_PhysicalDeviceData[i].phys == physicalDevice)
-			{
-				m_PhysicalDeviceData[i].dev = *pDevice;
+			VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
+			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, &m_InternalCmds.m_CmdPool);
+			RDCASSERT(vkr == VK_SUCCESS);
 
-				m_PhysicalDeviceData[i].qFamilyIdx = qFamilyIdx;
-
-				// we call our own vkGetDeviceQueue so that its initialisation is properly serialised in case when
-				// the application fetches this queue it gets the same handle - the already wrapped one created
-				// here will be returned.
-				vkr = vkGetDeviceQueue(*pDevice, qFamilyIdx, 0, &m_PhysicalDeviceData[i].q);
-				RDCASSERT(vkr == VK_SUCCESS);
-
-				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
-				vkr = ObjDisp(*pDevice)->CreateCommandPool(Unwrap(*pDevice), &poolInfo, &m_PhysicalDeviceData[i].cmdpool);
-				RDCASSERT(vkr == VK_SUCCESS);
-
-				GetResourceManager()->WrapResource(Unwrap(*pDevice), m_PhysicalDeviceData[i].cmdpool);
-
-				// VKTODOHIGH hack, need to properly handle multiple devices etc and
-				// not have this 'current swap chain device' thing.
-				m_SwapPhysDevice = (int)i;
-				
-				m_PhysicalDeviceData[i].debugMan = new VulkanDebugManager(this, *pDevice);
-
-				found = true;
-				break;
-			}
+			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.m_CmdPool);
 		}
+		
+		ObjDisp(physicalDevice)->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.memProps);
 
-		if(!found)
-			RDCERR("Couldn't find VkPhysicalDevice for vkCreateDevice!");
+		ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
+
+		m_PhysicalDeviceData.readbackMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
+		m_PhysicalDeviceData.uploadMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
+		m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
+
+		m_DebugManager = new VulkanDebugManager(this, device);
 	}
 
 	SAFE_DELETE_ARRAY(modQueues);
@@ -606,32 +590,46 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 void WrappedVulkan::vkDestroyDevice(VkDevice device)
 {
-	// VKTODOHIGH this stuff should all be in vkDestroyInstance
-	if(m_State >= WRITING)
+	// flush out any pending commands
+	SubmitCmds();
+	FlushQ();
+	
+	// VKTODOLOW handle multiple devices - this function will need to check
+	// if the device is the one we used for debugmanager/cmd pool etc, and
+	// only remove child queues and resources (instead of doing full resource
+	// manager shutdown)
+	RDCASSERT(m_Device == device);
+
+	// delete all debug manager objects
+	SAFE_DELETE(m_DebugManager);
+
+	// since we didn't create proper registered resources for our command buffers,
+	// they won't be taken down properly with the pool. So we release them (just our
+	// data) here.
+	for(size_t i=0; i < m_InternalCmds.freecmds.size(); i++)
+		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freecmds[i]);
+
+	// destroy our command pool
+	if(m_InternalCmds.m_CmdPool != VK_NULL_HANDLE)
 	{
-		for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
-		{
-			if(m_PhysicalDeviceData[i].dev == device)
-			{
-				if(m_PhysicalDeviceData[i].cmdpool != VK_NULL_HANDLE)
-					ObjDisp(device)->DestroyCommandPool(Unwrap(device), Unwrap(m_PhysicalDeviceData[i].cmdpool));
-
-				// VKTODOHIGH this data is needed in destructor for swapchains - order of shutdown needs to be revamped
-				break;
-			}
-		}
-
-		vector<VkQueue> &queues = m_InstanceRecord->queues;
-		for(size_t i=0; i < queues.size(); i++)
-			GetResourceManager()->ReleaseWrappedResource(queues[i]);
+		ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.m_CmdPool));
+		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.m_CmdPool);
 	}
 
-	ObjDisp(device)->DestroyDevice(Unwrap(device));
-	
-	// VKTODOLOW on replay we're releasing this after resource manager
-	// shutdown. Yes it's a hack, yes it's ugly.
-	if(m_State >= WRITING)
-		GetResourceManager()->ReleaseWrappedResource(device);
+	m_InternalCmds.Reset();
+
+	m_QueueFamilyIdx = ~0U;
+	m_Queue = VK_NULL_HANDLE;
+
+	// destroy the API device immediately. There should be no more
+	// resources left in the resource manager device/physical device/instance.
+	// Anything we created should be gone and anything the application created
+	// should be deleted by now.
+	// If there were any leaks, we will leak them ourselves in vkDestroyInstance
+	// rather than try to delete API objects after the device has gone
+	ObjDisp(m_Device)->DestroyDevice(Unwrap(m_Device));
+	GetResourceManager()->ReleaseWrappedResource(m_Device);
+	m_Device = VK_NULL_HANDLE;
 }
 
 bool WrappedVulkan::Serialise_vkDeviceWaitIdle(Serialiser* localSerialiser, VkDevice device)

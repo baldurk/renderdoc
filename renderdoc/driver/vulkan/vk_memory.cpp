@@ -26,30 +26,30 @@
 
 uint32_t WrappedVulkan::GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask)
 {
-	if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData[m_SwapPhysDevice].readbackMemIndex))
-		return m_PhysicalDeviceData[m_SwapPhysDevice].readbackMemIndex;
+	if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData.readbackMemIndex))
+		return m_PhysicalDeviceData.readbackMemIndex;
 
-	return m_PhysicalDeviceData[m_SwapPhysDevice].GetMemoryIndex(
+	return m_PhysicalDeviceData.GetMemoryIndex(
 		resourceRequiredBitmask,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
 }
 
 uint32_t WrappedVulkan::GetUploadMemoryIndex(uint32_t resourceRequiredBitmask)
 {
-	if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData[m_SwapPhysDevice].uploadMemIndex))
-		return m_PhysicalDeviceData[m_SwapPhysDevice].uploadMemIndex;
+	if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData.uploadMemIndex))
+		return m_PhysicalDeviceData.uploadMemIndex;
 
-	return m_PhysicalDeviceData[m_SwapPhysDevice].GetMemoryIndex(
+	return m_PhysicalDeviceData.GetMemoryIndex(
 		resourceRequiredBitmask,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
 }
 
 uint32_t WrappedVulkan::GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask)
 {
-	if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData[m_SwapPhysDevice].GPULocalMemIndex))
-		return m_PhysicalDeviceData[m_SwapPhysDevice].GPULocalMemIndex;
+	if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData.GPULocalMemIndex))
+		return m_PhysicalDeviceData.GPULocalMemIndex;
 
-	return m_PhysicalDeviceData[m_SwapPhysDevice].GetMemoryIndex(
+	return m_PhysicalDeviceData.GetMemoryIndex(
 		resourceRequiredBitmask,
 		VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
 }

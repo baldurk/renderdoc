@@ -42,6 +42,26 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 			: ResourceManager(s, ser), m_Core(core)
 		{	}
 		~VulkanResourceManager() { }
+
+		void ClearWithoutReleasing()
+		{
+			// if any objects leaked past, it's no longer safe to delete them as we would
+			// be calling Shutdown() after the device that owns them is destroyed. Instead
+			// we just have to leak ourselves.
+			RDCASSERT(m_LiveResourceMap.empty());
+			RDCASSERT(m_InframeResourceMap.empty());
+			RDCASSERT(m_InitialContents.empty());
+			RDCASSERT(m_ResourceRecords.empty());
+			RDCASSERT(m_CurrentResourceMap.empty());
+			RDCASSERT(m_WrapperMap.empty());
+			
+			m_LiveResourceMap.clear();
+			m_InframeResourceMap.clear();
+			m_InitialContents.clear();
+			m_ResourceRecords.clear();
+			m_CurrentResourceMap.clear();
+			m_WrapperMap.clear();
+		}
 		
 		template<typename realtype>
 		void AddLiveResource(ResourceId id, realtype obj)
@@ -166,7 +186,17 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 					{
 						// unset record->pool so we don't recurse
 						(*it)->pool = NULL;
-						ReleaseWrappedResource((VkDescriptorSet)(uint64_t)(*it)->Resource, true);
+						VkResourceType restype = IdentifyTypeByPtr((*it)->Resource);
+						if(restype == eResDescriptorSet)
+							ReleaseWrappedResource((VkDescriptorSet)(uint64_t)(*it)->Resource, true);
+						else if(restype == eResCmdBuffer)
+							ReleaseWrappedResource((VkCmdBuffer)(*it)->Resource, true);
+						else if(restype == eResQueue)
+							ReleaseWrappedResource((VkQueue)(*it)->Resource, true);
+						else if(restype == eResPhysicalDevice)
+							ReleaseWrappedResource((VkPhysicalDevice)(*it)->Resource, true);
+						else
+							RDCERR("Unexpected resource type %d as pooled child!", restype);
 					}
 					record->pooledChildren.clear();
 				}

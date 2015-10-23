@@ -153,9 +153,6 @@ VkResult WrappedVulkan::vkGetSwapchainImagesKHR(
 					VkResourceRecord *swaprecord = GetRecord(swapchain);
 
 					swaprecord->AddParent(record);
-					// decrement refcount on swap images, so that they are only ref'd from the swapchain
-					// (and will be deleted when it is deleted)
-					record->Delete(GetResourceManager());
 				}
 				else
 				{
@@ -243,12 +240,6 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
-		for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
-		{
-			if(m_PhysicalDeviceData[i].dev == device)
-				m_SwapPhysDevice = (int)i;
-		}
-
 		for(uint32_t i=0; i < numSwapImages; i++)
 		{
 			VkDeviceMemory mem = VK_NULL_HANDLE;
@@ -272,7 +263,9 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			vkr = ObjDisp(device)->AllocMemory(Unwrap(device), &allocInfo, &mem);
 			RDCASSERT(vkr == VK_SUCCESS);
 			
-			GetResourceManager()->WrapResource(Unwrap(device), mem);
+			ResourceId memid = GetResourceManager()->WrapResource(Unwrap(device), mem);
+			// register as a live-only resource, so it is cleaned up properly
+			GetResourceManager()->AddLiveResource(memid, mem);
 
 			vkr = ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(im), Unwrap(mem), 0);
 			RDCASSERT(vkr == VK_SUCCESS);
@@ -346,12 +339,6 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSwapChain);
 			record->AddChunk(chunk);
-
-			for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
-			{
-				if(m_PhysicalDeviceData[i].dev == device)
-					m_SwapPhysDevice = (int)i;
-			}
 			
 			record->swapInfo = new SwapchainInfo();
 			SwapchainInfo &swapInfo = *record->swapInfo;
@@ -631,6 +618,10 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 			GetDebugManager()->EndText(textstate);
 
 			SubmitCmds();
+
+			// VKTODOLOW once we have a more sophisticated way of re-using submitted command
+			// buffers once they've executed and are safe to recycle, this can be removed
+			FlushQ();
 		}
 	}
 	
@@ -980,7 +971,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 		GetResourceManager()->ClearReferencedResources();
 
-		GetResourceManager()->MarkResourceFrameReferenced(m_InstanceRecord->GetResourceID(), eFrameRef_Read);
+		GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Instance), eFrameRef_Read);
 
 		// need to do all this atomically so that no other commands
 		// will check to see if they need to markdirty or markpendingdirty

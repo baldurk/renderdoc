@@ -1026,7 +1026,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
 	
 	vt->EndCommandBuffer(Unwrap(cmd));
-	driver->SubmitCmds();
 }
 
 VulkanDebugManager::~VulkanDebugManager()
@@ -1035,6 +1034,17 @@ VulkanDebugManager::~VulkanDebugManager()
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkResult vkr = VK_SUCCESS;
+
+	// since we don't have properly registered resources, releasing our descriptor
+	// pool here won't remove the descriptor sets, so we need to free our own
+	// tracking data (not the API objects) for descriptor sets.
+	
+	GetResourceManager()->ReleaseWrappedResource(m_CheckerboardDescSet);
+	GetResourceManager()->ReleaseWrappedResource(m_GenericDescSet);
+	GetResourceManager()->ReleaseWrappedResource(m_TextDescSet);
+	
+	for(size_t i=0; i < ARRAY_COUNT(m_TexDisplayDescSet); i++)
+		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDescSet[i]);
 
 	if(m_DescriptorPool != VK_NULL_HANDLE)
 	{

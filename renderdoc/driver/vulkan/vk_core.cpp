@@ -263,8 +263,6 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 		m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
 	}
 
-	m_SwapPhysDevice = -1;
-
 	m_Replay.SetDriver(this);
 
 	m_FrameCounter = 0;
@@ -330,32 +328,20 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 WrappedVulkan::~WrappedVulkan()
 {
-	// VKTODOLOW shutdown order is really up in the air
-	for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
+	// records must be deleted before resource manager shutdown
+	if(m_FrameCaptureRecord)
 	{
-		SAFE_DELETE(m_PhysicalDeviceData[i].debugMan);
-		
-		if(m_PhysicalDeviceData[i].cmdpool != VK_NULL_HANDLE)
-		{
-			ObjDisp(m_PhysicalDeviceData[i].dev)->DestroyCommandPool(Unwrap(m_PhysicalDeviceData[i].dev), Unwrap(m_PhysicalDeviceData[i].cmdpool));
-			GetResourceManager()->ReleaseWrappedResource(m_PhysicalDeviceData[i].cmdpool);
-		}
+		RDCASSERT(m_FrameCaptureRecord->GetRefCount() == 1);
+		m_FrameCaptureRecord->Delete(GetResourceManager());
+		m_FrameCaptureRecord = NULL;
 	}
 
+	// in case the application leaked some objects, avoid crashing trying
+	// to release them ourselves by clearing the resource manager.
+	// In a well-behaved application, this should be a no-op.
+	m_ResourceManager->ClearWithoutReleasing();
 	SAFE_DELETE(m_ResourceManager);
 		
-	for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
-		if(m_PhysicalDeviceData[i].dev != VK_NULL_HANDLE)
-			vkDestroyDevice(m_PhysicalDeviceData[i].dev);
-	
-	// VKTODOLOW only one instance
-	if(m_PhysicalDeviceData[0].inst != VK_NULL_HANDLE)
-	{
-		VkInstance instance = Unwrap(m_PhysicalDeviceData[0].inst);
-
-		ObjDisp(m_PhysicalDeviceData[0].inst)->DestroyInstance(instance);
-	}
-
 	SAFE_DELETE(m_pSerialiser);
 
 	for(size_t i=0; i < m_ThreadSerialisers.size(); i++)
@@ -370,64 +356,55 @@ WrappedVulkan::~WrappedVulkan()
 
 VkCmdBuffer WrappedVulkan::GetNextCmd()
 {
-	RDCASSERT(m_SwapPhysDevice >= 0);
-	PhysicalDeviceData &rd = m_PhysicalDeviceData[m_SwapPhysDevice];
-
 	VkCmdBuffer ret;
 
-	if(!rd.freecmds.empty())
+	if(!m_InternalCmds.freecmds.empty())
 	{
-		ret = rd.freecmds.back();
-		rd.freecmds.pop_back();
+		ret = m_InternalCmds.freecmds.back();
+		m_InternalCmds.freecmds.pop_back();
 
 		ObjDisp(ret)->ResetCommandBuffer(Unwrap(ret), 0);
 	}
 	else
 	{	
-		VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, Unwrap(rd.cmdpool), VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-		VkResult vkr = ObjDisp(rd.dev)->CreateCommandBuffer(Unwrap(rd.dev), &cmdInfo, &ret);
+		VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, Unwrap(m_InternalCmds.m_CmdPool), VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
+		VkResult vkr = ObjDisp(m_Device)->CreateCommandBuffer(Unwrap(m_Device), &cmdInfo, &ret);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		GetResourceManager()->WrapResource(Unwrap(rd.dev), ret);
+		GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
 	}
 
-	rd.pendingcmds.push_back(ret);
+	m_InternalCmds.pendingcmds.push_back(ret);
 
 	return ret;
 }
 
 void WrappedVulkan::SubmitCmds()
 {
-	RDCASSERT(m_SwapPhysDevice >= 0);
-	PhysicalDeviceData &rd = m_PhysicalDeviceData[m_SwapPhysDevice];
-
 	// nothing to do
-	if(rd.pendingcmds.empty())
+	if(m_InternalCmds.pendingcmds.empty())
 		return;
 
-	vector<VkCmdBuffer> cmds = rd.pendingcmds;
+	vector<VkCmdBuffer> cmds = m_InternalCmds.pendingcmds;
 	for(size_t i=0; i < cmds.size(); i++) cmds[i] = Unwrap(cmds[i]);
 
-	ObjDisp(rd.q)->QueueSubmit(Unwrap(rd.q), (uint32_t)cmds.size(), &cmds[0], VK_NULL_HANDLE);
+	ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), (uint32_t)cmds.size(), &cmds[0], VK_NULL_HANDLE);
 
-	rd.submittedcmds.insert(rd.submittedcmds.end(), rd.pendingcmds.begin(), rd.pendingcmds.end());
-	rd.pendingcmds.clear();
+	m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(), m_InternalCmds.pendingcmds.begin(), m_InternalCmds.pendingcmds.end());
+	m_InternalCmds.pendingcmds.clear();
 }
 
 void WrappedVulkan::FlushQ()
 {
-	RDCASSERT(m_SwapPhysDevice >= 0);
-	PhysicalDeviceData &rd = m_PhysicalDeviceData[m_SwapPhysDevice];
-
 	// VKTODOLOW could do away with the need for this function by keeping
 	// commands until N presents later, or something, or checking on fences
 
-	ObjDisp(rd.q)->QueueWaitIdle(Unwrap(rd.q));
+	ObjDisp(m_Queue)->QueueWaitIdle(Unwrap(m_Queue));
 
-	if(!rd.submittedcmds.empty())
+	if(!m_InternalCmds.submittedcmds.empty())
 	{
-		rd.freecmds.insert(rd.freecmds.end(), rd.submittedcmds.begin(), rd.submittedcmds.end());
-		rd.submittedcmds.clear();
+		m_InternalCmds.freecmds.insert(m_InternalCmds.freecmds.end(), m_InternalCmds.submittedcmds.begin(), m_InternalCmds.submittedcmds.end());
+		m_InternalCmds.submittedcmds.clear();
 	}
 }
 
@@ -746,13 +723,8 @@ void WrappedVulkan::ReadLogInitialisation()
 	
 	m_pSerialiser->SetDebugText(false);
 
-	RDCASSERT(m_SwapPhysDevice >= 0 &&
-	            m_PhysicalDeviceData[m_SwapPhysDevice].dev != VK_NULL_HANDLE &&
-	            m_PhysicalDeviceData[m_SwapPhysDevice].q != VK_NULL_HANDLE &&
-	            m_PhysicalDeviceData[m_SwapPhysDevice].cmdpool != VK_NULL_HANDLE);
-
-	// VKTODOLOW maybe better place to put this?
-	m_PhysicalDeviceData[m_SwapPhysDevice].debugMan = new VulkanDebugManager(this, GetDev());
+	// ensure the capture at least created a device and fetched a queue.
+	RDCASSERT(m_Device != VK_NULL_HANDLE && m_Queue != VK_NULL_HANDLE && m_InternalCmds.m_CmdPool != VK_NULL_HANDLE);
 }
 
 void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial)

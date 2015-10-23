@@ -60,6 +60,26 @@ DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
 // needs to be separate because it returns VkResult still
 VkResult WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj)
 {
+	// release internal rendering objects we created for rendering the overlay
+	{
+		SwapchainInfo &info = *GetRecord(obj)->swapInfo;
+		VkRenderPass unwrappedRP = Unwrap(info.rp);
+		GetResourceManager()->ReleaseWrappedResource(info.rp, true);
+		ObjDisp(device)->DestroyRenderPass(Unwrap(device), unwrappedRP);
+
+		for(size_t i=0; i < info.images.size(); i++)
+		{
+			VkFramebuffer unwrappedFB = Unwrap(info.images[i].fb);
+			VkImageView unwrappedView = Unwrap(info.images[i].view);
+			GetResourceManager()->ReleaseWrappedResource(info.images[i].fb, true);
+			// note, image doesn't have to be destroyed, just untracked
+			GetResourceManager()->ReleaseWrappedResource(info.images[i].im, true);
+			GetResourceManager()->ReleaseWrappedResource(info.images[i].view, true);
+			ObjDisp(device)->DestroyFramebuffer(Unwrap(device), unwrappedFB);
+			ObjDisp(device)->DestroyImageView(Unwrap(device), unwrappedView);
+		}
+	}
+
 	VkSwapchainKHR unwrappedObj = Unwrap(obj);
 	if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true);
 	return ObjDisp(device)->DestroySwapchainKHR(Unwrap(device), unwrappedObj);
@@ -106,8 +126,9 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 	VkDevice dev = GetDev();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	WrappedVkDispRes *disp = (WrappedVkDispRes *)res;
 	WrappedVkNonDispRes *nondisp = (WrappedVkNonDispRes *)res;
+	WrappedVkDispRes *disp = (WrappedVkDispRes *)res;
+	uint64_t handle = (uint64_t)nondisp;
 
 	switch(IdentifyTypeByPtr(res))
 	{
@@ -121,79 +142,125 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 		case eResUnknown:
 			RDCERR("Unknown resource type!");
 			break;
-
-		case eResPhysicalDevice:
-		case eResQueue:
-		case eResDescriptorSet:
+			
 		case eResCmdBuffer:
-			// nothing to do - destroyed with parent object
+			// special case here, on replay we don't have the tracking
+			// to remove these with the parent object so do it here.
+			// This ensures we clean up after ourselves with a well-
+			// behaved application.
+			if(m_State < WRITING)
+				GetResourceManager()->ReleaseWrappedResource((VkCmdBuffer)res);
+			break;
+		case eResDescriptorSet:
+			if(m_State < WRITING)
+				GetResourceManager()->ReleaseWrappedResource(VkDescriptorSet(handle));
+			break;
+		case eResPhysicalDevice:
+			if(m_State < WRITING)
+				GetResourceManager()->ReleaseWrappedResource((VkPhysicalDevice)disp);
+			break;
+		case eResQueue:
+			if(m_State < WRITING)
+				GetResourceManager()->ReleaseWrappedResource((VkQueue)disp);
 			break;
 			
-		case eResInstance:
 		case eResDevice:
 			// these are explicitly released elsewhere, do not need to destroy
-			// any API objects
+			// any API objects.
+			// On replay though we do need to tidy up book-keeping for these.
+			if(m_State < WRITING)
+			{
+				GetResourceManager()->ReleaseCurrentResource(disp->id);
+				GetResourceManager()->RemoveWrapper(ToTypedHandle(disp->real.As<VkDevice>()));
+			}
+			break;
+		case eResInstance:
+			if(m_State < WRITING)
+			{
+				GetResourceManager()->ReleaseCurrentResource(disp->id);
+				GetResourceManager()->RemoveWrapper(ToTypedHandle(disp->real.As<VkInstance>()));
+			}
 			break;
 
 		case eResDeviceMemory:
 			vt->FreeMemory(Unwrap(dev), nondisp->real.As<VkDeviceMemory>());
+			GetResourceManager()->ReleaseWrappedResource(VkDeviceMemory(handle));
 			break;
 		case eResBuffer:
 			vt->DestroyBuffer(Unwrap(dev), nondisp->real.As<VkBuffer>());
+			GetResourceManager()->ReleaseWrappedResource(VkBuffer(handle));
 			break;
 		case eResBufferView:
 			vt->DestroyBufferView(Unwrap(dev), nondisp->real.As<VkBufferView>());
+			GetResourceManager()->ReleaseWrappedResource(VkBufferView(handle));
 			break;
 		case eResImage:
 			vt->DestroyImage(Unwrap(dev), nondisp->real.As<VkImage>());
+			GetResourceManager()->ReleaseWrappedResource(VkImage(handle));
 			break;
 		case eResImageView:
 			vt->DestroyImageView(Unwrap(dev), nondisp->real.As<VkImageView>());
+			GetResourceManager()->ReleaseWrappedResource(VkImageView(handle));
 			break;
 		case eResFramebuffer:
 			vt->DestroyFramebuffer(Unwrap(dev), nondisp->real.As<VkFramebuffer>());
+			GetResourceManager()->ReleaseWrappedResource(VkFramebuffer(handle));
 			break;
 		case eResRenderPass:
 			vt->DestroyRenderPass(Unwrap(dev), nondisp->real.As<VkRenderPass>());
+			GetResourceManager()->ReleaseWrappedResource(VkRenderPass(handle));
 			break;
 		case eResShaderModule:
 			vt->DestroyShaderModule(Unwrap(dev), nondisp->real.As<VkShaderModule>());
+			GetResourceManager()->ReleaseWrappedResource(VkShaderModule(handle));
 			break;
 		case eResShader:
 			vt->DestroyShader(Unwrap(dev), nondisp->real.As<VkShader>());
+			GetResourceManager()->ReleaseWrappedResource(VkShader(handle));
 			break;
 		case eResPipelineCache:
 			vt->DestroyPipelineCache(Unwrap(dev), nondisp->real.As<VkPipelineCache>());
+			GetResourceManager()->ReleaseWrappedResource(VkPipelineCache(handle));
 			break;
 		case eResPipelineLayout:
 			vt->DestroyPipelineLayout(Unwrap(dev), nondisp->real.As<VkPipelineLayout>());
+			GetResourceManager()->ReleaseWrappedResource(VkPipelineLayout(handle));
 			break;
 		case eResPipeline:
 			vt->DestroyPipeline(Unwrap(dev), nondisp->real.As<VkPipeline>());
+			GetResourceManager()->ReleaseWrappedResource(VkPipeline(handle));
 			break;
 		case eResSampler:
 			vt->DestroySampler(Unwrap(dev), nondisp->real.As<VkSampler>());
+			GetResourceManager()->ReleaseWrappedResource(VkSampler(handle));
 			break;
 		case eResDescriptorPool:
 			vt->DestroyDescriptorPool(Unwrap(dev), nondisp->real.As<VkDescriptorPool>());
+			GetResourceManager()->ReleaseWrappedResource(VkDescriptorPool(handle));
 			break;
 		case eResDescriptorSetLayout:
 			vt->DestroyDescriptorSetLayout(Unwrap(dev), nondisp->real.As<VkDescriptorSetLayout>());
+			GetResourceManager()->ReleaseWrappedResource(VkDescriptorSetLayout(handle));
 			break;
 		case eResCmdPool:
 			vt->DestroyCommandPool(Unwrap(dev), nondisp->real.As<VkCmdPool>());
+			GetResourceManager()->ReleaseWrappedResource(VkCmdPool(handle));
 			break;
 		case eResFence:
 			vt->DestroyFence(Unwrap(dev), nondisp->real.As<VkFence>());
+			GetResourceManager()->ReleaseWrappedResource(VkFence(handle));
 			break;
 		case eResEvent:
 			vt->DestroyEvent(Unwrap(dev), nondisp->real.As<VkEvent>());
+			GetResourceManager()->ReleaseWrappedResource(VkEvent(handle));
 			break;
 		case eResQueryPool:
 			vt->DestroyQueryPool(Unwrap(dev), nondisp->real.As<VkQueryPool>());
+			GetResourceManager()->ReleaseWrappedResource(VkQueryPool(handle));
 			break;
 		case eResSemaphore:
 			vt->DestroySemaphore(Unwrap(dev), nondisp->real.As<VkSemaphore>());
+			GetResourceManager()->ReleaseWrappedResource(VkSemaphore(handle));
 			break;
 	}
 
@@ -405,7 +472,10 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 			ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, &rpinfo.loadRP);
 			RDCASSERT(ret == VK_SUCCESS);
 
-			GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
+			ResourceId loadRPid = GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
+			
+			// register as a live-only resource, so it is cleaned up properly
+			GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRP);
 		
 			m_CreationInfo.m_RenderPass[live] = rpinfo;
 		}
@@ -468,7 +538,10 @@ VkResult WrappedVulkan::vkCreateRenderPass(
 			ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, &rpinfo.loadRP);
 			RDCASSERT(ret == VK_SUCCESS);
 
-			GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
+			ResourceId loadRPid = GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
+			
+			// register as a live-only resource, so it is cleaned up properly
+			GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRP);
 
 			m_CreationInfo.m_RenderPass[id] = rpinfo;
 		}

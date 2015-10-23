@@ -27,12 +27,12 @@
 bool WrappedVulkan::Serialise_vkGetDeviceQueue(
 		Serialiser*                                 localSerialiser,
     VkDevice                                    device,
-    uint32_t                                    queueNodeIndex,
+    uint32_t                                    queueFamilyIndex,
     uint32_t                                    queueIndex,
     VkQueue*                                    pQueue)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT(uint32_t, nodeIdx, queueNodeIndex);
+	SERIALISE_ELEMENT(uint32_t, familyIdx, queueFamilyIndex);
 	SERIALISE_ELEMENT(uint32_t, idx, queueIndex);
 	SERIALISE_ELEMENT(ResourceId, queueId, GetResID(*pQueue));
 
@@ -41,17 +41,21 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 
 		VkQueue queue;
-		VkResult ret = ObjDisp(device)->GetDeviceQueue(Unwrap(device), nodeIdx, idx, &queue);
+		VkResult ret = ObjDisp(device)->GetDeviceQueue(Unwrap(device), familyIdx, idx, &queue);
 
 		VkQueue real = queue;
 
 		GetResourceManager()->WrapResource(Unwrap(device), queue);
 		GetResourceManager()->AddLiveResource(queueId, queue);
-		
-		// VKTODOMED hack - fixup unwrapped queue objects, because we tried to fill them
-		// out early
-		for(size_t i=0; i < m_PhysicalDeviceData.size(); i++)
-			if(m_PhysicalDeviceData[i].q == real) m_PhysicalDeviceData[i].q = queue;
+
+		if(familyIdx == m_QueueFamilyIdx)
+		{
+			m_Queue = queue;
+			
+			// we can now submit any cmds that were queued (e.g. from creating debug
+			// manager on vkCreateDevice)
+			SubmitCmds();
+		}
 	}
 
 	return true;
@@ -59,11 +63,11 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(
 
 VkResult WrappedVulkan::vkGetDeviceQueue(
     VkDevice                                    device,
-    uint32_t                                    queueNodeIndex,
+    uint32_t                                    queueFamilyIndex,
     uint32_t                                    queueIndex,
     VkQueue*                                    pQueue)
 {
-	VkResult ret = ObjDisp(device)->GetDeviceQueue(Unwrap(device), queueNodeIndex, queueIndex, pQueue);
+	VkResult ret = ObjDisp(device)->GetDeviceQueue(Unwrap(device), queueFamilyIndex, queueIndex, pQueue);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -86,7 +90,7 @@ VkResult WrappedVulkan::vkGetDeviceQueue(
 					CACHE_THREAD_SERIALISER();
 
 					SCOPED_SERIALISE_CONTEXT(GET_DEVICE_QUEUE);
-					Serialise_vkGetDeviceQueue(localSerialiser, device, queueNodeIndex, queueIndex, pQueue);
+					Serialise_vkGetDeviceQueue(localSerialiser, device, queueFamilyIndex, queueIndex, pQueue);
 
 					chunk = scope.Get();
 				}
@@ -94,13 +98,29 @@ VkResult WrappedVulkan::vkGetDeviceQueue(
 				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pQueue);
 				RDCASSERT(record);
 
-				m_InstanceRecord->queues.push_back(*pQueue);
+				VkResourceRecord *instrecord = GetRecord(m_Instance);
+
+				// treat queues as pool members of the instance (ie. freed when the instance dies)
+				{
+					instrecord->LockChunks();
+					instrecord->pooledChildren.push_back(record);
+					instrecord->UnlockChunks();
+				}
 
 				record->AddChunk(chunk);
 			}
 			else
 			{
 				GetResourceManager()->AddLiveResource(id, *pQueue);
+			}
+
+			if(queueFamilyIndex == m_QueueFamilyIdx)
+			{
+				m_Queue = *pQueue;
+
+				// we can now submit any cmds that were queued (e.g. from creating debug
+				// manager on vkCreateDevice)
+				SubmitCmds();
 			}
 		}
 	}

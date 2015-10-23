@@ -128,8 +128,6 @@ private:
 	VulkanReplay m_Replay;
 
 	VkInitParams m_InitParams;
-
-	VkResourceRecord *m_InstanceRecord;
 		
 	VkResourceRecord *m_FrameCaptureRecord;
 	Chunk *m_HeaderChunk;
@@ -144,6 +142,7 @@ private:
 	vector<VkResourceRecord *> m_CmdBufferRecords;
 
 	VulkanResourceManager *m_ResourceManager;
+	VulkanDebugManager *m_DebugManager;
 
 	Threading::CriticalSection m_CapTransitionLock;
 	
@@ -158,27 +157,12 @@ private:
 	struct PhysicalDeviceData
 	{
 		PhysicalDeviceData()
-			: inst(VK_NULL_HANDLE), phys(VK_NULL_HANDLE)
-			, qFamilyIdx(0), dev(VK_NULL_HANDLE), q(VK_NULL_HANDLE)
-			, cmdpool(VK_NULL_HANDLE), debugMan(NULL) {}
-
-		VkInstance inst;
-		VkPhysicalDevice phys;
-		VkDevice dev;
-		uint32_t qFamilyIdx;
-		VkQueue q;
+			: readbackMemIndex(0), uploadMemIndex(0), GPULocalMemIndex(0)
+		{
+			RDCEraseEl(features);
+			RDCEraseEl(memProps);
+		}
 		
-		vector<VkCmdBuffer> freecmds;
-		// -> record ->
-		vector<VkCmdBuffer> pendingcmds;
-		// -> submit ->
-		vector<VkCmdBuffer> submittedcmds;
-		// -> flush/waitidle -> freecmds
-
-		VkCmdPool cmdpool;
-
-		VulkanDebugManager *debugMan;
-
 		uint32_t GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps, uint32_t allocUndesiredProps); 
 
 		// store the three most common memory indices:
@@ -192,26 +176,45 @@ private:
 		VkPhysicalDeviceFeatures features;
 		VkPhysicalDeviceMemoryProperties memProps;
 	};
-	vector<PhysicalDeviceData> m_PhysicalDeviceData;
-	int m_SwapPhysDevice;
 
 	VkInstance m_Instance; // the instance corresponding to this WrappedVulkan
-	vector<VkDevice> m_Devices; // the devices created under this instance
 	VkDbgMsgCallback m_DbgMsgCallback; // the instance's dbg msg callback handle
+	VkDevice m_Device; // the device used for our own command buffer work
+	PhysicalDeviceData m_PhysicalDeviceData; // the data about the physical device used for the above device;
+	uint32_t m_QueueFamilyIdx; // the family index that we've selected in CreateDevice for our queue
+	VkQueue m_Queue; // the queue used for our own command buffer work
+
+	struct
+	{
+		void Reset()
+		{
+			m_CmdPool = VK_NULL_HANDLE;
+			freecmds.clear();
+			pendingcmds.clear();
+			submittedcmds.clear();
+		}
+
+		VkCmdPool m_CmdPool; // the command pool used for allocating our own command buffers
+	
+		vector<VkCmdBuffer> freecmds;
+		// -> record ->
+		vector<VkCmdBuffer> pendingcmds;
+		// -> submit ->
+		vector<VkCmdBuffer> submittedcmds;
+		// -> flush/waitidle -> freecmds
+	} m_InternalCmds;
 
 	vector<VkDeviceMemory> m_FreeMems;
-	
-	VulkanDebugManager *GetDebugManager()
-	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalDeviceData[m_SwapPhysDevice].debugMan; }
 
-	VkDevice GetDev()    { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalDeviceData[m_SwapPhysDevice].dev; }
-	VkQueue  GetQ()      { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalDeviceData[m_SwapPhysDevice].q; }
+	// return the pre-selected device and queue
+	VkDevice GetDev()    { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Device; }
+	VkQueue  GetQ()      { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Queue; }
 	VkCmdBuffer GetNextCmd();
 	void SubmitCmds();
 	void FlushQ();
 
 	const VkPhysicalDeviceFeatures &GetDeviceFeatures()
-	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalDeviceData[m_SwapPhysDevice].features; }
+	{ return m_PhysicalDeviceData.features; }
 
 	uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
 	uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);
@@ -495,6 +498,7 @@ public:
 	ResourceId GetContextResourceID() { return m_FrameCaptureRecord->GetResourceID(); }
 
 	VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
+	VulkanDebugManager *GetDebugManager() { return m_DebugManager; }
 	
 	VulkanReplay *GetReplay() { return &m_Replay; }
 	
