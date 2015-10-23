@@ -215,7 +215,7 @@ class VulkanReplay : public IReplayDriver
 		
 		WrappedVulkan *m_pDriver;
 
-		bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, bool blendAlpha);
+		bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, bool f32render);
 
 		void FillCBufferVariables(rdctype::array<ShaderConstant>, vector<ShaderVariable> &outvars, const vector<byte> &data, size_t &offset);
 

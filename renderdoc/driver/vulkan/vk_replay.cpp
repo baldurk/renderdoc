@@ -562,7 +562,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 			1, &clearval,
 		};
 
-		RenderTextureInternal(texDisplay, rpbegin, false);
+		RenderTextureInternal(texDisplay, rpbegin, true);
 	}
 
 	VkDevice dev = m_pDriver->GetDev();
@@ -660,10 +660,10 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 		1, &clearval,
 	};
 
-	return RenderTextureInternal(cfg, rpbegin, true);
+	return RenderTextureInternal(cfg, rpbegin, false);
 }
 
-bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, bool blendAlpha)
+bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, bool f32render)
 {
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
@@ -823,9 +823,13 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	{
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 		
-		bool doblend = !cfg.rawoutput && blendAlpha && cfg.CustomShader == ResourceId();
+		VkPipeline pipe = GetDebugManager()->m_TexDisplayPipeline;
+		if(f32render)
+			pipe = GetDebugManager()->m_TexDisplayF32Pipeline;
+		else if(!cfg.rawoutput && cfg.CustomShader == ResourceId())
+			pipe = GetDebugManager()->m_TexDisplayBlendPipeline;
 
-		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, doblend ? Unwrap(GetDebugManager()->m_TexDisplayBlendPipeline) : Unwrap(GetDebugManager()->m_TexDisplayPipeline));
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, UnwrapPtr(descset), 1, &uboOffs);
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };

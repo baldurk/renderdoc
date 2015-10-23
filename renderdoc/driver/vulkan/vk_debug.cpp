@@ -211,6 +211,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_TexDisplayNextSet = 0;
 	m_TexDisplayPipeline = VK_NULL_HANDLE;
 	m_TexDisplayBlendPipeline = VK_NULL_HANDLE;
+	m_TexDisplayF32Pipeline = VK_NULL_HANDLE;
 	RDCEraseEl(m_TexDisplayUBO);
 			
 	m_TextDescSetLayout = VK_NULL_HANDLE;
@@ -502,6 +503,43 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VKMGR()->WrapResource(Unwrap(dev), shader[i]);
 	}
 
+	VkRenderPass RGBA32RP, RGBA8RP; // compatible render passes for creating pipelines, either RGBA F32 or RGBA8
+
+	{
+		VkAttachmentDescription attDesc = {
+			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
+			VK_FORMAT_R8G8B8A8_UNORM, 1,
+			VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		};
+
+		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+		VkSubpassDescription sub = {
+			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
+			VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+			0, NULL, // inputs
+			1, &attRef, // color
+			NULL, // resolve
+			{ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED }, // depth-stencil
+			0, NULL, // preserve
+		};
+
+		VkRenderPassCreateInfo rpinfo = {
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+				1, &attDesc,
+				1, &sub,
+				0, NULL, // dependencies
+		};
+		
+		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA8RP);
+
+		attDesc.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA32RP);
+	}
+
 	VkPipelineShaderStageCreateInfo stages[2] = {
 		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_VERTEX, VK_NULL_HANDLE, NULL },
 		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_FRAGMENT, VK_NULL_HANDLE, NULL },
@@ -574,7 +612,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		&dyn,
 		0, // flags
 		Unwrap(m_CheckerboardPipeLayout),
-		VK_NULL_HANDLE, // render pass
+		RGBA8RP,
 		0, // sub pass
 		VK_NULL_HANDLE, // base pipeline handle
 		0, // base pipeline index
@@ -597,6 +635,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayPipeline);
+
+	pipeInfo.renderPass = RGBA32RP;
+
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_TexDisplayF32Pipeline);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayF32Pipeline);
+
+	pipeInfo.renderPass = RGBA8RP;
 
 	attState.blendEnable = true;
 	attState.srcBlendColor = VK_BLEND_SRC_ALPHA;
@@ -647,6 +694,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VKMGR()->WrapResource(Unwrap(dev), m_GenericPipeline);
+
+	vt->DestroyRenderPass(Unwrap(dev), RGBA32RP);
+	vt->DestroyRenderPass(Unwrap(dev), RGBA8RP);
 
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
@@ -1037,6 +1087,12 @@ VulkanDebugManager::~VulkanDebugManager()
 	{
 		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TexDisplayBlendPipeline));
 		VKMGR()->ReleaseWrappedResource(m_TexDisplayBlendPipeline);
+	}
+
+	if(m_TexDisplayF32Pipeline != VK_NULL_HANDLE)
+	{
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TexDisplayF32Pipeline));
+		VKMGR()->ReleaseWrappedResource(m_TexDisplayF32Pipeline);
 	}
 
 	m_CheckerboardUBO.Destroy(vt, dev);

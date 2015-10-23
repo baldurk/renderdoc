@@ -95,7 +95,7 @@ class VulkanDebugManager
 		VkPipelineLayout m_TexDisplayPipeLayout;
 		VkDescriptorSet m_TexDisplayDescSet[16]; // ring buffered to allow multiple texture renders between flushes
 		uint32_t m_TexDisplayNextSet;
-		VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline;
+		VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline, m_TexDisplayF32Pipeline;
 		GPUBuffer m_TexDisplayUBO;
 
 		VkDescriptorSet GetTexDisplayDescSet()
