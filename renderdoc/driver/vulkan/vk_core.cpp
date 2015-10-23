@@ -328,9 +328,6 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 	threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
 	tempMemoryTLSSlot = Threading::AllocateTLSSlot();
-	
-
-	// VKTODOHIGH need to deallocate m_ThreadSerialisers and m_ThreadTempMem
 
 	m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
 	
