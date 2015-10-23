@@ -688,9 +688,10 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 			0
 		};
 
-		// temporary hack, this should change soon, but identity channel swizzle has to match channels
-		if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
-			std::swap(viewInfo.channels.r, viewInfo.channels.b);
+		// Only needed on AMD - does the wrong thing on nvidia - so commented for now while AMD
+		// drivers aren't on 0.9.2
+		//if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
+			//std::swap(viewInfo.channels.r, viewInfo.channels.b);
 
 		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, &iminfo.view);
 		RDCASSERT(vkr == VK_SUCCESS);
