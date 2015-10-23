@@ -128,34 +128,38 @@ struct WrappedVkNonDispRes : public WrappedVkRes
 	VkResourceRecord *record;
 };
 
+class WrappedVulkan;
+
 struct WrappedVkDispRes : public WrappedVkRes
 {
-	WrappedVkDispRes(VkInstance obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL)
+	WrappedVkDispRes(VkInstance obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL), core(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 
-	WrappedVkDispRes(VkPhysicalDevice obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL)
+	WrappedVkDispRes(VkPhysicalDevice obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL), core(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 	
-	WrappedVkDispRes(VkDevice obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL)
+	WrappedVkDispRes(VkDevice obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL), core(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 
-	WrappedVkDispRes(VkQueue obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL)
+	WrappedVkDispRes(VkQueue obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL), core(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 
-	WrappedVkDispRes(VkCmdBuffer obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL)
+	WrappedVkDispRes(VkCmdBuffer obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL), core(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
-
-	// VKTODOLOW there's padding here on 32-bit but I don't know if I really care about 32-bit.
 
 	// preserve dispatch table pointer in dispatchable objects
 	uintptr_t loaderTable, table;
 	RealVkRes real;
 	ResourceId id;
 	VkResourceRecord *record;
+	// we store this here so that any entry point with a dispatchable object can find the
+	// write instance to invoke into, without needing to keep any around. Its lifetime is
+	// tied to the VkInstance
+	WrappedVulkan *core;
 };
 
 // ensure the structs don't accidentally get made larger
-RDCCOMPILE_ASSERT(sizeof(WrappedVkDispRes) == (sizeof(uint64_t)*3 + sizeof(uintptr_t)*2), "Wrapped resource struct has changed size! This is bad");
+RDCCOMPILE_ASSERT(sizeof(WrappedVkDispRes) == (sizeof(uint64_t)*2 + sizeof(uintptr_t)*4), "Wrapped resource struct has changed size! This is bad");
 RDCCOMPILE_ASSERT(sizeof(WrappedVkNonDispRes) == sizeof(uint64_t)*3, "Wrapped resource struct has changed size! This is bad");
 
 // VKTODOLOW check that the pool counts approximated below are good for typical applications
@@ -450,6 +454,12 @@ typename UnwrapHelper<RealType>::Outer::DispatchTableType *ObjDisp(RealType obj)
 }
 
 template<typename RealType>
+WrappedVulkan *CoreDisp(RealType obj)
+{
+	return (WrappedVulkan *)GetWrapped(obj)->core;
+}
+
+template<typename RealType>
 RealType Unwrap(RealType obj)
 {
 	if(obj == VK_NULL_HANDLE) return VK_NULL_HANDLE;
@@ -500,17 +510,17 @@ TypedRealHandle ToTypedHandle(RealType obj)
 }
 
 template<typename parenttype, typename wrappedtype>
-inline void SetTableIfDispatchable(bool writing, parenttype parent, wrappedtype *obj) {}
-template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVkInstance *obj)
-{ SetDispatchTable(writing, parent, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVkPhysicalDevice *obj)
-{ SetDispatchTable(writing, parent, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkDevice *obj)
-{ SetDispatchTable(writing, parent, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkQueue *obj)
-{ SetDispatchTable(writing, parent, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkCmdBuffer *obj)
-{ SetDispatchTable(writing, parent, obj); }
+inline void SetTableIfDispatchable(bool writing, parenttype parent, WrappedVulkan *core, wrappedtype *obj) {}
+template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVulkan *core, WrappedVkInstance *obj)
+{ SetDispatchTable(writing, parent, core, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVulkan *core, WrappedVkPhysicalDevice *obj)
+{ SetDispatchTable(writing, parent, core, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVulkan *core, WrappedVkDevice *obj)
+{ SetDispatchTable(writing, parent, core, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVulkan *core, WrappedVkQueue *obj)
+{ SetDispatchTable(writing, parent, core, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVulkan *core, WrappedVkCmdBuffer *obj)
+{ SetDispatchTable(writing, parent, core, obj); }
 
 bool IsDispatchableRes(WrappedVkRes *ptr);
 VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr);

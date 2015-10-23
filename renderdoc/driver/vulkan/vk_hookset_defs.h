@@ -179,8 +179,6 @@
 	HookInit(QueuePresentKHR);
 
 #define DefineHooks() \
-	HookDefine2(VkResult, vkCreateInstance, const VkInstanceCreateInfo*, pCreateInfo, VkInstance*, pInstance); \
-	HookDefine1(void, vkDestroyInstance, VkInstance, instance); \
 	HookDefine3(VkResult, vkEnumeratePhysicalDevices, VkInstance, instance, uint32_t*, pPhysicalDeviceCount, VkPhysicalDevice*, pPhysicalDevices); \
 	HookDefine2(VkResult, vkGetPhysicalDeviceFeatures, VkPhysicalDevice, physicalDevice, VkPhysicalDeviceFeatures*, pFeatures); \
 	HookDefine3(VkResult, vkGetPhysicalDeviceFormatProperties, VkPhysicalDevice, physicalDevice, VkFormat, format, VkFormatProperties*, pFormatProperties); \

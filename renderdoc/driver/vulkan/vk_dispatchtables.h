@@ -41,9 +41,12 @@ void InitDeviceReplayTables(VkDevice device);
 VkLayerDispatchTable *GetDeviceDispatchTable(void *device);
 VkLayerInstanceDispatchTable *GetInstanceDispatchTable(void *instance);
 
+class WrappedVulkan;
+
 template<typename parenttype, typename wrappedtype>
-void SetDispatchTable(bool writing, parenttype parent, wrappedtype *wrapped)
+void SetDispatchTable(bool writing, parenttype parent, WrappedVulkan *core, wrappedtype *wrapped)
 {
+	wrapped->core = core;
 	if(writing)
 	{
 		wrapped->table = wrappedtype::UseInstanceDispatchTable

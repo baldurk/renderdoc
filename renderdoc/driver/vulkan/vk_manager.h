@@ -112,7 +112,7 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 			ResourceId id = ResourceIDGen::GetNewUniqueID();
 			typename UnwrapHelper<realtype>::Outer *wrapped = new typename UnwrapHelper<realtype>::Outer(obj, id);
 			
-			SetTableIfDispatchable(m_State >= WRITING, parentObj, wrapped);
+			SetTableIfDispatchable(m_State >= WRITING, parentObj, m_Core, wrapped);
 
 			AddCurrentResource(id, wrapped);
 

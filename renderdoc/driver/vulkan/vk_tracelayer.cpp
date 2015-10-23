@@ -30,6 +30,7 @@
 
 #include "vk_common.h"
 #include "vk_core.h"
+#include "vk_resources.h"
 #include "vk_hookset_defs.h"
 
 #include "common/common.h"
@@ -48,39 +49,51 @@ void InitInstanceTable(const VkBaseLayerObject *obj);
 
 // RenderDoc State
 
-WrappedVulkan *shadowVulkan = NULL;
+// RenderDoc Intercepts, these must all be entry points with a dispatchable object
+// as the first parameter
 
-// RenderDoc Intercepts
-
-#define HookDefine0(ret, function) \
-	ret VKAPI CONCAT(hooked_, function)() \
-	{ return shadowVulkan->function(); }
 #define HookDefine1(ret, function, t1, p1) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1) \
-	{ return shadowVulkan->function(p1); }
+	{ return CoreDisp(p1)->function(p1); }
 #define HookDefine2(ret, function, t1, p1, t2, p2) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2) \
-	{ return shadowVulkan->function(p1, p2); }
+	{ return CoreDisp(p1)->function(p1, p2); }
 #define HookDefine3(ret, function, t1, p1, t2, p2, t3, p3) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3) \
-	{ return shadowVulkan->function(p1, p2, p3); }
+	{ return CoreDisp(p1)->function(p1, p2, p3); }
 #define HookDefine4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4) \
-	{ return shadowVulkan->function(p1, p2, p3, p4); }
+	{ return CoreDisp(p1)->function(p1, p2, p3, p4); }
 #define HookDefine5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
-	{ return shadowVulkan->function(p1, p2, p3, p4, p5); }
+	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5); }
 #define HookDefine6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
-	{ return shadowVulkan->function(p1, p2, p3, p4, p5, p6); }
+	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6); }
 #define HookDefine7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
-	{ return shadowVulkan->function(p1, p2, p3, p4, p5, p6, p7); }
+	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7); }
 #define HookDefine8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
 	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
-	{ return shadowVulkan->function(p1, p2, p3, p4, p5, p6, p7, p8); }
+	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8); }
 
 DefineHooks();
+
+// need to implement vkCreateInstance and vkDestroyInstance specially,
+// to create and destroy the core WrappedVulkan object
+
+VkResult hooked_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, VkInstance* pInstance)
+{
+	WrappedVulkan *core = new WrappedVulkan("");
+	return core->vkCreateInstance(pCreateInfo, pInstance);
+}
+
+void hooked_vkDestroyInstance(VkInstance instance)
+{
+	WrappedVulkan *core = CoreDisp(instance);
+	core->vkDestroyInstance(instance);
+	delete core;
+}
 
 // Layer Intercepts
 
@@ -184,11 +197,6 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDoc_GetInstanceProcAddr(VkInstanc
 	/* loader uses this to force layer initialization; instance object is wrapped */
 	if (!strcmp("vkGetInstanceProcAddr", pName)) {
 		InitInstanceTable((const VkBaseLayerObject *) instance);
-		// VKTODOLOW I think this will be created and passed down in wrapped dispatchable
-		// objects
-		if (shadowVulkan == NULL) {
-			shadowVulkan = new WrappedVulkan("");
-		}
 		return (PFN_vkVoidFunction) &RenderDoc_GetInstanceProcAddr;
 	}
 
