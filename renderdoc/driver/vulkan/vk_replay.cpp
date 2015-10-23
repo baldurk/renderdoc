@@ -952,7 +952,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 		secondOutline.Scale = Vec4f(xdim+xpixdim*2, ydim+ypixdim*2, 1.0f, 1.0f);
 		secondOutline.Color = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
 
-		vt->CmdUpdateBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_GenericUBO.buf), 0, sizeof(genericuniforms), (uint32_t *)&secondOutline);
+		vt->CmdUpdateBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_GenericUBO.buf), uboOffs, sizeof(genericuniforms), (uint32_t *)&secondOutline);
 		
 		vt->CmdDraw(Unwrap(cmd), 8, 1, 0, 0);
 
