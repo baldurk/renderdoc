@@ -1733,7 +1733,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		VkPipelineColorBlendStateCreateInfo *cb = (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
 		cb->logicOpEnable = false;
 		cb->attachmentCount = 1; // only one colour attachment
-		for(uint32_t i=0; i < cb->attachmentCount; cb++)
+		for(uint32_t i=0; i < cb->attachmentCount; i++)
 		{
 			VkPipelineColorBlendAttachmentState *att = (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
 			att->blendEnable = false;
