@@ -778,8 +778,8 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 
 		VkImageUsageFlags origusage = info.usage;
 
-		// ensure we can always display and copy from textures
-		info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT;
+		// ensure we can always display and copy from/to textures
+		info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT;
 
 		VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &info, &img);
 
