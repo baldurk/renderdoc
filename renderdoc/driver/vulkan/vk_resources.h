@@ -125,12 +125,7 @@ struct WrappedVkNonDispRes : public WrappedVkRes
 	
 	RealVkRes real;
 	ResourceId id;
-	union
-	{
-		VkResourceRecord *record;
-		// Do we need something here for per-object replay information?
-		void *replayInformation;
-	};
+	VkResourceRecord *record;
 };
 
 struct WrappedVkDispRes : public WrappedVkRes
@@ -156,12 +151,7 @@ struct WrappedVkDispRes : public WrappedVkRes
 	uintptr_t loaderTable, table;
 	RealVkRes real;
 	ResourceId id;
-	union
-	{
-		VkResourceRecord *record;
-		// Do we need something here for per-object replay information?
-		void *replayInformation;
-	};
+	VkResourceRecord *record;
 };
 
 // ensure the structs don't accidentally get made larger
