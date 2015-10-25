@@ -929,7 +929,35 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 		
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramPipeRes(GetCtx(), pipeline));
 		RDCASSERT(record);
-		record->AddChunk(scope.Get());
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			// USE_PROGRAMSTAGES is one of the few kinds of chunk that are
+			// recorded to pipeline records, so we can probably find previous
+			// uses (if it's been constantly rebound instead of once at init
+			// time) that can be popped as redundant
+			record->LockChunks();
+			while(true)
+			{
+				Chunk *end = record->GetLastChunk();
+
+				if(end->GetChunkType() == USE_PROGRAMSTAGES)
+				{
+					SAFE_DELETE(end);
+					record->PopChunk();
+					continue;
+				}
+
+				break;
+			}
+			record->UnlockChunks();
+
+			record->AddChunk(scope.Get());
+		}
 
 		if(program)
 		{
