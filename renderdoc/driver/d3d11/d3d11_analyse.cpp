@@ -3511,7 +3511,12 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 			}
 			else
 			{
+				cur.DepthEnable = TRUE;
+				cur.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 				cur.DepthFunc = D3D11_COMPARISON_LESS; // default depth func
+				cur.StencilEnable = FALSE;
+				cur.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+				cur.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
 				cur.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 				cur.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
 				cur.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
@@ -3522,6 +3527,13 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 				cur.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 			}
 		}
+
+		// make sure that if a test is disabled, it shows all
+		// pixels passing
+		if(!cur.DepthEnable)
+			cur.DepthFunc = D3D11_COMPARISON_ALWAYS;
+		if(!cur.StencilEnable)
+			cur.StencilEnable = D3D11_COMPARISON_ALWAYS;
 
 		if(overlay == eTexOverlay_DepthBoth ||
 			overlay == eTexOverlay_StencilBoth)
