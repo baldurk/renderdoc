@@ -3292,6 +3292,40 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		SAFE_RELEASE(os);
 		SAFE_RELEASE(rs);
 	}
+	else if(overlay == eTexOverlay_ClearBeforePass || overlay == eTexOverlay_ClearBeforeDraw)
+	{
+		vector<uint32_t> events = passEvents;
+
+		if(overlay == eTexOverlay_ClearBeforeDraw)
+			events.clear();
+
+		events.push_back(eventID);
+
+		if(!events.empty())
+		{
+			if(overlay == eTexOverlay_ClearBeforePass)
+				m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+
+			D3D11RenderState *state = m_WrappedContext->GetCurrentPipelineState();
+
+			for(size_t i=0; i < ARRAY_COUNT(state->OM.RenderTargets); i++)
+				if(state->OM.RenderTargets[i])
+					m_WrappedContext->ClearRenderTargetView(state->OM.RenderTargets[i], black);
+
+			for(size_t i=0; i < events.size(); i++)
+			{
+				m_WrappedDevice->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+				if(overlay == eTexOverlay_ClearBeforePass)
+				{
+					m_WrappedDevice->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+					if(i+1 < events.size())
+						m_WrappedDevice->ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+				}
+			}
+		}
+	}
 	else if(overlay == eTexOverlay_QuadOverdrawPass || overlay == eTexOverlay_QuadOverdrawDraw)
 	{
 		SCOPED_TIMER("Quad Overdraw");
@@ -3535,14 +3569,14 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		if(!cur.StencilEnable)
 			cur.StencilEnable = D3D11_COMPARISON_ALWAYS;
 
-		if(overlay == eTexOverlay_DepthBoth ||
-			overlay == eTexOverlay_StencilBoth)
+		if(overlay == eTexOverlay_Depth ||
+			overlay == eTexOverlay_Stencil)
 		{
 			ID3D11DepthStencilState *os = NULL;
 
 			D3D11_DEPTH_STENCIL_DESC d = dsDesc;
 
-			if(overlay == eTexOverlay_DepthBoth)
+			if(overlay == eTexOverlay_Depth)
 			{
 				dsDesc.DepthEnable = d.DepthEnable = TRUE;
 				dsDesc.StencilEnable = d.StencilEnable = FALSE;
@@ -3578,7 +3612,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 					break;
 				}
 			}
-			else if(overlay == eTexOverlay_StencilBoth)
+			else if(overlay == eTexOverlay_Stencil)
 			{
 				dsDesc.DepthEnable = d.DepthEnable = FALSE;
 				dsDesc.StencilEnable = d.StencilEnable = TRUE;
@@ -3679,11 +3713,11 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 			d = dsDesc;
 
-			if(overlay == eTexOverlay_DepthBoth)
+			if(overlay == eTexOverlay_Depth)
 			{
 				d.DepthFunc = cur.DepthFunc;
 			}
-			else if(overlay == eTexOverlay_StencilBoth)
+			else if(overlay == eTexOverlay_Stencil)
 			{
 				d.FrontFace = cur.FrontFace;
 				d.BackFace = cur.BackFace;

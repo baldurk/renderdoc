@@ -79,6 +79,7 @@ private:
 	size_t m_ID;
 
 	bool m_OverlayDirty;
+	bool m_ForceOverlayRefresh;
 
 	IReplayDriver *m_pDevice;
 

@@ -37,6 +37,7 @@ ReplayOutput::ReplayOutput(ReplayRenderer *parent, void *w)
 	m_MainOutput.dirty = true;
 
 	m_OverlayDirty = true;
+	m_ForceOverlayRefresh = false;
 
 	m_pDevice = parent->GetDevice();
 
@@ -87,7 +88,17 @@ bool ReplayOutput::SetOutputConfig( const OutputConfig &o )
 bool ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
 {
 	if(o.overlay != m_RenderData.texDisplay.overlay)
+	{
+		if(m_RenderData.texDisplay.overlay == eTexOverlay_ClearBeforeDraw ||
+			m_RenderData.texDisplay.overlay == eTexOverlay_ClearBeforePass)
+		{
+			// by necessity these overlays modify the actual texture, not an
+			// independent overlay texture. So if we disable them, we must
+			// refresh the log.
+			m_ForceOverlayRefresh = true;
+		}
 		m_OverlayDirty = true;
+	}
 	m_RenderData.texDisplay = o;
 	m_MainOutput.dirty = true;
 	return true;
@@ -512,6 +523,11 @@ void ReplayOutput::DisplayTex()
 			RefreshOverlay();
 			m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_OnlyDraw);
 		}
+	}
+	else if(m_ForceOverlayRefresh)
+	{
+		m_ForceOverlayRefresh = false;
+		m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_Full);
 	}
 		
 	if(m_RenderData.texDisplay.CustomShader != ResourceId())

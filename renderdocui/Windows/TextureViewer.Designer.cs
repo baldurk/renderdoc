@@ -560,6 +560,8 @@
             "Viewport/Scissor Region",
             "NaN/INF/-ve Display",
             "Clipping",
+            "Clear Before Pass",
+            "Clear Before Draw",
             "Quad Overdraw (Pass)",
             "Quad Overdraw (Draw)"});
             this.overlay.Name = "overlay";

@@ -1883,7 +1883,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 		gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 	}
-	else if(overlay == eTexOverlay_DepthBoth || overlay == eTexOverlay_StencilBoth)
+	else if(overlay == eTexOverlay_Depth || overlay == eTexOverlay_Stencil)
 	{
 		float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		gl.glClearBufferfv(eGL_COLOR, 0, black);
@@ -1960,7 +1960,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		float green[] = { 0.0f, 1.0f, 0.0f, 1.0f };
 		gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, green);
 
-		if(overlay == eTexOverlay_DepthBoth)
+		if(overlay == eTexOverlay_Depth)
 		{
 			if(rs.Enabled[GLRenderState::eEnabled_DepthTest])
 				gl.glEnable(eGL_DEPTH_TEST);
@@ -2024,6 +2024,38 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, col);
 
 		ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+	}
+	else if(overlay == eTexOverlay_ClearBeforeDraw || overlay == eTexOverlay_ClearBeforePass)
+	{
+		vector<uint32_t> events = passEvents;
+
+		if(overlay == eTexOverlay_QuadOverdrawDraw)
+			events.clear();
+
+		events.push_back(eventID);
+
+		if(!events.empty())
+		{
+			if(overlay == eTexOverlay_ClearBeforePass)
+				ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+			
+			float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			for(int i=0; i < 8; i++)
+				gl.glClearBufferfv(eGL_COLOR, i, black);
+
+			for(size_t i=0; i < events.size(); i++)
+			{
+				ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+				if(overlay == eTexOverlay_ClearBeforePass)
+				{
+					ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+					if(i+1 < events.size())
+						ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+				}
+			}
+		}
 	}
 	else if(overlay == eTexOverlay_QuadOverdrawDraw || overlay == eTexOverlay_QuadOverdrawPass)
 	{
