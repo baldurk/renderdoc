@@ -249,12 +249,16 @@ class WrappedOpenGL : public IFrameCapturer
 
 		struct ShaderData
 		{
+			ShaderData() : type(eGL_NONE), prog(0) {}
+
 			GLenum type;
 			vector<string> sources;
 			vector<string> includepaths;
 			vector<uint32_t> spirv;
 			ShaderReflection reflection;
 			GLuint prog;
+
+			void Compile(const GLHookSet &gl);
 		};
 
 		struct ProgramData

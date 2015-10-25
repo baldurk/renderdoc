@@ -30,6 +30,40 @@
 
 #include "driver/shaders/spirv/spirv_common.h"
 
+void WrappedOpenGL::ShaderData::Compile(const GLHookSet &gl)
+{
+	bool pointSizeUsed = false, clipDistanceUsed = false;
+	if(type == eGL_VERTEX_SHADER) CheckVertexOutputUses(sources, pointSizeUsed, clipDistanceUsed);
+
+	GLuint sepProg = prog;
+	
+	if(sepProg == 0)
+		sepProg = MakeSeparableShaderProgram(gl, type, sources, NULL);
+
+	if(sepProg == 0)
+	{
+		RDCERR("Couldn't make separable program for shader via patching - functionality will be broken.");
+	}
+	else
+	{
+		prog = sepProg;
+		MakeShaderReflection(gl, type, sepProg, reflection, pointSizeUsed, clipDistanceUsed);
+
+		string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(type)), sources, spirv);
+		if(!spirv.empty())
+			DisassembleSPIRV(SPIRVShaderStage(ShaderIdx(type)), spirv, s);
+
+		reflection.Disassembly = s;
+
+		create_array_uninit(reflection.DebugInfo.files, sources.size());
+		for(size_t i=0; i < sources.size(); i++)
+		{
+			reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
+			reflection.DebugInfo.files[i].second = sources[i];
+		}
+	}
+}
+
 #pragma region Shaders
 
 bool WrappedOpenGL::Serialise_glCreateShader(GLuint shader, GLenum type)
@@ -79,6 +113,8 @@ GLuint WrappedOpenGL::glCreateShader(GLenum type)
 	else
 	{
 		GetResourceManager()->AddLiveResource(id, res);
+
+		m_Shaders[id].type = type;
 	}
 
 	return real;
@@ -142,6 +178,15 @@ void WrappedOpenGL::glShaderSource(GLuint shader, GLsizei count, const GLchar* c
 			record->AddChunk(scope.Get());
 		}
 	}
+	else
+	{
+		ResourceId id = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
+		m_Shaders[id].sources.clear();
+		m_Shaders[id].sources.reserve(count);
+
+		for(GLsizei i=0; i < count; i++)
+			m_Shaders[id].sources.push_back(string[i]);
+	}
 }
 
 bool WrappedOpenGL::Serialise_glCompileShader(GLuint shader)
@@ -152,35 +197,7 @@ bool WrappedOpenGL::Serialise_glCompileShader(GLuint shader)
 	{
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 
-		auto &shadDetails = m_Shaders[liveId];
-
-		bool pointSizeUsed = false, clipDistanceUsed = false;
-		if(shadDetails.type == eGL_VERTEX_SHADER) CheckVertexOutputUses(shadDetails.sources, pointSizeUsed, clipDistanceUsed);
-
-		GLuint sepProg = MakeSeparableShaderProgram(m_Real, shadDetails.type, shadDetails.sources, NULL);
-
-		if(sepProg == 0)
-		{
-			RDCERR("Couldn't make separable program for shader via patching - functionality will be broken.");
-		}
-		else
-		{
-			shadDetails.prog = sepProg;
-			MakeShaderReflection(m_Real, shadDetails.type, sepProg, shadDetails.reflection, pointSizeUsed, clipDistanceUsed);
-
-			string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.sources, shadDetails.spirv);
-			if(!shadDetails.spirv.empty())
-				DisassembleSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.spirv, s);
-
-			shadDetails.reflection.Disassembly = s;
-
-			create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
-			for(size_t i=0; i < shadDetails.sources.size(); i++)
-			{
-				shadDetails.reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
-				shadDetails.reflection.DebugInfo.files[i].second = shadDetails.sources[i];
-			}
-		}
+		m_Shaders[liveId].Compile(m_Real);
 
 		m_Real.glCompileShader(GetResourceManager()->GetLiveResource(id).name);
 	}
@@ -202,6 +219,10 @@ void WrappedOpenGL::glCompileShader(GLuint shader)
 
 			record->AddChunk(scope.Get());
 		}
+	}
+	else
+	{
+		m_Shaders[GetResourceManager()->GetID(ShaderRes(GetCtx(), shader))].Compile(m_Real);
 	}
 }
 
@@ -260,6 +281,12 @@ void WrappedOpenGL::glAttachShader(GLuint program, GLuint shader)
 			progRecord->AddChunk(scope.Get());
 		}
 	}
+	else
+	{
+		ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
+		ResourceId shadid = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
+		m_Programs[progid].shaders.push_back(shadid);
+	}
 }
 
 bool WrappedOpenGL::Serialise_glDetachShader(GLuint program, GLuint shader)
@@ -309,6 +336,24 @@ void WrappedOpenGL::glDetachShader(GLuint program, GLuint shader)
 			progRecord->AddChunk(scope.Get());
 		}
 	}
+	else
+	{
+		ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
+		ResourceId shadid = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
+
+		if(!m_Programs[progid].linked)
+		{
+			for(auto it = m_Programs[progid].shaders.begin();
+				   it != m_Programs[progid].shaders.end(); ++it)
+			{
+				if(*it == shadid)
+				{
+					m_Programs[progid].shaders.erase(it);
+					break;
+				}
+			}
+		}
+	}
 }
 
 #pragma endregion
@@ -356,27 +401,12 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
 		progDetails.stageShaders[ShaderIdx(Type)] = liveId;
 
 		auto &shadDetails = m_Shaders[liveId];
-
-		bool pointSizeUsed = false, clipDistanceUsed = false;
-		if(Type == eGL_VERTEX_SHADER) CheckVertexOutputUses(src, pointSizeUsed, clipDistanceUsed);
-
+		
 		shadDetails.type = Type;
 		shadDetails.sources.swap(src);
 		shadDetails.prog = sepprog;
-		MakeShaderReflection(m_Real, Type, real, shadDetails.reflection, pointSizeUsed, clipDistanceUsed);
 
-		string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.sources, shadDetails.spirv);
-		if(!shadDetails.spirv.empty())
-			DisassembleSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.spirv, s);
-
-		shadDetails.reflection.Disassembly = s;
-
-		create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
-		for(size_t i=0; i < shadDetails.sources.size(); i++)
-		{
-			shadDetails.reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
-			shadDetails.reflection.DebugInfo.files[i].second = shadDetails.sources[i];
-		}
+		shadDetails.Compile(m_Real);
 
 		GetResourceManager()->AddLiveResource(id, res);
 	}
@@ -414,6 +444,28 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
 	else
 	{
 		GetResourceManager()->AddLiveResource(id, res);
+
+		vector<string> src;
+		for(size_t i=0; i < count; i++)
+			src.push_back(strings[i]);
+		
+		GLuint sepprog = MakeSeparableShaderProgram(m_Real, type, src, NULL);
+		
+		GLResource res = ProgramRes(GetCtx(), real);
+	
+		auto &progDetails = m_Programs[id];
+	
+		progDetails.linked = true;
+		progDetails.shaders.push_back(id);
+		progDetails.stageShaders[ShaderIdx(type)] = id;
+
+		auto &shadDetails = m_Shaders[id];
+		
+		shadDetails.type = type;
+		shadDetails.sources.swap(src);
+		shadDetails.prog = sepprog;
+
+		shadDetails.Compile(m_Real);
 	}
 
 	return real;
@@ -469,6 +521,8 @@ GLuint WrappedOpenGL::glCreateProgram()
 	else
 	{
 		GetResourceManager()->AddLiveResource(id, res);
+		
+		m_Programs[id].linked = false;
 	}
 
 	return real;
@@ -514,6 +568,23 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
 			Serialise_glLinkProgram(program);
 
 			record->AddChunk(scope.Get());
+		}
+	}
+	else
+	{
+		ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
+
+		ProgramData &progDetails = m_Programs[progid];
+
+		progDetails.linked = true;
+		
+		for(size_t s=0; s < 6; s++)
+		{
+			for(size_t sh=0; sh < progDetails.shaders.size(); sh++)
+			{
+				if(m_Shaders[ progDetails.shaders[sh] ].type == ShaderEnum(s))
+					progDetails.stageShaders[s] = progDetails.shaders[sh];
+			}
 		}
 	}
 }
@@ -966,6 +1037,47 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 			record->AddParent(progrecord);
 		}
 	}
+	else
+	{
+		if(program)
+		{
+			ResourceId pipeID = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline));
+			ResourceId progID = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
+
+			PipelineData &pipeDetails = m_Pipelines[pipeID];
+			ProgramData &progDetails = m_Programs[progID];
+
+			for(size_t s=0; s < 6; s++)
+			{
+				if(stages & ShaderBit(s))
+				{
+					for(size_t sh=0; sh < progDetails.shaders.size(); sh++)
+					{
+						if(m_Shaders[ progDetails.shaders[sh] ].type == ShaderEnum(s))
+						{
+							pipeDetails.stagePrograms[s] = progID;
+							pipeDetails.stageShaders[s] = progDetails.shaders[sh];
+							break;
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			ResourceId pipeID = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline));
+			PipelineData &pipeDetails = m_Pipelines[pipeID];
+
+			for(size_t s=0; s < 6; s++)
+			{
+				if(stages & ShaderBit(s))
+				{
+					pipeDetails.stagePrograms[s] = ResourceId();
+					pipeDetails.stageShaders[s] = ResourceId();
+				}
+			}
+		}
+	}
 }
 
 bool WrappedOpenGL::Serialise_glGenProgramPipelines(GLsizei n, GLuint* pipelines)
@@ -1193,33 +1305,7 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(GLuint shader, GLsizei c
 		for(int32_t i=0; i < Count; i++)
 			shadDetails.includepaths.push_back(pathstrings[i]);
 
-		bool pointSizeUsed = false, clipDistanceUsed = false;
-		if(shadDetails.type == eGL_VERTEX_SHADER) CheckVertexOutputUses(shadDetails.sources, pointSizeUsed, clipDistanceUsed);
-
-		GLuint sepProg = MakeSeparableShaderProgram(m_Real, shadDetails.type, shadDetails.sources, &paths);
-
-		if(sepProg == 0)
-		{
-			RDCERR("Couldn't make separable program for shader via patching - functionality will be broken.");
-		}
-		else
-		{
-			shadDetails.prog = sepProg;
-			MakeShaderReflection(m_Real, shadDetails.type, sepProg, shadDetails.reflection, pointSizeUsed, clipDistanceUsed);
-			
-			string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.sources, shadDetails.spirv);
-			if(!shadDetails.spirv.empty())
-				DisassembleSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.spirv, s);
-
-			shadDetails.reflection.Disassembly = s;
-
-			create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
-			for(size_t i=0; i < shadDetails.sources.size(); i++)
-			{
-				shadDetails.reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
-				shadDetails.reflection.DebugInfo.files[i].second = shadDetails.sources[i];
-			}
-		}
+		shadDetails.Compile(m_Real);
 
 		m_Real.glCompileShaderIncludeARB(GetResourceManager()->GetLiveResource(id).name, Count, pathstrings, NULL);
 		
@@ -1243,6 +1329,20 @@ void WrappedOpenGL::glCompileShaderIncludeARB(GLuint shader, GLsizei count, cons
 
 			record->AddChunk(scope.Get());
 		}
+	}
+	else
+	{
+		ResourceId id = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
+
+		auto &shadDetails = m_Shaders[id];
+		
+		shadDetails.includepaths.clear();
+		shadDetails.includepaths.reserve(count);
+
+		for(int32_t i=0; i < count; i++)
+			shadDetails.includepaths.push_back(path[i]);
+
+		shadDetails.Compile(m_Real);
 	}
 }
 
