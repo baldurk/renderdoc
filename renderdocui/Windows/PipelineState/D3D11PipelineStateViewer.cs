@@ -717,7 +717,8 @@ namespace renderdocui.Windows.PipelineState
                                               i, l.SemanticName, l.SemanticIndex.ToString(), l.Format, l.InputSlot.ToString(), byteOffs,
                                               l.PerInstance ? "PER_INSTANCE" : "PER_VERTEX", l.InstanceDataStepRate.ToString() });
 
-                    usedVBuffers[l.InputSlot] = true;
+                    if (iaUsed)
+                        usedVBuffers[l.InputSlot] = true;
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
