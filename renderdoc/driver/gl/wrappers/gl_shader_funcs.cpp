@@ -446,7 +446,7 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
 		GetResourceManager()->AddLiveResource(id, res);
 
 		vector<string> src;
-		for(size_t i=0; i < count; i++)
+		for(GLsizei i=0; i < count; i++)
 			src.push_back(strings[i]);
 		
 		GLuint sepprog = MakeSeparableShaderProgram(m_Real, type, src, NULL);
