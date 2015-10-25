@@ -669,6 +669,9 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 	{
 		switch(td.format.specialFormat)
 		{
+			case eSpecial_S8:
+				bytesPerPixel = 1;
+				break;
 			case eSpecial_R10G10B10A2:
 			case eSpecial_R9G9B9E5:
 			case eSpecial_R11G11B10:

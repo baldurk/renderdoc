@@ -859,6 +859,10 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 				ret.specialFormat = eSpecial_D32S8;
 				ret.special = true;
 				break;
+			case eGL_STENCIL_INDEX8:
+				ret.specialFormat = eSpecial_S8;
+				ret.special = true;
+				break;
 			default:
 				RDCERR("Unexpected depth or stencil format %x", fmt);
 		}
@@ -953,6 +957,9 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
 				break;
 			case eSpecial_D32S8:
 				ret = eGL_DEPTH32F_STENCIL8;
+				break;
+			case eSpecial_S8:
+				ret = eGL_STENCIL_INDEX8;
 				break;
 			default:
 				RDCERR("Unsupported special format %u", fmt.specialFormat);

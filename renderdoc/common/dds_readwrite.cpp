@@ -508,6 +508,8 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
 				return DXGI_FORMAT_D24_UNORM_S8_UINT;
 			case eSpecial_D32S8:
 				return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+			case eSpecial_S8:
+				return DXGI_FORMAT_R8_UINT;
 			default:
 			case eSpecial_ETC2:
 			case eSpecial_EAC:
@@ -736,6 +738,9 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 	{
 		switch(data.format.specialFormat)
 		{
+			case eSpecial_S8:
+				bytesPerPixel = 1;
+				break;
 			case eSpecial_R10G10B10A2:
 			case eSpecial_R9G9B9E5:
 			case eSpecial_R11G11B10:
@@ -1005,6 +1010,9 @@ dds_data load_dds_from_file(FILE *f)
 	uint32_t bytesPerPixel = 1;
 	switch(ret.format.specialFormat)
 	{
+		case eSpecial_S8:
+			bytesPerPixel = 1;
+			break;
 		case eSpecial_R10G10B10A2:
 		case eSpecial_R9G9B9E5:
 		case eSpecial_R11G11B10:

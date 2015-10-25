@@ -292,6 +292,9 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
 				ret = DXGI_FORMAT_AYUV;
 				break;
 #endif
+			case eSpecial_S8:
+				RDCERR("D3D11 has no stencil-only format");
+				break;
 			default:
 				RDCERR("Unrecognised special format");
 				break;

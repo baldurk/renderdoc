@@ -177,6 +177,7 @@ enum SpecialFormat
 	eSpecial_B4G4R4A4,
 	eSpecial_D24S8,
 	eSpecial_D32S8,
+	eSpecial_S8,
 	eSpecial_YUV,
 };
 

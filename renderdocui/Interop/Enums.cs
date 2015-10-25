@@ -179,6 +179,7 @@ namespace renderdoc
         B4G4R4A4,
         D24S8,
         D32S8,
+        S8,
         YUV,
     };
 

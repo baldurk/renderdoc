@@ -158,6 +158,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
 		case eGL_ALPHA:
 		case eGL_DEPTH_COMPONENT:
 		case eGL_STENCIL_INDEX:
+		case eGL_STENCIL:
 			return w*h*d*elemSize;
 		case eGL_RG:
 		case eGL_RG_INTEGER:

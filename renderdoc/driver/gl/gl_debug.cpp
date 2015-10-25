@@ -1231,7 +1231,8 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 		// need to read stencil separately as GL can't read both depth and stencil
 		// at the same time.
 		if(texDetails.internalFormat == eGL_DEPTH24_STENCIL8 ||
-			texDetails.internalFormat == eGL_DEPTH32F_STENCIL8)
+			texDetails.internalFormat == eGL_DEPTH32F_STENCIL8 ||
+			texDetails.internalFormat == eGL_STENCIL_INDEX8)
 		{
 			texDisplay.Red = texDisplay.Blue = texDisplay.Alpha = false;
 
@@ -1241,6 +1242,14 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 			gl.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)stencilpixel);
 
 			pixel[1] = float(stencilpixel[1])/255.0f;
+
+			// the first depth read will have read stencil instead.
+			// NULL it out so the UI sees only stencil
+			if(texDetails.internalFormat == eGL_STENCIL_INDEX8)
+			{
+				pixel[1] = float(stencilpixel[0])/255.0f;
+				pixel[0] = 0.0f;
+			}
 		}
 	}
 }
@@ -1387,6 +1396,15 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 	RDCGLenum dsTexMode = eGL_NONE;
 	if(IsDepthStencilFormat(texDetails.internalFormat))
 	{
+		// stencil-only, make sure we display it as such
+		if(texDetails.internalFormat == eGL_STENCIL_INDEX8)
+		{
+			cfg.Red = false;
+			cfg.Green = true;
+			cfg.Blue = false;
+			cfg.Alpha = false;
+		}
+
 		if (!cfg.Red && cfg.Green)
 		{
 			dsTexMode = eGL_STENCIL_INDEX;

@@ -258,7 +258,8 @@ namespace renderdocui.Windows
 
             if (texture.format.compType == FormatComponentType.Depth ||
                 (texture.format.special && texture.format.specialFormat == SpecialFormat.D24S8) ||
-                (texture.format.special && texture.format.specialFormat == SpecialFormat.D32S8))
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.D32S8) ||
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.S8))
                 depth = true;
 
             TreelistView.Node node = null;
@@ -322,7 +323,8 @@ namespace renderdocui.Windows
 
             if (texture.format.compType == FormatComponentType.Depth ||
                 (texture.format.special && texture.format.specialFormat == SpecialFormat.D24S8) ||
-                (texture.format.special && texture.format.specialFormat == SpecialFormat.D32S8))
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.D32S8) ||
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.S8))
                 depth = true;
 
             var drawcall = m_Core.GetDrawcall(m_Core.CurFrame, mods[0].eventID);
