@@ -1177,32 +1177,39 @@ namespace renderdocui.Windows
                     prev = rtPanel.Thumbnails[i];
                 else
                     prev = UI_CreateThumbnail(rtPanel);
+                
+                FetchTexture tex = null;
+                foreach (var t in m_Core.CurTextures)
+                    if (t.ID == RWs[rw])
+                        tex = t;
 
-                if (RWs[rw] != ResourceId.Null)
+                FetchBuffer buf = null;
+                foreach (var b in m_Core.CurBuffers)
+                    if (b.ID == RWs[rw])
+                        buf = b;
+
+                bool used = false;
+
+                string bindName = "";
+
+                if (details != null)
                 {
-                    FetchTexture tex = null;
-                    foreach (var t in m_Core.CurTextures)
-                        if (t.ID == RWs[rw])
-                            tex = t;
-
-                    FetchBuffer buf = null;
-                    foreach (var b in m_Core.CurBuffers)
-                        if (b.ID == RWs[rw])
-                            buf = b;
-
-                    string bindName = "";
-
-                    if (details != null)
+                    foreach (var bind in details.Resources)
                     {
-                        foreach (var bind in details.Resources)
+                        if (mapping.Resources[bind.bindPoint].bind == rw && bind.IsReadWrite)
                         {
-                            if (mapping.Resources[bind.bindPoint].bind == rw && bind.IsReadWrite)
-                            {
-                                bindName = "<" + bind.name + ">";
-                            }
+                            used = true;
+                            bindName = "<" + bind.name + ">";
                         }
                     }
-
+                }
+                    
+                // show if
+                if (used || // it's referenced by the shader - regardless of empty or not
+                    (showDisabled.Checked && !used && RWs[rw] != ResourceId.Null) || // it's bound, but not referenced, and we have "show disabled"
+                    (showEmpty.Checked && RWs[rw] == ResourceId.Null) // it's empty, and we have "show empty"
+                    )
+                {
                     if (tex != null)
                     {
                         prev.Init(!tex.customName && bindName.Length > 0 ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
