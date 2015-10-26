@@ -1241,13 +1241,15 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 			uint32_t stencilpixel[4];
 			gl.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)stencilpixel);
 
-			pixel[1] = float(stencilpixel[1])/255.0f;
+			// not sure whether [0] or [1] will return stencil values, so use
+			// max of two because other channel should be 0
+			pixel[1] = float(RDCMAX(stencilpixel[0], stencilpixel[1]))/255.0f;
 
 			// the first depth read will have read stencil instead.
 			// NULL it out so the UI sees only stencil
 			if(texDetails.internalFormat == eGL_STENCIL_INDEX8)
 			{
-				pixel[1] = float(stencilpixel[0])/255.0f;
+				pixel[1] = float(RDCMAX(stencilpixel[0], stencilpixel[1]))/255.0f;
 				pixel[0] = 0.0f;
 			}
 		}
