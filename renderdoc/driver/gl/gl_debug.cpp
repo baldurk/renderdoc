@@ -2029,7 +2029,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	{
 		vector<uint32_t> events = passEvents;
 
-		if(overlay == eTexOverlay_QuadOverdrawDraw)
+		if(overlay == eTexOverlay_ClearBeforeDraw)
 			events.clear();
 
 		events.push_back(eventID);
@@ -2038,6 +2038,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		{
 			if(overlay == eTexOverlay_ClearBeforePass)
 				ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+			else
+				gl.glBindFramebuffer(eGL_FRAMEBUFFER, rs.DrawFBO); // if we don't replay the real state, restore drawFBO to clear it
 			
 			float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 			for(int i=0; i < 8; i++)
