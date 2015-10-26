@@ -632,7 +632,25 @@ namespace renderdocui.Windows.PipelineState
 
                 // VS wants more elements
                 if (state.m_IA.Bytecode.InputSig.Length < state.m_VS.ShaderDetails.InputSig.Length)
-                    mismatchDetails += "IA bytecode provides fewer elements than VS wants.\n";
+                {
+                    int excess = state.m_VS.ShaderDetails.InputSig.Length - state.m_IA.Bytecode.InputSig.Length;
+
+                    bool allSystem = true;
+
+                    // The VS signature can consume more elements as long as they are all system value types
+                    // (ie. SV_VertexID or SV_InstanceID)
+                    for (int e = 0; e < excess; e++)
+                    {
+                        if(state.m_VS.ShaderDetails.InputSig[state.m_VS.ShaderDetails.InputSig.Length - 1 - e].systemValue == SystemAttribute.None)
+                        {
+                            allSystem = false;
+                            break;
+                        }
+                    }
+
+                    if (!allSystem)
+                        mismatchDetails += "IA bytecode provides fewer elements than VS wants.\n";
+                }
 
                 {
                     var IA = state.m_IA.Bytecode.InputSig;
