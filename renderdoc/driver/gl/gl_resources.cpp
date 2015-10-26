@@ -465,6 +465,7 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 		case eGL_RGBA:
 		case eGL_DEPTH_COMPONENT:
 		case eGL_STENCIL:
+		case eGL_STENCIL_INDEX:
 		case eGL_DEPTH_STENCIL:
 			break;
 		default:
@@ -496,6 +497,7 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 		// without the query function, just default to sensible defaults
 		red = 8;
 		depth = 32;
+		stencil = 8;
 	}
 
 	switch(internalFormat)
@@ -529,6 +531,7 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 			else
 				return eGL_RGBA8;
 		case eGL_STENCIL:
+		case eGL_STENCIL_INDEX:
 			if(stencil == 16)
 				return eGL_STENCIL_INDEX16;
 			else
