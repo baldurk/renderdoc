@@ -2441,10 +2441,10 @@ Serialiser::Deserialise<VkRenderPassCreateInfo>::~Deserialise()
 		for (uint32_t i=0; i<subpassCount; i++)
 		{
 			RDCASSERT(pSubpasses[i].pNext == NULL); // otherwise delete
-			delete pSubpasses[i].inputAttachments;
-			delete pSubpasses[i].colorAttachments;
-			delete pSubpasses[i].resolveAttachments;
-			delete pSubpasses[i].preserveAttachments;
+			delete pSubpasses[i].pInputAttachments;
+			delete pSubpasses[i].pColorAttachments;
+			delete pSubpasses[i].pResolveAttachments;
+			delete pSubpasses[i].pPreserveAttachments;
 		}
 		delete [] pSubpasses;
 		for (uint32_t i=0; i<dependencyCount; i++)
