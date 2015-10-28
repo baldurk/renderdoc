@@ -722,8 +722,6 @@ PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patch
 	return eTopology_Unknown;
 }
 
-// VKTODOMED need a Deserialise or otherwise deallocate function to release buffers or new'd memory
-
 template<>
 string ToStrHelper<false, VkResourceType>::Get(const VkResourceType &el)
 {
