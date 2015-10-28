@@ -2221,7 +2221,7 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 //template <> class Serialiser::Deserialise<VkDeviceCreateInfo>;
 
 template<>
-void Serialiser::Deserialize(const VkDeviceCreateInfo* const el) const
+void Serialiser::Deserialise(const VkDeviceCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
@@ -2251,12 +2251,12 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 }
 
 template<>
-Serialiser::Deserialise<VkBufferCreateInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkBufferCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		delete [] pQueueFamilyIndices;
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pQueueFamilyIndices;
 	}
 }
 
@@ -2300,12 +2300,12 @@ void Serialiser::Serialise(const char *name, VkImageCreateInfo &el)
 }
 
 template<>
-Serialiser::Deserialise<VkImageCreateInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkImageCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		delete [] pQueueFamilyIndices;
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pQueueFamilyIndices;
 	}
 }
 
@@ -2353,12 +2353,12 @@ void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 }
 
 template<>
-Serialiser::Deserialise<VkFramebufferCreateInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkFramebufferCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		delete [] pAttachments;
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pAttachments;
 	}
 }
 
@@ -2448,30 +2448,30 @@ void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el)
 }
 
 template<>
-Serialiser::Deserialise<VkRenderPassCreateInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkRenderPassCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		for (uint32_t i=0; i<attachmentCount; i++)
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		for (uint32_t i=0; i<el->attachmentCount; i++)
 		{
-			RDCASSERT(pAttachments[i].pNext == NULL); // otherwise delete
+			RDCASSERT(el->pAttachments[i].pNext == NULL); // otherwise delete
 		}
-		delete [] pAttachments;
-		for (uint32_t i=0; i<subpassCount; i++)
+		delete [] el->pAttachments;
+		for (uint32_t i=0; i<el->subpassCount; i++)
 		{
-			RDCASSERT(pSubpasses[i].pNext == NULL); // otherwise delete
-			delete pSubpasses[i].pInputAttachments;
-			delete pSubpasses[i].pColorAttachments;
-			delete pSubpasses[i].pResolveAttachments;
-			delete pSubpasses[i].pPreserveAttachments;
+			RDCASSERT(el->pSubpasses[i].pNext == NULL); // otherwise delete
+			delete el->pSubpasses[i].pInputAttachments;
+			delete el->pSubpasses[i].pColorAttachments;
+			delete el->pSubpasses[i].pResolveAttachments;
+			delete el->pSubpasses[i].pPreserveAttachments;
 		}
-		delete [] pSubpasses;
-		for (uint32_t i=0; i<dependencyCount; i++)
+		delete [] el->pSubpasses;
+		for (uint32_t i=0; i<el->dependencyCount; i++)
 		{
-			RDCASSERT(pDependencies[i].pNext == NULL); // otherwise delete
+			RDCASSERT(el->pDependencies[i].pNext == NULL); // otherwise delete
 		}
-		delete [] pDependencies;
+		delete [] el->pDependencies;
 	}
 }
 
@@ -2494,12 +2494,12 @@ void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 }
 
 template<>
-Serialiser::Deserialise<VkRenderPassBeginInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkRenderPassBeginInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		delete [] pClearValues;
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pClearValues;
 	}
 }
 
@@ -2889,12 +2889,12 @@ void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el)
 }
 
 template<>
-Serialiser::Deserialise<VkPipelineCacheCreateInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkPipelineCacheCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		delete [] (byte *)initialData;
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] (byte *)(el->initialData);
 	}
 }
 
@@ -2923,13 +2923,13 @@ void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 }
 
 template<>
-Serialiser::Deserialise<VkPipelineLayoutCreateInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkPipelineLayoutCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		delete [] pSetLayouts;
-		delete [] pPushConstantRanges;
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pSetLayouts;
+		delete [] el->pPushConstantRanges;
 	}
 }
 
@@ -2955,12 +2955,12 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 }
 
 template<>
-Serialiser::Deserialise<VkShaderModuleCreateInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkShaderModuleCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		delete [] (byte *)pCode;
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] (byte *)(el->pCode);
 	}
 }
 
@@ -3126,74 +3126,74 @@ void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el)
 }
 
 template<>
-Serialiser::Deserialise<VkGraphicsPipelineCreateInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkGraphicsPipelineCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		if (pVertexInputState)
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		if (el->pVertexInputState)
 		{
-			RDCASSERT(pVertexInputState->pNext == NULL); // otherwise delete
-			delete pVertexInputState->pVertexBindingDescriptions;
-			delete pVertexInputState->pVertexAttributeDescriptions;
-			delete pVertexInputState;
+			RDCASSERT(el->pVertexInputState->pNext == NULL); // otherwise delete
+			delete el->pVertexInputState->pVertexBindingDescriptions;
+			delete el->pVertexInputState->pVertexAttributeDescriptions;
+			delete el->pVertexInputState;
 		}
-		if (pInputAssemblyState)
+		if (el->pInputAssemblyState)
 		{
-			RDCASSERT(pInputAssemblyState->pNext == NULL); // otherwise delete
-			delete pInputAssemblyState;
+			RDCASSERT(el->pInputAssemblyState->pNext == NULL); // otherwise delete
+			delete el->pInputAssemblyState;
 		}
-		if (pTessellationState)
+		if (el->pTessellationState)
 		{
-			RDCASSERT(pTessellationState->pNext == NULL); // otherwise delete
-			delete pTessellationState;
+			RDCASSERT(el->pTessellationState->pNext == NULL); // otherwise delete
+			delete el->pTessellationState;
 		}
-		if (pViewportState)
+		if (el->pViewportState)
 		{
-			RDCASSERT(pViewportState->pNext == NULL); // otherwise delete
-			delete [] pViewportState->pViewports;
-			delete [] pViewportState->pScissors;
-			delete pViewportState;
+			RDCASSERT(el->pViewportState->pNext == NULL); // otherwise delete
+			delete [] el->pViewportState->pViewports;
+			delete [] el->pViewportState->pScissors;
+			delete el->pViewportState;
 		}
-		if (pRasterState)
+		if (el->pRasterState)
 		{
-			RDCASSERT(pRasterState->pNext == NULL); // otherwise delete
-			delete pRasterState;
+			RDCASSERT(el->pRasterState->pNext == NULL); // otherwise delete
+			delete el->pRasterState;
 		}
-		if (pMultisampleState)
+		if (el->pMultisampleState)
 		{
-			RDCASSERT(pMultisampleState->pNext == NULL); // otherwise delete
-			delete pMultisampleState->pSampleMask;
-			delete pMultisampleState;
+			RDCASSERT(el->pMultisampleState->pNext == NULL); // otherwise delete
+			delete el->pMultisampleState->pSampleMask;
+			delete el->pMultisampleState;
 		}
-		if (pDepthStencilState)
+		if (el->pDepthStencilState)
 		{
-			RDCASSERT(pDepthStencilState->pNext == NULL); // otherwise delete
-			delete pDepthStencilState;
+			RDCASSERT(el->pDepthStencilState->pNext == NULL); // otherwise delete
+			delete el->pDepthStencilState;
 		}
-		if (pColorBlendState)
+		if (el->pColorBlendState)
 		{
-			RDCASSERT(pColorBlendState->pNext == NULL); // otherwise delete
-			delete [] pColorBlendState->pAttachments;
-			delete pColorBlendState;
+			RDCASSERT(el->pColorBlendState->pNext == NULL); // otherwise delete
+			delete [] el->pColorBlendState->pAttachments;
+			delete el->pColorBlendState;
 		}
-		if (pDynamicState)
+		if (el->pDynamicState)
 		{
-			RDCASSERT(pDynamicState->pNext == NULL); // otherwise delete
-			delete [] pDynamicState->pDynamicStates;
-			delete pDynamicState;
+			RDCASSERT(el->pDynamicState->pNext == NULL); // otherwise delete
+			delete [] el->pDynamicState->pDynamicStates;
+			delete el->pDynamicState;
 		}
-		for (uint32_t i=0; i<stageCount; i++)
+		for (uint32_t i=0; i<el->stageCount; i++)
 		{
-			RDCASSERT(pStages[i].pNext == NULL); // otherwise delete
-			if (pStages[i].pSpecializationInfo)
+			RDCASSERT(el->pStages[i].pNext == NULL); // otherwise delete
+			if (el->pStages[i].pSpecializationInfo)
 			{
-				delete [] (byte *)pStages[i].pSpecializationInfo->pData;
-				delete [] pStages[i].pSpecializationInfo->pMap;
-				delete pStages[i].pSpecializationInfo;
+				delete [] (byte *)(el->pStages[i].pSpecializationInfo->pData);
+				delete [] el->pStages[i].pSpecializationInfo->pMap;
+				delete el->pStages[i].pSpecializationInfo;
 			}
 		}
-		delete [] pStages;
+		delete [] el->pStages;
 	}
 }
 
@@ -3237,12 +3237,12 @@ void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el)
 }
 
 template<>
-Serialiser::Deserialise<VkDescriptorPoolCreateInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkDescriptorPoolCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		delete [] pTypeCount;
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pTypeCount;
 	}
 }
 
@@ -3278,12 +3278,12 @@ void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
 }
 
 template<>
-Serialiser::Deserialise<VkWriteDescriptorSet>::~Deserialise()
+void Serialiser::Deserialise(const VkWriteDescriptorSet* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		delete [] pDescriptors;
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pDescriptors;
 	}
 }
 
@@ -3359,16 +3359,16 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el
 }
 
 template<>
-Serialiser::Deserialise<VkDescriptorSetLayoutCreateInfo>::~Deserialise()
+void Serialiser::Deserialise(const VkDescriptorSetLayoutCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		for (uint32_t i=0; i<count; i++)
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		for (uint32_t i=0; i<el->count; i++)
 		{
-			delete [] pBinding[i].pImmutableSamplers;
+			delete [] el->pBinding[i].pImmutableSamplers;
 		}
-		delete [] pBinding;
+		delete [] el->pBinding;
 	}
 }
 

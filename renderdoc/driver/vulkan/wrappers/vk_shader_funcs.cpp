@@ -34,7 +34,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(
 		VkPipelineLayout*                           pPipelineLayout)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT_CLASS(VkPipelineLayoutCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(VkPipelineLayoutCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pPipelineLayout));
 
 	if(m_State == READING)
@@ -114,7 +114,7 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(
 		VkShaderModule*                             pShaderModule)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT_CLASS(VkShaderModuleCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(VkShaderModuleCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pShaderModule));
 
 	if(m_State == READING)
@@ -267,7 +267,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineCache(
 		VkPipelineCache*                            pPipelineCache)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT_CLASS(VkPipelineCacheCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(VkPipelineCacheCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pPipelineCache));
 
 	if(m_State == READING)
@@ -337,7 +337,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, cacheId, GetResID(pipelineCache));
-	SERIALISE_ELEMENT_CLASS(VkGraphicsPipelineCreateInfo, info, *pCreateInfos);
+	SERIALISE_ELEMENT(VkGraphicsPipelineCreateInfo, info, *pCreateInfos);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pPipelines));
 
 	if(m_State == READING)

@@ -133,12 +133,6 @@ template<> void Serialiser::Serialise(const char *name, VkImageResolve &el);
 
 template<> void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el);
 
-//template<> class Serialiser::Deserialise<VkDeviceCreateInfo>;
-
-// template<> class Serialiser::Deserialise : VkDeviceCreateInfo;
-
-//template<> void Serialiser::Deserialize(const VkDeviceCreateInfo* const el) const;
-
 #pragma region Chunks
 
 enum VulkanChunkType

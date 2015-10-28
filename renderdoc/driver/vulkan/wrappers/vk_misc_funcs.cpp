@@ -367,7 +367,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 			VkFramebuffer*                              pFramebuffer)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT_CLASS(VkFramebufferCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(VkFramebufferCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pFramebuffer));
 
 	if(m_State == READING)
@@ -558,7 +558,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 			VkRenderPass*                               pRenderPass)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT_CLASS(VkRenderPassCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(VkRenderPassCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pRenderPass));
 
 	if(m_State == READING)

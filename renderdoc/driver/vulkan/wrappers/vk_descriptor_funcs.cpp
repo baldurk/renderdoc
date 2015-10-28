@@ -31,7 +31,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(
 			VkDescriptorPool*                           pDescriptorPool)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT_CLASS(VkDescriptorPoolCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(VkDescriptorPoolCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pDescriptorPool));
 
 	if(m_State == READING)
@@ -99,7 +99,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 		VkDescriptorSetLayout*                      pSetLayout)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT_CLASS(VkDescriptorSetLayoutCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(VkDescriptorSetLayoutCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pSetLayout));
 
 	// this creation info is needed at capture time (for creating/updating descriptor set bindings)
@@ -337,7 +337,7 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 	VkCopyDescriptorSet copyDesc;
 	if(writes)
 	{
-		SERIALISE_ELEMENT_CLASS(VkWriteDescriptorSet, w, *pDescriptorWrites);
+		SERIALISE_ELEMENT(VkWriteDescriptorSet, w, *pDescriptorWrites);
 		writeDesc = w;
 	}
 	else
