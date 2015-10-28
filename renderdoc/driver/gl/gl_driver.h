@@ -503,11 +503,6 @@ class WrappedOpenGL : public IFrameCapturer
 		void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
 		void SwapBuffers(void *windowHandle);
 
-		void StartFrameCapture();
-
-		void EndFrameCapture();
-
-
 		void StartFrameCapture(void *dev, void *wnd);
 		bool EndFrameCapture(void *dev, void *wnd);
 

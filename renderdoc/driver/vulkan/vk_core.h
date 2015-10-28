@@ -95,7 +95,7 @@ struct DrawcallTreeNode
 #undef SERIALISED_PARAMETER
 #define SERIALISED_PARAMETER Serialiser *localSerialiser,
 
-class WrappedVulkan
+class WrappedVulkan : public IFrameCapturer
 {
 private:
 	friend class VulkanReplay;
@@ -109,6 +109,7 @@ private:
 
 	Serialiser *m_pSerialiser;
 	LogState m_State;
+	bool m_AppControlledCapture;
 
 	uint64_t threadSerialiserTLSSlot;
 
@@ -410,6 +411,10 @@ private:
 	map<ResourceId, ImageLayouts> m_ImageLayouts;
 	Threading::CriticalSection m_ImageLayoutsLock;
 
+	// find swapchain for an image
+	map<RENDERDOC_WindowHandle, VkSwapchainKHR> m_SwapLookup;
+	Threading::CriticalSection m_SwapLookupLock;
+
 	// below are replay-side data only, doesn't have to be thread protected
 
 	// current descriptor set contents
@@ -435,6 +440,11 @@ private:
 	void BeginCaptureFrame();
 	void FinishCapture();
 	void EndCaptureFrame(VkImage presentImage);
+
+	RENDERDOC_WindowHandle GetHandleForSurface(const VkSurfaceDescriptionKHR* surf);
+
+	void StartFrameCapture(void *dev, void *wnd);
+	bool EndFrameCapture(void *dev, void *wnd);
 	
 	// replay
 		

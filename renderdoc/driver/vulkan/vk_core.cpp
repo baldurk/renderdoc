@@ -27,6 +27,10 @@
 
 #include "serialise/string_utils.h"
 
+#include "maths/formatpacking.h"
+
+#include "jpeg-compressor/jpge.h"
+
 // VKTODOLOW dirty buffers should propagate through to their memory somehow
 // images can be separately dirty since we can't just copy their memory
 // (tiling could be different)
@@ -267,6 +271,8 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 	m_Replay.SetDriver(this);
 
 	m_FrameCounter = 0;
+
+	m_AppControlledCapture = false;
 
 	m_FrameTimer.Restart();
 
@@ -509,8 +515,6 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 	
 	SERIALISE_ELEMENT(ResourceId, bbid, GetResID(presentImage));
 
-	RDCASSERT(presentImage != VK_NULL_HANDLE);
-
 	bool HasCallstack = RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks != 0;
 	localSerialiser->Serialise("HasCallstack", HasCallstack);	
 
@@ -615,6 +619,407 @@ void WrappedVulkan::FinishCapture()
 	//m_SuccessfulCapture = false;
 
 	ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
+}
+
+void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
+{
+	if(m_State != WRITING_IDLE) return;
+	
+	RenderDoc::Inst().SetCurrentDriver(RDC_Vulkan);
+
+	m_AppControlledCapture = true;
+	
+	FetchFrameRecord record;
+	record.frameInfo.frameNumber = m_FrameCounter+1;
+	record.frameInfo.captureTime = Timing::GetUnixTimestamp();
+	m_FrameRecord.push_back(record);
+
+	GetResourceManager()->ClearReferencedResources();
+
+	GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Instance), eFrameRef_Read);
+
+	// need to do all this atomically so that no other commands
+	// will check to see if they need to markdirty or markpendingdirty
+	// and go into the frame record.
+	{
+		SCOPED_LOCK(m_CapTransitionLock);
+		GetResourceManager()->PrepareInitialContents();
+
+		AttemptCapture();
+		BeginCaptureFrame();
+
+		m_State = WRITING_CAPFRAME;
+	}
+
+	RDCLOG("Starting capture, frame %u", m_FrameCounter);
+}
+
+bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
+{
+	if(m_State != WRITING_CAPFRAME) return true;
+	
+	VkSwapchainKHR swap = VK_NULL_HANDLE;
+	
+	if(wnd)
+	{
+		{
+			SCOPED_LOCK(m_SwapLookupLock);
+			auto it = m_SwapLookup.find(wnd);
+			if(it != m_SwapLookup.end())
+				swap = it->second;
+		}
+
+		if(swap == VK_NULL_HANDLE)
+		{
+			RDCERR("Output window %p provided for frame capture corresponds with no known swap chain", wnd);
+			return false;
+		}
+	}
+
+	RDCLOG("Finished capture, Frame %u", m_FrameCounter);
+
+	VkImage backbuffer = VK_NULL_HANDLE;
+	VkResourceRecord *swaprecord = NULL;
+
+	if(swap != VK_NULL_HANDLE)
+	{
+		GetResourceManager()->MarkResourceFrameReferenced(GetResID(swap), eFrameRef_Read);
+	
+		swaprecord = GetRecord(swap);
+		RDCASSERT(swaprecord->swapInfo);
+
+		const SwapchainInfo &swapInfo = *swaprecord->swapInfo;
+		
+		backbuffer = swapInfo.images[swapInfo.lastPresent].im;
+	}
+	
+	// transition back to IDLE atomically
+	{
+		SCOPED_LOCK(m_CapTransitionLock);
+		EndCaptureFrame(backbuffer);
+		FinishCapture();
+	}
+
+	byte *thpixels = NULL;
+	uint32_t thwidth = 0;
+	uint32_t thheight = 0;
+
+	// gather backbuffer screenshot
+	const int32_t maxSize = 1024;
+
+	if(swap != VK_NULL_HANDLE)
+	{
+		VkDevice dev = GetDev();
+		VkCmdBuffer cmd = GetNextCmd();
+
+		const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+		vt->DeviceWaitIdle(Unwrap(dev));
+		
+		const SwapchainInfo &swapInfo = *swaprecord->swapInfo;
+
+		// since these objects are very short lived (only this scope), we
+		// don't wrap them.
+		VkImage readbackIm = VK_NULL_HANDLE;
+		VkDeviceMemory readbackMem = VK_NULL_HANDLE;
+
+		VkResult vkr = VK_SUCCESS;
+
+		// create identical image
+		VkImageCreateInfo imInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_IMAGE_TYPE_2D, swapInfo.format,
+			{ swapInfo.extent.width, swapInfo.extent.height, 1 }, 1, 1, 1,
+			VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
+			0,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+		};
+		vt->CreateImage(Unwrap(dev), &imInfo, &readbackIm);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkMemoryRequirements mrq;
+		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), readbackIm, &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR, 0, 0 };
+		VkSubresourceLayout layout = { 0 };
+		vt->GetImageSubresourceLayout(Unwrap(dev), readbackIm, &subr, &layout);
+
+		// allocate readback memory
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			mrq.size, GetReadbackMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &readbackMem);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = vt->BindImageMemory(Unwrap(dev), readbackIm, readbackMem, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+		// do image copy
+		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkImageCopy cpy = {
+			{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+			{ 0, 0, 0 },
+			{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+			{ 0, 0, 0 },
+			{ imInfo.extent.width, imInfo.extent.height, 1 },
+		};
+
+		// VKTODOLOW back buffer must be in this layout right?
+		VkImageMemoryBarrier bbTrans = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(backbuffer),
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
+
+		VkImageMemoryBarrier readTrans = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			readbackIm, // was never wrapped
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
+
+		VkImageMemoryBarrier *barriers[] = {
+			&bbTrans,
+			&readTrans,
+		};
+
+		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, (void **)barriers);
+
+		vt->CmdCopyImage(Unwrap(cmd), Unwrap(backbuffer), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, readbackIm, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &cpy);
+
+		// transition backbuffer back
+		std::swap(bbTrans.oldLayout, bbTrans.newLayout);
+
+		readTrans.oldLayout = readTrans.newLayout;
+		readTrans.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, (void **)barriers);
+
+		vkr = vt->EndCommandBuffer(Unwrap(cmd));
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		SubmitCmds();
+		FlushQ(); // need to wait so we can readback
+
+		// map memory and readback
+		byte *pData = NULL;
+		vkr = vt->MapMemory(Unwrap(dev), readbackMem, 0, 0, 0, (void **)&pData);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		RDCASSERT(pData != NULL);
+
+		// point sample info into raw buffer
+		{
+			ResourceFormat fmt = MakeResourceFormat(imInfo.format);
+
+			byte *data = (byte *)pData;
+
+			data += layout.offset;
+
+			float widthf = float(imInfo.extent.width);
+			float heightf = float(imInfo.extent.height);
+
+			float aspect = widthf/heightf;
+
+			thwidth = RDCMIN(maxSize, imInfo.extent.width);
+			thwidth &= ~0x7; // align down to multiple of 8
+			thheight = uint32_t(float(thwidth)/aspect);
+
+			thpixels = new byte[3*thwidth*thheight];
+
+			uint32_t stride = fmt.compByteWidth*fmt.compCount;
+
+			bool buf1010102 = false;
+			bool bufBGRA = false;
+
+			if(fmt.special && fmt.specialFormat == eSpecial_R10G10B10A2)
+			{
+				stride = 4;
+				buf1010102 = true;
+			}
+			if(fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8)
+			{
+				stride = 4;
+				bufBGRA = true;
+			}
+
+			byte *dst = thpixels;
+
+			for(uint32_t y=0; y < thheight; y++)
+			{
+				for(uint32_t x=0; x < thwidth; x++)
+				{
+					float xf = float(x)/float(thwidth);
+					float yf = float(y)/float(thheight);
+
+					byte *src = &data[ stride*uint32_t(xf*widthf) + layout.rowPitch*uint32_t(yf*heightf) ];
+
+					if(buf1010102)
+					{
+						uint32_t *src1010102 = (uint32_t *)src;
+						Vec4f unorm = ConvertFromR10G10B10A2(*src1010102);
+						dst[0] = (byte)(unorm.x*255.0f);
+						dst[1] = (byte)(unorm.y*255.0f);
+						dst[2] = (byte)(unorm.z*255.0f);
+					}
+					else if(bufBGRA)
+					{
+						dst[0] = src[2];
+						dst[1] = src[1];
+						dst[2] = src[0];
+					}
+					else if(fmt.compByteWidth == 2) // R16G16B16A16 backbuffer
+					{
+						uint16_t *src16 = (uint16_t *)src;
+
+						float linearR = RDCCLAMP(ConvertFromHalf(src16[0]), 0.0f, 1.0f);
+						float linearG = RDCCLAMP(ConvertFromHalf(src16[1]), 0.0f, 1.0f);
+						float linearB = RDCCLAMP(ConvertFromHalf(src16[2]), 0.0f, 1.0f);
+
+						if(linearR < 0.0031308f) dst[0] = byte(255.0f*(12.92f * linearR));
+						else                     dst[0] = byte(255.0f*(1.055f * powf(linearR, 1.0f/2.4f) - 0.055f));
+
+						if(linearG < 0.0031308f) dst[1] = byte(255.0f*(12.92f * linearG));
+						else                     dst[1] = byte(255.0f*(1.055f * powf(linearG, 1.0f/2.4f) - 0.055f));
+
+						if(linearB < 0.0031308f) dst[2] = byte(255.0f*(12.92f * linearB));
+						else                     dst[2] = byte(255.0f*(1.055f * powf(linearB, 1.0f/2.4f) - 0.055f));
+					}
+					else
+					{
+						dst[0] = src[0];
+						dst[1] = src[1];
+						dst[2] = src[2];
+					}
+
+					dst += 3;
+				}
+			}
+		}
+
+		vt->UnmapMemory(Unwrap(dev), readbackMem);
+
+		// delete all
+		vt->DestroyImage(Unwrap(dev), readbackIm);
+		vt->FreeMemory(Unwrap(dev), readbackMem);
+	}
+
+	byte *jpgbuf = NULL;
+	int len = thwidth*thheight;
+
+	if(wnd)
+	{
+		jpgbuf = new byte[len];
+
+		jpge::params p;
+
+		p.m_quality = 40;
+
+		bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
+
+		if(!success)
+		{
+			RDCERR("Failed to compress to jpg");
+			SAFE_DELETE_ARRAY(jpgbuf);
+			thwidth = 0;
+			thheight = 0;
+		}
+	}
+
+	Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
+
+	{
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
+
+		m_pFileSerialiser->Insert(scope.Get(true));
+	}
+
+	GetResourceManager()->Hack_PropagateReferencesToMemory();
+
+	RDCDEBUG("Inserting Resource Serialisers");	
+
+	GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
+
+	GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
+
+	RDCDEBUG("Creating Capture Scope");	
+
+	{
+		Serialiser *localSerialiser = GetMainSerialiser();
+
+		SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
+
+		Serialise_CaptureScope(0);
+
+		m_pFileSerialiser->Insert(scope.Get(true));
+
+		m_pFileSerialiser->Insert(m_HeaderChunk);
+	}
+
+	// don't need to lock access to m_CmdBufferRecords as we are no longer 
+	// in capframe (the transition is thread-protected) so nothing will be
+	// pushed to the vector
+
+	{
+		RDCDEBUG("Flushing %u command buffer records to file serialiser", (uint32_t)m_CmdBufferRecords.size());	
+
+		map<int32_t, Chunk *> recordlist;
+
+		// ensure all command buffer records within the frame evne if recorded before, but
+		// otherwise order must be preserved (vs. queue submits and desc set updates)
+		for(size_t i=0; i < m_CmdBufferRecords.size(); i++)
+		{
+			m_CmdBufferRecords[i]->Insert(recordlist);
+
+			RDCDEBUG("Adding %u chunks to file serialiser from command buffer %llu", (uint32_t)recordlist.size(), m_CmdBufferRecords[i]->GetResourceID());	
+		}
+
+		m_FrameCaptureRecord->Insert(recordlist);
+
+		RDCDEBUG("Flushing %u chunks to file serialiser from context record", (uint32_t)recordlist.size());	
+
+		for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
+			m_pFileSerialiser->Insert(it->second);
+
+		RDCDEBUG("Done");	
+	}
+
+	m_pFileSerialiser->FlushToDisk();
+
+	RenderDoc::Inst().SuccessfullyWrittenLog();
+
+	SAFE_DELETE(m_pFileSerialiser);
+	SAFE_DELETE(m_HeaderChunk);
+
+	m_State = WRITING_IDLE;
+
+	// delete cmd buffers now - had to keep them alive until after serialiser flush.
+	for(size_t i=0; i < m_CmdBufferRecords.size(); i++)
+		m_CmdBufferRecords[i]->Delete(GetResourceManager());
+
+	m_CmdBufferRecords.clear();
+
+	GetResourceManager()->MarkUnwrittenResources();
+
+	GetResourceManager()->ClearReferencedResources();
+
+	GetResourceManager()->FreeInitialContents();
+
+	GetResourceManager()->FlushPendingDirty();
+
+	return true;
 }
 
 void WrappedVulkan::ReadLogInitialisation()

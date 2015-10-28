@@ -19,7 +19,7 @@ vk_resources.o \
 vk_debug.o \
 vk_replay.o \
 vk_info.o \
-vk_replay_linux.o \
+vk_linux.o \
 wrappers/vk_cmd_funcs.o \
 wrappers/vk_dynamic_funcs.o \
 wrappers/vk_descriptor_funcs.o \

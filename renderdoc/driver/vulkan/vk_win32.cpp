@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2015 Vulkan
+ * Copyright (c) 2015 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,31 +23,22 @@
  ******************************************************************************/
 
 #include "vk_replay.h"
+#include "vk_core.h"
+
+static int dllLocator=0;
 
 void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 {
-	void **connectionScreenWindow = (void **)wn;
-
-	connection = (xcb_connection_t *)connectionScreenWindow[0];
-	int scr = (int)(uintptr_t)connectionScreenWindow[1];
-	wnd = (xcb_window_t)(uintptr_t)connectionScreenWindow[2];
-
-	const xcb_setup_t *setup = xcb_get_setup(connection);
-	xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-	while (scr-- > 0) xcb_screen_next(&iter);
-
-	screen = iter.data;
+	wnd = (HWND)wn;
 }
 
 void VulkanReplay::OutputWindow::InitSurfaceDescription(VkSurfaceDescriptionWindowKHR &surfDesc)
 {
-	static VkPlatformHandleXcbKHR handle;
-	handle.connection = connection;
-	handle.root = screen->root;
-
-	surfDesc.pPlatformHandle = &handle;
-	surfDesc.pPlatformWindow = &wnd;
-	surfDesc.platform = VK_PLATFORM_X11_KHR;
+	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		(const char *)&dllLocator, (HMODULE *)&surfDesc.pPlatformHandle);
+	
+	surfDesc.pPlatformWindow = wnd;
+	surfDesc.platform = VK_PLATFORM_WIN32_KHR;
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
@@ -57,13 +48,10 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 	
 	OutputWindow &outw = m_OutputWindows[id];
 	
-	xcb_get_geometry_cookie_t  geomCookie = xcb_get_geometry (outw.connection, outw.wnd);  // window is a xcb_drawable_t
-	xcb_get_geometry_reply_t  *geom       = xcb_get_geometry_reply (outw.connection, geomCookie, NULL);
-
-	w = (int32_t)geom->width;
-	h = (int32_t)geom->height;
-
-	free(geom);
+	RECT rect = {0};
+	GetClientRect(outw.wnd, &rect);
+	w = rect.right-rect.left;
+	h = rect.bottom-rect.top;
 }
 
 bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
@@ -71,12 +59,20 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 	if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
 		return false;
 
-	VULKANNOTIMP("Optimisation missing - output window always returning true");
+	return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
+}
 
-	return true;
+RENDERDOC_WindowHandle WrappedVulkan::GetHandleForSurface(const VkSurfaceDescriptionKHR* surf)
+{
+	RDCASSERT(surf);
+	VkSurfaceDescriptionWindowKHR *winDesc = (VkSurfaceDescriptionWindowKHR *)surf;
+
+	RDCASSERT(winDesc->platform == VK_PLATFORM_WIN32_KHR);
+
+	return winDesc->pPlatformWindow;
 }
 
 bool LoadVulkanLibrary()
 {
-	return Process::LoadModule("libvulkan.so");
+	return Process::LoadModule("vulkan-0.dll");
 }

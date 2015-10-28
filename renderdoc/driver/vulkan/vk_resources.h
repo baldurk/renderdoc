@@ -448,6 +448,12 @@ typename UnwrapHelper<RealType>::Outer *GetWrapped(RealType obj)
 }
 
 template<typename RealType>
+typename UnwrapHelper<RealType>::Outer::DispatchTableType *LayerDisp(RealType obj)
+{
+	return (typename UnwrapHelper<RealType>::Outer::DispatchTableType *)GetWrapped(obj)->loaderTable;
+}
+
+template<typename RealType>
 typename UnwrapHelper<RealType>::Outer::DispatchTableType *ObjDisp(RealType obj)
 {
 	return (typename UnwrapHelper<RealType>::Outer::DispatchTableType *)GetWrapped(obj)->table;
@@ -557,6 +563,8 @@ struct SwapchainInfo
 
 	VkRenderPass rp;
 
+	RENDERDOC_WindowHandle wndHandle;
+
 	struct SwapImage
 	{
 		VkImage im;
@@ -565,6 +573,7 @@ struct SwapchainInfo
 		VkFramebuffer fb;
 	};
 	vector<SwapImage> images;
+	uint32_t lastPresent;
 };
 	
 struct CmdBufferRecordingInfo
