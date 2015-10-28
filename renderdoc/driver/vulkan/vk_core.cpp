@@ -205,6 +205,7 @@ void VkInitParams::Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst)
 
 	if(pCreateInfo->pAppInfo)
 	{
+		// we don't support any extensions on appinfo structure
 		RDCASSERT(pCreateInfo->pAppInfo->pNext == NULL);
 
 		AppName = pCreateInfo->pAppInfo->pAppName ? pCreateInfo->pAppInfo->pAppName : "";

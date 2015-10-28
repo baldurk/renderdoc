@@ -130,6 +130,7 @@ VkResult WrappedVulkan::vkCreateCommandBuffer(
 			// Instead we create a command buffer for each baked list that we find.
 
 			// if pNext is non-NULL, need to do a deep copy
+			// we don't support any extensions on VkCmdBufferCreateInfo anyway
 			RDCASSERT(pCreateInfo->pNext == NULL);
 
 			record->cmdInfo = new CmdBufferRecordingInfo();

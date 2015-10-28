@@ -314,6 +314,9 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 	{
 		SCOPED_LOCK(m_CurrentMapsLock);
 		state = m_CurrentMaps[id];
+	
+		// don't support any extensions on VkMappedMemoryRange
+		RDCASSERT(pMemRanges->pNext == NULL);
 	}
 
 	SERIALISE_ELEMENT(VkMemoryMapFlags, flags, state.mapFlags);

@@ -479,7 +479,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 		RDCWARN("Presenting multiple swapchains at once - only first will be processed");
 	}
 	
-	// VKTODOLOW handle present info pNext
+	// Don't support any extensions for present info
 	RDCASSERT(pPresentInfo->pNext == NULL);
 	
 	ResourceId swapid = GetResID(pPresentInfo->swapchains[0]);

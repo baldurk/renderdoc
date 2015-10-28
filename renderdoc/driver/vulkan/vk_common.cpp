@@ -2108,13 +2108,15 @@ string ToStrHelper<false, VkPresentModeKHR>::Get(const VkPresentModeKHR &el)
 				if(m_Mode < WRITING) obj = (id == ResourceId() || !rm->HasLiveResource(id)) ? VK_NULL_HANDLE : Unwrap(rm->GetLiveHandle<type>(id)); \
 			}
 
-static void SerialiseNext(Serialiser *ser, const void *&pNext)
+static void SerialiseNext(Serialiser *ser, VkStructureType &sType, const void *&pNext)
 {
-	// VKTODOLOW serialise out whether there is a next structure, its type, and contents
+	ser->Serialise("sType", sType);
+
+	// we don't support any extensions, so pNext must always be NULL
 	if(ser->IsReading())
 		pNext = NULL;
-	//else
-		//RDCASSERT(pNext == NULL);
+	else
+		RDCASSERT(pNext == NULL);
 }
 
 template<typename T>
@@ -2148,8 +2150,7 @@ void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el)
 	ScopedContext scope(this, name, "VkDeviceQueueCreateInfo", 0, true);
 	
 	//RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("queueFamilyIndex", el.queueFamilyIndex);
 	Serialise("queueCount", el.queueCount);
@@ -2220,8 +2221,7 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	ScopedContext scope(this, name, "VkDeviceCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	SerialiseComplexArray("pRequestedQueues", (VkDeviceQueueCreateInfo *&)el.pRequestedQueues, el.queueRecordCount);
 
@@ -2295,8 +2295,7 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 	ScopedContext scope(this, name, "VkBufferCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("size", el.size);
 	Serialise("usage", (VkBufferUsageFlagBits &)el.usage);
@@ -2322,8 +2321,7 @@ void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el)
 	ScopedContext scope(this, name, "VkBufferViewCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	SerialiseObject(VkBuffer, "buffer", el.buffer);
 	Serialise("format", el.format);
@@ -2337,8 +2335,7 @@ void Serialiser::Serialise(const char *name, VkImageCreateInfo &el)
 	ScopedContext scope(this, name, "VkImageCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("imageType", el.imageType);
 	Serialise("format", el.format);
@@ -2371,8 +2368,7 @@ void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el)
 	ScopedContext scope(this, name, "VkImageViewCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	SerialiseObject(VkImage, "image", el.image);
 	Serialise("viewType", el.viewType);
@@ -2388,8 +2384,7 @@ void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 	ScopedContext scope(this, name, "VkFramebufferCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
 	Serialise("width", el.width);
@@ -2424,8 +2419,7 @@ void Serialiser::Serialise(const char *name, VkAttachmentDescription &el)
 	ScopedContext scope(this, name, "VkAttachmentDescription", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("format", el.format);
 	Serialise("samples", el.samples);
@@ -2444,8 +2438,7 @@ void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 	ScopedContext scope(this, name, "VkSubpassDescription", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("pipelineBindPoint", el.pipelineBindPoint);
 	Serialise("flags", (VkSubpassDescriptionFlagBits &)el.flags);
@@ -2477,8 +2470,7 @@ void Serialiser::Serialise(const char *name, VkSubpassDependency &el)
 	ScopedContext scope(this, name, "VkSubpassDependency", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("srcSubpass", el.srcSubpass);
 	Serialise("destSubpass", el.destSubpass);
@@ -2495,8 +2487,7 @@ void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el)
 	ScopedContext scope(this, name, "VkRenderPassCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	SerialiseComplexArray("pAttachments", (VkAttachmentDescription *&)el.pAttachments, el.attachmentCount);
 	SerialiseComplexArray("pSubpasses", (VkSubpassDescription *&)el.pSubpasses, el.subpassCount);
@@ -2537,8 +2528,7 @@ void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 	ScopedContext scope(this, name, "VkRenderPassBeginInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
 	SerialiseObject(VkFramebuffer, "framebuffer", el.framebuffer);
@@ -2586,8 +2576,7 @@ void Serialiser::Serialise(const char *name, VkPipelineVertexInputStateCreateInf
 	ScopedContext scope(this, name, "VkPipelineVertexInputStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	SerialiseComplexArray("pVertexBindingDescriptions", (VkVertexInputBindingDescription *&)el.pVertexBindingDescriptions, el.bindingCount);
 	SerialiseComplexArray("pVertexAttributeDescriptions", (VkVertexInputAttributeDescription *&)el.pVertexAttributeDescriptions, el.attributeCount);
@@ -2599,8 +2588,7 @@ void Serialiser::Serialise(const char *name, VkPipelineInputAssemblyStateCreateI
 	ScopedContext scope(this, name, "VkPipelineInputAssemblyStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("topology", el.topology);
 	Serialise("primitiveRestartEnable", el.primitiveRestartEnable);
@@ -2612,8 +2600,7 @@ void Serialiser::Serialise(const char *name, VkPipelineTessellationStateCreateIn
 	ScopedContext scope(this, name, "VkPipelineTessStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("patchControlPoints", el.patchControlPoints);
 }
@@ -2624,8 +2611,7 @@ void Serialiser::Serialise(const char *name, VkPipelineViewportStateCreateInfo &
 	ScopedContext scope(this, name, "VkPipelineViewportStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	if(m_Mode == READING)
 	{
@@ -2657,8 +2643,7 @@ void Serialiser::Serialise(const char *name, VkPipelineRasterStateCreateInfo &el
 	ScopedContext scope(this, name, "VkPipelineRasterStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_RASTER_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("depthClipEnable", el.depthClipEnable);
 	Serialise("rasterizerDiscardEnable", el.rasterizerDiscardEnable);
@@ -2678,8 +2663,7 @@ void Serialiser::Serialise(const char *name, VkPipelineMultisampleStateCreateInf
 	ScopedContext scope(this, name, "VkPipelineMultisampleStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("rasterSamples", el.rasterSamples);
 	RDCASSERT(el.rasterSamples <= 32);
@@ -2709,8 +2693,7 @@ void Serialiser::Serialise(const char *name, VkPipelineColorBlendStateCreateInfo
 	ScopedContext scope(this, name, "VkPipelineColorBlendStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("alphaToCoverageEnable", el.alphaToCoverageEnable);
 	Serialise("alphaToOneEnable", el.alphaToOneEnable);
@@ -2730,8 +2713,7 @@ void Serialiser::Serialise(const char *name, VkPipelineDepthStencilStateCreateIn
 	ScopedContext scope(this, name, "VkPipelineDepthStencilStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("depthTestEnable", el.depthTestEnable);
 	Serialise("depthWriteEnable", el.depthWriteEnable);
@@ -2750,8 +2732,7 @@ void Serialiser::Serialise(const char *name, VkPipelineDynamicStateCreateInfo &e
 	ScopedContext scope(this, name, "VkPipelineDynamicStateCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	if(m_Mode == READING)
 		el.pDynamicStates = NULL;
@@ -2764,8 +2745,7 @@ void Serialiser::Serialise(const char *name, VkCmdPoolCreateInfo &el)
 	ScopedContext scope(this, name, "VkCmdPoolCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("queueFamilyIndex", el.queueFamilyIndex);
 	Serialise("flags", (VkCmdPoolCreateFlagBits &)el.flags);
@@ -2777,8 +2757,7 @@ void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el)
 	ScopedContext scope(this, name, "VkCmdBufferCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	SerialiseObject(VkCmdPool, "cmdPool", el.cmdPool);
 	Serialise("level", el.level);
@@ -2793,8 +2772,7 @@ void Serialiser::Serialise(const char *name, VkCmdBufferBeginInfo &el)
 	ScopedContext scope(this, name, "VkCmdBufferBeginInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("flags", (VkCmdBufferOptimizeFlagBits &)el.flags);
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
@@ -2822,8 +2800,7 @@ void Serialiser::Serialise(const char *name, VkQueryPoolCreateInfo &el)
 	ScopedContext scope(this, name, "VkQueryPoolCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("queryType", el.queryType);
 	Serialise("slots", el.slots);
@@ -2836,8 +2813,7 @@ void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el)
 	ScopedContext scope(this, name, "VkSemaphoreCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
 	// for strongly typed serialising
@@ -2850,8 +2826,7 @@ void Serialiser::Serialise(const char *name, VkEventCreateInfo &el)
 	ScopedContext scope(this, name, "VkEventCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_EVENT_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
 	// for strongly typed serialising
@@ -2864,8 +2839,7 @@ void Serialiser::Serialise(const char *name, VkFenceCreateInfo &el)
 	ScopedContext scope(this, name, "VkFenceCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("flags", (VkFenceCreateFlagBits &)el.flags);
 }
@@ -2876,8 +2850,7 @@ void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el)
 	ScopedContext scope(this, name, "VkSamplerCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("minFilter", el.minFilter);
 	Serialise("magFilter", el.magFilter);
@@ -2901,8 +2874,7 @@ void Serialiser::Serialise(const char *name, VkPipelineShaderStageCreateInfo &el
 	ScopedContext scope(this, name, "VkPipelineShaderStageCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("stage", el.stage);
 	SerialiseObject(VkShader, "shader", el.shader);
@@ -2942,8 +2914,7 @@ void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el)
 	ScopedContext scope(this, name, "VkPipelineCacheCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	uint64_t initialSize = el.initialSize;
 	Serialise("codeSize", initialSize);
@@ -2974,8 +2945,7 @@ void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 	ScopedContext scope(this, name, "VkPipelineLayoutCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	// need to do this one by hand since it's just an array of objects that don't themselves have
 	// a Serialise overload
@@ -3009,8 +2979,7 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 	ScopedContext scope(this, name, "VkShaderModuleCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	uint64_t codeSize = el.codeSize;
 	Serialise("codeSize", codeSize);
@@ -3040,8 +3009,7 @@ void Serialiser::Serialise(const char *name, VkShaderCreateInfo &el)
 	ScopedContext scope(this, name, "VkShaderCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SHADER_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	string s = "";
 	if(m_Mode >= WRITING && el.pName != NULL)
@@ -3109,8 +3077,7 @@ void Serialiser::Serialise(const char *name, VkMemoryAllocInfo &el)
 	ScopedContext scope(this, name, "VkMemoryAllocInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("allocationSize", el.allocationSize);
 	Serialise("memoryTypeIndex", el.memoryTypeIndex);
@@ -3122,8 +3089,7 @@ void Serialiser::Serialise(const char *name, VkMemoryBarrier &el)
 	ScopedContext scope(this, name, "VkMemoryBarrier", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_MEMORY_BARRIER);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("outputMask", el.outputMask);
 	Serialise("inputMask", el.inputMask);
@@ -3135,8 +3101,7 @@ void Serialiser::Serialise(const char *name, VkBufferMemoryBarrier &el)
 	ScopedContext scope(this, name, "VkBufferMemoryBarrier", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("outputMask", el.outputMask);
 	Serialise("inputMask", el.inputMask);
@@ -3153,8 +3118,7 @@ void Serialiser::Serialise(const char *name, VkImageMemoryBarrier &el)
 	ScopedContext scope(this, name, "VkImageMemoryBarrier", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("outputMask", el.outputMask);
 	Serialise("inputMask", el.inputMask);
@@ -3172,8 +3136,7 @@ void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el)
 	ScopedContext scope(this, name, "VkGraphicsPipelineCreateInfo", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("flags", (VkPipelineCreateFlagBits &)el.flags);
 	SerialiseObject(VkPipelineLayout, "layout", el.layout);
@@ -3273,8 +3236,7 @@ void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el)
 	ScopedContext scope(this, name, "VkComputePipelineCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("stage", el.stage);
 	Serialise("flags", (VkPipelineCreateFlagBits &)el.flags);
@@ -3298,8 +3260,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el)
 	ScopedContext scope(this, name, "VkDescriptorPoolCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("poolUsage", el.poolUsage);
 	Serialise("maxSets", el.maxSets);
@@ -3336,8 +3297,7 @@ void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
 	ScopedContext scope(this, name, "VkWriteDescriptorSet", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	SerialiseObject(VkDescriptorSet, "destSet", el.destSet);
 	Serialise("destBinding", el.destBinding);
@@ -3363,8 +3323,7 @@ void Serialiser::Serialise(const char *name, VkCopyDescriptorSet &el)
 	ScopedContext scope(this, name, "VkCopyDescriptorSet", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	SerialiseObject(VkDescriptorSet, "srcSet", el.srcSet);
 	Serialise("srcBinding", el.srcBinding);
@@ -3422,8 +3381,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el
 	ScopedContext scope(this, name, "VkDescriptorSetLayoutCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	SerialiseComplexArray("pBinding", (VkDescriptorSetLayoutBinding *&)el.pBinding, el.count);
 }
@@ -3537,8 +3495,7 @@ void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el)
 	ScopedContext scope(this, name, "VkSwapchainCreateInfoKHR", 0, true);
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
-	Serialise("sType", el.sType);
-	SerialiseNext(this, el.pNext);
+	SerialiseNext(this, el.sType, el.pNext);
 	
 	// VKTODOLOW: don't need any of the info in here, I think
 	//Serialise("pSurfaceDescription", *el.pSurfaceDescription);

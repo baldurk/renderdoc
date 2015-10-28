@@ -106,6 +106,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 {
 	RDCASSERT(pCreateInfo);
 
+	// don't support any extensions for this createinfo
 	RDCASSERT(pCreateInfo->pAppInfo == NULL || pCreateInfo->pAppInfo->pNext == NULL);
 	RDCASSERT(pCreateInfo->pNext == NULL);
 
