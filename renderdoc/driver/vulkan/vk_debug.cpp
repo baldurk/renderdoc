@@ -232,7 +232,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_GenericDescSetLayout = VK_NULL_HANDLE;
 	m_GenericPipeLayout = VK_NULL_HANDLE;
 	m_GenericDescSet = VK_NULL_HANDLE;
-	m_GenericPipeline = VK_NULL_HANDLE;
+	m_HighlightBoxPipeline = VK_NULL_HANDLE;
 		
 	m_OverlayImageMem = VK_NULL_HANDLE;
 	m_OverlayImage = VK_NULL_HANDLE;
@@ -694,10 +694,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	pipeInfo.layout = Unwrap(m_GenericPipeLayout);
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_GenericPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_HighlightBoxPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_GenericPipeline);
+	GetResourceManager()->WrapResource(Unwrap(dev), m_HighlightBoxPipeline);
 
 	vt->DestroyRenderPass(Unwrap(dev), RGBA32RP);
 	vt->DestroyRenderPass(Unwrap(dev), RGBA8RP);
@@ -1199,10 +1199,10 @@ VulkanDebugManager::~VulkanDebugManager()
 		GetResourceManager()->ReleaseWrappedResource(m_GenericPipeLayout);
 	}
 
-	if(m_GenericPipeline != VK_NULL_HANDLE)
+	if(m_HighlightBoxPipeline != VK_NULL_HANDLE)
 	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_GenericPipeline));
-		GetResourceManager()->ReleaseWrappedResource(m_GenericPipeline);
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_HighlightBoxPipeline));
+		GetResourceManager()->ReleaseWrappedResource(m_HighlightBoxPipeline);
 	}
 
 	m_OutlineStripVBO.Destroy(vt, dev);

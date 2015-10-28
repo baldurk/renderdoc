@@ -92,7 +92,7 @@ class VulkanDebugManager
 		VkDescriptorSetLayout m_GenericDescSetLayout;
 		VkPipelineLayout m_GenericPipeLayout;
 		VkDescriptorSet m_GenericDescSet;
-		VkPipeline m_GenericPipeline;
+		VkPipeline m_HighlightBoxPipeline;
 		GPUBuffer m_OutlineStripVBO;
 		GPUBuffer m_GenericUBO;
 
