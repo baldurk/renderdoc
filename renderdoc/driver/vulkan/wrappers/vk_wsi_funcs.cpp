@@ -80,7 +80,6 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(
 		// use original ID because we don't create a live version of the swapchain
 		auto &swapInfo = m_CreationInfo.m_SwapChain[swapId];
 
-		// VKTODOLOW what if num images is less than on capture?
 		RDCASSERT(idx < swapInfo.images.size());
 		GetResourceManager()->AddLiveResource(id, swapInfo.images[idx].im);
 
@@ -160,7 +159,6 @@ VkResult WrappedVulkan::vkAcquireNextImageKHR(
 		VkSemaphore                              semaphore,
 		uint32_t*                                pImageIndex)
 {
-	// VKTODOLOW: does this need to be intercepted/serialised?
 	return ObjDisp(device)->AcquireNextImageKHR(Unwrap(device), Unwrap(swapChain), timeout, Unwrap(semaphore), pImageIndex);
 }
 
