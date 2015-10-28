@@ -133,6 +133,20 @@ template<> void Serialiser::Serialise(const char *name, VkImageResolve &el);
 
 template<> void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el);
 
+template<> void Serialiser::Deserialise(const VkDeviceCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkBufferCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkImageCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkFramebufferCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkRenderPassCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkRenderPassBeginInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkPipelineCacheCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkPipelineLayoutCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkShaderModuleCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkGraphicsPipelineCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkDescriptorPoolCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkWriteDescriptorSet* const el) const;
+template<> void Serialiser::Deserialise(const VkDescriptorSetLayoutCreateInfo* const el) const;
+
 #pragma region Chunks
 
 enum VulkanChunkType
