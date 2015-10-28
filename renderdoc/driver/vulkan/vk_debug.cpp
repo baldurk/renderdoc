@@ -94,10 +94,12 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 
 	m_ResourceManager = driver->GetResourceManager();
 
+	align = (VkDeviceSize)driver->GetDeviceProps().limits.minUniformBufferOffsetAlignment;
+
 	sz = size;
-	// offset must be 256-aligned, so ensure we have at least ringSize
+	// offset must be aligned, so ensure we have at least ringSize
 	// copies accounting for that
-	totalsize = ringSize == 1 ? size : AlignUp(size, (VkDeviceSize)256ULL)*ringSize;
+	totalsize = ringSize == 1 ? size : AlignUp(size, align)*ringSize;
 	curoffset = 0;
 
 	VkBufferCreateInfo bufInfo = {
@@ -175,8 +177,8 @@ void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevic
 		offset = 0;
 	RDCASSERT(offset + size <= totalsize);
 	
-	// offset must be 256-aligned
-	curoffset = AlignUp(offset+size, (VkDeviceSize)256ULL);
+	// offset must be aligned
+	curoffset = AlignUp(offset+size, align);
 
 	if(bindoffset) *bindoffset = (uint32_t)offset;
 

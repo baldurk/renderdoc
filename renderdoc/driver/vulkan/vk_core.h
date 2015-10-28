@@ -175,6 +175,7 @@ private:
 		uint32_t GPULocalMemIndex;
 
 		VkPhysicalDeviceFeatures features;
+		VkPhysicalDeviceProperties props;
 		VkPhysicalDeviceMemoryProperties memProps;
 	};
 
@@ -216,6 +217,8 @@ private:
 
 	const VkPhysicalDeviceFeatures &GetDeviceFeatures()
 	{ return m_PhysicalDeviceData.features; }
+	const VkPhysicalDeviceProperties &GetDeviceProps()
+	{ return m_PhysicalDeviceData.props; }
 
 	uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
 	uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);

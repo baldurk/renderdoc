@@ -438,7 +438,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.m_CmdPool);
 		}
-
+		
+		ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.props);
+		
 		ObjDisp(physicalDevice)->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.memProps);
 
 		ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
@@ -572,6 +574,8 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.m_CmdPool);
 		}
+		
+		ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.props);
 		
 		ObjDisp(physicalDevice)->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.memProps);
 

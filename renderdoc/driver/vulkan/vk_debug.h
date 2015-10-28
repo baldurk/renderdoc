@@ -71,6 +71,9 @@ class VulkanDebugManager
 			VkBuffer buf;
 			VkDeviceMemory mem;
 
+			// uniform buffer alignment requirement
+			VkDeviceSize align;
+
 			// for handling ring allocations
 			VkDeviceSize totalsize;
 			VkDeviceSize curoffset;
