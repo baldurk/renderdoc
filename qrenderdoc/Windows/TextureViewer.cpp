@@ -125,21 +125,7 @@ void TextureViewer::on_render_clicked(QMouseEvent *e)
     {
         m_Core->Renderer()->AsyncInvoke([this,x,y](IReplayRenderer *) {
 
-            ResourceId id;
-            if(m_Core->APIProps().pipelineType == ePipelineState_D3D11)
-            {
-              id = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
-            }
-            else if(m_Core->APIProps().pipelineType == ePipelineState_OpenGL)
-            {
-              id = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
-            }
-            else
-            {
-              const VulkanPipelineState &pipe = m_Core->CurVulkanPipelineState;
-              if(pipe.Pass.renderpass.colorAttachments.count > 0)
-              id = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.colorAttachments[0]].img;
-            }
+            ResourceId id = m_TexDisplay.texid;
 
             PixelValue val;
             ReplayOutput_PickPixel(m_Output, id, false, x, y, 0, 0, 0, &val);
@@ -191,7 +177,9 @@ void TextureViewer::OnLogfileClosed()
 void TextureViewer::OnEventSelected(uint32_t frameID, uint32_t eventID)
 {
 	m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
-		TextureDisplay d;
+
+		TextureDisplay &d = m_TexDisplay;
+
 		if(m_Core->APIProps().pipelineType == ePipelineState_D3D11)
 		{
 			d.texid = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
@@ -204,7 +192,14 @@ void TextureViewer::OnEventSelected(uint32_t frameID, uint32_t eventID)
 		{
 			const VulkanPipelineState &pipe = m_Core->CurVulkanPipelineState;
 			if(pipe.Pass.renderpass.colorAttachments.count > 0)
-			d.texid = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.colorAttachments[0]].img;
+				d.texid = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.colorAttachments[0]].img;
+
+			if(d.texid == ResourceId())
+			{
+				const FetchDrawcall *draw = m_Core->CurDrawcall();
+				if(draw)
+					d.texid = draw->copyDestination;
+			}
 		}
 		d.mip = 0;
 		d.sampleIdx = ~0U;
@@ -226,6 +221,13 @@ void TextureViewer::OnEventSelected(uint32_t frameID, uint32_t eventID)
 		d.Alpha = false;
 		m_Output->SetTextureDisplay(d);
 
-		GUIInvoke::call([this]() { ui->render->update(); });
+		FetchTexture *tex = m_Core->GetTexture(d.texid);
+				
+		GUIInvoke::call([this,tex]() {
+			if(tex)
+				ui->renderContainer->setWindowTitle(tr(tex->name.elems));
+
+			ui->render->update();
+		});
 	});
 }

@@ -30,6 +30,8 @@ class TextureViewer : public QFrame, public ILogViewerForm
 		Ui::TextureViewer *ui;
 		Core *m_Core;
 		IReplayOutput *m_Output;
+
+		TextureDisplay m_TexDisplay;
 };
 
 #endif // TEXTUREVIEWER_H
