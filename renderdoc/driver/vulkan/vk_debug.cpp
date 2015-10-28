@@ -658,7 +658,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayBlendPipeline);
 
-	ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 	
 	stages[0].shader = Unwrap(shader[TEXTVS]);
 	stages[1].shader = Unwrap(shader[TEXTFS]);
@@ -1296,9 +1296,7 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 	
 	vt->CmdBindDescriptorSets(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 2, offsets);
 
-	// VKTODOMED strip + instance ID doesn't seem to work atm? instance ID comes through 0
-	// for now, do lists, but want to change back 
-	vt->CmdDraw(Unwrap(textstate.cmd), 6*(uint32_t)strlen(text), 1, 0, 0);
+	vt->CmdDraw(Unwrap(textstate.cmd), 4, (uint32_t)strlen(text), 0, 0);
 }
 
 void VulkanDebugManager::EndText(const TextPrintState &textstate)
