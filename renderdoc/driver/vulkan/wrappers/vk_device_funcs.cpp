@@ -196,11 +196,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		VkDevice*                                   pDevice)
 {
 	SERIALISE_ELEMENT(ResourceId, physId, GetResID(physicalDevice));
-	SERIALISE_ELEMENT(VkDeviceCreateInfo, createInfo, *pCreateInfo);
+	SERIALISE_ELEMENT(VkDeviceCreateInfo, serCreateInfo, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(*pDevice));
 
 	if(m_State == READING)
 	{
+		// we must make any modifications locally, so the free of pointers
+		// in the serialised VkDeviceCreateInfo don't double-free
+		VkDeviceCreateInfo createInfo = serCreateInfo;
+
 		physicalDevice = GetResourceManager()->GetLiveHandle<VkPhysicalDevice>(physId);
 
 		VkDevice device;
