@@ -3151,6 +3151,8 @@ Serialiser::Deserialise<VkGraphicsPipelineCreateInfo>::~Deserialise()
 		if (pViewportState)
 		{
 			RDCASSERT(pViewportState->pNext == NULL); // otherwise delete
+			delete [] pViewportState->pViewports;
+			delete [] pViewportState->pScissors;
 			delete pViewportState;
 		}
 		if (pRasterState)
@@ -3161,6 +3163,7 @@ Serialiser::Deserialise<VkGraphicsPipelineCreateInfo>::~Deserialise()
 		if (pMultisampleState)
 		{
 			RDCASSERT(pMultisampleState->pNext == NULL); // otherwise delete
+			delete pMultisampleState->pSampleMask;
 			delete pMultisampleState;
 		}
 		if (pDepthStencilState)
@@ -3173,6 +3176,12 @@ Serialiser::Deserialise<VkGraphicsPipelineCreateInfo>::~Deserialise()
 			RDCASSERT(pColorBlendState->pNext == NULL); // otherwise delete
 			delete [] pColorBlendState->pAttachments;
 			delete pColorBlendState;
+		}
+		if (pDynamicState)
+		{
+			RDCASSERT(pDynamicState->pNext == NULL); // otherwise delete
+			delete [] pDynamicState->pDynamicStates;
+			delete pDynamicState;
 		}
 		for (uint32_t i=0; i<stageCount; i++)
 		{
