@@ -95,7 +95,7 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 	sz = size;
 	// offset must be 256-aligned, so ensure we have at least ringSize
 	// copies accounting for that
-	totalsize = ringSize == 1 ? size : AlignUp(size, 256ULL)*ringSize;
+	totalsize = ringSize == 1 ? size : AlignUp(size, (VkDeviceSize)256ULL)*ringSize;
 	curoffset = 0;
 
 	VkBufferCreateInfo bufInfo = {
@@ -175,7 +175,7 @@ void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevic
 	RDCASSERT(offset + size <= totalsize);
 	
 	// offset must be 256-aligned
-	curoffset = AlignUp(offset+size, 256ULL);
+	curoffset = AlignUp(offset+size, (VkDeviceSize)256ULL);
 
 	if(bindoffset) *bindoffset = (uint32_t)offset;
 
@@ -1658,7 +1658,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
 			m_OverlayNoDepthRP,
 			1, &m_OverlayImageView,
-			m_OverlayDim.width, m_OverlayDim.height, 1,
+			(uint32_t)m_OverlayDim.width, (uint32_t)m_OverlayDim.height, 1,
 		};
 
 		vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, &m_OverlayNoDepthFB);

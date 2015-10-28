@@ -68,7 +68,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			record->Length, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
+			(VkDeviceSize)record->Length, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
@@ -87,7 +87,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkMemoryAllocInfo allocInfo = {
 			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-			record->Length, GetReadbackMemoryIndex(mrq.memoryTypeBits),
+			(VkDeviceSize)record->Length, GetReadbackMemoryIndex(mrq.memoryTypeBits),
 		};
 
 		allocInfo.allocationSize = AlignUp(allocInfo.allocationSize, mrq.alignment);
@@ -107,7 +107,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkBufferCopy region = { 0, 0, record->Length };
+		VkBufferCopy region = { 0, 0, (VkDeviceSize)record->Length };
 
 		ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), srcBuf, dstBuf, 1, &region);
 
