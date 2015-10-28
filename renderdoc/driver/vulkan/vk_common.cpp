@@ -3497,9 +3497,6 @@ void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
 	SerialiseNext(this, el.sType, el.pNext);
 	
-	// VKTODOLOW: don't need any of the info in here, I think
-	//Serialise("pSurfaceDescription", *el.pSurfaceDescription);
-	
 	Serialise("minImageCount", el.minImageCount);
 	Serialise("imageFormat", el.imageFormat);
 	Serialise("imageColorSpace", el.imageColorSpace);
@@ -3511,9 +3508,6 @@ void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el)
 	// VKTODOLOW: do we need sharingMode, queueFamilyCount, pQueueFamilyIndices?
 	
 	Serialise("presentMode", el.presentMode);
-
-	// VKTODOLOW: don't think we need the old swap chain
-	//Serialise("oldSwapChain", el.oldSwapChain);
 
 	Serialise("clipped", el.clipped);
 }

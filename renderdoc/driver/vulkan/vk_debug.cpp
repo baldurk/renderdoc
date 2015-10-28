@@ -119,7 +119,6 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 	vkr = vt->GetBufferMemoryRequirements(Unwrap(dev), Unwrap(buf), &mrq);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	// VKTODOMED maybe don't require host visible, and do map & copy?
 	VkMemoryAllocInfo allocInfo = {
 		VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
 		mrq.size,
@@ -276,7 +275,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	GetResourceManager()->WrapResource(Unwrap(dev), m_PointSampler);
 
 	{
-		// VKTODOLOW not sure if these stage flags VK_SHADER_STAGE_... work yet?
 		VkDescriptorSetLayoutBinding layoutBinding[] = {
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL, }
 		};
@@ -905,8 +903,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			0,
 		};
 
-		// VKTODOMED used for texture display, but eventually will have to be created on the fly
-		// for whichever image we're viewing (and cached), not specifically created here.
 		vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, &m_PickPixelImageView);
 		RDCASSERT(vkr == VK_SUCCESS);
 
