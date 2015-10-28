@@ -444,6 +444,9 @@ class Serialiser
 		    Mode m_Mode;
 		};
 
+		// function to deallocate members
+		template<class T> void Deserialize(const T* const el) const {}
+
 		template<typename X>
 		void Serialise(const char *name, std::vector<X> &el)
 		{
@@ -768,6 +771,16 @@ class ScopedContext
 		}
 };
 
+template<class T>
+struct ScopedDeserialise
+{
+    ScopedDeserialise(const Serialiser* const ser, const T* const t) : m_ser(ser), m_t(t) {}
+    ~ScopedDeserialise() { m_ser->Deserialize(m_t); }
+    const Serialiser* const m_ser;
+    const T* const m_t;
+};
+
+
 // can be overridden to locally cache the serialiser pointer (e.g. for TLS lookup)
 #define GET_SERIALISER GetSerialiser()
 
@@ -775,7 +788,7 @@ class ScopedContext
 #define SCOPED_SERIALISE_CONTEXT(n) ScopedContext scope(GET_SERIALISER, GetChunkName(n), n, false);
 #define SCOPED_SERIALISE_SMALL_CONTEXT(n) ScopedContext scope(GET_SERIALISER, GetChunkName(n), n, true);
 
-#define SERIALISE_ELEMENT(type, name, inValue) type name; if(m_State >= WRITING) name = (inValue); GET_SERIALISER->Serialise(#name, name);
+#define SERIALISE_ELEMENT(type, name, inValue) type name; ScopedDeserialise<type> CONCAT(deserialise_, name)(m_pSerialiser, &name); if(m_State >= WRITING) name = (inValue); GET_SERIALISER->Serialise(#name, name);
 #define SERIALISE_ELEMENT_CLASS(type, name, inValue) Serialiser::Deserialise<type> name; if(m_State >= WRITING) { static_cast<type&>(name) = (inValue); name.m_Mode = Serialiser::WRITING; } else name.m_Mode = Serialiser::READING; GET_SERIALISER->Serialise(#name, static_cast<type&>(name)); 
 #define SERIALISE_ELEMENT_OPT(type, name, inValue, Condition) type name = type(); if(Condition) { if(m_State >= WRITING) name = (inValue); GET_SERIALISER->Serialise(#name, name); }
 #define SERIALISE_ELEMENT_ARR(type, name, inValues, count) type *name = new type[count]; for(size_t serialiseIdx=0; serialiseIdx < count; serialiseIdx++) { if(m_State >= WRITING) name[serialiseIdx] = (inValues)[serialiseIdx]; GET_SERIALISER->Serialise(#name, name[serialiseIdx]); }

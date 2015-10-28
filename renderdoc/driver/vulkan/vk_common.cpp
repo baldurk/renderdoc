@@ -2221,15 +2221,15 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 //template <> class Serialiser::Deserialise<VkDeviceCreateInfo>;
 
 template<>
-Serialiser::Deserialise<VkDeviceCreateInfo>::~Deserialise()
+void Serialiser::Deserialize(const VkDeviceCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
-		RDCASSERT(pNext == NULL); // otherwise delete
-		delete [] pRequestedQueues;
-		delete ppEnabledExtensionNames;
-		delete ppEnabledLayerNames;
-		delete pEnabledFeatures;
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pRequestedQueues;
+		delete el->ppEnabledExtensionNames;
+		delete el->ppEnabledLayerNames;
+		delete el->pEnabledFeatures;
 	}
 }
 
