@@ -118,6 +118,16 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 		}
 	}
 
+	rdctype::array<FetchDrawcall> draws;
+	renderer->GetDrawcalls(0, &draws);
+
+	if(draws.count > 0 && draws[draws.count-1].flags & eDraw_Present)
+	{
+		ResourceId id = draws[draws.count-1].copyDestination;
+		if(id != ResourceId())
+			d.texid = id;
+	}
+
 	DisplayRendererPreview(renderer, d);
 }
 
