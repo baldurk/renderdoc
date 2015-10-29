@@ -55,6 +55,10 @@ enum FrameRefType
 	eFrameRef_ReadBeforeWrite,
 };
 
+// verbose prints with IDs of each dirty resource and whether it was prepared,
+// and whether it was serialised.
+#define VERBOSE_DIRTY_RESOURCES 0
+
 namespace ResourceIDGen
 {
 	ResourceId GetNewUniqueID();
@@ -894,6 +898,9 @@ template<typename WrappedResourceType, typename RealResourceType, typename Recor
 void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::PrepareInitialContents()
 {
 	SCOPED_LOCK(m_Lock);
+	
+	RDCDEBUG("Preparing up to %u potentially dirty resources", (uint32_t)m_DirtyResources.size());
+	uint32_t prepared = 0;
 
 	for(auto it=m_DirtyResources.begin(); it != m_DirtyResources.end(); ++it)
 	{
@@ -905,11 +912,19 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Prepare
 		WrappedResourceType res = GetCurrentResource(id);
 
 		if(record == NULL || record->SpecialResource) continue;
-		
+
+		prepared++;
+
+#if VERBOSE_DIRTY_RESOURCES
 		RDCDEBUG("Dirty Resource %llu", id);
+#endif
 
 		Prepare_InitialState(res);
 	}
+	
+	RDCDEBUG("Prepared %u dirty resources", prepared);
+
+	prepared = 0;
 
 	for(auto it=m_CurrentResourceMap.begin(); it != m_CurrentResourceMap.end(); ++it)
 	{
@@ -917,9 +932,12 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Prepare
 
 		if(Force_InitialState(it->second))
 		{
+			prepared++;
 			Prepare_InitialState(it->second);
 		}
 	}
+
+	RDCDEBUG("Force-prepared %u dirty resources", prepared);
 }
 
 template<typename WrappedResourceType, typename RealResourceType, typename RecordType>
@@ -927,6 +945,9 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 {
 	SCOPED_LOCK(m_Lock);
 
+	uint32_t dirty = 0;
+	uint32_t skipped = 0;
+	
 	for(auto it=m_DirtyResources.begin(); it != m_DirtyResources.end(); ++it)
 	{
 		ResourceId id = *it;
@@ -934,7 +955,10 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 		if(m_FrameReferencedResources.find(id) == m_FrameReferencedResources.end() &&
 			 !RenderDoc::Inst().GetCaptureOptions().RefAllResources)
 		{
+#if VERBOSE_DIRTY_RESOURCES
 			RDCDEBUG("Resource %llu is GPU dirty but not referenced - skipping", id);
+#endif
+			skipped++;
 			continue;
 		}
 		
@@ -945,7 +969,11 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 
 		if(record == NULL || record->SpecialResource) continue;
 
+#if VERBOSE_DIRTY_RESOURCES
 		RDCDEBUG("Dirty Resource %llu", id);
+#endif
+
+		dirty++;
 
 		if(!Need_InitialStateChunk(res))
 		{
@@ -970,12 +998,18 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 		}
 	}
 
+	RDCDEBUG("Serialised %u dirty resources, skipped %u unreferenced", dirty, skipped);
+
+	dirty = 0;
+
 	for(auto it=m_CurrentResourceMap.begin(); it != m_CurrentResourceMap.end(); ++it)
 	{
 		if(it->second == (WrappedResourceType)RecordType::NullResource) continue;
 
 		if(Force_InitialState(it->second))
 		{
+			dirty++;
+
 			auto preparedChunk = m_InitialChunks.find(it->first);
 			if(preparedChunk != m_InitialChunks.end())
 			{
@@ -992,6 +1026,8 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 			}
 		}
 	}
+
+	RDCDEBUG("Force-serialised %u dirty resources", dirty);
 
 	// delete/cleanup any chunks that weren't used (maybe the resource was not
 	// referenced).
