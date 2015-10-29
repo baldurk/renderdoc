@@ -599,9 +599,9 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 		for(size_t i=0; i < ARRAY_COUNT(fb->imageAttachments); i++)
 		{
 			if(fb->imageAttachments[i] == NULL) break;
-			record->MarkResourceFrameReferenced(fb->imageAttachments[i]->baseResource, eFrameRef_Read);
-			record->MarkResourceFrameReferenced(fb->imageAttachments[i]->baseResourceMem, eFrameRef_Write);
-			record->cmdInfo->dirtied.insert(fb->imageAttachments[i]->baseResourceMem);
+			record->MarkResourceFrameReferenced(fb->imageAttachments[i]->baseResource, eFrameRef_Write);
+			record->MarkResourceFrameReferenced(fb->imageAttachments[i]->baseResourceMem, eFrameRef_Read);
+			record->cmdInfo->dirtied.insert(fb->imageAttachments[i]->baseResource);
 		}
 	}
 }

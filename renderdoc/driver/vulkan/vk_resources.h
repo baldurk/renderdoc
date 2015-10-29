@@ -603,6 +603,8 @@ struct VkResourceRecord : public ResourceRecord
 			ResourceRecord(id, true),
 			bakedCommands(NULL),
 			pool(NULL),
+			mem(VK_NULL_HANDLE),
+			memOffset(0),
 			layout(NULL),
 			swapInfo(NULL),
 			cmdInfo(NULL)
@@ -651,6 +653,9 @@ struct VkResourceRecord : public ResourceRecord
 		}
 
 		WrappedVkRes *Resource;
+
+		VkDeviceMemory mem;
+		VkDeviceSize memOffset;
 		
 		// this points to the base resource, either memory or an image - 
 		// ie. the resource that can be modified or changes (or can become dirty)
@@ -686,11 +691,12 @@ struct VkResourceRecord : public ResourceRecord
 
 struct ImageLayouts
 {
-	ImageLayouts() : arraySize(1), mipLevels(1), mem(VK_NULL_HANDLE) {}
+	ImageLayouts() : arraySize(1), mipLevels(1), mem(VK_NULL_HANDLE), memoffs(0) {}
 
 	vector<ImageRegionState> subresourceStates;
 	int arraySize, mipLevels;
 	VkDeviceMemory mem;
+	VkDeviceSize memoffs;
 };
 
 bool IsBlockFormat(VkFormat f);

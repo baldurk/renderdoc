@@ -177,9 +177,9 @@ void WrappedVulkan::vkCmdBlitImage(
 
 		record->MarkResourceFrameReferenced(GetResID(srcImage), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(GetRecord(srcImage)->baseResource, eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Write);
-		record->cmdInfo->dirtied.insert(GetRecord(destImage)->baseResource);
+		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
+		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Read);
+		record->cmdInfo->dirtied.insert(GetResID(destImage));
 	}
 }
 
@@ -254,9 +254,9 @@ void WrappedVulkan::vkCmdResolveImage(
 
 		record->MarkResourceFrameReferenced(GetResID(srcImage), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(GetRecord(srcImage)->baseResource, eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Write);
-		record->cmdInfo->dirtied.insert(GetRecord(destImage)->baseResource);
+		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
+		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Read);
+		record->cmdInfo->dirtied.insert(GetResID(destImage));
 	}
 }
 
@@ -330,9 +330,9 @@ void WrappedVulkan::vkCmdCopyImage(
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(srcImage), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(GetRecord(srcImage)->baseResource, eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Write);
-		record->cmdInfo->dirtied.insert(GetRecord(destImage)->baseResource);
+		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
+		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Read);
+		record->cmdInfo->dirtied.insert(GetResID(destImage));
 	}
 }
 
@@ -420,9 +420,9 @@ void WrappedVulkan::vkCmdCopyBufferToImage(
 
 		record->MarkResourceFrameReferenced(GetResID(srcBuffer), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(GetRecord(srcBuffer)->baseResource, eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Write);
-		record->cmdInfo->dirtied.insert(GetRecord(destImage)->baseResource);
+		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
+		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Read);
+		record->cmdInfo->dirtied.insert(GetResID(destImage));
 	}
 }
 
@@ -656,8 +656,8 @@ void WrappedVulkan::vkCmdClearColorImage(
 		Serialise_vkCmdClearColorImage(localSerialiser, cmdBuffer, image, imageLayout, pColor, rangeCount, pRanges);
 
 		record->AddChunk(scope.Get());
-		record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetRecord(image)->baseResource, eFrameRef_Write);
+		record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);
+		record->MarkResourceFrameReferenced(GetRecord(image)->baseResource, eFrameRef_Read);
 	}
 }
 
@@ -723,8 +723,8 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(
 		Serialise_vkCmdClearDepthStencilImage(localSerialiser, cmdBuffer, image, imageLayout, pDepthStencil, rangeCount, pRanges);
 
 		record->AddChunk(scope.Get());
-		record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetRecord(image)->baseResource, eFrameRef_Write);
+		record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);
+		record->MarkResourceFrameReferenced(GetRecord(image)->baseResource, eFrameRef_Read);
 	}
 }
 

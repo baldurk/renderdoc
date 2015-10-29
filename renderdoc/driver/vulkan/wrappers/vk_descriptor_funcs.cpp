@@ -651,8 +651,8 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 				if(bind.imageView != VK_NULL_HANDLE)
 				{
 					record->AddBindFrameRef(GetResID(bind.imageView), eFrameRef_Read);
-					record->AddBindFrameRef(GetRecord(bind.imageView)->baseResource, eFrameRef_Read);
-					record->AddBindFrameRef(GetRecord(bind.imageView)->baseResourceMem, ref);
+					record->AddBindFrameRef(GetRecord(bind.imageView)->baseResource, ref);
+					record->AddBindFrameRef(GetRecord(bind.imageView)->baseResourceMem, eFrameRef_Read);
 				}
 				if(bind.sampler != VK_NULL_HANDLE)
 				{

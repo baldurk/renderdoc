@@ -492,6 +492,7 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(
 		ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(mem), offs);
 
 		m_ImageLayouts[GetResID(image)].mem = mem;
+		m_ImageLayouts[GetResID(image)].memoffs = offs;
 	}
 
 	return true;
@@ -529,6 +530,9 @@ VkResult WrappedVulkan::vkBindImageMemory(
 		// Anything that looks up a baseResource for an image knows not to chase further
 		// than the image.
 		record->baseResource = GetResID(mem);
+
+		record->mem = mem;
+		record->memOffset = memOffset;
 	}
 
 	return ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(mem), memOffset);
