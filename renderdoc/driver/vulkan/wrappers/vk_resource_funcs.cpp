@@ -464,20 +464,14 @@ VkResult WrappedVulkan::vkBindBufferMemory(
 
 			chunk = scope.Get();
 		}
+	
+		// memory object bindings are immutable and must happen before creation or use,
+		// so this can always go into the record, even if a resource is created and bound
+		// to memory mid-frame
+		record->AddChunk(chunk);
 
-		if(m_State == WRITING_CAPFRAME && record->GetMemoryRecord())
-		{
-			m_FrameCaptureRecord->AddChunk(chunk);
-
-			GetResourceManager()->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Write);
-			GetResourceManager()->MarkResourceFrameReferenced(GetResID(mem), eFrameRef_Read);
-		}
-		else
-		{
-			record->AddChunk(chunk);
-		}
-
-		record->SetMemoryRecord(GetRecord(mem));
+		record->AddParent(GetRecord(mem));
+		record->baseResource = GetResID(mem);
 	}
 
 	return ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(mem), memOffset);
@@ -502,6 +496,8 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(
 		mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(memId);
 
 		ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(mem), offs);
+
+		m_ImageLayouts[GetResID(image)].mem = mem;
 	}
 
 	return true;
@@ -527,20 +523,18 @@ VkResult WrappedVulkan::vkBindImageMemory(
 
 			chunk = scope.Get();
 		}
+		
+		// memory object bindings are immutable and must happen before creation or use,
+		// so this can always go into the record, even if a resource is created and bound
+		// to memory mid-frame
+		record->AddChunk(chunk);
 
-		if(m_State == WRITING_CAPFRAME && record->GetMemoryRecord())
-		{
-			m_FrameCaptureRecord->AddChunk(chunk);
+		record->AddParent(GetRecord(mem));
 
-			GetResourceManager()->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);
-			GetResourceManager()->MarkResourceFrameReferenced(GetResID(mem), eFrameRef_Read);
-		}
-		else
-		{
-			record->AddChunk(chunk);
-		}
-
-		record->SetMemoryRecord(GetRecord(mem));
+		// images are a base resource but we want to track where their memory comes from.
+		// Anything that looks up a baseResource for an image knows not to chase further
+		// than the image.
+		record->baseResource = GetResID(mem);
 	}
 
 	return ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(mem), memOffset);
@@ -749,9 +743,14 @@ VkResult WrappedVulkan::vkCreateBufferView(
 				chunk = scope.Get();
 			}
 
+			VkResourceRecord *bufferRecord = GetRecord(pCreateInfo->buffer);
+
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pView);
 			record->AddChunk(chunk);
-			record->AddParent(GetRecord(pCreateInfo->buffer));
+			record->AddParent(bufferRecord);
+
+			// store the base resource
+			record->baseResource = bufferRecord->baseResource;
 		}
 		else
 		{
@@ -944,9 +943,16 @@ VkResult WrappedVulkan::vkCreateImageView(
 				chunk = scope.Get();
 			}
 
+			VkResourceRecord *imageRecord = GetRecord(pCreateInfo->image);
+
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pView);
 			record->AddChunk(chunk);
-			record->AddParent(GetRecord(pCreateInfo->image));
+			record->AddParent(imageRecord);
+			
+			// store the base resource. Note images have a baseResource pointing
+			// to their memory, which we will also need so we store that separately
+			record->baseResource = imageRecord->GetResourceID();
+			record->baseResourceMem = imageRecord->baseResource;
 		}
 		else
 		{

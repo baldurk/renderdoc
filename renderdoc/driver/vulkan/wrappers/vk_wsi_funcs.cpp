@@ -134,6 +134,8 @@ VkResult WrappedVulkan::vkGetSwapchainImagesKHR(
 					VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pSwapchainImages[i]);
 					record->AddChunk(chunk);
 
+					record->SpecialResource = true;
+
 					// we invert the usual scheme - we make the swapchain record take parent refs
 					// on these images, so that we can just ref the swapchain on present and pull
 					// in all the images

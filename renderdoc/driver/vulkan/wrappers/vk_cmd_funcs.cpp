@@ -592,8 +592,17 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(pRenderPassBegin->renderPass), eFrameRef_Read);
-		// VKTODOMED should mark framebuffer read and attachments write
-		record->MarkResourceFrameReferenced(GetResID(pRenderPassBegin->framebuffer), eFrameRef_Write);
+
+		VkResourceRecord *fb = GetRecord(pRenderPassBegin->framebuffer);
+		
+		record->MarkResourceFrameReferenced(fb->GetResourceID(), eFrameRef_Read);
+		for(size_t i=0; i < ARRAY_COUNT(fb->imageAttachments); i++)
+		{
+			if(fb->imageAttachments[i] == NULL) break;
+			record->MarkResourceFrameReferenced(fb->imageAttachments[i]->baseResource, eFrameRef_Read);
+			record->MarkResourceFrameReferenced(fb->imageAttachments[i]->baseResourceMem, eFrameRef_Write);
+			record->cmdInfo->dirtied.insert(fb->imageAttachments[i]->baseResourceMem);
+		}
 	}
 }
 
@@ -1130,7 +1139,10 @@ void WrappedVulkan::vkCmdBindVertexBuffers(
 
 		record->AddChunk(scope.Get());
 		for(uint32_t i=0; i < bindingCount; i++)
+		{
 			record->MarkResourceFrameReferenced(GetResID(pBuffers[i]), eFrameRef_Read);
+			record->MarkResourceFrameReferenced(GetRecord(pBuffers[i])->baseResource, eFrameRef_Read);
+		}
 	}
 }
 
@@ -1197,6 +1209,7 @@ void WrappedVulkan::vkCmdBindIndexBuffer(
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
 	}
 }
 
@@ -1259,14 +1272,13 @@ void WrappedVulkan::vkCmdUpdateBuffer(
 		Serialise_vkCmdUpdateBuffer(localSerialiser, cmdBuffer, destBuffer, destOffset, dataSize, pData);
 
 		record->AddChunk(scope.Get());
-		record->MarkResourceFrameReferenced(GetResID(destBuffer), eFrameRef_Write);
-		
-		// Don't dirty the buffer, just the memory behind it.
-		{
-			VkResourceRecord *buf = GetRecord(destBuffer);
-			if(buf->GetMemoryRecord())
-				record->cmdInfo->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
-		}
+
+		VkResourceRecord *buf = GetRecord(destBuffer);
+
+		// mark buffer just as read, and memory behind as write & dirtied
+		record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
+		record->cmdInfo->dirtied.insert(buf->baseResource);
 	}
 }
 
@@ -1327,14 +1339,13 @@ void WrappedVulkan::vkCmdFillBuffer(
 		Serialise_vkCmdFillBuffer(localSerialiser, cmdBuffer, destBuffer, destOffset, fillSize, data);
 
 		record->AddChunk(scope.Get());
-		record->MarkResourceFrameReferenced(GetResID(destBuffer), eFrameRef_Write);
-		
-		// Don't dirty the buffer, just the memory behind it.
-		{
-			VkResourceRecord *buf = GetRecord(destBuffer);
-			if(buf->GetMemoryRecord())
-				record->cmdInfo->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
-		}
+
+		VkResourceRecord *buf = GetRecord(destBuffer);
+
+		// mark buffer just as read, and memory behind as write & dirtied
+		record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
+		record->cmdInfo->dirtied.insert(buf->baseResource);
 	}
 }
 
@@ -1624,14 +1635,13 @@ void WrappedVulkan::vkCmdWriteTimestamp(
 		Serialise_vkCmdWriteTimestamp(localSerialiser, cmdBuffer, timestampType, destBuffer, destOffset);
 
 		record->AddChunk(scope.Get());
-		record->MarkResourceFrameReferenced(GetResID(destBuffer), eFrameRef_Write);
-		
-		// Don't dirty the buffer, just the memory behind it.
-		{
-			VkResourceRecord *buf = GetRecord(destBuffer);
-			if(buf->GetMemoryRecord())
-				record->cmdInfo->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
-		}
+
+		VkResourceRecord *buf = GetRecord(destBuffer);
+
+		// mark buffer just as read, and memory behind as write & dirtied
+		record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
+		record->cmdInfo->dirtied.insert(buf->baseResource);
 	}
 }
 
@@ -1704,14 +1714,13 @@ void WrappedVulkan::vkCmdCopyQueryPoolResults(
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetResID(destBuffer), eFrameRef_Write);
-		
-		// Don't dirty the buffer, just the memory behind it.
-		{
-			VkResourceRecord *buf = GetRecord(destBuffer);
-			if(buf->GetMemoryRecord())
-				record->cmdInfo->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
-		}
+
+		VkResourceRecord *buf = GetRecord(destBuffer);
+
+		// mark buffer just as read, and memory behind as write & dirtied
+		record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
+		record->cmdInfo->dirtied.insert(buf->baseResource);
 	}
 }
 

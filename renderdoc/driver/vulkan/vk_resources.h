@@ -603,7 +603,6 @@ struct VkResourceRecord : public ResourceRecord
 			ResourceRecord(id, true),
 			bakedCommands(NULL),
 			pool(NULL),
-			memory(NULL),
 			layout(NULL),
 			swapInfo(NULL),
 			cmdInfo(NULL)
@@ -618,28 +617,6 @@ struct VkResourceRecord : public ResourceRecord
 			SwapChunks(bakedCommands);
 			cmdInfo->dirtied.swap(bakedCommands->cmdInfo->dirtied);
 			cmdInfo->boundDescSets.swap(bakedCommands->cmdInfo->boundDescSets);
-		}
-
-		// need to only track current memory binding,
-		// so we don't have parents on every memory record
-		// that we were ever bound to. But we also want
-		// the record to be immediately in Parents without
-		// needing an extra step to insert it at the last
-		// minute.
-		void SetMemoryRecord(VkResourceRecord *r)
-		{
-			if(memory != NULL)
-				Parents.erase((ResourceRecord *)memory);
-
-			memory = r;
-
-			if(memory != NULL)
-				AddParent(memory);
-		}
-
-		VkResourceRecord *GetMemoryRecord()
-		{
-			return memory;
 		}
 
 		void AddBindFrameRef(ResourceId id, FrameRefType ref)
@@ -674,6 +651,17 @@ struct VkResourceRecord : public ResourceRecord
 		}
 
 		WrappedVkRes *Resource;
+		
+		// this points to the base resource, either memory or an image - 
+		// ie. the resource that can be modified or changes (or can become dirty)
+		// since typical memory bindings are immutable and must happen before
+		// creation or use, this can always be determined
+		ResourceId baseResource;
+		ResourceId baseResourceMem; // for image views, we need to point to both the image and mem
+
+		// framebuffers are the only object that can point to multiple resources
+		// (as each attachment has an image).
+		VkResourceRecord *imageAttachments[8];
 	
 		VkResourceRecord *bakedCommands;
 
@@ -694,17 +682,15 @@ struct VkResourceRecord : public ResourceRecord
 		// in the binding slots. Updated when updating descriptor sets
 		// and then applied in a block on descriptor set bind.
 		map<ResourceId, pair<int, FrameRefType> > bindFrameRefs;
-
-	private:
-		VkResourceRecord *memory;
 };
 
 struct ImageLayouts
 {
-	ImageLayouts() : arraySize(1), mipLevels(1) {}
+	ImageLayouts() : arraySize(1), mipLevels(1), mem(VK_NULL_HANDLE) {}
 
 	vector<ImageRegionState> subresourceStates;
 	int arraySize, mipLevels;
+	VkDeviceMemory mem;
 };
 
 bool IsBlockFormat(VkFormat f);

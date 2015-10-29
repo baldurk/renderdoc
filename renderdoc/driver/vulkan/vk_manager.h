@@ -97,8 +97,6 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 		{
 			return realtype( (uint64_t) ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id)) );
 		}
-
-		void Hack_PropagateReferencesToMemory();
 		
 		// handling memory & image transitions
 		void RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states,

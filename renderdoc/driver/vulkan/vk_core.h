@@ -102,8 +102,7 @@ private:
 	friend class VulkanDebugManager;
 	
 	enum {
-		eInitialContents_Copy = 0,
-		eInitialContents_ClearColorImage,
+		eInitialContents_ClearColorImage = 0,
 		eInitialContents_ClearDepthStencilImage,
 	};
 

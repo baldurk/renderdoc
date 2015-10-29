@@ -31,10 +31,6 @@
 
 #include "jpeg-compressor/jpge.h"
 
-// VKTODOLOW dirty buffers should propagate through to their memory somehow
-// images can be separately dirty since we can't just copy their memory
-// (tiling could be different)
-
 static bool operator <(const VkExtensionProperties &a, const VkExtensionProperties &b)
 {
 	int cmp = strcmp(a.extName, b.extName);
@@ -951,8 +947,6 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		m_pFileSerialiser->Insert(scope.Get(true));
 	}
-
-	GetResourceManager()->Hack_PropagateReferencesToMemory();
 
 	RDCDEBUG("Inserting Resource Serialisers");	
 

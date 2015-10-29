@@ -407,11 +407,18 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFramebuffer);
 			record->AddChunk(chunk);
 
+			RDCASSERT(pCreateInfo->attachmentCount < (uint32_t)ARRAY_COUNT(record->imageAttachments));
+
+			RDCEraseEl(record->imageAttachments);
+
 			if(pCreateInfo->renderPass != VK_NULL_HANDLE)
 				record->AddParent(GetRecord(pCreateInfo->renderPass));
 			for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
 			{
-				record->AddParent(GetRecord(pCreateInfo->pAttachments[i]));
+				VkResourceRecord *attRecord = GetRecord(pCreateInfo->pAttachments[i]);
+				record->AddParent(attRecord);
+
+				record->imageAttachments[i] = attRecord;
 			}
 		}
 		else

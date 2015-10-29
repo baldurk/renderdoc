@@ -621,24 +621,48 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 				VkDescriptorInfo &bind = binding[pDescriptorWrites[i].destArrayElement + d];
 
 				if(bind.bufferView != VK_NULL_HANDLE)
+				{
 					record->RemoveBindFrameRef(GetResID(bind.bufferView));
+					record->RemoveBindFrameRef(GetRecord(bind.bufferView)->baseResource);
+				}
 				if(bind.imageView != VK_NULL_HANDLE)
+				{
 					record->RemoveBindFrameRef(GetResID(bind.imageView));
+					record->RemoveBindFrameRef(GetRecord(bind.imageView)->baseResource);
+					record->RemoveBindFrameRef(GetRecord(bind.imageView)->baseResourceMem);
+				}
 				if(bind.sampler != VK_NULL_HANDLE)
+				{
 					record->RemoveBindFrameRef(GetResID(bind.sampler));
+				}
 				if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
+				{
 					record->RemoveBindFrameRef(GetResID(bind.bufferInfo.buffer));
+					record->RemoveBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource);
+				}
 
 				bind = pDescriptorWrites[i].pDescriptors[d];
 
 				if(bind.bufferView != VK_NULL_HANDLE)
-					record->AddBindFrameRef(GetResID(bind.bufferView), ref);
+				{
+					record->AddBindFrameRef(GetResID(bind.bufferView), eFrameRef_Read);
+					record->AddBindFrameRef(GetRecord(bind.bufferView)->baseResource, ref);
+				}
 				if(bind.imageView != VK_NULL_HANDLE)
-					record->AddBindFrameRef(GetResID(bind.imageView), ref);
+				{
+					record->AddBindFrameRef(GetResID(bind.imageView), eFrameRef_Read);
+					record->AddBindFrameRef(GetRecord(bind.imageView)->baseResource, eFrameRef_Read);
+					record->AddBindFrameRef(GetRecord(bind.imageView)->baseResourceMem, ref);
+				}
 				if(bind.sampler != VK_NULL_HANDLE)
+				{
 					record->AddBindFrameRef(GetResID(bind.sampler), ref);
+				}
 				if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
-					record->AddBindFrameRef(GetResID(bind.bufferInfo.buffer), ref);
+				{
+					record->AddBindFrameRef(GetResID(bind.bufferInfo.buffer), eFrameRef_Read);
+					record->AddBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource, ref);
+				}
 			}
 		}
 
