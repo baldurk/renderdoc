@@ -735,10 +735,6 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 
 			m_PartialReplayData.renderPassActive = false;
 			ObjDisp(cmdBuffer)->CmdEndRenderPass(Unwrap(cmdBuffer));
-
-			m_PartialReplayData.state.renderPass = ResourceId();
-			m_PartialReplayData.state.framebuffer = ResourceId();
-			RDCEraseEl(m_PartialReplayData.state.renderArea);
 		}
 	}
 	else if(m_State == READING)
@@ -746,6 +742,16 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdEndRenderPass(Unwrap(cmdBuffer));
+		
+		const string desc = localSerialiser->GetDebugStr();
+
+		// VKTODOMED change the name to show render pass store-op
+		AddEvent(END_RENDERPASS, desc);
+		FetchDrawcall draw;
+		draw.name = "Render Pass End";
+		draw.flags |= eDraw_Clear;
+
+		AddDrawcall(draw, true);
 	}
 
 	return true;
