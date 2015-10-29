@@ -61,6 +61,8 @@ namespace ResourceIDGen
 	void SetReplayResourceIDs();
 };
 
+struct ResourceRecord;
+
 class ResourceRecordHandler
 {
 	public:
@@ -68,6 +70,7 @@ class ResourceRecordHandler
 		virtual void MarkPendingDirty(ResourceId id) = 0;
 		virtual void RemoveResourceRecord(ResourceId id) = 0;
 		virtual void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType) = 0;
+		virtual void DestroyResourceRecord(ResourceRecord *record) = 0;
 };
 
 // This is a generic resource record, that APIs can inherit from and use.
@@ -324,6 +327,7 @@ class ResourceManager : public ResourceRecordHandler
 		bool HasResourceRecord(ResourceId id);
 		RecordType *AddResourceRecord(ResourceId id);
 		inline void RemoveResourceRecord(ResourceId id);
+		void DestroyResourceRecord(ResourceRecord *record);
 		
 		// while capturing or replaying, resources and their live IDs
 		void AddCurrentResource(ResourceId id, WrappedResourceType res);
@@ -1094,6 +1098,12 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::RemoveR
 	RDCASSERT(m_ResourceRecords.find(id) != m_ResourceRecords.end());
 	
 	m_ResourceRecords.erase(id);
+}
+
+template<typename WrappedResourceType, typename RealResourceType, typename RecordType>
+void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::DestroyResourceRecord(ResourceRecord *record)
+{
+	delete (RecordType *)record;
 }
 
 template<typename WrappedResourceType, typename RealResourceType, typename RecordType>

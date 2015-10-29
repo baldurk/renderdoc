@@ -95,7 +95,7 @@ void ResourceRecord::Delete(ResourceRecordHandler *mgr)
 		if(ResID != ResourceId())
 			mgr->RemoveResourceRecord(ResID);
 
-		delete this;
+		mgr->DestroyResourceRecord(this);
 	}
 }
 
