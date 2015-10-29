@@ -359,12 +359,13 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(bool, writes, writeCount == 1);
 
-	VkWriteDescriptorSet writeDesc;
-	VkCopyDescriptorSet copyDesc;
+	VkWriteDescriptorSet writeDesc = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, 0 };
+	VkCopyDescriptorSet copyDesc = { VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET, 0};
 	if(writes)
 	{
 		SERIALISE_ELEMENT(VkWriteDescriptorSet, w, *pDescriptorWrites);
 		writeDesc = w;
+		w.pDescriptors = NULL; // take ownership of the descriptors (we will delete manually)
 	}
 	else
 	{
@@ -459,6 +460,8 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 			// don't want to implement this blindly
 			RDCUNIMPLEMENTED("Copying descriptors not implemented");
 		}
+
+		delete[] writeDesc.pDescriptors; // delete serialised descriptors array
 	}
 
 	return true;
