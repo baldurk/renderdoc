@@ -222,8 +222,6 @@ private:
 	uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
 	uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);
 	uint32_t GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask);
-
-	ResourceId m_FakeBBImgId;
 		
 	struct BakedCmdBufferInfo
 	{

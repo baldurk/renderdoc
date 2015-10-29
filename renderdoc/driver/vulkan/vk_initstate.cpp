@@ -467,9 +467,131 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 	}
 	else if(type == eResDeviceMemory || type == eResImage)
 	{
+		VkResult vkr = VK_SUCCESS;
+
+		VkDevice d = GetDev();
+		
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+		
 		if(type == eResImage && initial.resource == NULL)
 		{
-			RDCASSERT(initial.num == eInitialContents_ClearColorImage || initial.num == eInitialContents_ClearDepthStencilImage);
+			if(initial.num == eInitialContents_ClearColorImage)
+			{
+				VkCmdBuffer cmd = GetNextCmd();
+
+				vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+				RDCASSERT(vkr == VK_SUCCESS);
+				
+				// VKTODOMED handle multiple subresources with different layouts etc
+				VkImageMemoryBarrier barrier = {
+					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+					0, 0,
+					m_ImageLayouts[id].subresourceStates[0].state, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+					ToHandle<VkImage>(live),
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS },
+				};
+
+				// finish any pending work before clear
+				barrier.outputMask = VK_MEMORY_OUTPUT_HOST_WRITE_BIT|
+					VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
+					VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
+					VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
+					VK_MEMORY_OUTPUT_TRANSFER_BIT;
+				// clear completes before subsequent operations
+				barrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+
+				void *barrierptr = (void *)&barrier;
+				
+				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+				
+				VkClearColorValue clearval = { 0.0f, 0.0f, 0.0f, 0.0f };
+				VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
+
+				ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), ToHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, &clearval, 1, &range);
+
+				barrier.newLayout = barrier.oldLayout;
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
+
+				// complete clear before any other work
+				barrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
+				barrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT|
+					VK_MEMORY_INPUT_INDIRECT_COMMAND_BIT|
+					VK_MEMORY_INPUT_INDEX_FETCH_BIT|
+					VK_MEMORY_INPUT_VERTEX_ATTRIBUTE_FETCH_BIT|
+					VK_MEMORY_INPUT_UNIFORM_READ_BIT|
+					VK_MEMORY_INPUT_SHADER_READ_BIT|
+					VK_MEMORY_INPUT_COLOR_ATTACHMENT_BIT|
+					VK_MEMORY_INPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
+					VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT|
+					VK_MEMORY_INPUT_TRANSFER_BIT;
+				
+				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+
+				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+				RDCASSERT(vkr == VK_SUCCESS);
+			}
+			else if(initial.num == eInitialContents_ClearDepthStencilImage)
+			{
+				VkCmdBuffer cmd = GetNextCmd();
+
+				vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+				RDCASSERT(vkr == VK_SUCCESS);
+				
+				// VKTODOMED handle multiple subresources with different layouts etc
+				VkImageMemoryBarrier barrier = {
+					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+					0, 0,
+					m_ImageLayouts[id].subresourceStates[0].state, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+					ToHandle<VkImage>(live),
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS },
+				};
+
+				// finish any pending work before clear
+				barrier.outputMask = VK_MEMORY_OUTPUT_HOST_WRITE_BIT|
+					VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
+					VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
+					VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
+					VK_MEMORY_OUTPUT_TRANSFER_BIT;
+				// clear completes before subsequent operations
+				barrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+
+				void *barrierptr = (void *)&barrier;
+				
+				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+				
+				VkClearDepthStencilValue clearval = { 1.0f, 0 };
+				VkImageSubresourceRange range = { VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
+
+				ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), ToHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, &clearval, 1, &range);
+
+				barrier.newLayout = barrier.oldLayout;
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
+
+				// complete clear before any other work
+				barrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
+				barrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT|
+					VK_MEMORY_INPUT_INDIRECT_COMMAND_BIT|
+					VK_MEMORY_INPUT_INDEX_FETCH_BIT|
+					VK_MEMORY_INPUT_VERTEX_ATTRIBUTE_FETCH_BIT|
+					VK_MEMORY_INPUT_UNIFORM_READ_BIT|
+					VK_MEMORY_INPUT_SHADER_READ_BIT|
+					VK_MEMORY_INPUT_COLOR_ATTACHMENT_BIT|
+					VK_MEMORY_INPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
+					VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT|
+					VK_MEMORY_INPUT_TRANSFER_BIT;
+				
+				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+
+				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+				RDCASSERT(vkr == VK_SUCCESS);
+			}
+			else
+			{
+				RDCERR("Unexpected initial state type %u with NULL resource", initial.num);
+			}
+
 			return;
 		}
 
@@ -488,13 +610,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			memsize = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
 		}
 
-		VkResult vkr = VK_SUCCESS;
-
-		VkDevice d = GetDev();
 		VkCmdBuffer cmd = GetNextCmd();
 
-		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
-		
 		vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 

@@ -292,8 +292,6 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 	m_DrawcallStack.push_back(&m_ParentDrawcall);
 
-	m_FakeBBImgId = ResourceId();
-
 	m_ResourceManager = new VulkanResourceManager(m_State, m_pSerialiser, this);
 
 	m_pSerialiser->SetUserData(m_ResourceManager);
@@ -1091,6 +1089,9 @@ void WrappedVulkan::ReadLogInitialisation()
 		{
 			GetResourceManager()->ApplyInitialContents();
 
+			SubmitCmds();
+			FlushQ();
+
 			ContextReplayLog(READING, 0, 0, false);
 		}
 
@@ -1608,10 +1609,6 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 
 			SERIALISE_ELEMENT(ResourceId, bbid, ResourceId());
 
-			ResourceId liveBBid = GetResourceManager()->GetLiveID(bbid);
-
-			m_FakeBBImgId = bbid;
-
 			bool HasCallstack = false;
 			localSerialiser->Serialise("HasCallstack", HasCallstack);	
 
@@ -1680,48 +1677,11 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 	if(!partial)
 	{
 		GetResourceManager()->ApplyInitialContents();
+
+		SubmitCmds();
+		FlushQ();
+
 		GetResourceManager()->ReleaseInFrameResources();
-
-		// VKTODOLOW temp hack - clear backbuffer to black
-		if(m_FakeBBImgId != ResourceId())
-		{
-			VkDevice dev = GetDev();
-			VkCmdBuffer cmd = GetNextCmd();
-
-			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
-
-			VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-			RDCASSERT(vkr == VK_SUCCESS);
-
-			ImageLayouts &st = m_ImageLayouts[GetResourceManager()->GetLiveID(m_FakeBBImgId)];
-			RDCASSERT(st.subresourceStates.size() == 1);
-
-			VkImageMemoryBarrier t;
-			t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			t.pNext = NULL;
-			t.inputMask = 0;
-			t.outputMask = 0;
-			t.srcQueueFamilyIndex = 0;
-			t.destQueueFamilyIndex = 0;
-			t.image = Unwrap(GetResourceManager()->GetLiveHandle<VkImage>(m_FakeBBImgId));
-			t.oldLayout = st.subresourceStates[0].state;
-			t.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			t.subresourceRange = st.subresourceStates[0].range;
-
-			void *barrier = (void *)&t;
-
-			st.subresourceStates[0].state = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&barrier);
-
-			VkClearColorValue clearColor = { { 0.0f, 0.0f, 0.0f, 1.0f, } };
-			ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), t.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &clearColor, 1, &t.subresourceRange);
-
-			vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-			RDCASSERT(vkr == VK_SUCCESS);
-
-			SubmitCmds();
-			// don't need to flush here
-		}
 	}
 	
 	{
