@@ -1789,7 +1789,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 					{
 						const DescSetLayout &descLayout = m_CreationInfo.m_DescSetLayout[ descSetLayouts[i] ];
 
-						if(s.graphics.descSets[i] != ResourceId())
+						if(i < s.graphics.descSets.size() && s.graphics.descSets[i] != ResourceId())
 						{
 							// if there are dynamic buffers, pass along the offsets
 							ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(layout), (uint32_t)i,
@@ -1798,7 +1798,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 						}
 						else
 						{
-							RDCERR("Descriptor set is not bound but pipeline layout expects one");
+							RDCWARN("Descriptor set is not bound but pipeline layout expects one");
 						}
 					}
 				}
