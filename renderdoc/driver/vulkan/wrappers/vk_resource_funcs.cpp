@@ -93,16 +93,6 @@ VkResult WrappedVulkan::vkAllocMemory(
 			// VKTODOLOW Change record->Length to at least int64_t (maybe uint64_t)
 			record->Length = (int32_t)pAllocInfo->allocationSize;
 			RDCASSERT(pAllocInfo->allocationSize < 0x7FFFFFFF);
-
-			// VKTODOMED always treat memory as dirty for now, so its initial state
-			// is guaranteed to be prepared
-			{
-				SCOPED_LOCK(m_CapTransitionLock);
-				if(m_State != WRITING_CAPFRAME)
-					GetResourceManager()->MarkDirtyResource(id);
-				else
-					GetResourceManager()->MarkPendingDirty(id);
-			}
 		}
 		else
 		{
