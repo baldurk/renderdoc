@@ -54,6 +54,8 @@ bool WrappedVulkan::Serialise_vkAllocMemory(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), mem);
 			GetResourceManager()->AddLiveResource(id, mem);
+
+			m_CreationInfo.m_Memory[live].Init(GetResourceManager(), &info);
 		}
 	}
 
@@ -97,6 +99,8 @@ VkResult WrappedVulkan::vkAllocMemory(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pMem);
+
+			m_CreationInfo.m_Memory[id].Init(GetResourceManager(), pAllocInfo);
 		}
 	}
 

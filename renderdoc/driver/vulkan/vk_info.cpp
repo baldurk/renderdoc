@@ -262,6 +262,11 @@ void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *resourceMan, c
 		attachments[i].view = resourceMan->GetNonDispWrapper(pCreateInfo->pAttachments[i])->id;
 }
 
+void VulkanCreationInfo::Memory::Init(VulkanResourceManager *resourceMan, const VkMemoryAllocInfo* pAllocInfo)
+{
+	size = pAllocInfo->allocationSize;
+}
+
 void VulkanCreationInfo::Buffer::Init(VulkanResourceManager *resourceMan, const VkBufferCreateInfo* pCreateInfo)
 {
 	size = pCreateInfo->size;

@@ -188,6 +188,14 @@ struct VulkanCreationInfo
 	};
 	map<ResourceId, Framebuffer> m_Framebuffer;
 	
+	struct Memory
+	{
+		void Init(VulkanResourceManager *resourceMan, const VkMemoryAllocInfo* pAllocInfo);
+
+		uint64_t size;
+	};
+	map<ResourceId, Memory> m_Memory;
+	
 	struct Buffer
 	{
 		void Init(VulkanResourceManager *resourceMan, const VkBufferCreateInfo* pCreateInfo);
