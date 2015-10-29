@@ -30,32 +30,19 @@
 
 #include <unordered_map>
 
-#if !defined(WIN32)
-#include <dlfcn.h>
-#endif
-
 static VkLayerDispatchTable replayDeviceTable = {0};
 static VkLayerInstanceDispatchTable replayInstanceTable = {0};
 
 static bool replay = false;
 
-void InitReplayTables()
+void InitReplayTables(void *vulkanModule)
 {
 	replay = true;
 
-	// VKTODOLOW this won't work with multiple devices - will need a replay device table for each
-
 	// not all functions will succeed - some need to be fetched through the below InitDeviceReplayTable()
-	// VKTODOMED need to move this into os_specific
 	
 	#undef HookInit
-
-#ifdef WIN32
-	#define HookInit(name) table.name = (CONCAT(PFN_vk, name))GetProcAddress(LoadLibraryA("vulkan-0.dll"), STRINGIZE(CONCAT(vk, name)))
-#else
-	void *libhandle = dlopen("libvulkan.so", RTLD_NOW);
-	#define HookInit(name) table.name = (CONCAT(PFN_vk, name))dlsym(libhandle, STRINGIZE(CONCAT(vk, name)))
-#endif
+	#define HookInit(name) table.name = (CONCAT(PFN_vk, name))Process::GetFunctionAddress(vulkanModule, STRINGIZE(CONCAT(vk, name)))
 	
 	{
 		VkLayerDispatchTable &table = replayDeviceTable;
@@ -75,6 +62,8 @@ void InitInstanceReplayTables(VkInstance instance)
 	VkLayerInstanceDispatchTable *table = GetInstanceDispatchTable(NULL);
 	RDCASSERT(table);
 
+	// we know we'll only have one instance, so this is safe
+	
 #define InstanceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetInstanceProcAddr(instance, STRINGIZE(CONCAT(vk, func)));
 
 	InstanceGPA(GetPhysicalDeviceSurfaceSupportKHR)
@@ -88,6 +77,8 @@ void InitDeviceReplayTables(VkDevice device)
 {
 	VkLayerDispatchTable *table = GetDeviceDispatchTable(NULL);
 	RDCASSERT(table);
+	
+	// VKTODOLOW this won't work with multiple devices - will need a replay device table for each
 
 #define DeviceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetDeviceProcAddr(device, STRINGIZE(CONCAT(vk, func)));
 	

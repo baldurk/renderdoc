@@ -72,7 +72,7 @@ RENDERDOC_WindowHandle WrappedVulkan::GetHandleForSurface(const VkSurfaceDescrip
 	return winDesc->pPlatformWindow;
 }
 
-bool LoadVulkanLibrary()
+void *LoadVulkanLibrary()
 {
 	return Process::LoadModule("vulkan-0.dll");
 }

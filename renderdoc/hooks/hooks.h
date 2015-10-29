@@ -61,7 +61,7 @@ class Hook
 
 		bool Initialize(const char *function, const char *module_name, void *destination_function_ptr)
 		{
-			orig_funcptr = Process::GetFunctionAddress(module_name, function);
+			orig_funcptr = Process::GetFunctionAddress(Process::LoadModule(module_name), function);
 
 			return Win32_IAT_Hook(&orig_funcptr, module_name, function, destination_function_ptr);
 		}

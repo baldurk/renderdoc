@@ -2153,13 +2153,15 @@ void VulkanReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataS
 }
 
 // in vk_replay_platform.cpp
-bool LoadVulkanLibrary();
+void *LoadVulkanLibrary();
 
 ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
 	RDCDEBUG("Creating a VulkanReplay replay device");
+
+	void *module = LoadVulkanLibrary();
 	
-	if(!LoadVulkanLibrary())
+	if(module == NULL)
 	{
 		RDCERR("Failed to load vulkan library");
 		return eReplayCreate_APIInitFailed;
@@ -2177,7 +2179,7 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
 		return eReplayCreate_APIIncompatibleVersion;
 	}
 
-	InitReplayTables();
+	InitReplayTables(module);
 
 	if(initParams.APIVersion != VK_API_VERSION)
 	{

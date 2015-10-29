@@ -590,22 +590,20 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
 #endif
 }
 
-bool Process::LoadModule(const char *module)
+void *Process::LoadModule(const char *module)
 {
 	HMODULE mod = GetModuleHandleA(module);
 	if(mod != NULL)
-		return true;
+		return mod;
 
-	return LoadLibraryA(module) != NULL;
+	return LoadLibraryA(module);
 }
 
-void *Process::GetFunctionAddress(const char *module, const char *function)
+void *Process::GetFunctionAddress(void *module, const char *function)
 {
-	HMODULE mod = GetModuleHandleA(module);
-	if(mod == 0)
-		return NULL;
+	if(module == NULL) return NULL;
 
-	return (void *)GetProcAddress(mod, function);
+	return (void *)GetProcAddress((HMODULE)module, function);
 }
 
 uint32_t Process::GetCurrentPID()

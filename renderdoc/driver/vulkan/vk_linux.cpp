@@ -115,7 +115,7 @@ RENDERDOC_WindowHandle WrappedVulkan::GetHandleForSurface(const VkSurfaceDescrip
 	return NULL;
 }
 
-bool LoadVulkanLibrary()
+void *LoadVulkanLibrary()
 {
 	return Process::LoadModule("libvulkan.so");
 }

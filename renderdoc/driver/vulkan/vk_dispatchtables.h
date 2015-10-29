@@ -34,7 +34,7 @@
 
 #include <vk_layer.h>
 
-void InitReplayTables();
+void InitReplayTables(void *vulkanModule);
 void InitInstanceReplayTables(VkInstance instance);
 void InitDeviceReplayTables(VkDevice device);
 
