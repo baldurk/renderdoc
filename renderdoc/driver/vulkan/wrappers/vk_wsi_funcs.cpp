@@ -450,9 +450,11 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 			VkPresentInfoKHR*                       pPresentInfo)
 {
 	if(m_State == WRITING_IDLE)
+	{
 		RenderDoc::Inst().Tick();
 
-	GetResourceManager()->FlushPendingDirty();
+		GetResourceManager()->FlushPendingDirty();
+	}
 	
 	m_FrameCounter++; // first present becomes frame #1, this function is at the end of the frame
 
