@@ -91,7 +91,7 @@ struct VulkanPipelineState
 		struct Binding
 		{
 			Binding() : vbufferBinding(0), bytestride(0), perInstance(false) {}
-			uint32_t vbufferBinding; // VKTODOLOW I believe this is the meaning
+			uint32_t vbufferBinding;
 			uint32_t bytestride;
 			bool32 perInstance;
 		};

@@ -69,7 +69,7 @@ struct VulkanCreationInfo
 		// VkPipelineVertexInputStateCreateInfo
 		struct Binding
 		{
-			uint32_t vbufferBinding; // VKTODO I believe this is the meaning
+			uint32_t vbufferBinding;
 			uint32_t bytestride;
 			bool perInstance;
 		};

@@ -267,8 +267,6 @@ private:
 		// vkCmd chunks) is NOT unique.
 		// However, a single baked command list can be submitted multiple
 		// times - so we have to have a list of base events
-		// VKTODOLOW change this to a sorted vector similar to the image
-		// states
 		// Map from bakeID -> vector<baseEventID>
 		map<ResourceId, vector<uint32_t> > cmdBufferSubmits;
 

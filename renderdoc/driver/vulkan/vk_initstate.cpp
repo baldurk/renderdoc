@@ -397,12 +397,17 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 	
 	if(type == eResDescriptorSet)
 	{
-		// VKTODOMED need to create some default initial state for descriptor sets.
-		// if a descriptor set is alloc'd then used in frame we won't have prepared anything,
-		// but likewise all writes must happen within that frame so the initial state doesn't
-		// technically matter. We assume the app doesn't try to read from an uninitialised
-		// descriptor, so for now we can leave the initial state empty.
-		VULKANNOTIMP("Need to create initial state for descriptor set");
+		// There is no sensible default for a descriptor set to create. The contents are
+		// undefined until written to. This means if a descriptor set was alloc'd within a
+		// frame (the only time we won't have initial contents tracked for it) then the
+		// contents are undefined, so using whatever is currently in the set is fine. Reading
+		// from it (and thus getting data from later in the frame potentially) is an error.
+		//
+		// Note the same kind of problem applies if a descriptor set is alloc'd before the
+		// frame and then say slot 5 is never written to until the middle of the frame, then
+		// used. The initial states we have prepared won't have anything valid for 5 so when
+		// we apply we won't even write anything into slot 5 - the same case as if we had
+		// no initial states at all for that descriptor set
 	}
 	else if(type == eResImage)
 	{

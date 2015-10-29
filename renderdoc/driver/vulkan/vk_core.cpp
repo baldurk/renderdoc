@@ -771,7 +771,6 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			{ imInfo.extent.width, imInfo.extent.height, 1 },
 		};
 
-		// VKTODOLOW back buffer must be in this layout right?
 		VkImageMemoryBarrier bbTrans = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 			0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
