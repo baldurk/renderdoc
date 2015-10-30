@@ -408,14 +408,6 @@ VkResult WrappedVulkan::vkInvalidateMappedMemoryRanges(
 	return ObjDisp(device)->InvalidateMappedMemoryRanges(Unwrap(device), memRangeCount, pMemRanges);
 }
 
-VkResult WrappedVulkan::vkGetDeviceMemoryCommitment(
-		VkDevice                                    device,
-		VkDeviceMemory                              memory,
-		VkDeviceSize*                               pCommittedMemoryInBytes)
-{
-	return ObjDisp(device)->GetDeviceMemoryCommitment(Unwrap(device), Unwrap(memory), pCommittedMemoryInBytes);
-}
-
 // Generic API object functions
 
 bool WrappedVulkan::Serialise_vkBindBufferMemory(

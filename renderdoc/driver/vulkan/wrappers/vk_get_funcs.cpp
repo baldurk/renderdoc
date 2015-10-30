@@ -166,6 +166,14 @@ VkResult WrappedVulkan::vkGetImageSparseMemoryRequirements(
 	return ObjDisp(device)->GetImageSparseMemoryRequirements(Unwrap(device), Unwrap(image), pNumRequirements, pSparseMemoryRequirements);
 }
 
+VkResult WrappedVulkan::vkGetDeviceMemoryCommitment(
+		VkDevice                                    device,
+		VkDeviceMemory                              memory,
+		VkDeviceSize*                               pCommittedMemoryInBytes)
+{
+	return ObjDisp(device)->GetDeviceMemoryCommitment(Unwrap(device), Unwrap(memory), pCommittedMemoryInBytes);
+}
+
 VkResult WrappedVulkan::vkGetRenderAreaGranularity(
 		VkDevice                                    device,
 		VkRenderPass                                renderPass,
