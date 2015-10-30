@@ -233,7 +233,16 @@ void VulkanCreationInfo::PipelineLayout::Init(VulkanResourceManager *resourceMan
 
 void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan, const VkRenderPassCreateInfo* pCreateInfo)
 {
-	attachCount = pCreateInfo->attachmentCount;
+	attachments.reserve(pCreateInfo->attachmentCount);
+	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
+	{
+		Attachment a;
+		a.loadOp = pCreateInfo->pAttachments[i].loadOp;
+		a.storeOp = pCreateInfo->pAttachments[i].storeOp;
+		a.stencilLoadOp = pCreateInfo->pAttachments[i].stencilLoadOp;
+		a.stencilStoreOp = pCreateInfo->pAttachments[i].stencilStoreOp;
+		attachments.push_back(a);
+	}
 
 	// VKTODOMED figure out how subpasses work
 	RDCASSERT(pCreateInfo->subpassCount > 0);

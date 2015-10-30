@@ -164,11 +164,18 @@ struct VulkanCreationInfo
 	{
 		void Init(VulkanResourceManager *resourceMan, const VkRenderPassCreateInfo* pCreateInfo);
 
+		struct Attachment
+		{
+			VkAttachmentLoadOp loadOp;
+			VkAttachmentStoreOp storeOp;
+			VkAttachmentLoadOp stencilLoadOp;
+			VkAttachmentStoreOp stencilStoreOp;
+		};
+		vector<Attachment> attachments;
+
 		vector<uint32_t> inputAttachments;
 		vector<uint32_t> colorAttachments;
 		int32_t depthstencilAttachment;
-
-		uint32_t attachCount;
 
 		VkRenderPass loadRP;
 	};

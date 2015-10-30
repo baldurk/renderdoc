@@ -556,13 +556,74 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), &beginInfo, cont);
+		
+		// track during reading
+		m_PartialReplayData.state.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
 
 		const string desc = localSerialiser->GetDebugStr();
 
-		// VKTODOMED change the name to show render pass load-op
+		string loadDesc = "";
+
+		const VulkanCreationInfo::RenderPass &info = m_CreationInfo.m_RenderPass[m_PartialReplayData.state.renderPass];
+
+		const vector<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
+
+		if(atts.empty())
+		{
+			loadDesc = "-";
+		}
+		else
+		{
+			bool allsame = true;
+			bool allsameexceptstencil = true;
+
+			for(size_t i=1; i < atts.size(); i++)
+			{
+				if(atts[i].loadOp != atts[0].loadOp || atts[i].stencilLoadOp != atts[0].stencilLoadOp)
+					allsame = false;
+
+				if(atts[i].loadOp != atts[0].loadOp)
+					allsameexceptstencil = false;
+			}
+
+			if(allsame)
+			{
+				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+					loadDesc = "Clear";
+				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_LOAD)
+					loadDesc = "Load";
+				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+					loadDesc = "Don't Care";
+			}
+			else if(allsameexceptstencil)
+			{
+				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+					loadDesc = "Clear";
+				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_LOAD)
+					loadDesc = "Load";
+				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+					loadDesc = "Don't Care";
+				
+				if(info.depthstencilAttachment >= 0 && info.depthstencilAttachment < atts.size())
+				{
+					if(atts[info.depthstencilAttachment].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+						loadDesc = ", Stencil=Clear";
+					if(atts[info.depthstencilAttachment].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD)
+						loadDesc = ", Stencil=Load";
+					if(atts[info.depthstencilAttachment].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+						loadDesc = ", Stencil=Don't Care";
+				}
+			}
+			else
+			{
+				// VKTODOLOW improve text for this path
+				loadDesc = "Different load ops";
+			}
+		}
+
 		AddEvent(BEGIN_RENDERPASS, desc);
 		FetchDrawcall draw;
-		draw.name = "Render Pass Start";
+		draw.name = StringFormat::Fmt("vkCmdBeginRenderPass(%s)", loadDesc.c_str());
 		draw.flags |= eDraw_Clear;
 
 		AddDrawcall(draw, true);
@@ -744,11 +805,63 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 		ObjDisp(cmdBuffer)->CmdEndRenderPass(Unwrap(cmdBuffer));
 		
 		const string desc = localSerialiser->GetDebugStr();
+		
+		string storeDesc = "";
 
-		// VKTODOMED change the name to show render pass store-op
+		const VulkanCreationInfo::RenderPass &info = m_CreationInfo.m_RenderPass[m_PartialReplayData.state.renderPass];
+
+		const vector<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
+
+		if(atts.empty())
+		{
+			storeDesc = "-";
+		}
+		else
+		{
+			bool allsame = true;
+			bool allsameexceptstencil = true;
+
+			for(size_t i=1; i < atts.size(); i++)
+			{
+				if(atts[i].storeOp != atts[0].storeOp || atts[i].stencilStoreOp != atts[0].stencilStoreOp)
+					allsame = false;
+
+				if(atts[i].storeOp != atts[0].storeOp)
+					allsameexceptstencil = false;
+			}
+
+			if(allsame)
+			{
+				if(atts[0].storeOp == VK_ATTACHMENT_STORE_OP_STORE)
+					storeDesc = "Store";
+				if(atts[0].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+					storeDesc = "Don't Care";
+			}
+			else if(allsameexceptstencil)
+			{
+				if(atts[0].storeOp == VK_ATTACHMENT_STORE_OP_STORE)
+					storeDesc = "Store";
+				if(atts[0].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+					storeDesc = "Don't Care";
+				
+				if(info.depthstencilAttachment >= 0 && info.depthstencilAttachment < atts.size())
+				{
+					if(atts[info.depthstencilAttachment].stencilStoreOp == VK_ATTACHMENT_STORE_OP_STORE)
+						storeDesc = ", Stencil=Store";
+					if(atts[info.depthstencilAttachment].stencilStoreOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+						storeDesc = ", Stencil=Don't Care";
+				}
+			}
+			else
+			{
+				// VKTODOLOW improve text for this path
+				storeDesc = "Different store ops";
+			}
+		}
+
 		AddEvent(END_RENDERPASS, desc);
 		FetchDrawcall draw;
-		draw.name = "Render Pass End";
+		draw.name = StringFormat::Fmt("vkCmdEndRenderPass(%s)", storeDesc.c_str());
 		draw.flags |= eDraw_Clear;
 
 		AddDrawcall(draw, true);

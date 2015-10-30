@@ -1723,14 +1723,14 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 
 				VkClearValue empty[16] = {0};
 
-				RDCASSERT(ARRAY_COUNT(empty) >= m_CreationInfo.m_RenderPass[s.renderPass].attachCount);
+				RDCASSERT(ARRAY_COUNT(empty) >= m_CreationInfo.m_RenderPass[s.renderPass].attachments.size());
 
 				VkRenderPassBeginInfo rpbegin = {
 					VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 					Unwrap(m_CreationInfo.m_RenderPass[s.renderPass].loadRP),
 					Unwrap(GetResourceManager()->GetCurrentHandle<VkFramebuffer>(s.framebuffer)),
 					s.renderArea,
-					m_CreationInfo.m_RenderPass[s.renderPass].attachCount, empty,
+					(uint32_t)m_CreationInfo.m_RenderPass[s.renderPass].attachments.size(), empty,
 				};
 				ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
