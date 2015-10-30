@@ -619,6 +619,12 @@ void WrappedVulkan::FinishCapture()
 	//m_SuccessfulCapture = false;
 
 	ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
+
+	{
+		SCOPED_LOCK(m_CurrentMapsLock);
+		for(auto it = m_CurrentMaps.begin(); it != m_CurrentMaps.end(); ++it)
+			SAFE_DELETE_ARRAY(it->second.refData);
+	}
 }
 
 void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)

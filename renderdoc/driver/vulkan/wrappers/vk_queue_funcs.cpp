@@ -457,10 +457,18 @@ VkResult WrappedVulkan::vkQueueSubmit(
 						vkFlushMappedMemoryRanges(it->second.device, 1, &range);
 					}
 
+					GetResourceManager()->MarkPendingDirty(it->first);
+
 					// allocate ref data so we can compare next time to minimise serialised data
 					if(it->second.refData == NULL)
 						it->second.refData = new byte[(size_t)it->second.mapSize];
 					memcpy(it->second.refData, it->second.mappedPtr, (size_t)it->second.mapSize);
+					
+					{
+						SCOPED_LOCK(m_CurrentMapsLock);
+						m_CurrentMaps[it->first].mapFlushed = false;
+						m_CurrentMaps[it->first].refData = it->second.refData;
+					}
 				}
 			}
 		}
