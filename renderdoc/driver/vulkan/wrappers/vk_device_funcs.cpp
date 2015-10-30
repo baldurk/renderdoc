@@ -282,6 +282,8 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 
 	vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices);
 	RDCASSERT(vkr == VK_SUCCESS);
+
+	m_PhysicalDevices.resize(count);
 	
 	for(uint32_t i=0; i < count; i++)
 	{
@@ -306,6 +308,8 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 				record->memProps = new VkPhysicalDeviceMemoryProperties();
 
 				ObjDisp(devices[i])->GetPhysicalDeviceMemoryProperties(Unwrap(devices[i]), record->memProps);
+
+				m_PhysicalDevices[i] = devices[i];
 
 				// we remap memory indices to discourage coherent maps as much as possible
 				RemapMemoryIndices(record->memProps, &record->memIdxMap);
@@ -629,6 +633,8 @@ VkResult WrappedVulkan::vkCreateDevice(
 		m_PhysicalDeviceData.readbackMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
 		m_PhysicalDeviceData.uploadMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
 		m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
+
+		m_PhysicalDeviceData.fakeMemProps = GetRecord(physicalDevice)->memProps;
 
 		m_DebugManager = new VulkanDebugManager(this, device);
 	}

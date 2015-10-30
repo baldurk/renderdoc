@@ -592,17 +592,16 @@ struct CmdBufferRecordingInfo
 	set<VkDescriptorSet> boundDescSets;
 };
 
-struct MapState
+struct MemMapState
 {
-	MapState()
-		: mapOffset(0), mapSize(0), mapFlags(0)
-		, mapFrame(0), mapFlushed(false), mappedPtr(NULL), refData(NULL)
+	MemMapState()
+		: mapOffset(0), mapSize(0)
+		, mapFlushed(false), mapCoherent(false), mappedPtr(NULL), refData(NULL)
 	{ }
 	VkDeviceSize mapOffset, mapSize;
-	VkMemoryMapFlags mapFlags;
-	uint32_t mapFrame;
 	bool mapFlushed;
-	void *mappedPtr;
+	bool mapCoherent;
+	byte *mappedPtr;
 	byte *refData;
 };
 
@@ -624,7 +623,8 @@ struct VkResourceRecord : public ResourceRecord
 			memProps(NULL),
 			layout(NULL),
 			swapInfo(NULL),
-			cmdInfo(NULL)
+			cmdInfo(NULL),
+			memMapState(NULL)
 		{
 		}
 
@@ -696,6 +696,7 @@ struct VkResourceRecord : public ResourceRecord
 
 		SwapchainInfo *swapInfo;
 		CmdBufferRecordingInfo *cmdInfo;
+		MemMapState *memMapState;
 
 		// pointer to either the pool this item is allocated from, or the children allocated
 		// from this pool. Protected by the chunk lock 

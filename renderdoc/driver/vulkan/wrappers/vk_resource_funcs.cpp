@@ -213,6 +213,16 @@ VkResult WrappedVulkan::vkAllocMemory(
 			// VKTODOLOW Change record->Length to at least int64_t (maybe uint64_t)
 			record->Length = (int32_t)pAllocInfo->allocationSize;
 			RDCASSERT(pAllocInfo->allocationSize < 0x7FFFFFFF);
+
+			uint32_t memProps = m_PhysicalDeviceData.fakeMemProps->memoryTypes[pAllocInfo->memoryTypeIndex].propertyFlags;
+
+			// if memory is not host visible, so not mappable, don't create map state at all
+			if((memProps & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
+			{
+				record->memMapState = new MemMapState();
+				record->memMapState->mapCoherent = (memProps & VK_MEMORY_PROPERTY_HOST_NON_COHERENT_BIT) == 0;
+				record->memMapState->refData = NULL;
+			}
 		}
 		else
 		{
@@ -247,29 +257,44 @@ VkResult WrappedVulkan::vkMapMemory(
 			VkMemoryMapFlags                            flags,
 			void**                                      ppData)
 {
-	VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), offset, size, flags, ppData);
+	void *realData = NULL;
+	VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), offset, size, flags, &realData);
 
-	if(ret == VK_SUCCESS && ppData)
+	if(ret == VK_SUCCESS && realData)
 	{
 		ResourceId id = GetResID(mem);
 
 		if(m_State >= WRITING)
 		{
-			MapState state;
-			state.mappedPtr = *ppData;
-			state.mapOffset = offset;
-			state.mapSize = size == 0 ? GetRecord(mem)->Length : size;
-			state.mapFrame = m_FrameCounter;
-			state.mapFlags = flags;
-			state.mapFlushed = false;
+			VkResourceRecord *memrecord = GetRecord(mem);
+
+			// must have map state, only non host visible memories have no map
+			// state, and they can't be mapped!
+			RDCASSERT(memrecord->memMapState);
+			MemMapState &state = *memrecord->memMapState;
+
+			// ensure size is valid
+			RDCASSERT(size == 0 || size <= (VkDeviceSize)memrecord->Length);
+
+			state.mappedPtr = (byte *)realData;
 			state.refData = NULL;
 
+			state.mapOffset = offset;
+			state.mapSize = size == 0 ? memrecord->Length : size;
+			state.mapFlushed = false;
+
+			*ppData = realData;
+
+			if(state.mapCoherent)
 			{
-				SCOPED_LOCK(m_CurrentMapsLock);
-				RDCASSERT(m_CurrentMaps.find(id) == m_CurrentMaps.end());
-				m_CurrentMaps[id] = state;
+				SCOPED_LOCK(m_CoherentMapsLock);
+				m_CoherentMaps.push_back(memrecord);
 			}
 		}
+	}
+	else
+	{
+		*ppData = NULL;
 	}
 
 	return ret;
@@ -283,24 +308,13 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(mem));
 
-	MapState state;
+	MemMapState *state;
 	if(m_State >= WRITING)
-	{
-		SCOPED_LOCK(m_CurrentMapsLock);
-		state = m_CurrentMaps[id];
-	}
+		state = GetRecord(mem)->memMapState;
 
-	SERIALISE_ELEMENT(VkMemoryMapFlags, flags, state.mapFlags);
-	SERIALISE_ELEMENT(uint64_t, memOffset, state.mapOffset);
-	SERIALISE_ELEMENT(uint64_t, memSize, state.mapSize);
-
-	// VKTODOHIGH: this is really horrible - this could be write-combined memory that we're
-	// reading from to get the latest data. This saves on having to fetch the data some
-	// other way and provide an interception buffer to the app, but is awful.
-	// we're also not doing any diff range checks, just serialising the whole memory region.
-	// In vulkan the common case will be one memory region for a large number of distinct
-	// bits of data so most maps will not change the whole region.
-	SERIALISE_ELEMENT_BUF(byte*, data, (byte *)state.mappedPtr + state.mapOffset, (size_t)memSize);
+	SERIALISE_ELEMENT(uint64_t, memOffset, state->mapOffset);
+	SERIALISE_ELEMENT(uint64_t, memSize, state->mapSize);
+	SERIALISE_ELEMENT_BUF(byte*, data, (byte *)state->mappedPtr + state->mapOffset, (size_t)memSize);
 
 	if(m_State < WRITING)
 	{
@@ -308,10 +322,10 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 		mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(id);
 
 		// VKTODOLOW figure out what alignments there are on mapping, so we only map the region
-		// we're going to modify. For no, offset/size is handled in the memcpy before and we
+		// we're going to modify. For now, offset/size is handled in the memcpy before and we
 		// map the whole region
 		void *mapPtr = NULL;
-		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), 0, 0, flags, &mapPtr);
+		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), 0, 0, 0, &mapPtr);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -334,23 +348,14 @@ void WrappedVulkan::vkUnmapMemory(
     VkDevice                                    device,
     VkDeviceMemory                              mem)
 {
-	ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
-	
 	if(m_State >= WRITING)
 	{
 		ResourceId id = GetResID(mem);
 
-		MapState state;
+		VkResourceRecord *memrecord = GetRecord(mem);
 
-		{
-			SCOPED_LOCK(m_CurrentMapsLock);
-
-			auto it = m_CurrentMaps.find(id);
-			if(it == m_CurrentMaps.end())
-				RDCERR("vkUnmapMemory for memory handle that's not currently mapped");
-
-			state = it->second;
-		}
+		RDCASSERT(memrecord->memMapState);
+		MemMapState &state = *memrecord->memMapState;
 
 		{
 			// decide atomically if this chunk should be in-frame or not
@@ -363,7 +368,7 @@ void WrappedVulkan::vkUnmapMemory(
 				capframe = (m_State == WRITING_CAPFRAME);
 
 				if(!capframe)
-					GetResourceManager()->MarkDirtyResource(GetResID(mem));
+					GetResourceManager()->MarkDirtyResource(id);
 			}
 
 			if(capframe)
@@ -384,7 +389,7 @@ void WrappedVulkan::vkUnmapMemory(
 					else
 					{
 						m_FrameCaptureRecord->AddChunk(scope.Get());
-						GetResourceManager()->MarkResourceFrameReferenced(GetResID(mem), eFrameRef_Write);
+						GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Write);
 					}
 				}
 				else
@@ -395,20 +400,23 @@ void WrappedVulkan::vkUnmapMemory(
 			}
 
 			state.mappedPtr = NULL;
-			SAFE_DELETE_ARRAY(state.refData);
 		}
 
-		{
-			SCOPED_LOCK(m_CurrentMapsLock);
+		Serialiser::FreeAlignedBuffer(state.refData);
 
-			auto it = m_CurrentMaps.find(id);
-			if(it == m_CurrentMaps.end())
+		if(state.mapCoherent)
+		{
+			SCOPED_LOCK(m_CoherentMapsLock);
+
+			auto it = std::find(m_CoherentMaps.begin(), m_CoherentMaps.end(), memrecord);
+			if(it == m_CoherentMaps.end())
 				RDCERR("vkUnmapMemory for memory handle that's not currently mapped");
 
-			state = it->second;
-			m_CurrentMaps.erase(it);
+			m_CoherentMaps.erase(it);
 		}
 	}
+
+	ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
 }
 
 bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
@@ -420,27 +428,18 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(pMemRanges->mem));
 	
-	MapState state;
+	MemMapState *state;
 	if(m_State >= WRITING)
 	{
-		SCOPED_LOCK(m_CurrentMapsLock);
-		state = m_CurrentMaps[id];
+		state = GetRecord(pMemRanges->mem)->memMapState;
 	
 		// don't support any extensions on VkMappedMemoryRange
 		RDCASSERT(pMemRanges->pNext == NULL);
 	}
 
-	SERIALISE_ELEMENT(VkMemoryMapFlags, flags, state.mapFlags);
 	SERIALISE_ELEMENT(uint64_t, memOffset, pMemRanges->offset);
 	SERIALISE_ELEMENT(uint64_t, memSize, pMemRanges->size);
-
-	// VKTODOHIGH: this is really horrible - this could be write-combined memory that we're
-	// reading from to get the latest data. This saves on having to fetch the data some
-	// other way and provide an interception buffer to the app, but is awful.
-	// we're also not doing any diff range checks, just serialising the whole memory region.
-	// In vulkan the common case will be one memory region for a large number of distinct
-	// bits of data so most maps will not change the whole region.
-	SERIALISE_ELEMENT_BUF(byte*, data, (byte *)state.mappedPtr + (size_t)memOffset, (size_t)memSize);
+	SERIALISE_ELEMENT_BUF(byte*, data, state->mappedPtr + (size_t)memOffset, (size_t)memSize);
 
 	if(m_State < WRITING)
 	{
@@ -451,7 +450,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 		// we're going to modify. For no, offset/size is handled in the memcpy before and we
 		// map the whole region
 		void *mapPtr = NULL;
-		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), 0, 0, flags, &mapPtr);
+		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), 0, 0, 0, &mapPtr);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -475,6 +474,34 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 			uint32_t                                    memRangeCount,
 			const VkMappedMemoryRange*                  pMemRanges)
 {
+	if(m_State >= WRITING)
+	{
+		bool capframe = false;
+		{
+			SCOPED_LOCK(m_CapTransitionLock);
+			capframe = (m_State == WRITING_CAPFRAME);
+		}
+
+		for(uint32_t i = 0; i < memRangeCount; i++)
+		{
+			ResourceId memid = GetResID(pMemRanges[i].mem);
+			
+			MemMapState *state = GetRecord(pMemRanges[i].mem)->memMapState;
+			state->mapFlushed = true;
+
+			if(capframe)
+			{
+				CACHE_THREAD_SERIALISER();
+
+				SCOPED_SERIALISE_CONTEXT(FLUSH_MEM);
+				Serialise_vkFlushMappedMemoryRanges(localSerialiser, device, 1, pMemRanges + i);
+
+				m_FrameCaptureRecord->AddChunk(scope.Get());
+				GetResourceManager()->MarkResourceFrameReferenced(GetResID(pMemRanges[i].mem), eFrameRef_Write);
+			}
+		}
+	}
+	
 	VkMappedMemoryRange *unwrapped = new VkMappedMemoryRange[memRangeCount];
 	for(uint32_t i=0; i < memRangeCount; i++)
 	{
@@ -485,29 +512,6 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 	VkResult ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped);
 
 	SAFE_DELETE_ARRAY(unwrapped);
-
-	for(uint32_t i=0; i < memRangeCount; i++)
-	{
-		ResourceId memid = GetResID(pMemRanges[i].mem);
-
-		{
-			SCOPED_LOCK(m_CurrentMapsLock);
-			auto it = m_CurrentMaps.find(memid);
-			RDCASSERT(it != m_CurrentMaps.end());
-			it->second.mapFlushed = true;
-		}
-
-		if(ret == VK_SUCCESS && m_State >= WRITING_CAPFRAME)
-		{
-			CACHE_THREAD_SERIALISER();
-		
-			SCOPED_SERIALISE_CONTEXT(FLUSH_MEM);
-			Serialise_vkFlushMappedMemoryRanges(localSerialiser, device, 1, pMemRanges+i);
-
-			m_FrameCaptureRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(GetResID(pMemRanges[i].mem), eFrameRef_Write);
-		}
-	}
 
 	return ret;
 }

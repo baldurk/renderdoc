@@ -349,6 +349,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	VkResult ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), cmdBufferCount, unwrapped, Unwrap(fence));
 
 	bool capframe = false;
+	set<ResourceId> refdIDs;
 
 	for(uint32_t i=0; i < cmdBufferCount; i++)
 	{
@@ -395,11 +396,15 @@ VkResult WrappedVulkan::vkQueueSubmit(
 				VkResourceRecord *setrecord = GetRecord(*it);
 
 				for(auto refit = setrecord->bindFrameRefs.begin(); refit != setrecord->bindFrameRefs.end(); ++refit)
+				{
+					refdIDs.insert(refit->first);
 					GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
+				}
 			}
 
 			// pull in frame refs from this baked command buffer
 			record->bakedCommands->AddResourceReferences(GetResourceManager());
+			record->bakedCommands->AddReferencedIDs(refdIDs);
 
 			// ref the parent command buffer by itself, this will pull in the cmd buffer pool
 			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
@@ -422,32 +427,36 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	
 	if(capframe)
 	{
-		map<ResourceId, MapState> maps;
+		vector<VkResourceRecord*> maps;
 		{
-			SCOPED_LOCK(m_CurrentMapsLock);
-			maps = m_CurrentMaps;
+			SCOPED_LOCK(m_CoherentMapsLock);
+			maps = m_CoherentMaps;
 		}
-
-		// VKTODOHIGH when maps are intercepted with local buffers, this will have to be
-		// done when not in capframe :(.
+		
 		for(auto it = maps.begin(); it != maps.end(); ++it)
 		{
-			// potential persistent map, force a full flush
-			// VKTODOHIGH need better detection than just 'has not been flushed and has
-			// been mapped for many frames'. Once we are duplicating coherent memory types
-			// to offer a non-coherent version, we'll have to treat all maps into coherent
-			// memory the same.
-			if(it->second.mappedPtr && !it->second.mapFlushed && it->second.mapFrame + 4 < m_FrameCounter)
+			VkResourceRecord *record = *it;
+			MemMapState &state = *record->memMapState;
+
+			// potential persistent map
+			if(state.mapCoherent && state.mappedPtr && !state.mapFlushed)
 			{
+				// only need to flush memory that could affect this submitted batch of work
+				if(refdIDs.find(record->GetResourceID()) == refdIDs.end())
+				{
+					RDCDEBUG("Map of memory %llu not referenced in this queue - not flushing", record->GetResourceID());
+					continue;
+				}
+
 				size_t diffStart = 0, diffEnd = 0;
 				bool found = true;
 
 				// if we have a previous set of data, compare.
 				// otherwise just serialise it all
-				if(it->second.refData)
-					found = FindDiffRange((byte *)it->second.mappedPtr, it->second.refData, (size_t)it->second.mapSize, diffStart, diffEnd);
+				if(state.refData)
+					found = FindDiffRange((byte *)state.mappedPtr, state.refData, (size_t)state.mapSize, diffStart, diffEnd);
 				else
-					diffEnd = (size_t)it->second.mapSize;
+					diffEnd = (size_t)state.mapSize;
 
 				if(found)
 				{
@@ -456,23 +465,26 @@ VkResult WrappedVulkan::vkQueueSubmit(
 					VkDevice dev = GetDev();
 
 					{
-						RDCLOG("Persistent map flush forced for %llu (%llu -> %llu) [mapped in %u, flushed %u]", it->first, (uint64_t)diffStart, (uint64_t)diffEnd, it->second.mapFrame, it->second.mapFlushed);
-						VkMappedMemoryRange range = { VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, GetResourceManager()->GetCurrentHandle<VkDeviceMemory>(it->first), it->second.mapOffset+diffStart, diffEnd-diffStart };
+						RDCLOG("Persistent map flush forced for %llu (%llu -> %llu)", record->GetResourceID(), (uint64_t)diffStart, (uint64_t)diffEnd);
+						VkMappedMemoryRange range = {
+							VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL,
+							(VkDeviceMemory)(uint64_t)record->Resource,
+							state.mapOffset+diffStart, diffEnd-diffStart
+						};
 						vkFlushMappedMemoryRanges(dev, 1, &range);
+						state.mapFlushed = false;
 					}
 
-					GetResourceManager()->MarkPendingDirty(it->first);
+					GetResourceManager()->MarkPendingDirty(record->GetResourceID());
 
 					// allocate ref data so we can compare next time to minimise serialised data
-					if(it->second.refData == NULL)
-						it->second.refData = new byte[(size_t)it->second.mapSize];
-					memcpy(it->second.refData, it->second.mappedPtr, (size_t)it->second.mapSize);
-					
-					{
-						SCOPED_LOCK(m_CurrentMapsLock);
-						m_CurrentMaps[it->first].mapFlushed = false;
-						m_CurrentMaps[it->first].refData = it->second.refData;
-					}
+					if(state.refData == NULL)
+						state.refData = Serialiser::AllocAlignedBuffer((size_t)state.mapSize, 64);
+					memcpy(state.refData, state.mappedPtr, (size_t)state.mapSize);
+				}
+				else
+				{
+					RDCDEBUG("Persistent map flush not needed for %llu", record->GetResourceID());
 				}
 			}
 		}

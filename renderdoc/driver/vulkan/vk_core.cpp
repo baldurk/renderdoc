@@ -618,9 +618,12 @@ void WrappedVulkan::FinishCapture()
 	ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
 
 	{
-		SCOPED_LOCK(m_CurrentMapsLock);
-		for(auto it = m_CurrentMaps.begin(); it != m_CurrentMaps.end(); ++it)
-			SAFE_DELETE_ARRAY(it->second.refData);
+		SCOPED_LOCK(m_CoherentMapsLock);
+		for(auto it = m_CoherentMaps.begin(); it != m_CoherentMaps.end(); ++it)
+		{
+			Serialiser::FreeAlignedBuffer((*it)->memMapState->refData);
+			(*it)->memMapState->refData = NULL;
+		}
 	}
 }
 

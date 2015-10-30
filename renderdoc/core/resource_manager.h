@@ -262,6 +262,11 @@ struct ResourceRecord
 
 	void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType);
 	void AddResourceReferences(ResourceRecordHandler *mgr);
+	void AddReferencedIDs(std::set<ResourceId> &ids)
+	{
+		for(auto it=m_FrameRefs.begin(); it != m_FrameRefs.end(); ++it)
+			ids.insert(it->first);
+	}
 
 	int UpdateCount;
 

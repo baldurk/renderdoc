@@ -173,6 +173,7 @@ private:
 		uint32_t uploadMemIndex;
 		uint32_t GPULocalMemIndex;
 
+		VkPhysicalDeviceMemoryProperties *fakeMemProps;
 		uint32_t *memIdxMap;
 
 		VkPhysicalDeviceFeatures features;
@@ -388,13 +389,9 @@ private:
 
 	// capture-side data
 
-	// holds the current list of mapped memory. Locked against concurrent use
-	// VKTODOLOW once maps are handled properly we will know which maps must be
-	// treated as coherent and this will be a vector of VkResourceRecords to
-	// iterate over and flush changes out at any queuesubmit. Then the main
-	// MapState can be moved into the resource record
-	map<ResourceId, MapState> m_CurrentMaps;
-	Threading::CriticalSection m_CurrentMapsLock;
+	// holds the current list of coherent mapped memory. Locked against concurrent use
+	vector<VkResourceRecord*> m_CoherentMaps;
+	Threading::CriticalSection m_CoherentMapsLock;
 
 	// used both on capture and replay side to track image layouts. Only locked
 	// in capture
