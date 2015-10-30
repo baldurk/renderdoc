@@ -42,8 +42,11 @@ bool WrappedVulkan::Serialise_vkAllocMemory(
 
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 
+		// serialised memory type index is non-remapped, so we remap now.
 		// VKTODOLOW may need to re-write info to change memory type index to the
 		// appropriate index on replay
+		info.memoryTypeIndex = m_PhysicalDeviceData.memIdxMap[info.memoryTypeIndex];
+
 		VkResult ret = ObjDisp(device)->AllocMemory(Unwrap(device), &info, &mem);
 		
 		if(ret != VK_SUCCESS)
@@ -67,7 +70,9 @@ VkResult WrappedVulkan::vkAllocMemory(
 			const VkMemoryAllocInfo*                    pAllocInfo,
 			VkDeviceMemory*                             pMem)
 {
-	VkResult ret = ObjDisp(device)->AllocMemory(Unwrap(device), pAllocInfo, pMem);
+	VkMemoryAllocInfo info = *pAllocInfo;
+	info.memoryTypeIndex = GetRecord(device)->memIdxMap[info.memoryTypeIndex];
+	VkResult ret = ObjDisp(device)->AllocMemory(Unwrap(device), &info, pMem);
 	
 	if(ret == VK_SUCCESS)
 	{
@@ -138,7 +143,6 @@ VkResult WrappedVulkan::vkMapMemory(
 		if(m_State >= WRITING)
 		{
 			MapState state;
-			state.device = device;
 			state.mappedPtr = *ppData;
 			state.mapOffset = offset;
 			state.mapSize = size == 0 ? GetRecord(mem)->Length : size;

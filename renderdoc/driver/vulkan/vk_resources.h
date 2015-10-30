@@ -592,6 +592,20 @@ struct CmdBufferRecordingInfo
 	set<VkDescriptorSet> boundDescSets;
 };
 
+struct MapState
+{
+	MapState()
+		: mapOffset(0), mapSize(0), mapFlags(0)
+		, mapFrame(0), mapFlushed(false), mappedPtr(NULL), refData(NULL)
+	{ }
+	VkDeviceSize mapOffset, mapSize;
+	VkMemoryMapFlags mapFlags;
+	uint32_t mapFrame;
+	bool mapFlushed;
+	void *mappedPtr;
+	byte *refData;
+};
+
 struct DescSetLayout;
 
 struct VkResourceRecord : public ResourceRecord
@@ -599,12 +613,15 @@ struct VkResourceRecord : public ResourceRecord
 	public:
 		enum { NullResource = (unsigned int)NULL };
 
+		static byte markerValue[32];
+
 		VkResourceRecord(ResourceId id) :
 			ResourceRecord(id, true),
 			bakedCommands(NULL),
 			pool(NULL),
 			mem(VK_NULL_HANDLE),
 			memOffset(0),
+			memProps(NULL),
 			layout(NULL),
 			swapInfo(NULL),
 			cmdInfo(NULL)
@@ -656,6 +673,13 @@ struct VkResourceRecord : public ResourceRecord
 
 		VkDeviceMemory mem;
 		VkDeviceSize memOffset;
+
+		VkPhysicalDeviceMemoryProperties *memProps;
+
+		// externally allocated/freed, a mapping from memory idx
+		// in our modified properties that were passed to the app
+		// to the memory indices that actually exist
+		uint32_t *memIdxMap;
 		
 		// this points to the base resource, either memory or an image - 
 		// ie. the resource that can be modified or changes (or can become dirty)

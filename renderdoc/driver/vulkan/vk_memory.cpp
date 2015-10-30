@@ -81,3 +81,87 @@ uint32_t WrappedVulkan::PhysicalDeviceData::GetMemoryIndex(uint32_t resourceRequ
 	}
 	return best;
 }
+
+void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProps, uint32_t **memIdxMap)
+{
+	uint32_t *memmap = new uint32_t[32];
+	*memIdxMap = memmap;
+	m_MemIdxMaps.push_back(memmap);
+
+	RDCEraseMem(memmap, sizeof(uint32_t)*32);
+
+	// basic idea here:
+	// We want to discourage coherent memory maps as much as possible while capturing,
+	// as they're painful to track. Unfortunately the spec guarantees that at least
+	// one such memory type will be available, and we must follow that.
+	//
+	// So, rather than removing the coherent memory type we make it as unappealing as
+	// possible and try and ensure that only someone looking specifically for a coherent
+	// memory type will find it. That way hopefully memory selection algorithms will
+	// pick non-coherent memory and do proper flushing as necessary.
+
+	// we want to add a new heap, hopefully there is room
+	RDCASSERT(memProps->memoryHeapCount < VK_MAX_MEMORY_HEAPS-1);
+
+	uint32_t coherentHeap = memProps->memoryHeapCount;
+	memProps->memoryHeapCount++;
+
+	// make a new heap that's tiny. If any applications look at heap sizes to determine
+	// viability, they'll dislike the look of this one (the real heaps should be much
+	// bigger).
+	memProps->memoryHeaps[coherentHeap].flags = VK_MEMORY_HEAP_HOST_LOCAL_BIT;
+	memProps->memoryHeaps[coherentHeap].size = 32*1024*1024;
+
+	// for every coherent memory type, add a non-coherent type first, then
+	// mark the coherent type with our crappy heap
+
+	uint32_t origCount = memProps->memoryTypeCount;
+	VkMemoryType origTypes[VK_MAX_MEMORY_TYPES];
+	memcpy(origTypes, memProps->memoryTypes, sizeof(origTypes));
+
+	uint32_t newtypeidx = 0;
+
+	for(uint32_t i=0; i < origCount; i++)
+	{
+		if((origTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_NON_COHERENT_BIT|VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+		{
+			// coherent type found.
+
+			// can we still add a new type without exceeding the max?
+			if(memProps->memoryTypeCount+1 <= VK_MAX_MEMORY_TYPES)
+			{
+				// copy both types from the original type
+				memProps->memoryTypes[newtypeidx] = origTypes[i];
+				memProps->memoryTypes[newtypeidx+1] = origTypes[i];
+
+				// mark first as non-coherent
+				memProps->memoryTypes[newtypeidx].propertyFlags &= ~VK_MEMORY_PROPERTY_HOST_UNCACHED_BIT;
+				memProps->memoryTypes[newtypeidx].propertyFlags |= VK_MEMORY_PROPERTY_HOST_NON_COHERENT_BIT;
+
+				// point second at bad heap
+				memProps->memoryTypes[newtypeidx+1].heapIndex = coherentHeap;
+
+				// point both new types at this original type
+				memmap[newtypeidx++] = i;
+				memmap[newtypeidx++] = i;
+
+				// we added a type
+				memProps->memoryTypeCount++;
+			}
+			else
+			{
+				// can't add a new type, but we can at least repoint this coherent
+				// type at the bad heap to discourage use
+				memProps->memoryTypes[newtypeidx] = origTypes[i];
+				memProps->memoryTypes[newtypeidx].heapIndex = coherentHeap;
+				memmap[newtypeidx++] = i;
+			}
+		}
+		else
+		{
+			// non-coherent already or non-hostvisible, just copy through
+			memProps->memoryTypes[newtypeidx] = origTypes[i];
+			memmap[newtypeidx++] = i;
+		}
+	}
+}

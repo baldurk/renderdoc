@@ -214,6 +214,12 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 	SERIALISE_ELEMENT(uint32_t, physIndex, *pPhysicalDeviceCount);
 	SERIALISE_ELEMENT(ResourceId, physId, GetResID(*pPhysicalDevices));
 
+	uint32_t memIdxMap[32] = {0};
+	if(m_State >= WRITING)
+		memcpy(memIdxMap, GetRecord(*pPhysicalDevices)->memIdxMap, sizeof(memIdxMap));
+
+	localSerialiser->SerialisePODArray<32>("memIdxMap", memIdxMap);
+
 	VkPhysicalDevice pd = VK_NULL_HANDLE;
 
 	if(m_State >= WRITING)
@@ -243,6 +249,18 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 
 		GetResourceManager()->WrapResource(instance, pd);
 		GetResourceManager()->AddLiveResource(physId, pd);
+		
+		if(physIndex >= m_PhysicalDevices.size())
+		{
+			m_PhysicalDevices.resize(physIndex+1);
+			m_MemIdxMaps.resize(physIndex+1);
+		}
+
+		m_PhysicalDevices[physIndex] = pd;
+
+		uint32_t *storedMap = new uint32_t[32];
+		memcpy(storedMap, memIdxMap, sizeof(memIdxMap));
+		m_MemIdxMaps[physIndex] = storedMap;
 	}
 
 	return true;
@@ -277,18 +295,29 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 		else
 		{
 			GetResourceManager()->WrapResource(instance, devices[i]);
-
+			
 			if(m_State >= WRITING)
 			{
-				CACHE_THREAD_SERIALISER();
-
-				SCOPED_SERIALISE_CONTEXT(ENUM_PHYSICALS);
-				Serialise_vkEnumeratePhysicalDevices(localSerialiser, instance, &i, &devices[i]);
-
+				// add the record first since it's used in the serialise function below to fetch
+				// the memory indices
 				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(devices[i]);
 				RDCASSERT(record);
+				
+				record->memProps = new VkPhysicalDeviceMemoryProperties();
 
-				record->AddChunk(scope.Get());
+				ObjDisp(devices[i])->GetPhysicalDeviceMemoryProperties(Unwrap(devices[i]), record->memProps);
+
+				// we remap memory indices to discourage coherent maps as much as possible
+				RemapMemoryIndices(record->memProps, &record->memIdxMap);
+				
+				{
+					CACHE_THREAD_SERIALISER();
+
+					SCOPED_SERIALISE_CONTEXT(ENUM_PHYSICALS);
+					Serialise_vkEnumeratePhysicalDevices(localSerialiser, instance, &i, &devices[i]);
+
+					record->AddChunk(scope.Get());
+				}
 
 				VkResourceRecord *instrecord = GetRecord(instance);
 
@@ -449,6 +478,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		m_PhysicalDeviceData.uploadMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
 		m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
 
+		for(size_t i=0; i < m_PhysicalDevices.size(); i++)
+		{
+			if(physicalDevice == m_PhysicalDevices[i])
+			{
+				m_PhysicalDeviceData.memIdxMap = m_MemIdxMaps[i];
+				break;
+			}
+		}
+
 		m_DebugManager = new VulkanDebugManager(this, device);
 
 		SAFE_DELETE_ARRAY(modQueues);
@@ -551,7 +589,14 @@ VkResult WrappedVulkan::vkCreateDevice(
 				chunk = scope.Get();
 			}
 
-			GetRecord(m_Instance)->AddChunk(chunk);
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pDevice);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+
+			record->memIdxMap = GetRecord(physicalDevice)->memIdxMap;
+
+			GetRecord(m_Instance)->AddParent(record);
 		}
 		else
 		{

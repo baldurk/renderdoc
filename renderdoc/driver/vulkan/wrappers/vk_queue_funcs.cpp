@@ -451,10 +451,14 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 				if(found)
 				{
+					// VKTODOLOW won't work with multiple devices - maybe find device for the specified queue?
+					// we probably only want to flush maps associated with this queue anyway
+					VkDevice dev = GetDev();
+
 					{
 						RDCLOG("Persistent map flush forced for %llu (%llu -> %llu) [mapped in %u, flushed %u]", it->first, (uint64_t)diffStart, (uint64_t)diffEnd, it->second.mapFrame, it->second.mapFlushed);
 						VkMappedMemoryRange range = { VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, GetResourceManager()->GetCurrentHandle<VkDeviceMemory>(it->first), it->second.mapOffset+diffStart, diffEnd-diffStart };
-						vkFlushMappedMemoryRanges(it->second.device, 1, &range);
+						vkFlushMappedMemoryRanges(dev, 1, &range);
 					}
 
 					GetResourceManager()->MarkPendingDirty(it->first);

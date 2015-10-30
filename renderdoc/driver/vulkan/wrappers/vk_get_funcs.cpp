@@ -89,6 +89,12 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceMemoryProperties(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceMemoryProperties*           pMemoryProperties)
 {
+	if(pMemoryProperties)
+	{
+		*pMemoryProperties = *GetRecord(physicalDevice)->memProps;
+		return VK_SUCCESS;
+	}
+
 	return ObjDisp(physicalDevice)->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), pMemoryProperties);
 }
 
@@ -106,7 +112,24 @@ VkResult WrappedVulkan::vkGetBufferMemoryRequirements(
 		VkBuffer                                    buffer,
 		VkMemoryRequirements*                       pMemoryRequirements)
 {
-	return ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), pMemoryRequirements);
+	VkResult vkr = ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), pMemoryRequirements);
+	
+	// don't do remapping here on replay.
+	if(m_State < WRITING)
+		return vkr;
+	
+	uint32_t bits = pMemoryRequirements->memoryTypeBits;
+	uint32_t *memIdxMap = GetRecord(device)->memIdxMap;
+
+	pMemoryRequirements->memoryTypeBits = 0;
+
+	// for each of our fake memory indices, check if the real
+	// memory type it points to is set - if so, set our fake bit
+	for(uint32_t i=0; i < VK_MAX_MEMORY_TYPES; i++)
+		if(bits & (1<<memIdxMap[i]) )
+			pMemoryRequirements->memoryTypeBits |= (1<<i);
+
+	return vkr;
 }
 
 VkResult WrappedVulkan::vkGetImageMemoryRequirements(
@@ -114,7 +137,24 @@ VkResult WrappedVulkan::vkGetImageMemoryRequirements(
 		VkImage                                     image,
 		VkMemoryRequirements*                       pMemoryRequirements)
 {
-	return ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), pMemoryRequirements);
+	VkResult vkr = ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), pMemoryRequirements);
+
+	// don't do remapping here on replay.
+	if(m_State < WRITING)
+		return vkr;
+	
+	uint32_t bits = pMemoryRequirements->memoryTypeBits;
+	uint32_t *memIdxMap = GetRecord(device)->memIdxMap;
+
+	pMemoryRequirements->memoryTypeBits = 0;
+
+	// for each of our fake memory indices, check if the real
+	// memory type it points to is set - if so, set our fake bit
+	for(uint32_t i=0; i < VK_MAX_MEMORY_TYPES; i++)
+		if(bits & (1<<memIdxMap[i]) )
+			pMemoryRequirements->memoryTypeBits |= (1<<i);
+
+	return vkr;
 }
 
 VkResult WrappedVulkan::vkGetImageSparseMemoryRequirements(

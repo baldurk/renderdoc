@@ -173,6 +173,8 @@ private:
 		uint32_t uploadMemIndex;
 		uint32_t GPULocalMemIndex;
 
+		uint32_t *memIdxMap;
+
 		VkPhysicalDeviceFeatures features;
 		VkPhysicalDeviceProperties props;
 		VkPhysicalDeviceMemoryProperties memProps;
@@ -184,6 +186,11 @@ private:
 	PhysicalDeviceData m_PhysicalDeviceData; // the data about the physical device used for the above device;
 	uint32_t m_QueueFamilyIdx; // the family index that we've selected in CreateDevice for our queue
 	VkQueue m_Queue; // the queue used for our own command buffer work
+
+	vector<VkPhysicalDevice> m_PhysicalDevices;
+
+	vector<uint32_t *> m_MemIdxMaps;
+	void RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProps, uint32_t **memIdxMap);
 
 	struct
 	{
@@ -377,21 +384,6 @@ private:
 	{
 		ResourceId layout;
 		vector<VkDescriptorInfo *> currentBindings;
-	};
-
-	struct MapState
-	{
-		MapState()
-			: device(VK_NULL_HANDLE), mapOffset(0), mapSize(0), mapFlags(0)
-			, mapFrame(0), mapFlushed(false), mappedPtr(NULL), refData(NULL)
-		{ }
-		VkDevice device;
-		VkDeviceSize mapOffset, mapSize;
-		VkMemoryMapFlags mapFlags;
-		uint32_t mapFrame;
-		bool mapFlushed;
-		void *mappedPtr;
-		byte *refData;
 	};
 
 	// capture-side data
