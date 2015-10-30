@@ -24,6 +24,119 @@
 
 #include "../vk_core.h"
 
+/************************************************************************
+ * 
+ * Mapping is simpler in Vulkan, at least in concept, but that comes with
+ * some restrictions/assumptions about behaviour or performance
+ * guarantees.
+ * 
+ * In general we make a distinction between coherent and non-coherent
+ * memory, and then also consider persistent maps vs non-persistent maps.
+ * (Important note - there is no API concept of persistent maps, any map
+ * can be persistent, and we must handle this).
+ * 
+ * For persistent coherent maps we have two options:
+ * - pass an intercepted buffer back to the application, whenever any
+ *   changes could be GPU-visible (at least every QueueSubmit), diff the
+ *   buffer and memcpy to the real pointer & serialise it if capturing.
+ * - pass the real mapped pointer back to the application. Ignore it
+ *   until capturing, then do readback on the mapped pointer and
+ *   diff, serialise any changes.
+ * 
+ * For persistent non-coherent maps again we have two options:
+ * - pass an intercepted buffer back to the application. At any Flush()
+ *   call copy the flushed region over to the real buffer and if
+ *   capturing then serialise it.
+ * - pass the real mapped pointer back to the application. Ignore it
+ *   until capturing, then serialise out any regions that are Flush()'d
+ *   by reading back from the mapped pointer.
+ * 
+ * Now consider transient (non-persistent) maps.
+ * 
+ * For transient coherent maps:
+ * - pass an intercepted buffer back to the application, ensuring it has
+ *   the correct current contents. Once unmapped, copy the contents to
+ *   the real pointer and save if capturing.
+ * - return the real mapped pointer, and readback & save the contents on
+ *   unmap if capturing
+ * 
+ * For transient non-coherent maps:
+ * - pass back an intercepted buffer, again ensuring it has the correct
+ *   current contents, and for each Flush() copy the contents to the
+ *   real pointer and save if capturing.
+ * - return the real mapped pointer, and readback & save the contents on
+ *   each flush if capturing.
+ * 
+ * Note several things:
+ *
+ * The choices in each case are: Intercept & manage, vs. Lazily readback.
+ *
+ * We do not have a completely free choice. I.e. we can choose our
+ * behaviour based on coherency, but not on persistent vs. transient as
+ * we have no way to know whether any map we see will be persistent or
+ * not.
+ *
+ * In the transient case we must ensure the correct contents are in an
+ * intercepted buffer before returning to the application. Either to
+ * ensure the copy to real doesn't upload garbage data, or to ensure a
+ * diff to determine modified range is accurate. This is technically
+ * required for persistent maps also, but informally we think of a
+ * persistent map as from the beginning of the memory's lifetime so
+ * there are no previous contents (as above though, we cannot truly
+ * differentiate between transient and persistent maps).
+ *
+ * The essential tradeoff: overhead of managing intercepted buffer
+ * against potential cost of reading back from mapped pointer. The cost
+ * of reading back from the mapped pointer is essentially unknown. In
+ * all likelihood it will not be as cheap as reading back from a locally
+ * allocated intercepted buffer, but it might not be that bad. If the
+ * cost is low enough for mapped pointer readbacks then it's definitely
+ * better to do that, as it's very simple to implement and maintain
+ * (no complex bookkeeping of buffers) and we only pay this cost during
+ * frame capture, which has a looser performance requirement anyway.
+ * 
+ * Note that the primary difficulty with intercepted buffers is ensuring
+ * they stay in sync and have the correct contents at all times. This
+ * must be done without readbacks otherwise there is no benefit. Even a
+ * DMA to a readback friendly memory type means a GPU sync which is even
+ * worse than reading from a mapped pointer. There is also overhead in
+ * keeping a copy of the buffer and constantly copying back and forth
+ * (potentially diff'ing the contents each time).
+ * 
+ * A hybrid solution would be to use intercepted buffers for non-
+ * coherent memory, with the proviso that if a buffer is regularly mapped
+ * then we fallback to returning a direct pointer until the frame capture
+ * begins - if a map happens within a frame capture intercept it,
+ * otherwise if it was mapped before the frame resort to reading back
+ * from the mapped pointer. For coherent memory, always readback from the
+ * mapped pointer. This is similar to behaviour on D3D or GL except that
+ * a capture would fail if the map wasn't intercepted, rather than being
+ * able to fall back.
+ * 
+ * This is likely the best option if avoiding readbacks is desired as the
+ * cost of constantly monitoring coherent maps for modifications and
+ * copying around is generally extremely undesirable and may well be more
+ * expensive than any readback cost.
+ *
+ * !!!!!!!!!!!!!!!
+ * The current solution is to never intercept any maps, and rely on the
+ * readback from memory not being too expensive and only happening during
+ * frame capture where such an impact is less severe (as opposed to 
+ * reading back from this memory every frame even while idle).
+ * !!!!!!!!!!!!!!!
+ *
+ * If in future this changes, the above hybrid solution is the next best
+ * option to try to avoid most of the readbacks by using intercepted
+ * buffers where possible, with a fallback to mapped pointer readback if
+ * necessary.
+ * 
+ * Note: No matter what we want to discouarge coherent persistent maps
+ * (coherent transient maps are less of an issue) as these must still be
+ * diff'd regularly during capture which has a high overhead (higher
+ * still if there is extra cost on the readback).
+ * 
+ ************************************************************************/
+
 // Memory functions
 
 bool WrappedVulkan::Serialise_vkAllocMemory(
