@@ -788,7 +788,7 @@ struct ScopedDeserialise
 #define SCOPED_SERIALISE_CONTEXT(n) ScopedContext scope(GET_SERIALISER, GetChunkName(n), n, false);
 #define SCOPED_SERIALISE_SMALL_CONTEXT(n) ScopedContext scope(GET_SERIALISER, GetChunkName(n), n, true);
 
-#define SERIALISE_ELEMENT(type, name, inValue) type name; ScopedDeserialise<type> CONCAT(deserialise_, name)(m_pSerialiser, &name); if(m_State >= WRITING) name = (inValue); GET_SERIALISER->Serialise(#name, name);
+#define SERIALISE_ELEMENT(type, name, inValue) type name; ScopedDeserialise<type> CONCAT(deserialise_, name)(GET_SERIALISER, &name); if(m_State >= WRITING) name = (inValue); GET_SERIALISER->Serialise(#name, name);
 #define SERIALISE_ELEMENT_OPT(type, name, inValue, Condition) type name = type(); if(Condition) { if(m_State >= WRITING) name = (inValue); GET_SERIALISER->Serialise(#name, name); }
 #define SERIALISE_ELEMENT_ARR(type, name, inValues, count) type *name = new type[count]; for(size_t serialiseIdx=0; serialiseIdx < count; serialiseIdx++) { if(m_State >= WRITING) name[serialiseIdx] = (inValues)[serialiseIdx]; GET_SERIALISER->Serialise(#name, name[serialiseIdx]); }
 #define SERIALISE_ELEMENT_ARR_OPT(type, name, inValues, count, Condition) type *name = NULL; if(Condition) { name = new type[count]; for(size_t serialiseIdx=0; serialiseIdx < count; serialiseIdx++) { if(m_State >= WRITING) name[serialiseIdx] = (inValues)[serialiseIdx]; GET_SERIALISER->Serialise(#name, name[serialiseIdx]); } }
