@@ -29,7 +29,6 @@ On capture:
 * Multiple VkQueues are untested and may likely not work.
 * Some API functions are not currently implemented. They will work while capturing but will not replay correctly.
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
-* Memory maps are not intercepted, so any modifications are saved by reading back from the mapped pointer, even if it is uncached/write combined.
 * Image contents are saved out by copying aliasing their backing memory to a buffer, so will not be GPU-portable.
 * Captures will not be GPU-portable where memory indices etc change.
 * Unsupported or untested features:
