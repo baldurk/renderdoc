@@ -1681,6 +1681,8 @@ void VulkanReplay::SavePipelineState()
 						VkDescriptorInfo *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
 						const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
 
+						bool dynamicOffset = false;
+
 						dst.bindings[b].arraySize = layoutBind.arraySize;
 						dst.bindings[b].stageFlags = (ShaderStageBits)layoutBind.stageFlags;
 						switch(layoutBind.descriptorType)
@@ -1693,8 +1695,8 @@ void VulkanReplay::SavePipelineState()
 							case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:    dst.bindings[b].type = eBindType_ReadWriteTBuffer; break;
 							case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:          dst.bindings[b].type = eBindType_ReadOnlyBuffer; break;
 							case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:          dst.bindings[b].type = eBindType_ReadWriteBuffer; break;
-							case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:  dst.bindings[b].type = eBindType_ReadOnlyBuffer; break;
-							case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:  dst.bindings[b].type = eBindType_ReadWriteBuffer; break;
+							case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:  dst.bindings[b].type = eBindType_ReadOnlyBuffer; dynamicOffset = true; break;
+							case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:  dst.bindings[b].type = eBindType_ReadWriteBuffer; dynamicOffset = true; break;
 							case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:        dst.bindings[b].type = eBindType_InputAttachment; break;
 							default:
 								dst.bindings[b].type = eBindType_Unknown;
@@ -1723,8 +1725,9 @@ void VulkanReplay::SavePipelineState()
 
 								dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
 								dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
-								dst.bindings[b].binds[a].offset = *(uint32_t *)&info->imageLayout;
-								dst.bindings[b].binds[a].offset += c.m_BufferView[viewid].offset;
+								dst.bindings[b].binds[a].offset = c.m_BufferView[viewid].offset;
+								if(dynamicOffset)
+									dst.bindings[b].binds[a].offset += *(uint32_t *)&info->imageLayout;
 								dst.bindings[b].binds[a].size = c.m_BufferView[viewid].size;
 							}
 							if(info->bufferInfo.buffer != VK_NULL_HANDLE)
@@ -1732,6 +1735,8 @@ void VulkanReplay::SavePipelineState()
 								dst.bindings[b].binds[a].view = ResourceId();
 								dst.bindings[b].binds[a].res = rm->GetOriginalID(rm->GetNonDispWrapper(info->bufferInfo.buffer)->id);
 								dst.bindings[b].binds[a].offset = info->bufferInfo.offset;
+								if(dynamicOffset)
+									dst.bindings[b].binds[a].offset += *(uint32_t *)&info->imageLayout;
 								dst.bindings[b].binds[a].size = info->bufferInfo.range;
 							}
 						}

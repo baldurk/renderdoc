@@ -1099,17 +1099,17 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 				// and in array element order within a binding
 				for(uint32_t i=0; i < numSets; i++)
 				{
-					const DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[descriptorIDs[i]];
+					const DescSetLayout &layoutinfo = m_CreationInfo.m_DescSetLayout[ descSetLayouts[first+i] ];
 
-					for(size_t b=0; b < layout.bindings.size(); b++)
+					for(size_t b=0; b < layoutinfo.bindings.size(); b++)
 					{
 						// not dynamic, doesn't need an offset
-						if(layout.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
-							 layout.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+						if(layoutinfo.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
+							 layoutinfo.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 							 continue;
 
 						// assign every array element an offset according to array size
-						for(uint32_t a=0; a < layout.bindings[b].arraySize; a++)
+						for(uint32_t a=0; a < layoutinfo.bindings[b].arraySize; a++)
 						{
 							RDCASSERT(o < offsCount);
 							uint32_t *alias = (uint32_t *)&m_DescriptorSetState[descriptorIDs[i]].currentBindings[b][a].imageLayout;
