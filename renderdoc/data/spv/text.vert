@@ -76,23 +76,15 @@ void main(void)
                                   vec3( 0.0,  1.0, 0.5),
                                   vec3( 1.0,  1.0, 0.5));
 
-	vec3 pos = verts[gl_VertexID%4];
+	vec3 pos = verts[gl_VertexID];
 	uint strindex = gl_InstanceID;
 	
 	vec2 charPos = vec2(strindex + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
 	
-	gl_Position = vec4(charPos.xy*2.0f*general.TextSize*general.FontScreenAspect.xy + vec2(-1, -1), 1, 1);
-
-	uint chars[20] = uint[20](0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
 
 	glyph G = glyphs.data[ str.chars[strindex].x ];
 	
+	gl_Position = vec4(charPos.xy*2.0f*general.TextSize*general.FontScreenAspect.xy + vec2(-1, -1), 1, 1);
 	OUTglyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
 	OUTtex = G.uvdata * general.CharacterSize.xyxy;
-
-	const vec3 cols[5] = vec3[5](vec3(0, 0, 0),
-								 vec3(1, 0, 0),
-								 vec3(0, 1, 0),
-								 vec3(0, 0, 1),
-								 vec3(1, 0, 1));
 }

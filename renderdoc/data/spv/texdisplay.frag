@@ -59,8 +59,6 @@ void main(void)
 	vec2 scr = gl_FragCoord.xy - texdisplay.Position.xy;
 
 	scr /= texdisplay.Scale;
-
-	vec2 texcoord = vec2(gl_FragCoord.xy)/512.0f.xx;
 	
 	if(scr.x < 0.0f || scr.y < 0.0f ||
 	   scr.x > texdisplay.TextureResolutionPS.x || scr.y > texdisplay.TextureResolutionPS.y)
