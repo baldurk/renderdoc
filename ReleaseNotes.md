@@ -27,10 +27,9 @@ Known Issues
 On capture:
 
 * Multiple VkQueues are untested and may likely not work.
-* Some API functions are not currently implemented. They will work while capturing but will not replay correctly.
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
-* Image contents are saved out by copying aliasing their backing memory to a buffer, so will not be GPU-portable.
-* Captures will not be GPU-portable where memory indices etc change.
+* Captures must be replayed on an identical GPU setup to where they were captured.
+* Some API functions are not currently implemented. They will work while capturing but will not replay correctly.
 * Unsupported or untested features:
 	* Subpasses
 	* Nested command buffer execution
