@@ -1694,9 +1694,6 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 			SCOPED_LOCK(m_ImageLayoutsLock);
 			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
 		}
-
-		// VKTODOMED do we need to mark frame referenced the resources in the barrier? if they're not referenced
-		// elsewhere, perhaps they can be dropped
 	}
 }
 
