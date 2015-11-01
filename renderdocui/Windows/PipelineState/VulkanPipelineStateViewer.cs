@@ -77,14 +77,14 @@ namespace renderdocui.Windows.PipelineState
                 System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 
             pipeFlow.SetStages(new KeyValuePair<string, string>[] {
-                new KeyValuePair<string,string>("IA", "Input Assembler"),
+                new KeyValuePair<string,string>("VTX", "Vertex Input"),
                 new KeyValuePair<string,string>("VS", "Vertex Shader"),
-                new KeyValuePair<string,string>("HS", "Hull Shader"),
-                new KeyValuePair<string,string>("DS", "Domain Shader"),
+                new KeyValuePair<string,string>("TCS", "Tess. Control Shader"),
+                new KeyValuePair<string,string>("TES", "Tess. Eval. Shader"),
                 new KeyValuePair<string,string>("GS", "Geometry Shader"),
                 new KeyValuePair<string,string>("RS", "Rasterizer"),
-                new KeyValuePair<string,string>("PS", "Pixel Shader"),
-                new KeyValuePair<string,string>("OM", "Output Merger"),
+                new KeyValuePair<string,string>("FS", "Fragment Shader"),
+                new KeyValuePair<string,string>("FB", "Framebuffer Output"),
                 new KeyValuePair<string,string>("CS", "Compute Shader"),
             });
 
