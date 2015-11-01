@@ -251,9 +251,7 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 		wcscat_s(paramsAlloc, len, wcmd.c_str());
 	}
 
-	// VKTODOHIGH make this environment string modification more flexible (like linux's
-	// which will account for pre-existing variables and prepend/append). Perhaps
-	// via callbacks registered to API hooks?
+	// VKTODOLOW refactor all this once loader supports implicit layers
 	const wchar_t *myEnv = GetEnvironmentStringsW();
 
 	wstring newEnv;
