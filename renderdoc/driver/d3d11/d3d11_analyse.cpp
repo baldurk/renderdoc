@@ -2097,11 +2097,13 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t frameID, uint32_t eventID, MeshD
 
 		// copy index data as-is, the view format will take care of the rest
 
+		RDCASSERT(cfg.position.idxoffs < 0xffffffff);
+
 		D3D11_BOX box;
 		box.front = 0;
 		box.back = 1;
-		box.left = cfg.position.idxoffs;
-		box.right = cfg.position.idxoffs + cfg.position.numVerts*cfg.position.idxByteWidth;
+		box.left = (uint32_t)cfg.position.idxoffs;
+		box.right = (uint32_t)cfg.position.idxoffs + cfg.position.numVerts*cfg.position.idxByteWidth;
 		box.top = 0;
 		box.bottom = 1;
 

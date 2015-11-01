@@ -32,11 +32,11 @@ struct OutputConfig
 struct MeshFormat
 {
 	ResourceId idxbuf;
-	uint32_t idxoffs;
+	uint64_t idxoffs;
 	uint32_t idxByteWidth;
 
 	ResourceId buf;
-	uint32_t offset;
+	uint64_t offset;
 	uint32_t stride;
 
 	uint32_t compCount;

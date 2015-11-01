@@ -127,7 +127,7 @@ class ImageViewer : public IReplayDriver
 		void DescribeCounter(uint32_t counterID, CounterDescription &desc) { RDCEraseEl(desc); desc.counterID = counterID; }
 		vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters) { return vector<CounterResult>(); }
 		void FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data) {}
-		vector<byte> GetBufferData(ResourceId buff, uint32_t offset, uint32_t len) { return vector<byte>(); }
+		vector<byte> GetBufferData(ResourceId buff, uint64_t offset, uint64_t len) { return vector<byte>(); }
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID) {}
 		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage) { MeshFormat ret; RDCEraseEl(ret); return ret; }
 		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents) { return ResourceId(); }

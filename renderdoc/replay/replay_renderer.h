@@ -183,12 +183,12 @@ struct ReplayRenderer : public IReplayRenderer
 		
 		bool GetUsage(ResourceId id, rdctype::array<EventUsage> *usage);
 		
-		bool GetBufferData(ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data);
+		bool GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data);
 		bool GetTextureData(ResourceId buff, uint32_t arrayIdx, uint32_t mip, rdctype::array<byte> *data);
 		
 		bool SaveTexture(const TextureSave &saveData, const char *path);
 
-		bool GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint32_t offs, rdctype::array<ShaderVariable> *vars);
+		bool GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars);
 	
 		ReplayOutput *CreateOutput(void *handle);
 

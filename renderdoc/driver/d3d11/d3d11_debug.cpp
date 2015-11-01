@@ -2121,7 +2121,7 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 	return true;
 }
 
-vector<byte> D3D11DebugManager::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len)
+vector<byte> D3D11DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length)
 {
 	auto it = WrappedID3D11Buffer::m_BufferList.find(buff);
 
@@ -2132,28 +2132,34 @@ vector<byte> D3D11DebugManager::GetBufferData(ResourceId buff, uint32_t offset, 
 
 	RDCASSERT(buffer);
 
-	return GetBufferData(buffer, offset, len, true);
+	return GetBufferData(buffer, offset, length, true);
 }
 
-vector<byte> D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint32_t offset, uint32_t len, bool unwrap)
+vector<byte> D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uint64_t length, bool unwrap)
 {
 	D3D11_MAPPED_SUBRESOURCE mapped;
 
 	if(buffer == NULL)
 		return vector<byte>();
 
+	RDCASSERT(offset < 0xffffffff);
+	RDCASSERT(length <= 0xffffffff);
+
+	uint32_t offs = (uint32_t)offset;
+	uint32_t len = (uint32_t)length;
+	
 	D3D11_BUFFER_DESC desc;
 	buffer->GetDesc(&desc);
 
 	if(len == 0)
 	{
-		len = desc.ByteWidth-offset;
+		len = desc.ByteWidth-offs;
 	}
 
-	if(len > 0 && offset+len > desc.ByteWidth)
+	if(len > 0 && offs+len > desc.ByteWidth)
 	{
 		RDCWARN("Attempting to read off the end of the array. Will be clamped");
-		len = RDCMIN(len, desc.ByteWidth-offset);
+		len = RDCMIN(len, desc.ByteWidth-offs);
 	}
 
 	uint32_t outOffs = 0;
@@ -2177,8 +2183,8 @@ vector<byte> D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint32_t off
 		if(desc.StructureByteStride > 0)
 			chunkSize -= (chunkSize % desc.StructureByteStride);
 
-		box.left = RDCMIN(offset + outOffs, desc.ByteWidth);
-		box.right = RDCMIN(offset + outOffs + chunkSize, desc.ByteWidth);
+		box.left = RDCMIN(offs + outOffs, desc.ByteWidth);
+		box.right = RDCMIN(offs + outOffs + chunkSize, desc.ByteWidth);
 
 		if(box.right-box.left == 0)
 			break;
@@ -4711,10 +4717,12 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 	
 	m_PrevMeshFmt = resFmt;
 	m_PrevMeshFmt2 = resFmt2;
+
+	RDCASSERT(cfg.position.idxoffs < 0xffffffff);
 	
 	ID3D11Buffer *ibuf = NULL;
 	DXGI_FORMAT ifmt = DXGI_FORMAT_R16_UINT;
-	UINT ioffs = cfg.position.idxoffs;
+	UINT ioffs = (UINT)cfg.position.idxoffs;
 	
 	D3D11_PRIMITIVE_TOPOLOGY topo = MakeD3D11PrimitiveTopology(cfg.position.topo);
 
@@ -4776,9 +4784,11 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 					m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&fmt.stride, (UINT *)&fmt.offset);
 					if(fmt.idxbuf != ResourceId())
 					{
+						RDCASSERT(fmt.idxoffs < 0xffffffff);
+
 						it = WrappedID3D11Buffer::m_BufferList.find(fmt.idxbuf);
 						buf = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
-						m_pImmediateContext->IASetIndexBuffer(buf, fmt.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT, fmt.idxoffs);
+						m_pImmediateContext->IASetIndexBuffer(buf, fmt.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT, (UINT)fmt.idxoffs);
 
 						m_pImmediateContext->DrawIndexed(fmt.numVerts, 0, 0);
 					}
@@ -4799,10 +4809,12 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 		}
 
 		m_pImmediateContext->IASetInputLayout(layout);
+
+		RDCASSERT(cfg.position.offset < 0xffffffff && cfg.second.offset < 0xffffffff);
 		
 		ID3D11Buffer *vbs[2] = { NULL, NULL };
 		UINT str[] = { cfg.position.stride, cfg.second.stride };
-		UINT offs[] = { cfg.position.offset, cfg.second.offset };
+		UINT offs[] = { (UINT)cfg.position.offset, (UINT)cfg.second.offset };
 
 		{
 			auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.buf);
@@ -4943,9 +4955,11 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 		if(m_HighlightCache.EID != eventID || stage != m_HighlightCache.stage ||
 		   cfg.position.buf != m_HighlightCache.buf || cfg.position.offset != m_HighlightCache.offs)
 		{
+			RDCASSERT(cfg.position.offset < 0xffffffff);
+
 			m_HighlightCache.EID = eventID;
 			m_HighlightCache.buf = cfg.position.buf;
-			m_HighlightCache.offs = cfg.position.offset;
+			m_HighlightCache.offs = (uint32_t)cfg.position.offset;
 			m_HighlightCache.stage = stage;
 			
 			bool index16 = (ifmt == DXGI_FORMAT_R16_UINT); 

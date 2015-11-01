@@ -285,7 +285,7 @@ namespace renderdocui.Code
             return "";
         }
 
-        public void GetIBuffer(out ResourceId buf, out uint ByteOffset)
+        public void GetIBuffer(out ResourceId buf, out ulong ByteOffset)
         {
             if (LogLoaded)
             {
@@ -306,8 +306,7 @@ namespace renderdocui.Code
                 else if (IsLogVK)
                 {
                     buf = m_Vulkan.IA.ibuffer.buf;
-                    // VKTODOLOW maybe increase parameter to ulong and upcast others?
-                    ByteOffset = (uint)m_Vulkan.IA.ibuffer.offs;
+                    ByteOffset = m_Vulkan.IA.ibuffer.offs;
 
                     return;
                 }
@@ -365,7 +364,7 @@ namespace renderdocui.Code
         public struct VBuffer
         {
             public ResourceId Buffer;
-            public uint ByteOffset;
+            public ulong ByteOffset;
             public uint ByteStride;
         };
 
@@ -403,8 +402,7 @@ namespace renderdocui.Code
                     for (int i = 0; i < m_Vulkan.VI.binds.Length; i++)
                     {
                         ret[i].Buffer = m_Vulkan.VI.vbuffers[i].buffer;
-                        // VKTODOLOW maybe increase parameter to ulong and upcast others?
-                        ret[i].ByteOffset = (uint)m_Vulkan.VI.vbuffers[i].offset;
+                        ret[i].ByteOffset = m_Vulkan.VI.vbuffers[i].offset;
                         ret[i].ByteStride = m_Vulkan.VI.binds[i].bytestride;
                     }
 
@@ -606,7 +604,7 @@ namespace renderdocui.Code
             return null;
         }
 
-        public void GetConstantBuffer(ShaderStageType stage, uint BufIdx, out ResourceId buf, out uint ByteOffset, out uint ByteSize)
+        public void GetConstantBuffer(ShaderStageType stage, uint BufIdx, out ResourceId buf, out ulong ByteOffset, out ulong ByteSize)
         {
             if (LogLoaded)
             {
@@ -627,8 +625,8 @@ namespace renderdocui.Code
                     if(BufIdx < s.ConstantBuffers.Length)
                     {
                         buf = s.ConstantBuffers[BufIdx].Buffer;
-                        ByteOffset = s.ConstantBuffers[BufIdx].VecOffset * 4 * sizeof(float);
-                        ByteSize = s.ConstantBuffers[BufIdx].VecCount * 4 * sizeof(float);
+                        ByteOffset = (ulong)(s.ConstantBuffers[BufIdx].VecOffset * 4 * sizeof(float));
+                        ByteSize = (ulong)(s.ConstantBuffers[BufIdx].VecCount * 4 * sizeof(float));
 
                         return;
                     }
@@ -657,8 +655,8 @@ namespace renderdocui.Code
                                 var b = m_GL.UniformBuffers[uboIdx];
 
                                 buf = b.Resource;
-                                ByteOffset = (uint)b.Offset;
-                                ByteSize = (uint)b.Size;
+                                ByteOffset = b.Offset;
+                                ByteSize = b.Size;
 
                                 return;
                             }
@@ -687,13 +685,12 @@ namespace renderdocui.Code
                     {
                         var bind = s.BindpointMapping.ConstantBlocks[s.ShaderDetails.ConstantBlocks[BufIdx].bindPoint];
 
-                        // TODO do we need to worry about arrays of uniform buffers?
+                        // VKTODOLOW do we need to worry about arrays of uniform buffers?
                         var descriptorBind = pipe.DescSets[bind.bindset].bindings[bind.bind].binds[0];
 
                         buf = descriptorBind.res;
-                        // VKTODOLOW maybe increase parameter to ulong and upcast others?
-                        ByteOffset = (uint)descriptorBind.offset;
-                        ByteSize = (uint)descriptorBind.size;
+                        ByteOffset = descriptorBind.offset;
+                        ByteSize = descriptorBind.size;
 
                         return;
                     }

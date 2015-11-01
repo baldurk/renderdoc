@@ -264,7 +264,7 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetUsage(IntPtr real, ResourceId id, IntPtr outusage);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetCBufferVariableContents(IntPtr real, ResourceId shader, UInt32 cbufslot, ResourceId buffer, UInt32 offs, IntPtr outvars);
+        private static extern bool ReplayRenderer_GetCBufferVariableContents(IntPtr real, ResourceId shader, UInt32 cbufslot, ResourceId buffer, UInt64 offs, IntPtr outvars);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_SaveTexture(IntPtr real, TextureSave saveData, IntPtr path);
@@ -278,7 +278,7 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetHistogram(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, float minval, float maxval, bool[] channels, IntPtr outhistogram);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetBufferData(IntPtr real, ResourceId buff, UInt32 offset, UInt32 len, IntPtr outdata);
+        private static extern bool ReplayRenderer_GetBufferData(IntPtr real, ResourceId buff, UInt64 offset, UInt64 len, IntPtr outdata);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetTextureData(IntPtr real, ResourceId tex, UInt32 arrayIdx, UInt32 mip, IntPtr outdata);
 
@@ -727,7 +727,7 @@ namespace renderdoc
             return ret;
         }
 
-        public ShaderVariable[] GetCBufferVariableContents(ResourceId shader, UInt32 cbufslot, ResourceId buffer, UInt32 offs)
+        public ShaderVariable[] GetCBufferVariableContents(ResourceId shader, UInt32 cbufslot, ResourceId buffer, UInt64 offs)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
@@ -815,7 +815,7 @@ namespace renderdoc
             return success;
         }
 
-        public byte[] GetBufferData(ResourceId buff, UInt32 offset, UInt32 len)
+        public byte[] GetBufferData(ResourceId buff, UInt64 offset, UInt64 len)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 

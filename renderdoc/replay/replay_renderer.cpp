@@ -441,7 +441,7 @@ bool ReplayRenderer::GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t m
 	return ret;
 }
 
-bool ReplayRenderer::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data)
+bool ReplayRenderer::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data)
 {
 	if(data == NULL) return false;
 
@@ -1286,7 +1286,7 @@ bool ReplayRenderer::DebugThread(uint32_t groupid[3], uint32_t threadid[3], Shad
 	return true;
 }
 
-bool ReplayRenderer::GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint32_t offs, rdctype::array<ShaderVariable> *vars)
+bool ReplayRenderer::GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars)
 {
 	if(vars == NULL) return false;
 
@@ -1665,7 +1665,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DebugThread(ReplayRe
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetUsage(ReplayRenderer *rend, ResourceId id, rdctype::array<EventUsage> *usage)
 { return rend->GetUsage(id, usage); }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(ReplayRenderer *rend, ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint32_t offs, rdctype::array<ShaderVariable> *vars)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(ReplayRenderer *rend, ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars)
 { return rend->GetCBufferVariableContents(shader, cbufslot, buffer, offs, vars); }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SaveTexture(ReplayRenderer *rend, const TextureSave &saveData, const char *path)
@@ -1682,7 +1682,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetHistogram(ReplayR
 	return rend->GetHistogram(tex, sliceFace, mip, sample, minval, maxval, chans, histogram);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBufferData(ReplayRenderer *rend, ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBufferData(ReplayRenderer *rend, ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data)
 { return rend->GetBufferData(buff, offset, len, data); }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetTextureData(ReplayRenderer *rend, ResourceId tex, uint32_t arrayIdx, uint32_t mip, rdctype::array<byte> *data)

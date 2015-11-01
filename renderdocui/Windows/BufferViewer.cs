@@ -69,14 +69,14 @@ namespace renderdocui.Windows
             public ResourceId[] Buffers = null;
             public object[][] GenericValues = null;
             public uint[] Strides = null;
-            public uint[] Offsets = null;
+            public ulong[] Offsets = null;
 
             public PrimitiveTopology Topology = PrimitiveTopology.Unknown;
 
             public FetchDrawcall Drawcall = null;
 
             public ResourceId IndexBuffer = ResourceId.Null;
-            public uint IndexOffset = 0;
+            public ulong IndexOffset = 0;
             public bool IndexRestart = true;
             public uint IndexRestartValue = uint.MaxValue;
         }
@@ -695,7 +695,7 @@ namespace renderdocui.Windows
 
             input.Strides = new uint[] { elems.Last().offset + elems.Last().ByteSize };
             input.Buffers = new ResourceId[] { isBuffer ? id : ResourceId.Null, isBuffer ? ResourceId.Null : id };
-            input.Offsets = new uint[] { 0 };
+            input.Offsets = new ulong[] { 0 };
             input.IndexBuffer = ResourceId.Null;
             input.BufferFormats = elems;
             input.IndexOffset = 0;
@@ -735,7 +735,7 @@ namespace renderdocui.Windows
             ret.Topology = draw.topology;
 
             ResourceId ibuffer = ResourceId.Null;
-            uint ioffset = 0;
+            ulong ioffset = 0;
 
             m_Core.CurPipelineState.GetIBuffer(out ibuffer, out ioffset);
 
@@ -810,7 +810,7 @@ namespace renderdocui.Windows
 
                 ret.BufferFormats = f.ToArray();
                 ret.Strides = new uint[] { offset };
-                ret.Offsets = new uint[] { 0 };
+                ret.Offsets = new ulong[] { 0 };
                 ret.Buffers = null;
 
                 return ret;
@@ -820,7 +820,7 @@ namespace renderdocui.Windows
 
             ResourceId[] bs = new ResourceId[vbs.Length];
             uint[] s = new uint[vbs.Length];
-            uint[] o = new uint[vbs.Length];
+            ulong[] o = new ulong[vbs.Length];
 
             for (int i = 0; i < vbs.Length; i++)
             {

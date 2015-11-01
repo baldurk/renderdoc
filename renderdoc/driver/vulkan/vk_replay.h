@@ -122,7 +122,7 @@ class VulkanReplay : public IReplayDriver
 		
 		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
 		
-		vector<byte> GetBufferData(ResourceId buff, uint32_t offset, uint32_t len);
+		vector<byte> GetBufferData(ResourceId buff, uint64_t offset, uint64_t len);
 		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
 		
 		void ReplaceResource(ResourceId from, ResourceId to);

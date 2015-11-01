@@ -1798,7 +1798,7 @@ void ProxySerialiser::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot,
 	return;
 }
 
-vector<byte> ProxySerialiser::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len)
+vector<byte> ProxySerialiser::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
 {
 	vector<byte> ret;
 	

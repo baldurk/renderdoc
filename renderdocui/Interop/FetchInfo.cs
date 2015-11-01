@@ -374,11 +374,11 @@ namespace renderdoc
     public struct MeshFormat
     {
         public ResourceId idxbuf;
-        public UInt32 idxoffs;
+        public UInt64 idxoffs;
         public UInt32 idxByteWidth;
 
         public ResourceId buf;
-        public UInt32 offset;
+        public UInt64 offset;
         public UInt32 stride;
 
         public UInt32 compCount;

@@ -1222,7 +1222,7 @@ uint64_t VulkanReplay::MakeOutputWindow(void *wn, bool depth)
 	return id;
 }
 
-vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len)
+vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
 {
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
@@ -1232,13 +1232,13 @@ vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint3
 	
 	if(len == 0)
 	{
-		len = uint32_t(m_pDriver->m_CreationInfo.m_Buffer[buff].size - offset);
+		len = m_pDriver->m_CreationInfo.m_Buffer[buff].size - offset;
 	}
 
 	if(len > 0 && VkDeviceSize(offset+len) > m_pDriver->m_CreationInfo.m_Buffer[buff].size)
 	{
 		RDCWARN("Attempting to read off the end of the array. Will be clamped");
-		len = RDCMIN(len, uint32_t(m_pDriver->m_CreationInfo.m_Buffer[buff].size - offset));
+		len = RDCMIN(len, m_pDriver->m_CreationInfo.m_Buffer[buff].size - offset);
 	}
 
 	vector<byte> ret;

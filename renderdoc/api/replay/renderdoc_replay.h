@@ -207,7 +207,7 @@ struct IReplayRenderer
 
 	virtual bool GetUsage(ResourceId id, rdctype::array<EventUsage> *usage) = 0;
 
-	virtual bool GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint32_t offs, rdctype::array<ShaderVariable> *vars) = 0;
+	virtual bool GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars) = 0;
 
 	virtual bool SaveTexture(const TextureSave &saveData, const char *path) = 0;
 
@@ -216,7 +216,7 @@ struct IReplayRenderer
 	virtual bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval) = 0;
 	virtual bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram) = 0;
 
-	virtual bool GetBufferData(ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data) = 0;
+	virtual bool GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data) = 0;
 	virtual bool GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, rdctype::array<byte> *data) = 0;
 };
 
@@ -275,7 +275,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DebugThread(ReplayRe
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetUsage(ReplayRenderer *rend, ResourceId id, rdctype::array<EventUsage> *usage);
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(ReplayRenderer *rend, ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint32_t offs, rdctype::array<ShaderVariable> *vars);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(ReplayRenderer *rend, ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SaveTexture(ReplayRenderer *rend, const TextureSave &saveData, const char *path);
 
@@ -284,7 +284,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetPostVSData(Replay
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetMinMax(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetHistogram(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool32 channels[4], rdctype::array<uint32_t> *histogram);
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBufferData(ReplayRenderer *rend, ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBufferData(ReplayRenderer *rend, ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetTextureData(ReplayRenderer *rend, ResourceId tex, uint32_t arrayIdx, uint32_t mip, rdctype::array<byte> *data);
 
 // for C++ expose the interface as a virtual interface

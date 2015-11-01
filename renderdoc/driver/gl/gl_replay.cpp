@@ -308,7 +308,7 @@ void GLReplay::FlipOutputWindow(uint64_t id)
 	SwapBuffers(&outw);
 }
 
-vector<byte> GLReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len)
+vector<byte> GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
 {
 	vector<byte> ret;
 
@@ -320,14 +320,14 @@ vector<byte> GLReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t 
 
 	auto &buf = m_pDriver->m_Buffers[buff];
 
-	uint32_t bufsize = (uint32_t)buf.size;
+	uint64_t bufsize = buf.size;
 	
 	if(len > 0 && offset+len > buf.size)
 	{
 		RDCWARN("Attempting to read off the end of the array. Will be clamped");
 
 		if(offset < buf.size)
-			len = ~0U; // min below will clamp to max size size
+			len = ~0ULL; // min below will clamp to max size size
 		else
 			return ret; // offset past buffer size, return empty array
 	}
