@@ -792,6 +792,8 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glGetIntegerv(eGL_CULL_FACE_MODE, (GLint *)&CullFace);
 
 	Unpack.Fetch(m_Real, true);
+
+	ClearGLErrors(*m_Real);
 }
 
 void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
@@ -1083,6 +1085,8 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glCullFace(CullFace);
 	
 	Unpack.Apply(m_Real, true);
+
+	ClearGLErrors(*m_Real);
 }
 
 void GLRenderState::Clear()
