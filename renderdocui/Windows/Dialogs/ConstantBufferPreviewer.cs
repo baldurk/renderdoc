@@ -406,7 +406,7 @@ namespace renderdocui.Controls
 			{
 				string errors = "";
 
-				m_FormatOverride = FormatElement.ParseFormatString(formatText, false, out errors);
+				m_FormatOverride = FormatElement.ParseFormatString(formatText, 0, false, out errors);
 
 				if (m_FormatSpecifier != null)
 					m_FormatSpecifier.SetErrors(errors);

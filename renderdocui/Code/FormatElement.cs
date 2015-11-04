@@ -325,7 +325,7 @@ namespace renderdocui.Code
             return ret;
         }
 
-        static public FormatElement[] ParseFormatString(string formatString, bool tightPacking, out string errors)
+        static public FormatElement[] ParseFormatString(string formatString, UInt64 maxLen, bool tightPacking, out string errors)
         {
             var elems = new List<FormatElement>();
 
@@ -585,6 +585,11 @@ namespace renderdocui.Code
                 elems.Clear();
 
                 var fmt = new ResourceFormat(FormatComponentType.UInt, 4, 4);
+
+                if (maxLen > 0 && maxLen < 16)
+                    fmt.compCount = 1;
+                if (maxLen > 0 && maxLen < 4)
+                    fmt.compByteWidth = 1;
 
                 elems.Add(new FormatElement("data", 0, 0, false, 1, false, 1, fmt, true));
             }

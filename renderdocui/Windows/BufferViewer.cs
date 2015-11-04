@@ -677,12 +677,14 @@ namespace renderdocui.Windows
 
             m_FormatText = formatString;
 
+            UInt64 len = 0;
             Text = "Buffer Contents";
             foreach (var b in m_Core.CurBuffers)
             {
                 if (b.ID == id)
                 {
                     Text = b.name + " - Contents";
+                    len = b.byteSize;
                     break;
                 }
             }
@@ -691,7 +693,7 @@ namespace renderdocui.Windows
 
             string errors = "";
 
-            FormatElement[] elems = FormatElement.ParseFormatString(formatString, true, out errors);
+            FormatElement[] elems = FormatElement.ParseFormatString(formatString, len, true, out errors);
 
             input.Strides = new uint[] { elems.Last().offset + elems.Last().ByteSize };
             input.Buffers = new ResourceId[] { isBuffer ? id : ResourceId.Null, isBuffer ? ResourceId.Null : id };
