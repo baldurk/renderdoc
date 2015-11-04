@@ -425,6 +425,9 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 				VkResourceRecord *cacherecord = GetRecord(pipelineCache);
 				record->AddParent(cacherecord);
 
+				VkResourceRecord *rprecord = GetRecord(pCreateInfos[i].renderPass);
+				record->AddParent(rprecord);
+
 				VkResourceRecord *layoutrecord = GetRecord(pCreateInfos[i].layout);
 				record->AddParent(layoutrecord);
 
