@@ -401,8 +401,8 @@ namespace renderdocui.Code
                     VBuffer[] ret = new VBuffer[m_Vulkan.VI.binds.Length];
                     for (int i = 0; i < m_Vulkan.VI.binds.Length; i++)
                     {
-                        ret[i].Buffer = m_Vulkan.VI.vbuffers[i].buffer;
-                        ret[i].ByteOffset = m_Vulkan.VI.vbuffers[i].offset;
+                        ret[i].Buffer = i < m_Vulkan.VI.vbuffers.Length ? m_Vulkan.VI.vbuffers[i].buffer : ResourceId.Null;
+                        ret[i].ByteOffset = i < m_Vulkan.VI.vbuffers.Length ? m_Vulkan.VI.vbuffers[i].offset : 0;
                         ret[i].ByteStride = m_Vulkan.VI.binds[i].bytestride;
                     }
 
