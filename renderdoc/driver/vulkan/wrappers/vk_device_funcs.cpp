@@ -43,10 +43,20 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 {
 	m_InitParams = params;
 
-	params.AppName = string("RenderDoc (") + params.AppName + ")";
-	params.EngineName = string("RenderDoc (") + params.EngineName + ")";
+	params.AppName = string("RenderDoc @ ") + params.AppName;
+	params.EngineName = string("RenderDoc @ ") + params.EngineName;
 
 	// VKTODOLOW verify that layers/extensions are available
+
+	// don't try and create our own layer on replay!
+	for(auto it = params.Layers.begin(); it != params.Layers.end(); ++it)
+	{
+		if(*it == "RenderDoc")
+		{
+			params.Layers.erase(it);
+			break;
+		}
+	}
 
 	const char **layerscstr = new const char *[params.Layers.size()];
 	for(size_t i=0; i < params.Layers.size(); i++)
@@ -360,6 +370,18 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		// we must make any modifications locally, so the free of pointers
 		// in the serialised VkDeviceCreateInfo don't double-free
 		VkDeviceCreateInfo createInfo = serCreateInfo;
+		
+		// don't try and create our own layer on replay!
+		for(uint32_t i=0; i < createInfo.layerCount; i++)
+		{
+			const char **layerNames = (const char **)createInfo.ppEnabledLayerNames;
+			if(!strcmp(layerNames[i], "RenderDoc"))
+			{
+				for(uint32_t j=i; j < createInfo.layerCount-1; j++)
+					layerNames[j] = layerNames[j+1];
+				createInfo.layerCount--;
+			}
+		}
 
 		physicalDevice = GetResourceManager()->GetLiveHandle<VkPhysicalDevice>(physId);
 
