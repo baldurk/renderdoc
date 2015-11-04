@@ -881,7 +881,7 @@ namespace renderdocui.Windows.PipelineState
                         )
                     {
                         var node = blendOperations.Nodes.Add(new object[] { i,
-                                                        true,
+                                                        blend.blendEnable,
 
                                                         blend.m_Blend.Source,
                                                         blend.m_Blend.Destination,
