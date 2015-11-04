@@ -260,8 +260,10 @@ namespace renderdocui.Windows.PipelineState
                         if (shaderRes.name.Length > 0)
                             slotname += ": " + shaderRes.name;
 
+                        bool isbuf = false;
                         UInt32 w = 1, h = 1, d = 1;
                         UInt32 a = 1;
+                        UInt64 len = 0;
                         string format = "Unknown";
                         string name = "Shader Resource " + descriptorBind.res.ToString();
                         string typename = "Unknown";
@@ -297,6 +299,7 @@ namespace renderdocui.Windows.PipelineState
                         {
                             if (bufs[t].ID == descriptorBind.res)
                             {
+                                len = bufs[t].byteSize;
                                 w = bufs[t].length;
                                 h = 0;
                                 d = 0;
@@ -306,12 +309,18 @@ namespace renderdocui.Windows.PipelineState
                                 typename = "Buffer";
 
                                 tag = bufs[t];
+
+                                isbuf = true;
                             }
                         }
 
                         string contents;
 
-                        if (descriptorBind.res == ResourceId.Null)
+                        if (isbuf)
+                        {
+                            contents = String.Format("{0} ({1}) {2} bytes", name, typename, len);
+                        }
+                        else if (descriptorBind.res == ResourceId.Null)
                         {
                             contents = "sampler " + descriptorBind.sampler.ToString();
                         }
