@@ -746,9 +746,9 @@ namespace renderdocui.Windows.PipelineState
 
                     i++;
 
-                    node = scissors.Nodes.Add(new object[] { i, v.scissor.x, v.scissor.y, v.scissor.right - v.scissor.x, v.scissor.bottom - v.scissor.y });
+                    node = scissors.Nodes.Add(new object[] { i, v.scissor.x, v.scissor.y, v.scissor.width, v.scissor.height });
 
-                    if (v.scissor.right == v.scissor.x || v.scissor.bottom == v.scissor.y)
+                    if (v.scissor.width == 0 || v.scissor.height == 0)
                         EmptyRow(node);
                 }
             }

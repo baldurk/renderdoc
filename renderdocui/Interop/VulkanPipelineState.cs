@@ -181,7 +181,7 @@ namespace renderdoc
                 [StructLayout(LayoutKind.Sequential)]
                 public class Scissor
                 {
-                    public Int32 x, y, right, bottom;
+                    public Int32 x, y, width, height;
                 };
                 [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                 public Scissor scissor;
