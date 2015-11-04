@@ -278,6 +278,7 @@ void VulkanCreationInfo::Memory::Init(VulkanResourceManager *resourceMan, const 
 
 void VulkanCreationInfo::Buffer::Init(VulkanResourceManager *resourceMan, const VkBufferCreateInfo* pCreateInfo)
 {
+	usage = pCreateInfo->usage;
 	size = pCreateInfo->size;
 }
 

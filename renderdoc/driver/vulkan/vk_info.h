@@ -207,6 +207,7 @@ struct VulkanCreationInfo
 	{
 		void Init(VulkanResourceManager *resourceMan, const VkBufferCreateInfo* pCreateInfo);
 
+		VkBufferUsageFlags usage;
 		uint64_t size;
 	};
 	map<ResourceId, Buffer> m_Buffer;
