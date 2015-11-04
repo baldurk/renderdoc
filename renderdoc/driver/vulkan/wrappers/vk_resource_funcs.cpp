@@ -184,7 +184,8 @@ VkResult WrappedVulkan::vkAllocMemory(
 			VkDeviceMemory*                             pMem)
 {
 	VkMemoryAllocInfo info = *pAllocInfo;
-	info.memoryTypeIndex = GetRecord(device)->memIdxMap[info.memoryTypeIndex];
+	if(m_State >= WRITING)
+		info.memoryTypeIndex = GetRecord(device)->memIdxMap[info.memoryTypeIndex];
 	VkResult ret = ObjDisp(device)->AllocMemory(Unwrap(device), &info, pMem);
 	
 	if(ret == VK_SUCCESS)
