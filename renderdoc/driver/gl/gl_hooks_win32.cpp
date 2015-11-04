@@ -312,6 +312,9 @@ class OpenGLHook : LibraryHook
 		Hook<BOOL (WINAPI*)(HDC, HGLRC)> wglMakeCurrent_hook;
 		Hook<PROC (WINAPI*)(const char*)> wglGetProcAddress_hook;
 		Hook<BOOL (WINAPI*)(HDC)> SwapBuffers_hook;
+		Hook<BOOL (WINAPI*)(HDC)> wglSwapBuffers_hook;
+		Hook<BOOL (WINAPI*)(HDC,UINT)> wglSwapLayerBuffers_hook;
+		Hook<BOOL (WINAPI*)(UINT,CONST WGLSWAP*)> wglSwapMultipleBuffers_hook;
 		Hook<LONG (WINAPI*)(DEVMODEA*,DWORD)> ChangeDisplaySettingsA_hook;
 		Hook<LONG (WINAPI*)(DEVMODEW*,DWORD)> ChangeDisplaySettingsW_hook;
 		Hook<LONG (WINAPI*)(LPCSTR,DEVMODEA*,HWND,DWORD,LPVOID)> ChangeDisplaySettingsExA_hook;
@@ -565,8 +568,8 @@ class OpenGLHook : LibraryHook
 
 			return ret;
 		}
-
-		static BOOL WINAPI SwapBuffers_hooked(HDC dc)
+		
+		static void ProcessSwapBuffers(HDC dc)
 		{
 			HWND w = WindowFromDC(dc);
 
@@ -581,8 +584,35 @@ class OpenGLHook : LibraryHook
 
 				SetLastError(0);
 			}
+		}
+
+		static BOOL WINAPI SwapBuffers_hooked(HDC dc)
+		{
+			ProcessSwapBuffers(dc);
 
 			return glhooks.SwapBuffers_hook()(dc);
+		}
+
+		static BOOL WINAPI wglSwapBuffers_hooked(HDC dc)
+		{
+			ProcessSwapBuffers(dc);
+
+			return glhooks.wglSwapBuffers_hook()(dc);
+		}
+
+		static BOOL WINAPI wglSwapLayerBuffers_hooked(HDC dc, UINT planes)
+		{
+			ProcessSwapBuffers(dc);
+
+			return glhooks.wglSwapLayerBuffers_hook()(dc, planes);
+		}
+
+		static BOOL WINAPI wglSwapMultipleBuffers_hooked(UINT numSwaps, CONST WGLSWAP *pSwaps)
+		{
+			for(UINT i=0; pSwaps && i < numSwaps; i++)
+				ProcessSwapBuffers(pSwaps[i].hdc);
+
+			return glhooks.wglSwapMultipleBuffers_hook()(numSwaps, pSwaps);
 		}
 
 		static LONG WINAPI ChangeDisplaySettingsA_hooked(DEVMODEA *mode, DWORD flags)
@@ -686,6 +716,9 @@ class OpenGLHook : LibraryHook
 			success &= wglCreateLayerContext_hook.Initialize("wglCreateLayerContext", DLL_NAME, wglCreateLayerContext_hooked);
 			success &= wglMakeCurrent_hook.Initialize("wglMakeCurrent", DLL_NAME, wglMakeCurrent_hooked);
 			success &= wglGetProcAddress_hook.Initialize("wglGetProcAddress", DLL_NAME, wglGetProcAddress_hooked);
+			success &= wglSwapBuffers_hook.Initialize("wglSwapBuffers", DLL_NAME, wglSwapBuffers_hooked);
+			success &= wglSwapLayerBuffers_hook.Initialize("wglSwapLayerBuffers", DLL_NAME, wglSwapLayerBuffers_hooked);
+			success &= wglSwapMultipleBuffers_hook.Initialize("wglSwapMultipleBuffers", DLL_NAME, wglSwapMultipleBuffers_hooked);
 			success &= SwapBuffers_hook.Initialize("SwapBuffers", "gdi32.dll", SwapBuffers_hooked);
 			success &= ChangeDisplaySettingsA_hook.Initialize("ChangeDisplaySettingsA", "user32.dll", ChangeDisplaySettingsA_hooked);
 			success &= ChangeDisplaySettingsW_hook.Initialize("ChangeDisplaySettingsW", "user32.dll", ChangeDisplaySettingsW_hooked);
