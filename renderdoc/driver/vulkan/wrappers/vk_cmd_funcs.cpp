@@ -578,12 +578,15 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 			bool allsameexceptstencil = true;
 
 			for(size_t i=1; i < atts.size(); i++)
-			{
-				if(atts[i].loadOp != atts[0].loadOp || atts[i].stencilLoadOp != atts[0].stencilLoadOp)
-					allsame = false;
-
 				if(atts[i].loadOp != atts[0].loadOp)
-					allsameexceptstencil = false;
+					allsame = allsameexceptstencil = false;
+
+			if(info.depthstencilAttachment != -1 && allsame && atts.size() > 1)
+			{
+				size_t o = (info.depthstencilAttachment == 0) ? 1 : 0;
+
+				if(atts[info.depthstencilAttachment].stencilLoadOp != atts[o].loadOp)
+					allsame = false;
 			}
 
 			if(allsame)
@@ -607,11 +610,11 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 				if(info.depthstencilAttachment >= 0 && info.depthstencilAttachment < atts.size())
 				{
 					if(atts[info.depthstencilAttachment].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
-						loadDesc = ", Stencil=Clear";
+						loadDesc += ", Stencil=Clear";
 					if(atts[info.depthstencilAttachment].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD)
-						loadDesc = ", Stencil=Load";
+						loadDesc += ", Stencil=Load";
 					if(atts[info.depthstencilAttachment].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-						loadDesc = ", Stencil=Don't Care";
+						loadDesc += ", Stencil=Don't Care";
 				}
 			}
 			else
@@ -822,11 +825,14 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 			bool allsameexceptstencil = true;
 
 			for(size_t i=1; i < atts.size(); i++)
-			{
-				if(atts[i].storeOp != atts[0].storeOp || atts[i].stencilStoreOp != atts[0].stencilStoreOp)
-					allsame = false;
-
 				if(atts[i].storeOp != atts[0].storeOp)
+					allsame = allsameexceptstencil = false;
+
+			if(info.depthstencilAttachment != -1 && allsame && atts.size() > 1)
+			{
+				size_t o = (info.depthstencilAttachment == 0) ? 1 : 0;
+
+				if(atts[info.depthstencilAttachment].stencilStoreOp != atts[o].storeOp)
 					allsameexceptstencil = false;
 			}
 
@@ -847,9 +853,9 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 				if(info.depthstencilAttachment >= 0 && info.depthstencilAttachment < atts.size())
 				{
 					if(atts[info.depthstencilAttachment].stencilStoreOp == VK_ATTACHMENT_STORE_OP_STORE)
-						storeDesc = ", Stencil=Store";
+						storeDesc += ", Stencil=Store";
 					if(atts[info.depthstencilAttachment].stencilStoreOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-						storeDesc = ", Stencil=Don't Care";
+						storeDesc += ", Stencil=Don't Care";
 				}
 			}
 			else
