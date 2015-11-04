@@ -697,6 +697,10 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		const SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 		
 		backbuffer = swapInfo.images[swapInfo.lastPresent].im;
+
+		// mark all images referenced as well
+		for(size_t i=0; i < swapInfo.images.size(); i++)
+			GetResourceManager()->MarkResourceFrameReferenced(GetResID(swapInfo.images[i].im), eFrameRef_Read);
 	}
 	
 	// transition back to IDLE atomically

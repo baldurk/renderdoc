@@ -132,16 +132,17 @@ VkResult WrappedVulkan::vkGetSwapchainImagesKHR(
 					}
 
 					VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pSwapchainImages[i]);
-					record->AddChunk(chunk);
+					VkResourceRecord *swaprecord = GetRecord(swapchain);
 
 					record->SpecialResource = true;
 
-					// we invert the usual scheme - we make the swapchain record take parent refs
-					// on these images, so that we can just ref the swapchain on present and pull
-					// in all the images
-					VkResourceRecord *swaprecord = GetRecord(swapchain);
+					record->AddParent(swaprecord);
 
-					swaprecord->AddParent(record);
+					// note we add the chunk to the swap record, that way when the swapchain is created it will
+					// always create all of its images on replay. The image's record is kept around for reference
+					// tracking and any other chunks. Because it has a parent relationship on the swapchain, if
+					// the image is referenced the swapchain (and thus all the getimages) will be included.
+					swaprecord->AddChunk(chunk);
 				}
 				else
 				{
