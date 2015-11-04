@@ -389,6 +389,8 @@ private:
 
 	// capture-side data
 
+	ResourceId m_LastSwap;
+
 	// holds the current list of coherent mapped memory. Locked against concurrent use
 	vector<VkResourceRecord*> m_CoherentMaps;
 	Threading::CriticalSection m_CoherentMapsLock;

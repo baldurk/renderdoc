@@ -488,6 +488,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 	// need to record which image was last flipped so we can get the correct backbuffer
 	// for a thumbnail in EndFrameCapture
 	swapInfo.lastPresent = pPresentInfo->imageIndices[0];
+	m_LastSwap = swaprecord->GetResourceID();
 	
 	VkImage backbuffer = swapInfo.images[pPresentInfo->imageIndices[0]].im;
 	

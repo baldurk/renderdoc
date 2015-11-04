@@ -702,6 +702,25 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		for(size_t i=0; i < swapInfo.images.size(); i++)
 			GetResourceManager()->MarkResourceFrameReferenced(GetResID(swapInfo.images[i].im), eFrameRef_Read);
 	}
+	else
+	{
+		// if a swapchain wasn't specified or found, use the last one presented
+		swaprecord = GetResourceManager()->GetResourceRecord(m_LastSwap);
+
+		if(swaprecord)
+		{
+			GetResourceManager()->MarkResourceFrameReferenced(swaprecord->GetResourceID(), eFrameRef_Read);
+			RDCASSERT(swaprecord->swapInfo);
+
+			const SwapchainInfo &swapInfo = *swaprecord->swapInfo;
+
+			backbuffer = swapInfo.images[swapInfo.lastPresent].im;
+
+			// mark all images referenced as well
+			for(size_t i=0; i < swapInfo.images.size(); i++)
+				GetResourceManager()->MarkResourceFrameReferenced(GetResID(swapInfo.images[i].im), eFrameRef_Read);
+		}
+	}
 	
 	// transition back to IDLE atomically
 	{
