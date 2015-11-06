@@ -924,6 +924,9 @@ namespace renderdocui.Windows
 
         void scintilla1_Click(object sender, EventArgs e)
         {
+            if (!m_Core.LogLoaded)
+                return;
+
             ScintillaNET.Scintilla scintilla1 = sender as ScintillaNET.Scintilla;
 
             string word = scintilla1.GetWordFromPosition(scintilla1.CurrentPos);
