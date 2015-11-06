@@ -766,7 +766,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(
 	{
 		ResourceId id;
 		if(m_State >= WRITING)
-			id = GetResID(pCmdBuffers[i]);
+			id = GetRecord(pCmdBuffers[i])->bakedCommands->GetResourceID();
 
 		localSerialiser->Serialise("pCmdBuffers[]", id);
 
@@ -792,6 +792,15 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdExecuteCommands(Unwrap(cmdBuffer), count, &cmds[0]);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		AddEvent(NEXT_SUBPASS, desc);
+		FetchDrawcall draw;
+		draw.name = "vkCmdExecuteCommands()";
+		draw.flags |= eDraw_CmdList;
+
+		AddDrawcall(draw, true);
 	}
 
 	return true;
@@ -806,7 +815,28 @@ void WrappedVulkan::vkCmdExecuteCommands(
 	for(uint32_t i=0; i < cmdBuffersCount; i++) unwrapped[i] = Unwrap(pCmdBuffers[i]);
 	ObjDisp(cmdBuffer)->CmdExecuteCommands(Unwrap(cmdBuffer), cmdBuffersCount, unwrapped);
 
-	// VKTODOHIGH stub function
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(cmdBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(EXEC_CMDS);
+		Serialise_vkCmdExecuteCommands(localSerialiser, cmdBuffer, cmdBuffersCount, pCmdBuffers);
+
+		record->AddChunk(scope.Get());
+		
+		for(uint32_t i=0; i < cmdBuffersCount; i++)
+		{
+			VkResourceRecord *execRecord = GetRecord(pCmdBuffers[i]);
+			record->cmdInfo->dirtied.insert(execRecord->bakedCommands->cmdInfo->dirtied.begin(), execRecord->bakedCommands->cmdInfo->dirtied.end());
+			record->cmdInfo->boundDescSets.insert(execRecord->bakedCommands->cmdInfo->boundDescSets.begin(), execRecord->bakedCommands->cmdInfo->boundDescSets.end());
+			record->cmdInfo->subcmds.push_back(execRecord);
+
+			// VKTODOHIGH need to merge transitions into parent command buffer
+			//GetResourceManager()->RecordTransitions();
+		}
+	}
 }
 
 bool WrappedVulkan::Serialise_vkCmdEndRenderPass(

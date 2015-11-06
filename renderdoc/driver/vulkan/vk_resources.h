@@ -590,6 +590,8 @@ struct CmdBufferRecordingInfo
 	// used to look up all the frame refs per-desc set and apply them on queue
 	// submit with latest binding refs.
 	set<VkDescriptorSet> boundDescSets;
+
+	vector<VkResourceRecord *> subcmds;
 };
 
 struct MemMapState
@@ -636,6 +638,8 @@ struct VkResourceRecord : public ResourceRecord
 			SwapChunks(bakedCommands);
 			cmdInfo->dirtied.swap(bakedCommands->cmdInfo->dirtied);
 			cmdInfo->boundDescSets.swap(bakedCommands->cmdInfo->boundDescSets);
+			cmdInfo->imgtransitions.swap(bakedCommands->cmdInfo->imgtransitions);
+			cmdInfo->subcmds.swap(bakedCommands->cmdInfo->subcmds);
 		}
 
 		void AddBindFrameRef(ResourceId id, FrameRefType ref)
