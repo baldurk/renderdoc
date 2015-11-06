@@ -355,12 +355,12 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	{
 		ResourceId cmd = GetResID(pCmdBuffers[i]);
 
+		VkResourceRecord *record = GetRecord(pCmdBuffers[i]);
+
 		{
 			SCOPED_LOCK(m_ImageLayoutsLock);
-			GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts);
+			GetResourceManager()->ApplyTransitions(record->cmdInfo->imgtransitions, m_ImageLayouts);
 		}
-
-		VkResourceRecord *record = GetRecord(pCmdBuffers[i]);
 
 		// need to lock the whole section of code, not just the check on
 		// m_State, as we also need to make sure we don't check the state,

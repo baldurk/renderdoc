@@ -1739,7 +1739,7 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 		ResourceId cmd = GetResID(cmdBuffer);
 		{
 			SCOPED_LOCK(m_ImageLayoutsLock);
-			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
+			GetResourceManager()->RecordTransitions(GetRecord(cmdBuffer)->cmdInfo->imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
 		}
 	}
 }
