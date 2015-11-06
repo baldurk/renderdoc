@@ -522,7 +522,8 @@ VkResult WrappedVulkan::vkInvalidateMappedMemoryRanges(
 		uint32_t                                    memRangeCount,
 		const VkMappedMemoryRange*                  pMemRanges)
 {
-	// VKTODOHIGH stub function
+	// don't need to serialise this, readback from mapped memory is not captured
+	// and is only relevant for the application.
 	return ObjDisp(device)->InvalidateMappedMemoryRanges(Unwrap(device), memRangeCount, pMemRanges);
 }
 
