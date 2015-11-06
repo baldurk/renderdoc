@@ -453,14 +453,26 @@ struct SPVConstant
 		}
 
 		string ret = type->GetName();
+		if(type->type == SPVTypeData::eArray)
+		{
+			ret = type->baseType->GetName();
+			ret += StringFormat::Fmt("[%u]", (uint32_t)children.size());
+		}
 		ret += "(";
 		if(children.empty())
 			ret += GetValString();
 		for(size_t i=0; i < children.size(); i++)
 		{
-			ret += children[i]->GetValString();
+			ret += children[i]->GetIDName();
 			if(i+1 < children.size())
+			{
 				ret += ", ";
+				// put each array element on a different line, with some kind of
+				// estimated indent (too complex with current blindly-append
+				// scheme to match exactly)
+				if(type->type == SPVTypeData::eArray)
+					ret += "\n                        ";
+			}
 		}
 		ret += ")";
 
