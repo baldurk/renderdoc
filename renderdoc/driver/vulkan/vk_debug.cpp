@@ -1798,6 +1798,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 		// modify state
 		m_pDriver->m_PartialReplayData.state.renderPass = GetResID(m_OverlayNoDepthRP);
+		m_pDriver->m_PartialReplayData.state.subpass = 0;
 		m_pDriver->m_PartialReplayData.state.framebuffer = GetResID(m_OverlayNoDepthFB);
 
 		m_pDriver->m_PartialReplayData.state.graphics.pipeline = GetResID(pipe);

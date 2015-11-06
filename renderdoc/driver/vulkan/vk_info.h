@@ -181,9 +181,13 @@ struct VulkanCreationInfo
 		};
 		vector<Attachment> attachments;
 
-		vector<uint32_t> inputAttachments;
-		vector<uint32_t> colorAttachments;
-		int32_t depthstencilAttachment;
+		struct Subpass
+		{
+			vector<uint32_t> inputAttachments;
+			vector<uint32_t> colorAttachments;
+			int32_t depthstencilAttachment;
+		};
+		vector<Subpass> subpasses;
 
 		VkRenderPass loadRP;
 	};

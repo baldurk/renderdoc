@@ -253,20 +253,23 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan, co
 		attachments.push_back(a);
 	}
 
-	// VKTODOMED figure out how subpasses work
-	RDCASSERT(pCreateInfo->subpassCount > 0);
-	const VkSubpassDescription &subp = pCreateInfo->pSubpasses[0];
+	subpasses.resize(pCreateInfo->subpassCount);
+	for(uint32_t i=0; i < pCreateInfo->subpassCount; i++)
+	{
+		const VkSubpassDescription &subp = pCreateInfo->pSubpasses[i];
+		Subpass &s = subpasses[i];
 
-	inputAttachments.resize(subp.inputCount);
-	for(uint32_t i=0; i < subp.inputCount; i++)
-		inputAttachments[i] = subp.pInputAttachments[i].attachment;
+		s.inputAttachments.resize(subp.inputCount);
+		for(uint32_t i=0; i < subp.inputCount; i++)
+			s.inputAttachments[i] = subp.pInputAttachments[i].attachment;
 
-	colorAttachments.resize(subp.colorCount);
-	for(uint32_t i=0; i < subp.colorCount; i++)
-		colorAttachments[i] = subp.pColorAttachments[i].attachment;
-	
-	depthstencilAttachment = (subp.depthStencilAttachment.attachment != VK_ATTACHMENT_UNUSED
-		? (int32_t)subp.depthStencilAttachment.attachment : -1);
+		s.colorAttachments.resize(subp.colorCount);
+		for(uint32_t i=0; i < subp.colorCount; i++)
+			s.colorAttachments[i] = subp.pColorAttachments[i].attachment;
+
+		s.depthstencilAttachment = (subp.depthStencilAttachment.attachment != VK_ATTACHMENT_UNUSED
+			? (int32_t)subp.depthStencilAttachment.attachment : -1);
+	}
 }
 
 void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *resourceMan, const VkFramebufferCreateInfo* pCreateInfo)

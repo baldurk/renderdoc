@@ -1660,9 +1660,9 @@ void VulkanReplay::SavePipelineState()
 
 			// Renderpass
 			m_VulkanPipelineState.Pass.renderpass.obj = rm->GetOriginalID(state.renderPass);
-			m_VulkanPipelineState.Pass.renderpass.inputAttachments = c.m_RenderPass[state.renderPass].inputAttachments;
-			m_VulkanPipelineState.Pass.renderpass.colorAttachments = c.m_RenderPass[state.renderPass].colorAttachments;
-			m_VulkanPipelineState.Pass.renderpass.depthstencilAttachment = c.m_RenderPass[state.renderPass].depthstencilAttachment;
+			m_VulkanPipelineState.Pass.renderpass.inputAttachments = c.m_RenderPass[state.renderPass].subpasses[state.subpass].inputAttachments;
+			m_VulkanPipelineState.Pass.renderpass.colorAttachments = c.m_RenderPass[state.renderPass].subpasses[state.subpass].colorAttachments;
+			m_VulkanPipelineState.Pass.renderpass.depthstencilAttachment = c.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
 
 			m_VulkanPipelineState.Pass.framebuffer.obj = rm->GetOriginalID(state.framebuffer);
 
