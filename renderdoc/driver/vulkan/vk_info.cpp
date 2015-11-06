@@ -330,8 +330,16 @@ void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, con
 
 void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan, const VkShaderModuleCreateInfo* pCreateInfo)
 {
-	RDCASSERT(pCreateInfo->codeSize % sizeof(uint32_t) == 0);
-	ParseSPIRV((uint32_t *)pCreateInfo->pCode, pCreateInfo->codeSize/sizeof(uint32_t), spirv);
+	const uint32_t SPIRVMagic = 0x07230203;
+	if(pCreateInfo->codeSize < 4 || memcmp(pCreateInfo->pCode, &SPIRVMagic, sizeof(SPIRVMagic)))
+	{
+		RDCWARN("Shader not provided with SPIR-V");
+	}
+	else
+	{
+		RDCASSERT(pCreateInfo->codeSize % sizeof(uint32_t) == 0);
+		ParseSPIRV((uint32_t *)pCreateInfo->pCode, pCreateInfo->codeSize/sizeof(uint32_t), spirv);
+	}
 
 	spirv.MakeReflection(&reflTemplate, &mapping);
 }
