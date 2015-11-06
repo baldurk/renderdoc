@@ -1763,6 +1763,9 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 				};
 				ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
+				for(uint32_t i=0; i < s.subpass; i++)
+					ObjDisp(cmd)->CmdNextSubpass(Unwrap(cmd), VK_RENDER_PASS_CONTENTS_INLINE);
+
 				if(s.graphics.pipeline != ResourceId())
 				{
 					ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetResourceManager()->GetCurrentHandle<VkPipeline>(s.graphics.pipeline)));

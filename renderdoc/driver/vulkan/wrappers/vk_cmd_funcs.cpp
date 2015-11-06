@@ -546,6 +546,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 			m_PartialReplayData.renderPassActive = true;
 			ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), &beginInfo, cont);
 
+			m_PartialReplayData.state.subpass = 0;
+
 			m_PartialReplayData.state.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
 			m_PartialReplayData.state.framebuffer = GetResourceManager()->GetNonDispWrapper(beginInfo.framebuffer)->id;
 			m_PartialReplayData.state.renderArea = beginInfo.renderArea;
@@ -558,6 +560,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 		ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), &beginInfo, cont);
 		
 		// track during reading
+		m_PartialReplayData.state.subpass = 0;
 		m_PartialReplayData.state.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
 
 		const string desc = localSerialiser->GetDebugStr();
@@ -687,7 +690,8 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(
 		{
 			cmdBuffer = PartialCmdBuf();
 
-			// VKTODOMED subpass tracking here
+			m_PartialReplayData.state.subpass++;
+
 			ObjDisp(cmdBuffer)->CmdNextSubpass(Unwrap(cmdBuffer), cont);
 		}
 	}
@@ -696,6 +700,18 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdNextSubpass(Unwrap(cmdBuffer), cont);
+
+		// track during reading
+		m_PartialReplayData.state.subpass++;
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		AddEvent(NEXT_SUBPASS, desc);
+		FetchDrawcall draw;
+		draw.name = StringFormat::Fmt("vkCmdNextSubpass() => %u", m_PartialReplayData.state.subpass);
+		draw.flags |= eDraw_Clear;
+
+		AddDrawcall(draw, true);
 	}
 
 	return true;

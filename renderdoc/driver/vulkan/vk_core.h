@@ -338,6 +338,8 @@ private:
 			byte pushconsts[1024];
 
 			ResourceId renderPass;
+			uint32_t subpass;
+
 			ResourceId framebuffer;
 			VkRect2D renderArea;
 
