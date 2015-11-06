@@ -31,7 +31,6 @@ On capture:
 * Captures must be replayed on an identical GPU setup to where they were captured.
 * Some API functions are not currently implemented. They will work while capturing but will not replay correctly.
 * Unsupported or untested features:
-	* Subpasses
 	* Nested command buffer execution
 	* GPU-GPU synchronisation with events.
 	* Sparse resources
