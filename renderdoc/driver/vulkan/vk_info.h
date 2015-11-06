@@ -156,6 +156,14 @@ struct VulkanCreationInfo
 	{
 		void Init(VulkanResourceManager *resourceMan, const VkPipelineLayoutCreateInfo* pCreateInfo);
 
+		struct PushConstantRange
+		{
+			uint32_t start;
+			uint32_t length;
+			VkShaderStageFlags stages;
+		};
+		vector<PushConstantRange> pushRanges;
+
 		vector<ResourceId> descSetLayouts;
 	};
 	map<ResourceId, PipelineLayout> m_PipelineLayout;

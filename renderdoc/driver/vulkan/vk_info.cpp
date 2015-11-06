@@ -229,6 +229,15 @@ void VulkanCreationInfo::PipelineLayout::Init(VulkanResourceManager *resourceMan
 	descSetLayouts.resize(pCreateInfo->descriptorSetCount);
 	for(uint32_t i=0; i < pCreateInfo->descriptorSetCount; i++)
 		descSetLayouts[i] = resourceMan->GetNonDispWrapper(pCreateInfo->pSetLayouts[i])->id;
+
+	pushRanges.resize(pCreateInfo->pushConstantRangeCount);
+	for(uint32_t i=0; i < pCreateInfo->pushConstantRangeCount; i++)
+	{
+		PushConstantRange &range = pushRanges[i];
+		range.start = pCreateInfo->pPushConstantRanges[i].start;
+		range.length = pCreateInfo->pPushConstantRanges[i].length;
+		range.stages = pCreateInfo->pPushConstantRanges[i].stageFlags;
+	}
 }
 
 void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan, const VkRenderPassCreateInfo* pCreateInfo)

@@ -1500,7 +1500,9 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdPushConstants(Unwrap(cmdBuffer), Unwrap(layout), flags, s, len, vals);
 
-			// VKTODOMED update pipeline state
+			RDCASSERT(s+len < (uint32_t)ARRAY_COUNT(m_PartialReplayData.state.pushconsts));
+
+			memcpy(m_PartialReplayData.state.pushconsts + s, vals, len);
 		}
 	}
 	else if(m_State == READING)
@@ -1510,7 +1512,8 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(
 		ObjDisp(cmdBuffer)->CmdPushConstants(Unwrap(cmdBuffer), Unwrap(layout), flags, s, len, vals);
 	}
 
-	SAFE_DELETE_ARRAY(vals);
+	if(m_State < WRITING)
+		SAFE_DELETE_ARRAY(vals);
 
 	return true;
 }

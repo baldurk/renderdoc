@@ -33,7 +33,6 @@ On capture:
 * Unsupported or untested features:
 	* Subpasses
 	* Nested command buffer execution
-	* Push constants
 	* GPU-GPU synchronisation with events.
 	* Sparse resources
 

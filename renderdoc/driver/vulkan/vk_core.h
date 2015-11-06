@@ -334,6 +334,9 @@ private:
 			float mindepth, maxdepth;
 			struct { uint32_t compare, write, ref; } front, back;
 
+			// this should be big enough for any implementation
+			byte pushconsts[1024];
+
 			ResourceId renderPass;
 			ResourceId framebuffer;
 			VkRect2D renderArea;
