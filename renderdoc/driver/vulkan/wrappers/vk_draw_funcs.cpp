@@ -145,6 +145,24 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
 		ObjDisp(cmdBuffer)->CmdBlitImage(Unwrap(cmdBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions, f);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			AddEvent(BLIT_IMG, desc);
+			string name = "vkCmdBlitImage(" +
+				ToStr::Get(srcid) + "," +
+				ToStr::Get(dstid) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.flags |= eDraw_Resolve;
+
+			draw.copySource = srcid;
+			draw.copyDestination = dstid;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -227,6 +245,24 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
 		ObjDisp(cmdBuffer)->CmdResolveImage(Unwrap(cmdBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			AddEvent(RESOLVE_IMG, desc);
+			string name = "vkCmdResolveImage(" +
+				ToStr::Get(srcid) + "," +
+				ToStr::Get(dstid) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.flags |= eDraw_Resolve;
+
+			draw.copySource = srcid;
+			draw.copyDestination = dstid;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -308,6 +344,24 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
 		ObjDisp(cmdBuffer)->CmdCopyImage(Unwrap(cmdBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			AddEvent(RESOLVE_IMG, desc);
+			string name = "vkCmdResolveImage(" +
+				ToStr::Get(srcid) + "," +
+				ToStr::Get(dstid) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.flags |= eDraw_Resolve;
+
+			draw.copySource = srcid;
+			draw.copyDestination = dstid;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -400,6 +454,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 			draw.name = name;
 			draw.flags |= eDraw_Copy;
 
+			draw.copySource = bufid;
+			draw.copyDestination = imgid;
+
 			AddDrawcall(draw, true);
 		}
 	}
@@ -481,6 +538,24 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
 		ObjDisp(cmdBuffer)->CmdCopyImageToBuffer(Unwrap(cmdBuffer), Unwrap(srcImage), layout, Unwrap(destBuffer), count, regions);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			AddEvent(COPY_BUF2IMG, desc);
+			string name = "vkCmdCopyImageToBuffer(" +
+				ToStr::Get(imgid) + "," +
+				ToStr::Get(bufid) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.flags |= eDraw_Copy;
+
+			draw.copySource = imgid;
+			draw.copyDestination = bufid;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -574,6 +649,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 			draw.name = name;
 			draw.flags |= eDraw_Copy;
 
+			draw.copySource = srcid;
+			draw.copyDestination = dstid;
+
 			AddDrawcall(draw, true);
 		}
 	}
@@ -655,6 +733,20 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 		image = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
 		ObjDisp(cmdBuffer)->CmdClearColorImage(Unwrap(cmdBuffer), Unwrap(image), layout, &col, count, ranges);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			AddEvent(CLEAR_COLOR, desc);
+			string name = "vkCmdClearColorImage(" +
+				ToStr::Get(col) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.flags |= eDraw_Clear|eDraw_ClearColour;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	SAFE_DELETE_ARRAY(ranges);
@@ -724,6 +816,21 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 		image = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
 		ObjDisp(cmdBuffer)->CmdClearDepthStencilImage(Unwrap(cmdBuffer), Unwrap(image), l, &ds, count, ranges);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			AddEvent(CLEAR_DEPTHSTENCIL, desc);
+			string name = "vkCmdClearDepthStencilImage(" +
+				ToStr::Get(ds.depth) + "," +
+				ToStr::Get(ds.stencil) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.flags |= eDraw_Clear|eDraw_ClearDepthStencil;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	SAFE_DELETE_ARRAY(ranges);
