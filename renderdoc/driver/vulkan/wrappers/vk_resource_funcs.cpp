@@ -785,6 +785,24 @@ VkResult WrappedVulkan::vkCreateBuffer(
 
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pBuffer);
 			record->AddChunk(chunk);
+
+			if(pCreateInfo->flags & (VK_BUFFER_CREATE_SPARSE_BINDING_BIT|VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT))
+			{
+				record->sparseInfo = new SparseMapping();
+				record->sparseOwner = true;
+
+				// buffers are always bound opaquely and in arbitrary divisions, sparse residency
+				// only means not all the buffer needs to be bound, which is not that interesting for
+				// our purposes
+
+				{
+					SCOPED_LOCK(m_CapTransitionLock);
+					if(m_State != WRITING_CAPFRAME)
+						GetResourceManager()->MarkDirtyResource(id);
+					else
+						GetResourceManager()->MarkPendingDirty(id);
+				}
+			}
 		}
 		else
 		{
@@ -864,6 +882,7 @@ VkResult WrappedVulkan::vkCreateBufferView(
 
 			// store the base resource
 			record->baseResource = bufferRecord->baseResource;
+			record->sparseInfo = bufferRecord->sparseInfo;
 		}
 		else
 		{
@@ -967,6 +986,53 @@ VkResult WrappedVulkan::vkCreateImage(
 
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pImage);
 			record->AddChunk(chunk);
+
+			if(pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT|VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT))
+			{
+				record->sparseInfo = new SparseMapping();
+				record->sparseOwner = true;
+				
+				{
+					SCOPED_LOCK(m_CapTransitionLock);
+					if(m_State != WRITING_CAPFRAME)
+						GetResourceManager()->MarkDirtyResource(id);
+					else
+						GetResourceManager()->MarkPendingDirty(id);
+				}
+
+				if(pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)
+				{
+					// must record image and page dimension, and create page tables
+					uint32_t numreqs = VK_IMAGE_ASPECT_NUM;
+					VkSparseImageMemoryRequirements reqs[VK_IMAGE_ASPECT_NUM];
+					ObjDisp(device)->GetImageSparseMemoryRequirements(Unwrap(device), Unwrap(*pImage), &numreqs, reqs);
+
+					RDCASSERT(numreqs > 0);
+					
+					record->sparseInfo->pagedim = reqs[0].formatProps.imageGranularity;
+					record->sparseInfo->imgdim = pCreateInfo->extent;
+					record->sparseInfo->imgdim.width /= record->sparseInfo->pagedim.width;
+					record->sparseInfo->imgdim.height /= record->sparseInfo->pagedim.height;
+					record->sparseInfo->imgdim.depth /= record->sparseInfo->pagedim.depth;
+					
+					uint32_t numpages = record->sparseInfo->imgdim.width*record->sparseInfo->imgdim.height*record->sparseInfo->imgdim.depth;
+
+					for(uint32_t i=0; i < numreqs; i++)
+					{
+						// assume all page sizes are the same for all aspects
+						RDCASSERT(record->sparseInfo->pagedim.width == reqs[i].formatProps.imageGranularity.width &&
+							record->sparseInfo->pagedim.height == reqs[i].formatProps.imageGranularity.height &&
+							record->sparseInfo->pagedim.depth == reqs[i].formatProps.imageGranularity.depth);
+
+						record->sparseInfo->pages[reqs[i].formatProps.aspect] = new pair<VkDeviceMemory, VkDeviceSize>[numpages];
+					}
+				}
+				else
+				{
+					// don't have to do anything, image is opaque and must be fully bound, just need
+					// to track the memory bindings.
+				}
+			}
 		}
 		else
 		{
@@ -1079,6 +1145,7 @@ VkResult WrappedVulkan::vkCreateImageView(
 			// to their memory, which we will also need so we store that separately
 			record->baseResource = imageRecord->GetResourceID();
 			record->baseResourceMem = imageRecord->baseResource;
+			record->sparseInfo = imageRecord->sparseInfo;
 		}
 		else
 		{

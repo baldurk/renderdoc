@@ -503,4 +503,8 @@ VkResourceRecord::~VkResourceRecord()
 		
 		SAFE_DELETE(memMapState);
 	}
+	if(sparseOwner)
+	{
+		SAFE_DELETE(sparseInfo);
+	}
 }

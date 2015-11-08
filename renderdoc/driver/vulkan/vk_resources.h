@@ -649,6 +649,9 @@ struct VkResourceRecord : public ResourceRecord
 			mem(VK_NULL_HANDLE),
 			memOffset(0),
 			memProps(NULL),
+			memIdxMap(NULL),
+			sparseOwner(false),
+			sparseInfo(NULL),
 			layout(NULL),
 			swapInfo(NULL),
 			cmdInfo(NULL),
@@ -718,6 +721,7 @@ struct VkResourceRecord : public ResourceRecord
 		// ie. the resource that can be modified or changes (or can become dirty)
 		// since typical memory bindings are immutable and must happen before
 		// creation or use, this can always be determined
+		bool sparseOwner;
 		ResourceId baseResource;
 		ResourceId baseResourceMem; // for image views, we need to point to both the image and mem
 		SparseMapping *sparseInfo;
