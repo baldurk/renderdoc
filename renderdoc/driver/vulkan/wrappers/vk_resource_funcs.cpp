@@ -660,7 +660,22 @@ bool WrappedVulkan::Serialise_vkQueueBindSparseBufferMemory(
 	uint32_t                                    numBindings,
 	const VkSparseMemoryBindInfo*               pBindInfo)
 {
-	// VKTODOHIGH stub function
+	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queue));
+	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(buffer));
+
+	SERIALISE_ELEMENT(uint32_t, num, numBindings);
+	SERIALISE_ELEMENT_ARR(VkSparseMemoryBindInfo, binds, pBindInfo, num);
+	
+	if(m_State < WRITING && GetResourceManager()->HasLiveResource(bufid))
+	{
+		queue = GetResourceManager()->GetLiveHandle<VkQueue>(qid);
+		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		ObjDisp(queue)->QueueBindSparseBufferMemory(Unwrap(queue), Unwrap(buffer), num, binds);
+	}
+
+	SAFE_DELETE_ARRAY(binds);
+
 	return true;
 }
 
@@ -670,9 +685,26 @@ VkResult WrappedVulkan::vkQueueBindSparseBufferMemory(
 	uint32_t                                    numBindings,
 	const VkSparseMemoryBindInfo*               pBindInfo)
 {
-	// VKTODOHIGH stub function
-	RDCWARN("Sparse memory operations are not yet implemented");
-	return ObjDisp(queue)->QueueBindSparseBufferMemory(Unwrap(queue), Unwrap(buffer), numBindings, pBindInfo);
+	if(m_State >= WRITING_CAPFRAME)
+	{
+		CACHE_THREAD_SERIALISER();
+		
+		SCOPED_SERIALISE_CONTEXT(BIND_SPARSE_BUF);
+		Serialise_vkQueueBindSparseBufferMemory(localSerialiser, queue, buffer, numBindings, pBindInfo);
+
+		m_FrameCaptureRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+		// image isn't marked referenced. If the only ref is a memory bind, we just skip it
+	}
+
+	if(m_State >= WRITING)
+		GetRecord(buffer)->sparseInfo->Update(numBindings, pBindInfo);
+
+	VkSparseMemoryBindInfo *unwrappedBinds = GetTempArray<VkSparseMemoryBindInfo>(numBindings);
+	memcpy(unwrappedBinds, pBindInfo, sizeof(VkSparseMemoryBindInfo)*numBindings);
+	for(uint32_t i=0; i < numBindings; i++) unwrappedBinds[i].mem = Unwrap(unwrappedBinds[i].mem);
+
+	return ObjDisp(queue)->QueueBindSparseBufferMemory(Unwrap(queue), Unwrap(buffer), numBindings, unwrappedBinds);
 }
 
 bool WrappedVulkan::Serialise_vkQueueBindSparseImageOpaqueMemory(
@@ -682,7 +714,22 @@ bool WrappedVulkan::Serialise_vkQueueBindSparseImageOpaqueMemory(
 	uint32_t                                    numBindings,
 	const VkSparseMemoryBindInfo*               pBindInfo)
 {
-	// VKTODOHIGH stub function
+	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queue));
+	SERIALISE_ELEMENT(ResourceId, imid, GetResID(image));
+
+	SERIALISE_ELEMENT(uint32_t, num, numBindings);
+	SERIALISE_ELEMENT_ARR(VkSparseMemoryBindInfo, binds, pBindInfo, num);
+	
+	if(m_State < WRITING && GetResourceManager()->HasLiveResource(imid))
+	{
+		queue = GetResourceManager()->GetLiveHandle<VkQueue>(qid);
+		image = GetResourceManager()->GetLiveHandle<VkImage>(imid);
+
+		ObjDisp(queue)->QueueBindSparseImageOpaqueMemory(Unwrap(queue), Unwrap(image), num, binds);
+	}
+
+	SAFE_DELETE_ARRAY(binds);
+
 	return true;
 }
 
@@ -692,9 +739,26 @@ VkResult WrappedVulkan::vkQueueBindSparseImageOpaqueMemory(
 	uint32_t                                    numBindings,
 	const VkSparseMemoryBindInfo*               pBindInfo)
 {
-	// VKTODOHIGH stub function
-	RDCWARN("Sparse memory operations are not yet implemented");
-	return ObjDisp(queue)->QueueBindSparseImageOpaqueMemory(Unwrap(queue), Unwrap(image), numBindings, pBindInfo);
+	if(m_State >= WRITING_CAPFRAME)
+	{
+		CACHE_THREAD_SERIALISER();
+		
+		SCOPED_SERIALISE_CONTEXT(BIND_SPARSE_OPAQUE_IM);
+		Serialise_vkQueueBindSparseImageOpaqueMemory(localSerialiser, queue, image, numBindings, pBindInfo);
+
+		m_FrameCaptureRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+		// image isn't marked referenced. If the only ref is a memory bind, we just skip it
+	}
+
+	if(m_State >= WRITING)
+		GetRecord(image)->sparseInfo->Update(numBindings, pBindInfo);
+	
+	VkSparseMemoryBindInfo *unwrappedBinds = GetTempArray<VkSparseMemoryBindInfo>(numBindings);
+	memcpy(unwrappedBinds, pBindInfo, sizeof(VkSparseMemoryBindInfo)*numBindings);
+	for(uint32_t i=0; i < numBindings; i++) unwrappedBinds[i].mem = Unwrap(unwrappedBinds[i].mem);
+
+	return ObjDisp(queue)->QueueBindSparseImageOpaqueMemory(Unwrap(queue), Unwrap(image), numBindings, unwrappedBinds);
 }
 
 bool WrappedVulkan::Serialise_vkQueueBindSparseImageMemory(
@@ -704,7 +768,22 @@ bool WrappedVulkan::Serialise_vkQueueBindSparseImageMemory(
 	uint32_t                                    numBindings,
 	const VkSparseImageMemoryBindInfo*          pBindInfo)
 {
-	// VKTODOHIGH stub function
+	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queue));
+	SERIALISE_ELEMENT(ResourceId, imid, GetResID(image));
+
+	SERIALISE_ELEMENT(uint32_t, num, numBindings);
+	SERIALISE_ELEMENT_ARR(VkSparseImageMemoryBindInfo, binds, pBindInfo, num);
+	
+	if(m_State < WRITING && GetResourceManager()->HasLiveResource(imid))
+	{
+		queue = GetResourceManager()->GetLiveHandle<VkQueue>(qid);
+		image = GetResourceManager()->GetLiveHandle<VkImage>(imid);
+
+		ObjDisp(queue)->QueueBindSparseImageMemory(Unwrap(queue), Unwrap(image), num, binds);
+	}
+
+	SAFE_DELETE_ARRAY(binds);
+
 	return true;
 }
 
@@ -714,9 +793,26 @@ VkResult WrappedVulkan::vkQueueBindSparseImageMemory(
 	uint32_t                                    numBindings,
 	const VkSparseImageMemoryBindInfo*          pBindInfo)
 {
-	// VKTODOHIGH stub function
-	RDCWARN("Sparse memory operations are not yet implemented");
-	return ObjDisp(queue)->QueueBindSparseImageMemory(Unwrap(queue), Unwrap(image), numBindings, pBindInfo);
+	if(m_State >= WRITING_CAPFRAME)
+	{
+		CACHE_THREAD_SERIALISER();
+		
+		SCOPED_SERIALISE_CONTEXT(BIND_SPARSE_IM);
+		Serialise_vkQueueBindSparseImageMemory(localSerialiser, queue, image, numBindings, pBindInfo);
+
+		m_FrameCaptureRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+		// image isn't marked referenced. If the only ref is a memory bind, we just skip it
+	}
+
+	if(m_State >= WRITING)
+		GetRecord(image)->sparseInfo->Update(numBindings, pBindInfo);
+	
+	VkSparseImageMemoryBindInfo *unwrappedBinds = GetTempArray<VkSparseImageMemoryBindInfo>(numBindings);
+	memcpy(unwrappedBinds, pBindInfo, sizeof(VkSparseImageMemoryBindInfo)*numBindings);
+	for(uint32_t i=0; i < numBindings; i++) unwrappedBinds[i].mem = Unwrap(unwrappedBinds[i].mem);
+
+	return ObjDisp(queue)->QueueBindSparseImageMemory(Unwrap(queue), Unwrap(image), numBindings, unwrappedBinds);
 }
 
 bool WrappedVulkan::Serialise_vkCreateBuffer(

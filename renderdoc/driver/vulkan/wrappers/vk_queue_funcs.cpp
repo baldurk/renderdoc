@@ -595,7 +595,7 @@ bool WrappedVulkan::Serialise_vkQueueWaitIdle(Serialiser* localSerialiser, VkQue
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(queue));
 	
-	if(m_State < WRITING_CAPFRAME)
+	if(m_State < WRITING)
 	{
 		queue = GetResourceManager()->GetLiveHandle<VkQueue>(id);
 		ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));

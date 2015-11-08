@@ -596,6 +596,9 @@ struct SparseMapping
 	// pagetable per image aspect (some may be NULL)
 	// in order of width first, then height, then depth
 	pair<VkDeviceMemory, VkDeviceSize> *pages[VK_IMAGE_ASPECT_NUM];
+
+	void Update(uint32_t numBindings, const VkSparseImageMemoryBindInfo *pBindings);
+	void Update(uint32_t numBindings, const VkSparseMemoryBindInfo *pBindings);
 };
 
 struct CmdBufferRecordingInfo

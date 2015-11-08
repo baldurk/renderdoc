@@ -103,6 +103,10 @@ const char *VkChunkNames[] =
 	"vkQueueSubmit",
 	"vkBindBufferMemory",
 	"vkBindImageMemory",
+	
+	"vkQueueBindSparseBufferMemory",
+	"vkQueueBindSparseImageOpaqueMemory",
+	"vkQueueBindSparseImageMemory",
 
 	"vkCmdBeginRenderPass",
 	"vkCmdNextSubpass",
@@ -1473,6 +1477,16 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 	case BIND_IMAGE_MEM:
 		Serialise_vkBindImageMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
+		break;
+
+	case BIND_SPARSE_BUF:
+		Serialise_vkQueueBindSparseBufferMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
+		break;
+	case BIND_SPARSE_OPAQUE_IM:
+		Serialise_vkQueueBindSparseImageOpaqueMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
+		break;
+	case BIND_SPARSE_IM:
+		Serialise_vkQueueBindSparseImageMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
 		break;
 
 	case BEGIN_RENDERPASS:

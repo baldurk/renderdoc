@@ -913,6 +913,19 @@ string ToStrHelper<false, VkImageViewCreateFlagBits>::Get(const VkImageViewCreat
 }
 
 template<>
+string ToStrHelper<false, VkSparseMemoryBindFlagBits>::Get(const VkSparseMemoryBindFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_SPARSE_MEMORY_BIND_REPLICATE_64KIB_BLOCK_BIT)   ret += " | VK_SPARSE_MEMORY_BIND_REPLICATE_64KIB_BLOCK_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
 string ToStrHelper<false, VkCmdPoolCreateFlagBits>::Get(const VkCmdPoolCreateFlagBits &el)
 {
 	string ret;
@@ -2376,6 +2389,27 @@ void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el)
 	Serialise("channels", el.channels);
 	Serialise("subresourceRange", el.subresourceRange);
 	Serialise("flags", (VkImageViewCreateFlagBits &)el.flags);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkSparseImageMemoryBindInfo &el)
+{
+	Serialise("subresource", el.subresource);
+	Serialise("offset", el.offset);
+	Serialise("extent", el.extent);
+	Serialise("memOffset", el.memOffset);
+	SerialiseObject(VkDeviceMemory, "mem", el.mem);
+	Serialise("flags", (VkSparseMemoryBindFlagBits &)el.flags);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkSparseMemoryBindInfo &el)
+{
+	Serialise("rangeOffset", el.rangeOffset);
+	Serialise("rangeSize", el.rangeSize);
+	Serialise("memOffset", el.memOffset);
+	SerialiseObject(VkDeviceMemory, "mem", el.mem);
+	Serialise("flags", (VkSparseMemoryBindFlagBits &)el.flags);
 }
 
 template<>

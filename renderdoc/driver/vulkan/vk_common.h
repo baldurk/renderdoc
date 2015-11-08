@@ -84,6 +84,8 @@ template<> void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkImageCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkSparseImageMemoryBindInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkSparseMemoryBindInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el);
@@ -213,6 +215,10 @@ enum VulkanChunkType
 	QUEUE_SUBMIT,
 	BIND_BUFFER_MEM,
 	BIND_IMAGE_MEM,
+
+	BIND_SPARSE_BUF,
+	BIND_SPARSE_OPAQUE_IM,
+	BIND_SPARSE_IM,
 
 	BEGIN_RENDERPASS,
 	NEXT_SUBPASS,

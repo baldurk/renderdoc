@@ -508,3 +508,11 @@ VkResourceRecord::~VkResourceRecord()
 		SAFE_DELETE(sparseInfo);
 	}
 }
+
+void SparseMapping::Update(uint32_t numBindings, const VkSparseImageMemoryBindInfo *pBindings)
+{
+}
+
+void SparseMapping::Update(uint32_t numBindings, const VkSparseMemoryBindInfo *pBindings)
+{
+}
