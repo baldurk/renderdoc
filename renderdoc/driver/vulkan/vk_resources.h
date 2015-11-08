@@ -536,18 +536,18 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr);
 struct ImageRegionState
 {
 	ImageRegionState()
-		: prevstate(UNTRANSITIONED_IMG_STATE), state(UNTRANSITIONED_IMG_STATE)
+		: oldLayout(UNTRANSITIONED_IMG_STATE), newLayout(UNTRANSITIONED_IMG_STATE)
 	{
-		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		range.baseArrayLayer = 0; range.arraySize = 0;
-		range.baseMipLevel = 0; range.mipLevels = 0;
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.baseArrayLayer = 0; subresourceRange.arraySize = 0;
+		subresourceRange.baseMipLevel = 0; subresourceRange.mipLevels = 0;
 	}
 	ImageRegionState(VkImageSubresourceRange r, VkImageLayout pr, VkImageLayout st)
-	    : range(r), prevstate(pr), state(st) {}
+	    : subresourceRange(r), oldLayout(pr), newLayout(st) {}
 
-	VkImageSubresourceRange range;
-	VkImageLayout prevstate;
-	VkImageLayout state;
+	VkImageSubresourceRange subresourceRange;
+	VkImageLayout oldLayout;
+	VkImageLayout newLayout;
 };
 
 inline bool operator <(const VkDescriptorSet a, const VkDescriptorSet b)

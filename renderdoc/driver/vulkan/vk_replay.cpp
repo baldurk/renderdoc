@@ -830,7 +830,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.texid);
 
 	// VKTODOMED handle multiple subresources with different layouts etc
-	VkImageLayout origLayout = layouts.subresourceStates[0].state;
+	VkImageLayout origLayout = layouts.subresourceStates[0].newLayout;
 	VkImageView liveImView = iminfo.view;
 
 	if(liveImView == VK_NULL_HANDLE)

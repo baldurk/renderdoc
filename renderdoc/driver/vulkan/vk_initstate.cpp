@@ -143,7 +143,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		
 			// VKTODOMED handle getting the right origLayout for this mip, handle transitioning
 			// multiple slices with different layouts etc
-			VkImageLayout origLayout = layout->subresourceStates[0].state;
+			VkImageLayout origLayout = layout->subresourceStates[0].newLayout;
 
 			// transition the real image into transfer-source
 			srcimTrans.oldLayout = origLayout;
@@ -736,7 +736,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 
 		ImageLayouts &layouts = m_ImageLayouts[liveid];
 
-		if(layouts.subresourceStates[0].range.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT)
+		if(layouts.subresourceStates[0].subresourceRange.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT)
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearColorImage, NULL));
 		else
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearDepthStencilImage, NULL));
@@ -804,7 +804,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				VkImageMemoryBarrier barrier = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 					0, 0,
-					m_ImageLayouts[id].subresourceStates[0].state, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+					m_ImageLayouts[id].subresourceStates[0].newLayout, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 					ToHandle<VkImage>(live),
 					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS },
@@ -860,7 +860,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				VkImageMemoryBarrier barrier = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 					0, 0,
-					m_ImageLayouts[id].subresourceStates[0].state, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+					m_ImageLayouts[id].subresourceStates[0].newLayout, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 					ToHandle<VkImage>(live),
 					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS },
@@ -944,7 +944,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			dstimTrans.subresourceRange.baseMipLevel = m;
 		
 			// VKTODOMED handle getting the right origLayout for this mip, handle multiple slices with different layouts etc
-			VkImageLayout origLayout = m_ImageLayouts[id].subresourceStates[0].state;
+			VkImageLayout origLayout = m_ImageLayouts[id].subresourceStates[0].newLayout;
 
 			// first transition the live image into destination optimal (the initial state
 			// image is always and permanently in source optimal already).
