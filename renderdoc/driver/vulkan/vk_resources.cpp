@@ -511,8 +511,216 @@ VkResourceRecord::~VkResourceRecord()
 
 void SparseMapping::Update(uint32_t numBindings, const VkSparseImageMemoryBindInfo *pBindings)
 {
+	// update image page table mappings
+
+	for(uint32_t b=0; b < numBindings; b++)
+	{
+		const VkSparseImageMemoryBindInfo &newBind = pBindings[b];
+
+		// VKTODOMED handle sparse image arrays or sparse images with mips
+		RDCASSERT(newBind.subresource.arrayLayer == 0 && newBind.subresource.mipLevel == 0);
+
+		pair<VkDeviceMemory,VkDeviceSize> *pageTable = pages[newBind.subresource.aspect];
+
+		VkOffset3D offsInPages = newBind.offset;
+		offsInPages.x /= pagedim.width;
+		offsInPages.y /= pagedim.height;
+		offsInPages.z /= pagedim.depth;
+
+		VkExtent3D extInPages = newBind.extent;
+		extInPages.width /= pagedim.width;
+		extInPages.height /= pagedim.height;
+		extInPages.depth /= pagedim.depth;
+
+		pair<VkDeviceMemory, VkDeviceSize> mempair = std::make_pair(newBind.mem, newBind.memOffset);
+		
+		for(int32_t z=offsInPages.z; z < offsInPages.z+extInPages.depth; z++)
+		{
+			for(int32_t y=offsInPages.y; y < offsInPages.y+extInPages.height; y++)
+			{
+				for(int32_t x=offsInPages.x; x < offsInPages.x+extInPages.width; x++)
+				{
+					pageTable[ z*imgdim.width*imgdim.height + y*imgdim.width + x ] = mempair;
+				}
+			}
+		}
+	}
 }
 
 void SparseMapping::Update(uint32_t numBindings, const VkSparseMemoryBindInfo *pBindings)
 {
+	// update opaque mappings
+
+	for(uint32_t b=0; b < numBindings; b++)
+	{
+		const VkSparseMemoryBindInfo &curRange = pBindings[b];
+			
+		bool found = false;
+
+		// this could be improved to do a binary search since the vector is sorted.
+		for(auto it=opaquemappings.begin(); it != opaquemappings.end(); ++it)
+		{
+			VkSparseMemoryBindInfo &newRange = *it;
+
+			// the binding we're applying is after this item in the list,
+			// keep searching
+			if(curRange.rangeOffset+curRange.rangeSize <= newRange.rangeOffset) continue;
+
+			// the binding we're applying is before this item, but doesn't
+			// overlap. Insert before us in the list
+			if(curRange.rangeOffset >= newRange.rangeOffset+newRange.rangeSize)
+			{
+				opaquemappings.insert(it, newRange);
+				found = true;
+				break;
+			}
+
+			// with sparse mappings it will be reasonably common to update an exact
+			// existing range, so check that first
+			if(curRange.rangeOffset == newRange.rangeOffset && curRange.rangeSize == newRange.rangeSize)
+			{
+				*it = curRange;
+				found = true;
+				break;
+			}
+
+			// handle subranges within the current range
+			if(curRange.rangeOffset <= newRange.rangeOffset && curRange.rangeOffset+curRange.rangeSize >= newRange.rangeOffset+newRange.rangeSize)
+			{
+				// they start in the same place
+				if(curRange.rangeOffset == newRange.rangeOffset)
+				{
+					// change the current range to be the leftover second half
+					it->rangeOffset += curRange.rangeSize;
+
+					// insert the new mapping before our current one
+					opaquemappings.insert(it, newRange);
+					found = true;
+					break;
+				}
+				// they end in the same place
+				else if(curRange.rangeOffset+curRange.rangeSize == newRange.rangeOffset+newRange.rangeSize)
+				{
+					// save a copy
+					VkSparseMemoryBindInfo cur = curRange;
+
+					// set the new size of the first half
+					cur.rangeSize = newRange.rangeOffset - curRange.rangeOffset;
+
+					// add the new range where the current iterator was
+					*it = newRange;
+
+					// insert the old truncated mapping before our current position
+					opaquemappings.insert(it, cur);
+					found = true;
+					break;
+				}
+				// the new range is a subsection
+				else
+				{
+					// save a copy
+					VkSparseMemoryBindInfo first = curRange;
+
+					// set the new size of the first part
+					first.rangeSize = newRange.rangeOffset - curRange.rangeOffset;
+
+					// set the current range (third part) to start after the new range ends
+					it->rangeOffset = newRange.rangeOffset+newRange.rangeSize;
+					
+					// first insert the new range before our current range
+					it = opaquemappings.insert(it, newRange);
+
+					// now insert the remaining first part before that
+					opaquemappings.insert(it, first);
+
+					found = true;
+					break;
+				}
+			}
+
+			// this new range overlaps the current one and some subsequent ranges. Merge together
+			
+			// find where this new range stops overlapping
+			auto endit=it;
+			for(; endit != opaquemappings.end(); ++endit)
+			{
+				if(newRange.rangeOffset+newRange.rangeSize <= endit->rangeOffset+endit->rangeSize)
+					break;
+			}
+
+			// see if there are any leftovers of the overlapped ranges at the start or end
+			bool leftoverstart = (curRange.rangeOffset < newRange.rangeOffset);
+			bool leftoverend = (endit != opaquemappings.end() && (endit->rangeOffset+endit->rangeSize > newRange.rangeOffset+newRange.rangeSize));
+
+			// no leftovers, the new range entirely covers the current and last (if there is one)
+			if(!leftoverstart && !leftoverend)
+			{
+				// erase all of the ranges. If endit points to a valid range,
+				// it won't be erased, so we overwrite it. Otherwise it pointed
+				// to end() so we just push_back()
+				auto last = opaquemappings.erase(it, endit);
+				if(last != opaquemappings.end())
+					*last = newRange;
+				else
+					opaquemappings.push_back(newRange);
+			}
+			// leftover at the start, but not the end
+			else if(leftoverstart && !leftoverend)
+			{
+				// save the current range
+				VkSparseMemoryBindInfo cur = curRange;
+
+				// modify the size to reflect what's left over
+				cur.rangeSize = newRange.rangeOffset - cur.rangeOffset;
+
+				// as above, erase and either re-insert or push_back()
+				auto last = opaquemappings.erase(it, endit);
+				if(last != opaquemappings.end())
+				{
+					*last = newRange;
+					opaquemappings.insert(last, cur);
+				}
+				else
+				{
+					opaquemappings.push_back(cur);
+					opaquemappings.push_back(newRange);
+				}
+			}
+			// leftover at the end, but not the start
+			else if(!leftoverstart && leftoverend)
+			{
+				// erase up to but not including endit
+				auto last = opaquemappings.erase(it, endit);
+				// modify the leftovers at the end
+				last->rangeOffset = newRange.rangeOffset+newRange.rangeSize;
+				// insert the new range before
+				opaquemappings.insert(last, newRange);
+			}
+			// leftovers at both ends
+			else
+			{
+				// save the current range
+				VkSparseMemoryBindInfo cur = curRange;
+
+				// modify the size to reflect what's left over
+				cur.rangeSize = newRange.rangeOffset - cur.rangeOffset;
+
+				// erase up to but not including endit
+				auto last = opaquemappings.erase(it, endit);
+				// modify the leftovers at the end
+				last->rangeOffset = newRange.rangeOffset+newRange.rangeSize;
+				// insert the new range before
+				auto newit = opaquemappings.insert(last, newRange);
+				// insert the modified leftovers before that
+				opaquemappings.insert(newit, cur);
+			}
+
+			found = true;
+			break;
+		}
+
+		// if it wasn't found, this binding is after all mappings in our list
+		if(!found)
+			opaquemappings.push_back(curRange);
+	}
 }

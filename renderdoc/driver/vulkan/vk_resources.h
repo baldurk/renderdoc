@@ -586,7 +586,7 @@ struct SparseMapping
 	}
 
 	// for buffers or non-sparse-resident images (bound with opaque mappings)
-	vector< pair<VkDeviceMemory, VkDeviceSize> > opaquemappings;
+	vector<VkSparseMemoryBindInfo> opaquemappings;
 
 	// for sparse resident images:
 	// total image size (in pages)
