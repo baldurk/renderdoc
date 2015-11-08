@@ -833,8 +833,7 @@ void WrappedVulkan::vkCmdExecuteCommands(
 			record->cmdInfo->boundDescSets.insert(execRecord->bakedCommands->cmdInfo->boundDescSets.begin(), execRecord->bakedCommands->cmdInfo->boundDescSets.end());
 			record->cmdInfo->subcmds.push_back(execRecord);
 
-			// VKTODOHIGH need to merge transitions into parent command buffer
-			//GetResourceManager()->RecordTransitions();
+			GetResourceManager()->MergeTransitions(record->cmdInfo->imgtransitions, execRecord->bakedCommands->cmdInfo->imgtransitions);
 		}
 	}
 }

@@ -203,6 +203,157 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 	TRDBG("Post-record, there are %u transitions", (uint32_t)trans.size());
 }
 
+void VulkanResourceManager::MergeTransitions(vector< pair<ResourceId, ImageRegionState> > &dsttrans,
+                                             vector< pair<ResourceId, ImageRegionState> > &srctrans)
+{
+	TRDBG("Merging %u transitions", (uint32_t)srctrans.size());
+
+	for(size_t ti=0; ti < srctrans.size(); ti++)
+	{
+		ResourceId id = srctrans[ti].first;
+		const ImageRegionState &t = srctrans[ti].second;
+		
+		uint32_t nummips = t.range.mipLevels;
+		uint32_t numslices = t.range.arraySize;
+
+		bool done = false;
+
+		auto it = dsttrans.begin();
+		for(; it != dsttrans.end(); ++it)
+		{
+			// image transitions are handled by initially inserting one subresource range for each aspect,
+			// and whenever we need more fine-grained detail we split it immediately for one range for
+			// each subresource in that aspect. Thereafter if a transition comes in that covers multiple
+			// subresources, we transition all matching ranges.
+
+			// find the transitions matching this id
+			if(it->first < id) continue;
+			if(it->first != id) break;
+
+			if(it->second.range.aspectMask & t.range.aspectMask)
+			{
+				// we've found a range that completely matches our region, doesn't matter if that's
+				// a whole image and the transition is the whole image, or it's one subresource.
+				// note that for images with only one array/mip slice (e.g. render targets) we'll never
+				// really have to worry about the else{} branch
+				if(it->second.range.baseMipLevel == t.range.baseMipLevel &&
+				   it->second.range.mipLevels == nummips &&
+				   it->second.range.baseArrayLayer == t.range.baseArrayLayer &&
+				   it->second.range.arraySize == numslices)
+				{
+					// verify
+					//RDCASSERT(it->second.state == t.prevstate);
+
+					// apply it (prevstate is from the start of all transitions, so only set once)
+					if(it->second.prevstate == UNTRANSITIONED_IMG_STATE)
+						it->second.prevstate = t.prevstate;
+					it->second.state = t.state;
+
+					done = true;
+					break;
+				}
+				else
+				{
+					// this handles the case where the transition covers a number of subresources and we need
+					// to transition each matching subresource. If the transition was only one mip & array slice
+					// it would have hit the case above. Find each subresource within the range, transition it,
+					// and continue (marking as done so whenever we stop finding matching ranges, we are
+					// satisfied.
+					//
+					// note that regardless of how we lay out our subresources (slice-major or mip-major) the new
+					// range could be sparse, but that's OK as we only break out of the loop once we go past the whole
+					// aspect. Any subresources that don't match the range, after the split, will fail to meet any
+					// of the handled cases, so we'll just continue processing.
+					if(it->second.range.mipLevels == 1 &&
+					   it->second.range.arraySize == 1 &&
+					   it->second.range.baseMipLevel >= t.range.baseMipLevel &&
+					   it->second.range.baseMipLevel < t.range.baseMipLevel+nummips &&
+					   it->second.range.baseArrayLayer >= t.range.baseArrayLayer &&
+					   it->second.range.baseArrayLayer < t.range.baseArrayLayer+numslices)
+					{
+						// apply it (prevstate is from the start of all transitions, so only set once)
+						if(it->second.prevstate == UNTRANSITIONED_IMG_STATE)
+							it->second.prevstate = t.prevstate;
+						it->second.state = t.state;
+
+						// continue as there might be more, but we're done
+						done = true;
+						continue;
+					}
+					// finally handle the case where we have a range that covers a whole image but we need to
+					// split it. If the transition covered the whole image too it would have hit the very first
+					// case, so we know that the transition doesn't cover the whole range.
+					// Also, if we've already done the split this case won't be hit and we'll either fall into
+					// the case above, or we'll finish as we've covered the whole transition.
+					else if(it->second.range.mipLevels > 1 || it->second.range.arraySize > 1)
+					{
+						pair<ResourceId, ImageRegionState> existing = *it;
+
+						// remember where we were in the array, as after this iterators will be
+						// invalidated.
+						size_t offs = it - dsttrans.begin();
+						size_t count = it->second.range.mipLevels * it->second.range.arraySize;
+
+						// only insert count-1 as we want count entries total - one per subresource
+						dsttrans.insert(it, count-1, existing);
+
+						// it now points at the first subresource, but we need to modify the ranges
+						// to be valid
+						it = dsttrans.begin()+offs;
+
+						for(size_t i=0; i < count; i++)
+						{
+							it->second.range.mipLevels = 1;
+							it->second.range.arraySize = 1;
+
+							// slice-major
+							it->second.range.baseArrayLayer = uint32_t(i / existing.second.range.mipLevels);
+							it->second.range.baseMipLevel = uint32_t(i % existing.second.range.mipLevels);
+							it++;
+						}
+						
+						// reset the iterator to point to the first subresource
+						it = dsttrans.begin()+offs;
+
+						// the loop will continue after this point and look at the next subresources
+						// so we need to check to see if the first subresource lies in the range here
+						if(it->second.range.baseMipLevel >= t.range.baseMipLevel &&
+						   it->second.range.baseMipLevel < t.range.baseMipLevel+nummips &&
+						   it->second.range.baseArrayLayer >= t.range.baseArrayLayer &&
+						   it->second.range.baseArrayLayer < t.range.baseArrayLayer+numslices)
+						{
+							// apply it (prevstate is from the start of all transitions, so only set once)
+							if(it->second.prevstate == UNTRANSITIONED_IMG_STATE)
+								it->second.prevstate = t.prevstate;
+							it->second.state = t.state;
+
+							// continue as there might be more, but we're done
+							done = true;
+						}
+
+						// continue processing from here
+						continue;
+					}
+				}
+			}
+
+			// if we've gone past where the new subresource range would sit
+			if(it->second.range.aspectMask > t.range.aspectMask)
+				break;
+
+			// otherwise continue to try and find the subresource range
+		}
+
+		if(done) continue;
+
+		// we don't have an existing transition for this memory region, insert into place. it points to
+		// where it should be inserted
+		dsttrans.insert(it, std::make_pair(id, ImageRegionState(t.range, t.prevstate, t.state)));
+	}
+
+	TRDBG("Post-merge, there are %u transitions", (uint32_t)dsttrans.size());
+}
+
 void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &states, vector<VkImageMemoryBarrier> &transitions)
 {
 	Serialiser *localSerialiser = m_pSerialiser;
