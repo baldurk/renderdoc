@@ -161,6 +161,63 @@ int renderdoccmd(int argc, char **argv)
 			ReplayRenderer_Shutdown(renderer);
 			return 0;
 		}
+		// dump the image from a logfile
+		if(argequal(argv[1], "--thumb") || argequal(argv[1], "-t"))
+		{
+			if(argc >= 3)
+			{
+				string jpgname = argv[2];
+
+				if(jpgname[jpgname.length()-4] == '.' &&
+				   jpgname[jpgname.length()-3] == 'r' &&
+				   jpgname[jpgname.length()-2] == 'd' &&
+				   jpgname[jpgname.length()-1] == 'c')
+				{
+					jpgname.pop_back();
+					jpgname.pop_back();
+					jpgname.pop_back();
+
+					jpgname += "jpg";
+				}
+				else
+				{
+					jpgname += ".jpg";
+				}
+
+				uint32_t len = 0;
+				bool32 ret = RENDERDOC_GetThumbnail(argv[2], NULL, len);
+
+				if(!ret)
+				{
+					fprintf(stderr, "No thumbnail in '%s' or error retrieving it", argv[2]);
+				}
+				else
+				{
+					byte *jpgbuf = new byte[len];
+					RENDERDOC_GetThumbnail(argv[2], jpgbuf, len);
+
+					FILE *f = NULL;
+					fopen_s(&f, jpgname.c_str(), "wb");
+
+					if(!f)
+					{
+						fprintf(stderr, "Couldn't open destination file '%s'.", jpgname);
+					}
+					else
+					{
+						fwrite(jpgbuf, 1, len, f);
+						fclose(f);
+					}
+
+					delete[] jpgbuf;
+				}
+			}
+			else
+			{
+				fprintf(stderr, "Not enough parameters to --thumb");
+			}
+			return 0;
+		}
 		// replay a logfile
 		else if(argequal(argv[1], "--replay") || argequal(argv[1], "-r"))
 		{
@@ -318,6 +375,7 @@ int renderdoccmd(int argc, char **argv)
 #endif
 	fprintf(stderr, "\n");												      
 	fprintf(stderr, "  -h,  --help                       Displays this help message.\n");
+	fprintf(stderr, "  -t,  --thumb LOGFILE.rdc          Dumps the embedded thumbnail to LOGFILE.jpg if it exists.\n");
 	fprintf(stderr, "  -c,  --capture PROGRAM            Launches capture of the program with default options.\n");
 	fprintf(stderr, "  -i,  --inject PID                 Injects into the specified PID to capture.\n");
 	fprintf(stderr, "  -r,  --replay LOGFILE             Launch a preview window that replays this logfile and\n");
