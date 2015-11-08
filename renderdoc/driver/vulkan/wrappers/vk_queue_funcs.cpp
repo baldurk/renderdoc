@@ -399,8 +399,18 @@ VkResult WrappedVulkan::vkQueueSubmit(
 				{
 					refdIDs.insert(refit->first);
 					GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
+
+					if(refit->second.first & VkResourceRecord::SPARSE_REF_BIT)
+					{
+						VkResourceRecord *record = GetResourceManager()->GetResourceRecord(refit->first);
+
+						GetResourceManager()->MarkSparseMapReferenced(record->sparseInfo);
+					}
 				}
 			}
+			
+			for(auto it = record->bakedCommands->cmdInfo->sparse.begin(); it != record->bakedCommands->cmdInfo->sparse.end(); ++it)
+				GetResourceManager()->MarkSparseMapReferenced(*it);
 
 			// pull in frame refs from this baked command buffer
 			record->bakedCommands->AddResourceReferences(GetResourceManager());

@@ -623,13 +623,15 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 				if(bind.bufferView != VK_NULL_HANDLE)
 				{
 					record->RemoveBindFrameRef(GetResID(bind.bufferView));
-					record->RemoveBindFrameRef(GetRecord(bind.bufferView)->baseResource);
+					if(GetRecord(bind.bufferView)->baseResource != ResourceId())
+						record->RemoveBindFrameRef(GetRecord(bind.bufferView)->baseResource);
 				}
 				if(bind.imageView != VK_NULL_HANDLE)
 				{
 					record->RemoveBindFrameRef(GetResID(bind.imageView));
 					record->RemoveBindFrameRef(GetRecord(bind.imageView)->baseResource);
-					record->RemoveBindFrameRef(GetRecord(bind.imageView)->baseResourceMem);
+					if(GetRecord(bind.imageView)->baseResourceMem != ResourceId())
+						record->RemoveBindFrameRef(GetRecord(bind.imageView)->baseResourceMem);
 				}
 				if(bind.sampler != VK_NULL_HANDLE)
 				{
@@ -638,21 +640,24 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 				if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
 				{
 					record->RemoveBindFrameRef(GetResID(bind.bufferInfo.buffer));
-					record->RemoveBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource);
+					if(GetRecord(bind.bufferInfo.buffer)->baseResource != ResourceId())
+						record->RemoveBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource);
 				}
 
 				bind = pDescriptorWrites[i].pDescriptors[d];
 
 				if(bind.bufferView != VK_NULL_HANDLE)
 				{
-					record->AddBindFrameRef(GetResID(bind.bufferView), eFrameRef_Read);
-					record->AddBindFrameRef(GetRecord(bind.bufferView)->baseResource, ref);
+					record->AddBindFrameRef(GetResID(bind.bufferView), eFrameRef_Read, GetRecord(bind.bufferView)->sparseInfo != NULL);
+					if(GetRecord(bind.bufferView)->baseResource != ResourceId())
+						record->AddBindFrameRef(GetRecord(bind.bufferView)->baseResource, ref);
 				}
 				if(bind.imageView != VK_NULL_HANDLE)
 				{
-					record->AddBindFrameRef(GetResID(bind.imageView), eFrameRef_Read);
+					record->AddBindFrameRef(GetResID(bind.imageView), eFrameRef_Read, GetRecord(bind.imageView)->sparseInfo != NULL);
 					record->AddBindFrameRef(GetRecord(bind.imageView)->baseResource, ref);
-					record->AddBindFrameRef(GetRecord(bind.imageView)->baseResourceMem, eFrameRef_Read);
+					if(GetRecord(bind.imageView)->baseResourceMem != ResourceId())
+						record->AddBindFrameRef(GetRecord(bind.imageView)->baseResourceMem, eFrameRef_Read);
 				}
 				if(bind.sampler != VK_NULL_HANDLE)
 				{
@@ -660,8 +665,9 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 				}
 				if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
 				{
-					record->AddBindFrameRef(GetResID(bind.bufferInfo.buffer), eFrameRef_Read);
-					record->AddBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource, ref);
+					record->AddBindFrameRef(GetResID(bind.bufferInfo.buffer), eFrameRef_Read, GetRecord(bind.bufferInfo.buffer)->sparseInfo != NULL);
+					if(GetRecord(bind.bufferInfo.buffer)->baseResource != ResourceId())
+						record->AddBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource, ref);
 				}
 			}
 		}

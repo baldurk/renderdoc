@@ -180,6 +180,10 @@ void WrappedVulkan::vkCmdBlitImage(
 		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
 		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Read);
 		record->cmdInfo->dirtied.insert(GetResID(destImage));
+		if(GetRecord(srcImage)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(srcImage)->sparseInfo);
+		if(GetRecord(destImage)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(destImage)->sparseInfo);
 	}
 }
 
@@ -257,6 +261,10 @@ void WrappedVulkan::vkCmdResolveImage(
 		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
 		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Read);
 		record->cmdInfo->dirtied.insert(GetResID(destImage));
+		if(GetRecord(srcImage)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(srcImage)->sparseInfo);
+		if(GetRecord(destImage)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(destImage)->sparseInfo);
 	}
 }
 
@@ -333,6 +341,10 @@ void WrappedVulkan::vkCmdCopyImage(
 		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
 		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Read);
 		record->cmdInfo->dirtied.insert(GetResID(destImage));
+		if(GetRecord(srcImage)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(srcImage)->sparseInfo);
+		if(GetRecord(destImage)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(destImage)->sparseInfo);
 	}
 }
 
@@ -423,6 +435,10 @@ void WrappedVulkan::vkCmdCopyBufferToImage(
 		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
 		record->MarkResourceFrameReferenced(GetRecord(destImage)->baseResource, eFrameRef_Read);
 		record->cmdInfo->dirtied.insert(GetResID(destImage));
+		if(GetRecord(srcBuffer)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(srcBuffer)->sparseInfo);
+		if(GetRecord(destImage)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(destImage)->sparseInfo);
 	}
 }
 
@@ -500,7 +516,12 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(
 		// mark buffer just as read, and memory behind as write & dirtied
 		record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
-		record->cmdInfo->dirtied.insert(buf->baseResource);
+		if(buf->baseResource != ResourceId())
+			record->cmdInfo->dirtied.insert(buf->baseResource);
+		if(GetRecord(srcImage)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(srcImage)->sparseInfo);
+		if(buf->sparseInfo)
+			record->cmdInfo->sparse.insert(buf->sparseInfo);
 	}
 }
 
@@ -589,7 +610,12 @@ void WrappedVulkan::vkCmdCopyBuffer(
 		// mark buffer just as read, and memory behind as write & dirtied
 		record->MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(buf->baseResource, eFrameRef_Write);
-		record->cmdInfo->dirtied.insert(buf->baseResource);
+		if(buf->baseResource != ResourceId())
+			record->cmdInfo->dirtied.insert(buf->baseResource);
+		if(GetRecord(srcBuffer)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(srcBuffer)->sparseInfo);
+		if(buf->sparseInfo)
+			record->cmdInfo->sparse.insert(buf->sparseInfo);
 	}
 }
 
@@ -658,6 +684,8 @@ void WrappedVulkan::vkCmdClearColorImage(
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);
 		record->MarkResourceFrameReferenced(GetRecord(image)->baseResource, eFrameRef_Read);
+		if(GetRecord(image)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(image)->sparseInfo);
 	}
 }
 
@@ -725,6 +753,8 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);
 		record->MarkResourceFrameReferenced(GetRecord(image)->baseResource, eFrameRef_Read);
+		if(GetRecord(image)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(image)->sparseInfo);
 	}
 }
 

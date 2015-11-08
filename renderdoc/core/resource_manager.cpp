@@ -45,6 +45,7 @@ namespace ResourceIDGen
 
 void ResourceRecord::MarkResourceFrameReferenced(ResourceId id, FrameRefType refType)
 {
+	if(id == ResourceId()) return;
 	ResourceManager<void*,void*,ResourceRecord>::MarkReferenced(m_FrameRefs, id, refType);
 }
 

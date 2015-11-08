@@ -287,6 +287,22 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
 	}
 }
 
+void VulkanResourceManager::MarkSparseMapReferenced(SparseMapping *sparse)
+{
+	if(sparse == NULL)
+	{
+		RDCERR("Unexpected NULL sparse mapping");
+		return;
+	}
+
+	for(size_t i=0; i < sparse->opaquemappings.size(); i++)
+		MarkResourceFrameReferenced(GetResID(sparse->opaquemappings[i].first), eFrameRef_Read);
+
+	for(int a=0; a < VK_IMAGE_ASPECT_NUM; a++)
+			for(VkDeviceSize i=0; sparse->pages[a] && i < sparse->imgdim.width*sparse->imgdim.height*sparse->imgdim.depth; i++)
+				MarkResourceFrameReferenced(GetResID(sparse->pages[a][i].first), eFrameRef_Read);
+}
+
 void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states)
 {
 	TRDBG("Applying %u transitions", (uint32_t)trans.size());

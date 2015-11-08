@@ -575,13 +575,39 @@ struct SwapchainInfo
 	vector<SwapImage> images;
 	uint32_t lastPresent;
 };
-	
+
+struct SparseMapping
+{
+	SparseMapping()
+	{
+		RDCEraseEl(imgdim);
+		RDCEraseEl(pagedim);
+		RDCEraseEl(pages);
+	}
+
+	// for buffers or non-sparse-resident images (bound with opaque mappings)
+	vector< pair<VkDeviceMemory, VkDeviceSize> > opaquemappings;
+
+	// for sparse resident images:
+	// total image size (in pages)
+	VkExtent3D imgdim;
+	// size of a page
+	VkExtent3D pagedim;
+	// pagetable per image aspect (some may be NULL)
+	// in order of width first, then height, then depth
+	pair<VkDeviceMemory, VkDeviceSize> *pages[VK_IMAGE_ASPECT_NUM];
+};
+
 struct CmdBufferRecordingInfo
 {
 	VkDevice device;
 	VkCmdBufferCreateInfo createInfo;
 
 	vector< pair<ResourceId, ImageRegionState> > imgtransitions;
+
+	// sparse resources referenced by this command buffer (at submit time
+	// need to go through the sparse mapping and reference all memory)
+	set<SparseMapping *> sparse;
 
 	// a list of all resources dirtied by this command buffer
 	set<ResourceId> dirtied;
@@ -640,9 +666,10 @@ struct VkResourceRecord : public ResourceRecord
 			cmdInfo->boundDescSets.swap(bakedCommands->cmdInfo->boundDescSets);
 			cmdInfo->imgtransitions.swap(bakedCommands->cmdInfo->imgtransitions);
 			cmdInfo->subcmds.swap(bakedCommands->cmdInfo->subcmds);
+			cmdInfo->sparse.swap(bakedCommands->cmdInfo->sparse);
 		}
 
-		void AddBindFrameRef(ResourceId id, FrameRefType ref)
+		void AddBindFrameRef(ResourceId id, FrameRefType ref, bool hasSparse = false)
 		{
 			if(id == ResourceId())
 			{
@@ -650,9 +677,9 @@ struct VkResourceRecord : public ResourceRecord
 				return;
 			}
 
-			if(bindFrameRefs[id].first == 0)
+			if((bindFrameRefs[id].first&~SPARSE_REF_BIT) == 0)
 			{
-				bindFrameRefs[id] = std::make_pair(1, ref);
+				bindFrameRefs[id] = std::make_pair(1 | (hasSparse ? SPARSE_REF_BIT : 0), ref);
 			}
 			else
 			{
@@ -669,7 +696,9 @@ struct VkResourceRecord : public ResourceRecord
 			// deleted since it was bound.
 			if(id == ResourceId()) return;
 
-			if(--bindFrameRefs[id].first == 0)
+			--bindFrameRefs[id].first;
+			
+			if((bindFrameRefs[id].first&~SPARSE_REF_BIT) == 0)
 				bindFrameRefs.erase(id);
 		}
 
@@ -691,6 +720,7 @@ struct VkResourceRecord : public ResourceRecord
 		// creation or use, this can always be determined
 		ResourceId baseResource;
 		ResourceId baseResourceMem; // for image views, we need to point to both the image and mem
+		SparseMapping *sparseInfo;
 
 		// framebuffers are the only object that can point to multiple resources
 		// (as each attachment has an image).
@@ -715,7 +745,10 @@ struct VkResourceRecord : public ResourceRecord
 		// contains the framerefs (ref counted) for the bound resources
 		// in the binding slots. Updated when updating descriptor sets
 		// and then applied in a block on descriptor set bind.
-		map<ResourceId, pair<int, FrameRefType> > bindFrameRefs;
+		// the refcount has the high-bit set if this resource has sparse
+		// mapping information
+		static const uint32_t SPARSE_REF_BIT = 0x80000000;
+		map<ResourceId, pair<uint32_t, FrameRefType> > bindFrameRefs;
 };
 
 struct ImageLayouts

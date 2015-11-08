@@ -228,6 +228,8 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 			delete GetWrapped(obj);
 		}
 			
+		// helper for sparse mappings
+		void MarkSparseMapReferenced(SparseMapping *sparse);
 	private:
 		bool SerialisableResource(ResourceId id, VkResourceRecord *record);
 
