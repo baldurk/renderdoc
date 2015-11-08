@@ -31,12 +31,12 @@ On capture:
 * Captures must be replayed on an identical GPU setup to where they were captured.
 * Some API functions are not currently implemented. They will work while capturing but will not replay correctly.
 * Unsupported or untested features:
-	* Nested command buffer execution
 	* GPU-GPU synchronisation with events.
 	* Sparse resources
 
 On replay:
 
+* Stepping inside vkCmdExecuteCommands
 * Only 2D non-array non-integer textures can currently be displayed.
 * Auto texture range-fit or histogram display is not implemented.
 * Debug overlays other than drawcall highlight and wireframe aren't implemented.
