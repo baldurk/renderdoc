@@ -104,6 +104,7 @@ private:
 	enum {
 		eInitialContents_ClearColorImage = 1,
 		eInitialContents_ClearDepthStencilImage,
+		eInitialContents_Sparse,
 	};
 
 	Serialiser *m_pSerialiser;
@@ -441,6 +442,13 @@ private:
 	bool EndFrameCapture(void *dev, void *wnd);
 	
 	// replay
+
+	bool Prepare_SparseInitialState(WrappedVkBuffer *buf);
+	bool Prepare_SparseInitialState(WrappedVkImage *im);
+	bool Serialise_SparseInitialState(WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents);
+	bool Serialise_SparseInitialState(WrappedVkImage *im, VulkanResourceManager::InitialContentData contents);
+	bool Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents);
+	bool Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceManager::InitialContentData contents);
 		
 	vector<FetchAPIEvent> m_RootEvents, m_Events;
 	bool m_AddedDrawcall;

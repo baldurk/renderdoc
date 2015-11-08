@@ -26,6 +26,42 @@
 
 // VKTODOHIGH we are assuming in all the initial state handling that the image is VK_IMAGE_ASPECT_COLOR
 
+bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
+{
+	ResourceId id = buf->id;
+	
+	// VKTODOMED fetch contents of memory for the unique bound memory regions
+
+	GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, 0, (byte *)NULL));
+
+	return true;
+}
+
+bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
+{
+	return true;
+}
+
+bool WrappedVulkan::Serialise_SparseInitialState(WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents)
+{
+	return true;
+}
+
+bool WrappedVulkan::Serialise_SparseInitialState(WrappedVkImage *im, VulkanResourceManager::InitialContentData contents)
+{
+	return true;
+}
+
+bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents)
+{
+	return true;
+}
+
+bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceManager::InitialContentData contents)
+{
+	return true;
+}
+		
 bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 {
 	ResourceId id = GetResourceManager()->GetID(res);
@@ -53,6 +89,15 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, 0, (byte *)info));
 		return true;
 	}
+	else if(type == eResBuffer)
+	{
+		WrappedVkBuffer *buffer = (WrappedVkBuffer *)res;
+		
+		// buffers are only dirty if they are sparse
+		RDCASSERT(buffer->record->sparseInfo);
+		
+		return Prepare_SparseInitialState(buffer);
+	}
 	else if(type == eResImage)
 	{
 		VkResult vkr = VK_SUCCESS;
@@ -64,6 +109,13 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		VkCmdBuffer cmd = GetNextCmd();
 		
 		WrappedVkImage *im = (WrappedVkImage *)res;
+		
+		if(im->record->sparseInfo)
+		{
+			// if the image is sparse we have to do a different kind of initial state prepare,
+			// to serialise out the page mapping. The fetching of memory is also different
+			return Prepare_SparseInitialState((WrappedVkImage *)res);
+		}
 
 		ImageLayouts *layout = NULL;
 		{
@@ -206,7 +258,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		VkCmdBuffer cmd = GetNextCmd();
 		
 		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-		
 		VkDeviceSize dataoffs = 0;
 		VkDeviceMemory datamem = ToHandle<VkDeviceMemory>(res);
 		VkDeviceSize datasize = (VkDeviceSize)record->Length;
@@ -324,11 +375,25 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			m_pSerialiser->SerialiseComplexArray("Bindings", info, numElems);
 		}
+		else if(type == eResBuffer)
+		{
+			return Serialise_SparseInitialState((WrappedVkBuffer *)res, initContents);
+		}
 		else if(type == eResDeviceMemory || type == eResImage)
 		{
 			// both image and memory are serialised as a whole hunk of data
 			VkDevice d = GetDev();
+			
+			bool isSparse = (initContents.blob != NULL);
+			m_pSerialiser->Serialise("isSparse", isSparse);
 
+			if(isSparse)
+			{
+				// contains page mapping
+				RDCASSERT(type == eResImage);
+				return Serialise_SparseInitialState((WrappedVkImage *)res, initContents);
+			}
+			
 			byte *ptr = NULL;
 			ObjDisp(d)->MapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(initContents.resource), 0, 0, 0, (void **)&ptr);
 
@@ -463,8 +528,20 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, validBinds, blob));
 		}
+		else if(type == eResBuffer)
+		{
+			return Serialise_SparseInitialState((WrappedVkBuffer *)NULL, VulkanResourceManager::InitialContentData());
+		}
 		else if(type == eResImage)
 		{
+			bool isSparse = false;
+			m_pSerialiser->Serialise("isSparse", isSparse);
+
+			if(isSparse)
+			{
+				return Serialise_SparseInitialState((WrappedVkImage *)NULL, VulkanResourceManager::InitialContentData());
+			}
+
 			byte *data = NULL;
 			size_t dataSize = 0;
 			m_pSerialiser->SerialiseBuffer("data", data, dataSize);
@@ -639,6 +716,13 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 		}
 		else if(type == eResDeviceMemory)
 		{
+			// dummy since we share a serialise-write for devicememory and image. This will always be false
+			bool isSparse = false;
+			m_pSerialiser->Serialise("isSparse", isSparse);
+
+			(void)isSparse;
+			RDCASSERT(!isSparse);
+
 			byte *data = NULL;
 			size_t dataSize = 0;
 			m_pSerialiser->SerialiseBuffer("data", data, dataSize);
@@ -782,6 +866,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				bind[d] = writes[i].pDescriptors[d];
 		}
 	}
+	else if(type == eResBuffer)
+	{
+		Apply_SparseInitialState((WrappedVkBuffer *)live, initial);
+	}
 	else if(type == eResImage)
 	{
 		VkResult vkr = VK_SUCCESS;
@@ -793,7 +881,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		// handle any 'created' initial states, without an actual image with contents
 		if(initial.resource == NULL)
 		{
-			if(initial.num == eInitialContents_ClearColorImage)
+			if(initial.num == eInitialContents_Sparse)
+			{
+				Apply_SparseInitialState((WrappedVkImage *)live, initial);
+			}
+			else if(initial.num == eInitialContents_ClearColorImage)
 			{
 				VkCmdBuffer cmd = GetNextCmd();
 
