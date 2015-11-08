@@ -32,7 +32,6 @@ On capture:
 * Some API functions are not currently implemented. They will work while capturing but will not replay correctly.
 * Unsupported or untested features:
 	* GPU-GPU synchronisation with events.
-	* Sparse resources
 
 On replay:
 
