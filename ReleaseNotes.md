@@ -3,9 +3,9 @@ RenderDoc for Vulkan
 
 These are the release notes for an early preview version of RenderDoc with Vulkan support. The intention is to have a reliable graphics debugger for 1.0 release of Vulkan, full details of the feature set are still to be determined.
 
-This build is still quite early in development and is provided primarily for early feedback and awareness, to give an idea to Khronos and Vulkan Advisors of what is in the pipeline. A further release will be made in the near future when the debugger has been stabilised and is more ready to be stressed.
+Note that for 1.0 only a baseline feature set is to be supported, see below.
 
-With the known issues listed below in mind, anyone can try the tool and report back bugs encountered or general feedback. Likewise feedback is welcome about where future work should be prioritised.
+Please try the tool on your workloads or programs and report back bugs encountered or general feedback. Likewise feedback is welcome about where future work should be prioritised.
 
 If you have any questions you can contact myself (baldurk@baldurk.org) or LunarG via LunarXchange.
 
@@ -13,7 +13,7 @@ Current Support
 ========
 
 * A single VkInstance/VkQueue/VkDevice triple is supported.
-* Capture and replay of single-frame captures.
+* Capture and replay of single-frame captures (not full-program streams a la apitrace).
 * On replay you can step into each vkQueueSubmit call to see the command buffers submitted, and step into them to browse through the commands.
 * The pipeline state will be displayed at each command, showing the data contained in each member of the pipeline createinfo struct, as well as dynamic state.
 * Simple disassembly/reflection of SPIR-V to determine which descriptors to read for read-only resources and uniform buffers. The uniform buffers will be listed separately and the member variables filled out.
@@ -24,17 +24,9 @@ Current Support
 Known Issues
 ========
 
-On capture:
-
-* Multiple VkQueues are untested and may likely not work.
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
-* Captures must be replayed on an identical GPU setup to where they were captured.
-* Some API functions are not currently implemented. They will work while capturing but will not replay correctly.
-* Unsupported or untested features:
-	* GPU-GPU synchronisation with events.
-
-On replay:
-
+* GPU-GPU synchronisation with events might not work correctly.
+* Sparse images with mips or array slices will not properly replay
 * Stepping inside vkCmdExecuteCommands
 * Only 2D non-array non-integer textures can currently be displayed.
 * Auto texture range-fit or histogram display is not implemented.
@@ -49,7 +41,8 @@ Future work, post 1.0
 
 In no particular order, features that are not planned until after 1.0.
 
-* Multiple VkDevices and multiple VkInstances
+* More than one VkInstance/VkDevice/VkQueue triple
+* Support for replaying captures on a different machine to where they were captured
 * Shader debugging
 * Pixel history
 * Custom visualisation shaders
