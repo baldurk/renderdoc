@@ -99,8 +99,12 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 		}
 		
 		// handling memory & image transitions
+		template<typename SrcTransType>
+		void RecordSingleTransition(vector< pair<ResourceId, ImageRegionState> > &trans, ResourceId id, const SrcTransType &t, uint32_t nummips, uint32_t numslices);
+
 		void RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states,
 			                     uint32_t numTransitions, const VkImageMemoryBarrier *transitions);
+
 		void MergeTransitions(vector< pair<ResourceId, ImageRegionState> > &dsttrans,
 		                      vector< pair<ResourceId, ImageRegionState> > &srctrans);
 
