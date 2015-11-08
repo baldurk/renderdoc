@@ -26,39 +26,317 @@
 
 // VKTODOHIGH we are assuming in all the initial state handling that the image is VK_IMAGE_ASPECT_COLOR
 
+struct PageInitState
+{
+	ResourceId memId;
+	VkDeviceSize memOffs;
+};
+
+template<>
+void Serialiser::Serialise(const char *name, PageInitState &el)
+{
+	Serialise("memId", el.memId);
+	Serialise("memOffs", el.memOffs);
+}
+
+struct SparseInitState
+{
+	uint32_t opaqueCount;
+	VkSparseMemoryBindInfo *opaque;
+
+	VkExtent3D imgdim; // in pages
+	VkExtent3D pagedim;
+	uint32_t pageCount[VK_IMAGE_ASPECT_NUM];
+
+	// available on capture - filled out in Prepare_SparseInitialState and serialised to disk
+	PageInitState *pages[VK_IMAGE_ASPECT_NUM];
+
+	// available on replay - filled out in the READING path of Serialise_SparseInitialState
+	VkSparseImageMemoryBindInfo *pageBinds[VK_IMAGE_ASPECT_NUM];
+};
+
 bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 {
 	ResourceId id = buf->id;
 	
 	// VKTODOMED fetch contents of memory for the unique bound memory regions
 
-	GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, 0, (byte *)NULL));
+	uint32_t numElems = (uint32_t)buf->record->sparseInfo->opaquemappings.size();
+	
+	VkSparseMemoryBindInfo *info = (VkSparseMemoryBindInfo *)Serialiser::AllocAlignedBuffer(sizeof(VkSparseMemoryBindInfo)*numElems);
+	RDCEraseMem(info, sizeof(VkSparseMemoryBindInfo)*numElems);
+
+	memcpy(info, &buf->record->sparseInfo->opaquemappings[0], sizeof(VkSparseMemoryBindInfo)*numElems);
+
+	GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, numElems, (byte *)info));
 
 	return true;
 }
 
 bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 {
+	ResourceId id = im->id;
+	
+	SparseMapping *sparse = im->record->sparseInfo;
+	
+	// VKTODOMED fetch contents of memory for the unique bound memory regions
+
+	uint32_t pagePerAspect = sparse->imgdim.width*sparse->imgdim.height*sparse->imgdim.depth;
+
+	uint32_t totalPageCount = 0;
+	for(uint32_t a=0; a < VK_IMAGE_ASPECT_NUM; a++)
+		totalPageCount += sparse->pages[a] ? pagePerAspect : 0;
+
+	uint32_t opaqueCount = (uint32_t)sparse->opaquemappings.size();
+
+	byte *blob = Serialiser::AllocAlignedBuffer(sizeof(SparseInitState) +
+		sizeof(VkSparseMemoryBindInfo)*opaqueCount +
+		sizeof(PageInitState)*totalPageCount);
+
+	SparseInitState *state = (SparseInitState *)blob;
+	VkSparseMemoryBindInfo *opaque = (VkSparseMemoryBindInfo *)(state + 1);
+	PageInitState *pages = (PageInitState *)(opaque + opaqueCount);
+
+	state->opaque = opaque;
+	state->opaqueCount = opaqueCount;
+	state->pagedim = sparse->pagedim;
+	state->imgdim = sparse->imgdim;
+
+	if(opaqueCount > 0)
+		memcpy(opaque, &sparse->opaquemappings[0], sizeof(VkSparseMemoryBindInfo)*opaqueCount);
+	
+	for(uint32_t a=0; a < VK_IMAGE_ASPECT_NUM; a++)
+	{
+		state->pageCount[a] = (sparse->pages[a] ? pagePerAspect : 0);
+		
+		if(state->pageCount[a] != 0)
+		{
+			state->pages[a] = pages;
+
+			for(uint32_t i=0; i < pagePerAspect; i++)
+			{
+				state->pages[a][i].memId = GetResID(sparse->pages[a][i].first);
+				state->pages[a][i].memOffs = sparse->pages[a][i].second;
+			}
+
+			pages += pagePerAspect;
+		}
+		else
+		{
+			state->pages[a] = NULL;
+		}
+	}
+	
+	GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, 0, blob));
+
 	return true;
 }
 
-bool WrappedVulkan::Serialise_SparseInitialState(WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents)
+bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents)
 {
+	VkSparseMemoryBindInfo *info = (VkSparseMemoryBindInfo *)contents.blob;
+	uint32_t numElems = contents.num;
+
+	m_pSerialiser->Serialise("numBinds", numElems);
+
+	if(m_State < WRITING)
+		info = (VkSparseMemoryBindInfo *)Serialiser::AllocAlignedBuffer(sizeof(VkSparseMemoryBindInfo)*numElems);
+
+	VkSparseMemoryBindInfo *binds = NULL;
+	m_pSerialiser->SerialiseComplexArray("binds", binds, numElems);
+	memcpy(info, binds, sizeof(VkSparseMemoryBindInfo)*numElems);
+	delete[] binds;
+
+	if(m_State < WRITING)
+		GetResourceManager()->SetInitialContents(id, contents);
+
 	return true;
 }
 
-bool WrappedVulkan::Serialise_SparseInitialState(WrappedVkImage *im, VulkanResourceManager::InitialContentData contents)
+bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkImage *im, VulkanResourceManager::InitialContentData contents)
 {
+	if(m_State >= WRITING)
+	{
+		SparseInitState *state = (SparseInitState *)contents.blob;
+		
+		uint32_t totalPageCount = 0;
+		for(uint32_t a=0; a < VK_IMAGE_ASPECT_NUM; a++)
+			totalPageCount += state->pageCount[a];
+	
+		m_pSerialiser->Serialise("opaqueCount", state->opaqueCount);
+		m_pSerialiser->Serialise("totalPageCount", totalPageCount);
+		m_pSerialiser->Serialise("imgdim", state->imgdim);
+		m_pSerialiser->Serialise("pagedim", state->pagedim);
+
+		if(state->opaqueCount > 0)
+			m_pSerialiser->SerialiseComplexArray("opaque", state->opaque, state->opaqueCount);
+
+		if(totalPageCount > 0)
+		{
+			for(uint32_t a=0; a < VK_IMAGE_ASPECT_NUM; a++)
+			{
+				m_pSerialiser->Serialise("aspectPageCount", state->pageCount[a]);
+				
+				if(state->pageCount[a] > 0)
+					m_pSerialiser->SerialiseComplexArray("pages", state->pages[a], state->pageCount[a]);
+			}
+		}
+	}
+	else
+	{
+		uint32_t opaqueCount = 0;
+		uint32_t pageCount = 0;
+		VkExtent3D imgdim = {};
+		VkExtent3D pagedim = {};
+
+		m_pSerialiser->Serialise("opaqueCount", opaqueCount);
+		m_pSerialiser->Serialise("pageCount", pageCount);
+		m_pSerialiser->Serialise("imgdim", imgdim);
+		m_pSerialiser->Serialise("pagedim", pagedim);
+
+		byte *blob = Serialiser::AllocAlignedBuffer(sizeof(SparseInitState) +
+			sizeof(VkSparseMemoryBindInfo)*opaqueCount +
+			sizeof(VkSparseImageMemoryBindInfo)*pageCount);
+
+		SparseInitState *state = (SparseInitState *)blob;
+		VkSparseMemoryBindInfo *opaque = (VkSparseMemoryBindInfo *)(state + 1);
+		VkSparseImageMemoryBindInfo *pageBinds = (VkSparseImageMemoryBindInfo *)(opaque + opaqueCount);
+		
+		RDCEraseEl(state->pageBinds);
+
+		state->opaqueCount = opaqueCount;
+		state->opaque = opaque;
+		state->imgdim = imgdim;
+		state->pagedim = pagedim;
+
+		if(opaqueCount > 0)
+		{
+			VkSparseMemoryBindInfo *o = NULL;
+			m_pSerialiser->SerialiseComplexArray("opaque", o, opaqueCount);
+			memcpy(opaque, o, sizeof(VkSparseMemoryBindInfo)*opaqueCount);
+			delete[] o;
+		}
+		else
+		{
+			state->opaque = NULL;
+		}
+
+		if(pageCount > 0)
+		{
+			for(uint32_t a=0; a < VK_IMAGE_ASPECT_NUM; a++)
+			{
+				m_pSerialiser->Serialise("aspectPageCount", state->pageCount[a]);
+
+				if(state->pageCount[a] == 0)
+				{
+					state->pageBinds[a] = NULL;
+				}
+				else
+				{
+					state->pageBinds[a] = pageBinds;
+					pageBinds += state->pageCount[a];
+					
+					PageInitState *pages = NULL;
+					m_pSerialiser->SerialiseComplexArray("pages", pages, state->pageCount[a]);
+
+					uint32_t i=0;
+
+					for(int32_t z=0; z < imgdim.depth; z++)
+					{
+						for(int32_t y=0; y < imgdim.height; y++)
+						{
+							for(int32_t x=0; x < imgdim.width; x++)
+							{
+								VkSparseImageMemoryBindInfo &p = state->pageBinds[a][i];
+
+								p.mem = Unwrap(GetResourceManager()->GetLiveHandle<VkDeviceMemory>(pages[i].memId));
+								p.memOffset = pages[i].memOffs;
+								p.extent = pagedim;
+								p.flags = 0; // VKTODOLOW do we need to preserve these flags?
+								p.subresource.aspect = (VkImageAspect)a;
+								p.subresource.arrayLayer = 0;
+								p.subresource.mipLevel = 0;
+								p.offset.x = x*p.extent.width;
+								p.offset.y = y*p.extent.height;
+								p.offset.z = z*p.extent.depth;
+
+								i++;
+							}
+						}
+					}
+
+					delete[] pages;
+				}
+			}
+		}
+
+		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_Sparse, blob));
+	}
+
 	return true;
 }
 
 bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents)
 {
+	VkSparseMemoryBindInfo *info = (VkSparseMemoryBindInfo *)contents.blob;
+	uint32_t numElems = contents.num;
+
+	// unbind the entire buffer so that any new areas that are bound are unbound again
+
+	VkSparseMemoryBindInfo unbind = {
+		0, m_CreationInfo.m_Buffer[buf->id].size,
+		0, VK_NULL_HANDLE, 0
+	};
+
+	VkQueue q = GetQ();
+	
+	ObjDisp(q)->QueueBindSparseBufferMemory(Unwrap(q), buf->real.As<VkBuffer>(), 1, &unbind);
+	ObjDisp(q)->QueueBindSparseBufferMemory(Unwrap(q), buf->real.As<VkBuffer>(), numElems, info);
+
 	return true;
 }
 
 bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceManager::InitialContentData contents)
 {
+	SparseInitState *info = (SparseInitState *)contents.blob;
+
+	VkQueue q = GetQ();
+	
+	if(info->opaque)
+	{
+		// unbind the entire image so that any new areas that are bound are unbound again
+
+		// VKTODOMED not sure if this is the right size for opaque portion of partial resident
+		// sparse image? how is that determined?
+		VkSparseMemoryBindInfo unbind = {
+			0, 0,
+			0, VK_NULL_HANDLE, 0
+		};
+		
+		VkMemoryRequirements mrq;
+		ObjDisp(q)->GetImageMemoryRequirements(Unwrap(GetDev()), im->real.As<VkImage>(), &mrq);
+		unbind.rangeSize = mrq.size;
+		
+		ObjDisp(q)->QueueBindSparseImageOpaqueMemory(Unwrap(q), im->real.As<VkImage>(), 1, &unbind);
+		ObjDisp(q)->QueueBindSparseImageOpaqueMemory(Unwrap(q), im->real.As<VkImage>(), info->opaqueCount, info->opaque);
+	}
+
+	for(uint32_t a=0; a < VK_IMAGE_ASPECT_NUM; a++)
+	{
+		if(!info->pageBinds[a]) continue;
+		
+		// unbind the entire image so that any new areas that are bound are unbound again
+		VkSparseImageMemoryBindInfo unbind = {
+			{ (VkImageAspect)a, 0, 0 },
+			{ 0, 0, 0 },
+			m_CreationInfo.m_Image[im->id].extent,
+			0, VK_NULL_HANDLE, 0
+		};
+
+		ObjDisp(q)->QueueBindSparseImageMemory(Unwrap(q), im->real.As<VkImage>(), 1, &unbind);
+		ObjDisp(q)->QueueBindSparseImageMemory(Unwrap(q), im->real.As<VkImage>(), info->pageCount[a], info->pageBinds[a]);
+	}
+
 	return true;
 }
 		
@@ -102,12 +380,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 	{
 		VkResult vkr = VK_SUCCESS;
 
-		VkDevice d = GetDev();
-		// VKTODOLOW ideally the prepares could be batched up
-		// a bit more - maybe not all in one command buffer, but
-		// at least more than one each
-		VkCmdBuffer cmd = GetNextCmd();
-		
 		WrappedVkImage *im = (WrappedVkImage *)res;
 		
 		if(im->record->sparseInfo)
@@ -116,6 +388,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 			// to serialise out the page mapping. The fetching of memory is also different
 			return Prepare_SparseInitialState((WrappedVkImage *)res);
 		}
+
+		VkDevice d = GetDev();
+		// VKTODOLOW ideally the prepares could be batched up
+		// a bit more - maybe not all in one command buffer, but
+		// at least more than one each
+		VkCmdBuffer cmd = GetNextCmd();
 
 		ImageLayouts *layout = NULL;
 		{
@@ -377,7 +655,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 		}
 		else if(type == eResBuffer)
 		{
-			return Serialise_SparseInitialState((WrappedVkBuffer *)res, initContents);
+			return Serialise_SparseInitialState(id, (WrappedVkBuffer *)res, initContents);
 		}
 		else if(type == eResDeviceMemory || type == eResImage)
 		{
@@ -391,7 +669,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			{
 				// contains page mapping
 				RDCASSERT(type == eResImage);
-				return Serialise_SparseInitialState((WrappedVkImage *)res, initContents);
+				return Serialise_SparseInitialState(id, (WrappedVkImage *)res, initContents);
 			}
 			
 			byte *ptr = NULL;
@@ -530,7 +808,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 		}
 		else if(type == eResBuffer)
 		{
-			return Serialise_SparseInitialState((WrappedVkBuffer *)NULL, VulkanResourceManager::InitialContentData());
+			return Serialise_SparseInitialState(id, (WrappedVkBuffer *)NULL, VulkanResourceManager::InitialContentData());
 		}
 		else if(type == eResImage)
 		{
@@ -539,7 +817,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			if(isSparse)
 			{
-				return Serialise_SparseInitialState((WrappedVkImage *)NULL, VulkanResourceManager::InitialContentData());
+				return Serialise_SparseInitialState(id, (WrappedVkImage *)NULL, VulkanResourceManager::InitialContentData());
 			}
 
 			byte *data = NULL;

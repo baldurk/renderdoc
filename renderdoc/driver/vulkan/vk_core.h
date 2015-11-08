@@ -445,8 +445,8 @@ private:
 
 	bool Prepare_SparseInitialState(WrappedVkBuffer *buf);
 	bool Prepare_SparseInitialState(WrappedVkImage *im);
-	bool Serialise_SparseInitialState(WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents);
-	bool Serialise_SparseInitialState(WrappedVkImage *im, VulkanResourceManager::InitialContentData contents);
+	bool Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents);
+	bool Serialise_SparseInitialState(ResourceId id, WrappedVkImage *im, VulkanResourceManager::InitialContentData contents);
 	bool Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents);
 	bool Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceManager::InitialContentData contents);
 		
