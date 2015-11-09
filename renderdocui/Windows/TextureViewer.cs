@@ -327,11 +327,12 @@ namespace renderdocui.Windows
 
         public class TexSettings
         {
-            public TexSettings() { r = g = b = true; a = false; mip = 0; slice = 0; }
+            public TexSettings() { r = g = b = true; a = false; mip = 0; slice = 0; minrange = 0.0f; maxrange = 1.0f; }
 
             public bool r, g, b, a;
             public bool depth, stencil;
             public int mip, slice;
+            public float minrange, maxrange;
         }
 
         private Dictionary<ResourceId, TexSettings> m_TextureSettings = new Dictionary<ResourceId, TexSettings>();
@@ -1511,6 +1512,9 @@ namespace renderdocui.Windows
 
                 m_TextureSettings[m_TexDisplay.texid].mip = mipLevel.SelectedIndex;
                 m_TextureSettings[m_TexDisplay.texid].slice = sliceFace.SelectedIndex;
+
+                m_TextureSettings[m_TexDisplay.texid].minrange = rangeHistogram.BlackPoint;
+                m_TextureSettings[m_TexDisplay.texid].maxrange = rangeHistogram.WhitePoint;
             }
 
             m_TexDisplay.texid = tex.ID;
@@ -1672,6 +1676,10 @@ namespace renderdocui.Windows
 
                     depthDisplay.Checked = m_TextureSettings[m_TexDisplay.texid].depth;
                     stencilDisplay.Checked = m_TextureSettings[m_TexDisplay.texid].stencil;
+
+                    norangePaint = true;
+                    rangeHistogram.SetRange(m_TextureSettings[m_TexDisplay.texid].minrange, m_TextureSettings[m_TexDisplay.texid].maxrange);
+                    norangePaint = false;
                 }
                 else if (m_Core.Config.TextureViewer_PerTexSettings)
                 {
@@ -1683,6 +1691,10 @@ namespace renderdocui.Windows
 
                     stencilDisplay.Checked = false;
                     depthDisplay.Checked = true;
+
+                    norangePaint = true;
+                    rangeHistogram.SetRange(0.0f, 1.0f);
+                    norangePaint = false;
                 }
 
                 // reset the range if desired
@@ -3012,6 +3024,7 @@ namespace renderdocui.Windows
             }
         }
 
+        bool norangePaint = false;
         Thread rangePaintThread = null;
 
         void rangeHistogram_RangeUpdated(object sender, Controls.RangeHistogramEventArgs e)
@@ -3028,6 +3041,9 @@ namespace renderdocui.Windows
             {
                 return;
             }
+
+            if (norangePaint)
+                return;
 
             rangePaintThread = Helpers.NewThread(new ThreadStart(() =>
             {
