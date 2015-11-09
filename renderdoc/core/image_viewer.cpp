@@ -297,7 +297,20 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 
 void ImageViewer::RefreshFile()
 {
-	FILE *f = FileIO::fopen(m_Filename.c_str(), "rb");
+	FILE *f = NULL;
+
+	for(int attempt=0; attempt < 10 && f == NULL; attempt++)
+	{
+		f = FileIO::fopen(m_Filename.c_str(), "rb");
+		if(f)
+			break;
+		Threading::Sleep(400);
+	}
+
+	if(!f)
+	{
+		RDCERR("Couldn't open file! Exclusive lock elsewhere?");
+	}
 
 	FetchTexture texDetails;
 
