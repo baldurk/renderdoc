@@ -1773,9 +1773,11 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 		eGL_REFERENCED_BY_FRAGMENT_SHADER,
 		eGL_REFERENCED_BY_COMPUTE_SHADER,
 	};
+
+	int32_t numResources = refl ? refl->Resources.count : 0;
 	
-	create_array_uninit(mapping.Resources, refl->Resources.count);
-	for(int32_t i=0; i < refl->Resources.count; i++)
+	create_array_uninit(mapping.Resources, numResources);
+	for(int32_t i=0; i < numResources; i++)
 	{
 		if(refl->Resources.elems[i].IsTexture)
 		{
@@ -1882,8 +1884,10 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 		}
 	}
 	
-	create_array_uninit(mapping.ConstantBlocks, refl->ConstantBlocks.count);
-	for(int32_t i=0; i < refl->ConstantBlocks.count; i++)
+	int32_t numCBlocks = refl ? refl->ConstantBlocks.count : 0;
+	
+	create_array_uninit(mapping.ConstantBlocks, numCBlocks);
+	for(int32_t i=0; i < numCBlocks; i++)
 	{
 		if(refl->ConstantBlocks.elems[i].bufferBacked)
 		{
@@ -1927,7 +1931,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 		mapping.InputAttributes[i] = -1;
 
 	// override identity map with bindings
-	if(shadIdx == 0)
+	if(shadIdx == 0 && refl)
 	{
 		for(int32_t i=0; i < refl->InputSig.count; i++)
 		{

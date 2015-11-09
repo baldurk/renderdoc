@@ -450,9 +450,9 @@ namespace renderdocui.Windows
             else
                 Text = m_Core.CurPipelineState.GetShaderName(stage);
 
-            var disasm = shader.Disassembly;
+            var disasm = shader != null ? shader.Disassembly : "";
 
-            if (m_Core.Config.ShaderViewer_FriendlyNaming)
+            if (m_Core.Config.ShaderViewer_FriendlyNaming && m_ShaderDetails != null)
             {
                 for (int i = 0; i < m_ShaderDetails.ConstantBlocks.Length; i++)
                 {
@@ -543,7 +543,7 @@ namespace renderdocui.Windows
                 w.CloseButtonVisible = false;
             }
 
-            if (shader.DebugInfo.entryFunc.Length > 0 && shader.DebugInfo.files.Length > 0)
+            if (shader != null && shader.DebugInfo.entryFunc.Length > 0 && shader.DebugInfo.files.Length > 0)
             {
                 if(trace != null)
                     Text = String.Format("Debug {0}() - {1}", shader.DebugInfo.entryFunc, debugContext);
@@ -621,35 +621,38 @@ namespace renderdocui.Windows
                 insig.Show(dockPanel, DockState.DockBottom);
                 outsig.Show(insig.Pane, DockAlignment.Right, 0.5);
 
-                foreach (var s in m_ShaderDetails.InputSig)
+                if (m_ShaderDetails != null)
                 {
-                    string name = s.varName.Length == 0 ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
-                    if (s.semanticName.Length == 0) name = s.varName;
-
-                    inSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
-                                                                SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
-                }
-
-                bool multipleStreams = false;
-                for (int i = 0; i < m_ShaderDetails.OutputSig.Length; i++)
-                {
-                    if (m_ShaderDetails.OutputSig[i].stream > 0)
+                    foreach (var s in m_ShaderDetails.InputSig)
                     {
-                        multipleStreams = true;
-                        break;
-                    }
-                }
+                        string name = s.varName.Length == 0 ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
+                        if (s.semanticName.Length == 0) name = s.varName;
 
-                foreach (var s in m_ShaderDetails.OutputSig)
-                {
-                    string name = s.varName.Length == 0 ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
-                    if (s.semanticName.Length == 0) name = s.varName;
-
-                    if(multipleStreams)
-                        name = String.Format("Stream {0} : {1}", s.stream, name);
-
-                    outSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
+                        inSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
                                                                 SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
+                    }
+
+                    bool multipleStreams = false;
+                    for (int i = 0; i < m_ShaderDetails.OutputSig.Length; i++)
+                    {
+                        if (m_ShaderDetails.OutputSig[i].stream > 0)
+                        {
+                            multipleStreams = true;
+                            break;
+                        }
+                    }
+
+                    foreach (var s in m_ShaderDetails.OutputSig)
+                    {
+                        string name = s.varName.Length == 0 ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
+                        if (s.semanticName.Length == 0) name = s.varName;
+
+                        if (multipleStreams)
+                            name = String.Format("Stream {0} : {1}", s.stream, name);
+
+                        outSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
+                                                                SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
+                    }
                 }
             }
             else
