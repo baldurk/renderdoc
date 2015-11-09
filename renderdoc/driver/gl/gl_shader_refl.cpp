@@ -285,12 +285,36 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 				string src = strings[i];
 
 				size_t len = src.length();
-				size_t it = src.find("#version");
+
+				// find if this source contains a #version, accounting for whitespace
+				size_t it = 0;
+				
+				while(it != string::npos)
+				{
+					it = src.find("#", it);
+
+					if(it == string::npos)
+						break;
+
+					// advance past the #
+					++it;
+
+					// skip whitespace
+					while(it < len && (src[it] == ' ' || src[it] == '\t'))
+						++it;
+					
+					if(it+7 < len && !strncmp(&src[it], "version", 7))
+					{
+						it += sizeof("version")-1;
+						break;
+					}
+				}
+
+				// no #version found
 				if(it == string::npos)
 					continue;
 
-				// skip #version
-				it += sizeof("#version")-1;
+				// it now points after the #version
 
 				// skip whitespace
 				while(it < len && (src[it] == ' ' || src[it] == '\t'))
@@ -308,7 +332,7 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 				if(!strncmp(&src[it], "compatibility", 13)) it += sizeof("compatibility")-1;
 				if(!strncmp(&src[it], "es"           ,  2)) it += sizeof("es")-1;
 
-				// now skip past comments, and any #extension directives
+				// now skip past comments, and any #directives
 				while(it < len)
 				{
 					// skip whitespace
@@ -326,11 +350,8 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 						continue;
 					}
 
-					// skip extension directives
-					const char extDirective[] = "#extension";
-					if(!strncmp(src.c_str()+it, extDirective, sizeof(extDirective)-1) &&
-						it+sizeof(extDirective)-1 < len &&
-						(src[it+sizeof(extDirective)-1] == ' ' || src[it+sizeof(extDirective)-1] == '\t'))
+					// skip preprocessor directives
+					if(src[it] == '#')
 					{
 						// keep going until the next newline
 						while(it < len && src[it] != '\r' && src[it] != '\n')
