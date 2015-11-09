@@ -214,7 +214,8 @@ private:
 		// -> flush/waitidle -> freecmds
 	} m_InternalCmds;
 
-	vector<VkDeviceMemory> m_FreeMems;
+	vector<VkDeviceMemory> m_CleanupMems;
+	vector<VkEvent> m_CleanupEvents;
 
 	// return the pre-selected device and queue
 	VkDevice GetDev()    { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Device; }

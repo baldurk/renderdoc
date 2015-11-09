@@ -25,7 +25,6 @@ Known Issues
 ========
 
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
-* GPU-GPU synchronisation with events might not work correctly.
 * Sparse images with mips or array slices will not properly replay
 * Stepping inside vkCmdExecuteCommands
 * Only 2D non-array non-integer textures can currently be displayed.

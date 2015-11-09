@@ -1259,11 +1259,17 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		std::sort(m_Events.begin(), m_Events.end(), SortEID());
 		m_ParentDrawcall.children.clear();
 	}
+	
+	ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
+
+	// destroy any events we created for waiting on
+	for(size_t i=0; i < m_CleanupEvents.size(); i++)
+		ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i]);
+
+	m_CleanupEvents.clear();
 
 	if(m_PartialReplayData.resultPartialCmdBuffer != VK_NULL_HANDLE)
 	{
-		ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(m_PartialReplayData.partialDevice));
-
 		// deliberately call our own function, so this is destroyed as a wrapped object
 		vkDestroyCommandBuffer(m_PartialReplayData.partialDevice, m_PartialReplayData.resultPartialCmdBuffer);
 		m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;

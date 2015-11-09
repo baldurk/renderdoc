@@ -166,12 +166,12 @@ void WrappedVulkan::Shutdown()
 	// no explicit vkDestroyDevice, we destroy the device here then the instance
 
 	// destroy any replay objects that aren't specifically to do with the frame capture
-	for(size_t i=0; i < m_FreeMems.size(); i++)
+	for(size_t i=0; i < m_CleanupMems.size(); i++)
 	{
-		ObjDisp(m_Device)->FreeMemory(Unwrap(m_Device), Unwrap(m_FreeMems[i]));
-		GetResourceManager()->ReleaseWrappedResource(m_FreeMems[i]);
+		ObjDisp(m_Device)->FreeMemory(Unwrap(m_Device), Unwrap(m_CleanupMems[i]));
+		GetResourceManager()->ReleaseWrappedResource(m_CleanupMems[i]);
 	}
-	m_FreeMems.clear();
+	m_CleanupMems.clear();
 
 	// destroy debug manager and any objects it created
 	SAFE_DELETE(m_DebugManager);

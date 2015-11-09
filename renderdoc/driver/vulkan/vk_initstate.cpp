@@ -512,7 +512,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer 
 
 		SAFE_DELETE_ARRAY(data);
 
-		m_FreeMems.push_back(mem);
+		m_CleanupMems.push_back(mem);
 
 		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(buf), 0, (byte *)info));
 	}
@@ -723,7 +723,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkImage *
 
 		SAFE_DELETE_ARRAY(data);
 
-		m_FreeMems.push_back(mem);
+		m_CleanupMems.push_back(mem);
 
 		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(buf), eInitialContents_Sparse, blob));
 	}
@@ -1575,7 +1575,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			ObjDisp(d)->FreeMemory(Unwrap(d), uploadmem);
 
 			// remember to free this memory on shutdown
-			m_FreeMems.push_back(mem);
+			m_CleanupMems.push_back(mem);
 
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(im), 0, NULL));
 		}
@@ -1639,7 +1639,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			SAFE_DELETE_ARRAY(data);
 
-			m_FreeMems.push_back(mem);
+			m_CleanupMems.push_back(mem);
 
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(buf), (uint32_t)dataSize, NULL));
 		}

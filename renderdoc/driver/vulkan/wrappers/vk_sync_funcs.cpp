@@ -53,12 +53,11 @@
  * DeviceWaitIdle.
  * 
  * On the GPU-side, whenever a command buffer contains a CmdWaitEvents we
- * currently just ignore it, assuming any previous work that it was intended
- * to wait on has completed. VKTODOMED this might not be the case. Probably we
- * will need to record any command buffers that do a CmdWaitEvents and ensure
- * there's a sync. E.g. on submit, submit only that command buffer alone and
- * then do DeviceWaitIdle, or at least do a GPU stall by inserting an event
- * of our own - not the replays - to make the GPU wait.
+ * create an event, reset it, and call CmdSetEvent right before the
+ * CmdWaitEvents. This should provide the strictest possible ordering guarantee
+ * for the CmdWaitEvents (since the event set it was waiting on must have
+ * happened at or before where we are setting the event, so our event is as or
+ * more conservative than the original event).
  * 
  * In future it would be nice to save the state of events at the start of
  * the frame and restore them, via GetEventStatus/SetEvent/ResetEvent. However
@@ -151,8 +150,6 @@ bool WrappedVulkan::Serialise_vkGetFenceStatus(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(id);
 
-		// VKTODOLOW conservatively assume we have to wait for the device to be idle
-		// this could probably be smarter
 		ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
 	}
 
@@ -203,9 +200,8 @@ bool WrappedVulkan::Serialise_vkResetFences(
 
 	if(m_State < WRITING)
 	{
-		// VKTODOMED does it even make sense to reset fences currently?
-		// when we wait on them, we wait for device idle (as we can't track
-		// and save/restore signalled status of fence).
+		// we don't care about fence states as we cannot record them perfectly and just
+		// do full waitidle flushes.
 	}
 
 	return true;
@@ -264,8 +260,6 @@ bool WrappedVulkan::Serialise_vkWaitForFences(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(id);
 
-		// VKTODOLOW conservatively assume we have to wait for the device to be idle
-		// this could probably be smarter
 		ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
 	}
 
@@ -447,8 +441,6 @@ bool WrappedVulkan::Serialise_vkGetEventStatus(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(id);
 
-		// VKTODOLOW conservatively assume we have to wait for the device to be idle
-		// this could probably be smarter
 		ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
 	}
 
@@ -687,22 +679,10 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 	SERIALISE_ELEMENT(VkPipelineStageFlags, src, srcStageMask);
 	SERIALISE_ELEMENT(VkPipelineStageFlags, dest, destStageMask);
 	
-	SERIALISE_ELEMENT(uint32_t, evcount, eventCount);
-	
-	vector<VkEvent> events;
+	// we don't serialise the original events as we are going to replace this
+	// with our own
 
-	for(uint32_t i=0; i < evcount; i++)
-	{
-		ResourceId id;
-		if(m_State >= WRITING)
-			id = GetResID(pEvents[i]);
-
-		localSerialiser->Serialise("pEvents[]", id);
-
-		if(m_State < WRITING)
-			events.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkEvent>(id)));
-	}
-
+	// we keep the original memory barriers
 	SERIALISE_ELEMENT(uint32_t, memCount, memBarrierCount);
 
 	vector<VkGenericStruct*> mems;
@@ -749,7 +729,22 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
-			ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), evcount, &events[0], src, dest, (uint32_t)mems.size(), (const void **)&mems[0]);
+
+			VkEventCreateInfo evInfo = {
+				VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, NULL, 0,
+			};
+
+			VkEvent ev = VK_NULL_HANDLE;
+			ObjDisp(cmdBuffer)->CreateEvent(Unwrap(GetDev()), &evInfo, &ev);
+			// don't wrap this event
+
+			ObjDisp(cmdBuffer)->ResetEvent(Unwrap(GetDev()), ev);
+			ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), ev, VK_PIPELINE_STAGE_ALL_GRAPHICS);
+
+			ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, src, dest, (uint32_t)mems.size(), (const void **)&mems[0]);
+
+			// register to clean this event up once we're done replaying this section of the log
+			m_CleanupEvents.push_back(ev);
 
 			ResourceId cmd = GetResID(PartialCmdBuf());
 			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
@@ -759,7 +754,21 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 	{
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
-		ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), evcount, &events[0], src, dest, (uint32_t)mems.size(), (const void **)&mems[0]);
+		VkEventCreateInfo evInfo = {
+			VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, NULL, 0,
+		};
+
+		VkEvent ev = VK_NULL_HANDLE;
+		ObjDisp(cmdBuffer)->CreateEvent(Unwrap(GetDev()), &evInfo, &ev);
+		// don't wrap this event
+
+		ObjDisp(cmdBuffer)->ResetEvent(Unwrap(GetDev()), ev);
+		ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), ev, VK_PIPELINE_STAGE_ALL_GRAPHICS);
+
+		ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, src, dest, (uint32_t)mems.size(), (const void **)&mems[0]);
+
+		// register to clean this event up once we're done replaying this section of the log
+		m_CleanupEvents.push_back(ev);
 		
 		ResourceId cmd = GetResID(cmdBuffer);
 		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
