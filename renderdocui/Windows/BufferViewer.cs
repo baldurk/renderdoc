@@ -2063,6 +2063,8 @@ namespace renderdocui.Windows
                                 ui.m_GridView.ClearSelection();
                                 ui.m_GridView.Rows[row].Selected = true;
                             }
+
+                            SyncViews(ui.m_GridView, true, true);
                         }
                     }));
                 }
@@ -2903,11 +2905,13 @@ namespace renderdocui.Windows
         private void syncViewsToolItem_Click(object sender, EventArgs e)
         {
             syncViews.Checked = syncViewsToolItem.Checked;
+            SyncViews(null, true, true);
         }
 
         private void syncViews_Click(object sender, EventArgs e)
         {
             syncViewsToolItem.Checked = syncViews.Checked;
+            SyncViews(null, true, true);
         }
 
         private void UpdateRowOffset()
@@ -3053,6 +3057,48 @@ namespace renderdocui.Windows
             }));
         }
 
+        private void SyncViews(DataGridView primary, bool selection, bool scroll)
+        {
+            if (!syncViews.Checked)
+                return;
+
+            DataGridView[] grids = { vsInBufferView, vsOutBufferView, gsOutBufferView };
+
+            if (primary == null)
+            {
+                foreach (DataGridView g in grids)
+                {
+                    if (g.Focused)
+                    {
+                        primary = g;
+                        break;
+                    }
+                }
+            }
+
+            if (primary == null)
+                return;
+
+            foreach (DataGridView g in grids)
+            {
+                if (g == primary)
+                    continue;
+
+                if (selection)
+                {
+                    g.ClearSelection();
+                    if (primary.SelectedRows.Count == 1 && primary.SelectedRows[0].Index < g.Rows.Count)
+                        g.Rows[primary.SelectedRows[0].Index].Selected = true;
+                }
+
+                if (scroll)
+                {
+                    if (g.RowCount > 0 && g.RowCount > primary.FirstDisplayedScrollingRowIndex)
+                        g.FirstDisplayedScrollingRowIndex = primary.FirstDisplayedScrollingRowIndex;
+                }
+            }
+        }
+
         private bool selectNoRecurse = false;
 
         private void bufferView_SelectionChanged(object sender, EventArgs e)
@@ -3061,39 +3107,7 @@ namespace renderdocui.Windows
 
             selectNoRecurse = true;
 
-            if (syncViews.Checked)
-            {
-                if (vsInBufferView.Focused && vsInBufferView.SelectedRows.Count > 0)
-                {
-                    vsOutBufferView.ClearSelection();
-                    if (vsInBufferView.SelectedRows.Count == 1 && vsInBufferView.SelectedRows[0].Index < vsOutBufferView.Rows.Count)
-                        vsOutBufferView.Rows[vsInBufferView.SelectedRows[0].Index].Selected = true;
-
-                    gsOutBufferView.ClearSelection();
-                    if (vsInBufferView.SelectedRows.Count == 1 && vsInBufferView.SelectedRows[0].Index < gsOutBufferView.Rows.Count)
-                        gsOutBufferView.Rows[vsInBufferView.SelectedRows[0].Index].Selected = true;
-                }
-                if (vsOutBufferView.Focused && vsOutBufferView.SelectedRows.Count > 0)
-                {
-                    vsInBufferView.ClearSelection();
-                    if (vsOutBufferView.SelectedRows.Count == 1 && vsOutBufferView.SelectedRows[0].Index < vsInBufferView.Rows.Count)
-                        vsInBufferView.Rows[vsOutBufferView.SelectedRows[0].Index].Selected = true;
-
-                    gsOutBufferView.ClearSelection();
-                    if (vsOutBufferView.SelectedRows.Count == 1 && vsOutBufferView.SelectedRows[0].Index < gsOutBufferView.Rows.Count)
-                        gsOutBufferView.Rows[vsOutBufferView.SelectedRows[0].Index].Selected = true;
-                }
-                if (gsOutBufferView.Focused && gsOutBufferView.SelectedRows.Count > 0)
-                {
-                    vsInBufferView.ClearSelection();
-                    if (gsOutBufferView.SelectedRows.Count == 1 && gsOutBufferView.SelectedRows[0].Index < vsInBufferView.Rows.Count)
-                        vsInBufferView.Rows[gsOutBufferView.SelectedRows[0].Index].Selected = true;
-
-                    vsOutBufferView.ClearSelection();
-                    if (gsOutBufferView.SelectedRows.Count == 1 && gsOutBufferView.SelectedRows[0].Index < vsOutBufferView.Rows.Count)
-                        vsOutBufferView.Rows[gsOutBufferView.SelectedRows[0].Index].Selected = true;
-                }
-            }
+            SyncViews(null, true, false);
 
             if (vsInBufferView.Focused && m_Core.LogLoaded)
             {
@@ -3116,30 +3130,7 @@ namespace renderdocui.Windows
 
         private void bufferView_Scroll(object sender, ScrollEventArgs e)
         {
-            if (syncViews.Checked)
-            {
-                if (vsInBufferView.Focused)
-                {
-                    if (vsOutBufferView.RowCount > 0 && vsOutBufferView.RowCount > vsInBufferView.FirstDisplayedScrollingRowIndex)
-                        vsOutBufferView.FirstDisplayedScrollingRowIndex = vsInBufferView.FirstDisplayedScrollingRowIndex;
-                    if (gsOutBufferView.RowCount > 0 && gsOutBufferView.RowCount > vsInBufferView.FirstDisplayedScrollingRowIndex)
-                        gsOutBufferView.FirstDisplayedScrollingRowIndex = vsInBufferView.FirstDisplayedScrollingRowIndex;
-                }
-                if (vsOutBufferView.Focused)
-                {
-                    if (vsInBufferView.RowCount > 0 && vsInBufferView.RowCount > vsOutBufferView.FirstDisplayedScrollingRowIndex)
-                        vsInBufferView.FirstDisplayedScrollingRowIndex = vsOutBufferView.FirstDisplayedScrollingRowIndex;
-                    if (gsOutBufferView.RowCount > 0 && gsOutBufferView.RowCount > vsOutBufferView.FirstDisplayedScrollingRowIndex)
-                        gsOutBufferView.FirstDisplayedScrollingRowIndex = vsOutBufferView.FirstDisplayedScrollingRowIndex;
-                }
-                if (gsOutBufferView.Focused)
-                {
-                    if (vsOutBufferView.RowCount > 0 && vsOutBufferView.RowCount > gsOutBufferView.FirstDisplayedScrollingRowIndex)
-                        vsOutBufferView.FirstDisplayedScrollingRowIndex = gsOutBufferView.FirstDisplayedScrollingRowIndex;
-                    if (vsInBufferView.RowCount > 0 && vsInBufferView.RowCount > gsOutBufferView.FirstDisplayedScrollingRowIndex)
-                        vsInBufferView.FirstDisplayedScrollingRowIndex = gsOutBufferView.FirstDisplayedScrollingRowIndex;
-                }
-            }
+            SyncViews(null, false, true);
         }
 
         #endregion
