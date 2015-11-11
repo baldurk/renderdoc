@@ -720,6 +720,8 @@ struct ImageLayouts
 
 	vector<ImageRegionState> subresourceStates;
 	int arraySize, mipLevels;
+	VkExtent3D extent;
+	VkFormat format;
 	VkDeviceMemory mem;
 	VkDeviceSize memoffs;
 };

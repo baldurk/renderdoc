@@ -920,6 +920,11 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 			ImageLayouts &layouts = m_ImageLayouts[live];
 			layouts.subresourceStates.clear();
 			
+			layouts.arraySize = info.arraySize;
+			layouts.mipLevels = info.mipLevels;
+			layouts.extent = info.extent;
+			layouts.format = info.format;
+
 			if(!IsDepthStencilFormat(info.format))
 			{
 				range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  layouts.subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
@@ -976,18 +981,26 @@ VkResult WrappedVulkan::vkCreateImage(
 		if(pCreateInfo->imageType == VK_IMAGE_TYPE_3D)
 			range.arraySize = pCreateInfo->extent.depth;
 
+		ImageLayouts *layout = NULL;
 		{
 			SCOPED_LOCK(m_ImageLayoutsLock);
-			m_ImageLayouts[id].subresourceStates.clear();
-			if(!IsDepthStencilFormat(pCreateInfo->format))
-			{
-				range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  m_ImageLayouts[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
-			}
-			else
-			{
-				range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;  m_ImageLayouts[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
-				range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;m_ImageLayouts[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
-			}
+			layout = &m_ImageLayouts[id];
+		}
+
+		layout->arraySize = pCreateInfo->arraySize;
+		layout->mipLevels = pCreateInfo->mipLevels;
+		layout->extent = pCreateInfo->extent;
+		layout->format = pCreateInfo->format;
+
+		layout->subresourceStates.clear();
+		if(!IsDepthStencilFormat(pCreateInfo->format))
+		{
+			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  layout->subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+		}
+		else
+		{
+			range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;  layout->subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;layout->subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
 		}
 	}
 
