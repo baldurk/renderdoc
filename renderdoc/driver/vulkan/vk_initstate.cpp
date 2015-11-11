@@ -110,19 +110,16 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkExtent3D extent = layout->extent;
-		
-		VkImageLayout origLayout = layout->subresourceStates[0].state;
 			
 		VkImageMemoryBarrier srcimTrans = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, origLayout, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
+			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			im->real.As<VkImage>(),
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 		};
 
-		//for(uint32_t m=0; m < layout->mipLevels; m++)
-		uint32_t m=0;
+		for(int m=0; m < layout->mipLevels; m++)
 		{
 			VkBufferImageCopy region = {
 				0, 0, 0,
@@ -130,6 +127,18 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 				{ 0, 0, 0, },
 				extent,
 			};
+
+			VkImageSubresource sub = { VK_IMAGE_ASPECT_COLOR, m, 0 };
+			VkSubresourceLayout sublayout;
+
+			vkr = ObjDisp(d)->GetImageSubresourceLayout(Unwrap(d), im->real.As<VkImage>(), &sub, &sublayout);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			region.bufferOffset = sublayout.offset;
+		
+			// VKTODOMED handle getting the right origLayout for this mip, handle multiple slices with different layouts etc
+			VkImageLayout origLayout = layout->subresourceStates[0].state;
+			srcimTrans.oldLayout = origLayout;
 
 			// ensure all previous writes have completed
 			srcimTrans.outputMask =
@@ -556,8 +565,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 			};
 
-			//for(uint32_t m=0; m < layout->mipLevels; m++)
-			uint32_t m=0;
+			for(uint32_t m=0; m < imInfo.mipLevels; m++)
 			{
 				VkBufferImageCopy region = {
 					0, 0, 0,
@@ -566,6 +574,14 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 					extent,
 				};
 				
+				VkImageSubresource sub = { VK_IMAGE_ASPECT_COLOR, m, 0 };
+				VkSubresourceLayout sublayout;
+
+				vkr = ObjDisp(d)->GetImageSubresourceLayout(Unwrap(d), Unwrap(im), &sub, &sublayout);
+				RDCASSERT(vkr == VK_SUCCESS);
+
+				region.bufferOffset = sublayout.offset;
+
 				void *barrier = (void *)&srcimTrans;
 
 				ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
@@ -883,19 +899,16 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkExtent3D extent = m_CreationInfo.m_Image[id].extent;
-
-		VkImageLayout origLayout = m_ImageLayouts[id].subresourceStates[0].state;
 		
 		VkImageMemoryBarrier dstimTrans = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, origLayout, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			ToHandle<VkImage>(live),
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, m_CreationInfo.m_Image[id].arraySize }
 		};
 
-		//for(uint32_t m=0; m < layout->mipLevels; m++)
-		uint32_t m=0;
+		for(int m=0; m < m_CreationInfo.m_Image[id].mipLevels; m++)
 		{
 			VkImageCopy region = {
 				{ VK_IMAGE_ASPECT_COLOR, m, 0, m_CreationInfo.m_Image[id].arraySize },
@@ -906,7 +919,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			};
 
 			dstimTrans.subresourceRange.baseMipLevel = m;
-			
+		
+			// VKTODOMED handle getting the right origLayout for this mip, handle multiple slices with different layouts etc
+			VkImageLayout origLayout = m_ImageLayouts[id].subresourceStates[0].state;
+			dstimTrans.oldLayout = origLayout;
+
 			void *barrier = (void *)&dstimTrans;
 
 			ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
@@ -917,7 +934,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				1, &region);
 
 			dstimTrans.oldLayout = dstimTrans.newLayout;
-			dstimTrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
+			dstimTrans.newLayout = origLayout;
 		
 			// make sure the apply completes before any further work
 			dstimTrans.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
