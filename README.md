@@ -5,7 +5,7 @@ Welcome to RenderDoc - a graphics debugger, currently available for D3D11 and Op
 
 Quick Links:
 
-* **Builds & Downloads**: https://renderdoc.org/builds
+* **Downloads**: https://renderdoc.org/builds
 * **Documentation**: renderdoc.chm in the build, or http://docs.renderdoc.org/
 * **Tutorials**: There are some video tutorials on Youtube: http://www.youtube.com/user/baldurkarlsson/
 * **Email contact**: baldurk@baldurk.org
