@@ -24,6 +24,8 @@
 
 #include "vk_core.h"
 
+// VKTODOHIGH we are assuming in all the initial state handling that the image is VK_IMAGE_ASPECT_COLOR
+
 bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 {
 	ResourceId id = GetResourceManager()->GetID(res);
@@ -69,6 +71,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 			layout = &m_ImageLayouts[im->id];
 		}
 		
+		// get requirements to allocate memory large enough for all slices/mips
 		VkMemoryRequirements immrq = {0};
 		ObjDisp(d)->GetImageMemoryRequirements(Unwrap(d), im->real.As<VkImage>(), &immrq);
 
@@ -116,9 +119,10 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			im->real.As<VkImage>(),
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, layout->arraySize }
 		};
 
+		// loop over every mip, copying it to the appropriate point in the buffer
 		for(int m=0; m < layout->mipLevels; m++)
 		{
 			VkBufferImageCopy region = {
@@ -133,12 +137,17 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 			vkr = ObjDisp(d)->GetImageSubresourceLayout(Unwrap(d), im->real.As<VkImage>(), &sub, &sublayout);
 			RDCASSERT(vkr == VK_SUCCESS);
-
+			
+			// get the offset of the first array slice in this mip
 			region.bufferOffset = sublayout.offset;
 		
-			// VKTODOMED handle getting the right origLayout for this mip, handle multiple slices with different layouts etc
+			// VKTODOMED handle getting the right origLayout for this mip, handle transitioning
+			// multiple slices with different layouts etc
 			VkImageLayout origLayout = layout->subresourceStates[0].state;
+
+			// transition the real image into transfer-source
 			srcimTrans.oldLayout = origLayout;
+			srcimTrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
 
 			// ensure all previous writes have completed
 			srcimTrans.outputMask =
@@ -155,6 +164,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 			ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), im->real.As<VkImage>(), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, dstBuf, 1, &region);
 
+			// transfer back to whatever it was
 			srcimTrans.oldLayout = srcimTrans.newLayout;
 			srcimTrans.newLayout = origLayout;
 
@@ -163,6 +173,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 			ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
+			// update the extent for the next mip
 			extent.width = RDCMAX(extent.width>>1, 1);
 			extent.height = RDCMAX(extent.height>>1, 1);
 			extent.depth = RDCMAX(extent.depth>>1, 1);
@@ -315,6 +326,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 		}
 		else if(type == eResDeviceMemory || type == eResImage)
 		{
+			// both image and memory are serialised as a whole hunk of data
 			VkDevice d = GetDev();
 
 			byte *ptr = NULL;
@@ -486,6 +498,8 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 				dataSize, GetUploadMemoryIndex(mrq.memoryTypeBits),
 			};
 
+			// first we upload the data into a single buffer, then we do
+			// a copy per-mip from that buffer to a new image
 			vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &uploadmem);
 			RDCASSERT(vkr == VK_SUCCESS);
 
@@ -504,7 +518,6 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			SAFE_DELETE_ARRAY(data);
 
 			// create image to copy into from the buffer
-
 			VkImageCreateInfo imInfo = {
 				VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
 				m_CreationInfo.m_Image[liveim->id].type,
@@ -562,9 +575,10 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 				0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 				Unwrap(im),
-				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, imInfo.arraySize }
 			};
 
+			// copy each mip individually
 			for(uint32_t m=0; m < imInfo.mipLevels; m++)
 			{
 				VkBufferImageCopy region = {
@@ -583,11 +597,17 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 				region.bufferOffset = sublayout.offset;
 
 				void *barrier = (void *)&srcimTrans;
+				
+				// first we transition from undefined to destination optimal, for the copy from the buffer
+				srcimTrans.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				srcimTrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
 
 				ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
 				ObjDisp(d)->CmdCopyBufferToImage(Unwrap(cmd), buf, Unwrap(im), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &region);
 
+				// then transition into source optimal, for all subsequent copies from this immutable initial
+				// state image, to the live image.
 				srcimTrans.oldLayout = srcimTrans.newLayout;
 				srcimTrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
 
@@ -608,6 +628,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			SubmitCmds();
 			FlushQ();
 
+			// destroy the temporary buffer for uploading - we just keep the image
 			ObjDisp(d)->DestroyBuffer(Unwrap(d), buf);
 			ObjDisp(d)->FreeMemory(Unwrap(d), uploadmem);
 
@@ -769,6 +790,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 		
+		// handle any 'created' initial states, without an actual image with contents
 		if(initial.resource == NULL)
 		{
 			if(initial.num == eInitialContents_ClearColorImage)
@@ -908,6 +930,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, m_CreationInfo.m_Image[id].arraySize }
 		};
 
+		// loop over every mip
 		for(int m=0; m < m_CreationInfo.m_Image[id].mipLevels; m++)
 		{
 			VkImageCopy region = {
@@ -922,7 +945,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		
 			// VKTODOMED handle getting the right origLayout for this mip, handle multiple slices with different layouts etc
 			VkImageLayout origLayout = m_ImageLayouts[id].subresourceStates[0].state;
+
+			// first transition the live image into destination optimal (the initial state
+			// image is always and permanently in source optimal already).
 			dstimTrans.oldLayout = origLayout;
+			dstimTrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
 
 			void *barrier = (void *)&dstimTrans;
 
@@ -933,6 +960,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				ToHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 				1, &region);
 
+			// transition the live image back
 			dstimTrans.oldLayout = dstimTrans.newLayout;
 			dstimTrans.newLayout = origLayout;
 		
@@ -951,6 +979,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 			ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
+			// update the extent for the next mip
 			extent.width = RDCMAX(extent.width>>1, 1);
 			extent.height = RDCMAX(extent.height>>1, 1);
 			extent.depth = RDCMAX(extent.depth>>1, 1);
