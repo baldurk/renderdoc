@@ -79,6 +79,9 @@ struct VkGenericStruct
 template<> void Serialiser::Serialise(const char *name, VkRect2D &el);
 template<> void Serialiser::Serialise(const char *name, VkRect3D &el);
 template<> void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el);
+template<> void Serialiser::Serialise(const char *name, VkPhysicalDeviceMemoryProperties &el);
+template<> void Serialiser::Serialise(const char *name, VkPhysicalDeviceProperties &el);
 template<> void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el);

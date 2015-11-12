@@ -230,6 +230,23 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 
 	localSerialiser->SerialisePODArray<32>("memIdxMap", memIdxMap);
 
+	// not used at the moment but useful for reference and might be used
+	// in the future
+	VkPhysicalDeviceProperties physProps;
+	VkPhysicalDeviceMemoryProperties memProps;
+	VkPhysicalDeviceFeatures physFeatures;
+	
+	if(m_State >= WRITING)
+	{
+		ObjDisp(instance)->GetPhysicalDeviceProperties(Unwrap(*pPhysicalDevices), &physProps);
+		ObjDisp(instance)->GetPhysicalDeviceMemoryProperties(Unwrap(*pPhysicalDevices), &memProps);
+		ObjDisp(instance)->GetPhysicalDeviceFeatures(Unwrap(*pPhysicalDevices), &physFeatures);
+	}
+
+	localSerialiser->Serialise("physProps", physProps);
+	localSerialiser->Serialise("memProps", memProps);
+	localSerialiser->Serialise("physFeatures", physFeatures);
+
 	VkPhysicalDevice pd = VK_NULL_HANDLE;
 
 	if(m_State >= WRITING)

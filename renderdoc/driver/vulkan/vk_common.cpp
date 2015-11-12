@@ -1573,6 +1573,22 @@ string ToStrHelper<false, VkQueryType>::Get(const VkQueryType &el)
 }
 
 template<>
+string ToStrHelper<false, VkPhysicalDeviceType>::Get(const VkPhysicalDeviceType &el)
+{
+	switch(el)
+	{
+		TOSTR_CASE_STRINGIZE(VK_PHYSICAL_DEVICE_TYPE_OTHER)
+		TOSTR_CASE_STRINGIZE(VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+		TOSTR_CASE_STRINGIZE(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		TOSTR_CASE_STRINGIZE(VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
+		TOSTR_CASE_STRINGIZE(VK_PHYSICAL_DEVICE_TYPE_CPU)
+		default: break;
+	}
+	
+	return StringFormat::Fmt("VkPhysicalDeviceType<%d>", el);
+}
+
+template<>
 string ToStrHelper<false, VkMemoryHeapFlagBits>::Get(const VkMemoryHeapFlagBits &el)
 {
 	string ret;
@@ -1581,6 +1597,9 @@ string ToStrHelper<false, VkMemoryHeapFlagBits>::Get(const VkMemoryHeapFlagBits 
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
+
+	if(ret.empty())
+		return "-";
 
 	return ret;
 }
@@ -1984,6 +2003,18 @@ string ToStrHelper<false, VkFormat>::Get(const VkFormat &el)
 }
 
 template<>
+string ToStrHelper<false, VkMemoryType>::Get(const VkMemoryType &el)
+{
+	return StringFormat::Fmt("VkMemoryType<heap %u, %s>", el.heapIndex, ToStr::Get((VkMemoryPropertyFlagBits)el.propertyFlags).c_str());
+}
+
+template<>
+string ToStrHelper<false, VkMemoryHeap>::Get(const VkMemoryHeap &el)
+{
+	return StringFormat::Fmt("VkMemoryHeap<%.3fMB, %s>", float(el.size)/(1024.0f*1024.0f), ToStr::Get((VkMemoryHeapFlagBits)el.flags).c_str());
+}
+
+template<>
 string ToStrHelper<false, VkRect2D>::Get(const VkRect2D &el)
 {
 	return StringFormat::Fmt("VkRect2D<%dx%d+%d+%d>", el.extent.width, el.extent.height, el.offset.x, el.offset.y);
@@ -2226,6 +2257,158 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 	Serialise("sparseResidency8Samples", el.sparseResidency8Samples);
 	Serialise("sparseResidency16Samples", el.sparseResidency16Samples);
 	Serialise("sparseResidencyAliased", el.sparseResidencyAliased);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkPhysicalDeviceMemoryProperties &el)
+{
+	ScopedContext scope(this, name, "VkPhysicalDeviceMemoryProperties", 0, true);
+
+	VkMemoryType *types = el.memoryTypes;
+	VkMemoryHeap *heaps = el.memoryHeaps;
+	
+	SerialisePODArray("memoryTypes", types, el.memoryTypeCount);
+	SerialisePODArray("memoryHeaps", heaps, el.memoryHeapCount);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkPhysicalDeviceLimits &el)
+{
+	ScopedContext scope(this, name, "VkPhysicalDeviceLimits", 0, true);
+
+	Serialise("maxImageDimension1D", el.maxImageDimension1D);
+	Serialise("maxImageDimension2D", el.maxImageDimension2D);
+	Serialise("maxImageDimension3D", el.maxImageDimension3D);
+	Serialise("maxImageDimensionCube", el.maxImageDimensionCube);
+	Serialise("maxImageArrayLayers", el.maxImageArrayLayers);
+	Serialise("sampleCounts", el.sampleCounts);
+	Serialise("maxTexelBufferSize", el.maxTexelBufferSize);
+	Serialise("maxUniformBufferSize", el.maxUniformBufferSize);
+	Serialise("maxStorageBufferSize", el.maxStorageBufferSize);
+	Serialise("maxPushConstantsSize", el.maxPushConstantsSize);
+	Serialise("maxMemoryAllocationCount", el.maxMemoryAllocationCount);
+	Serialise("bufferImageGranularity", el.bufferImageGranularity);
+	Serialise("sparseAddressSpaceSize", el.sparseAddressSpaceSize);
+	Serialise("maxBoundDescriptorSets", el.maxBoundDescriptorSets);
+	Serialise("maxDescriptorSets", el.maxDescriptorSets);
+	Serialise("maxPerStageDescriptorSamplers", el.maxPerStageDescriptorSamplers);
+	Serialise("maxPerStageDescriptorUniformBuffers", el.maxPerStageDescriptorUniformBuffers);
+	Serialise("maxPerStageDescriptorStorageBuffers", el.maxPerStageDescriptorStorageBuffers);
+	Serialise("maxPerStageDescriptorSampledImages", el.maxPerStageDescriptorSampledImages);
+	Serialise("maxPerStageDescriptorStorageImages", el.maxPerStageDescriptorStorageImages);
+	Serialise("maxDescriptorSetSamplers", el.maxDescriptorSetSamplers);
+	Serialise("maxDescriptorSetUniformBuffers", el.maxDescriptorSetUniformBuffers);
+	Serialise("maxDescriptorSetUniformBuffersDynamic", el.maxDescriptorSetUniformBuffersDynamic);
+	Serialise("maxDescriptorSetStorageBuffers", el.maxDescriptorSetStorageBuffers);
+	Serialise("maxDescriptorSetStorageBuffersDynamic", el.maxDescriptorSetStorageBuffersDynamic);
+	Serialise("maxDescriptorSetSampledImages", el.maxDescriptorSetSampledImages);
+	Serialise("maxDescriptorSetStorageImages", el.maxDescriptorSetStorageImages);
+	Serialise("maxVertexInputAttributes", el.maxVertexInputAttributes);
+	Serialise("maxVertexInputBindings", el.maxVertexInputBindings);
+	Serialise("maxVertexInputAttributeOffset", el.maxVertexInputAttributeOffset);
+	Serialise("maxVertexInputBindingStride", el.maxVertexInputBindingStride);
+	Serialise("maxVertexOutputComponents", el.maxVertexOutputComponents);
+	Serialise("maxTessGenLevel", el.maxTessGenLevel);
+	Serialise("maxTessPatchSize", el.maxTessPatchSize);
+	Serialise("maxTessControlPerVertexInputComponents", el.maxTessControlPerVertexInputComponents);
+	Serialise("maxTessControlPerVertexOutputComponents", el.maxTessControlPerVertexOutputComponents);
+	Serialise("maxTessControlPerPatchOutputComponents", el.maxTessControlPerPatchOutputComponents);
+	Serialise("maxTessControlTotalOutputComponents", el.maxTessControlTotalOutputComponents);
+	Serialise("maxTessEvaluationInputComponents", el.maxTessEvaluationInputComponents);
+	Serialise("maxTessEvaluationOutputComponents", el.maxTessEvaluationOutputComponents);
+	Serialise("maxGeometryShaderInvocations", el.maxGeometryShaderInvocations);
+	Serialise("maxGeometryInputComponents", el.maxGeometryInputComponents);
+	Serialise("maxGeometryOutputComponents", el.maxGeometryOutputComponents);
+	Serialise("maxGeometryOutputVertices", el.maxGeometryOutputVertices);
+	Serialise("maxGeometryTotalOutputComponents", el.maxGeometryTotalOutputComponents);
+	Serialise("maxFragmentInputComponents", el.maxFragmentInputComponents);
+	Serialise("maxFragmentOutputBuffers", el.maxFragmentOutputBuffers);
+	Serialise("maxFragmentDualSourceBuffers", el.maxFragmentDualSourceBuffers);
+	Serialise("maxFragmentCombinedOutputResources", el.maxFragmentCombinedOutputResources);
+	Serialise("maxComputeSharedMemorySize", el.maxComputeSharedMemorySize);
+	SerialisePODArray<3>("maxComputeWorkGroupCount", el.maxComputeWorkGroupCount);
+	Serialise("maxComputeWorkGroupInvocations", el.maxComputeWorkGroupInvocations);
+	SerialisePODArray<3>("maxComputeWorkGroupSize", el.maxComputeWorkGroupSize);
+	Serialise("subPixelPrecisionBits", el.subPixelPrecisionBits);
+	Serialise("subTexelPrecisionBits", el.subTexelPrecisionBits);
+	Serialise("mipmapPrecisionBits", el.mipmapPrecisionBits);
+	Serialise("maxDrawIndexedIndexValue", el.maxDrawIndexedIndexValue);
+	Serialise("maxDrawIndirectInstanceCount", el.maxDrawIndirectInstanceCount);
+	Serialise("primitiveRestartForPatches", el.primitiveRestartForPatches);
+	Serialise("maxSamplerLodBias", el.maxSamplerLodBias);
+	Serialise("maxSamplerAnisotropy", el.maxSamplerAnisotropy);
+	Serialise("maxViewports", el.maxViewports);
+	SerialisePODArray<2>("maxViewportDimensions", el.maxViewportDimensions);
+	SerialisePODArray<2>("viewportBoundsRange", el.viewportBoundsRange);
+	Serialise("viewportSubPixelBits", el.viewportSubPixelBits);
+	Serialise("minMemoryMapAlignment", el.minMemoryMapAlignment);
+	Serialise("minTexelBufferOffsetAlignment", el.minTexelBufferOffsetAlignment);
+	Serialise("minUniformBufferOffsetAlignment", el.minUniformBufferOffsetAlignment);
+	Serialise("minStorageBufferOffsetAlignment", el.minStorageBufferOffsetAlignment);
+	Serialise("minTexelOffset", el.minTexelOffset);
+	Serialise("maxTexelOffset", el.maxTexelOffset);
+	Serialise("minTexelGatherOffset", el.minTexelGatherOffset);
+	Serialise("maxTexelGatherOffset", el.maxTexelGatherOffset);
+	Serialise("minInterpolationOffset", el.minInterpolationOffset);
+	Serialise("maxInterpolationOffset", el.maxInterpolationOffset);
+	Serialise("subPixelInterpolationOffsetBits", el.subPixelInterpolationOffsetBits);
+	Serialise("maxFramebufferWidth", el.maxFramebufferWidth);
+	Serialise("maxFramebufferHeight", el.maxFramebufferHeight);
+	Serialise("maxFramebufferLayers", el.maxFramebufferLayers);
+	Serialise("maxFramebufferColorSamples", el.maxFramebufferColorSamples);
+	Serialise("maxFramebufferDepthSamples", el.maxFramebufferDepthSamples);
+	Serialise("maxFramebufferStencilSamples", el.maxFramebufferStencilSamples);
+	Serialise("maxColorAttachments", el.maxColorAttachments);
+	Serialise("maxSampledImageColorSamples", el.maxSampledImageColorSamples);
+	Serialise("maxSampledImageDepthSamples", el.maxSampledImageDepthSamples);
+	Serialise("maxSampledImageIntegerSamples", el.maxSampledImageIntegerSamples);
+	Serialise("maxStorageImageSamples", el.maxStorageImageSamples);
+	Serialise("maxSampleMaskWords", el.maxSampleMaskWords);
+	Serialise("timestampFrequency", el.timestampFrequency);
+	Serialise("maxClipDistances", el.maxClipDistances);
+	Serialise("maxCullDistances", el.maxCullDistances);
+	Serialise("maxCombinedClipAndCullDistances", el.maxCombinedClipAndCullDistances);
+	SerialisePODArray<2>("pointSizeRange", el.pointSizeRange);
+	SerialisePODArray<2>("lineWidthRange", el.lineWidthRange);
+	Serialise("pointSizeGranularity", el.pointSizeGranularity);
+	Serialise("lineWidthGranularity", el.lineWidthGranularity);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkPhysicalDeviceSparseProperties &el)
+{
+	ScopedContext scope(this, name, "VkPhysicalDeviceSparseProperties", 0, true);
+	
+	Serialise("residencyStandard2DBlockShape", el.residencyStandard2DBlockShape);
+	Serialise("residencyStandard2DMSBlockShape", el.residencyStandard2DMSBlockShape);
+	Serialise("residencyStandard3DBlockShape", el.residencyStandard3DBlockShape);
+	Serialise("residencyAlignedMipSize", el.residencyAlignedMipSize);
+	Serialise("residencyNonResident", el.residencyNonResident);
+	Serialise("residencyNonResidentStrict", el.residencyNonResidentStrict);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkPhysicalDeviceProperties &el)
+{
+	ScopedContext scope(this, name, "VkPhysicalDeviceProperties", 0, true);
+	
+	Serialise("apiVersion", el.apiVersion);
+	Serialise("driverVersion", el.driverVersion);
+	Serialise("vendorId", el.vendorId);
+	Serialise("deviceId", el.deviceId);
+	Serialise("deviceType", el.deviceType);
+
+	string deviceName = el.deviceName;
+	Serialise("deviceName", deviceName);
+	if(m_Mode == READING)
+	{
+		RDCEraseEl(el.deviceName);
+		memcpy(el.deviceName, deviceName.c_str(), RDCMIN(deviceName.size(), (size_t)VK_MAX_PHYSICAL_DEVICE_NAME));
+	}
+
+	SerialisePODArray<VK_UUID_LENGTH>("pipelineCacheUUID", el.pipelineCacheUUID);
+	Serialise("limits", el.limits);
+	Serialise("sparseProperties", el.sparseProperties);
 }
 
 template<>
