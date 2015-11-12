@@ -1672,8 +1672,6 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 	}
 	else if(type == eResImage)
 	{
-		VULKANNOTIMP("image initial states not implemented");
-
 		ResourceId liveid = GetResourceManager()->GetLiveID(id);
 
 		if(m_ImageLayouts.find(liveid) == m_ImageLayouts.end())
