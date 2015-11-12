@@ -83,16 +83,6 @@ void ResourceRecord::Delete(ResourceRecordHandler *mgr)
 
 		DeleteChunks();
 
-		for(int i=0; i < NumSubResources; i++)
-		{
-			for(auto it=SubResources[i]->m_Chunks.begin(); it != SubResources[i]->m_Chunks.end(); ++it)
-				SAFE_DELETE(it->second);
-
-			SAFE_DELETE(SubResources[i]);
-		}
-
-		SAFE_DELETE_ARRAY(SubResources);
-
 		if(ResID != ResourceId())
 			mgr->RemoveResourceRecord(ResID);
 

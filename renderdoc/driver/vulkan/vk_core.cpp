@@ -306,9 +306,7 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 		m_FrameCaptureRecord = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
 		m_FrameCaptureRecord->DataInSerialiser = false;
 		m_FrameCaptureRecord->Length = 0;
-		m_FrameCaptureRecord->NumSubResources = 0;
 		m_FrameCaptureRecord->SpecialResource = true;
-		m_FrameCaptureRecord->SubResources = NULL;
 	}
 	else
 	{

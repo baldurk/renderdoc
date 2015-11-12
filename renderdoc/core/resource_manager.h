@@ -89,8 +89,7 @@ struct ResourceRecord
 	ResourceRecord(ResourceId id, bool lock)
 		: RefCount(1), ResID(id), UpdateCount(0),
 			DataInSerialiser(false), DataPtr(NULL), DataOffset(0),
-			Length(-1), DataWritten(false), SpecialResource(false),
-			NumSubResources(0), SubResources(NULL)
+			Length(-1), DataWritten(false), SpecialResource(false)
 	{
 		m_ChunkLock = NULL;
 
@@ -152,12 +151,7 @@ struct ResourceRecord
 		}
 
 		if(!dataWritten)
-		{
 			recordlist.insert(m_Chunks.begin(), m_Chunks.end());
-			
-			for(int i=0; i < NumSubResources; i++)
-				SubResources[i]->Insert(recordlist);
-		}
 	}
 
 	void AddRef() { RefCount++; }	
@@ -255,9 +249,6 @@ struct ResourceRecord
 	void SetDataPtr(byte *ptr)
 	{
 		DataPtr = ptr;
-
-		for(int i=0; i < NumSubResources; i++)
-			SubResources[i]->SetDataPtr(ptr);
 	}
 
 	void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType);
@@ -268,20 +259,16 @@ struct ResourceRecord
 			ids.insert(it->first);
 	}
 
-	int UpdateCount;
-
-	bool DataInSerialiser;
 	int32_t Length;
 	
-	bool SpecialResource; // like the swap chain back buffers
+	int UpdateCount : 29;
+	bool DataInSerialiser : 1;
+	bool SpecialResource : 1; // like the swap chain back buffers
+	bool DataWritten : 1;
 
-	int NumSubResources;
-	ResourceRecord **SubResources;
-	
 protected:
 	byte *DataPtr;
 	uint64_t DataOffset;
-	bool DataWritten;
 	
 	int RefCount;
 

@@ -754,16 +754,12 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 		m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_DeviceResourceID);
 		m_DeviceRecord->DataInSerialiser = false;
 		m_DeviceRecord->Length = 0;
-		m_DeviceRecord->NumSubResources = 0;
 		m_DeviceRecord->SpecialResource = true;
-		m_DeviceRecord->SubResources = NULL;
 		
 		m_ContextRecord = GetResourceManager()->AddResourceRecord(m_ContextResourceID);
 		m_ContextRecord->DataInSerialiser = false;
 		m_ContextRecord->Length = 0;
-		m_ContextRecord->NumSubResources = 0;
 		m_ContextRecord->SpecialResource = true;
-		m_ContextRecord->SubResources = NULL;
 		
 		// register VAO 0 as a special VAO, so that it can be tracked if the app uses it
 		// we immediately mark it dirty since the vertex array tracking functions expect a proper VAO

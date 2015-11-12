@@ -46,7 +46,8 @@ struct D3D11ResourceRecord : public ResourceRecord
 	static byte markerValue[32];
 
 	D3D11ResourceRecord(ResourceId id)
-		: ResourceRecord(id, true)
+		: ResourceRecord(id, true),
+			NumSubResources(0), SubResources(NULL)
 	{
 		RDCEraseEl(ShadowPtr);
 		RDCEraseEl(contexts);
@@ -55,6 +56,14 @@ struct D3D11ResourceRecord : public ResourceRecord
 
 	~D3D11ResourceRecord()
 	{
+		for(int i=0; i < NumSubResources; i++)
+		{
+			SubResources[i]->DeleteChunks();
+			SAFE_DELETE(SubResources[i]);
+		}
+
+		SAFE_DELETE_ARRAY(SubResources);
+
 		FreeShadowStorage();
 	}
 	
@@ -123,8 +132,42 @@ struct D3D11ResourceRecord : public ResourceRecord
 		contexts[ctx] = false;
 	}
 	
-	bool ignoreSerialise;
+	void SetDataPtr(byte *ptr)
+	{
+		DataPtr = ptr;
 
+		for(int i=0; i < NumSubResources; i++)
+			SubResources[i]->SetDataPtr(ptr);
+	}
+
+	void Insert(map<int32_t, Chunk *> &recordlist)
+	{
+		bool dataWritten = DataWritten;
+
+		DataWritten = true;
+
+		for(auto it = Parents.begin(); it != Parents.end(); ++it)
+		{
+			if(!(*it)->DataWritten)
+			{
+				(*it)->Insert(recordlist);
+			}
+		}
+
+		if(!dataWritten)
+		{
+			recordlist.insert(m_Chunks.begin(), m_Chunks.end());
+			
+			for(int i=0; i < NumSubResources; i++)
+				SubResources[i]->Insert(recordlist);
+		}
+	}
+
+	bool ignoreSerialise;
+	
+	int NumSubResources;
+	ResourceRecord **SubResources;
+	
 private:
 	byte *ShadowPtr[32][2];
 	size_t ShadowSize[32];
