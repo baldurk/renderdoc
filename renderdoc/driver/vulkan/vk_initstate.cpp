@@ -33,6 +33,13 @@
 // VKTODOLOW The code pattern for creating a few contiguous arrays all in one
 // AllocAlignedBuffer for the initial contents buffer is ugly.
 
+// VKTODOLOW in general we do a lot of "create buffer, use it, flush/sync then destroy".
+// I don't know what the exact cost is, but it would be nice to batch up the buffers/etc
+// used across init state use, and only do a single flush. Also we could then get some
+// nice command buffer reuse (although need to be careful we don't create too large a
+// command buffer that stalls the GPU).
+// See INITSTATEBATCH
+
 struct MemIDOffset
 {
 	ResourceId memId;
@@ -111,9 +118,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 	memcpy(info, &buf->record->sparseInfo->opaquemappings[0], sizeof(VkSparseMemoryBindInfo)*numElems);
 
 	VkDevice d = GetDev();
-	// VKTODOLOW ideally the prepares could be batched up
-	// a bit more - maybe not all in one command buffer, but
-	// at least more than one each
+	// INITSTATEBATCH
 	VkCmdBuffer cmd = GetNextCmd();
 	
 	VkBufferCreateInfo bufInfo = {
@@ -197,11 +202,8 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 
 	vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
-
-	// VKTODOLOW would be nice to store up all these buffers so that
-	// we don't have to submit & flush here before destroying, but
-	// instead could submit all cmds, then flush once, then destroy
-	// buffers. (or even not flush at all until capture is over)
+	
+	// INITSTATEBATCH
 	SubmitCmds();
 	FlushQ();
 
@@ -287,9 +289,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 	}
 	
 	VkDevice d = GetDev();
-	// VKTODOLOW ideally the prepares could be batched up
-	// a bit more - maybe not all in one command buffer, but
-	// at least more than one each
+	// INITSTATEBATCH
 	VkCmdBuffer cmd = GetNextCmd();
 	
 	VkBufferCreateInfo bufInfo = {
@@ -373,11 +373,8 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 
 	vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
-
-	// VKTODOLOW would be nice to store up all these buffers so that
-	// we don't have to submit & flush here before destroying, but
-	// instead could submit all cmds, then flush once, then destroy
-	// buffers. (or even not flush at all until capture is over)
+	
+	// INITSTATEBATCH
 	SubmitCmds();
 	FlushQ();
 
@@ -932,9 +929,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		}
 
 		VkDevice d = GetDev();
-		// VKTODOLOW ideally the prepares could be batched up
-		// a bit more - maybe not all in one command buffer, but
-		// at least more than one each
+		// INITSTATEBATCH
 		VkCmdBuffer cmd = GetNextCmd();
 
 		ImageLayouts *layout = NULL;
@@ -1054,10 +1049,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		// VKTODOLOW would be nice to store up all these buffers so that
-		// we don't have to submit & flush here before destroying, but
-		// instead could submit all cmds, then flush once, then destroy
-		// buffers. (or even not flush at all until capture is over)
+		// INITSTATEBATCH
 		SubmitCmds();
 		FlushQ();
 
@@ -1072,9 +1064,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		VkResult vkr = VK_SUCCESS;
 
 		VkDevice d = GetDev();
-		// VKTODOLOW ideally the prepares could be batched up
-		// a bit more - maybe not all in one command buffer, but
-		// at least more than one each
+		// INITSTATEBATCH
 		VkCmdBuffer cmd = GetNextCmd();
 		
 		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
@@ -1142,10 +1132,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		// VKTODOLOW would be nice to store up all these buffers so that
-		// we don't have to submit & flush here before destroying, but
-		// instead could submit all cmds, then flush once, then destroy
-		// buffers. (or even not flush at all until capture is over)
+		// INITSTATEBATCH
 		SubmitCmds();
 		FlushQ();
 
@@ -1454,9 +1441,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			
 			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 			
-			// VKTODOLOW ideally the prepares could be batched up
-			// a bit more - maybe not all in one command buffer, but
-			// at least more than one each
+			// INITSTATEBATCH
 			VkCmdBuffer cmd = GetNextCmd();
 
 			vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
@@ -1515,10 +1500,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			// VKTODOLOW would be nice to store up all these buffers so that
-			// we don't have to submit & flush here before destroying, but
-			// instead could submit all cmds, then flush once, then destroy
-			// buffers. (or even not flush at all until capture is over)
+			// INITSTATEBATCH
 			SubmitCmds();
 			FlushQ();
 
