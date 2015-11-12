@@ -91,7 +91,6 @@ const char *VkChunkNames[] =
 	"vkAllocDescriptorSets",
 	"vkUpdateDescriptorSets",
 
-	"vkResetCommandBuffer",
 	"vkBeginCommandBuffer",
 	"vkEndCommandBuffer",
 
@@ -1452,9 +1451,6 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkUpdateDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, 0, NULL);
 		break;
 
-	case RESET_CMD_BUFFER:
-		Serialise_vkResetCommandBuffer(GetMainSerialiser(), VK_NULL_HANDLE, 0);
-		break;
 	case BEGIN_CMD_BUFFER:
 		Serialise_vkBeginCommandBuffer(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
 		break;

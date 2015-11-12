@@ -282,6 +282,9 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(
 
 	if(record)
 	{
+		// If a command bfufer was already recorded (ie we have some baked commands),
+		// then begin is spec'd to implicitly reset. That means we need to tidy up
+		// any existing baked commands before creating a new set.
 		if(record->bakedCommands)
 			record->bakedCommands->Delete(GetResourceManager());
 
@@ -399,6 +402,7 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 
 	if(record)
 	{
+		// ensure that we have a matching begin
 		RDCASSERT(record->bakedCommands);
 
 		{
@@ -416,76 +420,6 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 	return ObjDisp(cmdBuffer)->EndCommandBuffer(Unwrap(cmdBuffer));
 }
 
-bool WrappedVulkan::Serialise_vkResetCommandBuffer(Serialiser* localSerialiser, VkCmdBuffer cmdBuffer, VkCmdBufferResetFlags flags)
-{
-	SERIALISE_ELEMENT(ResourceId, cmdId, GetResID(cmdBuffer));
-	SERIALISE_ELEMENT(VkCmdBufferResetFlags, fl, flags);
-
-	ResourceId bakedCmdId;
-	VkCmdBufferCreateInfo createInfo;
-	VkDevice device = VK_NULL_HANDLE;
-
-	if(m_State >= WRITING)
-	{
-		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(cmdId);
-		RDCASSERT(record->bakedCommands);
-		if(record->bakedCommands)
-			bakedCmdId = record->bakedCommands->GetResourceID();
-		
-		RDCASSERT(record->cmdInfo);
-		device = record->cmdInfo->device;
-		createInfo = record->cmdInfo->createInfo;
-	}
-
-	SERIALISE_ELEMENT(ResourceId, bakeId, bakedCmdId);
-
-	if(m_State < WRITING)
-	{
-		m_LastCmdBufferID = cmdId;
-		m_CmdBuffersInProgress++;
-	}
-	
-	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	localSerialiser->Serialise("createInfo", createInfo);
-
-	if(m_State == EXECUTING)
-	{
-		// VKTODOHIGH check how vkResetCommandBuffer interacts with partial replays
-	}
-	else if(m_State == READING)
-	{
-		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-		VkCmdBuffer cmd = VK_NULL_HANDLE;
-
-		if(!GetResourceManager()->HasLiveResource(bakeId))
-		{
-			VkResult ret = ObjDisp(device)->CreateCommandBuffer(Unwrap(device), &createInfo, &cmd);
-
-			if(ret != VK_SUCCESS)
-			{
-				RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
-			}
-			else
-			{
-				ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), cmd);
-				GetResourceManager()->AddLiveResource(bakeId, cmd);
-			}
-
-			// whenever a vkCmd command-building chunk asks for the command buffer, it
-			// will get our baked version.
-			GetResourceManager()->ReplaceResource(cmdId, bakeId);
-		}
-		else
-		{
-			cmd = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(bakeId);
-		}
-
-		ObjDisp(device)->ResetCommandBuffer(Unwrap(cmd), fl);
-	}
-
-	return true;
-}
-
 VkResult WrappedVulkan::vkResetCommandBuffer(
 	  VkCmdBuffer                                 cmdBuffer,
     VkCmdBufferResetFlags                       flags)
@@ -495,28 +429,21 @@ VkResult WrappedVulkan::vkResetCommandBuffer(
 
 	if(record)
 	{
+		// all we need to do is remove the existing baked commands.
+		// The application will still need to call begin command buffer itself.
+		// this function is essentially a driver hint as it cleans up implicitly
+		// on begin.
+		//
+		// Because it's totally legal for an application to record, submit, reset,
+		// record, submit again, and we need some way of referencing the two different
+		// sets of commands on replay, our command buffers are given new unique IDs
+		// each time they are begun, so on replay it looks like they were all unique
+		// (albeit with the same properties for those that share a 'parent'). Hence,
+		// we don't need to record or replay when a ResetCommandBuffer happens
 		if(record->bakedCommands)
 			record->bakedCommands->Delete(GetResourceManager());
 		
-		record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
-		record->bakedCommands->cmdInfo = new CmdBufferRecordingInfo();
-
-		record->bakedCommands->cmdInfo->device = record->cmdInfo->device;
-		record->bakedCommands->cmdInfo->createInfo = record->cmdInfo->createInfo;
-
-		// VKTODOHIGH do we need to actually serialise this at all? all it does is
-		// reset a command buffer to be able to begin again. We could just move the
-		// logic to create new baked commands from begin to here, and skip 
-		// serialising this (as we never re-begin a cmd buffer, we make a new copy
-		// for each bake).
-		{
-			CACHE_THREAD_SERIALISER();
-
-			SCOPED_SERIALISE_CONTEXT(RESET_CMD_BUFFER);
-			Serialise_vkResetCommandBuffer(localSerialiser, cmdBuffer, flags);
-			
-			record->AddChunk(scope.Get());
-		}
+		record->bakedCommands = NULL;
 	}
 
 	return ObjDisp(cmdBuffer)->ResetCommandBuffer(Unwrap(cmdBuffer), flags);
