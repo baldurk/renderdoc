@@ -702,10 +702,18 @@ struct VkResourceRecord : public ResourceRecord
 			// deleted since it was bound.
 			if(id == ResourceId()) return;
 
-			--bindFrameRefs[id].first;
+			auto it = bindFrameRefs.find(id);
 			
-			if((bindFrameRefs[id].first&~SPARSE_REF_BIT) == 0)
-				bindFrameRefs.erase(id);
+			// in the case of re-used handles bound to descriptor sets,
+			// it's possible to try and remove a frameref on something we
+			// don't have (which means we'll have a corresponding stale ref)
+			// but this is harmless so we can ignore it.
+			if(it == bindFrameRefs.end()) return;
+
+			it->second.first--;
+			
+			if((it->second.first & ~SPARSE_REF_BIT) == 0)
+				bindFrameRefs.erase(it);
 		}
 
 		WrappedVkRes *Resource;
