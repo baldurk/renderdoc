@@ -768,31 +768,18 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 	};
 
-	vector<VkBuffer> bufdeletes;
-
 	for(uint32_t i=0; i < info->numUniqueMems; i++)
 	{
 		VkDeviceMemory dstMem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(info->memDataOffs[i].memId);
 
-		// since this is short lived it isn't wrapped. Note that we want
-		// to cache this up front, so it will then be wrapped
-		VkBuffer dstBuf;
+		VkBuffer dstBuf = m_CreationInfo.m_Memory[GetResID(dstMem)].wholeMemBuf;
 
 		bufInfo.size = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
-	
-		// VKTODOMED this should be created once up front, not every time
-		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &dstBuf);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(dstMem), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
 
 		// fill the whole memory from the given offset
 		VkBufferCopy region = { info->memDataOffs[i].memOffs, 0, bufInfo.size };
 
-		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), dstBuf, 1, &region);
-
-		bufdeletes.push_back(dstBuf);
+		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
 	}
 
 	// add memory barrier to ensure this copy completes before any subsequent work
@@ -808,16 +795,6 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
-
-	// VKTODOLOW if this dstBuf was persistent or at least cached
-	// we could batch these command buffers better and wouldn't
-	// need to flush at all until application of all init states
-	// is over
-	SubmitCmds();
-	FlushQ();
-
-	for(size_t i=0; i < bufdeletes.size(); i++)
-		ObjDisp(d)->DestroyBuffer(Unwrap(d), bufdeletes[i]);
 
 	return true;
 }
@@ -873,31 +850,19 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 	};
 
-	vector<VkBuffer> bufdeletes;
-
 	for(uint32_t i=0; i < info->numUniqueMems; i++)
 	{
 		VkDeviceMemory dstMem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(info->memDataOffs[i].memId);
 
 		// since this is short lived it isn't wrapped. Note that we want
 		// to cache this up front, so it will then be wrapped
-		VkBuffer dstBuf;
-
+		VkBuffer dstBuf = m_CreationInfo.m_Memory[GetResID(dstMem)].wholeMemBuf;
 		bufInfo.size = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
-	
-		// VKTODOMED this should be created once up front, not every time
-		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &dstBuf);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(dstMem), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
 
 		// fill the whole memory from the given offset
 		VkBufferCopy region = { info->memDataOffs[i].memOffs, 0, bufInfo.size };
 
-		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), dstBuf, 1, &region);
-
-		bufdeletes.push_back(dstBuf);
+		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
 	}
 
 	// add memory barrier to ensure this copy completes before any subsequent work
@@ -913,16 +878,6 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
-
-	// VKTODOLOW if this dstBuf was persistent or at least cached
-	// we could batch these command buffers better and wouldn't
-	// need to flush at all until application of all init states
-	// is over
-	SubmitCmds();
-	FlushQ();
-
-	for(size_t i=0; i < bufdeletes.size(); i++)
-		ObjDisp(d)->DestroyBuffer(Unwrap(d), bufdeletes[i]);
 
 	return true;
 }
@@ -1969,20 +1924,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
-		// since this is short lived it isn't wrapped. Note that we want
-		// to cache this up front, so it will then be wrapped
-		VkBuffer dstBuf;
-		
-		// VKTODOMED this should be created once up front, not every time
-		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &dstBuf);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(dstMem), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
+		VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
 
 		VkBufferCopy region = { 0, dstMemOffs, datasize };
 
-		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), dstBuf, 1, &region);
+		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
 	
 		// add memory barrier to ensure this copy completes before any subsequent work
 		VkMemoryBarrier memBarrier = {
@@ -1997,15 +1943,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
-
-		// VKTODOLOW if this dstBuf was persistent or at least cached
-		// we could batch these command buffers better and wouldn't
-		// need to flush at all until application of all init states
-		// is over
-		SubmitCmds();
-		FlushQ();
-
-		ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf);
 	}
 	else
 	{

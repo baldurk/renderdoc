@@ -172,6 +172,28 @@ bool WrappedVulkan::Serialise_vkAllocMemory(
 			GetResourceManager()->AddLiveResource(id, mem);
 
 			m_CreationInfo.m_Memory[live].Init(GetResourceManager(), &info);
+
+			// create a buffer with the whole memory range bound, for copying to and from
+			// conveniently (for initial state data)
+			VkBuffer buf = VK_NULL_HANDLE;
+
+			VkBufferCreateInfo bufInfo = {
+				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+				info.allocationSize, VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
+				VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			};
+
+			ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, &buf);
+			RDCASSERT(ret == VK_SUCCESS);
+
+			ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
+
+			ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buf), Unwrap(mem), 0);
+			
+			// register as a live-only resource, so it is cleaned up properly
+			GetResourceManager()->AddLiveResource(bufid, buf);
+
+			m_CreationInfo.m_Memory[live].wholeMemBuf = buf;
 		}
 	}
 
@@ -230,6 +252,28 @@ VkResult WrappedVulkan::vkAllocMemory(
 			GetResourceManager()->AddLiveResource(id, *pMem);
 
 			m_CreationInfo.m_Memory[id].Init(GetResourceManager(), pAllocInfo);
+
+			// create a buffer with the whole memory range bound, for copying to and from
+			// conveniently (for initial state data)
+			VkBuffer buf = VK_NULL_HANDLE;
+
+			VkBufferCreateInfo bufInfo = {
+				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+				info.allocationSize, VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
+				VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			};
+
+			ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, &buf);
+			RDCASSERT(ret == VK_SUCCESS);
+
+			ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
+
+			ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buf), Unwrap(*pMem), 0);
+			
+			// register as a live-only resource, so it is cleaned up properly
+			GetResourceManager()->AddLiveResource(bufid, buf);
+
+			m_CreationInfo.m_Memory[id].wholeMemBuf = buf;
 		}
 	}
 
