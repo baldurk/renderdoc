@@ -408,6 +408,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer 
 
 		size_t dataSize = (size_t)info->totalSize;
 
+		m_pSerialiser->Serialise("totalSize", info->totalSize);
 		m_pSerialiser->SerialiseBuffer("data", ptr, dataSize);
 
 		ObjDisp(d)->UnmapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(contents.resource));
@@ -456,11 +457,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer 
 			info->numUniqueMems = NULL;
 		}
 		
-		byte *data = NULL;
-		size_t dataSize = 0;
-		m_pSerialiser->SerialiseBuffer("data", data, dataSize);
-
-		info->totalSize = (VkDeviceSize)dataSize;
+		m_pSerialiser->Serialise("totalSize", info->totalSize);
 
 		VkResult vkr = VK_SUCCESS;
 
@@ -468,23 +465,9 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer 
 
 		VkDeviceMemory mem = VK_NULL_HANDLE;
 
-		// VKTODOMED should get mem requirements for buffer - copy might enforce
-		// some restrictions?
-		VkMemoryRequirements mrq = { dataSize, 16, ~0U };
-
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-			dataSize, GetUploadMemoryIndex(mrq.memoryTypeBits),
-		};
-
-		vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &mem);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(d), mem);
-
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			dataSize, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
+			info->totalSize, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
@@ -494,6 +477,20 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer 
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(d), buf);
+		
+		VkMemoryRequirements mrq = { 0 };
+
+		ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(buf), &mrq);
+
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			mrq.size, GetUploadMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &mem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(d), mem);
 
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(buf), Unwrap(mem), 0);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -501,13 +498,10 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer 
 		byte *ptr = NULL;
 		ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, 0, 0, (void **)&ptr);
 
-		// VKTODOLOW could deserialise directly into this ptr if we serialised
-		// size separately.
-		memcpy(ptr, data, dataSize);
+		size_t dummy = 0;
+		m_pSerialiser->SerialiseBuffer("data", ptr, dummy);
 
 		ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mem));
-
-		SAFE_DELETE_ARRAY(data);
 
 		m_CleanupMems.push_back(mem);
 
@@ -556,7 +550,8 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkImage *
 		ObjDisp(d)->MapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(contents.resource), 0, 0, 0, (void **)&ptr);
 
 		size_t dataSize = (size_t)state->totalSize;
-
+		
+		m_pSerialiser->Serialise("totalSize", state->totalSize);
 		m_pSerialiser->SerialiseBuffer("data", ptr, dataSize);
 
 		ObjDisp(d)->UnmapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(contents.resource));
@@ -667,11 +662,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkImage *
 			state->memDataOffs = NULL;
 		}
 		
-		byte *data = NULL;
-		size_t dataSize = 0;
-		m_pSerialiser->SerialiseBuffer("data", data, dataSize);
-
-		state->totalSize = (VkDeviceSize)dataSize;
+		m_pSerialiser->Serialise("totalSize", state->totalSize);
 
 		VkResult vkr = VK_SUCCESS;
 
@@ -679,23 +670,9 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkImage *
 
 		VkDeviceMemory mem = VK_NULL_HANDLE;
 
-		// VKTODOMED should get mem requirements for buffer - copy might enforce
-		// some restrictions?
-		VkMemoryRequirements mrq = { dataSize, 16, ~0U };
-
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-			dataSize, GetUploadMemoryIndex(mrq.memoryTypeBits),
-		};
-
-		vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &mem);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(d), mem);
-
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			dataSize, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
+			state->totalSize, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
@@ -705,6 +682,20 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkImage *
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(d), buf);
+		
+		VkMemoryRequirements mrq = { 0 };
+
+		ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(buf), &mrq);
+
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			mrq.size, GetUploadMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &mem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(d), mem);
 
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(buf), Unwrap(mem), 0);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -712,13 +703,10 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkImage *
 		byte *ptr = NULL;
 		ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, 0, 0, (void **)&ptr);
 
-		// VKTODOLOW could deserialise directly into this ptr if we serialised
-		// size separately.
-		memcpy(ptr, data, dataSize);
+		size_t dummy = 0;
+		m_pSerialiser->SerialiseBuffer("data", ptr, dummy);
 
 		ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mem));
-
-		SAFE_DELETE_ARRAY(data);
 
 		m_CleanupMems.push_back(mem);
 
@@ -1202,7 +1190,8 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			ObjDisp(d)->MapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(initContents.resource), 0, 0, 0, (void **)&ptr);
 
 			size_t dataSize = (size_t)initContents.num;
-
+			
+			m_pSerialiser->Serialise("dataSize", initContents.num);
 			m_pSerialiser->SerialiseBuffer("data", ptr, dataSize);
 
 			ObjDisp(d)->UnmapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(initContents.resource));
@@ -1346,9 +1335,8 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 				return Serialise_SparseInitialState(id, (WrappedVkImage *)NULL, VulkanResourceManager::InitialContentData());
 			}
 
-			byte *data = NULL;
-			size_t dataSize = 0;
-			m_pSerialiser->SerialiseBuffer("data", data, dataSize);
+			uint32_t dataSize = 0;
+			m_pSerialiser->Serialise("dataSize", dataSize);
 
 			WrappedVkImage *liveim = (WrappedVkImage *)res;
 
@@ -1390,13 +1378,10 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			byte *ptr = NULL;
 			ObjDisp(d)->MapMemory(Unwrap(d), uploadmem, 0, 0, 0, (void **)&ptr);
 
-			// VKTODOLOW could deserialise directly into this ptr if we serialised
-			// size separately.
-			memcpy(ptr, data, dataSize);
+			size_t dummy = 0;
+			m_pSerialiser->SerialiseBuffer("data", ptr, dummy);
 
 			ObjDisp(d)->UnmapMemory(Unwrap(d), uploadmem);
-
-			SAFE_DELETE_ARRAY(data);
 
 			// create image to copy into from the buffer
 			VkImageCreateInfo imInfo = {
@@ -1522,29 +1507,14 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			(void)isSparse;
 			RDCASSERT(!isSparse);
 
-			byte *data = NULL;
-			size_t dataSize = 0;
-			m_pSerialiser->SerialiseBuffer("data", data, dataSize);
+			uint32_t dataSize = 0;
+			m_pSerialiser->Serialise("dataSize", dataSize);
 
 			VkResult vkr = VK_SUCCESS;
 
 			VkDevice d = GetDev();
 
 			VkDeviceMemory mem = VK_NULL_HANDLE;
-
-			// VKTODOMED should get mem requirements for buffer - copy might enforce
-			// some restrictions?
-			VkMemoryRequirements mrq = { dataSize, 16, ~0U };
-
-			VkMemoryAllocInfo allocInfo = {
-				VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-				dataSize, GetUploadMemoryIndex(mrq.memoryTypeBits),
-			};
-
-			vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &mem);
-			RDCASSERT(vkr == VK_SUCCESS);
-
-			GetResourceManager()->WrapResource(Unwrap(d), mem);
 
 			VkBufferCreateInfo bufInfo = {
 				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
@@ -1558,6 +1528,20 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(d), buf);
+			
+			VkMemoryRequirements mrq = { 0 };
+
+			ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(buf), &mrq);
+
+			VkMemoryAllocInfo allocInfo = {
+				VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+				mrq.size, GetUploadMemoryIndex(mrq.memoryTypeBits),
+			};
+
+			vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &mem);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			GetResourceManager()->WrapResource(Unwrap(d), mem);
 
 			vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(buf), Unwrap(mem), 0);
 			RDCASSERT(vkr == VK_SUCCESS);
@@ -1565,13 +1549,10 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			byte *ptr = NULL;
 			ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, 0, 0, (void **)&ptr);
 
-			// VKTODOLOW could deserialise directly into this ptr if we serialised
-			// size separately.
-			memcpy(ptr, data, dataSize);
+			size_t dummy = 0;
+			m_pSerialiser->SerialiseBuffer("data", ptr, dummy);
 
 			ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mem));
-
-			SAFE_DELETE_ARRAY(data);
 
 			m_CleanupMems.push_back(mem);
 
