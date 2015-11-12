@@ -407,9 +407,10 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFramebuffer);
 			record->AddChunk(chunk);
 
-			RDCASSERT(pCreateInfo->attachmentCount < (uint32_t)ARRAY_COUNT(record->imageAttachments));
+			record->imageAttachments = new VkResourceRecord*[VkResourceRecord::MaxImageAttachments];
+			RDCASSERT(pCreateInfo->attachmentCount < VkResourceRecord::MaxImageAttachments);
 
-			RDCEraseEl(record->imageAttachments);
+			RDCEraseMem(record->imageAttachments, sizeof(ResourceId)*VkResourceRecord::MaxImageAttachments);
 
 			if(pCreateInfo->renderPass != VK_NULL_HANDLE)
 				record->AddParent(GetRecord(pCreateInfo->renderPass));

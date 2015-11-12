@@ -179,8 +179,9 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSetLayout);
 			record->AddChunk(chunk);
 
-			record->layout = new DescSetLayout();
-			record->layout->Init(GetResourceManager(), pCreateInfo);
+			record->descInfo = new DescriptorSetData();
+			record->descInfo->layout = new DescSetLayout();
+			record->descInfo->layout->Init(GetResourceManager(), pCreateInfo);
 		}
 		else
 		{
@@ -295,9 +296,9 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 					GetResourceManager()->MarkPendingDirty(id);
 			}
 
-			record->layout = new DescSetLayout();
-			*record->layout = *layoutRecord->layout;
-			record->layout->CreateBindingsArray(record->descBindings);
+			record->descInfo = new DescriptorSetData();
+			record->descInfo->layout = layoutRecord->descInfo->layout;
+			record->descInfo->layout->CreateBindingsArray(record->descInfo->descBindings);
 		}
 		else
 		{
@@ -571,12 +572,12 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 		for(uint32_t i=0; i < writeCount; i++)
 		{
 			VkResourceRecord *record = GetRecord(pDescriptorWrites[i].destSet);
-			RDCASSERT(record->layout);
-			const DescSetLayout &layout = *record->layout;
+			RDCASSERT(record->descInfo && record->descInfo->layout);
+			const DescSetLayout &layout = *record->descInfo->layout;
 
-			RDCASSERT(pDescriptorWrites[i].destBinding < record->descBindings.size());
+			RDCASSERT(pDescriptorWrites[i].destBinding < record->descInfo->descBindings.size());
 			
-			VkDescriptorInfo *binding = record->descBindings[pDescriptorWrites[i].destBinding];
+			VkDescriptorInfo *binding = record->descInfo->descBindings[pDescriptorWrites[i].destBinding];
 
 			FrameRefType ref = eFrameRef_Write;
 

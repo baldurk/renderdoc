@@ -645,9 +645,6 @@ VkResult WrappedVulkan::vkBindImageMemory(
 		// Anything that looks up a baseResource for an image knows not to chase further
 		// than the image.
 		record->baseResource = GetResID(mem);
-
-		record->mem = mem;
-		record->memOffset = memOffset;
 	}
 
 	return ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(mem), memOffset);
@@ -885,7 +882,6 @@ VkResult WrappedVulkan::vkCreateBuffer(
 			if(pCreateInfo->flags & (VK_BUFFER_CREATE_SPARSE_BINDING_BIT|VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT))
 			{
 				record->sparseInfo = new SparseMapping();
-				record->sparseOwner = true;
 
 				// buffers are always bound opaquely and in arbitrary divisions, sparse residency
 				// only means not all the buffer needs to be bound, which is not that interesting for
@@ -1086,7 +1082,6 @@ VkResult WrappedVulkan::vkCreateImage(
 			if(pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT|VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT))
 			{
 				record->sparseInfo = new SparseMapping();
-				record->sparseOwner = true;
 				
 				{
 					SCOPED_LOCK(m_CapTransitionLock);

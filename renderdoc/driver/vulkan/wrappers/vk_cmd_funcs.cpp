@@ -289,6 +289,7 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(
 			record->bakedCommands->Delete(GetResourceManager());
 
 		record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+		record->bakedCommands->Resource = (WrappedVkRes *)cmdBuffer;
 		record->bakedCommands->cmdInfo = new CmdBufferRecordingInfo();
 
 		record->bakedCommands->cmdInfo->device = record->cmdInfo->device;
@@ -601,9 +602,10 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 		VkResourceRecord *fb = GetRecord(pRenderPassBegin->framebuffer);
 		
 		record->MarkResourceFrameReferenced(fb->GetResourceID(), eFrameRef_Read);
-		for(size_t i=0; i < ARRAY_COUNT(fb->imageAttachments); i++)
+		for(size_t i=0; i < VkResourceRecord::MaxImageAttachments; i++)
 		{
 			if(fb->imageAttachments[i] == NULL) break;
+
 			record->MarkResourceFrameReferenced(fb->imageAttachments[i]->baseResource, eFrameRef_Write);
 			if(fb->imageAttachments[i]->baseResourceMem != ResourceId())
 				record->MarkResourceFrameReferenced(fb->imageAttachments[i]->baseResourceMem, eFrameRef_Read);

@@ -623,6 +623,34 @@ struct CmdBufferRecordingInfo
 	vector<VkResourceRecord *> subcmds;
 };
 
+struct DescSetLayout;
+
+struct DescriptorSetData
+{
+	DescriptorSetData() : layout(NULL) {}
+
+	~DescriptorSetData()
+	{
+		for(size_t i=0; i < descBindings.size(); i++)
+			delete[] descBindings[i];
+		descBindings.clear();
+	}
+
+	DescSetLayout *layout;
+
+	// descriptor set bindings for this descriptor set. Filled out on
+	// create from the layout.
+	vector<VkDescriptorInfo *> descBindings;
+
+	// contains the framerefs (ref counted) for the bound resources
+	// in the binding slots. Updated when updating descriptor sets
+	// and then applied in a block on descriptor set bind.
+	// the refcount has the high-bit set if this resource has sparse
+	// mapping information
+	static const uint32_t SPARSE_REF_BIT = 0x80000000;
+	map<ResourceId, pair<uint32_t, FrameRefType> > bindFrameRefs;
+};
+
 struct MemMapState
 {
 	MemMapState()
@@ -636,8 +664,6 @@ struct MemMapState
 	byte *refData;
 };
 
-struct DescSetLayout;
-
 struct VkResourceRecord : public ResourceRecord
 {
 	public:
@@ -649,16 +675,8 @@ struct VkResourceRecord : public ResourceRecord
 			ResourceRecord(id, true),
 			bakedCommands(NULL),
 			pool(NULL),
-			mem(VK_NULL_HANDLE),
-			memOffset(0),
-			memProps(NULL),
 			memIdxMap(NULL),
-			sparseOwner(false),
-			sparseInfo(NULL),
-			layout(NULL),
-			swapInfo(NULL),
-			cmdInfo(NULL),
-			memMapState(NULL)
+			ptrunion(NULL)
 		{
 		}
 
@@ -683,16 +701,16 @@ struct VkResourceRecord : public ResourceRecord
 				return;
 			}
 
-			if((bindFrameRefs[id].first&~SPARSE_REF_BIT) == 0)
+			if((descInfo->bindFrameRefs[id].first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
 			{
-				bindFrameRefs[id] = std::make_pair(1 | (hasSparse ? SPARSE_REF_BIT : 0), ref);
+				descInfo->bindFrameRefs[id] = std::make_pair(1 | (hasSparse ? DescriptorSetData::SPARSE_REF_BIT : 0), ref);
 			}
 			else
 			{
 				// be conservative - mark refs as read before write if we see a write and a read ref on it
-				if(ref == eFrameRef_Write && bindFrameRefs[id].second == eFrameRef_Read)
-					bindFrameRefs[id].second = eFrameRef_ReadBeforeWrite;
-				bindFrameRefs[id].first++;
+				if(ref == eFrameRef_Write && descInfo->bindFrameRefs[id].second == eFrameRef_Read)
+					descInfo->bindFrameRefs[id].second = eFrameRef_ReadBeforeWrite;
+				descInfo->bindFrameRefs[id].first++;
 			}
 		}
 
@@ -702,26 +720,29 @@ struct VkResourceRecord : public ResourceRecord
 			// deleted since it was bound.
 			if(id == ResourceId()) return;
 
-			auto it = bindFrameRefs.find(id);
+			auto it = descInfo->bindFrameRefs.find(id);
 			
 			// in the case of re-used handles bound to descriptor sets,
 			// it's possible to try and remove a frameref on something we
 			// don't have (which means we'll have a corresponding stale ref)
 			// but this is harmless so we can ignore it.
-			if(it == bindFrameRefs.end()) return;
+			if(it == descInfo->bindFrameRefs.end()) return;
 
 			it->second.first--;
 			
-			if((it->second.first & ~SPARSE_REF_BIT) == 0)
-				bindFrameRefs.erase(it);
+			if((it->second.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
+				descInfo->bindFrameRefs.erase(it);
 		}
 
+		// we have a lot of 'cold' data in the resource record, as it can be accessed
+		// through the wrapped objects without locking any lookup structures.
+		// To save on object size, the data is union'd as much as possible where only
+		// one type of object's record will contain some data, disjoint with another.
+		// Some of these are pointers to resource-specific data (often STL structures),
+		// which means a lot of pointer chasing - need to determine if this is a
+		// performance issue
+
 		WrappedVkRes *Resource;
-
-		VkDeviceMemory mem;
-		VkDeviceSize memOffset;
-
-		VkPhysicalDeviceMemoryProperties *memProps;
 
 		// externally allocated/freed, a mapping from memory idx
 		// in our modified properties that were passed to the app
@@ -732,38 +753,32 @@ struct VkResourceRecord : public ResourceRecord
 		// ie. the resource that can be modified or changes (or can become dirty)
 		// since typical memory bindings are immutable and must happen before
 		// creation or use, this can always be determined
-		bool sparseOwner;
 		ResourceId baseResource;
 		ResourceId baseResourceMem; // for image views, we need to point to both the image and mem
-		SparseMapping *sparseInfo;
 
-		// framebuffers are the only object that can point to multiple resources
-		// (as each attachment has an image).
-		VkResourceRecord *imageAttachments[8];
-	
+		// these are all disjoint, so only a record of the right type will have each
+		// Note some of these need to be deleted in the constructor, so we check the
+		// allocation type of the Resource
+		union
+		{
+			void *ptrunion;                               // for initialisation to NULL
+			VkPhysicalDeviceMemoryProperties *memProps;   // only for physical devices
+			SparseMapping *sparseInfo;                    // only for buffers, images, and views of them
+			SwapchainInfo *swapInfo;                      // only for swapchains
+			MemMapState *memMapState;                     // only for device memory
+			CmdBufferRecordingInfo *cmdInfo;              // only for command buffers
+			VkResourceRecord **imageAttachments;          // only for framebuffers
+			DescriptorSetData *descInfo;                  // only for descriptor sets and descriptor set layouts
+		};
+
 		VkResourceRecord *bakedCommands;
 
-		SwapchainInfo *swapInfo;
-		CmdBufferRecordingInfo *cmdInfo;
-		MemMapState *memMapState;
+		static const int MaxImageAttachments = 8;
 
 		// pointer to either the pool this item is allocated from, or the children allocated
 		// from this pool. Protected by the chunk lock 
 		VkResourceRecord *pool;
 		vector<VkResourceRecord *> pooledChildren;
-
-		// descriptor set bindings for this descriptor set. Filled out on
-		// create from the layout.
-		DescSetLayout *layout;
-		vector<VkDescriptorInfo *> descBindings;
-
-		// contains the framerefs (ref counted) for the bound resources
-		// in the binding slots. Updated when updating descriptor sets
-		// and then applied in a block on descriptor set bind.
-		// the refcount has the high-bit set if this resource has sparse
-		// mapping information
-		static const uint32_t SPARSE_REF_BIT = 0x80000000;
-		map<ResourceId, pair<uint32_t, FrameRefType> > bindFrameRefs;
 };
 
 struct ImageLayouts

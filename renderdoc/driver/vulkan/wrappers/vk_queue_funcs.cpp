@@ -395,12 +395,12 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 				VkResourceRecord *setrecord = GetRecord(*it);
 
-				for(auto refit = setrecord->bindFrameRefs.begin(); refit != setrecord->bindFrameRefs.end(); ++refit)
+				for(auto refit = setrecord->descInfo->bindFrameRefs.begin(); refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
 				{
 					refdIDs.insert(refit->first);
 					GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
 
-					if(refit->second.first & VkResourceRecord::SPARSE_REF_BIT)
+					if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
 					{
 						VkResourceRecord *record = GetResourceManager()->GetResourceRecord(refit->first);
 

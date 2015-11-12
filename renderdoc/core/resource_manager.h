@@ -261,17 +261,17 @@ struct ResourceRecord
 
 	int32_t Length;
 	
-	int UpdateCount : 29;
-	bool DataInSerialiser : 1;
-	bool SpecialResource : 1; // like the swap chain back buffers
-	bool DataWritten : 1;
+	int UpdateCount;
+	bool DataInSerialiser;
+	bool SpecialResource; // like the swap chain back buffers
+	bool DataWritten;
 
 protected:
+	int RefCount;
+
 	byte *DataPtr;
 	uint64_t DataOffset;
 	
-	int RefCount;
-
 	ResourceId ResID;
 
 	std::set<ResourceRecord*> Parents;
@@ -282,11 +282,11 @@ protected:
 
 		return Atomic::Inc32(&globalIDCounter);
 	}
-
-	map<ResourceId, FrameRefType> m_FrameRefs;
 	
 	std::map<int32_t, Chunk *> m_Chunks;
 	Threading::CriticalSection *m_ChunkLock;
+
+	map<ResourceId, FrameRefType> m_FrameRefs;
 };
 
 // the resource manager is a utility class that's not required but is likely wanted by any API implementation.

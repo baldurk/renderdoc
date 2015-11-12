@@ -488,25 +488,38 @@ uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat F
 
 VkResourceRecord::~VkResourceRecord()
 {
-	for(size_t i=0; i < descBindings.size(); i++)
-		delete[] descBindings[i];
-	descBindings.clear();
+	VkResourceType resType = IdentifyTypeByPtr(Resource);
+	
+	if(resType == eResPhysicalDevice)
+		SAFE_DELETE(memProps);
 
-	SAFE_DELETE(memProps);
+	// bufferviews and imageviews have non-owning pointers to the sparseinfo struct
+	if(resType == eResBuffer || resType == eResImage)
+		SAFE_DELETE(sparseInfo);
 
-	SAFE_DELETE(layout);
-	SAFE_DELETE(swapInfo);
-	SAFE_DELETE(cmdInfo);
-	if(memMapState)
+	if(resType == eResSwapchain)
+		SAFE_DELETE(swapInfo);
+
+	if(resType == eResDeviceMemory && memMapState)
 	{
 		Serialiser::FreeAlignedBuffer(memMapState->refData);
 		
 		SAFE_DELETE(memMapState);
 	}
-	if(sparseOwner)
-	{
-		SAFE_DELETE(sparseInfo);
-	}
+
+	if(resType == eResCmdBuffer)
+		SAFE_DELETE(cmdInfo);
+
+	if(resType == eResFramebuffer)
+		SAFE_DELETE(imageAttachments);
+
+	// only the descriptor set layout actually owns this pointer, descriptor sets
+	// have a pointer to it but don't own it
+	if(resType == eResDescriptorSetLayout)
+		SAFE_DELETE(descInfo->layout);
+	
+	if(resType == eResDescriptorSetLayout || resType == eResDescriptorSet)
+		SAFE_DELETE(descInfo);
 }
 
 void SparseMapping::Update(uint32_t numBindings, const VkSparseImageMemoryBindInfo *pBindings)

@@ -936,8 +936,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 	if(type == eResDescriptorSet)
 	{
 		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-		RDCASSERT(record->layout);
-		const DescSetLayout &layout = *record->layout;
+		RDCASSERT(record->descInfo && record->descInfo->layout);
+		const DescSetLayout &layout = *record->descInfo->layout;
 
 		uint32_t numElems = 0;
 		for(size_t i=0; i < layout.bindings.size(); i++)
@@ -949,7 +949,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		uint32_t e=0;
 		for(size_t i=0; i < layout.bindings.size(); i++)
 			for(uint32_t b=0; b < layout.bindings[i].arraySize; b++)
-				info[e++] = record->descBindings[i][b];
+				info[e++] = record->descInfo->descBindings[i][b];
 
 		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, 0, (byte *)info));
 		return true;
@@ -1229,8 +1229,8 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 		if(type == eResDescriptorSet)
 		{
 			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-			RDCASSERT(record->layout);
-			const DescSetLayout &layout = *record->layout;
+			RDCASSERT(record->descInfo && record->descInfo->layout);
+			const DescSetLayout &layout = *record->descInfo->layout;
 
 			VkDescriptorInfo *info = (VkDescriptorInfo *)initContents.blob;
 
