@@ -26,7 +26,6 @@ Known Issues
 
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
 * Sparse images with mips or array slices will not properly replay
-* Stepping inside vkCmdExecuteCommands
 * Only 2D non-array non-integer textures can currently be displayed.
 * Auto texture range-fit or histogram display is not implemented.
 * Debug overlays other than drawcall highlight and wireframe aren't implemented.
@@ -41,6 +40,7 @@ Future work, post 1.0
 In no particular order, features that are not planned until after 1.0.
 
 * More than one VkInstance/VkDevice/VkQueue triple
+* Stepping inside vkCmdExecuteCommands
 * Support for replaying captures on a different machine to where they were captured
 * Shader debugging
 * Pixel history
