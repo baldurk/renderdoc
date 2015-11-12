@@ -124,8 +124,7 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 {
 	if(res == NULL) return true;
 
-	// VKTODOLOW - this will break if we have multiple devices and resources from each,
-	// but that will likely break other things too.
+	// MULTIDEVICE need to get the actual device that created this object
 	VkDevice dev = GetDev();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 

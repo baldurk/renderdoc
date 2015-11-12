@@ -496,7 +496,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		
 		InitDeviceReplayTables(Unwrap(device));
 
-		RDCASSERT(m_Device == VK_NULL_HANDLE); // VKTODOLOW multiple devices are not supported
+		RDCASSERT(m_Device == VK_NULL_HANDLE); // MULTIDEVICE
 
 		m_Device = device;
 
@@ -648,7 +648,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 		VkDevice device = *pDevice;
 
-		RDCASSERT(m_Device == VK_NULL_HANDLE); // VKTODOLOW multiple devices are not supported
+		RDCASSERT(m_Device == VK_NULL_HANDLE); // MULTIDEVICE
 
 		m_Device = device;
 
@@ -689,10 +689,10 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device)
 	SubmitCmds();
 	FlushQ();
 	
-	// VKTODOLOW handle multiple devices - this function will need to check
-	// if the device is the one we used for debugmanager/cmd pool etc, and
-	// only remove child queues and resources (instead of doing full resource
-	// manager shutdown)
+	// MULTIDEVICE this function will need to check if the device is the one we
+	// used for debugmanager/cmd pool etc, and only remove child queues and
+	// resources (instead of doing full resource manager shutdown).
+	// Or will we have a debug manager per-device?
 	RDCASSERT(m_Device == device);
 
 	// delete all debug manager objects

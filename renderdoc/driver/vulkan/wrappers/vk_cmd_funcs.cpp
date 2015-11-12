@@ -98,7 +98,6 @@ VkResult WrappedVulkan::vkResetCommandPool(
 			VkCmdPool                                   cmdPool,
 			VkCmdPoolResetFlags                         flags)
 {
-	// VKTODOMED do I need to serialise this? just a driver hint..
 	return ObjDisp(device)->ResetCommandPool(device, cmdPool, flags);
 }
 
@@ -715,7 +714,6 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(
 		{
 			cmdBuffer = PartialCmdBuf();
 			
-			// VKTODOHIGH proper handling of partial sub-executes
 			ObjDisp(cmdBuffer)->CmdExecuteCommands(Unwrap(cmdBuffer), count, &cmds[0]);
 		}
 	}
@@ -727,7 +725,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(
 
 		const string desc = localSerialiser->GetDebugStr();
 
-		AddEvent(NEXT_SUBPASS, desc);
+		AddEvent(EXEC_CMDS, desc);
 		FetchDrawcall draw;
 		draw.name = "vkCmdExecuteCommands()";
 		draw.flags |= eDraw_CmdList;

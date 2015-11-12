@@ -78,7 +78,7 @@ void InitDeviceReplayTables(VkDevice device)
 	VkLayerDispatchTable *table = GetDeviceDispatchTable(NULL);
 	RDCASSERT(table);
 	
-	// VKTODOLOW this won't work with multiple devices - will need a replay device table for each
+	// MULTIDEVICE each device will need a replay table
 
 #define DeviceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetDeviceProcAddr(device, STRINGIZE(CONCAT(vk, func)));
 	

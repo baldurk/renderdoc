@@ -1134,9 +1134,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkDeviceMemory readbackmem = VK_NULL_HANDLE;
 		
-		// VKTODOMED we just dump the backing memory for this image via an aliased buffer
-		// copy, instead of doing a proper copy from image to buffer, which would be
-		// independent of the image memory layout and do any unswizzling/untiling
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
 			0, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,

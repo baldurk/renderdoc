@@ -41,6 +41,9 @@
 // available identically on replay (which will be the case for 95% of cases). As
 // well as handling pNext being non-NULL which won't happen until extensions
 // come around.
+//
+// MULTIDEVICE - parts of the code that will need to be updated to support
+// multiple devices or queues.
 
 
 #include "common/common.h"

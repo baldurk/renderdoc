@@ -257,7 +257,7 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
 				// to get images into the right layout
 				t.inputMask = 0;
 				t.outputMask = 0;
-				// VKTODOLOW need to handle multiple queues better than this maybe
+				// MULTIDEVICE need to handle multiple queues
 				t.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				t.destQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
@@ -327,7 +327,6 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 		if(nummips == VK_REMAINING_MIP_LEVELS) nummips = states[id].mipLevels;
 		if(numslices == VK_REMAINING_ARRAY_LAYERS) numslices = states[id].arraySize;
 
-		// VKTODOLOW check, does this mean the sensible thing?
 		if(nummips == 0) nummips = 1;
 		if(numslices == 0) numslices = 1;
 

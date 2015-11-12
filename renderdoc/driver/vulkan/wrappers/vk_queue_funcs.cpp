@@ -481,8 +481,8 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 				if(found)
 				{
-					// VKTODOLOW won't work with multiple devices - maybe find device for the specified queue?
-					// we probably only want to flush maps associated with this queue anyway
+					// MULTIDEVICE should find the device for this queue.
+					// MULTIDEVICE only want to flush maps associated with this queue
 					VkDevice dev = GetDev();
 
 					{
