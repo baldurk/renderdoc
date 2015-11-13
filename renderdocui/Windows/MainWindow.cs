@@ -595,13 +595,13 @@ namespace renderdocui.Windows
                 LoadSaveLayout((ToolStripItem)sender, false);
         }
 
-        private void SetTitle()
+        private void SetTitle(string filename)
         {
             string prefix = "";
 
             if (m_Core != null && m_Core.LogLoaded)
             {
-                prefix = Path.GetFileName(m_Core.LogFileName);
+                prefix = Path.GetFileName(filename);
                 if (m_Core.APIProps.degraded)
                     prefix += " !DEGRADED PERFORMANCE!";
                 if (m_RemoteReplay.Length > 0)
@@ -616,6 +616,11 @@ namespace renderdocui.Windows
                 Text += String.Format("{0}-beta - {1}", VersionString, GitCommitHash);
             else
                 Text += String.Format("Unofficial release ({0} - {1})", VersionString, GitCommitHash);
+        }
+
+        private void SetTitle()
+        {
+            SetTitle(m_Core != null ? m_Core.LogFileName : "");
         }
 
         #endregion
@@ -1241,6 +1246,7 @@ namespace renderdocui.Windows
                     // we copy the (possibly) temp log to the desired path, but the log item remains referring to the original path.
                     // This ensures that if the user deletes the saved path we can still open or re-save it.
                     File.Copy(m_Core.LogFileName, saveDialog.FileName, true);
+                    SetTitle(saveDialog.FileName);
                 }
                 catch (System.Exception ex)
                 {
