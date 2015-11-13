@@ -73,7 +73,8 @@ VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), hei
 	bbview = VK_NULL_HANDLE;
 	fb = VK_NULL_HANDLE;
 	fbdepth = VK_NULL_HANDLE;
-	renderpass = VK_NULL_HANDLE;
+	rp = VK_NULL_HANDLE;
+	rpdepth = VK_NULL_HANDLE;
 
 	VkImageMemoryBarrier t = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -89,9 +90,6 @@ VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), hei
 
 	t.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	depthtrans = t;
-
-	t.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-	stenciltrans = t;
 }
 
 void VulkanReplay::OutputWindow::SetCol(VkDeviceMemory mem, VkImage img)
@@ -110,9 +108,9 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	
 	if(bb != VK_NULL_HANDLE)
 	{
-		vt->DestroyRenderPass(Unwrap(device), Unwrap(renderpass));
-		GetResourceManager()->ReleaseWrappedResource(renderpass);
-		renderpass = VK_NULL_HANDLE;
+		vt->DestroyRenderPass(Unwrap(device), Unwrap(rp));
+		GetResourceManager()->ReleaseWrappedResource(rp);
+		rp = VK_NULL_HANDLE;
 		
 		vt->DestroyImage(Unwrap(device), Unwrap(bb));
 		GetResourceManager()->ReleaseWrappedResource(bb);
@@ -140,15 +138,25 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 
 	if(dsimg != VK_NULL_HANDLE)
 	{
-		vt->DestroyImageView(Unwrap(device), Unwrap(dsview));
+		vt->DestroyRenderPass(Unwrap(device), Unwrap(rpdepth));
+		GetResourceManager()->ReleaseWrappedResource(rpdepth);
+		rpdepth = VK_NULL_HANDLE;
+		
 		vt->DestroyImage(Unwrap(device), Unwrap(dsimg));
+		GetResourceManager()->ReleaseWrappedResource(dsimg);
+		
+		vt->DestroyImageView(Unwrap(device), Unwrap(dsview));
+		GetResourceManager()->ReleaseWrappedResource(dsview);
 		vt->FreeMemory(Unwrap(device), Unwrap(dsmem));
+		GetResourceManager()->ReleaseWrappedResource(dsmem);
 		vt->DestroyFramebuffer(Unwrap(device), Unwrap(fbdepth));
+		GetResourceManager()->ReleaseWrappedResource(fbdepth);
 		
 		dsview = VK_NULL_HANDLE;
 		dsimg = VK_NULL_HANDLE;
 		dsmem = VK_NULL_HANDLE;
 		fbdepth = VK_NULL_HANDLE;
+		rpdepth = VK_NULL_HANDLE;
 	}
 
 	if(swap != VK_NULL_HANDLE)
@@ -304,24 +312,74 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 	if(depth)
 	{
-		VULKANNOTIMP("Allocating depth-stencil image");
+		VkImageCreateInfo imInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_IMAGE_TYPE_2D, VK_FORMAT_D32_SFLOAT,
+			{ width, height, 1 },
+			1, 1, 1,
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT|VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+			0, VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+		};
 
-		/*
-		dsmem = mem;
-		dsimg = img;
-		depthtrans.image = stenciltrans.image = img;
-		depthtrans.oldLayout = depthtrans.newLayout = 
-			stenciltrans.oldLayout = stenciltrans.newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		*/
+		VkResult vkr = vt->CreateImage(Unwrap(device), &imInfo, &dsimg);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(device), dsimg);
+
+		VkMemoryRequirements mrq = {0};
+
+		vkr = vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(dsimg), &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		vkr = vt->AllocMemory(Unwrap(device), &allocInfo, &dsmem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(device), dsmem);
+
+		vkr = vt->BindImageMemory(Unwrap(device), Unwrap(dsimg), Unwrap(dsmem), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		depthtrans.image = Unwrap(dsimg);
+		depthtrans.oldLayout = depthtrans.newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		
+		VkImageViewCreateInfo info = {
+			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+			Unwrap(dsimg), VK_IMAGE_VIEW_TYPE_2D,
+			VK_FORMAT_D32_SFLOAT,
+			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 },
+			0
+		};
+
+		vkr = vt->CreateImageView(Unwrap(device), &info, &dsview);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(device), dsview);
 	}
 
 	{
-		VkAttachmentDescription attDesc = {
-			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-			imformat, 1,
-			VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
-			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		VkAttachmentDescription attDesc[] = {
+			{
+				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
+				imformat, 1,
+				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			},
+			{
+				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
+				VK_FORMAT_D32_SFLOAT, 1,
+				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+			}
 		};
 
 		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
@@ -338,15 +396,28 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 		VkRenderPassCreateInfo rpinfo = {
 				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
-				1, &attDesc,
+				1, attDesc,
 				1, &sub,
 				0, NULL, // dependencies
 		};
 
-		vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, &renderpass);
+		vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, &rp);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		GetResourceManager()->WrapResource(Unwrap(device), renderpass);
+		GetResourceManager()->WrapResource(Unwrap(device), rp);
+
+		if(dsimg != VK_NULL_HANDLE)
+		{
+			sub.depthStencilAttachment.attachment = 1;
+			sub.depthStencilAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			rpinfo.attachmentCount = 2;
+
+			vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, &rpdepth);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			GetResourceManager()->WrapResource(Unwrap(device), rpdepth);
+		}
 	}
 
 	{
@@ -355,7 +426,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			VK_IMAGE_TYPE_2D, imformat, { width, height, 1 },
 			1, 1, 1,
 			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			0, VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
@@ -404,7 +475,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 		VkFramebufferCreateInfo fbinfo = {
 			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
-			Unwrap(renderpass),
+			Unwrap(rp),
 			1, UnwrapPtr(bbview),
 			(uint32_t)width, (uint32_t)height, 1,
 		};
@@ -413,23 +484,22 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(device), fb);
-	}
 
-	if(dsimg != VK_NULL_HANDLE)
-	{
-		VkImageViewCreateInfo info = {
-			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-			Unwrap(dsimg), VK_IMAGE_VIEW_TYPE_2D,
-			VK_FORMAT_D32_SFLOAT_S8_UINT,
-			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 },
-			0
-		};
+		if(dsimg != VK_NULL_HANDLE)
+		{
+			VkImageView views[] = { Unwrap(bbview), Unwrap(dsview) };
+			VkFramebufferCreateInfo fbinfo = {
+				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
+				Unwrap(rpdepth),
+				2, views,
+				(uint32_t)width, (uint32_t)height, 1,
+			};
 
-		vkr = vt->CreateImageView(Unwrap(device), &info, &dsview);
-		RDCASSERT(vkr == VK_SUCCESS);
+			vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, &fbdepth);
+			RDCASSERT(vkr == VK_SUCCESS);
 
-		GetResourceManager()->WrapResource(Unwrap(device), dsview);
+			GetResourceManager()->WrapResource(Unwrap(device), fbdepth);
+		}
 	}
 }
 
@@ -811,7 +881,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	VkClearValue clearval = {0};
 	VkRenderPassBeginInfo rpbegin = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-		Unwrap(outw.renderpass), Unwrap(outw.fb),
+		Unwrap(outw.rp), Unwrap(outw.fb),
 		{ { 0, 0, }, { m_DebugWidth, m_DebugHeight } },
 		1, &clearval,
 	};
@@ -1054,7 +1124,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		VkClearValue clearval = {0};
 		VkRenderPassBeginInfo rpbegin = {
 			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-			Unwrap(outw.renderpass), Unwrap(outw.fb),
+			Unwrap(outw.rp), Unwrap(outw.fb),
 			{ { 0, 0, }, { m_DebugWidth, m_DebugHeight } },
 			1, &clearval,
 		};
@@ -1109,7 +1179,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 		VkClearValue clearval = {0};
 		VkRenderPassBeginInfo rpbegin = {
 			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-			Unwrap(outw.renderpass), Unwrap(outw.fb),
+			Unwrap(outw.rp), Unwrap(outw.fb),
 			{ { 0, 0, }, { m_DebugWidth, m_DebugHeight } },
 			1, &clearval,
 		};
@@ -1225,13 +1295,17 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	void *barrier[] = {
 		(void *)&outw.bbtrans,
 		(void *)&outw.coltrans[outw.curidx],
+		(void *)&outw.depthtrans,
 	};
+
+	outw.depthtrans.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	
 	outw.bbtrans.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	outw.coltrans[outw.curidx].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
 
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, depth ? 3 : 2, barrier);
 
+	outw.depthtrans.oldLayout = outw.depthtrans.newLayout;
 	outw.bbtrans.oldLayout = outw.bbtrans.newLayout;
 	outw.coltrans[outw.curidx].oldLayout = outw.coltrans[outw.curidx].newLayout;
 
@@ -1262,9 +1336,26 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 
 void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
 {
-	VULKANNOTIMP("ClearOutputWindowDepth");
+	auto it = m_OutputWindows.find(id);
+	if(id == 0 || it == m_OutputWindows.end())
+		return;
 
-	// VKTODOMED: same as ClearOutputWindowColour but do a depth clear
+	OutputWindow &outw = it->second;
+
+	VkDevice dev = m_pDriver->GetDev();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	VkClearDepthStencilValue ds = { depth, stencil };
+
+	vt->CmdClearDepthStencilImage(Unwrap(cmd), Unwrap(outw.dsimg), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &ds, 1, &outw.depthtrans.subresourceRange);
+
+	vt->EndCommandBuffer(Unwrap(cmd));
 }
 
 void VulkanReplay::FlipOutputWindow(uint64_t id)

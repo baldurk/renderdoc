@@ -193,14 +193,13 @@ class VulkanReplay : public IReplayDriver
 			VkDeviceMemory bbmem;
 			VkImageMemoryBarrier bbtrans;
 			VkFramebuffer fb, fbdepth;
-			VkRenderPass renderpass;
+			VkRenderPass rp, rpdepth;
 			uint32_t curidx;
 
 			VkImage dsimg;
 			VkDeviceMemory dsmem;
 			VkImageView dsview;
 			VkImageMemoryBarrier depthtrans;
-			VkImageMemoryBarrier stenciltrans;
 
 			VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
 			VulkanResourceManager *m_ResourceManager;
