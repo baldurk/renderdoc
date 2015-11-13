@@ -457,16 +457,22 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		GetEmbeddedResource(textfs_spv),
 		GetEmbeddedResource(genericvs_spv),
 		GetEmbeddedResource(genericfs_spv),
+		GetEmbeddedResource(meshvs_spv),
+		GetEmbeddedResource(meshgs_spv),
+		GetEmbeddedResource(meshfs_spv),
 	};
 
-	bool vtxShader[] = {
-		true,
-		false,
-		false,
-		true,
-		false,
-		true,
-		false,
+	VkShaderStage shaderStages[] = {
+		VK_SHADER_STAGE_VERTEX,
+		VK_SHADER_STAGE_FRAGMENT,
+		VK_SHADER_STAGE_FRAGMENT,
+		VK_SHADER_STAGE_VERTEX,
+		VK_SHADER_STAGE_FRAGMENT,
+		VK_SHADER_STAGE_VERTEX,
+		VK_SHADER_STAGE_FRAGMENT,
+		VK_SHADER_STAGE_VERTEX,
+		VK_SHADER_STAGE_GEOMETRY,
+		VK_SHADER_STAGE_FRAGMENT,
 	};
 	
 	enum shaderIdx
@@ -478,7 +484,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		TEXTFS,
 		GENERICVS,
 		GENERICFS,
+		MESHVS,
+		MESHGS,
+		MESHFS,
+		NUM_SHADERS,
 	};
+
+	RDCCOMPILE_ASSERT( ARRAY_COUNT(shaderSources) == ARRAY_COUNT(shaderStages), "Mismatched arrays!" );
+	RDCCOMPILE_ASSERT( ARRAY_COUNT(shaderSources) == NUM_SHADERS, "Mismatched arrays!" );
 
 	VkShaderModule module[ARRAY_COUNT(shaderSources)];
 	VkShader shader[ARRAY_COUNT(shaderSources)];
@@ -498,7 +511,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VkShaderCreateInfo shadinfo = {
 			VK_STRUCTURE_TYPE_SHADER_CREATE_INFO, NULL,
 			Unwrap(module[i]), "main", 0,
-			vtxShader[i] ? VK_SHADER_STAGE_VERTEX : VK_SHADER_STAGE_FRAGMENT,
+			shaderStages[i],
 		};
 
 		vkr = vt->CreateShader(Unwrap(dev), &shadinfo, &shader[i]);
@@ -704,11 +717,31 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
-		vt->DestroyShader(Unwrap(dev), Unwrap(shader[i]));
-		GetResourceManager()->ReleaseWrappedResource(shader[i]);
-		
-		vt->DestroyShaderModule(Unwrap(dev), Unwrap(module[i]));
-		GetResourceManager()->ReleaseWrappedResource(module[i]);
+		// hold onto the mesh shaders/modules as we create these
+		// pipelines later
+		if(i == MESHVS)
+		{
+			m_MeshShaders[0] = shader[i];
+			m_MeshModules[0] = module[i];
+		}
+		else if(i == MESHGS)
+		{
+			m_MeshShaders[1] = shader[i];
+			m_MeshModules[1] = module[i];
+		}
+		else if(i == MESHFS)
+		{
+			m_MeshShaders[2] = shader[i];
+			m_MeshModules[2] = module[i];
+		}
+		else
+		{
+			vt->DestroyShader(Unwrap(dev), Unwrap(shader[i]));
+			GetResourceManager()->ReleaseWrappedResource(shader[i]);
+
+			vt->DestroyShaderModule(Unwrap(dev), Unwrap(module[i]));
+			GetResourceManager()->ReleaseWrappedResource(module[i]);
+		}
 	}
 
 	VkCmdBuffer cmd = driver->GetNextCmd();
@@ -1036,6 +1069,15 @@ VulkanDebugManager::~VulkanDebugManager()
 	// since we don't have properly registered resources, releasing our descriptor
 	// pool here won't remove the descriptor sets, so we need to free our own
 	// tracking data (not the API objects) for descriptor sets.
+
+	for(size_t i=0; i < ARRAY_COUNT(m_MeshModules); i++)
+	{
+		vt->DestroyShader(Unwrap(dev), Unwrap(m_MeshShaders[i]));
+		GetResourceManager()->ReleaseWrappedResource(m_MeshShaders[i]);
+
+		vt->DestroyShaderModule(Unwrap(dev), Unwrap(m_MeshModules[i]));
+		GetResourceManager()->ReleaseWrappedResource(m_MeshModules[i]);
+	}
 	
 	GetResourceManager()->ReleaseWrappedResource(m_CheckerboardDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_GenericDescSet);

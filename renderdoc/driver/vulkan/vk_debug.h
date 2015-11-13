@@ -137,6 +137,8 @@ class VulkanDebugManager
 		VkRenderPass m_OverlayNoDepthRP;
 		VkExtent2D m_OverlayDim;
 		VkDeviceSize m_OverlayMemSize;
+		VkShader m_MeshShaders[3];
+		VkShaderModule m_MeshModules[3];
 
 	private:
 		void InitDebugData();
