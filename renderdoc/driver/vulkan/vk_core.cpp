@@ -1886,7 +1886,7 @@ void WrappedVulkan::DebugCallback(
 				const char*         pLayerPrefix,
 				const char*         pMsg)
 {
-	RDCWARN("debug message:\n%s", pMsg);
+	RDCWARN("[%s] %s", pLayerPrefix, pMsg);
 }
 
 void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
