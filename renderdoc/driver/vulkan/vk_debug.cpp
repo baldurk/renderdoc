@@ -825,7 +825,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				Unwrap(m_TextAtlas), VK_IMAGE_VIEW_TYPE_2D,
 				imInfo.format,
 				{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-				{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, },
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
 				0,
 			};
 
@@ -934,7 +934,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			Unwrap(m_PickPixelImage), VK_IMAGE_VIEW_TYPE_2D,
 			VK_FORMAT_R32G32B32A32_SFLOAT,
 			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, },
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
 			0,
 		};
 

@@ -825,7 +825,8 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		// do copy
 		VkBufferImageCopy region = {
 			0, 128, 1,
-			{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { 0, 0, 0 },
+			{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+			{ 0, 0, 0 },
 			{ 1, 1, 1 },
 		};
 		vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_PickPixelImage), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.buf), 1, &region);
@@ -1390,9 +1391,9 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	outw.bbtrans.inputMask = 0;
 
 	VkImageCopy cpy = {
-		{ VK_IMAGE_ASPECT_COLOR, 0, 0 },
+		{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
 		{ 0, 0, 0 },
-		{ VK_IMAGE_ASPECT_COLOR, 0, 0 },
+		{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
 		{ 0, 0, 0 },
 		{ outw.width, outw.height, 1 },
 	};
