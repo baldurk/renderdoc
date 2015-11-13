@@ -488,7 +488,7 @@ uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat F
 
 VkResourceRecord::~VkResourceRecord()
 {
-	VkResourceType resType = IdentifyTypeByPtr(Resource);
+	VkResourceType resType = Resource != NULL ? IdentifyTypeByPtr(Resource) : eResUnknown;
 	
 	if(resType == eResPhysicalDevice)
 		SAFE_DELETE(memProps);
