@@ -585,11 +585,22 @@ void ReplayOutput::DisplayMesh()
 {
 	FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
 
-	if(!draw) return;
-	if(m_MainOutput.outputID == 0) return;
-	if(m_Width <= 0 || m_Height <= 0) return;
-	if(m_RenderData.meshDisplay.type == eMeshDataStage_Unknown) return;
-	if((draw->flags & eDraw_Drawcall) == 0) return;
+	bool nomesh = false;
+
+	if(draw == NULL ||
+	   m_MainOutput.outputID == 0 ||
+	   m_Width <= 0 || m_Height <= 0 ||
+	   (m_RenderData.meshDisplay.type == eMeshDataStage_Unknown) ||
+	   (draw->flags & eDraw_Drawcall) == 0
+		 )
+	{
+		float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+		m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
+		m_pDevice->ClearOutputWindowColour(m_MainOutput.outputID, color);
+		m_pDevice->RenderCheckerboard(Vec3f(0.666f, 0.666f, 0.666f), Vec3f(0.333f, 0.333f, 0.333f));
+
+		return;
+	}
 
 	if(draw && m_OverlayDirty)
 	{
