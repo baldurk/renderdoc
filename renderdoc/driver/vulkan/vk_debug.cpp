@@ -24,6 +24,7 @@
 
 #include "vk_debug.h"
 #include "vk_core.h"
+#include "maths/matrix.h"
 
 #include "stb/stb_truetype.h"
 
@@ -86,6 +87,16 @@ struct glyphdata
 struct stringdata
 {
 	uint32_t str[256][4];
+};
+
+struct meshuniforms
+{
+	Matrix4f mvp;
+	Matrix4f invProj;
+	Vec4f color;
+	uint32_t displayFormat;
+	uint32_t homogenousInput;
+	Vec2f pointSpriteSize;
 };
 
 void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags)
@@ -296,6 +307,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(dev), m_GenericDescSetLayout);
+
+		// identical layout
+		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_MeshDescSetLayout);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(dev), m_MeshDescSetLayout);
 	}
 
 	{
@@ -366,6 +383,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	GetResourceManager()->WrapResource(Unwrap(dev), m_GenericPipeLayout);
 
+	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_MeshDescSetLayout);
+	
+	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_MeshPipeLayout);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	GetResourceManager()->WrapResource(Unwrap(dev), m_MeshPipeLayout);
+
 	VkDescriptorTypeCount descPoolTypes[] = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024, },
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1024, },
@@ -374,7 +398,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	VkDescriptorPoolCreateInfo descpoolInfo = {
 		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, NULL,
-		VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 3+ARRAY_COUNT(m_TexDisplayDescSet),
+		VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 4+ARRAY_COUNT(m_TexDisplayDescSet),
 		ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
 	};
 	
@@ -409,6 +433,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	GetResourceManager()->WrapResource(Unwrap(dev), m_GenericDescSet);
+	
+	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
+		UnwrapPtr(m_MeshDescSetLayout), &m_MeshDescSet);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	GetResourceManager()->WrapResource(Unwrap(dev), m_MeshDescSet);
 
 	m_GenericUBO.Create(driver, dev, 128, 10, 0);
 	RDCCOMPILE_ASSERT(sizeof(genericuniforms) <= 128, "outline strip VBO size");
@@ -1008,7 +1038,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		m_PickPixelReadbackBuffer.Create(driver, dev, sizeof(float)*4, 1, GPUBuffer::eGPUBufferReadback);
 	}
 
-	VkDescriptorInfo desc[6];
+	m_MeshUBO.Create(driver, dev, sizeof(meshuniforms), 16, 0);
+
+	VkDescriptorInfo desc[7];
 	RDCEraseEl(desc);
 	
 	// checkerboard
@@ -1026,6 +1058,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	// generic
 	m_GenericUBO.FillDescriptor(desc[5]);
+
+	// mesh
+	m_MeshUBO.FillDescriptor(desc[6]);
 
 	VkWriteDescriptorSet writeSet[] = {
 		{
@@ -1052,6 +1087,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(m_GenericDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[5]
 		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(m_MeshDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[6]
+		},
 	};
 
 	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
@@ -1070,6 +1109,17 @@ VulkanDebugManager::~VulkanDebugManager()
 	// pool here won't remove the descriptor sets, so we need to free our own
 	// tracking data (not the API objects) for descriptor sets.
 
+	for(auto it=m_CachedMeshPipelines.begin(); it != m_CachedMeshPipelines.end(); ++it)
+	{
+		for(uint32_t i=0; i < eShade_Count; i++)
+		{
+			if(it->second.pipes[i] == VK_NULL_HANDLE) continue;
+
+			vt->DestroyPipeline(Unwrap(dev), Unwrap(it->second.pipes[i]));
+			GetResourceManager()->ReleaseWrappedResource(it->second.pipes[i]);
+		}
+	}
+
 	for(size_t i=0; i < ARRAY_COUNT(m_MeshModules); i++)
 	{
 		vt->DestroyShader(Unwrap(dev), Unwrap(m_MeshShaders[i]));
@@ -1082,6 +1132,7 @@ VulkanDebugManager::~VulkanDebugManager()
 	GetResourceManager()->ReleaseWrappedResource(m_CheckerboardDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_GenericDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_TextDescSet);
+	GetResourceManager()->ReleaseWrappedResource(m_MeshDescSet);
 	
 	for(size_t i=0; i < ARRAY_COUNT(m_TexDisplayDescSet); i++)
 		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDescSet[i]);
@@ -1226,7 +1277,21 @@ VulkanDebugManager::~VulkanDebugManager()
 		vt->FreeMemory(Unwrap(dev), Unwrap(m_TextAtlasMem));
 		GetResourceManager()->ReleaseWrappedResource(m_TextAtlasMem);
 	}
-	
+
+	if(m_MeshDescSetLayout != VK_NULL_HANDLE)
+	{
+		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_MeshDescSetLayout));
+		GetResourceManager()->ReleaseWrappedResource(m_MeshDescSetLayout);
+	}
+
+	if(m_MeshPipeLayout != VK_NULL_HANDLE)
+	{
+		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_MeshPipeLayout));
+		GetResourceManager()->ReleaseWrappedResource(m_MeshPipeLayout);
+	}
+
+	m_MeshUBO.Destroy(vt, dev);
+
 	if(m_GenericDescSetLayout != VK_NULL_HANDLE)
 	{
 		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_GenericDescSetLayout));
@@ -1880,4 +1945,288 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	return GetResID(m_OverlayImage);
+}
+
+MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFormat &primary, const MeshFormat &secondary)
+{
+	// generate a key to look up the map
+	uint64_t key = 0;
+
+	uint64_t bit = 0;
+
+	if(primary.idxByteWidth == 4) key |= 1ULL << bit;
+	bit++;
+
+	RDCASSERT((uint32_t)primary.topo < 64);
+	key |= ((uint32_t)primary.topo & 0x3f) << bit;
+	bit += 6;
+	
+	ResourceFormat fmt;
+	fmt.special = primary.specialFormat != eSpecial_Unknown;
+	fmt.specialFormat = primary.specialFormat;
+	fmt.compByteWidth = primary.compByteWidth;
+	fmt.compCount = primary.compCount;
+	fmt.compType = primary.compType;
+
+	VkFormat primaryFmt = MakeVkFormat(fmt);
+	
+	fmt.special = secondary.specialFormat != eSpecial_Unknown;
+	fmt.specialFormat = secondary.specialFormat;
+	fmt.compByteWidth = secondary.compByteWidth;
+	fmt.compCount = secondary.compCount;
+	fmt.compType = secondary.compType;
+	
+	VkFormat secondaryFmt = secondary.buf == ResourceId() ? VK_FORMAT_UNDEFINED : MakeVkFormat(fmt);
+	
+	RDCCOMPILE_ASSERT(VK_FORMAT_NUM <= 255, "Mesh pipeline cache key needs an extra bit for format");
+	
+	key |= ((uint32_t)primaryFmt & 0xff) << bit;
+	bit += 8;
+
+	key |= ((uint32_t)secondaryFmt & 0xff) << bit;
+	bit += 8;
+
+	RDCASSERT(primary.stride <= 0xffff);
+	key |= ((uint32_t)primary.stride & 0xffff) << bit;
+	bit += 16;
+
+	if(secondary.buf != ResourceId())
+	{
+		RDCASSERT(secondary.stride <= 0xffff);
+		key |= ((uint32_t)secondary.stride & 0xffff) << bit;
+	}
+	bit += 16;
+
+	MeshDisplayPipelines &cache = m_CachedMeshPipelines[key];
+
+	if(cache.pipes[eShade_None] != VK_NULL_HANDLE)
+		return cache;
+	
+	const VkLayerDispatchTable *vt = ObjDisp(m_Device);
+	VkResult vkr = VK_SUCCESS;
+
+	// should we try and evict old pipelines from the cache here?
+	// or just keep them forever
+
+	VkVertexInputBindingDescription binds[] = {
+		// primary
+		{
+			0,
+			primary.stride,
+			VK_VERTEX_INPUT_STEP_RATE_VERTEX
+		},
+		// secondary
+		{
+			1,
+			secondary.stride,
+			VK_VERTEX_INPUT_STEP_RATE_VERTEX
+		}
+	};
+
+	RDCASSERT(primaryFmt != VK_FORMAT_UNDEFINED);
+
+	VkVertexInputAttributeDescription vertAttrs[] = {
+		// primary
+		{
+			0,
+			0,
+			primaryFmt,
+			0,
+		},
+		// secondary
+		{
+			1,
+			0,
+			primaryFmt,
+			0,
+		},
+	};
+
+	VkPipelineVertexInputStateCreateInfo vi = {
+		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, NULL,
+		1, binds,
+		2, vertAttrs,
+	};
+	
+	VkPipelineShaderStageCreateInfo stages[3] = {
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_MAX_ENUM, VK_NULL_HANDLE, NULL },
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_MAX_ENUM, VK_NULL_HANDLE, NULL },
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_MAX_ENUM, VK_NULL_HANDLE, NULL },
+	};
+
+	VkPipelineInputAssemblyStateCreateInfo ia = {
+		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL,
+		primary.topo >= eTopology_PatchList ? VK_PRIMITIVE_TOPOLOGY_POINT_LIST : MakeVkPrimitiveTopology(primary.topo), false,
+	};
+
+	VkRect2D scissor = { { 0, 0 }, { 4096, 4096 } };
+
+	VkPipelineViewportStateCreateInfo vp = {
+		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL,
+		1, NULL,
+		1, &scissor
+	};
+
+	VkPipelineRasterStateCreateInfo rs = {
+		VK_STRUCTURE_TYPE_PIPELINE_RASTER_STATE_CREATE_INFO, NULL,
+		true, false, VK_FILL_MODE_SOLID, VK_CULL_MODE_NONE, VK_FRONT_FACE_CW,
+		false, 0.0f, 0.0f, 0.0f, 1.0f,
+	};
+
+	VkPipelineMultisampleStateCreateInfo msaa = {
+		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL,
+		1, false, 0.0f, NULL,
+	};
+
+	VkPipelineDepthStencilStateCreateInfo ds = {
+		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, NULL,
+		true, true, VK_COMPARE_OP_LESS, false, false,
+		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
+		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
+		0.0f, 1.0f,
+	};
+
+	VkPipelineColorBlendAttachmentState attState = {
+		false,
+		VK_BLEND_ONE, VK_BLEND_ZERO, VK_BLEND_OP_ADD,
+		VK_BLEND_ONE, VK_BLEND_ZERO, VK_BLEND_OP_ADD,
+		0xf,
+	};
+
+	VkPipelineColorBlendStateCreateInfo cb = {
+		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, NULL,
+		false, false, false, VK_LOGIC_OP_NOOP,
+		1, &attState,
+		{ 1.0f, 1.0f, 1.0f, 1.0f }
+	};
+
+	VkDynamicState dynstates[] = { VK_DYNAMIC_STATE_VIEWPORT };
+
+	VkPipelineDynamicStateCreateInfo dyn = {
+		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, NULL,
+		ARRAY_COUNT(dynstates), dynstates,
+	};
+	
+	VkRenderPass rp; // compatible render pass
+
+	{
+		VkAttachmentDescription attDesc[] = {
+			{
+				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
+				VK_FORMAT_R8G8B8A8_UNORM, 1,
+				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			},
+			{
+				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
+				VK_FORMAT_D32_SFLOAT, 1,
+				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			},
+		};
+
+		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+		VkSubpassDescription sub = {
+			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
+			VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+			0, NULL, // inputs
+			1, &attRef, // color
+			NULL, // resolve
+			{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }, // depth-stencil
+			0, NULL, // preserve
+		};
+
+		VkRenderPassCreateInfo rpinfo = {
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+				2, attDesc,
+				1, &sub,
+				0, NULL, // dependencies
+		};
+		
+		vt->CreateRenderPass(Unwrap(m_Device), &rpinfo, &rp);
+	}
+
+	VkGraphicsPipelineCreateInfo pipeInfo = {
+		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, NULL,
+		2, stages,
+		&vi,
+		&ia,
+		NULL, // tess
+		&vp,
+		&rs,
+		&msaa,
+		&ds,
+		&cb,
+		&dyn,
+		0, // flags
+		Unwrap(m_MeshPipeLayout),
+		rp,
+		0, // sub pass
+		VK_NULL_HANDLE, // base pipeline handle
+		0, // base pipeline index
+	};
+	
+	// wireframe pipeline
+	stages[0].shader = Unwrap(m_MeshShaders[0]);
+	stages[0].stage = VK_SHADER_STAGE_VERTEX;
+	stages[1].shader = Unwrap(m_MeshShaders[2]);
+	stages[1].stage = VK_SHADER_STAGE_FRAGMENT;
+
+	rs.fillMode = VK_FILL_MODE_WIREFRAME;
+	rs.lineWidth = 1.0f;
+	ds.depthTestEnable = false;
+	
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[eShade_None]);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	// solid shading pipeline
+	rs.fillMode = VK_FILL_MODE_SOLID;
+	ds.depthTestEnable = true;
+	
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[eShade_Solid]);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	if(secondary.buf != ResourceId())
+	{
+		// pull secondary information from second vertex buffer
+		vertAttrs[1].binding = 1;
+		vertAttrs[1].format = secondaryFmt;
+		RDCASSERT(secondaryFmt != VK_FORMAT_UNDEFINED);
+
+		vi.bindingCount = 2;
+
+		vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[eShade_Secondary]);
+		RDCASSERT(vkr == VK_SUCCESS);
+	}
+
+	// seems to not be working at the moment, just make a solid-shaded pipeline
+	vertAttrs[1].binding = 0;
+	vi.bindingCount = 1;
+
+#if 1
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[eShade_Lit]);
+	RDCASSERT(vkr == VK_SUCCESS);
+#else
+	// flat lit pipeline, needs geometry shader to calculate face normals
+	stages[0].shader = Unwrap(m_MeshShaders[0]);
+	stages[0].stage = VK_SHADER_STAGE_VERTEX;
+	stages[1].shader = Unwrap(m_MeshShaders[1]);
+	stages[1].stage = VK_SHADER_STAGE_GEOMETRY;
+	stages[2].shader = Unwrap(m_MeshShaders[2]);
+	stages[2].stage = VK_SHADER_STAGE_FRAGMENT;
+
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[eShade_Lit]);
+	RDCASSERT(vkr == VK_SUCCESS);
+#endif
+
+	for(uint32_t i=0; i < eShade_Count; i++)
+		if(cache.pipes[i] != VK_NULL_HANDLE)
+			GetResourceManager()->WrapResource(Unwrap(m_Device), cache.pipes[i]);
+
+	vt->DestroyRenderPass(Unwrap(m_Device), rp);
+	
+	return cache;
 }

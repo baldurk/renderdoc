@@ -26,6 +26,9 @@
 #include "vk_core.h"
 #include "vk_debug.h"
 #include "vk_resources.h"
+#include "maths/matrix.h"
+#include "maths/camera.h"
+#include "maths/formatpacking.h"
 
 #include "serialise/string_utils.h"
 
@@ -61,6 +64,21 @@ struct genericuniforms
 	Vec4f Scale;
 	Vec4f Color;
 };
+
+struct meshuniforms
+{
+	Matrix4f mvp;
+	Matrix4f invProj;
+	Vec4f color;
+	uint32_t displayFormat;
+	uint32_t homogenousInput;
+	Vec2f pointSpriteSize;
+};
+
+#define MESHDISPLAY_SOLID           0x1
+#define MESHDISPLAY_FACELIT         0x2
+#define MESHDISPLAY_SECONDARY       0x3
+#define MESHDISPLAY_SECONDARY_ALPHA 0x4
 
 VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), height(0),
 	dsimg(VK_NULL_HANDLE), dsmem(VK_NULL_HANDLE)
@@ -1217,10 +1235,187 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay o
 {
 	return GetDebugManager()->RenderOverlay(texid, overlay, frameID, eventID, passEvents);
 }
-	
+
 void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
-	VULKANNOTIMP("RenderMesh");
+	if(cfg.position.buf == ResourceId())
+		return;
+	
+	auto it = m_OutputWindows.find(m_ActiveWinID);
+	if(m_ActiveWinID == 0 || it == m_OutputWindows.end())
+		return;
+
+	OutputWindow &outw = it->second;
+
+	VkDevice dev = m_pDriver->GetDev();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+	VkResult vkr = VK_SUCCESS;
+	
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	
+	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	VkClearValue clearval = {0};
+	VkRenderPassBeginInfo rpbegin = {
+		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+		Unwrap(outw.rpdepth), Unwrap(outw.fbdepth),
+		{ { 0, 0, }, { m_DebugWidth, m_DebugHeight } },
+		1, &clearval,
+	};
+	vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+	
+	VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
+	vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+	
+	Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(m_DebugWidth)/float(m_DebugHeight));
+	Matrix4f InvProj = projMat.Inverse();
+
+	Matrix4f camMat = cfg.cam ? cfg.cam->GetMatrix() : Matrix4f::Identity();
+
+	Matrix4f ModelViewProj = projMat.Mul(camMat);
+	Matrix4f guessProjInv;
+
+	if(cfg.position.unproject)
+	{
+		// the derivation of the projection matrix might not be right (hell, it could be an
+		// orthographic projection). But it'll be close enough likely.
+		Matrix4f guessProj = Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect);
+
+		if(cfg.ortho)
+		{
+			guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
+		}
+		
+		guessProjInv = guessProj.Inverse();
+
+		ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
+	}
+
+	RDCASSERT(secondaryDraws.empty());
+	
+	MeshDisplayPipelines cache = GetDebugManager()->CacheMeshDisplayPipelines(cfg.position, cfg.second);
+	
+	if(cfg.position.buf != ResourceId())
+	{
+		VkBuffer vb = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(cfg.position.buf);
+
+		VkDeviceSize offs = cfg.position.offset;
+		vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
+	}
+	
+	if(cfg.second.buf != ResourceId())
+	{
+		VkBuffer vb = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(cfg.second.buf);
+
+		VkDeviceSize offs = cfg.second.offset;
+		vt->CmdBindVertexBuffers(Unwrap(cmd), 1, 1, UnwrapPtr(vb), &offs);
+	}
+
+	// can't support secondary shading without a buffer - no pipeline will have been created
+	if(cfg.solidShadeMode == eShade_Secondary && cfg.second.buf == ResourceId())
+		cfg.solidShadeMode = eShade_None;
+	
+	// solid render
+	if(cfg.solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList)
+	{
+		VkPipeline pipe = cache.pipes[cfg.solidShadeMode];
+		
+		uint32_t uboOffs = 0;
+		meshuniforms *data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+
+		if(cfg.solidShadeMode == eShade_Lit)
+			data->invProj = projMat.Inverse();
+		
+		data->mvp = ModelViewProj;
+		data->color = Vec4f(0.8f, 0.8f, 0.0f, 1.0f);
+		data->homogenousInput = cfg.position.unproject;
+		data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+		data->displayFormat = (uint32_t)cfg.solidShadeMode;
+
+		if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
+			data->displayFormat = MESHDISPLAY_SECONDARY_ALPHA;
+
+		GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+		
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+			0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
+
+		if(cfg.position.idxByteWidth)
+		{
+			VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
+			if(cfg.position.idxByteWidth == 4)
+				idxtype = VK_INDEX_TYPE_UINT32;
+
+			if(cfg.position.idxbuf != ResourceId())
+			{
+				VkBuffer ib = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(cfg.position.idxbuf);
+
+				vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), cfg.position.idxoffs, idxtype);
+			}
+			vt->CmdDrawIndexed(Unwrap(cmd), cfg.position.numVerts, 1, 0, 0, 0);
+		}
+		else
+		{
+			vt->CmdDraw(Unwrap(cmd), cfg.position.numVerts, 1, 0, 0);
+		}
+	}
+
+	// wireframe render
+	if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || cfg.position.topo >= eTopology_PatchList)
+	{
+		Vec4f wireCol = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+		if(!secondaryDraws.empty())
+		{
+			wireCol.x = cfg.currentMeshColour.x;
+			wireCol.y = cfg.currentMeshColour.y;
+			wireCol.z = cfg.currentMeshColour.z;
+		}
+		
+		uint32_t uboOffs = 0;
+		meshuniforms *data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+		
+		data->mvp = ModelViewProj;
+		data->color = wireCol;
+		data->displayFormat = (uint32_t)eShade_Solid;
+		data->homogenousInput = cfg.position.unproject;
+		data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+
+		GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+		
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+			0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+		
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(cache.pipes[eShade_None]));
+
+		if(cfg.position.idxByteWidth)
+		{
+			VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
+			if(cfg.position.idxByteWidth == 4)
+				idxtype = VK_INDEX_TYPE_UINT32;
+
+			if(cfg.position.idxbuf != ResourceId())
+			{
+				VkBuffer ib = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(cfg.position.idxbuf);
+
+				vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), cfg.position.idxoffs, idxtype);
+			}
+			vt->CmdDrawIndexed(Unwrap(cmd), cfg.position.numVerts, 1, 0, 0, 0);
+		}
+		else
+		{
+			vt->CmdDraw(Unwrap(cmd), cfg.position.numVerts, 1, 0, 0);
+		}
+	}
+
+	vt->CmdEndRenderPass(Unwrap(cmd));
+
+	vkr = vt->EndCommandBuffer(Unwrap(cmd));
+	RDCASSERT(vkr == VK_SUCCESS);
 }
 
 bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)

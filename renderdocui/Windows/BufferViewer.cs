@@ -2177,7 +2177,7 @@ namespace renderdocui.Windows
 
         private void render_Paint(object sender, PaintEventArgs e)
         {
-            if (m_Core.CurVulkanPipelineState != null || m_Output == null || m_Core.Renderer == null)
+            if (m_Output == null || m_Core.Renderer == null)
             {
                 e.Graphics.Clear(Color.Black);
                 return;

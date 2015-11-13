@@ -38,6 +38,11 @@ struct TextPrintState
 	int32_t w, h;
 };
 
+struct MeshDisplayPipelines
+{
+	VkPipeline pipes[eShade_Count];
+};
+
 class VulkanResourceManager;
 
 class VulkanDebugManager
@@ -137,8 +142,15 @@ class VulkanDebugManager
 		VkRenderPass m_OverlayNoDepthRP;
 		VkExtent2D m_OverlayDim;
 		VkDeviceSize m_OverlayMemSize;
+		
+		VkDescriptorSetLayout m_MeshDescSetLayout;
+		VkPipelineLayout m_MeshPipeLayout;
+		VkDescriptorSet m_MeshDescSet;
+		GPUBuffer m_MeshUBO;
 		VkShader m_MeshShaders[3];
 		VkShaderModule m_MeshModules[3];
+
+		MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary, const MeshFormat &secondary);
 
 	private:
 		void InitDebugData();
@@ -149,12 +161,14 @@ class VulkanDebugManager
 		void PatchFixedColShader(VkShaderModule &mod, VkShader &shad, float col[4]);
 		
 		void RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text);
-		void MakeGraphicsPipelineInfo( VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline );
+		void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
 		static const int FONT_TEX_WIDTH = 256;
 		static const int FONT_TEX_HEIGHT = 128;
 
 		float m_FontCharAspect;
 		float m_FontCharSize;
+
+		map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
 		
 		WrappedVulkan *m_pDriver;
 		VulkanResourceManager *m_ResourceManager;
