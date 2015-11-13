@@ -385,7 +385,7 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 			// will be invalid with some missing handles. It's safe though to just skip this
 			// update as we only get here if it's never used.
 
-			// if a set was never bind, it will have been omitted and we just drop any writes to it
+			// if a set was never bound, it will have been omitted and we just drop any writes to it
 			bool valid = (writeDesc.destSet != VK_NULL_HANDLE);
 
 			if(!valid)
@@ -445,21 +445,37 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 
 				{
 					RDCASSERT(writeDesc.destBinding < bindings.size());
-					RDCASSERT(writeDesc.destArrayElement == 0);
 
 					VkDescriptorInfo *bind = bindings[writeDesc.destBinding];
 
 					for(uint32_t d=0; d < writeDesc.count; d++)
-						bind[d] = writeDesc.pDescriptors[d];
+						bind[writeDesc.destArrayElement + d] = writeDesc.pDescriptors[d];
 				}
 			}
 		}
 		else
 		{
+			// if a set was never bound, it will have been omitted and we just drop any copies to it
+			if(copyDesc.destSet == VK_NULL_HANDLE || copyDesc.srcSet == VK_NULL_HANDLE)
+				return true;
+
 			ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), 0, NULL, 1, &copyDesc);
-			
-			// don't want to implement this blindly
-			RDCUNIMPLEMENTED("Copying descriptors not implemented");
+
+			// update our local tracking
+			vector<VkDescriptorInfo *> &dstbindings = m_DescriptorSetState[GetResourceManager()->GetNonDispWrapper(copyDesc.destSet)->id].currentBindings;
+			vector<VkDescriptorInfo *> &srcbindings = m_DescriptorSetState[GetResourceManager()->GetNonDispWrapper(copyDesc.srcSet)->id].currentBindings;
+
+			{
+				RDCASSERT(copyDesc.destBinding < dstbindings.size());
+				RDCASSERT(copyDesc.srcBinding < srcbindings.size());
+
+				VkDescriptorInfo *dstbind = dstbindings[copyDesc.destBinding];
+				VkDescriptorInfo *srcbind = srcbindings[copyDesc.srcBinding];
+
+				for(uint32_t d=0; d < copyDesc.count; d++)
+					dstbind[copyDesc.destArrayElement+d] = srcbind[copyDesc.srcArrayElement+d];
+			}
+
 		}
 
 		delete[] writeDesc.pDescriptors; // delete serialised descriptors array
@@ -557,12 +573,33 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 				m_FrameCaptureRecord->AddChunk(scope.Get());
 			}
 			
-			// as long as descriptor sets are forced to have initial states, we don't have to mark them ref'd for
-			// write here. The reason being that as long as we only mark them as ref'd when they're actually bound,
-			// we can safely skip the ref here and it means any descriptor set updates of descriptor sets that are
-			// never used in the frame can be ignored.
+			// Like writes we don't have to mark the written descriptor set as used because unless it's bound somewhere
+			// we don't need it anyway. However we DO have to mark the source set as used because it doesn't have to
+			// be bound to still be needed (think about if the dest set is bound somewhere after this copy - what refs
+			// the source set?).
+			// At the same time as ref'ing the source set, we must ref all of its resources (via the bindFrameRefs).
+			// We just ref all rather than looking at only the copied sets to keep things simple.
+			// This does mean a slightly conservative ref'ing if the dest set doesn't end up getting bound, but we only
+			// do this during frame capture so it's not too bad.
 			//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].destSet), eFrameRef_Write);
-			//GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet), eFrameRef_Read);
+
+			{
+				GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet), eFrameRef_Read);
+
+				VkResourceRecord *setrecord = GetRecord(pDescriptorCopies[i].srcSet);
+
+				for(auto refit = setrecord->descInfo->bindFrameRefs.begin(); refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
+				{
+					GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
+
+					if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
+					{
+						VkResourceRecord *record = GetResourceManager()->GetResourceRecord(refit->first);
+
+						GetResourceManager()->MarkSparseMapReferenced(record->sparseInfo);
+					}
+				}
+			}
 		}
 	}
 
@@ -673,10 +710,102 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 			}
 		}
 
-		if(copyCount > 0)
+		// this is almost identical to the above loop, except that instead of sourcing the descriptors
+		// from the writedescriptor struct, we source it from our stored bindings on the source
+		// descrpitor set
+
+		for(uint32_t i=0; i < copyCount; i++)
 		{
-			// don't want to implement this blindly
-			RDCUNIMPLEMENTED("Copying descriptors not implemented");
+			VkResourceRecord *dstrecord = GetRecord(pDescriptorCopies[i].destSet);
+			RDCASSERT(dstrecord->descInfo && dstrecord->descInfo->layout);
+			const DescSetLayout &layout = *dstrecord->descInfo->layout;
+			
+			VkResourceRecord *srcrecord = GetRecord(pDescriptorCopies[i].srcSet);
+
+			RDCASSERT(pDescriptorCopies[i].destBinding < dstrecord->descInfo->descBindings.size());
+			RDCASSERT(pDescriptorCopies[i].srcBinding < srcrecord->descInfo->descBindings.size());
+			
+			VkDescriptorInfo *dstbinding = dstrecord->descInfo->descBindings[pDescriptorCopies[i].destBinding];
+			VkDescriptorInfo *srcbinding = srcrecord->descInfo->descBindings[pDescriptorCopies[i].srcBinding];
+
+			FrameRefType ref = eFrameRef_Write;
+
+			switch(layout.bindings[pDescriptorCopies[i].destBinding].descriptorType)
+			{
+				case VK_DESCRIPTOR_TYPE_SAMPLER:
+				case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+				case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+				case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+				case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+					ref = eFrameRef_Read;
+					break;
+				case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+				case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+					ref = eFrameRef_Write;
+					break;
+				default:
+					RDCERR("Unexpected descriptor type");
+			}
+
+			for(uint32_t d=0; d < pDescriptorCopies[i].count; d++)
+			{
+				VkDescriptorInfo &bind = dstbinding[pDescriptorCopies[i].destArrayElement + d];
+
+				if(bind.bufferView != VK_NULL_HANDLE)
+				{
+					dstrecord->RemoveBindFrameRef(GetResID(bind.bufferView));
+					if(GetRecord(bind.bufferView)->baseResource != ResourceId())
+						dstrecord->RemoveBindFrameRef(GetRecord(bind.bufferView)->baseResource);
+				}
+				if(bind.imageView != VK_NULL_HANDLE)
+				{
+					dstrecord->RemoveBindFrameRef(GetResID(bind.imageView));
+					dstrecord->RemoveBindFrameRef(GetRecord(bind.imageView)->baseResource);
+					if(GetRecord(bind.imageView)->baseResourceMem != ResourceId())
+						dstrecord->RemoveBindFrameRef(GetRecord(bind.imageView)->baseResourceMem);
+				}
+				if(bind.sampler != VK_NULL_HANDLE)
+				{
+					dstrecord->RemoveBindFrameRef(GetResID(bind.sampler));
+				}
+				if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
+				{
+					dstrecord->RemoveBindFrameRef(GetResID(bind.bufferInfo.buffer));
+					if(GetRecord(bind.bufferInfo.buffer)->baseResource != ResourceId())
+						dstrecord->RemoveBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource);
+				}
+
+				bind = srcbinding[pDescriptorCopies[i].srcArrayElement + d];
+
+				if(bind.bufferView != VK_NULL_HANDLE)
+				{
+					dstrecord->AddBindFrameRef(GetResID(bind.bufferView), eFrameRef_Read, GetRecord(bind.bufferView)->sparseInfo != NULL);
+					if(GetRecord(bind.bufferView)->baseResource != ResourceId())
+						dstrecord->AddBindFrameRef(GetRecord(bind.bufferView)->baseResource, ref);
+				}
+				if(bind.imageView != VK_NULL_HANDLE)
+				{
+					dstrecord->AddBindFrameRef(GetResID(bind.imageView), eFrameRef_Read, GetRecord(bind.imageView)->sparseInfo != NULL);
+					dstrecord->AddBindFrameRef(GetRecord(bind.imageView)->baseResource, ref);
+					if(GetRecord(bind.imageView)->baseResourceMem != ResourceId())
+						dstrecord->AddBindFrameRef(GetRecord(bind.imageView)->baseResourceMem, eFrameRef_Read);
+				}
+				if(bind.sampler != VK_NULL_HANDLE)
+				{
+					dstrecord->AddBindFrameRef(GetResID(bind.sampler), ref);
+				}
+				if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
+				{
+					dstrecord->AddBindFrameRef(GetResID(bind.bufferInfo.buffer), eFrameRef_Read, GetRecord(bind.bufferInfo.buffer)->sparseInfo != NULL);
+					if(GetRecord(bind.bufferInfo.buffer)->baseResource != ResourceId())
+						dstrecord->AddBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource, ref);
+				}
+			}
 		}
+
 	}
 }
