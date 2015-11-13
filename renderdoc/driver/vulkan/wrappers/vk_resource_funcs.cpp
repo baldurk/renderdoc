@@ -649,9 +649,6 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(
 		mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(memId);
 
 		ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(mem), offs);
-
-		m_ImageLayouts[GetResID(image)].mem = mem;
-		m_ImageLayouts[GetResID(image)].memoffs = offs;
 	}
 
 	return true;

@@ -783,14 +783,12 @@ struct VkResourceRecord : public ResourceRecord
 
 struct ImageLayouts
 {
-	ImageLayouts() : arraySize(1), mipLevels(1), mem(VK_NULL_HANDLE), memoffs(0) {}
+	ImageLayouts() : arraySize(1), mipLevels(1) {}
 
 	vector<ImageRegionState> subresourceStates;
 	int arraySize, mipLevels;
 	VkExtent3D extent;
 	VkFormat format;
-	VkDeviceMemory mem;
-	VkDeviceSize memoffs;
 };
 
 bool IsBlockFormat(VkFormat f);
