@@ -424,6 +424,7 @@ enum SolidShadeMode
 	eShade_Solid,
 	eShade_Lit,
 	eShade_Secondary,
+	eShade_Count,
 };
 
 enum TriangleFillMode
