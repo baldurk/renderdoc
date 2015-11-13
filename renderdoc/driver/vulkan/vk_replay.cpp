@@ -1236,6 +1236,99 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay o
 	return GetDebugManager()->RenderOverlay(texid, overlay, frameID, eventID, passEvents);
 }
 
+FloatVector VulkanReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool useidx, bool &valid)
+{
+	FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
+
+	if(useidx && m_HighlightCache.useidx)
+	{
+		if(vert >= (uint32_t)m_HighlightCache.indices.size())
+		{
+			valid = false;
+			return ret;
+		}
+
+		vert = m_HighlightCache.indices[vert];
+	}
+
+	data += vert*cfg.position.stride;
+
+	float *out = &ret.x;
+
+	ResourceFormat fmt;
+	fmt.compByteWidth = cfg.position.compByteWidth;
+	fmt.compCount = cfg.position.compCount;
+	fmt.compType = cfg.position.compType;
+
+	if(cfg.position.specialFormat == eSpecial_R10G10B10A2)
+	{
+		if(data+4 >= end)
+		{
+			valid = false;
+			return ret;
+		}
+
+		Vec4f v = ConvertFromR10G10B10A2(*(uint32_t *)data);
+		ret.x = v.x;
+		ret.y = v.y;
+		ret.z = v.z;
+		ret.w = v.w;
+		return ret;
+	}
+	else if(cfg.position.specialFormat == eSpecial_R11G11B10)
+	{
+		if(data+4 >= end)
+		{
+			valid = false;
+			return ret;
+		}
+
+		Vec3f v = ConvertFromR11G11B10(*(uint32_t *)data);
+		ret.x = v.x;
+		ret.y = v.y;
+		ret.z = v.z;
+		return ret;
+	}
+	else if(cfg.position.specialFormat == eSpecial_B8G8R8A8)
+	{
+		if(data+4 >= end)
+		{
+			valid = false;
+			return ret;
+		}
+
+		fmt.compByteWidth = 1;
+		fmt.compCount = 4;
+		fmt.compType = eCompType_UNorm;
+	}
+	
+	if(data + cfg.position.compCount*cfg.position.compByteWidth > end)
+	{
+		valid = false;
+		return ret;
+	}
+
+	for(uint32_t i=0; i < cfg.position.compCount; i++)
+	{
+		*out = ConvertComponent(fmt, data);
+
+		data += cfg.position.compByteWidth;
+		out++;
+	}
+
+	if(cfg.position.specialFormat == eSpecial_B8G8R8A8)
+	{
+		FloatVector reversed;
+		reversed.x = ret.x;
+		reversed.y = ret.y;
+		reversed.z = ret.z;
+		reversed.w = ret.w;
+		return reversed;
+	}
+
+	return ret;
+}
+
 void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
 	if(cfg.position.buf == ResourceId())
@@ -1321,7 +1414,19 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 	// solid render
 	if(cfg.solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList)
 	{
-		VkPipeline pipe = cache.pipes[cfg.solidShadeMode];
+		VkPipeline pipe = NULL;
+		switch(cfg.solidShadeMode)
+		{
+			case eShade_Solid:
+				pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth];
+				break;
+			case eShade_Lit:
+				pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit];
+				break;
+			case eShade_Secondary:
+				pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary];
+				break;
+		}
 		
 		uint32_t uboOffs = 0;
 		meshuniforms *data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
@@ -1390,7 +1495,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
 			0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
 		
-		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(cache.pipes[eShade_None]));
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]));
 
 		if(cfg.position.idxByteWidth)
 		{
@@ -1412,6 +1517,695 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 		}
 	}
 
+	MeshFormat helper;
+	helper.idxByteWidth = 2;
+	helper.topo = eTopology_LineList;
+	
+	helper.specialFormat = eSpecial_Unknown;
+	helper.compByteWidth = 4;
+	helper.compCount = 4;
+	helper.compType = eCompType_Float;
+
+	helper.stride = sizeof(Vec4f);
+
+	// cache pipelines for use in drawing wireframe helpers
+	cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
+	
+	if(cfg.showBBox)
+	{
+		Vec4f a = Vec4f(cfg.minBounds.x, cfg.minBounds.y, cfg.minBounds.z, cfg.minBounds.w);
+		Vec4f b = Vec4f(cfg.maxBounds.x, cfg.maxBounds.y, cfg.maxBounds.z, cfg.maxBounds.w);
+
+		Vec4f TLN = Vec4f(a.x, b.y, a.z, 1.0f); // TopLeftNear, etc...
+		Vec4f TRN = Vec4f(b.x, b.y, a.z, 1.0f);
+		Vec4f BLN = Vec4f(a.x, a.y, a.z, 1.0f);
+		Vec4f BRN = Vec4f(b.x, a.y, a.z, 1.0f);
+
+		Vec4f TLF = Vec4f(a.x, b.y, b.z, 1.0f);
+		Vec4f TRF = Vec4f(b.x, b.y, b.z, 1.0f);
+		Vec4f BLF = Vec4f(a.x, a.y, b.z, 1.0f);
+		Vec4f BRF = Vec4f(b.x, a.y, b.z, 1.0f);
+
+		// 12 frustum lines => 24 verts
+		Vec4f bbox[24] =
+		{
+			TLN, TRN,
+			TRN, BRN,
+			BRN, BLN,
+			BLN, TLN,
+
+			TLN, TLF,
+			TRN, TRF,
+			BLN, BLF,
+			BRN, BRF,
+
+			TLF, TRF,
+			TRF, BRF,
+			BRF, BLF,
+			BLF, TLF,
+		};
+
+		VkDeviceSize vboffs = 0;
+		Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, &vboffs);
+
+		memcpy(ptr, bbox, sizeof(bbox));
+
+		GetDebugManager()->m_MeshBBoxVB.Unmap(vt, dev);
+		
+		vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_MeshBBoxVB.buf), &vboffs);
+
+		uint32_t uboOffs = 0;
+		meshuniforms *data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+		
+		data->mvp = ModelViewProj;
+		data->color = Vec4f(0.2f, 0.2f, 1.0f, 1.0f);
+		data->displayFormat = (uint32_t)eShade_Solid;
+		data->homogenousInput = 0;
+		data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+
+		GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+		
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+		                          0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+		
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]));
+
+		vt->CmdDraw(Unwrap(cmd), 24, 1, 0, 0);
+	}
+
+	// draw axis helpers
+	if(!cfg.position.unproject)
+	{
+		VkDeviceSize vboffs = 0;
+		vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_MeshAxisFrustumVB.buf), &vboffs);
+		
+		uint32_t uboOffs = 0;
+		meshuniforms *data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+		
+		data->mvp = ModelViewProj;
+		data->color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
+		data->displayFormat = (uint32_t)eShade_Solid;
+		data->homogenousInput = 0;
+		data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+
+		GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+		
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+		                          0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+		
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(cache.pipes[MeshDisplayPipelines::ePipe_Wire]));
+		
+		vt->CmdDraw(Unwrap(cmd), 2, 1, 0, 0);
+		
+		// poke the color (this would be a good candidate for a push constant)
+		data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+		
+		data->mvp = ModelViewProj;
+		data->color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+		data->displayFormat = (uint32_t)eShade_Solid;
+		data->homogenousInput = 0;
+		data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+
+		GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+		
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+		                          0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+		vt->CmdDraw(Unwrap(cmd), 2, 1, 2, 0);
+		
+		data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+		
+		data->mvp = ModelViewProj;
+		data->color = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+		data->displayFormat = (uint32_t)eShade_Solid;
+		data->homogenousInput = 0;
+		data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+
+		GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+		
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+		                          0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+		vt->CmdDraw(Unwrap(cmd), 2, 1, 4, 0);
+	}
+	
+	// 'fake' helper frustum
+	if(cfg.position.unproject)
+	{
+		VkDeviceSize vboffs = sizeof(Vec4f)*6; // skim the axis helpers
+		vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_MeshAxisFrustumVB.buf), &vboffs);
+		
+		uint32_t uboOffs = 0;
+		meshuniforms *data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+		
+		data->mvp = ModelViewProj;
+		data->color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+		data->displayFormat = (uint32_t)eShade_Solid;
+		data->homogenousInput = 0;
+		data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+
+		GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+		
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+		                          0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+		
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(cache.pipes[MeshDisplayPipelines::ePipe_Wire]));
+		
+		vt->CmdDraw(Unwrap(cmd), 24, 1, 0, 0);
+	}
+	
+	// show highlighted vertex
+	if(cfg.highlightVert != ~0U)
+	{
+		MeshDataStage stage = cfg.type;
+		
+		if(m_HighlightCache.EID != eventID || stage != m_HighlightCache.stage ||
+		   cfg.position.buf != m_HighlightCache.buf || cfg.position.offset != m_HighlightCache.offs)
+		{
+			m_HighlightCache.EID = eventID;
+			m_HighlightCache.buf = cfg.position.buf;
+			m_HighlightCache.offs = cfg.position.offset;
+			m_HighlightCache.stage = stage;
+			
+			uint32_t bytesize = cfg.position.idxByteWidth; 
+
+			// need to end our cmd buffer, it will be submitted in GetBufferData
+			vt->CmdEndRenderPass(Unwrap(cmd));
+
+			vkr = vt->EndCommandBuffer(Unwrap(cmd));
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
+
+			if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
+			{
+				m_HighlightCache.indices.clear();
+				m_HighlightCache.useidx = false;
+			}
+			else
+			{
+				m_HighlightCache.useidx = true;
+
+				vector<byte> idxdata;
+				if(cfg.position.idxbuf != ResourceId())
+					idxdata = GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, cfg.position.numVerts*bytesize);
+
+				uint8_t *idx8 = (uint8_t *)&idxdata[0];
+				uint16_t *idx16 = (uint16_t *)&idxdata[0];
+				uint32_t *idx32 = (uint32_t *)&idxdata[0];
+
+				uint32_t numIndices = RDCMIN(cfg.position.numVerts, uint32_t(idxdata.size()/bytesize));
+
+				m_HighlightCache.indices.resize(numIndices);
+
+				if(bytesize == 1)
+				{
+					for(uint32_t i=0; i < numIndices; i++)
+						m_HighlightCache.indices[i] = uint32_t(idx8[i]);
+				}
+				else if(bytesize == 2)
+				{
+					for(uint32_t i=0; i < numIndices; i++)
+						m_HighlightCache.indices[i] = uint32_t(idx16[i]);
+				}
+				else if(bytesize == 4)
+				{
+					for(uint32_t i=0; i < numIndices; i++)
+						m_HighlightCache.indices[i] = idx32[i];
+				}
+			}
+
+			// get a new cmdbuffer and begin it
+			cmd = m_pDriver->GetNextCmd();
+	
+			vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+			RDCASSERT(vkr == VK_SUCCESS);
+			vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+			
+			vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+		}
+
+		PrimitiveTopology meshtopo = cfg.position.topo;
+
+		uint32_t idx = cfg.highlightVert;
+
+		byte *data = &m_HighlightCache.data[0]; // buffer start
+		byte *dataEnd = data + m_HighlightCache.data.size();
+
+		data += cfg.position.offset; // to start of position data
+		
+		///////////////////////////////////////////////////////////////
+		// vectors to be set from buffers, depending on topology
+
+		bool valid = true;
+
+		// this vert (blue dot, required)
+		FloatVector activeVertex;
+		 
+		// primitive this vert is a part of (red prim, optional)
+		vector<FloatVector> activePrim;
+
+		// for patch lists, to show other verts in patch (green dots, optional)
+		// for non-patch lists, we use the activePrim and adjacentPrimVertices
+		// to show what other verts are related
+		vector<FloatVector> inactiveVertices;
+
+		// adjacency (line or tri, strips or lists) (green prims, optional)
+		// will be N*M long, N adjacent prims of M verts each. M = primSize below
+		vector<FloatVector> adjacentPrimVertices; 
+
+		helper.topo = eTopology_TriangleList;
+		uint32_t primSize = 3; // number of verts per primitive
+		
+		if(meshtopo == eTopology_LineList ||
+		   meshtopo == eTopology_LineStrip ||
+		   meshtopo == eTopology_LineList_Adj ||
+		   meshtopo == eTopology_LineStrip_Adj)
+		{
+			primSize = 2;
+			helper.topo = eTopology_LineList;
+		}
+		else
+		{
+			// update the cache, as it's currently linelist
+			helper.topo = eTopology_TriangleList;
+			cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
+		}
+		
+		activeVertex = InterpretVertex(data, idx, cfg, dataEnd, true, valid);
+
+		// see Section 15.1.1 of the Vulkan 1.0 spec for
+		// how primitive topologies are laid out
+		if(meshtopo == eTopology_LineList)
+		{
+			uint32_t v = uint32_t(idx/2) * 2; // find first vert in primitive
+
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, true, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, true, valid));
+		}
+		else if(meshtopo == eTopology_TriangleList)
+		{
+			uint32_t v = uint32_t(idx/3) * 3; // find first vert in primitive
+
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, true, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, true, valid));
+			activePrim.push_back(InterpretVertex(data, v+2, cfg, dataEnd, true, valid));
+		}
+		else if(meshtopo == eTopology_LineList_Adj)
+		{
+			uint32_t v = uint32_t(idx/4) * 4; // find first vert in primitive
+			
+			FloatVector vs[] = {
+				InterpretVertex(data, v+0, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+1, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+2, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+3, cfg, dataEnd, true, valid),
+			};
+
+			adjacentPrimVertices.push_back(vs[0]);
+			adjacentPrimVertices.push_back(vs[1]);
+
+			adjacentPrimVertices.push_back(vs[2]);
+			adjacentPrimVertices.push_back(vs[3]);
+
+			activePrim.push_back(vs[1]);
+			activePrim.push_back(vs[2]);
+		}
+		else if(meshtopo == eTopology_TriangleList_Adj)
+		{
+			uint32_t v = uint32_t(idx/6) * 6; // find first vert in primitive
+			
+			FloatVector vs[] = {
+				InterpretVertex(data, v+0, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+1, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+2, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+3, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+4, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+5, cfg, dataEnd, true, valid),
+			};
+
+			adjacentPrimVertices.push_back(vs[0]);
+			adjacentPrimVertices.push_back(vs[1]);
+			adjacentPrimVertices.push_back(vs[2]);
+			
+			adjacentPrimVertices.push_back(vs[2]);
+			adjacentPrimVertices.push_back(vs[3]);
+			adjacentPrimVertices.push_back(vs[4]);
+			
+			adjacentPrimVertices.push_back(vs[4]);
+			adjacentPrimVertices.push_back(vs[5]);
+			adjacentPrimVertices.push_back(vs[0]);
+
+			activePrim.push_back(vs[0]);
+			activePrim.push_back(vs[2]);
+			activePrim.push_back(vs[4]);
+		}
+		else if(meshtopo == eTopology_LineStrip)
+		{
+			// find first vert in primitive. In strips a vert isn't
+			// in only one primitive, so we pick the first primitive
+			// it's in. This means the first N points are in the first
+			// primitive, and thereafter each point is in the next primitive
+			uint32_t v = RDCMAX(idx, 1U) - 1;
+			
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, true, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, true, valid));
+		}
+		else if(meshtopo == eTopology_TriangleStrip)
+		{
+			// find first vert in primitive. In strips a vert isn't
+			// in only one primitive, so we pick the first primitive
+			// it's in. This means the first N points are in the first
+			// primitive, and thereafter each point is in the next primitive
+			uint32_t v = RDCMAX(idx, 2U) - 2;
+			
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, true, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, true, valid));
+			activePrim.push_back(InterpretVertex(data, v+2, cfg, dataEnd, true, valid));
+		}
+		else if(meshtopo == eTopology_LineStrip_Adj)
+		{
+			// find first vert in primitive. In strips a vert isn't
+			// in only one primitive, so we pick the first primitive
+			// it's in. This means the first N points are in the first
+			// primitive, and thereafter each point is in the next primitive
+			uint32_t v = RDCMAX(idx, 3U) - 3;
+			
+			FloatVector vs[] = {
+				InterpretVertex(data, v+0, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+1, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+2, cfg, dataEnd, true, valid),
+				InterpretVertex(data, v+3, cfg, dataEnd, true, valid),
+			};
+
+			adjacentPrimVertices.push_back(vs[0]);
+			adjacentPrimVertices.push_back(vs[1]);
+
+			adjacentPrimVertices.push_back(vs[2]);
+			adjacentPrimVertices.push_back(vs[3]);
+
+			activePrim.push_back(vs[1]);
+			activePrim.push_back(vs[2]);
+		}
+		else if(meshtopo == eTopology_TriangleStrip_Adj)
+		{
+			// Triangle strip with adjacency is the most complex topology, as
+			// we need to handle the ends separately where the pattern breaks.
+
+			uint32_t numidx = cfg.position.numVerts;
+
+			if(numidx < 6)
+			{
+				// not enough indices provided, bail to make sure logic below doesn't
+				// need to have tons of edge case detection
+				valid = false;
+			}
+			else if(idx <= 4 || numidx <= 7)
+			{
+				FloatVector vs[] = {
+					InterpretVertex(data, 0, cfg, dataEnd, true, valid),
+					InterpretVertex(data, 1, cfg, dataEnd, true, valid),
+					InterpretVertex(data, 2, cfg, dataEnd, true, valid),
+					InterpretVertex(data, 3, cfg, dataEnd, true, valid),
+					InterpretVertex(data, 4, cfg, dataEnd, true, valid),
+
+					// note this one isn't used as it's adjacency for the next triangle
+					InterpretVertex(data, 5, cfg, dataEnd, true, valid),
+
+					// min() with number of indices in case this is a tiny strip
+					// that is basically just a list
+					InterpretVertex(data, RDCMIN(6U, numidx-1), cfg, dataEnd, true, valid),
+				};
+
+				// these are the triangles on the far left of the MSDN diagram above
+				adjacentPrimVertices.push_back(vs[0]);
+				adjacentPrimVertices.push_back(vs[1]);
+				adjacentPrimVertices.push_back(vs[2]);
+
+				adjacentPrimVertices.push_back(vs[4]);
+				adjacentPrimVertices.push_back(vs[3]);
+				adjacentPrimVertices.push_back(vs[0]);
+
+				adjacentPrimVertices.push_back(vs[4]);
+				adjacentPrimVertices.push_back(vs[2]);
+				adjacentPrimVertices.push_back(vs[6]);
+
+				activePrim.push_back(vs[0]);
+				activePrim.push_back(vs[2]);
+				activePrim.push_back(vs[4]);
+			}
+			else if(idx > numidx-4)
+			{
+				// in diagram, numidx == 14
+
+				FloatVector vs[] = {
+					/*[0]=*/ InterpretVertex(data, numidx-8, cfg, dataEnd, true, valid), // 6 in diagram
+
+					// as above, unused since this is adjacency for 2-previous triangle
+					/*[1]=*/ InterpretVertex(data, numidx-7, cfg, dataEnd, true, valid), // 7 in diagram
+					/*[2]=*/ InterpretVertex(data, numidx-6, cfg, dataEnd, true, valid), // 8 in diagram
+					
+					// as above, unused since this is adjacency for previous triangle
+					/*[3]=*/ InterpretVertex(data, numidx-5, cfg, dataEnd, true, valid), // 9 in diagram
+					/*[4]=*/ InterpretVertex(data, numidx-4, cfg, dataEnd, true, valid), // 10 in diagram
+					/*[5]=*/ InterpretVertex(data, numidx-3, cfg, dataEnd, true, valid), // 11 in diagram
+					/*[6]=*/ InterpretVertex(data, numidx-2, cfg, dataEnd, true, valid), // 12 in diagram
+					/*[7]=*/ InterpretVertex(data, numidx-1, cfg, dataEnd, true, valid), // 13 in diagram
+				};
+
+				// these are the triangles on the far right of the MSDN diagram above
+				adjacentPrimVertices.push_back(vs[2]); // 8 in diagram
+				adjacentPrimVertices.push_back(vs[0]); // 6 in diagram
+				adjacentPrimVertices.push_back(vs[4]); // 10 in diagram
+
+				adjacentPrimVertices.push_back(vs[4]); // 10 in diagram
+				adjacentPrimVertices.push_back(vs[7]); // 13 in diagram
+				adjacentPrimVertices.push_back(vs[6]); // 12 in diagram
+
+				adjacentPrimVertices.push_back(vs[6]); // 12 in diagram
+				adjacentPrimVertices.push_back(vs[5]); // 11 in diagram
+				adjacentPrimVertices.push_back(vs[2]); // 8 in diagram
+
+				activePrim.push_back(vs[2]); // 8 in diagram
+				activePrim.push_back(vs[4]); // 10 in diagram
+				activePrim.push_back(vs[6]); // 12 in diagram
+			}
+			else
+			{
+				// we're in the middle somewhere. Each primitive has two vertices for it
+				// so our step rate is 2. The first 'middle' primitive starts at indices 5&6
+				// and uses indices all the way back to 0
+				uint32_t v = RDCMAX( ( (idx+1) / 2) * 2, 6U) - 6;
+
+				// these correspond to the indices in the MSDN diagram, with {2,4,6} as the
+				// main triangle
+				FloatVector vs[] = {
+					InterpretVertex(data, v+0, cfg, dataEnd, true, valid),
+
+					// this one is adjacency for 2-previous triangle
+					InterpretVertex(data, v+1, cfg, dataEnd, true, valid),
+					InterpretVertex(data, v+2, cfg, dataEnd, true, valid),
+
+					// this one is adjacency for previous triangle
+					InterpretVertex(data, v+3, cfg, dataEnd, true, valid),
+					InterpretVertex(data, v+4, cfg, dataEnd, true, valid),
+					InterpretVertex(data, v+5, cfg, dataEnd, true, valid),
+					InterpretVertex(data, v+6, cfg, dataEnd, true, valid),
+					InterpretVertex(data, v+7, cfg, dataEnd, true, valid),
+					InterpretVertex(data, v+8, cfg, dataEnd, true, valid),
+				};
+
+				// these are the triangles around {2,4,6} in the MSDN diagram above
+				adjacentPrimVertices.push_back(vs[0]);
+				adjacentPrimVertices.push_back(vs[2]);
+				adjacentPrimVertices.push_back(vs[4]);
+
+				adjacentPrimVertices.push_back(vs[2]);
+				adjacentPrimVertices.push_back(vs[5]);
+				adjacentPrimVertices.push_back(vs[6]);
+
+				adjacentPrimVertices.push_back(vs[6]);
+				adjacentPrimVertices.push_back(vs[8]);
+				adjacentPrimVertices.push_back(vs[4]);
+
+				activePrim.push_back(vs[2]);
+				activePrim.push_back(vs[4]);
+				activePrim.push_back(vs[6]);
+			}
+		}
+		else if(meshtopo >= eTopology_PatchList)
+		{
+			uint32_t dim = (cfg.position.topo - eTopology_PatchList_1CPs + 1);
+
+			uint32_t v0 = uint32_t(idx/dim) * dim;
+
+			for(uint32_t v = v0; v < v0+dim; v++)
+			{
+				if(v != idx && valid)
+					inactiveVertices.push_back(InterpretVertex(data, v, cfg, dataEnd, true, valid));
+			}
+		}
+		else // if(meshtopo == eTopology_PointList) point list, or unknown/unhandled type
+		{
+			// no adjacency, inactive verts or active primitive
+		}
+
+		if(valid)
+		{
+			////////////////////////////////////////////////////////////////
+			// prepare rendering (for both vertices & primitives)
+			
+			// if data is from post transform, it will be in clipspace
+			if(cfg.position.unproject)
+				ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
+			else
+				ModelViewProj = projMat.Mul(camMat);
+
+			meshuniforms uniforms;
+			uniforms.mvp = ModelViewProj;
+			uniforms.color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+			uniforms.displayFormat = (uint32_t)eShade_Solid;
+			uniforms.homogenousInput = cfg.position.unproject;
+			uniforms.pointSpriteSize = Vec2f(0.0f, 0.0f);
+			
+			uint32_t uboOffs = 0;
+			meshuniforms *data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+			*data = uniforms;
+			GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+			
+			vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+																0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+			
+			vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(cache.pipes[MeshDisplayPipelines::ePipe_Solid]));
+			
+			////////////////////////////////////////////////////////////////
+			// render primitives
+			
+			// Draw active primitive (red)
+			uniforms.color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
+			// poke the color (this would be a good candidate for a push constant)
+			data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+			*data = uniforms;
+			GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+			vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+																0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+
+			if(activePrim.size() >= primSize)
+			{
+				VkDeviceSize vboffs = 0;
+				Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, &vboffs, sizeof(Vec4f)*primSize);
+
+				memcpy(ptr, &activePrim[0], sizeof(Vec4f)*primSize);
+
+				GetDebugManager()->m_MeshBBoxVB.Unmap(vt, dev);
+
+				vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_MeshBBoxVB.buf), &vboffs);
+
+				vt->CmdDraw(Unwrap(cmd), primSize, 1, 0, 0);
+			}
+
+			// Draw adjacent primitives (green)
+			uniforms.color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+			// poke the color (this would be a good candidate for a push constant)
+			data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+			*data = uniforms;
+			GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+			vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+																0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+
+			if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
+			{
+				VkDeviceSize vboffs = 0;
+				Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, &vboffs, sizeof(Vec4f)*adjacentPrimVertices.size());
+
+				memcpy(ptr, &adjacentPrimVertices[0], sizeof(Vec4f)*adjacentPrimVertices.size());
+
+				GetDebugManager()->m_MeshBBoxVB.Unmap(vt, dev);
+
+				vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_MeshBBoxVB.buf), &vboffs);
+
+				vt->CmdDraw(Unwrap(cmd), (uint32_t)adjacentPrimVertices.size(), 1, 0, 0);
+			}
+
+			////////////////////////////////////////////////////////////////
+			// prepare to render dots
+			float scale = 800.0f/float(m_DebugHeight);
+			float asp = float(m_DebugWidth)/float(m_DebugHeight);
+
+			uniforms.pointSpriteSize = Vec2f(scale/asp, scale);
+
+			// Draw active vertex (blue)
+			uniforms.color = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+			// poke the color (this would be a good candidate for a push constant)
+			data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+			*data = uniforms;
+			GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+			vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+																0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+			
+			// vertices are drawn with tri strips
+			helper.topo = eTopology_TriangleStrip;
+			cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
+
+			FloatVector vertSprite[4] = {
+				activeVertex,
+				activeVertex,
+				activeVertex,
+				activeVertex,
+			};
+			
+			vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+																0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+			
+			vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(cache.pipes[MeshDisplayPipelines::ePipe_Solid]));
+			
+			{
+				VkDeviceSize vboffs = 0;
+				Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, &vboffs, sizeof(vertSprite));
+
+				memcpy(ptr, &vertSprite[0], sizeof(vertSprite));
+
+				GetDebugManager()->m_MeshBBoxVB.Unmap(vt, dev);
+
+				vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_MeshBBoxVB.buf), &vboffs);
+
+				vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+			}
+
+			// Draw inactive vertices (green)
+			uniforms.color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+			// poke the color (this would be a good candidate for a push constant)
+			data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+			*data = uniforms;
+			GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+			vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+																0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+
+			if(!inactiveVertices.empty())
+			{
+				VkDeviceSize vboffs = 0;
+				FloatVector *ptr = (FloatVector *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, &vboffs, sizeof(vertSprite));
+				
+				for(size_t i=0; i < inactiveVertices.size(); i++)
+				{
+					*ptr++ = inactiveVertices[i];
+					*ptr++ = inactiveVertices[i];
+					*ptr++ = inactiveVertices[i];
+					*ptr++ = inactiveVertices[i];
+				}
+
+				GetDebugManager()->m_MeshBBoxVB.Unmap(vt, dev);
+
+				for(size_t i=0; i < inactiveVertices.size(); i++)
+				{
+					vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_MeshBBoxVB.buf), &vboffs);
+
+					vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+
+					vboffs += sizeof(FloatVector)*4;
+				}
+			}
+		}
+	}
+	
 	vt->CmdEndRenderPass(Unwrap(cmd));
 
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));

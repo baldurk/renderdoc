@@ -40,7 +40,18 @@ struct TextPrintState
 
 struct MeshDisplayPipelines
 {
-	VkPipeline pipes[eShade_Count];
+	enum
+	{
+		ePipe_Wire = 0,
+		ePipe_WireDepth,
+		ePipe_Solid,
+		ePipe_SolidDepth,
+		ePipe_Lit,
+		ePipe_Secondary,
+		ePipe_Count,
+	};
+
+	VkPipeline pipes[ePipe_Count];
 };
 
 class VulkanResourceManager;
@@ -62,6 +73,7 @@ class VulkanDebugManager
 			enum CreateFlags
 			{
 				eGPUBufferReadback = 0x1,
+				eGPUBufferVBuffer = 0x2,
 			};
 			GPUBuffer() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE) {}
 			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags);
@@ -69,6 +81,7 @@ class VulkanDebugManager
 
 			void FillDescriptor(VkDescriptorInfo &desc);
 
+			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize *bindoffset, VkDeviceSize usedsize = 0);
 			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, uint32_t *bindoffset, VkDeviceSize usedsize = 0);
 			void Unmap(const VkLayerDispatchTable *vt, VkDevice dev);
 
@@ -146,7 +159,7 @@ class VulkanDebugManager
 		VkDescriptorSetLayout m_MeshDescSetLayout;
 		VkPipelineLayout m_MeshPipeLayout;
 		VkDescriptorSet m_MeshDescSet;
-		GPUBuffer m_MeshUBO;
+		GPUBuffer m_MeshUBO, m_MeshBBoxVB, m_MeshAxisFrustumVB;
 		VkShader m_MeshShaders[3];
 		VkShaderModule m_MeshModules[3];
 
@@ -167,7 +180,7 @@ class VulkanDebugManager
 
 		float m_FontCharAspect;
 		float m_FontCharSize;
-
+		
 		map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
 		
 		WrappedVulkan *m_pDriver;

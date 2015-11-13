@@ -122,6 +122,9 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 	bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
 	bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT;
 	bufInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	
+	if(flags & eGPUBufferVBuffer)
+		bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
 	VkResult vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, &buf);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -197,6 +200,17 @@ void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevic
 	VkResult vkr = vt->MapMemory(Unwrap(dev), Unwrap(mem), offset, size, 0, (void **)&ptr);
 	RDCASSERT(vkr == VK_SUCCESS);
 	return ptr;
+}
+
+void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize *bindoffset, VkDeviceSize usedsize)
+{
+	uint32_t offs = 0;
+
+	void *ret = Map(vt, dev, &offs, usedsize);
+
+	if(bindoffset) *bindoffset = offs;
+
+	return ret;
 }
 
 void VulkanDebugManager::GPUBuffer::Unmap(const VkLayerDispatchTable *vt, VkDevice dev)
@@ -461,7 +475,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		m_OutlineStripVBO.Create(driver, dev, 128, 1, 0); // doesn't need to be ring buffered
 		RDCCOMPILE_ASSERT(sizeof(data) <= 128, "outline strip VBO size");
 		
-		float *mapped = (float *)m_OutlineStripVBO.Map(vt, dev, NULL);
+		float *mapped = (float *)m_OutlineStripVBO.Map(vt, dev, (uint32_t *)NULL);
 
 		memcpy(mapped, data, sizeof(data));
 
@@ -900,7 +914,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		m_TextGlyphUBO.Create(driver, dev, 4096, 1, 0); // doesn't need to be ring'd, as it's static
 		RDCCOMPILE_ASSERT(sizeof(Vec4f)*2*(numChars+1) < 4096, "font uniform size");
 
-		Vec4f *glyphData = (Vec4f *)m_TextGlyphUBO.Map(vt, dev, NULL);
+		Vec4f *glyphData = (Vec4f *)m_TextGlyphUBO.Map(vt, dev, (uint32_t *)NULL);
 
 		for(int i=0; i < numChars; i++)
 		{
@@ -1039,6 +1053,52 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	}
 
 	m_MeshUBO.Create(driver, dev, sizeof(meshuniforms), 16, 0);
+	m_MeshBBoxVB.Create(driver, dev, sizeof(Vec4f)*128, 16, GPUBuffer::eGPUBufferVBuffer);
+	
+	Vec4f TLN = Vec4f(-1.0f,  1.0f, 0.0f, 1.0f); // TopLeftNear, etc...
+	Vec4f TRN = Vec4f( 1.0f,  1.0f, 0.0f, 1.0f);
+	Vec4f BLN = Vec4f(-1.0f, -1.0f, 0.0f, 1.0f);
+	Vec4f BRN = Vec4f( 1.0f, -1.0f, 0.0f, 1.0f);
+
+	Vec4f TLF = Vec4f(-1.0f,  1.0f, 1.0f, 1.0f);
+	Vec4f TRF = Vec4f( 1.0f,  1.0f, 1.0f, 1.0f);
+	Vec4f BLF = Vec4f(-1.0f, -1.0f, 1.0f, 1.0f);
+	Vec4f BRF = Vec4f( 1.0f, -1.0f, 1.0f, 1.0f);
+
+	Vec4f axisFrustum[] = {
+		// axis marker vertices
+		Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+		Vec4f(1.0f, 0.0f, 0.0f, 1.0f),
+		Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+		Vec4f(0.0f, 1.0f, 0.0f, 1.0f),
+		Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+		Vec4f(0.0f, 0.0f, 1.0f, 1.0f),
+
+		// frustum vertices
+		TLN, TRN,
+		TRN, BRN,
+		BRN, BLN,
+		BLN, TLN,
+
+		TLN, TLF,
+		TRN, TRF,
+		BLN, BLF,
+		BRN, BRF,
+
+		TLF, TRF,
+		TRF, BRF,
+		BRF, BLF,
+		BLF, TLF,
+	};
+
+	// doesn't need to be ring'd as it's immutable
+	m_MeshAxisFrustumVB.Create(driver, dev, sizeof(axisFrustum), 1, GPUBuffer::eGPUBufferVBuffer);
+
+	Vec4f *axisData = (Vec4f *)m_MeshAxisFrustumVB.Map(vt, dev, (uint32_t *)NULL);
+
+	memcpy(axisData, axisFrustum, sizeof(axisFrustum));
+
+	m_MeshAxisFrustumVB.Unmap(vt, dev);
 
 	VkDescriptorInfo desc[7];
 	RDCEraseEl(desc);
@@ -1111,7 +1171,7 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	for(auto it=m_CachedMeshPipelines.begin(); it != m_CachedMeshPipelines.end(); ++it)
 	{
-		for(uint32_t i=0; i < eShade_Count; i++)
+		for(uint32_t i=0; i < MeshDisplayPipelines::ePipe_Count; i++)
 		{
 			if(it->second.pipes[i] == VK_NULL_HANDLE) continue;
 
@@ -1291,6 +1351,8 @@ VulkanDebugManager::~VulkanDebugManager()
 	}
 
 	m_MeshUBO.Destroy(vt, dev);
+	m_MeshBBoxVB.Destroy(vt, dev);
+	m_MeshAxisFrustumVB.Destroy(vt, dev);
 
 	if(m_GenericDescSetLayout != VK_NULL_HANDLE)
 	{
@@ -2080,7 +2142,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 
 	VkPipelineDepthStencilStateCreateInfo ds = {
 		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, NULL,
-		true, true, VK_COMPARE_OP_LESS, false, false,
+		true, true, VK_COMPARE_OP_LESS_EQUAL, false, false,
 		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
 		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
 		0.0f, 1.0f,
@@ -2179,14 +2241,24 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 	rs.lineWidth = 1.0f;
 	ds.depthTestEnable = false;
 	
-	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[eShade_None]);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	ds.depthTestEnable = true;
+	
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	// solid shading pipeline
 	rs.fillMode = VK_FILL_MODE_SOLID;
+	ds.depthTestEnable = false;
+	
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
 	ds.depthTestEnable = true;
 	
-	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[eShade_Solid]);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	if(secondary.buf != ResourceId())
@@ -2198,7 +2270,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 
 		vi.bindingCount = 2;
 
-		vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[eShade_Secondary]);
+		vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Secondary]);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -2207,7 +2279,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 	vi.bindingCount = 1;
 
 #if 1
-	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[eShade_Lit]);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Lit]);
 	RDCASSERT(vkr == VK_SUCCESS);
 #else
 	// flat lit pipeline, needs geometry shader to calculate face normals
@@ -2218,11 +2290,11 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 	stages[2].shader = Unwrap(m_MeshShaders[2]);
 	stages[2].stage = VK_SHADER_STAGE_FRAGMENT;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[eShade_Lit]);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Lit]);
 	RDCASSERT(vkr == VK_SUCCESS);
 #endif
 
-	for(uint32_t i=0; i < eShade_Count; i++)
+	for(uint32_t i=0; i < MeshDisplayPipelines::ePipe_Count; i++)
 		if(cache.pipes[i] != VK_NULL_HANDLE)
 			GetResourceManager()->WrapResource(Unwrap(m_Device), cache.pipes[i]);
 
