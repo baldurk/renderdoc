@@ -13,7 +13,7 @@ Current Support
 ========
 
 * A single VkInstance/VkQueue/VkDevice triple is supported.
-* Capture and replay of single-frame captures (not full-program streams a la apitrace).
+* Capture and replay of single-frame captures (not full-program streams a la vktrace).
 * On replay you can step into each vkQueueSubmit call to see the command buffers submitted, and step into them to browse through the commands.
 * The pipeline state will be displayed at each command, showing the data contained in each member of the pipeline createinfo struct, as well as dynamic state.
 * Simple disassembly/reflection of SPIR-V to determine which descriptors to read for read-only resources and uniform buffers. The uniform buffers will be listed separately and the member variables filled out.
