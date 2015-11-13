@@ -1861,10 +1861,16 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 					ObjDisp(cmd)->CmdBindVertexBuffers(Unwrap(cmd), (uint32_t)i, 1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(s.vbuffers[i].buf)), &s.vbuffers[i].offs);
 			}
 
+			bool rpWasActive = m_PartialReplayData.renderPassActive;
+
 			ContextReplayLog(EXECUTING, endEventID, endEventID, partial);
 
 			if(m_PartialReplayData.renderPassActive)
 				ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+
+			// we might have replayed a CmdBeginRenderPass or CmdEndRenderPass,
+			// but we want to keep the partial replay data state intact.
+			m_PartialReplayData.renderPassActive = rpWasActive;
 			
 			ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 
