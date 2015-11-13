@@ -4939,6 +4939,21 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					const UINT numUAVs = m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 					m_pImmediateContext->OMGetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, curRTVs, &curDSV,
 					                                                               UAVStartSlot, numUAVs-UAVStartSlot, curUAVs);
+					
+					// release these now in case we skip this modification, but don't NULL them
+					// so we can still compare
+					{
+						for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+							if(curRTVs[i])
+								curRTVs[i]->Release();
+
+						for(int i=0; i < D3D11_1_UAV_SLOT_COUNT; i++)
+							if(curUAVs[i])
+								curUAVs[i]->Release();
+
+						if(curDSV)
+							curDSV->Release();
+					}
 
 					// check that this selected mip/slice is the one being rendered to here
 					if(events[i].usage == eUsage_ColourTarget)
@@ -5031,7 +5046,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 							desc.Texture1D.MipSlice == mip)
 						{
 							used = true;
-							break;
 						}
 						else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1DARRAY &&
 							desc.Texture1DArray.MipSlice == mip &&
@@ -5039,13 +5053,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 							desc.Texture1DArray.FirstArraySlice+desc.Texture1DArray.ArraySize > slice)
 						{
 							used = true;
-							break;
 						}
 						else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2D &&
 							desc.Texture2D.MipSlice == mip)
 						{
 							used = true;
-							break;
 						}
 						else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DARRAY &&
 							desc.Texture2DArray.MipSlice == mip &&
@@ -5053,29 +5065,20 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 							desc.Texture2DArray.FirstArraySlice+desc.Texture2DArray.ArraySize > slice)
 						{
 							used = true;
-							break;
 						}
 						else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DMS)
 						{
 							used = true;
-							break;
 						}
 						else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY &&
 							desc.Texture2DMSArray.FirstArraySlice <= slice &&
 							desc.Texture2DMSArray.FirstArraySlice+desc.Texture2DMSArray.ArraySize > slice)
 						{
 							used = true;
-							break;
 						}
 
 						if(!used) continue;
 					}
-
-					for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-						SAFE_RELEASE(curRTVs[i]);
-					for(int i=0; i < D3D11_1_UAV_SLOT_COUNT; i++)
-						SAFE_RELEASE(curUAVs[i]);
-					SAFE_RELEASE(curDSV);
 				}
 
 				curNumScissors = curNumViews = 16;
