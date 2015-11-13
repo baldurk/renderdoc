@@ -673,6 +673,7 @@ struct VkResourceRecord : public ResourceRecord
 
 		VkResourceRecord(ResourceId id) :
 			ResourceRecord(id, true),
+			Resource(NULL),
 			bakedCommands(NULL),
 			pool(NULL),
 			memIdxMap(NULL),
