@@ -68,7 +68,9 @@
 #include "vk_dispatchtables.h"
 
 ResourceFormat MakeResourceFormat(VkFormat fmt);
+VkFormat MakeVkFormat(ResourceFormat fmt);
 PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPoints);
+VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo);
 
 // structure for casting to easily iterate and template specialising Serialise
 struct VkGenericStruct

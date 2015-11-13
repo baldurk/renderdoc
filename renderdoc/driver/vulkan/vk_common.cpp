@@ -678,6 +678,257 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 	return ret;
 }
 
+VkFormat MakeVkFormat(ResourceFormat fmt)
+{
+	VkFormat ret = VK_FORMAT_UNDEFINED;
+
+	if(fmt.special)
+	{
+		switch(fmt.specialFormat)
+		{
+			case eSpecial_BC1:
+			{
+				if(fmt.compCount == 3)
+					ret = fmt.srgbCorrected ? VK_FORMAT_BC1_RGB_SRGB : VK_FORMAT_BC1_RGB_UNORM;
+				else
+					ret = fmt.srgbCorrected ? VK_FORMAT_BC1_RGBA_SRGB : VK_FORMAT_BC1_RGBA_UNORM;
+				break;
+			}
+			case eSpecial_BC2:
+				ret = fmt.srgbCorrected ? VK_FORMAT_BC2_SRGB : VK_FORMAT_BC2_UNORM;
+				break;
+			case eSpecial_BC3:
+				ret = fmt.srgbCorrected ? VK_FORMAT_BC3_SRGB : VK_FORMAT_BC3_UNORM;
+				break;
+			case eSpecial_BC4:
+				ret = fmt.compType == eCompType_SNorm ? VK_FORMAT_BC4_SNORM : VK_FORMAT_BC4_UNORM;
+				break;
+			case eSpecial_BC5:
+				ret = fmt.compType == eCompType_SNorm ? VK_FORMAT_BC5_SNORM : VK_FORMAT_BC5_UNORM;
+				break;
+			case eSpecial_BC6:
+				ret = fmt.compType == eCompType_SNorm ? VK_FORMAT_BC6H_SFLOAT : VK_FORMAT_BC6H_UFLOAT;
+				break;
+			case eSpecial_BC7:
+				ret = fmt.srgbCorrected ? VK_FORMAT_BC7_SRGB : VK_FORMAT_BC7_UNORM;
+				break;
+			case eSpecial_ETC2:
+			{
+				if(fmt.compCount == 3)
+					ret = fmt.srgbCorrected ? VK_FORMAT_ETC2_R8G8B8_SRGB : VK_FORMAT_ETC2_R8G8B8_UNORM;
+				else
+					ret = fmt.srgbCorrected ? VK_FORMAT_ETC2_R8G8B8A8_SRGB : VK_FORMAT_ETC2_R8G8B8A8_UNORM;
+				break;
+			}
+			case eSpecial_EAC:
+			{
+				if(fmt.compCount == 1)
+					ret = fmt.compType == eCompType_SNorm ? VK_FORMAT_EAC_R11_SNORM : VK_FORMAT_EAC_R11_UNORM;
+				else if(fmt.compCount == 2)
+					ret = fmt.compType == eCompType_SNorm ? VK_FORMAT_EAC_R11G11_SNORM : VK_FORMAT_EAC_R11G11_UNORM;
+				break;
+			}
+			case eSpecial_R10G10B10A2:
+				if(fmt.compType == eCompType_UNorm)
+					ret = VK_FORMAT_R10G10B10A2_UNORM;
+				else if(fmt.compType == eCompType_UInt)
+					ret = VK_FORMAT_R10G10B10A2_UINT;
+				else if(fmt.compType == eCompType_UScaled)
+					ret = VK_FORMAT_R10G10B10A2_USCALED;
+				else if(fmt.compType == eCompType_SNorm)
+					ret = VK_FORMAT_R10G10B10A2_SNORM;
+				else if(fmt.compType == eCompType_SInt)
+					ret = VK_FORMAT_R10G10B10A2_SINT;
+				else if(fmt.compType == eCompType_SScaled)
+					ret = VK_FORMAT_R10G10B10A2_SSCALED;
+				break;
+			case eSpecial_R11G11B10:
+				ret = VK_FORMAT_R11G11B10_UFLOAT;
+				break;
+			case eSpecial_B5G6R5:
+				ret = fmt.compType == eCompType_UNorm ? VK_FORMAT_B5G6R5_UNORM : VK_FORMAT_B5G6R5_USCALED;
+				break;
+			case eSpecial_B5G5R5A1:
+				ret = VK_FORMAT_B5G5R5A1_UNORM;
+				break;
+			case eSpecial_R9G9B9E5:
+				ret = VK_FORMAT_R9G9B9E5_UFLOAT;
+				break;
+			case eSpecial_B8G8R8A8:
+				if(fmt.srgbCorrected)
+					ret = VK_FORMAT_B8G8R8A8_SRGB;
+				else if(fmt.compType == eCompType_UNorm)
+					ret = VK_FORMAT_B8G8R8A8_UNORM;
+				else if(fmt.compType == eCompType_UInt)
+					ret = VK_FORMAT_B8G8R8A8_UINT;
+				else if(fmt.compType == eCompType_UScaled)
+					ret = VK_FORMAT_B8G8R8A8_USCALED;
+				else if(fmt.compType == eCompType_SNorm)
+					ret = VK_FORMAT_B8G8R8A8_SNORM;
+				else if(fmt.compType == eCompType_SInt)
+					ret = VK_FORMAT_B8G8R8A8_SINT;
+				else if(fmt.compType == eCompType_SScaled)
+					ret = VK_FORMAT_B8G8R8A8_SSCALED;
+				break;
+			case eSpecial_B4G4R4A4:
+				ret = VK_FORMAT_B4G4R4A4_UNORM;
+				break;
+			case eSpecial_D24S8:
+				ret = VK_FORMAT_D24_UNORM_S8_UINT;
+				break;
+			case eSpecial_D32S8:
+				ret = VK_FORMAT_D32_SFLOAT_S8_UINT;
+				break;
+			default:
+				RDCERR("Unsupported special format %u", fmt.specialFormat);
+				break;
+		}
+	}
+	else if(fmt.compCount == 4)
+	{
+		if(fmt.srgbCorrected)
+		{
+			ret = VK_FORMAT_R8G8B8A8_SRGB;
+		}
+		else if(fmt.compByteWidth == 4)
+		{
+			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R32G32B32A32_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R32G32B32A32_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R32G32B32A32_UINT;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 2)
+		{
+			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R16G16B16A16_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R16G16B16A16_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R16G16B16A16_UINT;
+			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R16G16B16A16_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R16G16B16A16_UNORM;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 1)
+		{
+			     if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R8G8B8A8_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R8G8B8A8_UINT;
+			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R8G8B8A8_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R8G8B8A8_UNORM;
+			else RDCERR("Unrecognised component type");
+		}
+		else
+		{
+			RDCERR("Unrecognised 4-component byte width: %d", fmt.compByteWidth);
+		}
+	}
+	else if(fmt.compCount == 3)
+	{
+		if(fmt.srgbCorrected)
+		{
+			ret = VK_FORMAT_R8G8B8_SRGB;
+		}
+		else if(fmt.compByteWidth == 4)
+		{
+			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R32G32B32_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R32G32B32_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R32G32B32_UINT;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 2)
+		{
+			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R16G16B16_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R16G16B16_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R16G16B16_UINT;
+			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R16G16B16_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R16G16B16_UNORM;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 1)
+		{
+			     if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R8G8B8_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R8G8B8_UINT;
+			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R8G8B8_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R8G8B8_UNORM;
+			else RDCERR("Unrecognised component type");
+		}
+		else
+		{
+			RDCERR("Unrecognised 3-component byte width: %d", fmt.compByteWidth);
+		}
+	}
+	else if(fmt.compCount == 2)
+	{
+		if(fmt.compByteWidth == 4)
+		{
+			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R32G32_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R32G32_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R32G32_UINT;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 2)
+		{
+			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R16G16_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R16G16_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R16G16_UINT;
+			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R16G16_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R16G16_UNORM;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 1)
+		{
+			     if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R8G8_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R8G8_UINT;
+			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R8G8_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R8G8_UNORM;
+			else RDCERR("Unrecognised component type");
+		}
+		else
+		{
+			RDCERR("Unrecognised 3-component byte width: %d", fmt.compByteWidth);
+		}
+	}
+	else if(fmt.compCount == 1)
+	{
+		if(fmt.compByteWidth == 4)
+		{
+			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R32_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R32_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R32_UINT;
+			else if(fmt.compType == eCompType_Depth) ret = VK_FORMAT_D32_SFLOAT;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 2)
+		{
+			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R16_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R16_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R16_UINT;
+			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R16_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R16_UNORM;
+			else if(fmt.compType == eCompType_Depth) ret = VK_FORMAT_D16_UNORM;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 1)
+		{
+			     if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R8_SINT;
+			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R8_UINT;
+			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R8_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R8_UNORM;
+			else RDCERR("Unrecognised component type");
+		}
+		else
+		{
+			RDCERR("Unrecognised 3-component byte width: %d", fmt.compByteWidth);
+		}
+	}
+	else
+	{
+		RDCERR("Unrecognised component count: %d", fmt.compCount);
+	}
+
+	if(ret == VK_FORMAT_UNDEFINED)
+		RDCERR("No known vulkan format corresponding to resource format!");
+
+	return ret;
+}
+
 PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPoints)
 {
 	switch(Topo)
@@ -720,6 +971,62 @@ PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patch
 	}
 
 	return eTopology_Unknown;
+}
+
+VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo)
+{
+	switch(Topo)
+	{
+		case eTopology_LineLoop:
+			RDCWARN("Unsupported primitive topology on Vulkan: %x", Topo);
+			break;
+		default:                            return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+		case eTopology_PointList:           return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+		case eTopology_LineStrip:           return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+		case eTopology_LineList:            return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+		case eTopology_LineStrip_Adj:       return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_ADJ;
+		case eTopology_LineList_Adj:        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST_ADJ;
+		case eTopology_TriangleStrip:       return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+		case eTopology_TriangleFan:         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+		case eTopology_TriangleList:        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		case eTopology_TriangleStrip_Adj:   return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_ADJ;
+		case eTopology_TriangleList_Adj:    return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_ADJ;
+		case eTopology_PatchList_1CPs:
+		case eTopology_PatchList_2CPs:
+		case eTopology_PatchList_3CPs:
+		case eTopology_PatchList_4CPs:
+		case eTopology_PatchList_5CPs:
+		case eTopology_PatchList_6CPs:
+		case eTopology_PatchList_7CPs:
+		case eTopology_PatchList_8CPs:
+		case eTopology_PatchList_9CPs:
+		case eTopology_PatchList_10CPs:
+		case eTopology_PatchList_11CPs:
+		case eTopology_PatchList_12CPs:
+		case eTopology_PatchList_13CPs:
+		case eTopology_PatchList_14CPs:
+		case eTopology_PatchList_15CPs:
+		case eTopology_PatchList_16CPs:
+		case eTopology_PatchList_17CPs:
+		case eTopology_PatchList_18CPs:
+		case eTopology_PatchList_19CPs:
+		case eTopology_PatchList_20CPs:
+		case eTopology_PatchList_21CPs:
+		case eTopology_PatchList_22CPs:
+		case eTopology_PatchList_23CPs:
+		case eTopology_PatchList_24CPs:
+		case eTopology_PatchList_25CPs:
+		case eTopology_PatchList_26CPs:
+		case eTopology_PatchList_27CPs:
+		case eTopology_PatchList_28CPs:
+		case eTopology_PatchList_29CPs:
+		case eTopology_PatchList_30CPs:
+		case eTopology_PatchList_31CPs:
+		case eTopology_PatchList_32CPs:
+			return VK_PRIMITIVE_TOPOLOGY_PATCH;
+	}
+
+	return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 }
 
 template<>
