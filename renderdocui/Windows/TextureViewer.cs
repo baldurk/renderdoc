@@ -3417,6 +3417,16 @@ namespace renderdocui.Windows
             if (m_TexDisplay.Alpha && !checkerBack.Checked) m_SaveDialog.saveData.alpha = AlphaMapping.BlendToColour;
             m_SaveDialog.tex = CurrentTexture;
 
+            if (m_TexDisplay.CustomShader != ResourceId.Null)
+            {
+                m_Core.Renderer.Invoke((ReplayRenderer r) =>
+                {
+                    ResourceId id = m_Output.GetCustomShaderTexID();
+                    if(id != ResourceId.Null)
+                        m_SaveDialog.saveData.id = id;
+                });
+            }
+
             if(m_SaveDialog.ShowDialog() == DialogResult.OK)
             { 
                 bool ret = false;

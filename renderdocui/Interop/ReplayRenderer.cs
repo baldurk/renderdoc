@@ -98,6 +98,9 @@ namespace renderdoc
         private static extern bool ReplayOutput_SetPixelContextLocation(IntPtr real, UInt32 x, UInt32 y);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayOutput_DisablePixelContext(IntPtr real);
+        
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void ReplayOutput_GetCustomShaderTexID(IntPtr real, ref ResourceId texid);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_PickPixel(IntPtr real, ResourceId texID, bool customShader,
@@ -147,6 +150,15 @@ namespace renderdoc
         public void DisablePixelContext()
         {
             ReplayOutput_DisablePixelContext(m_Real);
+        }
+
+        public ResourceId GetCustomShaderTexID()
+        {
+            ResourceId ret = ResourceId.Null;
+
+            ReplayOutput_GetCustomShaderTexID(m_Real, ref ret);
+
+            return ret;
         }
 
         public PixelValue PickPixel(ResourceId texID, bool customShader, UInt32 x, UInt32 y, UInt32 sliceFace, UInt32 mip, UInt32 sample)

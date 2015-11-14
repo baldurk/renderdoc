@@ -152,6 +152,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContext(Replay
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContextLocation(ReplayOutput *output, uint32_t x, uint32_t y);
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(ReplayOutput *output);
 
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetCustomShaderTexID(ReplayOutput *output, ResourceId *id);
+
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(ReplayOutput *output, ResourceId texID, bool32 customShader,
 														uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val);
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(ReplayOutput *output, uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y);
