@@ -3081,7 +3081,7 @@ namespace renderdocui.Windows
             }
 
             if (primary == null)
-                return;
+                primary = vsInBufferView;
 
             foreach (DataGridView g in grids)
             {
