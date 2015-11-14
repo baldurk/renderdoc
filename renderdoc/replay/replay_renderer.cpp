@@ -490,6 +490,10 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 		sd.slice.slicesAsGrid = false;
 	}
 
+	// can't extract a channel that's not in the source texture
+	if(sd.channelExtract >= 0 && (uint32_t)sd.channelExtract >= td.format.compCount)
+		sd.channelExtract = -1;
+
 	sd.slice.sliceGridWidth = RDCMAX(sd.slice.sliceGridWidth, 1);
 
 	// store sample count so we know how many 'slices' is one real slice
@@ -876,6 +880,25 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 	}
 	
 	int numComps = td.format.compCount;
+
+	// if we want a grayscale image of one channel, splat it across all channels
+	// and set alpha to full
+	if(sd.channelExtract >= 0 && td.format.compByteWidth == 1 && (uint32_t)sd.channelExtract < td.format.compCount)
+	{
+		for(uint32_t y=0; y < td.height; y++)
+		{
+			for(uint32_t x=0; x < td.width; x++)
+			{
+				subdata[0][ ( y * td.width + x ) * 4 + 0 ] = subdata[0][ ( y * td.width + x ) * 4 + sd.channelExtract ];
+				if(td.format.compCount >= 2)
+					subdata[0][ ( y * td.width + x ) * 4 + 1 ] = subdata[0][ ( y * td.width + x ) * 4 + sd.channelExtract ];
+				if(td.format.compCount >= 3)
+					subdata[0][ ( y * td.width + x ) * 4 + 2 ] = subdata[0][ ( y * td.width + x ) * 4 + sd.channelExtract ];
+				if(td.format.compCount >= 4)
+					subdata[0][ ( y * td.width + x ) * 4 + 3 ] = 255;
+			}
+		}
+	}
 	
 	// handle formats that don't support alpha
 	if(numComps == 4 && (sd.destType == eFileType_BMP || sd.destType == eFileType_JPG) )
@@ -1072,6 +1095,23 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 						g = RDCMAX(g, 0.0f);
 						b = RDCMAX(b, 0.0f);
 						a = RDCMAX(a, 0.0f);
+					}
+
+					if(sd.channelExtract == 0)
+					{
+						g = b = r; a = 1.0f;
+					}
+					if(sd.channelExtract == 1)
+					{
+						r = b = g; a = 1.0f;
+					}
+					if(sd.channelExtract == 2)
+					{
+						r = g = b; a = 1.0f;
+					}
+					if(sd.channelExtract == 3)
+					{
+						r = g = b = a; a = 1.0f;
 					}
 
 					fldata[(y*td.width + x) * 4 + 0] = r;

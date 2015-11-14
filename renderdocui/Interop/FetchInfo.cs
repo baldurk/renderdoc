@@ -487,6 +487,8 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public SliceMapping slice = new SliceMapping();
 
+        public int channelExtract = -1;
+
         public AlphaMapping alpha = AlphaMapping.Discard;
         public FloatVector alphaCol = new FloatVector(0.666f, 0.666f, 0.666f);
         public FloatVector alphaColSecondary = new FloatVector(0.333f, 0.333f, 0.333f);

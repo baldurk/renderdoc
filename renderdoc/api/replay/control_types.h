@@ -178,6 +178,8 @@ struct TextureSave
 		// and file format doesn't support saving all slices, only
 		// slice 0 is saved
 	} slice;
+	
+	int channelExtract;
 
 	// for formats without an alpha channel, define how it should be
 	// mapped. Only available for uncompressed simple formats, done

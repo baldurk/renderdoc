@@ -3399,6 +3399,17 @@ namespace renderdocui.Windows
             m_SaveDialog.saveData.id = m_TexDisplay.texid;
             m_SaveDialog.saveData.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
             m_SaveDialog.saveData.mip = (int)m_TexDisplay.mip;
+
+            m_SaveDialog.saveData.channelExtract = -1;
+            if (m_TexDisplay.Red && !m_TexDisplay.Green && !m_TexDisplay.Blue && !m_TexDisplay.Alpha)
+                m_SaveDialog.saveData.channelExtract = 0;
+            if (!m_TexDisplay.Red && m_TexDisplay.Green && !m_TexDisplay.Blue && !m_TexDisplay.Alpha)
+                m_SaveDialog.saveData.channelExtract = 1;
+            if (!m_TexDisplay.Red && !m_TexDisplay.Green && m_TexDisplay.Blue && !m_TexDisplay.Alpha)
+                m_SaveDialog.saveData.channelExtract = 2;
+            if (!m_TexDisplay.Red && !m_TexDisplay.Green && !m_TexDisplay.Blue && m_TexDisplay.Alpha)
+                m_SaveDialog.saveData.channelExtract = 3;
+
             m_SaveDialog.saveData.comp.blackPoint = m_TexDisplay.rangemin;
             m_SaveDialog.saveData.comp.whitePoint = m_TexDisplay.rangemax;
             m_SaveDialog.saveData.alphaCol = m_TexDisplay.lightBackgroundColour;
