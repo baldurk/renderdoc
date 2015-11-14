@@ -309,7 +309,7 @@ void ImageViewer::RefreshFile()
 
 	if(!f)
 	{
-		RDCERR("Couldn't open file! Exclusive lock elsewhere?");
+		RDCERR("Couldn't open %s! Exclusive lock elsewhere?", filename);
 		return;
 	}
 
