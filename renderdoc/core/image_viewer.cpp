@@ -304,12 +304,13 @@ void ImageViewer::RefreshFile()
 		f = FileIO::fopen(m_Filename.c_str(), "rb");
 		if(f)
 			break;
-		Threading::Sleep(400);
+		Threading::Sleep(40);
 	}
 
 	if(!f)
 	{
 		RDCERR("Couldn't open file! Exclusive lock elsewhere?");
+		return;
 	}
 
 	FetchTexture texDetails;
