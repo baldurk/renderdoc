@@ -37,11 +37,11 @@ using std::make_pair;
 #undef min
 #undef max
 
-#include "3rdparty/glslang/SPIRV/spirv.h"
-#include "3rdparty/glslang/SPIRV/GLSL450Lib.h"
+#include "3rdparty/glslang/SPIRV/spirv.hpp"
+#include "3rdparty/glslang/SPIRV/GLSL.std.450.h"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
-const char *GLSL_STD_450_names[GLSL_STD_450::Count] = {0};
+const char *GLSL_STD_450_names[GLSLstd450Count] = {0};
 
 // list of known generators, just for kicks
 struct { uint32_t magic; const char *name; } KnownGenerators[] = {
@@ -76,7 +76,7 @@ struct SPVInstruction;
 
 struct SPVDecoration
 {
-	SPVDecoration() : decoration(spv::DecorationPrecisionLow), val(0) {}
+	SPVDecoration() : decoration(spv::DecorationRelaxedPrecision), val(0) {}
 
 	spv::Decoration decoration;
 
@@ -2161,6 +2161,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 template<>
 string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 {
+#if 0
 	switch(el)
 	{
 		case spv::OpNop:                                      return "Nop";
@@ -2432,7 +2433,8 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpAtomicIMax:                               return "AtomicIMax";
 		default: break;
 	}
-	
+#endif
+
 	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
 
@@ -2441,10 +2443,11 @@ string ToStrHelper<false, spv::SourceLanguage>::Get(const spv::SourceLanguage &e
 {
 	switch(el)
 	{
-		case spv::SourceLanguageUnknown: return "Unknown";
-		case spv::SourceLanguageESSL:    return "ESSL";
-		case spv::SourceLanguageGLSL:    return "GLSL";
-		case spv::SourceLanguageOpenCL:  return "OpenCL";
+		case spv::SourceLanguageUnknown:    return "Unknown";
+		case spv::SourceLanguageESSL:       return "ESSL";
+		case spv::SourceLanguageGLSL:       return "GLSL";
+		case spv::SourceLanguageOpenCL_C:   return "OpenCL C";
+		case spv::SourceLanguageOpenCL_CPP: return "OpenCL C++";
 		default: break;
 	}
 	
@@ -2472,9 +2475,7 @@ string ToStrHelper<false, spv::MemoryModel>::Get(const spv::MemoryModel &el)
 	{
 		case spv::MemoryModelSimple:   return "Simple";
 		case spv::MemoryModelGLSL450:  return "GLSL450";
-		case spv::MemoryModelOpenCL12: return "OpenCL12";
-		case spv::MemoryModelOpenCL20: return "OpenCL20";
-		case spv::MemoryModelOpenCL21: return "OpenCL21";
+		case spv::MemoryModelOpenCL:   return "OpenCL";
 		default: break;
 	}
 	
@@ -2502,6 +2503,7 @@ string ToStrHelper<false, spv::ExecutionModel>::Get(const spv::ExecutionModel &e
 template<>
 string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
 {
+#if 0
 	switch(el)
 	{
     case spv::DecorationPrecisionLow:         return "PrecisionLow";
@@ -2551,6 +2553,7 @@ string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
     case spv::DecorationSpecId:               return "SpecId";
 		default: break;
 	}
+#endif
 	
 	return "Unrecognised";
 }
@@ -2558,6 +2561,7 @@ string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
 template<>
 string ToStrHelper<false, spv::StorageClass>::Get(const spv::StorageClass &el)
 {
+#if 0
 	switch(el)
 	{
     case spv::StorageClassUniformConstant:    return "UniformConstant";
@@ -2573,6 +2577,7 @@ string ToStrHelper<false, spv::StorageClass>::Get(const spv::StorageClass &el)
     case spv::StorageClassAtomicCounter:      return "AtomicCounter";
 		default: break;
 	}
+#endif
 	
 	return "Unrecognised";
 }
