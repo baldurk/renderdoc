@@ -224,6 +224,7 @@ struct TArraySizes {
 
         return false;
     }
+    bool isImplicit() const { return getOuterSize() == UnsizedArraySize || isInnerImplicit(); }
     void addOuterSizes(const TArraySizes& s) { sizes.push_front(s.sizes); }
     void dereference() { sizes.pop_front(); }
     void copyDereferenced(const TArraySizes& rhs)

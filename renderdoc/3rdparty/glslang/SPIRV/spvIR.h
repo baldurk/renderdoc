@@ -74,18 +74,14 @@ const MemorySemanticsMask MemorySemanticsAllMemory = (MemorySemanticsMask)0x3FF;
 
 class Instruction {
 public:
-    Instruction(Id resultId, Id typeId, Op opCode) : resultId(resultId), typeId(typeId), opCode(opCode), string(0) { }
-    explicit Instruction(Op opCode) : resultId(NoResult), typeId(NoType), opCode(opCode), string(0) { }
-    virtual ~Instruction()
-    {
-        delete string;
-    }
+    Instruction(Id resultId, Id typeId, Op opCode) : resultId(resultId), typeId(typeId), opCode(opCode) { }
+    explicit Instruction(Op opCode) : resultId(NoResult), typeId(NoType), opCode(opCode) { }
+    virtual ~Instruction() {}
     void addIdOperand(Id id) { operands.push_back(id); }
     void addImmediateOperand(unsigned int immediate) { operands.push_back(immediate); }
     void addStringOperand(const char* str)
     {
         originalString = str;
-        string = new std::vector<unsigned int>;
         unsigned int word;
         char* wordString = (char*)&word;
         char* wordPtr = wordString;
@@ -96,7 +92,7 @@ public:
             *(wordPtr++) = c;
             ++charCount;
             if (charCount == 4) {
-                string->push_back(word);
+                addImmediateOperand(word);
                 wordPtr = wordString;
                 charCount = 0;
             }
@@ -107,7 +103,7 @@ public:
             // pad with 0s
             for (; charCount < 4; ++charCount)
                 *(wordPtr++) = 0;
-            string->push_back(word);
+            addImmediateOperand(word);
         }
     }
     Op getOpCode() const { return opCode; }
@@ -128,8 +124,6 @@ public:
         if (resultId)
             ++wordCount;
         wordCount += (unsigned int)operands.size();
-        if (string)
-            wordCount += (unsigned int)string->size();
 
         // Write out the beginning of the instruction
         out.push_back(((wordCount) << WordCountShift) | opCode);
@@ -141,9 +135,6 @@ public:
         // Write out the operands
         for (int op = 0; op < (int)operands.size(); ++op)
             out.push_back(operands[op]);
-        if (string)
-            for (int op = 0; op < (int)string->size(); ++op)
-                out.push_back((*string)[op]);
     }
 
 protected:
@@ -152,7 +143,6 @@ protected:
     Id typeId;
     Op opCode;
     std::vector<Id> operands;
-    std::vector<unsigned int>* string; // usually non-existent
     std::string originalString;        // could be optimized away; convenience for getting string operand
 };
 

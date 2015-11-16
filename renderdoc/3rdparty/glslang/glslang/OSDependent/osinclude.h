@@ -35,10 +35,10 @@
 #ifndef __ROOT_OSINCLUDE_H
 #define __ROOT_OSINCLUDE_H
 
-#if defined(WIN32)
+#if defined(GLSLANG_OSINCLUDE_WIN32)
 #include "Windows/osinclude.h"
-#elif defined(__linux__)
-#include "Linux/osinclude.h"
+#elif defined(GLSLANG_OSINCLUDE_UNIX)
+#include "Unix/osinclude.h"
 #else
 #error "Unknown platform"
 #endif

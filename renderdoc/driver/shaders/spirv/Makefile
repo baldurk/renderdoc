@@ -4,6 +4,7 @@ COMMIT=`git rev-parse HEAD`
 MACROS=-DLINUX \
 			 -DRENDERDOC_PLATFORM=linux \
 			 -DRENDERDOC_EXPORTS \
+			 -DGLSLANG_OSINCLUDE_UNIX \
 			 -DGIT_COMMIT_HASH="\"$(COMMIT)\""
 CFLAGS=-c -Wall -Werror -Wno-unused -Wno-unknown-pragmas -fPIC $(MACROS) -I../../../ -I../../../3rdparty/
 CPPFLAGS=-std=c++11 -g -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
@@ -46,7 +47,7 @@ glslang/glslang/MachineIndependent/preprocessor/PpMemory.o \
 glslang/glslang/MachineIndependent/preprocessor/PpScanner.o \
 glslang/glslang/MachineIndependent/preprocessor/PpSymbols.o \
 glslang/glslang/MachineIndependent/preprocessor/PpTokens.o \
-glslang/glslang/OSDependent/Linux/ossource.o
+glslang/glslang/OSDependent/Unix/ossource.o
 
 
 .PHONY: all

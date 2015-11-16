@@ -242,7 +242,7 @@ TVariable::TVariable(const TVariable& copyOf) : TSymbol(copyOf)
     userType = copyOf.userType;
     numExtensions = 0;
     extensions = 0;
-    if (copyOf.numExtensions > 0)
+    if (copyOf.numExtensions != 0)
         setExtensions(copyOf.numExtensions, copyOf.extensions);
 
     if (! copyOf.unionArray.empty()) {

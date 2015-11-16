@@ -381,7 +381,7 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     case EOpConstructDMat3x4: out.debug << "Construct dmat3x4"; break;
     case EOpConstructDMat4x2: out.debug << "Construct dmat4x2"; break;
     case EOpConstructDMat4x3: out.debug << "Construct dmat4x3"; break;
-    case EOpConstructDMat4x4: out.debug << "Construct dmat4";  break;
+    case EOpConstructDMat4x4: out.debug << "Construct dmat4";   break;
     case EOpConstructStruct:  out.debug << "Construct structure";  break;
 
     case EOpLessThan:         out.debug << "Compare Less Than";             break;
@@ -740,6 +740,15 @@ void TIntermediate::output(TInfoSink& infoSink, bool tree)
             infoSink.debug << "using early_fragment_tests\n";
         if (depthLayout != EldNone)
             infoSink.debug << "using " << TQualifier::getLayoutDepthString(depthLayout) << "\n";
+        if (blendEquations != 0) {
+            infoSink.debug << "using";
+            // blendEquations is a mask, decode it
+            for (TBlendEquationShift be = (TBlendEquationShift)0; be < EBlendCount; be = (TBlendEquationShift)(be + 1)) {
+                if (blendEquations & (1 << be))
+                    infoSink.debug << " " << TQualifier::getBlendEquationString(be);
+            }
+            infoSink.debug << "\n";
+        }
         break;
 
     case EShLangCompute:

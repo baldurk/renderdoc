@@ -639,7 +639,7 @@ public:
     bool isImage()   const { return op > EOpImageGuardBegin   && op < EOpImageGuardEnd; }
 
     // Crack the op into the individual dimensions of texturing operation.
-    void crackTexture(TCrackedTextureOp& cracked) const
+    void crackTexture(TSampler sampler, TCrackedTextureOp& cracked) const
     {
         cracked.query = false;
         cracked.proj = false;
@@ -651,6 +651,8 @@ public:
         cracked.grad = false;
 
         switch (op) {
+        case EOpImageQuerySize:
+        case EOpImageQuerySamples:
         case EOpTextureQuerySize:
         case EOpTextureQueryLod:
         case EOpTextureQueryLevels:
@@ -670,10 +672,14 @@ public:
             break;
         case EOpTextureFetch:
             cracked.fetch = true;
+            if (sampler.dim == Esd1D || (sampler.dim == Esd2D && ! sampler.ms) || sampler.dim == Esd3D)
+                cracked.lod = true;
             break;
         case EOpTextureFetchOffset:
             cracked.fetch = true;
             cracked.offset = true;
+            if (sampler.dim == Esd1D || (sampler.dim == Esd2D && ! sampler.ms) || sampler.dim == Esd3D)
+                cracked.lod = true;
             break;
         case EOpTextureProjOffset:
             cracked.offset = true;

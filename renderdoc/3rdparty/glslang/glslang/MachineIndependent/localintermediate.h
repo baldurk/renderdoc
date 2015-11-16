@@ -124,10 +124,10 @@ class TVariable;
 //
 class TIntermediate {
 public:
-    explicit TIntermediate(EShLanguage l, int v = 0, EProfile p = ENoProfile) : language(l), treeRoot(0), profile(p), version(v), 
+    explicit TIntermediate(EShLanguage l, int v = 0, EProfile p = ENoProfile) : language(l), treeRoot(0), profile(p), version(v), spv(0),
         numMains(0), numErrors(0), recursive(false),
         invocations(0), vertices(0), inputPrimitive(ElgNone), outputPrimitive(ElgNone), pixelCenterInteger(false), originUpperLeft(false),
-        vertexSpacing(EvsNone), vertexOrder(EvoNone), pointMode(false), earlyFragmentTests(false), depthLayout(EldNone), xfbMode(false)
+        vertexSpacing(EvsNone), vertexOrder(EvoNone), pointMode(false), earlyFragmentTests(false), depthLayout(EldNone), depthReplacing(false), blendEquations(0), xfbMode(false)
     {
         localSize[0] = 1;
         localSize[1] = 1;
@@ -144,6 +144,8 @@ public:
     int getVersion() const { return version; }
     void setProfile(EProfile p) { profile = p; }
     EProfile getProfile() const { return profile; }
+    void setSpv(int s) { spv = s; }
+    int getSpv() const { return spv; }
     EShLanguage getStage() const { return language; }
     void addRequestedExtension(const char* extension) { requestedExtensions.insert(extension); }
     const std::set<std::string>& getRequestedExtensions() const { return requestedExtensions; }
@@ -276,6 +278,11 @@ public:
         return true;
     }
     TLayoutDepth getDepth() const { return depthLayout; }
+    void setDepthReplacing() { depthReplacing = true; }
+    bool isDepthReplacing() const { return depthReplacing; }
+
+    void addBlendEquation(TBlendEquationShift b) { blendEquations |= (1 << b); }
+    unsigned int getBlendEquations() const { return blendEquations; }
 
     void addToCallGraph(TInfoSink&, const TString& caller, const TString& callee);
     void merge(TInfoSink&, TIntermediate&);
@@ -315,6 +322,7 @@ protected:
     TIntermNode* treeRoot;
     EProfile profile;
     int version;
+    int spv;
     std::set<std::string> requestedExtensions;  // cumulation of all enabled or required extensions; not connected to what subset of the shader used them
     TBuiltInResource resources;
     int numMains;
@@ -332,6 +340,8 @@ protected:
     int localSize[3];
     bool earlyFragmentTests;
     TLayoutDepth depthLayout;
+    bool depthReplacing;
+    int blendEquations;        // an 'or'ing of masks of shifts of TBlendEquationShift
     bool xfbMode;
 
     typedef std::list<TCall> TGraph;

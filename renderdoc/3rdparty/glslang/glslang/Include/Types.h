@@ -66,13 +66,13 @@ enum TSamplerDim {
     EsdNumDims
 };
 
-struct TSampler {
+struct TSampler {   // misnomer now; includes images, textures without sampler, and textures with sampler
     TBasicType type : 8;  // type returned by sampler
     TSamplerDim dim : 8;
     bool    arrayed : 1;
     bool     shadow : 1;
     bool         ms : 1;
-    bool      image : 1;
+    bool      image : 1;  // image, combined should be false
     bool   external : 1;  // GL_OES_EGL_image_external
 
     void clear()
@@ -86,26 +86,27 @@ struct TSampler {
         external = false;
     }
 
+    // make a combined sampler and texture
     void set(TBasicType t, TSamplerDim d, bool a = false, bool s = false, bool m = false)
     {
+        clear();
         type = t;
         dim = d;
         arrayed = a;
         shadow = s;
         ms = m;
-        image = false;
-        external = false;
     }
 
+    // make an image
     void setImage(TBasicType t, TSamplerDim d, bool a = false, bool s = false, bool m = false)
     {
+        clear();
         type = t;
         dim = d;
         arrayed = a;
         shadow = s;
         ms = m;
         image = true;
-        external = false;
     }
 
     bool operator==(const TSampler& right) const
@@ -119,6 +120,11 @@ struct TSampler {
            external == right.external;
     }
 
+    bool operator!=(const TSampler& right) const
+    {
+        return ! operator==(right);
+    }
+
     TString getString() const
     {
         TString s;
@@ -129,21 +135,22 @@ struct TSampler {
         case EbtUint: s.append("u"); break;
         default:  break;  // some compilers want this
         }
-        if (image)
+        if (image) {
             s.append("image");
-        else
+        } else {
             s.append("sampler");
+        }
         if (external) {
             s.append("ExternalOES");
             return s;
         }
         switch (dim) {
-        case Esd1D:      s.append("1D");     break;
-        case Esd2D:      s.append("2D");     break;
-        case Esd3D:      s.append("3D");     break;
-        case EsdCube:    s.append("Cube");   break;
-        case EsdRect:    s.append("2DRect"); break;
-        case EsdBuffer:  s.append("Buffer"); break;
+        case Esd1D:      s.append("1D");      break;
+        case Esd2D:      s.append("2D");      break;
+        case Esd3D:      s.append("3D");      break;
+        case EsdCube:    s.append("Cube");    break;
+        case EsdRect:    s.append("2DRect");  break;
+        case EsdBuffer:  s.append("Buffer");  break;
         default:  break;  // some compilers want this
         }
         if (ms)
@@ -290,8 +297,32 @@ enum TLayoutDepth {
     EldGreater,
     EldLess,
     EldUnchanged,
-    
+
     EldCount
+};
+
+enum TBlendEquationShift {
+    // No 'EBlendNone':
+    // These are used as bit-shift amounts.  A mask of such shifts will have type 'int',
+    // and in that space, 0 means no bits set, or none.  In this enum, 0 means (1 << 0), a bit is set.
+    EBlendMultiply,
+    EBlendScreen,
+    EBlendOverlay,
+    EBlendDarken,
+    EBlendLighten,
+    EBlendColordodge,
+    EBlendColorburn,
+    EBlendHardlight,
+    EBlendSoftlight,
+    EBlendDifference,
+    EBlendExclusion,
+    EBlendHslHue,
+    EBlendHslSaturation,
+    EBlendHslColor,
+    EBlendHslLuminosity,
+    EBlendAllEquations,
+
+    EBlendCount
 };
 
 class TQualifier {
@@ -306,37 +337,37 @@ public:
     // drop qualifiers that don't belong in a temporary variable
     void makeTemporary()
     {
-        storage   = EvqTemporary;
-        builtIn   = EbvNone;
-        centroid  = false;
-        smooth    = false;
-        flat      = false;
-        nopersp   = false;
-        patch     = false;
-        sample    = false;
-        coherent  = false;
-        volatil   = false;
-        restrict  = false;
-        readonly  = false;
-        writeonly = false;
+        storage      = EvqTemporary;
+        builtIn      = EbvNone;
+        centroid     = false;
+        smooth       = false;
+        flat         = false;
+        nopersp      = false;
+        patch        = false;
+        sample       = false;
+        coherent     = false;
+        volatil      = false;
+        restrict     = false;
+        readonly     = false;
+        writeonly    = false;
         clearLayout();
     }
 
     TStorageQualifier   storage   : 6;
     TBuiltInVariable    builtIn   : 8;
     TPrecisionQualifier precision : 3;
-    bool invariant : 1;
-    bool centroid  : 1;
-    bool smooth    : 1;
-    bool flat      : 1;
-    bool nopersp   : 1;
-    bool patch     : 1;
-    bool sample    : 1;
-    bool coherent  : 1;
-    bool volatil   : 1;
-    bool restrict  : 1;
-    bool readonly  : 1;
-    bool writeonly : 1;
+    bool invariant    : 1;
+    bool centroid     : 1;
+    bool smooth       : 1;
+    bool flat         : 1;
+    bool nopersp      : 1;
+    bool patch        : 1;
+    bool sample       : 1;
+    bool coherent     : 1;
+    bool volatil      : 1;
+    bool restrict     : 1;
+    bool readonly     : 1;
+    bool writeonly    : 1;
 
     bool isMemory() const
     {
@@ -477,7 +508,7 @@ public:
     }
     bool hasLayout() const
     {
-        return hasUniformLayout() || 
+        return hasUniformLayout() ||
                hasAnyLocation() ||
                hasBinding() ||
                hasStream() ||
@@ -489,34 +520,34 @@ public:
     int layoutOffset;
     int layoutAlign;
 
-                 unsigned int layoutLocation         : 7;
-    static const unsigned int layoutLocationEnd =   0x3F;
+                 unsigned int layoutLocation            :12;
+    static const unsigned int layoutLocationEnd    =  0xFFF;
 
-                 unsigned int layoutComponent        : 3;
-    static const unsigned int layoutComponentEnd =     4;
+                 unsigned int layoutComponent           : 3;
+    static const unsigned int layoutComponentEnd    =     4;
 
-                 unsigned int layoutSet              : 7;
-    static const unsigned int layoutSetEnd      =   0x3F;
+                 unsigned int layoutSet                 : 7;
+    static const unsigned int layoutSetEnd         =   0x3F;
 
-                 unsigned int layoutBinding          : 8;
-    static const unsigned int layoutBindingEnd =    0xFF;
+                 unsigned int layoutBinding             : 8;
+    static const unsigned int layoutBindingEnd    =    0xFF;
 
-                 unsigned int layoutIndex           :  8;
-    static const unsigned int layoutIndexEnd =      0xFF;
+                 unsigned int layoutIndex              :  8;
+    static const unsigned int layoutIndexEnd    =      0xFF;
 
-                 unsigned int layoutStream           : 8;
-    static const unsigned int layoutStreamEnd =     0xFF;
+                 unsigned int layoutStream              : 8;
+    static const unsigned int layoutStreamEnd    =     0xFF;
 
-                 unsigned int layoutXfbBuffer        : 4;
-    static const unsigned int layoutXfbBufferEnd =   0xF;
+                 unsigned int layoutXfbBuffer           : 4;
+    static const unsigned int layoutXfbBufferEnd    =   0xF;
 
-                 unsigned int layoutXfbStride       : 10;
-    static const unsigned int layoutXfbStrideEnd = 0x3FF;
+                 unsigned int layoutXfbStride          : 10;
+    static const unsigned int layoutXfbStrideEnd    = 0x3FF;
 
-                 unsigned int layoutXfbOffset       : 10;
-    static const unsigned int layoutXfbOffsetEnd = 0x3FF;
+                 unsigned int layoutXfbOffset          : 10;
+    static const unsigned int layoutXfbOffsetEnd    = 0x3FF;
 
-    TLayoutFormat layoutFormat                      :  8;
+    TLayoutFormat layoutFormat                         :  8;
 
     bool hasUniformLayout() const
     {
@@ -550,7 +581,7 @@ public:
     }
     bool hasLocation() const
     {
-        return layoutLocation  != layoutLocationEnd;
+        return layoutLocation != layoutLocationEnd;
     }
     bool hasComponent() const
     {
@@ -669,6 +700,28 @@ public:
         default:           return "none";
         }
     }
+    static const char* getBlendEquationString(TBlendEquationShift e)
+    {
+        switch (e) {
+        case EBlendMultiply:      return "blend_support_multiply";
+        case EBlendScreen:        return "blend_support_screen";
+        case EBlendOverlay:       return "blend_support_overlay";
+        case EBlendDarken:        return "blend_support_darken";
+        case EBlendLighten:       return "blend_support_lighten";
+        case EBlendColordodge:    return "blend_support_colordodge";
+        case EBlendColorburn:     return "blend_support_colorburn";
+        case EBlendHardlight:     return "blend_support_hardlight";
+        case EBlendSoftlight:     return "blend_support_softlight";
+        case EBlendDifference:    return "blend_support_difference";
+        case EBlendExclusion:     return "blend_support_exclusion";
+        case EBlendHslHue:        return "blend_support_hsl_hue";
+        case EBlendHslSaturation: return "blend_support_hsl_saturation";
+        case EBlendHslColor:      return "blend_support_hsl_color";
+        case EBlendHslLuminosity: return "blend_support_hsl_luminosity";
+        case EBlendAllEquations:  return "blend_support_all_equations";
+        default:                  return "unknown";
+        }
+    }
     static const char* getGeometryString(TLayoutGeometry geometry)
     {
         switch (geometry) {
@@ -728,6 +781,7 @@ struct TShaderQualifiers {
     int localSize[3];         // compute shader
     bool earlyFragmentTests;  // fragment input
     TLayoutDepth layoutDepth;
+    bool blendEquation;       // true if any blend equation was specified
 
     void init()
     {
@@ -744,6 +798,7 @@ struct TShaderQualifiers {
         localSize[2] = 1;
         earlyFragmentTests = false;
         layoutDepth = EldNone;
+        blendEquation = false;
     }
 
     // Merge in characteristics from the 'src' qualifier.  They can override when
@@ -774,6 +829,8 @@ struct TShaderQualifiers {
             earlyFragmentTests = true;
         if (src.layoutDepth)
             layoutDepth = src.layoutDepth;
+        if (src.blendEquation)
+            blendEquation = src.blendEquation;
     }
 };
 
@@ -843,10 +900,7 @@ public:
         return matrixCols == 0 && vectorSize == 1 && arraySizes == nullptr && userDef == nullptr;
     }
 
-    bool isImage() const
-    {
-        return basicType == EbtSampler && sampler.image;
-    }
+    bool isImage() const { return basicType == EbtSampler && sampler.image; }
 };
 
 //
@@ -934,7 +988,7 @@ public:
                                 typeName = NewPoolTString(n.c_str());
                             }
     // For interface blocks
-    TType(TTypeList* userDef, const TString& n, const TQualifier& q) : 
+    TType(TTypeList* userDef, const TString& n, const TQualifier& q) :
                             basicType(EbtBlock), vectorSize(1), matrixCols(0), matrixRows(0),
                             qualifier(q), arraySizes(nullptr), structure(userDef), fieldName(nullptr)
                             {
@@ -942,10 +996,10 @@ public:
                                 typeName = NewPoolTString(n.c_str());
                             }
     virtual ~TType() {}
-    
+
     // Not for use across pool pops; it will cause multiple instances of TType to point to the same information.
-    // This only works if that information (like a structure's list of types) does not change and 
-    // the instances are sharing the same pool. 
+    // This only works if that information (like a structure's list of types) does not change and
+    // the instances are sharing the same pool.
     void shallowCopy(const TType& copyOf)
     {
         basicType = copyOf.basicType;
@@ -985,7 +1039,7 @@ public:
         if (copyOf.typeName)
             typeName = NewPoolTString(copyOf.typeName->c_str());
     }
-    
+
     TType* clone()
     {
         TType *newType = new TType();
@@ -1055,6 +1109,7 @@ public:
     virtual bool isImplicitlySizedArray() const { return isArray() && getOuterArraySize() == UnsizedArraySize && qualifier.storage != EvqBuffer; }
     virtual bool isRuntimeSizedArray()    const { return isArray() && getOuterArraySize() == UnsizedArraySize && qualifier.storage == EvqBuffer; }
     virtual bool isStruct() const { return structure != nullptr; }
+
     virtual bool isImage() const { return basicType == EbtSampler && getSampler().image; }
 
     // Recursively checks if the type contains the given basic type
@@ -1111,6 +1166,19 @@ public:
         return false;
     }
 
+    virtual bool containsOpaque() const
+    {
+        if (basicType == EbtSampler || basicType == EbtAtomicUint)
+            return true;
+        if (! structure)
+            return false;
+        for (unsigned int i = 0; i < structure->size(); ++i) {
+            if ((*structure)[i].type->containsOpaque())
+                return true;
+        }
+        return false;
+    }
+
     // Array editing methods.  Array descriptors can be shared across
     // type instances.  This allows all uses of the same array
     // to be updated at once.  E.g., all nodes can be explicitly sized
@@ -1119,7 +1187,7 @@ public:
     //
     // N.B.:  Don't share with the shared symbol tables (symbols are
     // marked as isReadOnly().  Such symbols with arrays that will be
-    // edited need to copyUp() on first use, so that 
+    // edited need to copyUp() on first use, so that
     // A) the edits don't effect the shared symbol table, and
     // B) the edits are shared across all users.
     void updateArraySizes(const TType& type)
@@ -1157,7 +1225,7 @@ public:
         }
     }
 
-    const char* getBasicString() const 
+    const char* getBasicString() const
     {
         return TType::getBasicString(basicType);
     }
@@ -1338,8 +1406,8 @@ public:
     // in different places, but still might satisfy the definition of matching.
     // From the spec:
     //
-    // "Structures must have the same name, sequence of type names, and 
-    //  type definitions, and member names to be considered the same type. 
+    // "Structures must have the same name, sequence of type names, and
+    //  type definitions, and member names to be considered the same type.
     //  This rule applies recursively for nested or embedded types."
     //
     bool sameStructType(const TType& right) const

@@ -99,11 +99,14 @@ public:
     Id makeUintType(int width) { return makeIntegerType(width, false); }
     Id makeFloatType(int width);
     Id makeStructType(std::vector<Id>& members, const char*);
+    Id makeStructResultType(Id type0, Id type1);
     Id makeVectorType(Id component, int size);
     Id makeMatrixType(Id component, int cols, int rows);
     Id makeArrayType(Id element, unsigned size);
+    Id makeRuntimeArray(Id element);
     Id makeFunctionType(Id returnType, std::vector<Id>& paramTypes);
     Id makeImageType(Id sampledType, Dim, bool depth, bool arrayed, bool ms, unsigned sampled, ImageFormat format);
+    Id makeSamplerType();
     Id makeSampledImageType(Id imageType);
 
     // For querying about types.
@@ -117,12 +120,14 @@ public:
     Id getScalarTypeId(Id typeId) const;
     Id getContainedTypeId(Id typeId) const;
     Id getContainedTypeId(Id typeId, int) const;
+    StorageClass getTypeStorageClass(Id typeId) const { return module.getStorageClass(typeId); }
 
     bool isPointer(Id resultId)     const { return isPointerType(getTypeId(resultId)); }
     bool isScalar(Id resultId)      const { return isScalarType(getTypeId(resultId)); }
     bool isVector(Id resultId)      const { return isVectorType(getTypeId(resultId)); }
     bool isMatrix(Id resultId)      const { return isMatrixType(getTypeId(resultId)); }
     bool isAggregate(Id resultId)   const { return isAggregateType(getTypeId(resultId)); }
+    bool isBoolType(Id typeId)      const { return groupedTypes[OpTypeBool].size() > 0 && typeId == groupedTypes[OpTypeBool].back()->getResultId(); }
 
     bool isPointerType(Id typeId)   const { return getTypeClass(typeId) == OpTypePointer; }
     bool isScalarType(Id typeId)    const { return getTypeClass(typeId) == OpTypeFloat  || getTypeClass(typeId) == OpTypeInt || getTypeClass(typeId) == OpTypeBool; }
@@ -135,8 +140,11 @@ public:
     bool isSamplerType(Id typeId)   const { return getTypeClass(typeId) == OpTypeSampler; }
     bool isSampledImageType(Id typeId)   const { return getTypeClass(typeId) == OpTypeSampledImage; }
 
+    bool isConstantOpCode(Op opcode) const;
+    bool isConstant(Id resultId) const { return isConstantOpCode(getOpCode(resultId)); }
     bool isConstantScalar(Id resultId) const { return getOpCode(resultId) == OpConstant; }
     unsigned int getConstantScalar(Id resultId) const { return module.getInstruction(resultId)->getImmediateOperand(0); }
+    StorageClass getStorageClass(Id resultId) const { return getTypeStorageClass(getTypeId(resultId)); }
 
     int getTypeNumColumns(Id typeId) const
     {
@@ -158,8 +166,9 @@ public:
     }
     Id getImageType(Id resultId) const
     {
-        assert(isSampledImageType(getTypeId(resultId)));
-        return module.getInstruction(getTypeId(resultId))->getIdOperand(0);
+        Id typeId = getTypeId(resultId);
+        assert(isImageType(typeId) || isSampledImageType(typeId));
+        return isSampledImageType(typeId) ? module.getInstruction(typeId)->getIdOperand(0) : typeId;
     }
     bool isArrayedImageType(Id typeId) const
     {
@@ -168,19 +177,18 @@ public:
     }
 
     // For making new constants (will return old constant if the requested one was already made).
-    Id makeBoolConstant(bool b);
-    Id makeIntConstant(Id typeId, unsigned value);
-    Id makeIntConstant(int i)         { return makeIntConstant(makeIntType(32),  (unsigned)i); }
-    Id makeUintConstant(unsigned u)   { return makeIntConstant(makeUintType(32),           u); }
-    Id makeFloatConstant(float f);
-    Id makeDoubleConstant(double d);
+    Id makeBoolConstant(bool b, bool specConstant = false);
+    Id makeIntConstant(int i, bool specConstant = false)         { return makeIntConstant(makeIntType(32),  (unsigned)i, specConstant); }
+    Id makeUintConstant(unsigned u, bool specConstant = false)   { return makeIntConstant(makeUintType(32),           u, specConstant); }
+    Id makeFloatConstant(float f, bool specConstant = false);
+    Id makeDoubleConstant(double d, bool specConstant = false);
 
     // Turn the array of constants into a proper spv constant of the requested type.
     Id makeCompositeConstant(Id type, std::vector<Id>& comps);
 
     // Methods for adding information outside the CFG.
-    void addEntryPoint(ExecutionModel, Function*, const char* name);
-    void addExecutionMode(Function*, ExecutionMode mode, int value = -1);
+    Instruction* addEntryPoint(ExecutionModel, Function*, const char* name);
+    void addExecutionMode(Function*, ExecutionMode mode, int value1 = -1, int value2 = -1, int value3 = -1);
     void addName(Id, const char* name);
     void addMemberName(Id, int member, const char* name);
     void addLine(Id target, Id fileName, int line, int column);
@@ -194,23 +202,16 @@ public:
     // Make the main function.
     Function* makeMain();
 
-    // Return from main. Implicit denotes a return at the very end of main.
-    void makeMainReturn(bool implicit = false) { makeReturn(implicit, 0, true); }
-
-    // Close the main function.
-    void closeMain();
-
     // Make a shader-style function, and create its entry block if entry is non-zero.
     // Return the function, pass back the entry.
     Function* makeFunctionEntry(Id returnType, const char* name, std::vector<Id>& paramTypes, Block **entry = 0);
 
-    // Create a return. Pass whether it is a return form main, and the return
-    // value (if applicable). In the case of an implicit return, no post-return
-    // block is inserted.
-    void makeReturn(bool implicit = false, Id retVal = 0, bool isMain = false);
+    // Create a return. An 'implicit' return is one not appearing in the source
+    // code.  In the case of an implicit return, no post-return block is inserted.
+    void makeReturn(bool implicit, Id retVal = 0);
 
     // Generate all the code needed to finish up a function.
-    void leaveFunction(bool main);
+    void leaveFunction();
 
     // Create a discard.
     void makeDiscard();
@@ -230,6 +231,9 @@ public:
     // Create an OpAccessChain instruction
     Id createAccessChain(StorageClass, Id base, std::vector<Id>& offsets);
 
+    // Create an OpArrayLength instruction
+    Id createArrayLength(Id base, unsigned int member);
+
     // Create an OpCompositeExtract instruction
     Id createCompositeExtract(Id composite, Id typeId, unsigned index);
     Id createCompositeExtract(Id composite, Id typeId, std::vector<unsigned>& indexes);
@@ -241,6 +245,7 @@ public:
 
     void createNoResultOp(Op);
     void createNoResultOp(Op, Id operand);
+    void createNoResultOp(Op, const std::vector<Id>& operands);
     void createControlBarrier(Scope execution, Scope memory, MemorySemanticsMask);
     void createMemoryBarrier(unsigned executionScope, unsigned memorySemantics);
     Id createUnaryOp(Op, Id typeId, Id operand);
@@ -295,10 +300,11 @@ public:
         Id gradX;
         Id gradY;
         Id sample;
+        Id comp;
     };
 
     // Select the correct texture operation based on all inputs, and emit the correct instruction
-    Id createTextureCall(Decoration precision, Id resultType, bool proj, const TextureParameters&);
+    Id createTextureCall(Decoration precision, Id resultType, bool fetch, bool proj, bool gather, const TextureParameters&);
 
     // Emit the OpTextureQuery* instruction that was passed in.
     // Figure out the right return value and type, and return it.
@@ -425,13 +431,13 @@ public:
     //
 
     struct AccessChain {
-        Id base;                     // for l-values, pointer to the base object, for r-values, the base object
+        Id base;                       // for l-values, pointer to the base object, for r-values, the base object
         std::vector<Id> indexChain;
-        Id instr;                    // the instruction that generates this access chain
-        std::vector<unsigned> swizzle;
-        Id component;                // a dynamic component index, can coexist with a swizzle, done after the swizzle
-        Id resultType;               // dereferenced type, to be exclusive of swizzles
-        bool isRValue;
+        Id instr;                      // cache the instruction that generates this access chain
+        std::vector<unsigned> swizzle; // each std::vector element selects the next GLSL component number
+        Id component;                  // a dynamic component index, can coexist with a swizzle, done after the swizzle, NoResult if not present
+        Id preSwizzleBaseType;         // dereferenced type, before swizzle or component is applied; NoType unless a swizzle or component is present
+        bool isRValue;                 // true if 'base' is an r-value, otherwise, base is an l-value
     };
 
     //
@@ -451,7 +457,6 @@ public:
     {
         assert(isPointer(lValue));
         accessChain.base = lValue;
-        accessChain.resultType = getContainedTypeId(getTypeId(lValue));
     }
 
     // set new base value as an r-value
@@ -459,27 +464,30 @@ public:
     {
         accessChain.isRValue = true;
         accessChain.base = rValue;
-        accessChain.resultType = getTypeId(rValue);
     }
 
     // push offset onto the end of the chain
-    void accessChainPush(Id offset, Id newType)
+    void accessChainPush(Id offset)
     {
         accessChain.indexChain.push_back(offset);
-        accessChain.resultType = newType;
     }
 
     // push new swizzle onto the end of any existing swizzle, merging into a single swizzle
-    void accessChainPushSwizzle(std::vector<unsigned>& swizzle);
+    void accessChainPushSwizzle(std::vector<unsigned>& swizzle, Id preSwizzleBaseType);
 
     // push a variable component selection onto the access chain; supporting only one, so unsided
-    void accessChainPushComponent(Id component) { accessChain.component = component; }
+    void accessChainPushComponent(Id component, Id preSwizzleBaseType)
+    {
+        accessChain.component = component;
+        if (accessChain.preSwizzleBaseType == NoType)
+            accessChain.preSwizzleBaseType = preSwizzleBaseType;
+    }
 
     // use accessChain and swizzle to store value
     void accessChainStore(Id rvalue);
 
     // use accessChain and swizzle to load an r-value
-    Id accessChainLoad(Decoration precision);
+    Id accessChainLoad(Id ResultType);
 
     // get the direct pointer for an l-value
     Id accessChainGetLValue();
@@ -487,15 +495,17 @@ public:
     void dump(std::vector<unsigned int>&) const;
 
 protected:
-    Id findScalarConstant(Op typeClass, Id typeId, unsigned value) const;
-    Id findScalarConstant(Op typeClass, Id typeId, unsigned v1, unsigned v2) const;
+    Id makeIntConstant(Id typeId, unsigned value, bool specConstant);
+    Id findScalarConstant(Op typeClass, Op opcode, Id typeId, unsigned value) const;
+    Id findScalarConstant(Op typeClass, Op opcode, Id typeId, unsigned v1, unsigned v2) const;
     Id findCompositeConstant(Op typeClass, std::vector<Id>& comps) const;
     Id collapseAccessChain();
+    void transferAccessChainSwizzle(bool dynamic);
     void simplifyAccessChainSwizzle();
-    void mergeAccessChainSwizzle();
     void createAndSetNoPredecessorBlock(const char*);
     void createBranch(Block* block);
-    void createMerge(Op, Block*, unsigned int control);
+    void createSelectionMerge(Block* mergeBlock, unsigned int control);
+    void createLoopMerge(Block* mergeBlock, Block* continueBlock, unsigned int control);
     void createConditionalBranch(Id condition, Block* thenBlock, Block* elseBlock);
     void dumpInstructions(std::vector<unsigned int>&, const std::vector<Instruction*>&) const;
 
@@ -513,7 +523,6 @@ protected:
     Block* buildPoint;
     Id uniqueId;
     Function* mainFunction;
-    Block* stageExit;
     AccessChain accessChain;
 
     // special blocks of instructions for output
@@ -567,8 +576,9 @@ protected:
         const bool testFirst;
         // When the test executes after the body, this is defined as the phi
         // instruction that tells us whether we are on the first iteration of
-        // the loop.  Otherwise this is null.
-        Instruction* const isFirstIteration;
+        // the loop.  Otherwise this is null. This is non-const because
+        // it has to be initialized outside of the initializer-list.
+        Instruction* isFirstIteration;
     };
 
     // Our loop stack.

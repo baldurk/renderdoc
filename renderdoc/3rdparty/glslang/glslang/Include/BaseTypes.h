@@ -57,10 +57,14 @@ enum TBasicType {
 };
 
 //
-// Qualifiers and built-ins.  These are mainly used to see what can be read
-// or written, and by the machine dependent translator to know which registers
-// to allocate variables in.  Since built-ins tend to go to different registers
-// than varying or uniform, it makes sense they are peers, not sub-classes.
+// Storage qualifiers.  Should align with different kinds of storage or
+// resource or GLSL storage qualifier.  Expansion is deprecated.
+//
+// N.B.: You probably DON'T want to add anything here, but rather just add it
+// to the built-in variables.  See the comment above TBuiltInVariable.
+//
+// A new built-in variable will normally be an existing qualifier, like 'in', 'out', etc.
+// DO NOT follow the design pattern of, say EvqInstanceId, etc.
 //
 enum TStorageQualifier {
     EvqTemporary,     // For temporaries (within a function), read/write
@@ -105,7 +109,7 @@ enum TStorageQualifier {
 // between built-in variable names and an numerical value (the enum).
 //
 // For backward compatibility, there is some redundancy between the
-// TStorageQualifier and these.  Both should be maintained accurately.
+// TStorageQualifier and these.  Existing members should both be maintained accurately.
 // However, any new built-in variable (and any existing non-redundant one)
 // must follow the pattern that the specific built-in is here, and only its
 // general qualifier is in TStorageQualifier.
@@ -126,6 +130,9 @@ enum TBuiltInVariable {
     EbvLocalInvocationIndex,
     EbvVertexId,
     EbvInstanceId,
+    EbvBaseVertex,
+    EbvBaseInstance,
+    EbvDrawId,
     EbvPosition,
     EbvPointSize,
     EbvClipVertex,
@@ -214,6 +221,9 @@ __inline const char* GetBuiltInVariableString(TBuiltInVariable v)
     case EbvLocalInvocationIndex: return "LocalInvocationIndex";
     case EbvVertexId:             return "VertexId";
     case EbvInstanceId:           return "InstanceId";
+    case EbvBaseVertex:           return "BaseVertex";
+    case EbvBaseInstance:         return "BaseInstance";
+    case EbvDrawId:               return "DrawId";
     case EbvPosition:             return "Position";
     case EbvPointSize:            return "PointSize";
     case EbvClipVertex:           return "ClipVertex";

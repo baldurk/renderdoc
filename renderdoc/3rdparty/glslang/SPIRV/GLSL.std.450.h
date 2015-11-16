@@ -28,7 +28,7 @@
 #define GLSLstd450_H
 
 const int GLSLstd450Version = 99;
-const int GLSLstd450Revision = 2;
+const int GLSLstd450Revision = 3;
 
 enum GLSLstd450 {
     GLSLstd450Bad = 0,              // Don't use
@@ -82,47 +82,44 @@ enum GLSLstd450 {
     GLSLstd450FClamp = 43,
     GLSLstd450UClamp = 44,
     GLSLstd450SClamp = 45,
-    GLSLstd450Mix = 46,
-    GLSLstd450Step = 47,
-    GLSLstd450SmoothStep = 48,
+    GLSLstd450FMix = 46,
+    GLSLstd450IMix = 47,
+    GLSLstd450Step = 48,
+    GLSLstd450SmoothStep = 49,
 
-    GLSLstd450Fma = 49,
-    GLSLstd450Frexp = 50,            // second operand needs an OpVariable to write to
-    GLSLstd450FrexpStruct = 51,      // no OpVariable operand
-    GLSLstd450Ldexp = 52,
+    GLSLstd450Fma = 50,
+    GLSLstd450Frexp = 51,            // second operand needs an OpVariable to write to
+    GLSLstd450FrexpStruct = 52,      // no OpVariable operand
+    GLSLstd450Ldexp = 53,
 
-    GLSLstd450PackSnorm4x8 = 53,
-    GLSLstd450PackUnorm4x8 = 54,
-    GLSLstd450PackSnorm2x16 = 55,
-    GLSLstd450PackUnorm2x16 = 56,
-    GLSLstd450PackHalf2x16 = 57,
-    GLSLstd450PackDouble2x32 = 58,
-    GLSLstd450UnpackSnorm2x16 = 59,
-    GLSLstd450UnpackUnorm2x16 = 60,
-    GLSLstd450UnpackHalf2x16 = 61,
-    GLSLstd450UnpackSnorm4x8 = 62,
-    GLSLstd450UnpackUnorm4x8 = 63,
-    GLSLstd450UnpackDouble2x32 = 64,
+    GLSLstd450PackSnorm4x8 = 54,
+    GLSLstd450PackUnorm4x8 = 55,
+    GLSLstd450PackSnorm2x16 = 56,
+    GLSLstd450PackUnorm2x16 = 57,
+    GLSLstd450PackHalf2x16 = 58,
+    GLSLstd450PackDouble2x32 = 59,
+    GLSLstd450UnpackSnorm2x16 = 60,
+    GLSLstd450UnpackUnorm2x16 = 61,
+    GLSLstd450UnpackHalf2x16 = 62,
+    GLSLstd450UnpackSnorm4x8 = 63,
+    GLSLstd450UnpackUnorm4x8 = 64,
+    GLSLstd450UnpackDouble2x32 = 65,
 
-    GLSLstd450Length = 65,
-    GLSLstd450Distance = 66,
-    GLSLstd450Cross = 67,
-    GLSLstd450Normalize = 68,
-    GLSLstd450FaceForward = 69,
-    GLSLstd450Reflect = 70,
-    GLSLstd450Refract = 71,
+    GLSLstd450Length = 66,
+    GLSLstd450Distance = 67,
+    GLSLstd450Cross = 68,
+    GLSLstd450Normalize = 69,
+    GLSLstd450FaceForward = 70,
+    GLSLstd450Reflect = 71,
+    GLSLstd450Refract = 72,
 
-    GLSLstd450FindILSB = 72,
-    GLSLstd450FindSMSB = 73,
-    GLSLstd450FindUMSB = 74,
+    GLSLstd450FindILsb = 73,
+    GLSLstd450FindSMsb = 74,
+    GLSLstd450FindUMsb = 75,
 
-    GLSLstd450InterpolateAtCentroid = 75,
-    GLSLstd450InterpolateAtSample = 76,
-    GLSLstd450InterpolateAtOffset = 77,
-
-    GLSLstd450AddCarry = 78,        // These three should move to the core instruction set
-    GLSLstd450SubBorrow = 79,
-    GLSLstd450MulExtended = 80,
+    GLSLstd450InterpolateAtCentroid = 76,
+    GLSLstd450InterpolateAtSample = 77,
+    GLSLstd450InterpolateAtOffset = 78,
 
     GLSLstd450Count
 };

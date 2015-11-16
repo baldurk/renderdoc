@@ -345,8 +345,6 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["mat2"] =                    MAT2;
     (*KeywordMap)["mat3"] =                    MAT3;
     (*KeywordMap)["mat4"] =                    MAT4;
-    (*KeywordMap)["sampler2D"] =               SAMPLER2D;
-    (*KeywordMap)["samplerCube"] =             SAMPLERCUBE;
     (*KeywordMap)["true"] =                    BOOLCONSTANT;
     (*KeywordMap)["false"] =                   BOOLCONSTANT;
     (*KeywordMap)["attribute"] =               ATTRIBUTE;
@@ -425,6 +423,13 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["dvec2"] =                   DVEC2;
     (*KeywordMap)["dvec3"] =                   DVEC3;
     (*KeywordMap)["dvec4"] =                   DVEC4;
+    (*KeywordMap)["uint"] =                    UINT;
+    (*KeywordMap)["uvec2"] =                   UVEC2;
+    (*KeywordMap)["uvec3"] =                   UVEC3;
+    (*KeywordMap)["uvec4"] =                   UVEC4;
+
+    (*KeywordMap)["sampler2D"] =               SAMPLER2D;
+    (*KeywordMap)["samplerCube"] =             SAMPLERCUBE;
     (*KeywordMap)["samplerCubeArray"] =        SAMPLERCUBEARRAY;
     (*KeywordMap)["samplerCubeArrayShadow"] =  SAMPLERCUBEARRAYSHADOW;
     (*KeywordMap)["isamplerCubeArray"] =       ISAMPLERCUBEARRAY;
@@ -435,10 +440,6 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["isampler1D"] =              ISAMPLER1D;
     (*KeywordMap)["usampler1DArray"] =         USAMPLER1DARRAY;
     (*KeywordMap)["samplerBuffer"] =           SAMPLERBUFFER;
-    (*KeywordMap)["uint"] =                    UINT;
-    (*KeywordMap)["uvec2"] =                   UVEC2;
-    (*KeywordMap)["uvec3"] =                   UVEC3;
-    (*KeywordMap)["uvec4"] =                   UVEC4;
     (*KeywordMap)["samplerCubeShadow"] =       SAMPLERCUBESHADOW;
     (*KeywordMap)["sampler2DArray"] =          SAMPLER2DARRAY;
     (*KeywordMap)["sampler2DArrayShadow"] =    SAMPLER2DARRAYSHADOW;
@@ -467,7 +468,9 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["sampler2DRect"] =           SAMPLER2DRECT;
     (*KeywordMap)["sampler2DRectShadow"] =     SAMPLER2DRECTSHADOW;
     (*KeywordMap)["sampler1DArray"] =          SAMPLER1DARRAY;
+
     (*KeywordMap)["samplerExternalOES"] =      SAMPLEREXTERNALOES; // GL_OES_EGL_image_external
+
     (*KeywordMap)["noperspective"] =           NOPERSPECTIVE;
     (*KeywordMap)["smooth"] =                  SMOOTH;
     (*KeywordMap)["flat"] =                    FLAT;
@@ -598,7 +601,12 @@ int TScanContext::tokenize(TPpContext* pp, TParserToken& token)
         case PpAtomConstUint:          parserToken->sType.lex.i = ppToken.ival;       return UINTCONSTANT;
         case PpAtomConstFloat:         parserToken->sType.lex.d = ppToken.dval;       return FLOATCONSTANT;
         case PpAtomConstDouble:        parserToken->sType.lex.d = ppToken.dval;       return DOUBLECONSTANT;
-        case PpAtomIdentifier:         return tokenizeIdentifier();
+        case PpAtomIdentifier:
+        {
+            int token = tokenizeIdentifier();
+            field = false;
+            return token;
+        }
 
         case EndOfInput:               return 0;
 
@@ -623,7 +631,6 @@ int TScanContext::tokenizeIdentifier()
         return identifierOrType();
     }
     keyword = it->second;
-    field = false;
 
     switch (keyword) {
     case CONST:
@@ -1020,11 +1027,8 @@ int TScanContext::tokenizeIdentifier()
 int TScanContext::identifierOrType()
 {
     parserToken->sType.lex.string = NewPoolTString(tokenText);
-    if (field) {
-        field = false;
- 
-        return FIELD_SELECTION;
-    }
+    if (field)
+        return IDENTIFIER;
 
     parserToken->sType.lex.symbol = parseContext.symbolTable.find(*parserToken->sType.lex.string);
     if (afterType == false && parserToken->sType.lex.symbol) {

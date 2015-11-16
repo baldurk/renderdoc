@@ -65,7 +65,7 @@ typedef std::set<int> TIdSetType;
 //
 class TParseContext {
 public:
-    TParseContext(TSymbolTable&, TIntermediate&, bool parsingBuiltins, int version, EProfile, EShLanguage, TInfoSink&,
+    TParseContext(TSymbolTable&, TIntermediate&, bool parsingBuiltins, int version, EProfile, int spv, EShLanguage, TInfoSink&,
                   bool forwardCompatible = false, EShMessages messages = EShMsgDefault);
     virtual ~TParseContext();
 
@@ -85,8 +85,6 @@ public:
 
     bool relaxedErrors()    const { return (messages & EShMsgRelaxedErrors)    != 0; }
     bool suppressWarnings() const { return (messages & EShMsgSuppressWarnings) != 0; }
-    bool vulkanRules()      const { return (messages & EShMsgVulkanRules)      != 0; }
-    bool spirvRules()       const { return (messages & EShMsgSpvRules)         != 0; }
 
     void reservedErrorCheck(const TSourceLoc&, const TString&);
     void reservedPpErrorCheck(const TSourceLoc&, const char* name, const char* op);
@@ -137,9 +135,9 @@ public:
     void arraySizeCheck(const TSourceLoc&, TIntermTyped* expr, int& size);
     bool arrayQualifierError(const TSourceLoc&, const TQualifier&);
     bool arrayError(const TSourceLoc&, const TType&);
-    void arraySizeRequiredCheck(const TSourceLoc&, int size);
+    void arraySizeRequiredCheck(const TSourceLoc&, const TArraySizes&);
     void structArrayCheck(const TSourceLoc&, const TType& structure);
-    void arrayUnsizedCheck(const TSourceLoc&, const TQualifier&, const TArraySizes*, bool initializer);
+    void arrayUnsizedCheck(const TSourceLoc&, const TQualifier&, const TArraySizes*, bool initializer, bool lastMember);
     void arrayOfArrayVersionCheck(const TSourceLoc&);
     void arrayDimCheck(const TSourceLoc&, const TArraySizes* sizes1, const TArraySizes* sizes2);
     void arrayDimCheck(const TSourceLoc&, const TType*, const TArraySizes*);
@@ -282,6 +280,7 @@ public:
     EShLanguage language;        // vertex or fragment language
     int version;                 // version, updated by #version in the shader
     EProfile profile;            // the declared profile in the shader (core by default)
+    int spv;                     // SPIR-V version; 0 means not SPIR-V
     bool forwardCompatible;      // true if errors are to be given for use of deprecated features
 
     // Current state of parsing
@@ -323,7 +322,7 @@ protected:
     TQualifier globalInputDefaults;
     TQualifier globalOutputDefaults;
     int* atomicUintOffsets;       // to become an array of the right size to hold an offset per binding point
-    TString currentCaller;
+    TString currentCaller;        // name of last function body entered (not valid when at global scope)
     TIdSetType inductiveLoopIds;
     bool anyIndexLimits;
     TVector<TIntermTyped*> needsIndexLimitationChecking;

@@ -172,7 +172,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TIntermTyped* const
             case EbtInt:
                 if (rightUnionArray[i] == 0)
                     newConstArray[i].setIConst(0x7FFFFFFF);
-                else if (rightUnionArray[i].getIConst() == -1 && (unsigned int)unionArray[i].getIConst() == 0x80000000)
+                else if (rightUnionArray[i].getIConst() == -1 && unionArray[i].getUConst() == 0x80000000)
                     newConstArray[i].setIConst(0x80000000);
                 else
                     newConstArray[i].setIConst(unionArray[i].getIConst() / rightUnionArray[i].getIConst());
@@ -768,7 +768,7 @@ TIntermTyped* TIntermediate::fold(TIntermAggregate* aggrNode)
             }
             break;
         case EOpReflect:
-            // I – 2 * dot(N, I) * N:  Arguments are (I, N).
+            // I - 2 * dot(N, I) * N:  Arguments are (I, N).
             dot = childConstUnions[0].dot(childConstUnions[1]);
             dot *= 2.0;
             for (int comp = 0; comp < numComps; ++comp)

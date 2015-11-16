@@ -107,6 +107,7 @@ const char* const E_GL_ARB_shader_texture_lod           = "GL_ARB_shader_texture
 const char* const E_GL_ARB_explicit_attrib_location     = "GL_ARB_explicit_attrib_location";
 const char* const E_GL_ARB_shader_image_load_store      = "GL_ARB_shader_image_load_store";
 const char* const E_GL_ARB_shader_atomic_counters       = "GL_ARB_shader_atomic_counters";
+const char* const E_GL_ARB_shader_draw_parameters       = "GL_ARB_shader_draw_parameters";
 const char* const E_GL_ARB_derivative_control           = "GL_ARB_derivative_control";
 const char* const E_GL_ARB_shader_texture_image_samples = "GL_ARB_shader_texture_image_samples";
 const char* const E_GL_ARB_viewport_array               = "GL_ARB_viewport_array";
