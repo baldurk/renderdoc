@@ -1883,7 +1883,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 	}
 }
 
-void WrappedVulkan::DebugCallback(
+VkBool32 WrappedVulkan::DebugCallback(
 				VkFlags             msgFlags,
 				VkDbgObjectType     objType,
 				uint64_t            srcObject,
@@ -1893,6 +1893,7 @@ void WrappedVulkan::DebugCallback(
 				const char*         pMsg)
 {
 	RDCWARN("[%s] %s", pLayerPrefix, pMsg);
+	return false;
 }
 
 void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)

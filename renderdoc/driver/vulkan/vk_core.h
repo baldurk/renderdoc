@@ -482,7 +482,7 @@ private:
 	WrappedVulkan(const WrappedVulkan &);
 	WrappedVulkan &operator =(const WrappedVulkan &);
 
-	void DebugCallback(
+	VkBool32 DebugCallback(
 				VkFlags             msgFlags,
 				VkDbgObjectType     objType,
 				uint64_t            srcObject,
@@ -491,7 +491,7 @@ private:
 				const char*         pLayerPrefix,
 				const char*         pMsg);
 	
-	static void DebugCallbackStatic(
+	static VkBool32 DebugCallbackStatic(
 				VkFlags             msgFlags,
 				VkDbgObjectType     objType,
 				uint64_t            srcObject,
@@ -501,7 +501,7 @@ private:
 				const char*         pMsg,
 				void*               pUserData)
 	{
-		((WrappedVulkan *)pUserData)->DebugCallback(msgFlags, objType, srcObject, location, msgCode, pLayerPrefix, pMsg);
+		return ((WrappedVulkan *)pUserData)->DebugCallback(msgFlags, objType, srcObject, location, msgCode, pLayerPrefix, pMsg);
 	}
 
 public:
