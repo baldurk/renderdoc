@@ -51,6 +51,17 @@ layout (binding = 0, std140) uniform displayuniforms
 	vec2  Padding;
 } texdisplay;
 
+#define TEXDISPLAY_TYPEMASK    0xF
+#define TEXDISPLAY_UINT_TEX    0x10
+#define TEXDISPLAY_SINT_TEX    0x20
+#define TEXDISPLAY_NANS        0x80
+#define TEXDISPLAY_CLIPPING    0x100
+#define TEXDISPLAY_GAMMA_CURVE 0x200
+
+#ifndef FLT_EPSILON
+#define FLT_EPSILON 1.192092896e-07f
+#endif
+
 layout (binding = 1) uniform sampler2D tex;
 
 void main(void)
@@ -88,6 +99,45 @@ void main(void)
 	if(texdisplay.Channels.z < 0.5f) col.z = pre_range_col.z = 0.0f;
 	if(texdisplay.Channels.w < 0.5f) col.w = pre_range_col.w = 1.0f;
 	
+	if((texdisplay.OutputDisplayFormat & TEXDISPLAY_NANS) > 0)
+	{
+		if(isnan(pre_range_col.r) || isnan(pre_range_col.g) || isnan(pre_range_col.b) || isnan(pre_range_col.a))
+		{
+		   color_out = vec4(1, 0, 0, 1);
+		   return;
+		}
+		   
+		if(isinf(pre_range_col.r) || isinf(pre_range_col.g) || isinf(pre_range_col.b) || isinf(pre_range_col.a))
+		{
+		   color_out = vec4(0, 1, 0, 1);
+		   return;
+		}
+
+		if(pre_range_col.r < 0 || pre_range_col.g < 0 || pre_range_col.b < 0 || pre_range_col.a < 0)
+		{
+		   color_out = vec4(0, 0, 1, 1);
+		   return;
+		}
+		
+		col = vec4(dot(col.xyz, vec3(0.2126, 0.7152, 0.0722)).xxx, 1);
+	}
+	else if((texdisplay.OutputDisplayFormat & TEXDISPLAY_CLIPPING) > 0)
+	{
+		if(col.r < 0 || col.g < 0 || col.b < 0 || col.a < 0)
+		{
+		   color_out = vec4(1, 0, 0, 1);
+		   return;
+		}
+
+		if(col.r > (1+FLT_EPSILON) || col.g > (1+FLT_EPSILON) || col.b > (1+FLT_EPSILON) || col.a > (1+FLT_EPSILON))
+		{
+		   color_out = vec4(0, 1, 0, 1);
+		   return;
+		}
+		
+		col = vec4(dot(col.xyz, vec3(0.2126, 0.7152, 0.0722)).xxx, 1);
+	}
+	else
 	{
 		// if only one channel is selected
 		if(dot(texdisplay.Channels, 1.0f.xxxx) == 1.0f)
@@ -101,7 +151,7 @@ void main(void)
 		}
 	}
 	
-	if(texdisplay.OutputDisplayFormat > 0)
+	if((texdisplay.OutputDisplayFormat & TEXDISPLAY_GAMMA_CURVE) > 0)
 	{
 		col.rgb = pow(clamp(col.rgb, 0.0f.xxx, 1.0f.xxx), 2.2f.xxx);
 	}

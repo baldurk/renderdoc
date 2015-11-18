@@ -58,6 +58,13 @@ struct displayuniforms
 	Vec2f Padding;
 };
 
+#define TEXDISPLAY_TYPEMASK    0xF
+#define TEXDISPLAY_UINT_TEX    0x10
+#define TEXDISPLAY_SINT_TEX    0x20
+#define TEXDISPLAY_NANS        0x80
+#define TEXDISPLAY_CLIPPING    0x100
+#define TEXDISPLAY_GAMMA_CURVE 0x200
+
 struct genericuniforms
 {
 	Vec4f Offset;
@@ -811,6 +818,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		texDisplay.sampleIdx = sample;
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.sliceFace = sliceFace;
+		texDisplay.overlay = eTexOverlay_None;
 		texDisplay.rangemin = 0.0f;
 		texDisplay.rangemax = 1.0f;
 		texDisplay.scale = 1.0f;
@@ -1039,13 +1047,19 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	data->OutputRes.x = (float)m_DebugWidth;
 	data->OutputRes.y = (float)m_DebugHeight;
 
-	// VKTODOMED handle different texture types/displays
-	data->OutputDisplayFormat = 0;
+	int displayformat = 0;
 	
 	if(!IsSRGBFormat(iminfo.format) && cfg.linearDisplayAsGamma)
-	{
-		data->OutputDisplayFormat |= 1; // VKTODOMED constants TEXDISPLAY_GAMMA_CURVE;
-	}
+		displayformat |= TEXDISPLAY_GAMMA_CURVE;
+
+	if(cfg.overlay == eTexOverlay_NaN)
+		displayformat |= TEXDISPLAY_NANS;
+
+	if(cfg.overlay == eTexOverlay_Clipping)
+		displayformat |= TEXDISPLAY_CLIPPING;
+
+	// VKTODOMED handle different texture types/displays
+	data->OutputDisplayFormat = displayformat;
 	
 	data->RawOutput = cfg.rawoutput ? 1 : 0;
 
