@@ -2274,14 +2274,9 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
-	// seems to not be working at the moment, just make a solid-shaded pipeline
 	vertAttrs[1].binding = 0;
 	vi.bindingCount = 1;
 
-#if 1
-	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Lit]);
-	RDCASSERT(vkr == VK_SUCCESS);
-#else
 	// flat lit pipeline, needs geometry shader to calculate face normals
 	stages[0].shader = Unwrap(m_MeshShaders[0]);
 	stages[0].stage = VK_SHADER_STAGE_VERTEX;
@@ -2289,10 +2284,10 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 	stages[1].stage = VK_SHADER_STAGE_GEOMETRY;
 	stages[2].shader = Unwrap(m_MeshShaders[2]);
 	stages[2].stage = VK_SHADER_STAGE_FRAGMENT;
+	pipeInfo.stageCount = 3;
 
 	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Lit]);
 	RDCASSERT(vkr == VK_SUCCESS);
-#endif
 
 	for(uint32_t i=0; i < MeshDisplayPipelines::ePipe_Count; i++)
 		if(cache.pipes[i] != VK_NULL_HANDLE)
