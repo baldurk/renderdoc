@@ -46,7 +46,7 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ShaderLang.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\SymbolTable.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Versions.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Linux\ossource.cpp">
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Unix\ossource.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\ossource.cpp" />
@@ -83,14 +83,14 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ScanContext.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\SymbolTable.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Versions.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Linux\osinclude.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Unix\osinclude.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\osinclude.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\osinclude.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Public\ShaderLang.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL450Lib.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.std.450.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GlslangToSpv.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spirv.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spirv.hpp" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spvIR.h" />
     <ClInclude Include="spirv_common.h" />

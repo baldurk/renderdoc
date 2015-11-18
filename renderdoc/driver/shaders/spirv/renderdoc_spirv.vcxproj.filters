@@ -102,7 +102,7 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\ossource.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Linux\ossource.cpp">
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Unix\ossource.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
     <ClCompile Include="spirv_compile.cpp" />
@@ -113,13 +113,13 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL450Lib.h">
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.std.450.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GlslangToSpv.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spirv.h">
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spirv.hpp">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.h">
@@ -209,7 +209,7 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\osinclude.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Linux\osinclude.h">
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Unix\osinclude.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Public\ShaderLang.h">
