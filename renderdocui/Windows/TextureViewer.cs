@@ -2427,6 +2427,22 @@ namespace renderdocui.Windows
 
         bool ScrollUpdateScrollbars = true;
 
+        float CurMaxScrollX
+        {
+            get
+            {
+                return render.Width - CurrentTexDisplayWidth * m_TexDisplay.scale;
+            }
+        }
+
+        float CurMaxScrollY
+        {
+            get
+            {
+                return render.Height - CurrentTexDisplayHeight * m_TexDisplay.scale;
+            }
+        }
+
         Point ScrollPosition
         {
             get
@@ -2436,19 +2452,29 @@ namespace renderdocui.Windows
 
             set
             {
-                m_TexDisplay.offx = Math.Max(render.Width - CurrentTexDisplayWidth * m_TexDisplay.scale, value.X);
-                m_TexDisplay.offy = Math.Max(render.Height - CurrentTexDisplayHeight * m_TexDisplay.scale, value.Y);
+                m_TexDisplay.offx = Math.Max(CurMaxScrollX, value.X);
+                m_TexDisplay.offy = Math.Max(CurMaxScrollY, value.Y);
 
                 m_TexDisplay.offx = Math.Min(0.0f, (float)m_TexDisplay.offx);
                 m_TexDisplay.offy = Math.Min(0.0f, (float)m_TexDisplay.offy);
 
                 if (ScrollUpdateScrollbars)
                 {
-                    if(renderHScroll.Enabled)
-                        renderHScroll.Value = (int)Math.Min(renderHScroll.Maximum, (int)-m_TexDisplay.offx);
+                    if (renderHScroll.Enabled)
+                    {
+                        // this is so stupid.
+                        float actualMaximum = (float)(renderHScroll.Maximum - renderHScroll.LargeChange);
+                        float delta = m_TexDisplay.offx / (float)CurMaxScrollX;
+                        renderHScroll.Value = (int)Helpers.Clamp( (int)(delta * actualMaximum), 0, renderHScroll.Maximum);
+                    }
 
                     if (renderVScroll.Enabled)
-                        renderVScroll.Value = (int)Math.Min(renderVScroll.Maximum, (int)-m_TexDisplay.offy);
+                    {
+                        // really. So stupid.
+                        float actualMaximum = (float)(renderVScroll.Maximum - renderVScroll.LargeChange);
+                        float delta = m_TexDisplay.offy / (float)CurMaxScrollY;
+                        renderVScroll.Value = (int)Helpers.Clamp((int)(delta * actualMaximum), 0, renderVScroll.Maximum);
+                    }
                 }
 
                 m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
@@ -2656,7 +2682,11 @@ namespace renderdocui.Windows
             ScrollUpdateScrollbars = false;
 
             if (e.Type != ScrollEventType.EndScroll)
-                ScrollPosition = new Point(ScrollPosition.X - (e.NewValue - e.OldValue), ScrollPosition.Y);
+            {
+                float actualMaximum = (float)(renderHScroll.Maximum - renderHScroll.LargeChange);
+                float delta = (float)e.NewValue / actualMaximum;
+                ScrollPosition = new Point((int)(CurMaxScrollX * delta), ScrollPosition.Y);
+            }
 
             ScrollUpdateScrollbars = true;
         }
@@ -2665,8 +2695,12 @@ namespace renderdocui.Windows
         {
             ScrollUpdateScrollbars = false;
 
-            if(e.Type != ScrollEventType.EndScroll)
-                ScrollPosition = new Point(ScrollPosition.X, ScrollPosition.Y - (e.NewValue - e.OldValue));
+            if (e.Type != ScrollEventType.EndScroll)
+            {
+                float actualMaximum = (float)(renderVScroll.Maximum - renderVScroll.LargeChange);
+                float delta = (float)e.NewValue / actualMaximum;
+                ScrollPosition = new Point(ScrollPosition.X, (int)(CurMaxScrollY * delta) );
+            }
 
             ScrollUpdateScrollbars = true;
         }
