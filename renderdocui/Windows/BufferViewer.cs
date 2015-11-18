@@ -1634,10 +1634,12 @@ namespace renderdocui.Windows
             {
                 // pad with space on left if sign is missing, to better align
                 float f = (float)o;
-                if(f < 0.0f)
+                if (f < 0.0f)
                     return Formatter.Format(f);
-                else if(f > 0.0f)
+                else if (f > 0.0f)
                     return " " + Formatter.Format(f);
+                else if (float.IsNaN(f))
+                    return " NaN";
                 else
                     return " " + Formatter.Format(0.0f); // force negative and positive 0 together
             }
@@ -1649,6 +1651,8 @@ namespace renderdocui.Windows
                     return Formatter.Format(f);
                 else if (f > 0.0)
                     return " " + Formatter.Format(f);
+                else if (double.IsNaN(f))
+                    return " NaN";
                 else
                     return " " + Formatter.Format(0.0); // force negative and positive 0 together
             }
