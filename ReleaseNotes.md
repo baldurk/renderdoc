@@ -20,6 +20,7 @@ Current Support
 * Simple display of most 2D textures with mips in the texture viewer.
 * You can view mesh input data both as data and a 3D preview
 * Drawcall highlight and wireframe overlays
+* Texture range auto-fit and histogram display
 * Threading should be pretty efficient - no heavy locks on common paths (outside of creation/deletion)
 
 Known Issues
@@ -28,7 +29,6 @@ Known Issues
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
 * Sparse images with mips or array slices will not properly replay
 * Only 2D non-array non-integer textures can currently be displayed.
-* Auto texture range-fit or histogram display is not implemented.
 * Debug overlays other than drawcall highlight and wireframe aren't implemented.
 * Saving textures is not supported.
 * Queue-level API events are not properly listed. API calls between draw-type vkCmd... are listed.
