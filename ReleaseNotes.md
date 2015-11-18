@@ -44,6 +44,7 @@ In no particular order, features that are not planned until after 1.0.
 * Stepping inside vkCmdExecuteCommands
 * Support for replaying captures on a different machine to where they were captured
 * Shader debugging
+* Vertex picking
 * Pixel history
 * Custom visualisation shaders
 * Linux support with Qt UI
