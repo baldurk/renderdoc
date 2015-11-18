@@ -81,8 +81,8 @@ class VulkanDebugManager
 
 			void FillDescriptor(VkDescriptorInfo &desc);
 
-			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize *bindoffset, VkDeviceSize usedsize = 0);
-			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, uint32_t *bindoffset, VkDeviceSize usedsize = 0);
+			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize &bindoffset, VkDeviceSize usedsize = 0);
+			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, uint32_t *bindoffset = NULL, VkDeviceSize usedsize = 0);
 			void Unmap(const VkLayerDispatchTable *vt, VkDevice dev);
 
 			VkDeviceSize sz;

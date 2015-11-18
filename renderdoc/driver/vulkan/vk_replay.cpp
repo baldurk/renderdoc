@@ -1566,7 +1566,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 		};
 
 		VkDeviceSize vboffs = 0;
-		Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, &vboffs);
+		Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, vboffs);
 
 		memcpy(ptr, bbox, sizeof(bbox));
 
@@ -2091,7 +2091,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 			if(activePrim.size() >= primSize)
 			{
 				VkDeviceSize vboffs = 0;
-				Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, &vboffs, sizeof(Vec4f)*primSize);
+				Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, vboffs, sizeof(Vec4f)*primSize);
 
 				memcpy(ptr, &activePrim[0], sizeof(Vec4f)*primSize);
 
@@ -2114,7 +2114,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 			if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
 			{
 				VkDeviceSize vboffs = 0;
-				Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, &vboffs, sizeof(Vec4f)*adjacentPrimVertices.size());
+				Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, vboffs, sizeof(Vec4f)*adjacentPrimVertices.size());
 
 				memcpy(ptr, &adjacentPrimVertices[0], sizeof(Vec4f)*adjacentPrimVertices.size());
 
@@ -2159,7 +2159,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 			
 			{
 				VkDeviceSize vboffs = 0;
-				Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, &vboffs, sizeof(vertSprite));
+				Vec4f *ptr = (Vec4f *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, vboffs, sizeof(vertSprite));
 
 				memcpy(ptr, &vertSprite[0], sizeof(vertSprite));
 
@@ -2182,7 +2182,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 			if(!inactiveVertices.empty())
 			{
 				VkDeviceSize vboffs = 0;
-				FloatVector *ptr = (FloatVector *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, &vboffs, sizeof(vertSprite));
+				FloatVector *ptr = (FloatVector *)GetDebugManager()->m_MeshBBoxVB.Map(vt, dev, vboffs, sizeof(vertSprite));
 				
 				for(size_t i=0; i < inactiveVertices.size(); i++)
 				{

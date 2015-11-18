@@ -202,13 +202,13 @@ void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevic
 	return ptr;
 }
 
-void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize *bindoffset, VkDeviceSize usedsize)
+void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize &bindoffset, VkDeviceSize usedsize)
 {
 	uint32_t offs = 0;
 
 	void *ret = Map(vt, dev, &offs, usedsize);
 
-	if(bindoffset) *bindoffset = offs;
+	bindoffset = offs;
 
 	return ret;
 }
