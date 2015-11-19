@@ -127,6 +127,7 @@ RESOURCE_mesh_geom         TYPE_EMBED   "glsl/mesh.geom"
 RESOURCE_mesh_comp         TYPE_EMBED   "glsl/mesh.comp"
 RESOURCE_arraymscopy_comp  TYPE_EMBED   "glsl/arraymscopy.comp"
 RESOURCE_quadoverdraw_frag TYPE_EMBED   "glsl/quadoverdraw.frag"
+RESOURCE_outline_frag      TYPE_EMBED   "glsl/outline.frag"
 
 RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
 

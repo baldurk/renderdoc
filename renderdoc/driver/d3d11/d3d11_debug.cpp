@@ -827,6 +827,7 @@ bool D3D11DebugManager::InitDebugRendering()
 		m_DebugRender.WireframePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
 		m_DebugRender.OverlayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OverlayPS", "ps_4_0");
 		m_DebugRender.CheckerboardPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
+		m_DebugRender.OutlinePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OutlinePS", "ps_4_0");
 
 		m_DebugRender.QuadOverdrawPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
 		m_DebugRender.QOResolvePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");

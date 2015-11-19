@@ -419,6 +419,7 @@ class D3D11DebugManager
 				SAFE_RELEASE(GenericVS);
 				SAFE_RELEASE(TexDisplayPS);
 				SAFE_RELEASE(CheckerboardPS);
+				SAFE_RELEASE(OutlinePS);
 				SAFE_RELEASE(MeshVS);
 				SAFE_RELEASE(MeshGS);
 				SAFE_RELEASE(MeshPS);
@@ -505,6 +506,7 @@ class D3D11DebugManager
 			ID3D11VertexShader *GenericVS, *WireframeVS, *MeshVS, *WireframeHomogVS, *FullscreenVS;
 			ID3D11GeometryShader *MeshGS;
 			ID3D11PixelShader *TexDisplayPS, *OverlayPS, *WireframePS, *MeshPS, *CheckerboardPS;
+			ID3D11PixelShader *OutlinePS;
 			ID3D11PixelShader *CopyMSToArrayPS, *CopyArrayToMSPS;
 			ID3D11PixelShader *FloatCopyMSToArrayPS, *FloatCopyArrayToMSPS;
 			ID3D11PixelShader *DepthCopyMSToArrayPS, *DepthCopyArrayToMSPS;

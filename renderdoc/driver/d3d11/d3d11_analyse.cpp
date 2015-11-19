@@ -2815,6 +2815,8 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
 	}
 }
 
+#include "data/hlsl/debugcbuffers.h"
+
 ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	TextureShaderDetails details = GetShaderDetails(texid, false);
@@ -3127,7 +3129,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		m_pImmediateContext->HSSetShader(NULL, NULL, 0);
 		m_pImmediateContext->DSSetShader(NULL, NULL, 0);
 		m_pImmediateContext->GSSetShader(NULL, NULL, 0);
-		m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+		m_pImmediateContext->PSSetShader(m_DebugRender.OutlinePS, NULL, 0);
 		m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pImmediateContext->IASetInputLayout(NULL);
 		
@@ -3158,11 +3160,28 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		}
 
 		m_pImmediateContext->OMSetDepthStencilState(os, 0);
+			
+		D3D11_BLEND_DESC blendDesc;
+		RDCEraseEl(blendDesc);
 
-		m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
+		blendDesc.AlphaToCoverageEnable = FALSE;
+		blendDesc.IndependentBlendEnable = FALSE;
+		blendDesc.RenderTarget[0].BlendEnable = TRUE;
+		blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+		blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+		blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+		ID3D11BlendState *bs = NULL;
+		hr = m_pDevice->CreateBlendState(&blendDesc, &bs);
+
+		float blendwhite[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		m_pImmediateContext->OMSetBlendState(bs, blendwhite, 0xffffffff);
 
 		ID3D11RasterizerState *rs = NULL;
-		ID3D11RasterizerState *rs2 = NULL;
 		{
 			D3D11_RASTERIZER_DESC rdesc;
 
@@ -3183,44 +3202,66 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 				RDCERR("Failed to create drawcall rast state %08x", hr);
 				return m_OverlayResourceId;
 			}
-			
-			rdesc.ScissorEnable = TRUE;
-
-			hr = m_pDevice->CreateRasterizerState(&rdesc, &rs2);
-			if(FAILED(hr))
-			{
-				RDCERR("Failed to create drawcall rast state %08x", hr);
-				return m_OverlayResourceId;
-			}
 		}
 
 		float clearColour[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
-		
-		float overlayConsts[] = { 0.15f, 0.3f, 0.6f, 0.3f };
-		ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
-
-		m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
 
 		m_pImmediateContext->RSSetState(rs);
 
+		DebugPixelCBufferData pixelData = {0};
+		
+		UINT dummy = 1;
+		D3D11_VIEWPORT views[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {0};
+		m_pImmediateContext->RSGetViewports(&dummy, views);
+
+		// border colour (dark, 2px, opaque)
+		pixelData.WireframeColour = Vec3f(0.1f, 0.1f, 0.1f);
+		// inner colour (light, transparent)
+		pixelData.Channels = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+		pixelData.OutputDisplayFormat = 0;
+		pixelData.RangeMinimum = views[0].TopLeftX;
+		pixelData.InverseRangeSize = views[0].TopLeftY;
+		pixelData.TextureResolutionPS = Vec3f(views[0].Width, views[0].Height, 0.0f);
+		
+		ID3D11Buffer *buf = MakeCBuffer((float *)&pixelData, sizeof(DebugPixelCBufferData));
+
+		m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
+
 		m_pImmediateContext->Draw(3, 0);
 		
-		float overlayConsts2[] = { 0.5f, 0.6f, 0.8f, 0.3f };
-		buf = MakeCBuffer(overlayConsts2, sizeof(overlayConsts2));
-
 		if(origdesc.ScissorEnable)
 		{
-			m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+			UINT dummy = 1;
+			D3D11_RECT rects[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {0};
+			m_pImmediateContext->RSGetScissorRects(&dummy, rects);
 
-			m_pImmediateContext->RSSetState(rs2);
+			D3D11_VIEWPORT scissorview;
+
+			scissorview.TopLeftX = (float)rects[0].left;
+			scissorview.TopLeftY = (float)rects[0].top;
+			scissorview.MinDepth = 0.0f;
+			scissorview.MaxDepth = 1.0f;
+			scissorview.Width = (float)(rects[0].right - rects[0].left);
+			scissorview.Height = (float)(rects[0].bottom - rects[0].top);
+
+			m_pImmediateContext->RSSetViewports(1, &scissorview);
+			
+			pixelData.OutputDisplayFormat = 1;
+			pixelData.RangeMinimum = scissorview.TopLeftX;
+			pixelData.InverseRangeSize = scissorview.TopLeftY;
+			pixelData.TextureResolutionPS = Vec3f(scissorview.Width, scissorview.Height, 0.0f);
+			
+			buf = MakeCBuffer((float *)&pixelData, sizeof(DebugPixelCBufferData));
+
+			m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
 			m_pImmediateContext->Draw(3, 0);
 		}
 
 		SAFE_RELEASE(os);
 		SAFE_RELEASE(rs);
-		SAFE_RELEASE(rs2);
+		SAFE_RELEASE(bs);
 	}
 	else if(overlay == eTexOverlay_Wireframe)
 	{

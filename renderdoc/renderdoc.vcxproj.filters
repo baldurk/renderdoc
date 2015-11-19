@@ -421,6 +421,9 @@
     <None Include="data\glsl\mesh.comp">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\glsl\outline.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

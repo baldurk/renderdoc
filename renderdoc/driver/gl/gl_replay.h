@@ -246,6 +246,7 @@ class GLReplay : public IReplayDriver
 			GLuint histogramProgram[64];   // RESTYPE indexed (see debuguniforms.h, 1d/2d/3d etc | uint/sint) src tex -> histogram result buf program
 
 			GLuint replayQuadProg;
+			GLuint outlineQuadProg;
 
 			// program that does a blit of texture from input to output,
 			// no transformation or scaling

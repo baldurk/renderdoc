@@ -345,6 +345,7 @@
     <None Include="data\glsl\mesh.frag" />
     <None Include="data\glsl\mesh.geom" />
     <None Include="data\glsl\mesh.vert" />
+    <None Include="data\glsl\outline.frag" />
     <None Include="data\glsl\quadoverdraw.frag" />
     <None Include="data\glsl\texdisplay.frag" />
     <None Include="data\glsl\text.frag" />

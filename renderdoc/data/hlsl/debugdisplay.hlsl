@@ -254,6 +254,45 @@ MultipleOutput RENDERDOC_OverlayPS(float4 IN : SV_Position)
 	return OUT;
 }
 
+float4 RENDERDOC_OutlinePS(float4 IN : SV_Position) : SV_Target0
+{
+	float4 ret = Channels;
+
+	float2 rectPos = IN.xy - float2(RangeMinimum, InverseRangeSize);
+	float2 rectSize = TextureResolutionPS.xy;
+ 
+	float2 ab = fmod(rectPos.xy, 32.0.xx);
+
+	bool checkerVariant = (
+			(ab.x < 16 && ab.y < 16) ||
+			(ab.x > 16 && ab.y > 16)
+		);
+
+	if(OutputDisplayFormat == 0)
+	{
+		if(rectPos.x < 3.0f || rectPos.x > rectSize.x - 3.0f ||
+		   rectPos.y < 3.0f || rectPos.y > rectSize.y - 3.0f)
+		{
+			ret.rgb = WireframeColour.rgb;
+			ret.a = 1.0f;
+		}
+	}
+	else
+	{
+		if(rectPos.x < 3.0f || rectPos.x > rectSize.x - 3.0f ||
+		   rectPos.y < 3.0f || rectPos.y > rectSize.y - 3.0f)
+		{
+			ret = checkerVariant ? float4(1, 1, 1, 1) : float4(0, 0, 0, 1);
+		}
+		else
+		{
+			ret = float4(0, 0, 0, 0);
+		}
+	}
+
+	return ret;
+}
+
 float4 RENDERDOC_CheckerboardPS(float4 IN : SV_Position) : SV_Target0
 {
 	float2 ab = fmod(IN.xy, 128.0.xx);

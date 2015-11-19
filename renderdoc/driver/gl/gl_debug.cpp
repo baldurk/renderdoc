@@ -516,6 +516,10 @@ void GLReplay::InitDebugData()
 	gl.glEnableVertexAttribArray(0);
 	
 	DebugData.replayQuadProg = CreateShaderProgram(blitvsSource.c_str(), genericfsSource.c_str());
+	
+	string outlinefsSource = GetEmbeddedResource(outline_frag);
+
+	DebugData.outlineQuadProg = CreateShaderProgram(blitvsSource.c_str(), outlinefsSource.c_str());
 
 	MakeCurrentReplayContext(&m_ReplayCtx);
 
@@ -633,6 +637,7 @@ void GLReplay::DeleteDebugData()
 	gl.glDeleteBuffers(1, &DebugData.triHighlightBuffer);
 
 	gl.glDeleteProgram(DebugData.replayQuadProg);
+	gl.glDeleteProgram(DebugData.outlineQuadProg);
 }
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
@@ -1869,21 +1874,42 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		gl.glClearBufferfv(eGL_COLOR, 0, col);
 
 		// don't need to use the existing program at all!
-		gl.glUseProgram(DebugData.replayQuadProg);
+		gl.glUseProgram(DebugData.outlineQuadProg);
 		gl.glBindProgramPipeline(0);
 		
-		GLint colLoc = gl.glGetUniformLocation(DebugData.replayQuadProg, "RENDERDOC_GenericFS_Color");
-		float viewportConsts[] = { 0.15f, 0.3f, 0.6f, 0.3f };
-		gl.glUniform4fv(colLoc, 1, viewportConsts);
+		gl.glDisablei(eGL_SCISSOR_TEST, 0);
+
+		gl.glViewportIndexedf(0, rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width, rs.Viewports[0].height);
+
+		GLint innerLoc = gl.glGetUniformLocation(DebugData.outlineQuadProg, "RENDERDOC_Inner_Color");
+		GLint borderLoc = gl.glGetUniformLocation(DebugData.outlineQuadProg, "RENDERDOC_Border_Color");
+		GLint rectLoc = gl.glGetUniformLocation(DebugData.outlineQuadProg, "RENDERDOC_ViewRect");
+		GLint scissorLoc = gl.glGetUniformLocation(DebugData.outlineQuadProg, "RENDERDOC_Scissor");
+
+		float innerConsts[] = { 0.2f, 0.2f, 0.9f, 0.7f };
+		gl.glUniform4fv(innerLoc, 1, innerConsts);
+
+		float borderConsts[] = { 0.1f, 0.1f, 0.1f, 1.0f };
+		gl.glUniform4fv(borderLoc, 1, borderConsts);
+		
+		gl.glUniform4fv(rectLoc, 1, (float *)rs.Viewports);
+		
+		gl.glUniform1ui(scissorLoc, 0);
 
 		gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
-		
-		gl.glEnablei(eGL_SCISSOR_TEST, 0);
-		
-		float scissorConsts[] = { 0.5f, 0.6f, 0.8f, 0.3f };
-		gl.glUniform4fv(colLoc, 1, scissorConsts);
 
-		gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+		if(rs.Scissors[0].enabled)
+		{
+			Vec4f scissor((float)rs.Scissors[0].x, (float)rs.Scissors[0].y, (float)rs.Scissors[0].width, (float)rs.Scissors[0].height);
+
+			gl.glViewportIndexedf(0, scissor.x, scissor.y, scissor.z, scissor.w);
+
+			gl.glUniform4fv(rectLoc, 1, (float *)&scissor);
+
+			gl.glUniform1ui(scissorLoc, 1);
+
+			gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+		}
 	}
 	else if(overlay == eTexOverlay_Depth || overlay == eTexOverlay_Stencil)
 	{

@@ -29,6 +29,7 @@
 #define RESOURCE_mesh_comp          215
 #define RESOURCE_arraymscopy_comp   216
 #define RESOURCE_quadoverdraw_frag  217
+#define RESOURCE_outline_frag       218
 
 #define RESOURCE_sourcecodepro_ttf  301
 
