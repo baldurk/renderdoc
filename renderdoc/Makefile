@@ -62,6 +62,7 @@ data/glsl/text.frago \
 data/glsl/quadoverdraw.frago \
 data/glsl/histogram.compo \
 data/glsl/arraymscopy.compo \
+data/glsl/outline.frago \
 data/sourcecodepro.ttfo
 
 .PHONY: all
