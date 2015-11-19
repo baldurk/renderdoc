@@ -109,6 +109,7 @@ class VulkanDebugManager
 		VkPipelineLayout m_CheckerboardPipeLayout;
 		VkDescriptorSet m_CheckerboardDescSet;
 		VkPipeline m_CheckerboardPipeline;
+		VkPipeline m_CheckerboardMSAAPipeline;
 		GPUBuffer m_CheckerboardUBO;
 
 		VkDescriptorSetLayout m_GenericDescSetLayout;

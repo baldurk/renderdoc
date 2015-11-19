@@ -998,7 +998,7 @@ namespace renderdocui.Windows
             IntPtr renderHandle = render.Handle;
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
-                m_Output = r.CreateOutput(renderHandle);
+                m_Output = r.CreateOutput(renderHandle, OutputType.TexDisplay);
                 m_Output.SetPixelContext(contextHandle);
                 m_Output.SetOutputConfig(outConfig);
 

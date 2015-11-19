@@ -30,7 +30,7 @@
 #include "serialise/string_utils.h"
 #include "maths/matrix.h"
 
-ReplayOutput::ReplayOutput(ReplayRenderer *parent, void *w)
+ReplayOutput::ReplayOutput(ReplayRenderer *parent, void *w, OutputType type)
 {
 	m_pRenderer = parent;
 
@@ -53,9 +53,9 @@ ReplayOutput::ReplayOutput(ReplayRenderer *parent, void *w)
 	m_ContextX = -1.0f;
 	m_ContextY = -1.0f;
 
-	m_Config.m_Type = eOutputType_None;
+	m_Config.m_Type = type;
 
-	if(w) m_MainOutput.outputID = m_pDevice->MakeOutputWindow(w, true);
+	if(w) m_MainOutput.outputID = m_pDevice->MakeOutputWindow(w, type == eOutputType_MeshDisplay);
 	else m_MainOutput.outputID = 0;
 	m_MainOutput.texture = ResourceId();
 	

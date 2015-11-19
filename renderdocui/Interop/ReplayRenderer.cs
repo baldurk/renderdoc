@@ -193,7 +193,7 @@ namespace renderdoc
         private static extern void ReplayRenderer_GetAPIProperties(IntPtr real, IntPtr propsOut);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr ReplayRenderer_CreateOutput(IntPtr real, IntPtr WindowHandle);
+        private static extern IntPtr ReplayRenderer_CreateOutput(IntPtr real, IntPtr WindowHandle, OutputType type);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayRenderer_ShutdownOutput(IntPtr real, IntPtr replayOutput);
 
@@ -308,9 +308,9 @@ namespace renderdoc
             return ret;
         }
 
-        public ReplayOutput CreateOutput(IntPtr WindowHandle)
+        public ReplayOutput CreateOutput(IntPtr WindowHandle, OutputType type)
         {
-            IntPtr ret = ReplayRenderer_CreateOutput(m_Real, WindowHandle);
+            IntPtr ret = ReplayRenderer_CreateOutput(m_Real, WindowHandle, type);
 
             if (ret == IntPtr.Zero)
                 return null;

@@ -274,6 +274,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_CheckerboardPipeLayout = VK_NULL_HANDLE;
 	m_CheckerboardDescSet = VK_NULL_HANDLE;
 	m_CheckerboardPipeline = VK_NULL_HANDLE;
+	m_CheckerboardMSAAPipeline = VK_NULL_HANDLE;
 	RDCEraseEl(m_CheckerboardUBO);
 
 	m_TexDisplayDescSetLayout = VK_NULL_HANDLE;
@@ -696,7 +697,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		GetResourceManager()->WrapResource(Unwrap(dev), shader[i]);
 	}
 
-	VkRenderPass RGBA32RP, RGBA8RP, RGBA16RP; // compatible render passes for creating pipelines
+	VkRenderPass RGBA32RP, RGBA8RP, RGBA16RP, RGBA8MSRP; // compatible render passes for creating pipelines
 
 	{
 		VkAttachmentDescription attDesc = {
@@ -735,6 +736,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		attDesc.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 
 		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA16RP);
+
+		attDesc.samples = 4;
+		attDesc.format = VK_FORMAT_R8G8B8A8_SRGB;
+		
+		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA8MSRP);
 	}
 
 	VkPipelineShaderStageCreateInfo stages[2] = {
@@ -822,6 +828,17 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardPipeline);
+
+	msaa.rasterSamples = 4;
+	pipeInfo.renderPass = RGBA8MSRP;
+
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_CheckerboardMSAAPipeline);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	msaa.rasterSamples = 1;
+	pipeInfo.renderPass = RGBA8RP;
+	
+	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardMSAAPipeline);
 	
 	stages[0].shader = Unwrap(shader[BLITVS]);
 	stages[1].shader = Unwrap(shader[TEXDISPLAYFS]);
@@ -941,6 +958,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	vt->DestroyRenderPass(Unwrap(dev), RGBA16RP);
 	vt->DestroyRenderPass(Unwrap(dev), RGBA32RP);
 	vt->DestroyRenderPass(Unwrap(dev), RGBA8RP);
+	vt->DestroyRenderPass(Unwrap(dev), RGBA8MSRP);
 
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
@@ -1433,6 +1451,12 @@ VulkanDebugManager::~VulkanDebugManager()
 	{
 		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_CheckerboardPipeline));
 		GetResourceManager()->ReleaseWrappedResource(m_CheckerboardPipeline);
+	}
+
+	if(m_CheckerboardMSAAPipeline != VK_NULL_HANDLE)
+	{
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_CheckerboardMSAAPipeline));
+		GetResourceManager()->ReleaseWrappedResource(m_CheckerboardMSAAPipeline);
 	}
 
 	if(m_TexDisplayDescSetLayout != VK_NULL_HANDLE)
@@ -2875,7 +2899,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 
 	VkPipelineMultisampleStateCreateInfo msaa = {
 		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL,
-		1, false, 0.0f, NULL,
+		4, false, 0.0f, NULL,
 	};
 
 	VkPipelineDepthStencilStateCreateInfo ds = {
@@ -2913,14 +2937,14 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 		VkAttachmentDescription attDesc[] = {
 			{
 				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-				VK_FORMAT_R8G8B8A8_UNORM, 1,
+				VK_FORMAT_R8G8B8A8_SRGB, 4,
 				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 			},
 			{
 				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-				VK_FORMAT_D32_SFLOAT, 1,
+				VK_FORMAT_D32_SFLOAT, 4,
 				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL

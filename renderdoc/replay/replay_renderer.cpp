@@ -1308,9 +1308,9 @@ ShaderReflection *ReplayRenderer::GetShaderDetails(ResourceId shader)
 	return m_pDevice->GetShader(m_pDevice->GetLiveID(shader));
 }
 
-ReplayOutput *ReplayRenderer::CreateOutput(void *wndhandle)
+ReplayOutput *ReplayRenderer::CreateOutput(void *wndhandle, OutputType type)
 {
-	ReplayOutput *out = new ReplayOutput(this, wndhandle);
+	ReplayOutput *out = new ReplayOutput(this, wndhandle, type);
 
 	m_Outputs.push_back(out);
 
@@ -1584,8 +1584,8 @@ void ReplayRenderer::FetchPipelineState()
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetAPIProperties(ReplayRenderer *rend, APIProperties *props)
 { if(props) *props = rend->GetAPIProperties(); }
 
-extern "C" RENDERDOC_API ReplayOutput* RENDERDOC_CC ReplayRenderer_CreateOutput(ReplayRenderer *rend, void *handle)
-{ return rend->CreateOutput(handle); }
+extern "C" RENDERDOC_API ReplayOutput* RENDERDOC_CC ReplayRenderer_CreateOutput(ReplayRenderer *rend, void *handle, OutputType type)
+{ return rend->CreateOutput(handle, type); }
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_Shutdown(ReplayRenderer *rend)
 { rend->Shutdown(); }
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_ShutdownOutput(ReplayRenderer *rend, ReplayOutput *output)

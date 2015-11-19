@@ -166,7 +166,7 @@ struct IReplayRenderer
 {
 	virtual APIProperties GetAPIProperties() = 0;
 
-	virtual ReplayOutput* CreateOutput(void *handle) = 0;
+	virtual ReplayOutput* CreateOutput(void *handle, OutputType type) = 0;
 	virtual void Shutdown() = 0;
 	virtual void ShutdownOutput(ReplayOutput *output) = 0;
 
@@ -234,7 +234,7 @@ struct IReplayRenderer
 
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetAPIProperties(ReplayRenderer *rend, APIProperties *props);
 
-extern "C" RENDERDOC_API ReplayOutput* RENDERDOC_CC ReplayRenderer_CreateOutput(ReplayRenderer *rend, void *handle);
+extern "C" RENDERDOC_API ReplayOutput* RENDERDOC_CC ReplayRenderer_CreateOutput(ReplayRenderer *rend, void *handle, OutputType type);
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_Shutdown(ReplayRenderer *rend);
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_ShutdownOutput(ReplayRenderer *rend, ReplayOutput *output);
 

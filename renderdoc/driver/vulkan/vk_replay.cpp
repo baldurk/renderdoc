@@ -362,7 +362,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
 			VK_IMAGE_TYPE_2D, VK_FORMAT_D32_SFLOAT,
 			{ width, height, 1 },
-			1, 1, 1,
+			1, 1, 4,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT|VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 			0, VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
@@ -414,14 +414,14 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		VkAttachmentDescription attDesc[] = {
 			{
 				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-				imformat, 1,
+				imformat, depth ? 4 : 1,
 				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 			},
 			{
 				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-				VK_FORMAT_D32_SFLOAT, 1,
+				VK_FORMAT_D32_SFLOAT, depth ? 4 : 1,
 				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
@@ -470,7 +470,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		VkImageCreateInfo imInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
 			VK_IMAGE_TYPE_2D, imformat, { width, height, 1 },
-			1, 1, 1,
+			1, 1, depth ? 4 : 1,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			0, VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
@@ -1184,7 +1184,8 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		};
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
-		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeline));
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+			outw.dsimg == VK_NULL_HANDLE ? Unwrap(GetDebugManager()->m_CheckerboardPipeline) : Unwrap(GetDebugManager()->m_CheckerboardMSAAPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 1, &uboOffs);
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
@@ -2422,7 +2423,18 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 		{ outw.width, outw.height, 1 },
 	};
 
-	vt->CmdCopyImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &cpy);
+	VkImageResolve resolve = {
+		{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+		{ 0, 0, 0 },
+		{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+		{ 0, 0, 0 },
+		{ outw.width, outw.height, 1 },
+	};
+
+	if(outw.dsimg != VK_NULL_HANDLE)
+		vt->CmdResolveImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &resolve);
+	else
+		vt->CmdCopyImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &cpy);
 	
 	outw.bbtrans.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	outw.coltrans[outw.curidx].newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR;

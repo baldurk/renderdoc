@@ -217,7 +217,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 	ShowWindow(wnd, SW_SHOW);
 	UpdateWindow(wnd);
 
-	ReplayOutput *out = ReplayRenderer_CreateOutput(renderer, wnd);
+	ReplayOutput *out = ReplayRenderer_CreateOutput(renderer, wnd, eOutputType_TexDisplay);
 
 	OutputConfig c = { eOutputType_TexDisplay };
 

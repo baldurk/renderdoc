@@ -465,7 +465,7 @@ namespace renderdocui.Windows
                     if (curReq != m_ReqID)
                         return;
 
-                    m_Output = r.CreateOutput(RenderHandle);
+                    m_Output = r.CreateOutput(RenderHandle, OutputType.MeshDisplay);
                     m_Output.SetOutputConfig(m_OutConfig);
                     RT_UpdateRenderOutput(r);
                     m_Output.Display(); // pump the display once, this will fetch postvs data
@@ -510,7 +510,7 @@ namespace renderdocui.Windows
             {
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {
-                    m_Output = r.CreateOutput(RenderHandle);
+                    m_Output = r.CreateOutput(RenderHandle, OutputType.MeshDisplay);
                     m_Output.SetOutputConfig(m_OutConfig);
                     RT_UpdateRenderOutput(r);
                 });

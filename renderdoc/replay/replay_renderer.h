@@ -62,7 +62,7 @@ public:
 					PixelValue *val);
 	uint32_t PickVertex(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y);
 private:
-	ReplayOutput(ReplayRenderer *parent, void *w);
+	ReplayOutput(ReplayRenderer *parent, void *w, OutputType type);
 	virtual ~ReplayOutput();
 	
 	void SetFrameEvent(int frameID, int eventID);
@@ -190,7 +190,7 @@ struct ReplayRenderer : public IReplayRenderer
 
 		bool GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars);
 	
-		ReplayOutput *CreateOutput(void *handle);
+		ReplayOutput *CreateOutput(void *handle, OutputType type);
 
 		void ShutdownOutput(ReplayOutput *output);
 		void Shutdown();
