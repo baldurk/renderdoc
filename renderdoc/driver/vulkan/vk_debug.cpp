@@ -1079,9 +1079,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				
 			GetResourceManager()->WrapResource(Unwrap(dev), m_TextAtlasView);
 
-			// need to transition image into valid state, then upload
+			// need to update image layout into valid state, then upload
 			
-			VkImageMemoryBarrier trans = {
+			VkImageMemoryBarrier barrier = {
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 				0, 0,
 				VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -1090,11 +1090,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 			};
 
-			trans.outputMask = VK_MEMORY_OUTPUT_HOST_WRITE_BIT | VK_MEMORY_OUTPUT_TRANSFER_BIT;
+			barrier.outputMask = VK_MEMORY_OUTPUT_HOST_WRITE_BIT | VK_MEMORY_OUTPUT_TRANSFER_BIT;
 
-			void *barrier = (void *)&trans;
+			void *barrierptr = (void *)&barrier;
 
-			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 
 			byte *pData = NULL;
 			vkr = vt->MapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem), 0, 0, 0, (void **)&pData);
@@ -1188,9 +1188,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelImageView);
 
-		// need to transition image into valid state
+		// need to update image layout into valid state
 
-		VkImageMemoryBarrier trans = {
+		VkImageMemoryBarrier barrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 			0, 0,
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -1199,9 +1199,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 		};
 
-		void *barrier = (void *)&trans;
+		void *barrierptr = (void *)&barrier;
 
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 
 		// create render pass
 		VkAttachmentDescription attDesc = {
@@ -2068,9 +2068,9 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, &m_OverlayImageView);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		// need to transition image into valid state
+		// need to update image layout into valid state
 
-		VkImageMemoryBarrier trans = {
+		VkImageMemoryBarrier barrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 			0, 0,
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -2081,9 +2081,9 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 		m_pDriver->m_ImageLayouts[GetResID(m_OverlayImage)].subresourceStates[0].newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		void *barrier = (void *)&trans;
+		void *barrierptr = (void *)&barrier;
 
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 		
 		VkAttachmentDescription colDesc = {
 			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,

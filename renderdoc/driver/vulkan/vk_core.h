@@ -238,7 +238,7 @@ private:
 		vector<FetchAPIEvent> curEvents;
 		list<DrawcallTreeNode *> drawStack;
 
-		vector< pair<ResourceId, ImageRegionState> > imgtransitions;
+		vector< pair<ResourceId, ImageRegionState> > imgbarriers;
 
 		DrawcallTreeNode *draw; // the root draw to copy from when submitting
 		uint32_t eventCount; // how many events are in this cmd buffer, for quick skipping

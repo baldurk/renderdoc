@@ -186,12 +186,12 @@ class VulkanReplay : public IReplayDriver
 			VkSwapchainKHR swap;
 			uint32_t numImgs;
 			VkImage colimg[8];
-			VkImageMemoryBarrier coltrans[8];
+			VkImageMemoryBarrier colBarrier[8];
 
 			VkImage bb;
 			VkImageView bbview;
 			VkDeviceMemory bbmem;
-			VkImageMemoryBarrier bbtrans;
+			VkImageMemoryBarrier bbBarrier;
 			VkFramebuffer fb, fbdepth;
 			VkRenderPass rp, rpdepth;
 			uint32_t curidx;
@@ -199,7 +199,7 @@ class VulkanReplay : public IReplayDriver
 			VkImage dsimg;
 			VkDeviceMemory dsmem;
 			VkImageView dsview;
-			VkImageMemoryBarrier depthtrans;
+			VkImageMemoryBarrier depthBarrier;
 
 			VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
 			VulkanResourceManager *m_ResourceManager;

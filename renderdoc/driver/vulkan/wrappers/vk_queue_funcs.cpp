@@ -184,7 +184,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		for(uint32_t i=0; i < numCmds; i++)
 		{
 			ResourceId cmd = GetResourceManager()->GetLiveID(cmdIds[i]);
-			GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts);
+			GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
 		}
 
 		AddEvent(QUEUE_SUBMIT, desc);
@@ -299,7 +299,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			for(uint32_t i=0; i < trimmedCmdIds.size(); i++)
 			{
 				ResourceId cmd = trimmedCmdIds[i];
-				GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts);
+				GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
 			}
 		}
 		else
@@ -309,7 +309,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			for(uint32_t i=0; i < numCmds; i++)
 			{
 				ResourceId cmd = GetResourceManager()->GetLiveID(cmdIds[i]);
-				GetResourceManager()->ApplyTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts);
+				GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
 			}
 		}
 	}
@@ -359,7 +359,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 		{
 			SCOPED_LOCK(m_ImageLayoutsLock);
-			GetResourceManager()->ApplyTransitions(record->cmdInfo->imgtransitions, m_ImageLayouts);
+			GetResourceManager()->ApplyBarriers(record->cmdInfo->imgbarriers, m_ImageLayouts);
 		}
 
 		// need to lock the whole section of code, not just the check on

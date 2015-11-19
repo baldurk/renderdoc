@@ -763,7 +763,7 @@ void WrappedVulkan::vkCmdExecuteCommands(
 			record->cmdInfo->boundDescSets.insert(execRecord->bakedCommands->cmdInfo->boundDescSets.begin(), execRecord->bakedCommands->cmdInfo->boundDescSets.end());
 			record->cmdInfo->subcmds.push_back(execRecord);
 
-			GetResourceManager()->MergeTransitions(record->cmdInfo->imgtransitions, execRecord->bakedCommands->cmdInfo->imgtransitions);
+			GetResourceManager()->MergeBarriers(record->cmdInfo->imgbarriers, execRecord->bakedCommands->cmdInfo->imgbarriers);
 		}
 	}
 }
@@ -1569,7 +1569,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 	SERIALISE_ELEMENT(uint32_t, memCount, memBarrierCount);
 
 	vector<VkGenericStruct*> mems;
-	vector<VkImageMemoryBarrier> imTrans;
+	vector<VkImageMemoryBarrier> imBarriers;
 
 	for(uint32_t i=0; i < memCount; i++)
 	{
@@ -1600,7 +1600,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 			if(m_State < WRITING && barrier.image != VK_NULL_HANDLE)
 			{
 				mems.push_back((VkGenericStruct *)new VkImageMemoryBarrier(barrier));
-				imTrans.push_back(barrier);
+				imBarriers.push_back(barrier);
 			}
 		}
 	}
@@ -1613,7 +1613,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 			ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), src, dest, region, (uint32_t)mems.size(), (const void **)&mems[0]);
 
 			ResourceId cmd = GetResID(PartialCmdBuf());
-			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
+			GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts, (uint32_t)imBarriers.size(), &imBarriers[0]);
 		}
 	}
 	else if(m_State == READING)
@@ -1623,7 +1623,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 		ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), src, dest, region, (uint32_t)mems.size(), (const void **)&mems[0]);
 		
 		ResourceId cmd = GetResID(cmdBuffer);
-		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
+		GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts, (uint32_t)imBarriers.size(), &imBarriers[0]);
 	}
 
 	for(size_t i=0; i < mems.size(); i++)
@@ -1695,20 +1695,20 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 
 		record->AddChunk(scope.Get());
 
-		vector<VkImageMemoryBarrier> imTrans;
+		vector<VkImageMemoryBarrier> imBarriers;
 
 		for(uint32_t i=0; i < memBarrierCount; i++)
 		{
 			VkStructureType stype = ((VkGenericStruct *)ppMemBarriers[i])->sType;
 
 			if(stype == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
-				imTrans.push_back(*((VkImageMemoryBarrier *)ppMemBarriers[i]));
+				imBarriers.push_back(*((VkImageMemoryBarrier *)ppMemBarriers[i]));
 		}
 		
 		ResourceId cmd = GetResID(cmdBuffer);
 		{
 			SCOPED_LOCK(m_ImageLayoutsLock);
-			GetResourceManager()->RecordTransitions(GetRecord(cmdBuffer)->cmdInfo->imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
+			GetResourceManager()->RecordBarriers(GetRecord(cmdBuffer)->cmdInfo->imgbarriers, m_ImageLayouts, (uint32_t)imBarriers.size(), &imBarriers[0]);
 		}
 	}
 }

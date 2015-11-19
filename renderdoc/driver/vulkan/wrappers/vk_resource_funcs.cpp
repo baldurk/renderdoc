@@ -1080,12 +1080,12 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 
 			if(!IsDepthStencilFormat(info.format))
 			{
-				range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  layouts.subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+				range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  layouts.subresourceStates.push_back(ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
 			}
 			else
 			{
-				range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;  layouts.subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
-				range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;layouts.subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+				range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;  layouts.subresourceStates.push_back(ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
+				range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;layouts.subresourceStates.push_back(ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
 			}
 		}
 	}
@@ -1194,12 +1194,12 @@ VkResult WrappedVulkan::vkCreateImage(
 		layout->subresourceStates.clear();
 		if(!IsDepthStencilFormat(pCreateInfo->format))
 		{
-			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  layout->subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;  layout->subresourceStates.push_back(ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
 		}
 		else
 		{
-			range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;  layout->subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
-			range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;layout->subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;  layout->subresourceStates.push_back(ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
+			range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;layout->subresourceStates.push_back(ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
 		}
 	}
 

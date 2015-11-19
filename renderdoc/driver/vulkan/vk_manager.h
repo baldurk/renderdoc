@@ -98,19 +98,19 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 			return realtype( (uint64_t) ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id)) );
 		}
 		
-		// handling memory & image transitions
-		template<typename SrcTransType>
-		void RecordSingleTransition(vector< pair<ResourceId, ImageRegionState> > &trans, ResourceId id, const SrcTransType &t, uint32_t nummips, uint32_t numslices);
+		// handling memory & image layouts
+		template<typename SrcBarrierType>
+		void RecordSingleBarrier(vector< pair<ResourceId, ImageRegionState> > &states, ResourceId id, const SrcBarrierType &t, uint32_t nummips, uint32_t numslices);
 
-		void RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states,
-			                     uint32_t numTransitions, const VkImageMemoryBarrier *transitions);
+		void RecordBarriers(vector< pair<ResourceId, ImageRegionState> > &states, map<ResourceId, ImageLayouts> &layouts,
+			                  uint32_t numBarriers, const VkImageMemoryBarrier *barriers);
 
-		void MergeTransitions(vector< pair<ResourceId, ImageRegionState> > &dsttrans,
-		                      vector< pair<ResourceId, ImageRegionState> > &srctrans);
+		void MergeBarriers(vector< pair<ResourceId, ImageRegionState> > &dststates,
+		                   vector< pair<ResourceId, ImageRegionState> > &srcstates);
 
-		void ApplyTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states);
+		void ApplyBarriers(vector< pair<ResourceId, ImageRegionState> > &states, map<ResourceId, ImageLayouts> &layouts);
 
-		void SerialiseImageStates(map<ResourceId, ImageLayouts> &states, vector<VkImageMemoryBarrier> &transitions);
+		void SerialiseImageStates(map<ResourceId, ImageLayouts> &states, vector<VkImageMemoryBarrier> &barriers);
 
 		ResourceId GetID(WrappedVkRes *res)
 		{

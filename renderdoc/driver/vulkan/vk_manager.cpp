@@ -42,34 +42,34 @@ bool VulkanResourceManager::SerialisableResource(ResourceId id, VkResourceRecord
 	return true;
 }
 
-// debugging logging for transitions
+// debugging logging for barriers
 #if 0
 #define TRDBG(...) RDCLOG(__VA_ARGS__)
 #else
 #define TRDBG(...)
 #endif
 
-template<typename SrcTransType>
-void VulkanResourceManager::RecordSingleTransition(vector< pair<ResourceId, ImageRegionState> > &dsttrans, ResourceId id, const SrcTransType &t, uint32_t nummips, uint32_t numslices)
+template<typename SrcBarrierType>
+void VulkanResourceManager::RecordSingleBarrier(vector< pair<ResourceId, ImageRegionState> > &dststates, ResourceId id, const SrcBarrierType &t, uint32_t nummips, uint32_t numslices)
 {
 	bool done = false;
 
-	auto it = dsttrans.begin();
-	for(; it != dsttrans.end(); ++it)
+	auto it = dststates.begin();
+	for(; it != dststates.end(); ++it)
 	{
-		// image transitions are handled by initially inserting one subresource range for each aspect,
+		// image barriers are handled by initially inserting one subresource range for each aspect,
 		// and whenever we need more fine-grained detail we split it immediately for one range for
-		// each subresource in that aspect. Thereafter if a transition comes in that covers multiple
-		// subresources, we transition all matching ranges.
+		// each subresource in that aspect. Thereafter if a barrier comes in that covers multiple
+		// subresources, we update all matching ranges.
 
-		// find the transitions matching this id
+		// find the states matching this id
 		if(it->first < id) continue;
 		if(it->first != id) break;
 
 		if(it->second.subresourceRange.aspectMask & t.subresourceRange.aspectMask)
 		{
 			// we've found a range that completely matches our region, doesn't matter if that's
-			// a whole image and the transition is the whole image, or it's one subresource.
+			// a whole image and the barrier is the whole image, or it's one subresource.
 			// note that for images with only one array/mip slice (e.g. render targets) we'll never
 			// really have to worry about the else{} branch
 			if(it->second.subresourceRange.baseMipLevel == t.subresourceRange.baseMipLevel &&
@@ -80,8 +80,8 @@ void VulkanResourceManager::RecordSingleTransition(vector< pair<ResourceId, Imag
 				// verify
 				//RDCASSERT(it->second.state == t.oldLayout);
 
-				// apply it (prevstate is from the start of all transitions, so only set once)
-				if(it->second.oldLayout == UNTRANSITIONED_IMG_STATE)
+				// apply it (prevstate is from the start of all barriers accumulated, so only set once)
+				if(it->second.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
 					it->second.oldLayout = t.oldLayout;
 				it->second.newLayout = t.newLayout;
 
@@ -90,9 +90,9 @@ void VulkanResourceManager::RecordSingleTransition(vector< pair<ResourceId, Imag
 			}
 			else
 			{
-				// this handles the case where the transition covers a number of subresources and we need
-				// to transition each matching subresource. If the transition was only one mip & array slice
-				// it would have hit the case above. Find each subresource within the range, transition it,
+				// this handles the case where the barrier covers a number of subresources and we need
+				// to update each matching subresource. If the barrier was only one mip & array slice
+				// it would have hit the case above. Find each subresource within the range, update it,
 				// and continue (marking as done so whenever we stop finding matching ranges, we are
 				// satisfied.
 				//
@@ -107,8 +107,8 @@ void VulkanResourceManager::RecordSingleTransition(vector< pair<ResourceId, Imag
 					it->second.subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
 					it->second.subresourceRange.baseArrayLayer < t.subresourceRange.baseArrayLayer+numslices)
 				{
-					// apply it (prevstate is from the start of all transitions, so only set once)
-					if(it->second.oldLayout == UNTRANSITIONED_IMG_STATE)
+					// apply it (prevstate is from the start of all barriers accumulated, so only set once)
+					if(it->second.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
 						it->second.oldLayout = t.oldLayout;
 					it->second.newLayout = t.newLayout;
 
@@ -117,25 +117,25 @@ void VulkanResourceManager::RecordSingleTransition(vector< pair<ResourceId, Imag
 					continue;
 				}
 				// finally handle the case where we have a range that covers a whole image but we need to
-				// split it. If the transition covered the whole image too it would have hit the very first
-				// case, so we know that the transition doesn't cover the whole range.
+				// split it. If the barrier covered the whole image too it would have hit the very first
+				// case, so we know that the barrier doesn't cover the whole range.
 				// Also, if we've already done the split this case won't be hit and we'll either fall into
-				// the case above, or we'll finish as we've covered the whole transition.
+				// the case above, or we'll finish as we've covered the whole barrier.
 				else if(it->second.subresourceRange.mipLevels > 1 || it->second.subresourceRange.arraySize > 1)
 				{
 					pair<ResourceId, ImageRegionState> existing = *it;
 
 					// remember where we were in the array, as after this iterators will be
 					// invalidated.
-					size_t offs = it - dsttrans.begin();
+					size_t offs = it - dststates.begin();
 					size_t count = it->second.subresourceRange.mipLevels * it->second.subresourceRange.arraySize;
 
 					// only insert count-1 as we want count entries total - one per subresource
-					dsttrans.insert(it, count-1, existing);
+					dststates.insert(it, count-1, existing);
 
 					// it now points at the first subresource, but we need to modify the ranges
 					// to be valid
-					it = dsttrans.begin()+offs;
+					it = dststates.begin()+offs;
 
 					for(size_t i=0; i < count; i++)
 					{
@@ -149,7 +149,7 @@ void VulkanResourceManager::RecordSingleTransition(vector< pair<ResourceId, Imag
 					}
 
 					// reset the iterator to point to the first subresource
-					it = dsttrans.begin()+offs;
+					it = dststates.begin()+offs;
 
 					// the loop will continue after this point and look at the next subresources
 					// so we need to check to see if the first subresource lies in the range here
@@ -158,8 +158,8 @@ void VulkanResourceManager::RecordSingleTransition(vector< pair<ResourceId, Imag
 						it->second.subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
 						it->second.subresourceRange.baseArrayLayer < t.subresourceRange.baseArrayLayer+numslices)
 					{
-						// apply it (prevstate is from the start of all transitions, so only set once)
-						if(it->second.oldLayout == UNTRANSITIONED_IMG_STATE)
+						// apply it (prevstate is from the start of all barriers accumulated, so only set once)
+						if(it->second.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
 							it->second.oldLayout = t.oldLayout;
 						it->second.newLayout = t.newLayout;
 
@@ -182,48 +182,48 @@ void VulkanResourceManager::RecordSingleTransition(vector< pair<ResourceId, Imag
 
 	if(done) return;
 
-	// we don't have an existing transition for this memory region, insert into place. it points to
+	// we don't have an existing barrier for this memory region, insert into place. it points to
 	// where it should be inserted
-	dsttrans.insert(it, std::make_pair(id, ImageRegionState(t.subresourceRange, t.oldLayout, t.newLayout)));
+	dststates.insert(it, std::make_pair(id, ImageRegionState(t.subresourceRange, t.oldLayout, t.newLayout)));
 }
 
-void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states,
-											  uint32_t numTransitions, const VkImageMemoryBarrier *transitions)
+void VulkanResourceManager::RecordBarriers(vector< pair<ResourceId, ImageRegionState> > &states, map<ResourceId, ImageLayouts> &layouts,
+											  uint32_t numBarriers, const VkImageMemoryBarrier *barriers)
 {
-	TRDBG("Recording %u transitions", numTransitions);
+	TRDBG("Recording %u barriers", numBarriers);
 
-	for(uint32_t ti=0; ti < numTransitions; ti++)
+	for(uint32_t ti=0; ti < numBarriers; ti++)
 	{
-		const VkImageMemoryBarrier &t = transitions[ti];
+		const VkImageMemoryBarrier &t = barriers[ti];
 		
 		ResourceId id = m_State < WRITING ? GetNonDispWrapper(t.image)->id : GetResID(t.image);
 		
 		uint32_t nummips = t.subresourceRange.mipLevels;
 		uint32_t numslices = t.subresourceRange.arraySize;
-		if(nummips == VK_REMAINING_MIP_LEVELS) nummips = states[id].mipLevels - t.subresourceRange.baseMipLevel;
-		if(numslices == VK_REMAINING_ARRAY_LAYERS) numslices = states[id].arraySize - t.subresourceRange.baseArrayLayer;
+		if(nummips == VK_REMAINING_MIP_LEVELS) nummips = layouts[id].mipLevels - t.subresourceRange.baseMipLevel;
+		if(numslices == VK_REMAINING_ARRAY_LAYERS) numslices = layouts[id].arraySize - t.subresourceRange.baseArrayLayer;
 
-		RecordSingleTransition(trans, id, t, nummips, numslices);
+		RecordSingleBarrier(states, id, t, nummips, numslices);
 	}
 
-	TRDBG("Post-record, there are %u transitions", (uint32_t)trans.size());
+	TRDBG("Post-record, there are %u states", (uint32_t)states.size());
 }
 
-void VulkanResourceManager::MergeTransitions(vector< pair<ResourceId, ImageRegionState> > &dsttrans,
-                                             vector< pair<ResourceId, ImageRegionState> > &srctrans)
+void VulkanResourceManager::MergeBarriers(vector< pair<ResourceId, ImageRegionState> > &dststates,
+                                             vector< pair<ResourceId, ImageRegionState> > &srcstates)
 {
-	TRDBG("Merging %u transitions", (uint32_t)srctrans.size());
+	TRDBG("Merging %u states", (uint32_t)srcstates.size());
 
-	for(size_t ti=0; ti < srctrans.size(); ti++)
+	for(size_t ti=0; ti < srcstates.size(); ti++)
 	{
-		const ImageRegionState &t = srctrans[ti].second;
-		RecordSingleTransition(dsttrans, srctrans[ti].first, t, t.subresourceRange.mipLevels, t.subresourceRange.arraySize);
+		const ImageRegionState &t = srcstates[ti].second;
+		RecordSingleBarrier(dststates, srcstates[ti].first, t, t.subresourceRange.mipLevels, t.subresourceRange.arraySize);
 	}
 
-	TRDBG("Post-merge, there are %u transitions", (uint32_t)dsttrans.size());
+	TRDBG("Post-merge, there are %u states", (uint32_t)dststates.size());
 }
 
-void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &states, vector<VkImageMemoryBarrier> &transitions)
+void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &states, vector<VkImageMemoryBarrier> &barriers)
 {
 	Serialiser *localSerialiser = m_pSerialiser;
 
@@ -253,7 +253,7 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
 				t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 				t.pNext = NULL;
 				// these input masks aren't used, we need to apply a global memory barrier
-				// to memory each time we restart log replaying. These transitions are just
+				// to memory each time we restart log replaying. These barriers are just
 				// to get images into the right layout
 				t.inputMask = 0;
 				t.outputMask = 0;
@@ -264,7 +264,7 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
 				t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				t.newLayout = state.newLayout;
 				t.subresourceRange = state.subresourceRange;
-				transitions.push_back(t);
+				barriers.push_back(t);
 				vec.push_back(std::make_pair(liveid, state));
 			}
 		}
@@ -272,16 +272,16 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
 		if(m_State >= WRITING) srcit++;
 	}
 
-	ApplyTransitions(vec, states);
+	ApplyBarriers(vec, states);
 
 	for(size_t i=0; i < vec.size(); i++)
-		transitions[i].oldLayout = vec[i].second.oldLayout;
+		barriers[i].oldLayout = vec[i].second.oldLayout;
 
-	// erase any do-nothing transitions
-	for(auto it=transitions.begin(); it != transitions.end();)
+	// erase any do-nothing barriers
+	for(auto it=barriers.begin(); it != barriers.end();)
 	{
 		if(it->oldLayout == it->newLayout)
-			it = transitions.erase(it);
+			it = barriers.erase(it);
 		else
 			++it;
 	}
@@ -303,36 +303,36 @@ void VulkanResourceManager::MarkSparseMapReferenced(SparseMapping *sparse)
 				MarkResourceFrameReferenced(GetResID(sparse->pages[a][i].first), eFrameRef_Read);
 }
 
-void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImageLayouts> &states)
+void VulkanResourceManager::ApplyBarriers(vector< pair<ResourceId, ImageRegionState> > &states, map<ResourceId, ImageLayouts> &layouts)
 {
-	TRDBG("Applying %u transitions", (uint32_t)trans.size());
+	TRDBG("Applying %u barriers", (uint32_t)states.size());
 
-	for(size_t ti=0; ti < trans.size(); ti++)
+	for(size_t ti=0; ti < states.size(); ti++)
 	{
-		ResourceId id = trans[ti].first;
-		ImageRegionState &t = trans[ti].second;
+		ResourceId id = states[ti].first;
+		ImageRegionState &t = states[ti].second;
 
-		TRDBG("Applying transition to %llu", GetOriginalID(id));
+		TRDBG("Applying barrier to %llu", GetOriginalID(id));
 
-		auto stit = states.find(id);
+		auto stit = layouts.find(id);
 
-		if(stit == states.end())
+		if(stit == layouts.end())
 		{
-			TRDBG("Didn't find ID in image states");
+			TRDBG("Didn't find ID in image layouts");
 			continue;
 		}
 
 		uint32_t nummips = t.subresourceRange.mipLevels;
 		uint32_t numslices = t.subresourceRange.arraySize;
-		if(nummips == VK_REMAINING_MIP_LEVELS) nummips = states[id].mipLevels;
-		if(numslices == VK_REMAINING_ARRAY_LAYERS) numslices = states[id].arraySize;
+		if(nummips == VK_REMAINING_MIP_LEVELS) nummips = layouts[id].mipLevels;
+		if(numslices == VK_REMAINING_ARRAY_LAYERS) numslices = layouts[id].arraySize;
 
 		if(nummips == 0) nummips = 1;
 		if(numslices == 0) numslices = 1;
 
 		if(t.oldLayout == t.newLayout) continue;
 
-		TRDBG("Transition of %s (%u->%u, %u->%u) from %s to %s",
+		TRDBG("Barrier of %s (%u->%u, %u->%u) from %s to %s",
 				ToStr::Get(t.subresourceRange.aspect).c_str(),
 				t.subresourceRange.baseMipLevel, t.subresourceRange.mipLevels,
 				t.subresourceRange.baseArrayLayer, t.subresourceRange.arraySize,
@@ -351,15 +351,15 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 				it->range.baseArrayLayer, it->range.arraySize,
 				ToStr::Get(it->oldLayout).c_str(), ToStr::Get(it->newLayout).c_str());
 
-			// image transitions are handled by initially inserting one subresource range for each aspect,
+			// image barriers are handled by initially inserting one subresource range for each aspect,
 			// and whenever we need more fine-grained detail we split it immediately for one range for
-			// each subresource in that aspect. Thereafter if a transition comes in that covers multiple
-			// subresources, we transition all matching ranges.
+			// each subresource in that aspect. Thereafter if a barrier comes in that covers multiple
+			// subresources, we update all matching ranges.
 
 			if(it->subresourceRange.aspectMask & t.subresourceRange.aspectMask)
 			{
 				// we've found a range that completely matches our region, doesn't matter if that's
-				// a whole image and the transition is the whole image, or it's one subresource.
+				// a whole image and the barrier is the whole image, or it's one subresource.
 				// note that for images with only one array/mip slice (e.g. render targets) we'll never
 				// really have to worry about the else{} branch
 				if(it->subresourceRange.baseMipLevel == t.subresourceRange.baseMipLevel &&
@@ -368,9 +368,9 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 				   it->subresourceRange.arraySize == numslices)
 				{
 					/*
-					RDCASSERT(t.prevstate == UNTRANSITIONED_IMG_STATE || it->state == UNTRANSITIONED_IMG_STATE || // renderdoc untracked/ignored
-					          it->state == t.prevstate || // valid transition
-										t.prevstate == VK_IMAGE_LAYOUT_UNDEFINED); // can transition from UNDEFINED to any state
+					RDCASSERT(t.prevstate == UNKNOWN_PREV_IMG_LAYOUT || it->state == UNKNOWN_PREV_IMG_LAYOUT || // renderdoc untracked/ignored
+					          it->state == t.prevstate || // valid barrier
+										t.prevstate == VK_IMAGE_LAYOUT_UNDEFINED); // can barrier from UNDEFINED to any state
 					*/
 					t.oldLayout = it->newLayout;
 					it->newLayout = t.newLayout;
@@ -380,9 +380,9 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 				}
 				else
 				{
-					// this handles the case where the transition covers a number of subresources and we need
-					// to transition each matching subresource. If the transition was only one mip & array slice
-					// it would have hit the case above. Find each subresource within the range, transition it,
+					// this handles the case where the barrier covers a number of subresources and we need
+					// to update each matching subresource. If the barrier was only one mip & array slice
+					// it would have hit the case above. Find each subresource within the range, update it,
 					// and continue (marking as done so whenever we stop finding matching ranges, we are
 					// satisfied.
 					//
@@ -397,8 +397,8 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 					   it->subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
 					   it->subresourceRange.baseArrayLayer < t.subresourceRange.baseArrayLayer+numslices)
 					{
-						// apply it (prevstate is from the start of all transitions, so only set once)
-						if(it->oldLayout == UNTRANSITIONED_IMG_STATE)
+						// apply it (prevstate is from the start of all barriers accumulated, so only set once)
+						if(it->oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
 							it->oldLayout = t.oldLayout;
 						it->newLayout = t.newLayout;
 
@@ -407,10 +407,10 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 						continue;
 					}
 					// finally handle the case where we have a range that covers a whole image but we need to
-					// split it. If the transition covered the whole image too it would have hit the very first
-					// case, so we know that the transition doesn't cover the whole range.
+					// split it. If the barrier covered the whole image too it would have hit the very first
+					// case, so we know that the barrier doesn't cover the whole range.
 					// Also, if we've already done the split this case won't be hit and we'll either fall into
-					// the case above, or we'll finish as we've covered the whole transition.
+					// the case above, or we'll finish as we've covered the whole barrier.
 					else if(it->subresourceRange.mipLevels > 1 || it->subresourceRange.arraySize > 1)
 					{
 						ImageRegionState existing = *it;
@@ -448,8 +448,8 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 						   it->subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
 						   it->subresourceRange.baseArrayLayer < t.subresourceRange.baseArrayLayer+numslices)
 						{
-							// apply it (prevstate is from the start of all transitions, so only set once)
-							if(it->oldLayout == UNTRANSITIONED_IMG_STATE)
+							// apply it (prevstate is from the start of all barriers accumulated, so only set once)
+							if(it->oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
 								it->oldLayout = t.oldLayout;
 							it->newLayout = t.newLayout;
 
@@ -471,7 +471,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 		}
 
 		if(!done)
-			RDCERR("Couldn't find subresource range to apply transition to - invalid!");
+			RDCERR("Couldn't find subresource range to apply barrier to - invalid!");
 	}
 }
 

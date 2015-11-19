@@ -250,7 +250,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 
 			swapinfo.images[i].im = im;
 
-			// fill out image info so we track resource state transitions
+			// fill out image info so we track resource state barriers
 			// sneaky-cheeky use of the swapchain's ID here (it's not a live ID because
 			// we don't create a live swapchain). This will be picked up in
 			// Serialise_vkGetSwapchainImagesKHR to set the data for the live IDs on the
@@ -276,7 +276,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
 			m_ImageLayouts[liveId].subresourceStates.clear();
-			m_ImageLayouts[liveId].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			m_ImageLayouts[liveId].subresourceStates.push_back(ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
 		}
 	}
 
@@ -400,11 +400,11 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 					range.arraySize = pCreateInfo->imageArraySize;
 					range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 					
-					// fill out image info so we track resource state transitions
+					// fill out image info so we track resource state barriers
 					{
 						SCOPED_LOCK(m_ImageLayoutsLock);
 						m_ImageLayouts[imid].subresourceStates.clear();
-						m_ImageLayouts[imid].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+						m_ImageLayouts[imid].subresourceStates.push_back(ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
 					}
 
 					{

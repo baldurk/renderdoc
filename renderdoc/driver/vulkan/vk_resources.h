@@ -531,12 +531,12 @@ template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, Wra
 bool IsDispatchableRes(WrappedVkRes *ptr);
 VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr);
 
-#define UNTRANSITIONED_IMG_STATE ((VkImageLayout)0xffffffff)
+#define UNKNOWN_PREV_IMG_LAYOUT ((VkImageLayout)0xffffffff)
 
 struct ImageRegionState
 {
 	ImageRegionState()
-		: oldLayout(UNTRANSITIONED_IMG_STATE), newLayout(UNTRANSITIONED_IMG_STATE)
+		: oldLayout(UNKNOWN_PREV_IMG_LAYOUT), newLayout(UNKNOWN_PREV_IMG_LAYOUT)
 	{
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		subresourceRange.baseArrayLayer = 0; subresourceRange.arraySize = 0;
@@ -606,7 +606,7 @@ struct CmdBufferRecordingInfo
 	VkDevice device;
 	VkCmdBufferCreateInfo createInfo;
 
-	vector< pair<ResourceId, ImageRegionState> > imgtransitions;
+	vector< pair<ResourceId, ImageRegionState> > imgbarriers;
 
 	// sparse resources referenced by this command buffer (at submit time
 	// need to go through the sparse mapping and reference all memory)
@@ -689,7 +689,7 @@ struct VkResourceRecord : public ResourceRecord
 			SwapChunks(bakedCommands);
 			cmdInfo->dirtied.swap(bakedCommands->cmdInfo->dirtied);
 			cmdInfo->boundDescSets.swap(bakedCommands->cmdInfo->boundDescSets);
-			cmdInfo->imgtransitions.swap(bakedCommands->cmdInfo->imgtransitions);
+			cmdInfo->imgbarriers.swap(bakedCommands->cmdInfo->imgbarriers);
 			cmdInfo->subcmds.swap(bakedCommands->cmdInfo->subcmds);
 			cmdInfo->sparse.swap(bakedCommands->cmdInfo->sparse);
 		}

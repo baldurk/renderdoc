@@ -686,7 +686,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 	SERIALISE_ELEMENT(uint32_t, memCount, memBarrierCount);
 
 	vector<VkGenericStruct*> mems;
-	vector<VkImageMemoryBarrier> imTrans;
+	vector<VkImageMemoryBarrier> imBarriers;
 
 	for(uint32_t i=0; i < memCount; i++)
 	{
@@ -717,7 +717,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 			if(m_State < WRITING && barrier.image != VK_NULL_HANDLE)
 			{
 				mems.push_back((VkGenericStruct *)new VkImageMemoryBarrier(barrier));
-				imTrans.push_back(barrier);
+				imBarriers.push_back(barrier);
 			}
 		}
 	}
@@ -747,7 +747,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 			m_CleanupEvents.push_back(ev);
 
 			ResourceId cmd = GetResID(PartialCmdBuf());
-			GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
+			GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts, (uint32_t)imBarriers.size(), &imBarriers[0]);
 		}
 	}
 	else if(m_State == READING)
@@ -771,7 +771,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 		m_CleanupEvents.push_back(ev);
 		
 		ResourceId cmd = GetResID(cmdBuffer);
-		GetResourceManager()->RecordTransitions(m_BakedCmdBufferInfo[cmd].imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
+		GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts, (uint32_t)imBarriers.size(), &imBarriers[0]);
 	}
 
 	for(size_t i=0; i < mems.size(); i++)
@@ -845,20 +845,20 @@ void WrappedVulkan::vkCmdWaitEvents(
 		SCOPED_SERIALISE_CONTEXT(CMD_WAIT_EVENTS);
 		Serialise_vkCmdWaitEvents(localSerialiser, cmdBuffer, eventCount, pEvents, srcStageMask, destStageMask, memBarrierCount, ppMemBarriers);
 		
-		vector<VkImageMemoryBarrier> imTrans;
+		vector<VkImageMemoryBarrier> imBarriers;
 
 		for(uint32_t i=0; i < memBarrierCount; i++)
 		{
 			VkStructureType stype = ((VkGenericStruct *)ppMemBarriers[i])->sType;
 
 			if(stype == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
-				imTrans.push_back(*((VkImageMemoryBarrier *)ppMemBarriers[i]));
+				imBarriers.push_back(*((VkImageMemoryBarrier *)ppMemBarriers[i]));
 		}
 		
 		ResourceId cmd = GetResID(cmdBuffer);
 		{
 			SCOPED_LOCK(m_ImageLayoutsLock);
-			GetResourceManager()->RecordTransitions(GetRecord(cmdBuffer)->cmdInfo->imgtransitions, m_ImageLayouts, (uint32_t)imTrans.size(), &imTrans[0]);
+			GetResourceManager()->RecordBarriers(GetRecord(cmdBuffer)->cmdInfo->imgbarriers, m_ImageLayouts, (uint32_t)imBarriers.size(), &imBarriers[0]);
 		}
 
 		record->AddChunk(scope.Get());

@@ -560,14 +560,14 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 		return true;
 	}
 
-	vector<VkImageMemoryBarrier> imgTransitions;
+	vector<VkImageMemoryBarrier> imgBarriers;
 	
 	{
 		SCOPED_LOCK(m_ImageLayoutsLock); // not needed on replay, but harmless also
-		GetResourceManager()->SerialiseImageStates(m_ImageLayouts, imgTransitions);
+		GetResourceManager()->SerialiseImageStates(m_ImageLayouts, imgBarriers);
 	}
 
-	if(applyInitialState && !imgTransitions.empty())
+	if(applyInitialState && !imgBarriers.empty())
 	{
 		VkCmdBuffer cmd = GetNextCmd();
 
@@ -578,12 +578,12 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 		VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
-		if(!imgTransitions.empty())
+		if(!imgBarriers.empty())
 		{
 			vector<void *> barriers;
-			for(size_t i=0; i < imgTransitions.size(); i++)
-				barriers.push_back(&imgTransitions[i]);
-			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, (uint32_t)imgTransitions.size(), (const void *const *)&barriers[0]);
+			for(size_t i=0; i < imgBarriers.size(); i++)
+				barriers.push_back(&imgBarriers[i]);
+			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, (uint32_t)imgBarriers.size(), (const void *const *)&barriers[0]);
 		}
 
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
@@ -801,7 +801,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			{ imInfo.extent.width, imInfo.extent.height, 1 },
 		};
 
-		VkImageMemoryBarrier bbTrans = {
+		VkImageMemoryBarrier bbBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 			0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
@@ -809,7 +809,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 		};
 
-		VkImageMemoryBarrier readTrans = {
+		VkImageMemoryBarrier readBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
@@ -818,19 +818,19 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		};
 
 		VkImageMemoryBarrier *barriers[] = {
-			&bbTrans,
-			&readTrans,
+			&bbBarrier,
+			&readBarrier,
 		};
 
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, (void **)barriers);
 
 		vt->CmdCopyImage(Unwrap(cmd), Unwrap(backbuffer), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, readbackIm, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &cpy);
 
-		// transition backbuffer back
-		std::swap(bbTrans.oldLayout, bbTrans.newLayout);
+		// barrier to switch backbuffer back to present layout
+		std::swap(bbBarrier.oldLayout, bbBarrier.newLayout);
 
-		readTrans.oldLayout = readTrans.newLayout;
-		readTrans.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+		readBarrier.oldLayout = readBarrier.newLayout;
+		readBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, (void **)barriers);
 

@@ -969,7 +969,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkExtent3D extent = layout->extent;
 			
-		VkImageMemoryBarrier srcimTrans = {
+		VkImageMemoryBarrier srcimBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
@@ -996,35 +996,35 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 			// get the offset of the first array slice in this mip
 			region.bufferOffset = sublayout.offset;
 		
-			// VKTODOMED handle getting the right origLayout for this mip, handle transitioning
+			// VKTODOMED handle getting the right origLayout for this mip, handle barriers for
 			// multiple slices with different layouts etc
 			VkImageLayout origLayout = layout->subresourceStates[0].newLayout;
 
-			// transition the real image into transfer-source
-			srcimTrans.oldLayout = origLayout;
-			srcimTrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
+			// update the real image layout into transfer-source
+			srcimBarrier.oldLayout = origLayout;
+			srcimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
 
 			// ensure all previous writes have completed
-			srcimTrans.outputMask =
+			srcimBarrier.outputMask =
 				VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
 				VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
 				VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
 				VK_MEMORY_OUTPUT_TRANSFER_BIT;
 			// before we go reading
-			srcimTrans.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+			srcimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
 			
-			void *barrier = (void *)&srcimTrans;
+			void *barrier = (void *)&srcimBarrier;
 
 			ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
 			ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), im->real.As<VkImage>(), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, dstBuf, 1, &region);
 
 			// transfer back to whatever it was
-			srcimTrans.oldLayout = srcimTrans.newLayout;
-			srcimTrans.newLayout = origLayout;
+			srcimBarrier.oldLayout = srcimBarrier.newLayout;
+			srcimBarrier.newLayout = origLayout;
 
-			srcimTrans.outputMask = 0;
-			srcimTrans.inputMask = 0;
+			srcimBarrier.outputMask = 0;
+			srcimBarrier.inputMask = 0;
 
 			ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
@@ -1434,7 +1434,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			VkExtent3D extent = imInfo.extent;
 			
-			VkImageMemoryBarrier srcimTrans = {
+			VkImageMemoryBarrier srcimBarrier = {
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 				0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
@@ -1460,20 +1460,20 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 				region.bufferOffset = sublayout.offset;
 
-				void *barrier = (void *)&srcimTrans;
+				void *barrier = (void *)&srcimBarrier;
 				
-				// first we transition from undefined to destination optimal, for the copy from the buffer
-				srcimTrans.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				srcimTrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
+				// first we update layout from undefined to destination optimal, for the copy from the buffer
+				srcimBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				srcimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
 
 				ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
 				ObjDisp(d)->CmdCopyBufferToImage(Unwrap(cmd), buf, Unwrap(im), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &region);
 
-				// then transition into source optimal, for all subsequent copies from this immutable initial
+				// then update layout into source optimal, for all subsequent copies from this immutable initial
 				// state image, to the live image.
-				srcimTrans.oldLayout = srcimTrans.newLayout;
-				srcimTrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
+				srcimBarrier.oldLayout = srcimBarrier.newLayout;
+				srcimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
 
 				ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
@@ -1796,7 +1796,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 		VkExtent3D extent = m_CreationInfo.m_Image[id].extent;
 		
-		VkImageMemoryBarrier dstimTrans = {
+		VkImageMemoryBarrier dstimBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
@@ -1815,17 +1815,17 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				extent,
 			};
 
-			dstimTrans.subresourceRange.baseMipLevel = m;
+			dstimBarrier.subresourceRange.baseMipLevel = m;
 		
 			// VKTODOMED handle getting the right origLayout for this mip, handle multiple slices with different layouts etc
 			VkImageLayout origLayout = m_ImageLayouts[id].subresourceStates[0].newLayout;
 
-			// first transition the live image into destination optimal (the initial state
+			// first update the live image layout into destination optimal (the initial state
 			// image is always and permanently in source optimal already).
-			dstimTrans.oldLayout = origLayout;
-			dstimTrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
+			dstimBarrier.oldLayout = origLayout;
+			dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
 
-			void *barrier = (void *)&dstimTrans;
+			void *barrier = (void *)&dstimBarrier;
 
 			ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 			
@@ -1834,13 +1834,13 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				ToHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 				1, &region);
 
-			// transition the live image back
-			dstimTrans.oldLayout = dstimTrans.newLayout;
-			dstimTrans.newLayout = origLayout;
+			// update the live image layout back
+			dstimBarrier.oldLayout = dstimBarrier.newLayout;
+			dstimBarrier.newLayout = origLayout;
 		
 			// make sure the apply completes before any further work
-			dstimTrans.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
-			dstimTrans.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT|
+			dstimBarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
+			dstimBarrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT|
 				VK_MEMORY_INPUT_INDIRECT_COMMAND_BIT|
 				VK_MEMORY_INPUT_INDEX_FETCH_BIT|
 				VK_MEMORY_INPUT_VERTEX_ATTRIBUTE_FETCH_BIT|
