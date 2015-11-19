@@ -19,7 +19,7 @@ Current Support
 * Simple disassembly/reflection of SPIR-V to determine which descriptors to read for read-only resources and uniform buffers. The uniform buffers will be listed separately and the member variables filled out.
 * Simple display of most 2D textures with mips in the texture viewer.
 * You can view mesh input data both as data and a 3D preview
-* Drawcall highlight and wireframe overlays
+* Render overlays like Drawcall highlight, wireframe, depth-test pass/fail etc
 * Texture range auto-fit and histogram display
 * Threading should be pretty efficient - no heavy locks on common paths (outside of creation/deletion)
 
@@ -29,7 +29,7 @@ Known Issues
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
 * Sparse images with mips or array slices will not properly replay
 * Only 2D non-array non-integer textures can currently be displayed.
-* Debug overlays other than drawcall highlight and wireframe aren't implemented.
+* 'Quad overdraw' debug overlays aren't implemented.
 * Saving textures is not supported.
 * Queue-level API events are not properly listed. API calls between draw-type vkCmd... are listed.
 * No post-transform mesh data is fetched
