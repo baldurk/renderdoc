@@ -911,7 +911,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
 uint32_t VulkanReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
 {
-	RDCUNIMPLEMENTED("PickVertex");
+	VULKANNOTIMP("PickVertex");
 	return ~0U;
 }
 
@@ -3600,17 +3600,18 @@ vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)
 
 void VulkanReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
 {
-	RDCUNIMPLEMENTED("SetContextFilter");
+	RDCERR("Should never hit SetContextFilter");
 }
 
 void VulkanReplay::FreeTargetResource(ResourceId id)
 {
-	RDCUNIMPLEMENTED("FreeTargetResource");
+	// won't get hit until BuildTargetShader is implemented
+	VULKANNOTIMP("FreeTargetResource");
 }
 
 void VulkanReplay::FreeCustomShader(ResourceId id)
 {
-	RDCUNIMPLEMENTED("FreeCustomShader");
+	VULKANNOTIMP("FreeCustomShader");
 }
 
 MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
@@ -3631,12 +3632,14 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
 void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
-	RDCUNIMPLEMENTED("ReplaceResource");
+	// won't get hit until BuildTargetShader is implemented
+	VULKANNOTIMP("ReplaceResource");
 }
 
 void VulkanReplay::RemoveReplacement(ResourceId id)
 {
-	RDCUNIMPLEMENTED("RemoveReplacement");
+	// won't get hit until BuildTargetShader is implemented
+	VULKANNOTIMP("RemoveReplacement");
 }
 
 vector<uint32_t> VulkanReplay::EnumerateCounters()
@@ -3658,7 +3661,9 @@ vector<CounterResult> VulkanReplay::FetchCounters(uint32_t frameID, uint32_t min
 
 void VulkanReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 {
-	RDCUNIMPLEMENTED("BuildTargetShader");
+	VULKANNOTIMP("BuildTargetShader");
+	if(errors) *errors = "Shader edit & replace is not yet supported on Vulkan";
+	if(id) *id = ResourceId();
 }
 
 void VulkanReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
@@ -3668,54 +3673,54 @@ void VulkanReplay::BuildCustomShader(string source, string entry, const uint32_t
 
 vector<PixelModification> VulkanReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
 {
-	RDCUNIMPLEMENTED("VulkanReplay::PixelHistory");
+	VULKANNOTIMP("PixelHistory");
 	return vector<PixelModification>();
 }
 
 ShaderDebugTrace VulkanReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
-	RDCUNIMPLEMENTED("DebugVertex");
+	VULKANNOTIMP("DebugVertex");
 	return ShaderDebugTrace();
 }
 
 ShaderDebugTrace VulkanReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
-	RDCUNIMPLEMENTED("DebugPixel");
+	VULKANNOTIMP("DebugPixel");
 	return ShaderDebugTrace();
 }
 
 ShaderDebugTrace VulkanReplay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
-	RDCUNIMPLEMENTED("DebugThread");
+	VULKANNOTIMP("DebugThread");
 	return ShaderDebugTrace();
 }
 
 ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
 {
-	RDCUNIMPLEMENTED("ApplyCustomShader");
+	VULKANNOTIMP("ApplyCustomShader");
 	return ResourceId();
 }
 
-ResourceId VulkanReplay::CreateProxyTexture( FetchTexture templateTex )
+ResourceId VulkanReplay::CreateProxyTexture(FetchTexture templateTex)
 {
-	RDCUNIMPLEMENTED("CreateProxyTexture");
+	VULKANNOTIMP("CreateProxyTexture");
 	return ResourceId();
 }
 
 void VulkanReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize)
 {
-	RDCUNIMPLEMENTED("SetProxyTextureData");
+	VULKANNOTIMP("SetProxyTextureData");
 }
 
 ResourceId VulkanReplay::CreateProxyBuffer(FetchBuffer templateBuf)
 {
-	RDCUNIMPLEMENTED("CreateProxyBuffer");
+	VULKANNOTIMP("CreateProxyBuffer");
 	return ResourceId();
 }
 
 void VulkanReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
 {
-	RDCUNIMPLEMENTED("SetProxyTextureData");
+	VULKANNOTIMP("SetProxyTextureData");
 }
 
 // in vk_replay_platform.cpp
