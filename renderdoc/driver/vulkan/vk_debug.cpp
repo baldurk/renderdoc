@@ -2348,6 +2348,154 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		}
 
 	}
+	else if(overlay == eTexOverlay_BackfaceCull)
+	{
+		float highlightCol[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)highlightCol, 1, &subresourceRange);
+
+		highlightCol[0] = 1.0f;
+		highlightCol[3] = 1.0f;
+		
+		// backup state
+		WrappedVulkan::PartialReplayData::StateVector prevstate = m_pDriver->m_PartialReplayData.state;
+		
+		// make patched shader
+		VkShaderModule mod[2] = {0};
+		VkShader shad[2] = {0};
+		VkPipeline pipe[2] = {0};
+
+		// first shader, no culling, writes red
+		PatchFixedColShader(mod[0], shad[0], highlightCol);
+
+		highlightCol[0] = 0.0f;
+		highlightCol[1] = 1.0f;
+
+		// second shader, normal culling, writes green
+		PatchFixedColShader(mod[1], shad[1], highlightCol);
+
+		// make patched pipeline
+		VkGraphicsPipelineCreateInfo pipeCreateInfo;
+
+		MakeGraphicsPipelineInfo(pipeCreateInfo, prevstate.graphics.pipeline);
+
+		// disable all tests possible
+		VkPipelineDepthStencilStateCreateInfo *ds = (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
+		ds->depthTestEnable = false;
+		ds->depthWriteEnable = false;
+		ds->stencilTestEnable = false;
+		ds->depthBoundsTestEnable = false;
+
+		VkPipelineRasterStateCreateInfo *rs = (VkPipelineRasterStateCreateInfo *)pipeCreateInfo.pRasterState;
+		VkCullMode origCullMode = rs->cullMode;
+		rs->cullMode = VK_CULL_MODE_NONE; // first render without any culling
+		rs->rasterizerDiscardEnable = false;
+		rs->depthClipEnable = false;
+
+		VkPipelineColorBlendStateCreateInfo *cb = (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
+		cb->logicOpEnable = false;
+		cb->attachmentCount = 1; // only one colour attachment
+		for(uint32_t i=0; i < cb->attachmentCount; i++)
+		{
+			VkPipelineColorBlendAttachmentState *att = (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
+			att->blendEnable = false;
+			att->channelWriteMask = 0xf;
+		}
+
+		// set scissors to max
+		for(size_t i=0; i < pipeCreateInfo.pViewportState->scissorCount; i++)
+		{
+			VkRect2D &sc = (VkRect2D &)pipeCreateInfo.pViewportState->pScissors[i];
+			sc.offset.x = 0;
+			sc.offset.y = 0;
+			sc.extent.width = 4096;
+			sc.extent.height = 4096;
+		}
+
+		// set our renderpass and shader
+		pipeCreateInfo.renderPass = m_OverlayNoDepthRP;
+
+		VkPipelineShaderStageCreateInfo *fragShader = NULL;
+
+		for(uint32_t i=0; i < pipeCreateInfo.stageCount; i++)
+		{
+			VkPipelineShaderStageCreateInfo &sh = (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
+			if(sh.stage == VK_SHADER_STAGE_FRAGMENT)
+			{
+				sh.shader = shad[0];
+				fragShader = &sh;
+				break;
+			}
+		}
+		
+		if(fragShader == NULL)
+		{
+			// we know this is safe because it's pointing to a static array that's
+			// big enough for all shaders
+			
+			VkPipelineShaderStageCreateInfo &sh = (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
+			sh.pNext = NULL;
+			sh.pSpecializationInfo = NULL;
+			sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			sh.shader = shad[0];
+			sh.stage = VK_SHADER_STAGE_FRAGMENT;
+
+			fragShader = &sh;
+		}
+
+		vkr = vt->EndCommandBuffer(Unwrap(cmd));
+		RDCASSERT(vkr == VK_SUCCESS);
+		
+		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, &pipe[0]);
+		RDCASSERT(vkr == VK_SUCCESS);
+		
+		fragShader->shader = shad[1];
+		rs->cullMode = origCullMode;
+		
+		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, &pipe[1]);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// modify state
+		m_pDriver->m_PartialReplayData.state.renderPass = GetResID(m_OverlayNoDepthRP);
+		m_pDriver->m_PartialReplayData.state.subpass = 0;
+		m_pDriver->m_PartialReplayData.state.framebuffer = GetResID(m_OverlayNoDepthFB);
+
+		m_pDriver->m_PartialReplayData.state.graphics.pipeline = GetResID(pipe[0]);
+
+		// set dynamic scissors in case pipeline was using them
+		for(size_t i=0; i < m_pDriver->m_PartialReplayData.state.scissors.size(); i++)
+		{
+			m_pDriver->m_PartialReplayData.state.scissors[i].offset.x = 0;
+			m_pDriver->m_PartialReplayData.state.scissors[i].offset.x = 0;
+			m_pDriver->m_PartialReplayData.state.scissors[i].extent.width = 4096;
+			m_pDriver->m_PartialReplayData.state.scissors[i].extent.height = 4096;
+		}
+
+		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		m_pDriver->m_PartialReplayData.state.graphics.pipeline = GetResID(pipe[1]);
+
+		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		// submit & flush so that we don't have to keep pipeline around for a while
+		m_pDriver->SubmitCmds();
+		m_pDriver->FlushQ();
+
+		cmd = m_pDriver->GetNextCmd();
+
+		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// restore state
+		m_pDriver->m_PartialReplayData.state = prevstate;
+
+		for(int i=0; i < 2; i++)
+		{
+			m_pDriver->vkDestroyPipeline(m_Device, pipe[i]);
+			m_pDriver->vkDestroyShaderModule(m_Device, mod[i]);
+			m_pDriver->vkDestroyShader(m_Device, shad[i]);
+		}
+	}
 
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
