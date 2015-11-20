@@ -1006,6 +1006,8 @@
             this.vsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.vsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.vsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.vsResources.MouseLeave += new System.EventHandler(this.resource_MouseLeave);
+            this.vsResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.resource_MouseMove);
             // 
             // groupBox9
             // 
@@ -1229,6 +1231,8 @@
             this.hsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.hsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.hsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.hsResources.MouseLeave += new System.EventHandler(this.resource_MouseLeave);
+            this.hsResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.resource_MouseMove);
             // 
             // groupBox15
             // 
@@ -1452,6 +1456,8 @@
             this.dsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.dsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.dsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.dsResources.MouseLeave += new System.EventHandler(this.resource_MouseLeave);
+            this.dsResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.resource_MouseMove);
             // 
             // groupBox21
             // 
@@ -1674,6 +1680,8 @@
             this.gsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.gsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.gsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.gsResources.MouseLeave += new System.EventHandler(this.resource_MouseLeave);
+            this.gsResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.resource_MouseMove);
             // 
             // geomCBufGroupBox
             // 
@@ -3221,6 +3229,8 @@
             this.csResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.csResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.csResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.csResources.MouseLeave += new System.EventHandler(this.resource_MouseLeave);
+            this.csResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.resource_MouseMove);
             // 
             // groupBox36
             // 
