@@ -1374,7 +1374,8 @@ bool WrappedVulkan::Serialise_vkCmdUpdateBuffer(
 		ObjDisp(cmdBuffer)->CmdUpdateBuffer(Unwrap(cmdBuffer), Unwrap(destBuffer), offs, sz, (uint32_t *)bufdata);
 	}
 
-	SAFE_DELETE_ARRAY(bufdata);
+	if(m_State < WRITING)
+		SAFE_DELETE_ARRAY(bufdata);
 
 	return true;
 }
