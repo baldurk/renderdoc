@@ -2048,8 +2048,16 @@ void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant
 				if(type->decorations[i][d].decoration == spv::DecorationRowMajor)
 					cblock[i].type.descriptor.rowMajorStorage = true;
 
-			cblock[i].type.descriptor.rows = t->vectorSize;
-			cblock[i].type.descriptor.cols = t->matrixSize;
+			if(t->type == SPVTypeData::eMatrix)
+			{
+				cblock[i].type.descriptor.rows = t->vectorSize;
+				cblock[i].type.descriptor.cols = t->matrixSize;
+			}
+			else
+			{
+				cblock[i].type.descriptor.rows = 1;
+				cblock[i].type.descriptor.cols = t->vectorSize;
+			}
 
 			cblock[i].type.descriptor.name = t->GetName() + suffix;
 		}
