@@ -333,10 +333,16 @@ namespace renderdocui.Windows.PipelineState
                     BindpointMap bindMap = stage.BindpointMapping.Resources[shaderRes.bindPoint];
 
                     var descriptorBind = new VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement();
+                    ShaderBindType bindType = ShaderBindType.Unknown;
+                    ShaderStageBits stageBits = 0;
 
-                    // TODO do we need to worry about arrays of uniform buffers?
-                    if(bindMap.bindset < pipe.DescSets.Length && bindMap.bind < pipe.DescSets[bindMap.bindset].bindings.Length)
+                    // VKTODOMED need to handle arrays
+                    if (bindMap.bindset < pipe.DescSets.Length && bindMap.bind < pipe.DescSets[bindMap.bindset].bindings.Length)
+                    {
                         descriptorBind = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
+                        bindType = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].type;
+                        stageBits = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].stageFlags;
+                    }
 
                     bool filledSlot = (descriptorBind.res != ResourceId.Null);
                     bool usedSlot = bindMap.used;
@@ -409,118 +415,162 @@ namespace renderdocui.Windows.PipelineState
 
                         TreelistView.Node node = null;
 
-                        if (isbuf)
+                        if (bindType == ShaderBindType.ReadOnlyBuffer ||
+                            bindType == ShaderBindType.ReadWriteBuffer ||
+                            bindType == ShaderBindType.ReadOnlyTBuffer ||
+                            bindType == ShaderBindType.ReadWriteTBuffer
+                            )
                         {
-                            node = resources.Nodes.Add(new object[] {
-                                bindMap.bindset, slotname, "Buffer", name, 
-                                String.Format("{0} bytes", len),
-                                String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.size),
-                                "",
-                            });
-
-                            node.Image = global::renderdocui.Properties.Resources.action;
-                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                            node.Tag = tag;
-
-                            if (!filledSlot)
-                                EmptyRow(node);
-
-                            if (!usedSlot)
-                                InactiveRow(node);
-                        }
-                        else if (descriptorBind.res == ResourceId.Null && descriptorBind.sampler != ResourceId.Null)
-                        {
-                            node = resources.Nodes.Add(MakeSampler(bindMap.bindset.ToString(), slotname, descriptorBind));
-
-                            if (!filledSlot)
-                                EmptyRow(node);
-
-                            if (!usedSlot)
-                                InactiveRow(node);
-
-                            var data = new SamplerData(node);
-                            node.Tag = data;
-
-                            if (!samplers.ContainsKey(descriptorBind.sampler))
-                                samplers.Add(descriptorBind.sampler, data);
-                        }
-                        else if (descriptorBind.res != ResourceId.Null)
-                        {
-                            string typename = restype.Str() + " Image";
-
-                            if (descriptorBind.sampler != ResourceId.Null)
-                                typename += "&&Sampler";
-
-                            string dim;
-
-                            if (restype == ShaderResourceType.Texture3D)
-                                dim = String.Format("{0}x{1}x{2}", w, h, d);
-                            else if (restype == ShaderResourceType.Texture1D || restype == ShaderResourceType.Texture1DArray)
-                                dim = w.ToString();
-                            else
-                                dim = String.Format("{0}x{1}", w, h);
-
-                            string arraydim = String.Format("Array[{0}]", a);
-
-                            if (restype == ShaderResourceType.Texture2DMS || restype == ShaderResourceType.Texture2DMSArray)
-                                arraydim += String.Format(", {0}x MSAA", samples);
- 
-                            node = resources.Nodes.Add(new object[] {
-                                bindMap.bindset, slotname, typename, name, 
-                                dim,
-                                arraydim,
-                                format,
-                            });
-
-                            node.Image = global::renderdocui.Properties.Resources.action;
-                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                            node.Tag = tag;
-
-                            if (!filledSlot)
-                                EmptyRow(node);
-
-                            if (!usedSlot)
-                                InactiveRow(node);
-
-                            if (descriptorBind.sampler != ResourceId.Null)
+                            if (!isbuf)
                             {
-                                var texnode = node;
+                                node = resources.Nodes.Add(new object[] {
+                                    bindMap.bindset, slotname, bindType, "-", 
+                                    "-",
+                                    "",
+                                    "",
+                                });
+
+                                EmptyRow(node);
+                            }
+                            else
+                            {
+                                node = resources.Nodes.Add(new object[] {
+                                    bindMap.bindset, slotname, bindType, name, 
+                                    String.Format("{0} bytes", len),
+                                    String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.size),
+                                    "",
+                                });
+
+                                node.Image = global::renderdocui.Properties.Resources.action;
+                                node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                                node.Tag = tag;
+
+                                if (!filledSlot)
+                                    EmptyRow(node);
+
+                                if (!usedSlot)
+                                    InactiveRow(node);
+                            }
+                        }
+                        else if (bindType == ShaderBindType.Sampler)
+                        {
+                            if (descriptorBind.sampler == ResourceId.Null)
+                            {
+                                node = resources.Nodes.Add(new object[] {
+                                    bindMap.bindset, slotname, bindType, "-", 
+                                    "-",
+                                    "",
+                                    "",
+                                });
+
+                                EmptyRow(node);
+                            }
+                            else
+                            {
+                                node = resources.Nodes.Add(MakeSampler(bindMap.bindset.ToString(), slotname, descriptorBind));
+
+                                if (!filledSlot)
+                                    EmptyRow(node);
+
+                                if (!usedSlot)
+                                    InactiveRow(node);
+
+                                var data = new SamplerData(node);
+                                node.Tag = data;
 
                                 if (!samplers.ContainsKey(descriptorBind.sampler))
-                                {
-                                    node = resources.Nodes.Add(MakeSampler("", "", descriptorBind));
-
-                                    if (!filledSlot)
-                                        EmptyRow(node);
-
-                                    if (!usedSlot)
-                                        InactiveRow(node);
-
-                                    var data = new SamplerData(node);
-                                    node.Tag = data;
-
                                     samplers.Add(descriptorBind.sampler, data);
-                                }
-
-                                m_CombinedImageSamplers[texnode] = samplers[descriptorBind.sampler].node;
-                                samplers[descriptorBind.sampler].images.Add(texnode);
                             }
                         }
                         else
                         {
-                            node = resources.Nodes.Add(new object[] {
-                                bindMap.bindset, slotname, "-", "-", "-", "", ""
-                            });
+                            if (descriptorBind.res == ResourceId.Null)
+                            {
+                                node = resources.Nodes.Add(new object[] {
+                                    bindMap.bindset, slotname, bindType, "-", 
+                                    "-",
+                                    "",
+                                    "",
+                                });
 
-                            node.Image = global::renderdocui.Properties.Resources.action;
-                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                            node.Tag = tag;
-
-                            if (!filledSlot)
                                 EmptyRow(node);
+                            }
+                            else
+                            {
+                                string typename = restype.Str() + " " + bindType.Str().Replace("&", "&&");
 
-                            if (!usedSlot)
-                                InactiveRow(node);
+                                string dim;
+
+                                if (restype == ShaderResourceType.Texture3D)
+                                    dim = String.Format("{0}x{1}x{2}", w, h, d);
+                                else if (restype == ShaderResourceType.Texture1D || restype == ShaderResourceType.Texture1DArray)
+                                    dim = w.ToString();
+                                else
+                                    dim = String.Format("{0}x{1}", w, h);
+
+                                string arraydim = String.Format("Array[{0}]", a);
+
+                                if (restype == ShaderResourceType.Texture2DMS || restype == ShaderResourceType.Texture2DMSArray)
+                                    arraydim += String.Format(", {0}x MSAA", samples);
+     
+                                node = resources.Nodes.Add(new object[] {
+                                    bindMap.bindset, slotname, typename, name, 
+                                    dim,
+                                    arraydim,
+                                    format,
+                                });
+
+                                node.Image = global::renderdocui.Properties.Resources.action;
+                                node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                                node.Tag = tag;
+
+                                if (!filledSlot)
+                                    EmptyRow(node);
+
+                                if (!usedSlot)
+                                    InactiveRow(node);
+                            }
+
+                            if (bindType == ShaderBindType.ImageSampler)
+                            {
+                                if (descriptorBind.sampler == ResourceId.Null)
+                                {
+                                    node = resources.Nodes.Add(new object[] {
+                                        bindMap.bindset, slotname, bindType, "-", 
+                                        "-",
+                                        "",
+                                        "",
+                                    });
+
+                                    EmptyRow(node);
+                                }
+                                else
+                                {
+                                    var texnode = node;
+
+                                    if (!samplers.ContainsKey(descriptorBind.sampler))
+                                    {
+                                        node = resources.Nodes.Add(MakeSampler("", "", descriptorBind));
+
+                                        if (!filledSlot)
+                                            EmptyRow(node);
+
+                                        if (!usedSlot)
+                                            InactiveRow(node);
+
+                                        var data = new SamplerData(node);
+                                        node.Tag = data;
+
+                                        samplers.Add(descriptorBind.sampler, data);
+                                    }
+
+                                    if (texnode != null)
+                                    {
+                                        m_CombinedImageSamplers[texnode] = samplers[descriptorBind.sampler].node;
+                                        samplers[descriptorBind.sampler].images.Add(texnode);
+                                    }
+                                }
+                            }
                         }
                     }
                     i++;
@@ -541,7 +591,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     BindpointMap bindMap = stage.BindpointMapping.ConstantBlocks[b.bindPoint];
 
-                    // TODO do we need to worry about arrays of uniform buffers?
+                    // VKTODOMED need to handle arrays
                     var descriptorBind = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
 
                     bool filledSlot = (descriptorBind.res != ResourceId.Null);

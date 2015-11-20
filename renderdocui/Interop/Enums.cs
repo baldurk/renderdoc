@@ -788,5 +788,24 @@ namespace renderdoc
 
             return "SV_Unknown";
         }
+
+        public static string Str(this ShaderBindType bindType)
+        {
+            switch (bindType)
+            {
+                case ShaderBindType.Sampler:          return "Sampler";
+                case ShaderBindType.ImageSampler:     return "Image&Sampler";
+                case ShaderBindType.ReadOnlyImage:    return "Image";
+                case ShaderBindType.ReadWriteImage:   return "RW Image";
+                case ShaderBindType.ReadOnlyTBuffer:  return "RW TBuffer";
+                case ShaderBindType.ReadWriteTBuffer: return "TBuffer";
+                case ShaderBindType.ReadOnlyBuffer:   return "Buffer";
+                case ShaderBindType.ReadWriteBuffer:  return "RW Buffer";
+                case ShaderBindType.InputAttachment:  return "Input";
+                default: break;
+            }
+
+            return "Unknown";
+        }
     }
 }
