@@ -2127,12 +2127,34 @@ SystemAttribute BuiltInToSystemAttribute(const spv::BuiltIn el)
 	return eAttr_None;
 }
 
+template<typename T>
+struct bindpair
+{
+	BindpointMap map;
+	T bindres;
+
+	bindpair(const BindpointMap &m, const T &res)
+		: map(m), bindres(res)
+	{}
+
+	bool operator <(const bindpair &o) const
+	{
+		if(map.bindset != o.map.bindset)
+			return map.bindset < o.map.bindset;
+
+		return map.bind < o.map.bind;
+	}
+};
+
+typedef bindpair<ConstantBlock> cblockpair;
+typedef bindpair<ShaderResource> shaderrespair;
+
 void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapping *mapping)
 {
 	vector<SigParameter> inputs;
 	vector<SigParameter> outputs;
-	vector<ConstantBlock> cblocks; vector<BindpointMap> cblockmap;
-	vector<ShaderResource> resources; vector<BindpointMap> resmap;
+	vector<cblockpair> cblocks;
+	vector<shaderrespair> resources;
 
 	create_array_uninit(mapping->InputAttributes, 16);
 	for(size_t i=0; i < 16; i++) mapping->InputAttributes[i] = -1;
@@ -2247,7 +2269,6 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				else
 					cblock.name = StringFormat::Fmt("uniforms%u", inst->id);
 				cblock.bufferBacked = true;
-				cblock.bindPoint = (int32_t)cblocks.size();
 				
 				BindpointMap bindmap = {0};
 
@@ -2261,7 +2282,6 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 
 				MakeConstantBlockVariables(type, cblock.variables);
 
-				cblocks.push_back(cblock);
 
 				bindmap.used = false;
 
@@ -2281,8 +2301,8 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 						}
 					}
 				}
-
-				cblockmap.push_back(bindmap);
+				
+				cblocks.push_back(cblockpair(bindmap, cblock));
 			}
 			else
 			{
@@ -2330,8 +2350,6 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				res.variableType.descriptor.rowMajorStorage = false;
 				res.variableType.descriptor.rowMajorStorage = false;
 
-				res.bindPoint = (int32_t)resources.size();
-				
 				BindpointMap bindmap = {0};
 
 				for(size_t d=0; d < inst->decorations.size(); d++)
@@ -2361,8 +2379,7 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 					}
 				}
 
-				resources.push_back(res);
-				resmap.push_back(bindmap);
+				resources.push_back(shaderrespair(bindmap, res));
 			}
 		}
 		else
@@ -2373,11 +2390,29 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 
 	reflection->InputSig = inputs;
 	reflection->OutputSig = outputs;
-	reflection->Resources = resources;
-	reflection->ConstantBlocks = cblocks;
 
-	mapping->ConstantBlocks = cblockmap;
-	mapping->Resources = resmap;
+	std::sort(cblocks.begin(), cblocks.end());
+	std::sort(resources.begin(), resources.end());
+
+	create_array_uninit(mapping->ConstantBlocks, cblocks.size());
+	create_array_uninit(reflection->ConstantBlocks, cblocks.size());
+
+	create_array_uninit(mapping->Resources, resources.size());
+	create_array_uninit(reflection->Resources, resources.size());
+
+	for(size_t i=0; i < cblocks.size(); i++)
+	{
+		mapping->ConstantBlocks[i] = cblocks[i].map;
+		reflection->ConstantBlocks[i] = cblocks[i].bindres;
+		reflection->ConstantBlocks[i].bindPoint = (int32_t)i;
+	}
+
+	for(size_t i=0; i < resources.size(); i++)
+	{
+		mapping->Resources[i] = resources[i].map;
+		reflection->Resources[i] = resources[i].bindres;
+		reflection->Resources[i].bindPoint = (int32_t)i;
+	}
 }
 
 void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
