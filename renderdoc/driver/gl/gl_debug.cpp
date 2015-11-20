@@ -1080,7 +1080,7 @@ uint32_t GLReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cf
 			outidxs = new uint32_t[cfg.position.numVerts];
 
 		gl.glBindBuffer(eGL_COPY_READ_BUFFER, ib);
-		gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, cfg.position.idxoffs, cfg.position.numVerts*cfg.position.idxByteWidth, idxs);
+		gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, (GLintptr)cfg.position.idxoffs, cfg.position.numVerts*cfg.position.idxByteWidth, idxs);
 
 		uint16_t *idxs16 = (uint16_t *)idxs;
 
@@ -1147,7 +1147,7 @@ uint32_t GLReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cf
 	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.pickResultBuf);
 	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 1, DebugData.pickVBBuf);
 	gl.glBindBufferRange(eGL_SHADER_STORAGE_BUFFER, 2, DebugData.pickIBBuf,
-	                     cfg.position.idxoffs, cfg.position.idxoffs + cfg.position.idxByteWidth*cfg.position.numVerts);
+	                     (GLintptr)cfg.position.idxoffs, (GLsizeiptr)(cfg.position.idxoffs + cfg.position.idxByteWidth*cfg.position.numVerts));
 
 	gl.glDispatchCompute(GLuint(cfg.position.numVerts/1024 + 1), 1, 1);
 	gl.glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT|GL_SHADER_STORAGE_BARRIER_BIT);
@@ -3491,7 +3491,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			if(fmt.buf != ResourceId())
 			{
 				GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.buf).name;
-				gl.glBindVertexBuffer(0, vb, fmt.offset, fmt.stride);
+				gl.glBindVertexBuffer(0, vb, (GLintptr)fmt.offset, fmt.stride);
 
 				GLenum secondarytopo = MakeGLPrimitiveTopology(fmt.topo);
 				
@@ -3593,7 +3593,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		}
 
 		GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmts[i]->buf).name;
-		gl.glBindVertexBuffer(i, vb, fmts[i]->offset, fmts[i]->stride);
+		gl.glBindVertexBuffer(i, vb, (GLintptr)fmts[i]->offset, fmts[i]->stride);
 	}
 
 	// enable position attribute

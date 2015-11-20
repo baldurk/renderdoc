@@ -1040,7 +1040,7 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
 	Serialise("", el.nearPlane);
 	Serialise("", el.farPlane);
 
-	SIZE_CHECK(MeshFormat, 80);
+	SIZE_CHECK(MeshFormat, 88);
 }
 
 template<>

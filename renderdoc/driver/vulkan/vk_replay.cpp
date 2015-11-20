@@ -2520,7 +2520,7 @@ vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint6
 	}
 
 	vector<byte> ret;
-	ret.resize(len);
+	ret.resize((size_t)len);
 
 	// VKTODOMED - coarse: wait for all writes to this buffer
 	vt->DeviceWaitIdle(Unwrap(dev));

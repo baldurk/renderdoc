@@ -342,7 +342,7 @@ vector<byte> GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t 
 
 	if(len == 0) return ret;
 	
-	ret.resize(len);
+	ret.resize((size_t)len);
 	
 	WrappedOpenGL &gl = *m_pDriver;
 

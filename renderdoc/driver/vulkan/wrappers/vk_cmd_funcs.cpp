@@ -548,7 +548,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
 					loadDesc = "Don't Care";
 				
-				if(dsAttach >= 0 && dsAttach < atts.size())
+				if(dsAttach >= 0 && dsAttach < (int32_t)atts.size())
 				{
 					if(atts[dsAttach].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
 						loadDesc += ", Stencil=Clear";
@@ -847,7 +847,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 				if(atts[0].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
 					storeDesc = "Don't Care";
 				
-				if(dsAttach >= 0 && dsAttach < atts.size())
+				if(dsAttach >= 0 && dsAttach < (int32_t)atts.size())
 				{
 					if(atts[dsAttach].stencilStoreOp == VK_ATTACHMENT_STORE_OP_STORE)
 						storeDesc += ", Stencil=Store";
