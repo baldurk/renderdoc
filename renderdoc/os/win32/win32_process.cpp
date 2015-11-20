@@ -202,75 +202,111 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
 
 static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, const char *cmdLine)
 {
-	PROCESS_INFORMATION pi;
-	STARTUPINFO si;
-	SECURITY_ATTRIBUTES pSec;
-	SECURITY_ATTRIBUTES tSec;
+    PROCESS_INFORMATION pi;
+    STARTUPINFO si;
+    SECURITY_ATTRIBUTES pSec;
+    SECURITY_ATTRIBUTES tSec;
 
-	RDCEraseEl(pi);
-	RDCEraseEl(si);
-	RDCEraseEl(pSec);
-	RDCEraseEl(tSec);
+    RDCEraseEl(pi);
+    RDCEraseEl(si);
+    RDCEraseEl(pSec);
+    RDCEraseEl(tSec);
 
-	pSec.nLength = sizeof(pSec);
-	tSec.nLength = sizeof(tSec);
+    pSec.nLength = sizeof(pSec);
+    tSec.nLength = sizeof(tSec);
 
-	wstring workdir = L"";
+    wstring workdir = L"";
 
-	if(workingDir != NULL && workingDir[0] != 0)
-		workdir = StringFormat::UTF82Wide(string(workingDir));
-	else
-		workdir = StringFormat::UTF82Wide(dirname(string(app)));
+    if (workingDir != NULL && workingDir[0] != 0)
+        workdir = StringFormat::UTF82Wide(string(workingDir));
+    else
+        workdir = StringFormat::UTF82Wide(dirname(string(app)));
 
-	wchar_t *paramsAlloc = NULL;
+    wchar_t *paramsAlloc = NULL;
 
-	wstring wapp = StringFormat::UTF82Wide(string(app));
+    wstring wapp = StringFormat::UTF82Wide(string(app));
 
-	// CreateProcessW can modify the params, need space.
-	size_t len = wapp.length()+10;
+    // CreateProcessW can modify the params, need space.
+    size_t len = wapp.length() + 10;
 
-	wstring wcmd = L"";
+    wstring wcmd = L"";
 
-	if(cmdLine != NULL && cmdLine[0] != 0)
-	{
-		wcmd = StringFormat::UTF82Wide(string(cmdLine));
-		len += wcmd.length();
-	}
+    if (cmdLine != NULL && cmdLine[0] != 0)
+    {
+        wcmd = StringFormat::UTF82Wide(string(cmdLine));
+        len += wcmd.length();
+    }
 
-	paramsAlloc = new wchar_t[len];
+    paramsAlloc = new wchar_t[len];
 
-	RDCEraseMem(paramsAlloc, len*sizeof(wchar_t));
+    RDCEraseMem(paramsAlloc, len*sizeof(wchar_t));
 
-	wcscpy_s(paramsAlloc, len, L"\"");
-	wcscat_s(paramsAlloc, len, wapp.c_str());
-	wcscat_s(paramsAlloc, len, L"\"");
+    wcscpy_s(paramsAlloc, len, L"\"");
+    wcscat_s(paramsAlloc, len, wapp.c_str());
+    wcscat_s(paramsAlloc, len, L"\"");
 
-	if(cmdLine != NULL && cmdLine[0] != 0)
-	{
-		wcscat_s(paramsAlloc, len, L" ");
-		wcscat_s(paramsAlloc, len, wcmd.c_str());
-	}
+    if (cmdLine != NULL && cmdLine[0] != 0)
+    {
+        wcscat_s(paramsAlloc, len, L" ");
+        wcscat_s(paramsAlloc, len, wcmd.c_str());
+    }
 
-	// VKTODOLOW refactor all this once loader supports implicit layers
-	const wchar_t *myEnv = GetEnvironmentStringsW();
+    // VKTODOLOW refactor all this once loader supports implicit layers
+    const wchar_t *myEnv = GetEnvironmentStringsW();
 
-	wstring newEnv;
+    wstring newEnv;
 
-	// copy up to the terminating "\0\0"
-	while(myEnv[0] != L'\0' || myEnv[1] != L'\0')
-		newEnv.push_back(*(myEnv++));
-	
-	newEnv.push_back(L'\0');
+    // copy up to the terminating "\0\0"
+    bool sawpath = false;
+    bool sawdevice = false;
+    bool sawinstance = false;
+    while (myEnv[0] != L'\0' || myEnv[1] != L'\0')
+    {
+        if (!wcsncmp(&myEnv[0], L"VK_LAYER_PATH=", sizeof("VK_LAYER_PATH=") - 1))
+        {
+            sawpath = true;
+            newEnv += L"VK_LAYER_PATH=";
+            newEnv += dirname(StringFormat::UTF82Wide(FileIO::GetReplayAppFilename()));
+            newEnv += L";";
+            myEnv += (sizeof("VK_LAYER_PATH=") - 1);
+        }
+        else if (!wcsncmp(&myEnv[0], L"VK_DEVICE_LAYERS=", sizeof("VK_DEVICE_LAYERS=") - 1))
+        {
+            sawdevice = true;
+            newEnv += L"VK_DEVICE_LAYERS=RenderDoc;";
+            myEnv += (sizeof("VK_DEVICE_LAYERS=") - 1);
+        }
+        else if (!wcsncmp(&myEnv[0], L"VK_INSTANCE_LAYERS=", sizeof("VK_INSTANCE_LAYERS=") - 1))
+        {
+            sawinstance = true;
+            newEnv += L"VK_INSTANCE_LAYERS=RenderDoc;";
+            myEnv += (sizeof("VK_INSTANCE_LAYERS=") - 1);
+        }
+        else
+            newEnv.push_back(*(myEnv++));
+    }
 
-	newEnv += L"VK_LAYER_PATH=";
-	newEnv += dirname(StringFormat::UTF82Wide(FileIO::GetReplayAppFilename()));
-	newEnv.push_back(L'\0');
+    newEnv.push_back(L'\0');
 
-	newEnv += L"VK_DEVICE_LAYERS=RenderDoc";
-	newEnv.push_back(L'\0');
-	newEnv += L"VK_INSTANCE_LAYERS=RenderDoc";
-	newEnv.push_back(L'\0');
-	
+    if (!sawpath)
+    {
+        newEnv += L"VK_LAYER_PATH=";
+        newEnv += dirname(StringFormat::UTF82Wide(FileIO::GetReplayAppFilename()));
+        newEnv.push_back(L'\0');
+    }
+
+    if (!sawdevice)
+    {
+        newEnv += L"VK_DEVICE_LAYERS=RenderDoc";
+        newEnv.push_back(L'\0');
+    }
+
+    if (!sawinstance)
+    {
+        newEnv += L"VK_INSTANCE_LAYERS=RenderDoc";
+        newEnv.push_back(L'\0');
+    }
+
 	newEnv.push_back(L'\0');
 
 	BOOL retValue = CreateProcessW(NULL, paramsAlloc,
