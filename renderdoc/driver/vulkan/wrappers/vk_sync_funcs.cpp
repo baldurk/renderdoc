@@ -274,6 +274,7 @@ VkResult WrappedVulkan::vkWaitForFences(
 			uint64_t                                timeout)
 {
 	VkFence *unwrapped = GetTempArray<VkFence>(fenceCount);
+	for (uint32_t i = 0; i < fenceCount; i++) unwrapped[i] = Unwrap(pFences[i]);
 	VkResult ret = ObjDisp(device)->WaitForFences(Unwrap(device), fenceCount, unwrapped, waitAll, timeout);
 	
 	if(m_State >= WRITING_CAPFRAME)
