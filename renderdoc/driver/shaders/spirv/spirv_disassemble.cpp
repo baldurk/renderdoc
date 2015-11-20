@@ -2221,6 +2221,13 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 			if(type->type == SPVTypeData::ePointer)
 				type = type->baseType;
 
+			uint32_t arraySize = 1;
+			if(type->type == SPVTypeData::eArray)
+			{
+				arraySize = type->arraySize;
+				type = type->baseType;
+			}
+
 			if(type->type == SPVTypeData::eStruct)
 			{
 				ConstantBlock cblock;
@@ -2249,6 +2256,8 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				cblocks.push_back(cblock);
 
 				bindmap.used = false;
+
+				bindmap.arraySize = arraySize;
 
 				for(size_t o=0; o < operations.size(); o++)
 				{
@@ -2326,6 +2335,8 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				}
 
 				bindmap.used = false;
+
+				bindmap.arraySize = arraySize;
 
 				for(size_t o=0; o < operations.size(); o++)
 				{

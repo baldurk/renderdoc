@@ -452,6 +452,7 @@ namespace renderdoc
         public Int32 bindset;
         public Int32 bind;
         public bool used;
+        public UInt32 arraySize;
     };
 
     [StructLayout(LayoutKind.Sequential)]

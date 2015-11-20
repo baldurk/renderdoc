@@ -531,6 +531,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				dst.BindpointMapping.ConstantBlocks[s].bindset = 0;
 				dst.BindpointMapping.ConstantBlocks[s].bind = s;
 				dst.BindpointMapping.ConstantBlocks[s].used = true;
+				dst.BindpointMapping.ConstantBlocks[i].arraySize = 1;
 			}
 
 			create_array_uninit(dst.BindpointMapping.Resources, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
@@ -539,6 +540,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				dst.BindpointMapping.Resources[s].bindset = 0;
 				dst.BindpointMapping.Resources[s].bind = s;
 				dst.BindpointMapping.Resources[s].used = true;
+				dst.BindpointMapping.Resources[i].arraySize = 1;
 			}
 
 			create_array_uninit(dst.ConstantBuffers, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);

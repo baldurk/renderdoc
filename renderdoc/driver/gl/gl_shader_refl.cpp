@@ -1810,6 +1810,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 				gl.glGetUniformiv(curProg, loc, dummyReadback);
 				mapping.Resources[i].bindset = 0;
 				mapping.Resources[i].bind = dummyReadback[0];
+				mapping.Resources[i].arraySize = 1;
 			}
 
 			// handle sampler arrays, use the base name
@@ -1851,6 +1852,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 					mapping.Resources[i].bindset = -1;
 					mapping.Resources[i].bind = -1;
 					mapping.Resources[i].used = false;
+					mapping.Resources[i].arraySize = 1;
 				}
 				else
 				{
@@ -1863,6 +1865,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 						mapping.Resources[i].bindset = -1;
 						mapping.Resources[i].bind = -1;
 						mapping.Resources[i].used = false;
+						mapping.Resources[i].arraySize = 1;
 					}
 					else
 					{
@@ -1879,6 +1882,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 						GLint used = 0;
 						gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx], &used);
 						mapping.Resources[i].used = (used != 0);
+						mapping.Resources[i].arraySize = 1;
 					}
 				}
 			}
@@ -1892,6 +1896,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 					mapping.Resources[i].bindset = -1;
 					mapping.Resources[i].bind = -1;
 					mapping.Resources[i].used = false;
+					mapping.Resources[i].arraySize = 1;
 				}
 				else
 				{
@@ -1901,13 +1906,16 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 					GLint used = 0;
 					gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
 					mapping.Resources[i].used = (used != 0);
+					mapping.Resources[i].arraySize = 1;
 				}
 			}
 		}
 		else
 		{
+			mapping.Resources[i].bindset = -1;
 			mapping.Resources[i].bind = -1;
 			mapping.Resources[i].used = false;
+			mapping.Resources[i].arraySize = 1;
 		}
 	}
 	
@@ -1924,12 +1932,14 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 				gl.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
 				mapping.ConstantBlocks[i].bindset = 0;
 				mapping.ConstantBlocks[i].bind = dummyReadback[0];
+				mapping.ConstantBlocks[i].arraySize = 1;
 			}
 		}
 		else
 		{
 			mapping.ConstantBlocks[i].bindset = -1;
 			mapping.ConstantBlocks[i].bind = -1;
+			mapping.ConstantBlocks[i].arraySize = 1;
 		}
 
 		if(!refl->ConstantBlocks.elems[i].bufferBacked)
