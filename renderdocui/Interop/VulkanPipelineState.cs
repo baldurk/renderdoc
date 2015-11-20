@@ -55,8 +55,34 @@ namespace renderdoc
                         public ResourceId view;
                         public ResourceId res;
                         public ResourceId sampler;
+
                         public UInt64 offset;
                         public UInt64 size;
+
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string mag;
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string min;
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string mip;
+
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string addrU;
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string addrV;
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string addrW;
+
+                        public float mipBias;
+                        public float maxAniso;
+                        public bool compareEnable;
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string comparison;
+                        public float minlod, maxlod;
+                        public bool borderEnable;
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string border;
+                        public bool unnormalized;
                     };
                     [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
                     public BindingElement[] binds;

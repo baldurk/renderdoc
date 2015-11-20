@@ -2873,7 +2873,36 @@ void VulkanReplay::SavePipelineState()
 							if(layoutBind.immutableSampler)
 								dst.bindings[b].binds[a].sampler = layoutBind.immutableSampler[a];
 							else if(info->sampler != VK_NULL_HANDLE)
-								dst.bindings[b].binds[a].sampler = rm->GetOriginalID(rm->GetNonDispWrapper(info->sampler)->id);
+								dst.bindings[b].binds[a].sampler = rm->GetNonDispWrapper(info->sampler)->id;
+
+							if(dst.bindings[b].binds[a].sampler != ResourceId())
+							{
+								VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &el = dst.bindings[b].binds[a];
+								const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[el.sampler];
+
+								el.sampler = rm->GetOriginalID(el.sampler);
+
+								// sampler info
+								el.mag = ToStr::Get(sampl.magFilter);
+								el.min = ToStr::Get(sampl.minFilter);
+								el.mip = ToStr::Get(sampl.mipMode);
+								el.addrU = ToStr::Get(sampl.address[0]);
+								el.addrV = ToStr::Get(sampl.address[1]);
+								el.addrW = ToStr::Get(sampl.address[2]);
+								el.mipBias = sampl.mipLodBias;
+								el.maxAniso = sampl.maxAnisotropy;
+								el.compareEnable = sampl.compareEnable;
+								el.comparison = ToStr::Get(sampl.compareOp);
+								el.minlod = sampl.minLod;
+								el.maxlod = sampl.maxLod;
+								el.borderEnable = false;
+								if(sampl.address[0] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER ||
+								   sampl.address[1] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER ||
+								   sampl.address[2] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER)
+									 el.borderEnable = true;
+								el.border = ToStr::Get(sampl.borderColor);
+								el.unnormalized = sampl.unnormalizedCoordinates;
+							}
 
 							// only one of these is ever set
 							if(info->imageView != VK_NULL_HANDLE)

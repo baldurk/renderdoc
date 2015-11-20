@@ -48,6 +48,15 @@ namespace renderdocui.Windows.PipelineState
         private List<TreelistView.Node> m_VBNodes = new List<TreelistView.Node>();
         private List<TreelistView.Node> m_BindNodes = new List<TreelistView.Node>();
 
+        class SamplerData
+        {
+            public SamplerData(TreelistView.Node n) { node = n; }
+            public List<TreelistView.Node> images = new List<TreelistView.Node>();
+            public TreelistView.Node node = null;
+        };
+
+        private Dictionary<TreelistView.Node, TreelistView.Node> m_CombinedImageSamplers = new Dictionary<TreelistView.Node, TreelistView.Node>();
+
         public VulkanPipelineStateViewer(Core core, DockContent c)
         {
             InitializeComponent();
@@ -193,6 +202,87 @@ namespace renderdocui.Windows.PipelineState
             cbuffers.Nodes.Clear();
         }
 
+        private object[] MakeSampler(string bindset, string slotname, VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement descriptor)
+        {
+            string addressing = "";
+            string addPrefix = "";
+            string addVal = "";
+
+            string filter = "";
+            string filtPrefix = "";
+            string filtVal = "";
+
+            string[] addr = { descriptor.addrU, descriptor.addrV, descriptor.addrW };
+
+            // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
+            for (int a = 0; a < 3; a++)
+            {
+                string prefix = "" + "UVW"[a];
+
+                if (a == 0 || addr[a] == addr[a - 1])
+                {
+                    addPrefix += prefix;
+                }
+                else
+                {
+                    addressing += addPrefix + ": " + addVal + ", ";
+
+                    addPrefix = prefix;
+                }
+                addVal = addr[a];
+            }
+
+            addressing += addPrefix + ": " + addVal;
+
+            if (descriptor.borderEnable)
+                addressing += " " + descriptor.border;
+
+            if (descriptor.unnormalized)
+                addressing += " (Un-norm)";
+
+            string[] filters = { descriptor.min, descriptor.mag, descriptor.mip };
+            string[] filterPrefixes = { "Min", "Mag", "Mip" };
+
+            // arrange as addressing above
+            for (int a = 0; a < 3; a++)
+            {
+                if (a == 0 || filters[a] == filters[a - 1])
+                {
+                    if (filtPrefix != "")
+                        filtPrefix += "/";
+                    filtPrefix += filterPrefixes[a];
+                }
+                else
+                {
+                    filter += filtPrefix + ": " + filtVal + ", ";
+
+                    filtPrefix = filterPrefixes[a];
+                }
+                filtVal = filters[a];
+            }
+
+            filter += filtPrefix + ": " + filtVal;
+
+            if (descriptor.maxAniso > 1.0f)
+                filter += String.Format(" Aniso {0}x", descriptor.maxAniso);
+
+            if (descriptor.compareEnable)
+                filter += String.Format(" ({0})", descriptor.comparison);
+
+            string lod = (descriptor.minlod == -float.MaxValue ? "0" : descriptor.minlod.ToString()) + " - " +
+                         (descriptor.maxlod == float.MaxValue ? "FLT_MAX" : descriptor.maxlod.ToString());
+
+            if (descriptor.mipBias != 0.0f)
+                lod += String.Format(" Bias {0}", descriptor.mipBias);
+
+            return new object[] {
+                                        bindset, slotname, "Sampler", "Sampler " + descriptor.sampler.ToString(), 
+                                        addressing,
+                                        filter,
+                                        lod
+                                    };
+        }
+
         // Set a shader stage's resources and values
         private void SetShaderState(FetchTexture[] texs, FetchBuffer[] bufs,
                                     VulkanPipelineState.ShaderStage stage, VulkanPipelineState.Pipeline pipe,
@@ -231,6 +321,8 @@ namespace renderdocui.Windows.PipelineState
             resources.BeginUpdate();
             resources.Nodes.Clear();
 
+            var samplers = new Dictionary<ResourceId, SamplerData>();
+
             // don't have a column layout for resources yet, so second column is just a
             // string formatted with all the relevant data
             if (stage.ShaderDetails != null)
@@ -255,7 +347,7 @@ namespace renderdocui.Windows.PipelineState
                         (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
                         )
                     {
-                        string slotname = i.ToString();
+                        string slotname = bindMap.bind.ToString();
 
                         if (shaderRes.name.Length > 0)
                             slotname += ": " + shaderRes.name;
@@ -263,17 +355,17 @@ namespace renderdocui.Windows.PipelineState
                         bool isbuf = false;
                         UInt32 w = 1, h = 1, d = 1;
                         UInt32 a = 1;
+                        UInt32 samples = 1;
                         UInt64 len = 0;
                         string format = "Unknown";
-                        string name = "Shader Resource " + descriptorBind.res.ToString();
-                        string typename = "Unknown";
+                        string name = "Object " + descriptorBind.res.ToString();
+                        ShaderResourceType restype = ShaderResourceType.None;
                         object tag = null;
 
                         if (!filledSlot)
                         {
                             name = "Empty";
                             format = "-";
-                            typename = "-";
                             w = h = d = a = 0;
                         }
 
@@ -288,7 +380,8 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.Str();
+                                restype = texs[t].resType;
+                                samples = texs[t].msSamp;
 
                                 tag = texs[t];
                             }
@@ -306,7 +399,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = 0;
                                 format = "";
                                 name = bufs[t].name;
-                                typename = "Buffer";
+                                restype = ShaderResourceType.Buffer;
 
                                 tag = bufs[t];
 
@@ -314,32 +407,121 @@ namespace renderdocui.Windows.PipelineState
                             }
                         }
 
-                        string contents;
+                        TreelistView.Node node = null;
 
                         if (isbuf)
                         {
-                            contents = String.Format("{0} ({1}) {2} bytes", name, typename, len);
+                            node = resources.Nodes.Add(new object[] {
+                                bindMap.bindset, slotname, "Buffer", name, 
+                                String.Format("{0} bytes", len),
+                                String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.size),
+                                "",
+                            });
+
+                            node.Image = global::renderdocui.Properties.Resources.action;
+                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                            node.Tag = tag;
+
+                            if (!filledSlot)
+                                EmptyRow(node);
+
+                            if (!usedSlot)
+                                InactiveRow(node);
                         }
-                        else if (descriptorBind.res == ResourceId.Null)
+                        else if (descriptorBind.res == ResourceId.Null && descriptorBind.sampler != ResourceId.Null)
                         {
-                            contents = "sampler " + descriptorBind.sampler.ToString();
+                            node = resources.Nodes.Add(MakeSampler(bindMap.bindset.ToString(), slotname, descriptorBind));
+
+                            if (!filledSlot)
+                                EmptyRow(node);
+
+                            if (!usedSlot)
+                                InactiveRow(node);
+
+                            var data = new SamplerData(node);
+                            node.Tag = data;
+
+                            if (!samplers.ContainsKey(descriptorBind.sampler))
+                                samplers.Add(descriptorBind.sampler, data);
+                        }
+                        else if (descriptorBind.res != ResourceId.Null)
+                        {
+                            string typename = restype.Str() + " Image";
+
+                            if (descriptorBind.sampler != ResourceId.Null)
+                                typename += "&&Sampler";
+
+                            string dim;
+
+                            if (restype == ShaderResourceType.Texture3D)
+                                dim = String.Format("{0}x{1}x{2}", w, h, d);
+                            else if (restype == ShaderResourceType.Texture1D || restype == ShaderResourceType.Texture1DArray)
+                                dim = w.ToString();
+                            else
+                                dim = String.Format("{0}x{1}", w, h);
+
+                            string arraydim = String.Format("Array[{0}]", a);
+
+                            if (restype == ShaderResourceType.Texture2DMS || restype == ShaderResourceType.Texture2DMSArray)
+                                arraydim += String.Format(", {0}x MSAA", samples);
+ 
+                            node = resources.Nodes.Add(new object[] {
+                                bindMap.bindset, slotname, typename, name, 
+                                dim,
+                                arraydim,
+                                format,
+                            });
+
+                            node.Image = global::renderdocui.Properties.Resources.action;
+                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                            node.Tag = tag;
+
+                            if (!filledSlot)
+                                EmptyRow(node);
+
+                            if (!usedSlot)
+                                InactiveRow(node);
+
+                            if (descriptorBind.sampler != ResourceId.Null)
+                            {
+                                var texnode = node;
+
+                                if (!samplers.ContainsKey(descriptorBind.sampler))
+                                {
+                                    node = resources.Nodes.Add(MakeSampler("", "", descriptorBind));
+
+                                    if (!filledSlot)
+                                        EmptyRow(node);
+
+                                    if (!usedSlot)
+                                        InactiveRow(node);
+
+                                    var data = new SamplerData(node);
+                                    node.Tag = data;
+
+                                    samplers.Add(descriptorBind.sampler, data);
+                                }
+
+                                m_CombinedImageSamplers[texnode] = samplers[descriptorBind.sampler].node;
+                                samplers[descriptorBind.sampler].images.Add(texnode);
+                            }
                         }
                         else
                         {
-                            contents = String.Format("{0} ({1}) {2}x{3}x{4} [{5}] {6}", name, typename, w, h, d, a, format);
+                            node = resources.Nodes.Add(new object[] {
+                                bindMap.bindset, slotname, "-", "-", "-", "", ""
+                            });
+
+                            node.Image = global::renderdocui.Properties.Resources.action;
+                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                            node.Tag = tag;
+
+                            if (!filledSlot)
+                                EmptyRow(node);
+
+                            if (!usedSlot)
+                                InactiveRow(node);
                         }
-
-                        var node = resources.Nodes.Add(new object[] { slotname, contents });
-
-                        node.Image = global::renderdocui.Properties.Resources.action;
-                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                        node.Tag = tag;
-
-                        if (!filledSlot)
-                            EmptyRow(node);
-
-                        if (!usedSlot)
-                            InactiveRow(node);
                     }
                     i++;
                 }
@@ -388,13 +570,13 @@ namespace renderdocui.Windows.PipelineState
                         if (name == "")
                             name = "Constant Buffer " + descriptorBind.res.ToString();
 
-                        string slotname = i.ToString();
+                        string slotname = bindMap.bind.ToString();
                         slotname += ": " + b.name;
 
                         string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
                         string vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
 
-                        var node = cbuffers.Nodes.Add(new object[] { slotname, name, vecrange, sizestr });
+                        var node = cbuffers.Nodes.Add(new object[] { bindMap.bindset, slotname, name, vecrange, sizestr });
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -456,6 +638,8 @@ namespace renderdocui.Windows.PipelineState
         {
             if (!m_Core.LogLoaded)
                 return;
+
+            m_CombinedImageSamplers.Clear();
 
             FetchTexture[] texs = m_Core.CurTextures;
             FetchBuffer[] bufs = m_Core.CurBuffers;
@@ -1779,6 +1963,42 @@ namespace renderdocui.Windows.PipelineState
 
             if (res == DialogResult.OK)
             {
+            }
+        }
+
+        private void resource_MouseLeave(object sender, EventArgs e)
+        {
+            TreelistView.TreeListView treeview = (TreelistView.TreeListView)sender;
+
+            foreach (var n in treeview.Nodes)
+                n.DefaultBackColor = Color.Transparent;
+
+            treeview.Invalidate();
+        }
+
+        private void resource_MouseMove(object sender, MouseEventArgs e)
+        {
+            TreelistView.TreeListView treeview = (TreelistView.TreeListView)sender;
+
+            if (m_Core.CurVulkanPipelineState == null) return;
+
+            Point mousePoint = treeview.PointToClient(Cursor.Position);
+            var hoverNode = treeview.CalcHitNode(mousePoint);
+
+            resource_MouseLeave(sender, e);
+
+            if (hoverNode != null)
+            {
+                if (hoverNode.Tag is SamplerData)
+                {
+                    SamplerData data = (SamplerData)hoverNode.Tag;
+                    foreach (var imgnode in data.images)
+                        imgnode.DefaultBackColor = Color.Wheat;
+                }
+                else if (m_CombinedImageSamplers.ContainsKey(hoverNode))
+                {
+                    m_CombinedImageSamplers[hoverNode].DefaultBackColor = Color.LightCyan;
+                }
             }
         }
    }

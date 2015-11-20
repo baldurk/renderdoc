@@ -252,6 +252,25 @@ struct VulkanCreationInfo
 	};
 	map<ResourceId, Image> m_Image;
 
+	struct Sampler
+	{
+		void Init(VulkanResourceManager *resourceMan, const VkSamplerCreateInfo* pCreateInfo);
+	
+		VkTexFilter magFilter;
+		VkTexFilter minFilter;
+		VkTexMipmapMode mipMode;
+		VkTexAddressMode address[3];
+		float mipLodBias;
+		float maxAnisotropy;
+		bool compareEnable;
+		VkCompareOp compareOp;
+		float minLod;
+		float maxLod;
+		VkBorderColor borderColor;
+		bool unnormalizedCoordinates;
+	};
+	map<ResourceId, Sampler> m_Sampler;
+
 	struct ImageView
 	{
 		void Init(VulkanResourceManager *resourceMan, const VkImageViewCreateInfo* pCreateInfo);

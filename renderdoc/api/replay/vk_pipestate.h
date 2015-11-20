@@ -49,8 +49,22 @@ struct VulkanPipelineState
 					ResourceId view; // bufferview, imageview, attachmentview
 					ResourceId res; // buffer, image, attachment
 					ResourceId sampler;
+
+					// buffers
 					uint64_t offset;
 					uint64_t size;
+
+					// sampler info
+					rdctype::str mag, min, mip;
+					rdctype::str addrU, addrV, addrW;
+					float mipBias;
+					float maxAniso;
+					bool32 compareEnable;
+					rdctype::str comparison;
+					float minlod, maxlod;
+					bool32 borderEnable;
+					rdctype::str border;
+					bool32 unnormalized;
 				};
 
 				// may only be one element if not an array

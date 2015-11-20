@@ -326,6 +326,24 @@ void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, const V
 	cube = (pCreateInfo->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) ? true : false;
 }
 
+void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, const VkSamplerCreateInfo* pCreateInfo)
+{
+	magFilter = pCreateInfo->magFilter;
+	minFilter = pCreateInfo->minFilter;
+	mipMode = pCreateInfo->mipMode;
+	address[0] = pCreateInfo->addressModeU;
+	address[1] = pCreateInfo->addressModeV;
+	address[2] = pCreateInfo->addressModeW;
+	mipLodBias = pCreateInfo->mipLodBias;
+	maxAnisotropy = pCreateInfo->maxAnisotropy;
+	compareEnable = pCreateInfo->compareEnable != 0;
+	compareOp = pCreateInfo->compareOp;
+	minLod = pCreateInfo->minLod;
+	maxLod = pCreateInfo->maxLod;
+	borderColor = pCreateInfo->borderColor;
+	unnormalizedCoordinates = pCreateInfo->unnormalizedCoordinates != 0;
+}
+	
 void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, const VkImageViewCreateInfo* pCreateInfo)
 {
 	image = resourceMan->GetNonDispWrapper(pCreateInfo->image)->id;

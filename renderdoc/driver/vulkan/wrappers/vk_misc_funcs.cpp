@@ -296,6 +296,8 @@ bool WrappedVulkan::Serialise_vkCreateSampler(
 		{
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), samp);
 			GetResourceManager()->AddLiveResource(id, samp);
+		
+			m_CreationInfo.m_Sampler[live].Init(GetResourceManager(), &info);
 		}
 	}
 
@@ -332,6 +334,8 @@ VkResult WrappedVulkan::vkCreateSampler(
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, *pSampler);
+		
+			m_CreationInfo.m_Sampler[id].Init(GetResourceManager(), pCreateInfo);
 		}
 	}
 
