@@ -19,6 +19,7 @@ namespace TreelistView
 		bool				m_expanded = false;
 		Image				m_image = null;
         Image               m_hoverImage = null;
+        int                 m_treeColumn = -1;
 		int					m_id = -1;
 		object				m_tag = null;
         bool                m_bold = false;
@@ -70,6 +71,11 @@ namespace TreelistView
             get { return m_hoverImage != null ? m_hoverImage : m_image; }
             set { m_hoverImage = value; }
 		}
+        public int TreeColumn
+        {
+            get { return m_treeColumn; }
+            set { m_treeColumn = value; }
+        }
 		public virtual NodeCollection Owner
 		{
 			get { return m_owner; }

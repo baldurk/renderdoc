@@ -98,6 +98,7 @@ namespace TreelistView.TreeList
 		int			m_indent = 16;
 		bool		m_showLine = true;
 		bool		m_showPlusMinus = true;
+		bool		m_padForPlusMinus = true;
 		bool		m_showGridLines = true;
         bool        m_rearrangeableColumns = false;
         bool m_hoverHand = true;
@@ -137,6 +138,18 @@ namespace TreelistView.TreeList
 				m_owner.Invalidate();
 			}
 		}
+
+        [Category("Behavior")]
+        [DefaultValue(typeof(bool), "True")]
+        public bool PadForPlusMinus
+        {
+            get { return m_padForPlusMinus; }
+            set
+            {
+                m_padForPlusMinus = value;
+                m_owner.Invalidate();
+            }
+        }
 		
 		[Category("Behavior")]
 		[DefaultValue(typeof(bool), "True")]

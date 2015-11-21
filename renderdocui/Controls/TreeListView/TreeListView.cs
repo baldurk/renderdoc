@@ -137,6 +137,14 @@ namespace TreelistView
             }
         }
 
+        private int GetTreeColumn(Node n)
+        {
+            if (n != null && n.TreeColumn >= 0)
+                return n.TreeColumn;
+
+            return m_treeColumn;
+        }
+
         [Category("Behavior")]
         [DefaultValue(typeof(bool), "False")]
         public bool AlwaysDisplayVScroll
@@ -560,15 +568,18 @@ namespace TreelistView
                 {
                     int clickedRow = CalcHitRow(mousePoint);
                     Rectangle glyphRect = Rectangle.Empty;
-                    if (m_treeColumn >= 0)
-                        glyphRect = GetPlusMinusRectangle(clickedNode, Columns[m_treeColumn], clickedRow);
+
+                    int treeColumn = GetTreeColumn(clickedNode);
+
+                    if (treeColumn >= 0)
+                        glyphRect = GetPlusMinusRectangle(clickedNode, Columns[treeColumn], clickedRow);
                     if (clickedNode.HasChildren && glyphRect != Rectangle.Empty && glyphRect.Contains(mousePoint))
                         clickedNode.Expanded = !clickedNode.Expanded;
 
                     var columnHit = CalcColumnHit(mousePoint);
 
                     if (glyphRect == Rectangle.Empty && columnHit.Column != null &&
-                        columnHit.Column.Index == m_treeColumn && GetNodeBitmap(clickedNode) != null)
+                        columnHit.Column.Index == treeColumn && GetNodeBitmap(clickedNode) != null)
                     {
                         OnNodeClicked(clickedNode);
                     }
@@ -685,7 +696,10 @@ namespace TreelistView
 
             if ((int)(info.HitType & HitInfo.eHitType.kColumnHeaderResize) > 0)
                 Cursor = Cursors.VSplit;
-            else if (info.Column != null && info.Column.Index == m_treeColumn && GetNodeBitmap(clickedNode) != null && m_viewSetting.HoverHandTreeColumn)
+            else if (info.Column != null &&
+                     info.Column.Index == GetTreeColumn(clickedNode) &&
+                     GetNodeBitmap(clickedNode) != null &&
+                     m_viewSetting.HoverHandTreeColumn)
                 Cursor = Cursors.Hand;
             else
                 Cursor = Cursors.Arrow;
@@ -971,7 +985,7 @@ namespace TreelistView
 
                 dc.SetClip(cellRect);
 
-                if (col.Index == m_treeColumn)
+                if (col.Index == GetTreeColumn(node))
 				{
 					int lineindet = 10;
 					// add left margin
@@ -987,9 +1001,10 @@ namespace TreelistView
 					cellRect.X += lineindet;
 					cellRect.Width -= lineindet;
 
-					Rectangle glyphRect = GetPlusMinusRectangle(node, col, visibleRowIndex);
+                    Rectangle glyphRect = GetPlusMinusRectangle(node, col, visibleRowIndex);
+                    Rectangle plusminusRect = glyphRect;
 
-					if (!ViewOptions.ShowLine && !ViewOptions.ShowPlusMinus)
+					if (!ViewOptions.ShowLine && (!ViewOptions.ShowPlusMinus || (!ViewOptions.PadForPlusMinus && plusminusRect == Rectangle.Empty)))
 					{
 						cellRect.X -= (lineindet + 5);
 						cellRect.Width += (lineindet + 5);
@@ -999,8 +1014,6 @@ namespace TreelistView
                     Node hoverNode = CalcHitNode(mousePoint);
 
 					Image icon = hoverNode != null && hoverNode == node ? GetHoverNodeBitmap(node) : GetNodeBitmap(node);
-
-                    Rectangle plusminusRect = glyphRect;
 
 					PaintCellBackground(dc, cellRect, node, col);
 

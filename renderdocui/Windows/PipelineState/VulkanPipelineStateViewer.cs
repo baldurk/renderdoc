@@ -55,6 +55,13 @@ namespace renderdocui.Windows.PipelineState
             public TreelistView.Node node = null;
         };
 
+        class CBufferTag
+        {
+            public CBufferTag(UInt32 s, UInt32 i) { slotIdx = s; arrayIdx = i; }
+            public UInt32 slotIdx;
+            public UInt32 arrayIdx;
+        };
+
         private Dictionary<TreelistView.Node, TreelistView.Node> m_CombinedImageSamplers = new Dictionary<TreelistView.Node, TreelistView.Node>();
 
         public VulkanPipelineStateViewer(Core core, DockContent c)
@@ -586,16 +593,19 @@ namespace renderdocui.Windows.PipelineState
             cbuffers.Nodes.Clear();
             if(stage.ShaderDetails != null)
             {
-                UInt32 i = 0;
+                UInt32 slot = 0;
                 foreach (var b in shaderDetails.ConstantBlocks)
                 {
                     BindpointMap bindMap = stage.BindpointMapping.ConstantBlocks[b.bindPoint];
 
-                    // VKTODOMED need to handle arrays
-                    var descriptorBind = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
-
-                    bool filledSlot = (descriptorBind.res != ResourceId.Null);
                     bool usedSlot = bindMap.used;
+
+                    var slotBinds = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds;
+
+                    // consider it filled if any array element is filled
+                    bool filledSlot = false;
+                    for (UInt32 idx = 0; idx < bindMap.arraySize; idx++)
+                        filledSlot |= slotBinds[idx].res != ResourceId.Null;
 
                     // show if
                     if (usedSlot || // it's referenced by the shader - regardless of empty or not
@@ -603,42 +613,71 @@ namespace renderdocui.Windows.PipelineState
                         (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
                         )
                     {
-                        string name = "Constant Buffer " + descriptorBind.res.ToString();
-                        UInt64 length = descriptorBind.size;
-                        int numvars = b.variables.Length;
+                        TreelistView.NodeCollection parentNodes = cbuffers.Nodes;
 
-                        if (!filledSlot)
-                        {
-                            name = "Empty";
-                            length = 0;
-                        }
-
-                        for (int t = 0; t < bufs.Length; t++)
-                            if (bufs[t].ID == descriptorBind.res)
-                                name = bufs[t].name;
-
-                        if (name == "")
-                            name = "Constant Buffer " + descriptorBind.res.ToString();
+                        string setname = bindMap.bindset.ToString();
 
                         string slotname = bindMap.bind.ToString();
                         slotname += ": " + b.name;
 
-                        string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
-                        string vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+                        // for arrays, add a parent element that we add the real cbuffers below
+                        if (bindMap.arraySize > 1)
+                        {
+                            var node = parentNodes.Add(new object[] { "", setname, slotname, String.Format("Array[{0}]", bindMap.arraySize), "", "" });
 
-                        var node = cbuffers.Nodes.Add(new object[] { bindMap.bindset, slotname, name, vecrange, sizestr });
+                            node.TreeColumn = 0;
 
-                        node.Image = global::renderdocui.Properties.Resources.action;
-                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                        node.Tag = i;
+                            if (!filledSlot)
+                                EmptyRow(node);
 
-                        if (!filledSlot)
-                            EmptyRow(node);
+                            if (!usedSlot)
+                                InactiveRow(node);
 
-                        if (!usedSlot)
-                            InactiveRow(node);
+                            parentNodes = node.Nodes;
+                        }
+
+                        for (UInt32 idx = 0; idx < bindMap.arraySize; idx++)
+                        {
+                            var descriptorBind = slotBinds[idx];
+
+                            if (bindMap.arraySize > 1)
+                                slotname = String.Format("{0}[{1}]", b.name, idx);
+
+                            string name = "Constant Buffer " + descriptorBind.res.ToString();
+                            UInt64 length = descriptorBind.size;
+                            int numvars = b.variables.Length;
+
+                            if (!filledSlot)
+                            {
+                                name = "Empty";
+                                length = 0;
+                            }
+
+                            for (int t = 0; t < bufs.Length; t++)
+                                if (bufs[t].ID == descriptorBind.res)
+                                    name = bufs[t].name;
+
+                            if (name == "")
+                                name = "Constant Buffer " + descriptorBind.res.ToString();
+
+                            string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                            string vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+
+                            var node = parentNodes.Add(new object[] { "", setname, slotname, name, vecrange, sizestr });
+
+                            node.Image = global::renderdocui.Properties.Resources.action;
+                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                            node.Tag = new CBufferTag(slot, idx);
+
+                            if (!filledSlot)
+                                EmptyRow(node);
+
+                            if (!usedSlot)
+                                InactiveRow(node);
+                        }
                     }
-                    i++;
+
+                    slot++;
                 }
             }
             cbuffers.EndUpdate();
@@ -1706,20 +1745,22 @@ namespace renderdocui.Windows.PipelineState
             sv.Show(m_DockContent.DockPanel);
         }
 
-        private void ShowCBuffer(VulkanPipelineState.ShaderStage stage, UInt32 slot)
+        private void ShowCBuffer(VulkanPipelineState.ShaderStage stage, CBufferTag tag)
         {
+            if (tag == null) return;
+
             VulkanPipelineState.Pipeline pipe = m_Core.CurVulkanPipelineState.graphics;
             if(stage.stage == ShaderStageType.Compute)
                 pipe = m_Core.CurVulkanPipelineState.compute;
 
-            var existing = ConstantBufferPreviewer.Has(stage.stage, slot);
+            var existing = ConstantBufferPreviewer.Has(stage.stage, tag.slotIdx, tag.arrayIdx);
             if (existing != null)
             {
                 existing.Show();
                 return;
             }
 
-            var prev = new ConstantBufferPreviewer(m_Core, stage.stage, slot);
+            var prev = new ConstantBufferPreviewer(m_Core, stage.stage, tag.slotIdx, tag.arrayIdx);
 
             prev.ShowDock(m_DockContent.Pane, DockAlignment.Right, 0.3);
         }
@@ -1728,22 +1769,16 @@ namespace renderdocui.Windows.PipelineState
         {
             VulkanPipelineState.ShaderStage stage = GetStageForSender(node.OwnerView);
 
-            if (stage != null && node.Tag is UInt32)
-            {
-                ShowCBuffer(stage, (UInt32)node.Tag);
-            }
+            if (stage != null)
+                ShowCBuffer(stage, node.Tag as CBufferTag);
         }
 
         private void CBuffers_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             VulkanPipelineState.ShaderStage stage = GetStageForSender(sender);
 
-            object tag = ((DataGridView)sender).Rows[e.RowIndex].Tag;
-
-            if (stage != null && tag is UInt32)
-            {
-                ShowCBuffer(stage, (UInt32)tag);
-            }
+            if (stage != null)
+                ShowCBuffer(stage, ((DataGridView)sender).Rows[e.RowIndex].Tag as CBufferTag);
         }
 
         private string FormatMembers(int indent, string nameprefix, ShaderConstant[] vars)

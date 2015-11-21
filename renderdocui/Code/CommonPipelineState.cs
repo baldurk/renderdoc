@@ -604,7 +604,21 @@ namespace renderdocui.Code
             return null;
         }
 
-        public void GetConstantBuffer(ShaderStageType stage, uint BufIdx, out ResourceId buf, out ulong ByteOffset, out ulong ByteSize)
+        public bool SupportsResourceArrays
+        {
+            get
+            {
+                if (LogLoaded)
+                {
+                    if (IsLogVK)
+                        return true;
+                }
+
+                return false;
+            }
+        }
+
+        public void GetConstantBuffer(ShaderStageType stage, uint BufIdx, uint ArrayIdx, out ResourceId buf, out ulong ByteOffset, out ulong ByteSize)
         {
             if (LogLoaded)
             {
@@ -685,8 +699,7 @@ namespace renderdocui.Code
                     {
                         var bind = s.BindpointMapping.ConstantBlocks[s.ShaderDetails.ConstantBlocks[BufIdx].bindPoint];
 
-                        // VKTODOLOW do we need to worry about arrays of uniform buffers?
-                        var descriptorBind = pipe.DescSets[bind.bindset].bindings[bind.bind].binds[0];
+                        var descriptorBind = pipe.DescSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
 
                         buf = descriptorBind.res;
                         ByteOffset = descriptorBind.offset;

@@ -112,8 +112,9 @@ void Serialiser::Serialise(const char *name, BindpointMap &el)
 	Serialise("", el.bindset);
 	Serialise("", el.bind);
 	Serialise("", el.used);
+	Serialise("", el.arraySize);
 
-	SIZE_CHECK(BindpointMap, 12);
+	SIZE_CHECK(BindpointMap, 16);
 }
 
 template<>

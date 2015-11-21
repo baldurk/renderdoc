@@ -1935,14 +1935,14 @@ namespace renderdocui.Windows.PipelineState
 
         private void ShowCBuffer(GLPipelineState.ShaderStage stage, UInt32 slot)
         {
-            var existing = ConstantBufferPreviewer.Has(stage.stage, slot);
+            var existing = ConstantBufferPreviewer.Has(stage.stage, slot, 0);
             if (existing != null)
             {
                 existing.Show();
                 return;
             }
 
-            var prev = new ConstantBufferPreviewer(m_Core, stage.stage, slot);
+            var prev = new ConstantBufferPreviewer(m_Core, stage.stage, slot, 0);
 
             prev.ShowDock(m_DockContent.Pane, DockAlignment.Right, 0.3);
         }

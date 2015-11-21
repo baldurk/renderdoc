@@ -43,19 +43,20 @@ namespace renderdocui.Controls
     {
         private Core m_Core;
 
-        public ConstantBufferPreviewer(Core c, ShaderStageType stage, UInt32 slot)
+        public ConstantBufferPreviewer(Core c, ShaderStageType stage, UInt32 slot, UInt32 idx)
         {
             InitializeComponent();
 
             m_Core = c;
             Stage = stage;
             Slot = slot;
+            ArrayIdx = idx;
             shader = m_Core.CurPipelineState.GetShader(stage);
             UpdateLabels();
 
             ulong offs = 0;
             ulong size = 0;
-            m_Core.CurPipelineState.GetConstantBuffer(Stage, Slot, out cbuffer, out offs, out size);
+            m_Core.CurPipelineState.GetConstantBuffer(Stage, Slot, ArrayIdx, out cbuffer, out offs, out size);
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
@@ -67,11 +68,11 @@ namespace renderdocui.Controls
 
         private static List<ConstantBufferPreviewer> m_Docks = new List<ConstantBufferPreviewer>();
 
-        public static DockContent Has(ShaderStageType stage, UInt32 slot)
+        public static DockContent Has(ShaderStageType stage, UInt32 slot, UInt32 idx)
         {
             foreach (var cb in m_Docks)
             {
-                if(cb.Stage == stage && cb.Slot == slot)
+                if(cb.Stage == stage && cb.Slot == slot && cb.ArrayIdx == idx)
                     return cb as DockContent;
             }
 
@@ -180,7 +181,7 @@ namespace renderdocui.Controls
         {
             ulong offs = 0;
             ulong size = 0;
-            m_Core.CurPipelineState.GetConstantBuffer(Stage, Slot, out cbuffer, out offs, out size);
+            m_Core.CurPipelineState.GetConstantBuffer(Stage, Slot, ArrayIdx, out cbuffer, out offs, out size);
 
             shader = m_Core.CurPipelineState.GetShader(Stage);
             var reflection = m_Core.CurPipelineState.GetShaderReflection(Stage);
@@ -215,6 +216,7 @@ namespace renderdocui.Controls
         private ResourceId shader;
         private ShaderStageType Stage;
         private UInt32 Slot = 0;
+        private UInt32 ArrayIdx = 0;
 
         public override string Text
         {
@@ -224,10 +226,15 @@ namespace renderdocui.Controls
                 if (m_Core != null && m_Core.APIProps != null)
                     pipeType = m_Core.APIProps.pipelineType;
 
-                return String.Format("{0} {1} {2}",
+                string ret = String.Format("{0} {1} {2}",
                     Stage.Str(pipeType),
                     pipeType == APIPipelineStateType.D3D11 ? "CB" : "UBO",
                     Slot);
+
+                if (m_Core != null && m_Core.CurPipelineState.SupportsResourceArrays)
+                    ret += String.Format(" [{0}]", ArrayIdx);
+
+                return ret;
             }
         }
 
