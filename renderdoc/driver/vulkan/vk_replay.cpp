@@ -2870,67 +2870,77 @@ void VulkanReplay::SavePipelineState()
 						create_array_uninit(dst.bindings[b].binds, layoutBind.arraySize);
 						for(uint32_t a=0; a < layoutBind.arraySize; a++)
 						{
-							if(layoutBind.immutableSampler)
-								dst.bindings[b].binds[a].sampler = layoutBind.immutableSampler[a];
-							else if(info->sampler != VK_NULL_HANDLE)
-								dst.bindings[b].binds[a].sampler = rm->GetNonDispWrapper(info->sampler)->id;
-
-							if(dst.bindings[b].binds[a].sampler != ResourceId())
+							if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 							{
-								VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &el = dst.bindings[b].binds[a];
-								const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[el.sampler];
+								if(layoutBind.immutableSampler)
+									dst.bindings[b].binds[a].sampler = layoutBind.immutableSampler[a];
+								else if(info[a].sampler != VK_NULL_HANDLE)
+									dst.bindings[b].binds[a].sampler = rm->GetNonDispWrapper(info[a].sampler)->id;
 
-								el.sampler = rm->GetOriginalID(el.sampler);
+								if(dst.bindings[b].binds[a].sampler != ResourceId())
+								{
+									VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &el = dst.bindings[b].binds[a];
+									const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[el.sampler];
 
-								// sampler info
-								el.mag = ToStr::Get(sampl.magFilter);
-								el.min = ToStr::Get(sampl.minFilter);
-								el.mip = ToStr::Get(sampl.mipMode);
-								el.addrU = ToStr::Get(sampl.address[0]);
-								el.addrV = ToStr::Get(sampl.address[1]);
-								el.addrW = ToStr::Get(sampl.address[2]);
-								el.mipBias = sampl.mipLodBias;
-								el.maxAniso = sampl.maxAnisotropy;
-								el.compareEnable = sampl.compareEnable;
-								el.comparison = ToStr::Get(sampl.compareOp);
-								el.minlod = sampl.minLod;
-								el.maxlod = sampl.maxLod;
-								el.borderEnable = false;
-								if(sampl.address[0] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER ||
-								   sampl.address[1] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER ||
-								   sampl.address[2] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER)
-									 el.borderEnable = true;
-								el.border = ToStr::Get(sampl.borderColor);
-								el.unnormalized = sampl.unnormalizedCoordinates;
+									el.sampler = rm->GetOriginalID(el.sampler);
+
+									// sampler info
+									el.mag = ToStr::Get(sampl.magFilter);
+									el.min = ToStr::Get(sampl.minFilter);
+									el.mip = ToStr::Get(sampl.mipMode);
+									el.addrU = ToStr::Get(sampl.address[0]);
+									el.addrV = ToStr::Get(sampl.address[1]);
+									el.addrW = ToStr::Get(sampl.address[2]);
+									el.mipBias = sampl.mipLodBias;
+									el.maxAniso = sampl.maxAnisotropy;
+									el.compareEnable = sampl.compareEnable;
+									el.comparison = ToStr::Get(sampl.compareOp);
+									el.minlod = sampl.minLod;
+									el.maxlod = sampl.maxLod;
+									el.borderEnable = false;
+									if(sampl.address[0] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER ||
+										sampl.address[1] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER ||
+										sampl.address[2] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER)
+										el.borderEnable = true;
+									el.border = ToStr::Get(sampl.borderColor);
+									el.unnormalized = sampl.unnormalizedCoordinates;
+								}
 							}
 
-							// only one of these is ever set
-							if(info->imageView != VK_NULL_HANDLE)
+							if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
+								 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
 							{
-								ResourceId viewid = rm->GetNonDispWrapper(info->imageView)->id;
+								ResourceId viewid = rm->GetNonDispWrapper(info[a].imageView)->id;
 
 								dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
 								dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[viewid].image);
 							}
-							if(info->bufferView != VK_NULL_HANDLE)
+							if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
+							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
 							{
-								ResourceId viewid = rm->GetNonDispWrapper(info->bufferView)->id;
+								ResourceId viewid = rm->GetNonDispWrapper(info[a].bufferView)->id;
 
 								dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
 								dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
 								dst.bindings[b].binds[a].offset = c.m_BufferView[viewid].offset;
 								if(dynamicOffset)
-									dst.bindings[b].binds[a].offset += *(uint32_t *)&info->imageLayout;
+									dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageLayout;
 								dst.bindings[b].binds[a].size = c.m_BufferView[viewid].size;
 							}
-							if(info->bufferInfo.buffer != VK_NULL_HANDLE)
+							if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 							{
 								dst.bindings[b].binds[a].view = ResourceId();
-								dst.bindings[b].binds[a].res = rm->GetOriginalID(rm->GetNonDispWrapper(info->bufferInfo.buffer)->id);
-								dst.bindings[b].binds[a].offset = info->bufferInfo.offset;
+								dst.bindings[b].binds[a].res = rm->GetOriginalID(rm->GetNonDispWrapper(info[a].bufferInfo.buffer)->id);
+								dst.bindings[b].binds[a].offset = info[a].bufferInfo.offset;
 								if(dynamicOffset)
-									dst.bindings[b].binds[a].offset += *(uint32_t *)&info->imageLayout;
-								dst.bindings[b].binds[a].size = info->bufferInfo.range;
+									dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageLayout;
+								dst.bindings[b].binds[a].size = info[a].bufferInfo.range;
 							}
 						}
 					}

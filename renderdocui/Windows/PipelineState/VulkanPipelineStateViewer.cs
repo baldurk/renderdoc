@@ -276,14 +276,15 @@ namespace renderdocui.Windows.PipelineState
             if (descriptor.compareEnable)
                 filter += String.Format(" ({0})", descriptor.comparison);
 
-            string lod = (descriptor.minlod == -float.MaxValue ? "0" : descriptor.minlod.ToString()) + " - " +
+            string lod = "LODs: " +
+                         (descriptor.minlod == -float.MaxValue ? "0" : descriptor.minlod.ToString()) + " - " +
                          (descriptor.maxlod == float.MaxValue ? "FLT_MAX" : descriptor.maxlod.ToString());
 
             if (descriptor.mipBias != 0.0f)
                 lod += String.Format(" Bias {0}", descriptor.mipBias);
 
             return new object[] {
-                                        bindset, slotname, "Sampler", "Sampler " + descriptor.sampler.ToString(), 
+                                        "", bindset, slotname, "Sampler", "Sampler " + descriptor.sampler.ToString(), 
                                         addressing,
                                         filter,
                                         lod
@@ -334,24 +335,25 @@ namespace renderdocui.Windows.PipelineState
             // string formatted with all the relevant data
             if (stage.ShaderDetails != null)
             {
-                int i = 0;
                 foreach (var shaderRes in stage.ShaderDetails.Resources)
                 {
                     BindpointMap bindMap = stage.BindpointMapping.Resources[shaderRes.bindPoint];
 
-                    var descriptorBind = new VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement();
+                    VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement[] slotBinds = null;
                     ShaderBindType bindType = ShaderBindType.Unknown;
                     ShaderStageBits stageBits = 0;
 
-                    // VKTODOMED need to handle arrays
                     if (bindMap.bindset < pipe.DescSets.Length && bindMap.bind < pipe.DescSets[bindMap.bindset].bindings.Length)
                     {
-                        descriptorBind = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
+                        slotBinds = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds;
                         bindType = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].type;
                         stageBits = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].stageFlags;
                     }
 
-                    bool filledSlot = (descriptorBind.res != ResourceId.Null);
+                    // consider it filled if any array element is filled
+                    bool filledSlot = false;
+                    for (UInt32 idx = 0; idx < bindMap.arraySize; idx++)
+                        filledSlot |= slotBinds[idx].res != ResourceId.Null;
                     bool usedSlot = bindMap.used;
 
                     // show if
@@ -360,190 +362,106 @@ namespace renderdocui.Windows.PipelineState
                         (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
                         )
                     {
+                        TreelistView.NodeCollection parentNodes = resources.Nodes;
+
+                        string setname = bindMap.bindset.ToString();
+
                         string slotname = bindMap.bind.ToString();
+                        slotname += ": " + shaderRes.name;
 
-                        if (shaderRes.name.Length > 0)
-                            slotname += ": " + shaderRes.name;
-
-                        bool isbuf = false;
-                        UInt32 w = 1, h = 1, d = 1;
-                        UInt32 a = 1;
-                        UInt32 samples = 1;
-                        UInt64 len = 0;
-                        string format = "Unknown";
-                        string name = "Object " + descriptorBind.res.ToString();
-                        ShaderResourceType restype = ShaderResourceType.None;
-                        object tag = null;
-
-                        if (!filledSlot)
+                        // for arrays, add a parent element that we add the real cbuffers below
+                        if (bindMap.arraySize > 1)
                         {
-                            name = "Empty";
-                            format = "-";
-                            w = h = d = a = 0;
-                        }
+                            var node = parentNodes.Add(new object[] { "", setname, slotname, String.Format("Array[{0}]", bindMap.arraySize), "", "", "", "" });
 
-                        // check to see if it's a texture
-                        for (int t = 0; t < texs.Length; t++)
-                        {
-                            if (texs[t].ID == descriptorBind.res)
-                            {
-                                w = texs[t].width;
-                                h = texs[t].height;
-                                d = texs[t].depth;
-                                a = texs[t].arraysize;
-                                format = texs[t].format.ToString();
-                                name = texs[t].name;
-                                restype = texs[t].resType;
-                                samples = texs[t].msSamp;
+                            node.TreeColumn = 0;
 
-                                tag = texs[t];
-                            }
-                        }
-
-                        // if not a texture, it must be a buffer
-                        for (int t = 0; t < bufs.Length; t++)
-                        {
-                            if (bufs[t].ID == descriptorBind.res)
-                            {
-                                len = bufs[t].byteSize;
-                                w = bufs[t].length;
-                                h = 0;
-                                d = 0;
-                                a = 0;
-                                format = "";
-                                name = bufs[t].name;
-                                restype = ShaderResourceType.Buffer;
-
-                                tag = bufs[t];
-
-                                isbuf = true;
-                            }
-                        }
-
-                        TreelistView.Node node = null;
-
-                        if (bindType == ShaderBindType.ReadOnlyBuffer ||
-                            bindType == ShaderBindType.ReadWriteBuffer ||
-                            bindType == ShaderBindType.ReadOnlyTBuffer ||
-                            bindType == ShaderBindType.ReadWriteTBuffer
-                            )
-                        {
-                            if (!isbuf)
-                            {
-                                node = resources.Nodes.Add(new object[] {
-                                    bindMap.bindset, slotname, bindType, "-", 
-                                    "-",
-                                    "",
-                                    "",
-                                });
-
+                            if (!filledSlot)
                                 EmptyRow(node);
-                            }
-                            else
-                            {
-                                node = resources.Nodes.Add(new object[] {
-                                    bindMap.bindset, slotname, bindType, name, 
-                                    String.Format("{0} bytes", len),
-                                    String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.size),
-                                    "",
-                                });
 
-                                node.Image = global::renderdocui.Properties.Resources.action;
-                                node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                                node.Tag = tag;
+                            if (!usedSlot)
+                                InactiveRow(node);
 
-                                if (!filledSlot)
-                                    EmptyRow(node);
-
-                                if (!usedSlot)
-                                    InactiveRow(node);
-                            }
+                            parentNodes = node.Nodes;
                         }
-                        else if (bindType == ShaderBindType.Sampler)
+
+                        for (UInt32 idx = 0; idx < bindMap.arraySize; idx++)
                         {
-                            if (descriptorBind.sampler == ResourceId.Null)
+                            var descriptorBind = slotBinds[idx];
+
+                            if (bindMap.arraySize > 1)
+                                slotname = String.Format("{0}: {1}[{2}]", bindMap.bind, shaderRes.name, idx);
+
+                            if (shaderRes.name.Length > 0)
+                                slotname += ": " + shaderRes.name;
+
+                            bool isbuf = false;
+                            UInt32 w = 1, h = 1, d = 1;
+                            UInt32 a = 1;
+                            UInt32 samples = 1;
+                            UInt64 len = 0;
+                            string format = "Unknown";
+                            string name = "Object " + descriptorBind.res.ToString();
+                            ShaderResourceType restype = ShaderResourceType.None;
+                            object tag = null;
+
+                            if (!filledSlot)
                             {
-                                node = resources.Nodes.Add(new object[] {
-                                    bindMap.bindset, slotname, bindType, "-", 
-                                    "-",
-                                    "",
-                                    "",
-                                });
-
-                                EmptyRow(node);
-                            }
-                            else
-                            {
-                                node = resources.Nodes.Add(MakeSampler(bindMap.bindset.ToString(), slotname, descriptorBind));
-
-                                if (!filledSlot)
-                                    EmptyRow(node);
-
-                                if (!usedSlot)
-                                    InactiveRow(node);
-
-                                var data = new SamplerData(node);
-                                node.Tag = data;
-
-                                if (!samplers.ContainsKey(descriptorBind.sampler))
-                                    samplers.Add(descriptorBind.sampler, data);
-                            }
-                        }
-                        else
-                        {
-                            if (descriptorBind.res == ResourceId.Null)
-                            {
-                                node = resources.Nodes.Add(new object[] {
-                                    bindMap.bindset, slotname, bindType, "-", 
-                                    "-",
-                                    "",
-                                    "",
-                                });
-
-                                EmptyRow(node);
-                            }
-                            else
-                            {
-                                string typename = restype.Str() + " " + bindType.Str().Replace("&", "&&");
-
-                                string dim;
-
-                                if (restype == ShaderResourceType.Texture3D)
-                                    dim = String.Format("{0}x{1}x{2}", w, h, d);
-                                else if (restype == ShaderResourceType.Texture1D || restype == ShaderResourceType.Texture1DArray)
-                                    dim = w.ToString();
-                                else
-                                    dim = String.Format("{0}x{1}", w, h);
-
-                                string arraydim = String.Format("Array[{0}]", a);
-
-                                if (restype == ShaderResourceType.Texture2DMS || restype == ShaderResourceType.Texture2DMSArray)
-                                    arraydim += String.Format(", {0}x MSAA", samples);
-     
-                                node = resources.Nodes.Add(new object[] {
-                                    bindMap.bindset, slotname, typename, name, 
-                                    dim,
-                                    arraydim,
-                                    format,
-                                });
-
-                                node.Image = global::renderdocui.Properties.Resources.action;
-                                node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                                node.Tag = tag;
-
-                                if (!filledSlot)
-                                    EmptyRow(node);
-
-                                if (!usedSlot)
-                                    InactiveRow(node);
+                                name = "Empty";
+                                format = "-";
+                                w = h = d = a = 0;
                             }
 
-                            if (bindType == ShaderBindType.ImageSampler)
+                            // check to see if it's a texture
+                            for (int t = 0; t < texs.Length; t++)
                             {
-                                if (descriptorBind.sampler == ResourceId.Null)
+                                if (texs[t].ID == descriptorBind.res)
                                 {
-                                    node = resources.Nodes.Add(new object[] {
-                                        bindMap.bindset, slotname, bindType, "-", 
+                                    w = texs[t].width;
+                                    h = texs[t].height;
+                                    d = texs[t].depth;
+                                    a = texs[t].arraysize;
+                                    format = texs[t].format.ToString();
+                                    name = texs[t].name;
+                                    restype = texs[t].resType;
+                                    samples = texs[t].msSamp;
+
+                                    tag = texs[t];
+                                }
+                            }
+
+                            // if not a texture, it must be a buffer
+                            for (int t = 0; t < bufs.Length; t++)
+                            {
+                                if (bufs[t].ID == descriptorBind.res)
+                                {
+                                    len = bufs[t].byteSize;
+                                    w = bufs[t].length;
+                                    h = 0;
+                                    d = 0;
+                                    a = 0;
+                                    format = "";
+                                    name = bufs[t].name;
+                                    restype = ShaderResourceType.Buffer;
+
+                                    tag = bufs[t];
+
+                                    isbuf = true;
+                                }
+                            }
+
+                            TreelistView.Node node = null;
+
+                            if (bindType == ShaderBindType.ReadOnlyBuffer ||
+                                bindType == ShaderBindType.ReadWriteBuffer ||
+                                bindType == ShaderBindType.ReadOnlyTBuffer ||
+                                bindType == ShaderBindType.ReadWriteTBuffer
+                                )
+                            {
+                                if (!isbuf)
+                                {
+                                    node = parentNodes.Add(new object[] {
+                                        "", bindMap.bindset, slotname, bindType, "-", 
                                         "-",
                                         "",
                                         "",
@@ -553,34 +471,152 @@ namespace renderdocui.Windows.PipelineState
                                 }
                                 else
                                 {
-                                    var texnode = node;
+                                    node = parentNodes.Add(new object[] {
+                                        "", bindMap.bindset, slotname, bindType, name, 
+                                        String.Format("{0} bytes", len),
+                                        String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.size),
+                                        "",
+                                    });
+
+                                    node.Image = global::renderdocui.Properties.Resources.action;
+                                    node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                                    node.Tag = tag;
+
+                                    if (!filledSlot)
+                                        EmptyRow(node);
+
+                                    if (!usedSlot)
+                                        InactiveRow(node);
+                                }
+                            }
+                            else if (bindType == ShaderBindType.Sampler)
+                            {
+                                if (descriptorBind.sampler == ResourceId.Null)
+                                {
+                                    node = parentNodes.Add(new object[] {
+                                        "", bindMap.bindset, slotname, bindType, "-", 
+                                        "-",
+                                        "",
+                                        "",
+                                    });
+
+                                    EmptyRow(node);
+                                }
+                                else
+                                {
+                                    node = parentNodes.Add(MakeSampler(bindMap.bindset.ToString(), slotname, descriptorBind));
+
+                                    if (!filledSlot)
+                                        EmptyRow(node);
+
+                                    if (!usedSlot)
+                                        InactiveRow(node);
+
+                                    var data = new SamplerData(node);
+                                    node.Tag = data;
 
                                     if (!samplers.ContainsKey(descriptorBind.sampler))
-                                    {
-                                        node = resources.Nodes.Add(MakeSampler("", "", descriptorBind));
-
-                                        if (!filledSlot)
-                                            EmptyRow(node);
-
-                                        if (!usedSlot)
-                                            InactiveRow(node);
-
-                                        var data = new SamplerData(node);
-                                        node.Tag = data;
-
                                         samplers.Add(descriptorBind.sampler, data);
-                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (descriptorBind.res == ResourceId.Null)
+                                {
+                                    node = parentNodes.Add(new object[] {
+                                        "", bindMap.bindset, slotname, bindType, "-", 
+                                        "-",
+                                        "",
+                                        "",
+                                    });
 
-                                    if (texnode != null)
+                                    EmptyRow(node);
+                                }
+                                else
+                                {
+                                    string typename = restype.Str() + " " + bindType.Str().Replace("&", "&&");
+
+                                    string dim;
+
+                                    if (restype == ShaderResourceType.Texture3D)
+                                        dim = String.Format("{0}x{1}x{2}", w, h, d);
+                                    else if (restype == ShaderResourceType.Texture1D || restype == ShaderResourceType.Texture1DArray)
+                                        dim = w.ToString();
+                                    else
+                                        dim = String.Format("{0}x{1}", w, h);
+
+                                    string arraydim = "-";
+                                    
+                                    if(restype == ShaderResourceType.Texture1DArray ||
+                                       restype == ShaderResourceType.Texture2DArray ||
+                                       restype == ShaderResourceType.Texture2DMSArray ||
+                                       restype == ShaderResourceType.TextureCubeArray)
+                                        arraydim = String.Format("{0}[{1}]", restype.Str(), a);
+
+                                    if (restype == ShaderResourceType.Texture2DMS || restype == ShaderResourceType.Texture2DMSArray)
+                                        dim += String.Format(", {0}x MSAA", samples);
+
+                                    node = parentNodes.Add(new object[] {
+                                        "", bindMap.bindset, slotname, typename, name, 
+                                        dim,
+                                        format,
+                                        arraydim,
+                                    });
+
+                                    node.Image = global::renderdocui.Properties.Resources.action;
+                                    node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                                    node.Tag = tag;
+
+                                    if (!filledSlot)
+                                        EmptyRow(node);
+
+                                    if (!usedSlot)
+                                        InactiveRow(node);
+                                }
+
+                                if (bindType == ShaderBindType.ImageSampler)
+                                {
+                                    if (descriptorBind.sampler == ResourceId.Null)
                                     {
-                                        m_CombinedImageSamplers[texnode] = samplers[descriptorBind.sampler].node;
-                                        samplers[descriptorBind.sampler].images.Add(texnode);
+                                        node = parentNodes.Add(new object[] {
+                                            "", bindMap.bindset, slotname, bindType, "-", 
+                                            "-",
+                                            "",
+                                            "",
+                                        });
+
+                                        EmptyRow(node);
+                                    }
+                                    else
+                                    {
+                                        var texnode = node;
+
+                                        if (!samplers.ContainsKey(descriptorBind.sampler))
+                                        {
+                                            node = parentNodes.Add(MakeSampler("", "", descriptorBind));
+
+                                            if (!filledSlot)
+                                                EmptyRow(node);
+
+                                            if (!usedSlot)
+                                                InactiveRow(node);
+
+                                            var data = new SamplerData(node);
+                                            node.Tag = data;
+
+                                            samplers.Add(descriptorBind.sampler, data);
+                                        }
+
+                                        if (texnode != null)
+                                        {
+                                            m_CombinedImageSamplers[texnode] = samplers[descriptorBind.sampler].node;
+                                            samplers[descriptorBind.sampler].images.Add(texnode);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                    i++;
                 }
             }
 
@@ -641,7 +677,7 @@ namespace renderdocui.Windows.PipelineState
                             var descriptorBind = slotBinds[idx];
 
                             if (bindMap.arraySize > 1)
-                                slotname = String.Format("{0}[{1}]", b.name, idx);
+                                slotname = String.Format("{0}: {1}[{2}]", bindMap.bind, b.name, idx);
 
                             string name = "Constant Buffer " + descriptorBind.res.ToString();
                             UInt64 length = descriptorBind.size;
@@ -2056,7 +2092,11 @@ namespace renderdocui.Windows.PipelineState
             TreelistView.TreeListView treeview = (TreelistView.TreeListView)sender;
 
             foreach (var n in treeview.Nodes)
+            {
+                foreach (var n2 in n.Nodes)
+                    n2.DefaultBackColor = Color.Transparent;
                 n.DefaultBackColor = Color.Transparent;
+            }
 
             treeview.Invalidate();
         }
