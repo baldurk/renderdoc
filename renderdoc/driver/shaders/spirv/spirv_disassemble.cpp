@@ -2019,20 +2019,21 @@ void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant
 		// TODO do we need to fill these out?
 		cblock[i].reg.vec = 0;
 		cblock[i].reg.comp = 0;
-		
-		if(t->type == SPVTypeData::eVector ||
-			 t->type == SPVTypeData::eMatrix ||
-			 t->type == SPVTypeData::eArray)
+
+		string suffix = "";
+
+		cblock[i].type.descriptor.elements = 1;
+
+		if(t->type == SPVTypeData::eArray)
 		{
-			string suffix = "";
+			suffix += StringFormat::Fmt("[%u]", t->arraySize);
+			cblock[i].type.descriptor.elements = t->arraySize;
+			t = t->baseType;
+		}
 
-			if(t->type == SPVTypeData::eArray)
-			{
-				suffix += StringFormat::Fmt("[%u]", t->arraySize);
-				cblock[i].type.descriptor.elements = t->arraySize;
-				t = t->baseType;
-			}
-
+		if(t->type == SPVTypeData::eVector ||
+			 t->type == SPVTypeData::eMatrix)
+		{
 			if(t->baseType->type == SPVTypeData::eFloat)
 				cblock[i].type.descriptor.type = eVar_Float;
 			else if(t->baseType->type == SPVTypeData::eUInt)
@@ -2075,9 +2076,8 @@ void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant
 			cblock[i].type.descriptor.rowMajorStorage = false;
 			cblock[i].type.descriptor.rows = 1;
 			cblock[i].type.descriptor.cols = 1;
-			cblock[i].type.descriptor.elements = 1;
 
-			cblock[i].type.descriptor.name = t->GetName();
+			cblock[i].type.descriptor.name = t->GetName() + suffix;
 		}
 		else
 		{
@@ -2085,9 +2085,8 @@ void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant
 			cblock[i].type.descriptor.rowMajorStorage = false;
 			cblock[i].type.descriptor.rows = 0;
 			cblock[i].type.descriptor.cols = 0;
-			cblock[i].type.descriptor.elements = 0;
 
-			cblock[i].type.descriptor.name = t->GetName();
+			cblock[i].type.descriptor.name = t->GetName() + suffix;
 
 			MakeConstantBlockVariables(t, cblock[i].type.members);
 		}
