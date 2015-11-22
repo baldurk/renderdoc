@@ -2457,6 +2457,13 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 	}
 	
 	module.moduleVersion = spirv[1];
+
+	if(module.moduleVersion != spv::Version)
+	{
+		RDCERR("Unsupported SPIR-V version: %08x", spirv[1]);
+		return;
+	}
+
 	module.generator = spirv[2];
 	module.ids.resize(spirv[3]);
 
