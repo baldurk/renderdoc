@@ -973,7 +973,7 @@ struct SPVInstruction
 					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
 
 				SPVTypeData *vec1type = op->arguments[0]->op->type;
-				SPVTypeData *vec2type = op->arguments[1]->op->type;
+				SPVTypeData *vec2type = op->arguments[1]->constant ? op->arguments[1]->constant->type : op->arguments[1]->op->type;
 
 				RDCASSERT(vec1type->type == SPVTypeData::eVector && vec2type->type == SPVTypeData::eVector);
 
