@@ -44,15 +44,6 @@ out gl_PerVertex
 	float gl_ClipDistance[];
 };
 
-// VKTODOHIGH LunarG sample driver doesn't support in/out blocks yet it seems
-/*
-out v2f
-{
-	vec4 secondary;
-	vec4 norm;
-} OUT;
-*/
-
 layout (location = 0) out vec4 OUTsecondary;
 layout (location = 1) out vec4 OUTnorm;
 

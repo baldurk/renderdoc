@@ -24,15 +24,6 @@
  
 #version 420 core
 
-// VKTODOHIGH LunarG sample driver doesn't support in/out blocks yet it seems
-/*
-in v2f
-{
-	vec4 secondary;
-	vec4 norm;
-} IN;
-*/
-
 layout (location = 0) in vec4 INsecondary;
 layout (location = 1) in vec4 INnorm;
 

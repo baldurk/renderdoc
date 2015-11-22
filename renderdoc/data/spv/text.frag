@@ -27,15 +27,6 @@
 layout (binding = 3) uniform sampler2D tex0;
 layout (location = 0) out vec4 color_out;
 
-// VKTODOHIGH LunarG sample driver doesn't support in/out blocks yet it seems
-/*
-in v2f
-{
-	vec4 tex;
-	vec2 glyphuv;
-} IN;
-*/
-
 layout (location = 0) in vec4 INtex;
 layout (location = 1) in vec2 INglyphuv;
 
