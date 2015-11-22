@@ -132,6 +132,7 @@ namespace renderdoc
         {
             public ResourceId Resource;
             public UInt32 FirstSlice;
+            public UInt32 HighestMip;
             public ShaderResourceType ResType;
             [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
             public TextureSwizzle[] Swizzle;

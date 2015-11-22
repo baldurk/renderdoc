@@ -276,6 +276,7 @@ struct VulkanCreationInfo
 		void Init(VulkanResourceManager *resourceMan, const VkImageViewCreateInfo* pCreateInfo);
 
 		ResourceId image;
+		VkImageSubresourceRange range;
 	};
 	map<ResourceId, ImageView> m_ImageView;
 	

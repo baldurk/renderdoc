@@ -2803,8 +2803,22 @@ void VulkanReplay::SavePipelineState()
 			{
 				ResourceId viewid = c.m_Framebuffer[state.framebuffer].attachments[i].view;
 
-				m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = rm->GetOriginalID(viewid);
-				m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = rm->GetOriginalID(c.m_ImageView[viewid].image);
+				if(viewid != ResourceId())
+				{
+					m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = rm->GetOriginalID(viewid);
+					m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = rm->GetOriginalID(c.m_ImageView[viewid].image);
+
+					m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseMip = c.m_ImageView[viewid].range.baseMipLevel;
+					m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseLayer = c.m_ImageView[viewid].range.baseArrayLayer;
+				}
+				else
+				{
+					m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = ResourceId();
+					m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = ResourceId();
+
+					m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseMip = 0;
+					m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseLayer = 0;
+				}
 			}
 
 			m_VulkanPipelineState.Pass.renderArea.x = state.renderArea.offset.x;
@@ -2917,6 +2931,8 @@ void VulkanReplay::SavePipelineState()
 
 								dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
 								dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[viewid].image);
+								dst.bindings[b].binds[a].baseMip = c.m_ImageView[viewid].range.baseMipLevel;
+								dst.bindings[b].binds[a].baseLayer = c.m_ImageView[viewid].range.baseArrayLayer;
 							}
 							if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
 							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)

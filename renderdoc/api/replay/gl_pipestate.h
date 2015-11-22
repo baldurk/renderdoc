@@ -117,6 +117,7 @@ struct GLPipelineState
 		}
 		ResourceId Resource;
 		uint32_t FirstSlice;
+		uint32_t HighestMip;
 		ShaderResourceType ResType;
 
 		TextureSwizzle Swizzle[4];

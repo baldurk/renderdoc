@@ -56,6 +56,9 @@ namespace renderdoc
                         public ResourceId res;
                         public ResourceId sampler;
 
+                        public UInt32 baseMip;
+                        public UInt32 baseLayer;
+
                         public UInt64 offset;
                         public UInt64 size;
 
@@ -348,6 +351,9 @@ namespace renderdoc
                 {
                     public ResourceId view;
                     public ResourceId img;
+
+                    public UInt32 baseMip;
+                    public UInt32 baseArray;
                 };
                 [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
                 public Attachment[] attachments;

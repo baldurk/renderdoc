@@ -1252,12 +1252,16 @@ void GLReplay::SavePipelineState()
 			else
 			{
 				// very bespoke/specific
-				GLint firstSlice = 0;
+				GLint firstSlice = 0, firstMip = 0;
 
 				if(target != eGL_TEXTURE_BUFFER)
-					gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
+				{
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstMip);
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LAYER, &firstSlice);
+				}
 
 				pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
+				pipe.Textures[unit].HighestMip = (uint32_t)firstMip;
 				pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
 				pipe.Textures[unit].ResType = resType;
 

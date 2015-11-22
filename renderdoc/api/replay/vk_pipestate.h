@@ -50,6 +50,10 @@ struct VulkanPipelineState
 					ResourceId res; // buffer, image, attachment
 					ResourceId sampler;
 
+					// image views
+					uint32_t baseMip;
+					uint32_t baseLayer;
+
 					// buffers
 					uint64_t offset;
 					uint64_t size;
@@ -266,6 +270,9 @@ struct VulkanPipelineState
 			{
 				ResourceId view;
 				ResourceId img;
+
+				uint32_t baseMip;
+				uint32_t baseLayer;
 			};
 			rdctype::array<Attachment> attachments;
 

@@ -347,6 +347,7 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, const
 void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, const VkImageViewCreateInfo* pCreateInfo)
 {
 	image = resourceMan->GetNonDispWrapper(pCreateInfo->image)->id;
+	range = pCreateInfo->subresourceRange;
 }
 
 void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan, const VkShaderModuleCreateInfo* pCreateInfo)
