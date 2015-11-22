@@ -390,10 +390,12 @@ namespace renderdocui.Windows.PipelineState
                             var descriptorBind = slotBinds[idx];
 
                             if (bindMap.arraySize > 1)
+                            {
                                 slotname = String.Format("{0}: {1}[{2}]", bindMap.bind, shaderRes.name, idx);
 
-                            if (shaderRes.name.Length > 0)
-                                slotname += ": " + shaderRes.name;
+                                if (shaderRes.name.Length > 0)
+                                    slotname += ": " + shaderRes.name;
+                            }
 
                             bool isbuf = false;
                             UInt32 w = 1, h = 1, d = 1;

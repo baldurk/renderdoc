@@ -963,7 +963,7 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 	{
 		ConstantBlock &cb = ret->ConstantBlocks[i];
 		cb.name = dxbc->m_CBuffers[i].name;
-		cb.bufferBacked = true;
+		cb.bufferBacked = dxbc->m_CBuffers[i].descriptor.type == DXBC::CBuffer::Descriptor::TYPE_CBUFFER;
 		cb.bindPoint = (uint32_t)i;
 
 		create_array_uninit(cb.variables, dxbc->m_CBuffers[i].variables.size());

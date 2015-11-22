@@ -2142,6 +2142,14 @@ struct bindpair
 		if(map.bindset != o.map.bindset)
 			return map.bindset < o.map.bindset;
 
+		// sort -1 to the end
+		if(map.bind == -1 && o.map.bind == -1) // equal
+			return false;
+		if(map.bind == -1) // -1 not less than anything
+			return false;
+		if(o.map.bind == -1) // anything less than -1
+			return true;
+
 		return map.bind < o.map.bind;
 	}
 };
@@ -2271,6 +2279,10 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				cblock.bufferBacked = true;
 				
 				BindpointMap bindmap = {0};
+				// set can be implicitly 0, but the binding must be set explicitly.
+				// If no binding is found, we set -1 and sort to the end of the resources
+				// list as it's not bound anywhere (most likely, declared but not used)
+				bindmap.bind = -1;
 
 				for(size_t d=0; d < inst->decorations.size(); d++)
 				{
@@ -2301,6 +2313,10 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 						}
 					}
 				}
+
+				// should never have elements that have no binding declared but
+				// are used
+				RDCASSERT(!bindmap.used || bindmap.bind >= 0);
 				
 				cblocks.push_back(cblockpair(bindmap, cblock));
 			}
@@ -2350,6 +2366,10 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				res.variableType.descriptor.rowMajorStorage = false;
 
 				BindpointMap bindmap = {0};
+				// set can be implicitly 0, but the binding must be set explicitly.
+				// If no binding is found, we set -1 and sort to the end of the resources
+				// list as it's not bound anywhere (most likely, declared but not used)
+				bindmap.bind = -1;
 
 				for(size_t d=0; d < inst->decorations.size(); d++)
 				{
@@ -2378,6 +2398,10 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 					}
 				}
 
+				// should never have elements that have no binding declared but
+				// are used
+				RDCASSERT(!bindmap.used || bindmap.bind >= 0);
+
 				resources.push_back(shaderrespair(bindmap, res));
 			}
 		}
@@ -2402,6 +2426,11 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 	for(size_t i=0; i < cblocks.size(); i++)
 	{
 		mapping->ConstantBlocks[i] = cblocks[i].map;
+		// fix up any bind points marked with -1. They were sorted to the end
+		// but from here on we want to just be able to index with the bind point
+		// without any special casing.
+		if(mapping->ConstantBlocks[i].bind == -1)
+			mapping->ConstantBlocks[i].bind = 0;
 		reflection->ConstantBlocks[i] = cblocks[i].bindres;
 		reflection->ConstantBlocks[i].bindPoint = (int32_t)i;
 	}
@@ -2409,6 +2438,11 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 	for(size_t i=0; i < resources.size(); i++)
 	{
 		mapping->ReadOnlyResources[i] = resources[i].map;
+		// fix up any bind points marked with -1. They were sorted to the end
+		// but from here on we want to just be able to index with the bind point
+		// without any special casing.
+		if(mapping->ReadOnlyResources[i].bind == -1)
+			mapping->ReadOnlyResources[i].bind = 0;
 		reflection->ReadOnlyResources[i] = resources[i].bindres;
 		reflection->ReadOnlyResources[i].bindPoint = (int32_t)i;
 	}

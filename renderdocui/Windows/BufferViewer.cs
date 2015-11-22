@@ -818,7 +818,7 @@ namespace renderdocui.Windows
                 return ret;
             }
 
-            CommonPipelineState.VBuffer[] vbs = m_Core.CurPipelineState.GetVBuffers();
+            BoundVBuffer[] vbs = m_Core.CurPipelineState.GetVBuffers();
 
             ResourceId[] bs = new ResourceId[vbs.Length];
             uint[] s = new uint[vbs.Length];
@@ -2678,19 +2678,19 @@ namespace renderdocui.Windows
             m_MeshDisplay.aspect = 1.0f;
 
             // take a guess for the aspect ratio, for if the user hasn't overridden it
-            ResourceId depth = m_Core.CurPipelineState.GetDepthTarget();
-            ResourceId[] targets = m_Core.CurPipelineState.GetOutputTargets();
+            BoundResource depth = m_Core.CurPipelineState.GetDepthTarget();
+            BoundResource[] targets = m_Core.CurPipelineState.GetOutputTargets();
 
-            if (depth != ResourceId.Null || (targets != null && targets.Length > 0))
+            if (depth.Id != ResourceId.Null || (targets != null && targets.Length > 0))
             {
                 foreach (var t in m_Core.CurTextures)
                 {
-                    if (depth != ResourceId.Null && t.ID == depth)
+                    if (depth.Id != ResourceId.Null && t.ID == depth.Id)
                     {
                         m_MeshDisplay.aspect = (float)t.width / (float)t.height;
                         break;
                     }
-                    if (depth == ResourceId.Null && targets != null && targets.Length > 0 && t.ID == targets[0])
+                    if (depth.Id == ResourceId.Null && targets != null && targets.Length > 0 && t.ID == targets[0].Id)
                     {
                         m_MeshDisplay.aspect = (float)t.width / (float)t.height;
                         break;

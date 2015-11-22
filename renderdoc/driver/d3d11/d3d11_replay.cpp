@@ -501,6 +501,13 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			
 			ResourceId id = GetIDForResource(src.Shader);
 
+			WrappedShader *shad = (WrappedShader*)(WrappedID3D11Shader<ID3D11VertexShader> *)src.Shader;
+
+			ShaderReflection *refl = NULL;
+
+			if(shad != NULL)
+				refl = shad->GetDetails();
+
 			dst.Shader = rm->GetOriginalID(id);
 			dst.ShaderDetails = NULL;
 
@@ -530,7 +537,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			{
 				dst.BindpointMapping.ConstantBlocks[s].bindset = 0;
 				dst.BindpointMapping.ConstantBlocks[s].bind = s;
-				dst.BindpointMapping.ConstantBlocks[s].used = true;
+				dst.BindpointMapping.ConstantBlocks[s].used = false;
 				dst.BindpointMapping.ConstantBlocks[i].arraySize = 1;
 			}
 
@@ -539,7 +546,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			{
 				dst.BindpointMapping.ReadOnlyResources[s].bindset = 0;
 				dst.BindpointMapping.ReadOnlyResources[s].bind = s;
-				dst.BindpointMapping.ReadOnlyResources[s].used = true;
+				dst.BindpointMapping.ReadOnlyResources[s].used = false;
 				dst.BindpointMapping.ReadOnlyResources[i].arraySize = 1;
 			}
 
@@ -548,8 +555,23 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			{
 				dst.BindpointMapping.ReadWriteResources[s].bindset = 0;
 				dst.BindpointMapping.ReadWriteResources[s].bind = s;
-				dst.BindpointMapping.ReadWriteResources[s].used = true;
+				dst.BindpointMapping.ReadWriteResources[s].used = false;
 				dst.BindpointMapping.ReadWriteResources[i].arraySize = 1;
+			}
+
+			// mark resources as used if they are referenced by the shader
+			if(refl)
+			{
+				for(int32_t i=0; i < refl->ConstantBlocks.count; i++)
+					if(refl->ConstantBlocks[i].bufferBacked)
+						dst.BindpointMapping.ConstantBlocks[refl->ConstantBlocks[i].bindPoint].used = true;
+
+				for(int32_t i=0; i < refl->ReadOnlyResources.count; i++)
+					if(!refl->ReadOnlyResources[i].IsSampler)
+						dst.BindpointMapping.ReadOnlyResources[refl->ReadOnlyResources[i].bindPoint].used = true;
+
+				for(int32_t i=0; i < refl->ReadWriteResources.count; i++)
+					dst.BindpointMapping.ReadWriteResources[refl->ReadWriteResources[i].bindPoint].used = true;
 			}
 
 			create_array_uninit(dst.ConstantBuffers, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);

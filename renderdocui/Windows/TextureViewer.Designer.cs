@@ -140,8 +140,8 @@
             this.closeTab = new System.Windows.Forms.ToolStripMenuItem();
             this.closeOtherTabs = new System.Windows.Forms.ToolStripMenuItem();
             this.closeTabsToRight = new System.Windows.Forms.ToolStripMenuItem();
-            this.texPanel = new renderdocui.Controls.ThumbnailStrip();
-            this.rtPanel = new renderdocui.Controls.ThumbnailStrip();
+            this.roPanel = new renderdocui.Controls.ThumbnailStrip();
+            this.rwPanel = new renderdocui.Controls.ThumbnailStrip();
             this.rangeHistogram = new renderdocui.Controls.RangeHistogram();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.pixelContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -1246,28 +1246,28 @@
             // 
             // texPanel
             // 
-            this.texPanel.AutoScroll = true;
-            this.texPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.texPanel.Location = new System.Drawing.Point(461, 373);
-            this.texPanel.Margin = new System.Windows.Forms.Padding(0);
-            this.texPanel.MinimumSize = new System.Drawing.Size(2, 60);
-            this.texPanel.Name = "texPanel";
-            this.texPanel.Padding = new System.Windows.Forms.Padding(3);
-            this.texPanel.Size = new System.Drawing.Size(200, 60);
-            this.texPanel.TabIndex = 3;
-            this.texPanel.MouseClick += new System.Windows.Forms.MouseEventHandler(this.thumbsLayout_MouseClick);
+            this.roPanel.AutoScroll = true;
+            this.roPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.roPanel.Location = new System.Drawing.Point(461, 373);
+            this.roPanel.Margin = new System.Windows.Forms.Padding(0);
+            this.roPanel.MinimumSize = new System.Drawing.Size(2, 60);
+            this.roPanel.Name = "texPanel";
+            this.roPanel.Padding = new System.Windows.Forms.Padding(3);
+            this.roPanel.Size = new System.Drawing.Size(200, 60);
+            this.roPanel.TabIndex = 3;
+            this.roPanel.MouseClick += new System.Windows.Forms.MouseEventHandler(this.thumbsLayout_MouseClick);
             // 
             // rtPanel
             // 
-            this.rtPanel.AutoScroll = true;
-            this.rtPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.rtPanel.Location = new System.Drawing.Point(242, 373);
-            this.rtPanel.Margin = new System.Windows.Forms.Padding(0);
-            this.rtPanel.MinimumSize = new System.Drawing.Size(2, 60);
-            this.rtPanel.Name = "rtPanel";
-            this.rtPanel.Size = new System.Drawing.Size(200, 60);
-            this.rtPanel.TabIndex = 2;
-            this.rtPanel.MouseClick += new System.Windows.Forms.MouseEventHandler(this.thumbsLayout_MouseClick);
+            this.rwPanel.AutoScroll = true;
+            this.rwPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.rwPanel.Location = new System.Drawing.Point(242, 373);
+            this.rwPanel.Margin = new System.Windows.Forms.Padding(0);
+            this.rwPanel.MinimumSize = new System.Drawing.Size(2, 60);
+            this.rwPanel.Name = "rtPanel";
+            this.rwPanel.Size = new System.Drawing.Size(200, 60);
+            this.rwPanel.TabIndex = 2;
+            this.rwPanel.MouseClick += new System.Windows.Forms.MouseEventHandler(this.thumbsLayout_MouseClick);
             // 
             // rangeHistogram
             // 
@@ -1310,8 +1310,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1128, 492);
             this.Controls.Add(this.texlistContainer);
-            this.Controls.Add(this.texPanel);
-            this.Controls.Add(this.rtPanel);
+            this.Controls.Add(this.roPanel);
+            this.Controls.Add(this.rwPanel);
             this.Controls.Add(this.pixelContextPanel);
             this.Controls.Add(this.renderToolstripContainer);
             this.Controls.Add(this.rangeHistogram);
@@ -1386,8 +1386,8 @@
         private Controls.NoScrollPanel renderContainer;
         private Controls.NoScrollPanel render;
         private Controls.TextureListBox textureList;
-        private Controls.ThumbnailStrip rtPanel;
-        private Controls.ThumbnailStrip texPanel;
+        private Controls.ThumbnailStrip rwPanel;
+        private Controls.ThumbnailStrip roPanel;
         private System.Windows.Forms.ToolStrip zoomStrip;
         private System.Windows.Forms.ToolStripLabel toolStripLabel4;
         private System.Windows.Forms.ToolStripButton fitToWindow;

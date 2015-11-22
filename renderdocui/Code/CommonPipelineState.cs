@@ -30,6 +30,37 @@ using renderdoc;
 
 namespace renderdocui.Code
 {
+    public class BoundResource
+    {
+        public BoundResource()
+        { Id = ResourceId.Null; HighestMip = -1; FirstSlice = -1; }
+        public BoundResource(ResourceId id)
+        { Id = id; HighestMip = -1; FirstSlice = -1; }
+
+        public ResourceId Id;
+        public int HighestMip;
+        public int FirstSlice;
+    };
+
+    public struct BoundVBuffer
+    {
+        public ResourceId Buffer;
+        public ulong ByteOffset;
+        public uint ByteStride;
+    };
+
+    public struct VertexInputAttribute
+    {
+        public string Name;
+        public int VertexBuffer;
+        public uint RelativeByteOffset;
+        public bool PerInstance;
+        public int InstanceRate;
+        public ResourceFormat Format;
+        public object[] GenericValue;
+        public bool Used;
+    };
+
     public class CommonPipelineState
     {
         private D3D11PipelineState m_D3D11 = null;
@@ -419,20 +450,13 @@ namespace renderdocui.Code
             return uint.MaxValue;
         }
 
-        public struct VBuffer
-        {
-            public ResourceId Buffer;
-            public ulong ByteOffset;
-            public uint ByteStride;
-        };
-
-        public VBuffer[] GetVBuffers()
+        public BoundVBuffer[] GetVBuffers()
         {
             if (LogLoaded)
             {
                 if (IsLogD3D11)
                 {
-                    VBuffer[] ret = new VBuffer[m_D3D11.m_IA.vbuffers.Length];
+                    BoundVBuffer[] ret = new BoundVBuffer[m_D3D11.m_IA.vbuffers.Length];
                     for (int i = 0; i < m_D3D11.m_IA.vbuffers.Length; i++)
                     {
                         ret[i].Buffer = m_D3D11.m_IA.vbuffers[i].Buffer;
@@ -444,7 +468,7 @@ namespace renderdocui.Code
                 }
                 else if (IsLogGL)
                 {
-                    VBuffer[] ret = new VBuffer[m_GL.m_VtxIn.vbuffers.Length];
+                    BoundVBuffer[] ret = new BoundVBuffer[m_GL.m_VtxIn.vbuffers.Length];
                     for (int i = 0; i < m_GL.m_VtxIn.vbuffers.Length; i++)
                     {
                         ret[i].Buffer = m_GL.m_VtxIn.vbuffers[i].Buffer;
@@ -456,7 +480,7 @@ namespace renderdocui.Code
                 }
                 else if (IsLogVK)
                 {
-                    VBuffer[] ret = new VBuffer[m_Vulkan.VI.binds.Length];
+                    BoundVBuffer[] ret = new BoundVBuffer[m_Vulkan.VI.binds.Length];
                     for (int i = 0; i < m_Vulkan.VI.binds.Length; i++)
                     {
                         ret[i].Buffer = i < m_Vulkan.VI.vbuffers.Length ? m_Vulkan.VI.vbuffers[i].buffer : ResourceId.Null;
@@ -470,18 +494,6 @@ namespace renderdocui.Code
 
             return null;
         }
-
-        public struct VertexInputAttribute
-        {
-            public string Name;
-            public int VertexBuffer;
-            public uint RelativeByteOffset;
-            public bool PerInstance;
-            public int InstanceRate;
-            public ResourceFormat Format;
-            public object[] GenericValue;
-            public bool Used;
-        };
 
         public VertexInputAttribute[] GetVertexInputs()
         {
@@ -759,8 +771,10 @@ namespace renderdocui.Code
             ByteSize = 0;
         }
 
-        public ResourceId[] GetResources(ShaderStageType stage)
+        public Dictionary<BindpointMap, BoundResource[]> GetReadOnlyResources(ShaderStageType stage)
         {
+            var ret = new Dictionary<BindpointMap, BoundResource[]>();
+
             if (LogLoaded)
             {
                 if (IsLogD3D11)
@@ -777,17 +791,33 @@ namespace renderdocui.Code
                         case ShaderStageType.Compute: s = m_D3D11.m_CS; break;
                     }
 
-                    ResourceId[] ret = new ResourceId[s.SRVs.Length];
                     for (int i = 0; i < s.SRVs.Length; i++)
-                        ret[i] = s.SRVs[i].Resource;
+                    {
+                        var key = new BindpointMap(0, i);
+                        var val = new BoundResource();
+
+                        val.Id = s.SRVs[i].Resource;
+                        val.HighestMip = (int)s.SRVs[i].HighestMip;
+                        val.FirstSlice = (int)s.SRVs[i].FirstArraySlice;
+
+                        ret.Add(key, new BoundResource[] { val });
+                    }
 
                     return ret;
                 }
                 else if (IsLogGL)
                 {
-                    ResourceId[] ret = new ResourceId[m_GL.Textures.Length];
                     for (int i = 0; i < m_GL.Textures.Length; i++)
-                        ret[i] = m_GL.Textures[i].Resource;
+                    {
+                        var key = new BindpointMap(0, i);
+                        var val = new BoundResource();
+
+                        val.Id = m_GL.Textures[i].Resource;
+                        val.HighestMip = (int)m_GL.Textures[i].HighestMip;
+                        val.FirstSlice = (int)m_GL.Textures[i].FirstSlice;
+
+                        ret.Add(key, new BoundResource[] { val });
+                    }
 
                     return ret;
                 }
@@ -797,68 +827,96 @@ namespace renderdocui.Code
 
                     if (stage == ShaderStageType.Compute)
                         descsets = m_Vulkan.compute.DescSets;
-                    
-                    List<ResourceId> ret = new List<ResourceId>();
 
                     ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
-                    foreach(var descset in m_Vulkan.graphics.DescSets)
+
+                    for (int set = 0; set < m_Vulkan.graphics.DescSets.Length; set++)
                     {
-                        foreach (var bind in descset.bindings)
+                        var descset = m_Vulkan.graphics.DescSets[set];
+                        for (int slot = 0; slot < descset.bindings.Length; slot++)
                         {
+                            var bind = descset.bindings[slot];
                             if ((bind.type == ShaderBindType.ImageSampler ||
                                 bind.type == ShaderBindType.InputAttachment ||
-                                bind.type == ShaderBindType.ReadOnlyBuffer ||
                                 bind.type == ShaderBindType.ReadOnlyImage ||
                                 bind.type == ShaderBindType.ReadOnlyTBuffer
                                ) && (bind.stageFlags & mask) == mask)
                             {
-                                // VKTODOMED handle bind.arraySize
-                                ret.Add(bind.binds[0].res);
-                            }
-                            else
-                            {
-                                // texture viewer currently expects binds to match up to resource list
-                                // so we need to pad with empty elements
-                                ret.Add(ResourceId.Null);
+                                var key = new BindpointMap(set, slot);
+                                var val = new BoundResource[bind.arraySize];
+
+                                for (UInt32 i = 0; i < bind.arraySize; i++)
+                                {
+                                    val[i] = new BoundResource();
+                                    val[i].Id = bind.binds[i].res;
+                                    val[i].HighestMip = (int)bind.binds[i].baseMip;
+                                    val[i].FirstSlice = (int)bind.binds[i].baseLayer;
+                                }
+
+                                ret.Add(key, val);
                             }
                         }
                     }
 
-                    return ret.ToArray();
+                    return ret;
                 }
             }
 
-            return new ResourceId[0];
+            return ret;
         }
 
-        public ResourceId[] GetReadWriteResources(ShaderStageType stage)
+        public Dictionary<BindpointMap, BoundResource[]> GetReadWriteResources(ShaderStageType stage)
         {
+            var ret = new Dictionary<BindpointMap, BoundResource[]>();
+
             if (LogLoaded)
             {
                 if (IsLogD3D11)
                 {
                     if (stage == ShaderStageType.Compute)
                     {
-                        ResourceId[] ret = new ResourceId[m_D3D11.m_CS.UAVs.Length];
                         for (int i = 0; i < m_D3D11.m_CS.UAVs.Length; i++)
-                            ret[i] = m_D3D11.m_CS.UAVs[i].Resource;
+                        {
+                            var key = new BindpointMap(0, i);
+                            var val = new BoundResource();
 
-                        return ret;
+                            val.Id = m_D3D11.m_CS.UAVs[i].Resource;
+                            val.HighestMip = (int)m_D3D11.m_CS.UAVs[i].HighestMip;
+                            val.FirstSlice = (int)m_D3D11.m_CS.UAVs[i].FirstArraySlice;
+
+                            ret.Add(key, new BoundResource[] { val });
+                        }
                     }
                     else
                     {
-                        ResourceId[] ret = new ResourceId[m_D3D11.m_OM.UAVs.Length];
                         for (int i = 0; i < m_D3D11.m_OM.UAVs.Length; i++)
-                            ret[i] = m_D3D11.m_OM.UAVs[i].Resource;
+                        {
+                            var key = new BindpointMap(0, i);
+                            var val = new BoundResource();
 
-                        return ret;
+                            val.Id = m_D3D11.m_OM.UAVs[i].Resource;
+                            val.HighestMip = (int)m_D3D11.m_OM.UAVs[i].HighestMip;
+                            val.FirstSlice = (int)m_D3D11.m_OM.UAVs[i].FirstArraySlice;
+
+                            ret.Add(key, new BoundResource[] { val });
+                        }
                     }
+
+                    return ret;
                 }
                 else if (IsLogGL)
                 {
-                    ResourceId[] ret = new ResourceId[m_GL.Images.Length];
                     for (int i = 0; i < m_GL.Images.Length; i++)
-                        ret[i] = m_GL.Images[i].Resource;
+                    {
+                        var key = new BindpointMap(0, i);
+                        var val = new BoundResource();
+
+                        val.Id = m_GL.Images[i].Resource;
+                        val.HighestMip = (int)m_GL.Images[i].Level;
+                        val.FirstSlice = (int)m_GL.Images[i].Layer;
+
+                        ret.Add(key, new BoundResource[] { val });
+                    }
 
                     return ret;
                 }
@@ -869,109 +927,115 @@ namespace renderdocui.Code
                     if (stage == ShaderStageType.Compute)
                         descsets = m_Vulkan.compute.DescSets;
 
-                    List<ResourceId> ret = new List<ResourceId>();
-
                     ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
-                    foreach (var descset in m_Vulkan.graphics.DescSets)
+                    for (int set = 0; set < m_Vulkan.graphics.DescSets.Length; set++)
                     {
-                        foreach (var bind in descset.bindings)
+                        var descset = m_Vulkan.graphics.DescSets[set];
+                        for (int slot = 0; slot < descset.bindings.Length; slot++)
                         {
+                            var bind = descset.bindings[slot];
+
                             if ((bind.type == ShaderBindType.ReadWriteBuffer ||
                                 bind.type == ShaderBindType.ReadWriteImage ||
                                 bind.type == ShaderBindType.ReadWriteTBuffer
                                ) && (bind.stageFlags & mask) == mask)
                             {
-                                // VKTODOMED handle bind.arraySize
-                                ret.Add(bind.binds[0].res);
-                            }
-                            else
-                            {
-                                // texture viewer currently expects binds to match up to resource list
-                                // so we need to pad with empty elements
-                                ret.Add(ResourceId.Null);
+                                var key = new BindpointMap(set, slot);
+                                var val = new BoundResource[bind.arraySize];
+
+                                for (UInt32 i = 0; i < bind.arraySize; i++)
+                                {
+                                    val[i] = new BoundResource();
+                                    val[i].Id = bind.binds[i].res;
+                                    val[i].HighestMip = (int)bind.binds[i].baseMip;
+                                    val[i].FirstSlice = (int)bind.binds[i].baseLayer;
+                                }
+
+                                ret.Add(key, val);
                             }
                         }
                     }
 
-                    return ret.ToArray();
+                    return ret;
                 }
             }
 
-            return new ResourceId[0];
+            return ret;
         }
 
-        public ResourceId GetDepthTarget()
+        public BoundResource GetDepthTarget()
         {
             if (LogLoaded)
             {
                 if (IsLogD3D11)
                 {
-                    return m_D3D11.m_OM.DepthTarget.Resource;
+                    var ret = new BoundResource();
+                    ret.Id = m_D3D11.m_OM.DepthTarget.Resource;
+                    ret.HighestMip = (int)m_D3D11.m_OM.DepthTarget.HighestMip;
+                    ret.FirstSlice = (int)m_D3D11.m_OM.DepthTarget.FirstArraySlice;
+                    return ret;
                 }
                 else if (IsLogGL)
                 {
-                    return m_GL.m_FB.m_DrawFBO.Depth.Obj;
+                    var ret = new BoundResource();
+                    ret.Id = m_GL.m_FB.m_DrawFBO.Depth.Obj;
+                    ret.HighestMip = (int)m_GL.m_FB.m_DrawFBO.Depth.Mip;
+                    ret.FirstSlice = (int)m_GL.m_FB.m_DrawFBO.Depth.Layer;
+                    return ret;
                 }
                 else if (IsLogVK)
                 {
                     var rp = m_Vulkan.Pass.renderpass;
                     var fb = m_Vulkan.Pass.framebuffer;
 
-                    return rp.depthstencilAttachment >= 0 && rp.depthstencilAttachment < fb.attachments.Length
-                        ? fb.attachments[rp.depthstencilAttachment].img
-                        : ResourceId.Null;
+                    if (rp.depthstencilAttachment >= 0 && rp.depthstencilAttachment < fb.attachments.Length)
+                    {
+                        var ret = new BoundResource();
+                        ret.Id = fb.attachments[rp.depthstencilAttachment].img;
+                        ret.HighestMip = (int)fb.attachments[rp.depthstencilAttachment].baseMip;
+                        ret.FirstSlice = (int)fb.attachments[rp.depthstencilAttachment].baseArray;
+                        return ret;
+                    }
+
+                    return new BoundResource();
                 }
             }
 
-            return ResourceId.Null;
+            return new BoundResource();
         }
 
-        public ResourceId GetStencilTarget()
+        public BoundResource[] GetOutputTargets()
         {
             if (LogLoaded)
             {
                 if (IsLogD3D11)
                 {
-                    return m_D3D11.m_OM.DepthTarget.Resource;
-                }
-                else if (IsLogGL)
-                {
-                    return m_GL.m_FB.m_DrawFBO.Stencil.Obj;
-                }
-                else if (IsLogVK)
-                {
-                    var rp = m_Vulkan.Pass.renderpass;
-                    var fb = m_Vulkan.Pass.framebuffer;
-
-                    return rp.depthstencilAttachment >= 0 && rp.depthstencilAttachment < fb.attachments.Length
-                        ? fb.attachments[rp.depthstencilAttachment].img
-                        : ResourceId.Null;
-                }
-            }
-
-            return ResourceId.Null;
-        }
-
-        public ResourceId[] GetOutputTargets()
-        {
-            if (LogLoaded)
-            {
-                if (IsLogD3D11)
-                {
-                    ResourceId[] ret = new ResourceId[m_D3D11.m_OM.RenderTargets.Length];
+                    BoundResource[] ret = new BoundResource[m_D3D11.m_OM.RenderTargets.Length];
                     for (int i = 0; i < m_D3D11.m_OM.RenderTargets.Length; i++)
-                        ret[i] = m_D3D11.m_OM.RenderTargets[i].Resource;
+                    {
+                        ret[i] = new BoundResource();
+                        ret[i].Id = m_D3D11.m_OM.RenderTargets[i].Resource;
+                        ret[i].HighestMip = (int)m_D3D11.m_OM.RenderTargets[i].HighestMip;
+                        ret[i].FirstSlice = (int)m_D3D11.m_OM.RenderTargets[i].FirstArraySlice;
+                    }
 
                     return ret;
                 }
                 else if (IsLogGL)
                 {
-                    ResourceId[] ret = new ResourceId[m_GL.m_FB.m_DrawFBO.DrawBuffers.Length];
-                    for(int i=0; i < m_GL.m_FB.m_DrawFBO.DrawBuffers.Length; i++)
+                    BoundResource[] ret = new BoundResource[m_GL.m_FB.m_DrawFBO.DrawBuffers.Length];
+                    for (int i = 0; i < m_GL.m_FB.m_DrawFBO.DrawBuffers.Length; i++)
                     {
+                        ret[i] = new BoundResource();
+
                         int db = m_GL.m_FB.m_DrawFBO.DrawBuffers[i];
-                        if(db >= 0)
-                            ret[i] = m_GL.m_FB.m_DrawFBO.Color[db].Obj;
+
+                        if (db >= 0)
+                        {
+                            ret[i].Id = m_GL.m_FB.m_DrawFBO.Color[db].Obj;
+                            ret[i].HighestMip = (int)m_GL.m_FB.m_DrawFBO.Color[db].Mip;
+                            ret[i].FirstSlice = (int)m_GL.m_FB.m_DrawFBO.Color[db].Layer;
+                        }
                     }
 
                     return ret;
@@ -980,17 +1044,25 @@ namespace renderdocui.Code
                 {
                     var rp = m_Vulkan.Pass.renderpass;
                     var fb = m_Vulkan.Pass.framebuffer;
-                    ResourceId[] ret = new ResourceId[rp.colorAttachments.Length];
+
+                    BoundResource[] ret = new BoundResource[rp.colorAttachments.Length];
                     for (int i = 0; i < rp.colorAttachments.Length; i++)
-                        ret[i] = rp.colorAttachments[i] < fb.attachments.Length
-                            ? fb.attachments[rp.colorAttachments[i]].img
-                            : ResourceId.Null;
+                    {
+                        ret[i] = new BoundResource();
+
+                        if(rp.colorAttachments[i] < fb.attachments.Length)
+                        {
+                            ret[i].Id = fb.attachments[rp.colorAttachments[i]].img;
+                            ret[i].HighestMip = (int)fb.attachments[rp.colorAttachments[i]].baseMip;
+                            ret[i].FirstSlice = (int)fb.attachments[rp.colorAttachments[i]].baseArray;
+                        }
+                    }
 
                     return ret;
                 }
             }
 
-            return new ResourceId[0];
+            return new BoundResource[0];
         }
 
         // Still to add:

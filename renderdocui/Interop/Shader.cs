@@ -455,6 +455,38 @@ namespace renderdoc
         public Int32 bind;
         public bool used;
         public UInt32 arraySize;
+
+        public BindpointMap()
+        {
+        }
+
+        public BindpointMap(Int32 set, Int32 slot)
+        {
+            bindset = set;
+            bind = slot;
+            used = false;
+            arraySize = 1;
+        }
+
+        public override bool Equals(Object obj)
+        {
+            return obj is BindpointMap && this == (BindpointMap)obj;
+        }
+        public override int GetHashCode()
+        {
+            int hash = bindset.GetHashCode() * 17;
+            hash = hash * 17 + bind.GetHashCode();
+            return hash;
+        }
+        public static bool operator ==(BindpointMap x, BindpointMap y)
+        {
+            return x.bindset == y.bindset &&
+                x.bind == y.bind;
+        }
+        public static bool operator !=(BindpointMap x, BindpointMap y)
+        {
+            return !(x == y);
+        }
     };
 
     [StructLayout(LayoutKind.Sequential)]

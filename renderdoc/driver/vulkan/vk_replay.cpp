@@ -2927,24 +2927,48 @@ void VulkanReplay::SavePipelineState()
 							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
 								 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
 							{
-								ResourceId viewid = rm->GetNonDispWrapper(info[a].imageView)->id;
+								VkImageView view = info[a].imageView;
 
-								dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
-								dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[viewid].image);
-								dst.bindings[b].binds[a].baseMip = c.m_ImageView[viewid].range.baseMipLevel;
-								dst.bindings[b].binds[a].baseLayer = c.m_ImageView[viewid].range.baseArrayLayer;
+								if(view != VK_NULL_HANDLE)
+								{
+									ResourceId viewid = rm->GetNonDispWrapper(view)->id;
+
+									dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
+									dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[viewid].image);
+									dst.bindings[b].binds[a].baseMip = c.m_ImageView[viewid].range.baseMipLevel;
+									dst.bindings[b].binds[a].baseLayer = c.m_ImageView[viewid].range.baseArrayLayer;
+								}
+								else
+								{
+									dst.bindings[b].binds[a].view = ResourceId();
+									dst.bindings[b].binds[a].res = ResourceId();
+									dst.bindings[b].binds[a].baseMip = 0;
+									dst.bindings[b].binds[a].baseLayer = 0;
+								}
 							}
 							if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
 							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
 							{
-								ResourceId viewid = rm->GetNonDispWrapper(info[a].bufferView)->id;
+								VkBufferView view = info[a].bufferView;
+								
+								if(view != VK_NULL_HANDLE)
+								{
+									ResourceId viewid = rm->GetNonDispWrapper(view)->id;
 
-								dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
-								dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
-								dst.bindings[b].binds[a].offset = c.m_BufferView[viewid].offset;
-								if(dynamicOffset)
-									dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageLayout;
-								dst.bindings[b].binds[a].size = c.m_BufferView[viewid].size;
+									dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
+									dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
+									dst.bindings[b].binds[a].offset = c.m_BufferView[viewid].offset;
+									if(dynamicOffset)
+										dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageLayout;
+									dst.bindings[b].binds[a].size = c.m_BufferView[viewid].size;
+								}
+								else
+								{
+									dst.bindings[b].binds[a].view = ResourceId();
+									dst.bindings[b].binds[a].res = ResourceId();
+									dst.bindings[b].binds[a].offset = 0;
+									dst.bindings[b].binds[a].size = 0;
+								}
 							}
 							if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
 							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
@@ -2952,10 +2976,14 @@ void VulkanReplay::SavePipelineState()
 							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 							{
 								dst.bindings[b].binds[a].view = ResourceId();
-								dst.bindings[b].binds[a].res = rm->GetOriginalID(rm->GetNonDispWrapper(info[a].bufferInfo.buffer)->id);
+
+								if(info[a].bufferInfo.buffer != VK_NULL_HANDLE)
+									dst.bindings[b].binds[a].res = rm->GetOriginalID(rm->GetNonDispWrapper(info[a].bufferInfo.buffer)->id);
+
 								dst.bindings[b].binds[a].offset = info[a].bufferInfo.offset;
 								if(dynamicOffset)
 									dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageLayout;
+
 								dst.bindings[b].binds[a].size = info[a].bufferInfo.range;
 							}
 						}
