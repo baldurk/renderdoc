@@ -1029,6 +1029,13 @@ VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo)
 	return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 }
 
+// we cast to this type when serialising as a placeholder indicating that
+// the given flags field doesn't have any bits defined
+enum VkFlagWithNoBits
+{
+	FlagWithNoBits_Dummy_Bit = 1,
+};
+
 template<>
 string ToStrHelper<false, VkResourceType>::Get(const VkResourceType &el)
 {
@@ -1083,6 +1090,12 @@ string ToStrHelper<false, VkQueueFlagBits>::Get(const VkQueueFlagBits &el)
 		ret = ret.substr(3);
 
 	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkFlagWithNoBits>::Get(const VkFlagWithNoBits &el)
+{
+	return "";
 }
 
 template<>
@@ -3285,9 +3298,7 @@ void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el)
 	
 	SerialiseObject(VkCmdPool, "cmdPool", el.cmdPool);
 	Serialise("level", el.level);
-	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
-	// for strongly typed serialising
-	Serialise("flags", el.flags);
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 }
 
 template<>
@@ -3339,9 +3350,7 @@ void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 
-	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
-	// for strongly typed serialising
-	Serialise("flags", el.flags);
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 }
 
 template<>
@@ -3352,9 +3361,7 @@ void Serialiser::Serialise(const char *name, VkEventCreateInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_EVENT_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
-	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
-	// for strongly typed serialising
-	Serialise("flags", el.flags);
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 }
 
 template<>
@@ -3512,9 +3519,7 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 	size_t sz = (size_t)codeSize;
 	if(m_Mode == READING) el.pCode = NULL;
 	SerialiseBuffer("pCode", (byte *&)el.pCode, sz);
-	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
-	// for strongly typed serialising
-	Serialise("flags", el.flags);
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 }
 
 template<>
@@ -3554,10 +3559,8 @@ void Serialiser::Serialise(const char *name, VkShaderCreateInfo &el)
 			el.pName = m_StringDB.find(str)->c_str();
 		}
 	}
-
-	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
-	// for strongly typed serialising
-	Serialise("flags", el.flags);
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("stage", el.stage);
 	SerialiseObject(VkShaderModule, "module", el.module);
 }
