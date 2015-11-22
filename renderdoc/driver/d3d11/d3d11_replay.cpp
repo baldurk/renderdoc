@@ -534,13 +534,22 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				dst.BindpointMapping.ConstantBlocks[i].arraySize = 1;
 			}
 
-			create_array_uninit(dst.BindpointMapping.Resources, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
+			create_array_uninit(dst.BindpointMapping.ReadOnlyResources, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
 			for(int32_t s=0; s < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; s++)
 			{
-				dst.BindpointMapping.Resources[s].bindset = 0;
-				dst.BindpointMapping.Resources[s].bind = s;
-				dst.BindpointMapping.Resources[s].used = true;
-				dst.BindpointMapping.Resources[i].arraySize = 1;
+				dst.BindpointMapping.ReadOnlyResources[s].bindset = 0;
+				dst.BindpointMapping.ReadOnlyResources[s].bind = s;
+				dst.BindpointMapping.ReadOnlyResources[s].used = true;
+				dst.BindpointMapping.ReadOnlyResources[i].arraySize = 1;
+			}
+
+			create_array_uninit(dst.BindpointMapping.ReadWriteResources, D3D11_1_UAV_SLOT_COUNT);
+			for(int32_t s=0; s < D3D11_1_UAV_SLOT_COUNT; s++)
+			{
+				dst.BindpointMapping.ReadWriteResources[s].bindset = 0;
+				dst.BindpointMapping.ReadWriteResources[s].bind = s;
+				dst.BindpointMapping.ReadWriteResources[s].used = true;
+				dst.BindpointMapping.ReadWriteResources[i].arraySize = 1;
 			}
 
 			create_array_uninit(dst.ConstantBuffers, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);

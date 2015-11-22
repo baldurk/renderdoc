@@ -4173,39 +4173,40 @@ void WrappedOpenGL::AddUsage(FetchDrawcall d)
 						m_ResourceUses[rm->GetID(BufferRes(ctx, rs.UniformBinding[bind].name))].push_back(cb);
 				}
 				
-				for(int32_t r=0; r < refl[i]->Resources.count; r++)
+				for(int32_t r=0; r < refl[i]->ReadWriteResources.count; r++)
 				{
-					int32_t bind = mapping[i].Resources[ refl[i]->Resources[r].bindPoint ].bind;
+					int32_t bind = mapping[i].ReadWriteResources[ refl[i]->ReadWriteResources[r].bindPoint ].bind;
 
-					if(refl[i]->Resources[r].IsReadWrite)
+					if(refl[i]->ReadWriteResources[r].IsTexture)
 					{
-						if(refl[i]->Resources[r].IsTexture)
+						if(rs.Images[bind].name)
+							m_ResourceUses[rm->GetID(TextureRes(ctx, rs.Images[bind].name))].push_back(rw);
+					}
+					else
+					{
+						if(refl[i]->ReadWriteResources[r].variableType.descriptor.cols == 1 &&
+							refl[i]->ReadWriteResources[r].variableType.descriptor.rows == 1 &&
+							refl[i]->ReadWriteResources[r].variableType.descriptor.type == eVar_UInt)
 						{
-							if(rs.Images[bind].name)
-								m_ResourceUses[rm->GetID(TextureRes(ctx, rs.UniformBinding[bind].name))].push_back(rw);
+							if(rs.AtomicCounter[bind].name)
+								m_ResourceUses[rm->GetID(BufferRes(ctx, rs.AtomicCounter[bind].name))].push_back(rw);
 						}
 						else
 						{
-							if(refl[i]->Resources[r].variableType.descriptor.cols == 1 &&
-								refl[i]->Resources[r].variableType.descriptor.rows == 1 &&
-								refl[i]->Resources[r].variableType.descriptor.type == eVar_UInt)
-							{
-								if(rs.AtomicCounter[bind].name)
-									m_ResourceUses[rm->GetID(BufferRes(ctx, rs.AtomicCounter[bind].name))].push_back(rw);
-							}
-							else
-							{
-								if(rs.ShaderStorage[bind].name)
-									m_ResourceUses[rm->GetID(BufferRes(ctx, rs.ShaderStorage[bind].name))].push_back(rw);
-							}
+							if(rs.ShaderStorage[bind].name)
+								m_ResourceUses[rm->GetID(BufferRes(ctx, rs.ShaderStorage[bind].name))].push_back(rw);
 						}
-						continue;
 					}
+				}
+
+				for(int32_t r=0; r < refl[i]->ReadOnlyResources.count; r++)
+				{
+					int32_t bind = mapping[i].ReadOnlyResources[ refl[i]->ReadOnlyResources[r].bindPoint ].bind;
 
 					uint32_t *texList = NULL;
 					int32_t listSize = 0;
 					
-					switch(refl[i]->Resources[r].resType)
+					switch(refl[i]->ReadOnlyResources[r].resType)
 					{
 						case eResType_None:
 							texList = NULL;

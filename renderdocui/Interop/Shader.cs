@@ -344,7 +344,6 @@ namespace renderdoc
         public bool IsSampler;
         public bool IsTexture;
         public bool IsSRV;
-        public bool IsReadWrite;
 
         public ShaderResourceType resType;
 
@@ -430,10 +429,13 @@ namespace renderdoc
         public SigParameter[] OutputSig;
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public ConstantBlock[] ConstantBlocks; // sparse - index indicates bind point
+        public ConstantBlock[] ConstantBlocks;
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public ShaderResource[] Resources; // non-sparse, since bind points can overlap.
+        public ShaderResource[] ReadOnlyResources;
+
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public ShaderResource[] ReadWriteResources;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct Interface
@@ -463,6 +465,8 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public BindpointMap[] ConstantBlocks;
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public BindpointMap[] Resources;
+        public BindpointMap[] ReadOnlyResources;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public BindpointMap[] ReadWriteResources;
     };
 };

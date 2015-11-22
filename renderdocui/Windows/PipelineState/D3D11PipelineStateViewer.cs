@@ -248,7 +248,7 @@ namespace renderdocui.Windows.PipelineState
 
                     if (shaderDetails != null)
                     {
-                        foreach (var bind in shaderDetails.Resources)
+                        foreach (var bind in shaderDetails.ReadOnlyResources)
                         {
                             if (bind.IsSRV && bind.bindPoint == i)
                             {
@@ -372,7 +372,7 @@ namespace renderdocui.Windows.PipelineState
 
                     if (shaderDetails != null)
                     {
-                        foreach (var bind in shaderDetails.Resources)
+                        foreach (var bind in shaderDetails.ReadOnlyResources)
                         {
                             if (bind.IsSampler && bind.bindPoint == i)
                             {
@@ -926,9 +926,9 @@ namespace renderdocui.Windows.PipelineState
 
                     if (state.m_CS.ShaderDetails != null)
                     {
-                        foreach (var bind in state.m_CS.ShaderDetails.Resources)
+                        foreach (var bind in state.m_CS.ShaderDetails.ReadWriteResources)
                         {
-                            if (bind.IsReadWrite && bind.bindPoint == i)
+                            if (bind.bindPoint == i)
                             {
                                 shaderInput = bind;
                                 break;
@@ -1254,9 +1254,9 @@ namespace renderdocui.Windows.PipelineState
 
                     if (state.m_PS.ShaderDetails != null)
                     {
-                        foreach (var bind in state.m_PS.ShaderDetails.Resources)
+                        foreach (var bind in state.m_PS.ShaderDetails.ReadWriteResources)
                         {
-                            if (bind.IsReadWrite && bind.bindPoint == i + state.m_OM.UAVStartSlot)
+                            if (bind.bindPoint == i + state.m_OM.UAVStartSlot)
                             {
                                 shaderInput = bind;
                                 break;
@@ -1612,72 +1612,70 @@ namespace renderdocui.Windows.PipelineState
 
                 if (deets != null)
                 {
-                    foreach (var r in deets.Resources)
+                    ShaderResource[] resources = uav ? deets.ReadWriteResources : deets.ReadOnlyResources;
+                    foreach (var r in resources)
                     {
-                        if(r.IsTexture)
+                        if (r.IsTexture)
                             continue;
 
-                        if ((r.IsSRV && !uav) || (r.IsReadWrite && uav))
+                        if (r.bindPoint == bind)
                         {
-                            if (r.bindPoint == bind)
+                            if (r.variableType.members.Length == 0)
                             {
-                                if (r.variableType.members.Length == 0)
+                                if (view != null)
                                 {
-                                    if (view != null)
+                                    if (view.Format.special && view.Format.specialFormat == SpecialFormat.R10G10B10A2)
                                     {
-                                        if (view.Format.special && view.Format.specialFormat == SpecialFormat.R10G10B10A2)
-                                        {
-                                            if (view.Format.compType == FormatComponentType.UInt) format = "uintten";
-                                            if (view.Format.compType == FormatComponentType.UNorm) format = "unormten";
-                                        }
-                                        else if (!view.Format.special)
-                                        {
-                                            switch (view.Format.compByteWidth)
-                                            {
-                                                case 1:
-                                                {
-                                                    if (view.Format.compType == FormatComponentType.UNorm) format = "unormb";
-                                                    if (view.Format.compType == FormatComponentType.SNorm) format = "snormb";
-                                                    if (view.Format.compType == FormatComponentType.UInt) format = "ubyte";
-                                                    if (view.Format.compType == FormatComponentType.SInt) format = "byte";
-                                                    break;
-                                                }
-                                                case 2:
-                                                {
-                                                    if (view.Format.compType == FormatComponentType.UNorm) format = "unormh";
-                                                    if (view.Format.compType == FormatComponentType.SNorm) format = "snormh";
-                                                    if (view.Format.compType == FormatComponentType.UInt) format = "ushort";
-                                                    if (view.Format.compType == FormatComponentType.SInt) format = "short";
-                                                    if (view.Format.compType == FormatComponentType.Float) format = "half";
-                                                    break;
-                                                }
-                                                case 4:
-                                                {
-                                                    if (view.Format.compType == FormatComponentType.UNorm) format = "unormf";
-                                                    if (view.Format.compType == FormatComponentType.SNorm) format = "snormf";
-                                                    if (view.Format.compType == FormatComponentType.UInt) format = "uint";
-                                                    if (view.Format.compType == FormatComponentType.SInt) format = "int";
-                                                    if (view.Format.compType == FormatComponentType.Float) format = "float";
-                                                    break;
-                                                }
-                                            }
-
-                                            format += view.Format.compCount;
-                                        }
+                                        if (view.Format.compType == FormatComponentType.UInt) format = "uintten";
+                                        if (view.Format.compType == FormatComponentType.UNorm) format = "unormten";
                                     }
+                                    else if (!view.Format.special)
+                                    {
+                                        switch (view.Format.compByteWidth)
+                                        {
+                                            case 1:
+                                            {
+                                                if (view.Format.compType == FormatComponentType.UNorm) format = "unormb";
+                                                if (view.Format.compType == FormatComponentType.SNorm) format = "snormb";
+                                                if (view.Format.compType == FormatComponentType.UInt) format = "ubyte";
+                                                if (view.Format.compType == FormatComponentType.SInt) format = "byte";
+                                                break;
+                                            }
+                                            case 2:
+                                            {
+                                                if (view.Format.compType == FormatComponentType.UNorm) format = "unormh";
+                                                if (view.Format.compType == FormatComponentType.SNorm) format = "snormh";
+                                                if (view.Format.compType == FormatComponentType.UInt) format = "ushort";
+                                                if (view.Format.compType == FormatComponentType.SInt) format = "short";
+                                                if (view.Format.compType == FormatComponentType.Float) format = "half";
+                                                break;
+                                            }
+                                            case 4:
+                                            {
+                                                if (view.Format.compType == FormatComponentType.UNorm) format = "unormf";
+                                                if (view.Format.compType == FormatComponentType.SNorm) format = "snormf";
+                                                if (view.Format.compType == FormatComponentType.UInt) format = "uint";
+                                                if (view.Format.compType == FormatComponentType.SInt) format = "int";
+                                                if (view.Format.compType == FormatComponentType.Float) format = "float";
+                                                break;
+                                            }
+                                        }
 
-                                    if (format == "" && r.variableType.Name.Length > 0)
-                                        format = r.variableType.Name;
+                                        format += view.Format.compCount;
+                                    }
+                                }
 
-                                    format += " " + r.name + ";";
-                                }
-                                else
-                                {
-                                    format = "// struct " + r.variableType.Name + Environment.NewLine +
-                                                "{" + Environment.NewLine + FormatMembers(1, "", r.variableType.members) + "}";
-                                }
-                                break;
+                                if (format == "" && r.variableType.Name.Length > 0)
+                                    format = r.variableType.Name;
+
+                                format += " " + r.name + ";";
                             }
+                            else
+                            {
+                                format = "// struct " + r.variableType.Name + Environment.NewLine +
+                                            "{" + Environment.NewLine + FormatMembers(1, "", r.variableType.members) + "}";
+                            }
+                            break;
                         }
                     }
                 }
@@ -1936,33 +1934,37 @@ namespace renderdocui.Windows.PipelineState
 
                 var shType = String.Format("{0}S", stage.stage.ToString()[0]);
 
-                foreach (var res in shaderDetails.Resources)
+                for (int i = 0; i < 2; i++)
                 {
-                    if (res.IsSampler)
+                    ShaderResource[] resources = (i == 0 ? shaderDetails.ReadOnlyResources : shaderDetails.ReadWriteResources);
+                    foreach (var res in resources)
                     {
-                        hlsl += String.Format("//SamplerComparisonState {0} : register(s{1}); // can't disambiguate", res.name, res.bindPoint) + nl;
-                        hlsl += String.Format("SamplerState {0} : register(s{1}); // can't disambiguate", res.name, res.bindPoint) + nl;
-                    }
-                    else
-                    {
-                        char regChar = 't';
-
-                        if (res.IsReadWrite)
+                        if (res.IsSampler)
                         {
-                            hlsl += "RW";
-                            regChar = 'u';
-                        }
-
-                        if (res.IsTexture)
-                        {
-                            hlsl += String.Format("{0}<{1}> {2} : register({3}{4});", res.resType.ToString(), res.variableType.descriptor.name, res.name, regChar, res.bindPoint) + nl;
+                            hlsl += String.Format("//SamplerComparisonState {0} : register(s{1}); // can't disambiguate", res.name, res.bindPoint) + nl;
+                            hlsl += String.Format("SamplerState {0} : register(s{1}); // can't disambiguate", res.name, res.bindPoint) + nl;
                         }
                         else
                         {
-                            if (res.variableType.descriptor.rows == 1)
-                                hlsl += String.Format("Buffer<{0}> {1} : register({2}{3});", res.variableType.descriptor.name, res.name, regChar, res.bindPoint) + nl;
+                            char regChar = 't';
+
+                            if (i == 1)
+                            {
+                                hlsl += "RW";
+                                regChar = 'u';
+                            }
+
+                            if (res.IsTexture)
+                            {
+                                hlsl += String.Format("{0}<{1}> {2} : register({3}{4});", res.resType.ToString(), res.variableType.descriptor.name, res.name, regChar, res.bindPoint) + nl;
+                            }
                             else
-                                hlsl += String.Format("StructuredBuffer<{0}> {1} : register({2}{3});", res.variableType.descriptor.name, res.name, regChar, res.bindPoint) + nl;
+                            {
+                                if (res.variableType.descriptor.rows == 1)
+                                    hlsl += String.Format("Buffer<{0}> {1} : register({2}{3});", res.variableType.descriptor.name, res.name, regChar, res.bindPoint) + nl;
+                                else
+                                    hlsl += String.Format("StructuredBuffer<{0}> {1} : register({2}{3});", res.variableType.descriptor.name, res.name, regChar, res.bindPoint) + nl;
+                            }
                         }
                     }
                 }
@@ -2518,9 +2520,9 @@ namespace renderdocui.Windows.PipelineState
 
             if (refl != null)
             {
-                foreach (var bind in refl.Resources)
+                foreach (var bind in refl.ReadWriteResources)
                 {
-                    if (bind.IsReadWrite && bind.bindPoint == i)
+                    if (bind.bindPoint == i)
                     {
                         shaderInput = bind;
                         break;

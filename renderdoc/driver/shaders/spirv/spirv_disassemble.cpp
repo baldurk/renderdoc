@@ -2329,7 +2329,6 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				res.IsSampler = true;
 				res.IsTexture = true;
 				res.IsSRV = true;
-				res.IsReadWrite = false;
 
 				SPVTypeData *sampledType = type->baseType;
 				if(sampledType->type == SPVTypeData::eImage)
@@ -2397,8 +2396,8 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 	create_array_uninit(mapping->ConstantBlocks, cblocks.size());
 	create_array_uninit(reflection->ConstantBlocks, cblocks.size());
 
-	create_array_uninit(mapping->Resources, resources.size());
-	create_array_uninit(reflection->Resources, resources.size());
+	create_array_uninit(mapping->ReadOnlyResources, resources.size());
+	create_array_uninit(reflection->ReadOnlyResources, resources.size());
 
 	for(size_t i=0; i < cblocks.size(); i++)
 	{
@@ -2409,9 +2408,9 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 
 	for(size_t i=0; i < resources.size(); i++)
 	{
-		mapping->Resources[i] = resources[i].map;
-		reflection->Resources[i] = resources[i].bindres;
-		reflection->Resources[i].bindPoint = (int32_t)i;
+		mapping->ReadOnlyResources[i] = resources[i].map;
+		reflection->ReadOnlyResources[i] = resources[i].bindres;
+		reflection->ReadOnlyResources[i].bindPoint = (int32_t)i;
 	}
 }
 

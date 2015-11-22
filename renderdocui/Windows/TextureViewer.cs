@@ -1218,9 +1218,9 @@ namespace renderdocui.Windows
 
                 if (details != null)
                 {
-                    foreach (var bind in details.Resources)
+                    foreach (var bind in details.ReadWriteResources)
                     {
-                        if (mapping.Resources[bind.bindPoint].bind == rw && bind.IsReadWrite)
+                        if (mapping.ReadWriteResources[bind.bindPoint].bind == rw)
                         {
                             used = true;
                             bindName = "<" + bind.name + ">";
@@ -1376,9 +1376,9 @@ namespace renderdocui.Windows
 
                 if (details != null)
                 {
-                    foreach (var bind in details.Resources)
+                    foreach (var bind in details.ReadOnlyResources)
                     {
-                        if (mapping.Resources[bind.bindPoint].bind == i && bind.IsSRV)
+                        if (mapping.ReadOnlyResources[bind.bindPoint].bind == i && bind.IsSRV)
                         {
                             used = true;
                             bindName = "<" + bind.name + ">";

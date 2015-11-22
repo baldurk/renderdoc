@@ -270,12 +270,12 @@ namespace renderdocui.Windows.PipelineState
 
                     if (shaderDetails != null)
                     {
-                        foreach (var bind in shaderDetails.Resources)
+                        foreach (var bind in shaderDetails.ReadOnlyResources)
                         {
-                            if (bind.IsSRV && !bind.IsReadWrite && mapping.Resources[bind.bindPoint].bind == i)
+                            if (bind.IsSRV && mapping.ReadOnlyResources[bind.bindPoint].bind == i)
                             {
                                 shaderInput = bind;
-                                map = mapping.Resources[bind.bindPoint];
+                                map = mapping.ReadOnlyResources[bind.bindPoint];
                             }
                         }
                     }
@@ -557,19 +557,13 @@ namespace renderdocui.Windows.PipelineState
             if (shaderDetails != null)
             {
                 UInt32 i = 0;
-                foreach (var res in shaderDetails.Resources)
+                foreach (var res in shaderDetails.ReadWriteResources)
                 {
-                    int bindPoint = stage.BindpointMapping.Resources[i].bind;
+                    int bindPoint = stage.BindpointMapping.ReadWriteResources[i].bind;
 
                     bool atomic = false;
                     bool ssbo = false;
                     bool image = false;
-
-                    if (!res.IsReadWrite)
-                    {
-                        i++;
-                        continue;
-                    }
 
                     GLPipelineState.Buffer bf = null;
                     GLPipelineState.ImageLoadStore im = null;
@@ -609,7 +603,7 @@ namespace renderdocui.Windows.PipelineState
                     }
 
                     bool filledSlot = id != ResourceId.Null;
-                    bool usedSlot = stage.BindpointMapping.Resources[i].used;
+                    bool usedSlot = stage.BindpointMapping.ReadWriteResources[i].used;
 
                     // show if
                     if (usedSlot || // it's referenced by the shader - regardless of empty or not
@@ -1658,7 +1652,7 @@ namespace renderdocui.Windows.PipelineState
 
                 var deets = stage.ShaderDetails;
                 
-                ShaderResource r = deets.Resources[rwtag.idx];
+                ShaderResource r = deets.ReadWriteResources[rwtag.idx];
 
                 if (deets != null)
                 {

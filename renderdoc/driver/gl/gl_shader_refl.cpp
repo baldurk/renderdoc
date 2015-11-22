@@ -783,7 +783,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		RDCEraseEl(refl.DispatchThreadsDimension);
 	}
 
-	vector<ShaderResource> resources;
+	vector<ShaderResource> roresources, rwresources;
 
 	GLint numUniforms = 0;
 	gl.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
@@ -798,17 +798,17 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 	{
 		GLint values[numProps];
 		gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
+
+		bool IsReadWrite = false;
 		
 		ShaderResource res;
 		res.IsSampler = false; // no separate sampler objects in GL
 		res.IsSRV = true;
 		res.IsTexture = true;
-		res.IsReadWrite = false;
 		res.variableType.descriptor.rows = 1;
 		res.variableType.descriptor.cols = 4;
 		res.variableType.descriptor.elements = 0;
 		res.variableType.descriptor.rowMajorStorage = false;
-		res.bindPoint = (int32_t)resources.size();
 
 		// float samplers
 		if(values[0] == eGL_SAMPLER_BUFFER)
@@ -1053,88 +1053,88 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "imageBuffer";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_IMAGE_1D)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "image1D";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_IMAGE_1D_ARRAY)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "image1DArray";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_IMAGE_2D)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "image2D";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_IMAGE_2D_ARRAY)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "image2DArray";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_IMAGE_2D_RECT)
 		{
 			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "image2DRect";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_IMAGE_3D)
 		{
 			res.resType = eResType_Texture3D;
 			res.variableType.descriptor.name = "image3D";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_IMAGE_CUBE)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "imageCube";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_IMAGE_CUBE_MAP_ARRAY)
 		{
 			res.resType = eResType_TextureCubeArray;
 			res.variableType.descriptor.name = "imageCubeArray";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_IMAGE_2D_MULTISAMPLE)
 		{
 			res.resType = eResType_Texture2DMS;
 			res.variableType.descriptor.name = "image2DMS";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_IMAGE_2D_MULTISAMPLE_ARRAY)
 		{
 			res.resType = eResType_Texture2DMSArray;
 			res.variableType.descriptor.name = "image2DMSArray";
 			res.variableType.descriptor.type = eVar_Float;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		// int images
 		else if(values[0] == eGL_INT_IMAGE_BUFFER)
@@ -1142,88 +1142,88 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "iimageBuffer";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_INT_IMAGE_1D)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "iimage1D";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_INT_IMAGE_1D_ARRAY)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "iimage1DArray";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_INT_IMAGE_2D)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "iimage2D";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_INT_IMAGE_2D_ARRAY)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "iimage2DArray";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_INT_IMAGE_2D_RECT)
 		{
 			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "iimage2DRect";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_INT_IMAGE_3D)
 		{
 			res.resType = eResType_Texture3D;
 			res.variableType.descriptor.name = "iimage3D";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_INT_IMAGE_CUBE)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "iimageCube";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_INT_IMAGE_CUBE_MAP_ARRAY)
 		{
 			res.resType = eResType_TextureCubeArray;
 			res.variableType.descriptor.name = "iimageCubeArray";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE)
 		{
 			res.resType = eResType_Texture2DMS;
 			res.variableType.descriptor.name = "iimage2DMS";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
 		{
 			res.resType = eResType_Texture2DMSArray;
 			res.variableType.descriptor.name = "iimage2DMSArray";
 			res.variableType.descriptor.type = eVar_Int;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		// unsigned int images
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_BUFFER)
@@ -1231,88 +1231,88 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "uimageBuffer";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "uimage1D";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D_ARRAY)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "uimage1DArray";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "uimage2D";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_ARRAY)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "uimage2DArray";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_RECT)
 		{
 			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "uimage2DRect";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_3D)
 		{
 			res.resType = eResType_Texture3D;
 			res.variableType.descriptor.name = "uimage3D";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_CUBE)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "uimageCube";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY)
 		{
 			res.resType = eResType_TextureCubeArray;
 			res.variableType.descriptor.name = "uimageCubeArray";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE)
 		{
 			res.resType = eResType_Texture2DMS;
 			res.variableType.descriptor.name = "uimage2DMS";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
 		{
 			res.resType = eResType_Texture2DMSArray;
 			res.variableType.descriptor.name = "uimage2DMSArray";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
+			IsReadWrite = true;
 		}
 		// atomic counter
 		else if(values[0] == eGL_UNSIGNED_INT_ATOMIC_COUNTER)
@@ -1320,10 +1320,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "atomic_uint";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.IsReadWrite = true;
 			res.IsSRV = false;
 			res.IsTexture = false;
 			res.variableType.descriptor.cols = 1;
+			IsReadWrite = true;
 		}
 		else
 		{
@@ -1339,7 +1339,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 
 		res.name = name;
 
-		resources.push_back(res);
+		vector<ShaderResource> &reslist = (IsReadWrite ? rwresources : roresources);
+
+		res.bindPoint = (int32_t)reslist.size();
+		reslist.push_back(res);
 
 		// array of samplers
 		if(values[4] > 1)
@@ -1349,10 +1352,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			{
 				string arrname = StringFormat::Fmt("%s[%d]", name.c_str(), i);
 				
-				res.bindPoint = (int32_t)resources.size();
+				res.bindPoint = (int32_t)reslist.size();
 				res.name = arrname;
 
-				resources.push_back(res);
+				reslist.push_back(res);
 			}
 		}
 	}
@@ -1377,7 +1380,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			res.IsSampler = false;
 			res.IsSRV = false;
 			res.IsTexture = false;
-			res.IsReadWrite = true;
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.rows = 0;
 			res.variableType.descriptor.cols = 0;
@@ -1385,13 +1387,13 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			res.variableType.descriptor.rowMajorStorage = false;
 			res.variableType.descriptor.name = "buffer";
 			res.variableType.descriptor.type = eVar_UInt;
-			res.bindPoint = (int32_t)resources.size();
+			res.bindPoint = (int32_t)rwresources.size();
 			res.name = nm;
 			
 			propName = eGL_NUM_ACTIVE_VARIABLES;
 			gl.glGetProgramResourceiv(sepProg, eGL_SHADER_STORAGE_BLOCK, u, 1, &propName, 1, NULL, (GLint *)&res.variableType.descriptor.elements);
 			
-			resources.push_back(res);
+			rwresources.push_back(res);
 			ssbos.push_back(res.bindPoint);
 			ssboMembers += res.variableType.descriptor.elements;
 
@@ -1410,7 +1412,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		for(size_t ssbo=0; ssbo < ssbos.size(); ssbo++)
 		{
 			sort(members[ssbo]);
-			copy(resources[ ssbos[ssbo] ].variableType.members, members[ssbo]);
+			copy(rwresources[ ssbos[ssbo] ].variableType.members, members[ssbo]);
 		}
 
 		delete[] members;
@@ -1772,7 +1774,8 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 	
 	// TODO: fill in Interfaces with shader subroutines?
 
-	refl.Resources = resources;
+	refl.ReadOnlyResources = roresources;
+	refl.ReadWriteResources = rwresources;
 	refl.ConstantBlocks = cbuffers;
 }
 
@@ -1795,26 +1798,26 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 		eGL_REFERENCED_BY_COMPUTE_SHADER,
 	};
 
-	int32_t numResources = refl ? refl->Resources.count : 0;
+	int32_t numResources = refl ? refl->ReadOnlyResources.count : 0;
 	
-	create_array_uninit(mapping.Resources, numResources);
+	create_array_uninit(mapping.ReadOnlyResources, numResources);
 	for(int32_t i=0; i < numResources; i++)
 	{
-		if(refl->Resources.elems[i].IsTexture)
+		if(refl->ReadOnlyResources.elems[i].IsTexture)
 		{
 			// normal sampler or image load/store
 
-			GLint loc = gl.glGetUniformLocation(curProg, refl->Resources.elems[i].name.elems);
+			GLint loc = gl.glGetUniformLocation(curProg, refl->ReadOnlyResources.elems[i].name.elems);
 			if(loc >= 0)
 			{
 				gl.glGetUniformiv(curProg, loc, dummyReadback);
-				mapping.Resources[i].bindset = 0;
-				mapping.Resources[i].bind = dummyReadback[0];
-				mapping.Resources[i].arraySize = 1;
+				mapping.ReadOnlyResources[i].bindset = 0;
+				mapping.ReadOnlyResources[i].bind = dummyReadback[0];
+				mapping.ReadOnlyResources[i].arraySize = 1;
 			}
 
 			// handle sampler arrays, use the base name
-			string name = refl->Resources.elems[i].name.elems;
+			string name = refl->ReadOnlyResources.elems[i].name.elems;
 			if(name.back() == ']')
 			{
 				do
@@ -1829,30 +1832,80 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 
 			if(idx == GL_INVALID_INDEX)
 			{
-				mapping.Resources[i].used = false;
+				mapping.ReadOnlyResources[i].used = false;
 			}
 			else
 			{
 				GLint used = 0;
 				gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
-				mapping.Resources[i].used = (used != 0);
+				mapping.ReadOnlyResources[i].used = (used != 0);
 			}
 		}
-		else if(refl->Resources.elems[i].IsReadWrite && !refl->Resources.elems[i].IsTexture)
+		else
 		{
-			if(refl->Resources.elems[i].variableType.descriptor.cols == 1 &&
-				refl->Resources.elems[i].variableType.descriptor.rows == 1 &&
-				refl->Resources.elems[i].variableType.descriptor.type == eVar_UInt)
+			mapping.ReadOnlyResources[i].bindset = -1;
+			mapping.ReadOnlyResources[i].bind = -1;
+			mapping.ReadOnlyResources[i].used = false;
+			mapping.ReadOnlyResources[i].arraySize = 1;
+		}
+	}
+	
+	create_array_uninit(mapping.ReadWriteResources, refl->ReadWriteResources.count);
+	for(int32_t i=0; i < refl->ReadWriteResources.count; i++)
+	{
+		if(refl->ReadWriteResources.elems[i].IsTexture)
+		{
+			// image load/store
+
+			GLint loc = gl.glGetUniformLocation(curProg, refl->ReadWriteResources.elems[i].name.elems);
+			if(loc >= 0)
+			{
+				gl.glGetUniformiv(curProg, loc, dummyReadback);
+				mapping.ReadWriteResources[i].bindset = 0;
+				mapping.ReadWriteResources[i].bind = dummyReadback[0];
+				mapping.ReadWriteResources[i].arraySize = 1;
+			}
+
+			// handle sampler arrays, use the base name
+			string name = refl->ReadWriteResources.elems[i].name.elems;
+			if(name.back() == ']')
+			{
+				do
+				{
+					name.pop_back();
+				} while(name.back() != '[');
+				name.pop_back();
+			}
+			
+			GLuint idx = 0;
+			idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, name.c_str());
+
+			if(idx == GL_INVALID_INDEX)
+			{
+				mapping.ReadWriteResources[i].used = false;
+			}
+			else
+			{
+				GLint used = 0;
+				gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+				mapping.ReadWriteResources[i].used = (used != 0);
+			}
+		}
+		else if(!refl->ReadWriteResources.elems[i].IsTexture)
+		{
+			if(refl->ReadWriteResources.elems[i].variableType.descriptor.cols == 1 &&
+				refl->ReadWriteResources.elems[i].variableType.descriptor.rows == 1 &&
+				refl->ReadWriteResources.elems[i].variableType.descriptor.type == eVar_UInt)
 			{
 				// atomic uint
-				GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, refl->Resources.elems[i].name.elems);
+				GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, refl->ReadWriteResources.elems[i].name.elems);
 
 				if(idx == GL_INVALID_INDEX)
 				{
-					mapping.Resources[i].bindset = -1;
-					mapping.Resources[i].bind = -1;
-					mapping.Resources[i].used = false;
-					mapping.Resources[i].arraySize = 1;
+					mapping.ReadWriteResources[i].bindset = -1;
+					mapping.ReadWriteResources[i].bind = -1;
+					mapping.ReadWriteResources[i].used = false;
+					mapping.ReadWriteResources[i].arraySize = 1;
 				}
 				else
 				{
@@ -1862,10 +1915,10 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 
 					if(atomicIndex == GL_INVALID_INDEX)
 					{
-						mapping.Resources[i].bindset = -1;
-						mapping.Resources[i].bind = -1;
-						mapping.Resources[i].used = false;
-						mapping.Resources[i].arraySize = 1;
+						mapping.ReadWriteResources[i].bindset = -1;
+						mapping.ReadWriteResources[i].bind = -1;
+						mapping.ReadWriteResources[i].used = false;
+						mapping.ReadWriteResources[i].arraySize = 1;
 					}
 					else
 					{
@@ -1877,45 +1930,45 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER,
 							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
 						};
-						mapping.Resources[i].bindset = 0;
-						gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, eGL_ATOMIC_COUNTER_BUFFER_BINDING, &mapping.Resources[i].bind);
+						mapping.ReadWriteResources[i].bindset = 0;
+						gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, eGL_ATOMIC_COUNTER_BUFFER_BINDING, &mapping.ReadWriteResources[i].bind);
 						GLint used = 0;
 						gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx], &used);
-						mapping.Resources[i].used = (used != 0);
-						mapping.Resources[i].arraySize = 1;
+						mapping.ReadWriteResources[i].used = (used != 0);
+						mapping.ReadWriteResources[i].arraySize = 1;
 					}
 				}
 			}
 			else
 			{
 				// shader storage buffer object
-				GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_SHADER_STORAGE_BLOCK, refl->Resources.elems[i].name.elems);
+				GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_SHADER_STORAGE_BLOCK, refl->ReadWriteResources.elems[i].name.elems);
 
 				if(idx == GL_INVALID_INDEX)
 				{
-					mapping.Resources[i].bindset = -1;
-					mapping.Resources[i].bind = -1;
-					mapping.Resources[i].used = false;
-					mapping.Resources[i].arraySize = 1;
+					mapping.ReadWriteResources[i].bindset = -1;
+					mapping.ReadWriteResources[i].bind = -1;
+					mapping.ReadWriteResources[i].used = false;
+					mapping.ReadWriteResources[i].arraySize = 1;
 				}
 				else
 				{
 					GLenum prop = eGL_BUFFER_BINDING;
-					mapping.Resources[i].bindset = 0;
-					gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &prop, 1, NULL, &mapping.Resources[i].bind);
+					mapping.ReadWriteResources[i].bindset = 0;
+					gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &prop, 1, NULL, &mapping.ReadWriteResources[i].bind);
 					GLint used = 0;
 					gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
-					mapping.Resources[i].used = (used != 0);
-					mapping.Resources[i].arraySize = 1;
+					mapping.ReadWriteResources[i].used = (used != 0);
+					mapping.ReadWriteResources[i].arraySize = 1;
 				}
 			}
 		}
 		else
 		{
-			mapping.Resources[i].bindset = -1;
-			mapping.Resources[i].bind = -1;
-			mapping.Resources[i].used = false;
-			mapping.Resources[i].arraySize = 1;
+			mapping.ReadWriteResources[i].bindset = -1;
+			mapping.ReadWriteResources[i].bind = -1;
+			mapping.ReadWriteResources[i].used = false;
+			mapping.ReadWriteResources[i].arraySize = 1;
 		}
 	}
 	

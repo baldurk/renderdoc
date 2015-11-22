@@ -974,13 +974,33 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 		}
 	}
 
-	int numResources = 0;
-	for(size_t i=0; i < dxbc->m_Resources.size(); i++)
-		if(dxbc->m_Resources[i].type != DXBC::ShaderInputBind::TYPE_CBUFFER)
-			numResources++;
+	int numRWResources = 0;
+	int numROResources = 0;
 
-	create_array_uninit(ret->Resources, numResources);
-	int32_t idx=0;
+	for(size_t i=0; i < dxbc->m_Resources.size(); i++)
+	{
+		const auto &r = dxbc->m_Resources[i];
+		
+		if(r.type != DXBC::ShaderInputBind::TYPE_CBUFFER)
+		{
+			bool IsReadWrite = (r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED ||
+												 r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
+												 r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
+												 r.type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
+												 r.type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
+												 r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER);
+
+			if(IsReadWrite)
+				numRWResources++;
+			else
+				numROResources++;
+		}
+	}
+
+	create_array_uninit(ret->ReadWriteResources, numRWResources);
+	create_array_uninit(ret->ReadOnlyResources, numROResources);
+
+	int32_t rwidx = 0, roidx = 0;
 	for(size_t i=0; i < dxbc->m_Resources.size(); i++)
 	{
 		const auto &r = dxbc->m_Resources[i];
@@ -1001,7 +1021,7 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 		             r.type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
 		             r.type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
 		             r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS);
-		res.IsReadWrite = (r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED ||
+		bool IsReadWrite = (r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED ||
 		                   r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
 		                   r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
 		                   r.type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
@@ -1088,7 +1108,10 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 			}
 		}
 
-		ret->Resources[idx++] = res;
+		if(IsReadWrite)
+			ret->ReadWriteResources[rwidx++] = res;
+		else
+			ret->ReadOnlyResources[roidx++] = res;
 	}
 
 	uint32_t numInterfaces = 0;

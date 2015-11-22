@@ -181,7 +181,6 @@ struct ShaderResource
 	bool32 IsSampler;
 	bool32 IsTexture;
 	bool32 IsSRV;
-	bool32 IsReadWrite;
 	
 	ShaderResourceType resType;
 
@@ -215,7 +214,8 @@ struct ShaderReflection
 	
 	rdctype::array<ConstantBlock> ConstantBlocks; // sparse - index indicates bind point
 
-	rdctype::array<ShaderResource> Resources; // non-sparse, since bind points can overlap.
+	rdctype::array<ShaderResource> ReadOnlyResources; // non-sparse, since bind points can overlap.
+	rdctype::array<ShaderResource> ReadWriteResources; // non-sparse, since bind points can overlap.
 	
 	// TODO expand this to encompass shader subroutines.
 	rdctype::array<rdctype::str> Interfaces;
@@ -233,5 +233,6 @@ struct ShaderBindpointMapping
 {
 	rdctype::array<int> InputAttributes;
 	rdctype::array<BindpointMap> ConstantBlocks;
-	rdctype::array<BindpointMap> Resources;
+	rdctype::array<BindpointMap> ReadOnlyResources;
+	rdctype::array<BindpointMap> ReadWriteResources;
 };

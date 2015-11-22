@@ -466,7 +466,7 @@ namespace renderdocui.Windows
                     disasm = FriendlyName(disasm, stem, "", cbuf.variables);
                 }
 
-                foreach (var r in m_ShaderDetails.Resources)
+                foreach (var r in m_ShaderDetails.ReadOnlyResources)
                 {
                     if (r.IsSRV)
                     {
@@ -484,14 +484,14 @@ namespace renderdocui.Windows
                         Regex rgx = new Regex(needle);
                         disasm = rgx.Replace(disasm, replacement);
                     }
-                    if (r.IsReadWrite)
-                    {
-                        var needle = string.Format(", u{0}([^0-9])", r.bindPoint);
-                        var replacement = string.Format(", {0}$1", r.name);
+                }
+                foreach (var r in m_ShaderDetails.ReadWriteResources)
+                {
+                    var needle = string.Format(", u{0}([^0-9])", r.bindPoint);
+                    var replacement = string.Format(", {0}$1", r.name);
 
-                        Regex rgx = new Regex(needle);
-                        disasm = rgx.Replace(disasm, replacement);
-                    }
+                    Regex rgx = new Regex(needle);
+                    disasm = rgx.Replace(disasm, replacement);
                 }
             }
 
@@ -1304,6 +1304,70 @@ namespace renderdocui.Windows
             return var.Row(0, VarType.Float).ToString();
         }
 
+        private void AddResourceRegister(ShaderResource slot, D3D11PipelineState.ShaderStage.ResourceView res)
+        {
+            bool found = false;
+
+            var name = slot.bindPoint + " (" + slot.name + ")";
+
+            foreach (var tex in m_Core.CurTextures)
+            {
+                if (tex.ID == res.Resource)
+                {
+                    var node = new TreelistView.Node(new object[] {
+                "t" + name, "Texture",
+                tex.width + "x" + tex.height + "x" + (tex.depth > 1 ? tex.depth : tex.arraysize) +
+                "[" + tex.mips + "] @ " + tex.format + " - " + tex.name
+            });
+                    node.Tag = null;
+
+                    constantRegs.Nodes.Add(node);
+
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                foreach (var buf in m_Core.CurBuffers)
+                {
+                    if (buf.ID == res.Resource)
+                    {
+                        string prefix = "u";
+
+                        if (slot.IsSRV)
+                            prefix = "t";
+
+                        var node = new TreelistView.Node(new object[] {
+                    prefix + name, "Buffer",
+                    buf.length + " - " + buf.name
+                });
+                        node.Tag = null;
+                        constantRegs.Nodes.Add(node);
+
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!found)
+            {
+                string prefix = "u";
+
+                if (slot.IsSRV)
+                    prefix = "t";
+
+                var node = new TreelistView.Node(new object[] {
+                    prefix + name, "Resource",
+                    "unknown"
+                });
+                node.Tag = null;
+                constantRegs.Nodes.Add(node);
+            }
+        }
+
         public void UpdateDebugging()
         {
             if (m_Trace == null || m_Trace.states == null || m_Trace.states.Length == 0)
@@ -1381,81 +1445,24 @@ namespace renderdocui.Windows
 
                 var pipestate = m_Core.CurD3D11PipelineState;
 
-                foreach (var slot in m_ShaderDetails.Resources)
+                foreach (ShaderResource slot in m_ShaderDetails.ReadWriteResources)
+                {
+                    D3D11PipelineState.ShaderStage.ResourceView res = null;
+
+                    if (m_Stage.stage == ShaderStageType.Pixel)
+                        res = pipestate.m_OM.UAVs[slot.bindPoint - pipestate.m_OM.UAVStartSlot];
+                    else
+                        res = m_Stage.UAVs[slot.bindPoint];
+
+                    AddResourceRegister(slot, res);
+                }
+
+                foreach (ShaderResource slot in m_ShaderDetails.ReadOnlyResources)
                 {
                     if (slot.IsSampler)
                         continue;
 
-                    var res = m_Stage.SRVs[slot.bindPoint];
-
-                    if (slot.IsReadWrite)
-                    {
-                        if(m_Stage.stage == ShaderStageType.Pixel)
-                            res = pipestate.m_OM.UAVs[slot.bindPoint - pipestate.m_OM.UAVStartSlot];
-                        else
-                            res = m_Stage.UAVs[slot.bindPoint];
-                    }
-
-                    bool found = false;
-
-                    var name = slot.bindPoint + " (" + slot.name + ")";
-
-                    foreach (var tex in m_Core.CurTextures)
-                    {
-                        if (tex.ID == res.Resource)
-                        {
-                            var node = new TreelistView.Node(new object[] {
-                                "t" + name, "Texture",
-                                tex.width + "x" + tex.height + "x" + (tex.depth > 1 ? tex.depth : tex.arraysize) +
-                                "[" + tex.mips + "] @ " + tex.format + " - " + tex.name
-                            });
-                            node.Tag = null;
-
-                            constantRegs.Nodes.Add(node);
-
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        foreach (var buf in m_Core.CurBuffers)
-                        {
-                            if (buf.ID == res.Resource)
-                            {
-                                string prefix = "u";
-
-                                if (slot.IsSRV)
-                                    prefix = "t";
-
-                                var node = new TreelistView.Node(new object[] {
-                                    prefix + name, "Buffer",
-                                    buf.length + " - " + buf.name
-                                });
-                                node.Tag = null;
-                                constantRegs.Nodes.Add(node);
-
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        string prefix = "u";
-
-                        if (slot.IsSRV)
-                            prefix = "t";
-
-                        var node = new TreelistView.Node(new object[] {
-                                    prefix + name, "Resource",
-                                    "unknown"
-                                });
-                        node.Tag = null;
-                        constantRegs.Nodes.Add(node);
-                    }
+                    AddResourceRegister(slot, m_Stage.SRVs[slot.bindPoint]);
                 }
 
                 constantRegs.EndUpdate();

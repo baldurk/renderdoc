@@ -122,9 +122,10 @@ void Serialiser::Serialise(const char *name, ShaderBindpointMapping &el)
 {
 	Serialise("", el.InputAttributes);
 	Serialise("", el.ConstantBlocks);
-	Serialise("", el.Resources);
+	Serialise("", el.ReadOnlyResources);
+	Serialise("", el.ReadWriteResources);
 
-	SIZE_CHECK(ShaderBindpointMapping, 24);
+	SIZE_CHECK(ShaderBindpointMapping, 32);
 }
 
 template<>
@@ -188,13 +189,12 @@ void Serialiser::Serialise(const char *name, ShaderResource &el)
 	Serialise("", el.IsSampler);
 	Serialise("", el.IsTexture);
 	Serialise("", el.IsSRV);
-	Serialise("", el.IsReadWrite);
 	Serialise("", el.resType);
 	Serialise("", el.name);
 	Serialise("", el.variableType);
 	Serialise("", el.bindPoint);
 
-	SIZE_CHECK(ShaderResource, 68);
+	SIZE_CHECK(ShaderResource, 64);
 }
 
 template<>
@@ -213,11 +213,12 @@ void Serialiser::Serialise(const char *name, ShaderReflection &el)
 
 	Serialise("", el.ConstantBlocks);
 
-	Serialise("", el.Resources);
+	Serialise("", el.ReadOnlyResources);
+	Serialise("", el.ReadWriteResources);
 
 	Serialise("", el.Interfaces);
 
-	SIZE_CHECK(ShaderReflection, 84);
+	SIZE_CHECK(ShaderReflection, 92);
 }
 
 template<>
@@ -368,7 +369,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage &el
 	Serialise("", el.ConstantBuffers);
 	Serialise("", el.ClassInstances);
 
-	SIZE_CHECK(D3D11PipelineState::ShaderStage, 96);
+	SIZE_CHECK(D3D11PipelineState::ShaderStage, 104);
 }
 
 template<>
@@ -463,7 +464,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState &el)
 	Serialise("", el.m_RS);
 	Serialise("", el.m_OM);
 
-	SIZE_CHECK(D3D11PipelineState, 1000);
+	SIZE_CHECK(D3D11PipelineState, 1040);
 }
 
 #pragma endregion D3D11 pipeline state
@@ -506,7 +507,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::ShaderStage &el)
 	if(m_Mode == READING)
 		el.ShaderDetails = NULL;
 
-	SIZE_CHECK(GLPipelineState::ShaderStage, 48);
+	SIZE_CHECK(GLPipelineState::ShaderStage, 56);
 }
 
 template<>
@@ -686,7 +687,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState &el)
 
 	Serialise("", el.m_Hints);
 
-	SIZE_CHECK(GLPipelineState, 984);
+	SIZE_CHECK(GLPipelineState, 1032);
 }
 
 #pragma endregion OpenGL pipeline state
@@ -761,7 +762,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ShaderStage &e
 	if(m_Mode == READING)
 		el.ShaderDetails = NULL;
 
-	SIZE_CHECK(VulkanPipelineState::ShaderStage, 56);
+	SIZE_CHECK(VulkanPipelineState::ShaderStage, 64);
 }
 
 template<>
@@ -881,7 +882,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState &el)
 	Serialise("", el.DS);
 	Serialise("", el.Pass);
 
-	SIZE_CHECK(VulkanPipelineState, 744);
+	SIZE_CHECK(VulkanPipelineState, 792);
 }
 
 #pragma endregion Vulkan pipeline state

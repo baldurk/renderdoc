@@ -1021,7 +1021,8 @@ void GLReplay::SavePipelineState()
 		stages[i]->Shader = ResourceId();
 		stages[i]->ShaderDetails = NULL;
 		stages[i]->BindpointMapping.ConstantBlocks.Delete();
-		stages[i]->BindpointMapping.Resources.Delete();
+		stages[i]->BindpointMapping.ReadOnlyResources.Delete();
+		stages[i]->BindpointMapping.ReadWriteResources.Delete();
 	}
 
 	if(curProg == 0)
@@ -1142,19 +1143,17 @@ void GLReplay::SavePipelineState()
 		{
 			if(refls[s] == NULL) continue;
 
-			for(int32_t r=0; r < refls[s]->Resources.count; r++)
+			for(int32_t r=0; r < refls[s]->ReadOnlyResources.count; r++)
 			{
-				if(refls[s]->Resources[r].IsReadWrite) continue;
-
 				// bindPoint is the uniform value for this sampler
-				if(mappings[s]->Resources[ refls[s]->Resources[r].bindPoint ].bind == unit)
+				if(mappings[s]->ReadOnlyResources[ refls[s]->ReadOnlyResources[r].bindPoint ].bind == unit)
 				{
 					GLenum t = eGL_NONE;
 
-					if(strstr(refls[s]->Resources[r].variableType.descriptor.name.elems, "Shadow"))
+					if(strstr(refls[s]->ReadOnlyResources[r].variableType.descriptor.name.elems, "Shadow"))
 						shadow = true;
 
-					switch(refls[s]->Resources[r].resType)
+					switch(refls[s]->ReadOnlyResources[r].resType)
 					{
 						case eResType_None:
 							target = eGL_NONE;
@@ -1197,7 +1196,7 @@ void GLReplay::SavePipelineState()
 					if(target != eGL_NONE)
 						t = TextureBinding(target);
 
-					resType = refls[s]->Resources[r].resType;
+					resType = refls[s]->ReadOnlyResources[r].resType;
 
 					if(binding == eGL_NONE)
 					{
