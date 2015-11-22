@@ -101,6 +101,7 @@ namespace renderdocui.Windows.PipelineState
             }
 
             m_Current = m_D3D11;
+            m_Core.CurPipelineState.DefaultType = APIPipelineStateType.D3D11;
         }
 
         private void SetToGL()
@@ -117,6 +118,7 @@ namespace renderdocui.Windows.PipelineState
             }
 
             m_Current = m_GL;
+            m_Core.CurPipelineState.DefaultType = APIPipelineStateType.OpenGL;
         }
 
         private void SetToVulkan()
@@ -133,6 +135,7 @@ namespace renderdocui.Windows.PipelineState
             }
 
             m_Current = m_Vulkan;
+            m_Core.CurPipelineState.DefaultType = APIPipelineStateType.Vulkan;
         }
 
         public void OnLogfileLoaded()

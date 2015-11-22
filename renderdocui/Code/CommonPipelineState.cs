@@ -49,6 +49,8 @@ namespace renderdocui.Code
             m_Vulkan = vk;
         }
 
+        public APIPipelineStateType DefaultType = APIPipelineStateType.D3D11;
+
         private bool LogLoaded
         {
             get
@@ -101,6 +103,62 @@ namespace renderdocui.Code
 
                 return false;
             }
+        }
+
+        public bool SupportsResourceArrays
+        {
+            get
+            {
+                if (LogLoaded)
+                {
+                    if (IsLogVK)
+                        return true;
+                }
+
+                return false;
+            }
+        }
+
+        public string Abbrev(ShaderStageType stage)
+        {
+            if (IsLogD3D11 || (!LogLoaded && DefaultType == APIPipelineStateType.D3D11))
+            {
+                switch (stage)
+                {
+                    case ShaderStageType.Vertex: return "VS";
+                    case ShaderStageType.Hull: return "HS";
+                    case ShaderStageType.Domain: return "DS";
+                    case ShaderStageType.Geometry: return "GS";
+                    case ShaderStageType.Pixel: return "PS";
+                    case ShaderStageType.Compute: return "CS";
+                }
+            }
+            else if (IsLogGL || (!LogLoaded && DefaultType == APIPipelineStateType.OpenGL) ||
+                     IsLogVK || (!LogLoaded && DefaultType == APIPipelineStateType.Vulkan))
+            {
+                switch (stage)
+                {
+                    case ShaderStageType.Vertex: return "VS";
+                    case ShaderStageType.Tess_Control: return "TCS";
+                    case ShaderStageType.Tess_Eval: return "TES";
+                    case ShaderStageType.Geometry: return "GS";
+                    case ShaderStageType.Fragment: return "FS";
+                    case ShaderStageType.Compute: return "CS";
+                }
+            }
+
+            return "?S";
+        }
+
+        public string OutputAbbrev()
+        {
+            if (IsLogGL || (!LogLoaded && DefaultType == APIPipelineStateType.OpenGL) ||
+                IsLogVK || (!LogLoaded && DefaultType == APIPipelineStateType.Vulkan))
+            {
+                return "FB";
+            }
+
+            return "RT";
         }
 
         // there's a lot of redundancy in these functions
@@ -602,20 +660,6 @@ namespace renderdocui.Code
             }
 
             return null;
-        }
-
-        public bool SupportsResourceArrays
-        {
-            get
-            {
-                if (LogLoaded)
-                {
-                    if (IsLogVK)
-                        return true;
-                }
-
-                return false;
-            }
         }
 
         public void GetConstantBuffer(ShaderStageType stage, uint BufIdx, uint ArrayIdx, out ResourceId buf, out ulong ByteOffset, out ulong ByteSize)
