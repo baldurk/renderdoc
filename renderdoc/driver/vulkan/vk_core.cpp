@@ -393,7 +393,8 @@ void WrappedVulkan::SubmitCmds()
 	vector<VkCmdBuffer> cmds = m_InternalCmds.pendingcmds;
 	for(size_t i=0; i < cmds.size(); i++) cmds[i] = Unwrap(cmds[i]);
 
-	ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), (uint32_t)cmds.size(), &cmds[0], VK_NULL_HANDLE);
+	VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), (uint32_t)cmds.size(), &cmds[0], VK_NULL_HANDLE);
+	RDCASSERT(vkr == VK_SUCCESS);
 
 	m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(), m_InternalCmds.pendingcmds.begin(), m_InternalCmds.pendingcmds.end());
 	m_InternalCmds.pendingcmds.clear();
