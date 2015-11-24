@@ -958,9 +958,16 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
 			iminfo.format,
 			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
+			{ layouts.subresourceStates[0].subresourceRange.aspectMask, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
 			0
 		};
+
+		if(layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)
+		{
+			viewInfo.channels.g = VK_CHANNEL_SWIZZLE_ZERO;
+			viewInfo.channels.b = VK_CHANNEL_SWIZZLE_ZERO;
+			viewInfo.channels.a = VK_CHANNEL_SWIZZLE_ZERO;
+		}
 
 		// Only needed on AMD - does the wrong thing on nvidia - so commented for now while AMD
 		// drivers aren't on 0.9.2
