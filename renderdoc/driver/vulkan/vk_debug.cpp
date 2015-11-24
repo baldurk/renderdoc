@@ -504,10 +504,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramPipeLayout);
 
 	VkDescriptorTypeCount descPoolTypes[] = {
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024, },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1024, },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024, },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024, },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 128, },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 128, },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 128, },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 128, },
 	};
 	
 	VkDescriptorPoolCreateInfo descpoolInfo = {
