@@ -881,12 +881,12 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
 				}
 				else
 				{
-					auto it = m_WindowFrameCapturers.begin();
+					auto newactive = m_WindowFrameCapturers.begin();
 					// active window could be the first in our list, move
 					// to second (we know from above there are at least 2)
-					if(m_ActiveWindow == it->first)
-						it++;
-					m_ActiveWindow = it->first;
+					if(m_ActiveWindow == newactive->first)
+						newactive++;
+					m_ActiveWindow = newactive->first;
 				}
 			}
 
