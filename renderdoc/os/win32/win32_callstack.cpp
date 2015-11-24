@@ -35,7 +35,12 @@
 #include <windows.h>
 #include <shlobj.h>
 #include <tchar.h>
+
+#pragma warning (push)
+#pragma warning (disable:4091) // a microsoft header has warnings. Very nice.
 #include <dbghelp.h>
+#pragma warning (pop)
+
 #include <Psapi.h>
 
 class Win32Callstack : public Callstack::Stackwalk

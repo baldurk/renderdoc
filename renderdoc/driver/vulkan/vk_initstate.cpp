@@ -974,7 +974,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			im->real.As<VkImage>(),
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, layout->arraySize }
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, (uint32_t)layout->arraySize }
 		};
 
 		// loop over every mip, copying it to the appropriate point in the buffer
@@ -982,12 +982,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		{
 			VkBufferImageCopy region = {
 				0, 0, 0,
-				{ VK_IMAGE_ASPECT_COLOR, m, 0, layout->arraySize },
+				{ VK_IMAGE_ASPECT_COLOR, (uint32_t)m, 0, (uint32_t)layout->arraySize },
 				{ 0, 0, 0, },
 				extent,
 			};
 
-			VkImageSubresource sub = { VK_IMAGE_ASPECT_COLOR, m, 0 };
+			VkImageSubresource sub = { VK_IMAGE_ASPECT_COLOR, (uint32_t)m, 0 };
 			VkSubresourceLayout sublayout;
 
 			vkr = ObjDisp(d)->GetImageSubresourceLayout(Unwrap(d), im->real.As<VkImage>(), &sub, &sublayout);
@@ -1389,9 +1389,9 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 				m_CreationInfo.m_Image[liveim->id].type,
 				m_CreationInfo.m_Image[liveim->id].format,
 				m_CreationInfo.m_Image[liveim->id].extent,
-				m_CreationInfo.m_Image[liveim->id].mipLevels,
-				m_CreationInfo.m_Image[liveim->id].arraySize,
-				m_CreationInfo.m_Image[liveim->id].samples,
+				(uint32_t)m_CreationInfo.m_Image[liveim->id].mipLevels,
+				(uint32_t)m_CreationInfo.m_Image[liveim->id].arraySize,
+				(uint32_t)m_CreationInfo.m_Image[liveim->id].samples,
 				VK_IMAGE_TILING_OPTIMAL, // make this optimal since the format/etc is more likely supported as optimal
 				VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
 				0,
@@ -1801,16 +1801,16 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			ToHandle<VkImage>(live),
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, m_CreationInfo.m_Image[id].arraySize }
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, (uint32_t)m_CreationInfo.m_Image[id].arraySize }
 		};
 
 		// loop over every mip
 		for(int m=0; m < m_CreationInfo.m_Image[id].mipLevels; m++)
 		{
 			VkImageCopy region = {
-				{ VK_IMAGE_ASPECT_COLOR, m, 0, m_CreationInfo.m_Image[id].arraySize },
+				{ VK_IMAGE_ASPECT_COLOR, (uint32_t)m, 0, (uint32_t)m_CreationInfo.m_Image[id].arraySize },
 				{ 0, 0, 0 },
-				{ VK_IMAGE_ASPECT_COLOR, m, 0, m_CreationInfo.m_Image[id].arraySize },
+				{ VK_IMAGE_ASPECT_COLOR, (uint32_t)m, 0, (uint32_t)m_CreationInfo.m_Image[id].arraySize },
 				{ 0, 0, 0 },
 				extent,
 			};
