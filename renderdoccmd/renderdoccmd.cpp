@@ -201,7 +201,7 @@ int renderdoccmd(int argc, char **argv)
 
 					if(!f)
 					{
-						fprintf(stderr, "Couldn't open destination file '%s'.", jpgname);
+						fprintf(stderr, "Couldn't open destination file '%s'.", jpgname.c_str());
 					}
 					else
 					{
