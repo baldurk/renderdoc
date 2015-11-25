@@ -2156,6 +2156,87 @@ struct bindpair
 typedef bindpair<ConstantBlock> cblockpair;
 typedef bindpair<ShaderResource> shaderrespair;
 
+void AddSignatureParameter(string varName, SPVTypeData *type, const vector<SPVDecoration> &decorations, vector<SigParameter> &sigarray, rdctype::array<int> *inputAttrs)
+{
+	SigParameter sig;
+
+	sig.varName = varName;
+	sig.semanticIndex = 0;
+	sig.needSemanticIndex = false;
+
+	bool rowmajor = true;
+
+	sig.regIndex = 0;
+	for(size_t d=0; d < decorations.size(); d++)
+	{
+		if(decorations[d].decoration == spv::DecorationLocation)
+			sig.regIndex = decorations[d].val;
+		else if(decorations[d].decoration == spv::DecorationBuiltIn)
+			sig.systemValue = BuiltInToSystemAttribute((spv::BuiltIn)decorations[d].val);
+		else if(decorations[d].decoration == spv::DecorationRowMajor)
+			rowmajor = true;
+		else if(decorations[d].decoration == spv::DecorationColMajor)
+			rowmajor = false;
+	}
+
+	RDCASSERT(sig.regIndex < 16);
+
+	if(type->type == SPVTypeData::ePointer)
+		type = type->baseType;
+
+	if(type->type == SPVTypeData::eStruct)
+	{
+		for(size_t c=0; c < type->children.size(); c++)
+			AddSignatureParameter(varName + "." + type->children[c].second, type->children[c].first, type->decorations[c], sigarray, inputAttrs);
+		return;
+	}
+
+	switch(type->baseType ? type->baseType->type : type->type)
+	{
+		case SPVTypeData::eBool:
+		case SPVTypeData::eUInt:
+			sig.compType = eCompType_UInt;
+			break;
+		case SPVTypeData::eSInt:
+			sig.compType = eCompType_SInt;
+			break;
+		case SPVTypeData::eFloat:
+			sig.compType = eCompType_Float;
+			break;
+		default:
+			RDCERR("Unexpected base type of input/output signature %u", type->baseType ? type->baseType->type : type->type);
+			break;
+	}
+
+	sig.compCount = type->vectorSize;
+	sig.stream = 0;
+
+	sig.regChannelMask = sig.channelUsedMask = (1<<type->vectorSize)-1;
+
+	if(type->matrixSize == 1)
+	{
+		if(inputAttrs && sig.systemValue == eAttr_None)
+			inputAttrs->elems[sig.regIndex] = (int32_t)sigarray.size();
+		sigarray.push_back(sig);
+	}
+	else
+	{
+		for(uint32_t m=0; m < type->matrixSize; m++)
+		{
+			SigParameter s = sig;
+			s.varName = StringFormat::Fmt("%s:%s%u", varName.c_str(), rowmajor ? "row" : "col", m);
+			s.regIndex += m;
+
+			RDCASSERT(s.regIndex < 16);
+
+			if(inputAttrs && sig.systemValue == eAttr_None)
+				inputAttrs->elems[s.regIndex] = (int32_t)sigarray.size();
+
+			sigarray.push_back(s);
+		}
+	}
+}
+
 void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapping *mapping)
 {
 	vector<SigParameter> inputs;
@@ -2176,81 +2257,21 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 		SPVInstruction *inst = globals[i];
 		if(inst->var->storage == spv::StorageClassInput || inst->var->storage == spv::StorageClassOutput)
 		{
-			vector<SigParameter> *sigarray = (inst->var->storage == spv::StorageClassInput ? &inputs : &outputs);
+			bool isInput = inst->var->storage == spv::StorageClassInput;
+			vector<SigParameter> *sigarray = (isInput ? &inputs : &outputs);
 
-			SigParameter sig;
-
-			string nm = inst->str.empty() ? StringFormat::Fmt("sig%u", inst->id) : inst->str;
-
-			sig.varName = nm;
-			sig.semanticIndex = 0;
-			sig.needSemanticIndex = false;
-
-			bool rowmajor = true;
-
-			sig.regIndex = 0;
-			for(size_t d=0; d < inst->decorations.size(); d++)
-			{
-				if(inst->decorations[d].decoration == spv::DecorationLocation)
-					sig.regIndex = inst->decorations[d].val;
-				else if(inst->decorations[d].decoration == spv::DecorationBuiltIn)
-					sig.systemValue = BuiltInToSystemAttribute((spv::BuiltIn)inst->decorations[d].val);
-				else if(inst->decorations[d].decoration == spv::DecorationRowMajor)
-					rowmajor = true;
-				else if(inst->decorations[d].decoration == spv::DecorationColMajor)
-					rowmajor = false;
-			}
-
-			RDCASSERT(sig.regIndex < 16);
-
-			SPVTypeData *type = inst->var->type;
-			if(type->type == SPVTypeData::ePointer)
-				type = type->baseType;
-
-			switch(type->baseType ? type->baseType->type : type->type)
-			{
-				case SPVTypeData::eBool:
-				case SPVTypeData::eUInt:
-					sig.compType = eCompType_UInt;
-					break;
-				case SPVTypeData::eSInt:
-					sig.compType = eCompType_SInt;
-					break;
-				case SPVTypeData::eFloat:
-					sig.compType = eCompType_Float;
-					break;
-				default:
-					RDCERR("Unexpected base type of input signature %u", type->baseType ? type->baseType->type : type->type);
-					break;
-			}
-
-			sig.compCount = type->vectorSize;
-			sig.stream = 0;
-
-			sig.regChannelMask = sig.channelUsedMask = (1<<type->vectorSize)-1;
-
-			if(type->matrixSize == 1)
-			{
-				if(inst->var->storage == spv::StorageClassInput && sig.systemValue == eAttr_None)
-					mapping->InputAttributes[sig.regIndex] = (int32_t)sigarray->size();
-				sigarray->push_back(sig);
-			}
+			string nm;
+			// try to use the instance/variable name
+			if(!inst->str.empty())
+				nm = inst->str;
+			// for structs, if there's no instance name, use the type name
+			else if(inst->var->type->type == SPVTypeData::ePointer && inst->var->type->baseType->type == SPVTypeData::eStruct)
+				nm = inst->var->type->baseType->name;
+			// otherwise fall back to naming after the ID
 			else
-			{
-				for(uint32_t m=0; m < type->matrixSize; m++)
-				{
-					SigParameter s = sig;
-					s.varName = StringFormat::Fmt("%s:%s%u", nm.c_str(), rowmajor ? "row" : "col", m);
-					s.regIndex += m;
+				nm = StringFormat::Fmt("sig%u", inst->id);
 
-					RDCASSERT(s.regIndex < 16);
-					
-					if(inst->var->storage == spv::StorageClassInput && sig.systemValue == eAttr_None)
-						mapping->InputAttributes[s.regIndex] = (int32_t)sigarray->size();
-
-					sigarray->push_back(s);
-				}
-			}
+			AddSignatureParameter(nm, inst->var->type, inst->decorations, *sigarray, isInput ? &mapping->InputAttributes : NULL);
 		}
 		else if(inst->var->storage == spv::StorageClassUniform || inst->var->storage == spv::StorageClassUniformConstant)
 		{
