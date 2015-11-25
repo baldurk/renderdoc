@@ -141,6 +141,14 @@ struct SPVExtInstSet
 	const char **instructions;
 };
 
+struct SPVExecutionMode
+{
+	SPVExecutionMode() : mode(spv::ExecutionModeInvocations), x(0), y(0), z(0) {}
+
+	spv::ExecutionMode mode;
+	uint32_t x, y, z; // optional params
+};
+
 struct SPVEntryPoint
 {
 	SPVEntryPoint() : func(0), model(spv::ExecutionModelVertex) {}
@@ -150,6 +158,7 @@ struct SPVEntryPoint
 	uint32_t func;
 	spv::ExecutionModel model;
 	string name;
+	vector<SPVExecutionMode> modes;
 };
 
 struct SPVTypeData
@@ -1365,6 +1374,42 @@ void SPVModule::Disassemble()
 		uint32_t func = entries[i]->entry->func;
 		RDCASSERT(ids[func]);
 		m_Disassembly += StringFormat::Fmt("Entry point '%s' (%s)\n", ids[func]->str.c_str(), ToStr::Get(entries[i]->entry->model).c_str());
+
+		for(size_t m=0; m < entries[i]->entry->modes.size(); m++)
+		{
+			SPVExecutionMode &mode = entries[i]->entry->modes[m];
+			m_Disassembly += StringFormat::Fmt("            %s", ToStr::Get(mode.mode).c_str());
+			if(mode.mode == spv::ExecutionModeInvocations || mode.mode == spv::ExecutionModeOutputVertices)
+				m_Disassembly += StringFormat::Fmt(" = %u", mode.x);
+			if(mode.mode == spv::ExecutionModeLocalSize || mode.mode == spv::ExecutionModeLocalSizeHint)
+				m_Disassembly += StringFormat::Fmt(" = <%u, %u, %u>", mode.x, mode.y, mode.z);
+			if(mode.mode == spv::ExecutionModeVecTypeHint)
+			{
+				uint16_t dataType = (mode.x & 0xffff);
+				uint16_t numComps = (mode.y >> 16) & 0xffff;
+				switch(dataType)
+				{
+					// 0 represents an 8-bit integer value.
+					case 0:  m_Disassembly += StringFormat::Fmt(" = byte%u", numComps); break;
+					// 1 represents a 16-bit integer value.
+					case 1:  m_Disassembly += StringFormat::Fmt(" = short%u", numComps); break;
+					// 2 represents a 32-bit integer value.
+					case 2:  m_Disassembly += StringFormat::Fmt(" = int%u", numComps); break;
+					// 3 represents a 64-bit integer value.
+					case 3:  m_Disassembly += StringFormat::Fmt(" = longlong%u", numComps); break;
+					// 4 represents a 16-bit float value.
+					case 4:  m_Disassembly += StringFormat::Fmt(" = half%u", numComps); break;
+					// 5 represents a 32-bit float value.
+					case 5:  m_Disassembly += StringFormat::Fmt(" = float%u", numComps); break;
+					// 6 represents a 64-bit float value.
+					case 6:  m_Disassembly += StringFormat::Fmt(" = double%u", numComps); break;
+					// ...
+					default: m_Disassembly += StringFormat::Fmt(" = invalid%u", numComps); break;
+				}
+			}
+
+			m_Disassembly += "\n";
+		}
 	}
 
 	m_Disassembly += "\n";
@@ -2584,6 +2629,26 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				module.entries.push_back(&op);
 				break;
 			}
+			case spv::OpExecutionMode:
+			{
+				uint32_t func = spirv[it+1];
+				for(size_t e=0; e < module.entries.size(); e++)
+				{
+					if(module.entries[e]->entry->func == func)
+					{
+						SPVExecutionMode mode;
+						mode.mode = (spv::ExecutionMode)spirv[it+2];
+						
+						if(WordCount > 3) mode.x = spirv[it+3];
+						if(WordCount > 4) mode.y = spirv[it+4];
+						if(WordCount > 5) mode.z = spirv[it+5];
+
+						module.entries[e]->entry->modes.push_back(mode);
+						break;
+					}
+				}
+				break;
+			}
 			case spv::OpExtInstImport:
 			{
 				op.ext = new SPVExtInstSet();
@@ -3789,7 +3854,7 @@ string ToStrHelper<false, spv::Capability>::Get(const spv::Capability &el)
 {
 	switch(el)
 	{
-		case spv::CapabilityMatrix: return "Matrix";
+		case spv::CapabilityMatrix:                                    return "Matrix";
     case spv::CapabilityShader:                                    return "Shader";
     case spv::CapabilityGeometry:                                  return "Geometry";
     case spv::CapabilityTessellation:                              return "Tessellation";
@@ -3843,6 +3908,50 @@ string ToStrHelper<false, spv::Capability>::Get(const spv::Capability &el)
     case spv::CapabilityDerivativeControl:                         return "DerivativeControl";
     case spv::CapabilityInterpolationFunction:                     return "InterpolationFunction";
     case spv::CapabilityTransformFeedback:                         return "TransformFeedback";
+		default: break;
+	}
+	
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+}
+
+template<>
+string ToStrHelper<false, spv::ExecutionMode>::Get(const spv::ExecutionMode &el)
+{
+	switch(el)
+	{
+    case spv::ExecutionModeInvocations:                    return "Invocations";
+    case spv::ExecutionModeSpacingEqual:                   return "SpacingEqual";
+    case spv::ExecutionModeSpacingFractionalEven:          return "SpacingFractionalEven";
+    case spv::ExecutionModeSpacingFractionalOdd:           return "SpacingFractionalOdd";
+    case spv::ExecutionModeVertexOrderCw:                  return "VertexOrderCw";
+    case spv::ExecutionModeVertexOrderCcw:                 return "VertexOrderCcw";
+    case spv::ExecutionModePixelCenterInteger:             return "PixelCenterInteger";
+    case spv::ExecutionModeOriginUpperLeft:                return "OriginUpperLeft";
+    case spv::ExecutionModeOriginLowerLeft:                return "OriginLowerLeft";
+    case spv::ExecutionModeEarlyFragmentTests:             return "EarlyFragmentTests";
+    case spv::ExecutionModePointMode:                      return "PointMode";
+    case spv::ExecutionModeXfb:                            return "Xfb";
+    case spv::ExecutionModeDepthReplacing:                 return "DepthReplacing";
+    case spv::ExecutionModeDepthAny:                       return "DepthAny";
+    case spv::ExecutionModeDepthGreater:                   return "DepthGreater";
+    case spv::ExecutionModeDepthLess:                      return "DepthLess";
+    case spv::ExecutionModeDepthUnchanged:                 return "DepthUnchanged";
+    case spv::ExecutionModeLocalSize:                      return "LocalSize";
+    case spv::ExecutionModeLocalSizeHint:                  return "LocalSizeHint";
+    case spv::ExecutionModeInputPoints:                    return "InputPoints";
+    case spv::ExecutionModeInputLines:                     return "InputLines";
+    case spv::ExecutionModeInputLinesAdjacency:            return "InputLinesAdjacency";
+    case spv::ExecutionModeInputTriangles:                 return "InputTriangles";
+    case spv::ExecutionModeInputTrianglesAdjacency:        return "InputTrianglesAdjacency";
+    case spv::ExecutionModeInputQuads:                     return "InputQuads";
+    case spv::ExecutionModeInputIsolines:                  return "InputIsolines";
+    case spv::ExecutionModeOutputVertices:                 return "OutputVertices";
+    case spv::ExecutionModeOutputPoints:                   return "OutputPoints";
+    case spv::ExecutionModeOutputLineStrip:                return "OutputLineStrip";
+    case spv::ExecutionModeOutputTriangleStrip:            return "OutputTriangleStrip";
+    case spv::ExecutionModeVecTypeHint:                    return "VecTypeHint";
+    case spv::ExecutionModeContractionOff:                 return "ContractionOff";
+    case spv::ExecutionModeIndependentForwardProgress:     return "IndependentForwardProgress";
 		default: break;
 	}
 	
