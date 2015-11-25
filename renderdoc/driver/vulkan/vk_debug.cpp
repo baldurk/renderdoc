@@ -737,7 +737,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA16RP);
 
-		attDesc.samples = 4;
+		attDesc.samples = VULKAN_MESH_VIEW_SAMPLES;
 		attDesc.format = VK_FORMAT_R8G8B8A8_SRGB;
 		
 		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA8MSRP);
@@ -829,7 +829,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardPipeline);
 
-	msaa.rasterSamples = 4;
+	msaa.rasterSamples = VULKAN_MESH_VIEW_SAMPLES;
 	pipeInfo.renderPass = RGBA8MSRP;
 
 	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_CheckerboardMSAAPipeline);
@@ -2899,7 +2899,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 
 	VkPipelineMultisampleStateCreateInfo msaa = {
 		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL,
-		4, false, 0.0f, NULL,
+		VULKAN_MESH_VIEW_SAMPLES, false, 0.0f, NULL,
 	};
 
 	VkPipelineDepthStencilStateCreateInfo ds = {
@@ -2937,14 +2937,14 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 		VkAttachmentDescription attDesc[] = {
 			{
 				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-				VK_FORMAT_R8G8B8A8_SRGB, 4,
+				VK_FORMAT_R8G8B8A8_SRGB, VULKAN_MESH_VIEW_SAMPLES,
 				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 			},
 			{
 				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-				VK_FORMAT_D32_SFLOAT, 4,
+				VK_FORMAT_D32_SFLOAT, VULKAN_MESH_VIEW_SAMPLES,
 				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
