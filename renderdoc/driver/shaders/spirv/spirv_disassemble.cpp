@@ -1085,6 +1085,7 @@ struct SPVInstruction
 			case spv::OpFMod:
 			case spv::OpVectorTimesScalar:
 			case spv::OpMatrixTimesVector:
+			case spv::OpMatrixTimesMatrix:
 			case spv::OpSLessThan:
 			case spv::OpSLessThanEqual:
 			case spv::OpFOrdLessThan:
@@ -1113,6 +1114,7 @@ struct SPVInstruction
 					case spv::OpFMul:
 					case spv::OpVectorTimesScalar:
 					case spv::OpMatrixTimesVector:
+					case spv::OpMatrixTimesMatrix:
 						opstr[0] = '*';
 						break;
 					case spv::OpSLessThan:
@@ -3242,6 +3244,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpFMod:
 			case spv::OpVectorTimesScalar:
 			case spv::OpMatrixTimesVector:
+			case spv::OpMatrixTimesMatrix:
 			case spv::OpSLessThan:
 			case spv::OpSLessThanEqual:
 			case spv::OpFOrdLessThan:
