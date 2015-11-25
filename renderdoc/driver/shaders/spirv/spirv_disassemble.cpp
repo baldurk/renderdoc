@@ -1346,10 +1346,15 @@ void SPVModule::Disassemble()
 
 	m_Disassembly += "\n";
 
-	m_Disassembly += StringFormat::Fmt("Source is %s %u\n", sourceLang.c_str(), sourceVer);
+	m_Disassembly += StringFormat::Fmt("Source is %s %u\n", ToStr::Get(sourceLang).c_str(), sourceVer);
 	for(size_t s=0; s < sourceexts.size(); s++)
 		m_Disassembly += StringFormat::Fmt(" + %s\n", sourceexts[s]->str.c_str());
 
+	m_Disassembly += "\n";
+
+	m_Disassembly += "Capabilities:";
+	for(size_t c=0; c < capabilities.size(); c++)
+		m_Disassembly += StringFormat::Fmt(" %s", ToStr::Get(capabilities[c]).c_str());
 	m_Disassembly += "\n";
 
 	for(size_t i=0; i < entries.size(); i++)
@@ -2525,7 +2530,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			// 'Global' opcodes
 			case spv::OpSource:
 			{
-				module.sourceLang = ToStr::Get(spv::SourceLanguage(spirv[it+1]));
+				module.sourceLang = spv::SourceLanguage(spirv[it+1]);
 				module.sourceVer = spirv[it+2];
 
 				if(WordCount > 3)
@@ -2552,6 +2557,11 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			{
 				op.str = (const char *)&spirv[it+1];
 				module.sourceexts.push_back(&op);
+				break;
+			}
+			case spv::OpCapability:
+			{
+				module.capabilities.push_back((spv::Capability)spirv[it+1]);
 				break;
 			}
 			case spv::OpMemoryModel:
@@ -3765,6 +3775,71 @@ string ToStrHelper<false, spv::SourceLanguage>::Get(const spv::SourceLanguage &e
 		case spv::SourceLanguageGLSL:       return "GLSL";
 		case spv::SourceLanguageOpenCL_C:   return "OpenCL C";
 		case spv::SourceLanguageOpenCL_CPP: return "OpenCL C++";
+		default: break;
+	}
+	
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+}
+
+template<>
+string ToStrHelper<false, spv::Capability>::Get(const spv::Capability &el)
+{
+	switch(el)
+	{
+		case spv::CapabilityMatrix: return "Matrix";
+    case spv::CapabilityShader:                                    return "Shader";
+    case spv::CapabilityGeometry:                                  return "Geometry";
+    case spv::CapabilityTessellation:                              return "Tessellation";
+    case spv::CapabilityAddresses:                                 return "Addresses";
+    case spv::CapabilityLinkage:                                   return "Linkage";
+    case spv::CapabilityKernel:                                    return "Kernel";
+    case spv::CapabilityVector16:                                  return "Vector16";
+    case spv::CapabilityFloat16Buffer:                             return "Float16Buffer";
+    case spv::CapabilityFloat16:                                   return "Float16";
+    case spv::CapabilityFloat64:                                   return "Float64";
+    case spv::CapabilityInt64:                                     return "Int64";
+    case spv::CapabilityInt64Atomics:                              return "Int64Atomics";
+    case spv::CapabilityImageBasic:                                return "ImageBasic";
+    case spv::CapabilityImageReadWrite:                            return "ImageReadWrite";
+    case spv::CapabilityImageMipmap:                               return "ImageMipmap";
+    case spv::CapabilityImageSRGBWrite:                            return "ImageSRGBWrite";
+    case spv::CapabilityPipes:                                     return "Pipes";
+    case spv::CapabilityGroups:                                    return "Groups";
+    case spv::CapabilityDeviceEnqueue:                             return "DeviceEnqueue";
+    case spv::CapabilityLiteralSampler:                            return "LiteralSampler";
+    case spv::CapabilityAtomicStorage:                             return "AtomicStorage";
+    case spv::CapabilityInt16:                                     return "Int16";
+    case spv::CapabilityTessellationPointSize:                     return "TessellationPointSize";
+    case spv::CapabilityGeometryPointSize:                         return "GeometryPointSize";
+    case spv::CapabilityImageGatherExtended:                       return "ImageGatherExtended";
+    case spv::CapabilityStorageImageExtendedFormats:               return "StorageImageExtendedFormats";
+    case spv::CapabilityStorageImageMultisample:                   return "StorageImageMultisample";
+    case spv::CapabilityUniformBufferArrayDynamicIndexing:         return "UniformBufferArrayDynamicIndexing";
+    case spv::CapabilitySampledImageArrayDynamicIndexing:          return "SampledImageArrayDynamicIndexing";
+    case spv::CapabilityStorageBufferArrayDynamicIndexing:         return "StorageBufferArrayDynamicIndexing";
+    case spv::CapabilityStorageImageArrayDynamicIndexing:          return "StorageImageArrayDynamicIndexing";
+    case spv::CapabilityClipDistance:                              return "ClipDistance";
+    case spv::CapabilityCullDistance:                              return "CullDistance";
+    case spv::CapabilityImageCubeArray:                            return "ImageCubeArray";
+    case spv::CapabilitySampleRateShading:                         return "SampleRateShading";
+    case spv::CapabilityImageRect:                                 return "ImageRect";
+    case spv::CapabilitySampledRect:                               return "SampledRect";
+    case spv::CapabilityGenericPointer:                            return "GenericPointer";
+    case spv::CapabilityInt8:                                      return "Int8";
+    case spv::CapabilityInputTarget:                               return "InputTarget";
+    case spv::CapabilitySparseResidency:                           return "SparseResidency";
+    case spv::CapabilityMinLod:                                    return "MinLod";
+    case spv::CapabilitySampled1D:                                 return "Sampled1D";
+    case spv::CapabilityImage1D:                                   return "Image1D";
+    case spv::CapabilitySampledCubeArray:                          return "SampledCubeArray";
+    case spv::CapabilitySampledBuffer:                             return "SampledBuffer";
+    case spv::CapabilityImageBuffer:                               return "ImageBuffer";
+    case spv::CapabilityImageMSArray:                              return "ImageMSArray";
+    case spv::CapabilityAdvancedFormats:                           return "AdvancedFormats";
+    case spv::CapabilityImageQuery:                                return "ImageQuery";
+    case spv::CapabilityDerivativeControl:                         return "DerivativeControl";
+    case spv::CapabilityInterpolationFunction:                     return "InterpolationFunction";
+    case spv::CapabilityTransformFeedback:                         return "TransformFeedback";
 		default: break;
 	}
 	

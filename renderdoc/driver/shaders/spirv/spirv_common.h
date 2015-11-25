@@ -31,6 +31,8 @@ using std::vector;
 
 #include <stdint.h>
 
+#include "3rdparty/glslang/SPIRV/spirv.hpp"
+
 enum SPIRVShaderStage
 {
 	eSPIRVVertex,
@@ -59,7 +61,10 @@ struct SPVModule
 	uint32_t moduleVersion;
 	uint32_t generator;
 
-	string sourceLang; uint32_t sourceVer;
+	spv::SourceLanguage sourceLang;
+	uint32_t sourceVer;
+
+	vector<spv::Capability> capabilities;
 
 	vector<SPVInstruction*> operations; // all operations (including those that don't generate an ID)
 
