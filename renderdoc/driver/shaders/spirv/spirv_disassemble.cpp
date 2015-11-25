@@ -1819,7 +1819,7 @@ void SPVModule::Disassemble()
 		for(size_t v=0; v < vars.size(); v++)
 		{
 			RDCASSERT(vars[v]->var && vars[v]->var->type);
-			m_Disassembly += string(indent, ' ') + vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + ";";
+			m_Disassembly += string(indent, ' ') + vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + ";\n";
 		}
 
 		if(!vars.empty())
