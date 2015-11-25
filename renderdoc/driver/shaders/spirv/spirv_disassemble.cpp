@@ -55,6 +55,10 @@ using std::make_pair;
 // don't inline expressions of this complexity or higher
 #define NO_INLINE_COMPLEXITY 3
 
+// declare function variables at the top of the scope, rather than at the
+// first use of that variable
+#define C_VARIABLE_DECLARATIONS 0
+
 namespace spv { Op OpUnknown = (Op)~0U; }
 
 const char *GLSL_STD_450_names[GLSLstd450Count] = {0};
@@ -1881,14 +1885,23 @@ void SPVModule::Disassemble()
 		size_t tabSize = 2;
 		size_t indent = tabSize;
 
+		bool *varDeclared = new bool[vars.size()];
+		for(size_t v=0; v < vars.size(); v++)
+			varDeclared[v] = false;
+
+		// if we're declaring variables at the top of the function rather than at first use
+#if C_VARIABLE_DECLARATIONS
 		for(size_t v=0; v < vars.size(); v++)
 		{
 			RDCASSERT(vars[v]->var && vars[v]->var->type);
 			m_Disassembly += string(indent, ' ') + vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + ";\n";
+
+			varDeclared[v] = true;
 		}
 
 		if(!vars.empty())
 			m_Disassembly += "\n";
+#endif
 
 		vector<uint32_t> selectionstack;
 		vector<uint32_t> elsestack;
@@ -1897,6 +1910,8 @@ void SPVModule::Disassemble()
 		vector<uint32_t> loopstartstack;
 		vector<uint32_t> loopmergestack;
 
+		string funcDisassembly = "";
+
 		for(size_t o=0; o < funcops.size(); o++)
 		{
 			if(funcops[o]->opcode == spv::OpLabel)
@@ -1904,8 +1919,8 @@ void SPVModule::Disassemble()
 				if(!elsestack.empty() && elsestack.back() == funcops[o]->id)
 				{
 					// handle meeting an else block
-					m_Disassembly += string(indent - tabSize, ' ');
-					m_Disassembly += "} else {\n";
+					funcDisassembly += string(indent - tabSize, ' ');
+					funcDisassembly += "} else {\n";
 					elsestack.pop_back();
 				}
 				else if(!selectionstack.empty() && selectionstack.back() == funcops[o]->id)
@@ -1913,8 +1928,8 @@ void SPVModule::Disassemble()
 					// handle meeting a selection merge block
 					indent -= tabSize;
 
-					m_Disassembly += string(indent, ' ');
-					m_Disassembly += "}\n";
+					funcDisassembly += string(indent, ' ');
+					funcDisassembly += "}\n";
 					selectionstack.pop_back();
 				}
 				else if(!loopmergestack.empty() && loopmergestack.back() == funcops[o]->id)
@@ -1922,8 +1937,8 @@ void SPVModule::Disassemble()
 					// handle meeting a loop merge block
 					indent -= tabSize;
 
-					m_Disassembly += string(indent, ' ');
-					m_Disassembly += "}\n";
+					funcDisassembly += string(indent, ' ');
+					funcDisassembly += "}\n";
 					loopmergestack.pop_back();
 				}
 				else if(!loopstartstack.empty() && loopstartstack.back() == funcops[o]->id)
@@ -1935,8 +1950,8 @@ void SPVModule::Disassemble()
 					// this block is a loop header
 					// TODO handle if the loop header condition expression isn't sufficiently in-lined.
 					// We need to force inline it.
-					m_Disassembly += string(indent, ' ');
-					m_Disassembly += "while(" + funcops[o]->block->exitFlow->flow->condition->Disassemble(ids, true) + ") {\n";
+					funcDisassembly += string(indent, ' ');
+					funcDisassembly += "while(" + funcops[o]->block->exitFlow->flow->condition->Disassemble(ids, true) + ") {\n";
 
 					loopheadstack.push_back(funcops[o]->id);
 					loopstartstack.push_back(funcops[o]->block->exitFlow->flow->targets[0]);
@@ -1949,7 +1964,7 @@ void SPVModule::Disassemble()
 				}
 				else
 				{
-					m_Disassembly += funcops[o]->Disassemble(ids, false) + "\n";
+					funcDisassembly += funcops[o]->Disassemble(ids, false) + "\n";
 				}
 			}
 			else if(funcops[o]->opcode == spv::OpBranch)
@@ -1970,21 +1985,21 @@ void SPVModule::Disassemble()
 					else
 					{
 						// if we're skipping to the header of the loop before the end, this is a continue
-						m_Disassembly += string(indent, ' ');
-						m_Disassembly += "continue;\n";
+						funcDisassembly += string(indent, ' ');
+						funcDisassembly += "continue;\n";
 					}
 				}
 				else if(!loopmergestack.empty() && funcops[o]->flow->targets[0] == loopmergestack.back())
 				{
 					// if we're skipping to the merge of the loop without going through the
 					// branch conditional, this is a break
-					m_Disassembly += string(indent, ' ');
-					m_Disassembly += "break;\n";
+					funcDisassembly += string(indent, ' ');
+					funcDisassembly += "break;\n";
 				}
 				else
 				{
-					m_Disassembly += string(indent, ' ');
-					m_Disassembly += funcops[o]->Disassemble(ids, false) + ";\n";
+					funcDisassembly += string(indent, ' ');
+					funcDisassembly += funcops[o]->Disassemble(ids, false) + ";\n";
 				}
 			}
 			else if(funcops[o]->opcode == spv::OpLoopMerge)
@@ -1999,8 +2014,8 @@ void SPVModule::Disassemble()
 				RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpBranchConditional);
 				o++;
 
-				m_Disassembly += string(indent, ' ');
-				m_Disassembly += "if(" + funcops[o]->Disassemble(ids, false) + ") {\n";
+				funcDisassembly += string(indent, ' ');
+				funcDisassembly += "if(" + funcops[o]->Disassemble(ids, false) + ") {\n";
 
 				indent += tabSize;
 
@@ -2031,27 +2046,96 @@ void SPVModule::Disassemble()
 
 					o++;
 
-					string storearg;
-					store->op->GetArg(ids, 0, storearg);
+					bool printed = false;
+					
+					SPVInstruction *storeVar = store->op->arguments[0];
+					
+					// declare variables at first use
+#if !C_VARIABLE_DECLARATIONS
+					for(size_t v=0; v < vars.size(); v++)
+					{
+						if(!varDeclared[v] && vars[v] == storeVar)
+						{
+							// if we're in a scope, be conservative as the variable might be
+							// used after the scope - print the declaration before the scope
+							// begins and continue as normal.
+							if(indent > tabSize)
+							{
+								m_Disassembly += string(indent, ' ');
+								m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + ";\n";
+							}
+							else
+							{
+								funcDisassembly += string(indent, ' ');
+								funcDisassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str);
 
-					m_Disassembly += string(indent, ' ');
-					m_Disassembly += storearg;
-					m_Disassembly += loadhit->Disassemble(ids, true); // inline compositeinsert includes ' = '
-					m_Disassembly += ";\n";
+								printed = true;
+							}
+
+							varDeclared[v] = true;
+						}
+					}
+#endif
+
+					if(!printed)
+					{
+						string storearg;
+						store->op->GetArg(ids, 0, storearg);
+
+						funcDisassembly += string(indent, ' ');
+						funcDisassembly += storearg;
+					}
+					funcDisassembly += loadhit->Disassemble(ids, true); // inline compositeinsert includes ' = '
+					funcDisassembly += ";\n";
 
 					loadhit->line = (int)o;
 				}
 				else
 				{
 					// print separately
-					m_Disassembly += string(indent, ' ');
-					m_Disassembly += funcops[o]->Disassemble(ids, false) + ";\n";
+					funcDisassembly += string(indent, ' ');
+					funcDisassembly += funcops[o]->Disassemble(ids, false) + ";\n";
 					funcops[o]->line = (int)o;
 
 					o++;
+					
+					SPVInstruction *storeVar = funcops[o]->op->arguments[0];
 
-					m_Disassembly += string(indent, ' ');
-					m_Disassembly += funcops[o]->Disassemble(ids, false) + ";\n";
+					bool printed = false;
+
+					// declare variables at first use
+#if !C_VARIABLE_DECLARATIONS
+					for(size_t v=0; v < vars.size(); v++)
+					{
+						if(!varDeclared[v] && vars[v] == storeVar)
+						{
+							// if we're in a scope, be conservative as the variable might be
+							// used after the scope - print the declaration before the scope
+							// begins and continue as normal.
+							if(indent > tabSize)
+							{
+								m_Disassembly += string(indent, ' ');
+								m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + ";\n";
+							}
+							else
+							{
+								funcDisassembly += string(indent, ' ');
+								funcDisassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + " = ";
+								funcDisassembly += funcops[o]->Disassemble(ids, true) + ";\n";
+
+								printed = true;
+							}
+
+							varDeclared[v] = true;
+						}
+					}
+#endif
+					
+					if(!printed)
+					{
+						funcDisassembly += string(indent, ' ');
+						funcDisassembly += funcops[o]->Disassemble(ids, false) + ";\n";
+					}
 				}
 			}
 			else if(funcops[o]->opcode == spv::OpReturn && o == funcops.size()-1)
@@ -2059,14 +2143,58 @@ void SPVModule::Disassemble()
 				// don't print the return statement if it's the last statement in a function
 				break;
 			}
+			else if(funcops[o]->opcode == spv::OpStore)
+			{
+				SPVInstruction *storeVar = funcops[o]->op->arguments[0];
+
+				bool printed = false;
+
+				// declare variables at first use
+#if !C_VARIABLE_DECLARATIONS
+				for(size_t v=0; v < vars.size(); v++)
+				{
+					if(!varDeclared[v] && vars[v] == storeVar)
+					{
+						// if we're in a scope, be conservative as the variable might be
+						// used after the scope - print the declaration before the scope
+						// begins and continue as normal.
+						if(indent > tabSize)
+						{
+							m_Disassembly += string(indent, ' ');
+							m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + ";\n";
+						}
+						else
+						{
+							funcDisassembly += string(indent, ' ');
+							funcDisassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + " = ";
+							funcDisassembly += funcops[o]->Disassemble(ids, true) + ";\n";
+
+							printed = true;
+						}
+
+						varDeclared[v] = true;
+					}
+				}
+#endif
+
+				if(!printed)
+				{
+					funcDisassembly += string(indent, ' ');
+					funcDisassembly += funcops[o]->Disassemble(ids, false) + ";\n";
+				}
+			}
 			else
 			{
-				m_Disassembly += string(indent, ' ');
-				m_Disassembly += funcops[o]->Disassemble(ids, false) + ";\n";
+				funcDisassembly += string(indent, ' ');
+				funcDisassembly += funcops[o]->Disassemble(ids, false) + ";\n";
 			}
 
 			funcops[o]->line = (int)o;
 		}
+
+		m_Disassembly += funcDisassembly;
+
+		SAFE_DELETE_ARRAY(varDeclared);
 
 		m_Disassembly += StringFormat::Fmt("} // %s\n\n", funcs[f]->str.c_str());
 	}
