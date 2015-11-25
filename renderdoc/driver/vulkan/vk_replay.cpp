@@ -3265,7 +3265,19 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, ve
 	ConstantBlock &c = refl.ConstantBlocks[cbufSlot];
 
 	size_t zero = 0;
-	FillCBufferVariables(c.variables, outvars, data, zero);
+
+	if(c.bufferBacked)
+	{
+		FillCBufferVariables(c.variables, outvars, data, zero);
+	}
+	else
+	{
+		vector<byte> pushdata;
+		pushdata.resize(sizeof(m_pDriver->m_PartialReplayData.state.pushconsts));
+		memcpy(&pushdata[0], m_pDriver->m_PartialReplayData.state.pushconsts, pushdata.size());
+		FillCBufferVariables(c.variables, outvars, pushdata, zero);
+	}
+
 }
 
 bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)

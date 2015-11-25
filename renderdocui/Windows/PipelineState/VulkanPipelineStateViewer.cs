@@ -640,8 +640,8 @@ namespace renderdocui.Windows.PipelineState
 
                     var slotBinds = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds;
 
-                    // consider it filled if any array element is filled
-                    bool filledSlot = false;
+                    // consider it filled if any array element is filled (or it's push constants)
+                    bool filledSlot = !b.bufferBacked;
                     for (UInt32 idx = 0; idx < bindMap.arraySize; idx++)
                         filledSlot |= slotBinds[idx].res != ResourceId.Null;
 
@@ -700,6 +700,18 @@ namespace renderdocui.Windows.PipelineState
 
                             string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
                             string vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+
+                            if (!b.bufferBacked)
+                            {
+                                setname = "";
+                                slotname = b.name;
+                                name = "Push constants";
+                                vecrange = "";
+                                sizestr = String.Format("{0} Variables", numvars);
+
+                                // could maybe get range from ShaderVariable.reg if it's filled out
+                                // from SPIR-V side.
+                            }
 
                             var node = parentNodes.Add(new object[] { "", setname, slotname, name, vecrange, sizestr });
 

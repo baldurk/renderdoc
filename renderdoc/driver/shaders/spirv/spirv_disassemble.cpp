@@ -2466,8 +2466,12 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 
 			AddSignatureParameter(nm, inst->var->type, inst->decorations, *sigarray, isInput ? &mapping->InputAttributes : NULL);
 		}
-		else if(inst->var->storage == spv::StorageClassUniform || inst->var->storage == spv::StorageClassUniformConstant)
+		else if(inst->var->storage == spv::StorageClassUniform ||
+		        inst->var->storage == spv::StorageClassUniformConstant ||
+		        inst->var->storage == spv::StorageClassPushConstant)
 		{
+			bool pushConst = (inst->var->storage == spv::StorageClassPushConstant);
+
 			SPVTypeData *type = inst->var->type;
 			if(type->type == SPVTypeData::ePointer)
 				type = type->baseType;
@@ -2489,7 +2493,7 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 					cblock.name = type->name;
 				else
 					cblock.name = StringFormat::Fmt("uniforms%u", inst->id);
-				cblock.bufferBacked = true;
+				cblock.bufferBacked = !pushConst;
 				
 				BindpointMap bindmap = {0};
 				// set can be implicitly 0, but the binding must be set explicitly.
@@ -2528,8 +2532,8 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				}
 
 				// should never have elements that have no binding declared but
-				// are used
-				RDCASSERT(!bindmap.used || bindmap.bind >= 0);
+				// are used, unless it's push constants (which is handled elsewhere)
+				RDCASSERT(!bindmap.used || !cblock.bufferBacked || bindmap.bind >= 0);
 				
 				cblocks.push_back(cblockpair(bindmap, cblock));
 			}
