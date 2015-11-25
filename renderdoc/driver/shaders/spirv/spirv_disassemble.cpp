@@ -287,6 +287,19 @@ struct SPVTypeData
 					ToStr::Get(texdim).c_str(),
 					typestring.c_str());
 			}
+			else if(type == eSampledImage)
+			{
+				name = "Sampled" + baseType->GetName();
+			}
+			else if(type == eSampler)
+			{
+				name = "Sampler";
+			}
+			else
+			{
+				RDCERR("Unexpected type!");
+				name = StringFormat::Fmt("Unhandled_%u_Type", type);
+			}
 		}
 
 		return name;
