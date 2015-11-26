@@ -58,6 +58,8 @@ struct SPVModule
 	SPVModule();
 	~SPVModule();
 
+	vector<uint32_t> spirv;
+
 	uint32_t moduleVersion;
 	uint32_t generator;
 

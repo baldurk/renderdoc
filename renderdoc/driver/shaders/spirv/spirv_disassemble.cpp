@@ -2627,6 +2627,24 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 			RDCWARN("Unexpected storage class for global: %s", ToStr::Get(inst->var->storage).c_str());
 		}
 	}
+	
+	// sort system value semantics to the start of the list
+	struct sig_param_sort
+	{
+		bool operator() (const SigParameter &a, const SigParameter &b)
+		{
+			if(a.systemValue == b.systemValue) return a.regIndex < b.regIndex;
+			if(a.systemValue == eAttr_None)
+				return false;
+			if(b.systemValue == eAttr_None)
+				return true;
+			
+			return a.systemValue < b.systemValue;
+		}
+	};
+
+	std::sort(inputs.begin(), inputs.end(), sig_param_sort());
+	std::sort(outputs.begin(), outputs.end(), sig_param_sort());
 
 	reflection->InputSig = inputs;
 	reflection->OutputSig = outputs;
@@ -2681,6 +2699,8 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 		return;
 	}
 
+	module.spirv.assign(spirv, spirv+spirvLength);
+
 	module.generator = spirv[2];
 	module.ids.resize(spirv[3]);
 
@@ -2694,12 +2714,12 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 	size_t it = 5;
 	while(it < spirvLength)
 	{
-		uint16_t WordCount = spirv[it]>>16;
+		uint16_t WordCount = spirv[it]>>spv::WordCountShift;
 
 		module.operations.push_back(new SPVInstruction());
 		SPVInstruction &op = *module.operations.back();
 
-		op.opcode = spv::Op(spirv[it]&0xffff);
+		op.opcode = spv::Op(spirv[it]&spv::OpCodeMask);
 
 		bool mathop = false;
 
@@ -3555,8 +3575,8 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 	it = 5;
 	while(it < spirvLength)
 	{
-		uint16_t WordCount = spirv[it]>>16;
-		spv::Op op = spv::Op(spirv[it]&0xffff);
+		uint16_t WordCount = spirv[it]>>spv::WordCountShift;
+		spv::Op op = spv::Op(spirv[it]&spv::OpCodeMask);
 
 		switch(op)
 		{

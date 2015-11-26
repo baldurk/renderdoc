@@ -68,6 +68,8 @@ class VulkanDebugManager
 
 		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
 
+		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
+
 		struct GPUBuffer
 		{
 			enum CreateFlags

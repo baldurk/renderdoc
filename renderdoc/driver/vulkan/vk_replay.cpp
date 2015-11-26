@@ -3710,7 +3710,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
 void VulkanReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 {
-	VULKANNOTIMP("VulkanReplay::InitPostVSBuffers");
+	GetDebugManager()->InitPostVSBuffers(frameID, eventID);
 }
 
 vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)

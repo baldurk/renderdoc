@@ -1945,8 +1945,8 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, VkShader &shad
 	size_t it = 5;
 	while(it < spirvLength)
 	{
-		uint16_t WordCount = spirv[it]>>16;
-		spv::Op opcode = spv::Op(spirv[it]&0xffff);
+		uint16_t WordCount = spirv[it]>>spv::WordCountShift;
+		spv::Op opcode = spv::Op(spirv[it]&spv::OpCodeMask);
 
 		if(opcode == spv::OpConstant)
 		{
@@ -3058,4 +3058,516 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 	vt->DestroyRenderPass(Unwrap(m_Device), rp);
 	
 	return cache;
+}
+
+inline uint32_t MakeSPIRVOp(spv::Op op, uint32_t WordCount)
+{
+	return (uint32_t(op) & spv::OpCodeMask) | (WordCount << spv::WordCountShift);
+}
+
+void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
+{
+	uint32_t *spirv = &modSpirv[0];
+	size_t spirvLength = modSpirv.size();
+
+	int numOutputs = refl.OutputSig.count;
+
+	// save the id bound. We use this whenever we need to allocate ourselves
+	// a new ID
+	uint32_t idBound = spirv[3];
+
+	// we do multiple passes through the SPIR-V to simplify logic, rather than
+	// trying to do as few passes as possible.
+
+	// first try to find a few IDs of things we know we'll probably need:
+	// * gl_VertexID (identified by a DecorationBuiltIn
+	// * Int32 type, signed and unsigned
+	// * Float types, half, float and double
+	// * Input Pointer to Int32 (for declaring gl_VertexID)
+	// * UInt32 constants from 0 up to however many outputs we have
+	//
+	// At the same time we find the highest descriptor set used and add a
+	// new descriptor set binding on the end for our output buffer. This is
+	// much easier than trying to add a new bind to an existing descriptor
+	// set (which would cascade into a new descriptor set layout, new pipeline
+	// layout, etc etc!). However, this might push us over the limit on number
+	// of descriptor sets.
+	//
+	// we also note the index where decorations end, and the index where
+	// functions start, for if we need to add new decorations or new
+	// types/constants/global variables
+	uint32_t vertidxID = 0;
+	uint32_t sint32ID = 0;
+	uint32_t sint32PtrInID = 0;
+	uint32_t uint32ID = 0;
+	uint32_t halfID = 0;
+	uint32_t floatID = 0;
+	uint32_t doubleID = 0;
+
+	struct outputIDs
+	{
+		uint32_t constID;      // constant ID for the index of this output
+		uint32_t basetypeID;   // the type ID for this output. Must be present already by definition!
+		uint32_t uniformPtrID; // Uniform Pointer ID for this output. Used to write the output data
+	};
+	outputIDs outs[100] = {0};
+
+	RDCASSERT(numOutputs < 100);
+
+	uint32_t maxDescSetBind = 0;
+
+	size_t decorateOffset = 0;
+	size_t typeVarOffset = 0;
+
+	size_t it = 5;
+	while(it < spirvLength)
+	{
+		uint16_t WordCount = spirv[it]>>spv::WordCountShift;
+		spv::Op opcode = spv::Op(spirv[it]&spv::OpCodeMask);
+
+		if(opcode == spv::OpDecorate && spirv[it+2] == spv::DecorationBuiltIn && spirv[it+3] == spv::BuiltInVertexId)
+		{
+			if(vertidxID != 0)
+				RDCWARN("found multiple decorated gl_VertexIDs %u %u!", spirv[it+1], vertidxID); // not sure if this is valid or not
+			vertidxID = spirv[it+1];
+		}
+
+		if(opcode == spv::OpTypeInt && spirv[it+2] == 32 && spirv[it+3] == 1)
+		{
+			if(sint32ID != 0)
+				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], sint32ID); // not sure if this is valid or not
+			sint32ID = spirv[it+1];
+		}
+
+		if(opcode == spv::OpTypeInt && spirv[it+2] == 32 && spirv[it+3] == 0)
+		{
+			if(uint32ID != 0)
+				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], uint32ID); // not sure if this is valid or not
+			uint32ID = spirv[it+1];
+		}
+
+		if(opcode == spv::OpTypeFloat && spirv[it+2] == 16)
+		{
+			if(halfID != 0)
+				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], halfID); // not sure if this is valid or not
+			halfID = spirv[it+1];
+		}
+
+		if(opcode == spv::OpTypeFloat && spirv[it+2] == 32)
+		{
+			if(floatID != 0)
+				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], floatID); // not sure if this is valid or not
+			floatID = spirv[it+1];
+		}
+
+		if(opcode == spv::OpTypeFloat && spirv[it+2] == 64)
+		{
+			if(doubleID != 0)
+				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], doubleID); // not sure if this is valid or not
+			doubleID = spirv[it+1];
+		}
+
+		if(opcode == spv::OpTypePointer && spirv[it+2] == spv::StorageClassInput && spirv[it+3] == sint32ID)
+		{
+			if(sint32PtrInID != 0)
+				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], sint32PtrInID); // not sure if this is valid or not
+			sint32PtrInID = spirv[it+1];
+		}
+
+		for(int i=0; i < numOutputs; i++)
+		{
+			if(opcode == spv::OpConstant && spirv[it+1] == uint32ID && spirv[it+3] == (uint32_t)i)
+			{
+				if(outs[i].constID != 0)
+					RDCWARN("identical constant declared with two different IDs %u %u!", spirv[it+2], outs[i].constID); // not sure if this is valid or not
+				outs[i].constID = spirv[it+2];
+			}
+				
+			if(refl.OutputSig[i].compCount > 1 && opcode == spv::OpTypeVector)
+			{
+				uint32_t baseID = 0;
+
+				if(refl.OutputSig[i].compType == eCompType_UInt)
+					baseID = uint32ID;
+				else if(refl.OutputSig[i].compType == eCompType_SInt)
+					baseID = sint32ID;
+				else if(refl.OutputSig[i].compType == eCompType_Float)
+					baseID = floatID;
+				else if(refl.OutputSig[i].compType == eCompType_Double)
+					baseID = doubleID;
+				else
+					RDCERR("Unexpected component type for output signature element");
+
+				// if we have the base type, see if this is the right sized vector of that type
+				if(baseID != 0 && spirv[it+2] == baseID && spirv[it+3] == refl.OutputSig[i].compCount)
+				{
+					if(outs[i].basetypeID != 0)
+						RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], outs[i].basetypeID); // not sure if this is valid or not
+					outs[i].basetypeID = spirv[it+1];
+				}
+			}
+
+			// if we've found the base type, try and identify uniform pointers to that type
+			if(outs[i].basetypeID != 0 && opcode == spv::OpTypePointer && spirv[it+2] == spv::StorageClassUniform && spirv[it+3] == outs[i].basetypeID)
+			{
+				if(outs[i].uniformPtrID != 0)
+					RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], outs[i].uniformPtrID); // not sure if this is valid or not
+				outs[i].uniformPtrID = spirv[it+1];
+			}
+		}
+
+		if(opcode == spv::OpDecorate && spirv[it+2] == spv::DecorationDescriptorSet)
+			maxDescSetBind = RDCMAX(maxDescSetBind, spirv[it+3]);
+
+		// when we reach the types, decorations are over
+		if(decorateOffset == 0 && opcode >= spv::OpTypeVoid && opcode <= spv::OpTypeForwardPointer)
+			decorateOffset = it;
+
+		// stop when we reach the functions, types are over
+		if(opcode == spv::OpFunction)
+		{
+			typeVarOffset = it;
+			break;
+		}
+
+		it += WordCount;
+	}
+	
+	for(int i=0; i < numOutputs; i++)
+	{
+		// handle non-vectors once here
+		if(refl.OutputSig[i].compCount == 1)
+		{
+			if(refl.OutputSig[i].compType == eCompType_UInt)
+				outs[i].basetypeID = uint32ID;
+			else if(refl.OutputSig[i].compType == eCompType_SInt)
+				outs[i].basetypeID = sint32ID;
+			else if(refl.OutputSig[i].compType == eCompType_Float)
+				outs[i].basetypeID = floatID;
+			else if(refl.OutputSig[i].compType == eCompType_Double)
+				outs[i].basetypeID = doubleID;
+			else
+				RDCERR("Unexpected component type for output signature element");
+		}
+
+		// must have at least found the base type, or something has gone seriously wrong
+		RDCASSERT(outs[i].basetypeID != 0);
+	}
+
+	if(vertidxID == 0)
+	{
+		// need to declare our own "in int gl_VertexID;"
+
+		// if needed add new ID for sint32 type
+		if(sint32ID == 0)
+		{
+			sint32ID = idBound++;
+
+			uint32_t typeOp[] = {
+				MakeSPIRVOp(spv::OpTypeInt, 4),
+				sint32ID,
+				32U, // 32-bit
+				1U,  // signed
+			};
+
+			// insert at the end of the types/variables section
+			modSpirv.insert(modSpirv.begin()+typeVarOffset, typeOp, typeOp+ARRAY_COUNT(typeOp));
+
+			// update offsets to account for inserted op
+			typeVarOffset += ARRAY_COUNT(typeOp);
+		}
+		
+		// if needed, new ID for input ptr type
+		if(sint32PtrInID == 0)
+		{
+			sint32PtrInID = idBound;
+			idBound++;
+
+			uint32_t typeOp[] = {
+				MakeSPIRVOp(spv::OpTypePointer, 4),
+				sint32PtrInID,
+				spv::StorageClassInput,
+				sint32ID,
+			};
+
+			// insert at the end of the types/variables section
+			modSpirv.insert(modSpirv.begin()+typeVarOffset, typeOp, typeOp+ARRAY_COUNT(typeOp));
+			
+			// update offsets to account for inserted op
+			typeVarOffset += ARRAY_COUNT(typeOp);
+		}
+		
+		// new ID for vertex index
+		vertidxID = idBound;
+		idBound++;
+
+		uint32_t varOp[] = {
+			MakeSPIRVOp(spv::OpVariable, 4),
+			sint32PtrInID, // type
+			vertidxID,     // variable id
+			spv::StorageClassInput,
+		};
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, varOp, varOp+ARRAY_COUNT(varOp));
+
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(varOp);
+
+		uint32_t decorateOp[] = {
+			MakeSPIRVOp(spv::OpDecorate, 4),
+			vertidxID,
+			spv::DecorationBuiltIn,
+			spv::BuiltInVertexId,
+		};
+
+		// insert at the end of the decorations before the types
+		modSpirv.insert(modSpirv.begin()+decorateOffset, decorateOp, decorateOp+ARRAY_COUNT(decorateOp));
+		
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(decorateOp);
+		decorateOffset += ARRAY_COUNT(decorateOp);
+	}
+
+	// if needed add new ID for uint32 type
+	if(uint32ID == 0)
+	{
+		uint32ID = idBound++;
+
+		uint32_t typeOp[] = {
+			MakeSPIRVOp(spv::OpTypeInt, 4),
+			uint32ID,
+			32U, // 32-bit
+			0U,  // unsigned
+		};
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, typeOp, typeOp+ARRAY_COUNT(typeOp));
+
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(typeOp);
+	}
+
+	// add any constants we're missing
+	for(int i=0; i < numOutputs; i++)
+	{
+		if(outs[i].constID == 0)
+		{
+			outs[i].constID = idBound++;
+
+			uint32_t constantOp[] = {
+				MakeSPIRVOp(spv::OpConstant, 4),
+				uint32ID,
+				outs[i].constID,
+				(uint32_t)i,
+			};
+
+			// insert at the end of the types/variables/constants section
+			modSpirv.insert(modSpirv.begin()+typeVarOffset, constantOp, constantOp+ARRAY_COUNT(constantOp));
+
+			// update offsets to account for inserted op
+			typeVarOffset += ARRAY_COUNT(constantOp);
+		}
+	}
+
+	// add any uniform pointer types we're missing. Note that it's quite likely
+	// output types will overlap (think - 5 outputs, 3 of which are float4/vec4)
+	// so any time we create a new uniform pointer type, we update all subsequent
+	// outputs to refer to it.
+	for(int i=0; i < numOutputs; i++)
+	{
+		if(outs[i].uniformPtrID == 0)
+		{
+			outs[i].uniformPtrID = idBound++;
+
+			uint32_t typeOp[] = {
+				MakeSPIRVOp(spv::OpTypePointer, 4),
+				outs[i].uniformPtrID,
+				spv::StorageClassUniform,
+				outs[i].basetypeID,
+			};
+
+			// insert at the end of the types/variables/constants section
+			modSpirv.insert(modSpirv.begin()+typeVarOffset, typeOp, typeOp+ARRAY_COUNT(typeOp));
+
+			// update offsets to account for inserted op
+			typeVarOffset += ARRAY_COUNT(typeOp);
+
+			// update subsequent outputs of identical type
+			for(int j=i+1; j < numOutputs; j++)
+			{
+				if(outs[i].basetypeID == outs[j].basetypeID)
+				{
+					RDCASSERT(outs[j].uniformPtrID == 0);
+					outs[j].uniformPtrID = outs[i].uniformPtrID;
+				}
+			}
+		}
+	}
+
+	uint32_t outBufferVarID = 0;
+
+	// now add the structure type etc for our output buffer
+	{
+		uint32_t vertStructID = idBound++;
+
+		uint32_t vertStructOp[2+100] = {
+			MakeSPIRVOp(spv::OpTypeStruct, 2+numOutputs),
+			vertStructID,
+		};
+
+		for(int i=0; i < numOutputs; i++)
+			vertStructOp[2+i] = outs[i].basetypeID;
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, vertStructOp, vertStructOp+2+numOutputs);
+
+		// update offsets to account for inserted op
+		typeVarOffset += 2+numOutputs;
+		
+		uint32_t runtimeArrayID = idBound++;
+
+		uint32_t runtimeArrayOp[] = {
+			MakeSPIRVOp(spv::OpTypeRuntimeArray, 3),
+			runtimeArrayID,
+			vertStructID,
+		};
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, runtimeArrayOp, runtimeArrayOp+ARRAY_COUNT(runtimeArrayOp));
+
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(runtimeArrayOp);
+		
+		uint32_t outputStructID = idBound++;
+
+		uint32_t outputStructOp[] = {
+			MakeSPIRVOp(spv::OpTypeStruct, 3),
+			outputStructID,
+			runtimeArrayID,
+		};
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, outputStructOp, outputStructOp+ARRAY_COUNT(outputStructOp));
+
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(outputStructOp);
+		
+		uint32_t outputStructPtrID = idBound++;
+		
+		uint32_t outputStructPtrOp[] = {
+			MakeSPIRVOp(spv::OpTypePointer, 4),
+			outputStructPtrID,
+			spv::StorageClassUniform,
+			outputStructID,
+		};
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, outputStructPtrOp, outputStructPtrOp+ARRAY_COUNT(outputStructPtrOp));
+
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(outputStructPtrOp);
+
+		outBufferVarID = idBound++;
+		
+		uint32_t outputVarOp[] = {
+			MakeSPIRVOp(spv::OpVariable, 4),
+			outputStructPtrID,
+			outBufferVarID,
+			spv::StorageClassUniform,
+		};
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, outputVarOp, outputVarOp+ARRAY_COUNT(outputVarOp));
+
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(outputVarOp);
+
+		// need to add decorations as appropriate
+		vector<uint32_t> decorations;
+
+		// reserve room for 1 member decorate per output, plus
+		// other fixed decorations
+		decorations.reserve(5*numOutputs + 20);
+
+		uint32_t memberOffset = 0;
+		for(int i=0; i < numOutputs; i++)
+		{
+			decorations.push_back(MakeSPIRVOp(spv::OpMemberDecorate, 5));
+			decorations.push_back(vertStructID);
+			decorations.push_back((uint32_t)i);
+			decorations.push_back(spv::DecorationOffset);
+			decorations.push_back(memberOffset);
+
+			uint32_t elemSize = 0;
+			if(refl.OutputSig[i].compType == eCompType_Double)
+				elemSize = 8;
+			else if(refl.OutputSig[i].compType == eCompType_SInt ||
+			        refl.OutputSig[i].compType == eCompType_UInt ||
+			        refl.OutputSig[i].compType == eCompType_Float)
+				elemSize = 4;
+			else
+				RDCERR("Unexpected component type for output signature element");
+
+			memberOffset += elemSize*refl.OutputSig[i].compCount;
+		}
+		
+		// the array is the only element in the output struct, so
+		// it's at offset 0
+		decorations.push_back(MakeSPIRVOp(spv::OpMemberDecorate, 5));
+		decorations.push_back(outputStructID);
+		decorations.push_back(0);
+		decorations.push_back(spv::DecorationOffset);
+		decorations.push_back(0);
+		
+		// set array stride
+		decorations.push_back(MakeSPIRVOp(spv::OpDecorate, 4));
+		decorations.push_back(runtimeArrayID);
+		decorations.push_back(spv::DecorationArrayStride);
+		decorations.push_back(memberOffset);
+		
+		// set object type
+		decorations.push_back(MakeSPIRVOp(spv::OpDecorate, 3));
+		decorations.push_back(outputStructID);
+		decorations.push_back(spv::DecorationBufferBlock);
+		
+		// set binding
+		decorations.push_back(MakeSPIRVOp(spv::OpDecorate, 4));
+		decorations.push_back(outBufferVarID);
+		decorations.push_back(spv::DecorationDescriptorSet);
+		decorations.push_back(maxDescSetBind+1);
+		
+		decorations.push_back(MakeSPIRVOp(spv::OpDecorate, 4));
+		decorations.push_back(outBufferVarID);
+		decorations.push_back(spv::DecorationBinding);
+		decorations.push_back(0);
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+decorateOffset, decorations.begin(), decorations.end());
+
+		// update offsets to account for inserted op
+		typeVarOffset += decorations.size();
+		decorateOffset += decorations.size();
+	}
+
+	// update these values, since vector may have resized and/or reallocated above
+	spirv = &modSpirv[0];
+	spirvLength = modSpirv.size();
+
+	// patch up the new id bound
+	spirv[3] = idBound;
+}
+
+void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
+{
+	const WrappedVulkan::PartialReplayData::StateVector &state = m_pDriver->m_PartialReplayData.state;
+	VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
+	const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
+	const VulkanCreationInfo::Shader &s = c.m_Shader[p.shaders[VK_SHADER_STAGE_VERTEX]];
+	const VulkanCreationInfo::ShaderModule &m = c.m_ShaderModule[s.module];
+	
+	vector<uint32_t> modSpirv = m.spirv.spirv;
+	AddOutputDumping(s.refl, modSpirv);
+
+	RDCBREAK();
 }
