@@ -2349,13 +2349,18 @@ struct bindpair
 typedef bindpair<ConstantBlock> cblockpair;
 typedef bindpair<ShaderResource> shaderrespair;
 
-void AddSignatureParameter(string varName, SPVTypeData *type, const vector<SPVDecoration> &decorations, vector<SigParameter> &sigarray, rdctype::array<int> *inputAttrs)
+void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTypeData *type, const vector<SPVDecoration> &decorations, vector<SigParameter> &sigarray, rdctype::array<int> *inputAttrs)
 {
 	SigParameter sig;
 
 	sig.varName = varName;
-	sig.semanticIndex = 0;
 	sig.needSemanticIndex = false;
+
+	// this is super cheeky, but useful to pick up when doing output dumping and
+	// these properties won't be used elsewhere. We should really share the data
+	// in a better way though.
+	sig.semanticIdxName = StringFormat::Fmt("%u", id);
+	sig.semanticIndex = childIdx;
 
 	bool rowmajor = true;
 
@@ -2379,8 +2384,10 @@ void AddSignatureParameter(string varName, SPVTypeData *type, const vector<SPVDe
 
 	if(type->type == SPVTypeData::eStruct)
 	{
+		// we don't support nested structs yet
+		RDCASSERT(childIdx == ~0U);
 		for(size_t c=0; c < type->children.size(); c++)
-			AddSignatureParameter(varName + "." + type->children[c].second, type->children[c].first, type->decorations[c], sigarray, inputAttrs);
+			AddSignatureParameter(id, (uint32_t)c, varName + "." + type->children[c].second, type->children[c].first, type->decorations[c], sigarray, inputAttrs);
 		return;
 	}
 
@@ -2464,7 +2471,7 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 			else
 				nm = StringFormat::Fmt("sig%u", inst->id);
 
-			AddSignatureParameter(nm, inst->var->type, inst->decorations, *sigarray, isInput ? &mapping->InputAttributes : NULL);
+			AddSignatureParameter(inst->id, ~0U, nm, inst->var->type, inst->decorations, *sigarray, isInput ? &mapping->InputAttributes : NULL);
 		}
 		else if(inst->var->storage == spv::StorageClassUniform ||
 		        inst->var->storage == spv::StorageClassUniformConstant ||
