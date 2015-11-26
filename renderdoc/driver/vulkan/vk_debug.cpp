@@ -3552,16 +3552,16 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, vector<uint3
 			decorations.push_back(memberOffset);
 
 			uint32_t elemSize = 0;
-			if(refl.OutputSig[i].compType == eCompType_Double)
+			if(refl.OutputSig[o].compType == eCompType_Double)
 				elemSize = 8;
-			else if(refl.OutputSig[i].compType == eCompType_SInt ||
-			        refl.OutputSig[i].compType == eCompType_UInt ||
-			        refl.OutputSig[i].compType == eCompType_Float)
+			else if(refl.OutputSig[o].compType == eCompType_SInt ||
+			        refl.OutputSig[o].compType == eCompType_UInt ||
+			        refl.OutputSig[o].compType == eCompType_Float)
 				elemSize = 4;
 			else
 				RDCERR("Unexpected component type for output signature element");
 
-			memberOffset += elemSize*refl.OutputSig[i].compCount;
+			memberOffset += elemSize*refl.OutputSig[o].compCount;
 			i++;
 		}
 		
@@ -3627,6 +3627,38 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, vector<uint3
 			if(ShouldSkipOutput(refl.OutputSig[o].systemValue))
 				continue;
 
+			uint32_t loaded = 0;
+
+			// not a structure member, can load directly
+			if(outs[o].childIdx == ~0U)
+			{
+				loaded = idBound++;
+				
+				dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
+				dumpCode.push_back(outs[o].basetypeID);
+				dumpCode.push_back(loaded);
+				dumpCode.push_back(outs[o].varID);
+			}
+			else
+			{
+				uint32_t readPtr = idBound++;
+				loaded = idBound++;
+				
+				// structure member, need to access chain first
+				dumpCode.push_back(MakeSPIRVOp(spv::OpAccessChain, 5));
+				dumpCode.push_back(outs[o].uniformPtrID);
+				dumpCode.push_back(readPtr);          // readPtr = 
+				dumpCode.push_back(outs[o].varID);    // outStructWhatever
+				dumpCode.push_back(outs[ outs[o].childIdx ].constID); // .actualOut
+
+				RDCASSERT(outs[o].childIdx < (uint32_t)numOutputs);
+
+				dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
+				dumpCode.push_back(outs[o].basetypeID);
+				dumpCode.push_back(loaded);
+				dumpCode.push_back(readPtr);
+			}
+
 			// access chain the destination
 			uint32_t writePtr = idBound++;
 			dumpCode.push_back(MakeSPIRVOp(spv::OpAccessChain, 7));
@@ -3635,43 +3667,13 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, vector<uint3
 			dumpCode.push_back(outBufferVarID); // outBuffer
 			dumpCode.push_back(outs[0].constID); // .verts
 			dumpCode.push_back(loadedVtxID); // [gl_VertexID]
-			dumpCode.push_back(outs[o].constID); // .out_...
+			dumpCode.push_back(outs[i].constID); // .out_...
 
-			// not a structure member, can load directly
-			if(outs[o].childIdx == ~0U)
-			{
-				uint32_t loaded = idBound++;
-
-				dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
-				dumpCode.push_back(outs[o].basetypeID);
-				dumpCode.push_back(loaded);
-				dumpCode.push_back(outs[o].varID);
-
-				dumpCode.push_back(MakeSPIRVOp(spv::OpStore, 3));
-				dumpCode.push_back(writePtr);
-				dumpCode.push_back(loaded);
-			}
-			else
-			{
-				uint32_t readPtr = idBound++;
-				uint32_t loaded = idBound++;
-				
-				// structure member, need to access chain first
-				dumpCode.push_back(MakeSPIRVOp(spv::OpAccessChain, 5));
-				dumpCode.push_back(outs[o].uniformPtrID);
-				dumpCode.push_back(readPtr);          // readPtr = 
-				dumpCode.push_back(outs[o].varID);    // outStructWhatever
-				dumpCode.push_back(outs[o].childIdx); // .actualOut
-
-				dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
-				dumpCode.push_back(outs[o].basetypeID);
-				dumpCode.push_back(loaded);
-				dumpCode.push_back(readPtr);
-
-				dumpCode.push_back(MakeSPIRVOp(spv::OpStore, 3));
-				dumpCode.push_back(writePtr);
-				dumpCode.push_back(loaded);
-			}
+			i++;
+			
+			dumpCode.push_back(MakeSPIRVOp(spv::OpStore, 3));
+			dumpCode.push_back(writePtr);
+			dumpCode.push_back(loaded);
 		}
 	}
 
