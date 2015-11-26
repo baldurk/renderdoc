@@ -1788,11 +1788,11 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 					ResourceId pipeLayoutId = m_CreationInfo.m_Pipeline[s.graphics.pipeline].layout;
 					VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
-					const vector<VulkanCreationInfo::PipelineLayout::PushConstantRange> &pushRanges = m_CreationInfo.m_PipelineLayout[pipeLayoutId].pushRanges;
+					const vector<VkPushConstantRange> &pushRanges = m_CreationInfo.m_PipelineLayout[pipeLayoutId].pushRanges;
 
 					// only set push constant ranges that the layout uses
 					for(size_t i=0; i < pushRanges.size(); i++)
-						ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stages, pushRanges[i].start, pushRanges[i].length, s.pushconsts+pushRanges[i].start);
+						ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags, pushRanges[i].start, pushRanges[i].length, s.pushconsts+pushRanges[i].start);
 
 					const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[pipeLayoutId].descSetLayouts;
 

@@ -345,7 +345,7 @@ private:
 			ResourceId framebuffer;
 			VkRect2D renderArea;
 
-			struct
+			struct Pipeline
 			{
 				ResourceId pipeline;
 				vector<ResourceId> descSets;
