@@ -951,6 +951,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	VkImageLayout origLayout = layouts.subresourceStates[0].newLayout;
 	VkImageView liveImView = iminfo.view;
 
+	bool isDepth = (layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
+
 	if(liveImView == VK_NULL_HANDLE)
 	{
 		VkImageViewCreateInfo viewInfo = {
@@ -958,11 +960,11 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
 			iminfo.format,
 			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ layouts.subresourceStates[0].subresourceRange.aspectMask, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
+			{ isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
 			0
 		};
 
-		if(layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)
+		if(isDepth)
 		{
 			viewInfo.channels.g = VK_CHANNEL_SWIZZLE_ZERO;
 			viewInfo.channels.b = VK_CHANNEL_SWIZZLE_ZERO;
@@ -1102,7 +1104,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		0, 0, origLayout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(liveIm),
-		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		{ isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 	};
 
 	// ensure all previous writes have completed
