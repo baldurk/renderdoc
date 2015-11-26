@@ -228,11 +228,23 @@ struct SPVTypeData
 		}
 
 		if(type == ePointer && baseType->type == eArray)
-			ret += StringFormat::Fmt("%s* %s[%u]", baseType->baseType->GetName().c_str(), varName.c_str(), baseType->arraySize);
+		{
+			if(baseType->arraySize != ~0U)
+				ret += StringFormat::Fmt("%s* %s[%u]", baseType->baseType->GetName().c_str(), varName.c_str(), baseType->arraySize);
+			else
+				ret += StringFormat::Fmt("%s* %s[]", baseType->baseType->GetName().c_str(), varName.c_str());
+		}
 		else if(type == eArray)
-			ret += StringFormat::Fmt("%s %s[%u]", baseType->GetName().c_str(), varName.c_str(), arraySize);
+		{
+			if(arraySize != ~0U)
+				ret += StringFormat::Fmt("%s %s[%u]", baseType->GetName().c_str(), varName.c_str(), arraySize);
+			else
+				ret += StringFormat::Fmt("%s %s[]", baseType->GetName().c_str(), varName.c_str());
+		}
 		else
+		{
 			ret += StringFormat::Fmt("%s %s", GetName().c_str(), varName.c_str());
+		}
 
 		if(builtin)
 			ret += " = " + ToStr::Get((spv::BuiltIn)builtin->val);
@@ -2219,8 +2231,16 @@ void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant
 
 		if(t->type == SPVTypeData::eArray)
 		{
-			suffix += StringFormat::Fmt("[%u]", t->arraySize);
-			cblock[i].type.descriptor.elements = t->arraySize;
+			if(t->arraySize == ~0U)
+			{
+				suffix += "[]";
+				cblock[i].type.descriptor.elements = 1; // TODO need to handle 'array of undefined size'
+			}
+			else
+			{
+				suffix += StringFormat::Fmt("[%u]", t->arraySize);
+				cblock[i].type.descriptor.elements = t->arraySize;
+			}
 			t = t->baseType;
 		}
 
@@ -2481,7 +2501,8 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 			uint32_t arraySize = 1;
 			if(type->type == SPVTypeData::eArray)
 			{
-				arraySize = type->arraySize;
+				if(type->arraySize != ~0U)
+					arraySize = type->arraySize;
 				type = type->baseType;
 			}
 
@@ -2920,6 +2941,21 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				RDCASSERT(sizeInst && sizeInst->constant && sizeInst->constant->type->IsBasicInt());
 
 				op.type->arraySize = sizeInst->constant->u32;
+				
+				op.id = spirv[it+1];
+				module.ids[spirv[it+1]] = &op;
+				break;
+			}
+			case spv::OpTypeRuntimeArray:
+			{
+				op.type = new SPVTypeData();
+				op.type->type = SPVTypeData::eArray;
+
+				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+2]);
+				RDCASSERT(baseTypeInst && baseTypeInst->type);
+
+				op.type->baseType = baseTypeInst->type;
+				op.type->arraySize = ~0U;
 				
 				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
