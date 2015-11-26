@@ -320,6 +320,10 @@ struct SPVTypeData
 			{
 				name = "Sampler";
 			}
+			else if(type == eStruct)
+			{
+				name = StringFormat::Fmt("Anonymous_Struct_%p", this);
+			}
 			else
 			{
 				RDCERR("Unexpected type!");
