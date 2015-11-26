@@ -628,7 +628,9 @@ namespace renderdocui.Windows
                         string name = s.varName.Length == 0 ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
                         if (s.semanticName.Length == 0) name = s.varName;
 
-                        inSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
+                        string semIdx = s.needSemanticIndex ? s.semanticIndex.ToString() : "";
+
+                        inSig.Nodes.Add(new object[] { name, semIdx, s.regIndex, s.TypeString, s.systemValue.ToString(),
                                                                 SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
                     }
 
@@ -650,7 +652,9 @@ namespace renderdocui.Windows
                         if (multipleStreams)
                             name = String.Format("Stream {0} : {1}", s.stream, name);
 
-                        outSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
+                        string semIdx = s.needSemanticIndex ? s.semanticIndex.ToString() : "";
+
+                        outSig.Nodes.Add(new object[] { name, semIdx, s.regIndex, s.TypeString, s.systemValue.ToString(),
                                                                 SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
                     }
                 }
