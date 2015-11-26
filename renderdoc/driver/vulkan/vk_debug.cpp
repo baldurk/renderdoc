@@ -3065,12 +3065,21 @@ inline uint32_t MakeSPIRVOp(spv::Op op, uint32_t WordCount)
 	return (uint32_t(op) & spv::OpCodeMask) | (WordCount << spv::WordCountShift);
 }
 
-void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
+inline bool ShouldSkipOutput(SystemAttribute val)
+{
+	return (val == eAttr_PointSize ||
+			   val == eAttr_CullDistance ||
+			   val == eAttr_ClipDistance);
+}
+
+void AddOutputDumping(ShaderReflection refl, const char *entryName, vector<uint32_t> &modSpirv)
 {
 	uint32_t *spirv = &modSpirv[0];
 	size_t spirvLength = modSpirv.size();
 
 	int numOutputs = refl.OutputSig.count;
+
+	RDCASSERT(numOutputs > 0);
 
 	// save the id bound. We use this whenever we need to allocate ourselves
 	// a new ID
@@ -3085,6 +3094,7 @@ void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
 	// * Float types, half, float and double
 	// * Input Pointer to Int32 (for declaring gl_VertexID)
 	// * UInt32 constants from 0 up to however many outputs we have
+	// * The entry point we're after
 	//
 	// At the same time we find the highest descriptor set used and add a
 	// new descriptor set binding on the end for our output buffer. This is
@@ -3103,12 +3113,16 @@ void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
 	uint32_t halfID = 0;
 	uint32_t floatID = 0;
 	uint32_t doubleID = 0;
+	uint32_t entryID = 0;
 
 	struct outputIDs
 	{
 		uint32_t constID;      // constant ID for the index of this output
 		uint32_t basetypeID;   // the type ID for this output. Must be present already by definition!
 		uint32_t uniformPtrID; // Uniform Pointer ID for this output. Used to write the output data
+
+		uint32_t varID;        // we get this from the output signature, ID of actual variable
+		uint32_t childIdx;     // if the output variable is a struct, this is the member idx of this output
 	};
 	outputIDs outs[100] = {0};
 
@@ -3216,6 +3230,18 @@ void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
 			}
 		}
 
+		if(opcode == spv::OpEntryPoint)
+		{
+			const char *name = (const char *)&spirv[it+3];
+
+			if(!strcmp(name, entryName))
+			{
+				if(entryID != 0)
+					RDCERR("Same entry point declared twice! %s", entryName);
+				entryID = spirv[it+2];
+			}
+		}
+
 		if(opcode == spv::OpDecorate && spirv[it+2] == spv::DecorationDescriptorSet)
 			maxDescSetBind = RDCMAX(maxDescSetBind, spirv[it+3]);
 
@@ -3232,6 +3258,8 @@ void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
 
 		it += WordCount;
 	}
+
+	RDCASSERT(entryID != 0);
 	
 	for(int i=0; i < numOutputs; i++)
 	{
@@ -3252,6 +3280,10 @@ void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
 
 		// must have at least found the base type, or something has gone seriously wrong
 		RDCASSERT(outs[i].basetypeID != 0);
+
+		// bit of a hack, these were stored from SPIR-V disassembly
+		outs[i].varID = atoi(refl.OutputSig[i].semanticIdxName.elems);
+		outs[i].childIdx = refl.OutputSig[i].semanticIndex;
 	}
 
 	if(vertidxID == 0)
@@ -3411,16 +3443,28 @@ void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
 	{
 		uint32_t vertStructID = idBound++;
 
+		uint32_t structSize = numOutputs;
+
 		uint32_t vertStructOp[2+100] = {
-			MakeSPIRVOp(spv::OpTypeStruct, 2+numOutputs),
+			0,
 			vertStructID,
 		};
 
-		for(int i=0; i < numOutputs; i++)
-			vertStructOp[2+i] = outs[i].basetypeID;
+		int i=0;
+		for(int o=0; o < numOutputs; o++)
+		{
+			// skip these types of outputs since they aren't really mesh data
+			if(ShouldSkipOutput(refl.OutputSig[o].systemValue))
+				 continue;
+
+			vertStructOp[2+i] = outs[o].basetypeID;
+			i++;
+		}
+
+		vertStructOp[0] = MakeSPIRVOp(spv::OpTypeStruct, 2+structSize);
 
 		// insert at the end of the types/variables section
-		modSpirv.insert(modSpirv.begin()+typeVarOffset, vertStructOp, vertStructOp+2+numOutputs);
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, vertStructOp, vertStructOp+2+structSize);
 
 		// update offsets to account for inserted op
 		typeVarOffset += 2+numOutputs;
@@ -3491,8 +3535,13 @@ void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
 		decorations.reserve(5*numOutputs + 20);
 
 		uint32_t memberOffset = 0;
-		for(int i=0; i < numOutputs; i++)
+		i=0;
+		for(int o=0; o < numOutputs; o++)
 		{
+			// skip these types of outputs since they aren't really mesh data
+			if(ShouldSkipOutput(refl.OutputSig[o].systemValue))
+				 continue;
+
 			decorations.push_back(MakeSPIRVOp(spv::OpMemberDecorate, 5));
 			decorations.push_back(vertStructID);
 			decorations.push_back((uint32_t)i);
@@ -3510,6 +3559,7 @@ void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
 				RDCERR("Unexpected component type for output signature element");
 
 			memberOffset += elemSize*refl.OutputSig[i].compCount;
+			i++;
 		}
 		
 		// the array is the only element in the output struct, so
@@ -3550,9 +3600,114 @@ void AddOutputDumping(ShaderReflection refl, vector<uint32_t> &modSpirv)
 		decorateOffset += decorations.size();
 	}
 
-	// update these values, since vector may have resized and/or reallocated above
+	vector<uint32_t> dumpCode;
+
+	{
+		// bit of a conservative resize. Each output if in a struct could have
+		// AccessChain on source = 4 uint32s
+		// Load source           = 4 uint32s
+		// AccessChain on dest   = 7 uint32s
+		// Store dest            = 3 uint32s
+		// and 4 to load the index
+		dumpCode.reserve(numOutputs*(4+4+7+3) + 4);
+
+		uint32_t loadedVtxID = idBound++;
+		dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
+		dumpCode.push_back(sint32ID);
+		dumpCode.push_back(loadedVtxID);
+		dumpCode.push_back(vertidxID);
+
+		int i=0;
+		for(int o=0; o < numOutputs; o++)
+		{
+			// skip these types of outputs since they aren't really mesh data
+			if(ShouldSkipOutput(refl.OutputSig[o].systemValue))
+				continue;
+
+			// access chain the destination
+			uint32_t writePtr = idBound++;
+			dumpCode.push_back(MakeSPIRVOp(spv::OpAccessChain, 7));
+			dumpCode.push_back(outs[o].uniformPtrID);
+			dumpCode.push_back(writePtr);
+			dumpCode.push_back(outBufferVarID); // outBuffer
+			dumpCode.push_back(outs[0].constID); // .verts
+			dumpCode.push_back(loadedVtxID); // [gl_VertexID]
+			dumpCode.push_back(outs[o].constID); // .out_...
+
+			// not a structure member, can load directly
+			if(outs[o].childIdx == ~0U)
+			{
+				uint32_t loaded = idBound++;
+
+				dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
+				dumpCode.push_back(outs[o].basetypeID);
+				dumpCode.push_back(loaded);
+				dumpCode.push_back(outs[o].varID);
+
+				dumpCode.push_back(MakeSPIRVOp(spv::OpStore, 3));
+				dumpCode.push_back(writePtr);
+				dumpCode.push_back(loaded);
+			}
+			else
+			{
+				uint32_t readPtr = idBound++;
+				uint32_t loaded = idBound++;
+				
+				// structure member, need to access chain first
+				dumpCode.push_back(MakeSPIRVOp(spv::OpAccessChain, 5));
+				dumpCode.push_back(outs[o].uniformPtrID);
+				dumpCode.push_back(readPtr);          // readPtr = 
+				dumpCode.push_back(outs[o].varID);    // outStructWhatever
+				dumpCode.push_back(outs[o].childIdx); // .actualOut
+
+				dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
+				dumpCode.push_back(outs[o].basetypeID);
+				dumpCode.push_back(loaded);
+				dumpCode.push_back(readPtr);
+
+				dumpCode.push_back(MakeSPIRVOp(spv::OpStore, 3));
+				dumpCode.push_back(writePtr);
+				dumpCode.push_back(loaded);
+			}
+		}
+	}
+
+	// update these values, since vector will have resized and/or reallocated above
 	spirv = &modSpirv[0];
 	spirvLength = modSpirv.size();
+
+	bool infunc = false;
+
+	it = 5;
+	while(it < spirvLength)
+	{
+		uint16_t WordCount = spirv[it]>>spv::WordCountShift;
+		spv::Op opcode = spv::Op(spirv[it]&spv::OpCodeMask);
+
+		// find the start of the entry point
+		if(opcode == spv::OpFunction && spirv[it+2] == entryID)
+			infunc = true;
+		
+		// insert the dumpCode before any spv::OpReturn.
+		// we should not have any spv::OpReturnValue since this is
+		// the entry point. Neither should we have OpKill etc.
+		if(infunc && opcode == spv::OpReturn)
+		{
+			modSpirv.insert(modSpirv.begin()+it, dumpCode.begin(), dumpCode.end());
+
+			it += dumpCode.size();
+			
+			// update these values, since vector will have resized and/or reallocated above
+			spirv = &modSpirv[0];
+			spirvLength = modSpirv.size();
+		}
+
+		// done patching entry point
+		if(opcode == spv::OpFunctionEnd && infunc)
+			break;
+
+		it += WordCount;
+	}
 
 	// patch up the new id bound
 	spirv[3] = idBound;
@@ -3567,7 +3722,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	const VulkanCreationInfo::ShaderModule &m = c.m_ShaderModule[s.module];
 	
 	vector<uint32_t> modSpirv = m.spirv.spirv;
-	AddOutputDumping(s.refl, modSpirv);
+	AddOutputDumping(s.refl, s.entry.c_str(), modSpirv);
 
 	RDCBREAK();
 }

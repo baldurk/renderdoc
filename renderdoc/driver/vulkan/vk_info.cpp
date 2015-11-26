@@ -369,6 +369,7 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan, 
 void VulkanCreationInfo::Shader::Init(VulkanResourceManager *resourceMan, const VkShaderCreateInfo* pCreateInfo, VulkanCreationInfo::ShaderModule &moduleinfo)
 {
 	module = resourceMan->GetNonDispWrapper(pCreateInfo->module)->id;
+	entry = pCreateInfo->pName;
 	mapping = moduleinfo.mapping;
 	refl = moduleinfo.reflTemplate;
 	refl.DebugInfo.entryFunc = pCreateInfo->pName;

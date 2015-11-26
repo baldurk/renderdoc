@@ -295,6 +295,7 @@ struct VulkanCreationInfo
 		void Init(VulkanResourceManager *resourceMan, const VkShaderCreateInfo* pCreateInfo, VulkanCreationInfo::ShaderModule &moduleinfo);
 
 		ResourceId module;
+		string entry;
 		ShaderReflection refl;
 		ShaderBindpointMapping mapping;
 	};
