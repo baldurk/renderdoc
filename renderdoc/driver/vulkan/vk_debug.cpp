@@ -3455,7 +3455,10 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, vector<uint3
 		{
 			// skip these types of outputs since they aren't really mesh data
 			if(ShouldSkipOutput(refl.OutputSig[o].systemValue))
-				 continue;
+			{
+				structSize--;
+				continue;
+			}
 
 			vertStructOp[2+i] = outs[o].basetypeID;
 			i++;
@@ -3467,7 +3470,7 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, vector<uint3
 		modSpirv.insert(modSpirv.begin()+typeVarOffset, vertStructOp, vertStructOp+2+structSize);
 
 		// update offsets to account for inserted op
-		typeVarOffset += 2+numOutputs;
+		typeVarOffset += 2+structSize;
 		
 		uint32_t runtimeArrayID = idBound++;
 
