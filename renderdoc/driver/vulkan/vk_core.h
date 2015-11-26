@@ -154,6 +154,7 @@ private:
 	double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
 
 	vector<FetchFrameRecord> m_FrameRecord;
+	const FetchDrawcall *GetDrawcall(const FetchDrawcall *draw, uint32_t eventID);
 
 	struct PhysicalDeviceData
 	{
@@ -530,6 +531,7 @@ public:
 
 	vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 	FetchAPIEvent GetEvent(uint32_t eventID);
+	const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
 
 	// Device initialization
 
