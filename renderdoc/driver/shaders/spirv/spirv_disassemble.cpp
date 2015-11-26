@@ -2349,7 +2349,7 @@ struct bindpair
 typedef bindpair<ConstantBlock> cblockpair;
 typedef bindpair<ShaderResource> shaderrespair;
 
-void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTypeData *type, const vector<SPVDecoration> &decorations, vector<SigParameter> &sigarray, rdctype::array<int> *inputAttrs)
+void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTypeData *type, const vector<SPVDecoration> &decorations, vector<SigParameter> &sigarray)
 {
 	SigParameter sig;
 
@@ -2387,7 +2387,7 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 		// we don't support nested structs yet
 		RDCASSERT(childIdx == ~0U);
 		for(size_t c=0; c < type->children.size(); c++)
-			AddSignatureParameter(id, (uint32_t)c, varName + "." + type->children[c].second, type->children[c].first, type->decorations[c], sigarray, inputAttrs);
+			AddSignatureParameter(id, (uint32_t)c, varName + "." + type->children[c].second, type->children[c].first, type->decorations[c], sigarray);
 		return;
 	}
 
@@ -2415,8 +2415,6 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 
 	if(type->matrixSize == 1)
 	{
-		if(inputAttrs && sig.systemValue == eAttr_None)
-			inputAttrs->elems[sig.regIndex] = (int32_t)sigarray.size();
 		sigarray.push_back(sig);
 	}
 	else
@@ -2428,9 +2426,6 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 			s.regIndex += m;
 
 			RDCASSERT(s.regIndex < 16);
-
-			if(inputAttrs && sig.systemValue == eAttr_None)
-				inputAttrs->elems[s.regIndex] = (int32_t)sigarray.size();
 
 			sigarray.push_back(s);
 		}
@@ -2471,7 +2466,7 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 			else
 				nm = StringFormat::Fmt("sig%u", inst->id);
 
-			AddSignatureParameter(inst->id, ~0U, nm, inst->var->type, inst->decorations, *sigarray, isInput ? &mapping->InputAttributes : NULL);
+			AddSignatureParameter(inst->id, ~0U, nm, inst->var->type, inst->decorations, *sigarray);
 		}
 		else if(inst->var->storage == spv::StorageClassUniform ||
 		        inst->var->storage == spv::StorageClassUniformConstant ||
@@ -2652,6 +2647,10 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 
 	std::sort(inputs.begin(), inputs.end(), sig_param_sort());
 	std::sort(outputs.begin(), outputs.end(), sig_param_sort());
+
+	for(size_t i=0; i < inputs.size(); i++)
+		if(inputs[i].systemValue == eAttr_None)
+			mapping->InputAttributes[ inputs[i].regIndex ] = (int32_t)i;
 
 	reflection->InputSig = inputs;
 	reflection->OutputSig = outputs;
