@@ -1795,7 +1795,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 			vkr = vt->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
+			GetBufferData(cfg.position.buf, 0, 0, m_HighlightCache.data);
 
 			if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
 			{
@@ -1808,7 +1808,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 
 				vector<byte> idxdata;
 				if(cfg.position.idxbuf != ResourceId())
-					idxdata = GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, cfg.position.numVerts*bytesize);
+					GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, cfg.position.numVerts*bytesize, idxdata);
 
 				uint8_t *idx8 = (uint8_t *)&idxdata[0];
 				uint16_t *idx16 = (uint16_t *)&idxdata[0];
@@ -2566,9 +2566,9 @@ uint64_t VulkanReplay::MakeOutputWindow(void *wn, bool depth)
 	return id;
 }
 
-vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
+void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
 {
-	return GetDebugManager()->GetBufferData(buff, offset, len);
+	GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
 
 bool VulkanReplay::IsRenderOutput(ResourceId id)

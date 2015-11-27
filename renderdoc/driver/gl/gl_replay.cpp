@@ -308,14 +308,12 @@ void GLReplay::FlipOutputWindow(uint64_t id)
 	SwapBuffers(&outw);
 }
 
-vector<byte> GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
+void GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret)
 {
-	vector<byte> ret;
-
 	if(m_pDriver->m_Buffers.find(buff) == m_pDriver->m_Buffers.end())
 	{
 		RDCWARN("Requesting data for non-existant buffer %llu", buff);
-		return ret;
+		return;
 	}
 
 	auto &buf = m_pDriver->m_Buffers[buff];
@@ -329,7 +327,7 @@ vector<byte> GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t 
 		if(offset < buf.size)
 			len = ~0ULL; // min below will clamp to max size size
 		else
-			return ret; // offset past buffer size, return empty array
+			return; // offset past buffer size, return empty array
 	}
 	else if(len == 0)
 	{
@@ -340,7 +338,7 @@ vector<byte> GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t 
 	// will fail.
 	len = RDCMIN(len, bufsize-offset);
 
-	if(len == 0) return ret;
+	if(len == 0) return;
 	
 	ret.resize((size_t)len);
 	
@@ -354,8 +352,6 @@ vector<byte> GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t 
 	gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, (GLintptr)offset, (GLsizeiptr)len, &ret[0]);
 
 	gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf);
-
-	return ret;
 }
 
 bool GLReplay::IsRenderOutput(ResourceId id)
@@ -2094,7 +2090,8 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, 
 		gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_OFFSET, (GLint *)&offs);
 		gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&size);
 
-		vector<byte> data = GetBufferData(id, offs, size);
+		vector<byte> data;
+		GetBufferData(id, offs, size, data);
 
 		dataSize = data.size();
 		ret = new byte[dataSize];

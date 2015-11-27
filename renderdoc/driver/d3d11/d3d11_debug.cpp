@@ -2121,26 +2121,26 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 	return true;
 }
 
-vector<byte> D3D11DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length)
+void D3D11DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData)
 {
 	auto it = WrappedID3D11Buffer::m_BufferList.find(buff);
 
 	if(it == WrappedID3D11Buffer::m_BufferList.end())
-		return vector<byte>();
+		return;
 
 	ID3D11Buffer *buffer = it->second.m_Buffer;
 
 	RDCASSERT(buffer);
 
-	return GetBufferData(buffer, offset, length, true);
+	GetBufferData(buffer, offset, length, retData, true);
 }
 
-vector<byte> D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uint64_t length, bool unwrap)
+void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uint64_t length, vector<byte> &ret, bool unwrap)
 {
 	D3D11_MAPPED_SUBRESOURCE mapped;
 
 	if(buffer == NULL)
-		return vector<byte>();
+		return;
 
 	RDCASSERT(offset < 0xffffffff);
 	RDCASSERT(length <= 0xffffffff);
@@ -2163,8 +2163,6 @@ vector<byte> D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t off
 	}
 
 	uint32_t outOffs = 0;
-
-	vector<byte> ret;
 
 	ret.resize(len);
 
@@ -2196,7 +2194,7 @@ vector<byte> D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t off
 		if(FAILED(hr))
 		{
 			RDCERR("Failed to map bufferdata buffer %08x", hr);
-			return ret;
+			return;
 		}
 		else
 		{
@@ -2208,8 +2206,6 @@ vector<byte> D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t off
 		outOffs += chunkSize;
 		len -= chunkSize;
 	}
-
-	return ret;
 }
 
 void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Texture2D *srcArray)
@@ -3954,7 +3950,8 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 			ID3D11Buffer *origBuf = idxBuf;
 
-			vector<byte> idxdata = GetBufferData(idxBuf, idxOffs + drawcall->indexOffset*bytesize, drawcall->numIndices*bytesize, true);
+			vector<byte> idxdata;
+			GetBufferData(idxBuf, idxOffs + drawcall->indexOffset*bytesize, drawcall->numIndices*bytesize, idxdata, true);
 
 			SAFE_RELEASE(idxBuf);
 			
@@ -4965,7 +4962,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 			bool index16 = (ifmt == DXGI_FORMAT_R16_UINT); 
 			UINT bytesize = index16 ? 2 : 4; 
 
-			m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
+			GetBufferData(cfg.position.buf, 0, 0, m_HighlightCache.data);
 
 			if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
 			{
@@ -4978,7 +4975,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 
 				vector<byte> idxdata;
 				if(cfg.position.idxbuf != ResourceId())
-					idxdata = GetBufferData(cfg.position.idxbuf, ioffs, cfg.position.numVerts*bytesize);
+					GetBufferData(cfg.position.idxbuf, ioffs, cfg.position.numVerts*bytesize, idxdata);
 
 				uint16_t *idx16 = (uint16_t *)&idxdata[0];
 				uint32_t *idx32 = (uint32_t *)&idxdata[0];

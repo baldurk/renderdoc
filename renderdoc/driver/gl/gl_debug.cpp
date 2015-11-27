@@ -1124,7 +1124,8 @@ uint32_t GLReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cf
 	{
 		FloatVector *vbData = new FloatVector[cfg.position.numVerts];
 
-		vector<byte> oldData = GetBufferData(cfg.position.buf, cfg.position.offset, 0);
+		vector<byte> oldData;
+		GetBufferData(cfg.position.buf, cfg.position.offset, 0, oldData);
 
 		byte *data = &oldData[0];
 		byte *dataEnd = data + oldData.size();
@@ -2628,7 +2629,8 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	{
 		ResourceId idxId = rm->GetID(BufferRes(NULL, elArrayBuffer));
 
-		vector<byte> idxdata = GetBufferData(idxId, drawcall->indexOffset*drawcall->indexByteWidth, drawcall->numIndices*drawcall->indexByteWidth);
+		vector<byte> idxdata;
+		GetBufferData(idxId, drawcall->indexOffset*drawcall->indexByteWidth, drawcall->numIndices*drawcall->indexByteWidth, idxdata);
 		
 		vector<uint32_t> indices;
 		
@@ -3812,7 +3814,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			
 			uint32_t bytesize = cfg.position.idxByteWidth; 
 
-			m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
+			GetBufferData(cfg.position.buf, 0, 0, m_HighlightCache.data);
 
 			if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
 			{
@@ -3825,7 +3827,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 
 				vector<byte> idxdata;
 				if(cfg.position.idxbuf != ResourceId())
-					idxdata = GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, cfg.position.numVerts*bytesize);
+					GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, cfg.position.numVerts*bytesize, idxdata);
 
 				uint8_t *idx8 = (uint8_t *)&idxdata[0];
 				uint16_t *idx16 = (uint16_t *)&idxdata[0];

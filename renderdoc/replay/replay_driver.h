@@ -84,7 +84,7 @@ class IRemoteDriver
 		
 		virtual MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage) = 0;
 		
-		virtual vector<byte> GetBufferData(ResourceId buff, uint64_t offset, uint64_t len) = 0;
+		virtual void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData) = 0;
 		virtual byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize) = 0;
 		
 		virtual void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors) = 0;

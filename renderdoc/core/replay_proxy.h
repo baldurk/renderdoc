@@ -347,7 +347,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		
 		void FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data);
 		
-		vector<byte> GetBufferData(ResourceId buff, uint64_t offset, uint64_t len);
+		void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData);
 		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
 		
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);

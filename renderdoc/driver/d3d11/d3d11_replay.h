@@ -90,7 +90,7 @@ class D3D11Replay : public IReplayDriver
 		
 		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
 		
-		vector<byte> GetBufferData(ResourceId buff, uint64_t offset, uint64_t len);
+		void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData);
 		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
 		
 		void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors);

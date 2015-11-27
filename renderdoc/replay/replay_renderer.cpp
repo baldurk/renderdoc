@@ -445,7 +445,10 @@ bool ReplayRenderer::GetBufferData(ResourceId buff, uint64_t offset, uint64_t le
 {
 	if(data == NULL) return false;
 
-	*data = m_pDevice->GetBufferData(m_pDevice->GetLiveID(buff), offset, len);
+	vector<byte> retData;
+	m_pDevice->GetBufferData(m_pDevice->GetLiveID(buff), offset, len, retData);
+	
+	create_array_init(*data, retData.size(), !retData.empty() ? &retData[0] : NULL);
 
 	return true;
 }
@@ -457,8 +460,7 @@ bool ReplayRenderer::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t 
 	size_t sz;
 	byte *bytes = m_pDevice->GetTextureData(m_pDevice->GetLiveID(tex), arrayIdx, mip, false, false, 0.0f, 0.0f, sz);
 
-	create_array_uninit(*data, sz);
-	memcpy(data->elems, bytes, sz);
+	create_array_init(*data, sz, bytes);
 
 	delete[] bytes;
 
@@ -1292,7 +1294,7 @@ bool ReplayRenderer::GetCBufferVariableContents(ResourceId shader, uint32_t cbuf
 
 	vector<byte> data;
 	if(buffer != ResourceId())
-		data = m_pDevice->GetBufferData(m_pDevice->GetLiveID(buffer), offs, 0);
+		m_pDevice->GetBufferData(m_pDevice->GetLiveID(buffer), offs, 0, data);
 
 	vector<ShaderVariable> v;
 

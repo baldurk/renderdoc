@@ -574,7 +574,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 			{
 				if(WrappedID3D11Buffer::IsAlloc(res))
 				{
-					global.uavs[dsti].data = GetBufferData((ID3D11Buffer *)res, 0, 0, true);
+					GetBufferData((ID3D11Buffer *)res, 0, 0, global.uavs[dsti].data, true);
 				}
 				else
 				{
@@ -757,7 +757,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 			{
 				if(WrappedID3D11Buffer::IsAlloc(res))
 				{
-					global.srvs[i].data = GetBufferData((ID3D11Buffer *)res, 0, 0, true);
+					GetBufferData((ID3D11Buffer *)res, 0, 0, global.srvs[i].data, true);
 				}
 			}
 
@@ -884,8 +884,8 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 		UINT i = *it;
 		if(rs->IA.VBs[i])
 		{
-			vertData[i] = GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i]*(vertOffset+idx), rs->IA.Strides[i], true);
-			instData[i] = GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i]*(instOffset+instid), rs->IA.Strides[i], true);
+			GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i]*(vertOffset+idx), rs->IA.Strides[i], vertData[i], true);
+			GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i]*(instOffset+instid), rs->IA.Strides[i], instData[i], true);
 		}
 	}
 
@@ -893,7 +893,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 
 	for(int i=0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
 		if(rs->VS.ConstantBuffers[i])
-			cbufData[i] = GetBufferData(rs->VS.ConstantBuffers[i], rs->VS.CBOffsets[i]*sizeof(Vec4f), 0, true);
+			GetBufferData(rs->VS.ConstantBuffers[i], rs->VS.CBOffsets[i]*sizeof(Vec4f), 0, cbufData[i], true);
 
 	ShaderDebugTrace ret;
 	
@@ -1609,7 +1609,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	for(int i=0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
 		if(rs->PS.ConstantBuffers[i])
-			cbufData[i] = GetBufferData(rs->PS.ConstantBuffers[i], rs->PS.CBOffsets[i]*sizeof(Vec4f), 0, true);
+			GetBufferData(rs->PS.ConstantBuffers[i], rs->PS.CBOffsets[i]*sizeof(Vec4f), 0, cbufData[i], true);
 
 	D3D11_COMPARISON_FUNC depthFunc = D3D11_COMPARISON_LESS;
 
@@ -1968,7 +1968,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 
 	for(int i=0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
 		if(rs->CS.ConstantBuffers[i])
-			cbufData[i] = GetBufferData(rs->CS.ConstantBuffers[i], rs->CS.CBOffsets[i]*sizeof(Vec4f), 0, true);
+			GetBufferData(rs->CS.ConstantBuffers[i], rs->CS.CBOffsets[i]*sizeof(Vec4f), 0, cbufData[i], true);
 	
 	ShaderDebugTrace ret;
 		
@@ -2134,7 +2134,8 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t frameID, uint32_t eventID, MeshD
 	{
 		FloatVector *vbData = new FloatVector[cfg.position.numVerts];
 
-		vector<byte> oldData = GetBufferData(vb, cfg.position.offset, 0, false);
+		vector<byte> oldData;
+		GetBufferData(vb, cfg.position.offset, 0, oldData, false);
 
 		byte *data = &oldData[0];
 		byte *dataEnd = data + oldData.size();
@@ -2166,13 +2167,14 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t frameID, uint32_t eventID, MeshD
 
 	m_pImmediateContext->CopyStructureCount(m_DebugRender.histogramBuff, 0, m_DebugRender.PickResultUAV);
 
-	vector<byte> results = GetBufferData(m_DebugRender.histogramBuff, 0, 0, false);
+	vector<byte> results;
+	GetBufferData(m_DebugRender.histogramBuff, 0, 0, results, false);
 
 	uint32_t numResults = *(uint32_t *)&results[0];
 
 	if(numResults > 0)
 	{
-		results = GetBufferData(m_DebugRender.PickResultBuf, 0, 0, false);
+		GetBufferData(m_DebugRender.PickResultBuf, 0, 0, results, false);
 
 		struct PickResult
 		{

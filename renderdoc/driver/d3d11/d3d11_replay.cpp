@@ -1314,9 +1314,9 @@ MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uin
 	return m_pDevice->GetDebugManager()->GetPostVSBuffers(frameID, eventID, instID, stage);
 }
 
-vector<byte> D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
+void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
 {
-	return m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len);
+	m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
 
 byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)

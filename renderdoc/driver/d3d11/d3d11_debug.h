@@ -119,8 +119,8 @@ class D3D11DebugManager
 		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
 		uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
-		vector<byte> GetBufferData(ResourceId buff, uint64_t offset, uint64_t length);
-		vector<byte> GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, bool unwrap);
+		void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
+		void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, vector<byte> &retData, bool unwrap);
 
 		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
 		

@@ -68,4 +68,20 @@ void create_array_uninit(array<T> &ret, size_t count)
 	}
 }
 
+template<typename T>
+void create_array_init(array<T> &ret, size_t count, const T *src)
+{
+	ret.Delete();
+	ret.count = (int32_t)count;
+	if(ret.count == 0)
+	{
+		ret.elems = 0;
+	}
+	else
+	{
+		ret.elems = (T*)ret.allocate(sizeof(T)*count);
+		memcpy(ret.elems, src, sizeof(T)*count);
+	}
+}
+
 }; // namespace rdctype

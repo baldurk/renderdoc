@@ -1783,7 +1783,7 @@ void VulkanDebugManager::EndText(const TextPrintState &textstate)
 	ObjDisp(textstate.cmd)->EndCommandBuffer(Unwrap(textstate.cmd));
 }
 
-vector<byte> VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
+void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret)
 {
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
@@ -1802,7 +1802,6 @@ vector<byte> VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset,
 		len = RDCMIN(len, m_pDriver->m_CreationInfo.m_Buffer[buff].size - offset);
 	}
 
-	vector<byte> ret;
 	ret.resize((size_t)len);
 
 	// VKTODOMED - coarse: wait for all writes to this buffer
@@ -1865,8 +1864,6 @@ vector<byte> VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset,
 
 	vt->DestroyBuffer(Unwrap(dev), destbuf);
 	vt->FreeMemory(Unwrap(dev), readbackmem);
-
-	return ret;
 }
 
 void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline)
@@ -3991,7 +3988,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	if((drawcall->flags & eDraw_UseIBuffer) != 0)
 	{
 		// fetch ibuffer
-		idxdata = GetBufferData(state.ibuffer.buf, state.ibuffer.offs + drawcall->indexOffset*idxsize, drawcall->numIndices*idxsize);
+		GetBufferData(state.ibuffer.buf, state.ibuffer.offs + drawcall->indexOffset*idxsize, drawcall->numIndices*idxsize, idxdata);
 
 		// do ibuffer rebasing/remapping
 		

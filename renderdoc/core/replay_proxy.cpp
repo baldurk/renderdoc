@@ -1256,7 +1256,8 @@ void ProxySerialiser::EnsureBufCached(ResourceId bufid)
 
 		ResourceId proxyid = m_ProxyBufferIds[bufid];
 
-		vector<byte> data = GetBufferData(bufid, 0, 0);
+		vector<byte> data;
+		GetBufferData(bufid, 0, 0, data);
 
 		if(!data.empty())
 			m_Proxy->SetProxyBufferData(proxyid, &data[0], data.size());
@@ -1357,8 +1358,11 @@ bool ProxySerialiser::Tick()
 			break;
 		}
 		case eCommand_GetBufferData:
-			GetBufferData(ResourceId(), 0, 0);
+		{
+			vector<byte> dummy;
+			GetBufferData(ResourceId(), 0, 0, dummy);
 			break;
+		}
 		case eCommand_GetTextureData:
 		{
 			size_t dummy;
@@ -1800,34 +1804,30 @@ void ProxySerialiser::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot,
 	return;
 }
 
-vector<byte> ProxySerialiser::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
+void ProxySerialiser::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
 {
-	vector<byte> ret;
-	
 	m_ToReplaySerialiser->Serialise("", buff);
 	m_ToReplaySerialiser->Serialise("", offset);
 	m_ToReplaySerialiser->Serialise("", len);
 	
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->GetBufferData(buff, offset, len);
+		m_Remote->GetBufferData(buff, offset, len, retData);
 	
-		size_t sz = ret.size();
+		size_t sz = retData.size();
 		m_FromReplaySerialiser->Serialise("", sz);
-		m_FromReplaySerialiser->RawWriteBytes(&ret[0], sz);
+		m_FromReplaySerialiser->RawWriteBytes(&retData[0], sz);
 	}
 	else
 	{
 		if(!SendReplayCommand(eCommand_GetBufferData))
-			return ret;
+			return;
 	
 		size_t sz = 0;
 		m_FromReplaySerialiser->Serialise("", sz);
-		ret.resize(sz);
-		memcpy(&ret[0], m_FromReplaySerialiser->RawReadBytes(sz), sz);
+		retData.resize(sz);
+		memcpy(&retData[0], m_FromReplaySerialiser->RawReadBytes(sz), sz);
 	}
-
-	return ret;
 }
 
 byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm,
