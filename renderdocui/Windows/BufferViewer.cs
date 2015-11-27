@@ -632,10 +632,37 @@ namespace renderdocui.Windows
             foreach (var s in states)
             {
                 s.AbortThread();
-                s.m_RawData = null;
-                s.m_Data = null;
+                if(s.m_Reader != null)
+                {
+                    for (int i = 0; i < s.m_Reader.Length; i++)
+                    {
+                        if(s.m_Reader[i] != null)
+                            s.m_Reader[i].Dispose();
+                        s.m_Reader[i] = null;
+                    }
+                }
+                if (s.m_Stream != null)
+                {
+                    for (int i = 0; i < s.m_Stream.Length; i++)
+                    {
+                        if (s.m_Reader[i] != null)
+                            s.m_Stream[i].Dispose();
+                        s.m_Stream[i] = null;
+                    }
+                }
                 s.m_Stream = null;
                 s.m_Reader = null;
+                s.m_RawData = null;
+                if (s.m_Data != null && s.m_Data.Buffers != null)
+                {
+                    for (int i = 0; i < s.m_Data.Buffers.Length; i++)
+                        s.m_Data.Buffers[i] = null;
+                }
+                if (s.m_Data != null)
+                {
+                    s.m_Data.DataIndices = null;
+                }
+                s.m_Data = null;
                 s.m_RawStride = 0;
                 s.m_Rows = null;
                 s.m_GridView.RowCount = 0;
@@ -2061,8 +2088,6 @@ namespace renderdocui.Windows
 
             if (m_CurrentCamera.Update())
                 render.Invalidate();
-
-            render.Invalidate();
         }
 
         private void PickVert(Point p)
