@@ -51,7 +51,7 @@ class D3D11ResourceManager;
 
 namespace ShaderDebug { struct GlobalState; }
 
-struct PostVSData
+struct D3D11PostVSData
 {
 	struct StageData
 	{
@@ -72,7 +72,7 @@ struct PostVSData
 		float farPlane;
 	} vsin, vsout, gsout;
 
-	PostVSData()
+	D3D11PostVSData()
 	{
 		RDCEraseEl(vsin);
 		RDCEraseEl(vsout);
@@ -303,7 +303,7 @@ class D3D11DebugManager
 		ID3D11Buffer *m_SOStagingBuffer;
 		ID3D11Query *m_SOStatsQuery;
 		// <frame,event> -> data
-		map<pair<uint32_t,uint32_t>, PostVSData> m_PostVSData;
+		map<pair<uint32_t,uint32_t>, D3D11PostVSData> m_PostVSData;
 
 		// simple cache for when we need buffer data for highlighting
 		// vertices, typical use will be lots of vertices in the same

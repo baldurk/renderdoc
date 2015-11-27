@@ -3736,14 +3736,14 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
-	PostVSData postvs;
+	D3D11PostVSData postvs;
 	RDCEraseEl(postvs);
 
 	auto idx = std::make_pair(frameID, eventID);
 	if(m_PostVSData.find(idx) != m_PostVSData.end())
 		postvs = m_PostVSData[idx];
 
-	PostVSData::StageData s = postvs.GetStage(stage);
+	D3D11PostVSData::StageData s = postvs.GetStage(stage);
 	
 	MeshFormat ret;
 	
@@ -4063,7 +4063,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		if(numPrims.NumPrimitivesWritten == 0)
 		{
-			m_PostVSData[idx] = PostVSData();
+			m_PostVSData[idx] = D3D11PostVSData();
 			SAFE_RELEASE(idxBuf);
 			return;
 		}
