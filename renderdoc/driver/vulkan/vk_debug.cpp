@@ -3992,8 +3992,11 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	float farp = 100.0f;
 
 	Vec4f *pos0 = (Vec4f *)byteData;
+	
+	// expect position at the start of the buffer, as system values are sorted first
+	// and position is the first value
 
-	for(uint32_t i=1; i < numVerts; i++)
+	for(uint32_t i=1; s.refl.OutputSig[0].systemValue == eAttr_Position && i < numVerts; i++)
 	{
 		//////////////////////////////////////////////////////////////////////////////////
 		// derive near/far, assuming a standard perspective matrix
@@ -4032,9 +4035,6 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		}
 	}
 
-	// expect position at the start of the buffer
-	RDCASSERT(s.refl.OutputSig[0].systemValue == eAttr_Position);
-
 	m_pDriver->vkUnmapMemory(m_Device, readbackMem);
 
 	m_pDriver->vkDestroyBuffer(m_Device, readbackBuffer);
@@ -4068,8 +4068,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].vsout.idxFmt = state.ibuffer.bytewidth == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 	}
 
-	// VKTODOMED set this properly
-	m_PostVSData[idx].vsout.hasPosOut = true;
+	m_PostVSData[idx].vsout.hasPosOut = s.refl.OutputSig[0].systemValue == eAttr_Position;
 
 	// delete pipeline layout
 	m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout);
