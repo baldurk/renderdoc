@@ -3166,53 +3166,25 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t des
 		spv::Op opcode = spv::Op(spirv[it]&spv::OpCodeMask);
 
 		if(opcode == spv::OpDecorate && spirv[it+2] == spv::DecorationBuiltIn && spirv[it+3] == spv::BuiltInVertexId)
-		{
-			if(vertidxID != 0)
-				RDCWARN("found multiple decorated gl_VertexIDs %u %u!", spirv[it+1], vertidxID); // not sure if this is valid or not
 			vertidxID = spirv[it+1];
-		}
 
 		if(opcode == spv::OpTypeInt && spirv[it+2] == 32 && spirv[it+3] == 1)
-		{
-			if(sint32ID != 0)
-				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], sint32ID); // not sure if this is valid or not
 			sint32ID = spirv[it+1];
-		}
 
 		if(opcode == spv::OpTypeInt && spirv[it+2] == 32 && spirv[it+3] == 0)
-		{
-			if(uint32ID != 0)
-				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], uint32ID); // not sure if this is valid or not
 			uint32ID = spirv[it+1];
-		}
 
 		if(opcode == spv::OpTypeFloat && spirv[it+2] == 16)
-		{
-			if(halfID != 0)
-				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], halfID); // not sure if this is valid or not
 			halfID = spirv[it+1];
-		}
 
 		if(opcode == spv::OpTypeFloat && spirv[it+2] == 32)
-		{
-			if(floatID != 0)
-				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], floatID); // not sure if this is valid or not
 			floatID = spirv[it+1];
-		}
 
 		if(opcode == spv::OpTypeFloat && spirv[it+2] == 64)
-		{
-			if(doubleID != 0)
-				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], doubleID); // not sure if this is valid or not
 			doubleID = spirv[it+1];
-		}
 
 		if(opcode == spv::OpTypePointer && spirv[it+2] == spv::StorageClassInput && spirv[it+3] == sint32ID)
-		{
-			if(sint32PtrInID != 0)
-				RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], sint32PtrInID); // not sure if this is valid or not
 			sint32PtrInID = spirv[it+1];
-		}
 
 		for(int i=0; i < numOutputs; i++)
 		{
@@ -3240,20 +3212,12 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t des
 
 				// if we have the base type, see if this is the right sized vector of that type
 				if(baseID != 0 && spirv[it+2] == baseID && spirv[it+3] == refl.OutputSig[i].compCount)
-				{
-					if(outs[i].basetypeID != 0)
-						RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], outs[i].basetypeID); // not sure if this is valid or not
 					outs[i].basetypeID = spirv[it+1];
-				}
 			}
 
 			// if we've found the base type, try and identify uniform pointers to that type
 			if(outs[i].basetypeID != 0 && opcode == spv::OpTypePointer && spirv[it+2] == spv::StorageClassUniform && spirv[it+3] == outs[i].basetypeID)
-			{
-				if(outs[i].uniformPtrID != 0)
-					RDCWARN("identical type declared with two different IDs %u %u!", spirv[it+1], outs[i].uniformPtrID); // not sure if this is valid or not
 				outs[i].uniformPtrID = spirv[it+1];
-			}
 		}
 
 		if(opcode == spv::OpEntryPoint)
