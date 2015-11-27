@@ -113,6 +113,7 @@ class VulkanDebugManager
 
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
 		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
+		vector<byte> GetBufferData(ResourceId buff, uint64_t offset, uint64_t len);
 
 		struct GPUBuffer
 		{
