@@ -60,6 +60,8 @@ void main(void)
 	vec4 pos = position;
 	if(Mesh.homogenousInput == 0)
 		pos = vec4(position.xyz, 1);
+	else
+		pos.y = -pos.y;
 
 	gl_Position = Mesh.mvp * pos;
 	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[gl_VertexID%4]*gl_Position.w;
