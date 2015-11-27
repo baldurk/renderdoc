@@ -967,8 +967,6 @@ namespace renderdocui.Windows
                 }
                 else
                 {
-                    ret.Buffers[0] = r.GetBufferData(ret.PostVS.buf, ret.PostVS.offset, 0);
-
                     ret.Topology = ret.PostVS.topo;
 
                     ret.IndexCount = ret.PostVS.numVerts;
@@ -981,6 +979,8 @@ namespace renderdocui.Windows
 
                 ret.Indices = null;
                 ret.DataIndices = null;
+
+                uint maxIndex = Math.Max(ret.IndexCount, 1) - 1;
 
                 if (ret.PostVS.buf != ResourceId.Null && type == MeshDataStage.VSOut &&
                     (input.Drawcall.flags & DrawcallFlags.UseIBuffer) > 0 && input.IndexBuffer != ResourceId.Null)
@@ -1052,7 +1052,19 @@ namespace renderdocui.Windows
                             Buffer.BlockCopy(rawidxs, 0, ret.DataIndices, 0, ret.DataIndices.Length * sizeof(uint));
                         }
                     }
+
+                    maxIndex = 0;
+                    foreach (var i in ret.DataIndices)
+                    {
+                        if (i == input.IndexRestartValue && input.IndexRestart)
+                            continue;
+
+                        maxIndex = Math.Max(maxIndex, i);
+                    }
                 }
+
+                if (ret.PostVS.buf != ResourceId.Null)
+                    ret.Buffers[0] = r.GetBufferData(ret.PostVS.buf, ret.PostVS.offset, (maxIndex + 1) * ret.PostVS.stride);
 
                 return ret;
             }
