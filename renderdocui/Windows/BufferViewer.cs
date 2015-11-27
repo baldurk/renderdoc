@@ -911,6 +911,8 @@ namespace renderdocui.Windows
             ret.IndexCount = input.Drawcall.numIndices;
             ret.Topology = input.Topology;
 
+            ret.PostVS.stride = 0;
+
             if (type != MeshDataStage.VSIn)
             {
                 ret.PostVS = r.GetPostVSData(Math.Min(m_MeshDisplay.curInstance, Math.Max(1U, input.Drawcall.numInstances)), type);
@@ -930,9 +932,7 @@ namespace renderdocui.Windows
 
                     ret.IndexCount = ret.PostVS.numVerts;
 
-                    uint stride = 0;
-                    foreach (var f in input.BufferFormats)
-                        stride += f.ByteSize;
+                    uint stride = ret.PostVS.stride;
 
                     if (stride != 0 && (input.Drawcall.flags & DrawcallFlags.UseIBuffer) == 0)
                         ret.IndexCount = Math.Min(ret.IndexCount, (uint)ret.Buffers[0].Length / stride);
@@ -1485,7 +1485,11 @@ namespace renderdocui.Windows
                             else
                                 instIdx = index;
 
-                            uint offs = input.Strides[bufferFormats[el].buffer] * instIdx + bufferFormats[el].offset;
+                            uint stride = input.Strides[bufferFormats[el].buffer];
+                            if (data.PostVS.stride != 0)
+                                stride = data.PostVS.stride;
+
+                            uint offs = stride * instIdx + bufferFormats[el].offset;
 
                             bool outofBounds = false;
 
@@ -1791,7 +1795,11 @@ namespace renderdocui.Windows
                             else
                                 instIdx = dataIndex;
 
-                            uint offs = input.Strides[bufferFormats[el].buffer] * instIdx + bufferFormats[el].offset;
+                            uint stride = input.Strides[bufferFormats[el].buffer];
+                            if (data.PostVS.stride != 0)
+                                stride = data.PostVS.stride;
+
+                            uint offs = stride * instIdx + bufferFormats[el].offset;
 
                             if (bytedata == null)
                             {
