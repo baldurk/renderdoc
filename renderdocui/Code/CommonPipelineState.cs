@@ -61,6 +61,11 @@ namespace renderdocui.Code
         public bool Used;
     };
 
+    public struct Viewport
+    {
+        public float x, y, width, height;
+    };
+
     public class CommonPipelineState
     {
         private D3D11PipelineState m_D3D11 = null;
@@ -150,6 +155,24 @@ namespace renderdocui.Code
             }
         }
 
+        // whether or not the PostVS data is aligned in the typical fashion
+        // ie. vectors not crossing float4 boundaries). APIs that use stream-out
+        // or transform feedback have tightly packed data, but APIs that rewrite
+        // shaders to dump data might have these alignment requirements
+        public bool HasAlignedPostVSData
+        {
+            get
+            {
+                if (LogLoaded)
+                {
+                    if (IsLogVK)
+                        return true;
+                }
+
+                return false;
+            }
+        }
+
         public string Abbrev(ShaderStageType stage)
         {
             if (IsLogD3D11 || (!LogLoaded && DefaultType == APIPipelineStateType.D3D11))
@@ -193,6 +216,42 @@ namespace renderdocui.Code
         }
 
         // there's a lot of redundancy in these functions
+
+        public Viewport GetViewport(int index)
+        {
+            Viewport ret = new Viewport();
+
+            // default to a 1x1 viewport just to avoid having to check for 0s all over
+            ret.x = ret.y = 0.0f;
+            ret.width = ret.height = 1.0f;
+
+            if (LogLoaded)
+            {
+                if (IsLogD3D11 && m_D3D11.m_RS.Viewports.Length > 0)
+                {
+                    ret.x = m_D3D11.m_RS.Viewports[0].TopLeft[0];
+                    ret.y = m_D3D11.m_RS.Viewports[0].TopLeft[1];
+                    ret.width = m_D3D11.m_RS.Viewports[0].Width;
+                    ret.height = m_D3D11.m_RS.Viewports[0].Height;
+                }
+                else if (IsLogGL && m_GL.m_RS.Viewports.Length > 0)
+                {
+                    ret.x = m_GL.m_RS.Viewports[0].Left;
+                    ret.y = m_GL.m_RS.Viewports[0].Bottom;
+                    ret.width = m_GL.m_RS.Viewports[0].Width;
+                    ret.height = m_GL.m_RS.Viewports[0].Height;
+                }
+                else if (IsLogVK && m_Vulkan.VP.viewportScissors.Length > 0)
+                {
+                    ret.x = m_Vulkan.VP.viewportScissors[0].vp.x;
+                    ret.y = m_Vulkan.VP.viewportScissors[0].vp.y;
+                    ret.width = m_Vulkan.VP.viewportScissors[0].vp.Width;
+                    ret.height = m_Vulkan.VP.viewportScissors[0].vp.Height;
+                }
+            }
+
+            return ret;
+        }
 
         public ShaderBindpointMapping GetBindpointMapping(ShaderStageType stage)
         {

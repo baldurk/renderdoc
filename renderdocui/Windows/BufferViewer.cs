@@ -2698,25 +2698,7 @@ namespace renderdocui.Windows
             m_MeshDisplay.aspect = 1.0f;
 
             // take a guess for the aspect ratio, for if the user hasn't overridden it
-            BoundResource depth = m_Core.CurPipelineState.GetDepthTarget();
-            BoundResource[] targets = m_Core.CurPipelineState.GetOutputTargets();
-
-            if (depth.Id != ResourceId.Null || (targets != null && targets.Length > 0))
-            {
-                foreach (var t in m_Core.CurTextures)
-                {
-                    if (depth.Id != ResourceId.Null && t.ID == depth.Id)
-                    {
-                        m_MeshDisplay.aspect = (float)t.width / (float)t.height;
-                        break;
-                    }
-                    if (depth.Id == ResourceId.Null && targets != null && targets.Length > 0 && t.ID == targets[0].Id)
-                    {
-                        m_MeshDisplay.aspect = (float)t.width / (float)t.height;
-                        break;
-                    }
-                }
-            }
+            m_MeshDisplay.aspect = m_Core.CurPipelineState.GetViewport(0).width / m_Core.CurPipelineState.GetViewport(0).height;
 
             if (aspectGuess.Text.Length > 0 && float.TryParse(aspectGuess.Text, out m_MeshDisplay.aspect))
                 aspectGuess.Text = m_MeshDisplay.aspect.ToString("G");
