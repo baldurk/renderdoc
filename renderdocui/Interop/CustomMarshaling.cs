@@ -373,6 +373,10 @@ namespace renderdoc
                 byte[] val = new byte[arr.count];
                 if(val.Length > 0)
                     Marshal.Copy(arr.elems, val, 0, val.Length);
+
+                if (freeMem)
+                    RENDERDOC_FreeArrayMem(arr.elems);
+
                 return val;
             }
             else
