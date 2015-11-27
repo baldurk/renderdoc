@@ -3618,12 +3618,6 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t des
 			if(ShouldSkipOutput(refl.OutputSig[o].systemValue))
 				 continue;
 
-			decorations.push_back(MakeSPIRVOp(spv::OpMemberDecorate, 5));
-			decorations.push_back(vertStructID);
-			decorations.push_back((uint32_t)i);
-			decorations.push_back(spv::DecorationOffset);
-			decorations.push_back(memberOffset);
-
 			uint32_t elemSize = 0;
 			if(refl.OutputSig[o].compType == eCompType_Double)
 				elemSize = 8;
@@ -3634,9 +3628,29 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t des
 			else
 				RDCERR("Unexpected component type for output signature element");
 
+			uint32_t numComps = refl.OutputSig[o].compCount;
+
+			// ensure member is std430 packed (vec4 alignment for vec3/vec4)
+			if(numComps == 2)
+				memberOffset = AlignUp(memberOffset, 2U*elemSize);
+			else if(numComps > 2)
+				memberOffset = AlignUp(memberOffset, 4U*elemSize);
+
+			decorations.push_back(MakeSPIRVOp(spv::OpMemberDecorate, 5));
+			decorations.push_back(vertStructID);
+			decorations.push_back((uint32_t)i);
+			decorations.push_back(spv::DecorationOffset);
+			decorations.push_back(memberOffset);
+
 			memberOffset += elemSize*refl.OutputSig[o].compCount;
 			i++;
 		}
+
+		// align to 16 bytes (vec4) since we will almost certainly have
+		// a vec4 in the struct somewhere, and even in std430 alignment,
+		// the base struct alignment is still the largest base alignment
+		// of any member
+		memberOffset = AlignUp16(memberOffset);
 		
 		// the array is the only element in the output struct, so
 		// it's at offset 0
