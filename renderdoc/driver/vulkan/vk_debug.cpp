@@ -3902,6 +3902,9 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	
 	// set primitive topology to point list
 	VkPipelineInputAssemblyStateCreateInfo *ia = (VkPipelineInputAssemblyStateCreateInfo *)pipeCreateInfo.pInputAssemblyState;
+
+	VkPrimitiveTopology topo = ia->topology;
+
 	ia->topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
 	// enable rasterizer discard
@@ -4399,8 +4402,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	state = prevstate;
 
 	// fill out m_PostVSData
-	m_PostVSData[idx].vsin.topo = pipeCreateInfo.pInputAssemblyState->topology;
-	m_PostVSData[idx].vsout.topo = pipeCreateInfo.pInputAssemblyState->topology;
+	m_PostVSData[idx].vsin.topo = topo;
+	m_PostVSData[idx].vsout.topo = topo;
 	m_PostVSData[idx].vsout.buf = meshBuffer;
 	m_PostVSData[idx].vsout.bufmem = meshMem;
 
