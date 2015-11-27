@@ -3956,8 +3956,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	VkBuffer meshBuffer = VK_NULL_HANDLE, readbackBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory meshMem = VK_NULL_HANDLE, readbackMem = VK_NULL_HANDLE;
 
-	VkBuffer idxBuf = VK_NULL_HANDLE;
-	VkDeviceMemory idxBufMem = VK_NULL_HANDLE;
+	VkBuffer idxBuf = VK_NULL_HANDLE, uniqIdxBuf = VK_NULL_HANDLE;
+	VkDeviceMemory idxBufMem = VK_NULL_HANDLE, uniqIdxBufMem = VK_NULL_HANDLE;
 
 	uint32_t numVerts = drawcall->numIndices;
 	VkDeviceSize bufSize = 0;
@@ -4037,7 +4037,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		VkBufferMemoryBarrier meshbufbarrier = {
 				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
-				VK_MEMORY_OUTPUT_SHADER_WRITE_BIT, VK_MEMORY_INPUT_TRANSFER_BIT,
+				VK_MEMORY_OUTPUT_SHADER_WRITE_BIT, VK_MEMORY_INPUT_TRANSFER_BIT|VK_MEMORY_INPUT_VERTEX_ATTRIBUTE_FETCH_BIT,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 				Unwrap(meshBuffer),
 				0, bufInfo.size,
@@ -4071,19 +4071,263 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	}
 	else
 	{
-		VULKANNOTIMP("Fetching post-transform data for indexed draws");
+		uint32_t idxsize = state.ibuffer.bytewidth;
+		bool index16 = (idxsize == 2);
 
 		// fetch ibuffer
+		vector<byte> idxdata = GetBufferData(state.ibuffer.buf, state.ibuffer.offs + drawcall->indexOffset*idxsize, drawcall->numIndices*idxsize);
 
 		// do ibuffer rebasing/remapping
+		vector<uint32_t> indices;
 		
+		uint16_t *idx16 = (uint16_t *)&idxdata[0];
+		uint32_t *idx32 = (uint32_t *)&idxdata[0];
+
+		// only read as many indices as were available in the buffer
+		uint32_t numIndices = RDCMIN(uint32_t(index16 ? idxdata.size()/2 : idxdata.size()/4), drawcall->numIndices);
+
+		// grab all unique vertex indices referenced
+		for(uint32_t i=0; i < numIndices; i++)
+		{
+			uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
+
+			auto it = std::lower_bound(indices.begin(), indices.end(), i32);
+
+			if(it != indices.end() && *it == i32)
+				continue;
+
+			indices.insert(it, i32);
+		}
+		
+		// if we read out of bounds, we'll also have a 0 index being referenced
+		// (as 0 is read). Don't insert 0 if we already have 0 though
+		if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
+			indices.insert(indices.begin(), 0);
+
+		// An index buffer could be something like: 500, 501, 502, 501, 503, 502
+		// in which case we can't use the existing index buffer without filling 499 slots of vertex
+		// data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
+		// 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
+		//
+		// Note that there could also be gaps, like: 500, 501, 502, 510, 511, 512
+		// which would become 0, 1, 2, 3, 4, 5 and so the old index buffer would no longer be valid.
+		// We just stream-out a tightly packed list of unique indices, and then remap the index buffer
+		// so that what did point to 500 points to 0 (accounting for rebasing), and what did point
+		// to 510 now points to 3 (accounting for the unique sort).
+
+		// we use a map here since the indices may be sparse. Especially considering if an index
+		// is 'invalid' like 0xcccccccc then we don't want an array of 3.4 billion entries.
+		map<uint32_t,size_t> indexRemap;
+		for(size_t i=0; i < indices.size(); i++)
+		{
+			// by definition, this index will only appear once in indices[]
+			indexRemap[ indices[i] ] = i;
+		}
+
+		// create buffer with unique 0-based indices
+		VkBufferCreateInfo bufInfo = {
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+			indices.size()*sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 0,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+		};
+
+		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &uniqIdxBuf);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkMemoryRequirements mrq;
+		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, uniqIdxBuf, &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			mrq.size,
+			m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		vkr = m_pDriver->vkAllocMemory(dev, &allocInfo, &uniqIdxBufMem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = m_pDriver->vkBindBufferMemory(dev, uniqIdxBuf, uniqIdxBufMem, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		byte *idxData = NULL;
+		vkr = m_pDriver->vkMapMemory(m_Device, uniqIdxBufMem, 0, 0, 0, (void **)&idxData);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		memcpy(idxData, &indices[0], indices.size()*sizeof(uint32_t));
+
+		m_pDriver->vkUnmapMemory(m_Device, uniqIdxBufMem);
+
+		bufInfo.size = numIndices*idxsize;
+		
+		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &idxBuf);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, idxBuf, &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		allocInfo.allocationSize = mrq.size;
+		allocInfo.memoryTypeIndex = m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits);
+
+		vkr = m_pDriver->vkAllocMemory(dev, &allocInfo, &idxBufMem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = m_pDriver->vkBindBufferMemory(dev, idxBuf, idxBufMem, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
 		// create buffer of sufficient size (num unique indices * bufStride)
+		bufInfo.size = indices.size()*bufStride;
+
+		bufInfo.usage  = VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
+		bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT;
+		bufInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &meshBuffer);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT;
+
+		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &readbackBuffer);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		allocInfo.allocationSize = mrq.size;
+		allocInfo.memoryTypeIndex = m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits);
+
+		vkr = m_pDriver->vkAllocMemory(dev, &allocInfo, &meshMem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = m_pDriver->vkBindBufferMemory(dev, meshBuffer, meshMem, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+		
+		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, readbackBuffer, &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		allocInfo.memoryTypeIndex = m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits);
+
+		vkr = m_pDriver->vkAllocMemory(dev, &allocInfo, &readbackMem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = m_pDriver->vkBindBufferMemory(dev, readbackBuffer, readbackMem, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferMemoryBarrier meshbufbarrier = {
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
+				VK_MEMORY_OUTPUT_HOST_WRITE_BIT, VK_MEMORY_INPUT_INDEX_FETCH_BIT,
+				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+				Unwrap(meshBuffer),
+				0, indices.size()*sizeof(uint32_t),
+		};
+
+		void *barrierptr = (void *)&meshbufbarrier;
+		
+		VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+		vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+		
+		// wait for upload to finish
+		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 
 		// set numVerts and bufSize
+		numVerts = (uint32_t)indices.size();
+		bufSize = indices.size()*bufStride;
 
 		// bind unique'd ibuffer
+		state.ibuffer.bytewidth = 4;
+		state.ibuffer.offs = 0;
+		state.ibuffer.buf = GetResID(uniqIdxBuf);
 		
-		// create remapped ibuffer
+		// vkUpdateDescriptorSet desc set to point to buffer
+		VkDescriptorInfo fetchdesc = { 0 };
+		fetchdesc.bufferInfo.buffer = meshBuffer;
+		fetchdesc.bufferInfo.offset = 0;
+		fetchdesc.bufferInfo.range = bufInfo.size;
+
+		VkWriteDescriptorSet write = {
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			m_MeshFetchDescSet, 0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &fetchdesc
+		};
+		m_pDriver->vkUpdateDescriptorSets(dev, 1, &write, 0, NULL);
+
+		vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// a bit of a hack to ensure we have the right number of indices for rendering.
+		// we want to have a nicer 'apply current state' function so we can reuse that
+		// then do our own draw.
+		m_pDriver->m_HackDrawIndices = (uint32_t)indices.size();
+
+		// do single draw
+		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		m_pDriver->m_HackDrawIndices = ~0U;
+		
+		cmd = m_pDriver->GetNextCmd();
+
+		vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+		
+		// rebase existing index buffer to point to the right elements in our stream-out'd
+		// vertex buffer
+		if(index16)
+		{
+			for(uint32_t i=0; i < numIndices; i++)
+				idx16[i] = uint16_t(indexRemap[ idx16[i] ]);
+		}
+		else
+		{
+			for(uint32_t i=0; i < numIndices; i++)
+				idx32[i] = uint32_t(indexRemap[ idx32[i] ]);
+		}
+		
+		// upload rebased memory
+		vkr = m_pDriver->vkMapMemory(m_Device, idxBufMem, 0, 0, 0, (void **)&idxData);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		memcpy(idxData, idx32, numIndices*idxsize);
+
+		m_pDriver->vkUnmapMemory(m_Device, idxBufMem);
+
+		meshbufbarrier.buffer = Unwrap(idxBuf);
+		meshbufbarrier.size = numIndices*idxsize;
+
+		// wait for upload to finish
+		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		
+		// wait for mesh output writing to finish
+		meshbufbarrier.buffer = Unwrap(meshBuffer);
+		meshbufbarrier.size = bufSize;
+		meshbufbarrier.outputMask = VK_MEMORY_OUTPUT_SHADER_WRITE_BIT;
+		meshbufbarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+
+		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		
+		VkBufferCopy bufcopy = {
+			0, 0, bufInfo.size,
+		};
+
+		// copy to readback buffer
+		ObjDisp(dev)->CmdCopyBuffer(Unwrap(cmd), Unwrap(meshBuffer), Unwrap(readbackBuffer), 1, &bufcopy);
+
+		meshbufbarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
+		meshbufbarrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT;
+		meshbufbarrier.buffer = Unwrap(readbackBuffer);
+	
+		// wait for copy to finish
+		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		
+		vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// submit & flush so that we don't have to keep pipeline around for a while
+		m_pDriver->SubmitCmds();
+		m_pDriver->FlushQ();
 	}
 
 	// readback mesh data
@@ -4141,8 +4385,15 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 	m_pDriver->vkUnmapMemory(m_Device, readbackMem);
 
+	// clean up temporary memories
 	m_pDriver->vkDestroyBuffer(m_Device, readbackBuffer);
 	m_pDriver->vkFreeMemory(m_Device, readbackMem);
+
+	if(uniqIdxBuf != VK_NULL_HANDLE)
+	{
+		m_pDriver->vkDestroyBuffer(m_Device, uniqIdxBuf);
+		m_pDriver->vkFreeMemory(m_Device, uniqIdxBufMem);
+	}
 	
 	// reset pipeline state back to normal
 	state = prevstate;

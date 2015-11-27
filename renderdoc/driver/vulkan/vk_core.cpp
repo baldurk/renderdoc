@@ -285,6 +285,8 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 	m_FirstEventID = 0;
 	m_LastEventID = ~0U;
 
+	m_HackDrawIndices = ~0U;
+
 	m_LastCmdBufferID = ResourceId();
 
 	m_PartialReplayData.renderPassActive = false;

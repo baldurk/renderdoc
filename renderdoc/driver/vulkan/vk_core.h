@@ -369,6 +369,8 @@ private:
 		} state;
 	} m_PartialReplayData;
 
+	uint32_t m_HackDrawIndices;
+
 	bool IsPartialCmd(ResourceId cmdid)
 	{
 		return m_PartialReplayData.singleDrawCmdBuffer != VK_NULL_HANDLE ||
