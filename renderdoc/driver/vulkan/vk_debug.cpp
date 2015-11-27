@@ -3179,14 +3179,7 @@ inline uint32_t MakeSPIRVOp(spv::Op op, uint32_t WordCount)
 	return (uint32_t(op) & spv::OpCodeMask) | (WordCount << spv::WordCountShift);
 }
 
-inline bool ShouldSkipOutput(SystemAttribute val)
-{
-	return (val == eAttr_PointSize ||
-			   val == eAttr_CullDistance ||
-			   val == eAttr_ClipDistance);
-}
-
-void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t descSet, vector<uint32_t> &modSpirv, uint32_t &bufStride)
+void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint32_t descSet, vector<uint32_t> &modSpirv, uint32_t &bufStride)
 {
 	uint32_t *spirv = &modSpirv[0];
 	size_t spirvLength = modSpirv.size();
@@ -3519,31 +3512,18 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t des
 		uint32_t structSize = numOutputs;
 
 		uint32_t vertStructOp[2+100] = {
-			0,
+			MakeSPIRVOp(spv::OpTypeStruct, 2+numOutputs),
 			vertStructID,
 		};
 
-		int i=0;
 		for(int o=0; o < numOutputs; o++)
-		{
-			// skip these types of outputs since they aren't really mesh data
-			if(ShouldSkipOutput(refl.OutputSig[o].systemValue))
-			{
-				structSize--;
-				continue;
-			}
-
-			vertStructOp[2+i] = outs[o].basetypeID;
-			i++;
-		}
-
-		vertStructOp[0] = MakeSPIRVOp(spv::OpTypeStruct, 2+structSize);
+			vertStructOp[2+o] = outs[o].basetypeID;
 
 		// insert at the end of the types/variables section
-		modSpirv.insert(modSpirv.begin()+typeVarOffset, vertStructOp, vertStructOp+2+structSize);
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, vertStructOp, vertStructOp+2+numOutputs);
 
 		// update offsets to account for inserted op
-		typeVarOffset += 2+structSize;
+		typeVarOffset += 2+numOutputs;
 		
 		uint32_t runtimeArrayID = idBound++;
 
@@ -3611,13 +3591,8 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t des
 		decorations.reserve(5*numOutputs + 20);
 
 		uint32_t memberOffset = 0;
-		i=0;
 		for(int o=0; o < numOutputs; o++)
 		{
-			// skip these types of outputs since they aren't really mesh data
-			if(ShouldSkipOutput(refl.OutputSig[o].systemValue))
-				 continue;
-
 			uint32_t elemSize = 0;
 			if(refl.OutputSig[o].compType == eCompType_Double)
 				elemSize = 8;
@@ -3638,12 +3613,11 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t des
 
 			decorations.push_back(MakeSPIRVOp(spv::OpMemberDecorate, 5));
 			decorations.push_back(vertStructID);
-			decorations.push_back((uint32_t)i);
+			decorations.push_back((uint32_t)o);
 			decorations.push_back(spv::DecorationOffset);
 			decorations.push_back(memberOffset);
 
 			memberOffset += elemSize*refl.OutputSig[o].compCount;
-			i++;
 		}
 
 		// align to 16 bytes (vec4) since we will almost certainly have
@@ -3709,17 +3683,12 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t des
 		dumpCode.push_back(loadedVtxID);
 		dumpCode.push_back(vertidxID);
 
-		int i=0;
 		for(int o=0; o < numOutputs; o++)
 		{
-			// skip these types of outputs since they aren't really mesh data
-			if(ShouldSkipOutput(refl.OutputSig[o].systemValue))
-				continue;
-
 			uint32_t loaded = 0;
 
-			// not a structure member, can load directly
-			if(outs[o].childIdx == ~0U)
+			// not a structure member or array child, can load directly
+			if(outs[o].childIdx == ~0U && refl.OutputSig[o].arrayIndex == ~0U)
 			{
 				loaded = idBound++;
 				
@@ -3732,15 +3701,29 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t des
 			{
 				uint32_t readPtr = idBound++;
 				loaded = idBound++;
+
+				uint32_t chainLength = 1;
+
+				if(outs[o].childIdx != ~0U && refl.OutputSig[o].arrayIndex != ~0U)
+					chainLength = 2;
 				
 				// structure member, need to access chain first
-				dumpCode.push_back(MakeSPIRVOp(spv::OpAccessChain, 5));
+				dumpCode.push_back(MakeSPIRVOp(spv::OpAccessChain, 4 + chainLength));
 				dumpCode.push_back(outs[o].uniformPtrID);
 				dumpCode.push_back(readPtr);          // readPtr = 
 				dumpCode.push_back(outs[o].varID);    // outStructWhatever
-				dumpCode.push_back(outs[ outs[o].childIdx ].constID); // .actualOut
 
-				RDCASSERT(outs[o].childIdx < (uint32_t)numOutputs);
+				if(outs[o].childIdx != ~0U)
+				{
+					RDCASSERT(outs[o].childIdx < (uint32_t)numOutputs);
+					dumpCode.push_back(outs[ outs[o].childIdx ].constID); // .actualOut
+				}
+
+				if(refl.OutputSig[o].arrayIndex != ~0U)
+				{
+					RDCASSERT(refl.OutputSig[o].arrayIndex < (uint32_t)numOutputs);
+					dumpCode.push_back(outs[ refl.OutputSig[o].arrayIndex ].constID); // [element]
+				}
 
 				dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
 				dumpCode.push_back(outs[o].basetypeID);
@@ -3756,9 +3739,7 @@ void AddOutputDumping(ShaderReflection refl, const char *entryName, uint32_t des
 			dumpCode.push_back(outBufferVarID); // outBuffer
 			dumpCode.push_back(outs[0].constID); // .verts
 			dumpCode.push_back(loadedVtxID); // [gl_VertexID]
-			dumpCode.push_back(outs[i].constID); // .out_...
-
-			i++;
+			dumpCode.push_back(outs[o].constID); // .out_...
 			
 			dumpCode.push_back(MakeSPIRVOp(spv::OpStore, 3));
 			dumpCode.push_back(writePtr);
