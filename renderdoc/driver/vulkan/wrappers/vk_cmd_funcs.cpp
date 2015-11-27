@@ -1506,6 +1506,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
+			layout = GetResourceManager()->GetLiveHandle<VkPipelineLayout>(layid);
 			ObjDisp(cmdBuffer)->CmdPushConstants(Unwrap(cmdBuffer), Unwrap(layout), flags, s, len, vals);
 
 			RDCASSERT(s+len < (uint32_t)ARRAY_COUNT(m_PartialReplayData.state.pushconsts));
@@ -1516,6 +1517,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(
 	else if(m_State == READING)
 	{
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		layout = GetResourceManager()->GetLiveHandle<VkPipelineLayout>(layid);
 
 		ObjDisp(cmdBuffer)->CmdPushConstants(Unwrap(cmdBuffer), Unwrap(layout), flags, s, len, vals);
 	}
