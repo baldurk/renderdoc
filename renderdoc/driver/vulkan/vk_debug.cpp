@@ -3179,7 +3179,9 @@ inline uint32_t MakeSPIRVOp(spv::Op op, uint32_t WordCount)
 	return (uint32_t(op) & spv::OpCodeMask) | (WordCount << spv::WordCountShift);
 }
 
-void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint32_t descSet, vector<uint32_t> &modSpirv, uint32_t &bufStride)
+void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
+	uint32_t descSet, uint32_t numVerts,
+	vector<uint32_t> &modSpirv, uint32_t &bufStride)
 {
 	uint32_t *spirv = &modSpirv[0];
 	size_t spirvLength = modSpirv.size();
@@ -3196,7 +3198,7 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint3
 	// trying to do as few passes as possible.
 
 	// first try to find a few IDs of things we know we'll probably need:
-	// * gl_VertexID (identified by a DecorationBuiltIn
+	// * gl_VertexID, gl_InstanceID (identified by a DecorationBuiltIn)
 	// * Int32 type, signed and unsigned
 	// * Float types, half, float and double
 	// * Input Pointer to Int32 (for declaring gl_VertexID)
@@ -3214,6 +3216,7 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint3
 	// functions start, for if we need to add new decorations or new
 	// types/constants/global variables
 	uint32_t vertidxID = 0;
+	uint32_t instidxID = 0;
 	uint32_t sint32ID = 0;
 	uint32_t sint32PtrInID = 0;
 	uint32_t uint32ID = 0;
@@ -3246,6 +3249,9 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint3
 
 		if(opcode == spv::OpDecorate && spirv[it+2] == spv::DecorationBuiltIn && spirv[it+3] == spv::BuiltInVertexId)
 			vertidxID = spirv[it+1];
+
+		if(opcode == spv::OpDecorate && spirv[it+2] == spv::DecorationBuiltIn && spirv[it+3] == spv::BuiltInInstanceId)
+			instidxID = spirv[it+1];
 
 		if(opcode == spv::OpTypeInt && spirv[it+2] == 32 && spirv[it+3] == 1)
 			sint32ID = spirv[it+1];
@@ -3427,6 +3433,43 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint3
 		decorateOffset += ARRAY_COUNT(decorateOp);
 	}
 
+	if(instidxID == 0)
+	{
+		// we can assume that after vertxidxID was added above, that the types
+		// are available. We just have to add the actual instance id variable
+		
+		// new ID for vertex index
+		instidxID = idBound;
+		idBound++;
+
+		uint32_t varOp[] = {
+			MakeSPIRVOp(spv::OpVariable, 4),
+			sint32PtrInID, // type
+			instidxID,     // variable id
+			spv::StorageClassInput,
+		};
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, varOp, varOp+ARRAY_COUNT(varOp));
+
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(varOp);
+
+		uint32_t decorateOp[] = {
+			MakeSPIRVOp(spv::OpDecorate, 4),
+			instidxID,
+			spv::DecorationBuiltIn,
+			spv::BuiltInInstanceId,
+		};
+
+		// insert at the end of the decorations before the types
+		modSpirv.insert(modSpirv.begin()+decorateOffset, decorateOp, decorateOp+ARRAY_COUNT(decorateOp));
+		
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(decorateOp);
+		decorateOffset += ARRAY_COUNT(decorateOp);
+	}
+
 	// if needed add new ID for uint32 type
 	if(uint32ID == 0)
 	{
@@ -3504,6 +3547,7 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint3
 	}
 
 	uint32_t outBufferVarID = 0;
+	uint32_t numVertsConstID = 0;
 
 	// now add the structure type etc for our output buffer
 	{
@@ -3538,6 +3582,22 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint3
 
 		// update offsets to account for inserted op
 		typeVarOffset += ARRAY_COUNT(runtimeArrayOp);
+
+		// add a constant for the number of verts, the 'instance stride' of the array
+		numVertsConstID = idBound++;
+
+		uint32_t instanceStrideConstOp[] = {
+			MakeSPIRVOp(spv::OpConstant, 4),
+			sint32ID,
+			numVertsConstID,
+			numVerts,
+		};
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, instanceStrideConstOp, instanceStrideConstOp+ARRAY_COUNT(instanceStrideConstOp));
+
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(instanceStrideConstOp);
 		
 		uint32_t outputStructID = idBound++;
 
@@ -3674,14 +3734,36 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint3
 		// Load source           = 4 uint32s
 		// AccessChain on dest   = 7 uint32s
 		// Store dest            = 3 uint32s
-		// and 4 to load the index
-		dumpCode.reserve(numOutputs*(4+4+7+3) + 4);
+		//
+		// loading the indices, and multiplying to get the destination array
+		// slot is constant on top of that
+		dumpCode.reserve(numOutputs*(4+4+7+3) + 4+4+5+5);
 
 		uint32_t loadedVtxID = idBound++;
 		dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
 		dumpCode.push_back(sint32ID);
 		dumpCode.push_back(loadedVtxID);
 		dumpCode.push_back(vertidxID);
+
+		uint32_t loadedInstID = idBound++;
+		dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
+		dumpCode.push_back(sint32ID);
+		dumpCode.push_back(loadedInstID);
+		dumpCode.push_back(instidxID);
+
+		uint32_t startVertID = idBound++;
+		dumpCode.push_back(MakeSPIRVOp(spv::OpIMul, 5));
+		dumpCode.push_back(sint32ID);
+		dumpCode.push_back(startVertID);           // startVert = 
+		dumpCode.push_back(loadedInstID);          //    gl_InstanceID *
+		dumpCode.push_back(numVertsConstID);       //    numVerts
+		
+		uint32_t arraySlotID = idBound++;
+		dumpCode.push_back(MakeSPIRVOp(spv::OpIAdd, 5));
+		dumpCode.push_back(sint32ID);
+		dumpCode.push_back(arraySlotID);           // arraySlot = 
+		dumpCode.push_back(startVertID);           //    startVert +
+		dumpCode.push_back(loadedVtxID);           //    gl_VertexID
 
 		for(int o=0; o < numOutputs; o++)
 		{
@@ -3738,7 +3820,7 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint3
 			dumpCode.push_back(writePtr);
 			dumpCode.push_back(outBufferVarID); // outBuffer
 			dumpCode.push_back(outs[0].constID); // .verts
-			dumpCode.push_back(loadedVtxID); // [gl_VertexID]
+			dumpCode.push_back(arraySlotID); // [arraySlot]
 			dumpCode.push_back(outs[o].constID); // .out_...
 			
 			dumpCode.push_back(MakeSPIRVOp(spv::OpStore, 3));
@@ -4011,7 +4093,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	uint32_t bufStride = 0;
 	vector<uint32_t> modSpirv = m.spirv.spirv;
 
-	AddOutputDumping(s.refl, s.entry.c_str(), descSet, modSpirv, bufStride);
+	AddOutputDumping(s.refl, s.entry.c_str(), descSet, numVerts, modSpirv, bufStride);
 	
 	// create vertex shader with modified code
 	VkShaderModuleCreateInfo moduleInfo = {
@@ -4063,7 +4145,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// create buffer of sufficient size (num indices * bufStride)
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			drawcall->numIndices*bufStride, 0, 0,
+			drawcall->numIndices*RDCMAX(1U, drawcall->numInstances)*bufStride, 0, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
@@ -4170,7 +4252,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// create buffer of sufficient size (num unique indices * bufStride)
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			indices.size()*bufStride, 0, 0,
+			indices.size()*RDCMAX(1U, drawcall->numInstances)*bufStride, 0, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
@@ -4236,7 +4318,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		// set numVerts and bufSize
 		numVerts = (uint32_t)indices.size();
-		bufSize = indices.size()*bufStride;
+		bufSize = indices.size()*RDCMAX(1U, drawcall->numInstances)*bufStride;
 
 		// bind unique'd ibuffer
 		state.ibuffer.bytewidth = 4;
