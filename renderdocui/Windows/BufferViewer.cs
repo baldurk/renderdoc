@@ -448,6 +448,8 @@ namespace renderdocui.Windows
 
             var draw = m_Core.CurDrawcall;
 
+            previewTab.SelectedIndex = 0;
+
             if (MeshView)
             {
                 if (draw == null)
