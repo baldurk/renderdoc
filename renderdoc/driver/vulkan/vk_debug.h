@@ -54,6 +54,49 @@ struct MeshDisplayPipelines
 	VkPipeline pipes[ePipe_Count];
 };
 
+struct VulkanPostVSData
+{
+	struct StageData
+	{
+		VkBuffer buf;
+		VkDeviceMemory bufmem;
+		VkPrimitiveTopology topo;
+
+		uint32_t numVerts;
+		uint32_t vertStride;
+		uint32_t instStride;
+
+		bool useIndices;
+		VkBuffer idxBuf;
+		VkDeviceMemory idxBufMem;
+		VkIndexType idxFmt;
+
+		bool hasPosOut;
+
+		float nearPlane;
+		float farPlane;
+	} vsin, vsout, gsout;
+
+	VulkanPostVSData()
+	{
+		RDCEraseEl(vsin);
+		RDCEraseEl(vsout);
+		RDCEraseEl(gsout);
+	}
+
+	const StageData &GetStage(MeshDataStage type)
+	{
+		if(type == eMeshDataStage_VSOut)
+			return vsout;
+		else if(type == eMeshDataStage_GSOut)
+			return gsout;
+		else
+			RDCERR("Unexpected mesh data stage!");
+
+		return vsin;
+	}
+};
+
 class VulkanResourceManager;
 
 class VulkanDebugManager
@@ -69,6 +112,7 @@ class VulkanDebugManager
 		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
 
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
+		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
 		struct GPUBuffer
 		{
@@ -183,6 +227,9 @@ class VulkanDebugManager
 		VkDescriptorSet m_OutlineDescSet;
 		VkPipeline m_OutlinePipeline;
 		GPUBuffer m_OutlineUBO;
+		
+		VkDescriptorSetLayout m_MeshFetchDescSetLayout;
+		VkDescriptorSet m_MeshFetchDescSet;
 
 		MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary, const MeshFormat &secondary);
 
@@ -203,6 +250,8 @@ class VulkanDebugManager
 		float m_FontCharSize;
 		
 		map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
+
+		map<pair<uint32_t,uint32_t>, VulkanPostVSData> m_PostVSData;
 		
 		WrappedVulkan *m_pDriver;
 		VulkanResourceManager *m_ResourceManager;

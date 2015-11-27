@@ -3737,12 +3737,7 @@ void VulkanReplay::FreeCustomShader(ResourceId id)
 
 MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
-	MeshFormat ret;
-	RDCEraseEl(ret);
-
-	VULKANNOTIMP("VulkanReplay::GetPostVSBuffers");
-
-	return ret;
+	return GetDebugManager()->GetPostVSBuffers(frameID, eventID, instID, stage);
 }
 
 byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
