@@ -75,6 +75,11 @@ namespace renderdocui.Code
             else return val;
         }
 
+        public static uint AlignUp(this uint x, uint a)
+        {
+            return (x + (a - 1)) & (~(a - 1));
+        }
+
         public static bool IsElevated
         {
             get

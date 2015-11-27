@@ -806,8 +806,20 @@ namespace renderdocui.Windows
                 uint offset = 0;
                 for (int i = 0; i < details.OutputSig.Length; i++)
                 {
+                    uint numComps = f[i].format.compCount;
+                    uint elemSize = f[i].format.compType == FormatComponentType.Double ? 8U : 4U;
+
+                    if (m_Core.CurPipelineState.HasAlignedPostVSData)
+                    {
+                        if (numComps == 2)
+                            offset = offset.AlignUp(2U * elemSize);
+                        else if (numComps > 2)
+                            offset = offset.AlignUp(4U * elemSize);
+                    }
+
                     f[i].offset = offset;
-                    offset += f[i].format.compCount * sizeof(float);
+
+                    offset += numComps * elemSize;
                 }
 
                 ret.BufferFormats = f.ToArray();
