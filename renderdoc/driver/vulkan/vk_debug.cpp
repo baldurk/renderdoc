@@ -3729,6 +3729,26 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 	const VulkanCreationInfo::Shader &s = c.m_Shader[p.shaders[VK_SHADER_STAGE_VERTEX]];
 	const VulkanCreationInfo::ShaderModule &m = c.m_ShaderModule[s.module];
+
+	// no outputs from this shader? unexpected but theoretically possible (dummy VS before
+	// tessellation maybe). Just fill out an empty data set
+	if(s.refl.OutputSig.count == 0)
+	{
+		// empty vertex output signature
+		m_PostVSData[idx].vsin.topo = p.topology;
+		m_PostVSData[idx].vsout.buf = NULL;
+		m_PostVSData[idx].vsout.instStride = 0;
+		m_PostVSData[idx].vsout.vertStride = 0;
+		m_PostVSData[idx].vsout.nearPlane = 0.0f;
+		m_PostVSData[idx].vsout.farPlane = 0.0f;
+		m_PostVSData[idx].vsout.useIndices = false;
+		m_PostVSData[idx].vsout.hasPosOut = false;
+		m_PostVSData[idx].vsout.idxBuf = NULL;
+
+		m_PostVSData[idx].vsout.topo = p.topology;
+
+		return;
+	}
 	
 	const FetchDrawcall *drawcall = m_pDriver->GetDrawcall(frameID, eventID);
 	
