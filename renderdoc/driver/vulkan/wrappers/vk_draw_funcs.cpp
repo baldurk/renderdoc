@@ -71,7 +71,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 			draw.vertexOffset = firstVtx;
 			draw.instanceOffset = firstInst;
 
-			draw.flags |= eDraw_Drawcall;
+			draw.flags |= eDraw_Drawcall|eDraw_Instanced;
 
 			AddDrawcall(draw, true);
 		}
@@ -1080,7 +1080,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 			draw.vertexOffset = vtxOffs;
 			draw.instanceOffset = firstInst;
 
-			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced;
 
 			AddDrawcall(draw, true);
 		}
