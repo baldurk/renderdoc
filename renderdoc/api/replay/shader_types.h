@@ -119,7 +119,8 @@ struct SigParameter
 	SigParameter()
 		: semanticIndex(0), needSemanticIndex(false), regIndex(0),
 		systemValue(eAttr_None), compType(eCompType_Float),
-		regChannelMask(0), channelUsedMask(0), compCount(0), stream(0)
+		regChannelMask(0), channelUsedMask(0), compCount(0), 
+	  stream(0), arrayIndex(~0U)
 	{ }
 	
 	rdctype::str	varName;
@@ -138,6 +139,8 @@ struct SigParameter
 	uint8_t				channelUsedMask;
 	uint32_t			compCount;
 	uint32_t			stream;
+
+	uint32_t      arrayIndex;
 };
 
 struct ShaderConstant;

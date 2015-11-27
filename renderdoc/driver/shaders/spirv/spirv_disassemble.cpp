@@ -2379,7 +2379,6 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 {
 	SigParameter sig;
 
-	sig.varName = varName;
 	sig.needSemanticIndex = false;
 
 	// this is super cheeky, but useful to pick up when doing output dumping and
@@ -2417,6 +2416,15 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 		return;
 	}
 
+	bool isArray = false;
+	uint32_t arraySize = 1;
+	if(type->type == SPVTypeData::eArray)
+	{
+		arraySize = type->arraySize;
+		isArray = true;
+		type = type->baseType;
+	}
+
 	switch(type->baseType ? type->baseType->type : type->type)
 	{
 		case SPVTypeData::eBool:
@@ -2439,22 +2447,37 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 
 	sig.regChannelMask = sig.channelUsedMask = (1<<type->vectorSize)-1;
 
-	if(type->matrixSize == 1)
+	for(uint32_t a=0; a < arraySize; a++)
 	{
-		sigarray.push_back(sig);
-	}
-	else
-	{
-		for(uint32_t m=0; m < type->matrixSize; m++)
+		string n = varName;
+		
+		if(isArray)
 		{
-			SigParameter s = sig;
-			s.varName = StringFormat::Fmt("%s:%s%u", varName.c_str(), rowmajor ? "row" : "col", m);
-			s.regIndex += m;
-
-			RDCASSERT(s.regIndex < 16);
-
-			sigarray.push_back(s);
+			n = StringFormat::Fmt("%s[%u]", varName.c_str(), a);
+			sig.arrayIndex = a;
 		}
+
+		sig.varName = n;
+
+		if(type->matrixSize == 1)
+		{
+			sigarray.push_back(sig);
+		}
+		else
+		{
+			for(uint32_t m=0; m < type->matrixSize; m++)
+			{
+				SigParameter s = sig;
+				s.varName = StringFormat::Fmt("%s:%s%u", n.c_str(), rowmajor ? "row" : "col", m);
+				s.regIndex += m;
+
+				RDCASSERT(s.regIndex < 16);
+
+				sigarray.push_back(s);
+			}
+		}
+
+		sig.regIndex += RDCMAX(1U, type->matrixSize);
 	}
 }
 

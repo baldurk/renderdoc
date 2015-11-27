@@ -224,6 +224,8 @@ namespace renderdoc
         public byte channelUsedMask;
         public UInt32 compCount;
         public UInt32 stream;
+
+        public UInt32 arrayIndex;
         
 		public string TypeString
         {
