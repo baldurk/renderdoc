@@ -19,6 +19,7 @@ Current Support
 * Simple disassembly/reflection of SPIR-V to determine which descriptors to read for read-only resources and uniform buffers. The uniform buffers will be listed separately and the member variables filled out.
 * Simple display of most 2D textures with mips in the texture viewer.
 * You can view mesh input data both as data and a 3D preview
+* Mesh output data after vertex shader is fetched and displayed
 * Render overlays like Drawcall highlight, wireframe, depth-test pass/fail etc
 * Texture range auto-fit and histogram display
 * Threading should be pretty efficient - no heavy locks on common paths (outside of creation/deletion)
@@ -32,7 +33,6 @@ Known Issues
 * 'Quad overdraw' debug overlays aren't implemented.
 * Saving textures is not supported.
 * Queue-level API events are not properly listed. API calls between draw-type vkCmd... are listed.
-* No post-transform mesh data is fetched
 * No drawcall timings.
 
 Future work, post 1.0
@@ -44,6 +44,7 @@ In no particular order, features that are not planned until after 1.0.
 * Stepping inside vkCmdExecuteCommands
 * Support for replaying captures on a different machine to where they were captured
 * Shader debugging
+* Mesh output data after geometry and tessellation shaders
 * Vertex picking
 * Pixel history
 * Custom visualisation shaders
