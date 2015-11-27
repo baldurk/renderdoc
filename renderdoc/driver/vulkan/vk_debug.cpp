@@ -4377,6 +4377,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 			if(m == 1.0f) continue;
 
+			if(-c/m <= 0.000001f) continue;
+
 			nearp = -c/m;
 			farp = c/(1-m);
 
