@@ -336,6 +336,10 @@ VkResult WrappedVulkan::vkMapMemory(
 				m_CoherentMaps.push_back(memrecord);
 			}
 		}
+		else
+		{
+			*ppData = realData;
+		}
 	}
 	else
 	{
