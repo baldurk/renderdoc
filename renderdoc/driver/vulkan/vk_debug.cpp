@@ -3800,6 +3800,10 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	// repoint pipeline layout
 	pipeCreateInfo.layout = pipeLayout;
 	
+	// set primitive topology to point list
+	VkPipelineInputAssemblyStateCreateInfo *ia = (VkPipelineInputAssemblyStateCreateInfo *)pipeCreateInfo.pInputAssemblyState;
+	ia->topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+
 	// enable rasterizer discard
 	VkPipelineRasterStateCreateInfo *rs = (VkPipelineRasterStateCreateInfo *)pipeCreateInfo.pRasterState;
 	rs->rasterizerDiscardEnable = true;
