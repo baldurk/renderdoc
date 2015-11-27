@@ -594,6 +594,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	GetResourceManager()->WrapResource(Unwrap(dev), m_MeshFetchDescSet);
 
+	m_ReadbackWindow.Create(driver, dev, STAGE_BUFFER_BYTE_SIZE, 1, GPUBuffer::eGPUBufferReadback);
+
 	m_GenericUBO.Create(driver, dev, 128, 10, 0);
 	RDCCOMPILE_ASSERT(sizeof(genericuniforms) <= 128, "generic UBO size");
 
@@ -1679,6 +1681,8 @@ VulkanDebugManager::~VulkanDebugManager()
 		GetResourceManager()->ReleaseWrappedResource(m_HistogramPipe);
 	}
 
+	m_ReadbackWindow.Destroy(vt, dev);
+
 	m_MinMaxTileResult.Destroy(vt, dev);
 	m_MinMaxResult.Destroy(vt, dev);
 	m_MinMaxReadback.Destroy(vt, dev);
@@ -1786,7 +1790,6 @@ void VulkanDebugManager::EndText(const TextPrintState &textstate)
 void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret)
 {
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkBuffer srcBuf = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff);
@@ -1803,67 +1806,79 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 	}
 
 	ret.resize((size_t)len);
+	
+	VkDeviceSize srcoffset = (VkDeviceSize)offset;
+	size_t dstoffset = 0;
+	VkDeviceSize sizeRemaining = (VkDeviceSize)len;
 
-	// VKTODOMED - coarse: wait for all writes to this buffer
-	vt->DeviceWaitIdle(Unwrap(dev));
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	
+	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	RDCASSERT(vkr == VK_SUCCESS);
 
-	VkDeviceMemory readbackmem = VK_NULL_HANDLE;
-	VkBuffer destbuf = VK_NULL_HANDLE;
-	VkResult vkr = VK_SUCCESS;
-	byte *pData = NULL;
+	VkBufferMemoryBarrier bufBarrier = {
+		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
+		0, VK_MEMORY_INPUT_TRANSFER_BIT,
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		Unwrap(srcBuf),
+		srcoffset, sizeRemaining,
+	};
 
-	{
-		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
-
-		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		VkBufferCreateInfo bufInfo = {
-			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			(VkDeviceSize)ret.size(), VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
-			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
-		};
-
-		VkResult vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, &destbuf);
-		RDCASSERT(vkr == VK_SUCCESS);
+	bufBarrier.outputMask = 
+		VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
+		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
+		VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
+		VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	
+	void *barrierptr = (void *)&bufBarrier;
+	
+	// wait for previous writes to happen before we copy to our window buffer
+	ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 		
-		VkMemoryRequirements mrq;
-		vkr = vt->GetBufferMemoryRequirements(Unwrap(dev), destbuf, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-			mrq.size, m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
-		};
-
-		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &readbackmem);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		vkr = vt->BindBufferMemory(Unwrap(dev), destbuf, readbackmem, 0);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		VkBufferCopy region = { offset, 0, (VkDeviceSize)ret.size() };
-		vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), destbuf, 1, &region);
-
-		vkr = vt->EndCommandBuffer(Unwrap(cmd));
-		RDCASSERT(vkr == VK_SUCCESS);
-	}
-
-	m_pDriver->SubmitCmds();
-	m_pDriver->FlushQ();
-
-	vkr = vt->MapMemory(Unwrap(dev), readbackmem, 0, 0, 0, (void **)&pData);
+	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
 	
-	RDCASSERT(pData != NULL);
-	memcpy(&ret[0], pData, ret.size());
+	while(sizeRemaining > 0)
+	{
+		VkDeviceSize chunkSize = RDCMIN(sizeRemaining, STAGE_BUFFER_BYTE_SIZE);
+		
+		VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
 
-	vt->UnmapMemory(Unwrap(dev), readbackmem);
+		VkBufferCopy region = { srcoffset, 0, chunkSize };
+		vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(m_ReadbackWindow.buf), 1, &region);
+		
+		bufBarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
+		bufBarrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT;
+		bufBarrier.buffer = Unwrap(m_ReadbackWindow.buf);
+		bufBarrier.offset = 0;
+		bufBarrier.size = chunkSize;
+		
+		// wait for transfer to happen before we read
+		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		
+		vkr = vt->EndCommandBuffer(Unwrap(cmd));
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		m_pDriver->SubmitCmds();
+		m_pDriver->FlushQ();
+
+		byte *pData = NULL;
+		vkr = vt->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0, 0, 0, (void **)&pData);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		RDCASSERT(pData != NULL);
+		memcpy(&ret[dstoffset], pData, (size_t)chunkSize);
+
+		dstoffset += (size_t)chunkSize;
+		sizeRemaining -= chunkSize;
+
+		vt->UnmapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem));
+	}
 	
 	vt->DeviceWaitIdle(Unwrap(dev));
-
-	vt->DestroyBuffer(Unwrap(dev), destbuf);
-	vt->FreeMemory(Unwrap(dev), readbackmem);
 }
 
 void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline)
