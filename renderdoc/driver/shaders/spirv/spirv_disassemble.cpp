@@ -1574,11 +1574,13 @@ void SPVModule::Disassemble()
 					//  - The Load is preceeded by precisely one Store - not 0 or 2+
 					//  - The previous store is 'pure', ie. does not depend on any mutated variables
 					//    so it is safe to re-order to where the Load is.
+					//  - The variable in question is a function variable
 					//
 					// If those conditions are met then we can remove the previous store, inline it as the load
 					// function argument (instead of the variable), and remove the variable.
 
-					if(instr->opcode == spv::OpLoad && funcops.size() > 1)
+					if(instr->opcode == spv::OpLoad && funcops.size() > 1 &&
+					   instr->op->arguments[0]->var && instr->op->arguments[0]->var->storage == spv::StorageClassFunction)
 					{
 						SPVInstruction *prevstore = NULL;
 						int storecount = 0;
