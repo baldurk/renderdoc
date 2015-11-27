@@ -2493,6 +2493,128 @@ void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapp
 				nm = StringFormat::Fmt("sig%u", inst->id);
 
 			AddSignatureParameter(inst->id, ~0U, nm, inst->var->type, inst->decorations, *sigarray);
+
+			// eliminate any members of gl_PerVertex that are actually unused and just came along
+			// for the ride (usually with gl_Position, but maybe declared globally and still unused)
+			{
+				bool globalCheck = false;
+
+				// if this variable is directly decorated, check if it's used
+				for(size_t d=0; d < inst->decorations.size(); d++)
+				{
+					if(inst->decorations[d].decoration == spv::DecorationBuiltIn)
+					{
+						spv::BuiltIn builtin = (spv::BuiltIn)inst->decorations[d].val;
+						globalCheck = (builtin == spv::BuiltInPointSize ||
+							             builtin == spv::BuiltInClipDistance ||
+													 builtin == spv::BuiltInCullDistance);
+						break;
+					}
+				}
+
+				if(globalCheck)
+				{
+					bool eliminate = true;
+
+					for(size_t o=0; o < operations.size(); o++)
+					{
+						if(operations[o]->op)
+						{
+							for(size_t a=0; a < operations[o]->op->arguments.size(); a++)
+							{
+								if(operations[o]->op->arguments[a] == inst)
+								{
+									// we were just looking for any use of this variable
+									eliminate = false;
+									break;
+								}
+							}
+						}
+
+						if(!eliminate)
+							break;
+					}
+
+					if(eliminate)
+					{
+						// variable must be the last one added, just remove it
+						sigarray->pop_back();
+					}
+				}
+
+				// if this is a struct (primary case, with gl_PerVertex), check each child for use in an OpAccessChain
+				if(inst->var->type->type == SPVTypeData::ePointer && inst->var->type->baseType->type == SPVTypeData::eStruct)
+				{
+					vector< vector<SPVDecoration> > &childDecorations = inst->var->type->baseType->decorations;
+
+					for(size_t c=0; c < childDecorations.size(); c++)
+					{
+						spv::BuiltIn checkBuiltin = spv::BuiltInPosition;
+
+						for(size_t d=0; d < childDecorations[c].size(); d++)
+						{
+							if(childDecorations[c][d].decoration == spv::DecorationBuiltIn)
+							{
+								spv::BuiltIn builtin = (spv::BuiltIn)childDecorations[c][d].val;
+								if(builtin == spv::BuiltInPointSize ||
+									builtin == spv::BuiltInClipDistance ||
+									builtin == spv::BuiltInCullDistance)
+								{
+									checkBuiltin = builtin;
+								}
+								break;
+							}
+						}
+
+						if(checkBuiltin != spv::BuiltInPosition)
+						{
+							bool eliminate = true;
+
+							for(size_t o=0; o < operations.size(); o++)
+							{
+								// we're only interested in OpAccessChain, which must be used to fetch the
+								// child for use. If we find one with the right index, then we're done
+								if(operations[o]->op && operations[o]->opcode == spv::OpAccessChain)
+								{
+									for(size_t a=0; a < operations[o]->op->arguments.size()-1; a++)
+									{
+										if(operations[o]->op->arguments[a] == inst)
+										{
+											// check the next argument to see if it's a constant with the
+											// right value
+
+											// found a use!
+											if(operations[o]->op->arguments[a+1]->constant &&
+												operations[o]->op->arguments[a+1]->constant->u32 == (uint32_t)c)
+											{
+												eliminate = false;
+											}
+											break;
+										}
+									}
+								}
+
+								if(!eliminate)
+									break;
+							}
+							
+							if(eliminate)
+							{
+								SystemAttribute attr = BuiltInToSystemAttribute(checkBuiltin);
+								// find this builtin in the array, and remove
+								for(auto it=sigarray->begin(); it != sigarray->end(); ++it)
+								{
+									if(it->systemValue == attr)
+									{
+										sigarray->erase(it);
+										break;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 		else if(inst->var->storage == spv::StorageClassUniform ||
 		        inst->var->storage == spv::StorageClassUniformConstant ||
