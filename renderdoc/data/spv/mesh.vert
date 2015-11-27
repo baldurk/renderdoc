@@ -66,7 +66,9 @@ void main(void)
 	OUTsecondary = secondary;
 	OUTnorm = vec4(0, 0, 1, 1);
 
-    // GL->VK conventions
-    gl_Position.y = -gl_Position.y;
-    gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
+	// GL->VK conventions
+	gl_Position.y = -gl_Position.y;
+	gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
+
+	gl_PointSize = 4.0f;
 }
