@@ -1438,8 +1438,59 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 		ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
 	}
 
-	RDCASSERT(secondaryDraws.empty());
-	
+	if(!secondaryDraws.empty())
+	{
+		uint32_t uboOffs = 0;
+		meshuniforms *data = (meshuniforms *)GetDebugManager()->m_MeshUBO.Map(vt, dev, &uboOffs);
+
+		data->mvp = ModelViewProj;
+		data->color = (Vec4f &)cfg.prevMeshColour;
+		data->homogenousInput = cfg.position.unproject;
+		data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+		data->displayFormat = MESHDISPLAY_SOLID;
+
+		GetDebugManager()->m_MeshUBO.Unmap(vt, dev);
+		
+		for(size_t i=0; i < secondaryDraws.size(); i++)
+		{
+			const MeshFormat &fmt = secondaryDraws[i];
+
+			if(fmt.buf != ResourceId())
+			{
+				MeshDisplayPipelines secondaryCache = GetDebugManager()->CacheMeshDisplayPipelines(secondaryDraws[i], secondaryDraws[i]);
+				
+				vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_MeshPipeLayout),
+					0, 1, UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
+
+				vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(secondaryCache.pipes[MeshDisplayPipelines::ePipe_WireDepth]));
+				
+				VkBuffer vb = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.buf);
+
+				VkDeviceSize offs = fmt.offset;
+				vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
+
+				if(fmt.idxByteWidth)
+				{
+					VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
+					if(fmt.idxByteWidth == 4)
+						idxtype = VK_INDEX_TYPE_UINT32;
+
+					if(fmt.idxbuf != ResourceId())
+					{
+						VkBuffer ib = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.idxbuf);
+
+						vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), fmt.idxoffs, idxtype);
+					}
+					vt->CmdDrawIndexed(Unwrap(cmd), fmt.numVerts, 1, 0, 0, 0);
+				}
+				else
+				{
+					vt->CmdDraw(Unwrap(cmd), fmt.numVerts, 1, 0, 0);
+				}
+			}
+		}
+	}
+
 	MeshDisplayPipelines cache = GetDebugManager()->CacheMeshDisplayPipelines(cfg.position, cfg.second);
 	
 	if(cfg.position.buf != ResourceId())
