@@ -210,6 +210,39 @@ namespace FileIO
 	bool feof(FILE *f);
 
 	int fclose(FILE *f);
+
+	// utility functions
+	inline bool dump(const char *filename, const void *buffer, size_t size)
+	{
+		FILE *f = FileIO::fopen(filename, "wb");
+		if(f == NULL)
+			return false;
+
+		size_t numWritten = FileIO::fwrite(buffer, 1, size, f);
+
+		FileIO::fclose(f);
+
+		return numWritten == size;
+	}
+
+	inline bool slurp(const char *filename, vector<unsigned char> &buffer)
+	{
+		FILE *f = FileIO::fopen(filename, "rb");
+		if(f == NULL)
+			return false;
+
+		FileIO::fseek64(f, 0, SEEK_END);
+		uint64_t size = ftell64(f);
+		FileIO::fseek64(f, 0, SEEK_SET);
+
+		buffer.resize((size_t)size);
+
+		size_t numRead = FileIO::fread(&buffer[0], 1, buffer.size(), f);
+
+		FileIO::fclose(f);
+
+		return numRead == buffer.size();
+	}
 };
 
 namespace Keyboard
