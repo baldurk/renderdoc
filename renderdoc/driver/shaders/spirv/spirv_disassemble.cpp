@@ -1444,7 +1444,7 @@ void SPVModule::Disassemble()
 			string varName = member.second;
 
 			if(varName.empty())
-				varName = StringFormat::Fmt("member%u", c);
+				varName = StringFormat::Fmt("_member%u", c);
 
 			m_Disassembly += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(structs[i]->type->decorations[c], varName).c_str());
 		}
@@ -1461,9 +1461,9 @@ void SPVModule::Disassemble()
 		if(globals[i]->str.empty())
 		{
 			if(globals[i]->var && !globals[i]->var->type->name.empty())
-				globals[i]->str = globals[i]->var->type->name;
+				globals[i]->str = StringFormat::Fmt("%s_%u", globals[i]->var->type->name.c_str(), globals[i]->id);
 			else if(globals[i]->var && globals[i]->var->type->type == SPVTypeData::ePointer && !globals[i]->var->type->baseType->name.empty())
-				globals[i]->str = globals[i]->var->type->baseType->name;
+				globals[i]->str = StringFormat::Fmt("%s_%u", globals[i]->var->type->baseType->name.c_str(), globals[i]->id);
 		}
 
 		string varName = globals[i]->str;
