@@ -42,6 +42,7 @@ struct MeshFormat
 	uint32_t compCount;
 	uint32_t compByteWidth;
 	FormatComponentType compType;
+	bool32 bgraOrder;
 	SpecialFormat specialFormat;
 
 	bool showAlpha;

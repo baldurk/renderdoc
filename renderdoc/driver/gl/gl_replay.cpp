@@ -947,15 +947,13 @@ void GLReplay::SavePipelineState()
 		
 		if(fmt.compCount == eGL_BGRA)
 		{
+			fmt.compByteWidth = 1;
 			fmt.compCount = 4;
-			fmt.special = true;
-			fmt.specialFormat = eSpecial_B8G8R8A8;
+			fmt.bgraOrder = true;
 			fmt.compType = eCompType_UNorm;
 
 			if(type == eGL_UNSIGNED_BYTE)
 			{
-				fmt.specialFormat = eSpecial_B8G8R8A8;
-				fmt.compType = eCompType_UNorm;
 				fmt.strname = "GL_BGRA8";
 			}
 			else if(type == eGL_UNSIGNED_INT_2_10_10_10_REV || type == eGL_INT_2_10_10_10_REV)
@@ -968,6 +966,8 @@ void GLReplay::SavePipelineState()
 			{
 				RDCERR("Unexpected BGRA type");
 			}
+
+			// haven't checked the other cases work properly
 			RDCASSERT(type == eGL_UNSIGNED_BYTE);
 		}
 

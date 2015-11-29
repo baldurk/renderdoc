@@ -43,6 +43,7 @@ struct ResourceFormat
 		compCount = compByteWidth = 0;
 		compType = eCompType_Float;
 
+		bgraOrder = false;
 		srgbCorrected = false;
 	}
 	
@@ -54,6 +55,7 @@ struct ResourceFormat
 		return compCount == r.compCount && 
 			compByteWidth == r.compByteWidth &&
 			compType == r.compType &&
+			bgraOrder == r.bgraOrder &&
 			srgbCorrected == r.srgbCorrected;
 	}
 
@@ -75,6 +77,7 @@ struct ResourceFormat
 	uint32_t compByteWidth;
 	FormatComponentType compType;
 
+	bool32 bgraOrder;
 	bool32 srgbCorrected;
 };
 

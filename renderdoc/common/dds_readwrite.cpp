@@ -287,25 +287,23 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
 			special.specialFormat = eSpecial_R10G10B10A2;
 			special.compType = (format == DXGI_FORMAT_R10G10B10A2_UNORM ? eCompType_UNorm : eCompType_UInt);
 			return special;
-		case DXGI_FORMAT_B8G8R8A8_UNORM:
-		case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
-			special.specialFormat = eSpecial_B8G8R8A8;
-			special.srgbCorrected = (format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB ? true : false);
-			return special;
 		case DXGI_FORMAT_R11G11B10_FLOAT:
 			special.specialFormat = eSpecial_R11G11B10;
 			return special;
 		case DXGI_FORMAT_B5G6R5_UNORM:
-			special.specialFormat = eSpecial_B5G6R5;
+			fmt8.bgraOrder = true;
+			special.specialFormat = eSpecial_R5G6B5;
 			return special;
 		case DXGI_FORMAT_B5G5R5A1_UNORM:
-			special.specialFormat = eSpecial_B5G5R5A1;
+			fmt8.bgraOrder = true;
+			special.specialFormat = eSpecial_R5G5B5A1;
 			return special;
 		case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
 			special.specialFormat = eSpecial_R9G9B9E5;
 			return special;
 		case DXGI_FORMAT_B4G4R4A4_UNORM:
-			special.specialFormat = eSpecial_B4G4R4A4;
+			fmt8.bgraOrder = true;
+			special.specialFormat = eSpecial_R4G4B4A4;
 			return special;
 		case DXGI_FORMAT_D24_UNORM_S8_UINT:
 			special.specialFormat = eSpecial_D24S8;
@@ -434,6 +432,13 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
 		case DXGI_FORMAT_R8G8B8A8_UNORM:
 			fmt8.compCount = 4;
 			return fmt8;
+		case DXGI_FORMAT_B8G8R8A8_UNORM:
+		case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+			fmt8.compType = eCompType_UNorm;
+			fmt8.compCount = 4;
+			fmt8.bgraOrder = true;
+			fmt8.srgbCorrected = (format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB ? true : false);
+			return fmt8;
 
 		case DXGI_FORMAT_R8G8_UINT:
 			fmt8.compType = eCompType_UInt;
@@ -494,15 +499,16 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
 				return format.compType == eCompType_UNorm ? DXGI_FORMAT_R10G10B10A2_UNORM : DXGI_FORMAT_R10G10B10A2_UINT;
 			case eSpecial_R11G11B10:
 				return DXGI_FORMAT_R11G11B10_FLOAT;
-			case eSpecial_B5G6R5:
+			case eSpecial_R5G6B5:
+				RDCASSERT(format.bgraOrder);
 				return DXGI_FORMAT_B5G6R5_UNORM;
-			case eSpecial_B5G5R5A1:
+			case eSpecial_R5G5B5A1:
+				RDCASSERT(format.bgraOrder);
 				return DXGI_FORMAT_B5G5R5A1_UNORM;
 			case eSpecial_R9G9B9E5:
 				return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
-			case eSpecial_B8G8R8A8:
-				return format.srgbCorrected ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
-			case eSpecial_B4G4R4A4:
+			case eSpecial_R4G4B4A4:
+				RDCASSERT(format.bgraOrder);
 				return DXGI_FORMAT_B4G4R4A4_UNORM;
 			case eSpecial_D24S8:
 				return DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -511,8 +517,10 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
 			case eSpecial_S8:
 				return DXGI_FORMAT_R8_UINT;
 			default:
+			case eSpecial_D16S8:
 			case eSpecial_ETC2:
 			case eSpecial_EAC:
+			case eSpecial_ASTC:
 			case eSpecial_YUV:
 				RDCERR("Unsupported writing format %u", format.specialFormat);
 				return DXGI_FORMAT_UNKNOWN;
@@ -549,8 +557,17 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
 				case eCompType_SInt:  return DXGI_FORMAT_R8G8B8A8_SINT;
 				case eCompType_SNorm: return DXGI_FORMAT_R8G8B8A8_SNORM;
 				default:
-				case eCompType_UNorm: if(format.srgbCorrected) return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-				                      else                     return DXGI_FORMAT_R8G8B8A8_UNORM;
+				case eCompType_UNorm:
+					if(format.srgbCorrected)
+					{
+						if(format.bgraOrder) return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+						else                 return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+					}
+					else
+					{
+						if(format.bgraOrder) return DXGI_FORMAT_B8G8R8A8_UNORM;
+						else                 return DXGI_FORMAT_R8G8B8A8_UNORM;
+					}
 			}
 		}
 		RDCERR("Unexpected component byte width %u for 4-component type", format.compByteWidth);
@@ -687,7 +704,9 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 				break;
 			case eSpecial_ETC2:
 			case eSpecial_EAC:
-				RDCERR("Unsupported file format, ETC2/EAC");
+			case eSpecial_ASTC:
+			case eSpecial_YUV:
+				RDCERR("Unsupported file format, %u", data.format.specialFormat);
 				return false;
 			default:
 				break;
@@ -745,19 +764,19 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 			case eSpecial_R9G9B9E5:
 			case eSpecial_R11G11B10:
 			case eSpecial_D24S8:
-			case eSpecial_B8G8R8A8:
 				bytesPerPixel = 4;
 				break;
-			case eSpecial_B5G6R5:
-			case eSpecial_B5G5R5A1:
-			case eSpecial_B4G4R4A4:
+			case eSpecial_R5G6B5:
+			case eSpecial_R5G5B5A1:
+			case eSpecial_R4G4B4A4:
 				bytesPerPixel = 2;
 				break;
 			case eSpecial_D32S8:
 				bytesPerPixel = 5;
 				break;
+			case eSpecial_D16S8:
 			case eSpecial_YUV:
-				RDCERR("Unsupported file format");
+				RDCERR("Unsupported file format %u", data.format.specialFormat);
 				return false;
 			default:
 				bytesPerPixel = data.format.compCount*data.format.compByteWidth;
@@ -1017,19 +1036,19 @@ dds_data load_dds_from_file(FILE *f)
 		case eSpecial_R9G9B9E5:
 		case eSpecial_R11G11B10:
 		case eSpecial_D24S8:
-		case eSpecial_B8G8R8A8:
 			bytesPerPixel = 4;
 			break;
-		case eSpecial_B5G6R5:
-		case eSpecial_B5G5R5A1:
-		case eSpecial_B4G4R4A4:
+		case eSpecial_R5G6B5:
+		case eSpecial_R5G5B5A1:
+		case eSpecial_R4G4B4A4:
 			bytesPerPixel = 2;
 			break;
 		case eSpecial_D32S8:
 			bytesPerPixel = 5;
 			break;
+		case eSpecial_D16S8:
 		case eSpecial_YUV:
-			RDCERR("Unsupported file format, YUV");
+			RDCERR("Unsupported file format %u", ret.format.specialFormat);
 			return error;
 		default:
 			bytesPerPixel = ret.format.compCount*ret.format.compByteWidth;
@@ -1052,7 +1071,9 @@ dds_data load_dds_from_file(FILE *f)
 				break;
 			case eSpecial_ETC2:
 			case eSpecial_EAC:
-				RDCERR("Unsupported file format, ETC2/EAC");
+			case eSpecial_ASTC:
+			case eSpecial_YUV:
+				RDCERR("Unsupported file format, %u", ret.format.specialFormat);
 				return error;
 			default:
 				break;

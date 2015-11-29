@@ -257,6 +257,7 @@ namespace renderdocui.Windows
             bool depth = false;
 
             if (texture.format.compType == FormatComponentType.Depth ||
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.D16S8) ||
                 (texture.format.special && texture.format.specialFormat == SpecialFormat.D24S8) ||
                 (texture.format.special && texture.format.specialFormat == SpecialFormat.D32S8) ||
                 (texture.format.special && texture.format.specialFormat == SpecialFormat.S8))

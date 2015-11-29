@@ -109,43 +109,52 @@ namespace renderdocui.Code
         {
             var ret = new List<object>();
 
-            if (format.special && format.specialFormat == SpecialFormat.B8G8R8A8)
-            {
-                byte b = read.ReadByte();
-                byte g = read.ReadByte();
-                byte r = read.ReadByte();
-                byte a = read.ReadByte();
-
-                ret.Add((float)r / 255.0f);
-                ret.Add((float)g / 255.0f);
-                ret.Add((float)b / 255.0f);
-                ret.Add((float)a / 255.0f);
-            }
-            else if (format.special && format.specialFormat == SpecialFormat.B5G5R5A1)
+            if (format.special && format.specialFormat == SpecialFormat.R5G5B5A1)
             {
                 ushort packed = read.ReadUInt16();
 
-                ret.Add((float)((packed >> 10) & 0x1f) / 31.0f);
+                ret.Add((float)((packed >> 0) & 0x1f) / 31.0f);
                 ret.Add((float)((packed >> 5) & 0x1f) / 31.0f);
-                ret.Add((float)((packed >> 0) & 0x1f) / 31.0f);
+                ret.Add((float)((packed >> 10) & 0x1f) / 31.0f);
                 ret.Add(((packed & 0x8000) > 0) ? 1.0f : 0.0f);
+
+                if (format.bgraOrder)
+                {
+                    object tmp = ret[2];
+                    ret[2] = ret[0];
+                    ret[0] = tmp;
+                }
             }
-            else if (format.special && format.specialFormat == SpecialFormat.B5G6R5)
+            else if (format.special && format.specialFormat == SpecialFormat.R5G6B5)
             {
                 ushort packed = read.ReadUInt16();
 
-                ret.Add((float)((packed >> 11) & 0x1f) / 31.0f);
-                ret.Add((float)((packed >> 5) & 0x3f) / 63.0f);
                 ret.Add((float)((packed >> 0) & 0x1f) / 31.0f);
+                ret.Add((float)((packed >> 5) & 0x3f) / 63.0f);
+                ret.Add((float)((packed >> 11) & 0x1f) / 31.0f);
+
+                if (format.bgraOrder)
+                {
+                    object tmp = ret[2];
+                    ret[2] = ret[0];
+                    ret[0] = tmp;
+                }
             }
-            else if (format.special && format.specialFormat == SpecialFormat.B4G4R4A4)
+            else if (format.special && format.specialFormat == SpecialFormat.R4G4B4A4)
             {
                 ushort packed = read.ReadUInt16();
 
-                ret.Add((float)((packed >> 8) & 0xf) / 15.0f);
-                ret.Add((float)((packed >> 4) & 0xf) / 15.0f);
                 ret.Add((float)((packed >> 0) & 0xf) / 15.0f);
+                ret.Add((float)((packed >> 4) & 0xf) / 15.0f);
+                ret.Add((float)((packed >> 8) & 0xf) / 15.0f);
                 ret.Add((float)((packed >> 12) & 0xf) / 15.0f);
+
+                if (format.bgraOrder)
+                {
+                    object tmp = ret[2];
+                    ret[2] = ret[0];
+                    ret[0] = tmp;
+                }
             }
             else if (format.special && format.specialFormat == SpecialFormat.R10G10B10A2)
             {
@@ -255,6 +264,13 @@ namespace renderdocui.Code
                             ret.Add(format.Interpret(read.ReadByte()));
                         }
                     }
+                }
+
+                if (format.bgraOrder)
+                {
+                    object tmp = ret[2];
+                    ret[2] = ret[0];
+                    ret[0] = tmp;
                 }
             }
 

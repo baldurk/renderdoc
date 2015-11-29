@@ -623,7 +623,8 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 	
 	// we don't support any file formats that handle these block compression formats
 	if(td.format.specialFormat == eSpecial_ETC2 ||
-		 td.format.specialFormat == eSpecial_EAC)
+		 td.format.specialFormat == eSpecial_EAC ||
+		 td.format.specialFormat == eSpecial_ASTC)
 		 downcast = true;
 
 	// for DDS don't downcast, for non-HDR always downcast if we're not already RGBA8 unorm
@@ -680,19 +681,19 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 			case eSpecial_R9G9B9E5:
 			case eSpecial_R11G11B10:
 			case eSpecial_D24S8:
-			case eSpecial_B8G8R8A8:
 				bytesPerPixel = 4;
 				break;
-			case eSpecial_B5G6R5:
-			case eSpecial_B5G5R5A1:
-			case eSpecial_B4G4R4A4:
+			case eSpecial_R5G6B5:
+			case eSpecial_R5G5B5A1:
+			case eSpecial_R4G4B4A4:
 				bytesPerPixel = 2;
 				break;
 			case eSpecial_D32S8:
 				bytesPerPixel = 5;
 				break;
+			case eSpecial_D16S8:
 			case eSpecial_YUV:
-				RDCERR("Unsupported file save format");
+				RDCERR("Unsupported file format %u", td.format.specialFormat);
 				return false;
 			default:
 				bytesPerPixel = td.format.compCount*td.format.compByteWidth;

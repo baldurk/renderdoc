@@ -2679,17 +2679,12 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 						uint32_t stride = fmt.compByteWidth*fmt.compCount;
 
 						bool buf1010102 = false;
-						bool bufBGRA = false;
+						bool bufBGRA = (fmt.bgraOrder != false);
 
 						if(fmt.special && fmt.specialFormat == eSpecial_R10G10B10A2)
 						{
 							stride = 4;
 							buf1010102 = true;
-						}
-						if(fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8)
-						{
-							stride = 4;
-							bufBGRA = true;
 						}
 
 						byte *dst = thpixels;

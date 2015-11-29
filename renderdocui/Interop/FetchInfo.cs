@@ -87,6 +87,7 @@ namespace renderdoc
             compType = FormatComponentType.None;
             compCount = 0;
             compByteWidth = 0;
+            bgraOrder = false;
             srgbCorrected = false;
 
             strname = "";
@@ -101,6 +102,7 @@ namespace renderdoc
             compType = type;
             compCount = count;
             compByteWidth = byteWidth;
+            bgraOrder = false;
             srgbCorrected = false;
 
             strname = "";
@@ -120,6 +122,7 @@ namespace renderdoc
         public UInt32 compByteWidth;
         public FormatComponentType compType;
 
+        public bool bgraOrder;
         public bool srgbCorrected;
 
         public override string ToString()
@@ -137,6 +140,7 @@ namespace renderdoc
             hash = hash * 17 + compCount.GetHashCode();
             hash = hash * 17 + compByteWidth.GetHashCode();
             hash = hash * 17 + compType.GetHashCode();
+            hash = hash * 17 + bgraOrder.GetHashCode();
             hash = hash * 17 + srgbCorrected.GetHashCode();
             return hash;
         }
@@ -148,6 +152,7 @@ namespace renderdoc
             return x.compCount == y.compCount &&
                 x.compByteWidth == y.compByteWidth &&
                 x.compType == y.compType &&
+                x.bgraOrder == y.bgraOrder &&
                 x.srgbCorrected == y.srgbCorrected;
         }
         public static bool operator !=(ResourceFormat x, ResourceFormat y)
@@ -379,6 +384,7 @@ namespace renderdoc
         public UInt32 compCount;
         public UInt32 compByteWidth;
         public FormatComponentType compType;
+        public bool bgraOrder;
         public SpecialFormat specialFormat;
 
         public bool showAlpha;

@@ -3360,18 +3360,6 @@ FloatVector GLReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg
 		ret.z = v.z;
 		return ret;
 	}
-	else if(cfg.position.specialFormat == eSpecial_B8G8R8A8)
-	{
-		if(data+4 >= end)
-		{
-			valid = false;
-			return ret;
-		}
-
-		fmt.compByteWidth = 1;
-		fmt.compCount = 4;
-		fmt.compType = eCompType_UNorm;
-	}
 	
 	if(data + cfg.position.compCount*cfg.position.compByteWidth > end)
 	{
@@ -3387,12 +3375,12 @@ FloatVector GLReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg
 		out++;
 	}
 
-	if(cfg.position.specialFormat == eSpecial_B8G8R8A8)
+	if(cfg.position.bgraOrder)
 	{
 		FloatVector reversed;
-		reversed.x = ret.x;
+		reversed.x = ret.z;
 		reversed.y = ret.y;
-		reversed.z = ret.z;
+		reversed.z = ret.x;
 		reversed.w = ret.w;
 		return reversed;
 	}

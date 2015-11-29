@@ -33,6 +33,8 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
 		return GetByteSize(w, h, d, GetBaseFormat(internalformat), GetDataType(internalformat));
 	}
 
+	uint32_t astc[2] = { 0, 0 };
+
 	switch(internalformat)
 	{
 		// BC1
@@ -81,8 +83,104 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
 		case eGL_COMPRESSED_RG11_EAC:
 		case eGL_COMPRESSED_SIGNED_RG11_EAC:
 			return (AlignUp4(w) * AlignUp4(h) * d);
+		case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+			astc[0] = 4; astc[1] = 4;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
+			astc[0] = 5; astc[1] = 4;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
+			astc[0] = 5; astc[1] = 5;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
+			astc[0] = 6; astc[1] = 5;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
+			astc[0] = 6; astc[1] = 6;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
+			astc[0] = 8; astc[1] = 5;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
+			astc[0] = 8; astc[1] = 6;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
+			astc[0] = 8; astc[1] = 8;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
+			astc[0] = 10; astc[1] = 5;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
+			astc[0] = 10; astc[1] = 6;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
+			astc[0] = 10; astc[1] = 8;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
+			astc[0] = 10; astc[1] = 10;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
+			astc[0] = 12; astc[1] = 10;
+			break;
+		case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
+			astc[0] = 12; astc[1] = 12;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+			astc[0] = 4; astc[1] = 4;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+			astc[0] = 5; astc[1] = 4;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+			astc[0] = 5; astc[1] = 5;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+			astc[0] = 6; astc[1] = 5;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+			astc[0] = 6; astc[1] = 6;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+			astc[0] = 8; astc[1] = 5;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+			astc[0] = 8; astc[1] = 6;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+			astc[0] = 8; astc[1] = 8;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+			astc[0] = 10; astc[1] = 5;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+			astc[0] = 10; astc[1] = 6;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+			astc[0] = 10; astc[1] = 8;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+			astc[0] = 10; astc[1] = 10;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+			astc[0] = 12; astc[1] = 10;
+			break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+			astc[0] = 12; astc[1] = 12;
+			break;
 		default:
 			break;
+	}
+
+	if(astc[0] > 0 && astc[1] > 0)
+	{
+		uint32_t blocks[2] = { (w / astc[0]), (h / astc[1]) };
+
+		// how many blocks are needed - including any extra partial blocks
+		blocks[0] += (w % astc[0]) ? 1 : 0;
+		blocks[1] += (h % astc[1]) ? 1 : 0;
+
+		// ASTC blocks are all 128 bits each
+		return blocks[0]*blocks[1]*16*d;
 	}
 
 	RDCERR("Unrecognised compressed format");
@@ -686,6 +784,35 @@ bool IsCompressedFormat(GLenum internalFormat)
 		case eGL_COMPRESSED_SIGNED_R11_EAC:
 		case eGL_COMPRESSED_RG11_EAC:
 		case eGL_COMPRESSED_SIGNED_RG11_EAC:
+		// ASTC
+		case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
+		case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
 			return true;
 		default:
 			break;

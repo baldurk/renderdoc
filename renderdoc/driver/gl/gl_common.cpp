@@ -739,6 +739,37 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 			case eGL_COMPRESSED_SIGNED_RG11_EAC:
 				ret.specialFormat = eSpecial_EAC;
 				break;
+			// ASTC
+			case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
+			case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+			case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+				ret.specialFormat = eSpecial_ASTC;
+				break;
 			default:
 				RDCERR("Unexpected compressed format %#x", fmt);
 				break;
@@ -937,19 +968,16 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
 			case eSpecial_R11G11B10:
 				ret = eGL_R11F_G11F_B10F;
 				break;
-			case eSpecial_B5G6R5:
+			case eSpecial_R5G6B5:
 				ret = eGL_RGB565;
 				break;
-			case eSpecial_B5G5R5A1:
+			case eSpecial_R5G5B5A1:
 				ret = eGL_RGB5_A1;
 				break;
 			case eSpecial_R9G9B9E5:
 				ret = eGL_RGB9_E5;
 				break;
-			case eSpecial_B8G8R8A8:
-				ret = eGL_RGBA;
-				break;
-			case eSpecial_B4G4R4A4:
+			case eSpecial_R4G4B4A4:
 				ret = eGL_RGBA4;
 				break;
 			case eSpecial_D24S8:
@@ -957,6 +985,9 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
 				break;
 			case eSpecial_D32S8:
 				ret = eGL_DEPTH32F_STENCIL8;
+				break;
+			case eSpecial_ASTC:
+				RDCERR("ASTC can't be decoded unambiguously");
 				break;
 			case eSpecial_S8:
 				ret = eGL_STENCIL_INDEX8;
@@ -995,6 +1026,9 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
 			else if(fmt.compType == eCompType_SNorm) ret = eGL_RGBA8_SNORM;
 			else if(fmt.compType == eCompType_UNorm) ret = eGL_RGBA8;
 			else RDCERR("Unrecognised component type");
+
+			if(fmt.bgraOrder)
+				ret = eGL_BGRA;
 		}
 		else
 		{

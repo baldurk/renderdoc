@@ -2550,6 +2550,7 @@ namespace renderdocui.Windows
                 m_MeshDisplay.position.compCount = pos.format.compCount;
                 m_MeshDisplay.position.compByteWidth = pos.format.compByteWidth;
                 m_MeshDisplay.position.compType = pos.format.compType;
+                m_MeshDisplay.position.bgraOrder = pos.format.bgraOrder;
                 m_MeshDisplay.position.specialFormat = pos.format.special ? pos.format.specialFormat : SpecialFormat.Unknown;
 
                 m_MeshDisplay.position.showAlpha = false;
@@ -2622,6 +2623,7 @@ namespace renderdocui.Windows
                 m_MeshDisplay.secondary.compCount = 0;
                 m_MeshDisplay.secondary.compByteWidth = 0;
                 m_MeshDisplay.secondary.compType = FormatComponentType.None;
+                m_MeshDisplay.secondary.bgraOrder = false;
                 m_MeshDisplay.secondary.specialFormat = SpecialFormat.Unknown;
 
                 m_MeshDisplay.secondary.showAlpha = false;
@@ -2638,6 +2640,7 @@ namespace renderdocui.Windows
                 m_MeshDisplay.secondary.compCount = tex.format.compCount;
                 m_MeshDisplay.secondary.compByteWidth = tex.format.compByteWidth;
                 m_MeshDisplay.secondary.compType = tex.format.compType;
+                m_MeshDisplay.secondary.bgraOrder = tex.format.bgraOrder;
                 m_MeshDisplay.secondary.specialFormat = tex.format.special ? tex.format.specialFormat : SpecialFormat.Unknown;
 
                 m_MeshDisplay.secondary.showAlpha = CurSecondShowAlpha;

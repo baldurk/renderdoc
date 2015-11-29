@@ -973,8 +973,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 				// if there's only e.g. 3 bytes remaining don't read and unpack some of
 				// a 4-byte special format
 				size_t packedsize = 4;
-				if (fmt.specialFormat == eSpecial_B8G8R8A8 || fmt.specialFormat == eSpecial_B5G5R5A1 ||
-					fmt.specialFormat == eSpecial_B5G6R5 || fmt.specialFormat == eSpecial_B4G4R4A4)
+				if (fmt.specialFormat == eSpecial_R5G5B5A1 || fmt.specialFormat == eSpecial_R5G6B5 || fmt.specialFormat == eSpecial_R4G4B4A4)
 					packedsize = 2;
 
 				if(srcData == NULL || packedsize > dataSize)
@@ -984,25 +983,21 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 						ret.inputs[i].value.u.z = 
 						ret.inputs[i].value.u.w = 0;
 				}
-				else if (fmt.specialFormat == eSpecial_B8G8R8A8)
+				else if (fmt.specialFormat == eSpecial_R5G5B5A1)
 				{
-					ret.inputs[i].value.f.x = float(srcData[2])/255.0f;
-					ret.inputs[i].value.f.y = float(srcData[1])/255.0f;
-					ret.inputs[i].value.f.z = float(srcData[0])/255.0f;
-					ret.inputs[i].value.f.w = float(srcData[3])/255.0f;
-				}
-				else if (fmt.specialFormat == eSpecial_B5G5R5A1)
-				{
+					RDCASSERT(fmt.bgraOrder);
 					uint16_t packed = ((uint16_t *)srcData)[0];
 					*v4 = ConvertFromB5G5R5A1(packed);
 				}
-				else if (fmt.specialFormat == eSpecial_B5G6R5)
+				else if (fmt.specialFormat == eSpecial_R5G6B5)
 				{
+					RDCASSERT(fmt.bgraOrder);
 					uint16_t packed = ((uint16_t *)srcData)[0];
 					*v3 = ConvertFromB5G6R5(packed);
 				}
-				else if (fmt.specialFormat == eSpecial_B4G4R4A4)
+				else if (fmt.specialFormat == eSpecial_R4G4B4A4)
 				{
+					RDCASSERT(fmt.bgraOrder);
 					uint16_t packed = ((uint16_t *)srcData)[0];
 					*v4 = ConvertFromB4G4R4A4(packed);
 				}
@@ -1099,6 +1094,12 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 						else
 							RDCERR("Unexpected component type");
 					}
+				}
+
+				if(fmt.bgraOrder)
+				{
+					RDCASSERT(fmt.compCount == 4);
+					std::swap(ret.inputs[i].value.fv[2], ret.inputs[i].value.fv[0]);
 				}
 			}
 		}

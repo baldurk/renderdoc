@@ -325,7 +325,8 @@ namespace renderdocui.Windows.PipelineState
                                     typename = texs[t].resType.Str();
 
                                     if (texs[t].format.special &&
-                                        (texs[t].format.specialFormat == SpecialFormat.D24S8 ||
+                                        (texs[t].format.specialFormat == SpecialFormat.D16S8 ||
+                                         texs[t].format.specialFormat == SpecialFormat.D24S8 ||
                                          texs[t].format.specialFormat == SpecialFormat.D32S8)
                                         )
                                     {
