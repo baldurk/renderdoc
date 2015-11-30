@@ -100,9 +100,10 @@ void Serialiser::Serialise(const char *name, ResourceFormat &el)
 	Serialise("", el.compCount);
 	Serialise("", el.compByteWidth);
 	Serialise("", el.compType);
+	Serialise("", el.bgraOrder);
 	Serialise("", el.srgbCorrected);
 
-	SIZE_CHECK(ResourceFormat, 36);
+	SIZE_CHECK(ResourceFormat, 40);
 }
 
 template<>
@@ -287,7 +288,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler:
 	Serialise("", el.PerInstance);
 	Serialise("", el.InstanceDataStepRate);
 
-	SIZE_CHECK(D3D11PipelineState::InputAssembler::LayoutInput, 64);
+	SIZE_CHECK(D3D11PipelineState::InputAssembler::LayoutInput, 68);
 }
 
 template<>
@@ -323,7 +324,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Re
 	Serialise("", el.ArraySize);
 	Serialise("", el.FirstArraySlice);
 
-	SIZE_CHECK(D3D11PipelineState::ShaderStage::ResourceView, 104);
+	SIZE_CHECK(D3D11PipelineState::ShaderStage::ResourceView, 112);
 }
 
 template<>
@@ -440,7 +441,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::OutputMerger &e
 	Serialise("", el.DepthReadOnly);
 	Serialise("", el.StencilReadOnly);
 
-	SIZE_CHECK(D3D11PipelineState::OutputMerger, 288);
+	SIZE_CHECK(D3D11PipelineState::OutputMerger, 296);
 }
 
 template<>
@@ -460,7 +461,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState &el)
 	Serialise("", el.m_RS);
 	Serialise("", el.m_OM);
 
-	SIZE_CHECK(D3D11PipelineState, 992);
+	SIZE_CHECK(D3D11PipelineState, 1000);
 }
 
 #pragma endregion D3D11 pipeline state
@@ -476,7 +477,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::Verte
 	Serialise("", el.BufferSlot);
 	Serialise("", el.RelativeOffset);
 
-	SIZE_CHECK(GLPipelineState::VertexInput::VertexAttribute, 64);
+	SIZE_CHECK(GLPipelineState::VertexInput::VertexAttribute, 68);
 }
 
 template<>
@@ -843,7 +844,7 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
 	Serialise("", el.nearPlane);
 	Serialise("", el.farPlane);
 
-	SIZE_CHECK(MeshFormat, 72);
+	SIZE_CHECK(MeshFormat, 80);
 }
 
 template<>
