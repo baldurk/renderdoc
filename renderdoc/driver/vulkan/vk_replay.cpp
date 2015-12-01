@@ -971,10 +971,11 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 			viewInfo.channels.a = VK_CHANNEL_SWIZZLE_ZERO;
 		}
 
-		// Only needed on AMD - does the wrong thing on nvidia - so commented for now while AMD
-		// drivers aren't on 0.9.2
-		//if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
-			//std::swap(viewInfo.channels.r, viewInfo.channels.b);
+		// VKTODOHIGH super ultra mega and very very temporary hack of great justice
+		// channel swizzles aren't quite consistent between vendors yet. No "right" way
+		if(strstr(m_pDriver->GetDeviceProps().deviceName, "AMD"))
+			if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
+				std::swap(viewInfo.channels.r, viewInfo.channels.b);
 
 		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, &iminfo.view);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -3307,10 +3308,11 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 			0
 		};
 
-		// Only needed on AMD - does the wrong thing on nvidia - so commented for now while AMD
-		// drivers aren't on 0.9.2
-		//if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
-			//std::swap(viewInfo.channels.r, viewInfo.channels.b);
+		// VKTODOHIGH super ultra mega and very very temporary hack of great justice
+		// channel swizzles aren't quite consistent between vendors yet. No "right" way
+		if(strstr(m_pDriver->GetDeviceProps().deviceName, "AMD"))
+			if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
+				std::swap(viewInfo.channels.r, viewInfo.channels.b);
 
 		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, &iminfo.view);
 		RDCASSERT(vkr == VK_SUCCESS);
