@@ -233,9 +233,7 @@ VkResult WrappedVulkan::vkAllocMemory(
 
 			record->AddChunk(chunk);
 
-			// VKTODOLOW Change record->Length to at least int64_t (maybe uint64_t)
-			record->Length = (int32_t)pAllocInfo->allocationSize;
-			RDCASSERT(pAllocInfo->allocationSize < 0x7FFFFFFF);
+			record->Length = pAllocInfo->allocationSize;
 
 			uint32_t memProps = m_PhysicalDeviceData.fakeMemProps->memoryTypes[pAllocInfo->memoryTypeIndex].propertyFlags;
 
@@ -319,7 +317,7 @@ VkResult WrappedVulkan::vkMapMemory(
 			MemMapState &state = *memrecord->memMapState;
 
 			// ensure size is valid
-			RDCASSERT(size == 0 || size <= (VkDeviceSize)memrecord->Length);
+			RDCASSERT(size == 0 || size <= memrecord->Length);
 
 			state.mappedPtr = (byte *)realData;
 			state.refData = NULL;

@@ -70,7 +70,7 @@ void ResourceRecord::Delete(ResourceRecordHandler *mgr)
 			(*it)->Delete(mgr);
 
 		Parents.clear();
-		Length = -1;
+		Length = 0;
 		DataPtr = NULL;
 
 		for(auto it=m_FrameRefs.begin(); it != m_FrameRefs.end(); ++it)

@@ -89,7 +89,7 @@ struct ResourceRecord
 	ResourceRecord(ResourceId id, bool lock)
 		: RefCount(1), ResID(id), UpdateCount(0),
 			DataInSerialiser(false), DataPtr(NULL), DataOffset(0),
-			Length(-1), DataWritten(false), SpecialResource(false)
+			Length(0), DataWritten(false), SpecialResource(false)
 	{
 		m_ChunkLock = NULL;
 
@@ -259,7 +259,7 @@ struct ResourceRecord
 			ids.insert(it->first);
 	}
 
-	int32_t Length;
+	uint64_t Length;
 	
 	int UpdateCount;
 	bool DataInSerialiser;

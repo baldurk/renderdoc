@@ -4928,7 +4928,7 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion( ID3D11Resource *pDstReso
 
 			to += DstX;
 
-			size_t length = srcRecord->Length;
+			size_t length = (size_t)srcRecord->Length;
 
 			if(pSrcBox)
 			{
@@ -5056,7 +5056,7 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource, ID3D
 			byte *from = srcRecord->GetDataPtr();
 			byte *to = record->GetDataPtr();
 
-			memcpy(to, from, record->Length);
+			memcpy(to, from, (size_t)record->Length);
 		}
 		else if(
 			(WrappedID3D11Texture1D::IsAlloc(pDstResource) && WrappedID3D11Texture1D::IsAlloc(pSrcResource)) ||
@@ -5108,7 +5108,7 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource, ID3D
 					byte *from = srcRecord->SubResources[i]->GetDataPtr();
 					byte *to = record->SubResources[i]->GetDataPtr();
 
-					memcpy(to, from, record->SubResources[i]->Length);
+					memcpy(to, from, (size_t)record->SubResources[i]->Length);
 				}
 			}
 		}
@@ -5158,7 +5158,7 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
 			RDCASSERT(record->NumSubResources == 0);
 
 			size_t offs = 0;
-			size_t length = record->Length;
+			size_t length = (size_t)record->Length;
 			if(pDstBox)
 			{
 				offs += pDstBox->left;
@@ -5293,7 +5293,7 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
 					    )
 					  )
 					{
-						memcpy(ptr, pSrcData, record->SubResources[DstSubresource]->Length);
+						memcpy(ptr, pSrcData, (size_t)record->SubResources[DstSubresource]->Length);
 					}
 					else
 					{
@@ -6590,7 +6590,7 @@ bool WrappedID3D11DeviceContext::Serialise_Map(ID3D11Resource *pResource, UINT S
 
 	MapIntercept intercept;	
 
-	size_t mapLength = record->Length;
+	size_t mapLength = (size_t)record->Length;
 
 	if(m_State == WRITING_CAPFRAME || (record && !record->DataInSerialiser))
 	{
@@ -6696,7 +6696,7 @@ bool WrappedID3D11DeviceContext::Serialise_Map(ID3D11Resource *pResource, UINT S
 	{
 		RDCASSERT(record->DataInSerialiser);
 
-		mapLength = record->Length;
+		mapLength = (size_t)record->Length;
 		
 		intercept = MapIntercept();
 		intercept.verifyWrite = (RenderDoc::Inst().GetCaptureOptions().VerifyMapWrites != 0);
@@ -6922,7 +6922,7 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 
 	if(m_State < WRITING || m_State == WRITING_CAPFRAME)
 	{
-		size_t len = record ? record->Length : 0;
+		size_t len = record ? (size_t)record->Length : 0;
 
 		byte *appWritePtr = NULL;
 
@@ -7049,7 +7049,7 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 	}
 	else if(m_State == WRITING_IDLE)
 	{
-		size_t len = record->Length;
+		size_t len = (size_t)record->Length;
 
 		intercept.CopyToD3D();
 

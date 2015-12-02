@@ -1157,7 +1157,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 
 		D3D11_BUFFER_DESC desc;
 		desc.BindFlags = 0;
-		desc.ByteWidth = record->Length;
+		desc.ByteWidth = (UINT)record->Length;
 		desc.MiscFlags = 0;
 		desc.StructureByteStride = 0;
 		desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
@@ -1429,7 +1429,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 
 			D3D11_BUFFER_DESC desc;
 			desc.BindFlags = 0;
-			desc.ByteWidth = record->Length;
+			desc.ByteWidth = (UINT)record->Length;
 			desc.MiscFlags = 0;
 			desc.StructureByteStride = 0;
 

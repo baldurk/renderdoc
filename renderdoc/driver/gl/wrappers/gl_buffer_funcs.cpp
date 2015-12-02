@@ -475,7 +475,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 		RDCASSERT(record);
 		
 		// detect buffer orphaning and just update backing store
-		if(m_State == WRITING_IDLE && record->HasDataPtr() && size == record->Length && usage == record->usage)
+		if(m_State == WRITING_IDLE && record->HasDataPtr() && size == (GLsizeiptr)record->Length && usage == record->usage)
 		{
 			if(data)
 				memcpy(record->GetDataPtr(), data, (size_t)size);
@@ -492,7 +492,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 		// data, but we don't support (if it's even possible) querying out size etc.
 		// we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
 		// and this buffer storage. All other chunks have no effect
-		if(m_State == WRITING_IDLE && (record->HasDataPtr() || (record->Length > 0 && size != record->Length)))
+		if(m_State == WRITING_IDLE && (record->HasDataPtr() || (record->Length > 0 && size != (GLsizeiptr)record->Length)))
 		{
 			// we need to maintain chunk ordering, so fetch the first two chunk IDs.
 			// We should have at least two by this point - glGenBuffers and whatever gave the record
@@ -601,7 +601,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 		RDCASSERT(record);
 
 		// detect buffer orphaning and just update backing store
-		if(m_State == WRITING_IDLE && record->HasDataPtr() && size == record->Length && usage == record->usage)
+		if(m_State == WRITING_IDLE && record->HasDataPtr() && size == (GLsizeiptr)record->Length && usage == record->usage)
 		{
 			if(data)
 				memcpy(record->GetDataPtr(), data, (size_t)size);
@@ -620,7 +620,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 		// data, but we don't support (if it's even possible) querying out size etc.
 		// we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
 		// and this buffer storage. All other chunks have no effect
-		if(m_State == WRITING_IDLE && (record->HasDataPtr() || (record->Length > 0 && size != record->Length)))
+		if(m_State == WRITING_IDLE && (record->HasDataPtr() || (record->Length > 0 && size != (GLsizeiptr)record->Length)))
 		{
 			// we need to maintain chunk ordering, so fetch the first two chunk IDs.
 			// We should have at least two by this point - glGenBuffers and whatever gave the record
@@ -689,7 +689,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 		{
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
-			record->Length = (int32_t)size;
+			record->Length = size;
 			record->usage = usage;
 			record->DataInSerialiser = true;
 		}
@@ -1845,7 +1845,7 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 			     if(access == eGL_READ_ONLY)  accessBits = eGL_MAP_READ_BIT;
 			else if(access == eGL_WRITE_ONLY) accessBits = eGL_MAP_WRITE_BIT;
 			else if(access == eGL_READ_WRITE) accessBits = eGL_MAP_READ_BIT|eGL_MAP_WRITE_BIT;
-			return glMapNamedBufferRangeEXT(record->Resource.name, 0, record->Length, accessBits);
+			return glMapNamedBufferRangeEXT(record->Resource.name, 0, (GLsizeiptr)record->Length, accessBits);
 		}
 
 		RDCERR("glMapNamedBufferEXT: Couldn't get resource record for buffer %x!", buffer);
@@ -1870,7 +1870,7 @@ void *WrappedOpenGL::glMapBuffer(GLenum target, GLenum access)
 			     if(access == eGL_READ_ONLY)  accessBits = eGL_MAP_READ_BIT;
 			else if(access == eGL_WRITE_ONLY) accessBits = eGL_MAP_WRITE_BIT;
 			else if(access == eGL_READ_WRITE) accessBits = eGL_MAP_READ_BIT|eGL_MAP_WRITE_BIT;
-			return glMapNamedBufferRangeEXT(record->Resource.name, 0, record->Length, accessBits);
+			return glMapNamedBufferRangeEXT(record->Resource.name, 0, (GLsizeiptr)record->Length, accessBits);
 		}
 
 		RDCERR("glMapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
@@ -1903,7 +1903,7 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(GLuint buffer)
 		// if the map has a sub-range specified, trust the user to have specified
 		// a minimal range, similar to glFlushMappedBufferRange, so don't find diff
 		// range.
-		record->Map.offset == 0 && record->Map.length == record->Length &&
+		record->Map.offset == 0 && record->Map.length == (GLsizeiptr)record->Length &&
 		// similarly for invalidate maps, we want to update the whole buffer
 		!record->Map.invalidate) 
 	{

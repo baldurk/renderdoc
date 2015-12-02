@@ -137,7 +137,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 		memDataOffs[i].memOffs = bufInfo.size;
 
 		// increase size
-		bufInfo.size += (VkDeviceSize)GetRecord(it->first)->Length;
+		bufInfo.size += GetRecord(it->first)->Length;
 	}
 
 	info->totalSize = bufInfo.size;
@@ -185,7 +185,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 	{
 		VkBuffer srcBuf;
 
-		bufInfo.size = (VkDeviceSize)GetRecord(it->first)->Length;
+		bufInfo.size = GetRecord(it->first)->Length;
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &srcBuf);
 		RDCASSERT(vkr == VK_SUCCESS);
 
@@ -308,7 +308,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 		memDataOffs[i].memOffs = bufInfo.size;
 
 		// increase size
-		bufInfo.size += (VkDeviceSize)GetRecord(it->first)->Length;
+		bufInfo.size += GetRecord(it->first)->Length;
 	}
 
 	state->totalSize = bufInfo.size;
@@ -356,7 +356,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 	{
 		VkBuffer srcBuf;
 
-		bufInfo.size = (VkDeviceSize)GetRecord(it->first)->Length;
+		bufInfo.size = GetRecord(it->first)->Length;
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &srcBuf);
 		RDCASSERT(vkr == VK_SUCCESS);
 
@@ -1068,12 +1068,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
 		VkDeviceSize dataoffs = 0;
 		VkDeviceMemory datamem = ToHandle<VkDeviceMemory>(res);
-		VkDeviceSize datasize = (VkDeviceSize)record->Length;
+		VkDeviceSize datasize = record->Length;
 
 		RDCASSERT(datamem);
 
 		RDCASSERT(record->Length > 0);
-		VkDeviceSize memsize = (VkDeviceSize)record->Length;
+		VkDeviceSize memsize = record->Length;
 
 		VkDeviceMemory readbackmem = VK_NULL_HANDLE;
 		

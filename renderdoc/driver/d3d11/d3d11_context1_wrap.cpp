@@ -169,7 +169,8 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 	}
 	else
 	{
-		SERIALISE_ELEMENT(uint32_t, ResourceBufLen, record->Length);
+		// fine to truncate the length, D3D11 resource sizes are uint32s
+		SERIALISE_ELEMENT(uint32_t, ResourceBufLen, (uint32_t)record->Length);
 
 		byte *padding = m_State >= WRITING ? new byte[ResourceBufLen] : NULL;
 
