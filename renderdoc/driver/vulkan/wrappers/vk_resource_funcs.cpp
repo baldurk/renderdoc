@@ -531,6 +531,12 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 			MemMapState *state = GetRecord(pMemRanges[i].mem)->memMapState;
 			state->mapFlushed = true;
 
+			if(state->mappedPtr == NULL)
+			{
+				RDCERR("Flushing memory that isn't currently mapped");
+				continue;
+			}
+
 			if(capframe)
 			{
 				CACHE_THREAD_SERIALISER();
