@@ -156,7 +156,7 @@ bool WrappedVulkan::Serialise_vkAllocMemory(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 
 		// serialised memory type index is non-remapped, so we remap now.
-		// VKTODOLOW may need to re-write info to change memory type index to the
+		// PORTABILITY may need to re-write info to change memory type index to the
 		// appropriate index on replay
 		info.memoryTypeIndex = m_PhysicalDeviceData.memIdxMap[info.memoryTypeIndex];
 

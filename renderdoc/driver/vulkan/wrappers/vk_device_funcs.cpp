@@ -48,7 +48,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	params.AppName = string("RenderDoc @ ") + params.AppName;
 	params.EngineName = string("RenderDoc @ ") + params.EngineName;
 
-	// VKTODOLOW verify that layers/extensions are available
+	// PORTABILITY verify that layers/extensions are available
 
 	// don't try and create our own layer on replay!
 	for(auto it = params.Layers.begin(); it != params.Layers.end(); ++it)
@@ -280,7 +280,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 		vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		// VKTODOLOW match up physical devices to those available on replay
+		// PORTABILITY match up physical devices to those available on replay
 
 		pd = devices[physIndex];
 
@@ -534,7 +534,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		else
 			RDCWARN("tessellationSideEffects = false, Tess output mesh data will not be available");
 
-		// VKTODOLOW: check that extensions and layers supported in capture (from createInfo) are supported in replay
+		// PORTABILITY check that extensions and layers supported in capture (from createInfo) are supported in replay
 
 		VkResult ret = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, &device);
 

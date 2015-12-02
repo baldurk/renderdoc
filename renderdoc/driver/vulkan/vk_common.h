@@ -24,6 +24,9 @@
 
 #pragma once
 
+// PORTABILITY - parts of the code that need to change/update to handle
+// portability between different GPU setups/capabilities etc
+
 // MULTIDEVICE - parts of the code that will need to be updated to support
 // multiple devices or queues.
 
