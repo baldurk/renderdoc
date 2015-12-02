@@ -162,8 +162,6 @@ struct WrappedVkDispRes : public WrappedVkRes
 RDCCOMPILE_ASSERT(sizeof(WrappedVkDispRes) == (sizeof(uint64_t)*2 + sizeof(uintptr_t)*4), "Wrapped resource struct has changed size! This is bad");
 RDCCOMPILE_ASSERT(sizeof(WrappedVkNonDispRes) == sizeof(uint64_t)*3, "Wrapped resource struct has changed size! This is bad");
 
-// VKTODOLOW check that the pool counts approximated below are good for typical applications
-
 // these are expanded out so that IDE autocompletion etc works without having to process through macros
 struct WrappedVkInstance : WrappedVkDispRes
 {
