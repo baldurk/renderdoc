@@ -50,4 +50,4 @@ In no particular order, features that are not planned until after 1.0.
 * Custom visualisation shaders
 * Linux support with Qt UI
 * Shader edit & replace
-* Mesh output data capture and visualisation
+* Mesh geometry/tessellation output capture
