@@ -417,7 +417,13 @@ void WrappedVulkan::vkUnmapMemory(
 
 			if(capframe)
 			{
-				if(!state.mapFlushed)
+				// coherent maps must always serialise all data on unmap, even if a flush was seen, because
+				// unflushed data is *also* visible. This is a bit redundant since data is serialised here
+				// and in any flushes, but that's the app's fault - the spec calls out flushing coherent maps
+				// as inefficient
+				// if the memory is not coherent, we must have a flush for every region written while it is 
+				// mapped, there is no implicit flush on unmap, so we follow the spec strictly on this.
+				if(state.mapCoherent)
 				{
 					CACHE_THREAD_SERIALISER();
 
@@ -435,11 +441,6 @@ void WrappedVulkan::vkUnmapMemory(
 						m_FrameCaptureRecord->AddChunk(scope.Get());
 						GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Write);
 					}
-				}
-				else
-				{
-					// VKTODOLOW for now assuming flushes cover all writes. Technically
-					// this is true for all non-coherent memory types.
 				}
 			}
 
