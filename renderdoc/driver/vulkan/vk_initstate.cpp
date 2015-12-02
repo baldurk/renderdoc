@@ -1697,11 +1697,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 				RDCASSERT(vkr == VK_SUCCESS);
 				
-				// VKTODOMED handle multiple subresources with different layouts etc
 				VkImageMemoryBarrier barrier = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 					0, 0,
-					m_ImageLayouts[id].subresourceStates[0].newLayout, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+                    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 					ToHandle<VkImage>(live),
 					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS },
@@ -1716,16 +1715,19 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				// clear completes before subsequent operations
 				barrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
 
-				void *barrierptr = (void *)&barrier;
-				
-				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+                void *barrierptr = (void *)&barrier;
+
+                for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+                {
+                    barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+                    ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+                }
 				
 				VkClearColorValue clearval = { 0.0f, 0.0f, 0.0f, 0.0f };
 				VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
 
 				ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), ToHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, &clearval, 1, &range);
 
-				barrier.newLayout = barrier.oldLayout;
 				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
 
 				// complete clear before any other work
@@ -1740,8 +1742,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 					VK_MEMORY_INPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
 					VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT|
 					VK_MEMORY_INPUT_TRANSFER_BIT;
-				
-				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+
+                for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+                {
+                    barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+                    ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+                }
 
 				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 				RDCASSERT(vkr == VK_SUCCESS);
@@ -1753,11 +1759,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 				RDCASSERT(vkr == VK_SUCCESS);
 				
-				// VKTODOMED handle multiple subresources with different layouts etc
 				VkImageMemoryBarrier barrier = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 					0, 0,
-					m_ImageLayouts[id].subresourceStates[0].newLayout, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+                    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 					ToHandle<VkImage>(live),
 					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS },
@@ -1773,15 +1778,18 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				barrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
 
 				void *barrierptr = (void *)&barrier;
-				
-				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+
+                for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+                {
+                    barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+                    ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+                }
 				
 				VkClearDepthStencilValue clearval = { 1.0f, 0 };
 				VkImageSubresourceRange range = { VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
 
 				ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), ToHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, &clearval, 1, &range);
 
-				barrier.newLayout = barrier.oldLayout;
 				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
 
 				// complete clear before any other work
@@ -1796,8 +1804,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 					VK_MEMORY_INPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
 					VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT|
 					VK_MEMORY_INPUT_TRANSFER_BIT;
-				
-				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+
+                for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+                {
+                    barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+                    ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+                }
 
 				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 				RDCASSERT(vkr == VK_SUCCESS);
