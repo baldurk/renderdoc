@@ -1004,12 +1004,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 			// get the offset of the first array slice in this mip
 			region.bufferOffset = sublayout.offset;
 		
-			// VKTODOMED handle getting the right origLayout for this mip, handle barriers for
-			// multiple slices with different layouts etc
-			VkImageLayout origLayout = layout->subresourceStates[0].newLayout;
-
 			// update the real image layout into transfer-source
-			srcimBarrier.oldLayout = origLayout;
 			srcimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
 
 			// ensure all previous writes have completed
@@ -1022,19 +1017,26 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 			srcimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
 			
 			void *barrier = (void *)&srcimBarrier;
-
-			ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			
+			for (int si = 0; si < layout->subresourceStates.size(); si++)
+			{
+				srcimBarrier.oldLayout = layout->subresourceStates[si].newLayout;
+				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			}
 
 			ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), im->real.As<VkImage>(), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, dstBuf, 1, &region);
 
 			// transfer back to whatever it was
 			srcimBarrier.oldLayout = srcimBarrier.newLayout;
-			srcimBarrier.newLayout = origLayout;
 
 			srcimBarrier.outputMask = 0;
 			srcimBarrier.inputMask = 0;
-
-			ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			
+			for (int si = 0; si < layout->subresourceStates.size(); si++)
+			{
+				srcimBarrier.newLayout = layout->subresourceStates[si].newLayout;
+				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			}
 
 			// update the extent for the next mip
 			extent.width = RDCMAX(extent.width>>1, 1);
@@ -1700,7 +1702,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				VkImageMemoryBarrier barrier = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 					0, 0,
-                    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 					ToHandle<VkImage>(live),
 					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS },
@@ -1715,13 +1717,13 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				// clear completes before subsequent operations
 				barrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
 
-                void *barrierptr = (void *)&barrier;
+				void *barrierptr = (void *)&barrier;
 
-                for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
-                {
-                    barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
-                    ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
-                }
+				for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+				{
+					barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+				}
 				
 				VkClearColorValue clearval = { 0.0f, 0.0f, 0.0f, 0.0f };
 				VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
@@ -1743,11 +1745,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 					VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT|
 					VK_MEMORY_INPUT_TRANSFER_BIT;
 
-                for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
-                {
-                    barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
-                    ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
-                }
+				for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+				{
+					barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+				}
 
 				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 				RDCASSERT(vkr == VK_SUCCESS);
@@ -1762,7 +1764,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				VkImageMemoryBarrier barrier = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 					0, 0,
-                    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 					VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 					ToHandle<VkImage>(live),
 					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS },
@@ -1779,11 +1781,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 				void *barrierptr = (void *)&barrier;
 
-                for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
-                {
-                    barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
-                    ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
-                }
+				for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+				{
+					barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+				}
 				
 				VkClearDepthStencilValue clearval = { 1.0f, 0 };
 				VkImageSubresourceRange range = { VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
@@ -1805,11 +1807,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 					VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT|
 					VK_MEMORY_INPUT_TRANSFER_BIT;
 
-                for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
-                {
-                    barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
-                    ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
-                }
+				for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+				{
+					barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+				}
 
 				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 				RDCASSERT(vkr == VK_SUCCESS);
@@ -1861,17 +1863,17 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 			dstimBarrier.subresourceRange.baseMipLevel = m;
 		
-			// VKTODOMED handle getting the right origLayout for this mip, handle multiple slices with different layouts etc
-			VkImageLayout origLayout = m_ImageLayouts[id].subresourceStates[0].newLayout;
-
 			// first update the live image layout into destination optimal (the initial state
 			// image is always and permanently in source optimal already).
-			dstimBarrier.oldLayout = origLayout;
 			dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
 
 			void *barrier = (void *)&dstimBarrier;
 
-			ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+			{
+				dstimBarrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			}
 			
 			ObjDisp(cmd)->CmdCopyImage(Unwrap(cmd),
 				im->real.As<VkImage>(), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
@@ -1880,7 +1882,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 			// update the live image layout back
 			dstimBarrier.oldLayout = dstimBarrier.newLayout;
-			dstimBarrier.newLayout = origLayout;
 		
 			// make sure the apply completes before any further work
 			dstimBarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
@@ -1894,8 +1895,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				VK_MEMORY_INPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
 				VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT|
 				VK_MEMORY_INPUT_TRANSFER_BIT;
-
-			ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			
+			for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+			{
+				dstimBarrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			}
 
 			// update the extent for the next mip
 			extent.width = RDCMAX(extent.width>>1, 1);
