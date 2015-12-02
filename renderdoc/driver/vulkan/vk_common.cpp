@@ -4032,7 +4032,7 @@ void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el)
 	Serialise("preTransform", el.preTransform);
 	Serialise("imageArraySize", el.imageArraySize);
 
-	// VKTODOLOW: do we need sharingMode, queueFamilyCount, pQueueFamilyIndices?
+	// SHARING: sharingMode, queueFamilyCount, pQueueFamilyIndices
 	
 	Serialise("presentMode", el.presentMode);
 

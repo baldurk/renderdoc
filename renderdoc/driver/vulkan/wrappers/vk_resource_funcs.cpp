@@ -902,6 +902,8 @@ VkResult WrappedVulkan::vkCreateBuffer(
 			VkBuffer*                                   pBuffer)
 {
 	VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), pCreateInfo, pBuffer);
+	
+	// SHARING: pCreateInfo sharingMode, queueFamilyCount, pQueueFamilyIndices
 
 	if(ret == VK_SUCCESS)
 	{
@@ -1102,6 +1104,8 @@ VkResult WrappedVulkan::vkCreateImage(
 			VkImage*                                    pImage)
 {
 	VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), pCreateInfo, pImage);
+	
+	// SHARING: pCreateInfo sharingMode, queueFamilyCount, pQueueFamilyIndices
 
 	if(ret == VK_SUCCESS)
 	{

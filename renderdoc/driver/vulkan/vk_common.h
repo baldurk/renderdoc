@@ -30,6 +30,7 @@
 // MULTIDEVICE - parts of the code that will need to be updated to support
 // multiple devices or queues.
 
+// SHARING - as above, for handling resource sharing between queues
 
 #include "common/common.h"
 

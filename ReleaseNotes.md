@@ -44,6 +44,7 @@ In no particular order, features that are not planned until after 1.0.
 * Stepping inside vkCmdExecuteCommands
 * Support for replaying captures on a different machine to where they were captured
 * Shader debugging
+* Sharing resources between different queues, and ownership changing hands
 * Mesh output data after geometry and tessellation shaders
 * Vertex picking
 * Pixel history
