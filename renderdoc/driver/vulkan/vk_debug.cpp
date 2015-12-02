@@ -1404,6 +1404,16 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	VkResult vkr = VK_SUCCESS;
 
+	for(auto it=m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
+	{
+		m_pDriver->vkDestroyBuffer(dev, it->second.vsout.buf);
+		m_pDriver->vkDestroyBuffer(dev, it->second.vsout.idxBuf);
+		m_pDriver->vkFreeMemory(dev, it->second.vsout.bufmem);
+		m_pDriver->vkFreeMemory(dev, it->second.vsout.idxBufMem);
+	}
+
+	m_PostVSData.clear();
+
 	// since we don't have properly registered resources, releasing our descriptor
 	// pool here won't remove the descriptor sets, so we need to free our own
 	// tracking data (not the API objects) for descriptor sets.
