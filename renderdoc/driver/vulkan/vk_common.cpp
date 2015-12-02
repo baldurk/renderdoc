@@ -1631,9 +1631,9 @@ string ToStrHelper<false, VkAttachmentLoadOp>::Get(const VkAttachmentLoadOp &el)
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_ATTACHMENT_LOAD_OP_LOAD)
-		TOSTR_CASE_STRINGIZE(VK_ATTACHMENT_LOAD_OP_CLEAR)
-		TOSTR_CASE_STRINGIZE(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+		case VK_ATTACHMENT_LOAD_OP_LOAD:       return "Load";
+		case VK_ATTACHMENT_LOAD_OP_CLEAR:      return "Clear";
+		case VK_ATTACHMENT_LOAD_OP_DONT_CARE:  return "Don't Care";
 		default: break;
 	}
 	
@@ -1645,12 +1645,12 @@ string ToStrHelper<false, VkAttachmentStoreOp>::Get(const VkAttachmentStoreOp &e
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_ATTACHMENT_STORE_OP_STORE)
-		TOSTR_CASE_STRINGIZE(VK_ATTACHMENT_STORE_OP_DONT_CARE)
+		case VK_ATTACHMENT_STORE_OP_STORE:      return "Store";
+		case VK_ATTACHMENT_STORE_OP_DONT_CARE:  return "Don't Care";
 		default: break;
 	}
 	
-	return StringFormat::Fmt("VkAttachmentLoadOp<%d>", el);
+	return StringFormat::Fmt("VkAttachmentStoreOp<%d>", el);
 }
 
 template<>

@@ -24,6 +24,118 @@
 
 #include "../vk_core.h"
 
+string WrappedVulkan::MakeRenderPassOpString(bool store)
+{
+	string opDesc = "";
+
+	const VulkanCreationInfo::RenderPass &info = m_CreationInfo.m_RenderPass[m_PartialReplayData.state.renderPass];
+	const VulkanCreationInfo::Framebuffer &fbinfo = m_CreationInfo.m_Framebuffer[m_PartialReplayData.state.framebuffer];
+
+	const vector<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
+
+	if(atts.empty())
+	{
+		opDesc = "-";
+	}
+	else
+	{
+		bool colsame = true;
+
+		// find which attachment is the depth-stencil one
+		int32_t dsAttach = info.subpasses[m_PartialReplayData.state.subpass].depthstencilAttachment;
+		bool hasStencil = false;
+		bool depthonly = false;
+
+		// if there is a depth-stencil attachment, see if it has a stencil
+		// component and if the subpass is depth only (no other attachments)
+		if(dsAttach >= 0)
+		{
+			hasStencil = !IsDepthOnlyFormat(fbinfo.attachments[dsAttach].format);
+			depthonly = info.subpasses[m_PartialReplayData.state.subpass].colorAttachments.size() == 0;
+		}
+
+		// first colour attachment, if there is one
+		int32_t colAttach = 0;
+		if(!depthonly && dsAttach == 0)
+			colAttach = 1;
+
+		// look through all other non-depth attachments to see if they're
+		// identical
+		for(size_t i=0; i < atts.size(); i++)
+		{
+			if((int32_t)i == dsAttach)
+				continue;
+
+			if((int32_t)i == colAttach)
+				continue;
+
+			if(store)
+			{
+				if(atts[i].storeOp != atts[colAttach].storeOp)
+					colsame = false;
+			}
+			else
+			{
+				if(atts[i].loadOp != atts[colAttach].loadOp)
+					colsame = false;
+			}
+		}
+
+		// handle depth only passes
+		if(depthonly)
+		{
+			opDesc = "";
+		}
+		else if(!colsame)
+		{
+			// if we have different storage for the colour, don't display
+			// the full details
+
+			opDesc = store ? "Different store ops" : "Different load ops";
+		}
+		else
+		{
+			// all colour ops are the same, print it
+			opDesc = store ? ToStr::Get(atts[colAttach].storeOp) : ToStr::Get(atts[colAttach].loadOp);
+		}
+		
+		// do we have depth?
+		if(dsAttach != -1)
+		{
+			// could be empty if this is a depth-only pass
+			if(!opDesc.empty())
+				opDesc = "C=" + opDesc + ", ";
+
+			// if there's no stencil, just print depth op
+			if(!hasStencil)
+			{
+				opDesc += "D=" + (store ? ToStr::Get(atts[dsAttach].storeOp) : ToStr::Get(atts[dsAttach].loadOp));
+			}
+			else
+			{
+				if(store)
+				{
+					// if depth and stencil have same op, print together, otherwise separately
+					if(atts[dsAttach].storeOp == atts[dsAttach].stencilStoreOp)
+						opDesc += "DS=" + ToStr::Get(atts[dsAttach].storeOp);
+					else
+						opDesc += "D=" + ToStr::Get(atts[dsAttach].storeOp) + ", S=" + ToStr::Get(atts[dsAttach].stencilStoreOp);
+				}
+				else
+				{
+					// if depth and stencil have same op, print together, otherwise separately
+					if(atts[dsAttach].loadOp == atts[dsAttach].stencilLoadOp)
+						opDesc += "DS=" + ToStr::Get(atts[dsAttach].loadOp);
+					else
+						opDesc += "D=" + ToStr::Get(atts[dsAttach].loadOp) + ", S=" + ToStr::Get(atts[dsAttach].stencilLoadOp);
+				}
+			}
+		}
+	}
+
+	return opDesc;
+}
+
 // Command pool functions
 
 bool WrappedVulkan::Serialise_vkCreateCommandPool(
@@ -489,85 +601,15 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 		// track during reading
 		m_PartialReplayData.state.subpass = 0;
 		m_PartialReplayData.state.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
+		m_PartialReplayData.state.framebuffer = GetResourceManager()->GetNonDispWrapper(beginInfo.framebuffer)->id;
 
 		const string desc = localSerialiser->GetDebugStr();
-
-		string loadDesc = "";
-
-		const VulkanCreationInfo::RenderPass &info = m_CreationInfo.m_RenderPass[m_PartialReplayData.state.renderPass];
-
-		const vector<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
-
-		if(atts.empty())
-		{
-			loadDesc = "-";
-		}
-		else
-		{
-			bool allsame = true;
-			bool allsameexceptstencil = true;
-
-			for(size_t i=1; i < atts.size(); i++)
-				if(atts[i].loadOp != atts[0].loadOp)
-					allsame = allsameexceptstencil = false;
-
-			int32_t dsAttach = -1;
-
-			for(size_t i=0; i < info.subpasses.size(); i++)
-			{
-				if(info.subpasses[i].depthstencilAttachment != -1)
-				{
-					dsAttach = info.subpasses[i].depthstencilAttachment;
-					break;
-				}
-			}
-
-			if(dsAttach != -1 && allsame && atts.size() > 1)
-			{
-				size_t o = (dsAttach == 0) ? 1 : 0;
-
-				if(atts[dsAttach].stencilLoadOp != atts[o].loadOp)
-					allsame = false;
-			}
-
-			if(allsame)
-			{
-				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
-					loadDesc = "Clear";
-				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_LOAD)
-					loadDesc = "Load";
-				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-					loadDesc = "Don't Care";
-			}
-			else if(allsameexceptstencil)
-			{
-				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
-					loadDesc = "Clear";
-				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_LOAD)
-					loadDesc = "Load";
-				if(atts[0].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-					loadDesc = "Don't Care";
-				
-				if(dsAttach >= 0 && dsAttach < (int32_t)atts.size())
-				{
-					if(atts[dsAttach].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
-						loadDesc += ", Stencil=Clear";
-					if(atts[dsAttach].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD)
-						loadDesc += ", Stencil=Load";
-					if(atts[dsAttach].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-						loadDesc += ", Stencil=Don't Care";
-				}
-			}
-			else
-			{
-				// VKTODOLOW improve text for this path
-				loadDesc = "Different load ops";
-			}
-		}
+		
+		string opDesc = MakeRenderPassOpString(false);
 
 		AddEvent(BEGIN_RENDERPASS, desc);
 		FetchDrawcall draw;
-		draw.name = StringFormat::Fmt("vkCmdBeginRenderPass(%s)", loadDesc.c_str());
+		draw.name = StringFormat::Fmt("vkCmdBeginRenderPass(%s)", opDesc.c_str());
 		draw.flags |= eDraw_Clear;
 
 		AddDrawcall(draw, true);
@@ -795,76 +837,11 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 		
 		const string desc = localSerialiser->GetDebugStr();
 		
-		string storeDesc = "";
-
-		const VulkanCreationInfo::RenderPass &info = m_CreationInfo.m_RenderPass[m_PartialReplayData.state.renderPass];
-
-		const vector<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
-
-		if(atts.empty())
-		{
-			storeDesc = "-";
-		}
-		else
-		{
-			bool allsame = true;
-			bool allsameexceptstencil = true;
-
-			for(size_t i=1; i < atts.size(); i++)
-				if(atts[i].storeOp != atts[0].storeOp)
-					allsame = allsameexceptstencil = false;
-
-			int32_t dsAttach = -1;
-
-			for(size_t i=0; i < info.subpasses.size(); i++)
-			{
-				if(info.subpasses[i].depthstencilAttachment != -1)
-				{
-					dsAttach = info.subpasses[i].depthstencilAttachment;
-					break;
-				}
-			}
-
-			if(dsAttach != -1 && allsame && atts.size() > 1)
-			{
-				size_t o = (dsAttach == 0) ? 1 : 0;
-
-				if(atts[dsAttach].stencilStoreOp != atts[o].storeOp)
-					allsameexceptstencil = false;
-			}
-
-			if(allsame)
-			{
-				if(atts[0].storeOp == VK_ATTACHMENT_STORE_OP_STORE)
-					storeDesc = "Store";
-				if(atts[0].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-					storeDesc = "Don't Care";
-			}
-			else if(allsameexceptstencil)
-			{
-				if(atts[0].storeOp == VK_ATTACHMENT_STORE_OP_STORE)
-					storeDesc = "Store";
-				if(atts[0].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-					storeDesc = "Don't Care";
-				
-				if(dsAttach >= 0 && dsAttach < (int32_t)atts.size())
-				{
-					if(atts[dsAttach].stencilStoreOp == VK_ATTACHMENT_STORE_OP_STORE)
-						storeDesc += ", Stencil=Store";
-					if(atts[dsAttach].stencilStoreOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-						storeDesc += ", Stencil=Don't Care";
-				}
-			}
-			else
-			{
-				// VKTODOLOW improve text for this path
-				storeDesc = "Different store ops";
-			}
-		}
+		string opDesc = MakeRenderPassOpString(true);
 
 		AddEvent(END_RENDERPASS, desc);
 		FetchDrawcall draw;
-		draw.name = StringFormat::Fmt("vkCmdEndRenderPass(%s)", storeDesc.c_str());
+		draw.name = StringFormat::Fmt("vkCmdEndRenderPass(%s)", opDesc.c_str());
 		draw.flags |= eDraw_Clear;
 
 		AddDrawcall(draw, true);

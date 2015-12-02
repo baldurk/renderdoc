@@ -442,6 +442,8 @@ private:
 
 	RENDERDOC_WindowHandle GetHandleForSurface(const VkSurfaceDescriptionKHR* surf);
 
+	string MakeRenderPassOpString(bool store);
+
 	void StartFrameCapture(void *dev, void *wnd);
 	bool EndFrameCapture(void *dev, void *wnd);
 	

@@ -24,7 +24,7 @@
 
 #include "vk_info.h"
 
-void DescSetLayout::Init(VulkanResourceManager *resourceMan, const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
+void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
 {
 	dynamicCount = 0;
 
@@ -59,7 +59,7 @@ void DescSetLayout::CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings)
 	}
 }
 
-void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, const VkGraphicsPipelineCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkGraphicsPipelineCreateInfo* pCreateInfo)
 {
 		flags = pCreateInfo->flags;
 
@@ -177,7 +177,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, cons
 		}
 }
 
-void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, const VkComputePipelineCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkComputePipelineCreateInfo* pCreateInfo)
 {
 		flags = pCreateInfo->flags;
 
@@ -224,7 +224,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, cons
 		logicOp = VK_LOGIC_OP_NOOP;
 }
 
-void VulkanCreationInfo::PipelineLayout::Init(VulkanResourceManager *resourceMan, const VkPipelineLayoutCreateInfo* pCreateInfo)
+void VulkanCreationInfo::PipelineLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkPipelineLayoutCreateInfo* pCreateInfo)
 {
 	descSetLayouts.resize(pCreateInfo->descriptorSetCount);
 	for(uint32_t i=0; i < pCreateInfo->descriptorSetCount; i++)
@@ -235,7 +235,7 @@ void VulkanCreationInfo::PipelineLayout::Init(VulkanResourceManager *resourceMan
 		pushRanges.push_back(pCreateInfo->pPushConstantRanges[i]);
 }
 
-void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan, const VkRenderPassCreateInfo* pCreateInfo)
+void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkRenderPassCreateInfo* pCreateInfo)
 {
 	attachments.reserve(pCreateInfo->attachmentCount);
 	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
@@ -267,7 +267,7 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan, co
 	}
 }
 
-void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *resourceMan, const VkFramebufferCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkFramebufferCreateInfo* pCreateInfo)
 {
 	width = pCreateInfo->width;
 	height = pCreateInfo->height;
@@ -275,28 +275,31 @@ void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *resourceMan, c
 
 	attachments.resize(pCreateInfo->attachmentCount);
 	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
+	{
 		attachments[i].view = resourceMan->GetNonDispWrapper(pCreateInfo->pAttachments[i])->id;
+		attachments[i].format = info.m_ImageView[attachments[i].view].format;
+	}
 }
 
-void VulkanCreationInfo::Memory::Init(VulkanResourceManager *resourceMan, const VkMemoryAllocInfo* pAllocInfo)
+void VulkanCreationInfo::Memory::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkMemoryAllocInfo* pAllocInfo)
 {
 	size = pAllocInfo->allocationSize;
 }
 
-void VulkanCreationInfo::Buffer::Init(VulkanResourceManager *resourceMan, const VkBufferCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Buffer::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkBufferCreateInfo* pCreateInfo)
 {
 	usage = pCreateInfo->usage;
 	size = pCreateInfo->size;
 }
 
-void VulkanCreationInfo::BufferView::Init(VulkanResourceManager *resourceMan, const VkBufferViewCreateInfo* pCreateInfo)
+void VulkanCreationInfo::BufferView::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkBufferViewCreateInfo* pCreateInfo)
 {
 	buffer = resourceMan->GetNonDispWrapper(pCreateInfo->buffer)->id;
 	offset = pCreateInfo->offset;
 	size = pCreateInfo->range;
 }
 
-void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, const VkImageCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkImageCreateInfo* pCreateInfo)
 {
 	view = VK_NULL_HANDLE;
 
@@ -321,7 +324,7 @@ void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, const V
 	cube = (pCreateInfo->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) ? true : false;
 }
 
-void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, const VkSamplerCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkSamplerCreateInfo* pCreateInfo)
 {
 	magFilter = pCreateInfo->magFilter;
 	minFilter = pCreateInfo->minFilter;
@@ -339,13 +342,14 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, const
 	unnormalizedCoordinates = pCreateInfo->unnormalizedCoordinates != 0;
 }
 	
-void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, const VkImageViewCreateInfo* pCreateInfo)
+void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkImageViewCreateInfo* pCreateInfo)
 {
 	image = resourceMan->GetNonDispWrapper(pCreateInfo->image)->id;
+	format = pCreateInfo->format;
 	range = pCreateInfo->subresourceRange;
 }
 
-void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan, const VkShaderModuleCreateInfo* pCreateInfo)
+void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkShaderModuleCreateInfo* pCreateInfo)
 {
 	const uint32_t SPIRVMagic = 0x07230203;
 	if(pCreateInfo->codeSize < 4 || memcmp(pCreateInfo->pCode, &SPIRVMagic, sizeof(SPIRVMagic)))
@@ -361,7 +365,7 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan, 
 	spirv.MakeReflection(&reflTemplate, &mapping);
 }
 
-void VulkanCreationInfo::Shader::Init(VulkanResourceManager *resourceMan, const VkShaderCreateInfo* pCreateInfo, VulkanCreationInfo::ShaderModule &moduleinfo)
+void VulkanCreationInfo::Shader::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkShaderCreateInfo* pCreateInfo, VulkanCreationInfo::ShaderModule &moduleinfo)
 {
 	module = resourceMan->GetNonDispWrapper(pCreateInfo->module)->id;
 	entry = pCreateInfo->pName;

@@ -54,7 +54,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), layout);
 			GetResourceManager()->AddLiveResource(id, layout);
 
-			m_CreationInfo.m_PipelineLayout[live].Init(GetResourceManager(), &info);
+			m_CreationInfo.m_PipelineLayout[live].Init(GetResourceManager(), m_CreationInfo, &info);
 		}
 	}
 
@@ -104,7 +104,7 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(
 		{
 			GetResourceManager()->AddLiveResource(id, *pPipelineLayout);
 
-			m_CreationInfo.m_PipelineLayout[id].Init(GetResourceManager(), &unwrappedInfo);
+			m_CreationInfo.m_PipelineLayout[id].Init(GetResourceManager(), m_CreationInfo, &unwrappedInfo);
 		}
 	}
 
@@ -137,7 +137,7 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sh);
 			GetResourceManager()->AddLiveResource(id, sh);
 
-			m_CreationInfo.m_ShaderModule[live].Init(GetResourceManager(), &info);
+			m_CreationInfo.m_ShaderModule[live].Init(GetResourceManager(), m_CreationInfo, &info);
 		}
 	}
 
@@ -175,7 +175,7 @@ VkResult WrappedVulkan::vkCreateShaderModule(
 		{
 			GetResourceManager()->AddLiveResource(id, *pShaderModule);
 
-			m_CreationInfo.m_ShaderModule[id].Init(GetResourceManager(), pCreateInfo);
+			m_CreationInfo.m_ShaderModule[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
 		}
 	}
 
@@ -209,7 +209,7 @@ bool WrappedVulkan::Serialise_vkCreateShader(
 			GetResourceManager()->AddLiveResource(id, sh);
 
 			ResourceId moduleid = GetResourceManager()->GetNonDispWrapper(info.module)->id;
-			m_CreationInfo.m_Shader[live].Init(GetResourceManager(), &info, m_CreationInfo.m_ShaderModule[moduleid]);
+			m_CreationInfo.m_Shader[live].Init(GetResourceManager(), m_CreationInfo, &info, m_CreationInfo.m_ShaderModule[moduleid]);
 		}
 	}
 
@@ -253,7 +253,7 @@ VkResult WrappedVulkan::vkCreateShader(
 			GetResourceManager()->AddLiveResource(id, *pShader);
 
 			ResourceId moduleid = GetResID(pCreateInfo->module);
-			m_CreationInfo.m_Shader[id].Init(GetResourceManager(), &unwrappedInfo, m_CreationInfo.m_ShaderModule[moduleid]);
+			m_CreationInfo.m_Shader[id].Init(GetResourceManager(), m_CreationInfo, &unwrappedInfo, m_CreationInfo.m_ShaderModule[moduleid]);
 		}
 	}
 
@@ -360,7 +360,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
 			GetResourceManager()->AddLiveResource(id, pipe);
 		
-			m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), &info);
+			m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, &info);
 		}
 	}
 
@@ -444,7 +444,7 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 			{
 				GetResourceManager()->AddLiveResource(id, pPipelines[i]);
 
-				m_CreationInfo.m_Pipeline[id].Init(GetResourceManager(), &unwrappedInfos[i]);
+				m_CreationInfo.m_Pipeline[id].Init(GetResourceManager(), m_CreationInfo, &unwrappedInfos[i]);
 			}
 		}
 	}
@@ -483,7 +483,7 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
 			GetResourceManager()->AddLiveResource(id, pipe);
 		
-			m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), &info);
+			m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, &info);
 		}
 	}
 
@@ -544,7 +544,7 @@ VkResult WrappedVulkan::vkCreateComputePipelines(
 			{
 				GetResourceManager()->AddLiveResource(id, pPipelines[i]);
 
-				m_CreationInfo.m_Pipeline[id].Init(GetResourceManager(), &unwrapped[i]);
+				m_CreationInfo.m_Pipeline[id].Init(GetResourceManager(), m_CreationInfo, &unwrapped[i]);
 			}
 		}
 	}

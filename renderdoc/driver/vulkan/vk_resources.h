@@ -794,6 +794,7 @@ struct ImageLayouts
 
 bool IsBlockFormat(VkFormat f);
 bool IsDepthStencilFormat(VkFormat f);
+bool IsDepthOnlyFormat(VkFormat f);
 bool IsSRGBFormat(VkFormat f);
 
 uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip);

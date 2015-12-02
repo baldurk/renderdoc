@@ -187,6 +187,21 @@ bool IsDepthStencilFormat(VkFormat f)
 	return false;
 }
 
+bool IsDepthOnlyFormat(VkFormat f)
+{
+	switch(f)
+	{
+		case VK_FORMAT_D16_UNORM:
+		case VK_FORMAT_D24_UNORM_X8:
+		case VK_FORMAT_D32_SFLOAT:
+			return true;
+		default:
+			break;
+	}
+
+	return false;
+}
+
 bool IsSRGBFormat(VkFormat f)
 {
 	switch(f)

@@ -171,7 +171,7 @@ bool WrappedVulkan::Serialise_vkAllocMemory(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), mem);
 			GetResourceManager()->AddLiveResource(id, mem);
 
-			m_CreationInfo.m_Memory[live].Init(GetResourceManager(), &info);
+			m_CreationInfo.m_Memory[live].Init(GetResourceManager(), m_CreationInfo, &info);
 
 			// create a buffer with the whole memory range bound, for copying to and from
 			// conveniently (for initial state data)
@@ -251,7 +251,7 @@ VkResult WrappedVulkan::vkAllocMemory(
 		{
 			GetResourceManager()->AddLiveResource(id, *pMem);
 
-			m_CreationInfo.m_Memory[id].Init(GetResourceManager(), pAllocInfo);
+			m_CreationInfo.m_Memory[id].Init(GetResourceManager(), m_CreationInfo, pAllocInfo);
 
 			// create a buffer with the whole memory range bound, for copying to and from
 			// conveniently (for initial state data)
@@ -890,7 +890,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), buf);
 			GetResourceManager()->AddLiveResource(id, buf);
 
-			m_CreationInfo.m_Buffer[live].Init(GetResourceManager(), &info);
+			m_CreationInfo.m_Buffer[live].Init(GetResourceManager(), m_CreationInfo, &info);
 		}
 	}
 
@@ -945,7 +945,7 @@ VkResult WrappedVulkan::vkCreateBuffer(
 		{
 			GetResourceManager()->AddLiveResource(id, *pBuffer);
 
-			m_CreationInfo.m_Buffer[id].Init(GetResourceManager(), pCreateInfo);
+			m_CreationInfo.m_Buffer[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
 		}
 	}
 
@@ -978,7 +978,7 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), view);
 			GetResourceManager()->AddLiveResource(id, view);
 		
-			m_CreationInfo.m_BufferView[live].Init(GetResourceManager(), &info);
+			m_CreationInfo.m_BufferView[live].Init(GetResourceManager(), m_CreationInfo, &info);
 		}
 	}
 
@@ -1025,7 +1025,7 @@ VkResult WrappedVulkan::vkCreateBufferView(
 		{
 			GetResourceManager()->AddLiveResource(id, *pView);
 		
-			m_CreationInfo.m_BufferView[id].Init(GetResourceManager(), &unwrappedInfo);
+			m_CreationInfo.m_BufferView[id].Init(GetResourceManager(), m_CreationInfo, &unwrappedInfo);
 		}
 	}
 
@@ -1065,7 +1065,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), img);
 			GetResourceManager()->AddLiveResource(id, img);
 			
-			m_CreationInfo.m_Image[live].Init(GetResourceManager(), &info);
+			m_CreationInfo.m_Image[live].Init(GetResourceManager(), m_CreationInfo, &info);
 			
 			VkImageSubresourceRange range;
 			range.baseMipLevel = range.baseArrayLayer = 0;
@@ -1174,7 +1174,7 @@ VkResult WrappedVulkan::vkCreateImage(
 		{
 			GetResourceManager()->AddLiveResource(id, *pImage);
 			
-			m_CreationInfo.m_Image[id].Init(GetResourceManager(), pCreateInfo);
+			m_CreationInfo.m_Image[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
 		}
 
 		VkImageSubresourceRange range;
@@ -1238,7 +1238,7 @@ bool WrappedVulkan::Serialise_vkCreateImageView(
 			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), view);
 			GetResourceManager()->AddLiveResource(id, view);
 		
-			m_CreationInfo.m_ImageView[live].Init(GetResourceManager(), &info);
+			m_CreationInfo.m_ImageView[live].Init(GetResourceManager(), m_CreationInfo, &info);
 		}
 	}
 
@@ -1287,7 +1287,7 @@ VkResult WrappedVulkan::vkCreateImageView(
 		{
 			GetResourceManager()->AddLiveResource(id, *pView);
 		
-			m_CreationInfo.m_ImageView[id].Init(GetResourceManager(), &unwrappedInfo);
+			m_CreationInfo.m_ImageView[id].Init(GetResourceManager(), m_CreationInfo, &unwrappedInfo);
 		}
 	}
 
