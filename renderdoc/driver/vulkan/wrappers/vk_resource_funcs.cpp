@@ -368,11 +368,8 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(id);
 
-		// VKTODOLOW figure out what alignments there are on mapping, so we only map the region
-		// we're going to modify. For now, offset/size is handled in the memcpy before and we
-		// map the whole region
 		void *mapPtr = NULL;
-		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), 0, 0, 0, &mapPtr);
+		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), memOffset, memSize, 0, &mapPtr);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -380,7 +377,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 		}
 		else
 		{
-			memcpy((byte *)mapPtr+memOffset, data, (size_t)memSize);
+			memcpy((byte *)mapPtr, data, (size_t)memSize);
 
 			ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
 		}
@@ -493,11 +490,8 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkDeviceMemory mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(id);
 
-		// VKTODOLOW figure out what alignments there are on mapping, so we only map the region
-		// we're going to modify. For no, offset/size is handled in the memcpy before and we
-		// map the whole region
 		void *mapPtr = NULL;
-		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), 0, 0, 0, &mapPtr);
+		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), memOffset, memSize, 0, &mapPtr);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -505,7 +499,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 		}
 		else
 		{
-			memcpy((byte *)mapPtr+memOffset, data, (size_t)memSize);
+			memcpy((byte *)mapPtr, data, (size_t)memSize);
 
 			ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
 		}
