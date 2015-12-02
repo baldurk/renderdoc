@@ -24,7 +24,7 @@
 
 #include "vk_core.h"
 
-// VKTODOHIGH we are assuming in all the initial state handling that the image is VK_IMAGE_ASPECT_COLOR
+// VKTODOLOW for depth-stencil images we are only save/restoring the depth, not the stencil
 
 // VKTODOLOW there's a lot of duplicated code in this file for creating a buffer to do
 // a memory copy and saving to disk.
