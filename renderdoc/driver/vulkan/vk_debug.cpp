@@ -1406,10 +1406,14 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	for(auto it=m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
 	{
-		m_pDriver->vkDestroyBuffer(dev, it->second.vsout.buf);
-		m_pDriver->vkDestroyBuffer(dev, it->second.vsout.idxBuf);
-		m_pDriver->vkFreeMemory(dev, it->second.vsout.bufmem);
-		m_pDriver->vkFreeMemory(dev, it->second.vsout.idxBufMem);
+		if(it->second.vsout.buf != VK_NULL_HANDLE)
+			m_pDriver->vkDestroyBuffer(dev, it->second.vsout.buf);
+		if(it->second.vsout.idxBuf != VK_NULL_HANDLE)
+			m_pDriver->vkDestroyBuffer(dev, it->second.vsout.idxBuf);
+		if(it->second.vsout.bufmem != VK_NULL_HANDLE)
+			m_pDriver->vkFreeMemory(dev, it->second.vsout.bufmem);
+		if(it->second.vsout.idxBufMem != VK_NULL_HANDLE)
+			m_pDriver->vkFreeMemory(dev, it->second.vsout.idxBufMem);
 	}
 
 	m_PostVSData.clear();
