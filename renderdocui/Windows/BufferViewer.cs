@@ -970,11 +970,6 @@ namespace renderdocui.Windows
                     ret.Topology = ret.PostVS.topo;
 
                     ret.IndexCount = ret.PostVS.numVerts;
-
-                    uint stride = ret.PostVS.stride;
-
-                    if (stride != 0 && (input.Drawcall.flags & DrawcallFlags.UseIBuffer) == 0)
-                        ret.IndexCount = Math.Min(ret.IndexCount, (uint)ret.Buffers[0].Length / stride);
                 }
 
                 ret.Indices = null;
@@ -1064,7 +1059,14 @@ namespace renderdocui.Windows
                 }
 
                 if (ret.PostVS.buf != ResourceId.Null)
+                {
                     ret.Buffers[0] = r.GetBufferData(ret.PostVS.buf, ret.PostVS.offset, (maxIndex + 1) * ret.PostVS.stride);
+
+                    uint stride = ret.PostVS.stride;
+
+                    if (stride != 0 && (input.Drawcall.flags & DrawcallFlags.UseIBuffer) == 0)
+                        ret.IndexCount = Math.Min(ret.IndexCount, (uint)ret.Buffers[0].Length / stride);
+                }
 
                 return ret;
             }
