@@ -3206,7 +3206,7 @@ inline uint32_t MakeSPIRVOp(spv::Op op, uint32_t WordCount)
 }
 
 void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
-	uint32_t descSet, uint32_t numVerts,
+	uint32_t descSet, uint32_t minIndex, uint32_t numVerts,
 	vector<uint32_t> &modSpirv, uint32_t &bufStride)
 {
 	uint32_t *spirv = &modSpirv[0];
@@ -3574,6 +3574,7 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
 
 	uint32_t outBufferVarID = 0;
 	uint32_t numVertsConstID = 0;
+	uint32_t minIndexConstID = 0;
 
 	// now add the structure type etc for our output buffer
 	{
@@ -3624,6 +3625,22 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
 
 		// update offsets to account for inserted op
 		typeVarOffset += ARRAY_COUNT(instanceStrideConstOp);
+		
+		// add a constant for the number of verts, the 'instance stride' of the array
+		minIndexConstID = idBound++;
+
+		uint32_t minIndexConstOp[] = {
+			MakeSPIRVOp(spv::OpConstant, 4),
+			sint32ID,
+			minIndexConstID,
+			minIndex,
+		};
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, minIndexConstOp, minIndexConstOp+ARRAY_COUNT(minIndexConstOp));
+
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(minIndexConstOp);
 		
 		uint32_t outputStructID = idBound++;
 
@@ -3783,13 +3800,20 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
 		dumpCode.push_back(startVertID);           // startVert = 
 		dumpCode.push_back(loadedInstID);          //    gl_InstanceID *
 		dumpCode.push_back(numVertsConstID);       //    numVerts
+
+		uint32_t rebasedVertID = idBound++;
+		dumpCode.push_back(MakeSPIRVOp(spv::OpISub, 5));
+		dumpCode.push_back(sint32ID);
+		dumpCode.push_back(rebasedVertID);         // rebasedVert = 
+		dumpCode.push_back(loadedVtxID);           //    gl_VertexID -
+		dumpCode.push_back(minIndexConstID);       //    minIndex
 		
 		uint32_t arraySlotID = idBound++;
 		dumpCode.push_back(MakeSPIRVOp(spv::OpIAdd, 5));
 		dumpCode.push_back(sint32ID);
 		dumpCode.push_back(arraySlotID);           // arraySlot = 
 		dumpCode.push_back(startVertID);           //    startVert +
-		dumpCode.push_back(loadedVtxID);           //    gl_VertexID
+		dumpCode.push_back(rebasedVertID);         //    rebasedVert
 
 		for(int o=0; o < numOutputs; o++)
 		{
@@ -4009,15 +4033,44 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	uint32_t idxsize = state.ibuffer.bytewidth;
 	bool index16 = (idxsize == 2);
 	uint32_t numIndices = numVerts;
-	map<uint32_t,size_t> indexRemap;
 	vector<byte> idxdata;
 	uint16_t *idx16 = NULL;
 	uint32_t *idx32 = NULL;
+
+	uint32_t minIndex = 0, maxIndex = 0;
 
 	if((drawcall->flags & eDraw_UseIBuffer) != 0)
 	{
 		// fetch ibuffer
 		GetBufferData(state.ibuffer.buf, state.ibuffer.offs + drawcall->indexOffset*idxsize, drawcall->numIndices*idxsize, idxdata);
+
+		// figure out what the maximum index could be, so we can clamp our index buffer to something sane
+		uint32_t maxIdx = 0;
+
+		// if there are no active bindings assume the vertex shader is generating its own data
+		// and don't clamp the indices
+		if(pipeCreateInfo.pVertexInputState->bindingCount == 0)
+			maxIdx = ~0U;
+
+		for(uint32_t b=0; b < pipeCreateInfo.pVertexInputState->bindingCount; b++)
+		{
+			const VkVertexInputBindingDescription &input = pipeCreateInfo.pVertexInputState->pVertexBindingDescriptions[b];
+			// only vertex inputs (not instance inputs) count
+			if(input.stepRate == VK_VERTEX_INPUT_STEP_RATE_VERTEX)
+			{
+				RDCASSERT(b < state.vbuffers.size());
+				ResourceId buf = state.vbuffers[b].buf;
+				VkDeviceSize offs = state.vbuffers[b].offs;
+
+				VkDeviceSize bufsize = c.m_Buffer[buf].size;
+
+				// the maximum valid index on this particular input is the one that reaches
+				// the end of the buffer. The maximum valid index at all is the one that reads
+				// off the end of ALL buffers (so we max it with any other maxindex value
+				// calculated).
+				maxIdx = RDCMAX(maxIdx, uint32_t( (bufsize - offs) / input.strideInBytes ));
+			}
+		}
 
 		// do ibuffer rebasing/remapping
 		
@@ -4032,6 +4085,11 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		{
 			uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
 
+			// we clamp to maxIdx here, to avoid any invalid indices like 0xffffffff
+			// from filtering through. Worst case we index to the end of the vertex
+			// buffers which is generally much more reasonable
+			i32 = RDCMIN(maxIdx, i32);
+
 			auto it = std::lower_bound(indices.begin(), indices.end(), i32);
 
 			if(it != indices.end() && *it == i32)
@@ -4045,24 +4103,11 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
 			indices.insert(indices.begin(), 0);
 
-		// An index buffer could be something like: 500, 501, 502, 501, 503, 502
-		// in which case we can't use the existing index buffer without filling 499 slots of vertex
-		// data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
-		// 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
-		//
-		// Note that there could also be gaps, like: 500, 501, 502, 510, 511, 512
-		// which would become 0, 1, 2, 3, 4, 5 and so the old index buffer would no longer be valid.
-		// We just stream-out a tightly packed list of unique indices, and then remap the index buffer
-		// so that what did point to 500 points to 0 (accounting for rebasing), and what did point
-		// to 510 now points to 3 (accounting for the unique sort).
-
-		// we use a map here since the indices may be sparse. Especially considering if an index
-		// is 'invalid' like 0xcccccccc then we don't want an array of 3.4 billion entries.
-		for(size_t i=0; i < indices.size(); i++)
-		{
-			// by definition, this index will only appear once in indices[]
-			indexRemap[ indices[i] ] = i;
-		}
+		minIndex = indices[0];
+		maxIndex = indices[ indices.size()-1 ];
+		
+		// set numVerts
+		numVerts = maxIndex - minIndex + 1;
 
 		// create buffer with unique 0-based indices
 		VkBufferCreateInfo bufInfo = {
@@ -4119,7 +4164,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	uint32_t bufStride = 0;
 	vector<uint32_t> modSpirv = m.spirv.spirv;
 
-	AddOutputDumping(s.refl, s.entry.c_str(), descSet, numVerts, modSpirv, bufStride);
+	AddOutputDumping(s.refl, s.entry.c_str(), descSet, minIndex, numVerts, modSpirv, bufStride);
 	
 	// create vertex shader with modified code
 	VkShaderModuleCreateInfo moduleInfo = {
@@ -4275,10 +4320,14 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	}
 	else
 	{
-		// create buffer of sufficient size (num unique indices * bufStride)
+		// create buffer of sufficient size
+		// this can't just be bufStride * num unique indices per instance, as we don't
+		// have a compact 0-based index to index into the buffer. We must use
+		// index-minIndex which is 0-based but potentially sparse, so this buffer may
+		// be more or less wasteful
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			indices.size()*RDCMAX(1U, drawcall->numInstances)*bufStride, 0, 0,
+			numVerts*RDCMAX(1U, drawcall->numInstances)*bufStride, 0, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
@@ -4326,7 +4375,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
 				VK_MEMORY_OUTPUT_HOST_WRITE_BIT, VK_MEMORY_INPUT_INDEX_FETCH_BIT,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-				Unwrap(meshBuffer),
+				Unwrap(uniqIdxBuf),
 				0, indices.size()*sizeof(uint32_t),
 		};
 
@@ -4342,9 +4391,16 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// wait for upload to finish
 		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 
-		// set numVerts and bufSize
-		numVerts = (uint32_t)indices.size();
-		bufSize = indices.size()*RDCMAX(1U, drawcall->numInstances)*bufStride;
+		// fill destination buffer with 0s to ensure unwritten vertices have sane data
+		ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(meshBuffer), 0, bufInfo.size, 0);
+		
+		// wait to finish
+		meshbufbarrier.buffer = Unwrap(meshBuffer);
+		meshbufbarrier.size = bufInfo.size;
+		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+
+		// set bufSize
+		bufSize = numVerts*RDCMAX(1U, drawcall->numInstances)*bufStride;
 
 		// bind unique'd ibuffer
 		state.ibuffer.bytewidth = 4;
@@ -4383,15 +4439,23 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		
 		// rebase existing index buffer to point to the right elements in our stream-out'd
 		// vertex buffer
+
+		// An index buffer could be something like: 500, 520, 518, 553, 554, 556
+		// in which case we can't use the existing index buffer without filling 499 slots of vertex
+		// data with padding. Instead we rebase the indices based on the smallest index so it becomes
+		// 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
+		//
+		// Note that there could also be gaps in the indices as above which must remain as
+		// we don't have a 0-based dense 'vertex id' to base our SSBO indexing off, only index value.
 		if(index16)
 		{
 			for(uint32_t i=0; i < numIndices; i++)
-				idx16[i] = uint16_t(indexRemap[ idx16[i] ]);
+				idx16[i] = idx16[i] - uint16_t(minIndex);
 		}
 		else
 		{
 			for(uint32_t i=0; i < numIndices; i++)
-				idx32[i] = uint32_t(indexRemap[ idx32[i] ]);
+				idx32[i] -= minIndex;
 		}
 		
 		// upload rebased memory
@@ -4475,7 +4539,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		Vec4f *pos = (Vec4f *)(byteData + i*bufStride);
 
-		if(fabs(pos->w - pos0->w) > 0.01f)
+		// skip invalid vertices (w=0)
+		if(pos->w > 0.0f && fabs(pos->w - pos0->w) > 0.01f)
 		{
 			Vec2f A(pos0->w, pos0->z);
 			Vec2f B(pos->w, pos->z);
