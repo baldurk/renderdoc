@@ -494,11 +494,15 @@ struct SPVConstant
 			}
 		}
 
-		string ret = type->GetName();
+		string ret;
 		if(type->type == SPVTypeData::eArray)
 		{
 			ret = type->baseType->GetName();
 			ret += StringFormat::Fmt("[%u]", (uint32_t)children.size());
+		}
+		else
+		{
+			ret = type->GetName();
 		}
 		ret += "(";
 		if(children.empty())
