@@ -181,6 +181,7 @@ private:
 		VkPhysicalDeviceFeatures features;
 		VkPhysicalDeviceProperties props;
 		VkPhysicalDeviceMemoryProperties memProps;
+		VkFormatProperties fmtprops[VK_FORMAT_NUM];
 	};
 
 	VkInstance m_Instance; // the instance corresponding to this WrappedVulkan
@@ -229,6 +230,8 @@ private:
 	{ return m_PhysicalDeviceData.features; }
 	const VkPhysicalDeviceProperties &GetDeviceProps()
 	{ return m_PhysicalDeviceData.props; }
+	const VkFormatProperties &GetFormatProperties(VkFormat f)
+	{ return m_PhysicalDeviceData.fmtprops[f]; }
 
 	uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
 	uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);
