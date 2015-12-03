@@ -1914,7 +1914,7 @@ void SPVModule::Disassemble()
 		for(size_t v=0; v < vars.size(); v++)
 		{
 			RDCASSERT(vars[v]->var && vars[v]->var->type);
-			m_Disassembly += string(indent, ' ') + vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + ";\n";
+			m_Disassembly += string(indent, ' ') + vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
 
 			varDeclared[v] = true;
 		}
@@ -2081,13 +2081,13 @@ void SPVModule::Disassemble()
 							// begins and continue as normal.
 							if(indent > tabSize)
 							{
-								m_Disassembly += string(indent, ' ');
-								m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + ";\n";
+								m_Disassembly += string(tabSize, ' ');
+								m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
 							}
 							else
 							{
 								funcDisassembly += string(indent, ' ');
-								funcDisassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str);
+								funcDisassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName());
 
 								printed = true;
 							}
@@ -2134,13 +2134,13 @@ void SPVModule::Disassemble()
 							// begins and continue as normal.
 							if(indent > tabSize)
 							{
-								m_Disassembly += string(indent, ' ');
-								m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + ";\n";
+								m_Disassembly += string(tabSize, ' ');
+								m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
 							}
 							else
 							{
 								funcDisassembly += string(indent, ' ');
-								funcDisassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + " = ";
+								funcDisassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + " = ";
 								funcDisassembly += funcops[o]->Disassemble(ids, true) + ";\n";
 
 								printed = true;
@@ -2180,13 +2180,13 @@ void SPVModule::Disassemble()
 						// begins and continue as normal.
 						if(indent > tabSize)
 						{
-							m_Disassembly += string(indent, ' ');
-							m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + ";\n";
+							m_Disassembly += string(tabSize, ' ');
+							m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
 						}
 						else
 						{
 							funcDisassembly += string(indent, ' ');
-							funcDisassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->str) + " = ";
+							funcDisassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + " = ";
 							funcDisassembly += funcops[o]->Disassemble(ids, true) + ";\n";
 
 							printed = true;
