@@ -2134,9 +2134,9 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 	// if the overlay image is the wrong size, free it
 	if(m_OverlayImage != VK_NULL_HANDLE && (iminfo.extent.width != m_OverlayDim.width || iminfo.extent.height != m_OverlayDim.height))
 	{
-		m_pDriver->vkDestroyRenderPass(Unwrap(m_Device), Unwrap(m_OverlayNoDepthRP));
-		m_pDriver->vkDestroyFramebuffer(Unwrap(m_Device), Unwrap(m_OverlayNoDepthFB));
-		m_pDriver->vkDestroyImageView(Unwrap(m_Device), Unwrap(m_OverlayImageView));
+		m_pDriver->vkDestroyRenderPass(m_Device, m_OverlayNoDepthRP);
+		m_pDriver->vkDestroyFramebuffer(m_Device, m_OverlayNoDepthFB);
+		m_pDriver->vkDestroyImageView(m_Device, m_OverlayImageView);
 		m_pDriver->vkDestroyImage(m_Device, m_OverlayImage);
 
 		m_OverlayImage = VK_NULL_HANDLE;
