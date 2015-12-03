@@ -3712,8 +3712,470 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, ui
 
 byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
 {
-	RDCUNIMPLEMENTED("GetTextureData");
-	return NULL;
+	bool wasms = false;
+
+	VulkanCreationInfo::Image &imInfo = m_pDriver->m_CreationInfo.m_Image[tex];
+	
+	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[tex];
+
+	VkImageCreateInfo imCreateInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			imInfo.type, imInfo.format, imInfo.extent,
+			imInfo.mipLevels, imInfo.arraySize, imInfo.samples,
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
+			0, VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+	};
+	
+	bool isDepth = (layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
+
+	VkImage srcImage = Unwrap(GetResourceManager()->GetCurrentHandle<VkImage>(tex));
+	VkImage tmpImage = VK_NULL_HANDLE;
+	VkDeviceMemory tmpMemory = VK_NULL_HANDLE;
+
+	VkFramebuffer *tmpFB = NULL;
+	VkImageView *tmpView = NULL;
+	uint32_t numFBs = 0;
+	VkRenderPass tmpRP = VK_NULL_HANDLE;
+	
+	VkDevice dev = m_pDriver->GetDev();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
+	
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	if(imInfo.samples > 1)
+	{
+		// make image n-array instead of n-samples
+		imCreateInfo.arraySize *= imCreateInfo.samples;
+		imCreateInfo.samples = 1;
+
+		wasms = true;
+	}
+	
+	if(forceRGBA8unorm)
+	{
+		// force readback texture to RGBA8 unorm
+		imCreateInfo.format = IsSRGBFormat(imCreateInfo.format) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+		// force to 1 array slice, 1 mip
+		imCreateInfo.arraySize = 1;
+		imCreateInfo.mipLevels = 1;
+		// force to 2D
+		imCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+		imCreateInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+		imCreateInfo.extent.width = RDCMAX(1, imCreateInfo.extent.width>>mip);
+		imCreateInfo.extent.height = RDCMAX(1, imCreateInfo.extent.height>>mip);
+		imCreateInfo.extent.depth = RDCMAX(1, imCreateInfo.extent.depth>>mip);
+
+		// create render texture similar to readback texture
+		vt->CreateImage(Unwrap(dev), &imCreateInfo, &tmpImage);
+		
+		VkMemoryRequirements mrq = {0};
+		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			mrq.size, m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &tmpMemory);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = vt->BindImageMemory(Unwrap(dev), tmpImage, tmpMemory, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+		
+		VkImageMemoryBarrier dstimBarrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			tmpImage,
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
+		};
+		
+		// move tmp image into transfer destination layout
+		void *barrier = (void *)&dstimBarrier;
+		
+		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+		// end this command buffer, the rendertexture below will use its own and we want to ensure ordering
+		vt->EndCommandBuffer(Unwrap(cmd));
+
+		// create framebuffer/render pass to render to
+		VkAttachmentDescription attDesc = {
+			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
+			imCreateInfo.format, 1U,
+			VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		};
+
+		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+		VkSubpassDescription sub = {
+			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
+			VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+			0, NULL, // inputs
+			1, &attRef, // color
+			NULL, // resolve
+			{ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED }, // depth-stencil
+			0, NULL, // preserve
+		};
+
+		VkRenderPassCreateInfo rpinfo = {
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+				1, &attDesc,
+				1, &sub,
+				0, NULL, // dependencies
+		};
+		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &tmpRP);
+
+		numFBs = (imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? (imCreateInfo.extent.depth>>mip) : 1);
+		tmpFB = new VkFramebuffer[numFBs];
+		tmpView = new VkImageView[numFBs];
+
+		int oldW = m_DebugWidth, oldH = m_DebugHeight;
+
+		m_DebugWidth = imCreateInfo.extent.width;
+		m_DebugHeight = imCreateInfo.extent.height;
+		
+		// if 3d texture, render each slice separately, otherwise render once
+		for(uint32_t i=0; i < numFBs; i++)
+		{
+			TextureDisplay texDisplay;
+
+			texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+			texDisplay.HDRMul = -1.0f;
+			texDisplay.linearDisplayAsGamma = false;
+			texDisplay.overlay = eTexOverlay_None;
+			texDisplay.FlipY = false;
+			texDisplay.mip = mip;
+			texDisplay.sampleIdx = imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? 0 : (resolve ? ~0U : arrayIdx);
+			texDisplay.CustomShader = ResourceId();
+			texDisplay.sliceFace = imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? i : arrayIdx;
+			texDisplay.rangemin = blackPoint;
+			texDisplay.rangemax = whitePoint;
+			texDisplay.scale = 1.0f;
+			texDisplay.texid = tex;
+			texDisplay.rawoutput = true;
+			texDisplay.offx = 0;
+			texDisplay.offy = 0;
+			
+			VkImageViewCreateInfo viewInfo = {
+				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+				tmpImage, VK_IMAGE_VIEW_TYPE_2D,
+				imCreateInfo.format,
+				{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, i, 1, },
+				0
+			};
+
+			vt->CreateImageView(Unwrap(dev), &viewInfo, &tmpView[i]);
+			
+			VkFramebufferCreateInfo fbinfo = {
+				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
+				tmpRP,
+				1, &tmpView[i],
+				imCreateInfo.extent.width, imCreateInfo.extent.height, 1,
+			};
+
+			vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, &tmpFB[i]);
+			RDCASSERT(vkr == VK_SUCCESS);
+			
+			VkClearValue clearval = {0};
+			VkRenderPassBeginInfo rpbegin = {
+				VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+				tmpRP, tmpFB[i],
+				{ { 0, 0, }, { imCreateInfo.extent.width, imCreateInfo.extent.height } },
+				1, &clearval,
+			};
+
+			RenderTextureInternal(texDisplay, rpbegin, true);
+		}
+			
+		m_DebugWidth = oldW; m_DebugHeight = oldH;
+
+		srcImage = tmpImage;
+
+		// fetch a new command buffer for copy & readback
+		cmd = m_pDriver->GetNextCmd();
+
+		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// ensure all writes happen before copy & readback
+		dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
+		dstimBarrier.outputMask = VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT;
+		dstimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+
+		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+		// these have already been selected, don't need to fetch that subresource
+		// when copying back to readback buffer
+		arrayIdx = 0;
+		mip = 0;
+
+		// no longer depth, if it was
+		isDepth = false;
+	}
+	else if(wasms && resolve)
+	{
+		// force to 1 array slice, 1 mip
+		imCreateInfo.arraySize = 1;
+		imCreateInfo.mipLevels = 1;
+
+		imCreateInfo.extent.width = RDCMAX(1, imCreateInfo.extent.width>>mip);
+		imCreateInfo.extent.height = RDCMAX(1, imCreateInfo.extent.height>>mip);
+
+		// create resolve texture
+		vt->CreateImage(Unwrap(dev), &imCreateInfo, &tmpImage);
+		
+		VkMemoryRequirements mrq = {0};
+		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			mrq.size, m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &tmpMemory);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = vt->BindImageMemory(Unwrap(dev), tmpImage, tmpMemory, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkImageResolve resolveRegion = {
+			{ isDepth ? VK_IMAGE_ASPECT_DEPTH : VK_IMAGE_ASPECT_COLOR, mip, arrayIdx, 1 },
+			{ 0, 0, 0 },
+			{ isDepth ? VK_IMAGE_ASPECT_DEPTH : VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+			{ 0, 0, 0 },
+			imCreateInfo.extent,
+		};
+		
+		VkImageMemoryBarrier srcimBarrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			srcImage,
+			{ VkImageAspectFlags(isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT),
+			0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
+		};
+		
+		VkImageMemoryBarrier dstimBarrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			tmpImage,
+			{ VkImageAspectFlags(isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT),
+			0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
+		};
+
+		// ensure all previous writes have completed
+		srcimBarrier.outputMask =
+			VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
+			VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
+			VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
+			VK_MEMORY_OUTPUT_TRANSFER_BIT;
+		// before we go resolving
+		srcimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+
+		void *barrier = (void *)&srcimBarrier;
+
+		for (int si = 0; si < layouts.subresourceStates.size(); si++)
+		{
+			srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
+			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		}
+
+		srcimBarrier.oldLayout = srcimBarrier.newLayout;
+
+		srcimBarrier.outputMask = 0;
+		srcimBarrier.inputMask = 0;
+		
+		// move tmp image into transfer destination layout
+		barrier = (void *)&dstimBarrier;
+		
+		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+		// resolve from live texture to resolve texture
+		vt->CmdResolveImage(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, Unwrap(tmpImage), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &resolveRegion);
+		
+		barrier = (void *)&srcimBarrier;
+		
+		// image layout back to normal
+		for (int si = 0; si < layouts.subresourceStates.size(); si++)
+		{
+			srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
+			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		}
+
+		// wait for resolve to finish before copy to buffer
+		barrier = (void *)&dstimBarrier;
+
+		dstimBarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
+		dstimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+		dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
+		dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
+		
+		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+		srcImage = tmpImage;
+
+		// these have already been selected, don't need to fetch that subresource
+		// when copying back to readback buffer
+		arrayIdx = 0;
+		mip = 0;
+	}
+	else if(wasms)
+	{
+		// copy/expand multisampled live texture to array readback texture
+		RDCUNIMPLEMENTED("Saving multisampled textures directly as arrays");
+	}
+	
+	VkImageMemoryBarrier srcimBarrier = {
+		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		srcImage,
+		{ VkImageAspectFlags(isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT),
+		0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
+	};
+
+	void *barrier = (void *)&srcimBarrier;
+
+	// if we have no tmpImage, we're copying directly from the real image
+	if(tmpImage == VK_NULL_HANDLE)
+	{
+		// ensure all previous writes have completed
+		srcimBarrier.outputMask =
+			VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
+			VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
+			VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
+			VK_MEMORY_OUTPUT_TRANSFER_BIT;
+		// before we go resolving
+		srcimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+
+		for (int si = 0; si < layouts.subresourceStates.size(); si++)
+		{
+			srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
+			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		}
+	}
+
+	VkImageSubresource sub = { isDepth ? VK_IMAGE_ASPECT_DEPTH : VK_IMAGE_ASPECT_COLOR, mip, arrayIdx };
+	VkSubresourceLayout sublayout;
+
+	vkr = vt->GetImageSubresourceLayout(Unwrap(dev), srcImage, &sub, &sublayout);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	VkBufferImageCopy copyregion = {
+		0, 0, 0,
+		{ isDepth ? VK_IMAGE_ASPECT_DEPTH : VK_IMAGE_ASPECT_COLOR, mip, arrayIdx, 1 },
+		{ 0, 0, 0, },
+		imCreateInfo.extent,
+	};
+
+	VkBufferCreateInfo bufInfo = {
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+			sublayout.size, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+	};
+
+	VkBuffer readbackBuf = VK_NULL_HANDLE;
+	vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, &readbackBuf);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	VkMemoryRequirements mrq = { 0 };
+
+	vkr = vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	VkMemoryAllocInfo allocInfo = {
+		VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		sublayout.size, m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
+	};
+
+	VkDeviceMemory readbackMem = VK_NULL_HANDLE;
+	vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &readbackMem);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	vkr = vt->BindBufferMemory(Unwrap(dev), readbackBuf, readbackMem, 0);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	// copy from desired subresource in srcImage to buffer
+	vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, readbackBuf, 1, &copyregion);
+	
+	// if we have no tmpImage, we're copying directly from the real image
+	if(tmpImage == VK_NULL_HANDLE)
+	{
+		// image layout back to normal
+		for (int si = 0; si < layouts.subresourceStates.size(); si++)
+		{
+			srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
+			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		}
+	}
+
+	VkBufferMemoryBarrier bufBarrier = {
+		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
+		VK_MEMORY_OUTPUT_TRANSFER_BIT, VK_MEMORY_INPUT_HOST_READ_BIT,
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		readbackBuf,
+		0, sublayout.size,
+	};
+
+	// wait for copy to finish before reading back to host
+	barrier = (void *)&bufBarrier;
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+	vt->EndCommandBuffer(Unwrap(cmd));
+
+	m_pDriver->SubmitCmds();
+	m_pDriver->FlushQ();
+
+	// map the buffer and copy to return buffer
+	byte *pData = NULL;
+	vkr = vt->MapMemory(Unwrap(dev), readbackMem, 0, 0, 0, (void **)&pData);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	RDCASSERT(pData != NULL);
+
+	dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth, imCreateInfo.format, mip);
+	byte *ret = new byte[dataSize];
+	memcpy(ret, pData, dataSize);
+
+	vt->UnmapMemory(Unwrap(dev), readbackMem);
+
+	// clean up temporary objects
+	vt->DestroyBuffer(Unwrap(dev), readbackBuf);
+	vt->FreeMemory(Unwrap(dev), readbackMem);
+
+	if(tmpImage != VK_NULL_HANDLE)
+	{
+		vt->DestroyImage(Unwrap(dev), tmpImage);
+		vt->FreeMemory(Unwrap(dev), tmpMemory);
+	}
+
+	if(tmpFB != NULL)
+	{
+		for(uint32_t i=0; i < numFBs; i++)
+		{
+			vt->DestroyFramebuffer(Unwrap(dev), tmpFB[i]);
+			vt->DestroyImageView(Unwrap(dev), tmpView[i]);
+		}
+		delete[] tmpFB;
+		delete[] tmpView;
+		vt->DestroyRenderPass(Unwrap(dev), tmpRP);
+	}
+
+	return ret;
 }
 
 void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)

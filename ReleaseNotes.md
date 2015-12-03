@@ -23,6 +23,7 @@ Current Support
 * Render overlays like Drawcall highlight, wireframe, depth-test pass/fail etc
 * Texture range auto-fit and histogram display
 * Threading should be pretty efficient - no heavy locks on common paths (outside of creation/deletion)
+* Saving textures to file
 
 Known Issues
 ========
@@ -31,7 +32,6 @@ Known Issues
 * Sparse images with mips or array slices will not properly replay
 * Only 2D non-array non-integer textures can currently be displayed.
 * 'Quad overdraw' debug overlays aren't implemented.
-* Saving textures is not supported.
 * Queue-level API events are not properly listed. API calls between draw-type vkCmd... are listed.
 * No drawcall timings.
 
