@@ -33,7 +33,6 @@ Known Issues
 * Sparse images with mips or array slices will not properly replay
 * Only 2D non-array non-integer textures can currently be displayed.
 * 'Quad overdraw' debug overlays aren't implemented.
-* Queue-level API events are not properly listed. API calls between draw-type vkCmd... are listed.
 * No drawcall timings.
 
 Future work, post 1.0
@@ -53,3 +52,4 @@ In no particular order, features that are not planned until after 1.0.
 * Linux support with Qt UI
 * Shader edit & replace
 * Mesh geometry/tessellation output capture
+* Queue-level API events are not listed, only API calls associated with a cmd buffer
