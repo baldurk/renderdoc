@@ -130,6 +130,28 @@ namespace renderdocui.Code
         public FetchTexture[] CurTextures { get { return m_Textures; } }
         public FetchBuffer[] CurBuffers { get { return m_Buffers; } }
 
+        public FetchTexture GetTexture(ResourceId id)
+        {
+            if (id == ResourceId.Null) return null;
+
+            for (int t = 0; t < m_Textures.Length; t++)
+                if (m_Textures[t].ID == id)
+                    return m_Textures[t];
+
+            return null;
+        }
+
+        public FetchBuffer GetBuffer(ResourceId id)
+        {
+            if (id == ResourceId.Null) return null;
+
+            for (int b = 0; b < m_Buffers.Length; b++)
+                if (m_Buffers[b].ID == id)
+                    return m_Buffers[b];
+
+            return null;
+        }
+
         public List<DebugMessage> DebugMessages = new List<DebugMessage>();
         public int UnreadMessageCount = 0;
         public void AddMessages(DebugMessage[] msgs)

@@ -20,6 +20,7 @@ Current Support
 * Simple display of most 2D textures with mips in the texture viewer.
 * You can view mesh input data both as data and a 3D preview
 * Mesh output data after vertex shader is fetched and displayed
+* Pipeline export to HTML
 * Render overlays like Drawcall highlight, wireframe, depth-test pass/fail etc
 * Texture range auto-fit and histogram display
 * Threading should be pretty efficient - no heavy locks on common paths (outside of creation/deletion)
