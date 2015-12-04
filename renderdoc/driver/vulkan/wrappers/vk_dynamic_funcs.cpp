@@ -43,7 +43,7 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(
 		{
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetViewport(Unwrap(cmdBuffer), count, views);
-			m_PartialReplayData.state.views.assign(views, views + count);
+			m_RenderState.views.assign(views, views + count);
 		}
 	}
 	else if(m_State == READING)
@@ -97,7 +97,7 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(
 		{
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetScissor(Unwrap(cmdBuffer), count, scissors);
-			m_PartialReplayData.state.scissors.assign(scissors, scissors + count);
+			m_RenderState.scissors.assign(scissors, scissors + count);
 		}
 	}
 	else if(m_State == READING)
@@ -149,7 +149,7 @@ bool WrappedVulkan::Serialise_vkCmdSetLineWidth(
 		{
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetLineWidth(Unwrap(cmdBuffer), width);
-			m_PartialReplayData.state.lineWidth = width;
+			m_RenderState.lineWidth = width;
 		}
 	}
 	else if(m_State == READING)
@@ -202,9 +202,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBias(
 		{
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetDepthBias(Unwrap(cmdBuffer), bias, biasclamp, slope);
-			m_PartialReplayData.state.bias.depth = bias;
-			m_PartialReplayData.state.bias.biasclamp = biasclamp;
-			m_PartialReplayData.state.bias.slope = slope;
+			m_RenderState.bias.depth = bias;
+			m_RenderState.bias.biasclamp = biasclamp;
+			m_RenderState.bias.slope = slope;
 		}
 	}
 	else if(m_State == READING)
@@ -263,7 +263,7 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(
 		{
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetBlendConstants(Unwrap(cmdBuffer), blendFactor);
-			memcpy(m_PartialReplayData.state.blendConst, blendFactor, sizeof(blendFactor));
+			memcpy(m_RenderState.blendConst, blendFactor, sizeof(blendFactor));
 		}
 	}
 	else if(m_State == READING)
@@ -314,8 +314,8 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(
 		{
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetDepthBounds(Unwrap(cmdBuffer), mind, maxd);
-			m_PartialReplayData.state.mindepth = mind;
-			m_PartialReplayData.state.maxdepth = maxd;
+			m_RenderState.mindepth = mind;
+			m_RenderState.maxdepth = maxd;
 		}
 	}
 	else if(m_State == READING)
@@ -369,9 +369,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(
 			ObjDisp(cmdBuffer)->CmdSetStencilCompareMask(Unwrap(cmdBuffer), face, mask);
 
 			if(face & VK_STENCIL_FACE_FRONT_BIT)
-				m_PartialReplayData.state.front.compare = mask;
+				m_RenderState.front.compare = mask;
 			if(face & VK_STENCIL_FACE_BACK_BIT)
-				m_PartialReplayData.state.back.compare = mask;
+				m_RenderState.back.compare = mask;
 		}
 	}
 	else if(m_State == READING)
@@ -425,9 +425,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(
 			ObjDisp(cmdBuffer)->CmdSetStencilWriteMask(Unwrap(cmdBuffer), face, mask);
 
 			if(face & VK_STENCIL_FACE_FRONT_BIT)
-				m_PartialReplayData.state.front.write = mask;
+				m_RenderState.front.write = mask;
 			if(face & VK_STENCIL_FACE_BACK_BIT)
-				m_PartialReplayData.state.back.write = mask;
+				m_RenderState.back.write = mask;
 		}
 	}
 	else if(m_State == READING)
@@ -481,9 +481,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(
 			ObjDisp(cmdBuffer)->CmdSetStencilReference(Unwrap(cmdBuffer), face, mask);
 
 			if(face & VK_STENCIL_FACE_FRONT_BIT)
-				m_PartialReplayData.state.front.ref = mask;
+				m_RenderState.front.ref = mask;
 			if(face & VK_STENCIL_FACE_BACK_BIT)
-				m_PartialReplayData.state.back.ref = mask;
+				m_RenderState.back.ref = mask;
 		}
 	}
 	else if(m_State == READING)

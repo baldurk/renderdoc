@@ -76,6 +76,9 @@
     <ClCompile Include="wrappers\vk_sync_funcs.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
+    <ClCompile Include="vk_state.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">
@@ -104,6 +107,9 @@
     </ClInclude>
     <ClInclude Include="vk_core.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_state.h">
+      <Filter>Util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

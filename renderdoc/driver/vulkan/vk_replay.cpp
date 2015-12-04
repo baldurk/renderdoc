@@ -2584,7 +2584,7 @@ void VulkanReplay::FileChanged()
 void VulkanReplay::SavePipelineState()
 {
 	{
-		const WrappedVulkan::PartialReplayData::StateVector &state = m_pDriver->m_PartialReplayData.state;
+		const VulkanRenderState &state = m_pDriver->m_RenderState;
 		VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
 		VulkanResourceManager *rm = m_pDriver->GetResourceManager();
@@ -3245,8 +3245,8 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, ve
 	else
 	{
 		vector<byte> pushdata;
-		pushdata.resize(sizeof(m_pDriver->m_PartialReplayData.state.pushconsts));
-		memcpy(&pushdata[0], m_pDriver->m_PartialReplayData.state.pushconsts, pushdata.size());
+		pushdata.resize(sizeof(m_pDriver->m_RenderState.pushconsts));
+		memcpy(&pushdata[0], m_pDriver->m_RenderState.pushconsts, pushdata.size());
 		FillCBufferVariables(c.variables, outvars, pushdata, zero);
 	}
 

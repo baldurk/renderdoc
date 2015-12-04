@@ -28,8 +28,8 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
 {
 	string opDesc = "";
 
-	const VulkanCreationInfo::RenderPass &info = m_CreationInfo.m_RenderPass[m_PartialReplayData.state.renderPass];
-	const VulkanCreationInfo::Framebuffer &fbinfo = m_CreationInfo.m_Framebuffer[m_PartialReplayData.state.framebuffer];
+	const VulkanCreationInfo::RenderPass &info = m_CreationInfo.m_RenderPass[m_RenderState.renderPass];
+	const VulkanCreationInfo::Framebuffer &fbinfo = m_CreationInfo.m_Framebuffer[m_RenderState.framebuffer];
 
 	const vector<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
 
@@ -42,7 +42,7 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
 		bool colsame = true;
 
 		// find which attachment is the depth-stencil one
-		int32_t dsAttach = info.subpasses[m_PartialReplayData.state.subpass].depthstencilAttachment;
+		int32_t dsAttach = info.subpasses[m_RenderState.subpass].depthstencilAttachment;
 		bool hasStencil = false;
 		bool depthonly = false;
 
@@ -51,7 +51,7 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
 		if(dsAttach >= 0)
 		{
 			hasStencil = !IsDepthOnlyFormat(fbinfo.attachments[dsAttach].format);
-			depthonly = info.subpasses[m_PartialReplayData.state.subpass].colorAttachments.size() == 0;
+			depthonly = info.subpasses[m_RenderState.subpass].colorAttachments.size() == 0;
 		}
 
 		// first colour attachment, if there is one
@@ -585,11 +585,11 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 			m_PartialReplayData.renderPassActive = true;
 			ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), &beginInfo, cont);
 
-			m_PartialReplayData.state.subpass = 0;
+			m_RenderState.subpass = 0;
 
-			m_PartialReplayData.state.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
-			m_PartialReplayData.state.framebuffer = GetResourceManager()->GetNonDispWrapper(beginInfo.framebuffer)->id;
-			m_PartialReplayData.state.renderArea = beginInfo.renderArea;
+			m_RenderState.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
+			m_RenderState.framebuffer = GetResourceManager()->GetNonDispWrapper(beginInfo.framebuffer)->id;
+			m_RenderState.renderArea = beginInfo.renderArea;
 		}
 	}
 	else if(m_State == READING)
@@ -599,9 +599,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 		ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), &beginInfo, cont);
 		
 		// track during reading
-		m_PartialReplayData.state.subpass = 0;
-		m_PartialReplayData.state.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
-		m_PartialReplayData.state.framebuffer = GetResourceManager()->GetNonDispWrapper(beginInfo.framebuffer)->id;
+		m_RenderState.subpass = 0;
+		m_RenderState.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
+		m_RenderState.framebuffer = GetResourceManager()->GetNonDispWrapper(beginInfo.framebuffer)->id;
 
 		const string desc = localSerialiser->GetDebugStr();
 		
@@ -674,7 +674,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(
 		{
 			cmdBuffer = PartialCmdBuf();
 
-			m_PartialReplayData.state.subpass++;
+			m_RenderState.subpass++;
 
 			ObjDisp(cmdBuffer)->CmdNextSubpass(Unwrap(cmdBuffer), cont);
 		}
@@ -686,13 +686,13 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(
 		ObjDisp(cmdBuffer)->CmdNextSubpass(Unwrap(cmdBuffer), cont);
 
 		// track during reading
-		m_PartialReplayData.state.subpass++;
+		m_RenderState.subpass++;
 
 		const string desc = localSerialiser->GetDebugStr();
 
 		AddEvent(NEXT_SUBPASS, desc);
 		FetchDrawcall draw;
-		draw.name = StringFormat::Fmt("vkCmdNextSubpass() => %u", m_PartialReplayData.state.subpass);
+		draw.name = StringFormat::Fmt("vkCmdNextSubpass() => %u", m_RenderState.subpass);
 		draw.flags |= eDraw_Clear;
 
 		AddDrawcall(draw, true);
@@ -893,51 +893,51 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 			ResourceId liveid = GetResID(pipeline);
 
 			if(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
-				m_PartialReplayData.state.graphics.pipeline = liveid;
+				m_RenderState.graphics.pipeline = liveid;
 			else
-				m_PartialReplayData.state.compute.pipeline = liveid;
+				m_RenderState.compute.pipeline = liveid;
 
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
 			{
-				m_PartialReplayData.state.views = m_CreationInfo.m_Pipeline[liveid].viewports;
+				m_RenderState.views = m_CreationInfo.m_Pipeline[liveid].viewports;
 			}
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
 			{
-				m_PartialReplayData.state.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
+				m_RenderState.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
 			}
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
 			{
-				m_PartialReplayData.state.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
+				m_RenderState.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
 			}
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
 			{
-				m_PartialReplayData.state.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBias;
-				m_PartialReplayData.state.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
-				m_PartialReplayData.state.bias.slope = m_CreationInfo.m_Pipeline[liveid].slopeScaledDepthBias;
+				m_RenderState.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBias;
+				m_RenderState.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
+				m_RenderState.bias.slope = m_CreationInfo.m_Pipeline[liveid].slopeScaledDepthBias;
 			}
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
 			{
-				memcpy(m_PartialReplayData.state.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst, sizeof(float)*4);
+				memcpy(m_RenderState.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst, sizeof(float)*4);
 			}
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
 			{
-				m_PartialReplayData.state.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
-				m_PartialReplayData.state.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
+				m_RenderState.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
+				m_RenderState.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
 			}
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
 			{
-				m_PartialReplayData.state.front.compare = m_CreationInfo.m_Pipeline[liveid].front.stencilCompareMask;
-				m_PartialReplayData.state.back.compare = m_CreationInfo.m_Pipeline[liveid].back.stencilCompareMask;
+				m_RenderState.front.compare = m_CreationInfo.m_Pipeline[liveid].front.stencilCompareMask;
+				m_RenderState.back.compare = m_CreationInfo.m_Pipeline[liveid].back.stencilCompareMask;
 			}
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
 			{
-				m_PartialReplayData.state.front.write = m_CreationInfo.m_Pipeline[liveid].front.stencilWriteMask;
-				m_PartialReplayData.state.back.write = m_CreationInfo.m_Pipeline[liveid].back.stencilWriteMask;
+				m_RenderState.front.write = m_CreationInfo.m_Pipeline[liveid].front.stencilWriteMask;
+				m_RenderState.back.write = m_CreationInfo.m_Pipeline[liveid].back.stencilWriteMask;
 			}
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
 			{
-				m_PartialReplayData.state.front.ref = m_CreationInfo.m_Pipeline[liveid].front.stencilReference;
-				m_PartialReplayData.state.back.ref = m_CreationInfo.m_Pipeline[liveid].back.stencilReference;
+				m_RenderState.front.ref = m_CreationInfo.m_Pipeline[liveid].front.stencilReference;
+				m_RenderState.back.ref = m_CreationInfo.m_Pipeline[liveid].back.stencilReference;
 			}
 		}
 	}
@@ -948,9 +948,9 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 
 		// track this while reading, as we need to bind current topology & index byte width to draws
 		if(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
-			m_PartialReplayData.state.graphics.pipeline = GetResID(pipeline);
+			m_RenderState.graphics.pipeline = GetResID(pipeline);
 		else
-			m_PartialReplayData.state.compute.pipeline = GetResID(pipeline);
+			m_RenderState.compute.pipeline = GetResID(pipeline);
 
 		ObjDisp(cmdBuffer)->CmdBindPipeline(Unwrap(cmdBuffer), bind, Unwrap(pipeline));
 	}
@@ -1036,13 +1036,13 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 
 			vector<ResourceId> &descsets =
 				(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
-				? m_PartialReplayData.state.graphics.descSets
-				: m_PartialReplayData.state.compute.descSets;
+				? m_RenderState.graphics.descSets
+				: m_RenderState.compute.descSets;
 			
 			vector< vector<uint32_t> > &offsets =
 				(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
-				? m_PartialReplayData.state.graphics.offsets
-				: m_PartialReplayData.state.compute.offsets;
+				? m_RenderState.graphics.offsets
+				: m_RenderState.compute.offsets;
 
 			// expand as necessary
 			if(descsets.size() < first + numSets)
@@ -1195,13 +1195,13 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdBindVertexBuffers(Unwrap(cmdBuffer), start, count, &bufs[0], &offs[0]);
 
-			if(m_PartialReplayData.state.vbuffers.size() < start + count)
-				m_PartialReplayData.state.vbuffers.resize(start + count);
+			if(m_RenderState.vbuffers.size() < start + count)
+				m_RenderState.vbuffers.resize(start + count);
 
 			for(uint32_t i=0; i < count; i++)
 			{
-				m_PartialReplayData.state.vbuffers[start + i].buf = bufids[i];
-				m_PartialReplayData.state.vbuffers[start + i].offs = offs[i];
+				m_RenderState.vbuffers[start + i].buf = bufids[i];
+				m_RenderState.vbuffers[start + i].offs = offs[i];
 			}
 		}
 	}
@@ -1272,9 +1272,9 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 			cmdBuffer = PartialCmdBuf();
 			ObjDisp(cmdBuffer)->CmdBindIndexBuffer(Unwrap(cmdBuffer), Unwrap(buffer), offs, idxType);
 
-			m_PartialReplayData.state.ibuffer.buf = GetResID(buffer);
-			m_PartialReplayData.state.ibuffer.offs = offs;
-			m_PartialReplayData.state.ibuffer.bytewidth = idxType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
+			m_RenderState.ibuffer.buf = GetResID(buffer);
+			m_RenderState.ibuffer.offs = offs;
+			m_RenderState.ibuffer.bytewidth = idxType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
 		}
 	}
 	else if(m_State == READING)
@@ -1283,7 +1283,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
 		// track this while reading, as we need to bind current topology & index byte width to draws
-		m_PartialReplayData.state.ibuffer.bytewidth = idxType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
+		m_RenderState.ibuffer.bytewidth = idxType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
 		
 		ObjDisp(cmdBuffer)->CmdBindIndexBuffer(Unwrap(cmdBuffer), Unwrap(buffer), offs, idxType);
 	}
@@ -1486,9 +1486,9 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(
 			layout = GetResourceManager()->GetLiveHandle<VkPipelineLayout>(layid);
 			ObjDisp(cmdBuffer)->CmdPushConstants(Unwrap(cmdBuffer), Unwrap(layout), flags, s, len, vals);
 
-			RDCASSERT(s+len < (uint32_t)ARRAY_COUNT(m_PartialReplayData.state.pushconsts));
+			RDCASSERT(s+len < (uint32_t)ARRAY_COUNT(m_RenderState.pushconsts));
 
-			memcpy(m_PartialReplayData.state.pushconsts + s, vals, len);
+			memcpy(m_RenderState.pushconsts + s, vals, len);
 		}
 	}
 	else if(m_State == READING)

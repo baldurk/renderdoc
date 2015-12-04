@@ -1048,13 +1048,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			cmdBuffer = PartialCmdBuf();
-
-			if(m_HackDrawIndices != ~0U)
-			{
-				firstIdx = 0;
-				idxCount = m_HackDrawIndices;
-			}
-
 			ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
 		}
 	}

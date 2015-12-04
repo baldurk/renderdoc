@@ -2178,7 +2178,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		highlightCol[3] = 1.0f;
 		
 		// backup state
-		WrappedVulkan::PartialReplayData::StateVector prevstate = m_pDriver->m_PartialReplayData.state;
+		VulkanRenderState prevstate = m_pDriver->m_RenderState;
 		
 		// make patched shader
 		VkShaderModule mod = VK_NULL_HANDLE;
@@ -2266,23 +2266,23 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// modify state
-		m_pDriver->m_PartialReplayData.state.renderPass = GetResID(m_OverlayNoDepthRP);
-		m_pDriver->m_PartialReplayData.state.subpass = 0;
-		m_pDriver->m_PartialReplayData.state.framebuffer = GetResID(m_OverlayNoDepthFB);
+		m_pDriver->m_RenderState.renderPass = GetResID(m_OverlayNoDepthRP);
+		m_pDriver->m_RenderState.subpass = 0;
+		m_pDriver->m_RenderState.framebuffer = GetResID(m_OverlayNoDepthFB);
 
-		m_pDriver->m_PartialReplayData.state.graphics.pipeline = GetResID(pipe);
+		m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe);
 
 		// set dynamic scissors in case pipeline was using them
-		for(size_t i=0; i < m_pDriver->m_PartialReplayData.state.scissors.size(); i++)
+		for(size_t i=0; i < m_pDriver->m_RenderState.scissors.size(); i++)
 		{
-			m_pDriver->m_PartialReplayData.state.scissors[i].offset.x = 0;
-			m_pDriver->m_PartialReplayData.state.scissors[i].offset.x = 0;
-			m_pDriver->m_PartialReplayData.state.scissors[i].extent.width = 4096;
-			m_pDriver->m_PartialReplayData.state.scissors[i].extent.height = 4096;
+			m_pDriver->m_RenderState.scissors[i].offset.x = 0;
+			m_pDriver->m_RenderState.scissors[i].offset.x = 0;
+			m_pDriver->m_RenderState.scissors[i].extent.width = 4096;
+			m_pDriver->m_RenderState.scissors[i].extent.height = 4096;
 		}
 
 		if(overlay == eTexOverlay_Wireframe)
-			m_pDriver->m_PartialReplayData.state.lineWidth = 1.0f;
+			m_pDriver->m_RenderState.lineWidth = 1.0f;
 
 		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
 
@@ -2296,7 +2296,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// restore state
-		m_pDriver->m_PartialReplayData.state = prevstate;
+		m_pDriver->m_RenderState = prevstate;
 
 		m_pDriver->vkDestroyPipeline(m_Device, pipe);
 		m_pDriver->vkDestroyShaderModule(m_Device, mod);
@@ -2316,26 +2316,26 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			VkRenderPassBeginInfo rpbegin = {
 				VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 				Unwrap(m_OverlayNoDepthRP), Unwrap(m_OverlayNoDepthFB),
-				m_pDriver->m_PartialReplayData.state.renderArea,
+				m_pDriver->m_RenderState.renderArea,
 				1, &clearval,
 			};
 			vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
 			VkRect3D rect = {
 				{
-					m_pDriver->m_PartialReplayData.state.renderArea.offset.x,
-					m_pDriver->m_PartialReplayData.state.renderArea.offset.y,
+					m_pDriver->m_RenderState.renderArea.offset.x,
+					m_pDriver->m_RenderState.renderArea.offset.y,
 					0,
 				},
 				{
-					m_pDriver->m_PartialReplayData.state.renderArea.extent.width,
-					m_pDriver->m_PartialReplayData.state.renderArea.extent.height,
+					m_pDriver->m_RenderState.renderArea.extent.width,
+					m_pDriver->m_RenderState.renderArea.extent.height,
 					1,
 				},
 			};
 			vt->CmdClearColorAttachment(Unwrap(cmd), 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)black, 1, &rect);
 			
-			VkViewport viewport = m_pDriver->m_PartialReplayData.state.views[0];
+			VkViewport viewport = m_pDriver->m_RenderState.views[0];
 			vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 
 			uint32_t uboOffs = 0;
@@ -2355,12 +2355,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 			vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 
-			if(!m_pDriver->m_PartialReplayData.state.scissors.empty())
+			if(!m_pDriver->m_RenderState.scissors.empty())
 			{
-				Vec4f scissor((float)m_pDriver->m_PartialReplayData.state.scissors[0].offset.x,
-				              (float)m_pDriver->m_PartialReplayData.state.scissors[0].offset.y,
-											(float)m_pDriver->m_PartialReplayData.state.scissors[0].extent.width,
-											(float)m_pDriver->m_PartialReplayData.state.scissors[0].extent.height);
+				Vec4f scissor((float)m_pDriver->m_RenderState.scissors[0].offset.x,
+				              (float)m_pDriver->m_RenderState.scissors[0].offset.y,
+											(float)m_pDriver->m_RenderState.scissors[0].extent.width,
+											(float)m_pDriver->m_RenderState.scissors[0].extent.height);
 
 				outlineuniforms *ubo = (outlineuniforms *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
 
@@ -2397,7 +2397,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		highlightCol[3] = 1.0f;
 		
 		// backup state
-		WrappedVulkan::PartialReplayData::StateVector prevstate = m_pDriver->m_PartialReplayData.state;
+		VulkanRenderState prevstate = m_pDriver->m_RenderState;
 		
 		// make patched shader
 		VkShaderModule mod[2] = {0};
@@ -2495,24 +2495,24 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// modify state
-		m_pDriver->m_PartialReplayData.state.renderPass = GetResID(m_OverlayNoDepthRP);
-		m_pDriver->m_PartialReplayData.state.subpass = 0;
-		m_pDriver->m_PartialReplayData.state.framebuffer = GetResID(m_OverlayNoDepthFB);
+		m_pDriver->m_RenderState.renderPass = GetResID(m_OverlayNoDepthRP);
+		m_pDriver->m_RenderState.subpass = 0;
+		m_pDriver->m_RenderState.framebuffer = GetResID(m_OverlayNoDepthFB);
 
-		m_pDriver->m_PartialReplayData.state.graphics.pipeline = GetResID(pipe[0]);
+		m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
 
 		// set dynamic scissors in case pipeline was using them
-		for(size_t i=0; i < m_pDriver->m_PartialReplayData.state.scissors.size(); i++)
+		for(size_t i=0; i < m_pDriver->m_RenderState.scissors.size(); i++)
 		{
-			m_pDriver->m_PartialReplayData.state.scissors[i].offset.x = 0;
-			m_pDriver->m_PartialReplayData.state.scissors[i].offset.x = 0;
-			m_pDriver->m_PartialReplayData.state.scissors[i].extent.width = 4096;
-			m_pDriver->m_PartialReplayData.state.scissors[i].extent.height = 4096;
+			m_pDriver->m_RenderState.scissors[i].offset.x = 0;
+			m_pDriver->m_RenderState.scissors[i].offset.x = 0;
+			m_pDriver->m_RenderState.scissors[i].extent.width = 4096;
+			m_pDriver->m_RenderState.scissors[i].extent.height = 4096;
 		}
 
 		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
 
-		m_pDriver->m_PartialReplayData.state.graphics.pipeline = GetResID(pipe[1]);
+		m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
 
 		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
 
@@ -2526,7 +2526,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// restore state
-		m_pDriver->m_PartialReplayData.state = prevstate;
+		m_pDriver->m_RenderState = prevstate;
 
 		for(int i=0; i < 2; i++)
 		{
@@ -2544,7 +2544,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		VkFramebuffer depthFB;
 		VkRenderPass depthRP;
 
-		const WrappedVulkan::PartialReplayData::StateVector &state = m_pDriver->m_PartialReplayData.state;
+		const VulkanRenderState &state = m_pDriver->m_RenderState;
 		VulkanCreationInfo &createinfo = m_pDriver->m_CreationInfo;
 
 		RDCASSERT(state.subpass < createinfo.m_RenderPass[state.renderPass].subpasses.size());
@@ -2623,7 +2623,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		highlightCol[3] = 1.0f;
 		
 		// backup state
-		WrappedVulkan::PartialReplayData::StateVector prevstate = m_pDriver->m_PartialReplayData.state;
+		VulkanRenderState prevstate = m_pDriver->m_RenderState;
 		
 		// make patched shader
 		VkShaderModule mod[2] = {0};
@@ -2730,28 +2730,28 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// modify state
-		m_pDriver->m_PartialReplayData.state.renderPass = GetResID(m_OverlayNoDepthRP);
-		m_pDriver->m_PartialReplayData.state.subpass = 0;
-		m_pDriver->m_PartialReplayData.state.framebuffer = GetResID(m_OverlayNoDepthFB);
+		m_pDriver->m_RenderState.renderPass = GetResID(m_OverlayNoDepthRP);
+		m_pDriver->m_RenderState.subpass = 0;
+		m_pDriver->m_RenderState.framebuffer = GetResID(m_OverlayNoDepthFB);
 
-		m_pDriver->m_PartialReplayData.state.graphics.pipeline = GetResID(pipe[0]);
+		m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
 
 		// set dynamic scissors in case pipeline was using them
-		for(size_t i=0; i < m_pDriver->m_PartialReplayData.state.scissors.size(); i++)
+		for(size_t i=0; i < m_pDriver->m_RenderState.scissors.size(); i++)
 		{
-			m_pDriver->m_PartialReplayData.state.scissors[i].offset.x = 0;
-			m_pDriver->m_PartialReplayData.state.scissors[i].offset.x = 0;
-			m_pDriver->m_PartialReplayData.state.scissors[i].extent.width = 4096;
-			m_pDriver->m_PartialReplayData.state.scissors[i].extent.height = 4096;
+			m_pDriver->m_RenderState.scissors[i].offset.x = 0;
+			m_pDriver->m_RenderState.scissors[i].offset.x = 0;
+			m_pDriver->m_RenderState.scissors[i].extent.width = 4096;
+			m_pDriver->m_RenderState.scissors[i].extent.height = 4096;
 		}
 
 		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
 
-		m_pDriver->m_PartialReplayData.state.graphics.pipeline = GetResID(pipe[1]);
+		m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
 		if(depthRP != VK_NULL_HANDLE)
 		{
-			m_pDriver->m_PartialReplayData.state.renderPass = GetResID(depthRP);
-			m_pDriver->m_PartialReplayData.state.framebuffer = GetResID(depthFB);
+			m_pDriver->m_RenderState.renderPass = GetResID(depthRP);
+			m_pDriver->m_RenderState.framebuffer = GetResID(depthFB);
 		}
 
 		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
@@ -2766,7 +2766,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// restore state
-		m_pDriver->m_PartialReplayData.state = prevstate;
+		m_pDriver->m_RenderState = prevstate;
 
 		for(int i=0; i < 2; i++)
 		{
@@ -3806,7 +3806,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	if(!m_pDriver->GetDeviceFeatures().vertexSideEffects)
 		return;
 
-	WrappedVulkan::PartialReplayData::StateVector &state = m_pDriver->m_PartialReplayData.state;
+	const VulkanRenderState &state = m_pDriver->m_RenderState;
 	VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
 	if(state.graphics.pipeline == ResourceId())
@@ -4079,14 +4079,14 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, &pipe);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	// backup state
-	WrappedVulkan::PartialReplayData::StateVector prevstate = state;
+	// make copy of state to draw from
+	VulkanRenderState modifiedstate = state;
 	
 	// bind created pipeline to partial replay state
-	state.graphics.pipeline = GetResID(pipe);
+	modifiedstate.graphics.pipeline = GetResID(pipe);
 
 	// push back extra descriptor set to partial replay state
-	state.graphics.descSets.push_back( GetResID(m_MeshFetchDescSet) );
+	modifiedstate.graphics.descSets.push_back( GetResID(m_MeshFetchDescSet) );
 
 	if((drawcall->flags & eDraw_UseIBuffer) == 0)
 	{
@@ -4151,9 +4151,6 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		};
 		m_pDriver->vkUpdateDescriptorSets(dev, 1, &write, 0, NULL);
 		
-		// do single draw
-		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
-		
 		VkCmdBuffer cmd = m_pDriver->GetNextCmd();
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -4161,6 +4158,11 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
+		// do single draw
+		modifiedstate.BeginRenderPassAndApplyState(cmd);
+		ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances, drawcall->vertexOffset, drawcall->instanceOffset);
+		ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+		
 		VkBufferMemoryBarrier meshbufbarrier = {
 				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
 				VK_MEMORY_OUTPUT_SHADER_WRITE_BIT, VK_MEMORY_INPUT_TRANSFER_BIT|VK_MEMORY_INPUT_VERTEX_ATTRIBUTE_FETCH_BIT,
@@ -4280,9 +4282,9 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		bufSize = numVerts*RDCMAX(1U, drawcall->numInstances)*bufStride;
 
 		// bind unique'd ibuffer
-		state.ibuffer.bytewidth = 4;
-		state.ibuffer.offs = 0;
-		state.ibuffer.buf = GetResID(uniqIdxBuf);
+		modifiedstate.ibuffer.bytewidth = 4;
+		modifiedstate.ibuffer.offs = 0;
+		modifiedstate.ibuffer.buf = GetResID(uniqIdxBuf);
 		
 		// vkUpdateDescriptorSet desc set to point to buffer
 		VkDescriptorInfo fetchdesc = { 0 };
@@ -4299,20 +4301,18 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		// a bit of a hack to ensure we have the right number of indices for rendering.
-		// we want to have a nicer 'apply current state' function so we can reuse that
-		// then do our own draw.
-		m_pDriver->m_HackDrawIndices = (uint32_t)indices.size();
-
 		// do single draw
 		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
-
-		m_pDriver->m_HackDrawIndices = ~0U;
 		
 		cmd = m_pDriver->GetNextCmd();
 
 		vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
+		
+		// do single draw
+		modifiedstate.BeginRenderPassAndApplyState(cmd);
+		ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), (uint32_t)indices.size(), drawcall->numInstances, 0, drawcall->vertexOffset, drawcall->instanceOffset);
+		ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
 		
 		// rebase existing index buffer to point to the right elements in our stream-out'd
 		// vertex buffer
@@ -4447,9 +4447,6 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_pDriver->vkDestroyBuffer(m_Device, uniqIdxBuf);
 		m_pDriver->vkFreeMemory(m_Device, uniqIdxBufMem);
 	}
-	
-	// reset pipeline state back to normal
-	state = prevstate;
 
 	// fill out m_PostVSData
 	m_PostVSData[idx].vsin.topo = topo;

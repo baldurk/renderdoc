@@ -241,6 +241,7 @@ void VkInitParams::Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst)
 }
 
 WrappedVulkan::WrappedVulkan(const char *logFilename)
+	: m_RenderState(m_CreationInfo)
 {
 #if defined(RELEASE)
 	const bool debugSerialiser = false;
@@ -285,8 +286,6 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 	m_FirstEventID = 0;
 	m_LastEventID = ~0U;
 
-	m_HackDrawIndices = ~0U;
-
 	m_LastCmdBufferID = ResourceId();
 
 	m_PartialReplayData.renderPassActive = false;
@@ -300,6 +299,7 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 	m_ResourceManager = new VulkanResourceManager(m_State, m_pSerialiser, this);
 
 	m_pSerialiser->SetUserData(m_ResourceManager);
+	m_RenderState.m_ResourceManager = GetResourceManager();
 
 	m_HeaderChunk = NULL;
 
@@ -1736,7 +1736,8 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			RDCASSERT(m_PartialReplayData.resultPartialCmdBuffer == VK_NULL_HANDLE);
 			m_PartialReplayData.partialParent = ResourceId();
 			m_PartialReplayData.baseEvent = 0;
-			m_PartialReplayData.state = PartialReplayData::StateVector();
+			m_RenderState = VulkanRenderState(m_CreationInfo);
+			m_RenderState.m_ResourceManager = GetResourceManager();
 		}
 
 		if(replayType == eReplay_Full)
@@ -1755,124 +1756,23 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 
 			VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 			RDCASSERT(vkr == VK_SUCCESS);
+			
+			bool rpWasActive = m_PartialReplayData.renderPassActive;
 
 			// if a render pass was active, begin it and set up the partial replay state
 			if(m_PartialReplayData.renderPassActive)
-			{
-				auto &s = m_PartialReplayData.state;
-
-				RDCASSERT(s.renderPass != ResourceId());
-
-				// clear values don't matter as we're using the load renderpass here, that
-				// has all load ops set to load (as we're doing a partial replay - can't
-				// just clear the targets that are partially written to).
-
-				VkClearValue empty[16] = {0};
-
-				RDCASSERT(ARRAY_COUNT(empty) >= m_CreationInfo.m_RenderPass[s.renderPass].attachments.size());
-
-				VkRenderPassBeginInfo rpbegin = {
-					VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-					Unwrap(m_CreationInfo.m_RenderPass[s.renderPass].loadRP),
-					Unwrap(GetResourceManager()->GetCurrentHandle<VkFramebuffer>(s.framebuffer)),
-					s.renderArea,
-					(uint32_t)m_CreationInfo.m_RenderPass[s.renderPass].attachments.size(), empty,
-				};
-				ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
-
-				for(uint32_t i=0; i < s.subpass; i++)
-					ObjDisp(cmd)->CmdNextSubpass(Unwrap(cmd), VK_RENDER_PASS_CONTENTS_INLINE);
-
-				if(s.graphics.pipeline != ResourceId())
-				{
-					ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetResourceManager()->GetCurrentHandle<VkPipeline>(s.graphics.pipeline)));
-
-					ResourceId pipeLayoutId = m_CreationInfo.m_Pipeline[s.graphics.pipeline].layout;
-					VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
-
-					const vector<VkPushConstantRange> &pushRanges = m_CreationInfo.m_PipelineLayout[pipeLayoutId].pushRanges;
-
-					// only set push constant ranges that the layout uses
-					for(size_t i=0; i < pushRanges.size(); i++)
-						ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags, pushRanges[i].start, pushRanges[i].length, s.pushconsts+pushRanges[i].start);
-
-					const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[pipeLayoutId].descSetLayouts;
-
-					// only iterate over the desc sets that this layout actually uses, not all that were bound
-					for(size_t i=0; i < descSetLayouts.size(); i++)
-					{
-						const DescSetLayout &descLayout = m_CreationInfo.m_DescSetLayout[ descSetLayouts[i] ];
-
-						if(i < s.graphics.descSets.size() && s.graphics.descSets[i] != ResourceId())
-						{
-							// if there are dynamic buffers, pass along the offsets
-							ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(layout), (uint32_t)i,
-									1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(s.graphics.descSets[i])),
-									descLayout.dynamicCount, descLayout.dynamicCount == 0 ? NULL : &s.graphics.offsets[i][0]);
-						}
-						else
-						{
-							RDCWARN("Descriptor set is not bound but pipeline layout expects one");
-						}
-					}
-				}
-
-				if(s.compute.pipeline != ResourceId())
-				{
-					ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetResourceManager()->GetCurrentHandle<VkPipeline>(s.compute.pipeline)));
-
-					ResourceId pipeLayoutId = m_CreationInfo.m_Pipeline[s.compute.pipeline].layout;
-					VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
-
-					const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[pipeLayoutId].descSetLayouts;
-
-					for(size_t i=0; i < descSetLayouts.size(); i++)
-					{
-						const DescSetLayout &descLayout = m_CreationInfo.m_DescSetLayout[ descSetLayouts[i] ];
-
-						if(s.compute.descSets[i] != ResourceId())
-						{
-							ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(layout), (uint32_t)i,
-									1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(s.compute.descSets[i])),
-									descLayout.dynamicCount, descLayout.dynamicCount == 0 ? NULL : &s.compute.offsets[i][0]);
-						}
-					}
-				}
-				
-				if(!s.views.empty())
-					ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), (uint32_t)s.views.size(), &s.views[0]);
-				if(!s.scissors.empty())
-					ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), (uint32_t)s.scissors.size(), &s.scissors[0]);
-
-				ObjDisp(cmd)->CmdSetBlendConstants(Unwrap(cmd), s.blendConst);
-				ObjDisp(cmd)->CmdSetDepthBounds(Unwrap(cmd), s.mindepth, s.maxdepth);
-				ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), s.lineWidth);
-				ObjDisp(cmd)->CmdSetDepthBias(Unwrap(cmd), s.bias.depth, s.bias.biasclamp, s.bias.slope);
-				
-				ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, s.back.ref);
-				ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, s.back.compare);
-				ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, s.back.write);
-				
-				ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, s.front.ref);
-				ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, s.front.compare);
-				ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, s.front.write);
-
-				if(s.ibuffer.buf != ResourceId())
-					ObjDisp(cmd)->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(s.ibuffer.buf)), s.ibuffer.offs, s.ibuffer.bytewidth == 4 ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16);
-
-				for(size_t i=0; i < s.vbuffers.size(); i++)
-					ObjDisp(cmd)->CmdBindVertexBuffers(Unwrap(cmd), (uint32_t)i, 1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(s.vbuffers[i].buf)), &s.vbuffers[i].offs);
-			}
-
-			bool rpWasActive = m_PartialReplayData.renderPassActive;
+				m_RenderState.BeginRenderPassAndApplyState(cmd);
 
 			ContextReplayLog(EXECUTING, endEventID, endEventID, partial);
 
+			// check if the render pass is active - it could have become active
+			// even if it wasn't before (if the above event was a CmdBeginRenderPass)
 			if(m_PartialReplayData.renderPassActive)
 				ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
 
 			// we might have replayed a CmdBeginRenderPass or CmdEndRenderPass,
-			// but we want to keep the partial replay data state intact.
+			// but we want to keep the partial replay data state intact, so restore
+			// whether or not a render pass was active.
 			m_PartialReplayData.renderPassActive = rpWasActive;
 			
 			ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
@@ -1912,13 +1812,13 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 
 	draw.depthOut = ResourceId();
 
-	ResourceId pipe = m_PartialReplayData.state.graphics.pipeline;
+	ResourceId pipe = m_RenderState.graphics.pipeline;
 	if(pipe != ResourceId())
 		draw.topology = MakePrimitiveTopology(m_CreationInfo.m_Pipeline[pipe].topology, m_CreationInfo.m_Pipeline[pipe].patchControlPoints);
 	else
 		draw.topology = eTopology_Unknown;
 
-	draw.indexByteWidth = m_PartialReplayData.state.ibuffer.bytewidth;
+	draw.indexByteWidth = m_RenderState.ibuffer.bytewidth;
 
 	if(m_LastCmdBufferID != ResourceId())
 		m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount++;

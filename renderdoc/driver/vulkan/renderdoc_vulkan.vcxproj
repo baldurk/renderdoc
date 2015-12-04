@@ -22,6 +22,7 @@
     <ClCompile Include="vk_dispatchtables.cpp" />
     <ClCompile Include="vk_initstate.cpp" />
     <ClCompile Include="vk_memory.cpp" />
+    <ClCompile Include="vk_state.cpp" />
     <ClCompile Include="vk_tracelayer.cpp" />
     <ClCompile Include="vk_common.cpp" />
     <ClCompile Include="vk_core.cpp" />
@@ -67,6 +68,7 @@
     <ClInclude Include="vk_manager.h" />
     <ClInclude Include="vk_replay.h" />
     <ClInclude Include="vk_resources.h" />
+    <ClInclude Include="vk_state.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="windows\renderdoc.json" />

@@ -33,6 +33,7 @@
 
 #include "vk_common.h"
 #include "vk_info.h"
+#include "vk_state.h"
 #include "vk_manager.h"
 #include "vk_replay.h"
 
@@ -304,75 +305,12 @@ private:
 		// reach the vkEndCommandBuffer that we also need to end a render
 		// pass.
 		bool renderPassActive;
-
-		// There is only a state while currently partially replaying, it's
-		// undefined/empty otherwise.
-		// All IDs are original IDs, not live.
-		struct StateVector
-		{
-			StateVector()
-			{
-				compute.pipeline = graphics.pipeline = renderPass = framebuffer = ResourceId();
-				compute.descSets.clear();
-				graphics.descSets.clear();
-				compute.offsets.clear();
-				graphics.offsets.clear();
-
-				lineWidth = 1.0f;
-				RDCEraseEl(bias);
-				RDCEraseEl(blendConst);
-				mindepth = 0.0f; maxdepth = 1.0f;
-				RDCEraseEl(front);
-				RDCEraseEl(back);
-
-				RDCEraseEl(renderArea);
-
-				RDCEraseEl(ibuffer);
-				vbuffers.clear();
-			}
-
-			// dynamic state
-			vector<VkViewport> views;
-			vector<VkRect2D> scissors;
-			float lineWidth;
-			struct { float depth, biasclamp, slope; } bias;
-			float blendConst[4];
-			float mindepth, maxdepth;
-			struct { uint32_t compare, write, ref; } front, back;
-
-			// this should be big enough for any implementation
-			byte pushconsts[1024];
-
-			ResourceId renderPass;
-			uint32_t subpass;
-
-			ResourceId framebuffer;
-			VkRect2D renderArea;
-
-			struct Pipeline
-			{
-				ResourceId pipeline;
-				vector<ResourceId> descSets;
-				vector< vector<uint32_t> > offsets;
-			} compute, graphics;
-
-			struct IdxBuffer
-			{
-				ResourceId buf;
-				VkDeviceSize offs;
-				int bytewidth;
-			} ibuffer;
-
-			struct VertBuffer
-			{
-				ResourceId buf;
-				VkDeviceSize offs;
-			};
-			vector<VertBuffer> vbuffers;
-		} state;
 	} m_PartialReplayData;
 
-	uint32_t m_HackDrawIndices;
+	// There is only a state while currently partially replaying, it's
+	// undefined/empty otherwise.
+	// All IDs are original IDs, not live.
+	VulkanRenderState m_RenderState;
 
 	bool IsPartialCmd(ResourceId cmdid)
 	{
