@@ -241,7 +241,6 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
 		ResourceId liveid;
 		if(m_State < WRITING && HasLiveResource(id))
 			liveid = GetLiveID(id);
-		auto dstit = states.find(id);
 
 		for(uint32_t m=0; m < NumStates; m++)
 		{

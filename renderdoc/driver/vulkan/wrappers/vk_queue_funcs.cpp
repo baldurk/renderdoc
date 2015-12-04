@@ -359,7 +359,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 		{
 			SCOPED_LOCK(m_ImageLayoutsLock);
-			GetResourceManager()->ApplyBarriers(record->cmdInfo->imgbarriers, m_ImageLayouts);
+			GetResourceManager()->ApplyBarriers(record->bakedCommands->cmdInfo->imgbarriers, m_ImageLayouts);
 		}
 
 		// need to lock the whole section of code, not just the check on
