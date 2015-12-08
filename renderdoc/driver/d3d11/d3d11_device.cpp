@@ -349,8 +349,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 
 	m_pImmediateContext = new WrappedID3D11DeviceContext(this, context, m_pSerialiser, m_pDebugSerialiser);
 
-	SAFE_RELEASE(context);
-
 	realDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&m_pInfoQueue);
 	realDevice->QueryInterface(__uuidof(ID3D11Debug), (void **)&m_WrappedDebug.m_pDebug);
 
