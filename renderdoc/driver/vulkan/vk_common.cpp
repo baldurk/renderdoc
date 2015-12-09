@@ -1080,11 +1080,10 @@ string ToStrHelper<false, VkQueueFlagBits>::Get(const VkQueueFlagBits &el)
 {
 	string ret;
 
-	if(el & VK_QUEUE_GRAPHICS_BIT)      ret += " | VK_QUEUE_GRAPHICS_BIT";
-	if(el & VK_QUEUE_COMPUTE_BIT)       ret += " | VK_QUEUE_COMPUTE_BIT";
-	if(el & VK_QUEUE_DMA_BIT)           ret += " | VK_QUEUE_DMA_BIT";
-	if(el & VK_QUEUE_SPARSE_MEMMGR_BIT) ret += " | VK_QUEUE_SPARSE_MEMMGR_BIT";
-	if(el & VK_QUEUE_EXTENDED_BIT)      ret += " | VK_QUEUE_EXTENDED_BIT";
+	if(el & VK_QUEUE_GRAPHICS_BIT)       ret += " | VK_QUEUE_GRAPHICS_BIT";
+	if(el & VK_QUEUE_COMPUTE_BIT)        ret += " | VK_QUEUE_COMPUTE_BIT";
+	if(el & VK_QUEUE_TRANSFER_BIT)       ret += " | VK_QUEUE_TRANSFER_BIT";
+	if(el & VK_QUEUE_SPARSE_BINDING_BIT) ret += " | VK_QUEUE_SPARSE_BINDING_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1118,26 +1117,20 @@ string ToStrHelper<false, VkPipelineStageFlagBits>::Get(const VkPipelineStageFla
 {
 	string ret;
 
-	if(el == VK_PIPELINE_STAGE_ALL_GRAPHICS)
-		return "VK_PIPELINE_STAGE_ALL_GRAPHICS";
-
-	if(el == VK_PIPELINE_STAGE_ALL_GPU_COMMANDS)
-		return "VK_PIPELINE_STAGE_ALL_GPU_COMMANDS";
-
-	if(el & VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)                 ret += " | VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT";
-	if(el & VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT)               ret += " | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT";
-	if(el & VK_PIPELINE_STAGE_VERTEX_INPUT_BIT)                ret += " | VK_PIPELINE_STAGE_VERTEX_INPUT_BIT";
-	if(el & VK_PIPELINE_STAGE_VERTEX_SHADER_BIT)               ret += " | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT";
-	if(el & VK_PIPELINE_STAGE_TESS_CONTROL_SHADER_BIT)         ret += " | VK_PIPELINE_STAGE_TESS_CONTROL_SHADER_BIT";
-	if(el & VK_PIPELINE_STAGE_TESS_EVALUATION_SHADER_BIT)      ret += " | VK_PIPELINE_STAGE_TESS_EVALUATION_SHADER_BIT";
-	if(el & VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT)             ret += " | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT";
-	if(el & VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)             ret += " | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT";
-	if(el & VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT)        ret += " | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT";
-	if(el & VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT)         ret += " | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT";
-	if(el & VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)     ret += " | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT";
-	if(el & VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT)              ret += " | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT";
-	if(el & VK_PIPELINE_STAGE_TRANSFER_BIT)                    ret += " | VK_PIPELINE_STAGE_TRANSFER_BIT";
-	if(el & VK_PIPELINE_STAGE_HOST_BIT)                        ret += " | VK_PIPELINE_STAGE_HOST_BIT";
+	if(el & VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)                         ret += " | VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT";
+	if(el & VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT)                       ret += " | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT";
+	if(el & VK_PIPELINE_STAGE_VERTEX_INPUT_BIT)                        ret += " | VK_PIPELINE_STAGE_VERTEX_INPUT_BIT";
+	if(el & VK_PIPELINE_STAGE_VERTEX_SHADER_BIT)                       ret += " | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT)         ret += " | VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT)      ret += " | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT)                     ret += " | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)                     ret += " | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT)                ret += " | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT";
+	if(el & VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT)                 ret += " | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT";
+	if(el & VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)             ret += " | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT";
+	if(el & VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT)                      ret += " | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT";
+	if(el & VK_PIPELINE_STAGE_TRANSFER_BIT)                            ret += " | VK_PIPELINE_STAGE_TRANSFER_BIT";
+	if(el & VK_PIPELINE_STAGE_HOST_BIT)                                ret += " | VK_PIPELINE_STAGE_HOST_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1150,8 +1143,8 @@ string ToStrHelper<false, VkBufferUsageFlagBits>::Get(const VkBufferUsageFlagBit
 {
 	string ret = "";
 
-	if(el & VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT)       ret += " | VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT";
-	if(el & VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT)  ret += " | VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT";
+	if(el & VK_BUFFER_USAGE_TRANSFER_SRC_BIT)          ret += " | VK_BUFFER_USAGE_TRANSFER_SRC_BIT";
+	if(el & VK_BUFFER_USAGE_TRANSFER_DST_BIT)          ret += " | VK_BUFFER_USAGE_TRANSFER_DST_BIT";
 	if(el & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT)  ret += " | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT";
 	if(el & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)  ret += " | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT";
 	if(el & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)        ret += " | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT";
@@ -1171,8 +1164,8 @@ string ToStrHelper<false, VkImageUsageFlagBits>::Get(const VkImageUsageFlagBits 
 {
 	string ret = "";
 
-	if(el & VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT)          ret += " | VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT";
-	if(el & VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT)     ret += " | VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT";
+	if(el & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)             ret += " | VK_IMAGE_USAGE_TRANSFER_SRC_BIT";
+	if(el & VK_IMAGE_USAGE_TRANSFER_DST_BIT)             ret += " | VK_IMAGE_USAGE_TRANSFER_DST_BIT";
 	if(el & VK_IMAGE_USAGE_SAMPLED_BIT)                  ret += " | VK_IMAGE_USAGE_SAMPLED_BIT";
 	if(el & VK_IMAGE_USAGE_STORAGE_BIT)                  ret += " | VK_IMAGE_USAGE_STORAGE_BIT";
 	if(el & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)         ret += " | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT";
@@ -1219,25 +1212,11 @@ string ToStrHelper<false, VkImageCreateFlagBits>::Get(const VkImageCreateFlagBit
 }
 
 template<>
-string ToStrHelper<false, VkImageViewCreateFlagBits>::Get(const VkImageViewCreateFlagBits &el)
-{
-	string ret;
-
-	if(el & VK_IMAGE_VIEW_CREATE_READ_ONLY_DEPTH_BIT)   ret += " | VK_IMAGE_VIEW_CREATE_READ_ONLY_DEPTH_BIT";
-	if(el & VK_IMAGE_VIEW_CREATE_READ_ONLY_STENCIL_BIT) ret += " | VK_IMAGE_VIEW_CREATE_READ_ONLY_STENCIL_BIT";
-	
-	if(!ret.empty())
-		ret = ret.substr(3);
-
-	return ret;
-}
-
-template<>
 string ToStrHelper<false, VkSparseMemoryBindFlagBits>::Get(const VkSparseMemoryBindFlagBits &el)
 {
 	string ret;
 
-	if(el & VK_SPARSE_MEMORY_BIND_REPLICATE_64KIB_BLOCK_BIT)   ret += " | VK_SPARSE_MEMORY_BIND_REPLICATE_64KIB_BLOCK_BIT";
+	if(el & VK_SPARSE_MEMORY_BIND_METADATA_BIT)   ret += " | VK_SPARSE_MEMORY_BIND_METADATA_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1246,12 +1225,12 @@ string ToStrHelper<false, VkSparseMemoryBindFlagBits>::Get(const VkSparseMemoryB
 }
 
 template<>
-string ToStrHelper<false, VkCmdPoolCreateFlagBits>::Get(const VkCmdPoolCreateFlagBits &el)
+string ToStrHelper<false, VkCommandPoolCreateFlagBits>::Get(const VkCommandPoolCreateFlagBits &el)
 {
 	string ret;
 
-	if(el & VK_CMD_POOL_CREATE_TRANSIENT_BIT)            ret += " | VK_CMD_POOL_CREATE_TRANSIENT_BIT";
-	if(el & VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) ret += " | VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT";
+	if(el & VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)            ret += " | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT";
+	if(el & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) ret += " | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1260,11 +1239,11 @@ string ToStrHelper<false, VkCmdPoolCreateFlagBits>::Get(const VkCmdPoolCreateFla
 }
 
 template<>
-string ToStrHelper<false, VkCmdPoolResetFlagBits>::Get(const VkCmdPoolResetFlagBits &el)
+string ToStrHelper<false, VkCommandPoolResetFlagBits>::Get(const VkCommandPoolResetFlagBits &el)
 {
 	string ret;
 
-	if(el & VK_CMD_POOL_RESET_RELEASE_RESOURCES_BIT)          ret += " | VK_CMD_POOL_RESET_RELEASE_RESOURCES_BIT";
+	if(el & VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT)          ret += " | VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1273,15 +1252,13 @@ string ToStrHelper<false, VkCmdPoolResetFlagBits>::Get(const VkCmdPoolResetFlagB
 }
 
 template<>
-string ToStrHelper<false, VkCmdBufferOptimizeFlagBits>::Get(const VkCmdBufferOptimizeFlagBits &el)
+string ToStrHelper<false, VkCommandBufferUsageFlagBits>::Get(const VkCommandBufferUsageFlagBits &el)
 {
 	string ret;
 
-	if(el & VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT)           ret += " | VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT";
-	if(el & VK_CMD_BUFFER_OPTIMIZE_PIPELINE_SWITCH_BIT)       ret += " | VK_CMD_BUFFER_OPTIMIZE_PIPELINE_SWITCH_BIT";
-	if(el & VK_CMD_BUFFER_OPTIMIZE_PIPELINE_SWITCH_BIT)       ret += " | VK_CMD_BUFFER_OPTIMIZE_PIPELINE_SWITCH_BIT";
-	if(el & VK_CMD_BUFFER_OPTIMIZE_DESCRIPTOR_SET_SWITCH_BIT) ret += " | VK_CMD_BUFFER_OPTIMIZE_DESCRIPTOR_SET_SWITCH_BIT";
-	if(el & VK_CMD_BUFFER_OPTIMIZE_NO_SIMULTANEOUS_USE_BIT)   ret += " | VK_CMD_BUFFER_OPTIMIZE_NO_SIMULTANEOUS_USE_BIT";
+	if(el & VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)        ret += " | VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT";
+	if(el & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT)   ret += " | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT";
+	if(el & VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT)       ret += " | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1307,17 +1284,17 @@ string ToStrHelper<false, VkQueryPipelineStatisticFlagBits>::Get(const VkQueryPi
 {
 	string ret;
 
-	if(el & VK_QUERY_PIPELINE_STATISTIC_IA_VERTICES_BIT)     ret += " | VK_QUERY_PIPELINE_STATISTIC_IA_VERTICES_BIT";
-	if(el & VK_QUERY_PIPELINE_STATISTIC_IA_PRIMITIVES_BIT)   ret += " | VK_QUERY_PIPELINE_STATISTIC_IA_PRIMITIVES_BIT";
-	if(el & VK_QUERY_PIPELINE_STATISTIC_VS_INVOCATIONS_BIT)  ret += " | VK_QUERY_PIPELINE_STATISTIC_VS_INVOCATIONS_BIT";
-	if(el & VK_QUERY_PIPELINE_STATISTIC_GS_INVOCATIONS_BIT)  ret += " | VK_QUERY_PIPELINE_STATISTIC_GS_INVOCATIONS_BIT";
-	if(el & VK_QUERY_PIPELINE_STATISTIC_GS_PRIMITIVES_BIT)   ret += " | VK_QUERY_PIPELINE_STATISTIC_GS_PRIMITIVES_BIT";
-	if(el & VK_QUERY_PIPELINE_STATISTIC_C_INVOCATIONS_BIT)   ret += " | VK_QUERY_PIPELINE_STATISTIC_C_INVOCATIONS_BIT";
-	if(el & VK_QUERY_PIPELINE_STATISTIC_C_PRIMITIVES_BIT)    ret += " | VK_QUERY_PIPELINE_STATISTIC_C_PRIMITIVES_BIT";
-	if(el & VK_QUERY_PIPELINE_STATISTIC_FS_INVOCATIONS_BIT)  ret += " | VK_QUERY_PIPELINE_STATISTIC_FS_INVOCATIONS_BIT";
-	if(el & VK_QUERY_PIPELINE_STATISTIC_TCS_PATCHES_BIT)     ret += " | VK_QUERY_PIPELINE_STATISTIC_TCS_PATCHES_BIT";
-	if(el & VK_QUERY_PIPELINE_STATISTIC_TES_INVOCATIONS_BIT) ret += " | VK_QUERY_PIPELINE_STATISTIC_TES_INVOCATIONS_BIT";
-	if(el & VK_QUERY_PIPELINE_STATISTIC_CS_INVOCATIONS_BIT)  ret += " | VK_QUERY_PIPELINE_STATISTIC_CS_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT)                       ret += " | VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT)                     ret += " | VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT)                     ret += " | VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT)                   ret += " | VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT)                    ret += " | VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT)                          ret += " | VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT)                           ret += " | VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT)                   ret += " | VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_CONTROL_SHADER_PATCHES_BIT)           ret += " | VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_CONTROL_SHADER_PATCHES_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT)    ret += " | VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT)                    ret += " | VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1330,7 +1307,7 @@ string ToStrHelper<false, VkQueryControlFlagBits>::Get(const VkQueryControlFlagB
 {
 	string ret;
 
-	if(el & VK_QUERY_CONTROL_CONSERVATIVE_BIT) ret += " | VK_QUERY_CONTROL_CONSERVATIVE_BIT";
+	if(el & VK_QUERY_CONTROL_PRECISE_BIT) ret += " | VK_QUERY_CONTROL_PRECISE_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1350,40 +1327,6 @@ string ToStrHelper<false, VkQueryResultFlagBits>::Get(const VkQueryResultFlagBit
 	if(el & VK_QUERY_RESULT_WAIT_BIT)                  ret += " | VK_QUERY_RESULT_WAIT_BIT";
 	if(el & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)     ret += " | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT";
 	if(el & VK_QUERY_RESULT_PARTIAL_BIT)               ret += " | VK_QUERY_RESULT_PARTIAL_BIT";
-	
-	if(!ret.empty())
-		ret = ret.substr(3);
-
-	return ret;
-}
-
-template<>
-string ToStrHelper<false, VkShaderStageFlagBits>::Get(const VkShaderStageFlagBits &el)
-{
-	string ret;
-
-	if(el == VK_SHADER_STAGE_ALL)
-		return "VK_SHADER_STAGE_ALL";
-
-	if(el & VK_SHADER_STAGE_VERTEX_BIT)              ret += " | VK_SHADER_STAGE_VERTEX_BIT";
-	if(el & VK_SHADER_STAGE_TESS_CONTROL_BIT)        ret += " | VK_SHADER_STAGE_TESS_CONTROL_BIT";
-	if(el & VK_SHADER_STAGE_TESS_EVALUATION_BIT)     ret += " | VK_SHADER_STAGE_TESS_EVALUATION_BIT";
-	if(el & VK_SHADER_STAGE_GEOMETRY_BIT)            ret += " | VK_SHADER_STAGE_GEOMETRY_BIT";
-	if(el & VK_SHADER_STAGE_FRAGMENT_BIT)            ret += " | VK_SHADER_STAGE_FRAGMENT_BIT";
-	if(el & VK_SHADER_STAGE_COMPUTE_BIT)             ret += " | VK_SHADER_STAGE_COMPUTE_BIT";
-	
-	if(!ret.empty())
-		ret = ret.substr(3);
-
-	return ret;
-}
-
-template<>
-string ToStrHelper<false, VkSubpassDescriptionFlagBits>::Get(const VkSubpassDescriptionFlagBits &el)
-{
-	string ret;
-
-	if(el & VK_SUBPASS_DESCRIPTION_NO_OVERDRAW_BIT)              ret += " | VK_SUBPASS_DESCRIPTION_NO_OVERDRAW_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1421,19 +1364,50 @@ string ToStrHelper<false, VkImageAspectFlagBits>::Get(const VkImageAspectFlagBit
 }
 
 template<>
-string ToStrHelper<false, VkStencilFaceFlagBits>::Get(const VkStencilFaceFlagBits &el)
+string ToStrHelper<false, VkShaderStageFlagBits>::Get(const VkShaderStageFlagBits &el)
 {
 	string ret;
 
-	if(el & VK_STENCIL_FACE_FRONT_BIT)    ret += " | VK_STENCIL_FACE_FRONT_BIT";
-	if(el & VK_STENCIL_FACE_BACK_BIT)     ret += " | VK_STENCIL_FACE_BACK_BIT";
+	if(el == VK_SHADER_STAGE_ALL_GRAPHICS)
+		return "VK_SHADER_STAGE_ALL_GRAPHICS";
+	if(el == VK_SHADER_STAGE_ALL)
+		return "VK_SHADER_STAGE_ALL";
+
+	if(el & VK_SHADER_STAGE_VERTEX_BIT)                   ret += " | VK_SHADER_STAGE_VERTEX";
+	if(el & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT)     ret += " | VK_SHADER_STAGE_TESSELLATION_CONTROL";
+	if(el & VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)  ret += " | VK_SHADER_STAGE_TESSELLATION_EVALUATION";
+	if(el & VK_SHADER_STAGE_GEOMETRY_BIT)                 ret += " | VK_SHADER_STAGE_GEOMETRY";
+	if(el & VK_SHADER_STAGE_FRAGMENT_BIT)                 ret += " | VK_SHADER_STAGE_FRAGMENT";
+	if(el & VK_SHADER_STAGE_COMPUTE_BIT)                  ret += " | VK_SHADER_STAGE_COMPUTE";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
-	if(ret.empty())
-		ret = "VK_STENCIL_FACE_NONE";
 
 	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkStencilFaceFlagBits>::Get(const VkStencilFaceFlagBits &el)
+{
+	// technically a bitfield but each combination has a particular meaning
+	if(el == VK_STENCIL_FACE_NONE)        return "VK_STENCIL_FACE_NONE";
+	if(el == VK_STENCIL_FACE_FRONT_BIT)   return "VK_STENCIL_FACE_FRONT";
+	if(el == VK_STENCIL_FACE_BACK_BIT)    return "VK_STENCIL_FACE_BACK";
+	if(el == VK_STENCIL_FRONT_AND_BACK)   return "VK_STENCIL_FRONT_AND_BACK";
+	
+	return StringFormat::Fmt("VkStencilFaceFlagBits<%d>", el);
+}
+
+template<>
+string ToStrHelper<false, VkCullModeFlagBits>::Get(const VkCullModeFlagBits &el)
+{
+	// technically a bitfield but each combination has a particular meaning
+	if(el == VK_CULL_MODE_NONE)             return "VK_CULL_MODE_NONE";
+	if(el == VK_CULL_MODE_FRONT_BIT)        return "VK_CULL_MODE_FRONT";
+	if(el == VK_CULL_MODE_BACK_BIT)         return "VK_CULL_MODE_BACK";
+	if(el == VK_CULL_MODE_FRONT_AND_BACK)   return "VK_CULL_MODE_FRONT_AND_BACK";
+	
+	return StringFormat::Fmt("VkCullModeFlagBits<%d>", el);
 }
 
 template<>
@@ -1460,19 +1434,6 @@ string ToStrHelper<false, VkIndexType>::Get(const VkIndexType &el)
 	}
 	
 	return StringFormat::Fmt("VkIndexType<%d>", el);
-}
-
-template<>
-string ToStrHelper<false, VkTimestampType>::Get(const VkTimestampType &el)
-{
-	switch(el)
-	{
-		TOSTR_CASE_STRINGIZE(VK_TIMESTAMP_TYPE_TOP)
-		TOSTR_CASE_STRINGIZE(VK_TIMESTAMP_TYPE_BOTTOM)
-		default: break;
-	}
-	
-	return StringFormat::Fmt("VkTimestampType<%d>", el);
 }
 
 template<>
@@ -1521,45 +1482,30 @@ string ToStrHelper<false, VkImageViewType>::Get(const VkImageViewType &el)
 }
 
 template<>
-string ToStrHelper<false, VkVertexInputStepRate>::Get(const VkVertexInputStepRate &el)
+string ToStrHelper<false, VkVertexInputRate>::Get(const VkVertexInputRate &el)
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_VERTEX_INPUT_STEP_RATE_VERTEX)
-		TOSTR_CASE_STRINGIZE(VK_VERTEX_INPUT_STEP_RATE_INSTANCE)
+		TOSTR_CASE_STRINGIZE(VK_VERTEX_INPUT_RATE_VERTEX)
+		TOSTR_CASE_STRINGIZE(VK_VERTEX_INPUT_RATE_INSTANCE)
 		default: break;
 	}
 	
-	return StringFormat::Fmt("VkVertexInputStepRate<%d>", el);
+	return StringFormat::Fmt("VkVertexInputRate<%d>", el);
 }
 
 template<>
-string ToStrHelper<false, VkFillMode>::Get(const VkFillMode &el)
+string ToStrHelper<false, VkPolygonMode>::Get(const VkPolygonMode &el)
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_FILL_MODE_POINTS)
-		TOSTR_CASE_STRINGIZE(VK_FILL_MODE_WIREFRAME)
-		TOSTR_CASE_STRINGIZE(VK_FILL_MODE_SOLID)
+		TOSTR_CASE_STRINGIZE(VK_POLYGON_MODE_FILL)
+		TOSTR_CASE_STRINGIZE(VK_POLYGON_MODE_LINE)
+		TOSTR_CASE_STRINGIZE(VK_POLYGON_MODE_POINT)
 		default: break;
 	}
 	
-	return StringFormat::Fmt("VkFillMode<%d>", el);
-}
-
-template<>
-string ToStrHelper<false, VkCullMode>::Get(const VkCullMode &el)
-{
-	switch(el)
-	{
-		TOSTR_CASE_STRINGIZE(VK_CULL_MODE_NONE)
-		TOSTR_CASE_STRINGIZE(VK_CULL_MODE_FRONT)
-		TOSTR_CASE_STRINGIZE(VK_CULL_MODE_BACK)
-		TOSTR_CASE_STRINGIZE(VK_CULL_MODE_FRONT_AND_BACK)
-		default: break;
-	}
-	
-	return StringFormat::Fmt("VkCullMode<%d>", el);
+	return StringFormat::Fmt("VkPolygonMode<%d>", el);
 }
 
 template<>
@@ -1567,8 +1513,8 @@ string ToStrHelper<false, VkFrontFace>::Get(const VkFrontFace &el)
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_FRONT_FACE_CCW)
-		TOSTR_CASE_STRINGIZE(VK_FRONT_FACE_CW)
+		TOSTR_CASE_STRINGIZE(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+		TOSTR_CASE_STRINGIZE(VK_FRONT_FACE_CLOCKWISE)
 		default: break;
 	}
 	
@@ -1576,33 +1522,49 @@ string ToStrHelper<false, VkFrontFace>::Get(const VkFrontFace &el)
 }
 
 template<>
-string ToStrHelper<false, VkBlend>::Get(const VkBlend &el)
+string ToStrHelper<false, VkBlendFactor>::Get(const VkBlendFactor &el)
 {
 	switch(el)
 	{
-		case VK_BLEND_ZERO:                       return "ZERO";
-		case VK_BLEND_ONE:                        return "ONE";
-		case VK_BLEND_SRC_COLOR:                  return "SRC_COLOR";
-		case VK_BLEND_ONE_MINUS_SRC_COLOR:        return "INV_SRC_COLOR";
-		case VK_BLEND_DEST_COLOR:                 return "DEST_COLOR";
-		case VK_BLEND_ONE_MINUS_DEST_COLOR:       return "INV_DEST_COLOR";
-		case VK_BLEND_SRC_ALPHA:                  return "SRC_ALPHA";
-		case VK_BLEND_ONE_MINUS_SRC_ALPHA:        return "INV_SRC_ALPHA";
-		case VK_BLEND_DEST_ALPHA:                 return "DEST_ALPHA";
-		case VK_BLEND_ONE_MINUS_DEST_ALPHA:       return "INV_DEST_ALPHA";
-		case VK_BLEND_CONSTANT_COLOR:             return "CONST_COLOR";
-		case VK_BLEND_ONE_MINUS_CONSTANT_COLOR:   return "INV_CONST_COLOR";
-		case VK_BLEND_CONSTANT_ALPHA:             return "CONST_ALPHA";
-		case VK_BLEND_ONE_MINUS_CONSTANT_ALPHA:   return "INV_CONST_ALPHA";
-		case VK_BLEND_SRC_ALPHA_SATURATE:         return "SRC_ALPHA_SAT";
-		case VK_BLEND_SRC1_COLOR:                 return "SRC1_COLOR";
-		case VK_BLEND_ONE_MINUS_SRC1_COLOR:       return "INV_SRC1_COLOR";
-		case VK_BLEND_SRC1_ALPHA:                 return "SRC1_ALPHA";
-		case VK_BLEND_ONE_MINUS_SRC1_ALPHA:       return "INV_SRC1_ALPHA";
+		case VK_BLEND_FACTOR_ZERO:                       return "ZERO";
+		case VK_BLEND_FACTOR_ONE:                        return "ONE";
+		case VK_BLEND_FACTOR_SRC_COLOR:                  return "SRC_COLOR";
+		case VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR:        return "INV_SRC_COLOR";
+		case VK_BLEND_FACTOR_DST_COLOR:                  return "DST_COLOR";
+		case VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR:        return "INV_DST_COLOR";
+		case VK_BLEND_FACTOR_SRC_ALPHA:                  return "SRC_ALPHA";
+		case VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA:        return "INV_SRC_ALPHA";
+		case VK_BLEND_FACTOR_DST_ALPHA:                  return "DST_ALPHA";
+		case VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:        return "INV_DST_ALPHA";
+		case VK_BLEND_FACTOR_CONSTANT_COLOR:             return "CONST_COLOR";
+		case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR:   return "INV_CONST_COLOR";
+		case VK_BLEND_FACTOR_CONSTANT_ALPHA:             return "CONST_ALPHA";
+		case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA:   return "INV_CONST_ALPHA";
+		case VK_BLEND_FACTOR_SRC_ALPHA_SATURATE:         return "SRC_ALPHA_SAT";
+		case VK_BLEND_FACTOR_SRC1_COLOR:                 return "SRC1_COLOR";
+		case VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR:       return "INV_SRC1_COLOR";
+		case VK_BLEND_FACTOR_SRC1_ALPHA:                 return "SRC1_ALPHA";
+		case VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA:       return "INV_SRC1_ALPHA";
 		default: break;
 	}
 	
-	return StringFormat::Fmt("VK_BLEND<%d>", el);
+	return StringFormat::Fmt("VkBlendFactor<%d>", el);
+}
+
+template<>
+string ToStrHelper<false, VkBlendOp>::Get(const VkBlendOp &el)
+{
+	switch(el)
+	{
+		case VK_BLEND_OP_ADD:                 return "ADD";
+		case VK_BLEND_OP_SUBTRACT:            return "SUB";
+		case VK_BLEND_OP_REVERSE_SUBTRACT:    return "REV_SUB";
+		case VK_BLEND_OP_MIN:                 return "MIN";
+		case VK_BLEND_OP_MAX:                 return "MAX";
+		default: break;
+	}
+	
+	return StringFormat::Fmt("VkBlendOp<%d>", el);
 }
 
 template<>
@@ -1654,34 +1616,18 @@ string ToStrHelper<false, VkAttachmentStoreOp>::Get(const VkAttachmentStoreOp &e
 }
 
 template<>
-string ToStrHelper<false, VkBlendOp>::Get(const VkBlendOp &el)
-{
-	switch(el)
-	{
-		case VK_BLEND_OP_ADD:                 return "ADD";
-		case VK_BLEND_OP_SUBTRACT:            return "SUB";
-		case VK_BLEND_OP_REVERSE_SUBTRACT:    return "REV_SUB";
-		case VK_BLEND_OP_MIN:                 return "MIN";
-		case VK_BLEND_OP_MAX:                 return "MAX";
-		default: break;
-	}
-	
-	return StringFormat::Fmt("VkBlendOp<%d>", el);
-}
-
-template<>
 string ToStrHelper<false, VkStencilOp>::Get(const VkStencilOp &el)
 {
 	switch(el)
 	{
-		case VK_STENCIL_OP_KEEP:           return "KEEP";
-		case VK_STENCIL_OP_ZERO:           return "ZERO";
-		case VK_STENCIL_OP_REPLACE:        return "REPLACE";
-		case VK_STENCIL_OP_INC_CLAMP:      return "INC_SAT";
-		case VK_STENCIL_OP_DEC_CLAMP:      return "DEC_SAT";
-		case VK_STENCIL_OP_INVERT:         return "INVERT";
-		case VK_STENCIL_OP_INC_WRAP:       return "INC_WRAP";
-		case VK_STENCIL_OP_DEC_WRAP:       return "DEC_WRAP";
+		case VK_STENCIL_OP_KEEP:                     return "KEEP";
+		case VK_STENCIL_OP_ZERO:                     return "ZERO";
+		case VK_STENCIL_OP_REPLACE:                  return "REPLACE";
+		case VK_STENCIL_OP_INCREMENT_AND_CLAMP:      return "INC_SAT";
+		case VK_STENCIL_OP_DECREMENT_AND_CLAMP:      return "DEC_SAT";
+		case VK_STENCIL_OP_INVERT:                   return "INVERT";
+		case VK_STENCIL_OP_INCREMENT_AND_WRAP:       return "INC_WRAP";
+		case VK_STENCIL_OP_DECREMENT_AND_WRAP:       return "DEC_WRAP";
 		default: break;
 	}
 	
@@ -1698,11 +1644,11 @@ string ToStrHelper<false, VkLogicOp>::Get(const VkLogicOp &el)
 		case VK_LOGIC_OP_AND_REVERSE:    return "AND_REV";
 		case VK_LOGIC_OP_COPY:           return "COPY";
 		case VK_LOGIC_OP_AND_INVERTED:   return "AND_INV";
-		case VK_LOGIC_OP_NOOP:           return "NOOP";
+		case VK_LOGIC_OP_NO_OP:          return "NOOP";
 		case VK_LOGIC_OP_XOR:            return "XOR";
 		case VK_LOGIC_OP_OR:             return "OR";
 		case VK_LOGIC_OP_NOR:            return "NOR";
-		case VK_LOGIC_OP_EQUIV:          return "EQUIV";
+		case VK_LOGIC_OP_EQUIVALENT:     return "EQUIV";
 		case VK_LOGIC_OP_INVERT:         return "INVERT";
 		case VK_LOGIC_OP_OR_REVERSE:     return "OR_REV";
 		case VK_LOGIC_OP_COPY_INVERTED:  return "COPY_INV";
@@ -1720,14 +1666,14 @@ string ToStrHelper<false, VkCompareOp>::Get(const VkCompareOp &el)
 {
 	switch(el)
 	{
-		case VK_COMPARE_OP_NEVER:           return "NEVER";
-		case VK_COMPARE_OP_LESS:            return "LESS";
-		case VK_COMPARE_OP_EQUAL:           return "EQUAL";
-		case VK_COMPARE_OP_LESS_EQUAL:      return "LESS_EQUAL";
-		case VK_COMPARE_OP_GREATER:         return "GREATER";
-		case VK_COMPARE_OP_NOT_EQUAL:       return "NOT_EQUAL";
-		case VK_COMPARE_OP_GREATER_EQUAL:   return "GREATER_EQUAL";
-		case VK_COMPARE_OP_ALWAYS:          return "ALWAYS";
+		case VK_COMPARE_OP_NEVER:            return "NEVER";
+		case VK_COMPARE_OP_LESS:             return "LESS";
+		case VK_COMPARE_OP_EQUAL:            return "EQUAL";
+		case VK_COMPARE_OP_LESS_OR_EQUAL:    return "LESS_EQUAL";
+		case VK_COMPARE_OP_GREATER:          return "GREATER";
+		case VK_COMPARE_OP_NOT_EQUAL:        return "NOT_EQUAL";
+		case VK_COMPARE_OP_GREATER_OR_EQUAL: return "GREATER_EQUAL";
+		case VK_COMPARE_OP_ALWAYS:           return "ALWAYS";
 		default: break;
 	}
 	
@@ -1735,26 +1681,26 @@ string ToStrHelper<false, VkCompareOp>::Get(const VkCompareOp &el)
 }
 
 template<>
-string ToStrHelper<false, VkTexFilter>::Get(const VkTexFilter &el)
+string ToStrHelper<false, VkFilter>::Get(const VkFilter &el)
 {
 	switch(el)
 	{
-		case VK_TEX_FILTER_NEAREST: return "NEAREST";
-		case VK_TEX_FILTER_LINEAR:  return "LINEAR";
+		case VK_FILTER_NEAREST: return "NEAREST";
+		case VK_FILTER_LINEAR:  return "LINEAR";
 		default: break;		 
 	}
 	
-	return StringFormat::Fmt("VkTexFilter<%d>", el);
+	return StringFormat::Fmt("VkFilter<%d>", el);
 }
 
 template<>
-string ToStrHelper<false, VkTexMipmapMode>::Get(const VkTexMipmapMode &el)
+string ToStrHelper<false, VkSamplerMipmapMode>::Get(const VkSamplerMipmapMode &el)
 {
 	switch(el)
 	{
-		case VK_TEX_MIPMAP_MODE_BASE:    return "BASE";
-		case VK_TEX_MIPMAP_MODE_NEAREST: return "NEAREST";
-		case VK_TEX_MIPMAP_MODE_LINEAR:  return "LINEAR";
+		case VK_SAMPLER_MIPMAP_MODE_BASE:    return "BASE";
+		case VK_SAMPLER_MIPMAP_MODE_NEAREST: return "NEAREST";
+		case VK_SAMPLER_MIPMAP_MODE_LINEAR:  return "LINEAR";
 		default: break;		 
 	}
 	
@@ -1762,19 +1708,19 @@ string ToStrHelper<false, VkTexMipmapMode>::Get(const VkTexMipmapMode &el)
 }
 
 template<>
-string ToStrHelper<false, VkTexAddressMode>::Get(const VkTexAddressMode &el)
+string ToStrHelper<false, VkSamplerAddressMode>::Get(const VkSamplerAddressMode &el)
 {
 	switch(el)
 	{
-		case VK_TEX_ADDRESS_MODE_WRAP:           return "WRAP";
-		case VK_TEX_ADDRESS_MODE_MIRROR:         return "MIRROR";
-		case VK_TEX_ADDRESS_MODE_CLAMP:          return "CLAMP";
-		case VK_TEX_ADDRESS_MODE_MIRROR_ONCE:    return "MIRROR_ONCE";
-		case VK_TEX_ADDRESS_MODE_CLAMP_BORDER:   return "CLAMP_BORDER";
+		case VK_SAMPLER_ADDRESS_MODE_REPEAT:               return "WRAP";
+		case VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT:      return "MIRROR_WRAP";
+		case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE:        return "CLAMP_EDGE";
+		case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER:      return "CLAMP_BORDER";
+		case VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE: return "MIRROR_CLAMP";
 		default: break;		 
 	}
 	
-	return StringFormat::Fmt("VkTexAddressMode<%d>", el);
+	return StringFormat::Fmt("VkSamplerAddressMode<%d>", el);
 }
 
 template<>
@@ -1795,21 +1741,6 @@ string ToStrHelper<false, VkBorderColor>::Get(const VkBorderColor &el)
 }
 
 template<>
-string ToStrHelper<false, VkImageAspect>::Get(const VkImageAspect &el)
-{
-	switch(el)
-	{
-		TOSTR_CASE_STRINGIZE(VK_IMAGE_ASPECT_COLOR)
-		TOSTR_CASE_STRINGIZE(VK_IMAGE_ASPECT_DEPTH)
-		TOSTR_CASE_STRINGIZE(VK_IMAGE_ASPECT_STENCIL)
-		TOSTR_CASE_STRINGIZE(VK_IMAGE_ASPECT_METADATA)
-		default: break;		 
-	}
-	
-	return StringFormat::Fmt("VkImageAspect<%d>", el);
-}
-
-template<>
 string ToStrHelper<false, VkPrimitiveTopology>::Get(const VkPrimitiveTopology &el)
 {
 	switch(el)
@@ -1820,11 +1751,11 @@ string ToStrHelper<false, VkPrimitiveTopology>::Get(const VkPrimitiveTopology &e
 		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP)
 		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN)
-		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_LINE_LIST_ADJ)
-		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_ADJ)
-		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_ADJ)
-		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_ADJ)
-		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_PATCH)
+		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY)
+		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY)
+		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY)
+		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY)
+		TOSTR_CASE_STRINGIZE(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST)
 		default: break;
 	}
 	
@@ -1854,38 +1785,13 @@ string ToStrHelper<false, VkDescriptorType>::Get(const VkDescriptorType &el)
 }
 
 template<>
-string ToStrHelper<false, VkDescriptorPoolUsage>::Get(const VkDescriptorPoolUsage &el)
-{
-	switch(el)
-	{
-		TOSTR_CASE_STRINGIZE(VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT)
-		TOSTR_CASE_STRINGIZE(VK_DESCRIPTOR_POOL_USAGE_DYNAMIC)
-		default: break;
-	}
-	
-	return StringFormat::Fmt("VkDescriptorPoolUsage<%d>", el);
-}
-
-template<>
-string ToStrHelper<false, VkDescriptorSetUsage>::Get(const VkDescriptorSetUsage &el)
-{
-	switch(el)
-	{
-		TOSTR_CASE_STRINGIZE(VK_DESCRIPTOR_SET_USAGE_ONE_SHOT)
-		TOSTR_CASE_STRINGIZE(VK_DESCRIPTOR_SET_USAGE_STATIC)
-		default: break;
-	}
-	
-	return StringFormat::Fmt("VkDescriptorSetUsage<%d>", el);
-}
-
-template<>
 string ToStrHelper<false, VkQueryType>::Get(const VkQueryType &el)
 {
 	switch(el)
 	{
 		TOSTR_CASE_STRINGIZE(VK_QUERY_TYPE_OCCLUSION)
 		TOSTR_CASE_STRINGIZE(VK_QUERY_TYPE_PIPELINE_STATISTICS)
+		TOSTR_CASE_STRINGIZE(VK_QUERY_TYPE_TIMESTAMP)
 		default: break;
 	}
 	
@@ -1913,7 +1819,7 @@ string ToStrHelper<false, VkMemoryHeapFlagBits>::Get(const VkMemoryHeapFlagBits 
 {
 	string ret;
 
-	if(el & VK_MEMORY_HEAP_HOST_LOCAL_BIT)          ret += " | VK_MEMORY_HEAP_HOST_LOCAL_BIT";
+	if(el & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)          ret += " | VK_MEMORY_HEAP_DEVICE_LOCAL_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1929,11 +1835,11 @@ string ToStrHelper<false, VkMemoryPropertyFlagBits>::Get(const VkMemoryPropertyF
 {
 	string ret;
 
-	if(el & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)          ret += " | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT";
-	if(el & VK_MEMORY_PROPERTY_HOST_NON_COHERENT_BIT)     ret += " | VK_MEMORY_PROPERTY_HOST_NON_COHERENT_BIT";
-	if(el & VK_MEMORY_PROPERTY_HOST_UNCACHED_BIT)         ret += " | VK_MEMORY_PROPERTY_HOST_UNCACHED_BIT";
-	if(el & VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT)   ret += " | VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT";
-	if(el & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)      ret += " | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT";
+	if(el & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)       ret += " | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT";
+	if(el & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)       ret += " | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT";
+	if(el & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)      ret += " | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT";
+	if(el & VK_MEMORY_PROPERTY_HOST_CACHED_BIT)        ret += " | VK_MEMORY_PROPERTY_HOST_CACHED_BIT";
+	if(el & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)   ret += " | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1944,37 +1850,27 @@ string ToStrHelper<false, VkMemoryPropertyFlagBits>::Get(const VkMemoryPropertyF
 }
 
 template<>
-string ToStrHelper<false, VkMemoryInputFlagBits>::Get(const VkMemoryInputFlagBits &el)
+string ToStrHelper<false, VkAccessFlagBits>::Get(const VkAccessFlagBits &el)
 {
 	string ret;
-
-	if(el & VK_MEMORY_INPUT_HOST_READ_BIT)                     ret += " | VK_MEMORY_INPUT_HOST_READ_BIT";
-	if(el & VK_MEMORY_INPUT_INDIRECT_COMMAND_BIT)              ret += " | VK_MEMORY_INPUT_INDIRECT_COMMAND_BIT";
-	if(el & VK_MEMORY_INPUT_INDEX_FETCH_BIT)                   ret += " | VK_MEMORY_INPUT_INDEX_FETCH_BIT";
-	if(el & VK_MEMORY_INPUT_VERTEX_ATTRIBUTE_FETCH_BIT)        ret += " | VK_MEMORY_INPUT_VERTEX_ATTRIBUTE_FETCH_BIT";
-	if(el & VK_MEMORY_INPUT_UNIFORM_READ_BIT)                  ret += " | VK_MEMORY_INPUT_UNIFORM_READ_BIT";
-	if(el & VK_MEMORY_INPUT_SHADER_READ_BIT)                   ret += " | VK_MEMORY_INPUT_SHADER_READ_BIT";
-	if(el & VK_MEMORY_INPUT_COLOR_ATTACHMENT_BIT)              ret += " | VK_MEMORY_INPUT_COLOR_ATTACHMENT_BIT";
-	if(el & VK_MEMORY_INPUT_DEPTH_STENCIL_ATTACHMENT_BIT)      ret += " | VK_MEMORY_INPUT_DEPTH_STENCIL_ATTACHMENT_BIT";
-	if(el & VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT)              ret += " | VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT";
-	if(el & VK_MEMORY_INPUT_TRANSFER_BIT)                      ret += " | VK_MEMORY_INPUT_TRANSFER_BIT";
 	
-	if(!ret.empty())
-		ret = ret.substr(3);
-
-	return ret;
-}
-
-template<>
-string ToStrHelper<false, VkMemoryOutputFlagBits>::Get(const VkMemoryOutputFlagBits &el)
-{
-	string ret;
-
-	if(el & VK_MEMORY_OUTPUT_HOST_WRITE_BIT)                    ret += " | VK_MEMORY_OUTPUT_HOST_WRITE_BIT";
-	if(el & VK_MEMORY_OUTPUT_SHADER_WRITE_BIT)                  ret += " | VK_MEMORY_OUTPUT_SHADER_WRITE_BIT";
-	if(el & VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT)              ret += " | VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT";
-	if(el & VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT)      ret += " | VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT";
-	if(el & VK_MEMORY_OUTPUT_TRANSFER_BIT)                      ret += " | VK_MEMORY_OUTPUT_TRANSFER_BIT";
+	if(el & VK_ACCESS_INDIRECT_COMMAND_READ_BIT)               ret += " | VK_ACCESS_INDIRECT_COMMAND_READ_BIT";
+	if(el & VK_ACCESS_INDEX_READ_BIT)                          ret += " | VK_ACCESS_INDEX_READ_BIT";
+	if(el & VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)               ret += " | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT";
+	if(el & VK_ACCESS_UNIFORM_READ_BIT)                        ret += " | VK_ACCESS_UNIFORM_READ_BIT";
+	if(el & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT)               ret += " | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT";
+	if(el & VK_ACCESS_SHADER_READ_BIT)                         ret += " | VK_ACCESS_SHADER_READ_BIT";
+	if(el & VK_ACCESS_SHADER_WRITE_BIT)                        ret += " | VK_ACCESS_SHADER_WRITE_BIT";
+	if(el & VK_ACCESS_COLOR_ATTACHMENT_READ_BIT)               ret += " | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT";
+	if(el & VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)              ret += " | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT";
+	if(el & VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT)       ret += " | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT";
+	if(el & VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)      ret += " | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT";
+	if(el & VK_ACCESS_TRANSFER_READ_BIT)                       ret += " | VK_ACCESS_TRANSFER_READ_BIT";
+	if(el & VK_ACCESS_TRANSFER_WRITE_BIT)                      ret += " | VK_ACCESS_TRANSFER_WRITE_BIT";
+	if(el & VK_ACCESS_HOST_READ_BIT)                           ret += " | VK_ACCESS_HOST_READ_BIT";
+	if(el & VK_ACCESS_HOST_WRITE_BIT)                          ret += " | VK_ACCESS_HOST_WRITE_BIT";
+	if(el & VK_ACCESS_MEMORY_READ_BIT)                         ret += " | VK_ACCESS_MEMORY_READ_BIT";
+	if(el & VK_ACCESS_MEMORY_WRITE_BIT)                        ret += " | VK_ACCESS_MEMORY_WRITE_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -1996,36 +1892,35 @@ string ToStrHelper<false, VkSharingMode>::Get(const VkSharingMode &el)
 }
 
 template<>
-string ToStrHelper<false, VkCmdBufferLevel>::Get(const VkCmdBufferLevel &el)
+string ToStrHelper<false, VkCommandBufferLevel>::Get(const VkCommandBufferLevel &el)
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_CMD_BUFFER_LEVEL_PRIMARY)
-		TOSTR_CASE_STRINGIZE(VK_CMD_BUFFER_LEVEL_SECONDARY)
+		TOSTR_CASE_STRINGIZE(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+		TOSTR_CASE_STRINGIZE(VK_COMMAND_BUFFER_LEVEL_SECONDARY)
 		default: break;
 	}
 	
-	return StringFormat::Fmt("VkCmdBufferLevel<%d>", el);
+	return StringFormat::Fmt("VkCommandBufferLevel<%d>", el);
 }
 
 template<>
-string ToStrHelper<false, VkRenderPassContents>::Get(const VkRenderPassContents &el)
+string ToStrHelper<false, VkSubpassContents>::Get(const VkSubpassContents &el)
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_RENDER_PASS_CONTENTS_INLINE)
-		TOSTR_CASE_STRINGIZE(VK_RENDER_PASS_CONTENTS_SECONDARY_CMD_BUFFERS)
+		TOSTR_CASE_STRINGIZE(VK_SUBPASS_CONTENTS_INLINE)
+		TOSTR_CASE_STRINGIZE(VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS)
 		default: break;
 	}
 	
-	return StringFormat::Fmt("VkRenderPassContents<%d>", el);
+	return StringFormat::Fmt("VkSubpassContents<%d>", el);
 }
 
 template<>
 string ToStrHelper<false, VkImageLayout>::Get(const VkImageLayout &el)
 {
-	// cast to int for WSI enum
-	switch((int)el)
+	switch(el)
 	{
 		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_UNDEFINED)
 		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_GENERAL)
@@ -2033,10 +1928,10 @@ string ToStrHelper<false, VkImageLayout>::Get(const VkImageLayout &el)
 		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
 		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL)
-		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL)
+		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
 		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_PREINITIALIZED)
-		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR)
+		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
 		default: break;
 	}
 	
@@ -2047,56 +1942,61 @@ template<>
 string ToStrHelper<false, VkStructureType>::Get(const VkStructureType &el)
 {
 	// cast to int for WSI enum
-	switch((int)el)
+	switch(el)
 	{
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_APPLICATION_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SUBMIT_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_BIND_SPARSE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_EVENT_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SHADER_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_EVENT_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_RASTER_STATE_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
-    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO)
+    TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO)
 		TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
+		TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
+		TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DISPLAY_MODE_CREATE_INFO_KHR)
+		TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR)
+		TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DISPLAY_PRESENT_INFO_KHR)
 		default: break;
 	}
 
@@ -2104,37 +2004,21 @@ string ToStrHelper<false, VkStructureType>::Get(const VkStructureType &el)
 }
 
 template<>
-string ToStrHelper<false, VkChannelSwizzle>::Get(const VkChannelSwizzle &el)
+string ToStrHelper<false, VkComponentSwizzle>::Get(const VkComponentSwizzle &el)
 {
 	switch(el)
 	{
-		TOSTR_CASE_STRINGIZE(VK_CHANNEL_SWIZZLE_ZERO)
-		TOSTR_CASE_STRINGIZE(VK_CHANNEL_SWIZZLE_ONE)
-		TOSTR_CASE_STRINGIZE(VK_CHANNEL_SWIZZLE_R)
-		TOSTR_CASE_STRINGIZE(VK_CHANNEL_SWIZZLE_G)
-		TOSTR_CASE_STRINGIZE(VK_CHANNEL_SWIZZLE_B)
-		TOSTR_CASE_STRINGIZE(VK_CHANNEL_SWIZZLE_A)
+		TOSTR_CASE_STRINGIZE(VK_COMPONENT_SWIZZLE_IDENTITY)
+		TOSTR_CASE_STRINGIZE(VK_COMPONENT_SWIZZLE_ZERO)
+		TOSTR_CASE_STRINGIZE(VK_COMPONENT_SWIZZLE_ONE)
+		TOSTR_CASE_STRINGIZE(VK_COMPONENT_SWIZZLE_R)
+		TOSTR_CASE_STRINGIZE(VK_COMPONENT_SWIZZLE_G)
+		TOSTR_CASE_STRINGIZE(VK_COMPONENT_SWIZZLE_B)
+		TOSTR_CASE_STRINGIZE(VK_COMPONENT_SWIZZLE_A)
 		default: break;
 	}
 
-	return StringFormat::Fmt("VkChannelSwizzle<%d>", el);
-}
-
-template<>
-string ToStrHelper<false, VkShaderStage>::Get(const VkShaderStage &el)
-{
-	switch(el)
-	{
-		TOSTR_CASE_STRINGIZE(VK_SHADER_STAGE_VERTEX)
-		TOSTR_CASE_STRINGIZE(VK_SHADER_STAGE_TESS_CONTROL)
-		TOSTR_CASE_STRINGIZE(VK_SHADER_STAGE_TESS_EVALUATION)
-		TOSTR_CASE_STRINGIZE(VK_SHADER_STAGE_GEOMETRY)
-		TOSTR_CASE_STRINGIZE(VK_SHADER_STAGE_FRAGMENT)
-		TOSTR_CASE_STRINGIZE(VK_SHADER_STAGE_COMPUTE)
-		default: break;
-	}
-
-	return StringFormat::Fmt("VkShaderStage<%d>", el);
+	return StringFormat::Fmt("VkComponentSwizzle<%d>", el);
 }
 
 template<>
@@ -2143,14 +2027,14 @@ string ToStrHelper<false, VkFormat>::Get(const VkFormat &el)
 	switch(el)
 	{
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_UNDEFINED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R4G4_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R4G4_USCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R4G4B4A4_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R4G4B4A4_USCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R5G6B5_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R5G6B5_USCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R5G5B5A1_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R5G5B5A1_USCALED)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R4G4_UNORM_PACK8)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R4G4B4A4_UNORM_PACK16)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B4G4R4A4_UNORM_PACK16)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R5G6B5_UNORM_PACK16)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B5G6R5_UNORM_PACK16)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R5G5B5A1_UNORM_PACK16)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B5G5R5A1_UNORM_PACK16)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A1R5G5B5_UNORM_PACK16)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8_UNORM)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8_SNORM)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8_USCALED)
@@ -2172,6 +2056,13 @@ string ToStrHelper<false, VkFormat>::Get(const VkFormat &el)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8G8B8_UINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8G8B8_SINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8G8B8_SRGB)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_UNORM)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_SNORM)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_USCALED)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_SSCALED)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_UINT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_SINT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_SRGB)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8G8B8A8_UNORM)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8G8B8A8_SNORM)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8G8B8A8_USCALED)
@@ -2179,12 +2070,32 @@ string ToStrHelper<false, VkFormat>::Get(const VkFormat &el)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8G8B8A8_UINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8G8B8A8_SINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R8G8B8A8_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R10G10B10A2_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R10G10B10A2_SNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R10G10B10A2_USCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R10G10B10A2_SSCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R10G10B10A2_UINT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R10G10B10A2_SINT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_UNORM)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_SNORM)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_USCALED)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_SSCALED)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_UINT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_SINT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_SRGB)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A8B8G8R8_UNORM_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A8B8G8R8_SNORM_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A8B8G8R8_USCALED_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A8B8G8R8_SSCALED_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A8B8G8R8_UINT_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A8B8G8R8_SINT_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A8B8G8R8_SRGB_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2R10G10B10_UNORM_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2R10G10B10_SNORM_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2R10G10B10_USCALED_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2R10G10B10_SSCALED_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2R10G10B10_UINT_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2R10G10B10_SINT_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2B10G10R10_UNORM_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2B10G10R10_SNORM_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2B10G10R10_USCALED_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2B10G10R10_SSCALED_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2B10G10R10_UINT_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_A2B10G10R10_SINT_PACK32)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R16_UNORM)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R16_SNORM)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R16_USCALED)
@@ -2225,97 +2136,81 @@ string ToStrHelper<false, VkFormat>::Get(const VkFormat &el)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R32G32B32A32_UINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R32G32B32A32_SINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R32G32B32A32_SFLOAT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64_UINT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64_SINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64_SFLOAT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64G64_UINT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64G64_SINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64G64_SFLOAT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64G64B64_UINT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64G64B64_SINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64G64B64_SFLOAT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64G64B64A64_UINT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64G64B64A64_SINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_R64G64B64A64_SFLOAT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R11G11B10_UFLOAT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_R9G9B9E5_UFLOAT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_B10G11R11_UFLOAT_PACK32)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_E5B9G9R9_UFLOAT_PACK32)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_D16_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_D24_UNORM_X8)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_X8_D24_UNORM_PACK32)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_D32_SFLOAT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_S8_UINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_D16_UNORM_S8_UINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_D24_UNORM_S8_UINT)
 		TOSTR_CASE_STRINGIZE(VK_FORMAT_D32_SFLOAT_S8_UINT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC1_RGB_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC1_RGB_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC1_RGBA_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC1_RGBA_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC2_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC2_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC3_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC3_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC4_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC4_SNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC5_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC5_SNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC6H_UFLOAT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC6H_SFLOAT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC7_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC7_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8A1_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8A1_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8A8_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8A8_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_EAC_R11_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_EAC_R11_SNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_EAC_R11G11_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_EAC_R11G11_SNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_4x4_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_4x4_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_5x4_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_5x4_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_5x5_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_5x5_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_6x5_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_6x5_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_6x6_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_6x6_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x5_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x5_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x6_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x6_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x8_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x8_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x5_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x5_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x6_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x6_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x8_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x8_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x10_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x10_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_12x10_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_12x10_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_12x12_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_12x12_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B4G4R4A4_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B5G5R5A1_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B5G6R5_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B5G6R5_USCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_SNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_USCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_SSCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_UINT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_SINT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_SNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_USCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_SSCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_UINT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_SINT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B8G8R8A8_SRGB)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B10G10R10A2_UNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B10G10R10A2_SNORM)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B10G10R10A2_USCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B10G10R10A2_SSCALED)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B10G10R10A2_UINT)
-		TOSTR_CASE_STRINGIZE(VK_FORMAT_B10G10R10A2_SINT)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC1_RGB_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC1_RGB_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC1_RGBA_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC1_RGBA_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC2_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC2_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC3_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC3_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC4_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC4_SNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC5_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC5_SNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC6H_UFLOAT_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC6H_SFLOAT_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC7_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_BC7_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_EAC_R11_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_EAC_R11_SNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_EAC_R11G11_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_EAC_R11G11_SNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_4x4_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_4x4_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_5x4_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_5x4_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_5x5_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_5x5_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_6x5_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_6x5_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_6x6_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_6x6_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x5_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x5_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x6_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x6_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x8_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_8x8_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x5_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x5_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x6_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x6_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x8_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x8_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x10_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_10x10_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_12x10_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_12x10_SRGB_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_12x12_UNORM_BLOCK)
+		TOSTR_CASE_STRINGIZE(VK_FORMAT_ASTC_12x12_SRGB_BLOCK)
 		default: break;
 	}
 	
@@ -2367,7 +2262,7 @@ string ToStrHelper<false, VkOffset3D>::Get(const VkOffset3D &el)
 template<>
 string ToStrHelper<false, VkViewport>::Get(const VkViewport &el)
 {
-	return StringFormat::Fmt("VkViewport<%f,%f, %fx%f, %f-%f>", el.originX, el.originY, el.width, el.height, el.minDepth, el.maxDepth);
+	return StringFormat::Fmt("VkViewport<%f,%f, %fx%f, %f-%f>", el.x, el.y, el.width, el.height, el.minDepth, el.maxDepth);
 }
 
 template<>
@@ -2396,39 +2291,40 @@ string ToStrHelper<false, VkAttachmentReference>::Get(const VkAttachmentReferenc
 	return StringFormat::Fmt("VkAttachmentReference<%u, %s>", el.attachment, ToStr::Get(el.layout).c_str());
 }
 
-template<>
-string ToStrHelper<false, VkSurfaceTransformKHR>::Get(const VkSurfaceTransformKHR &el)
-{
-	switch(el)
-	{
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_NONE_KHR)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_ROT90_KHR)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_ROT180_KHR)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_ROT270_KHR)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_KHR)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_ROT90_KHR)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_ROT180_KHR)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_HMIRROR_ROT270_KHR)
-		TOSTR_CASE_STRINGIZE(VK_SURFACE_TRANSFORM_INHERIT_KHR)
-		default: break;
-	}
-
-	return StringFormat::Fmt("VkSurfaceTransformKHR<%d>", el);
-}
+////////////////////////////////////////////////////////////
+// VK_KHR_surface
+////////////////////////////////////////////////////////////
 
 template<>
 string ToStrHelper<false, VkSurfaceTransformFlagBitsKHR>::Get(const VkSurfaceTransformFlagBitsKHR &el)
 {
 	string ret;
 
-	if(el & VK_SURFACE_TRANSFORM_ROT90_BIT_KHR)           ret += " | VK_SURFACE_TRANSFORM_ROT90_BIT_KHR";
-	if(el & VK_SURFACE_TRANSFORM_ROT180_BIT_KHR)          ret += " | VK_SURFACE_TRANSFORM_ROT180_BIT_KHR";
-	if(el & VK_SURFACE_TRANSFORM_ROT270_BIT_KHR)          ret += " | VK_SURFACE_TRANSFORM_ROT270_BIT_KHR";
-	if(el & VK_SURFACE_TRANSFORM_HMIRROR_BIT_KHR)         ret += " | VK_SURFACE_TRANSFORM_HMIRROR_BIT_KHR";
-	if(el & VK_SURFACE_TRANSFORM_HMIRROR_ROT90_BIT_KHR)   ret += " | VK_SURFACE_TRANSFORM_HMIRROR_ROT90_BIT_KHR";
-	if(el & VK_SURFACE_TRANSFORM_HMIRROR_ROT180_BIT_KHR)  ret += " | VK_SURFACE_TRANSFORM_HMIRROR_ROT180_BIT_KHR";
-	if(el & VK_SURFACE_TRANSFORM_HMIRROR_ROT270_BIT_KHR)  ret += " | VK_SURFACE_TRANSFORM_HMIRROR_ROT270_BIT_KHR";
-	if(el & VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR)         ret += " | VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_NONE_BIT_KHR)                          ret += " | VK_SURFACE_TRANSFORM_NONE_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR)                     ret += " | VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR)                    ret += " | VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR)                    ret += " | VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_BIT_KHR)             ret += " | VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90_BIT_KHR)   ret += " | VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180_BIT_KHR)  ret += " | VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270_BIT_KHR)  ret += " | VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270_BIT_KHR";
+	if(el & VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR)                       ret += " | VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkCompositeAlphaFlagBitsKHR>::Get(const VkCompositeAlphaFlagBitsKHR &el)
+{
+	string ret;
+
+	if(el & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)              ret += " | VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR";
+	if(el & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)      ret += " | VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR";
+	if(el & VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR)     ret += " | VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR";
+	if(el & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR)             ret += " | VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -2456,6 +2352,7 @@ string ToStrHelper<false, VkPresentModeKHR>::Get(const VkPresentModeKHR &el)
 		TOSTR_CASE_STRINGIZE(VK_PRESENT_MODE_IMMEDIATE_KHR)
 		TOSTR_CASE_STRINGIZE(VK_PRESENT_MODE_MAILBOX_KHR)
 		TOSTR_CASE_STRINGIZE(VK_PRESENT_MODE_FIFO_KHR)
+		TOSTR_CASE_STRINGIZE(VK_PRESENT_MODE_FIFO_RELAXED_KHR)
 		default: break;
 	}
 
@@ -2513,7 +2410,7 @@ void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el)
 {
 	ScopedContext scope(this, name, "VkDeviceQueueCreateInfo", 0, true);
 	
-	//RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("queueFamilyIndex", el.queueFamilyIndex);
@@ -2891,11 +2788,11 @@ void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el)
 	Serialise("format", el.format);
 	Serialise("channels", el.channels);
 	Serialise("subresourceRange", el.subresourceRange);
-	Serialise("flags", (VkImageViewCreateFlagBits &)el.flags);
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkSparseImageMemoryBindInfo &el)
+void Serialiser::Serialise(const char *name, VkSparseImageMemoryBind &el)
 {
 	Serialise("subresource", el.subresource);
 	Serialise("offset", el.offset);
@@ -2906,12 +2803,12 @@ void Serialiser::Serialise(const char *name, VkSparseImageMemoryBindInfo &el)
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkSparseMemoryBindInfo &el)
+void Serialiser::Serialise(const char *name, VkSparseMemoryBind &el)
 {
-	Serialise("rangeOffset", el.rangeOffset);
-	Serialise("rangeSize", el.rangeSize);
-	Serialise("memOffset", el.memOffset);
-	SerialiseObject(VkDeviceMemory, "mem", el.mem);
+	Serialise("resourceOffset", el.resourceOffset);
+	Serialise("size", el.size);
+	SerialiseObject(VkDeviceMemory, "memory", el.memory);
+	Serialise("memoryOffset", el.memoryOffset);
 	Serialise("flags", (VkSparseMemoryBindFlagBits &)el.flags);
 }
 
@@ -2978,7 +2875,7 @@ void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("pipelineBindPoint", el.pipelineBindPoint);
-	Serialise("flags", (VkSubpassDescriptionFlagBits &)el.flags);
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("depthStencilAttachment", el.depthStencilAttachment);
 
 	if(m_Mode == READING)
@@ -3928,9 +3825,9 @@ void Serialiser::Deserialise(const VkDescriptorSetLayoutCreateInfo* const el) co
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkChannelMapping &el)
+void Serialiser::Serialise(const char *name, VkComponentMapping &el)
 {
-	ScopedContext scope(this, name, "VkChannelMapping", 0, true);
+	ScopedContext scope(this, name, "VkComponentMapping", 0, true);
 
 	Serialise("r", el.r);
 	Serialise("g", el.g);
@@ -4002,15 +3899,6 @@ template<>
 void Serialiser::Serialise(const char *name, VkRect2D &el)
 {
 	ScopedContext scope(this, name, "VkRect2D", 0, true);
-
-	Serialise("offset", el.offset);
-	Serialise("extent", el.extent);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, VkRect3D &el)
-{
-	ScopedContext scope(this, name, "VkRect3D", 0, true);
 
 	Serialise("offset", el.offset);
 	Serialise("extent", el.extent);

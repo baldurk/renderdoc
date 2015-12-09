@@ -66,7 +66,6 @@ struct VkGenericStruct
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) ret func(__VA_ARGS__); bool CONCAT(Serialise_, func(Serialiser *localSerialiser, __VA_ARGS__));
 
 template<> void Serialiser::Serialise(const char *name, VkRect2D &el);
-template<> void Serialiser::Serialise(const char *name, VkRect3D &el);
 template<> void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el);
 template<> void Serialiser::Serialise(const char *name, VkPhysicalDeviceMemoryProperties &el);
@@ -76,8 +75,7 @@ template<> void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkImageCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el);
-template<> void Serialiser::Serialise(const char *name, VkSparseImageMemoryBindInfo &el);
-template<> void Serialiser::Serialise(const char *name, VkSparseMemoryBindInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkBindSparseInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el);
@@ -118,7 +116,7 @@ template<> void Serialiser::Serialise(const char *name, VkBufferMemoryBarrier &e
 template<> void Serialiser::Serialise(const char *name, VkImageMemoryBarrier &el);
 template<> void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el);
-template<> void Serialiser::Serialise(const char *name, VkChannelMapping &el);
+template<> void Serialiser::Serialise(const char *name, VkComponentMapping &el);
 template<> void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkBufferImageCopy &el);
 template<> void Serialiser::Serialise(const char *name, VkBufferCopy &el);
