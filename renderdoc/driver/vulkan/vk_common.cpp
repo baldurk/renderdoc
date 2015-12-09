@@ -947,19 +947,19 @@ PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patch
 		case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN:
 			return eTopology_TriangleFan;
 			break;
-		case VK_PRIMITIVE_TOPOLOGY_LINE_LIST_ADJ:
+		case VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY:
 			return eTopology_LineList_Adj;
 			break;
-		case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_ADJ:
+		case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY:
 			return eTopology_LineStrip_Adj;
 			break;
-		case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_ADJ:
+		case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY:
 			return eTopology_TriangleList_Adj;
 			break;
-		case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_ADJ:
+		case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY:
 			return eTopology_TriangleStrip_Adj;
 			break;
-		case VK_PRIMITIVE_TOPOLOGY_PATCH:
+		case VK_PRIMITIVE_TOPOLOGY_PATCH_LIST:
 			return PrimitiveTopology(eTopology_PatchList_1CPs + patchControlPoints);
 			break;
 	}
@@ -978,13 +978,13 @@ VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo)
 		case eTopology_PointList:           return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 		case eTopology_LineStrip:           return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
 		case eTopology_LineList:            return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-		case eTopology_LineStrip_Adj:       return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_ADJ;
-		case eTopology_LineList_Adj:        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST_ADJ;
+		case eTopology_LineStrip_Adj:       return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+		case eTopology_LineList_Adj:        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
 		case eTopology_TriangleStrip:       return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 		case eTopology_TriangleFan:         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
 		case eTopology_TriangleList:        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		case eTopology_TriangleStrip_Adj:   return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_ADJ;
-		case eTopology_TriangleList_Adj:    return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_ADJ;
+		case eTopology_TriangleStrip_Adj:   return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
+		case eTopology_TriangleList_Adj:    return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
 		case eTopology_PatchList_1CPs:
 		case eTopology_PatchList_2CPs:
 		case eTopology_PatchList_3CPs:
@@ -1017,7 +1017,7 @@ VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo)
 		case eTopology_PatchList_30CPs:
 		case eTopology_PatchList_31CPs:
 		case eTopology_PatchList_32CPs:
-			return VK_PRIMITIVE_TOPOLOGY_PATCH;
+			return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 	}
 
 	return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
