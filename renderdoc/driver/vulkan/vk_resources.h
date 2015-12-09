@@ -531,8 +531,8 @@ struct ImageRegionState
 		: oldLayout(UNKNOWN_PREV_IMG_LAYOUT), newLayout(UNKNOWN_PREV_IMG_LAYOUT)
 	{
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		subresourceRange.baseArrayLayer = 0; subresourceRange.arraySize = 0;
-		subresourceRange.baseMipLevel = 0; subresourceRange.mipLevels = 0;
+		subresourceRange.baseArrayLayer = 0; subresourceRange.layerCount = 0;
+		subresourceRange.baseMipLevel = 0; subresourceRange.levelCount = 0;
 	}
 	ImageRegionState(VkImageSubresourceRange r, VkImageLayout pr, VkImageLayout st)
 	    : subresourceRange(r), oldLayout(pr), newLayout(st) {}
@@ -573,25 +573,25 @@ struct SparseMapping
 	}
 
 	// for buffers or non-sparse-resident images (bound with opaque mappings)
-	vector<VkSparseMemoryBindInfo> opaquemappings;
+	vector<VkSparseMemoryBind> opaquemappings;
 
 	// for sparse resident images:
 	// total image size (in pages)
 	VkExtent3D imgdim;
 	// size of a page
 	VkExtent3D pagedim;
-	// pagetable per image aspect (some may be NULL)
+	// pagetable per image aspect (some may be NULL) color, depth, stencil, metadata
 	// in order of width first, then height, then depth
-	pair<VkDeviceMemory, VkDeviceSize> *pages[VK_IMAGE_ASPECT_NUM];
+	pair<VkDeviceMemory, VkDeviceSize> *pages[4];
 
-	void Update(uint32_t numBindings, const VkSparseImageMemoryBindInfo *pBindings);
-	void Update(uint32_t numBindings, const VkSparseMemoryBindInfo *pBindings);
+	void Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings);
+	void Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings);
 };
 
 struct CmdBufferRecordingInfo
 {
 	VkDevice device;
-	VkCmdBufferCreateInfo createInfo;
+	VkCommandBufferAllocateInfo createInfo;
 
 	vector< pair<ResourceId, ImageRegionState> > imgbarriers;
 
@@ -612,6 +612,15 @@ struct CmdBufferRecordingInfo
 
 struct DescSetLayout;
 
+// the possible contents of a descriptor set slot,
+// taken from the VkWriteDescriptorSet
+struct DescriptorSetSlot
+{
+    VkDescriptorBufferInfo    imageView;
+    VkDescriptorImageInfo     imageLayout;
+    VkBufferView              bufferInfo;
+};
+
 struct DescriptorSetData
 {
 	DescriptorSetData() : layout(NULL) {}
@@ -627,7 +636,7 @@ struct DescriptorSetData
 
 	// descriptor set bindings for this descriptor set. Filled out on
 	// create from the layout.
-	vector<VkDescriptorInfo *> descBindings;
+	vector<DescriptorSetSlot *> descBindings;
 
 	// contains the framerefs (ref counted) for the bound resources
 	// in the binding slots. Updated when updating descriptor sets
