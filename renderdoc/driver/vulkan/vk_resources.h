@@ -54,7 +54,6 @@ enum VkResourceType
 	eResFramebuffer,
 	eResRenderPass,
 	eResShaderModule,
-	eResShader,
 	eResPipelineCache,
 	eResPipelineLayout,
 	eResPipeline,
@@ -283,14 +282,6 @@ struct WrappedVkShaderModule : WrappedVkNonDispRes
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShaderModule, AllocPoolCount);
 	enum { TypeEnum = eResShaderModule, };
 };
-struct WrappedVkShader : WrappedVkNonDispRes
-{
-	WrappedVkShader(VkShader obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
-	typedef VkShader InnerType;
-	static const int AllocPoolCount = 32*1024;
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShader);
-	enum { TypeEnum = eResShader, };
-};
 struct WrappedVkPipelineCache : WrappedVkNonDispRes
 {
 	WrappedVkPipelineCache(VkPipelineCache obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
@@ -412,7 +403,6 @@ UNWRAP_NONDISP_HELPER(VkQueryPool)
 UNWRAP_NONDISP_HELPER(VkBufferView)
 UNWRAP_NONDISP_HELPER(VkImageView)
 UNWRAP_NONDISP_HELPER(VkShaderModule)
-UNWRAP_NONDISP_HELPER(VkShader)
 UNWRAP_NONDISP_HELPER(VkPipelineCache)
 UNWRAP_NONDISP_HELPER(VkPipelineLayout)
 UNWRAP_NONDISP_HELPER(VkRenderPass)
