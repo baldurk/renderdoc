@@ -1094,6 +1094,7 @@ string ToStrHelper<false, VkQueueFlagBits>::Get(const VkQueueFlagBits &el)
 template<>
 string ToStrHelper<false, VkFlagWithNoBits>::Get(const VkFlagWithNoBits &el)
 {
+	if(el != 0) return StringFormat::Fmt("Invalid bits set: %x", el);
 	return "";
 }
 
@@ -1267,6 +1268,19 @@ string ToStrHelper<false, VkCommandBufferUsageFlagBits>::Get(const VkCommandBuff
 }
 
 template<>
+string ToStrHelper<false, VkDescriptorPoolCreateFlagBits>::Get(const VkDescriptorPoolCreateFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)        ret += " | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
 string ToStrHelper<false, VkFenceCreateFlagBits>::Get(const VkFenceCreateFlagBits &el)
 {
 	string ret;
@@ -1348,6 +1362,25 @@ string ToStrHelper<false, VkAttachmentDescriptionFlagBits>::Get(const VkAttachme
 }
 
 template<>
+string ToStrHelper<false, VkSampleCountFlagBits>::Get(const VkSampleCountFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_SAMPLE_COUNT_1_BIT)   ret += " | VK_SAMPLE_COUNT_1_BIT";
+	if(el & VK_SAMPLE_COUNT_2_BIT)   ret += " | VK_SAMPLE_COUNT_2_BIT";
+	if(el & VK_SAMPLE_COUNT_4_BIT)   ret += " | VK_SAMPLE_COUNT_4_BIT";
+	if(el & VK_SAMPLE_COUNT_8_BIT)   ret += " | VK_SAMPLE_COUNT_8_BIT";
+	if(el & VK_SAMPLE_COUNT_16_BIT)  ret += " | VK_SAMPLE_COUNT_16_BIT";
+	if(el & VK_SAMPLE_COUNT_32_BIT)  ret += " | VK_SAMPLE_COUNT_32_BIT";
+	if(el & VK_SAMPLE_COUNT_64_BIT)  ret += " | VK_SAMPLE_COUNT_64_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
 string ToStrHelper<false, VkImageAspectFlagBits>::Get(const VkImageAspectFlagBits &el)
 {
 	string ret;
@@ -1356,6 +1389,19 @@ string ToStrHelper<false, VkImageAspectFlagBits>::Get(const VkImageAspectFlagBit
 	if(el & VK_IMAGE_ASPECT_DEPTH_BIT)    ret += " | VK_IMAGE_ASPECT_DEPTH_BIT";
 	if(el & VK_IMAGE_ASPECT_STENCIL_BIT)  ret += " | VK_IMAGE_ASPECT_STENCIL_BIT";
 	if(el & VK_IMAGE_ASPECT_METADATA_BIT) ret += " | VK_IMAGE_ASPECT_METADATA_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkDependencyFlagBits>::Get(const VkDependencyFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_DEPENDENCY_BY_REGION_BIT)    ret += " | VK_DEPENDENCY_BY_REGION_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -2412,9 +2458,12 @@ void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el)
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
-
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("queueFamilyIndex", el.queueFamilyIndex);
 	Serialise("queueCount", el.queueCount);
+	if(m_Mode == READING) el.pQueuePriorities = NULL;
+	SerialisePODArray("pQueuePriorities", (uint32_t *&)el.pQueuePriorities, el.queueCount);
 }
 
 // technically this doesn't need a serialise function as it's POD,
@@ -2423,7 +2472,7 @@ template<>
 void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 {
 	ScopedContext scope(this, name, "VkPhysicalDeviceFeatures", 0, true);
-
+	
 	Serialise("robustBufferAccess", el.robustBufferAccess);
 	Serialise("fullDrawIndexUint32", el.fullDrawIndexUint32);
 	Serialise("imageCubeArray", el.imageCubeArray);
@@ -2431,28 +2480,31 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 	Serialise("geometryShader", el.geometryShader);
 	Serialise("tessellationShader", el.tessellationShader);
 	Serialise("sampleRateShading", el.sampleRateShading);
-	Serialise("dualSourceBlend", el.dualSourceBlend);
+	Serialise("dualSrcBlend", el.dualSrcBlend);
 	Serialise("logicOp", el.logicOp);
 	Serialise("multiDrawIndirect", el.multiDrawIndirect);
-	Serialise("depthClip", el.depthClip);
+	Serialise("depthClamp", el.depthClamp);
 	Serialise("depthBiasClamp", el.depthBiasClamp);
 	Serialise("fillModeNonSolid", el.fillModeNonSolid);
 	Serialise("depthBounds", el.depthBounds);
 	Serialise("wideLines", el.wideLines);
 	Serialise("largePoints", el.largePoints);
+	Serialise("alphaToOne", el.alphaToOne);
+	Serialise("multiViewport", el.multiViewport);
+	Serialise("samplerAnisotropy", el.samplerAnisotropy);
 	Serialise("textureCompressionETC2", el.textureCompressionETC2);
 	Serialise("textureCompressionASTC_LDR", el.textureCompressionASTC_LDR);
 	Serialise("textureCompressionBC", el.textureCompressionBC);
+	Serialise("occlusionQueryPrecise", el.occlusionQueryPrecise);
 	Serialise("pipelineStatisticsQuery", el.pipelineStatisticsQuery);
-	Serialise("vertexSideEffects", el.vertexSideEffects);
-	Serialise("tessellationSideEffects", el.tessellationSideEffects);
-	Serialise("geometrySideEffects", el.geometrySideEffects);
-	Serialise("fragmentSideEffects", el.fragmentSideEffects);
-	Serialise("shaderTessellationPointSize", el.shaderTessellationPointSize);
-	Serialise("shaderGeometryPointSize", el.shaderGeometryPointSize);
-	Serialise("shaderTextureGatherExtended", el.shaderImageGatherExtended);
+	Serialise("vertexPipelineStoresAndAtomics", el.vertexPipelineStoresAndAtomics);
+	Serialise("fragmentStoresAndAtomics", el.fragmentStoresAndAtomics);
+	Serialise("shaderTessellationAndGeometryPointSize", el.shaderTessellationAndGeometryPointSize);
+	Serialise("shaderImageGatherExtended", el.shaderImageGatherExtended);
 	Serialise("shaderStorageImageExtendedFormats", el.shaderStorageImageExtendedFormats);
 	Serialise("shaderStorageImageMultisample", el.shaderStorageImageMultisample);
+	Serialise("shaderStorageImageReadWithoutFormat", el.shaderStorageImageReadWithoutFormat);
+	Serialise("shaderStorageImageWriteWithoutFormat", el.shaderStorageImageWriteWithoutFormat);
 	Serialise("shaderUniformBufferArrayDynamicIndexing", el.shaderUniformBufferArrayDynamicIndexing);
 	Serialise("shaderSampledImageArrayDynamicIndexing", el.shaderSampledImageArrayDynamicIndexing);
 	Serialise("shaderStorageBufferArrayDynamicIndexing", el.shaderStorageBufferArrayDynamicIndexing);
@@ -2463,8 +2515,7 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 	Serialise("shaderInt64", el.shaderInt64);
 	Serialise("shaderInt16", el.shaderInt16);
 	Serialise("shaderResourceResidency", el.shaderResourceResidency);
-	Serialise("shaderResourceMinLOD", el.shaderResourceMinLOD);
-	Serialise("alphaToOne", el.alphaToOne);
+	Serialise("shaderResourceMinLod", el.shaderResourceMinLod);
 	Serialise("sparseBinding", el.sparseBinding);
 	Serialise("sparseResidencyBuffer", el.sparseResidencyBuffer);
 	Serialise("sparseResidencyImage2D", el.sparseResidencyImage2D);
@@ -2474,6 +2525,7 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 	Serialise("sparseResidency8Samples", el.sparseResidency8Samples);
 	Serialise("sparseResidency16Samples", el.sparseResidency16Samples);
 	Serialise("sparseResidencyAliased", el.sparseResidencyAliased);
+	Serialise("variableMultisampleRate", el.variableMultisampleRate);
 }
 
 template<>
@@ -2498,21 +2550,22 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceLimits &el)
 	Serialise("maxImageDimension3D", el.maxImageDimension3D);
 	Serialise("maxImageDimensionCube", el.maxImageDimensionCube);
 	Serialise("maxImageArrayLayers", el.maxImageArrayLayers);
-	Serialise("sampleCounts", el.sampleCounts);
-	Serialise("maxTexelBufferSize", el.maxTexelBufferSize);
-	Serialise("maxUniformBufferSize", el.maxUniformBufferSize);
-	Serialise("maxStorageBufferSize", el.maxStorageBufferSize);
+	Serialise("maxTexelBufferElements", el.maxTexelBufferElements);
+	Serialise("maxUniformBufferRange", el.maxUniformBufferRange);
+	Serialise("maxStorageBufferRange", el.maxStorageBufferRange);
 	Serialise("maxPushConstantsSize", el.maxPushConstantsSize);
 	Serialise("maxMemoryAllocationCount", el.maxMemoryAllocationCount);
+	Serialise("maxSamplerAllocationCount", el.maxSamplerAllocationCount);
 	Serialise("bufferImageGranularity", el.bufferImageGranularity);
 	Serialise("sparseAddressSpaceSize", el.sparseAddressSpaceSize);
 	Serialise("maxBoundDescriptorSets", el.maxBoundDescriptorSets);
-	Serialise("maxDescriptorSets", el.maxDescriptorSets);
 	Serialise("maxPerStageDescriptorSamplers", el.maxPerStageDescriptorSamplers);
 	Serialise("maxPerStageDescriptorUniformBuffers", el.maxPerStageDescriptorUniformBuffers);
 	Serialise("maxPerStageDescriptorStorageBuffers", el.maxPerStageDescriptorStorageBuffers);
 	Serialise("maxPerStageDescriptorSampledImages", el.maxPerStageDescriptorSampledImages);
 	Serialise("maxPerStageDescriptorStorageImages", el.maxPerStageDescriptorStorageImages);
+	Serialise("maxPerStageDescriptorInputAttachments", el.maxPerStageDescriptorInputAttachments);
+	Serialise("maxPerStageResources", el.maxPerStageResources);
 	Serialise("maxDescriptorSetSamplers", el.maxDescriptorSetSamplers);
 	Serialise("maxDescriptorSetUniformBuffers", el.maxDescriptorSetUniformBuffers);
 	Serialise("maxDescriptorSetUniformBuffersDynamic", el.maxDescriptorSetUniformBuffersDynamic);
@@ -2520,27 +2573,28 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceLimits &el)
 	Serialise("maxDescriptorSetStorageBuffersDynamic", el.maxDescriptorSetStorageBuffersDynamic);
 	Serialise("maxDescriptorSetSampledImages", el.maxDescriptorSetSampledImages);
 	Serialise("maxDescriptorSetStorageImages", el.maxDescriptorSetStorageImages);
+	Serialise("maxDescriptorSetInputAttachments", el.maxDescriptorSetInputAttachments);
 	Serialise("maxVertexInputAttributes", el.maxVertexInputAttributes);
 	Serialise("maxVertexInputBindings", el.maxVertexInputBindings);
 	Serialise("maxVertexInputAttributeOffset", el.maxVertexInputAttributeOffset);
 	Serialise("maxVertexInputBindingStride", el.maxVertexInputBindingStride);
 	Serialise("maxVertexOutputComponents", el.maxVertexOutputComponents);
-	Serialise("maxTessGenLevel", el.maxTessGenLevel);
-	Serialise("maxTessPatchSize", el.maxTessPatchSize);
-	Serialise("maxTessControlPerVertexInputComponents", el.maxTessControlPerVertexInputComponents);
-	Serialise("maxTessControlPerVertexOutputComponents", el.maxTessControlPerVertexOutputComponents);
-	Serialise("maxTessControlPerPatchOutputComponents", el.maxTessControlPerPatchOutputComponents);
-	Serialise("maxTessControlTotalOutputComponents", el.maxTessControlTotalOutputComponents);
-	Serialise("maxTessEvaluationInputComponents", el.maxTessEvaluationInputComponents);
-	Serialise("maxTessEvaluationOutputComponents", el.maxTessEvaluationOutputComponents);
+	Serialise("maxTessellationGenerationLevel", el.maxTessellationGenerationLevel);
+	Serialise("maxTessellationPatchSize", el.maxTessellationPatchSize);
+	Serialise("maxTessellationControlPerVertexInputComponents", el.maxTessellationControlPerVertexInputComponents);
+	Serialise("maxTessellationControlPerVertexOutputComponents", el.maxTessellationControlPerVertexOutputComponents);
+	Serialise("maxTessellationControlPerPatchOutputComponents", el.maxTessellationControlPerPatchOutputComponents);
+	Serialise("maxTessellationControlTotalOutputComponents", el.maxTessellationControlTotalOutputComponents);
+	Serialise("maxTessellationEvaluationInputComponents", el.maxTessellationEvaluationInputComponents);
+	Serialise("maxTessellationEvaluationOutputComponents", el.maxTessellationEvaluationOutputComponents);
 	Serialise("maxGeometryShaderInvocations", el.maxGeometryShaderInvocations);
 	Serialise("maxGeometryInputComponents", el.maxGeometryInputComponents);
 	Serialise("maxGeometryOutputComponents", el.maxGeometryOutputComponents);
 	Serialise("maxGeometryOutputVertices", el.maxGeometryOutputVertices);
 	Serialise("maxGeometryTotalOutputComponents", el.maxGeometryTotalOutputComponents);
 	Serialise("maxFragmentInputComponents", el.maxFragmentInputComponents);
-	Serialise("maxFragmentOutputBuffers", el.maxFragmentOutputBuffers);
-	Serialise("maxFragmentDualSourceBuffers", el.maxFragmentDualSourceBuffers);
+	Serialise("maxFragmentOutputAttachments", el.maxFragmentOutputAttachments);
+	Serialise("maxFragmentDualSrcAttachments", el.maxFragmentDualSrcAttachments);
 	Serialise("maxFragmentCombinedOutputResources", el.maxFragmentCombinedOutputResources);
 	Serialise("maxComputeSharedMemorySize", el.maxComputeSharedMemorySize);
 	SerialisePODArray<3>("maxComputeWorkGroupCount", el.maxComputeWorkGroupCount);
@@ -2550,8 +2604,7 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceLimits &el)
 	Serialise("subTexelPrecisionBits", el.subTexelPrecisionBits);
 	Serialise("mipmapPrecisionBits", el.mipmapPrecisionBits);
 	Serialise("maxDrawIndexedIndexValue", el.maxDrawIndexedIndexValue);
-	Serialise("maxDrawIndirectInstanceCount", el.maxDrawIndirectInstanceCount);
-	Serialise("primitiveRestartForPatches", el.primitiveRestartForPatches);
+	Serialise("maxDrawIndirectCount", el.maxDrawIndirectCount);
 	Serialise("maxSamplerLodBias", el.maxSamplerLodBias);
 	Serialise("maxSamplerAnisotropy", el.maxSamplerAnisotropy);
 	Serialise("maxViewports", el.maxViewports);
@@ -2572,23 +2625,31 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceLimits &el)
 	Serialise("maxFramebufferWidth", el.maxFramebufferWidth);
 	Serialise("maxFramebufferHeight", el.maxFramebufferHeight);
 	Serialise("maxFramebufferLayers", el.maxFramebufferLayers);
-	Serialise("maxFramebufferColorSamples", el.maxFramebufferColorSamples);
-	Serialise("maxFramebufferDepthSamples", el.maxFramebufferDepthSamples);
-	Serialise("maxFramebufferStencilSamples", el.maxFramebufferStencilSamples);
+	Serialise("framebufferColorSampleCounts", el.framebufferColorSampleCounts);
+	Serialise("framebufferDepthSampleCounts", el.framebufferDepthSampleCounts);
+	Serialise("framebufferStencilSampleCounts", el.framebufferStencilSampleCounts);
+	Serialise("framebufferNoAttachmentsSampleCounts", el.framebufferNoAttachmentsSampleCounts);
 	Serialise("maxColorAttachments", el.maxColorAttachments);
-	Serialise("maxSampledImageColorSamples", el.maxSampledImageColorSamples);
-	Serialise("maxSampledImageDepthSamples", el.maxSampledImageDepthSamples);
-	Serialise("maxSampledImageIntegerSamples", el.maxSampledImageIntegerSamples);
-	Serialise("maxStorageImageSamples", el.maxStorageImageSamples);
+	Serialise("sampledImageColorSampleCounts", el.sampledImageColorSampleCounts);
+	Serialise("sampledImageIntegerSampleCounts", el.sampledImageIntegerSampleCounts);
+	Serialise("sampledImageDepthSampleCounts", el.sampledImageDepthSampleCounts);
+	Serialise("sampledImageStencilSampleCounts", el.sampledImageStencilSampleCounts);
+	Serialise("storageImageSampleCounts", el.storageImageSampleCounts);
 	Serialise("maxSampleMaskWords", el.maxSampleMaskWords);
-	Serialise("timestampFrequency", el.timestampFrequency);
+	Serialise("timestampPeriod", el.timestampPeriod);
 	Serialise("maxClipDistances", el.maxClipDistances);
 	Serialise("maxCullDistances", el.maxCullDistances);
 	Serialise("maxCombinedClipAndCullDistances", el.maxCombinedClipAndCullDistances);
+	Serialise("discreteQueuePriorities", el.discreteQueuePriorities);
 	SerialisePODArray<2>("pointSizeRange", el.pointSizeRange);
 	SerialisePODArray<2>("lineWidthRange", el.lineWidthRange);
 	Serialise("pointSizeGranularity", el.pointSizeGranularity);
 	Serialise("lineWidthGranularity", el.lineWidthGranularity);
+	Serialise("strictLines", el.strictLines);
+	Serialise("standardSampleLocations", el.standardSampleLocations);
+	Serialise("optimalBufferCopyOffsetAlignment", el.optimalBufferCopyOffsetAlignment);
+	Serialise("optimalBufferCopyRowPitchAlignment", el.optimalBufferCopyRowPitchAlignment);
+	Serialise("nonCoherentAtomSize", el.nonCoherentAtomSize);
 }
 
 template<>
@@ -2597,10 +2658,9 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceSparseProperties &e
 	ScopedContext scope(this, name, "VkPhysicalDeviceSparseProperties", 0, true);
 	
 	Serialise("residencyStandard2DBlockShape", el.residencyStandard2DBlockShape);
-	Serialise("residencyStandard2DMSBlockShape", el.residencyStandard2DMSBlockShape);
+	Serialise("residencyStandard2DMultisampleBlockShape", el.residencyStandard2DMultisampleBlockShape);
 	Serialise("residencyStandard3DBlockShape", el.residencyStandard3DBlockShape);
 	Serialise("residencyAlignedMipSize", el.residencyAlignedMipSize);
-	Serialise("residencyNonResident", el.residencyNonResident);
 	Serialise("residencyNonResidentStrict", el.residencyNonResidentStrict);
 }
 
@@ -2611,8 +2671,8 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceProperties &el)
 	
 	Serialise("apiVersion", el.apiVersion);
 	Serialise("driverVersion", el.driverVersion);
-	Serialise("vendorId", el.vendorId);
-	Serialise("deviceId", el.deviceId);
+	Serialise("vendorID", el.vendorID);
+	Serialise("deviceID", el.deviceID);
 	Serialise("deviceType", el.deviceType);
 
 	string deviceName = el.deviceName;
@@ -2620,10 +2680,10 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceProperties &el)
 	if(m_Mode == READING)
 	{
 		RDCEraseEl(el.deviceName);
-		memcpy(el.deviceName, deviceName.c_str(), RDCMIN(deviceName.size(), (size_t)VK_MAX_PHYSICAL_DEVICE_NAME));
+		memcpy(el.deviceName, deviceName.c_str(), RDCMIN(deviceName.size(), (size_t)VK_MAX_PHYSICAL_DEVICE_NAME_SIZE));
 	}
 
-	SerialisePODArray<VK_UUID_LENGTH>("pipelineCacheUUID", el.pipelineCacheUUID);
+	SerialisePODArray<VK_UUID_SIZE>("pipelineCacheUUID", el.pipelineCacheUUID);
 	Serialise("limits", el.limits);
 	Serialise("sparseProperties", el.sparseProperties);
 }
@@ -2635,18 +2695,19 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
-
-	SerialiseComplexArray("pRequestedQueues", (VkDeviceQueueCreateInfo *&)el.pRequestedQueues, el.queueRecordCount);
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
+	SerialiseComplexArray("pQueueCreateInfos", (VkDeviceQueueCreateInfo *&)el.pQueueCreateInfos, el.queueCreateInfoCount);
 
 	// need to do this by hand to use string DB
-	Serialise("extensionCount", el.extensionCount);
+	Serialise("extensionCount", el.enabledExtensionNameCount);
 	
 	if(m_Mode == READING)
-		el.ppEnabledExtensionNames = el.extensionCount ? new char*[el.extensionCount] : NULL;
+		el.ppEnabledExtensionNames = el.enabledExtensionNameCount ? new char*[el.enabledExtensionNameCount] : NULL;
 	
 	// cast away const on array so we can assign to it on reading
 	const char **exts = (const char **)el.ppEnabledExtensionNames;
-	for(uint32_t i=0; i < el.extensionCount; i++)
+	for(uint32_t i=0; i < el.enabledExtensionNameCount; i++)
 	{
 		string s = "";
 		if(m_Mode == WRITING && exts[i] != NULL)
@@ -2662,14 +2723,14 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	}
 
 	// need to do this by hand to use string DB
-	Serialise("layerCount", el.layerCount);
+	Serialise("layerCount", el.enabledLayerNameCount);
 	
 	if(m_Mode == READING)
-		el.ppEnabledLayerNames = el.layerCount ? new char*[el.layerCount] : NULL;
+		el.ppEnabledLayerNames = el.enabledLayerNameCount ? new char*[el.enabledLayerNameCount] : NULL;
 	
 	// cast away const on array so we can assign to it on reading
 	const char **layers = (const char **)el.ppEnabledLayerNames;
-	for(uint32_t i=0; i < el.layerCount; i++)
+	for(uint32_t i=0; i < el.enabledLayerNameCount; i++)
 	{
 		string s = "";
 		if(m_Mode == WRITING && layers[i] != NULL)
@@ -2687,15 +2748,13 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	SerialiseOptionalObject(this, "pEnabledFeatures", (VkPhysicalDeviceFeatures *&)el.pEnabledFeatures);
 }
 
-//template <> class Serialiser::Deserialise<VkDeviceCreateInfo>;
-
 template<>
 void Serialiser::Deserialise(const VkDeviceCreateInfo* const el) const
 {
 	if(m_Mode == READING)
 	{
 		RDCASSERT(el->pNext == NULL); // otherwise delete
-		delete [] el->pRequestedQueues;
+		delete [] el->pQueueCreateInfos;
 		delete el->ppEnabledExtensionNames;
 		delete el->ppEnabledLayerNames;
 		delete el->pEnabledFeatures;
@@ -2709,13 +2768,13 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
-
+	
+	Serialise("flags", (VkBufferCreateFlagBits &)el.flags);
 	Serialise("size", el.size);
 	Serialise("usage", (VkBufferUsageFlagBits &)el.usage);
-	Serialise("flags", (VkBufferCreateFlagBits &)el.flags);
 	Serialise("sharingMode", el.sharingMode);
 	if(m_Mode == READING) el.pQueueFamilyIndices = NULL;
-	SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices, el.queueFamilyCount);
+	SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices, el.queueFamilyIndexCount);
 }
 
 template<>
@@ -2735,7 +2794,8 @@ void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el)
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
-
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	SerialiseObject(VkBuffer, "buffer", el.buffer);
 	Serialise("format", el.format);
 	Serialise("offset", el.offset);
@@ -2750,18 +2810,18 @@ void Serialiser::Serialise(const char *name, VkImageCreateInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
+	Serialise("flags", (VkImageCreateFlagBits &)el.flags);
 	Serialise("imageType", el.imageType);
 	Serialise("format", el.format);
 	Serialise("extent", el.extent);
 	Serialise("mipLevels", el.mipLevels);
-	Serialise("arraySize", el.arraySize);
+	Serialise("arraySize", el.arrayLayers);
 	Serialise("samples", el.samples);
 	Serialise("tiling", el.tiling);
 	Serialise("usage", (VkImageUsageFlagBits &)el.usage);
-	Serialise("flags", (VkImageCreateFlagBits &)el.flags);
 	Serialise("sharingMode", el.sharingMode);
 	if(m_Mode == READING) el.pQueueFamilyIndices = NULL;
-	SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices, el.queueFamilyCount);
+	SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices, el.queueFamilyIndexCount);
 	Serialise("initialLayout", el.initialLayout);
 }
 
@@ -2783,33 +2843,124 @@ void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	SerialiseObject(VkImage, "image", el.image);
 	Serialise("viewType", el.viewType);
 	Serialise("format", el.format);
-	Serialise("channels", el.channels);
+	Serialise("components", el.components);
 	Serialise("subresourceRange", el.subresourceRange);
-	Serialise("flags", (VkFlagWithNoBits &)el.flags);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, VkSparseImageMemoryBind &el)
-{
-	Serialise("subresource", el.subresource);
-	Serialise("offset", el.offset);
-	Serialise("extent", el.extent);
-	Serialise("memOffset", el.memOffset);
-	SerialiseObject(VkDeviceMemory, "mem", el.mem);
-	Serialise("flags", (VkSparseMemoryBindFlagBits &)el.flags);
 }
 
 template<>
 void Serialiser::Serialise(const char *name, VkSparseMemoryBind &el)
 {
+	ScopedContext scope(this, name, "VkSparseMemoryBind", 0, true);
+	
 	Serialise("resourceOffset", el.resourceOffset);
 	Serialise("size", el.size);
 	SerialiseObject(VkDeviceMemory, "memory", el.memory);
 	Serialise("memoryOffset", el.memoryOffset);
 	Serialise("flags", (VkSparseMemoryBindFlagBits &)el.flags);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkSparseBufferMemoryBindInfo &el)
+{
+	ScopedContext scope(this, name, "VkSparseBufferMemoryBindInfo", 0, true);
+	
+	SerialiseObject(VkBuffer, "buffer", el.buffer);
+	SerialiseComplexArray("pBinds", (VkSparseMemoryBind *&)el.pBinds, el.bindCount);
+}
+
+template<>
+void Serialiser::Deserialise(const VkSparseBufferMemoryBindInfo* const el) const
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pBinds;
+	}
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkSparseImageOpaqueMemoryBindInfo &el)
+{
+	ScopedContext scope(this, name, "VkSparseImageOpaqueMemoryBindInfo", 0, true);
+	
+	SerialiseObject(VkImage, "image", el.image);
+	SerialiseComplexArray("pBinds", (VkSparseMemoryBind *&)el.pBinds, el.bindCount);
+}
+
+template<>
+void Serialiser::Deserialise(const VkSparseImageOpaqueMemoryBindInfo* const el) const
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pBinds;
+	}
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkSparseImageMemoryBind &el)
+{
+	ScopedContext scope(this, name, "VkSparseImageMemoryBind", 0, true);
+	
+	Serialise("subresource", el.subresource);
+	Serialise("offset", el.offset);
+	Serialise("extent", el.extent);
+	SerialiseObject(VkDeviceMemory, "memory", el.memory);
+	Serialise("memoryOffset", el.memoryOffset);
+	Serialise("flags", (VkSparseMemoryBindFlagBits &)el.flags);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkBindSparseInfo &el)
+{
+	ScopedContext scope(this, name, "VkBindSparseInfo", 0, true);
+	
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BIND_SPARSE_INFO);
+	SerialiseNext(this, el.sType, el.pNext);
+
+	// do this one by hand because it's an array of objects that aren't Serialise
+	// overloaded
+	Serialise("waitSemaphoreCount", el.waitSemaphoreCount);
+
+	if(m_Mode == READING)
+		el.pWaitSemaphores = el.waitSemaphoreCount ? new VkSemaphore[el.waitSemaphoreCount] : NULL;
+
+	VkSemaphore *waitsems = (VkSemaphore *)el.pWaitSemaphores;
+	for(uint32_t i=0; i < el.waitSemaphoreCount; i++)
+		SerialiseObject(VkSemaphore, "pWaitSemaphores", waitsems[i]);
+	
+	SerialiseComplexArray("pBufferBinds", (VkSparseBufferMemoryBindInfo *&)el.pBufferBinds, el.bufferBindCount);
+	SerialiseComplexArray("pImageOpaqueBinds", (VkSparseImageOpaqueMemoryBindInfo *&)el.pImageOpaqueBinds, el.imageOpaqueBindCount);
+	SerialiseComplexArray("pImageBinds", (VkSparseImageMemoryBindInfo *&)el.pImageBinds, el.imageBindCount);
+
+	// do this one by hand because it's an array of objects that aren't Serialise
+	// overloaded
+	Serialise("signalSemaphoreCount", el.signalSemaphoreCount);
+
+	if(m_Mode == READING)
+		el.pSignalSemaphores = el.signalSemaphoreCount ? new VkSemaphore[el.signalSemaphoreCount] : NULL;
+
+	VkSemaphore *sigsems = (VkSemaphore *)el.pSignalSemaphores;
+	for(uint32_t i=0; i < el.signalSemaphoreCount; i++)
+		SerialiseObject(VkSemaphore, "pSignalSemaphores", sigsems[i]);
+}
+
+template<>
+void Serialiser::Deserialise(const VkBindSparseInfo* const el) const
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pWaitSemaphores;
+		delete [] el->pBufferBinds;
+		delete [] el->pImageOpaqueBinds;
+		delete [] el->pImageBinds;
+		delete [] el->pSignalSemaphores;
+	}
 }
 
 template<>
@@ -2820,6 +2971,7 @@ void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
 	Serialise("width", el.width);
 	Serialise("height", el.height);
@@ -2852,9 +3004,7 @@ void Serialiser::Serialise(const char *name, VkAttachmentDescription &el)
 {
 	ScopedContext scope(this, name, "VkAttachmentDescription", 0, true);
 	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION);
-	SerialiseNext(this, el.sType, el.pNext);
-	
+	Serialise("flags", (VkAttachmentDescriptionFlagBits &)el.flags);
 	Serialise("format", el.format);
 	Serialise("samples", el.samples);
 	Serialise("loadOp", el.loadOp);
@@ -2863,7 +3013,6 @@ void Serialiser::Serialise(const char *name, VkAttachmentDescription &el)
 	Serialise("stencilStoreOp", el.stencilStoreOp);
 	Serialise("initialLayout", el.initialLayout);
 	Serialise("finalLayout", el.finalLayout);
-	Serialise("flags", (VkAttachmentDescriptionFlagBits &)el.flags);
 }
 
 template<>
@@ -2871,12 +3020,9 @@ void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 {
 	ScopedContext scope(this, name, "VkSubpassDescription", 0, true);
 	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION);
-	SerialiseNext(this, el.sType, el.pNext);
-	
-	Serialise("pipelineBindPoint", el.pipelineBindPoint);
 	Serialise("flags", (VkFlagWithNoBits &)el.flags);
-	Serialise("depthStencilAttachment", el.depthStencilAttachment);
+	Serialise("pipelineBindPoint", el.pipelineBindPoint);
+	SerialiseOptionalObject(this, "pDepthStencilAttachment", (VkAttachmentReference *&)el.pDepthStencilAttachment);
 
 	if(m_Mode == READING)
 	{
@@ -2886,16 +3032,16 @@ void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 		el.pPreserveAttachments = NULL;
 	}
 	
-	SerialisePODArray("inputAttachments", (VkAttachmentReference *&)el.pInputAttachments, el.inputCount);
-	SerialisePODArray("colorAttachments", (VkAttachmentReference *&)el.pColorAttachments, el.colorCount);
+	SerialisePODArray("inputAttachments", (VkAttachmentReference *&)el.pInputAttachments, el.inputAttachmentCount);
+	SerialisePODArray("colorAttachments", (VkAttachmentReference *&)el.pColorAttachments, el.colorAttachmentCount);
 
 	bool hasResolves = (el.pResolveAttachments != NULL);
 	Serialise("hasResolves", hasResolves);
 
 	if(hasResolves)
-		SerialisePODArray("resolveAttachments", (VkAttachmentReference *&)el.pResolveAttachments, el.colorCount);
+		SerialisePODArray("resolveAttachments", (VkAttachmentReference *&)el.pResolveAttachments, el.colorAttachmentCount);
 	
-	SerialisePODArray("preserveAttachments", (VkAttachmentReference *&)el.pPreserveAttachments, el.preserveCount);
+	SerialisePODArray("preserveAttachments", (VkAttachmentReference *&)el.pPreserveAttachments, el.preserveAttachmentCount);
 }
 
 template<>
@@ -2903,16 +3049,13 @@ void Serialiser::Serialise(const char *name, VkSubpassDependency &el)
 {
 	ScopedContext scope(this, name, "VkSubpassDependency", 0, true);
 	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY);
-	SerialiseNext(this, el.sType, el.pNext);
-	
 	Serialise("srcSubpass", el.srcSubpass);
-	Serialise("destSubpass", el.destSubpass);
+	Serialise("destSubpass", el.dstSubpass);
 	Serialise("srcStageMask", el.srcStageMask);
-	Serialise("destStageMask", el.destStageMask);
-	Serialise("outputMask", el.outputMask);
-	Serialise("inputMask", el.inputMask);
-	Serialise("byRegion", el.byRegion);
+	Serialise("destStageMask", el.dstStageMask);
+	Serialise("srcAccessMask", el.srcAccessMask);
+	Serialise("dstAccessMask", el.dstAccessMask);
+	Serialise("dependencyFlags", (VkDependencyFlagBits &)el.dependencyFlags);
 }
 
 template<>
@@ -2922,7 +3065,8 @@ void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el)
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
-
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	SerialiseComplexArray("pAttachments", (VkAttachmentDescription *&)el.pAttachments, el.attachmentCount);
 	SerialiseComplexArray("pSubpasses", (VkSubpassDescription *&)el.pSubpasses, el.subpassCount);
 	SerialiseComplexArray("pDependencies", (VkSubpassDependency *&)el.pDependencies, el.dependencyCount);
@@ -2989,8 +3133,8 @@ void Serialiser::Serialise(const char *name, VkVertexInputBindingDescription &el
 	ScopedContext scope(this, name, "VkVertexInputBindingDescription", 0, true);
 	
 	Serialise("binding", el.binding);
-	Serialise("strideInBytes", el.strideInBytes);
-	Serialise("stepRate", el.stepRate);
+	Serialise("strideInBytes", el.stride);
+	Serialise("inputRate", el.inputRate);
 }
 
 template<>
@@ -3001,7 +3145,7 @@ void Serialiser::Serialise(const char *name, VkVertexInputAttributeDescription &
 	Serialise("location", el.location);
 	Serialise("binding", el.binding);
 	Serialise("format", el.format);
-	Serialise("offsetInBytes", el.offsetInBytes);
+	Serialise("offset", el.offset);
 }
 
 template<>
@@ -3012,8 +3156,9 @@ void Serialiser::Serialise(const char *name, VkPipelineVertexInputStateCreateInf
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
-	SerialiseComplexArray("pVertexBindingDescriptions", (VkVertexInputBindingDescription *&)el.pVertexBindingDescriptions, el.bindingCount);
-	SerialiseComplexArray("pVertexAttributeDescriptions", (VkVertexInputAttributeDescription *&)el.pVertexAttributeDescriptions, el.attributeCount);
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
+	SerialiseComplexArray("pVertexBindingDescriptions", (VkVertexInputBindingDescription *&)el.pVertexBindingDescriptions, el.vertexBindingDescriptionCount);
+	SerialiseComplexArray("pVertexAttributeDescriptions", (VkVertexInputAttributeDescription *&)el.pVertexAttributeDescriptions, el.vertexAttributeDescriptionCount);
 }
 
 template<>
@@ -3024,6 +3169,7 @@ void Serialiser::Serialise(const char *name, VkPipelineInputAssemblyStateCreateI
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("topology", el.topology);
 	Serialise("primitiveRestartEnable", el.primitiveRestartEnable);
 }
@@ -3036,6 +3182,7 @@ void Serialiser::Serialise(const char *name, VkPipelineTessellationStateCreateIn
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("patchControlPoints", el.patchControlPoints);
 }
 
@@ -3047,6 +3194,8 @@ void Serialiser::Serialise(const char *name, VkPipelineViewportStateCreateInfo &
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
+
 	if(m_Mode == READING)
 	{
 		el.pViewports = NULL;
@@ -3072,22 +3221,23 @@ void Serialiser::Serialise(const char *name, VkPipelineViewportStateCreateInfo &
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkPipelineRasterStateCreateInfo &el)
+void Serialiser::Serialise(const char *name, VkPipelineRasterizationStateCreateInfo &el)
 {
 	ScopedContext scope(this, name, "VkPipelineRasterStateCreateInfo", 0, true);
 	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_RASTER_STATE_CREATE_INFO);
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
-	Serialise("depthClipEnable", el.depthClipEnable);
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
+	Serialise("depthClampEnable", el.depthClampEnable);
 	Serialise("rasterizerDiscardEnable", el.rasterizerDiscardEnable);
-	Serialise("fillMode", el.fillMode);
+	Serialise("polygonMode", el.polygonMode);
 	Serialise("cullMode", el.cullMode);
 	Serialise("frontFace", el.frontFace);
 	Serialise("depthBiasEnable", el.depthBiasEnable);
-	Serialise("depthBias", el.depthBias);
+	Serialise("depthBiasConstantFactor", el.depthBiasConstantFactor);
 	Serialise("depthBiasClamp", el.depthBiasClamp);
-	Serialise("slopeScaledDepthBias", el.slopeScaledDepthBias);
+	Serialise("depthBiasSlopeFactor", el.depthBiasSlopeFactor);
 	Serialise("lineWidth", el.lineWidth);
 }
 
@@ -3098,12 +3248,15 @@ void Serialiser::Serialise(const char *name, VkPipelineMultisampleStateCreateInf
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
-
-	Serialise("rasterSamples", el.rasterSamples);
-	RDCASSERT(el.rasterSamples <= 32);
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
+	Serialise("rasterizationSamples", el.rasterizationSamples);
+	RDCASSERT(el.rasterizationSamples <= VK_SAMPLE_COUNT_32_BIT);
 	Serialise("sampleShadingEnable", el.sampleShadingEnable);
 	Serialise("minSampleShading", el.minSampleShading);
 	SerialiseOptionalObject(this, "sampleMask", (VkSampleMask *&)el.pSampleMask);
+	Serialise("alphaToCoverageEnable", el.alphaToCoverageEnable);
+	Serialise("alphaToOneEnable", el.alphaToOneEnable);
 }
 
 template<>
@@ -3112,13 +3265,13 @@ void Serialiser::Serialise(const char *name, VkPipelineColorBlendAttachmentState
 	ScopedContext scope(this, name, "VkPipelineColorBlendAttachmentState", 0, true);
 
 	Serialise("blendEnable", el.blendEnable);
-	Serialise("srcBlendColor", el.srcBlendColor);
-	Serialise("destBlendColor", el.destBlendColor);
-	Serialise("blendOpColor", el.blendOpColor);
-	Serialise("srcBlendAlpha", el.srcBlendAlpha);
-	Serialise("destBlendAlpha", el.destBlendAlpha);
-	Serialise("blendOpAlpha", el.blendOpAlpha);
-	Serialise("channelWriteMask", el.channelWriteMask);
+	Serialise("srcColorBlendFactor", el.srcColorBlendFactor);
+	Serialise("dstColorBlendFactor", el.dstColorBlendFactor);
+	Serialise("colorBlendOp", el.colorBlendOp);
+	Serialise("srcAlphaBlendFactor", el.srcAlphaBlendFactor);
+	Serialise("dstAlphaBlendFactor", el.dstAlphaBlendFactor);
+	Serialise("alphaBlendOp", el.alphaBlendOp);
+	Serialise("channelWriteMask", el.colorWriteMask);
 }
 
 template<>
@@ -3128,9 +3281,8 @@ void Serialiser::Serialise(const char *name, VkPipelineColorBlendStateCreateInfo
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
-
-	Serialise("alphaToCoverageEnable", el.alphaToCoverageEnable);
-	Serialise("alphaToOneEnable", el.alphaToOneEnable);
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("logicOpEnable", el.logicOpEnable);
 	Serialise("logicOp", el.logicOp);
 
@@ -3138,7 +3290,7 @@ void Serialiser::Serialise(const char *name, VkPipelineColorBlendStateCreateInfo
 	
 	SerialiseComplexArray("pAttachments", (VkPipelineColorBlendAttachmentState*&)el.pAttachments, el.attachmentCount);
 
-	SerialisePODArray<4>("blendConst", el.blendConst);
+	SerialisePODArray<4>("blendConstants", el.blendConstants);
 }
 
 template<>
@@ -3149,6 +3301,7 @@ void Serialiser::Serialise(const char *name, VkPipelineDepthStencilStateCreateIn
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("depthTestEnable", el.depthTestEnable);
 	Serialise("depthWriteEnable", el.depthWriteEnable);
 	Serialise("depthCompareOp", el.depthCompareOp);
@@ -3167,49 +3320,53 @@ void Serialiser::Serialise(const char *name, VkPipelineDynamicStateCreateInfo &e
 	
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
-
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	if(m_Mode == READING)
 		el.pDynamicStates = NULL;
 	SerialisePODArray("dynamicStates", (VkDynamicState *&)el.pDynamicStates, el.dynamicStateCount);
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkCmdPoolCreateInfo &el)
+void Serialiser::Serialise(const char *name, VkCommandPoolCreateInfo &el)
 {
-	ScopedContext scope(this, name, "VkCmdPoolCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkCommandPoolCreateInfo", 0, true);
 
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO);
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
+	Serialise("flags", (VkCommandPoolCreateFlagBits &)el.flags);
 	Serialise("queueFamilyIndex", el.queueFamilyIndex);
-	Serialise("flags", (VkCmdPoolCreateFlagBits &)el.flags);
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el)
+void Serialiser::Serialise(const char *name, VkCommandBufferAllocateInfo &el)
 {
-	ScopedContext scope(this, name, "VkCmdBufferCreateInfo", 0, true);
+	ScopedContext scope(this, name, "VkCommandBufferAllocateInfo", 0, true);
 
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO);
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
-	SerialiseObject(VkCmdPool, "cmdPool", el.cmdPool);
+	SerialiseObject(VkCommandPool, "commandPool", el.commandPool);
 	Serialise("level", el.level);
-	Serialise("flags", (VkFlagWithNoBits &)el.flags);
+	Serialise("bufferCount", el.bufferCount);
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkCmdBufferBeginInfo &el)
+void Serialiser::Serialise(const char *name, VkCommandBufferBeginInfo &el)
 {
-	ScopedContext scope(this, name, "VkCmdBufferBeginInfo", 0, true);
+	ScopedContext scope(this, name, "VkCommandBufferBeginInfo", 0, true);
 
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO);
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
-	Serialise("flags", (VkCmdBufferOptimizeFlagBits &)el.flags);
+	Serialise("flags", (VkCommandBufferUsageFlagBits &)el.flags);
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
 	Serialise("subpass", el.subpass);
 	SerialiseObject(VkFramebuffer, "framebuffer", el.framebuffer);
+	Serialise("occlusionQueryEnable", el.occlusionQueryEnable);
+	Serialise("queryFlags", (VkQueryControlFlagBits &)el.queryFlags);
+	Serialise("pipelineStatistics", (VkQueryPipelineStatisticFlagBits &)el.pipelineStatistics);
 }
 
 template<>
@@ -3217,13 +3374,13 @@ void Serialiser::Serialise(const char *name, VkStencilOpState &el)
 {
 	ScopedContext scope(this, name, "VkStencilOpState", 0, true);
 	
-	Serialise("stencilFailOp", el.stencilFailOp);
-	Serialise("stencilPassOp", el.stencilPassOp);
-	Serialise("stencilDepthFailOp", el.stencilDepthFailOp);
-	Serialise("stencilCompareOp", el.stencilCompareOp);
-	Serialise("stencilCompareMask", el.stencilCompareMask);
-	Serialise("stencilWriteMask", el.stencilWriteMask);
-	Serialise("stencilReference", el.stencilReference);
+	Serialise("failOp", el.failOp);
+	Serialise("passOp", el.passOp);
+	Serialise("depthFailOp", el.depthFailOp);
+	Serialise("compareOp", el.compareOp);
+	Serialise("compareMask", el.compareMask);
+	Serialise("writeMask", el.writeMask);
+	Serialise("reference", el.reference);
 }
 
 template<>
@@ -3233,9 +3390,10 @@ void Serialiser::Serialise(const char *name, VkQueryPoolCreateInfo &el)
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
-
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("queryType", el.queryType);
-	Serialise("slots", el.slots);
+	Serialise("entryCount", el.entryCount);
 	Serialise("pipelineStatistics", (VkQueryPipelineStatisticFlagBits &)el.pipelineStatistics);
 }
 
@@ -3280,9 +3438,10 @@ void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("minFilter", el.minFilter);
 	Serialise("magFilter", el.magFilter);
-	Serialise("mipMode", el.mipMode);
+	Serialise("mipmapMode", el.mipmapMode);
 	Serialise("addressModeU", el.addressModeU);
 	Serialise("addressModeV", el.addressModeV);
 	Serialise("addressModeW", el.addressModeW);
@@ -3304,8 +3463,29 @@ void Serialiser::Serialise(const char *name, VkPipelineShaderStageCreateInfo &el
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("stage", el.stage);
-	SerialiseObject(VkShader, "shader", el.shader);
+	SerialiseObject(VkShaderModule, "module", el.module);
+	
+	string s = "";
+	if(m_Mode >= WRITING && el.pName != NULL)
+		s = el.pName;
+
+	Serialise("pName", s);
+
+	if(m_Mode == READING)
+	{
+		if(s == "")
+		{
+			el.pName = "";
+		}
+		else
+		{
+			string str = (char *)m_BufferHead-s.length();
+			m_StringDB.insert(str);
+			el.pName = m_StringDB.find(str)->c_str();
+		}
+	}
 
 	SerialiseOptionalObject(this, "el.pSpecializationInfo", (VkSpecializationInfo *&)el.pSpecializationInfo);
 }
@@ -3315,11 +3495,11 @@ void Serialiser::Serialise(const char *name, VkSpecializationMapEntry &el)
 {
 	ScopedContext scope(this, name, "VkSpecializationMapEntry", 0, true);
 
-	Serialise("constantId", el.constantId);
+	Serialise("constantId", el.constantID);
+	Serialise("offset", el.offset);
 	uint64_t size = el.size;
 	Serialise("size", size);
 	if(m_Mode == READING) el.size = (size_t)size;
-	Serialise("offset", el.offset);
 }
 
 template<>
@@ -3330,10 +3510,22 @@ void Serialiser::Serialise(const char *name, VkSpecializationInfo &el)
 	uint64_t dataSize = el.dataSize;
 	Serialise("dataSize", el.dataSize);
 	size_t sz = (size_t)dataSize;
+	el.dataSize = sz;
 	if(m_Mode == READING) el.pData = NULL;
 	SerialiseBuffer("pData", (byte *&)el.pData, sz);
 
-	SerialiseComplexArray("pMap", (VkSpecializationMapEntry *&)el.pMap, el.mapEntryCount);
+	SerialiseComplexArray("pMapEntries", (VkSpecializationMapEntry *&)el.pMapEntries, el.mapEntryCount);
+}
+
+template<>
+void Serialiser::Deserialise(const VkSpecializationInfo* const el) const
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] (byte *)(el->pData);
+		delete [] el->pMapEntries;
+	}
 }
 
 template<>
@@ -3343,18 +3535,15 @@ void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el)
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 
-	uint64_t initialSize = el.initialSize;
-	Serialise("codeSize", initialSize);
-	el.initialSize = (size_t)initialSize;
+	uint64_t initialDataSize = el.initialDataSize;
+	Serialise("codeSize", initialDataSize);
+	el.initialDataSize = (size_t)initialDataSize;
 
-	size_t sz = (size_t)initialSize;
-	if(m_Mode == READING) el.initialData = NULL;
-	SerialiseBuffer("initialData", (byte *&)el.initialData, sz);
-
-	uint64_t maxSize = el.maxSize;
-	Serialise("maxSize", maxSize);
-	el.maxSize = (size_t)maxSize;
+	if(m_Mode == READING) el.pInitialData = NULL;
+	SerialiseBuffer("initialData", (byte *&)el.pInitialData, el.initialDataSize);
 }
 
 template<>
@@ -3363,7 +3552,7 @@ void Serialiser::Deserialise(const VkPipelineCacheCreateInfo* const el) const
 	if(m_Mode == READING)
 	{
 		RDCASSERT(el->pNext == NULL); // otherwise delete
-		delete [] (byte *)(el->initialData);
+		delete [] (byte *)(el->pInitialData);
 	}
 }
 
@@ -3374,17 +3563,19 @@ void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 
 	// need to do this one by hand since it's just an array of objects that don't themselves have
 	// a Serialise overload
-	Serialise("descriptorSetCount", el.descriptorSetCount);
+	Serialise("descriptorSetCount", el.setLayoutCount);
 
 	if(m_Mode == READING)
-		el.pSetLayouts = el.descriptorSetCount ? new VkDescriptorSetLayout[el.descriptorSetCount] : NULL;
+		el.pSetLayouts = el.setLayoutCount ? new VkDescriptorSetLayout[el.setLayoutCount] : NULL;
 
 	// cast away const on array so we can assign to it on reading
 	VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout*)el.pSetLayouts;
-	for(uint32_t i=0; i < el.descriptorSetCount; i++)
+	for(uint32_t i=0; i < el.setLayoutCount; i++)
 		SerialiseObject(VkDescriptorSetLayout, "layout", layouts[i]);
 
 	SerialiseComplexArray("pPushConstantRanges", (VkPushConstantRange*&)el.pPushConstantRanges, el.pushConstantRangeCount);
@@ -3408,6 +3599,8 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
+	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 
 	uint64_t codeSize = el.codeSize;
 	Serialise("codeSize", codeSize);
@@ -3416,7 +3609,6 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 	size_t sz = (size_t)codeSize;
 	if(m_Mode == READING) el.pCode = NULL;
 	SerialiseBuffer("pCode", (byte *&)el.pCode, sz);
-	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 }
 
 template<>
@@ -3430,59 +3622,26 @@ void Serialiser::Deserialise(const VkShaderModuleCreateInfo* const el) const
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkShaderCreateInfo &el)
-{
-	ScopedContext scope(this, name, "VkShaderCreateInfo", 0, true);
-
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SHADER_CREATE_INFO);
-	SerialiseNext(this, el.sType, el.pNext);
-
-	string s = "";
-	if(m_Mode >= WRITING && el.pName != NULL)
-		s = el.pName;
-
-	Serialise("pName", s);
-
-	if(m_Mode == READING)
-	{
-		if(s == "")
-		{
-			el.pName = "";
-		}
-		else
-		{
-			string str = (char *)m_BufferHead-s.length();
-			m_StringDB.insert(str);
-			el.pName = m_StringDB.find(str)->c_str();
-		}
-	}
-	
-	Serialise("flags", (VkFlagWithNoBits &)el.flags);
-	Serialise("stage", el.stage);
-	SerialiseObject(VkShaderModule, "module", el.module);
-}
-
-template<>
 void Serialiser::Serialise(const char *name, VkImageSubresourceRange &el)
 {
 	ScopedContext scope(this, name, "VkImageSubresourceRange", 0, true);
 
 	Serialise("aspectMask", (VkImageAspectFlagBits &)el.aspectMask);
 	Serialise("baseMipLevel", el.baseMipLevel);
-	Serialise("mipLevels", el.mipLevels);
+	Serialise("levelCount", el.levelCount);
 	Serialise("baseArrayLayer", el.baseArrayLayer);
-	Serialise("arraySize", el.arraySize);
+	Serialise("layerCount", el.layerCount);
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkImageSubresourceCopy &el)
+void Serialiser::Serialise(const char *name, VkImageSubresourceLayers &el)
 {
-	ScopedContext scope(this, name, "VkImageSubresourceCopy", 0, true);
-
-	Serialise("aspect", el.aspect);
+	ScopedContext scope(this, name, "VkImageSubresourceLayers", 0, true);
+	
+	Serialise("aspectMask", (VkImageAspectFlagBits &)el.aspectMask);
 	Serialise("mipLevel", el.mipLevel);
-	Serialise("arrayLayer", el.arrayLayer);
-	Serialise("arraySize", el.arraySize);
+	Serialise("baseArrayLayer", el.baseArrayLayer);
+	Serialise("layerCount", el.layerCount);
 }
 
 template<>
@@ -3490,17 +3649,17 @@ void Serialiser::Serialise(const char *name, VkImageSubresource &el)
 {
 	ScopedContext scope(this, name, "VkImageSubresource", 0, true);
 	
-	Serialise("aspect", el.aspect);
+	Serialise("aspectMask", (VkImageAspectFlagBits &)el.aspectMask);
 	Serialise("mipLevel", el.mipLevel);
 	Serialise("arrayLayer", el.arrayLayer);
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkMemoryAllocInfo &el)
+void Serialiser::Serialise(const char *name, VkMemoryAllocateInfo &el)
 {
-	ScopedContext scope(this, name, "VkMemoryAllocInfo", 0, true);
+	ScopedContext scope(this, name, "VkMemoryAllocateInfo", 0, true);
 	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO);
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 
 	Serialise("allocationSize", el.allocationSize);
@@ -3515,8 +3674,8 @@ void Serialiser::Serialise(const char *name, VkMemoryBarrier &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_MEMORY_BARRIER);
 	SerialiseNext(this, el.sType, el.pNext);
 
-	Serialise("outputMask", el.outputMask);
-	Serialise("inputMask", el.inputMask);
+	Serialise("srcAccessMask", el.srcAccessMask);
+	Serialise("dstAccessMask", el.dstAccessMask);
 }
 
 template<>
@@ -3527,10 +3686,10 @@ void Serialiser::Serialise(const char *name, VkBufferMemoryBarrier &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER);
 	SerialiseNext(this, el.sType, el.pNext);
 
-	Serialise("outputMask", el.outputMask);
-	Serialise("inputMask", el.inputMask);
+	Serialise("srcAccessMask", el.srcAccessMask);
+	Serialise("dstAccessMask", el.dstAccessMask);
 	Serialise("srcQueueFamilyIndex", el.srcQueueFamilyIndex);
-	Serialise("destQueueFamilyIndex", el.destQueueFamilyIndex);
+	Serialise("dstQueueFamilyIndex", el.dstQueueFamilyIndex);
 	SerialiseObject(VkBuffer, "buffer", el.buffer);
 	Serialise("offset", el.offset);
 	Serialise("size", el.size);
@@ -3544,12 +3703,12 @@ void Serialiser::Serialise(const char *name, VkImageMemoryBarrier &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
 	SerialiseNext(this, el.sType, el.pNext);
 
-	Serialise("outputMask", el.outputMask);
-	Serialise("inputMask", el.inputMask);
+	Serialise("srcAccessMask", el.srcAccessMask);
+	Serialise("dstAccessMask", el.dstAccessMask);
 	Serialise("oldLayout", el.oldLayout);
 	Serialise("newLayout", el.newLayout);
 	Serialise("srcQueueFamilyIndex", el.srcQueueFamilyIndex);
-	Serialise("destQueueFamilyIndex", el.destQueueFamilyIndex);
+	Serialise("dstQueueFamilyIndex", el.dstQueueFamilyIndex);
 	SerialiseObject(VkImage, "image", el.image);
 	Serialise("subresourceRange", el.subresourceRange);
 }
@@ -3573,7 +3732,7 @@ void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el)
 	SerialiseOptionalObject(this, "pInputAssemblyState", (VkPipelineInputAssemblyStateCreateInfo *&)el.pInputAssemblyState);
 	SerialiseOptionalObject(this, "pTessellationState", (VkPipelineTessellationStateCreateInfo *&)el.pTessellationState);
 	SerialiseOptionalObject(this, "pViewportState", (VkPipelineViewportStateCreateInfo *&)el.pViewportState);
-	SerialiseOptionalObject(this, "pRasterState", (VkPipelineRasterStateCreateInfo *&)el.pRasterState);
+	SerialiseOptionalObject(this, "pRasterState", (VkPipelineRasterizationStateCreateInfo *&)el.pRasterizationState);
 	SerialiseOptionalObject(this, "pMultisampleState", (VkPipelineMultisampleStateCreateInfo *&)el.pMultisampleState);
 	SerialiseOptionalObject(this, "pDepthStencilState", (VkPipelineDepthStencilStateCreateInfo *&)el.pDepthStencilState);
 	SerialiseOptionalObject(this, "pColorBlendState", (VkPipelineColorBlendStateCreateInfo *&)el.pColorBlendState);
@@ -3612,10 +3771,10 @@ void Serialiser::Deserialise(const VkGraphicsPipelineCreateInfo* const el) const
 			delete [] el->pViewportState->pScissors;
 			delete el->pViewportState;
 		}
-		if (el->pRasterState)
+		if (el->pRasterizationState)
 		{
-			RDCASSERT(el->pRasterState->pNext == NULL); // otherwise delete
-			delete el->pRasterState;
+			RDCASSERT(el->pRasterizationState->pNext == NULL); // otherwise delete
+			delete el->pRasterizationState;
 		}
 		if (el->pMultisampleState)
 		{
@@ -3670,12 +3829,12 @@ void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el)
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkDescriptorTypeCount &el)
+void Serialiser::Serialise(const char *name, VkDescriptorPoolSize &el)
 {
-	ScopedContext scope(this, name, "VkDescriptorTypeCount", 0, true);
+	ScopedContext scope(this, name, "VkDescriptorPoolSize", 0, true);
 
 	Serialise("type", el.type);
-	Serialise("count", el.count);
+	Serialise("descriptorCount", el.descriptorCount);
 }
 
 template<>
@@ -3686,9 +3845,9 @@ void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
-	Serialise("poolUsage", el.poolUsage);
+	Serialise("flags", (VkDescriptorPoolCreateFlagBits &)el.flags);
 	Serialise("maxSets", el.maxSets);
-	SerialiseComplexArray("pTypeCount", (VkDescriptorTypeCount*&)el.pTypeCount, el.count);
+	SerialiseComplexArray("pTypeCount", (VkDescriptorPoolSize*&)el.pPoolSizes, el.poolSizeCount);
 }
 
 template<>
@@ -3697,22 +3856,28 @@ void Serialiser::Deserialise(const VkDescriptorPoolCreateInfo* const el) const
 	if(m_Mode == READING)
 	{
 		RDCASSERT(el->pNext == NULL); // otherwise delete
-		delete [] el->pTypeCount;
+		delete [] el->pPoolSizes;
 	}
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkDescriptorInfo &el)
+void Serialiser::Serialise(const char *name, VkDescriptorImageInfo &el)
 {
-	ScopedContext scope(this, name, "VkDescriptorInfo", 0, true);
-	
-	SerialiseObject(VkBufferView, "bufferView", el.bufferView);
+	ScopedContext scope(this, name, "VkDescriptorImageInfo", 0, true);
+
 	SerialiseObject(VkSampler, "sampler", el.sampler);
 	SerialiseObject(VkImageView, "imageView", el.imageView);
 	Serialise("imageLayout", el.imageLayout);
-	SerialiseObject(VkBuffer, "bufferInfo.buffer", el.bufferInfo.buffer);
-	Serialise("bufferInfo.offset", el.bufferInfo.offset);
-	Serialise("bufferInfo.range", el.bufferInfo.range);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkDescriptorBufferInfo &el)
+{
+	ScopedContext scope(this, name, "VkDescriptorBufferInfo", 0, true);
+
+	SerialiseObject(VkBuffer, "buffer", el.buffer);
+	Serialise("offset", el.offset);
+	Serialise("range", el.range);
 }
 
 template<>
@@ -3722,13 +3887,50 @@ void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 	SerialiseNext(this, el.sType, el.pNext);
-	
-	SerialiseObject(VkDescriptorSet, "destSet", el.destSet);
-	Serialise("destBinding", el.destBinding);
-	Serialise("destArrayElement", el.destArrayElement);
+
+	SerialiseObject(VkDescriptorSet, "dstSet", el.dstSet);
+	Serialise("dstBinding", el.dstBinding);
+	Serialise("dstArrayElement", el.dstArrayElement);
 	Serialise("descriptorType", el.descriptorType);
 
-	SerialiseComplexArray("pDescriptors", (VkDescriptorInfo*&)el.pDescriptors, el.count);
+	if(m_Mode == READING)
+	{
+		el.pImageInfo = NULL;
+		el.pBufferInfo = NULL;
+		el.pTexelBufferView = NULL;
+	}
+
+	// only serialise the array type used, the others are ignored
+	if(el.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER
+	  || el.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+	  || el.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE
+	  || el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+	  || el.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+	{
+		SerialiseComplexArray("pImageInfo", (VkDescriptorImageInfo*&)el.pImageInfo, el.descriptorCount);
+	}
+	else if(el.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+	  || el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+	  || el.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+	  || el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+	{
+		SerialiseComplexArray("pBufferInfo", (VkDescriptorBufferInfo*&)el.pBufferInfo, el.descriptorCount);
+	}
+	else if(el.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER
+	  || el.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+	{
+		// need to do this one by hand since it's just an array of objects that don't themselves have
+		// a Serialise overload
+		Serialise("descriptorCount", el.descriptorCount);
+
+		if(m_Mode == READING)
+			el.pTexelBufferView = el.descriptorCount ? new VkBufferView[el.descriptorCount] : NULL;
+
+		// cast away const on array so we can assign to it on reading
+		VkBufferView* views = (VkBufferView*)el.pTexelBufferView;
+		for(uint32_t i=0; i < el.descriptorCount; i++)
+			SerialiseObject(VkBufferView, "pTexelBufferView", views[i]);
+	}
 }
 
 template<>
@@ -3737,7 +3939,9 @@ void Serialiser::Deserialise(const VkWriteDescriptorSet* const el) const
 	if(m_Mode == READING)
 	{
 		RDCASSERT(el->pNext == NULL); // otherwise delete
-		delete [] el->pDescriptors;
+		delete [] el->pImageInfo;
+		delete [] el->pBufferInfo;
+		delete [] el->pTexelBufferView;
 	}
 }
 
@@ -3752,11 +3956,11 @@ void Serialiser::Serialise(const char *name, VkCopyDescriptorSet &el)
 	SerialiseObject(VkDescriptorSet, "srcSet", el.srcSet);
 	Serialise("srcBinding", el.srcBinding);
 	Serialise("srcArrayElement", el.srcArrayElement);
-	SerialiseObject(VkDescriptorSet, "destSet", el.destSet);
-	Serialise("destBinding", el.destBinding);
-	Serialise("destArrayElement", el.destArrayElement);
+	SerialiseObject(VkDescriptorSet, "destSet", el.dstSet);
+	Serialise("destBinding", el.dstBinding);
+	Serialise("destArrayElement", el.dstArrayElement);
 
-	Serialise("count", el.count);
+	Serialise("descriptorCount", el.descriptorCount);
 }
 
 template<>
@@ -3765,8 +3969,8 @@ void Serialiser::Serialise(const char *name, VkPushConstantRange &el)
 	ScopedContext scope(this, name, "VkPushConstantRange", 0, true);
 
 	Serialise("stageFlags", (VkShaderStageFlagBits &)el.stageFlags);
-	Serialise("start", el.start);
-	Serialise("length", el.length);
+	Serialise("offset", el.offset);
+	Serialise("size", el.size);
 }
 
 template<>
@@ -3774,8 +3978,9 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el)
 {
 	ScopedContext scope(this, name, "VkDescriptorSetLayoutBinding", 0, true);
 
+	Serialise("binding", el.binding);
 	Serialise("descriptorType", el.descriptorType);
-	Serialise("arraySize", el.arraySize);
+	Serialise("descriptorCount", el.descriptorCount);
 	Serialise("stageFlags", (VkShaderStageFlagBits &)el.stageFlags);
 
 	bool hasSamplers = el.pImmutableSamplers != NULL;
@@ -3786,14 +3991,14 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el)
 	if(m_Mode == READING)
 	{
 		if(hasSamplers)
-			el.pImmutableSamplers = el.arraySize ? new VkSampler[el.arraySize] : NULL;
+			el.pImmutableSamplers = el.descriptorCount ? new VkSampler[el.descriptorCount] : NULL;
 		else
 			el.pImmutableSamplers = NULL;
 	}
 
 	VkSampler *samplers = (VkSampler *)el.pImmutableSamplers;
 
-	for(uint32_t i=0; hasSamplers && i < el.arraySize; i++)
+	for(uint32_t i=0; hasSamplers && i < el.descriptorCount; i++)
 	{
 		SerialiseObject(VkSampler, "pImmutableSampler", samplers[i]);
 	}
@@ -3807,7 +4012,8 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
 	
-	SerialiseComplexArray("pBinding", (VkDescriptorSetLayoutBinding *&)el.pBinding, el.count);
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
+	SerialiseComplexArray("pBinding", (VkDescriptorSetLayoutBinding *&)el.pBinding, el.bindingCount);
 }
 
 template<>
@@ -3816,10 +4022,8 @@ void Serialiser::Deserialise(const VkDescriptorSetLayoutCreateInfo* const el) co
 	if(m_Mode == READING)
 	{
 		RDCASSERT(el->pNext == NULL); // otherwise delete
-		for (uint32_t i=0; i<el->count; i++)
-		{
+		for (uint32_t i=0; i<el->bindingCount; i++)
 			delete [] el->pBinding[i].pImmutableSamplers;
-		}
 		delete [] el->pBinding;
 	}
 }
@@ -3854,8 +4058,8 @@ void Serialiser::Serialise(const char *name, VkBufferCopy &el)
 	ScopedContext scope(this, name, "VkBufferCopy", 0, true);
 	
 	Serialise("srcOffset", el.srcOffset);
-	Serialise("destOffset", el.destOffset);
-	Serialise("copySize", el.copySize);
+	Serialise("dstOffset", el.dstOffset);
+	Serialise("size", el.size);
 }
 
 template<>
@@ -3865,8 +4069,8 @@ void Serialiser::Serialise(const char *name, VkImageCopy &el)
 
 	Serialise("srcSubresource", el.srcSubresource);
 	Serialise("srcOffset", el.srcOffset);
-	Serialise("destSubresource", el.destSubresource);
-	Serialise("destOffset", el.destOffset);
+	Serialise("dstSubresource", el.dstSubresource);
+	Serialise("dstOffset", el.dstOffset);
 	Serialise("extent", el.extent);
 }
 
@@ -3878,9 +4082,9 @@ void Serialiser::Serialise(const char *name, VkImageBlit &el)
 	Serialise("srcSubresource", el.srcSubresource);
 	Serialise("srcOffset", el.srcOffset);
 	Serialise("srcExtent", el.srcExtent);
-	Serialise("destSubresource", el.destSubresource);
-	Serialise("destOffset", el.destOffset);
-	Serialise("destExtent", el.destExtent);
+	Serialise("dstSubresource", el.dstSubresource);
+	Serialise("dstOffset", el.dstOffset);
+	Serialise("dstExtent", el.dstExtent);
 }
 
 template<>
@@ -3890,8 +4094,8 @@ void Serialiser::Serialise(const char *name, VkImageResolve &el)
 	
 	Serialise("srcSubresource", el.srcSubresource);
 	Serialise("srcOffset", el.srcOffset);
-	Serialise("destSubresource", el.destSubresource);
-	Serialise("destOffset", el.destOffset);
+	Serialise("dstSubresource", el.dstSubresource);
+	Serialise("dstOffset", el.dstOffset);
 	Serialise("extent", el.extent);
 }
 
@@ -3912,17 +4116,23 @@ void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
 	SerialiseNext(this, el.sType, el.pNext);
 	
+	Serialise("flags", (VkFlagWithNoBits &)el.flags);
+
+	// don't need the surface
+
 	Serialise("minImageCount", el.minImageCount);
 	Serialise("imageFormat", el.imageFormat);
 	Serialise("imageColorSpace", el.imageColorSpace);
 	Serialise("imageExtent", el.imageExtent);
-	Serialise("imageUsageFlags", el.imageUsageFlags);
-	Serialise("preTransform", el.preTransform);
-	Serialise("imageArraySize", el.imageArraySize);
+	Serialise("imageArrayLayers", el.imageArrayLayers);
+	Serialise("imageUsage", el.imageUsage);
 
 	// SHARING: sharingMode, queueFamilyCount, pQueueFamilyIndices
 	
+	Serialise("preTransform", el.preTransform);
+	Serialise("compositeAlpha", el.compositeAlpha);
 	Serialise("presentMode", el.presentMode);
-
 	Serialise("clipped", el.clipped);
+
+	// don't need the old swap chain
 }
