@@ -32,7 +32,7 @@
 #undef CreateSemaphore
 #endif
 
-#include <vk_layer.h>
+#include <vulkan/vk_layer.h>
 
 void InitReplayTables(void *vulkanModule);
 void InitInstanceReplayTables(VkInstance instance);
