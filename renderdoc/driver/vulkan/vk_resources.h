@@ -120,7 +120,7 @@ struct TypedRealHandle
 
 struct WrappedVkNonDispRes : public WrappedVkRes
 {
-	template<typename T> WrappedVkNonDispRes(T obj, ResourceId objId) : real(obj.handle), id(objId), record(NULL) {}
+	template<typename T> WrappedVkNonDispRes(T obj, ResourceId objId) : real(obj), id(objId), record(NULL) {}
 	
 	RealVkRes real;
 	ResourceId id;
@@ -384,9 +384,13 @@ template<typename inner> struct UnwrapHelper {};
 		typedef WrappedVkNonDispRes ParentType; \
 		typedef CONCAT(Wrapped, vulkantype) Outer; \
 		static TypedRealHandle ToTypedHandle(vulkantype real) \
-		{ TypedRealHandle h; h.type = (VkResourceType)Outer::TypeEnum; h.real = RealVkRes(real.handle); return h; } \
-		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) (uintptr_t)wrapped.handle; } \
+		{ TypedRealHandle h; h.type = (VkResourceType)Outer::TypeEnum; h.real = RealVkRes(real); return h; } \
+		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) (uintptr_t)wrapped; } \
 	};
+
+// VKTODOHIGH this no longer works on 32-bit since handles are no longer strongly typed.
+// solution will *probably* be to modify vulkan.h to use a C++ class with appropriate overrides,
+// constructors and operators to still be a 64-bit element but be strongly typed.
 
 UNWRAP_HELPER(VkInstance)
 UNWRAP_HELPER(VkPhysicalDevice)
@@ -537,11 +541,6 @@ struct ImageRegionState
 	VkImageLayout oldLayout;
 	VkImageLayout newLayout;
 };
-
-inline bool operator <(const VkDescriptorSet a, const VkDescriptorSet b)
-{
-	return a.handle < b.handle;
-}
 
 struct SwapchainInfo
 {
