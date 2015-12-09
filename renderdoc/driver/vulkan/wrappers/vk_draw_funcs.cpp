@@ -26,7 +26,7 @@
 
 bool WrappedVulkan::Serialise_vkCmdDraw(
 	Serialiser*    localSerialiser,
-	VkCmdBuffer cmdBuffer,
+	VkCommandBuffer cmdBuffer,
 	uint32_t       vertexCount,
 	uint32_t       instanceCount,
 	uint32_t       firstVertex,
@@ -51,7 +51,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdDraw(Unwrap(cmdBuffer), vtxCount, instCount, firstVtx, firstInst);
 
@@ -81,7 +81,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 }
 
 void WrappedVulkan::vkCmdDraw(
-	VkCmdBuffer cmdBuffer,
+	VkCommandBuffer cmdBuffer,
 	uint32_t       vertexCount,
 	uint32_t       instanceCount,
 	uint32_t       firstVertex,
@@ -104,7 +104,7 @@ void WrappedVulkan::vkCmdDraw(
 
 bool WrappedVulkan::Serialise_vkCmdBlitImage(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
 			VkImage                                     destImage,
@@ -140,7 +140,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
@@ -171,7 +171,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 }
 
 void WrappedVulkan::vkCmdBlitImage(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
 			VkImage                                     destImage,
@@ -207,7 +207,7 @@ void WrappedVulkan::vkCmdBlitImage(
 
 bool WrappedVulkan::Serialise_vkCmdResolveImage(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
 			VkImage                                     destImage,
@@ -240,7 +240,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
@@ -271,7 +271,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(
 }
 
 void WrappedVulkan::vkCmdResolveImage(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
 			VkImage                                     destImage,
@@ -306,7 +306,7 @@ void WrappedVulkan::vkCmdResolveImage(
 
 bool WrappedVulkan::Serialise_vkCmdCopyImage(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
 			VkImage                                     destImage,
@@ -339,7 +339,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
@@ -370,7 +370,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 }
 
 void WrappedVulkan::vkCmdCopyImage(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,
 			VkImageLayout                               srcImageLayout,
 			VkImage                                     destImage,
@@ -404,7 +404,7 @@ void WrappedVulkan::vkCmdCopyImage(
 
 bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkBuffer                                    srcBuffer,
 			VkImage                                     destImage,
 			VkImageLayout                               destImageLayout,
@@ -436,7 +436,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		srcBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
@@ -467,7 +467,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 }
 
 void WrappedVulkan::vkCmdCopyBufferToImage(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkBuffer                                    srcBuffer,
 			VkImage                                     destImage,
 			VkImageLayout                               destImageLayout,
@@ -501,7 +501,7 @@ void WrappedVulkan::vkCmdCopyBufferToImage(
 
 bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 		Serialiser*                                 localSerialiser,
-    VkCmdBuffer                                 cmdBuffer,
+    VkCommandBuffer                                 cmdBuffer,
 		VkImage                                     srcImage,
 		VkImageLayout                               srcImageLayout,
 		VkBuffer                                    destBuffer,
@@ -533,7 +533,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
@@ -564,7 +564,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 }
 
 void WrappedVulkan::vkCmdCopyImageToBuffer(
-    VkCmdBuffer                                 cmdBuffer,
+    VkCommandBuffer                                 cmdBuffer,
 		VkImage                                     srcImage,
 		VkImageLayout                               srcImageLayout,
 		VkBuffer                                    destBuffer,
@@ -602,7 +602,7 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(
 
 bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 		Serialiser*                                 localSerialiser,
-    VkCmdBuffer                                 cmdBuffer,
+    VkCommandBuffer                                 cmdBuffer,
 		VkBuffer                                    srcBuffer,
 		VkBuffer                                    destBuffer,
 		uint32_t                                    regionCount,
@@ -631,7 +631,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		srcBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(srcid);
 		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(dstid);
 
@@ -662,7 +662,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 }
 
 void WrappedVulkan::vkCmdCopyBuffer(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkBuffer                                    srcBuffer,
 			VkBuffer                                    destBuffer,
 			uint32_t                                    regionCount,
@@ -699,7 +699,7 @@ void WrappedVulkan::vkCmdCopyBuffer(
 
 bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
 			const VkClearColorValue*                    pColor,
@@ -729,7 +729,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		image = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
 		ObjDisp(cmdBuffer)->CmdClearColorImage(Unwrap(cmdBuffer), Unwrap(image), layout, &col, count, ranges);
@@ -755,7 +755,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 }
 
 void WrappedVulkan::vkCmdClearColorImage(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
 			const VkClearColorValue*                    pColor,
@@ -783,7 +783,7 @@ void WrappedVulkan::vkCmdClearColorImage(
 
 bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
 			const VkClearDepthStencilValue*             pDepthStencil,
@@ -812,7 +812,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		image = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
 		ObjDisp(cmdBuffer)->CmdClearDepthStencilImage(Unwrap(cmdBuffer), Unwrap(image), l, &ds, count, ranges);
@@ -839,7 +839,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 }
 
 void WrappedVulkan::vkCmdClearDepthStencilImage(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImage                                     image,
 			VkImageLayout                               imageLayout,
 			const VkClearDepthStencilValue*             pDepthStencil,
@@ -867,7 +867,7 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(
 
 bool WrappedVulkan::Serialise_vkCmdClearColorAttachment(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			uint32_t                                    colorAttachment,
 			VkImageLayout                               imageLayout,
 			const VkClearColorValue*                    pColor,
@@ -895,7 +895,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorAttachment(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdClearColorAttachment(Unwrap(cmdBuffer), att, layout, &col, count, rects);
 
@@ -921,7 +921,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorAttachment(
 }
 
 void WrappedVulkan::vkCmdClearColorAttachment(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			uint32_t                                    colorAttachment,
 			VkImageLayout                               imageLayout,
 			const VkClearColorValue*                    pColor,
@@ -947,7 +947,7 @@ void WrappedVulkan::vkCmdClearColorAttachment(
 
 bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImageAspectFlags                          imageAspectMask,
 			VkImageLayout                               imageLayout,
 			const VkClearDepthStencilValue*             pDepthStencil,
@@ -974,7 +974,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdClearDepthStencilAttachment(Unwrap(cmdBuffer), asp, lay, &ds, count, rects);
 
@@ -1000,7 +1000,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 }
 
 void WrappedVulkan::vkCmdClearDepthStencilAttachment(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkImageAspectFlags                          imageAspectMask,
 			VkImageLayout                               imageLayout,
 			const VkClearDepthStencilValue*             pDepthStencil,
@@ -1026,7 +1026,7 @@ void WrappedVulkan::vkCmdClearDepthStencilAttachment(
 
 bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 	Serialiser*    localSerialiser,
-	VkCmdBuffer cmdBuffer,
+	VkCommandBuffer cmdBuffer,
 	uint32_t       indexCount,
 	uint32_t       instanceCount,
 	uint32_t       firstIndex,
@@ -1053,7 +1053,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
 
@@ -1083,7 +1083,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 }
 
 void WrappedVulkan::vkCmdDrawIndexed(
-	VkCmdBuffer cmdBuffer,
+	VkCommandBuffer cmdBuffer,
 	uint32_t       indexCount,
 	uint32_t       instanceCount,
 	uint32_t       firstIndex,
@@ -1107,7 +1107,7 @@ void WrappedVulkan::vkCmdDrawIndexed(
 
 bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 		Serialiser*                                 localSerialiser,
-		VkCmdBuffer                                 cmdBuffer,
+		VkCommandBuffer                                 cmdBuffer,
 		VkBuffer                                    buffer,
 		VkDeviceSize                                offset,
 		uint32_t                                    count,
@@ -1135,7 +1135,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
 		ObjDisp(cmdBuffer)->CmdDrawIndirect(Unwrap(cmdBuffer), Unwrap(buffer), offs, cnt, strd);
@@ -1145,7 +1145,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 }
 
 void WrappedVulkan::vkCmdDrawIndirect(
-		VkCmdBuffer                                 cmdBuffer,
+		VkCommandBuffer                                 cmdBuffer,
 		VkBuffer                                    buffer,
 		VkDeviceSize                                offset,
 		uint32_t                                    count,
@@ -1168,7 +1168,7 @@ void WrappedVulkan::vkCmdDrawIndirect(
 
 bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 		Serialiser*                                 localSerialiser,
-		VkCmdBuffer                                 cmdBuffer,
+		VkCommandBuffer                                 cmdBuffer,
 		VkBuffer                                    buffer,
 		VkDeviceSize                                offset,
 		uint32_t                                    count,
@@ -1196,7 +1196,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
 		ObjDisp(cmdBuffer)->CmdDrawIndexedIndirect(Unwrap(cmdBuffer), Unwrap(buffer), offs, cnt, strd);
@@ -1206,7 +1206,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 }
 
 void WrappedVulkan::vkCmdDrawIndexedIndirect(
-		VkCmdBuffer                                 cmdBuffer,
+		VkCommandBuffer                                 cmdBuffer,
 		VkBuffer                                    buffer,
 		VkDeviceSize                                offset,
 		uint32_t                                    count,
@@ -1229,7 +1229,7 @@ void WrappedVulkan::vkCmdDrawIndexedIndirect(
 
 bool WrappedVulkan::Serialise_vkCmdDispatch(
 	Serialiser*    localSerialiser,
-	VkCmdBuffer cmdBuffer,
+	VkCommandBuffer cmdBuffer,
 	uint32_t       x,
 	uint32_t       y,
 	uint32_t       z)
@@ -1252,7 +1252,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdDispatch(Unwrap(cmdBuffer), X, Y, Z);
 	}
@@ -1261,7 +1261,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(
 }
 
 void WrappedVulkan::vkCmdDispatch(
-	VkCmdBuffer cmdBuffer,
+	VkCommandBuffer cmdBuffer,
 	uint32_t       x,
 	uint32_t       y,
 	uint32_t       z)
@@ -1283,7 +1283,7 @@ void WrappedVulkan::vkCmdDispatch(
 
 bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkBuffer                                    buffer,
 			VkDeviceSize                                offset)
 {
@@ -1306,7 +1306,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
 		ObjDisp(cmdBuffer)->CmdDispatchIndirect(Unwrap(cmdBuffer), Unwrap(buffer), offs);
@@ -1316,7 +1316,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 }
 
 void WrappedVulkan::vkCmdDispatchIndirect(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkBuffer                                    buffer,
 			VkDeviceSize                                offset)
 {

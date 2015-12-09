@@ -26,7 +26,7 @@
 
 bool WrappedVulkan::Serialise_vkCmdSetViewport(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			uint32_t                                    viewportCount,
 			const VkViewport*                           pViewports)
 {
@@ -48,7 +48,7 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdSetViewport(Unwrap(cmdBuffer), count, views);
 	}
@@ -59,7 +59,7 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(
 }
 
 void WrappedVulkan::vkCmdSetViewport(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			uint32_t                                    viewportCount,
 			const VkViewport*                           pViewports)
 {
@@ -80,7 +80,7 @@ void WrappedVulkan::vkCmdSetViewport(
 
 bool WrappedVulkan::Serialise_vkCmdSetScissor(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			uint32_t                                    scissorCount,
 			const VkRect2D*                             pScissors)
 {
@@ -102,7 +102,7 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdSetScissor(Unwrap(cmdBuffer), count, scissors);
 	}
@@ -113,7 +113,7 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(
 }
 
 void WrappedVulkan::vkCmdSetScissor(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			uint32_t                                    scissorCount,
 			const VkRect2D*                             pScissors)
 {
@@ -134,7 +134,7 @@ void WrappedVulkan::vkCmdSetScissor(
 
 bool WrappedVulkan::Serialise_vkCmdSetLineWidth(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			float                                       lineWidth)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
@@ -154,7 +154,7 @@ bool WrappedVulkan::Serialise_vkCmdSetLineWidth(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdSetLineWidth(Unwrap(cmdBuffer), width);
 	}
@@ -163,7 +163,7 @@ bool WrappedVulkan::Serialise_vkCmdSetLineWidth(
 }
 
 void WrappedVulkan::vkCmdSetLineWidth(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			float                                       lineWidth)
 {
 	ObjDisp(cmdBuffer)->CmdSetLineWidth(Unwrap(cmdBuffer), lineWidth);
@@ -183,7 +183,7 @@ void WrappedVulkan::vkCmdSetLineWidth(
 
 bool WrappedVulkan::Serialise_vkCmdSetDepthBias(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			float                                       depthBias,
 			float                                       depthBiasClamp,
 			float                                       slopeScaledDepthBias)
@@ -209,7 +209,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBias(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdSetDepthBias(Unwrap(cmdBuffer), bias, biasclamp, slope);
 	}
@@ -218,7 +218,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBias(
 }
 
 void WrappedVulkan::vkCmdSetDepthBias(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			float                                       depthBias,
 			float                                       depthBiasClamp,
 			float                                       slopeScaledDepthBias)
@@ -240,7 +240,7 @@ void WrappedVulkan::vkCmdSetDepthBias(
 
 bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			const float*                                blendConst)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
@@ -268,7 +268,7 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdSetBlendConstants(Unwrap(cmdBuffer), blendFactor);
 	}
@@ -277,7 +277,7 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(
 }
 
 void WrappedVulkan::vkCmdSetBlendConstants(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			const float*                                blendConst)
 {
 	ObjDisp(cmdBuffer)->CmdSetBlendConstants(Unwrap(cmdBuffer), blendConst);
@@ -297,7 +297,7 @@ void WrappedVulkan::vkCmdSetBlendConstants(
 
 bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			float                                       minDepthBounds,
 			float                                       maxDepthBounds)
 {
@@ -320,7 +320,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdSetDepthBounds(Unwrap(cmdBuffer), mind, maxd);
 	}
@@ -329,7 +329,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(
 }
 
 void WrappedVulkan::vkCmdSetDepthBounds(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			float                                       minDepthBounds,
 			float                                       maxDepthBounds)
 {
@@ -350,7 +350,7 @@ void WrappedVulkan::vkCmdSetDepthBounds(
 
 bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkStencilFaceFlags                          faceMask,
 			uint32_t                                    stencilCompareMask)
 {
@@ -376,7 +376,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdSetStencilCompareMask(Unwrap(cmdBuffer), face, mask);
 	}
@@ -385,7 +385,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(
 }
 
 void WrappedVulkan::vkCmdSetStencilCompareMask(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkStencilFaceFlags                          faceMask,
 			uint32_t                                    stencilCompareMask)
 {
@@ -406,7 +406,7 @@ void WrappedVulkan::vkCmdSetStencilCompareMask(
 
 bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkStencilFaceFlags                          faceMask,
 			uint32_t                                    stencilWriteMask)
 {
@@ -432,7 +432,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdSetStencilWriteMask(Unwrap(cmdBuffer), face, mask);
 	}
@@ -441,7 +441,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(
 }
 
 void WrappedVulkan::vkCmdSetStencilWriteMask(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkStencilFaceFlags                          faceMask,
 			uint32_t                                    stencilWriteMask)
 {
@@ -462,7 +462,7 @@ void WrappedVulkan::vkCmdSetStencilWriteMask(
 
 bool WrappedVulkan::Serialise_vkCmdSetStencilReference(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkStencilFaceFlags                          faceMask,
 			uint32_t                                    stencilReference)
 {
@@ -488,7 +488,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdSetStencilReference(Unwrap(cmdBuffer), face, mask);
 	}
@@ -497,7 +497,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(
 }
 
 void WrappedVulkan::vkCmdSetStencilReference(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			VkStencilFaceFlags                          faceMask,
 			uint32_t                                    stencilReference)
 {

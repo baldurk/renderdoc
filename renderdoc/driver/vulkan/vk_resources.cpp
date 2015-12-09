@@ -29,7 +29,7 @@ WRAPPED_POOL_INST(WrappedVkInstance)
 WRAPPED_POOL_INST(WrappedVkPhysicalDevice)
 WRAPPED_POOL_INST(WrappedVkDevice)
 WRAPPED_POOL_INST(WrappedVkQueue)
-WRAPPED_POOL_INST(WrappedVkCmdBuffer)
+WRAPPED_POOL_INST(WrappedVkCommandBuffer)
 WRAPPED_POOL_INST(WrappedVkFence)
 WRAPPED_POOL_INST(WrappedVkDeviceMemory)
 WRAPPED_POOL_INST(WrappedVkBuffer)
@@ -64,7 +64,7 @@ byte VkResourceRecord::markerValue[32] = {
 bool IsDispatchableRes(WrappedVkRes *ptr)
 {
 	return (WrappedVkPhysicalDevice::IsAlloc(ptr) || WrappedVkInstance::IsAlloc(ptr)
-					|| WrappedVkDevice::IsAlloc(ptr) || WrappedVkQueue::IsAlloc(ptr) || WrappedVkCmdBuffer::IsAlloc(ptr));
+					|| WrappedVkDevice::IsAlloc(ptr) || WrappedVkQueue::IsAlloc(ptr) || WrappedVkCommandBuffer::IsAlloc(ptr));
 }
 
 VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
@@ -90,7 +90,7 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
 	if(WrappedVkDescriptorSetLayout::IsAlloc(ptr))      return eResDescriptorSetLayout;
 	if(WrappedVkDescriptorSet::IsAlloc(ptr))            return eResDescriptorSet;
 	if(WrappedVkCmdPool::IsAlloc(ptr))                  return eResCmdPool;
-	if(WrappedVkCmdBuffer::IsAlloc(ptr))                return eResCmdBuffer;
+	if(WrappedVkCommandBuffer::IsAlloc(ptr))            return eResCommandBuffer;
 	if(WrappedVkFence::IsAlloc(ptr))                    return eResFence;
 	if(WrappedVkEvent::IsAlloc(ptr))                    return eResEvent;
 	if(WrappedVkQueryPool::IsAlloc(ptr))                return eResQueryPool;
@@ -522,7 +522,7 @@ VkResourceRecord::~VkResourceRecord()
 		SAFE_DELETE(memMapState);
 	}
 
-	if(resType == eResCmdBuffer)
+	if(resType == eResCommandBuffer)
 		SAFE_DELETE(cmdInfo);
 
 	if(resType == eResFramebuffer)

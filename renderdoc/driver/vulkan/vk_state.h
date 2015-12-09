@@ -35,7 +35,7 @@ struct VulkanRenderState
 {
 	VulkanRenderState(VulkanCreationInfo &createInfo);
 	VulkanRenderState &operator =(const VulkanRenderState &o);
-	void BeginRenderPassAndApplyState(VkCmdBuffer cmd);
+	void BeginRenderPassAndApplyState(VkCommandBuffer cmd);
 
 	// dynamic state
 	vector<VkViewport> views;

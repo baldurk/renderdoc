@@ -132,7 +132,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		Serialiser*                                 localSerialiser,
     VkQueue                                     queue,
     uint32_t                                    cmdBufferCount,
-    const VkCmdBuffer*                          pCmdBuffers,
+    const VkCommandBuffer*                          pCmdBuffers,
     VkFence                                     fence)
 {
 	SERIALISE_ELEMENT(ResourceId, queueId, GetResID(queue));
@@ -141,7 +141,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 	SERIALISE_ELEMENT(uint32_t, numCmds, cmdBufferCount);
 
 	vector<ResourceId> cmdIds;
-	VkCmdBuffer *cmds = m_State >= WRITING ? NULL : new VkCmdBuffer[numCmds];
+	VkCommandBuffer *cmds = m_State >= WRITING ? NULL : new VkCommandBuffer[numCmds];
 	for(uint32_t i=0; i < numCmds; i++)
 	{
 		ResourceId bakedId;
@@ -161,7 +161,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			cmdIds.push_back(id);
 
 			cmds[i] = id != ResourceId()
-			          ? Unwrap(GetResourceManager()->GetLiveHandle<VkCmdBuffer>(id))
+			          ? Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(id))
 			          : NULL;
 		}
 	}
@@ -265,7 +265,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			uint32_t eid = startEID;
 
 			vector<ResourceId> trimmedCmdIds;
-			vector<VkCmdBuffer> trimmedCmds;
+			vector<VkCommandBuffer> trimmedCmds;
 
 			for(uint32_t c=0; c < numCmds; c++)
 			{
@@ -282,7 +282,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 				{
 					RDCDEBUG("Queue Submit full replay %llu", cmdIds[c]);
 					trimmedCmdIds.push_back(cmdIds[c]);
-					trimmedCmds.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdIds[c])));
+					trimmedCmds.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdIds[c])));
 				}
 				else
 				{
@@ -340,10 +340,10 @@ void WrappedVulkan::RefreshIDs(vector<DrawcallTreeNode> &nodes, uint32_t baseEve
 VkResult WrappedVulkan::vkQueueSubmit(
     VkQueue                                     queue,
     uint32_t                                    cmdBufferCount,
-    const VkCmdBuffer*                          pCmdBuffers,
+    const VkCommandBuffer*                          pCmdBuffers,
     VkFence                                     fence)
 {
-	VkCmdBuffer *unwrapped = GetTempArray<VkCmdBuffer>(cmdBufferCount);
+	VkCommandBuffer *unwrapped = GetTempArray<VkCommandBuffer>(cmdBufferCount);
 	for(uint32_t i=0; i < cmdBufferCount; i++) unwrapped[i] = Unwrap(pCmdBuffers[i]);
 
 	VkResult ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), cmdBufferCount, unwrapped, Unwrap(fence));

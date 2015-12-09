@@ -917,7 +917,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		}
 	}
 
-	VkCmdBuffer cmd = driver->GetNextCmd();
+	VkCommandBuffer cmd = driver->GetNextCmd();
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
@@ -1702,7 +1702,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 	size_t dstoffset = 0;
 	VkDeviceSize sizeRemaining = (VkDeviceSize)len;
 
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 	
@@ -2001,7 +2001,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
 	
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 	
@@ -4151,7 +4151,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		};
 		m_pDriver->vkUpdateDescriptorSets(dev, 1, &write, 0, NULL);
 		
-		VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+		VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
@@ -4260,7 +4260,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		void *barrierptr = (void *)&meshbufbarrier;
 		
-		VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+		VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 

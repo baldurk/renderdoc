@@ -98,7 +98,7 @@ void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj)
 }
 
 // needs to be separate since it's dispatchable
-void WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
+void WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCommandBuffer obj)
 {
 	WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(obj);
 
@@ -113,7 +113,7 @@ void WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
 		wrapped->record = NULL;
 	}
 
-	VkCmdBuffer unwrapped = wrapped->real.As<VkCmdBuffer>();
+	VkCommandBuffer unwrapped = wrapped->real.As<VkCommandBuffer>();
 	
 	GetResourceManager()->ReleaseWrappedResource(obj);
 
@@ -145,13 +145,13 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			RDCERR("Unknown resource type!");
 			break;
 			
-		case eResCmdBuffer:
+		case eResCommandBuffer:
 			// special case here, on replay we don't have the tracking
 			// to remove these with the parent object so do it here.
 			// This ensures we clean up after ourselves with a well-
 			// behaved application.
 			if(m_State < WRITING)
-				GetResourceManager()->ReleaseWrappedResource((VkCmdBuffer)res);
+				GetResourceManager()->ReleaseWrappedResource((VkCommandBuffer)res);
 			break;
 		case eResDescriptorSet:
 			if(m_State < WRITING)

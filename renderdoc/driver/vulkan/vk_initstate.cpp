@@ -119,7 +119,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 
 	VkDevice d = GetDev();
 	// INITSTATEBATCH
-	VkCmdBuffer cmd = GetNextCmd();
+	VkCommandBuffer cmd = GetNextCmd();
 	
 	VkBufferCreateInfo bufInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
@@ -290,7 +290,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 	
 	VkDevice d = GetDev();
 	// INITSTATEBATCH
-	VkCmdBuffer cmd = GetNextCmd();
+	VkCommandBuffer cmd = GetNextCmd();
 	
 	VkBufferCreateInfo bufInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
@@ -740,7 +740,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 
 	VkDevice d = GetDev();
 
-	VkCmdBuffer cmd = GetNextCmd();
+	VkCommandBuffer cmd = GetNextCmd();
 	
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
@@ -822,7 +822,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 
 	VkDevice d = GetDev();
 
-	VkCmdBuffer cmd = GetNextCmd();
+	VkCommandBuffer cmd = GetNextCmd();
 	
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
@@ -918,7 +918,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkDevice d = GetDev();
 		// INITSTATEBATCH
-		VkCmdBuffer cmd = GetNextCmd();
+		VkCommandBuffer cmd = GetNextCmd();
 
 		ImageLayouts *layout = NULL;
 		{
@@ -1063,7 +1063,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkDevice d = GetDev();
 		// INITSTATEBATCH
-		VkCmdBuffer cmd = GetNextCmd();
+		VkCommandBuffer cmd = GetNextCmd();
 		
 		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
 		VkDeviceSize dataoffs = 0;
@@ -1443,7 +1443,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 			
 			// INITSTATEBATCH
-			VkCmdBuffer cmd = GetNextCmd();
+			VkCommandBuffer cmd = GetNextCmd();
 
 			vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 			RDCASSERT(vkr == VK_SUCCESS);
@@ -1694,7 +1694,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			RDCASSERT(initial.num != eInitialContents_Sparse);
 			if(initial.num == eInitialContents_ClearColorImage)
 			{
-				VkCmdBuffer cmd = GetNextCmd();
+				VkCommandBuffer cmd = GetNextCmd();
 
 				vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 				RDCASSERT(vkr == VK_SUCCESS);
@@ -1756,7 +1756,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			}
 			else if(initial.num == eInitialContents_ClearDepthStencilImage)
 			{
-				VkCmdBuffer cmd = GetNextCmd();
+				VkCommandBuffer cmd = GetNextCmd();
 
 				vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 				RDCASSERT(vkr == VK_SUCCESS);
@@ -1826,7 +1826,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 		WrappedVkImage *im = (WrappedVkImage *)initial.resource;
 
-		VkCmdBuffer cmd = GetNextCmd();
+		VkCommandBuffer cmd = GetNextCmd();
 
 		vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -1925,7 +1925,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		VkDeviceSize dstMemOffs = 0;
 		VkDeviceSize memsize = datasize;
 
-		VkCmdBuffer cmd = GetNextCmd();
+		VkCommandBuffer cmd = GetNextCmd();
 
 		vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);

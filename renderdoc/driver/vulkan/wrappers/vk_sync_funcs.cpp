@@ -554,7 +554,7 @@ VkResult WrappedVulkan::vkCreateSemaphore(
 
 bool WrappedVulkan::Serialise_vkCmdSetEvent(
 		Serialiser*                                 localSerialiser,
-		VkCmdBuffer                                 cmdBuffer,
+		VkCommandBuffer                                 cmdBuffer,
     VkEvent                                     event,
 		VkPipelineStageFlags                        stageMask)
 {
@@ -579,7 +579,7 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		event = GetResourceManager()->GetLiveHandle<VkEvent>(eid);
 		
 		ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), Unwrap(event), mask);
@@ -589,7 +589,7 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(
 }
 
 void WrappedVulkan::vkCmdSetEvent(
-    VkCmdBuffer                                 cmdBuffer,
+    VkCommandBuffer                                 cmdBuffer,
     VkEvent                                     event,
 		VkPipelineStageFlags                        stageMask)
 {
@@ -611,7 +611,7 @@ void WrappedVulkan::vkCmdSetEvent(
 
 bool WrappedVulkan::Serialise_vkCmdResetEvent(
 		Serialiser*                                 localSerialiser,
-		VkCmdBuffer                                 cmdBuffer,
+		VkCommandBuffer                                 cmdBuffer,
     VkEvent                                     event,
 		VkPipelineStageFlags                        stageMask)
 {
@@ -636,7 +636,7 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		event = GetResourceManager()->GetLiveHandle<VkEvent>(eid);
 		
 		//ObjDisp(cmdBuffer)->CmdResetEvent(Unwrap(cmdBuffer), Unwrap(event), mask);
@@ -646,7 +646,7 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(
 }
 
 void WrappedVulkan::vkCmdResetEvent(
-    VkCmdBuffer                                 cmdBuffer,
+    VkCommandBuffer                                 cmdBuffer,
     VkEvent                                     event,
 		VkPipelineStageFlags                        stageMask)
 {
@@ -668,7 +668,7 @@ void WrappedVulkan::vkCmdResetEvent(
 
 bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 			Serialiser*                                 localSerialiser,
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			uint32_t                                    eventCount,
 			const VkEvent*                              pEvents,
 			VkPipelineStageFlags                        srcStageMask,
@@ -753,7 +753,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 	}
 	else if(m_State == READING)
 	{
-		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		VkEventCreateInfo evInfo = {
 			VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, NULL, 0,
@@ -782,7 +782,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 }
 
 void WrappedVulkan::vkCmdWaitEvents(
-			VkCmdBuffer                                 cmdBuffer,
+			VkCommandBuffer                                 cmdBuffer,
 			uint32_t                                    eventCount,
 			const VkEvent*                              pEvents,
 			VkPipelineStageFlags                        srcStageMask,

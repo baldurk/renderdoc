@@ -85,7 +85,7 @@ VulkanRenderState & VulkanRenderState::operator =(const VulkanRenderState &o)
 	return *this;
 }
 
-void VulkanRenderState::BeginRenderPassAndApplyState(VkCmdBuffer cmd)
+void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
 {
 	RDCASSERT(renderPass != ResourceId());
 

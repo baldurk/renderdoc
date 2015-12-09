@@ -361,9 +361,9 @@ WrappedVulkan::~WrappedVulkan()
 	}
 }
 
-VkCmdBuffer WrappedVulkan::GetNextCmd()
+VkCommandBuffer WrappedVulkan::GetNextCmd()
 {
-	VkCmdBuffer ret;
+	VkCommandBuffer ret;
 
 	if(!m_InternalCmds.freecmds.empty())
 	{
@@ -392,7 +392,7 @@ void WrappedVulkan::SubmitCmds()
 	if(m_InternalCmds.pendingcmds.empty())
 		return;
 
-	vector<VkCmdBuffer> cmds = m_InternalCmds.pendingcmds;
+	vector<VkCommandBuffer> cmds = m_InternalCmds.pendingcmds;
 	for(size_t i=0; i < cmds.size(); i++) cmds[i] = Unwrap(cmds[i]);
 
 	VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), (uint32_t)cmds.size(), &cmds[0], VK_NULL_HANDLE);
@@ -572,7 +572,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 	if(applyInitialState && !imgBarriers.empty())
 	{
-		VkCmdBuffer cmd = GetNextCmd();
+		VkCommandBuffer cmd = GetNextCmd();
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
@@ -743,7 +743,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 	if(swap != VK_NULL_HANDLE)
 	{
 		VkDevice dev = GetDev();
-		VkCmdBuffer cmd = GetNextCmd();
+		VkCommandBuffer cmd = GetNextCmd();
 
 		const VkLayerDispatchTable *vt = ObjDisp(dev);
 
@@ -1750,7 +1750,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 		}
 		else if(replayType == eReplay_OnlyDraw)
 		{
-			VkCmdBuffer cmd = m_PartialReplayData.singleDrawCmdBuffer = GetNextCmd();
+			VkCommandBuffer cmd = m_PartialReplayData.singleDrawCmdBuffer = GetNextCmd();
 			
 			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 

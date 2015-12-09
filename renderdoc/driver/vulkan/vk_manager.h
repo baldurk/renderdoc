@@ -193,8 +193,8 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 						VkResourceType restype = IdentifyTypeByPtr((*it)->Resource);
 						if(restype == eResDescriptorSet)
 							ReleaseWrappedResource((VkDescriptorSet)(uint64_t)(*it)->Resource, true);
-						else if(restype == eResCmdBuffer)
-							ReleaseWrappedResource((VkCmdBuffer)(*it)->Resource, true);
+						else if(restype == eResCommandBuffer)
+							ReleaseWrappedResource((VkCommandBuffer)(*it)->Resource, true);
 						else if(restype == eResQueue)
 							ReleaseWrappedResource((VkQueue)(*it)->Resource, true);
 						else if(restype == eResPhysicalDevice)

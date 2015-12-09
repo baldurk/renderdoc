@@ -32,7 +32,7 @@
 
 struct TextPrintState
 {
-	VkCmdBuffer cmd;
+	VkCommandBuffer cmd;
 	VkRenderPass rp;
 	VkFramebuffer fb;
 	int32_t w, h;

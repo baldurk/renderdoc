@@ -832,7 +832,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	}
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkResult vkr = VK_SUCCESS;
@@ -933,7 +933,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, bool f32render)
 {
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[cfg.texid];
@@ -1163,7 +1163,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	OutputWindow &outw = it->second;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -1216,7 +1216,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 	OutputWindow &outw = it->second;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -1386,7 +1386,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 	OutputWindow &outw = it->second;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkResult vkr = VK_SUCCESS;
@@ -2354,7 +2354,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	m_DebugHeight = (int32_t)outw.height;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 	
 	// semaphore is short lived, so not wrapped, if it's cached (ideally)
@@ -2407,7 +2407,7 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	OutputWindow &outw = it->second;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -2429,7 +2429,7 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 	OutputWindow &outw = it->second;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -2453,7 +2453,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	OutputWindow &outw = it->second;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -3255,7 +3255,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, ve
 bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
 {
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
@@ -3481,7 +3481,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	if(minval >= maxval) return false;
 
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
@@ -3734,7 +3734,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	VkRenderPass tmpRP = VK_NULL_HANDLE;
 	
 	VkDevice dev = m_pDriver->GetDev();
-	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 	
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };

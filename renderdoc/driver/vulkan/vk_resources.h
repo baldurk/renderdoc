@@ -63,7 +63,7 @@ enum VkResourceType
 	eResDescriptorSetLayout,
 	eResDescriptorSet,
 	eResCmdPool,
-	eResCmdBuffer,
+	eResCommandBuffer,
 	eResFence,
 	eResEvent,
 	eResQueryPool,
@@ -144,7 +144,7 @@ struct WrappedVkDispRes : public WrappedVkRes
 	WrappedVkDispRes(VkQueue obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL), core(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 
-	WrappedVkDispRes(VkCmdBuffer obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL), core(NULL)
+	WrappedVkDispRes(VkCommandBuffer obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL), core(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 
 	// preserve dispatch table pointer in dispatchable objects
@@ -195,16 +195,16 @@ struct WrappedVkQueue : WrappedVkDispRes
 	enum { UseInstanceDispatchTable = false, };
 	enum { TypeEnum = eResQueue, };
 };
-struct WrappedVkCmdBuffer : WrappedVkDispRes
+struct WrappedVkCommandBuffer : WrappedVkDispRes
 {
-	WrappedVkCmdBuffer(VkCmdBuffer obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
-	typedef VkCmdBuffer InnerType;
+	WrappedVkCommandBuffer(VkCommandBuffer obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
+	typedef VkCommandBuffer InnerType;
 	static const int AllocPoolCount = 32*1024;
 	static const int AllocPoolMaxByteSize = 2*1024*1024;
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdBuffer, AllocPoolCount, AllocPoolMaxByteSize);
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCommandBuffer, AllocPoolCount, AllocPoolMaxByteSize);
 	typedef VkLayerDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = false, };
-	enum { TypeEnum = eResCmdBuffer, };
+	enum { TypeEnum = eResCommandBuffer, };
 };
 struct WrappedVkFence : WrappedVkNonDispRes
 {
@@ -401,7 +401,7 @@ UNWRAP_HELPER(VkInstance)
 UNWRAP_HELPER(VkPhysicalDevice)
 UNWRAP_HELPER(VkDevice)
 UNWRAP_HELPER(VkQueue)
-UNWRAP_HELPER(VkCmdBuffer)
+UNWRAP_HELPER(VkCommandBuffer)
 UNWRAP_NONDISP_HELPER(VkFence)
 UNWRAP_NONDISP_HELPER(VkDeviceMemory)
 UNWRAP_NONDISP_HELPER(VkBuffer)
@@ -523,7 +523,7 @@ template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, Wra
 { SetDispatchTable(writing, parent, core, obj); }
 template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVulkan *core, WrappedVkQueue *obj)
 { SetDispatchTable(writing, parent, core, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVulkan *core, WrappedVkCmdBuffer *obj)
+template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVulkan *core, WrappedVkCommandBuffer *obj)
 { SetDispatchTable(writing, parent, core, obj); }
 
 bool IsDispatchableRes(WrappedVkRes *ptr);
