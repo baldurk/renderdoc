@@ -127,6 +127,7 @@ template<> void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR
 template<> void Serialiser::Deserialise(const VkDeviceCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkBufferCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkImageCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkBindSparseInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkFramebufferCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkRenderPassCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkRenderPassBeginInfo* const el) const;
@@ -134,6 +135,7 @@ template<> void Serialiser::Deserialise(const VkPipelineCacheCreateInfo* const e
 template<> void Serialiser::Deserialise(const VkPipelineLayoutCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkShaderModuleCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkGraphicsPipelineCreateInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkComputePipelineCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkDescriptorPoolCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkWriteDescriptorSet* const el) const;
 template<> void Serialiser::Deserialise(const VkDescriptorSetLayoutCreateInfo* const el) const;
