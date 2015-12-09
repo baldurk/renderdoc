@@ -50,7 +50,7 @@ DESTROY_IMPL(VkDescriptorPool, DestroyDescriptorPool)
 DESTROY_IMPL(VkSemaphore, DestroySemaphore)
 DESTROY_IMPL(VkFence, DestroyFence)
 DESTROY_IMPL(VkEvent, DestroyEvent)
-DESTROY_IMPL(VkCmdPool, DestroyCommandPool)
+DESTROY_IMPL(VkCommandPool, DestroyCommandPool)
 DESTROY_IMPL(VkQueryPool, DestroyQueryPool)
 DESTROY_IMPL(VkFramebuffer, DestroyFramebuffer)
 DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
@@ -244,9 +244,9 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			vt->DestroyDescriptorSetLayout(Unwrap(dev), nondisp->real.As<VkDescriptorSetLayout>());
 			GetResourceManager()->ReleaseWrappedResource(VkDescriptorSetLayout(handle));
 			break;
-		case eResCmdPool:
-			vt->DestroyCommandPool(Unwrap(dev), nondisp->real.As<VkCmdPool>());
-			GetResourceManager()->ReleaseWrappedResource(VkCmdPool(handle));
+		case eResCommandPool:
+			vt->DestroyCommandPool(Unwrap(dev), nondisp->real.As<VkCommandPool>());
+			GetResourceManager()->ReleaseWrappedResource(VkCommandPool(handle));
 			break;
 		case eResFence:
 			vt->DestroyFence(Unwrap(dev), nondisp->real.As<VkFence>());

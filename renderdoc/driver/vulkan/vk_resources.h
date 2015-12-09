@@ -62,7 +62,7 @@ enum VkResourceType
 	eResDescriptorPool,
 	eResDescriptorSetLayout,
 	eResDescriptorSet,
-	eResCmdPool,
+	eResCommandPool,
 	eResCommandBuffer,
 	eResFence,
 	eResEvent,
@@ -356,11 +356,11 @@ struct WrappedVkFramebuffer : WrappedVkNonDispRes
 	typedef VkFramebuffer InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkFramebuffer);
 	enum { TypeEnum = eResFramebuffer, };
 };
-struct WrappedVkCmdPool : WrappedVkNonDispRes
+struct WrappedVkCommandPool : WrappedVkNonDispRes
 {
-	WrappedVkCmdPool(VkCmdPool obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
-	typedef VkCmdPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdPool);
-	enum { TypeEnum = eResCmdPool, };
+	WrappedVkCommandPool(VkCommandPool obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
+	typedef VkCommandPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCommandPool);
+	enum { TypeEnum = eResCommandPool, };
 };
 struct WrappedVkSwapchainKHR : WrappedVkNonDispRes
 {
@@ -422,7 +422,7 @@ UNWRAP_NONDISP_HELPER(VkSampler)
 UNWRAP_NONDISP_HELPER(VkDescriptorPool)
 UNWRAP_NONDISP_HELPER(VkDescriptorSet)
 UNWRAP_NONDISP_HELPER(VkFramebuffer)
-UNWRAP_NONDISP_HELPER(VkCmdPool)
+UNWRAP_NONDISP_HELPER(VkCommandPool)
 UNWRAP_NONDISP_HELPER(VkSwapchainKHR)
 
 #define WRAPPING_DEBUG 0

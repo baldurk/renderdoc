@@ -258,9 +258,9 @@
 	HookDefine6(VkResult, vkAllocDescriptorSets, VkDevice, device, VkDescriptorPool, descriptorPool, VkDescriptorSetUsage, setUsage, uint32_t, count, const VkDescriptorSetLayout*, pSetLayouts, VkDescriptorSet*, pDescriptorSets); \
 	HookDefine5(void, vkUpdateDescriptorSets, VkDevice, device, uint32_t, writeCount, const VkWriteDescriptorSet*, pDescriptorWrites, uint32_t, copyCount, const VkCopyDescriptorSet*, pDescriptorCopies); \
 	HookDefine4(VkResult, vkFreeDescriptorSets, VkDevice, device, VkDescriptorPool, descriptorPool, uint32_t, count, const VkDescriptorSet*, pDescriptorSets); \
-	HookDefine3(VkResult, vkCreateCommandPool, VkDevice, device, const VkCmdPoolCreateInfo*, pCreateInfo, VkCmdPool*, pCmdPool); \
-	HookDefine2(void, vkDestroyCommandPool, VkDevice, device, VkCmdPool, cmdPool); \
-	HookDefine3(VkResult, vkResetCommandPool, VkDevice, device, VkCmdPool, cmdPool, VkCmdPoolResetFlags, flags); \
+	HookDefine3(VkResult, vkCreateCommandPool, VkDevice, device, const VkCmdPoolCreateInfo*, pCreateInfo, VkCommandPool*, pCmdPool); \
+	HookDefine2(void, vkDestroyCommandPool, VkDevice, device, VkCommandPool, cmdPool); \
+	HookDefine3(VkResult, vkResetCommandPool, VkDevice, device, VkCommandPool, cmdPool, VkCmdPoolResetFlags, flags); \
 	HookDefine3(VkResult, vkCreateCommandBuffer, VkDevice, device, const VkCmdBufferCreateInfo*, pCreateInfo, VkCommandBuffer*, pCmdBuffer); \
 	HookDefine2(void, vkDestroyCommandBuffer, VkDevice, device, VkCommandBuffer, cmdBuffer); \
 	HookDefine2(VkResult, vkBeginCommandBuffer, VkCommandBuffer, cmdBuffer, const VkCmdBufferBeginInfo*, pBeginInfo); \

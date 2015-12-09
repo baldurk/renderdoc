@@ -207,7 +207,7 @@ private:
 			submittedcmds.clear();
 		}
 
-		VkCmdPool m_CmdPool; // the command pool used for allocating our own command buffers
+		VkCommandPool m_CmdPool; // the command pool used for allocating our own command buffers
 	
 		vector<VkCommandBuffer> freecmds;
 		// -> record ->
@@ -939,15 +939,15 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool,
 			VkDevice                                  device,
 			const VkCmdPoolCreateInfo*                pCreateInfo,
-			VkCmdPool*                                pCmdPool);
+			VkCommandPool*                                pCmdPool);
 	
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyCommandPool,
 			VkDevice                                  device,
-			VkCmdPool                                 VkCmdPool);
+			VkCommandPool                                 VkCommandPool);
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkResetCommandPool,
 			VkDevice                                  device,
-			VkCmdPool                                 VkCmdPool,
+			VkCommandPool                                 VkCommandPool,
     	VkCmdPoolResetFlags                       flags);
 
 	// Command buffer functions

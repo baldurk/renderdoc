@@ -142,7 +142,7 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(
 			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkCmdPoolCreateInfo*                  pCreateInfo,
-			VkCmdPool*                                  pCmdPool)
+			VkCommandPool*                                  pCmdPool)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(VkCmdPoolCreateInfo, info, *pCreateInfo);
@@ -151,7 +151,7 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(
 	if(m_State == READING)
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-		VkCmdPool pool = VK_NULL_HANDLE;
+		VkCommandPool pool = VK_NULL_HANDLE;
 
 		VkResult ret = ObjDisp(device)->CreateCommandPool(Unwrap(device), &info, &pool);
 
@@ -172,7 +172,7 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(
 VkResult WrappedVulkan::vkCreateCommandPool(
 			VkDevice                                    device,
 			const VkCmdPoolCreateInfo*                  pCreateInfo,
-			VkCmdPool*                                  pCmdPool)
+			VkCommandPool*                                  pCmdPool)
 {
 	VkResult ret = ObjDisp(device)->CreateCommandPool(Unwrap(device), pCreateInfo, pCmdPool);
 
@@ -207,7 +207,7 @@ VkResult WrappedVulkan::vkCreateCommandPool(
 
 VkResult WrappedVulkan::vkResetCommandPool(
 			VkDevice                                    device,
-			VkCmdPool                                   cmdPool,
+			VkCommandPool                                   cmdPool,
 			VkCmdPoolResetFlags                         flags)
 {
 	return ObjDisp(device)->ResetCommandPool(device, cmdPool, flags);

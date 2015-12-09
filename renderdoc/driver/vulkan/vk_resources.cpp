@@ -50,7 +50,7 @@ WRAPPED_POOL_INST(WrappedVkSampler)
 WRAPPED_POOL_INST(WrappedVkDescriptorPool)
 WRAPPED_POOL_INST(WrappedVkDescriptorSet)
 WRAPPED_POOL_INST(WrappedVkFramebuffer)
-WRAPPED_POOL_INST(WrappedVkCmdPool)
+WRAPPED_POOL_INST(WrappedVkCommandPool)
 
 WRAPPED_POOL_INST(WrappedVkSwapchainKHR)
 
@@ -89,7 +89,7 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
 	if(WrappedVkDescriptorPool::IsAlloc(ptr))           return eResDescriptorPool;
 	if(WrappedVkDescriptorSetLayout::IsAlloc(ptr))      return eResDescriptorSetLayout;
 	if(WrappedVkDescriptorSet::IsAlloc(ptr))            return eResDescriptorSet;
-	if(WrappedVkCmdPool::IsAlloc(ptr))                  return eResCmdPool;
+	if(WrappedVkCommandPool::IsAlloc(ptr))              return eResCommandPool;
 	if(WrappedVkCommandBuffer::IsAlloc(ptr))            return eResCommandBuffer;
 	if(WrappedVkFence::IsAlloc(ptr))                    return eResFence;
 	if(WrappedVkEvent::IsAlloc(ptr))                    return eResEvent;
