@@ -140,6 +140,17 @@ template<> void Serialiser::Deserialise(const VkDescriptorPoolCreateInfo* const 
 template<> void Serialiser::Deserialise(const VkWriteDescriptorSet* const el) const;
 template<> void Serialiser::Deserialise(const VkDescriptorSetLayoutCreateInfo* const el) const;
 
+// the possible contents of a descriptor set slot,
+// taken from the VkWriteDescriptorSet
+struct DescriptorSetSlot
+{
+    VkDescriptorBufferInfo    imageView;
+    VkDescriptorImageInfo     imageLayout;
+    VkBufferView              bufferInfo;
+};
+
+#define NUM_VK_IMAGE_ASPECTS 4
+
 #pragma region Chunks
 
 enum VulkanChunkType

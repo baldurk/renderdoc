@@ -35,7 +35,7 @@
 #undef CreateSemaphore
 #endif
 
-#include <vk_layer.h>
+#include <vulkan/vk_layer.h>
 
 #if defined(WIN32)
 
@@ -179,13 +179,14 @@ class VulkanReplay : public IReplayDriver
 			void Destroy(WrappedVulkan *driver, VkDevice device);
 
 			// implemented in vk_replay_platform.cpp
-			void InitSurfaceDescription(VkSurfaceDescriptionWindowKHR &surfDesc);
+			void CreateSurface();
 			void SetWindowHandle(void *wn);
 
 			WINDOW_HANDLE_DECL
 
 			int32_t width, height;
 
+			VkSurfaceKHR surface;
 			VkSwapchainKHR swap;
 			uint32_t numImgs;
 			VkImage colimg[8];

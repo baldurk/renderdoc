@@ -582,7 +582,7 @@ struct SparseMapping
 	VkExtent3D pagedim;
 	// pagetable per image aspect (some may be NULL) color, depth, stencil, metadata
 	// in order of width first, then height, then depth
-	pair<VkDeviceMemory, VkDeviceSize> *pages[4];
+	pair<VkDeviceMemory, VkDeviceSize> *pages[NUM_VK_IMAGE_ASPECTS];
 
 	void Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings);
 	void Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings);
@@ -611,15 +611,6 @@ struct CmdBufferRecordingInfo
 };
 
 struct DescSetLayout;
-
-// the possible contents of a descriptor set slot,
-// taken from the VkWriteDescriptorSet
-struct DescriptorSetSlot
-{
-    VkDescriptorBufferInfo    imageView;
-    VkDescriptorImageInfo     imageLayout;
-    VkBufferView              bufferInfo;
-};
 
 struct DescriptorSetData
 {

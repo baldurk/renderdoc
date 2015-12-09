@@ -35,7 +35,7 @@ struct DescSetLayout
 {
 	void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkDescriptorSetLayoutCreateInfo* pCreateInfo);
 
-	void CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings);
+	void CreateBindingsArray(vector<DescriptorSetSlot*> &descBindings);
 
 	struct Binding
 	{
@@ -99,11 +99,11 @@ struct VulkanCreationInfo
 		vector<VkViewport> viewports;
 		vector<VkRect2D> scissors;
 
-		// VkPipelineRasterStateCreateInfo
-		bool depthClipEnable;
+		// VkPipelineRasterizationStateCreateInfo
+		bool depthClampEnable;
 		bool rasterizerDiscardEnable;
-		VkFillMode fillMode;
-		VkCullMode cullMode;
+		VkPolygonMode polygonMode;
+		VkCullModeFlags cullMode;
 		VkFrontFace frontFace;
 		bool depthBiasEnable;
 		float depthBias;
@@ -141,8 +141,8 @@ struct VulkanCreationInfo
 
 			struct BlendOp
 			{
-				VkBlend Source;
-				VkBlend Destination;
+				VkBlendFactor Source;
+				VkBlendFactor Destination;
 				VkBlendOp Operation;
 			} blend, alphaBlend;
 
@@ -151,7 +151,7 @@ struct VulkanCreationInfo
 		vector<Attachment> attachments;
 
 		// VkPipelineDynamicStateCreateInfo
-		bool dynamicStates[VK_DYNAMIC_STATE_NUM];
+		bool dynamicStates[VK_DYNAMIC_STATE_RANGE_SIZE];
 	};
 	map<ResourceId, Pipeline> m_Pipeline;
 
@@ -206,7 +206,7 @@ struct VulkanCreationInfo
 	
 	struct Memory
 	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkMemoryAllocInfo* pAllocInfo);
+		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkMemoryAllocateInfo* pAllocInfo);
 
 		uint64_t size;
 
@@ -253,10 +253,10 @@ struct VulkanCreationInfo
 	{
 		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkSamplerCreateInfo* pCreateInfo);
 	
-		VkTexFilter magFilter;
-		VkTexFilter minFilter;
-		VkTexMipmapMode mipMode;
-		VkTexAddressMode address[3];
+		VkFilter magFilter;
+		VkFilter minFilter;
+		VkSamplerMipmapMode mipMode;
+		VkSamplerAddressMode address[3];
 		float mipLodBias;
 		float maxAnisotropy;
 		bool compareEnable;
@@ -288,17 +288,6 @@ struct VulkanCreationInfo
 	};
 	map<ResourceId, ShaderModule> m_ShaderModule;
 
-	struct Shader
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkShaderCreateInfo* pCreateInfo, VulkanCreationInfo::ShaderModule &moduleinfo);
-
-		ResourceId module;
-		string entry;
-		ShaderReflection refl;
-		ShaderBindpointMapping mapping;
-	};
-	map<ResourceId, Shader> m_Shader;
-	
 	map<ResourceId, string> m_Names;
 	map<ResourceId, SwapchainInfo> m_SwapChain;
 	map<ResourceId, DescSetLayout> m_DescSetLayout;

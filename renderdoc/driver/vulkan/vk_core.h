@@ -182,7 +182,7 @@ private:
 		VkPhysicalDeviceFeatures features;
 		VkPhysicalDeviceProperties props;
 		VkPhysicalDeviceMemoryProperties memProps;
-		VkFormatProperties fmtprops[VK_FORMAT_NUM];
+		VkFormatProperties fmtprops[VK_FORMAT_RANGE_SIZE];
 	};
 
 	VkInstance m_Instance; // the instance corresponding to this WrappedVulkan
@@ -335,7 +335,7 @@ private:
 	struct DescriptorSetInfo
 	{
 		ResourceId layout;
-		vector<VkDescriptorInfo *> currentBindings;
+		vector<DescriptorSetSlot *> currentBindings;
 	};
 
 	// capture-side data
@@ -381,7 +381,8 @@ private:
 	void FinishCapture();
 	void EndCaptureFrame(VkImage presentImage);
 
-	RENDERDOC_WindowHandle GetHandleForSurface(const VkSurfaceDescriptionKHR* surf);
+	// TODO - replace this with wrapping VkSurfaceKHRs and 
+	//RENDERDOC_WindowHandle GetHandleForSurface(const VkSurfaceDescriptionKHR* surf);
 
 	string MakeRenderPassOpString(bool store);
 
