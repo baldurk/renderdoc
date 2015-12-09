@@ -65,7 +65,10 @@ void InitInstanceReplayTables(VkInstance instance)
 	// we know we'll only have one instance, so this is safe
 	
 #define InstanceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetInstanceProcAddr(instance, STRINGIZE(CONCAT(vk, func)));
-
+	
+	InstanceGPA(GetPhysicalDeviceSurfaceCapabilitiesKHR)
+	InstanceGPA(GetPhysicalDeviceSurfaceFormatsKHR)
+	InstanceGPA(GetPhysicalDeviceSurfacePresentModesKHR)
 	InstanceGPA(GetPhysicalDeviceSurfaceSupportKHR)
 	InstanceGPA(DbgCreateMsgCallback)
 	InstanceGPA(DbgDestroyMsgCallback)
@@ -82,9 +85,6 @@ void InitDeviceReplayTables(VkDevice device)
 
 #define DeviceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetDeviceProcAddr(device, STRINGIZE(CONCAT(vk, func)));
 	
-	DeviceGPA(GetSurfacePropertiesKHR)
-	DeviceGPA(GetSurfaceFormatsKHR)
-	DeviceGPA(GetSurfacePresentModesKHR)
 	DeviceGPA(CreateSwapchainKHR)
 	DeviceGPA(DestroySwapchainKHR)
 	DeviceGPA(GetSwapchainImagesKHR)

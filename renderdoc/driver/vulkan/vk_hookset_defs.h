@@ -37,7 +37,10 @@
 	HookInit(GetPhysicalDeviceMemoryProperties); \
 	HookInit(DbgCreateMsgCallback); \
 	HookInit(DbgDestroyMsgCallback); \
-	HookInit(GetPhysicalDeviceSurfaceSupportKHR)
+	HookInit(GetPhysicalDeviceSurfaceSupportKHR); \
+	HookInit(GetPhysicalDeviceSurfaceCapabilitiesKHR); \
+	HookInit(GetPhysicalDeviceSurfaceFormatsKHR); \
+	HookInit(GetPhysicalDeviceSurfacePresentModesKHR); \
 
 #define HookInitVulkanDevice() \
 	HookInit(CreateDevice); \
@@ -161,9 +164,6 @@
 	HookInit(CmdNextSubpass); \
 	HookInit(CmdExecuteCommands); \
 	HookInit(CmdEndRenderPass); \
-	HookInit(GetPhysicalDeviceSurfaceCapabilitiesKHR); \
-	HookInit(GetPhysicalDeviceSurfaceFormatsKHR); \
-	HookInit(GetPhysicalDeviceSurfacePresentModesKHR); \
 	HookInit(CreateSwapchainKHR); \
 	HookInit(DestroySwapchainKHR); \
 	HookInit(GetSwapchainImagesKHR); \
