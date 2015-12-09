@@ -53,28 +53,28 @@ void InitInstanceTable(const VkBaseLayerObject *obj);
 // as the first parameter
 
 #define HookDefine1(ret, function, t1, p1) \
-	ret VKAPI CONCAT(hooked_, function)(t1 p1) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1) \
 	{ return CoreDisp(p1)->function(p1); }
 #define HookDefine2(ret, function, t1, p1, t2, p2) \
-	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2) \
 	{ return CoreDisp(p1)->function(p1, p2); }
 #define HookDefine3(ret, function, t1, p1, t2, p2, t3, p3) \
-	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3) \
 	{ return CoreDisp(p1)->function(p1, p2, p3); }
 #define HookDefine4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4) \
-	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4) \
 	{ return CoreDisp(p1)->function(p1, p2, p3, p4); }
 #define HookDefine5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5) \
-	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
 	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5); }
 #define HookDefine6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6) \
-	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
 	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6); }
 #define HookDefine7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
-	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
 	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7); }
 #define HookDefine8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
-	ret VKAPI CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
 	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8); }
 
 DefineHooks();
@@ -82,16 +82,16 @@ DefineHooks();
 // need to implement vkCreateInstance and vkDestroyInstance specially,
 // to create and destroy the core WrappedVulkan object
 
-VkResult hooked_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, VkInstance* pInstance)
+VkResult hooked_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
 {
 	WrappedVulkan *core = new WrappedVulkan("");
-	return core->vkCreateInstance(pCreateInfo, pInstance);
+	return core->vkCreateInstance(pCreateInfo, pAllocator, pInstance);
 }
 
-void hooked_vkDestroyInstance(VkInstance instance)
+void hooked_vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks* pAllocator)
 {
 	WrappedVulkan *core = CoreDisp(instance);
-	core->vkDestroyInstance(instance);
+	core->vkDestroyInstance(instance, pAllocator);
 	delete core;
 }
 
@@ -99,7 +99,7 @@ void hooked_vkDestroyInstance(VkInstance instance)
 
 static const VkLayerProperties physLayers[] = {
 	{
-		"RenderDoc",
+		"VK_LAYER_RENDERDOC_Capture",
 			VK_API_VERSION,
 			VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
 			"Debugging capture layer for RenderDoc",
@@ -115,7 +115,7 @@ static const VkExtensionProperties physExts[] = {
 
 static const VkLayerProperties globalLayers[] = {
 	{
-		"RenderDoc",
+		"VK_LAYER_RENDERDOC_Capture",
 			VK_API_VERSION,
 			VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
 			"Debugging capture layer for RenderDoc",
@@ -144,21 +144,21 @@ VkResult getProps(uint32_t *dstCount, void *dstProps, uint32_t srcCount, void *s
 
 extern "C" {
 
-VK_LAYER_EXPORT VkResult VKAPI RenderDocEnumerateDeviceLayerProperties(
+VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDocEnumerateDeviceLayerProperties(
 	VkPhysicalDevice                            physicalDevice,
-	uint32_t*                                   pCount,
+	uint32_t*                                   pPropertyCount,
 	VkLayerProperties*                          pProperties)
 {
-	return getProps(pCount, pProperties, ARRAY_COUNT(physLayers), (void *)physLayers, sizeof(VkLayerProperties));
+	return getProps(pPropertyCount, pProperties, ARRAY_COUNT(physLayers), (void *)physLayers, sizeof(VkLayerProperties));
 }
 
-VK_LAYER_EXPORT VkResult VKAPI RenderDocEnumerateDeviceExtensionProperties(
+VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDocEnumerateDeviceExtensionProperties(
 	VkPhysicalDevice        physicalDevice,
 	const char             *pLayerName,
-	uint32_t               *pCount,
+	uint32_t               *pPropertyCount,
 	VkExtensionProperties  *pProperties)
 {
-	return getProps(pCount, pProperties, ARRAY_COUNT(physExts), (void *)physExts, sizeof(VkExtensionProperties));
+	return getProps(pPropertyCount, pProperties, ARRAY_COUNT(physExts), (void *)physExts, sizeof(VkExtensionProperties));
 }
 
 #undef HookInit
@@ -166,7 +166,7 @@ VK_LAYER_EXPORT VkResult VKAPI RenderDocEnumerateDeviceExtensionProperties(
 
 // proc addr routines
 
-VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDoc_GetDeviceProcAddr(VkDevice device, const char* pName)
+VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetDeviceProcAddr(VkDevice device, const char* pName)
 {
 	if (device == NULL)
 		return NULL;
@@ -189,7 +189,7 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDoc_GetDeviceProcAddr(VkDevice de
 	return GetDeviceDispatchTable(device)->GetDeviceProcAddr(device, pName);
 }
 
-VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI RenderDoc_GetInstanceProcAddr(VkInstance instance, const char* pName)
+VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetInstanceProcAddr(VkInstance instance, const char* pName)
 {
 	if (instance == NULL)
 		return NULL;
