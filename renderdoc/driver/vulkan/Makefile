@@ -4,6 +4,8 @@ COMMIT=`git rev-parse HEAD`
 MACROS=-DLINUX \
 			 -DRENDERDOC_PLATFORM=linux \
 			 -DRENDERDOC_EXPORTS \
+			 -DVK_USE_PLATFORM_XCB_KHR \
+			 -DVK_USE_PLATFORM_XLIB_KHR \
 			 -DGIT_COMMIT_HASH="\"$(COMMIT)\""
 CFLAGS=-c -Wall -Werror -Wno-unused -Wno-unknown-pragmas -fPIC $(MACROS) -I../../ -I../../3rdparty/ -I$(VK_SDK_PATH)/include/vulkan
 CPPFLAGS=-std=c++11 -g -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden

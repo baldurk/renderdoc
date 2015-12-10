@@ -73,6 +73,18 @@ void InitInstanceReplayTables(VkInstance instance)
 	InstanceGPA(DbgCreateMsgCallback)
 	InstanceGPA(DbgDestroyMsgCallback)
 
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+	InstanceGPA(CreateWin32SurfaceKHR)
+#endif
+
+#ifdef VK_USE_PLATFORM_XCB_KHR
+	InstanceGPA(CreateXcbSurfaceKHR)
+#endif
+
+#ifdef VK_USE_PLATFORM_XLIB_KHR
+	InstanceGPA(CreateXlibSurfaceKHR)
+#endif
+
 #undef InstanceGPA
 }
 

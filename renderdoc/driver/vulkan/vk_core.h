@@ -223,6 +223,7 @@ private:
 	// return the pre-selected device and queue
 	VkDevice GetDev()    { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Device; }
 	VkQueue  GetQ()      { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Queue; }
+	VkInstance GetInstance()    { RDCASSERT(m_Instance != VK_NULL_HANDLE); return m_Instance; }
 	VkCommandBuffer GetNextCmd();
 	void SubmitCmds();
 	void FlushQ();

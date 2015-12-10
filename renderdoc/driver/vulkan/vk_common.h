@@ -38,11 +38,6 @@
 
 #include "core/core.h"
 
-// this needs to be above the include of vulkan.h
-#if defined(__linux__)
-#include <xcb/xcb.h>
-#endif
-
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_lunarg_debug_marker.h>
 #include <vulkan/vk_lunarg_debug_report.h>

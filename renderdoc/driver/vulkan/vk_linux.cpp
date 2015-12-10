@@ -46,15 +46,12 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 	screen = iter.data;
 }
 
-void VulkanReplay::OutputWindow::InitSurfaceDescription(VkSurfaceDescriptionWindowKHR &surfDesc)
+void VulkanReplay::OutputWindow::InitSurfaceDescription(WrappedVulkan *driver)
 {
-	static VkPlatformHandleXcbKHR handle;
-	handle.connection = connection;
-	handle.root = screen->root;
+	VkInstance inst = driver->GetInstance();
 
-	surfDesc.pPlatformHandle = &handle;
-	surfDesc.pPlatformWindow = &wnd;
-	surfDesc.platform = VK_PLATFORM_X11_KHR;
+	VkResult vkr = ObjDisp(inst)->vkCreateXcbSurfaceKHR(Unwrap(inst), connection, &wnd, NULL, &surface);
+	RDCASSERT(vkr == VK_SUCCESS);
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
@@ -83,6 +80,7 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 	return true;
 }
 
+/*
 RENDERDOC_WindowHandle WrappedVulkan::GetHandleForSurface(const VkSurfaceDescriptionKHR* surf)
 {
 	RDCASSERT(surf);
@@ -113,7 +111,7 @@ RENDERDOC_WindowHandle WrappedVulkan::GetHandleForSurface(const VkSurfaceDescrip
 	RDCERR("Unsupported platform %u", (uint32_t)winDesc->platform);
 
 	return NULL;
-}
+}*/
 
 void *LoadVulkanLibrary()
 {

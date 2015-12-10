@@ -32,13 +32,17 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 	wnd = (HWND)wn;
 }
 
-void VulkanReplay::OutputWindow::InitSurfaceDescription(VkSurfaceDescriptionWindowKHR &surfDesc)
+void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver)
 {
+	VkInstance inst = driver->GetInstance();
+
+	HINSTANCE hinst;
+
 	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-		(const char *)&dllLocator, (HMODULE *)&surfDesc.pPlatformHandle);
-	
-	surfDesc.pPlatformWindow = wnd;
-	surfDesc.platform = VK_PLATFORM_WIN32_KHR;
+		(const char *)&dllLocator, (HMODULE *)&hinst);
+
+	VkResult vkr = ObjDisp(inst)->CreateWin32SurfaceKHR(Unwrap(inst), hinst, wnd, NULL, &surface);
+	RDCASSERT(vkr == VK_SUCCESS);
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
@@ -62,6 +66,7 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 	return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }
 
+/*
 RENDERDOC_WindowHandle WrappedVulkan::GetHandleForSurface(const VkSurfaceDescriptionKHR* surf)
 {
 	RDCASSERT(surf);
@@ -71,6 +76,7 @@ RENDERDOC_WindowHandle WrappedVulkan::GetHandleForSurface(const VkSurfaceDescrip
 
 	return winDesc->pPlatformWindow;
 }
+*/
 
 void *LoadVulkanLibrary()
 {
