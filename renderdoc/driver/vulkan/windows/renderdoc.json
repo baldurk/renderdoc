@@ -1,11 +1,11 @@
 {
-    "file_format_version" : "0.9.0",
+    "file_format_version" : "1.0.0",
     "layer" : {
-        "name": "RenderDoc",
+        "name": "VK_LAYER_RENDERDOC_Capture",
         "type": "GLOBAL",
         "library_path": ".\\renderdoc.dll",
-        "abi_versions": "1.0.0",
-        "implementation_version": "1.0.0",
+        "api_version": "0.210.1",
+        "implementation_version": "26",
         "description": "Debugging capture layer for RenderDoc",
         "functions": {
           "vkGetInstanceProcAddr": "RenderDoc_GetInstanceProcAddr",
