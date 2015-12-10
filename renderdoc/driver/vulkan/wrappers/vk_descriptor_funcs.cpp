@@ -216,7 +216,7 @@ bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
 		descriptorPool = GetResourceManager()->GetLiveHandle<VkDescriptorPool>(poolId);
 		VkDescriptorSetLayout layout = GetResourceManager()->GetLiveHandle<VkDescriptorSetLayout>(layoutId);
 
-		VkResult ret = ObjDisp(device)->AllocDescriptorSets(Unwrap(device), Unwrap(descriptorPool), usage, 1, UnwrapPtr(layout), &descset);
+		VkResult ret = ObjDisp(device)->AllocateDescriptorSets(Unwrap(device), Unwrap(descriptorPool), usage, 1, UnwrapPtr(layout), &descset);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -247,7 +247,7 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 	VkDescriptorSetLayout *unwrapped = GetTempArray<VkDescriptorSetLayout>(count);
 	for(uint32_t i=0; i < count; i++) unwrapped[i] = Unwrap(pSetLayouts[i]);
 
-	VkResult ret = ObjDisp(device)->AllocDescriptorSets(Unwrap(device), Unwrap(descriptorPool), setUsage, count, unwrapped, pDescriptorSets);
+	VkResult ret = ObjDisp(device)->AllocateDescriptorSets(Unwrap(device), Unwrap(descriptorPool), setUsage, count, unwrapped, pDescriptorSets);
 
 	if(ret != VK_SUCCESS) return ret;
 
