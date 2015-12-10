@@ -158,6 +158,11 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDocEnumerateDeviceExtensionProperties(
 	uint32_t               *pPropertyCount,
 	VkExtensionProperties  *pProperties)
 {
+	// if pLayerName is NULL we're calling down through the layer chain to the ICD.
+	// This is our chance to filter out any reported extensions that we don't support
+	if(pLayerName == NULL)
+		return ObjDisp(physicalDevice)->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), pLayerName, pPropertyCount, pProperties);
+
 	return getProps(pPropertyCount, pProperties, ARRAY_COUNT(physExts), (void *)physExts, sizeof(VkExtensionProperties));
 }
 
@@ -200,9 +205,9 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetInstanceProcAddr(VkIn
 		return (PFN_vkVoidFunction) &RenderDoc_GetInstanceProcAddr;
 	}
 
-	if (!strcmp("vkGetPhysicalDeviceLayerProperties", pName))
+	if (!strcmp("vkEnumerateDeviceLayerProperties", pName))
 		return (PFN_vkVoidFunction) &RenderDocEnumerateDeviceLayerProperties;
-	if (!strcmp("vkGetPhysicalDeviceExtensionProperties", pName))
+	if (!strcmp("vkEnumerateDeviceExtensionProperties", pName))
 		return (PFN_vkVoidFunction) &RenderDocEnumerateDeviceExtensionProperties;
 
 	HookInitVulkanInstance();

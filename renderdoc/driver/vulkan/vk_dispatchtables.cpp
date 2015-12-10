@@ -162,6 +162,10 @@ void InitInstanceTable(const VkBaseLayerObject *obj)
 	#define HookInit(name) if(table->name == NULL) table->name = (CONCAT(PFN_vk, name))obj->pGPA((VkInstance)obj->baseObject, STRINGIZE(CONCAT(vk, name)))
 
 	HookInitVulkanInstance();
+	
+	// we also need these functions for layer handling
+	HookInit(EnumerateDeviceExtensionProperties);
+	HookInit(EnumerateDeviceLayerProperties);
 }
 
 VkLayerDispatchTable *GetDeviceDispatchTable(void *device)
