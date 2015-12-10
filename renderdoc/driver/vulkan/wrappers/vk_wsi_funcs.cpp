@@ -230,8 +230,8 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			vkr = ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(im), &mrq);
 			RDCASSERT(vkr == VK_SUCCESS);
 			
-			VkMemoryAllocInfo allocInfo = {
-				VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			VkMemoryAllocateInfo allocInfo = {
+				VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 				mrq.size, GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 			};
 

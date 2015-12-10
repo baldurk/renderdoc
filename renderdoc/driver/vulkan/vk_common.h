@@ -139,12 +139,21 @@ template<> void Serialiser::Deserialise(const VkDescriptorSetLayoutCreateInfo* c
 // taken from the VkWriteDescriptorSet
 struct DescriptorSetSlot
 {
-    VkDescriptorBufferInfo    imageView;
-    VkDescriptorImageInfo     imageLayout;
-    VkBufferView              bufferInfo;
+    VkDescriptorBufferInfo    bufferInfo;
+    VkDescriptorImageInfo     imageInfo;
+    VkBufferView              texelBufferView;
 };
 
 #define NUM_VK_IMAGE_ASPECTS 4
+#define VK_ACCESS_ALL_READ_BITS (VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_INDEX_READ_BIT | \
+                                 VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_UNIFORM_READ_BIT | \
+                                 VK_ACCESS_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT | \
+                                 VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | \
+                                 VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_HOST_READ_BIT | \
+                                 VK_ACCESS_MEMORY_READ_BIT)
+#define VK_ACCESS_ALL_WRITE_BITS (VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | \
+                                  VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | \
+                                  VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_MEMORY_WRITE_BIT)
 
 #pragma region Chunks
 

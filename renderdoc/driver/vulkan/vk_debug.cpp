@@ -145,13 +145,12 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 	curoffset = 0;
 
 	VkBufferCreateInfo bufInfo = {
-		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-		totalsize, 0, 0,
-		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+		totalsize, 0,
 	};
 
-	bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
-	bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT;
+	bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	bufInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 	
 	if(flags & eGPUBufferVBuffer)
@@ -169,8 +168,8 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 	vkr = vt->GetBufferMemoryRequirements(Unwrap(dev), Unwrap(buf), &mrq);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VkMemoryAllocInfo allocInfo = {
-		VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+	VkMemoryAllocateInfo allocInfo = {
+		VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 		mrq.size,
 		(flags & eGPUBufferReadback)
 		? driver->GetReadbackMemoryIndex(mrq.memoryTypeBits)
@@ -919,7 +918,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VkCommandBuffer cmd = driver->GetNextCmd();
 
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -980,8 +979,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			vt->GetImageSubresourceLayout(Unwrap(dev), Unwrap(m_TextAtlas), &subr, &layout);
 
 			// allocate readback memory
-			VkMemoryAllocInfo allocInfo = {
-				VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			VkMemoryAllocateInfo allocInfo = {
+				VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 				mrq.size, driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
 			};
 
@@ -1089,8 +1088,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		vt->GetImageSubresourceLayout(Unwrap(dev), Unwrap(m_PickPixelImage), &subr, &layout);
 
 		// allocate readback memory
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		VkMemoryAllocateInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
@@ -1602,7 +1601,7 @@ void VulkanDebugManager::BeginText(const TextPrintState &textstate)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(textstate.cmd);
 	
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(textstate.cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -1704,7 +1703,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 
 	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -2003,7 +2002,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 	
 	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -2059,8 +2058,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 				m_pDriver->vkFreeMemory(m_Device, m_OverlayImageMem);
 			}
 
-			VkMemoryAllocInfo allocInfo = {
-				VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			VkMemoryAllocateInfo allocInfo = {
+				VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 				mrq.size, m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 			};
 
@@ -3988,9 +3987,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		// create buffer with unique 0-based indices
 		VkBufferCreateInfo bufInfo = {
-			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			indices.size()*sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 0,
-			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+			indices.size()*sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		};
 
 		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &uniqIdxBuf);
@@ -4000,8 +3998,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, uniqIdxBuf, &mrq);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		VkMemoryAllocateInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size,
 			m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits),
 		};
@@ -4092,22 +4090,21 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	{
 		// create buffer of sufficient size (num indices * bufStride)
 		VkBufferCreateInfo bufInfo = {
-			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			drawcall->numIndices*RDCMAX(1U, drawcall->numInstances)*bufStride, 0, 0,
-			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+			drawcall->numIndices*RDCMAX(1U, drawcall->numInstances)*bufStride, 0,
 		};
 
 		bufSize = bufInfo.size;
 
-		bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
-		bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT;
+		bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		bufInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
 		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &meshBuffer);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT;
+		bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &readbackBuffer);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -4116,8 +4113,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		VkMemoryAllocateInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size,
 			m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
@@ -4153,7 +4150,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		
 		VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
-		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 		vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -4205,20 +4202,19 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// index-minIndex which is 0-based but potentially sparse, so this buffer may
 		// be more or less wasteful
 		VkBufferCreateInfo bufInfo = {
-			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			numVerts*RDCMAX(1U, drawcall->numInstances)*bufStride, 0, 0,
-			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+			numVerts*RDCMAX(1U, drawcall->numInstances)*bufStride, 0,
 		};
 
-		bufInfo.usage  = VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
-		bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT;
+		bufInfo.usage  = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		bufInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
 		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &meshBuffer);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT;
+		bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &readbackBuffer);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -4227,8 +4223,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
 		RDCASSERT(vkr == VK_SUCCESS);
 		
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		VkMemoryAllocateInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size,
 			m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
@@ -4262,7 +4258,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		
 		VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
-		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 		vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);

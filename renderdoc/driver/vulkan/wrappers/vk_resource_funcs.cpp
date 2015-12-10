@@ -142,11 +142,11 @@
 bool WrappedVulkan::Serialise_vkAllocMemory(
 			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
-			const VkMemoryAllocInfo*                    pAllocInfo,
+			const VkMemoryAllocateInfo*                    pAllocInfo,
 			VkDeviceMemory*                             pMem)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-	SERIALISE_ELEMENT(VkMemoryAllocInfo, info, *pAllocInfo);
+	SERIALISE_ELEMENT(VkMemoryAllocateInfo, info, *pAllocInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pMem));
 
 	if(m_State == READING)
@@ -178,9 +178,8 @@ bool WrappedVulkan::Serialise_vkAllocMemory(
 			VkBuffer buf = VK_NULL_HANDLE;
 
 			VkBufferCreateInfo bufInfo = {
-				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-				info.allocationSize, VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
-				VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+				info.allocationSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			};
 
 			ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, &buf);
@@ -202,10 +201,10 @@ bool WrappedVulkan::Serialise_vkAllocMemory(
 
 VkResult WrappedVulkan::vkAllocMemory(
 			VkDevice                                    device,
-			const VkMemoryAllocInfo*                    pAllocInfo,
+			const VkMemoryAllocateInfo*                    pAllocInfo,
 			VkDeviceMemory*                             pMem)
 {
-	VkMemoryAllocInfo info = *pAllocInfo;
+	VkMemoryAllocateInfo info = *pAllocInfo;
 	if(m_State >= WRITING)
 		info.memoryTypeIndex = GetRecord(device)->memIdxMap[info.memoryTypeIndex];
 	VkResult ret = ObjDisp(device)->AllocMemory(Unwrap(device), &info, pMem);
@@ -256,9 +255,8 @@ VkResult WrappedVulkan::vkAllocMemory(
 			VkBuffer buf = VK_NULL_HANDLE;
 
 			VkBufferCreateInfo bufInfo = {
-				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-				info.allocationSize, VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
-				VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+				info.allocationSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			};
 
 			ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, &buf);
@@ -874,7 +872,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(
 		VkBufferUsageFlags origusage = info.usage;
 
 		// ensure we can always readback from buffers
-		info.usage |= VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
+		info.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
 		VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &info, &buf);
 

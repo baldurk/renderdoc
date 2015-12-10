@@ -574,7 +574,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 	{
 		VkCommandBuffer cmd = GetNextCmd();
 
-		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 		VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		
@@ -780,8 +780,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		vt->GetImageSubresourceLayout(Unwrap(dev), readbackIm, &subr, &layout);
 
 		// allocate readback memory
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		VkMemoryAllocateInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size, GetReadbackMemoryIndex(mrq.memoryTypeBits),
 		};
 
@@ -790,7 +790,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		vkr = vt->BindImageMemory(Unwrap(dev), readbackIm, readbackMem, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 		// do image copy
 		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
@@ -806,7 +806,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		VkImageMemoryBarrier bbBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
+			0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			Unwrap(backbuffer),
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
@@ -814,7 +814,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		VkImageMemoryBarrier readBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			readbackIm, // was never wrapped
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
@@ -827,7 +827,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, (void **)barriers);
 
-		vt->CmdCopyImage(Unwrap(cmd), Unwrap(backbuffer), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, readbackIm, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &cpy);
+		vt->CmdCopyImage(Unwrap(cmd), Unwrap(backbuffer), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, readbackIm, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cpy);
 
 		// barrier to switch backbuffer back to present layout
 		std::swap(bbBarrier.oldLayout, bbBarrier.newLayout);
@@ -1752,7 +1752,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 		{
 			VkCommandBuffer cmd = m_PartialReplayData.singleDrawCmdBuffer = GetNextCmd();
 			
-			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+			VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 			VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 			RDCASSERT(vkr == VK_SUCCESS);

@@ -250,7 +250,8 @@ struct VulkanCreationInfo
 		VkImageType type;
 		VkFormat format;
 		VkExtent3D extent;
-		int arrayLayers, mipLevels, samples;
+		int arrayLayers, mipLevels;
+		VkSampleCountFlagBits samples;
 
 		bool cube;
 		uint32_t creationFlags;

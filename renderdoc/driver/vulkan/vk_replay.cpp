@@ -372,8 +372,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(dsimg), &mrq);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		VkMemoryAllocateInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
@@ -480,8 +480,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(bb), &mrq);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		VkMemoryAllocateInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
@@ -840,7 +840,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	{
 		VkImageMemoryBarrier pickimBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
+			0, 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			Unwrap(GetDebugManager()->m_PickPixelImage),
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
@@ -850,7 +850,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		pickimBarrier.outputMask = VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT;
 		pickimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
 
-		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -869,7 +869,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 			{ 0, 0, 0 },
 			{ 1, 1, 1 },
 		};
-		vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_PickPixelImage), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.buf), 1, &region);
+		vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_PickPixelImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.buf), 1, &region);
 
 		// update image layout back to color attachment
 		pickimBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -1107,7 +1107,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	// before we go reading
 	srcimBarrier.inputMask = VK_MEMORY_INPUT_SHADER_READ_BIT;
 
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
 	vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
@@ -1166,7 +1166,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -1219,7 +1219,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -1391,7 +1391,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 
 	VkResult vkr = VK_SUCCESS;
 	
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -2373,7 +2373,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
 	vt->DestroySemaphore(Unwrap(dev), sem);
 
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -2387,7 +2387,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	outw.depthBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	
 	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	outw.colBarrier[outw.curidx].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
+	outw.colBarrier[outw.curidx].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, depth ? 3 : 2, barrier);
 
@@ -2410,7 +2410,7 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -2432,7 +2432,7 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -2456,7 +2456,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -2469,7 +2469,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	// ensure rendering has completed before copying
 	outw.bbBarrier.outputMask = VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT;
 	outw.bbBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
-	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
+	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, barrier);
 	outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
 	outw.bbBarrier.outputMask = 0;
@@ -2492,9 +2492,9 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	};
 
 	if(outw.dsimg != VK_NULL_HANDLE && VULKAN_MESH_VIEW_SAMPLES > 1U)
-		vt->CmdResolveImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &resolve);
+		vt->CmdResolveImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &resolve);
 	else
-		vt->CmdCopyImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &cpy);
+		vt->CmdCopyImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cpy);
 	
 	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	outw.colBarrier[outw.curidx].newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR;
@@ -3381,7 +3381,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	// before we go reading
 	srcimBarrier.inputMask = VK_MEMORY_INPUT_SHADER_READ_BIT;
 
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
 	vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
@@ -3596,7 +3596,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	// before we go reading
 	srcimBarrier.inputMask = VK_MEMORY_INPUT_SHADER_READ_BIT;
 
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
 	vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
@@ -3737,7 +3737,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 	
-	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -3773,8 +3773,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		VkMemoryAllocateInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size, m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
@@ -3904,7 +3904,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
 		// ensure all writes happen before copy & readback
 		dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
+		dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 		dstimBarrier.outputMask = VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT;
 		dstimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
 
@@ -3934,8 +3934,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkMemoryAllocInfo allocInfo = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		VkMemoryAllocateInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size, m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
@@ -3955,7 +3955,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		
 		VkImageMemoryBarrier srcimBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
+			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			srcImage,
 			{ VkImageAspectFlags(isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT),
@@ -3964,7 +3964,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		
 		VkImageMemoryBarrier dstimBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
+			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			tmpImage,
 			{ VkImageAspectFlags(isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT),
@@ -3999,7 +3999,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
 		// resolve from live texture to resolve texture
-		vt->CmdResolveImage(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, Unwrap(tmpImage), VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &resolveRegion);
+		vt->CmdResolveImage(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(tmpImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &resolveRegion);
 		
 		barrier = (void *)&srcimBarrier;
 		
@@ -4015,8 +4015,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
 		dstimBarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
 		dstimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
-		dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
-		dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
+		dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 		
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
@@ -4035,7 +4035,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	
 	VkImageMemoryBarrier srcimBarrier = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
+		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		srcImage,
 		{ VkImageAspectFlags(isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT),
@@ -4077,9 +4077,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	};
 
 	VkBufferCreateInfo bufInfo = {
-			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-			sublayout.size, VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT|VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT, 0,
-			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+			sublayout.size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 	};
 
 	VkBuffer readbackBuf = VK_NULL_HANDLE;
@@ -4091,8 +4090,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	vkr = vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VkMemoryAllocInfo allocInfo = {
-		VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+	VkMemoryAllocateInfo allocInfo = {
+		VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 		sublayout.size, m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
 	};
 
@@ -4104,7 +4103,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// copy from desired subresource in srcImage to buffer
-	vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, readbackBuf, 1, &copyregion);
+	vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, readbackBuf, 1, &copyregion);
 	
 	// if we have no tmpImage, we're copying directly from the real image
 	if(tmpImage == VK_NULL_HANDLE)

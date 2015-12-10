@@ -261,7 +261,7 @@ VkResult WrappedVulkan::vkCreateCommandBuffer(
 bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 			Serialiser*                                 localSerialiser,
 			VkCommandBuffer                                 cmdBuffer,
-			const VkCmdBufferBeginInfo*                 pBeginInfo)
+			const VkCommandBufferBeginInfo*                 pBeginInfo)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdId, GetResID(cmdBuffer));
 
@@ -281,7 +281,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 		createInfo = record->cmdInfo->createInfo;
 	}
 
-	SERIALISE_ELEMENT(VkCmdBufferBeginInfo, info, *pBeginInfo);
+	SERIALISE_ELEMENT(VkCommandBufferBeginInfo, info, *pBeginInfo);
 	SERIALISE_ELEMENT(ResourceId, bakeId, bakedCmdId);
 
 	if(m_State < WRITING)
@@ -386,7 +386,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 
 VkResult WrappedVulkan::vkBeginCommandBuffer(
 			VkCommandBuffer                                 cmdBuffer,
-			const VkCmdBufferBeginInfo*                 pBeginInfo)
+			const VkCommandBufferBeginInfo*                 pBeginInfo)
 {
 	VkResourceRecord *record = GetRecord(cmdBuffer);
 	RDCASSERT(record);
@@ -416,7 +416,7 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(
 		}
 	}
 
-	VkCmdBufferBeginInfo unwrappedInfo = *pBeginInfo;
+	VkCommandBufferBeginInfo unwrappedInfo = *pBeginInfo;
 	unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
 	unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
 
