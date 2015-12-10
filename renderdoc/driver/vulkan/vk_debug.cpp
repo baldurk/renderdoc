@@ -342,7 +342,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	sampInfo.minFilter = VK_TEX_FILTER_NEAREST;
 	sampInfo.magFilter = VK_TEX_FILTER_NEAREST;
-	sampInfo.mipMode = VK_TEX_MIPMAP_MODE_NEAREST;
+	sampInfo.mipmapMode = VK_TEX_MIPMAP_MODE_NEAREST;
 
 	vkr = vt->CreateSampler(Unwrap(dev), &sampInfo, &m_PointSampler);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -788,13 +788,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardPipeline);
 
-	msaa.rasterSamples = VULKAN_MESH_VIEW_SAMPLES;
+	msaa.rasterizationSamples = VULKAN_MESH_VIEW_SAMPLES;
 	pipeInfo.renderPass = RGBA8MSRP;
 
 	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_CheckerboardMSAAPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	msaa.rasterSamples = 1;
+	msaa.rasterizationSamples = 1;
 	pipeInfo.renderPass = RGBA8RP;
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardMSAAPipeline);
@@ -1851,20 +1851,20 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 	
 	static VkPipelineRasterStateCreateInfo rs = { VK_STRUCTURE_TYPE_PIPELINE_RASTER_STATE_CREATE_INFO };
 
-	rs.depthClipEnable = pipeInfo.depthClipEnable;
+	rs.depthClipEnable = pipeInfo.depthClampEnable;
 	rs.rasterizerDiscardEnable = pipeInfo.rasterizerDiscardEnable,
 	rs.fillMode = pipeInfo.fillMode;
 	rs.cullMode = pipeInfo.cullMode;
 	rs.frontFace = pipeInfo.frontFace;
 	rs.depthBiasEnable = pipeInfo.depthBiasEnable;
-	rs.depthBias = pipeInfo.depthBias;
+	rs.depthBias = pipeInfo.depthBiasConstantFactor;
 	rs.depthBiasClamp = pipeInfo.depthBiasClamp;
-	rs.slopeScaledDepthBias = pipeInfo.slopeScaledDepthBias;
+	rs.slopeScaledDepthBias = pipeInfo.depthBiasSlopeFactor;
 	rs.lineWidth = pipeInfo.lineWidth;
 
 	static VkPipelineMultisampleStateCreateInfo msaa = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
 	
-	msaa.rasterSamples = pipeInfo.rasterSamples;
+	msaa.rasterizationSamples = pipeInfo.rasterizationSamples;
 	msaa.sampleShadingEnable = pipeInfo.sampleShadingEnable;
 	msaa.minSampleShading = pipeInfo.minSampleShading;
 	msaa.pSampleMask = &pipeInfo.sampleMask;

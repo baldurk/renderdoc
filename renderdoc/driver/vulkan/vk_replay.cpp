@@ -659,7 +659,7 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 
 	FetchTexture ret;
 	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
-	ret.arraysize = iminfo.arraySize;
+	ret.arraysize = iminfo.arrayLayers;
 	ret.creationFlags = iminfo.creationFlags;
 	ret.cubemap = iminfo.cube;
 	ret.width = iminfo.extent.width;
@@ -681,13 +681,13 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	switch(iminfo.type)
 	{
 		case VK_IMAGE_TYPE_1D:
-			ret.resType = iminfo.arraySize > 1 ? eResType_Texture1DArray : eResType_Texture1D;
+			ret.resType = iminfo.arrayLayers > 1 ? eResType_Texture1DArray : eResType_Texture1D;
 			ret.dimension = 1;
 			break;
 		case VK_IMAGE_TYPE_2D:
-			     if(ret.msSamp > 1) ret.resType = iminfo.arraySize > 1 ? eResType_Texture2DMSArray : eResType_Texture2DMS;
-			else if(ret.cubemap)    ret.resType = iminfo.arraySize > 6 ? eResType_TextureCubeArray : eResType_TextureCube;
-			else                    ret.resType = iminfo.arraySize > 1 ? eResType_Texture2DArray : eResType_Texture2D;
+			     if(ret.msSamp > 1) ret.resType = iminfo.arrayLayers > 1 ? eResType_Texture2DMSArray : eResType_Texture2DMS;
+			else if(ret.cubemap)    ret.resType = iminfo.arrayLayers > 6 ? eResType_TextureCubeArray : eResType_TextureCube;
+			else                    ret.resType = iminfo.arrayLayers > 1 ? eResType_Texture2DArray : eResType_Texture2D;
 			ret.dimension = 2;
 			break;
 		case VK_IMAGE_TYPE_3D:
@@ -2675,7 +2675,7 @@ void VulkanReplay::SavePipelineState()
 			}
 
 			// Rasterizer
-			m_VulkanPipelineState.RS.depthClipEnable = p.depthClipEnable;
+			m_VulkanPipelineState.RS.depthClampEnable = p.depthClampEnable;
 			m_VulkanPipelineState.RS.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
 			m_VulkanPipelineState.RS.FrontCCW = p.frontFace == VK_FRONT_FACE_CCW;
 
@@ -2708,7 +2708,7 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.RS.lineWidth = state.lineWidth;
 
 			// MSAA
-			m_VulkanPipelineState.MSAA.rasterSamples = p.rasterSamples;
+			m_VulkanPipelineState.MSAA.rasterSamples = p.rasterizationSamples;
 			m_VulkanPipelineState.MSAA.sampleShadingEnable = p.sampleShadingEnable;
 			m_VulkanPipelineState.MSAA.minSampleShading = p.minSampleShading;
 			m_VulkanPipelineState.MSAA.sampleMask = p.sampleMask;
@@ -2881,7 +2881,7 @@ void VulkanReplay::SavePipelineState()
 									// sampler info
 									el.mag = ToStr::Get(sampl.magFilter);
 									el.min = ToStr::Get(sampl.minFilter);
-									el.mip = ToStr::Get(sampl.mipMode);
+									el.mip = ToStr::Get(sampl.mipmapMode);
 									el.addrU = ToStr::Get(sampl.address[0]);
 									el.addrV = ToStr::Get(sampl.address[1]);
 									el.addrW = ToStr::Get(sampl.address[2]);
@@ -3349,7 +3349,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	
 	data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width)>>mip, 1U);
 	data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height)>>mip, 1U);
-	data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.arraySize)>>mip, 1U);
+	data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.arrayLayers)>>mip, 1U);
 	data->HistogramSlice = (float)sliceFace;
 	data->HistogramMip = (int)mip;
 	data->HistogramNumSamples = iminfo.samples;
@@ -3556,7 +3556,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	
 	data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width)>>mip, 1U);
 	data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height)>>mip, 1U);
-	data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.arraySize)>>mip, 1U);
+	data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.arrayLayers)>>mip, 1U);
 	data->HistogramSlice = (float)sliceFace;
 	data->HistogramMip = (int)mip;
 	data->HistogramNumSamples = iminfo.samples;
@@ -3715,7 +3715,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	VkImageCreateInfo imCreateInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
 			imInfo.type, imInfo.format, imInfo.extent,
-			imInfo.mipLevels, imInfo.arraySize, imInfo.samples,
+			imInfo.mipLevels, imInfo.arrayLayers, imInfo.samples,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
 			0, VK_SHARING_MODE_EXCLUSIVE, 0, NULL,

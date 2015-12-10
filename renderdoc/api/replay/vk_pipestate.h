@@ -171,10 +171,10 @@ struct VulkanPipelineState
 	struct Raster
 	{
 		Raster()
-			: depthClipEnable(false), rasterizerDiscardEnable(false), FrontCCW(false), FillMode(eFill_Solid), CullMode(eCull_None)
+			: depthClampEnable(false), rasterizerDiscardEnable(false), FrontCCW(false), FillMode(eFill_Solid), CullMode(eCull_None)
 			, depthBias(0), depthBiasClamp(0), slopeScaledDepthBias(0), lineWidth(0) {}
 
-		bool32 depthClipEnable, rasterizerDiscardEnable, FrontCCW;
+		bool32 depthClampEnable, rasterizerDiscardEnable, FrontCCW;
 		TriangleFillMode FillMode;
 		TriangleCullMode CullMode;
 

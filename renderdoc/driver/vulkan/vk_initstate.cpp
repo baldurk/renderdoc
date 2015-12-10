@@ -1400,7 +1400,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 				m_CreationInfo.m_Image[liveim->id].format,
 				m_CreationInfo.m_Image[liveim->id].extent,
 				(uint32_t)m_CreationInfo.m_Image[liveim->id].mipLevels,
-				(uint32_t)m_CreationInfo.m_Image[liveim->id].arraySize,
+				(uint32_t)m_CreationInfo.m_Image[liveim->id].arrayLayers,
 				(uint32_t)m_CreationInfo.m_Image[liveim->id].samples,
 				VK_IMAGE_TILING_OPTIMAL, // make this optimal since the format/etc is more likely supported as optimal
 				VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
@@ -1847,16 +1847,16 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			ToHandle<VkImage>(live),
-			{ aspectFlags, 0, 1, 0, (uint32_t)m_CreationInfo.m_Image[id].arraySize }
+			{ aspectFlags, 0, 1, 0, (uint32_t)m_CreationInfo.m_Image[id].arrayLayers }
 		};
 
 		// loop over every mip
 		for(int m=0; m < m_CreationInfo.m_Image[id].mipLevels; m++)
 		{
 			VkImageCopy region = {
-				{ aspect, (uint32_t)m, 0, (uint32_t)m_CreationInfo.m_Image[id].arraySize },
+				{ aspect, (uint32_t)m, 0, (uint32_t)m_CreationInfo.m_Image[id].arrayLayers },
 				{ 0, 0, 0 },
-				{ aspect, (uint32_t)m, 0, (uint32_t)m_CreationInfo.m_Image[id].arraySize },
+				{ aspect, (uint32_t)m, 0, (uint32_t)m_CreationInfo.m_Image[id].arrayLayers },
 				{ 0, 0, 0 },
 				extent,
 			};

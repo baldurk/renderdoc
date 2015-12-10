@@ -911,9 +911,9 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 			}
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
 			{
-				m_RenderState.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBias;
+				m_RenderState.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBiasConstantFactor;
 				m_RenderState.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
-				m_RenderState.bias.slope = m_CreationInfo.m_Pipeline[liveid].slopeScaledDepthBias;
+				m_RenderState.bias.slope = m_CreationInfo.m_Pipeline[liveid].depthBiasSlopeFactor;
 			}
 			if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
 			{

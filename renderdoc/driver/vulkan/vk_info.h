@@ -43,7 +43,7 @@ struct DescSetLayout
 		~Binding() { SAFE_DELETE_ARRAY(immutableSampler); }
 
 		VkDescriptorType descriptorType;
-		uint32_t arraySize;
+		uint32_t descriptorCount;
 		VkShaderStageFlags stageFlags;
 		ResourceId *immutableSampler;
 	};
@@ -67,7 +67,15 @@ struct VulkanCreationInfo
 		VkPipelineCreateFlags flags;
 
 		// VkPipelineShaderStageCreateInfo
-		ResourceId shaders[6];
+		struct Shader
+		{
+			Shader() : refl(NULL), mapping(NULL) {}
+			~Shader() { SAFE_DELETE(refl); }
+			ResourceId module;
+			ShaderReflection *refl;
+			ShaderBindpointMapping *mapping;
+		};
+		Shader shaders[6];
 
 		// VkPipelineVertexInputStateCreateInfo
 		struct Binding
@@ -106,16 +114,18 @@ struct VulkanCreationInfo
 		VkCullModeFlags cullMode;
 		VkFrontFace frontFace;
 		bool depthBiasEnable;
-		float depthBias;
+		float depthBiasConstantFactor;
 		float depthBiasClamp;
-		float slopeScaledDepthBias;
+		float depthBiasSlopeFactor;
 		float lineWidth;
 
 		// VkPipelineMultisampleStateCreateInfo
-		uint32_t rasterSamples;
+		uint32_t rasterizationSamples;
 		bool sampleShadingEnable;
 		float minSampleShading;
 		VkSampleMask sampleMask;
+		bool alphaToCoverageEnable;
+		bool alphaToOneEnable;
 
 		// VkPipelineDepthStencilStateCreateInfo
 		bool depthTestEnable;
@@ -129,8 +139,6 @@ struct VulkanCreationInfo
 		float maxDepthBounds;
 
 		// VkPipelineColorBlendStateCreateInfo
-		bool alphaToCoverageEnable;
-		bool alphaToOneEnable;
 		bool logicOpEnable;
 		VkLogicOp logicOp;
 		float blendConst[4];
@@ -242,7 +250,7 @@ struct VulkanCreationInfo
 		VkImageType type;
 		VkFormat format;
 		VkExtent3D extent;
-		int arraySize, mipLevels, samples;
+		int arrayLayers, mipLevels, samples;
 
 		bool cube;
 		uint32_t creationFlags;
@@ -255,7 +263,7 @@ struct VulkanCreationInfo
 	
 		VkFilter magFilter;
 		VkFilter minFilter;
-		VkSamplerMipmapMode mipMode;
+		VkSamplerMipmapMode mipmapMode;
 		VkSamplerAddressMode address[3];
 		float mipLodBias;
 		float maxAnisotropy;
@@ -283,7 +291,7 @@ struct VulkanCreationInfo
 		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkShaderModuleCreateInfo* pCreateInfo);
 
 		SPVModule spirv;
-		ShaderReflection reflTemplate;
+		ShaderReflection refl;
 		ShaderBindpointMapping mapping;
 	};
 	map<ResourceId, ShaderModule> m_ShaderModule;

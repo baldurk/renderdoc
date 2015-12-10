@@ -28,10 +28,10 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
 {
 	dynamicCount = 0;
 
-	bindings.resize(pCreateInfo->count);
-	for(uint32_t i=0; i < pCreateInfo->count; i++)
+	bindings.resize(pCreateInfo->bindingCount);
+	for(uint32_t i=0; i < pCreateInfo->bindingCount; i++)
 	{
-		bindings[i].arraySize = pCreateInfo->pBinding[i].arraySize;
+		bindings[i].descriptorCount = pCreateInfo->pBinding[i].descriptorCount;
 		bindings[i].descriptorType = pCreateInfo->pBinding[i].descriptorType;
 		bindings[i].stageFlags = pCreateInfo->pBinding[i].stageFlags;
 
@@ -41,21 +41,21 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
 
 		if(pCreateInfo->pBinding[i].pImmutableSamplers)
 		{
-			bindings[i].immutableSampler = new ResourceId[bindings[i].arraySize];
+			bindings[i].immutableSampler = new ResourceId[bindings[i].descriptorCount];
 
-			for(uint32_t s=0; s < bindings[i].arraySize; s++)
+			for(uint32_t s=0; s < bindings[i].descriptorCount; s++)
 				bindings[i].immutableSampler[s] = resourceMan->GetNonDispWrapper(pCreateInfo->pBinding[i].pImmutableSamplers[s])->id;
 		}
 	}
 }
 
-void DescSetLayout::CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings)
+void DescSetLayout::CreateBindingsArray(vector<DescriptorSetSlot*> &descBindings)
 {
 	descBindings.resize(bindings.size());
 	for(size_t i=0; i < bindings.size(); i++)
 	{
-		descBindings[i] = new VkDescriptorInfo[bindings[i].arraySize];
-		memset(descBindings[i], 0, sizeof(VkDescriptorInfo)*bindings[i].arraySize);
+		descBindings[i] = new DescriptorSetSlot[bindings[i].descriptorCount];
+		memset(descBindings[i], 0, sizeof(DescriptorSetSlot)*bindings[i].descriptorCount);
 	}
 }
 
@@ -70,27 +70,35 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		// need to figure out which states are valid to be NULL
 		
 		// VkPipelineShaderStageCreateInfo
-		RDCEraseEl(shaders);
 		for(uint32_t i=0; i < pCreateInfo->stageCount; i++)
-			shaders[ pCreateInfo->pStages[i].stage ] = resourceMan->GetNonDispWrapper(pCreateInfo->pStages[i].shader)->id;
+		{
+			ResourceId id = resourceMan->GetNonDispWrapper(pCreateInfo->pStages[i].module)->id;
+			Shader &shad = shaders[ pCreateInfo->pStages[i].stage ];
+			
+			shad.module = id;
+			shad.refl = new ShaderReflection(info.m_ShaderModule[id].refl);
+			shad.refl->DebugInfo.entryFunc = pCreateInfo->pStages[i].pName;
+			// VKTODOLOW set this properly
+			shad.refl->DebugInfo.entryFile = 0;
+		}
 
 		if(pCreateInfo->pVertexInputState)
 		{
-			vertexBindings.resize(pCreateInfo->pVertexInputState->bindingCount);
-			for(uint32_t i=0; i < pCreateInfo->pVertexInputState->bindingCount; i++)
+			vertexBindings.resize(pCreateInfo->pVertexInputState->vertexBindingDescriptionCount);
+			for(uint32_t i=0; i < pCreateInfo->pVertexInputState->vertexBindingDescriptionCount; i++)
 			{
 				vertexBindings[i].vbufferBinding = pCreateInfo->pVertexInputState->pVertexBindingDescriptions[i].binding;
-				vertexBindings[i].bytestride = pCreateInfo->pVertexInputState->pVertexBindingDescriptions[i].strideInBytes;
-				vertexBindings[i].perInstance = pCreateInfo->pVertexInputState->pVertexBindingDescriptions[i].stepRate == VK_VERTEX_INPUT_STEP_RATE_INSTANCE;
+				vertexBindings[i].bytestride = pCreateInfo->pVertexInputState->pVertexBindingDescriptions[i].stride;
+				vertexBindings[i].perInstance = pCreateInfo->pVertexInputState->pVertexBindingDescriptions[i].inputRate == VK_VERTEX_INPUT_RATE_INSTANCE;
 			}
 
-			vertexAttrs.resize(pCreateInfo->pVertexInputState->attributeCount);
-			for(uint32_t i=0; i < pCreateInfo->pVertexInputState->attributeCount; i++)
+			vertexAttrs.resize(pCreateInfo->pVertexInputState->vertexAttributeDescriptionCount);
+			for(uint32_t i=0; i < pCreateInfo->pVertexInputState->vertexAttributeDescriptionCount; i++)
 			{
 				vertexAttrs[i].binding = pCreateInfo->pVertexInputState->pVertexAttributeDescriptions[i].binding;
 				vertexAttrs[i].location = pCreateInfo->pVertexInputState->pVertexAttributeDescriptions[i].location;
 				vertexAttrs[i].format = pCreateInfo->pVertexInputState->pVertexAttributeDescriptions[i].format;
-				vertexAttrs[i].byteoffset = pCreateInfo->pVertexInputState->pVertexAttributeDescriptions[i].offsetInBytes;
+				vertexAttrs[i].byteoffset = pCreateInfo->pVertexInputState->pVertexAttributeDescriptions[i].offset;
 			}
 		}
 
@@ -117,22 +125,24 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		}
 
 		// VkPipelineRasterStateCreateInfo
-		depthClipEnable = pCreateInfo->pRasterState->depthClipEnable ? true : false;
-		rasterizerDiscardEnable = pCreateInfo->pRasterState->rasterizerDiscardEnable ? true : false;
-		fillMode = pCreateInfo->pRasterState->fillMode;
-		cullMode = pCreateInfo->pRasterState->cullMode;
-		frontFace = pCreateInfo->pRasterState->frontFace;
-		depthBiasEnable = pCreateInfo->pRasterState->depthBiasEnable ? true : false;
-		depthBias = pCreateInfo->pRasterState->depthBias;
-		depthBiasClamp = pCreateInfo->pRasterState->depthBiasClamp;
-		slopeScaledDepthBias = pCreateInfo->pRasterState->slopeScaledDepthBias;
-		lineWidth = pCreateInfo->pRasterState->lineWidth;
+		depthClampEnable = pCreateInfo->pRasterizationState->depthClampEnable ? true : false;
+		rasterizerDiscardEnable = pCreateInfo->pRasterizationState->rasterizerDiscardEnable ? true : false;
+		polygonMode = pCreateInfo->pRasterizationState->polygonMode;
+		cullMode = pCreateInfo->pRasterizationState->cullMode;
+		frontFace = pCreateInfo->pRasterizationState->frontFace;
+		depthBiasEnable = pCreateInfo->pRasterizationState->depthBiasEnable ? true : false;
+		depthBiasConstantFactor = pCreateInfo->pRasterizationState->depthBiasConstantFactor;
+		depthBiasClamp = pCreateInfo->pRasterizationState->depthBiasClamp;
+		depthBiasSlopeFactor = pCreateInfo->pRasterizationState->depthBiasSlopeFactor;
+		lineWidth = pCreateInfo->pRasterizationState->lineWidth;
 
 		// VkPipelineMultisampleStateCreateInfo
-		rasterSamples = pCreateInfo->pMultisampleState->rasterSamples;
+		rasterizationSamples = pCreateInfo->pMultisampleState->rasterizationSamples;
 		sampleShadingEnable = pCreateInfo->pMultisampleState->sampleShadingEnable ? true : false;
 		minSampleShading = pCreateInfo->pMultisampleState->minSampleShading;
 		sampleMask = pCreateInfo->pMultisampleState->pSampleMask ? *pCreateInfo->pMultisampleState->pSampleMask : ~0U;
+		alphaToCoverageEnable = pCreateInfo->pMultisampleState->alphaToCoverageEnable ? true : false;
+		alphaToOneEnable = pCreateInfo->pMultisampleState->alphaToOneEnable ? true : false;
 
 		// VkPipelineDepthStencilStateCreateInfo
 		depthTestEnable = pCreateInfo->pDepthStencilState->depthTestEnable ? true : false;
@@ -146,11 +156,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		maxDepthBounds = pCreateInfo->pDepthStencilState->maxDepthBounds;
 
 		// VkPipelineColorBlendStateCreateInfo
-		alphaToCoverageEnable = pCreateInfo->pColorBlendState->alphaToCoverageEnable ? true : false;
-		alphaToOneEnable = pCreateInfo->pColorBlendState->alphaToOneEnable ? true : false;
 		logicOpEnable = pCreateInfo->pColorBlendState->logicOpEnable ? true : false;
 		logicOp = pCreateInfo->pColorBlendState->logicOp;
-		memcpy(blendConst, pCreateInfo->pColorBlendState->blendConst, sizeof(blendConst));
+		memcpy(blendConst, pCreateInfo->pColorBlendState->blendConstants, sizeof(blendConst));
 
 		attachments.resize(pCreateInfo->pColorBlendState->attachmentCount);
 
@@ -158,15 +166,15 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		{
 			attachments[i].blendEnable = pCreateInfo->pColorBlendState->pAttachments[i].blendEnable ? true : false;
 
-			attachments[i].blend.Source = pCreateInfo->pColorBlendState->pAttachments[i].srcBlendColor;
-			attachments[i].blend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].destBlendColor;
-			attachments[i].blend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].blendOpColor;
+			attachments[i].blend.Source = pCreateInfo->pColorBlendState->pAttachments[i].srcColorBlendFactor;
+			attachments[i].blend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].dstColorBlendFactor;
+			attachments[i].blend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].colorBlendOp;
 
-			attachments[i].alphaBlend.Source = pCreateInfo->pColorBlendState->pAttachments[i].srcBlendAlpha;
-			attachments[i].alphaBlend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].destBlendAlpha;
-			attachments[i].alphaBlend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].blendOpAlpha;
+			attachments[i].alphaBlend.Source = pCreateInfo->pColorBlendState->pAttachments[i].srcAlphaBlendFactor;
+			attachments[i].alphaBlend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].dstAlphaBlendFactor;
+			attachments[i].alphaBlend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].alphaBlendOp;
 
-			attachments[i].channelWriteMask = pCreateInfo->pColorBlendState->pAttachments[i].channelWriteMask;
+			attachments[i].channelWriteMask = pCreateInfo->pColorBlendState->pAttachments[i].colorWriteMask;
 		}
 
 		RDCEraseEl(dynamicStates);
@@ -186,8 +194,16 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		// need to figure out which states are valid to be NULL
 		
 		// VkPipelineShaderStageCreateInfo
-		RDCEraseEl(shaders);
-		shaders[0] = resourceMan->GetNonDispWrapper(pCreateInfo->stage.shader)->id;
+		{
+			ResourceId id = resourceMan->GetNonDispWrapper(pCreateInfo->stage.module)->id;
+			Shader &shad = shaders[0];
+			
+			shad.module = id;
+			shad.refl = new ShaderReflection(info.m_ShaderModule[id].refl);
+			shad.refl->DebugInfo.entryFunc = pCreateInfo->stage.pName;
+			// VKTODOLOW set this properly
+			shad.refl->DebugInfo.entryFile = 0;
+		}
 
 		topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		primitiveRestartEnable = false;
@@ -197,14 +213,14 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		viewportCount = 0;
 
 		// VkPipelineRasterStateCreateInfo
-		depthClipEnable = false;
+		depthClampEnable = false;
 		rasterizerDiscardEnable = false;
-		fillMode = VK_FILL_MODE_SOLID;
+		polygonMode = VK_POLYGON_MODE_FILL;
 		cullMode = VK_CULL_MODE_NONE;
-		frontFace = VK_FRONT_FACE_CW;
+		frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 		// VkPipelineMultisampleStateCreateInfo
-		rasterSamples = 1;
+		rasterizationSamples = 1;
 		sampleShadingEnable = false;
 		minSampleShading = 1.0f;
 		sampleMask = ~0U;
@@ -221,13 +237,13 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		// VkPipelineColorBlendStateCreateInfo
 		alphaToCoverageEnable = false;
 		logicOpEnable = false;
-		logicOp = VK_LOGIC_OP_NOOP;
+		logicOp = VK_LOGIC_OP_NO_OP;
 }
 
 void VulkanCreationInfo::PipelineLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkPipelineLayoutCreateInfo* pCreateInfo)
 {
-	descSetLayouts.resize(pCreateInfo->descriptorSetCount);
-	for(uint32_t i=0; i < pCreateInfo->descriptorSetCount; i++)
+	descSetLayouts.resize(pCreateInfo->setLayoutCount);
+	for(uint32_t i=0; i < pCreateInfo->setLayoutCount; i++)
 		descSetLayouts[i] = resourceMan->GetNonDispWrapper(pCreateInfo->pSetLayouts[i])->id;
 
 	pushRanges.reserve(pCreateInfo->pushConstantRangeCount);
@@ -254,16 +270,16 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan, Vu
 		const VkSubpassDescription &subp = pCreateInfo->pSubpasses[i];
 		Subpass &s = subpasses[i];
 
-		s.inputAttachments.resize(subp.inputCount);
-		for(uint32_t i=0; i < subp.inputCount; i++)
+		s.inputAttachments.resize(subp.inputAttachmentCount);
+		for(uint32_t i=0; i < subp.inputAttachmentCount; i++)
 			s.inputAttachments[i] = subp.pInputAttachments[i].attachment;
 
-		s.colorAttachments.resize(subp.colorCount);
-		for(uint32_t i=0; i < subp.colorCount; i++)
+		s.colorAttachments.resize(subp.colorAttachmentCount);
+		for(uint32_t i=0; i < subp.colorAttachmentCount; i++)
 			s.colorAttachments[i] = subp.pColorAttachments[i].attachment;
 
-		s.depthstencilAttachment = (subp.depthStencilAttachment.attachment != VK_ATTACHMENT_UNUSED
-			? (int32_t)subp.depthStencilAttachment.attachment : -1);
+		s.depthstencilAttachment = (subp.pDepthStencilAttachment != NULL && subp.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
+			? (int32_t)subp.pDepthStencilAttachment->attachment : -1);
 	}
 }
 
@@ -281,7 +297,7 @@ void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *resourceMan, V
 	}
 }
 
-void VulkanCreationInfo::Memory::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkMemoryAllocInfo* pAllocInfo)
+void VulkanCreationInfo::Memory::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkMemoryAllocateInfo* pAllocInfo)
 {
 	size = pAllocInfo->allocationSize;
 }
@@ -306,7 +322,7 @@ void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanC
 	type = pCreateInfo->imageType;
 	format = pCreateInfo->format;
 	extent = pCreateInfo->extent;
-	arraySize = pCreateInfo->arraySize;
+	arrayLayers = pCreateInfo->arrayLayers;
 	mipLevels = pCreateInfo->mipLevels;
 	samples = pCreateInfo->samples;
 
@@ -328,7 +344,7 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
 {
 	magFilter = pCreateInfo->magFilter;
 	minFilter = pCreateInfo->minFilter;
-	mipMode = pCreateInfo->mipMode;
+	mipmapMode = pCreateInfo->mipmapMode;
 	address[0] = pCreateInfo->addressModeU;
 	address[1] = pCreateInfo->addressModeV;
 	address[2] = pCreateInfo->addressModeW;
@@ -362,16 +378,5 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan, 
 		ParseSPIRV((uint32_t *)pCreateInfo->pCode, pCreateInfo->codeSize/sizeof(uint32_t), spirv);
 	}
 
-	spirv.MakeReflection(&reflTemplate, &mapping);
-}
-
-void VulkanCreationInfo::Shader::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkShaderCreateInfo* pCreateInfo, VulkanCreationInfo::ShaderModule &moduleinfo)
-{
-	module = resourceMan->GetNonDispWrapper(pCreateInfo->module)->id;
-	entry = pCreateInfo->pName;
-	mapping = moduleinfo.mapping;
-	refl = moduleinfo.reflTemplate;
-	refl.DebugInfo.entryFunc = pCreateInfo->pName;
-	// VKTODOLOW set this properly
-	refl.DebugInfo.entryFile = 0;
+	spirv.MakeReflection(&refl, &mapping);
 }

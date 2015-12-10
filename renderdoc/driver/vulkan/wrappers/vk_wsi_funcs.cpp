@@ -262,7 +262,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			iminfo.extent.height = info.imageExtent.height;
 			iminfo.extent.depth = 1;
 			iminfo.mipLevels = 1;
-			iminfo.arraySize = info.imageArraySize;
+			iminfo.arrayLayers = info.imageArraySize;
 			iminfo.creationFlags = eTextureCreate_SRV|eTextureCreate_RTV|eTextureCreate_SwapBuffer;
 			iminfo.cube = false;
 			iminfo.samples = 1;
