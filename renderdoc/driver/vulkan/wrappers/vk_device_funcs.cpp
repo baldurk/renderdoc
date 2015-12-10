@@ -99,6 +99,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	m_Instance = VK_NULL_HANDLE;
 
 	VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
+	RDCASSERT(ret == VK_SUCCESS);
 
 	InitInstanceReplayTables(m_Instance);
 
