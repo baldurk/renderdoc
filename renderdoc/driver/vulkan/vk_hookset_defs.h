@@ -24,6 +24,57 @@
 
 #pragma once
 
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+
+#define HookInit_PlatformSpecific() \
+	HookInit(CreateWin32SurfaceKHR); \
+	HookInit(GetPhysicalDeviceWin32PresentationSupportKHR);
+
+#define HookDefine_PlatformSpecific() \
+	HookDefine5(VkResult, vkCreateWin32SurfaceKHR, VkInstance, instance, HINSTANCE, hinstance, HWND, hwnd, const VkAllocationCallbacks*, pAllocator, VkSurfaceKHR*, pSurface); \
+	HookDefine2(VkBool32, vkGetPhysicalDeviceWin32PresentationSupportKHR, VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex); \
+
+#elif defined(VK_USE_PLATFORM_XCB_KHR) || defined(VK_USE_PLATFORM_XLIB_KHR)
+
+#if defined(VK_USE_PLATFORM_XCB_KHR)
+
+#define HookInit_PlatformSpecific_Xcb() \
+	HookInit(CreateXcbSurfaceKHR); \
+	HookInit(GetPhysicalDeviceXcbPresentationSupportKHR);
+
+#define HookInit_PlatformSpecific_Xcb() \
+	HookDefine5(VkResult, vkCreateXcbSurfaceKHR, VkInstance, instance, xcb_connection_t*, connection, xcb_window_t, window, const VkAllocationCallbacks*, pAllocator, VkSurfaceKHR*, pSurface); \
+	HookDefine4(VkBool32, vkGetPhysicalDeviceXcbPresentationSupportKHR, VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex, xcb_connection_t*, connection, xcb_visualid_t, visual_id); \
+
+#else
+
+#define HookInit_PlatformSpecific_Xcb()
+#define HookDefine_PlatformSpecific_Xcb()
+
+#endif
+
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+
+#define HookInit_PlatformSpecific_Xlib() \
+	HookInit(CreateXlibSurfaceKHR); \
+	HookInit(GetPhysicalDeviceXlibPresentationSupportKHR);
+
+#define HookInit_PlatformSpecific_Xlib() \
+	HookDefine5(VkResult, vkCreateXlibSurfaceKHR, VkInstance, instance, Display*, dpy, Window, window, const VkAllocationCallbacks*, pAllocator, VkSurfaceKHR*, pSurface); \
+	HookDefine4(VkBool32, vkGetPhysicalDeviceXlibPresentationSupportKHR, VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex, Display*, dpy, VisualID, visualID); \
+
+#else
+
+#define HookInit_PlatformSpecific_Xlib()
+#define HookDefine_PlatformSpecific_Xlib()
+
+#endif
+
+#define HookInit_PlatformSpecific() HookInit_PlatformSpecific_Xcb() HookInit_PlatformSpecific_Xlib()
+#define HookDefine_PlatformSpecific() HookDefine_PlatformSpecific_Xcb() HookDefine_PlatformSpecific_Xlib()
+
+#endif
+
 #define HookInitVulkanInstance() \
 	HookInit(CreateInstance); \
 	HookInit(DestroyInstance); \
@@ -37,10 +88,12 @@
 	HookInit(GetPhysicalDeviceMemoryProperties); \
 	HookInit(DbgCreateMsgCallback); \
 	HookInit(DbgDestroyMsgCallback); \
+	HookInit(DestroySurfaceKHR); \
 	HookInit(GetPhysicalDeviceSurfaceSupportKHR); \
 	HookInit(GetPhysicalDeviceSurfaceCapabilitiesKHR); \
 	HookInit(GetPhysicalDeviceSurfaceFormatsKHR); \
 	HookInit(GetPhysicalDeviceSurfacePresentModesKHR); \
+	HookInit_PlatformSpecific()
 
 #define HookInitVulkanDevice() \
 	HookInit(CreateDevice); \
@@ -310,4 +363,6 @@
 	HookDefine3(void, vkDestroySwapchainKHR, VkDevice, device, VkSwapchainKHR, swapchain, const VkAllocationCallbacks*, pAllocator); \
 	HookDefine4(VkResult, vkGetSwapchainImagesKHR, VkDevice, device, VkSwapchainKHR, swapchain, uint32_t*, pCount, VkImage*, pSwapchainImages); \
 	HookDefine6(VkResult, vkAcquireNextImageKHR, VkDevice, device, VkSwapchainKHR, swapchain, uint64_t, timeout, VkSemaphore, semaphore, VkFence, fence, uint32_t*, pImageIndex); \
-	HookDefine2(VkResult, vkQueuePresentKHR, VkQueue, queue, VkPresentInfoKHR*, pPresentInfo);
+	HookDefine2(VkResult, vkQueuePresentKHR, VkQueue, queue, VkPresentInfoKHR*, pPresentInfo); \
+	HookDefine3(void, vkDestroySurfaceKHR, VkInstance, instance, VkSurfaceKHR, surface, const VkAllocationCallbacks*, pAllocator); \
+	HookDefine_PlatformSpecific()

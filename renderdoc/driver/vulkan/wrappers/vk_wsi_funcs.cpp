@@ -293,6 +293,7 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 
 	// make sure we can readback to get the screenshot
 	createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	createInfo.surface = Unwrap(createInfo.surface);
 
 	VkResult ret = ObjDisp(device)->CreateSwapchainKHR(Unwrap(device), &createInfo, pAllocator, pSwapChain);
 	
@@ -319,7 +320,8 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 			record->swapInfo = new SwapchainInfo();
 			SwapchainInfo &swapInfo = *record->swapInfo;
 
-			//swapInfo.wndHandle = GetHandleForSurface(pCreateInfo->pSurfaceDescription);
+			// sneaky casting of window handle into record
+			swapInfo.wndHandle = (RENDERDOC_WindowHandle)GetRecord(pCreateInfo->surface);
 
 			{
 				SCOPED_LOCK(m_SwapLookupLock);
@@ -639,4 +641,22 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 	return vkr;
 }
-	
+
+// creation functions are in vk_<platform>.cpp
+
+void WrappedVulkan::vkDestroySurfaceKHR(
+		VkInstance                                   instance,
+		VkSurfaceKHR                                 surface,
+		const VkAllocationCallbacks*                 pAllocator)
+{
+	WrappedVkSurfaceKHR *wrapper = GetWrapped(surface);
+
+	// record pointer has window handle packed in
+	Keyboard::RemoveInputWindow((void *)wrapper->record);
+
+	// now set record pointer back to NULL so no-one tries to delete it
+	wrapper->record = NULL;
+
+	GetResourceManager()->ReleaseWrappedResource(surface, true);
+	ObjDisp(instance)->DestroySurfaceKHR(Unwrap(instance), wrapper->real.As<VkSurfaceKHR>(), pAllocator);
+}

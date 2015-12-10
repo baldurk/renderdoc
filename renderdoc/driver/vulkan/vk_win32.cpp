@@ -64,17 +64,44 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 	return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }
 
-/*
-RENDERDOC_WindowHandle WrappedVulkan::GetHandleForSurface(const VkSurfaceDescriptionKHR* surf)
+#if !defined(VK_USE_PLATFORM_WIN32_KHR)
+#error "Win32 KHR platform not defined"
+#endif
+
+VkResult WrappedVulkan::vkCreateWin32SurfaceKHR(
+    VkInstance                                  instance,
+    HINSTANCE                                   hinstance,
+    HWND                                        hwnd,
+    const VkAllocationCallbacks*                pAllocator,
+    VkSurfaceKHR*                               pSurface)
 {
-	RDCASSERT(surf);
-	VkSurfaceDescriptionWindowKHR *winDesc = (VkSurfaceDescriptionWindowKHR *)surf;
+	// should not come in here at all on replay
+	RDCASSERT(m_State >= WRITING);
 
-	RDCASSERT(winDesc->platform == VK_PLATFORM_WIN32_KHR);
+	VkResult ret = ObjDisp(instance)->CreateWin32SurfaceKHR(Unwrap(instance), hinstance, hwnd, pAllocator, pSurface);
 
-	return winDesc->pPlatformWindow;
+	if(ret == VK_SUCCESS)
+	{
+		GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+		
+		WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
+		
+		// since there's no point in allocating a full resource record and storing the window
+		// handle under there somewhere, we just cast. We won't use the resource record for anything
+		wrapped->record = (VkResourceRecord *)hwnd;
+
+		Keyboard::AddInputWindow((void *)hwnd);
+	}
+
+	return ret;
 }
-*/
+
+VkBool32 WrappedVulkan::vkGetPhysicalDeviceWin32PresentationSupportKHR(
+			VkPhysicalDevice                            physicalDevice,
+			uint32_t                                    queueFamilyIndex)
+{
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceWin32PresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex);
+}
 
 void *LoadVulkanLibrary()
 {

@@ -385,9 +385,6 @@ private:
 	void FinishCapture();
 	void EndCaptureFrame(VkImage presentImage);
 
-	// TODO - replace this with wrapping VkSurfaceKHRs and 
-	//RENDERDOC_WindowHandle GetHandleForSurface(const VkSurfaceDescriptionKHR* surf);
-
 	string MakeRenderPassOpString(bool store);
 
 	void StartFrameCapture(void *dev, void *wnd);
@@ -1357,4 +1354,55 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueuePresentKHR,
 		VkQueue                                      queue,
     const VkPresentInfoKHR*                      pPresentInfo);
+
+	// these functions are non-serialised as they're only used for windowing
+	// setup during capture, but they must be intercepted so we can unwrap
+	// properly
+	void vkDestroySurfaceKHR(
+		VkInstance                                   instance,
+		VkSurfaceKHR                                 surface,
+		const VkAllocationCallbacks*                 pAllocator);
+
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+	VkResult vkCreateWin32SurfaceKHR(
+			VkInstance                                  instance,
+			HINSTANCE                                   hinstance,
+			HWND                                        hwnd,
+			const VkAllocationCallbacks*                pAllocator,
+			VkSurfaceKHR*                               pSurface);
+
+	VkBool32 vkGetPhysicalDeviceWin32PresentationSupportKHR(
+			VkPhysicalDevice                            physicalDevice,
+			uint32_t                                    queueFamilyIndex);
+#endif
+
+#if defined(VK_USE_PLATFORM_XCB_KHR)
+	VkResult vkCreateXcbSurfaceKHR(
+			VkInstance                                  instance,
+			xcb_connection_t*                           connection,
+			xcb_window_t                                window,
+			const VkAllocationCallbacks*                pAllocator,
+			VkSurfaceKHR*                               pSurface);
+
+	VkBool32 vkGetPhysicalDeviceXcbPresentationSupportKHR(
+			VkPhysicalDevice                            physicalDevice,
+			uint32_t                                    queueFamilyIndex,
+			xcb_connection_t*                           connection,
+			xcb_visualid_t                              visual_id);
+#endif
+
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+	VkResult vkCreateXlibSurfaceKHR(
+			VkInstance                                  instance,
+			Display*                                    dpy,
+			Window                                      window,
+			const VkAllocationCallbacks*                pAllocator,
+			VkSurfaceKHR*                               pSurface);
+
+	VkBool32 vkGetPhysicalDeviceXlibPresentationSupportKHR(
+			VkPhysicalDevice                            physicalDevice,
+			uint32_t                                    queueFamilyIndex,
+			Display*                                    dpy,
+			VisualID                                    visualID);
+#endif
 };

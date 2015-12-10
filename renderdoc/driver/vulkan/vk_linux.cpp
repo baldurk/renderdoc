@@ -78,38 +78,88 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 	return true;
 }
 
-/*
-RENDERDOC_WindowHandle WrappedVulkan::GetHandleForSurface(const VkSurfaceDescriptionKHR* surf)
+#if defined(VK_USE_PLATFORM_XCB_KHR)
+
+VkBool32 WrappedVulkan::vkGetPhysicalDeviceXcbPresentationSupportKHR(
+    VkPhysicalDevice                            physicalDevice,
+    uint32_t                                    queueFamilyIndex,
+    xcb_connection_t*                           connection,
+    xcb_visualid_t                              visual_id)
 {
-	RDCASSERT(surf);
-	VkSurfaceDescriptionWindowKHR *winDesc = (VkSurfaceDescriptionWindowKHR *)surf;
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceXcbPresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex, connection, visual_id);
+}
 
-	RDCASSERT(winDesc->platform == VK_PLATFORM_X11_KHR ||
-						winDesc->platform == VK_PLATFORM_XCB_KHR ||
-						winDesc->platform == VK_PLATFORM_WAYLAND_KHR ||
-						winDesc->platform == VK_PLATFORM_MIR_KHR);
+VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(
+    VkInstance                                  instance,
+    xcb_connection_t*                           connection,
+    xcb_window_t                                window,
+    const VkAllocationCallbacks*                pAllocator,
+    VkSurfaceKHR*                               pSurface)
+{
+	// should not come in here at all on replay
+	RDCASSERT(m_State >= WRITING);
 
-	if(winDesc->platform == VK_PLATFORM_X11_KHR)
+	VkResult ret = ObjDisp(instance)->CreateXcbSurfaceKHR(Unwrap(instance), connection, window, pAllocator, pSurface);
+
+	if(ret == VK_SUCCESS)
 	{
-			VkPlatformHandleX11KHR *handle = (VkPlatformHandleX11KHR *)surf->pPlatformHandle;
-			
-			// VKTODOLOW Should support X11 here
-			//Keyboard::UseConnection(handle->dpy);
-
-			return (Drawable)winDesc->pPlatformWindow;
+		GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+		
+		WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
+		
+		// since there's no point in allocating a full resource record and storing the window
+		// handle under there somewhere, we just cast. We won't use the resource record for anything
+		wrapped->record = (VkResourceRecord *)window;
+		
+		Keyboard::UseConnection(connection);
 	}
-	else if(winDesc->platform == VK_PLATFORM_XCB_KHR)
+
+	return ret;
+}
+
+#endif
+
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+
+VkBool32 WrappedVulkan::vkGetPhysicalDeviceXlibPresentationSupportKHR(
+    VkPhysicalDevice                            physicalDevice,
+    uint32_t                                    queueFamilyIndex,
+    Display*                                    dpy,
+    VisualID                                    visualID)
+{
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceXlibPresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex, dpy, visualID);
+}
+
+VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(
+    VkInstance                                  instance,
+    Display*                                    dpy,
+    Window                                      window,
+    const VkAllocationCallbacks*                pAllocator,
+    VkSurfaceKHR*                               pSurface)
+{
+	// should not come in here at all on replay
+	RDCASSERT(m_State >= WRITING);
+
+	VkResult ret = ObjDisp(instance)->CreateXlibSurfaceKHR(Unwrap(instance), dpy, window, pAllocator, pSurface);
+
+	if(ret == VK_SUCCESS)
 	{
-			VkPlatformHandleXcbKHR *handle = (VkPlatformHandleXcbKHR *)surf->pPlatformHandle;
-			Keyboard::UseConnection(handle->connection);
-
-			return *(xcb_window_t *)winDesc->pPlatformWindow;
+		GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+		
+		WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
+		
+		// since there's no point in allocating a full resource record and storing the window
+		// handle under there somewhere, we just cast. We won't use the resource record for anything
+		wrapped->record = (VkResourceRecord *)window;
+		
+		// VKTODOLOW Should support Xlib here
+		//Keyboard::UseConnection(dpy);
 	}
 
-	RDCERR("Unsupported platform %u", (uint32_t)winDesc->platform);
+	return ret;
+}
 
-	return NULL;
-}*/
+#endif
 
 void *LoadVulkanLibrary()
 {
