@@ -31,7 +31,7 @@ uint32_t WrappedVulkan::GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask)
 
 	return m_PhysicalDeviceData.GetMemoryIndex(
 		resourceRequiredBitmask,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
 }
 
 uint32_t WrappedVulkan::GetUploadMemoryIndex(uint32_t resourceRequiredBitmask)
@@ -51,7 +51,7 @@ uint32_t WrappedVulkan::GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask)
 
 	return m_PhysicalDeviceData.GetMemoryIndex(
 		resourceRequiredBitmask,
-		VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 }
 
 uint32_t WrappedVulkan::PhysicalDeviceData::GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps, uint32_t allocUndesiredProps)
@@ -109,7 +109,7 @@ void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProp
 	// make a new heap that's tiny. If any applications look at heap sizes to determine
 	// viability, they'll dislike the look of this one (the real heaps should be much
 	// bigger).
-	memProps->memoryHeaps[coherentHeap].flags = VK_MEMORY_HEAP_HOST_LOCAL_BIT;
+	memProps->memoryHeaps[coherentHeap].flags = 0; // not device local
 	memProps->memoryHeaps[coherentHeap].size = 32*1024*1024;
 
 	// for every coherent memory type, add a non-coherent type first, then
@@ -123,7 +123,7 @@ void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProp
 
 	for(uint32_t i=0; i < origCount; i++)
 	{
-		if((origTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_NON_COHERENT_BIT|VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+		if((origTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0)
 		{
 			// coherent type found.
 
@@ -134,9 +134,9 @@ void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProp
 				memProps->memoryTypes[newtypeidx] = origTypes[i];
 				memProps->memoryTypes[newtypeidx+1] = origTypes[i];
 
-				// mark first as non-coherent
-				memProps->memoryTypes[newtypeidx].propertyFlags &= ~VK_MEMORY_PROPERTY_HOST_UNCACHED_BIT;
-				memProps->memoryTypes[newtypeidx].propertyFlags |= VK_MEMORY_PROPERTY_HOST_NON_COHERENT_BIT;
+				// mark first as non-coherent, cached
+				memProps->memoryTypes[newtypeidx].propertyFlags &= ~VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+				memProps->memoryTypes[newtypeidx].propertyFlags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 
 				// point second at bad heap
 				memProps->memoryTypes[newtypeidx+1].heapIndex = coherentHeap;
