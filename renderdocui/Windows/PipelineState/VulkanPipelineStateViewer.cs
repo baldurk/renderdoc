@@ -2023,7 +2023,7 @@ namespace renderdocui.Windows.PipelineState
                     string slotname = bindMap.bind.ToString();
                     slotname += ": " + b.name;
 
-                    for (int a = 0; a < bind.arraySize; a++)
+                    for (int a = 0; a < bind.descriptorCount; a++)
                     {
                         var descriptorBind = bind.binds[a];
 
@@ -2093,7 +2093,7 @@ namespace renderdocui.Windows.PipelineState
                     string slotname = bindMap.bind.ToString();
                     slotname += ": " + b.name;
 
-                    for (int a = 0; a < bind.arraySize; a++)
+                    for (int a = 0; a < bind.descriptorCount; a++)
                     {
                         var descriptorBind = bind.binds[a];
 
@@ -2209,7 +2209,7 @@ namespace renderdocui.Windows.PipelineState
                     string slotname = bindMap.bind.ToString();
                     slotname += ": " + b.name;
 
-                    for (int a = 0; a < bind.arraySize; a++)
+                    for (int a = 0; a < bind.descriptorCount; a++)
                     {
                         var descriptorBind = bind.binds[a];
 

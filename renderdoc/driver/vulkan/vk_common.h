@@ -70,6 +70,7 @@ template<> void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkImageCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkSparseMemoryBind &el);
 template<> void Serialiser::Serialise(const char *name, VkBindSparseInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el);
@@ -87,6 +88,7 @@ template<> void Serialiser::Serialise(const char *name, VkPushConstantRange &el)
 template<> void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el);
 template<> void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkDescriptorSetAllocateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el);
 template<> void Serialiser::Serialise(const char *name, VkCopyDescriptorSet &el);
 template<> void Serialiser::Serialise(const char *name, VkCommandPoolCreateInfo &el);
@@ -119,10 +121,14 @@ template<> void Serialiser::Serialise(const char *name, VkImageResolve &el);
 
 template<> void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el);
 
+struct DescriptorSetSlot;
+template<> void Serialiser::Serialise(const char *name, DescriptorSetSlot &el);
+
 template<> void Serialiser::Deserialise(const VkDeviceCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkBufferCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkImageCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkBindSparseInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkDescriptorSetAllocateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkFramebufferCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkRenderPassCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkRenderPassBeginInfo* const el) const;

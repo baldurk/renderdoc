@@ -52,6 +52,7 @@ WRAPPED_POOL_INST(WrappedVkFramebuffer)
 WRAPPED_POOL_INST(WrappedVkCommandPool)
 
 WRAPPED_POOL_INST(WrappedVkSwapchainKHR)
+WRAPPED_POOL_INST(WrappedVkSurfaceKHR)
 
 byte VkResourceRecord::markerValue[32] = {
 	0xaa, 0xbb, 0xcc, 0xdd,

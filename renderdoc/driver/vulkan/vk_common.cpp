@@ -2276,6 +2276,20 @@ string ToStrHelper<false, VkRect2D>::Get(const VkRect2D &el)
 }
 
 template<>
+string ToStrHelper<false, VkClearRect>::Get(const VkClearRect &el)
+{
+	return StringFormat::Fmt("VkClearRect<%dx%d+%d+%d %u->%u>",
+	  el.rect.extent.width, el.rect.extent.height, el.rect.offset.x, el.rect.offset.y,
+	  el.baseArrayLayer, el.baseArrayLayer+el.layerCount);
+}
+
+template<>
+string ToStrHelper<false, VkClearAttachment>::Get(const VkClearAttachment &el)
+{
+	return StringFormat::Fmt("%s[%u] = %s", ToStr::Get((VkImageAspectFlagBits)el.aspectMask).c_str(), el.colorAttachment, ToStr::Get(el.clearValue).c_str());
+}
+
+template<>
 string ToStrHelper<false, VkExtent2D>::Get(const VkExtent2D &el)
 {
 	return StringFormat::Fmt("VkExtent<%d,%d>", el.width, el.height);
@@ -2888,6 +2902,15 @@ void Serialiser::Serialise(const char *name, VkSparseImageMemoryBind &el)
 	SerialiseObject(VkDeviceMemory, "memory", el.memory);
 	Serialise("memoryOffset", el.memoryOffset);
 	Serialise("flags", (VkSparseMemoryBindFlagBits &)el.flags);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkSparseImageMemoryBindInfo &el)
+{
+	ScopedContext scope(this, name, "VkSparseImageMemoryBindInfo", 0, true);
+	
+	SerialiseObject(VkImage, "image", el.image);
+	SerialiseComplexArray("pBinds", (VkSparseImageMemoryBind *&)el.pBinds, el.bindCount);
 }
 
 template<>
@@ -3838,6 +3861,39 @@ void Serialiser::Deserialise(const VkDescriptorPoolCreateInfo* const el) const
 }
 
 template<>
+void Serialiser::Serialise(const char *name, VkDescriptorSetAllocateInfo &el)
+{
+	ScopedContext scope(this, name, "VkDescriptorSetAllocateInfo", 0, true);
+	
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO);
+	SerialiseNext(this, el.sType, el.pNext);
+	
+	SerialiseObject(VkDescriptorPool, "descriptorPool", el.descriptorPool);
+	
+	// need to do this one by hand since it's just an array of objects that don't themselves have
+	// a Serialise overload
+	Serialise("setLayoutCount", el.setLayoutCount);
+
+	if(m_Mode == READING)
+		el.pSetLayouts = el.setLayoutCount ? new VkDescriptorSetLayout[el.setLayoutCount] : NULL;
+
+	// cast away const on array so we can assign to it on reading
+	VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout*)el.pSetLayouts;
+	for(uint32_t i=0; i < el.setLayoutCount; i++)
+		SerialiseObject(VkDescriptorSetLayout, "pSetLayouts", layouts[i]);
+}
+
+template<>
+void Serialiser::Deserialise(const VkDescriptorSetAllocateInfo* const el) const
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete [] el->pSetLayouts;
+	}
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkDescriptorImageInfo &el)
 {
 	ScopedContext scope(this, name, "VkDescriptorImageInfo", 0, true);
@@ -4113,4 +4169,19 @@ void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el)
 	Serialise("clipped", el.clipped);
 
 	// don't need the old swap chain
+}
+
+// this isn't a real vulkan type, it's our own "anything that could be in a descriptor"
+// structure that 
+template<> void Serialiser::Serialise(const char *name, DescriptorSetSlot &el)
+{
+	SerialiseObject(VkBuffer, "bufferInfo.buffer", el.bufferInfo.buffer);
+	Serialise("bufferInfo.offset", el.bufferInfo.offset);
+	Serialise("bufferInfo.range", el.bufferInfo.range);
+	
+	SerialiseObject(VkSampler, "imageInfo.sampler", el.imageInfo.sampler);
+	SerialiseObject(VkImageView, "imageInfo.imageView", el.imageInfo.imageView);
+	Serialise("imageInfo.imageLayout", el.imageInfo.imageLayout);
+
+	SerialiseObject(VkBufferView, "texelBufferView", el.texelBufferView);
 }
