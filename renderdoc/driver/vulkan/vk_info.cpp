@@ -73,7 +73,14 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		for(uint32_t i=0; i < pCreateInfo->stageCount; i++)
 		{
 			ResourceId id = resourceMan->GetNonDispWrapper(pCreateInfo->pStages[i].module)->id;
-			Shader &shad = shaders[ pCreateInfo->pStages[i].stage ];
+
+			// convert shader bit to shader index
+			int s=0;
+			for(; s < 6; s++)
+				if(pCreateInfo->pStages[i].stage == (1<<s))
+					break;
+
+			Shader &shad = shaders[s];
 			
 			shad.module = id;
 			shad.name = pCreateInfo->pStages[i].pName;
