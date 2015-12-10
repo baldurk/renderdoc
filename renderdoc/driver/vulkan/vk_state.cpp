@@ -104,10 +104,10 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
 		renderArea,
 		(uint32_t)m_CreationInfo.m_RenderPass[renderPass].attachments.size(), empty,
 	};
-	ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+	ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
 	for(uint32_t i=0; i < subpass; i++)
-		ObjDisp(cmd)->CmdNextSubpass(Unwrap(cmd), VK_RENDER_PASS_CONTENTS_INLINE);
+		ObjDisp(cmd)->CmdNextSubpass(Unwrap(cmd), VK_SUBPASS_CONTENTS_INLINE);
 
 	if(graphics.pipeline != ResourceId())
 	{
@@ -120,7 +120,7 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
 
 		// only set push constant ranges that the layout uses
 		for(size_t i=0; i < pushRanges.size(); i++)
-			ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags, pushRanges[i].start, pushRanges[i].length, pushconsts+pushRanges[i].start);
+			ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags, pushRanges[i].offset, pushRanges[i].size, pushconsts+pushRanges[i].offset);
 
 		const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[pipeLayoutId].descSetLayouts;
 

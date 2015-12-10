@@ -771,10 +771,10 @@ struct VkResourceRecord : public ResourceRecord
 
 struct ImageLayouts
 {
-	ImageLayouts() : arraySize(1), mipLevels(1) {}
+	ImageLayouts() : layerCount(1), levelCount(1) {}
 
 	vector<ImageRegionState> subresourceStates;
-	int arraySize, mipLevels;
+	int layerCount, levelCount;
 	VkExtent3D extent;
 	VkFormat format;
 };
