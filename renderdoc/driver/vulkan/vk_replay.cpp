@@ -208,6 +208,8 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	if(surface != VK_NULL_HANDLE)
 	{
 		ObjDisp(driver->GetInstance())->DestroySurfaceKHR(Unwrap(driver->GetInstance()), Unwrap(surface), NULL);
+		GetResourceManager()->ReleaseWrappedResource(surface);
+		surface = VK_NULL_HANDLE;
 	}
 }
 
