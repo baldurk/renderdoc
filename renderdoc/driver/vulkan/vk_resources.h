@@ -599,7 +599,7 @@ struct SparseMapping
 struct CmdBufferRecordingInfo
 {
 	VkDevice device;
-	VkCommandBufferAllocateInfo createInfo;
+	VkCommandBufferAllocateInfo allocInfo;
 
 	vector< pair<ResourceId, ImageRegionState> > imgbarriers;
 

@@ -29,17 +29,16 @@
 // that same handle could be returned by create on another thread, and we
 // could end up trying to re-wrap it.
 #define DESTROY_IMPL(type, func) \
-	void WrappedVulkan::vk ## func(VkDevice device, type obj) \
+	void WrappedVulkan::vk ## func(VkDevice device, type obj, const VkAllocationCallbacks* pAllocator) \
 	{ \
 		type unwrappedObj = Unwrap(obj); \
 		if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true); \
-		ObjDisp(device)->func(Unwrap(device), unwrappedObj); \
+		ObjDisp(device)->func(Unwrap(device), unwrappedObj, pAllocator); \
 	}
 
 DESTROY_IMPL(VkBuffer, DestroyBuffer)
 DESTROY_IMPL(VkBufferView, DestroyBufferView)
 DESTROY_IMPL(VkImageView, DestroyImageView)
-DESTROY_IMPL(VkShader, DestroyShader)
 DESTROY_IMPL(VkShaderModule, DestroyShaderModule)
 DESTROY_IMPL(VkPipeline, DestroyPipeline)
 DESTROY_IMPL(VkPipelineCache, DestroyPipelineCache)
@@ -57,8 +56,8 @@ DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
 
 #undef DESTROY_IMPL
 
-// needs to be separate because it returns VkResult still
-VkResult WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj)
+// needs to be separate because it releases internal resources
+void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj, const VkAllocationCallbacks* pAllocator)
 {
 	// release internal rendering objects we created for rendering the overlay
 	{
@@ -68,7 +67,7 @@ VkResult WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR ob
 
 		VkRenderPass unwrappedRP = Unwrap(info.rp);
 		GetResourceManager()->ReleaseWrappedResource(info.rp, true);
-		ObjDisp(device)->DestroyRenderPass(Unwrap(device), unwrappedRP);
+		ObjDisp(device)->DestroyRenderPass(Unwrap(device), unwrappedRP, NULL);
 
 		for(size_t i=0; i < info.images.size(); i++)
 		{
@@ -78,46 +77,49 @@ VkResult WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR ob
 			// note, image doesn't have to be destroyed, just untracked
 			GetResourceManager()->ReleaseWrappedResource(info.images[i].im, true);
 			GetResourceManager()->ReleaseWrappedResource(info.images[i].view, true);
-			ObjDisp(device)->DestroyFramebuffer(Unwrap(device), unwrappedFB);
-			ObjDisp(device)->DestroyImageView(Unwrap(device), unwrappedView);
+			ObjDisp(device)->DestroyFramebuffer(Unwrap(device), unwrappedFB, NULL);
+			ObjDisp(device)->DestroyImageView(Unwrap(device), unwrappedView, NULL);
 		}
 	}
 
 	VkSwapchainKHR unwrappedObj = Unwrap(obj);
 	if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true);
-	return ObjDisp(device)->DestroySwapchainKHR(Unwrap(device), unwrappedObj);
+	ObjDisp(device)->DestroySwapchainKHR(Unwrap(device), unwrappedObj, pAllocator);
 }
 
 // needs to be separate so we don't erase from m_ImageLayouts in other destroy functions
-void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj)
+void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj, const VkAllocationCallbacks* pAllocator)
 {
 	m_ImageLayouts.erase(GetResID(obj));
 	VkImage unwrappedObj = Unwrap(obj);
 	if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true);
-	return ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedObj);
+	return ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedObj, pAllocator);
 }
 
 // needs to be separate since it's dispatchable
-void WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCommandBuffer obj)
+void WrappedVulkan::vkFreeCommandBuffers(VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
 {
-	WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(obj);
-
-	if(wrapped->record)
+	for(uint32_t c=0; c < commandBufferCount; c++)
 	{
-		if(wrapped->record->bakedCommands)
+		WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(pCommandBuffers[c]);
+
+		if(wrapped->record)
 		{
-			wrapped->record->bakedCommands->Delete(GetResourceManager());
-			wrapped->record->bakedCommands = NULL;
+			if(wrapped->record->bakedCommands)
+			{
+				wrapped->record->bakedCommands->Delete(GetResourceManager());
+				wrapped->record->bakedCommands = NULL;
+			}
+			wrapped->record->Delete(GetResourceManager());
+			wrapped->record = NULL;
 		}
-		wrapped->record->Delete(GetResourceManager());
-		wrapped->record = NULL;
+
+		VkCommandBuffer unwrapped = wrapped->real.As<VkCommandBuffer>();
+
+		GetResourceManager()->ReleaseWrappedResource(pCommandBuffers[c]);
+
+		ObjDisp(device)->FreeCommandBuffers(Unwrap(device), Unwrap(commandPool), 1, &unwrapped);
 	}
-
-	VkCommandBuffer unwrapped = wrapped->real.As<VkCommandBuffer>();
-	
-	GetResourceManager()->ReleaseWrappedResource(obj);
-
-	ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), unwrapped);
 }
 
 bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
@@ -186,83 +188,79 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			break;
 
 		case eResDeviceMemory:
-			vt->FreeMemory(Unwrap(dev), nondisp->real.As<VkDeviceMemory>());
+			vt->FreeMemory(Unwrap(dev), nondisp->real.As<VkDeviceMemory>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkDeviceMemory(handle));
 			break;
 		case eResBuffer:
-			vt->DestroyBuffer(Unwrap(dev), nondisp->real.As<VkBuffer>());
+			vt->DestroyBuffer(Unwrap(dev), nondisp->real.As<VkBuffer>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkBuffer(handle));
 			break;
 		case eResBufferView:
-			vt->DestroyBufferView(Unwrap(dev), nondisp->real.As<VkBufferView>());
+			vt->DestroyBufferView(Unwrap(dev), nondisp->real.As<VkBufferView>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkBufferView(handle));
 			break;
 		case eResImage:
-			vt->DestroyImage(Unwrap(dev), nondisp->real.As<VkImage>());
+			vt->DestroyImage(Unwrap(dev), nondisp->real.As<VkImage>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkImage(handle));
 			break;
 		case eResImageView:
-			vt->DestroyImageView(Unwrap(dev), nondisp->real.As<VkImageView>());
+			vt->DestroyImageView(Unwrap(dev), nondisp->real.As<VkImageView>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkImageView(handle));
 			break;
 		case eResFramebuffer:
-			vt->DestroyFramebuffer(Unwrap(dev), nondisp->real.As<VkFramebuffer>());
+			vt->DestroyFramebuffer(Unwrap(dev), nondisp->real.As<VkFramebuffer>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkFramebuffer(handle));
 			break;
 		case eResRenderPass:
-			vt->DestroyRenderPass(Unwrap(dev), nondisp->real.As<VkRenderPass>());
+			vt->DestroyRenderPass(Unwrap(dev), nondisp->real.As<VkRenderPass>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkRenderPass(handle));
 			break;
 		case eResShaderModule:
-			vt->DestroyShaderModule(Unwrap(dev), nondisp->real.As<VkShaderModule>());
+			vt->DestroyShaderModule(Unwrap(dev), nondisp->real.As<VkShaderModule>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkShaderModule(handle));
 			break;
-		case eResShader:
-			vt->DestroyShader(Unwrap(dev), nondisp->real.As<VkShader>());
-			GetResourceManager()->ReleaseWrappedResource(VkShader(handle));
-			break;
 		case eResPipelineCache:
-			vt->DestroyPipelineCache(Unwrap(dev), nondisp->real.As<VkPipelineCache>());
+			vt->DestroyPipelineCache(Unwrap(dev), nondisp->real.As<VkPipelineCache>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkPipelineCache(handle));
 			break;
 		case eResPipelineLayout:
-			vt->DestroyPipelineLayout(Unwrap(dev), nondisp->real.As<VkPipelineLayout>());
+			vt->DestroyPipelineLayout(Unwrap(dev), nondisp->real.As<VkPipelineLayout>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkPipelineLayout(handle));
 			break;
 		case eResPipeline:
-			vt->DestroyPipeline(Unwrap(dev), nondisp->real.As<VkPipeline>());
+			vt->DestroyPipeline(Unwrap(dev), nondisp->real.As<VkPipeline>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkPipeline(handle));
 			break;
 		case eResSampler:
-			vt->DestroySampler(Unwrap(dev), nondisp->real.As<VkSampler>());
+			vt->DestroySampler(Unwrap(dev), nondisp->real.As<VkSampler>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkSampler(handle));
 			break;
 		case eResDescriptorPool:
-			vt->DestroyDescriptorPool(Unwrap(dev), nondisp->real.As<VkDescriptorPool>());
+			vt->DestroyDescriptorPool(Unwrap(dev), nondisp->real.As<VkDescriptorPool>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkDescriptorPool(handle));
 			break;
 		case eResDescriptorSetLayout:
-			vt->DestroyDescriptorSetLayout(Unwrap(dev), nondisp->real.As<VkDescriptorSetLayout>());
+			vt->DestroyDescriptorSetLayout(Unwrap(dev), nondisp->real.As<VkDescriptorSetLayout>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkDescriptorSetLayout(handle));
 			break;
 		case eResCommandPool:
-			vt->DestroyCommandPool(Unwrap(dev), nondisp->real.As<VkCommandPool>());
+			vt->DestroyCommandPool(Unwrap(dev), nondisp->real.As<VkCommandPool>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkCommandPool(handle));
 			break;
 		case eResFence:
-			vt->DestroyFence(Unwrap(dev), nondisp->real.As<VkFence>());
+			vt->DestroyFence(Unwrap(dev), nondisp->real.As<VkFence>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkFence(handle));
 			break;
 		case eResEvent:
-			vt->DestroyEvent(Unwrap(dev), nondisp->real.As<VkEvent>());
+			vt->DestroyEvent(Unwrap(dev), nondisp->real.As<VkEvent>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkEvent(handle));
 			break;
 		case eResQueryPool:
-			vt->DestroyQueryPool(Unwrap(dev), nondisp->real.As<VkQueryPool>());
+			vt->DestroyQueryPool(Unwrap(dev), nondisp->real.As<VkQueryPool>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkQueryPool(handle));
 			break;
 		case eResSemaphore:
-			vt->DestroySemaphore(Unwrap(dev), nondisp->real.As<VkSemaphore>());
+			vt->DestroySemaphore(Unwrap(dev), nondisp->real.As<VkSemaphore>(), NULL);
 			GetResourceManager()->ReleaseWrappedResource(VkSemaphore(handle));
 			break;
 	}
@@ -276,6 +274,7 @@ bool WrappedVulkan::Serialise_vkCreateSampler(
 			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkSamplerCreateInfo*                  pCreateInfo,
+			const VkAllocationCallbacks*                pAllocator,
 			VkSampler*                                  pSampler)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
@@ -287,7 +286,7 @@ bool WrappedVulkan::Serialise_vkCreateSampler(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkSampler samp = VK_NULL_HANDLE;
 
-		VkResult ret = ObjDisp(device)->CreateSampler(Unwrap(device), &info, &samp);
+		VkResult ret = ObjDisp(device)->CreateSampler(Unwrap(device), &info, NULL, &samp);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -308,9 +307,10 @@ bool WrappedVulkan::Serialise_vkCreateSampler(
 VkResult WrappedVulkan::vkCreateSampler(
 			VkDevice                                    device,
 			const VkSamplerCreateInfo*                  pCreateInfo,
+			const VkAllocationCallbacks*                pAllocator,
 			VkSampler*                                  pSampler)
 {
-	VkResult ret = ObjDisp(device)->CreateSampler(Unwrap(device), pCreateInfo, pSampler);
+	VkResult ret = ObjDisp(device)->CreateSampler(Unwrap(device), pCreateInfo, pAllocator, pSampler);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -324,7 +324,7 @@ VkResult WrappedVulkan::vkCreateSampler(
 				CACHE_THREAD_SERIALISER();
 
 				SCOPED_SERIALISE_CONTEXT(CREATE_SAMPLER);
-				Serialise_vkCreateSampler(localSerialiser, device, pCreateInfo, pSampler);
+				Serialise_vkCreateSampler(localSerialiser, device, pCreateInfo, NULL, pSampler);
 
 				chunk = scope.Get();
 			}
@@ -347,6 +347,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkFramebufferCreateInfo*              pCreateInfo,
+			const VkAllocationCallbacks*                pAllocator,
 			VkFramebuffer*                              pFramebuffer)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
@@ -358,7 +359,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkFramebuffer fb = VK_NULL_HANDLE;
 
-		VkResult ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &info, &fb);
+		VkResult ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &info, NULL, &fb);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -379,6 +380,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 VkResult WrappedVulkan::vkCreateFramebuffer(
 			VkDevice                                    device,
 			const VkFramebufferCreateInfo*              pCreateInfo,
+			const VkAllocationCallbacks*                pAllocator,
 			VkFramebuffer*                              pFramebuffer)
 {
 	VkImageView *unwrapped = GetTempArray<VkImageView>(pCreateInfo->attachmentCount);
@@ -389,7 +391,7 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 	unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
 	unwrappedInfo.pAttachments = unwrapped;
 
-	VkResult ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrappedInfo, pFramebuffer);
+	VkResult ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrappedInfo, pAllocator, pFramebuffer);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -403,7 +405,7 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 				CACHE_THREAD_SERIALISER();
 
 				SCOPED_SERIALISE_CONTEXT(CREATE_FRAMEBUFFER);
-				Serialise_vkCreateFramebuffer(localSerialiser, device, pCreateInfo, pFramebuffer);
+				Serialise_vkCreateFramebuffer(localSerialiser, device, pCreateInfo, NULL, pFramebuffer);
 
 				chunk = scope.Get();
 			}
@@ -441,6 +443,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkRenderPassCreateInfo*               pCreateInfo,
+			const VkAllocationCallbacks*                pAllocator,
 			VkRenderPass*                               pRenderPass)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
@@ -464,7 +467,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 			att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 		}
 
-		VkResult ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, &rp);
+		VkResult ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rp);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -484,7 +487,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 				att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 			}
 
-			ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, &rpinfo.loadRP);
+			ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRP);
 			RDCASSERT(ret == VK_SUCCESS);
 
 			ResourceId loadRPid = GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
@@ -502,9 +505,10 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 VkResult WrappedVulkan::vkCreateRenderPass(
 			VkDevice                                    device,
 			const VkRenderPassCreateInfo*               pCreateInfo,
+			const VkAllocationCallbacks*                pAllocator,
 			VkRenderPass*                               pRenderPass)
 {
-	VkResult ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), pCreateInfo, pRenderPass);
+	VkResult ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), pCreateInfo, pAllocator, pRenderPass);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -518,7 +522,7 @@ VkResult WrappedVulkan::vkCreateRenderPass(
 				CACHE_THREAD_SERIALISER();
 
 				SCOPED_SERIALISE_CONTEXT(CREATE_RENDERPASS);
-				Serialise_vkCreateRenderPass(localSerialiser, device, pCreateInfo, pRenderPass);
+				Serialise_vkCreateRenderPass(localSerialiser, device, pCreateInfo, NULL, pRenderPass);
 
 				chunk = scope.Get();
 			}
@@ -550,7 +554,7 @@ VkResult WrappedVulkan::vkCreateRenderPass(
 			
 			info.pAttachments = atts;
 
-			ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, &rpinfo.loadRP);
+			ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRP);
 			RDCASSERT(ret == VK_SUCCESS);
 
 			ResourceId loadRPid = GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
@@ -569,6 +573,7 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(
 		Serialiser*                                 localSerialiser,
 		VkDevice                                    device,
 		const VkQueryPoolCreateInfo*                pCreateInfo,
+		const VkAllocationCallbacks*                pAllocator,
 		VkQueryPool*                                pQueryPool)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
@@ -580,7 +585,7 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkQueryPool pool = VK_NULL_HANDLE;
 
-		VkResult ret = ObjDisp(device)->CreateQueryPool(Unwrap(device), &info, &pool);
+		VkResult ret = ObjDisp(device)->CreateQueryPool(Unwrap(device), &info, NULL, &pool);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -599,9 +604,10 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(
 VkResult WrappedVulkan::vkCreateQueryPool(
 		VkDevice                                    device,
 		const VkQueryPoolCreateInfo*                pCreateInfo,
+		const VkAllocationCallbacks*                pAllocator,
 		VkQueryPool*                                pQueryPool)
 {
-	VkResult ret = ObjDisp(device)->CreateQueryPool(Unwrap(device), pCreateInfo, pQueryPool);
+	VkResult ret = ObjDisp(device)->CreateQueryPool(Unwrap(device), pCreateInfo, pAllocator, pQueryPool);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -615,7 +621,7 @@ VkResult WrappedVulkan::vkCreateQueryPool(
 				CACHE_THREAD_SERIALISER();
 		
 				SCOPED_SERIALISE_CONTEXT(CREATE_QUERY_POOL);
-				Serialise_vkCreateQueryPool(localSerialiser, device, pCreateInfo, pQueryPool);
+				Serialise_vkCreateQueryPool(localSerialiser, device, pCreateInfo, NULL, pQueryPool);
 
 				chunk = scope.Get();
 			}
@@ -637,11 +643,12 @@ VkResult WrappedVulkan::vkGetQueryPoolResults(
 		VkQueryPool                                 queryPool,
 		uint32_t                                    startQuery,
 		uint32_t                                    queryCount,
-		size_t*                                     pDataSize,
+		size_t                                      dataSize,
 		void*                                       pData,
+		VkDeviceSize                                stride,
 		VkQueryResultFlags                          flags)
 {
-	return ObjDisp(device)->GetQueryPoolResults(Unwrap(device), Unwrap(queryPool), startQuery, queryCount, pDataSize, pData, flags);
+	return ObjDisp(device)->GetQueryPoolResults(Unwrap(device), Unwrap(queryPool), startQuery, queryCount, dataSize, pData, stride, flags);
 }
 
 VkResult WrappedVulkan::vkDbgCreateMsgCallback(

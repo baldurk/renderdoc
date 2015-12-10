@@ -41,7 +41,7 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 
 		VkQueue queue;
-		VkResult ret = ObjDisp(device)->GetDeviceQueue(Unwrap(device), familyIdx, idx, &queue);
+		ObjDisp(device)->GetDeviceQueue(Unwrap(device), familyIdx, idx, &queue);
 
 		VkQueue real = queue;
 
@@ -61,15 +61,14 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(
 	return true;
 }
 
-VkResult WrappedVulkan::vkGetDeviceQueue(
+void WrappedVulkan::vkGetDeviceQueue(
     VkDevice                                    device,
     uint32_t                                    queueFamilyIndex,
     uint32_t                                    queueIndex,
     VkQueue*                                    pQueue)
 {
-	VkResult ret = ObjDisp(device)->GetDeviceQueue(Unwrap(device), queueFamilyIndex, queueIndex, pQueue);
+	ObjDisp(device)->GetDeviceQueue(Unwrap(device), queueFamilyIndex, queueIndex, pQueue);
 
-	if(ret == VK_SUCCESS)
 	{
 		// it's perfectly valid for enumerate type functions to return the same handle
 		// each time. If that happens, we will already have a wrapper created so just
@@ -124,16 +123,15 @@ VkResult WrappedVulkan::vkGetDeviceQueue(
 			}
 		}
 	}
-
-	return ret;
 }
 
+#if 0
 bool WrappedVulkan::Serialise_vkQueueSubmit(
 		Serialiser*                                 localSerialiser,
     VkQueue                                     queue,
-    uint32_t                                    cmdBufferCount,
-    const VkCommandBuffer*                          pCmdBuffers,
-    VkFence                                     fence)
+		uint32_t                                    submitCount,
+		const VkSubmitInfo*                         pSubmits,
+		VkFence                                     fence)
 {
 	SERIALISE_ELEMENT(ResourceId, queueId, GetResID(queue));
 	SERIALISE_ELEMENT(ResourceId, fenceId, fence != VK_NULL_HANDLE ? GetResID(fence) : ResourceId());
@@ -176,6 +174,20 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 	}
 
 	const string desc = localSerialiser->GetDebugStr();
+
+	if(m_State < WRITING)
+	{
+		// we don't track semaphore state so we don't know whether wait semaphores were signalled
+		// or unsignalled. To be conservative, we wait for idle.
+		for(uint32_t i=0; i < count; i++)
+		{
+			if(submits[i].waitSemaphoreCount > 0)
+			{
+				ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
+				break;
+			}
+		}
+	}
 
 	if(m_State == READING)
 	{
@@ -339,12 +351,12 @@ void WrappedVulkan::RefreshIDs(vector<DrawcallTreeNode> &nodes, uint32_t baseEve
 
 VkResult WrappedVulkan::vkQueueSubmit(
     VkQueue                                     queue,
-    uint32_t                                    cmdBufferCount,
-    const VkCommandBuffer*                          pCmdBuffers,
-    VkFence                                     fence)
+		uint32_t                                    submitCount,
+		const VkSubmitInfo*                         pSubmits,
+		VkFence                                     fence)
 {
 	VkCommandBuffer *unwrapped = GetTempArray<VkCommandBuffer>(cmdBufferCount);
-	for(uint32_t i=0; i < cmdBufferCount; i++) unwrapped[i] = Unwrap(pCmdBuffers[i]);
+	for(uint32_t i=0; i < submitCount; i++) unwrapped[i] = Unwrap(pCmdBuffers[i]);
 
 	VkResult ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), cmdBufferCount, unwrapped, Unwrap(fence));
 
@@ -523,73 +535,63 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	return ret;
 }
 
-bool WrappedVulkan::Serialise_vkQueueSignalSemaphore(Serialiser* localSerialiser, VkQueue queue, VkSemaphore semaphore)
+bool WrappedVulkan::Serialise_vkQueueBindSparse(
+	Serialiser*                                 localSerialiser,
+	VkQueue                                     queue,
+	uint32_t                                    bindInfoCount,
+	const VkBindSparseInfo*                     pBindInfo,
+	VkFence                                     fence)
 {
 	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queue));
-	SERIALISE_ELEMENT(ResourceId, sid, GetResID(semaphore));
+	SERIALISE_ELEMENT(ResourceId, imid, GetResID(image));
+
+	SERIALISE_ELEMENT(uint32_t, num, numBindings);
+	SERIALISE_ELEMENT_ARR(VkSparseImageMemoryBindInfo, binds, pBindInfo, num);
 	
-	if(m_State < WRITING)
+	if(m_State < WRITING && GetResourceManager()->HasLiveResource(imid))
 	{
 		queue = GetResourceManager()->GetLiveHandle<VkQueue>(qid);
-		ObjDisp(queue)->QueueSignalSemaphore(Unwrap(queue), Unwrap(GetResourceManager()->GetLiveHandle<VkSemaphore>(sid)));
+		image = GetResourceManager()->GetLiveHandle<VkImage>(imid);
+
+		ObjDisp(queue)->QueueBindSparseImageMemory(Unwrap(queue), Unwrap(image), num, binds);
 	}
+
+	SAFE_DELETE_ARRAY(binds);
 
 	return true;
 }
 
-VkResult WrappedVulkan::vkQueueSignalSemaphore(VkQueue queue, VkSemaphore semaphore)
+VkResult WrappedVulkan::vkQueueBindSparse(
+	VkQueue                                     queue,
+	uint32_t                                    bindInfoCount,
+	const VkBindSparseInfo*                     pBindInfo,
+	VkFence                                     fence)
 {
-	VkResult ret = ObjDisp(queue)->QueueSignalSemaphore(Unwrap(queue), Unwrap(semaphore));
-	
-	if(m_State >= WRITING)
-	{
-		CACHE_THREAD_SERIALISER();
-		
-		SCOPED_SERIALISE_CONTEXT(QUEUE_SIGNAL_SEMAPHORE);
-		Serialise_vkQueueSignalSemaphore(localSerialiser, queue, semaphore);
-
-		m_FrameCaptureRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
-		GetResourceManager()->MarkResourceFrameReferenced(GetResID(semaphore), eFrameRef_Read);
-	}
-
-	return ret;
-}
-
-bool WrappedVulkan::Serialise_vkQueueWaitSemaphore(Serialiser* localSerialiser, VkQueue queue, VkSemaphore semaphore)
-{
-	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queue));
-	SERIALISE_ELEMENT(ResourceId, sid, GetResID(semaphore));
-	
-	if(m_State < WRITING)
-	{
-		// we don't track semaphore state so we don't know whether this semaphore was signalled
-		// or unsignalled. To be conservative, we wait for idle.
-		queue = GetResourceManager()->GetLiveHandle<VkQueue>(qid);
-		ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
-	}
-
-	return true;
-}
-
-VkResult WrappedVulkan::vkQueueWaitSemaphore(VkQueue queue, VkSemaphore semaphore)
-{
-	VkResult ret = ObjDisp(queue)->QueueWaitSemaphore(Unwrap(queue), Unwrap(semaphore));
-	
 	if(m_State >= WRITING_CAPFRAME)
 	{
 		CACHE_THREAD_SERIALISER();
 		
-		SCOPED_SERIALISE_CONTEXT(QUEUE_WAIT_SEMAPHORE);
-		Serialise_vkQueueWaitSemaphore(localSerialiser, queue, semaphore);
+		SCOPED_SERIALISE_CONTEXT(BIND_SPARSE);
+		Serialise_vkQueueBindSparse(localSerialiser, queue, bindInfoCount, pBindInfo, fence);
 
 		m_FrameCaptureRecord->AddChunk(scope.Get());
 		GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
-		GetResourceManager()->MarkResourceFrameReferenced(GetResID(semaphore), eFrameRef_Read);
+		GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
+		// images/buffers aren't marked referenced. If the only ref is a memory bind, we just skip it
 	}
 
-	return ret;
+	if(m_State >= WRITING)
+	{
+		GetRecord(image)->sparseInfo->Update(numBindings, pBindInfo);
+	}
+	
+	VkSparseImageMemoryBindInfo *unwrappedBinds = GetTempArray<VkSparseImageMemoryBindInfo>(numBindings);
+	memcpy(unwrappedBinds, pBindInfo, sizeof(VkSparseImageMemoryBindInfo)*numBindings);
+	for(uint32_t i=0; i < numBindings; i++) unwrappedBinds[i].mem = Unwrap(unwrappedBinds[i].mem);
+
+	return ObjDisp(queue)->QueueBindSparseImageMemory(Unwrap(queue), Unwrap(image), numBindings, unwrappedBinds);
 }
+#endif
 
 bool WrappedVulkan::Serialise_vkQueueWaitIdle(Serialiser* localSerialiser, VkQueue queue)
 {

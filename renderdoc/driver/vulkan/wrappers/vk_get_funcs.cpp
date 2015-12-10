@@ -24,19 +24,19 @@
 
 #include "../vk_core.h"
 
-VkResult WrappedVulkan::vkGetPhysicalDeviceFeatures(
+void WrappedVulkan::vkGetPhysicalDeviceFeatures(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceFeatures*                   pFeatures)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), pFeatures);
+	ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), pFeatures);
 }
 
-VkResult WrappedVulkan::vkGetPhysicalDeviceFormatProperties(
+void WrappedVulkan::vkGetPhysicalDeviceFormatProperties(
     VkPhysicalDevice                            physicalDevice,
     VkFormat                                    format,
     VkFormatProperties*                         pFormatProperties)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), format, pFormatProperties);
+	ObjDisp(physicalDevice)->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), format, pFormatProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
@@ -51,72 +51,70 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
 	return ObjDisp(physicalDevice)->GetPhysicalDeviceImageFormatProperties(Unwrap(physicalDevice), format, type, tiling, usage, flags, pImageFormatProperties);
 }
 
-VkResult WrappedVulkan::vkGetPhysicalDeviceSparseImageFormatProperties(
+void WrappedVulkan::vkGetPhysicalDeviceSparseImageFormatProperties(
 			VkPhysicalDevice                            physicalDevice,
 			VkFormat                                    format,
 			VkImageType                                 type,
-			uint32_t                                    samples,
+			VkSampleCountFlagBits                       samples,
 			VkImageUsageFlags                           usage,
 			VkImageTiling                               tiling,
-			uint32_t*                                   pNumProperties,
+			uint32_t*                                   pPropertyCount,
 			VkSparseImageFormatProperties*              pProperties)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceSparseImageFormatProperties(Unwrap(physicalDevice), format, type, samples, usage, tiling, pNumProperties, pProperties);
+	ObjDisp(physicalDevice)->GetPhysicalDeviceSparseImageFormatProperties(Unwrap(physicalDevice), format, type, samples, usage, tiling, pPropertyCount, pProperties);
 }
 
-VkResult WrappedVulkan::vkGetPhysicalDeviceProperties(
+void WrappedVulkan::vkGetPhysicalDeviceProperties(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceProperties*                 pProperties)
 {
-	VkResult ret = ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), pProperties);
+	ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), pProperties);
 	
 	// assign a random UUID, so that we get SPIR-V instead of cached pipeline data.
 	srand((unsigned int)(uintptr_t)pProperties);
-	for(int i=0; i < VK_UUID_LENGTH; i++) pProperties->pipelineCacheUUID[i] = (rand()>>6)&0xff;
-
-	return ret;
+	for(int i=0; i < VK_UUID_SIZE; i++) pProperties->pipelineCacheUUID[i] = (rand()>>6)&0xff;
 }
 
-VkResult WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties(
+void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties(
     VkPhysicalDevice                            physicalDevice,
     uint32_t*                                   pCount,
     VkQueueFamilyProperties*                    pQueueFamilyProperties)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), pCount, pQueueFamilyProperties);
+	ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), pCount, pQueueFamilyProperties);
 }
 
-VkResult WrappedVulkan::vkGetPhysicalDeviceMemoryProperties(
+void WrappedVulkan::vkGetPhysicalDeviceMemoryProperties(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceMemoryProperties*           pMemoryProperties)
 {
 	if(pMemoryProperties)
 	{
 		*pMemoryProperties = *GetRecord(physicalDevice)->memProps;
-		return VK_SUCCESS;
+		return;
 	}
 
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), pMemoryProperties);
+	ObjDisp(physicalDevice)->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), pMemoryProperties);
 }
 
-VkResult WrappedVulkan::vkGetImageSubresourceLayout(
+void WrappedVulkan::vkGetImageSubresourceLayout(
 			VkDevice                                    device,
 			VkImage                                     image,
 			const VkImageSubresource*                   pSubresource,
 			VkSubresourceLayout*                        pLayout)
 {
-	return ObjDisp(device)->GetImageSubresourceLayout(Unwrap(device), Unwrap(image), pSubresource, pLayout);
+	ObjDisp(device)->GetImageSubresourceLayout(Unwrap(device), Unwrap(image), pSubresource, pLayout);
 }
 
-VkResult WrappedVulkan::vkGetBufferMemoryRequirements(
+void WrappedVulkan::vkGetBufferMemoryRequirements(
 		VkDevice                                    device,
 		VkBuffer                                    buffer,
 		VkMemoryRequirements*                       pMemoryRequirements)
 {
-	VkResult vkr = ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), pMemoryRequirements);
+	ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), pMemoryRequirements);
 	
 	// don't do remapping here on replay.
 	if(m_State < WRITING)
-		return vkr;
+		return;
 	
 	uint32_t bits = pMemoryRequirements->memoryTypeBits;
 	uint32_t *memIdxMap = GetRecord(device)->memIdxMap;
@@ -128,20 +126,18 @@ VkResult WrappedVulkan::vkGetBufferMemoryRequirements(
 	for(uint32_t i=0; i < VK_MAX_MEMORY_TYPES; i++)
 		if(bits & (1<<memIdxMap[i]) )
 			pMemoryRequirements->memoryTypeBits |= (1<<i);
-
-	return vkr;
 }
 
-VkResult WrappedVulkan::vkGetImageMemoryRequirements(
+void WrappedVulkan::vkGetImageMemoryRequirements(
 		VkDevice                                    device,
 		VkImage                                     image,
 		VkMemoryRequirements*                       pMemoryRequirements)
 {
-	VkResult vkr = ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), pMemoryRequirements);
+	ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), pMemoryRequirements);
 
 	// don't do remapping here on replay.
 	if(m_State < WRITING)
-		return vkr;
+		return;
 	
 	uint32_t bits = pMemoryRequirements->memoryTypeBits;
 	uint32_t *memIdxMap = GetRecord(device)->memIdxMap;
@@ -153,28 +149,26 @@ VkResult WrappedVulkan::vkGetImageMemoryRequirements(
 	for(uint32_t i=0; i < VK_MAX_MEMORY_TYPES; i++)
 		if(bits & (1<<memIdxMap[i]) )
 			pMemoryRequirements->memoryTypeBits |= (1<<i);
-
-	return vkr;
 }
 
-VkResult WrappedVulkan::vkGetImageSparseMemoryRequirements(
+void WrappedVulkan::vkGetImageSparseMemoryRequirements(
 		VkDevice                                    device,
 		VkImage                                     image,
 		uint32_t*                                   pNumRequirements,
 		VkSparseImageMemoryRequirements*            pSparseMemoryRequirements)
 {
-	return ObjDisp(device)->GetImageSparseMemoryRequirements(Unwrap(device), Unwrap(image), pNumRequirements, pSparseMemoryRequirements);
+	ObjDisp(device)->GetImageSparseMemoryRequirements(Unwrap(device), Unwrap(image), pNumRequirements, pSparseMemoryRequirements);
 }
 
-VkResult WrappedVulkan::vkGetDeviceMemoryCommitment(
+void WrappedVulkan::vkGetDeviceMemoryCommitment(
 		VkDevice                                    device,
 		VkDeviceMemory                              memory,
 		VkDeviceSize*                               pCommittedMemoryInBytes)
 {
-	return ObjDisp(device)->GetDeviceMemoryCommitment(Unwrap(device), Unwrap(memory), pCommittedMemoryInBytes);
+	ObjDisp(device)->GetDeviceMemoryCommitment(Unwrap(device), Unwrap(memory), pCommittedMemoryInBytes);
 }
 
-VkResult WrappedVulkan::vkGetRenderAreaGranularity(
+void WrappedVulkan::vkGetRenderAreaGranularity(
 		VkDevice                                    device,
 		VkRenderPass                                renderPass,
 		VkExtent2D*                                 pGranularity)
@@ -182,23 +176,17 @@ VkResult WrappedVulkan::vkGetRenderAreaGranularity(
 	return ObjDisp(device)->GetRenderAreaGranularity(Unwrap(device), Unwrap(renderPass), pGranularity);
 }
 
-size_t WrappedVulkan::vkGetPipelineCacheSize(
-	VkDevice                                    device,
-	VkPipelineCache                             pipelineCache)
-{
-	// we don't want the application to use pipeline caches at all, and especially
-	// don't want to return any data for future use.
-	return 0;
-}
-
 VkResult WrappedVulkan::vkGetPipelineCacheData(
 	VkDevice                                    device,
 	VkPipelineCache                             pipelineCache,
+	size_t*                                     pDataSize,
 	void*                                       pData)
 {
+	if(pDataSize)
+		*pDataSize = 0;
 	// we don't want the application to use pipeline caches at all, and especially
 	// don't want to return any data for future use.
-	return VK_UNSUPPORTED;
+	return VK_INCOMPLETE;
 }
 
 VkResult WrappedVulkan::vkMergePipelineCaches(
@@ -211,5 +199,5 @@ VkResult WrappedVulkan::vkMergePipelineCaches(
 	// cache ourselves, our UUID should not match anyone's so the application should
 	// not upload a pipeline cache from elsewhere. So there will be nothing to merge,
 	// in theory.
-	return VK_UNSUPPORTED;
+	return VK_INCOMPLETE;
 }

@@ -172,16 +172,16 @@
 
 #define DefineHooks() \
 	HookDefine3(VkResult, vkEnumeratePhysicalDevices, VkInstance, instance, uint32_t*, pPhysicalDeviceCount, VkPhysicalDevice*, pPhysicalDevices); \
-	HookDefine2(VkResult, vkGetPhysicalDeviceFeatures, VkPhysicalDevice, physicalDevice, VkPhysicalDeviceFeatures*, pFeatures); \
-	HookDefine3(VkResult, vkGetPhysicalDeviceFormatProperties, VkPhysicalDevice, physicalDevice, VkFormat, format, VkFormatProperties*, pFormatProperties); \
+	HookDefine2(void, vkGetPhysicalDeviceFeatures, VkPhysicalDevice, physicalDevice, VkPhysicalDeviceFeatures*, pFeatures); \
+	HookDefine3(void, vkGetPhysicalDeviceFormatProperties, VkPhysicalDevice, physicalDevice, VkFormat, format, VkFormatProperties*, pFormatProperties); \
 	HookDefine7(VkResult, vkGetPhysicalDeviceImageFormatProperties, VkPhysicalDevice, physicalDevice, VkFormat, format, VkImageType, type, VkImageTiling, tiling, VkImageUsageFlags, usage, VkImageCreateFlags, flags, VkImageFormatProperties*, pImageFormatProperties); \
-	HookDefine8(VkResult, vkGetPhysicalDeviceSparseImageFormatProperties, VkPhysicalDevice, physicalDevice, VkFormat, format, VkImageType, type, uint32_t, samples, VkImageUsageFlags, usage, VkImageTiling, tiling, uint32_t*, pNumProperties, VkSparseImageFormatProperties*, pProperties); \
-	HookDefine2(VkResult, vkGetPhysicalDeviceProperties, VkPhysicalDevice, physicalDevice, VkPhysicalDeviceProperties*, pProperties); \
-	HookDefine3(VkResult, vkGetPhysicalDeviceQueueFamilyProperties, VkPhysicalDevice, physicalDevice, uint32_t*, pCount, VkQueueFamilyProperties*, pQueueFamilyProperties); \
-	HookDefine2(VkResult, vkGetPhysicalDeviceMemoryProperties, VkPhysicalDevice, physicalDevice, VkPhysicalDeviceMemoryProperties*, pMemoryProperties); \
+	HookDefine8(void, vkGetPhysicalDeviceSparseImageFormatProperties, VkPhysicalDevice, physicalDevice, VkFormat, format, VkImageType, type, VkSampleCountFlagBits, samples, VkImageUsageFlags, usage, VkImageTiling, tiling, uint32_t*, pNumProperties, VkSparseImageFormatProperties*, pProperties); \
+	HookDefine2(void, vkGetPhysicalDeviceProperties, VkPhysicalDevice, physicalDevice, VkPhysicalDeviceProperties*, pProperties); \
+	HookDefine3(void, vkGetPhysicalDeviceQueueFamilyProperties, VkPhysicalDevice, physicalDevice, uint32_t*, pCount, VkQueueFamilyProperties*, pQueueFamilyProperties); \
+	HookDefine2(void, vkGetPhysicalDeviceMemoryProperties, VkPhysicalDevice, physicalDevice, VkPhysicalDeviceMemoryProperties*, pMemoryProperties); \
 	HookDefine4(VkResult, vkCreateDevice, VkPhysicalDevice, physicalDevice, const VkDeviceCreateInfo*, pCreateInfo, const VkAllocationCallbacks*, pAllocator, VkDevice*, pDevice); \
 	HookDefine2(void, vkDestroyDevice, VkDevice, device, const VkAllocationCallbacks*, pAllocator); \
-	HookDefine4(VkResult, vkGetDeviceQueue, VkDevice, device, uint32_t, queueFamilyIndex, uint32_t, queueIndex, VkQueue*, pQueue); \
+	HookDefine4(void, vkGetDeviceQueue, VkDevice, device, uint32_t, queueFamilyIndex, uint32_t, queueIndex, VkQueue*, pQueue); \
 	HookDefine4(VkResult, vkQueueSubmit, VkQueue, queue, uint32_t, submitCount, const VkSubmitInfo*, pSubmits, VkFence, fence); \
 	HookDefine1(VkResult, vkQueueWaitIdle, VkQueue, queue); \
 	HookDefine1(VkResult, vkDeviceWaitIdle, VkDevice, device); \
@@ -191,7 +191,7 @@
 	HookDefine2(void, vkUnmapMemory, VkDevice, device, VkDeviceMemory, mem); \
 	HookDefine3(VkResult, vkFlushMappedMemoryRanges, VkDevice, device, uint32_t, memRangeCount, const VkMappedMemoryRange*, pMemRanges); \
 	HookDefine3(VkResult, vkInvalidateMappedMemoryRanges, VkDevice, device, uint32_t, memRangeCount, const VkMappedMemoryRange*, pMemRanges); \
-	HookDefine3(VkResult, vkGetDeviceMemoryCommitment, VkDevice, device, VkDeviceMemory, memory, VkDeviceSize*, pCommittedMemoryInBytes); \
+	HookDefine3(void, vkGetDeviceMemoryCommitment, VkDevice, device, VkDeviceMemory, memory, VkDeviceSize*, pCommittedMemoryInBytes); \
 	HookDefine4(VkResult, vkBindBufferMemory, VkDevice, device, VkBuffer, buffer, VkDeviceMemory, mem, VkDeviceSize, memOffset); \
 	HookDefine4(VkResult, vkBindImageMemory, VkDevice, device, VkImage, image, VkDeviceMemory, mem, VkDeviceSize, memOffset); \
 	HookDefine4(VkResult, vkQueueBindSparse, VkQueue, queue, uint32_t, bindInfoCount, const VkBindSparseInfo*, pBindInfo, VkFence, fence); \
@@ -201,10 +201,10 @@
 	HookDefine3(void, vkDestroyBufferView, VkDevice, device, VkBufferView, bufferView, const VkAllocationCallbacks*, pAllocator); \
 	HookDefine4(VkResult, vkCreateImage, VkDevice, device, const VkImageCreateInfo*, pCreateInfo, const VkAllocationCallbacks*, pAllocator, VkImage*, pImage); \
 	HookDefine3(void, vkDestroyImage, VkDevice, device, VkImage, image, const VkAllocationCallbacks*, pAllocator); \
-	HookDefine4(VkResult, vkGetImageSubresourceLayout, VkDevice, device, VkImage, image, const VkImageSubresource*, pSubresource, VkSubresourceLayout*, pLayout); \
-	HookDefine3(VkResult, vkGetBufferMemoryRequirements, VkDevice, device, VkBuffer, buffer, VkMemoryRequirements*, pMemoryRequirements); \
-	HookDefine3(VkResult, vkGetImageMemoryRequirements, VkDevice, device, VkImage, image, VkMemoryRequirements*, pMemoryRequirements); \
-	HookDefine4(VkResult, vkGetImageSparseMemoryRequirements, VkDevice, device, VkImage, image, uint32_t*, pNumRequirements, VkSparseImageMemoryRequirements*, pSparseMemoryRequirements); \
+	HookDefine4(void, vkGetImageSubresourceLayout, VkDevice, device, VkImage, image, const VkImageSubresource*, pSubresource, VkSubresourceLayout*, pLayout); \
+	HookDefine3(void, vkGetBufferMemoryRequirements, VkDevice, device, VkBuffer, buffer, VkMemoryRequirements*, pMemoryRequirements); \
+	HookDefine3(void, vkGetImageMemoryRequirements, VkDevice, device, VkImage, image, VkMemoryRequirements*, pMemoryRequirements); \
+	HookDefine4(void, vkGetImageSparseMemoryRequirements, VkDevice, device, VkImage, image, uint32_t*, pNumRequirements, VkSparseImageMemoryRequirements*, pSparseMemoryRequirements); \
 	HookDefine4(VkResult, vkCreateImageView, VkDevice, device, const VkImageViewCreateInfo*, pCreateInfo, const VkAllocationCallbacks*, pAllocator, VkImageView*, pView); \
 	HookDefine3(void, vkDestroyImageView, VkDevice, device, VkImageView, imageView, const VkAllocationCallbacks*, pAllocator); \
 	HookDefine4(VkResult, vkCreateShaderModule, VkDevice, device, const VkShaderModuleCreateInfo*, pCreateInfo, const VkAllocationCallbacks*, pAllocator, VkShaderModule*, pShaderModule); \
@@ -258,9 +258,9 @@
 	HookDefine4(void, vkCmdSetDepthBias, VkCommandBuffer, commandBuffer, float, depthBias, float, depthBiasClamp, float, slopeScaledDepthBias); \
 	HookDefine2(void, vkCmdSetBlendConstants, VkCommandBuffer, commandBuffer, const float*, blendConst); \
 	HookDefine3(void, vkCmdSetDepthBounds, VkCommandBuffer, commandBuffer, float, minDepthBounds, float, maxDepthBounds); \
-	HookDefine3(void, vkCmdSetStencilCompareMask, VkCommandBuffer, commandBuffer, VkStencilFaceFlags, faceMask, uint32_t, stencilCompareMask); \
-	HookDefine3(void, vkCmdSetStencilWriteMask, VkCommandBuffer, commandBuffer, VkStencilFaceFlags, faceMask, uint32_t, stencilWriteMask); \
-	HookDefine3(void, vkCmdSetStencilReference, VkCommandBuffer, commandBuffer, VkStencilFaceFlags, faceMask, uint32_t, stencilReference); \
+	HookDefine3(void, vkCmdSetStencilCompareMask, VkCommandBuffer, commandBuffer, VkStencilFaceFlags, faceMask, uint32_t, compareMask); \
+	HookDefine3(void, vkCmdSetStencilWriteMask, VkCommandBuffer, commandBuffer, VkStencilFaceFlags, faceMask, uint32_t, writeMask); \
+	HookDefine3(void, vkCmdSetStencilReference, VkCommandBuffer, commandBuffer, VkStencilFaceFlags, faceMask, uint32_t, reference); \
 	HookDefine8(void, vkCmdBindDescriptorSets, VkCommandBuffer, commandBuffer, VkPipelineBindPoint, pipelineBindPoint, VkPipelineLayout, layout, uint32_t, firstSet, uint32_t, setCount, const VkDescriptorSet*, pDescriptorSets, uint32_t, dynamicOffsetCount, const uint32_t*, pDynamicOffsets); \
 	HookDefine4(void, vkCmdBindIndexBuffer, VkCommandBuffer, commandBuffer, VkBuffer, buffer, VkDeviceSize, offset, VkIndexType, indexType); \
 	HookDefine5(void, vkCmdBindVertexBuffers, VkCommandBuffer, commandBuffer, uint32_t, startBinding, uint32_t, bindingCount, const VkBuffer*, pBuffers, const VkDeviceSize*, pOffsets); \
@@ -295,7 +295,7 @@
 	HookDefine3(void, vkDestroyFramebuffer, VkDevice, device, VkFramebuffer, framebuffer, const VkAllocationCallbacks*, pAllocator); \
 	HookDefine4(VkResult, vkCreateRenderPass, VkDevice, device, const VkRenderPassCreateInfo*, pCreateInfo, const VkAllocationCallbacks*, pAllocator, VkRenderPass*, pRenderPass); \
 	HookDefine3(void, vkDestroyRenderPass, VkDevice, device, VkRenderPass, renderPass, const VkAllocationCallbacks*, pAllocator); \
-	HookDefine3(VkResult, vkGetRenderAreaGranularity, VkDevice, device, VkRenderPass, renderPass, VkExtent2D*, pGranularity); \
+	HookDefine3(void, vkGetRenderAreaGranularity, VkDevice, device, VkRenderPass, renderPass, VkExtent2D*, pGranularity); \
 	HookDefine3(void, vkCmdBeginRenderPass, VkCommandBuffer, commandBuffer, const VkRenderPassBeginInfo*, pRenderPassBegin, VkSubpassContents, contents); \
 	HookDefine2(void, vkCmdNextSubpass, VkCommandBuffer, commandBuffer, VkSubpassContents, contents); \
 	HookDefine3(void, vkCmdExecuteCommands, VkCommandBuffer, commandBuffer, uint32_t, commandBuffersCount, const VkCommandBuffer*, pCommandBuffers); \
@@ -307,7 +307,7 @@
 	HookDefine4(VkResult, vkGetPhysicalDeviceSurfaceFormatsKHR, VkPhysicalDevice, physicalDevice, VkSurfaceKHR, surface, uint32_t*, pSurfaceFormatCount, VkSurfaceFormatKHR*, pSurfaceFormats); \
 	HookDefine4(VkResult, vkGetPhysicalDeviceSurfacePresentModesKHR, VkPhysicalDevice, physicalDevice, VkSurfaceKHR, surface, uint32_t*, pPresentModeCount, VkPresentModeKHR*, pPresentModes); \
 	HookDefine4(VkResult, vkCreateSwapchainKHR, VkDevice, device, const VkSwapchainCreateInfoKHR*, pCreateInfo, const VkAllocationCallbacks*, pAllocator, VkSwapchainKHR*, pSwapchain); \
-	HookDefine3(VkResult, vkDestroySwapchainKHR, VkDevice, device, VkSwapchainKHR, swapchain, const VkAllocationCallbacks*, pAllocator); \
+	HookDefine3(void, vkDestroySwapchainKHR, VkDevice, device, VkSwapchainKHR, swapchain, const VkAllocationCallbacks*, pAllocator); \
 	HookDefine4(VkResult, vkGetSwapchainImagesKHR, VkDevice, device, VkSwapchainKHR, swapchain, uint32_t*, pCount, VkImage*, pSwapchainImages); \
 	HookDefine6(VkResult, vkAcquireNextImageKHR, VkDevice, device, VkSwapchainKHR, swapchain, uint64_t, timeout, VkSemaphore, semaphore, VkFence, fence, uint32_t*, pImageIndex); \
 	HookDefine2(VkResult, vkQueuePresentKHR, VkQueue, queue, VkPresentInfoKHR*, pPresentInfo);

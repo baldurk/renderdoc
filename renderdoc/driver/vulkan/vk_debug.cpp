@@ -4087,8 +4087,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		vkr = m_pDriver->vkBindBufferMemory(dev, meshBuffer, meshMem, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 		
-		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, readbackBuffer, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		m_pDriver->vkGetBufferMemoryRequirements(dev, readbackBuffer, &mrq);
 
 		allocInfo.memoryTypeIndex = m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits);
 

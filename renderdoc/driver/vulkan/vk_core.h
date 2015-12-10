@@ -499,11 +499,11 @@ public:
 		uint32_t*                                   pPhysicalDeviceCount,
 		VkPhysicalDevice*                           pPhysicalDevices);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceFeatures,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetPhysicalDeviceFeatures,
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceFeatures*                   pFeatures);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceFormatProperties,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetPhysicalDeviceFormatProperties,
     VkPhysicalDevice                            physicalDevice,
     VkFormat                                    format,
     VkFormatProperties*                         pFormatProperties);
@@ -517,26 +517,26 @@ public:
     VkImageCreateFlags                          flags,
     VkImageFormatProperties*                    pImageFormatProperties);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceSparseImageFormatProperties,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetPhysicalDeviceSparseImageFormatProperties,
 		VkPhysicalDevice                            physicalDevice,
 		VkFormat                                    format,
 		VkImageType                                 type,
-		uint32_t                                    samples,
+		VkSampleCountFlagBits                       samples,
 		VkImageUsageFlags                           usage,
 		VkImageTiling                               tiling,
 		uint32_t*                                   pPropertyCount,
 		VkSparseImageFormatProperties*              pProperties);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceProperties,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetPhysicalDeviceProperties,
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceProperties*                 pProperties);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceQueueFamilyProperties,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetPhysicalDeviceQueueFamilyProperties,
     VkPhysicalDevice                            physicalDevice,
     uint32_t*                                   pQueueFamilyPropertyCount,
     VkQueueFamilyProperties*                    pQueueFamilyProperties);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetPhysicalDeviceMemoryProperties,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetPhysicalDeviceMemoryProperties,
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceMemoryProperties*           pMemoryProperties);
 
@@ -554,7 +554,7 @@ public:
 	
 	// Queue functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetDeviceQueue,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceQueue,
 		VkDevice                                    device,
 		uint32_t                                    queueFamilyIndex,
 		uint32_t                                    queueIndex,
@@ -562,7 +562,7 @@ public:
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueSubmit,
 		VkQueue                                     queue,
-		uint32_t                                    cmdBufferCount,
+		uint32_t                                    submitCount,
 		const VkSubmitInfo*                         pSubmits,
 		VkFence                                     fence);
 
@@ -697,22 +697,22 @@ public:
 		uint32_t                                    memoryRangeCount,
 		const VkMappedMemoryRange*                  pMemoryRanges);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetDeviceMemoryCommitment,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceMemoryCommitment,
 		VkDevice                                    device,
 		VkDeviceMemory                              memory,
 		VkDeviceSize*                               pCommittedMemoryInBytes);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetBufferMemoryRequirements,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetBufferMemoryRequirements,
 		VkDevice                                    device,
 		VkBuffer                                    buffer,
 		VkMemoryRequirements*                       pMemoryRequirements);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetImageMemoryRequirements,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetImageMemoryRequirements,
 		VkDevice                                    device,
 		VkImage                                     image,
 		VkMemoryRequirements*                       pMemoryRequirements);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetImageSparseMemoryRequirements,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetImageSparseMemoryRequirements,
 		VkDevice                                    device,
 		VkImage                                     image,
 		uint32_t*                                   pSparseMemoryRequirementCount,
@@ -777,7 +777,7 @@ public:
 		VkImage                                     image,
     const VkAllocationCallbacks*                pAllocator);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetImageSubresourceLayout,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetImageSubresourceLayout,
 		VkDevice                                    device,
 		VkImage                                     image,
 		const VkImageSubresource*                   pSubresource,
@@ -930,7 +930,7 @@ public:
 
 	// Command pool functions
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetRenderAreaGranularity,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkGetRenderAreaGranularity,
 		VkDevice                                    device,
 		VkRenderPass                                renderPass,
 		VkExtent2D*                                 pGranularity);
@@ -1335,7 +1335,7 @@ public:
     const VkAllocationCallbacks*                 pAllocator,
     VkSwapchainKHR*                              pSwapchain);
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySwapchainKHR,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroySwapchainKHR,
 		VkDevice                                     device,
     VkSwapchainKHR                               swapchain,
     const VkAllocationCallbacks*                 pAllocator);

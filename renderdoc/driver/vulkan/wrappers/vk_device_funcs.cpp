@@ -90,15 +90,15 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	};
 
 	VkInstanceCreateInfo instinfo = {
-			VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, NULL,
-			&appinfo, NULL,
+			VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, NULL, 0,
+			&appinfo,
 			(uint32_t)params.Layers.size(), layerscstr,
 			(uint32_t)params.Extensions.size(), extscstr,
 	};
 
 	m_Instance = VK_NULL_HANDLE;
 
-	VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, &m_Instance);
+	VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
 
 	InitInstanceReplayTables(m_Instance);
 
@@ -125,17 +125,18 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 
 VkResult WrappedVulkan::vkCreateInstance(
 		const VkInstanceCreateInfo*                 pCreateInfo,
+		const VkAllocationCallbacks*                pAllocator,
 		VkInstance*                                 pInstance)
 {
 	RDCASSERT(pCreateInfo);
 
 	// don't support any extensions for this createinfo
-	RDCASSERT(pCreateInfo->pAppInfo == NULL || pCreateInfo->pAppInfo->pNext == NULL);
+	RDCASSERT(pCreateInfo->pApplicationInfo == NULL || pCreateInfo->pApplicationInfo->pNext == NULL);
 	RDCASSERT(pCreateInfo->pNext == NULL);
 
 	m_Instance = *pInstance;
 
-	VkResult ret = GetInstanceDispatchTable(*pInstance)->CreateInstance(pCreateInfo, &m_Instance);
+	VkResult ret = GetInstanceDispatchTable(*pInstance)->CreateInstance(pCreateInfo, pAllocator, &m_Instance);
 
 	GetResourceManager()->WrapResource(m_Instance, m_Instance);
 
@@ -173,7 +174,7 @@ void WrappedVulkan::Shutdown()
 		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freecmds[i]);
 
 	// destroy the pool
-	ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.m_CmdPool));
+	ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.m_CmdPool), NULL);
 	GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.m_CmdPool);
 	
 	// we do more in Shutdown than the equivalent vkDestroyInstance since on replay there's
@@ -182,7 +183,7 @@ void WrappedVulkan::Shutdown()
 	// destroy any replay objects that aren't specifically to do with the frame capture
 	for(size_t i=0; i < m_CleanupMems.size(); i++)
 	{
-		ObjDisp(m_Device)->FreeMemory(Unwrap(m_Device), Unwrap(m_CleanupMems[i]));
+		ObjDisp(m_Device)->FreeMemory(Unwrap(m_Device), Unwrap(m_CleanupMems[i]), NULL);
 		GetResourceManager()->ReleaseWrappedResource(m_CleanupMems[i]);
 	}
 	m_CleanupMems.clear();
@@ -212,18 +213,18 @@ void WrappedVulkan::Shutdown()
 	m_Instance = VK_NULL_HANDLE;
 
 	// finally destroy device then instance
-	vt->DestroyDevice(dev);
-	vit->DestroyInstance(inst);
+	vt->DestroyDevice(dev, NULL);
+	vit->DestroyInstance(inst, NULL);
 }
 
-void WrappedVulkan::vkDestroyInstance(VkInstance instance)
+void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks* pAllocator)
 {
 	RDCASSERT(m_Instance == instance);
 
 	// the device should already have been destroyed, assuming that the
 	// application is well behaved. If not, we just leak.
 
-	ObjDisp(m_Instance)->DestroyInstance(Unwrap(m_Instance));
+	ObjDisp(m_Instance)->DestroyInstance(Unwrap(m_Instance), NULL);
 	GetResourceManager()->ReleaseWrappedResource(m_Instance);
 
 	m_Instance = VK_NULL_HANDLE;
@@ -391,6 +392,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		Serialiser*                                 localSerialiser,
 		VkPhysicalDevice                            physicalDevice,
 		const VkDeviceCreateInfo*                   pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
 		VkDevice*                                   pDevice)
 {
 	SERIALISE_ELEMENT(ResourceId, physId, GetResID(physicalDevice));
@@ -404,21 +406,21 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		VkDeviceCreateInfo createInfo = serCreateInfo;
 		
 		// don't try and create our own layer on replay!
-		for(uint32_t i=0; i < createInfo.layerCount; i++)
+		for(uint32_t i=0; i < createInfo.enabledLayerNameCount; i++)
 		{
 			const char **layerNames = (const char **)createInfo.ppEnabledLayerNames;
 			if(!strcmp(layerNames[i], "RenderDoc"))
 			{
-				for(uint32_t j=i; j < createInfo.layerCount-1; j++)
+				for(uint32_t j=i; j < createInfo.enabledLayerNameCount-1; j++)
 					layerNames[j] = layerNames[j+1];
-				createInfo.layerCount--;
+				createInfo.enabledLayerNameCount--;
 			}
 		}
 		
 #if defined(FORCE_VALIDATION_LAYERS)
 		vector<const char *> layers;
 
-		for(uint32_t i=0; i < createInfo.layerCount; i++)
+		for(uint32_t i=0; i < createInfo.enabledLayerNameCount; i++)
 			layers.push_back(createInfo.ppEnabledLayerNames[i]);
 
 		layers.push_back("Threading");
@@ -431,7 +433,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		layers.push_back("DeviceLimits");
 		layers.push_back("Image");
 
-		createInfo.layerCount = (uint32_t)layers.size();
+		createInfo.enabledLayerNameCount = (uint32_t)layers.size();
 		createInfo.ppEnabledLayerNames = &layers[0];
 #endif
 
@@ -440,12 +442,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		VkDevice device;
 
 		uint32_t qCount = 0;
-		VkResult vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, NULL);
-		RDCASSERT(vkr == VK_SUCCESS);
+		ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, NULL);
 
 		VkQueueFamilyProperties *props = new VkQueueFamilyProperties[qCount];
-		vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, props);
-		RDCASSERT(vkr == VK_SUCCESS);
+		ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, props);
 
 		bool found = false;
 		uint32_t qFamilyIdx = 0;
@@ -454,13 +454,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		// if we need to change the requested queues, it will point to this
 		VkDeviceQueueCreateInfo *modQueues = NULL;
 
-		for(uint32_t i=0; i < createInfo.queueRecordCount; i++)
+		for(uint32_t i=0; i < createInfo.queueCreateInfoCount; i++)
 		{
-			uint32_t idx = createInfo.pRequestedQueues[i].queueFamilyIndex;
+			uint32_t idx = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
 			RDCASSERT(idx < qCount);
 
 			// this requested queue is one we can use too
-			if((props[idx].queueFlags & search) == search && createInfo.pRequestedQueues[i].queueCount > 0)
+			if((props[idx].queueFlags & search) == search && createInfo.pQueueCreateInfos[i].queueCount > 0)
 			{
 				qFamilyIdx = idx;
 				found = true;
@@ -491,15 +491,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 			else
 			{
 				// we found the queue family, add it
-				modQueues = new VkDeviceQueueCreateInfo[createInfo.queueRecordCount + 1];
-				for(uint32_t i=0; i < createInfo.queueRecordCount; i++)
-					modQueues[i] = createInfo.pRequestedQueues[i];
+				modQueues = new VkDeviceQueueCreateInfo[createInfo.queueCreateInfoCount + 1];
+				for(uint32_t i=0; i < createInfo.queueCreateInfoCount; i++)
+					modQueues[i] = createInfo.pQueueCreateInfos[i];
 
-				modQueues[createInfo.queueRecordCount].queueFamilyIndex = qFamilyIdx;
-				modQueues[createInfo.queueRecordCount].queueCount = 1;
+				modQueues[createInfo.queueCreateInfoCount].queueFamilyIndex = qFamilyIdx;
+				modQueues[createInfo.queueCreateInfoCount].queueCount = 1;
 
-				createInfo.pRequestedQueues = modQueues;
-				createInfo.queueRecordCount++;
+				createInfo.pQueueCreateInfos = modQueues;
+				createInfo.queueCreateInfoCount++;
 			}
 		}
 		
@@ -529,7 +529,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 		// PORTABILITY check that extensions and layers supported in capture (from createInfo) are supported in replay
 
-		VkResult ret = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, &device);
+		VkResult ret = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, NULL, &device);
 
 		GetResourceManager()->WrapResource(device, device);
 		GetResourceManager()->AddLiveResource(devId, device);
@@ -543,10 +543,12 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 		m_QueueFamilyIdx = qFamilyIdx;
 
+		VkResult vkr = VK_SUCCESS;
+
 		if(m_InternalCmds.m_CmdPool == VK_NULL_HANDLE)
 		{
-			VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
-			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, &m_InternalCmds.m_CmdPool);
+			VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, NULL, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, qFamilyIdx };
+			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL, &m_InternalCmds.m_CmdPool);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.m_CmdPool);
@@ -561,9 +563,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		for(int i=VK_FORMAT_BEGIN_RANGE+1; i < VK_FORMAT_END_RANGE; i++)
 			ObjDisp(physicalDevice)->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), VkFormat(i), &m_PhysicalDeviceData.fmtprops[i]);
 
-		m_PhysicalDeviceData.readbackMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
+		m_PhysicalDeviceData.readbackMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
 		m_PhysicalDeviceData.uploadMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
-		m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
+		m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
 		for(size_t i=0; i < m_PhysicalDevices.size(); i++)
 		{
@@ -585,17 +587,18 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 VkResult WrappedVulkan::vkCreateDevice(
 		VkPhysicalDevice                            physicalDevice,
 		const VkDeviceCreateInfo*                   pCreateInfo,
+		const VkAllocationCallbacks*                pAllocator,
 		VkDevice*                                   pDevice)
 {
 	VkDeviceCreateInfo createInfo = *pCreateInfo;
 
 	uint32_t qCount = 0;
-	VkResult vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, NULL);
-	RDCASSERT(vkr == VK_SUCCESS);
+	VkResult vkr = VK_SUCCESS;
+	
+	ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, NULL);
 
 	VkQueueFamilyProperties *props = new VkQueueFamilyProperties[qCount];
-	vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, props);
-	RDCASSERT(vkr == VK_SUCCESS);
+	ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, props);
 
 	// find a queue that supports all capabilities, and if one doesn't exist, add it.
 	bool found = false;
@@ -605,13 +608,13 @@ VkResult WrappedVulkan::vkCreateDevice(
 	// if we need to change the requested queues, it will point to this
 	VkDeviceQueueCreateInfo *modQueues = NULL;
 
-	for(uint32_t i=0; i < createInfo.queueRecordCount; i++)
+	for(uint32_t i=0; i < createInfo.queueCreateInfoCount; i++)
 	{
-		uint32_t idx = createInfo.pRequestedQueues[i].queueFamilyIndex;
+		uint32_t idx = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
 		RDCASSERT(idx < qCount);
 
 		// this requested queue is one we can use too
-		if((props[idx].queueFlags & search) == search && createInfo.pRequestedQueues[i].queueCount > 0)
+		if((props[idx].queueFlags & search) == search && createInfo.pQueueCreateInfos[i].queueCount > 0)
 		{
 			qFamilyIdx = idx;
 			found = true;
@@ -638,26 +641,26 @@ VkResult WrappedVulkan::vkCreateDevice(
 		{
 			SAFE_DELETE_ARRAY(props);
 			RDCERR("Can't add a queue with required properties for RenderDoc! Unsupported configuration");
-			return VK_UNSUPPORTED;
+			return VK_ERROR_INITIALIZATION_FAILED;
 		}
 
 		// we found the queue family, add it
-		modQueues = new VkDeviceQueueCreateInfo[createInfo.queueRecordCount + 1];
-		for(uint32_t i=0; i < createInfo.queueRecordCount; i++)
-			modQueues[i] = createInfo.pRequestedQueues[i];
+		modQueues = new VkDeviceQueueCreateInfo[createInfo.queueCreateInfoCount + 1];
+		for(uint32_t i=0; i < createInfo.queueCreateInfoCount; i++)
+			modQueues[i] = createInfo.pQueueCreateInfos[i];
 
-		modQueues[createInfo.queueRecordCount].queueFamilyIndex = qFamilyIdx;
-		modQueues[createInfo.queueRecordCount].queueCount = 1;
+		modQueues[createInfo.queueCreateInfoCount].queueFamilyIndex = qFamilyIdx;
+		modQueues[createInfo.queueCreateInfoCount].queueCount = 1;
 
-		createInfo.pRequestedQueues = modQueues;
-		createInfo.queueRecordCount++;
+		createInfo.pQueueCreateInfos = modQueues;
+		createInfo.queueCreateInfoCount++;
 	}
 
 	SAFE_DELETE_ARRAY(props);
 
 	RDCDEBUG("Might want to fiddle with createinfo - e.g. to remove VK_RenderDoc from set of extensions or similar");
 
-	VkResult ret = GetDeviceDispatchTable(*pDevice)->CreateDevice(Unwrap(physicalDevice), &createInfo, pDevice);
+	VkResult ret = GetDeviceDispatchTable(*pDevice)->CreateDevice(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -671,7 +674,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 				CACHE_THREAD_SERIALISER();
 
 				SCOPED_SERIALISE_CONTEXT(CREATE_DEVICE);
-				Serialise_vkCreateDevice(localSerialiser, physicalDevice, &createInfo, pDevice);
+				Serialise_vkCreateDevice(localSerialiser, physicalDevice, &createInfo, NULL, pDevice);
 
 				chunk = scope.Get();
 			}
@@ -701,8 +704,8 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 		if(m_InternalCmds.m_CmdPool == VK_NULL_HANDLE)
 		{
-			VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
-			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, &m_InternalCmds.m_CmdPool);
+			VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, NULL, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, qFamilyIdx };
+			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL, &m_InternalCmds.m_CmdPool);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.m_CmdPool);
@@ -714,9 +717,9 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 		ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
 
-		m_PhysicalDeviceData.readbackMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
+		m_PhysicalDeviceData.readbackMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
 		m_PhysicalDeviceData.uploadMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
-		m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
+		m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
 		m_PhysicalDeviceData.fakeMemProps = GetRecord(physicalDevice)->memProps;
 
@@ -728,7 +731,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 	return ret;
 }
 
-void WrappedVulkan::vkDestroyDevice(VkDevice device)
+void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks* pAllocator)
 {
 	// flush out any pending commands
 	SubmitCmds();
@@ -752,7 +755,7 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device)
 	// destroy our command pool
 	if(m_InternalCmds.m_CmdPool != VK_NULL_HANDLE)
 	{
-		ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.m_CmdPool));
+		ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.m_CmdPool), NULL);
 		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.m_CmdPool);
 	}
 
@@ -767,7 +770,7 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device)
 	// should be deleted by now.
 	// If there were any leaks, we will leak them ourselves in vkDestroyInstance
 	// rather than try to delete API objects after the device has gone
-	ObjDisp(m_Device)->DestroyDevice(Unwrap(m_Device));
+	ObjDisp(m_Device)->DestroyDevice(Unwrap(m_Device), pAllocator);
 	GetResourceManager()->ReleaseWrappedResource(m_Device);
 	m_Device = VK_NULL_HANDLE;
 	m_PhysicalDevice = VK_NULL_HANDLE;

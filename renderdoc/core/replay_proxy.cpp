@@ -697,7 +697,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState &el)
 template<>
 void Serialiser::Serialise(const char *name, VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding &el)
 {
-	Serialise("", el.arraySize);
+	Serialise("", el.descriptorCount);
 	Serialise("", el.type);
 	Serialise("", el.stageFlags);
 

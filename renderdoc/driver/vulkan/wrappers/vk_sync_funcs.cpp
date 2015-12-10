@@ -74,8 +74,9 @@
 bool WrappedVulkan::Serialise_vkCreateFence(
 			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
-			const VkFenceCreateInfo*                pCreateInfo,
-			VkFence*                                pFence)
+			const VkFenceCreateInfo*                    pCreateInfo,
+			const VkAllocationCallbacks*                pAllocator,
+			VkFence*                                    pFence)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(VkFenceCreateInfo, info, *pCreateInfo);
@@ -86,7 +87,7 @@ bool WrappedVulkan::Serialise_vkCreateFence(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkFence sem = VK_NULL_HANDLE;
 
-		VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), &info, &sem);
+		VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), &info, NULL, &sem);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -105,9 +106,10 @@ bool WrappedVulkan::Serialise_vkCreateFence(
 VkResult WrappedVulkan::vkCreateFence(
 			VkDevice                                device,
 			const VkFenceCreateInfo*                pCreateInfo,
+			const VkAllocationCallbacks*            pAllocator,
 			VkFence*                                pFence)
 {
-	VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), pCreateInfo, pFence);
+	VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), pCreateInfo, pAllocator, pFence);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -121,7 +123,7 @@ VkResult WrappedVulkan::vkCreateFence(
 				CACHE_THREAD_SERIALISER();
 
 				SCOPED_SERIALISE_CONTEXT(CREATE_FENCE);
-				Serialise_vkCreateFence(localSerialiser, device, pCreateInfo, pFence);
+				Serialise_vkCreateFence(localSerialiser, device, pCreateInfo, NULL, pFence);
 
 				chunk = scope.Get();
 			}
@@ -294,6 +296,7 @@ bool WrappedVulkan::Serialise_vkCreateEvent(
 			Serialiser*                             localSerialiser,
 			VkDevice                                device,
 			const VkEventCreateInfo*                pCreateInfo,
+			const VkAllocationCallbacks*            pAllocator,
 			VkEvent*                                pEvent)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
@@ -305,7 +308,7 @@ bool WrappedVulkan::Serialise_vkCreateEvent(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkEvent ev = VK_NULL_HANDLE;
 
-		VkResult ret = ObjDisp(device)->CreateEvent(Unwrap(device), &info, &ev);
+		VkResult ret = ObjDisp(device)->CreateEvent(Unwrap(device), &info, NULL, &ev);
 
 		// see top of this file for current event/fence handling
 		ObjDisp(device)->SetEvent(Unwrap(device), ev);
@@ -327,9 +330,10 @@ bool WrappedVulkan::Serialise_vkCreateEvent(
 VkResult WrappedVulkan::vkCreateEvent(
 			VkDevice                                device,
 			const VkEventCreateInfo*                pCreateInfo,
+			const VkAllocationCallbacks*            pAllocator,
 			VkEvent*                                pEvent)
 {
-	VkResult ret = ObjDisp(device)->CreateEvent(Unwrap(device), pCreateInfo, pEvent);
+	VkResult ret = ObjDisp(device)->CreateEvent(Unwrap(device), pCreateInfo, pAllocator, pEvent);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -343,7 +347,7 @@ VkResult WrappedVulkan::vkCreateEvent(
 				CACHE_THREAD_SERIALISER();
 
 				SCOPED_SERIALISE_CONTEXT(CREATE_EVENT);
-				Serialise_vkCreateEvent(localSerialiser, device, pCreateInfo, pEvent);
+				Serialise_vkCreateEvent(localSerialiser, device, pCreateInfo, NULL, pEvent);
 
 				chunk = scope.Get();
 			}
@@ -471,6 +475,7 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(
 			Serialiser*                                 localSerialiser,
 			VkDevice                                    device,
 			const VkSemaphoreCreateInfo*                pCreateInfo,
+			const VkAllocationCallbacks*                pAllocator,
 			VkSemaphore*                                pSemaphore)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
@@ -482,7 +487,7 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkSemaphore sem = VK_NULL_HANDLE;
 
-		VkResult ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), &info, &sem);
+		VkResult ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), &info, NULL, &sem);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -511,9 +516,10 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(
 VkResult WrappedVulkan::vkCreateSemaphore(
 			VkDevice                                    device,
 			const VkSemaphoreCreateInfo*                pCreateInfo,
+			const VkAllocationCallbacks*                pAllocator,
 			VkSemaphore*                                pSemaphore)
 {
-	VkResult ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), pCreateInfo, pSemaphore);
+	VkResult ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), pCreateInfo, pAllocator, pSemaphore);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -533,7 +539,7 @@ VkResult WrappedVulkan::vkCreateSemaphore(
 					CACHE_THREAD_SERIALISER();
 
 					SCOPED_SERIALISE_CONTEXT(CREATE_SEMAPHORE);
-					Serialise_vkCreateSemaphore(localSerialiser, device, pCreateInfo, pSemaphore);
+					Serialise_vkCreateSemaphore(localSerialiser, device, pCreateInfo, NULL, pSemaphore);
 
 					chunk = scope.Get();
 				}
@@ -736,11 +742,11 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 			};
 
 			VkEvent ev = VK_NULL_HANDLE;
-			ObjDisp(cmdBuffer)->CreateEvent(Unwrap(GetDev()), &evInfo, &ev);
+			ObjDisp(cmdBuffer)->CreateEvent(Unwrap(GetDev()), &evInfo, NULL, &ev);
 			// don't wrap this event
 
 			ObjDisp(cmdBuffer)->ResetEvent(Unwrap(GetDev()), ev);
-			ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), ev, VK_PIPELINE_STAGE_ALL_GRAPHICS);
+			ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), ev, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
 			ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, src, dest, (uint32_t)mems.size(), (const void **)&mems[0]);
 
@@ -760,11 +766,11 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 		};
 
 		VkEvent ev = VK_NULL_HANDLE;
-		ObjDisp(cmdBuffer)->CreateEvent(Unwrap(GetDev()), &evInfo, &ev);
+		ObjDisp(cmdBuffer)->CreateEvent(Unwrap(GetDev()), &evInfo, NULL, &ev);
 		// don't wrap this event
 
 		ObjDisp(cmdBuffer)->ResetEvent(Unwrap(GetDev()), ev);
-		ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), ev, VK_PIPELINE_STAGE_ALL_GRAPHICS);
+		ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), ev, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
 		ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, src, dest, (uint32_t)mems.size(), (const void **)&mems[0]);
 
