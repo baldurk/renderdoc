@@ -69,6 +69,7 @@ enum VkResourceType
 	eResSemaphore,
 	
 	eResSwapchain,
+	eResSurface
 };
 
 // dummy standin for a typeless real resource
@@ -359,6 +360,12 @@ struct WrappedVkSwapchainKHR : WrappedVkNonDispRes
 	typedef VkSwapchainKHR InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSwapchainKHR);
 	enum { TypeEnum = eResSwapchain, };
 };
+struct WrappedVkSurfaceKHR : WrappedVkNonDispRes
+{
+	WrappedVkSurfaceKHR(VkSurfaceKHR obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
+	typedef VkSurfaceKHR InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSurfaceKHR);
+	enum { TypeEnum = eResSurface, };
+};
 
 // VKTODOMED Need to find out which resources can validly return duplicate
 // handles for unique creates. E.g. if there are the same input parameters
@@ -418,6 +425,7 @@ UNWRAP_NONDISP_HELPER(VkDescriptorSet)
 UNWRAP_NONDISP_HELPER(VkFramebuffer)
 UNWRAP_NONDISP_HELPER(VkCommandPool)
 UNWRAP_NONDISP_HELPER(VkSwapchainKHR)
+UNWRAP_NONDISP_HELPER(VkSurfaceKHR)
 
 #define WRAPPING_DEBUG 0
 

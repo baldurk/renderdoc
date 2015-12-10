@@ -104,6 +104,7 @@ struct histogramuniforms
 VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), height(0),
 	dsimg(VK_NULL_HANDLE), dsmem(VK_NULL_HANDLE)
 {
+	surface = VK_NULL_HANDLE;
 	swap = VK_NULL_HANDLE;
 	for(size_t i=0; i < ARRAY_COUNT(colimg); i++)
 		colimg[i] = VK_NULL_HANDLE;
@@ -147,18 +148,18 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	
 	if(bb != VK_NULL_HANDLE)
 	{
-		vt->DestroyRenderPass(Unwrap(device), Unwrap(rp));
+		vt->DestroyRenderPass(Unwrap(device), Unwrap(rp), NULL);
 		GetResourceManager()->ReleaseWrappedResource(rp);
 		rp = VK_NULL_HANDLE;
 		
-		vt->DestroyImage(Unwrap(device), Unwrap(bb));
+		vt->DestroyImage(Unwrap(device), Unwrap(bb), NULL);
 		GetResourceManager()->ReleaseWrappedResource(bb);
 		
-		vt->DestroyImageView(Unwrap(device), Unwrap(bbview));
+		vt->DestroyImageView(Unwrap(device), Unwrap(bbview), NULL);
 		GetResourceManager()->ReleaseWrappedResource(bbview);
-		vt->FreeMemory(Unwrap(device), Unwrap(bbmem));
+		vt->FreeMemory(Unwrap(device), Unwrap(bbmem), NULL);
 		GetResourceManager()->ReleaseWrappedResource(bbmem);
-		vt->DestroyFramebuffer(Unwrap(device), Unwrap(fb));
+		vt->DestroyFramebuffer(Unwrap(device), Unwrap(fb), NULL);
 		GetResourceManager()->ReleaseWrappedResource(fb);
 		
 		bb = VK_NULL_HANDLE;
@@ -177,18 +178,18 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 
 	if(dsimg != VK_NULL_HANDLE)
 	{
-		vt->DestroyRenderPass(Unwrap(device), Unwrap(rpdepth));
+		vt->DestroyRenderPass(Unwrap(device), Unwrap(rpdepth), NULL);
 		GetResourceManager()->ReleaseWrappedResource(rpdepth);
 		rpdepth = VK_NULL_HANDLE;
 		
-		vt->DestroyImage(Unwrap(device), Unwrap(dsimg));
+		vt->DestroyImage(Unwrap(device), Unwrap(dsimg), NULL);
 		GetResourceManager()->ReleaseWrappedResource(dsimg);
 		
-		vt->DestroyImageView(Unwrap(device), Unwrap(dsview));
+		vt->DestroyImageView(Unwrap(device), Unwrap(dsview), NULL);
 		GetResourceManager()->ReleaseWrappedResource(dsview);
-		vt->FreeMemory(Unwrap(device), Unwrap(dsmem));
+		vt->FreeMemory(Unwrap(device), Unwrap(dsmem), NULL);
 		GetResourceManager()->ReleaseWrappedResource(dsmem);
-		vt->DestroyFramebuffer(Unwrap(device), Unwrap(fbdepth));
+		vt->DestroyFramebuffer(Unwrap(device), Unwrap(fbdepth), NULL);
 		GetResourceManager()->ReleaseWrappedResource(fbdepth);
 		
 		dsview = VK_NULL_HANDLE;
@@ -200,14 +201,21 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 
 	if(swap != VK_NULL_HANDLE)
 	{
-		vt->DestroySwapchainKHR(Unwrap(device), Unwrap(swap));
+		vt->DestroySwapchainKHR(Unwrap(device), Unwrap(swap), NULL);
 		GetResourceManager()->ReleaseWrappedResource(swap);
+	}
+
+	if(surface != VK_NULL_HANDLE)
+	{
+		ObjDisp(driver->GetInstance())->DestroySurfaceKHR(Unwrap(driver->GetInstance()), Unwrap(surface), NULL);
 	}
 }
 
 void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, bool depth)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(device);
+	VkInstance inst = driver->GetInstance();
+	VkPhysicalDevice phys = driver->GetPhysDev();
 
 	// save the old swapchain so it isn't destroyed
 	VkSwapchainKHR old = swap;
@@ -215,13 +223,12 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 	Destroy(driver, device);
 
-	void *handleptr = NULL;
-	void *wndptr = NULL;
-	VkPlatformKHR platform = VK_PLATFORM_MAX_ENUM_KHR;
-
-	VkSurfaceDescriptionWindowKHR surfDesc = { VK_STRUCTURE_TYPE_SURFACE_DESCRIPTION_WINDOW_KHR };
-
-	InitSurfaceDescription(surfDesc);
+	if(surface == VK_NULL_HANDLE)
+	{
+		CreateSurface(inst);
+		
+		GetResourceManager()->WrapResource(Unwrap(inst), surface);
+	}
 
 	// sensible defaults
 	VkFormat imformat = VK_FORMAT_B8G8R8A8_UNORM;
@@ -234,14 +241,14 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	{
 		uint32_t numFormats = 0;
 
-		vkr = vt->GetSurfaceFormatsKHR(Unwrap(device), (const VkSurfaceDescriptionKHR *)&surfDesc, &numFormats, NULL);
+		vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), surface, &numFormats, NULL);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		if(numFormats > 0)
 		{
 			VkSurfaceFormatKHR *formats = new VkSurfaceFormatKHR[numFormats];
 
-			vkr = vt->GetSurfaceFormatsKHR(Unwrap(device), (const VkSurfaceDescriptionKHR *)&surfDesc, &numFormats, formats);
+			vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), surface, &numFormats, formats);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			if(numFormats == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
@@ -279,14 +286,14 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 		uint32_t numModes = 0;
 
-		vkr = vt->GetSurfacePresentModesKHR(Unwrap(device), (const VkSurfaceDescriptionKHR *)&surfDesc, &numModes, NULL);
+		vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), surface, &numModes, NULL);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		if(numModes > 0)
 		{
 			VkPresentModeKHR *modes = new VkPresentModeKHR[numModes];
 
-			vkr = vt->GetSurfacePresentModesKHR(Unwrap(device), (const VkSurfaceDescriptionKHR *)&surfDesc, &numModes, modes);
+			vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), surface, &numModes, modes);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			// If mailbox mode is available, use it, as is the lowest-latency non-
@@ -312,23 +319,24 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	uint32_t idx = 0;
 
 	VkSwapchainCreateInfoKHR swapInfo = {
-			VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, NULL, (VkSurfaceDescriptionKHR *)&surfDesc,
-			2, imformat, imcolspace, { width, height },
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
-			VK_SURFACE_TRANSFORM_NONE_KHR, 1,
+			VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, NULL,
+			0, surface,
+			2, imformat, imcolspace, { width, height }, 1,
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 			VK_SHARING_MODE_EXCLUSIVE, 0, &idx,
-			presentmode,
-			Unwrap(old), true,
+			VK_SURFACE_TRANSFORM_NONE_BIT_KHR, VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+			presentmode, true,
+			Unwrap(old),
 	};
 
-	vkr = vt->CreateSwapchainKHR(Unwrap(device), &swapInfo, &swap);
+	vkr = vt->CreateSwapchainKHR(Unwrap(device), &swapInfo, NULL, &swap);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	GetResourceManager()->WrapResource(Unwrap(device), swap);
 
 	if(old != VK_NULL_HANDLE)
 	{
-		vt->DestroySwapchainKHR(Unwrap(device), Unwrap(old));
+		vt->DestroySwapchainKHR(Unwrap(device), Unwrap(old), NULL);
 		GetResourceManager()->ReleaseWrappedResource(old);
 	}
 
@@ -352,32 +360,31 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	if(depth)
 	{
 		VkImageCreateInfo imInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 			VK_IMAGE_TYPE_2D, VK_FORMAT_D32_SFLOAT,
 			{ width, height, 1 },
 			1, 1, VULKAN_MESH_VIEW_SAMPLES,
 			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT|VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-			0, VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
-		VkResult vkr = vt->CreateImage(Unwrap(device), &imInfo, &dsimg);
+		VkResult vkr = vt->CreateImage(Unwrap(device), &imInfo, NULL, &dsimg);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(device), dsimg);
 
 		VkMemoryRequirements mrq = {0};
 
-		vkr = vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(dsimg), &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(dsimg), &mrq);
 
 		VkMemoryAllocateInfo allocInfo = {
 			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = vt->AllocMemory(Unwrap(device), &allocInfo, &dsmem);
+		vkr = vt->AllocateMemory(Unwrap(device), &allocInfo, NULL, &dsmem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(device), dsmem);
@@ -390,14 +397,13 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		
 		VkImageViewCreateInfo info = {
 			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-			Unwrap(dsimg), VK_IMAGE_VIEW_TYPE_2D,
+			0, Unwrap(dsimg), VK_IMAGE_VIEW_TYPE_2D,
 			VK_FORMAT_D32_SFLOAT,
-			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
 			{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 },
-			0
 		};
 
-		vkr = vt->CreateImageView(Unwrap(device), &info, &dsview);
+		vkr = vt->CreateImageView(Unwrap(device), &info, NULL, &dsview);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(device), dsview);
@@ -406,15 +412,13 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	{
 		VkAttachmentDescription attDesc[] = {
 			{
-				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-				imformat, depth ? VULKAN_MESH_VIEW_SAMPLES : 1U,
+				0, imformat, depth ? VULKAN_MESH_VIEW_SAMPLES : VK_SAMPLE_COUNT_1_BIT,
 				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 			},
 			{
-				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-				VK_FORMAT_D32_SFLOAT, depth ? VULKAN_MESH_VIEW_SAMPLES : 1U,
+				0, VK_FORMAT_D32_SFLOAT, depth ? VULKAN_MESH_VIEW_SAMPLES : VK_SAMPLE_COUNT_1_BIT,
 				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
@@ -423,36 +427,36 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
+		VkAttachmentReference dsRef = { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+
 		VkSubpassDescription sub = {
-			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+			0, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			0, NULL, // inputs
 			1, &attRef, // color
 			NULL, // resolve
-			{ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED }, // depth-stencil
+			NULL, // depth-stencil
 			0, NULL, // preserve
 		};
 
 		VkRenderPassCreateInfo rpinfo = {
-				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0,
 				1, attDesc,
 				1, &sub,
 				0, NULL, // dependencies
 		};
 
-		vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, &rp);
+		vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, NULL, &rp);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(device), rp);
 
 		if(dsimg != VK_NULL_HANDLE)
 		{
-			sub.depthStencilAttachment.attachment = 1;
-			sub.depthStencilAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			sub.pDepthStencilAttachment = &dsRef;
 
 			rpinfo.attachmentCount = 2;
 
-			vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, &rpdepth);
+			vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, NULL, &rpdepth);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(device), rpdepth);
@@ -461,31 +465,30 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 	{
 		VkImageCreateInfo imInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 			VK_IMAGE_TYPE_2D, imformat, { width, height, 1 },
-			1, 1, depth ? VULKAN_MESH_VIEW_SAMPLES : 1U,
+			1, 1, depth ? VULKAN_MESH_VIEW_SAMPLES : VK_SAMPLE_COUNT_1_BIT,
 			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			0, VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
-		VkResult vkr = vt->CreateImage(Unwrap(device), &imInfo, &bb);
+		VkResult vkr = vt->CreateImage(Unwrap(device), &imInfo, NULL, &bb);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(device), bb);
 
 		VkMemoryRequirements mrq = {0};
 
-		vkr = vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(bb), &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(bb), &mrq);
 
 		VkMemoryAllocateInfo allocInfo = {
 			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = vt->AllocMemory(Unwrap(device), &allocInfo, &bbmem);
+		vkr = vt->AllocateMemory(Unwrap(device), &allocInfo, NULL, &bbmem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(device), bbmem);
@@ -500,26 +503,25 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	{
 		VkImageViewCreateInfo info = {
 			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-			Unwrap(bb), VK_IMAGE_VIEW_TYPE_2D,
+			0, Unwrap(bb), VK_IMAGE_VIEW_TYPE_2D,
 			imformat,
-			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
-			0
 		};
 
-		vkr = vt->CreateImageView(Unwrap(device), &info, &bbview);
+		vkr = vt->CreateImageView(Unwrap(device), &info, NULL, &bbview);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(device), bbview);
 
 		VkFramebufferCreateInfo fbinfo = {
-			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL, 0,
 			Unwrap(rp),
 			1, UnwrapPtr(bbview),
 			(uint32_t)width, (uint32_t)height, 1,
 		};
 
-		vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, &fb);
+		vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, NULL, &fb);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(device), fb);
@@ -528,13 +530,13 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		{
 			VkImageView views[] = { Unwrap(bbview), Unwrap(dsview) };
 			VkFramebufferCreateInfo fbinfo = {
-				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
+				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL, 0,
 				Unwrap(rpdepth),
 				2, views,
 				(uint32_t)width, (uint32_t)height, 1,
 			};
 
-			vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, &fbdepth);
+			vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, NULL, &fbdepth);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(device), fbdepth);
@@ -771,9 +773,10 @@ FetchBuffer VulkanReplay::GetBuffer(ResourceId id)
 
 ShaderReflection *VulkanReplay::GetShader(ResourceId id)
 {
-	auto shad = m_pDriver->m_CreationInfo.m_Shader.find(id);
+	// VKTODOHIGH update handling of this now that shaders no longer exist
+	auto shad = m_pDriver->m_CreationInfo.m_ShaderModule.find(id);
 	
-	if(shad == m_pDriver->m_CreationInfo.m_Shader.end())
+	if(shad == m_pDriver->m_CreationInfo.m_ShaderModule.end())
 	{
 		RDCERR("Can't get shader details");
 		return NULL;
@@ -782,12 +785,10 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId id)
 	// disassemble lazily on demand
 	if(shad->second.refl.Disassembly.count == 0)
 	{
-		auto &shadmod = m_pDriver->m_CreationInfo.m_ShaderModule[shad->second.module];
+		if(shad->second.spirv.m_Disassembly.empty())
+			shad->second.spirv.Disassemble();
 
-		if(shadmod.spirv.m_Disassembly.empty())
-			shadmod.spirv.Disassemble();
-
-		shad->second.refl.Disassembly = shadmod.spirv.m_Disassembly;
+		shad->second.refl.Disassembly = shad->second.spirv.m_Disassembly;
 	}
 
 	return &shad->second.refl;
@@ -847,8 +848,8 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		};
 
 		// update image layout from color attachment to transfer source, with proper memory barriers
-		pickimBarrier.outputMask = VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT;
-		pickimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+		pickimBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		pickimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
 		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
@@ -859,13 +860,13 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 		pickimBarrier.oldLayout = pickimBarrier.newLayout;
 
-		pickimBarrier.outputMask = 0;
-		pickimBarrier.inputMask = 0;
+		pickimBarrier.srcAccessMask = 0;
+		pickimBarrier.dstAccessMask = 0;
 
 		// do copy
 		VkBufferImageCopy region = {
 			0, 128, 1,
-			{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 			{ 0, 0, 0 },
 			{ 1, 1, 1 },
 		};
@@ -947,27 +948,20 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	{
 		VkImageViewCreateInfo viewInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
+			0, Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
 			iminfo.format,
-			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
 			{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
-			0
 		};
 
 		if(isDepth)
 		{
-			viewInfo.channels.g = VK_CHANNEL_SWIZZLE_ZERO;
-			viewInfo.channels.b = VK_CHANNEL_SWIZZLE_ZERO;
-			viewInfo.channels.a = VK_CHANNEL_SWIZZLE_ZERO;
+			viewInfo.components.g = VK_COMPONENT_SWIZZLE_ZERO;
+			viewInfo.components.b = VK_COMPONENT_SWIZZLE_ZERO;
+			viewInfo.components.a = VK_COMPONENT_SWIZZLE_ZERO;
 		}
 
-		// VKTODOHIGH super ultra mega and very very temporary hack of great justice
-		// channel swizzles aren't quite consistent between vendors yet. No "right" way
-		if(strstr(m_pDriver->GetDeviceProps().deviceName, "AMD"))
-			if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
-				std::swap(viewInfo.channels.r, viewInfo.channels.b);
-
-		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, &iminfo.view);
+		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &iminfo.view);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
@@ -1065,26 +1059,28 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	GetDebugManager()->m_TexDisplayUBO.Unmap(vt, dev);
 	
-	VkDescriptorInfo desc = {0};
-	desc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	desc.imageView = Unwrap(liveImView);
-	desc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
+	VkDescriptorImageInfo imdesc = {0};
+	imdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	imdesc.imageView = Unwrap(liveImView);
+	imdesc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
 	if(cfg.mip == 0 && cfg.scale < 1.0f)
-		desc.sampler = Unwrap(GetDebugManager()->m_LinearSampler);
+		imdesc.sampler = Unwrap(GetDebugManager()->m_LinearSampler);
 
 	VkDescriptorSet descset = GetDebugManager()->GetTexDisplayDescSet();
 
-	VkDescriptorInfo ubodesc = {0};
+	VkDescriptorBufferInfo ubodesc = {0};
 	GetDebugManager()->m_TexDisplayUBO.FillDescriptor(ubodesc);
 
 	VkWriteDescriptorSet writeSet[] = {
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(descset), 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
+			Unwrap(descset), 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			&imdesc, NULL, NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(descset), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &ubodesc
+			Unwrap(descset), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			NULL, &ubodesc, NULL
 		},
 	};
 
@@ -1099,13 +1095,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	};
 
 	// ensure all previous writes have completed
-	srcimBarrier.outputMask =
-		VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
-		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
-		VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
-		VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
 	// before we go reading
-	srcimBarrier.inputMask = VK_MEMORY_INPUT_SHADER_READ_BIT;
+	srcimBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
@@ -1121,11 +1113,11 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	srcimBarrier.oldLayout = srcimBarrier.newLayout;
 
-	srcimBarrier.outputMask = 0;
-	srcimBarrier.inputMask = 0;
+	srcimBarrier.srcAccessMask = 0;
+	srcimBarrier.dstAccessMask = 0;
 
 	{
-		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 		
 		VkPipeline pipe = GetDebugManager()->m_TexDisplayPipeline;
 		if(f32render)
@@ -1190,7 +1182,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 			{ { 0, 0, }, { m_DebugWidth, m_DebugHeight } },
 			1, &clearval,
 		};
-		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
 			outw.dsimg == VK_NULL_HANDLE ? Unwrap(GetDebugManager()->m_CheckerboardPipeline) : Unwrap(GetDebugManager()->m_CheckerboardMSAAPipeline));
@@ -1232,42 +1224,50 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 			{ { 0, 0, }, { m_DebugWidth, m_DebugHeight } },
 			1, &clearval,
 		};
-		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 		
-		VkClearColorValue black = { 0.0f, 0.0f, 0.0f, 1.0f };
-		VkClearColorValue white = { 1.0f, 1.0f, 1.0f, 1.0f };
+		VkClearAttachment black = {
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0,
+			{ 0.0f, 0.0f, 0.0f, 1.0f }
+		};
+		VkClearAttachment white = {
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0,
+			{ 1.0f, 1.0f, 1.0f, 1.0f }
+		};
 
 		int32_t sz = int32_t(scale);
 
 		VkOffset2D tl = { int32_t(w/2.0f + 0.5f), int32_t(h/2.0f + 0.5f) };
 
-		VkRect3D rect[4] = {
-			{ { tl.x, tl.y, 0 },    { 1, sz, 1 }, },
-			{ { tl.x+sz, tl.y, 0 }, { 1, sz+1, 1 }, },
-			{ { tl.x, tl.y, 0 },    { sz, 1, 1 }, },
-			{ { tl.x, tl.y+sz, 0 }, { sz, 1, 1 }, },
+		VkClearRect rect[4] = {
+			{ { { tl.x, tl.y },    { 1, sz }, }, 0, 1 },
+			{ { { tl.x+sz, tl.y }, { 1, sz+1 }, }, 0, 1 },
+			{ { { tl.x, tl.y },    { sz, 1 }, }, 0, 1 },
+			{ { { tl.x, tl.y+sz }, { sz, 1 }, }, 0, 1 },
 		};
 
 		// inner
-		vt->CmdClearColorAttachment(Unwrap(cmd), 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &white, 4, rect);
+		vt->CmdClearAttachments(Unwrap(cmd), 1, &white, 4, rect);
 
-		rect[0].offset.x--;
-		rect[1].offset.x++;
-		rect[2].offset.x--;
-		rect[3].offset.x--;
+		rect[0].rect.offset.x--;
+		rect[1].rect.offset.x++;
+		rect[2].rect.offset.x--;
+		rect[3].rect.offset.x--;
 
-		rect[0].offset.y--;
-		rect[1].offset.y--;
-		rect[2].offset.y--;
-		rect[3].offset.y++;
+		rect[0].rect.offset.y--;
+		rect[1].rect.offset.y--;
+		rect[2].rect.offset.y--;
+		rect[3].rect.offset.y++;
 
-		rect[0].extent.height += 2;
-		rect[1].extent.height += 2;
-		rect[2].extent.width += 2;
-		rect[3].extent.width += 2;
+		rect[0].rect.extent.height += 2;
+		rect[1].rect.extent.height += 2;
+		rect[2].rect.extent.width += 2;
+		rect[3].rect.extent.width += 2;
 
 		// outer
-		vt->CmdClearColorAttachment(Unwrap(cmd), 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &black, 4, rect);
+		vt->CmdClearAttachments(Unwrap(cmd), 1, &black, 4, rect);
 
 		vt->CmdEndRenderPass(Unwrap(cmd));
 	}
@@ -1403,7 +1403,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 		{ { 0, 0, }, { m_DebugWidth, m_DebugHeight } },
 		1, &clearval,
 	};
-	vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+	vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 	
 	VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
 	vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
@@ -1834,7 +1834,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 	
 			vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 			RDCASSERT(vkr == VK_SUCCESS);
-			vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+			vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 			
 			vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 		}
@@ -2362,16 +2362,25 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	VkSemaphore sem;
 	VkSemaphoreCreateInfo semInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, NULL, VK_FENCE_CREATE_SIGNALED_BIT };
 
-	VkResult vkr = vt->CreateSemaphore(Unwrap(dev), &semInfo, &sem);
+	VkResult vkr = vt->CreateSemaphore(Unwrap(dev), &semInfo, NULL, &sem);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, &outw.curidx);
+	vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, VK_NULL_HANDLE, &outw.curidx);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vkr = vt->QueueWaitSemaphore(Unwrap(m_pDriver->GetQ()), sem);
+	VkSubmitInfo submitInfo = {
+		VK_STRUCTURE_TYPE_SUBMIT_INFO, NULL,
+		1, &sem,
+		0, NULL, // cmd buffers
+		0, NULL, // signal semaphores
+	};
+
+	vkr = vt->QueueSubmit(Unwrap(m_pDriver->GetQ()), 1, &submitInfo, VK_NULL_HANDLE);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vt->DestroySemaphore(Unwrap(dev), sem);
+	vt->QueueWaitIdle(Unwrap(m_pDriver->GetQ()));
+
+	vt->DestroySemaphore(Unwrap(dev), sem, NULL);
 
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
@@ -2467,60 +2476,65 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	};
 
 	// ensure rendering has completed before copying
-	outw.bbBarrier.outputMask = VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT;
-	outw.bbBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+	outw.bbBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	outw.bbBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, barrier);
 	outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
-	outw.bbBarrier.outputMask = 0;
-	outw.bbBarrier.inputMask = 0;
+	outw.bbBarrier.srcAccessMask = 0;
+	outw.bbBarrier.dstAccessMask = 0;
 
 	VkImageCopy cpy = {
-		{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 		{ 0, 0, 0 },
-		{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 		{ 0, 0, 0 },
 		{ outw.width, outw.height, 1 },
 	};
 
 	VkImageResolve resolve = {
-		{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 		{ 0, 0, 0 },
-		{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 		{ 0, 0, 0 },
 		{ outw.width, outw.height, 1 },
 	};
 
-	if(outw.dsimg != VK_NULL_HANDLE && VULKAN_MESH_VIEW_SAMPLES > 1U)
+	if(outw.dsimg != VK_NULL_HANDLE && VULKAN_MESH_VIEW_SAMPLES > VK_SAMPLE_COUNT_1_BIT)
 		vt->CmdResolveImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &resolve);
 	else
 		vt->CmdCopyImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cpy);
 	
 	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	outw.colBarrier[outw.curidx].newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR;
+	outw.colBarrier[outw.curidx].newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-	// not sure what input mask should be for present, so be conservative.
 	// make sure copy has completed before present
-
-	outw.colBarrier[outw.curidx].outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
-	outw.colBarrier[outw.curidx].inputMask = VK_MEMORY_INPUT_TRANSFER_BIT|VK_MEMORY_INPUT_INPUT_ATTACHMENT_BIT|VK_MEMORY_INPUT_SHADER_READ_BIT;
+	outw.colBarrier[outw.curidx].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	outw.colBarrier[outw.curidx].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
 
 	outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
 	outw.colBarrier[outw.curidx].oldLayout = outw.colBarrier[outw.curidx].newLayout;
 	
-	outw.colBarrier[outw.curidx].outputMask = 0;
-	outw.colBarrier[outw.curidx].inputMask = 0;
+	outw.colBarrier[outw.curidx].srcAccessMask = 0;
+	outw.colBarrier[outw.curidx].dstAccessMask = 0;
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 	
 	// submit all the cmds we recorded
 	m_pDriver->SubmitCmds();
 
-	VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, NULL, 1, UnwrapPtr(outw.swap), &outw.curidx };
+	VkPresentInfoKHR presentInfo = {
+		VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, NULL,
+		0, NULL, // wait semaphores
+		1, UnwrapPtr(outw.swap),
+		&outw.curidx,
+		&vkr
+	};
 
 	vt->QueuePresentKHR(Unwrap(m_pDriver->GetQ()), &presentInfo);
+	RDCASSERT(vkr == VK_SUCCESS);
 
 	m_pDriver->FlushQ();
 }
@@ -2646,12 +2660,12 @@ void VulkanReplay::SavePipelineState()
 
 			for(size_t i=0; i < ARRAY_COUNT(stages); i++)
 			{
-				stages[i]->Shader = rm->GetOriginalID(p.shaders[i]);
+				stages[i]->Shader = rm->GetOriginalID(p.shaders[i].module);
 				stages[i]->ShaderDetails = NULL;
 				stages[i]->customName = false;
 				stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Shader);
 				stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
-				stages[i]->BindpointMapping = c.m_Shader[p.shaders[i]].mapping;
+				stages[i]->BindpointMapping = c.m_ShaderModule[p.shaders[i].module].mapping;
 			}
 
 			// Tessellation
@@ -2661,8 +2675,8 @@ void VulkanReplay::SavePipelineState()
 			create_array_uninit(m_VulkanPipelineState.VP.viewportScissors, RDCMIN(state.views.size(), state.scissors.size()));
 			for(size_t i=0; i < state.views.size(); i++)
 			{
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.x = state.views[i].originX;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.y = state.views[i].originY;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.x = state.views[i].x;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.y = state.views[i].y;
 				m_VulkanPipelineState.VP.viewportScissors[i].vp.width = state.views[i].width;
 				m_VulkanPipelineState.VP.viewportScissors[i].vp.height = state.views[i].height;
 				m_VulkanPipelineState.VP.viewportScissors[i].vp.minDepth = state.views[i].minDepth;
@@ -2677,24 +2691,24 @@ void VulkanReplay::SavePipelineState()
 			// Rasterizer
 			m_VulkanPipelineState.RS.depthClampEnable = p.depthClampEnable;
 			m_VulkanPipelineState.RS.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
-			m_VulkanPipelineState.RS.FrontCCW = p.frontFace == VK_FRONT_FACE_CCW;
+			m_VulkanPipelineState.RS.FrontCCW = p.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-			switch(p.fillMode)
+			switch(p.polygonMode)
 			{
-				case VK_FILL_MODE_POINTS:    m_VulkanPipelineState.RS.FillMode = eFill_Point;     break;
-				case VK_FILL_MODE_WIREFRAME: m_VulkanPipelineState.RS.FillMode = eFill_Wireframe; break;
-				case VK_FILL_MODE_SOLID:     m_VulkanPipelineState.RS.FillMode = eFill_Solid;     break;
+				case VK_POLYGON_MODE_POINT:  m_VulkanPipelineState.RS.FillMode = eFill_Point;     break;
+				case VK_POLYGON_MODE_LINE:   m_VulkanPipelineState.RS.FillMode = eFill_Wireframe; break;
+				case VK_POLYGON_MODE_FILL:   m_VulkanPipelineState.RS.FillMode = eFill_Solid;     break;
 				default:
 					m_VulkanPipelineState.RS.FillMode = eFill_Solid;
-					RDCERR("Unexpected value for FillMode %x", p.fillMode);
+					RDCERR("Unexpected value for FillMode %x", p.polygonMode);
 					break;
 			}
 
 			switch(p.cullMode)
 			{
 				case VK_CULL_MODE_NONE:           m_VulkanPipelineState.RS.CullMode = eCull_None;         break;
-				case VK_CULL_MODE_FRONT:          m_VulkanPipelineState.RS.CullMode = eCull_Front;        break;
-				case VK_CULL_MODE_BACK:           m_VulkanPipelineState.RS.CullMode = eCull_Back;         break;
+				case VK_CULL_MODE_FRONT_BIT:      m_VulkanPipelineState.RS.CullMode = eCull_Front;        break;
+				case VK_CULL_MODE_BACK_BIT:       m_VulkanPipelineState.RS.CullMode = eCull_Back;         break;
 				case VK_CULL_MODE_FRONT_AND_BACK: m_VulkanPipelineState.RS.CullMode = eCull_FrontAndBack; break;
 				default:
 					m_VulkanPipelineState.RS.CullMode = eCull_None;
@@ -2744,15 +2758,15 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.DS.depthCompareOp = ToStr::Get(p.depthCompareOp);
 			m_VulkanPipelineState.DS.stencilTestEnable = p.stencilTestEnable;
 
-			m_VulkanPipelineState.DS.front.passOp = ToStr::Get(p.front.stencilPassOp);
-			m_VulkanPipelineState.DS.front.failOp = ToStr::Get(p.front.stencilFailOp);
-			m_VulkanPipelineState.DS.front.depthFailOp = ToStr::Get(p.front.stencilDepthFailOp);
-			m_VulkanPipelineState.DS.front.func = ToStr::Get(p.front.stencilCompareOp);
+			m_VulkanPipelineState.DS.front.passOp = ToStr::Get(p.front.passOp);
+			m_VulkanPipelineState.DS.front.failOp = ToStr::Get(p.front.failOp);
+			m_VulkanPipelineState.DS.front.depthFailOp = ToStr::Get(p.front.depthFailOp);
+			m_VulkanPipelineState.DS.front.func = ToStr::Get(p.front.compareOp);
 
-			m_VulkanPipelineState.DS.back.passOp = ToStr::Get(p.back.stencilPassOp);
-			m_VulkanPipelineState.DS.back.failOp = ToStr::Get(p.back.stencilFailOp);
-			m_VulkanPipelineState.DS.back.depthFailOp = ToStr::Get(p.back.stencilDepthFailOp);
-			m_VulkanPipelineState.DS.back.func = ToStr::Get(p.back.stencilCompareOp);
+			m_VulkanPipelineState.DS.back.passOp = ToStr::Get(p.back.passOp);
+			m_VulkanPipelineState.DS.back.failOp = ToStr::Get(p.back.failOp);
+			m_VulkanPipelineState.DS.back.depthFailOp = ToStr::Get(p.back.depthFailOp);
+			m_VulkanPipelineState.DS.back.func = ToStr::Get(p.back.compareOp);
 
 			m_VulkanPipelineState.DS.minDepthBounds = state.mindepth;
 			m_VulkanPipelineState.DS.maxDepthBounds = state.maxdepth;
@@ -2835,12 +2849,12 @@ void VulkanReplay::SavePipelineState()
 					create_array_uninit(dst.bindings, m_pDriver->m_DescriptorSetState[src].currentBindings.size());
 					for(size_t b=0; b < m_pDriver->m_DescriptorSetState[src].currentBindings.size(); b++)
 					{
-						VkDescriptorInfo *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
+						DescriptorSetSlot *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
 						const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
 
 						bool dynamicOffset = false;
 
-						dst.bindings[b].arraySize = layoutBind.arraySize;
+						dst.bindings[b].descriptorCount = layoutBind.descriptorCount;
 						dst.bindings[b].stageFlags = (ShaderStageBits)layoutBind.stageFlags;
 						switch(layoutBind.descriptorType)
 						{
@@ -2860,16 +2874,16 @@ void VulkanReplay::SavePipelineState()
 								RDCERR("Unexpected descriptor type");
 						}
 						
-						create_array_uninit(dst.bindings[b].binds, layoutBind.arraySize);
-						for(uint32_t a=0; a < layoutBind.arraySize; a++)
+						create_array_uninit(dst.bindings[b].binds, layoutBind.descriptorCount);
+						for(uint32_t a=0; a < layoutBind.descriptorCount; a++)
 						{
 							if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
 							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 							{
 								if(layoutBind.immutableSampler)
 									dst.bindings[b].binds[a].sampler = layoutBind.immutableSampler[a];
-								else if(info[a].sampler != VK_NULL_HANDLE)
-									dst.bindings[b].binds[a].sampler = rm->GetNonDispWrapper(info[a].sampler)->id;
+								else if(info[a].imageInfo.sampler != VK_NULL_HANDLE)
+									dst.bindings[b].binds[a].sampler = rm->GetNonDispWrapper(info[a].imageInfo.sampler)->id;
 
 								if(dst.bindings[b].binds[a].sampler != ResourceId())
 								{
@@ -2892,9 +2906,9 @@ void VulkanReplay::SavePipelineState()
 									el.minlod = sampl.minLod;
 									el.maxlod = sampl.maxLod;
 									el.borderEnable = false;
-									if(sampl.address[0] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER ||
-										sampl.address[1] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER ||
-										sampl.address[2] == VK_TEX_ADDRESS_MODE_CLAMP_BORDER)
+									if(sampl.address[0] == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER ||
+										sampl.address[1] == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER ||
+										sampl.address[2] == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER)
 										el.borderEnable = true;
 									el.border = ToStr::Get(sampl.borderColor);
 									el.unnormalized = sampl.unnormalizedCoordinates;
@@ -2906,7 +2920,7 @@ void VulkanReplay::SavePipelineState()
 							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
 								 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
 							{
-								VkImageView view = info[a].imageView;
+								VkImageView view = info[a].imageInfo.imageView;
 
 								if(view != VK_NULL_HANDLE)
 								{
@@ -2928,7 +2942,7 @@ void VulkanReplay::SavePipelineState()
 							if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
 							   layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
 							{
-								VkBufferView view = info[a].bufferView;
+								VkBufferView view = info[a].texelBufferView;
 								
 								if(view != VK_NULL_HANDLE)
 								{
@@ -2938,7 +2952,7 @@ void VulkanReplay::SavePipelineState()
 									dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
 									dst.bindings[b].binds[a].offset = c.m_BufferView[viewid].offset;
 									if(dynamicOffset)
-										dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageLayout;
+										dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageInfo.imageLayout;
 									dst.bindings[b].binds[a].size = c.m_BufferView[viewid].size;
 								}
 								else
@@ -2961,7 +2975,7 @@ void VulkanReplay::SavePipelineState()
 
 								dst.bindings[b].binds[a].offset = info[a].bufferInfo.offset;
 								if(dynamicOffset)
-									dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageLayout;
+									dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageInfo.imageLayout;
 
 								dst.bindings[b].binds[a].size = info[a].bufferInfo.range;
 							}
@@ -3217,10 +3231,12 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, ve
 {
 	// Correct SPIR-V will ultimately need to set explicit layout information for each type.
 	// For now, just assume D3D11 packing (float4 alignment on float4s, float3s, matrices, arrays and structures)
-
-	auto it = m_pDriver->m_CreationInfo.m_Shader.find(shader);
 	
-	if(it == m_pDriver->m_CreationInfo.m_Shader.end())
+	// VKTODOHIGH update handling of this now that shaders no longer exist
+
+	auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
+	
+	if(it == m_pDriver->m_CreationInfo.m_ShaderModule.end())
 	{
 		RDCERR("Can't get shader details");
 		return;
@@ -3262,25 +3278,27 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
 	VkImageView liveImView = iminfo.view;
+	
+	bool isDepth = (layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
 
 	if(liveImView == VK_NULL_HANDLE)
 	{
 		VkImageViewCreateInfo viewInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
+			0, Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
 			iminfo.format,
-			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
-			0
+			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
+			{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
 		};
 
-		// VKTODOHIGH super ultra mega and very very temporary hack of great justice
-		// channel swizzles aren't quite consistent between vendors yet. No "right" way
-		if(strstr(m_pDriver->GetDeviceProps().deviceName, "AMD"))
-			if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
-				std::swap(viewInfo.channels.r, viewInfo.channels.b);
+		if(isDepth)
+		{
+			viewInfo.components.g = VK_COMPONENT_SWIZZLE_ZERO;
+			viewInfo.components.b = VK_COMPONENT_SWIZZLE_ZERO;
+			viewInfo.components.a = VK_COMPONENT_SWIZZLE_ZERO;
+		}
 
-		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, &iminfo.view);
+		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &iminfo.view);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
@@ -3290,12 +3308,12 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 		liveImView = iminfo.view;
 	}
 	
-	VkDescriptorInfo desc = {0};
-	desc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	desc.imageView = Unwrap(liveImView);
-	desc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
+	VkDescriptorImageInfo imdesc = {0};
+	imdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	imdesc.imageView = Unwrap(liveImView);
+	imdesc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
 
-	VkDescriptorInfo bufdescs[3];
+	VkDescriptorBufferInfo bufdescs[3];
 	RDCEraseEl(bufdescs);
 	GetDebugManager()->m_MinMaxTileResult.FillDescriptor(bufdescs[0]);
 	GetDebugManager()->m_MinMaxResult.FillDescriptor(bufdescs[1]);
@@ -3307,39 +3325,46 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-			0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[0] // destination = tile result
+			0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			NULL, &bufdescs[0], NULL // destination = tile result
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-			1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[0] // source = unused, bind tile result
+			1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			NULL, &bufdescs[0], NULL // source = unused, bind tile result
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-			2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &bufdescs[2]
+			2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			NULL, &bufdescs[2], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-			3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
+			3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			&imdesc, NULL, NULL
 		},
 
 		// second pass from tiles to result
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[1]),
-			0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[1] // destination = result
+			0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			NULL, &bufdescs[1], NULL // destination = result
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[1]),
-			1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[0] // source = tile result
+			1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			NULL, &bufdescs[0], NULL // source = tile result
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[1]),
-			2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &bufdescs[2]
+			2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			NULL, &bufdescs[2], NULL
 		},
 	};
 
@@ -3369,17 +3394,13 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(liveIm),
-		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), 0, 1, 0, 1 }
 	};
 
 	// ensure all previous writes have completed
-	srcimBarrier.outputMask =
-		VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
-		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
-		VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
-		VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
 	// before we go reading
-	srcimBarrier.inputMask = VK_MEMORY_INPUT_SHADER_READ_BIT;
+	srcimBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
@@ -3395,8 +3416,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
 	srcimBarrier.oldLayout = srcimBarrier.newLayout;
 
-	srcimBarrier.outputMask = 0;
-	srcimBarrier.inputMask = 0;
+	srcimBarrier.srcAccessMask = 0;
+	srcimBarrier.dstAccessMask = 0;
 	
 	int blocksX = (int)ceil(iminfo.extent.width/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
 	int blocksY = (int)ceil(iminfo.extent.height/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
@@ -3409,7 +3430,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
 	VkBufferMemoryBarrier tilebarrier = {
 		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
-		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT, VK_MEMORY_INPUT_SHADER_READ_BIT,
+		VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(GetDebugManager()->m_MinMaxTileResult.buf),
 		0, GetDebugManager()->m_MinMaxTileResult.totalsize,
@@ -3433,7 +3454,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	vt->CmdDispatch(Unwrap(cmd), 1, 1, 1);
 
 	// ensure shader writes complete before copying back to readback buffer
-	tilebarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+	tilebarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 	tilebarrier.buffer = Unwrap(GetDebugManager()->m_MinMaxResult.buf);
 	tilebarrier.size = GetDebugManager()->m_MinMaxResult.totalsize;
 	
@@ -3446,8 +3467,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_MinMaxResult.buf), Unwrap(GetDebugManager()->m_MinMaxReadback.buf), 1, &bufcopy);
 	
 	// wait for copy to complete before mapping
-	tilebarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
-	tilebarrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT;
+	tilebarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	tilebarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
 	tilebarrier.buffer = Unwrap(GetDebugManager()->m_MinMaxReadback.buf);
 	tilebarrier.size = GetDebugManager()->m_MinMaxResult.totalsize;
 	
@@ -3488,24 +3509,28 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
 	VkImageView liveImView = iminfo.view;
+	
+	bool isDepth = (layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
 
+	// VKTODOMED extract this out somewhere
 	if(liveImView == VK_NULL_HANDLE)
 	{
 		VkImageViewCreateInfo viewInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
+			0, Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
 			iminfo.format,
-			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
-			0
+			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
+			{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
 		};
 
-		// Only needed on AMD - does the wrong thing on nvidia - so commented for now while AMD
-		// drivers aren't on 0.9.2
-		//if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
-			//std::swap(viewInfo.channels.r, viewInfo.channels.b);
+		if(isDepth)
+		{
+			viewInfo.components.g = VK_COMPONENT_SWIZZLE_ZERO;
+			viewInfo.components.b = VK_COMPONENT_SWIZZLE_ZERO;
+			viewInfo.components.a = VK_COMPONENT_SWIZZLE_ZERO;
+		}
 
-		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, &iminfo.view);
+		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &iminfo.view);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
@@ -3515,12 +3540,12 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 		liveImView = iminfo.view;
 	}
 	
-	VkDescriptorInfo desc = {0};
-	desc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	desc.imageView = Unwrap(liveImView);
-	desc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
+	VkDescriptorImageInfo imdesc = {0};
+	imdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	imdesc.imageView = Unwrap(liveImView);
+	imdesc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
 
-	VkDescriptorInfo bufdescs[2];
+	VkDescriptorBufferInfo bufdescs[2];
 	RDCEraseEl(bufdescs);
 	GetDebugManager()->m_HistogramBuf.FillDescriptor(bufdescs[0]);
 	GetDebugManager()->m_HistogramUBO.FillDescriptor(bufdescs[1]);
@@ -3531,22 +3556,26 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-			0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[0] // destination = histogram result
+			0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			NULL, &bufdescs[0], NULL // destination = histogram result
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-			1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[0] // source = unused, bind histogram result
+			1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			NULL, &bufdescs[0], NULL // source = unused, bind histogram result
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-			2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &bufdescs[1]
+			2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			NULL, &bufdescs[1], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-			3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
+			3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+			&imdesc, NULL, NULL
 		},
 	};
 
@@ -3588,13 +3617,9 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	};
 
 	// ensure all previous writes have completed
-	srcimBarrier.outputMask =
-		VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
-		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
-		VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
-		VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
 	// before we go reading
-	srcimBarrier.inputMask = VK_MEMORY_INPUT_SHADER_READ_BIT;
+	srcimBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
@@ -3610,8 +3635,8 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
 	srcimBarrier.oldLayout = srcimBarrier.newLayout;
 
-	srcimBarrier.outputMask = 0;
-	srcimBarrier.inputMask = 0;
+	srcimBarrier.srcAccessMask = 0;
+	srcimBarrier.dstAccessMask = 0;
 	
 	int blocksX = (int)ceil(iminfo.extent.width/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
 	int blocksY = (int)ceil(iminfo.extent.height/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
@@ -3626,7 +3651,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
 	VkBufferMemoryBarrier tilebarrier = {
 		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
-		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT, VK_MEMORY_INPUT_TRANSFER_BIT,
+		VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(GetDebugManager()->m_HistogramBuf.buf),
 		0, GetDebugManager()->m_HistogramBuf.totalsize,
@@ -3650,8 +3675,8 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_HistogramBuf.buf), Unwrap(GetDebugManager()->m_HistogramReadback.buf), 1, &bufcopy);
 	
 	// wait for copy to complete before mapping
-	tilebarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
-	tilebarrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT;
+	tilebarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	tilebarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
 	tilebarrier.buffer = Unwrap(GetDebugManager()->m_HistogramReadback.buf);
 	tilebarrier.size = GetDebugManager()->m_HistogramReadback.totalsize;
 	
@@ -3713,12 +3738,12 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[tex];
 
 	VkImageCreateInfo imCreateInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 			imInfo.type, imInfo.format, imInfo.extent,
 			imInfo.mipLevels, imInfo.arrayLayers, imInfo.samples,
 			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
-			0, VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 	};
 	
@@ -3745,8 +3770,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	if(imInfo.samples > 1)
 	{
 		// make image n-array instead of n-samples
-		imCreateInfo.arraySize *= imCreateInfo.samples;
-		imCreateInfo.samples = 1;
+		imCreateInfo.arrayLayers *= imCreateInfo.samples;
+		imCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
 		wasms = true;
 	}
@@ -3756,7 +3781,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		// force readback texture to RGBA8 unorm
 		imCreateInfo.format = IsSRGBFormat(imCreateInfo.format) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
 		// force to 1 array slice, 1 mip
-		imCreateInfo.arraySize = 1;
+		imCreateInfo.arrayLayers = 1;
 		imCreateInfo.mipLevels = 1;
 		// force to 2D
 		imCreateInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -3767,18 +3792,17 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		imCreateInfo.extent.depth = RDCMAX(1, imCreateInfo.extent.depth>>mip);
 
 		// create render texture similar to readback texture
-		vt->CreateImage(Unwrap(dev), &imCreateInfo, &tmpImage);
+		vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
 		
 		VkMemoryRequirements mrq = {0};
-		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
 
 		VkMemoryAllocateInfo allocInfo = {
 			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size, m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &tmpMemory);
+		vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &tmpMemory);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		vkr = vt->BindImageMemory(Unwrap(dev), tmpImage, tmpMemory, 0);
@@ -3802,8 +3826,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
 		// create framebuffer/render pass to render to
 		VkAttachmentDescription attDesc = {
-			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-			imCreateInfo.format, 1U,
+			0, imCreateInfo.format, VK_SAMPLE_COUNT_1_BIT,
 			VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -3812,22 +3835,21 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
 		VkSubpassDescription sub = {
-			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+			0, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			0, NULL, // inputs
 			1, &attRef, // color
 			NULL, // resolve
-			{ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED }, // depth-stencil
+			NULL, // depth-stencil
 			0, NULL, // preserve
 		};
 
 		VkRenderPassCreateInfo rpinfo = {
-				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0,
 				1, &attDesc,
 				1, &sub,
 				0, NULL, // dependencies
 		};
-		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &tmpRP);
+		vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &tmpRP);
 
 		numFBs = (imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? (imCreateInfo.extent.depth>>mip) : 1);
 		tmpFB = new VkFramebuffer[numFBs];
@@ -3862,23 +3884,22 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 			
 			VkImageViewCreateInfo viewInfo = {
 				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-				tmpImage, VK_IMAGE_VIEW_TYPE_2D,
+				0, tmpImage, VK_IMAGE_VIEW_TYPE_2D,
 				imCreateInfo.format,
-				{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+				{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
 				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, i, 1, },
-				0
 			};
 
-			vt->CreateImageView(Unwrap(dev), &viewInfo, &tmpView[i]);
+			vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &tmpView[i]);
 			
 			VkFramebufferCreateInfo fbinfo = {
 				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
-				tmpRP,
+				0, tmpRP,
 				1, &tmpView[i],
 				imCreateInfo.extent.width, imCreateInfo.extent.height, 1,
 			};
 
-			vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, &tmpFB[i]);
+			vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &tmpFB[i]);
 			RDCASSERT(vkr == VK_SUCCESS);
 			
 			VkClearValue clearval = {0};
@@ -3905,8 +3926,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		// ensure all writes happen before copy & readback
 		dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		dstimBarrier.outputMask = VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT;
-		dstimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+		dstimBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dstimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
@@ -3921,34 +3942,33 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	else if(wasms && resolve)
 	{
 		// force to 1 array slice, 1 mip
-		imCreateInfo.arraySize = 1;
+		imCreateInfo.arrayLayers = 1;
 		imCreateInfo.mipLevels = 1;
 
 		imCreateInfo.extent.width = RDCMAX(1, imCreateInfo.extent.width>>mip);
 		imCreateInfo.extent.height = RDCMAX(1, imCreateInfo.extent.height>>mip);
 
 		// create resolve texture
-		vt->CreateImage(Unwrap(dev), &imCreateInfo, &tmpImage);
+		vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
 		
 		VkMemoryRequirements mrq = {0};
-		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
 
 		VkMemoryAllocateInfo allocInfo = {
 			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
 			mrq.size, m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &tmpMemory);
+		vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &tmpMemory);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		vkr = vt->BindImageMemory(Unwrap(dev), tmpImage, tmpMemory, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkImageResolve resolveRegion = {
-			{ isDepth ? VK_IMAGE_ASPECT_DEPTH : VK_IMAGE_ASPECT_COLOR, mip, arrayIdx, 1 },
+			{ isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, mip, arrayIdx, 1 },
 			{ 0, 0, 0 },
-			{ isDepth ? VK_IMAGE_ASPECT_DEPTH : VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+			{ isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 			{ 0, 0, 0 },
 			imCreateInfo.extent,
 		};
@@ -3972,13 +3992,9 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		};
 
 		// ensure all previous writes have completed
-		srcimBarrier.outputMask =
-			VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
-			VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
-			VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
-			VK_MEMORY_OUTPUT_TRANSFER_BIT;
+		srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
 		// before we go resolving
-		srcimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+		srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
 		void *barrier = (void *)&srcimBarrier;
 
@@ -3990,8 +4006,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
 		srcimBarrier.oldLayout = srcimBarrier.newLayout;
 
-		srcimBarrier.outputMask = 0;
-		srcimBarrier.inputMask = 0;
+		srcimBarrier.srcAccessMask = 0;
+		srcimBarrier.dstAccessMask = 0;
 		
 		// move tmp image into transfer destination layout
 		barrier = (void *)&dstimBarrier;
@@ -4013,8 +4029,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		// wait for resolve to finish before copy to buffer
 		barrier = (void *)&dstimBarrier;
 
-		dstimBarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
-		dstimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+		dstimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		dstimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 		dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 		
@@ -4048,13 +4064,9 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	if(tmpImage == VK_NULL_HANDLE)
 	{
 		// ensure all previous writes have completed
-		srcimBarrier.outputMask =
-			VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
-			VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
-			VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
-			VK_MEMORY_OUTPUT_TRANSFER_BIT;
+		srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
 		// before we go resolving
-		srcimBarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+		srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
 		for (int si = 0; si < layouts.subresourceStates.size(); si++)
 		{
@@ -4063,15 +4075,14 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		}
 	}
 
-	VkImageSubresource sub = { isDepth ? VK_IMAGE_ASPECT_DEPTH : VK_IMAGE_ASPECT_COLOR, mip, arrayIdx };
+	VkImageSubresource sub = { isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, mip, arrayIdx };
 	VkSubresourceLayout sublayout;
 
-	vkr = vt->GetImageSubresourceLayout(Unwrap(dev), srcImage, &sub, &sublayout);
-	RDCASSERT(vkr == VK_SUCCESS);
+	vt->GetImageSubresourceLayout(Unwrap(dev), srcImage, &sub, &sublayout);
 	
 	VkBufferImageCopy copyregion = {
 		0, 0, 0,
-		{ isDepth ? VK_IMAGE_ASPECT_DEPTH : VK_IMAGE_ASPECT_COLOR, mip, arrayIdx, 1 },
+		{ isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, mip, arrayIdx, 1 },
 		{ 0, 0, 0, },
 		imCreateInfo.extent,
 	};
@@ -4082,13 +4093,12 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	};
 
 	VkBuffer readbackBuf = VK_NULL_HANDLE;
-	vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, &readbackBuf);
+	vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, NULL, &readbackBuf);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VkMemoryRequirements mrq = { 0 };
 
-	vkr = vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
-	RDCASSERT(vkr == VK_SUCCESS);
+	vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
 
 	VkMemoryAllocateInfo allocInfo = {
 		VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
@@ -4096,7 +4106,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	};
 
 	VkDeviceMemory readbackMem = VK_NULL_HANDLE;
-	vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &readbackMem);
+	vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &readbackMem);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	vkr = vt->BindBufferMemory(Unwrap(dev), readbackBuf, readbackMem, 0);
@@ -4118,7 +4128,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
 	VkBufferMemoryBarrier bufBarrier = {
 		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
-		VK_MEMORY_OUTPUT_TRANSFER_BIT, VK_MEMORY_INPUT_HOST_READ_BIT,
+		VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_HOST_READ_BIT,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		readbackBuf,
 		0, sublayout.size,
@@ -4147,25 +4157,25 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	vt->UnmapMemory(Unwrap(dev), readbackMem);
 
 	// clean up temporary objects
-	vt->DestroyBuffer(Unwrap(dev), readbackBuf);
-	vt->FreeMemory(Unwrap(dev), readbackMem);
+	vt->DestroyBuffer(Unwrap(dev), readbackBuf, NULL);
+	vt->FreeMemory(Unwrap(dev), readbackMem, NULL);
 
 	if(tmpImage != VK_NULL_HANDLE)
 	{
-		vt->DestroyImage(Unwrap(dev), tmpImage);
-		vt->FreeMemory(Unwrap(dev), tmpMemory);
+		vt->DestroyImage(Unwrap(dev), tmpImage, NULL);
+		vt->FreeMemory(Unwrap(dev), tmpMemory, NULL);
 	}
 
 	if(tmpFB != NULL)
 	{
 		for(uint32_t i=0; i < numFBs; i++)
 		{
-			vt->DestroyFramebuffer(Unwrap(dev), tmpFB[i]);
-			vt->DestroyImageView(Unwrap(dev), tmpView[i]);
+			vt->DestroyFramebuffer(Unwrap(dev), tmpFB[i], NULL);
+			vt->DestroyImageView(Unwrap(dev), tmpView[i], NULL);
 		}
 		delete[] tmpFB;
 		delete[] tmpView;
-		vt->DestroyRenderPass(Unwrap(dev), tmpRP);
+		vt->DestroyRenderPass(Unwrap(dev), tmpRP, NULL);
 	}
 
 	return ret;

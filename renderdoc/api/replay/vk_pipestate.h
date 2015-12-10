@@ -40,7 +40,7 @@ struct VulkanPipelineState
 
 			struct DescriptorBinding
 			{
-				uint32_t arraySize;
+				uint32_t descriptorCount;
 				ShaderBindType type;
 				ShaderStageBits stageFlags;
 

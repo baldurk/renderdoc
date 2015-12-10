@@ -32,10 +32,8 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 	wnd = (HWND)wn;
 }
 
-void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver)
+void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 {
-	VkInstance inst = driver->GetInstance();
-
 	HINSTANCE hinst;
 
 	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,

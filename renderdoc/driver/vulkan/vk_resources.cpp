@@ -94,6 +94,7 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
 	if(WrappedVkQueryPool::IsAlloc(ptr))                return eResQueryPool;
 	if(WrappedVkSemaphore::IsAlloc(ptr))                return eResSemaphore;
 	if(WrappedVkSwapchainKHR::IsAlloc(ptr))             return eResSwapchain;
+	if(WrappedVkSurfaceKHR::IsAlloc(ptr))               return eResSurface;
 
 	RDCERR("Unknown type for ptr 0x%p", ptr);
 

@@ -134,11 +134,12 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 
 	switch(IdentifyTypeByPtr(res))
 	{
+		case eResSurface:
 		case eResSwapchain:
 			if(m_State >= WRITING)
-				RDCERR("Swapchain object is leaking");
+				RDCERR("Swapchain/swapchain object is leaking");
 			else
-				RDCERR("Should be no swapchain objects created on replay");
+				RDCERR("Should be no swapchain/surface objects created on replay");
 			break;
 
 		case eResUnknown:

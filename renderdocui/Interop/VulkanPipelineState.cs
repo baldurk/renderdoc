@@ -45,7 +45,7 @@ namespace renderdoc
                 [StructLayout(LayoutKind.Sequential)]
                 public class DescriptorBinding
                 {
-                    public UInt32 arraySize;
+                    public UInt32 descriptorCount;
                     public ShaderBindType type;
                     public ShaderStageBits stageFlags;
 

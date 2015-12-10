@@ -187,6 +187,7 @@ private:
 
 	VkInstance m_Instance; // the instance corresponding to this WrappedVulkan
 	VkDbgMsgCallback m_DbgMsgCallback; // the instance's dbg msg callback handle
+	VkPhysicalDevice m_PhysicalDevice; // the physical device we created m_Device with
 	VkDevice m_Device; // the device used for our own command buffer work
 	PhysicalDeviceData m_PhysicalDeviceData; // the data about the physical device used for the above device;
 	uint32_t m_QueueFamilyIdx; // the family index that we've selected in CreateDevice for our queue
@@ -224,6 +225,7 @@ private:
 	VkDevice GetDev()    { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Device; }
 	VkQueue  GetQ()      { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Queue; }
 	VkInstance GetInstance()    { RDCASSERT(m_Instance != VK_NULL_HANDLE); return m_Instance; }
+	VkPhysicalDevice GetPhysDev()    { RDCASSERT(m_PhysicalDevice != VK_NULL_HANDLE); return m_PhysicalDevice; }
 	VkCommandBuffer GetNextCmd();
 	void SubmitCmds();
 	void FlushQ();

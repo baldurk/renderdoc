@@ -46,10 +46,8 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 	screen = iter.data;
 }
 
-void VulkanReplay::OutputWindow::InitSurfaceDescription(WrappedVulkan *driver)
+void VulkanReplay::OutputWindow::InitSurfaceDescription(VkInstance inst)
 {
-	VkInstance inst = driver->GetInstance();
-
 	VkResult vkr = ObjDisp(inst)->vkCreateXcbSurfaceKHR(Unwrap(inst), connection, &wnd, NULL, &surface);
 	RDCASSERT(vkr == VK_SUCCESS);
 }

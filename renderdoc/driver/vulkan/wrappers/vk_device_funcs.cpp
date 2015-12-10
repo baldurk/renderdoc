@@ -106,6 +106,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	GetResourceManager()->AddLiveResource(params.InstanceID, m_Instance);
 
 	m_DbgMsgCallback = VK_NULL_HANDLE;
+	m_PhysicalDevice = VK_NULL_HANDLE;
 	m_Device = VK_NULL_HANDLE;
 	m_QueueFamilyIdx = ~0U;
 	m_Queue = VK_NULL_HANDLE;
@@ -150,6 +151,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 	*pInstance = m_Instance;
 	
 	m_DbgMsgCallback = VK_NULL_HANDLE;
+	m_PhysicalDevice = VK_NULL_HANDLE;
 	m_Device = VK_NULL_HANDLE;
 	m_QueueFamilyIdx = ~0U;
 	m_Queue = VK_NULL_HANDLE;
@@ -204,7 +206,8 @@ void WrappedVulkan::Shutdown()
 
 	delete GetWrapped(m_Device);
 	delete GetWrapped(m_Instance);
-
+	
+	m_PhysicalDevice = VK_NULL_HANDLE;
 	m_Device = VK_NULL_HANDLE;
 	m_Instance = VK_NULL_HANDLE;
 
@@ -544,7 +547,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		InitDeviceReplayTables(Unwrap(device));
 
 		RDCASSERT(m_Device == VK_NULL_HANDLE); // MULTIDEVICE
-
+		
+		m_PhysicalDevice = physicalDevice;
 		m_Device = device;
 
 		m_QueueFamilyIdx = qFamilyIdx;
@@ -700,6 +704,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 		RDCASSERT(m_Device == VK_NULL_HANDLE); // MULTIDEVICE
 
+		m_PhysicalDevice = physicalDevice;
 		m_Device = device;
 
 		m_QueueFamilyIdx = qFamilyIdx;
@@ -775,6 +780,7 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device)
 	ObjDisp(m_Device)->DestroyDevice(Unwrap(m_Device));
 	GetResourceManager()->ReleaseWrappedResource(m_Device);
 	m_Device = VK_NULL_HANDLE;
+	m_PhysicalDevice = VK_NULL_HANDLE;
 }
 
 bool WrappedVulkan::Serialise_vkDeviceWaitIdle(Serialiser* localSerialiser, VkDevice device)

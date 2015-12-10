@@ -974,7 +974,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			vkr = vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_TextAtlas), &mrq);
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR, 0, 0 };
+			VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
 			VkSubresourceLayout layout = { 0 };
 			vt->GetImageSubresourceLayout(Unwrap(dev), Unwrap(m_TextAtlas), &subr, &layout);
 
@@ -1083,7 +1083,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_PickPixelImage), &mrq);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR, 0, 0 };
+		VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
 		VkSubresourceLayout layout = { 0 };
 		vt->GetImageSubresourceLayout(Unwrap(dev), Unwrap(m_PickPixelImage), &subr, &layout);
 
@@ -1621,7 +1621,7 @@ void VulkanDebugManager::BeginText(const TextPrintState &textstate)
 		{ { 0, 0, }, { textstate.w, textstate.h} },
 		1, &clearval,
 	};
-	vt->CmdBeginRenderPass(Unwrap(textstate.cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+	vt->CmdBeginRenderPass(Unwrap(textstate.cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
 	vt->CmdBindPipeline(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeline));
 
@@ -2326,7 +2326,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 				m_pDriver->m_RenderState.renderArea,
 				1, &clearval,
 			};
-			vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+			vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkRect3D rect = {
 				{

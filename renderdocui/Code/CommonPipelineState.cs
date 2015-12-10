@@ -902,9 +902,9 @@ namespace renderdocui.Code
                                ) && (bind.stageFlags & mask) == mask)
                             {
                                 var key = new BindpointMap(set, slot);
-                                var val = new BoundResource[bind.arraySize];
+                                var val = new BoundResource[bind.descriptorCount];
 
-                                for (UInt32 i = 0; i < bind.arraySize; i++)
+                                for (UInt32 i = 0; i < bind.descriptorCount; i++)
                                 {
                                     val[i] = new BoundResource();
                                     val[i].Id = bind.binds[i].res;
@@ -1000,9 +1000,9 @@ namespace renderdocui.Code
                                ) && (bind.stageFlags & mask) == mask)
                             {
                                 var key = new BindpointMap(set, slot);
-                                var val = new BoundResource[bind.arraySize];
+                                var val = new BoundResource[bind.descriptorCount];
 
-                                for (UInt32 i = 0; i < bind.arraySize; i++)
+                                for (UInt32 i = 0; i < bind.descriptorCount; i++)
                                 {
                                     val[i] = new BoundResource();
                                     val[i].Id = bind.binds[i].res;

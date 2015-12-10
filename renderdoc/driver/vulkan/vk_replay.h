@@ -58,7 +58,7 @@ using std::map;
 #define VULKANNOTIMP(...) do { static bool msgprinted = false; if(!msgprinted) RDCDEBUG("Vulkan not implemented - " __VA_ARGS__); msgprinted = true; } while(0)
 
 // allows easy disabling of MSAA
-#define VULKAN_MESH_VIEW_SAMPLES 1U
+#define VULKAN_MESH_VIEW_SAMPLES VK_SAMPLE_COUNT_1_BIT
 
 class WrappedVulkan;
 class VulkanDebugManager;
@@ -179,7 +179,7 @@ class VulkanReplay : public IReplayDriver
 			void Destroy(WrappedVulkan *driver, VkDevice device);
 
 			// implemented in vk_replay_platform.cpp
-			void CreateSurface(WrappedVulkan *driver);
+			void CreateSurface(VkInstance inst);
 			void SetWindowHandle(void *wn);
 
 			WINDOW_HANDLE_DECL

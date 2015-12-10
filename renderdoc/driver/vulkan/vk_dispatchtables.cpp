@@ -84,6 +84,8 @@ void InitInstanceReplayTables(VkInstance instance)
 #ifdef VK_USE_PLATFORM_XLIB_KHR
 	InstanceGPA(CreateXlibSurfaceKHR)
 #endif
+	
+	InstanceGPA(DestroySurfaceKHR)
 
 #undef InstanceGPA
 }
