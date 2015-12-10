@@ -316,15 +316,13 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		}
 	}
 
-	uint32_t idx = 0;
-
 	VkSwapchainCreateInfoKHR swapInfo = {
 			VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, NULL,
-			0, surface,
+			0, Unwrap(surface),
 			2, imformat, imcolspace, { width, height }, 1,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-			VK_SHARING_MODE_EXCLUSIVE, 0, &idx,
-			VK_SURFACE_TRANSFORM_NONE_BIT_KHR, VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_SURFACE_TRANSFORM_NONE_BIT_KHR, VkCompositeAlphaFlagBitsKHR(0),
 			presentmode, true,
 			Unwrap(old),
 	};
