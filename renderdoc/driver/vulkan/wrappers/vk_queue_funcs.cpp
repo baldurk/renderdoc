@@ -125,7 +125,6 @@ void WrappedVulkan::vkGetDeviceQueue(
 	}
 }
 
-#if 0
 bool WrappedVulkan::Serialise_vkQueueSubmit(
 		Serialiser*                                 localSerialiser,
     VkQueue                                     queue,
@@ -135,8 +134,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 {
 	SERIALISE_ELEMENT(ResourceId, queueId, GetResID(queue));
 	SERIALISE_ELEMENT(ResourceId, fenceId, fence != VK_NULL_HANDLE ? GetResID(fence) : ResourceId());
-	
-	SERIALISE_ELEMENT(uint32_t, numCmds, cmdBufferCount);
+
+	SERIALISE_ELEMENT(uint32_t, numCmds, pSubmits->commandBufferCount);
 
 	vector<ResourceId> cmdIds;
 	VkCommandBuffer *cmds = m_State >= WRITING ? NULL : new VkCommandBuffer[numCmds];
@@ -146,7 +145,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 		if(m_State >= WRITING)
 		{
-			VkResourceRecord *record = GetRecord(pCmdBuffers[i]);
+			VkResourceRecord *record = GetRecord(pSubmits->pCommandBuffers[i]);
 			RDCASSERT(record->bakedCommands);
 			if(record->bakedCommands)
 				bakedId = record->bakedCommands->GetResourceID();
@@ -159,8 +158,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			cmdIds.push_back(id);
 
 			cmds[i] = id != ResourceId()
-			          ? Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(id))
-			          : NULL;
+				? Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(id))
+				: NULL;
 		}
 	}
 	
@@ -172,26 +171,27 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		else
 			fence = VK_NULL_HANDLE;
 	}
+	
+	// we don't serialise semaphores at all, just whether we waited on any.
+	// For waiting semaphores, since we don't track state we have to just conservatively
+	// wait for queue idle. Since we do that, there's equally no point in signalling semaphores
+	SERIALISE_ELEMENT(uint32_t, numWaitSems, pSubmits->waitSemaphoreCount);
 
+	if(m_State < WRITING && numWaitSems > 0)
+		ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
+
+	VkSubmitInfo submitInfo = {
+		VK_STRUCTURE_TYPE_SUBMIT_INFO, NULL,
+		0, NULL, // wait semaphores
+		numCmds, cmds, // command buffers
+		0, NULL, // signal semaphores
+	};
+	
 	const string desc = localSerialiser->GetDebugStr();
-
-	if(m_State < WRITING)
-	{
-		// we don't track semaphore state so we don't know whether wait semaphores were signalled
-		// or unsignalled. To be conservative, we wait for idle.
-		for(uint32_t i=0; i < count; i++)
-		{
-			if(submits[i].waitSemaphoreCount > 0)
-			{
-				ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
-				break;
-			}
-		}
-	}
 
 	if(m_State == READING)
 	{
-		ObjDisp(queue)->QueueSubmit(Unwrap(queue), numCmds, cmds, Unwrap(fence));
+		ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
 
 		for(uint32_t i=0; i < numCmds; i++)
 		{
@@ -305,8 +305,10 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			}
 
 			RDCASSERT(trimmedCmds.size() > 0);
-
-			ObjDisp(queue)->QueueSubmit(Unwrap(queue), (uint32_t)trimmedCmds.size(), &trimmedCmds[0], Unwrap(fence));
+			
+			submitInfo.commandBufferCount = (uint32_t)trimmedCmds.size();
+			submitInfo.pCommandBuffers = &trimmedCmds[0];
+			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
 
 			for(uint32_t i=0; i < trimmedCmdIds.size(); i++)
 			{
@@ -316,7 +318,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		}
 		else
 		{
-			ObjDisp(queue)->QueueSubmit(Unwrap(queue), numCmds, cmds, Unwrap(fence));
+			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
 
 			for(uint32_t i=0; i < numCmds; i++)
 			{
@@ -355,107 +357,145 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		const VkSubmitInfo*                         pSubmits,
 		VkFence                                     fence)
 {
-	VkCommandBuffer *unwrapped = GetTempArray<VkCommandBuffer>(cmdBufferCount);
-	for(uint32_t i=0; i < submitCount; i++) unwrapped[i] = Unwrap(pCmdBuffers[i]);
+	size_t tempmemSize = sizeof(VkSubmitInfo)*submitCount;
+	
+	// need to count how many semaphore and command buffer arrays to allocate for
+	for(uint32_t i=0; i < submitCount; i++)
+	{
+		tempmemSize += pSubmits[i].commandBufferCount*sizeof(VkCommandBuffer);
+		tempmemSize += pSubmits[i].signalSemaphoreCount*sizeof(VkSemaphore);
+		tempmemSize += pSubmits[i].waitSemaphoreCount*sizeof(VkSemaphore);
+	}
 
-	VkResult ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), cmdBufferCount, unwrapped, Unwrap(fence));
+	byte *memory = GetTempMemory(tempmemSize);
+
+	VkSubmitInfo *unwrappedSubmits = (VkSubmitInfo *)memory;
+	VkCommandBuffer *unwrappedObjects = (VkCommandBuffer *)(unwrappedSubmits + submitCount);
+
+	for(uint32_t i=0; i < submitCount; i++)
+	{
+		RDCASSERT(pSubmits[i].sType == VK_STRUCTURE_TYPE_SUBMIT_INFO && pSubmits[i].pNext == NULL);
+		unwrappedSubmits[i] = *pSubmits;
+
+		unwrappedSubmits[i].pWaitSemaphores = unwrappedSubmits[i].waitSemaphoreCount ? (VkSemaphore *)unwrappedObjects : NULL;
+		VkSemaphore *sems = (VkSemaphore *)unwrappedObjects;
+		for(uint32_t o=0; o < unwrappedSubmits[i].waitSemaphoreCount; o++)
+			sems[o] = Unwrap(pSubmits[i].pWaitSemaphores[o]);
+		unwrappedObjects += unwrappedSubmits[i].waitSemaphoreCount;
+
+		unwrappedSubmits[i].pCommandBuffers = unwrappedSubmits[i].commandBufferCount ? (VkCommandBuffer *)unwrappedObjects : NULL;
+		for(uint32_t o=0; o < unwrappedSubmits[i].commandBufferCount; o++)
+			unwrappedObjects[o] = Unwrap(pSubmits[i].pCommandBuffers[o]);
+		unwrappedObjects += unwrappedSubmits[i].commandBufferCount;
+
+		unwrappedSubmits[i].pSignalSemaphores = unwrappedSubmits[i].signalSemaphoreCount ? (VkSemaphore *)unwrappedObjects : NULL;
+		sems = (VkSemaphore *)unwrappedObjects;
+		for(uint32_t o=0; o < unwrappedSubmits[i].signalSemaphoreCount; o++)
+			sems[o] = Unwrap(pSubmits[i].pSignalSemaphores[o]);
+		unwrappedObjects += unwrappedSubmits[i].signalSemaphoreCount;
+	}
+
+	VkResult ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), submitCount, unwrappedSubmits, Unwrap(fence));
 
 	bool capframe = false;
 	set<ResourceId> refdIDs;
 
-	for(uint32_t i=0; i < cmdBufferCount; i++)
+	for(uint32_t s=0; s < submitCount; s++)
 	{
-		ResourceId cmd = GetResID(pCmdBuffers[i]);
-
-		VkResourceRecord *record = GetRecord(pCmdBuffers[i]);
-
+		for(uint32_t i=0; i < pSubmits[s].commandBufferCount; i++)
 		{
-			SCOPED_LOCK(m_ImageLayoutsLock);
-			GetResourceManager()->ApplyBarriers(record->bakedCommands->cmdInfo->imgbarriers, m_ImageLayouts);
-		}
+			ResourceId cmd = GetResID(pSubmits[s].pCommandBuffers[i]);
 
-		// need to lock the whole section of code, not just the check on
-		// m_State, as we also need to make sure we don't check the state,
-		// start marking dirty resources then while we're doing so the
-		// state becomes capframe.
-		// the next sections where we mark resources referenced and add
-		// the submit chunk to the frame record don't have to be protected.
-		// Only the decision of whether we're inframe or not, and marking
-		// dirty.
-		{
-			SCOPED_LOCK(m_CapTransitionLock);
-			if(m_State == WRITING_CAPFRAME)
+			VkResourceRecord *record = GetRecord(pSubmits[s].pCommandBuffers[i]);
+
 			{
-				for(auto it = record->bakedCommands->cmdInfo->dirtied.begin(); it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-					GetResourceManager()->MarkPendingDirty(*it);
-
-				capframe = true;
+				SCOPED_LOCK(m_ImageLayoutsLock);
+				GetResourceManager()->ApplyBarriers(record->bakedCommands->cmdInfo->imgbarriers, m_ImageLayouts);
 			}
-			else
+
+			// need to lock the whole section of code, not just the check on
+			// m_State, as we also need to make sure we don't check the state,
+			// start marking dirty resources then while we're doing so the
+			// state becomes capframe.
+			// the next sections where we mark resources referenced and add
+			// the submit chunk to the frame record don't have to be protected.
+			// Only the decision of whether we're inframe or not, and marking
+			// dirty.
 			{
-				for(auto it = record->bakedCommands->cmdInfo->dirtied.begin(); it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-					GetResourceManager()->MarkDirtyResource(*it);
-			}
-		}
-
-		if(capframe)
-		{
-			// for each bound descriptor set, mark it referenced as well as all resources currently bound to it
-			for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin(); it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
-			{
-				GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
-
-				VkResourceRecord *setrecord = GetRecord(*it);
-
-				for(auto refit = setrecord->descInfo->bindFrameRefs.begin(); refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
+				SCOPED_LOCK(m_CapTransitionLock);
+				if(m_State == WRITING_CAPFRAME)
 				{
-					refdIDs.insert(refit->first);
-					GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
+					for(auto it = record->bakedCommands->cmdInfo->dirtied.begin(); it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+						GetResourceManager()->MarkPendingDirty(*it);
 
-					if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
-					{
-						VkResourceRecord *record = GetResourceManager()->GetResourceRecord(refit->first);
-
-						GetResourceManager()->MarkSparseMapReferenced(record->sparseInfo);
-					}
+					capframe = true;
+				}
+				else
+				{
+					for(auto it = record->bakedCommands->cmdInfo->dirtied.begin(); it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+						GetResourceManager()->MarkDirtyResource(*it);
 				}
 			}
-			
-			for(auto it = record->bakedCommands->cmdInfo->sparse.begin(); it != record->bakedCommands->cmdInfo->sparse.end(); ++it)
-				GetResourceManager()->MarkSparseMapReferenced(*it);
 
-			// pull in frame refs from this baked command buffer
-			record->bakedCommands->AddResourceReferences(GetResourceManager());
-			record->bakedCommands->AddReferencedIDs(refdIDs);
-
-			// ref the parent command buffer by itself, this will pull in the cmd buffer pool
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-
-			for(size_t i=0; i < record->bakedCommands->cmdInfo->subcmds.size(); i++)
+			if(capframe)
 			{
-				record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands->AddResourceReferences(GetResourceManager());
-				record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands->AddReferencedIDs(refdIDs);
-				GetResourceManager()->MarkResourceFrameReferenced(record->bakedCommands->cmdInfo->subcmds[i]->GetResourceID(), eFrameRef_Read);
+				// for each bound descriptor set, mark it referenced as well as all resources currently bound to it
+				for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin(); it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
+				{
+					GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
 
-				record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands->AddRef();
-			}
-			
-			GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+					VkResourceRecord *setrecord = GetRecord(*it);
 
-			if(fence != VK_NULL_HANDLE)
-				GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
+					for(auto refit = setrecord->descInfo->bindFrameRefs.begin(); refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
+					{
+						refdIDs.insert(refit->first);
+						GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
 
-			{
-				SCOPED_LOCK(m_CmdBufferRecordsLock);
-				m_CmdBufferRecords.push_back(record->bakedCommands);
+						if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
+						{
+							VkResourceRecord *record = GetResourceManager()->GetResourceRecord(refit->first);
+
+							GetResourceManager()->MarkSparseMapReferenced(record->sparseInfo);
+						}
+					}
+				}
+				
+				for(auto it = record->bakedCommands->cmdInfo->sparse.begin(); it != record->bakedCommands->cmdInfo->sparse.end(); ++it)
+					GetResourceManager()->MarkSparseMapReferenced(*it);
+
+				// pull in frame refs from this baked command buffer
+				record->bakedCommands->AddResourceReferences(GetResourceManager());
+				record->bakedCommands->AddReferencedIDs(refdIDs);
+
+				// ref the parent command buffer by itself, this will pull in the cmd buffer pool
+				GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+
 				for(size_t i=0; i < record->bakedCommands->cmdInfo->subcmds.size(); i++)
-					m_CmdBufferRecords.push_back(record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands);
+				{
+					record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands->AddResourceReferences(GetResourceManager());
+					record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands->AddReferencedIDs(refdIDs);
+					GetResourceManager()->MarkResourceFrameReferenced(record->bakedCommands->cmdInfo->subcmds[i]->GetResourceID(), eFrameRef_Read);
+
+					record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands->AddRef();
+				}
+				
+				GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+
+				if(fence != VK_NULL_HANDLE)
+					GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
+
+				{
+					SCOPED_LOCK(m_CmdBufferRecordsLock);
+					m_CmdBufferRecords.push_back(record->bakedCommands);
+					for(size_t i=0; i < record->bakedCommands->cmdInfo->subcmds.size(); i++)
+						m_CmdBufferRecords.push_back(record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands);
+				}
+
+				record->bakedCommands->AddRef();
 			}
 
-			record->bakedCommands->AddRef();
+			record->cmdInfo->dirtied.clear();
 		}
-
-		record->cmdInfo->dirtied.clear();
 	}
 	
 	if(capframe)
@@ -525,16 +565,26 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		{
 			CACHE_THREAD_SERIALISER();
 
-			SCOPED_SERIALISE_CONTEXT(QUEUE_SUBMIT);
-			Serialise_vkQueueSubmit(localSerialiser, queue, cmdBufferCount, pCmdBuffers, fence);
+			for(uint32_t s=0; s < submitCount; s++)
+			{
+				SCOPED_SERIALISE_CONTEXT(QUEUE_SUBMIT);
+				Serialise_vkQueueSubmit(localSerialiser, queue, 1, &pSubmits[s], fence);
 
-			m_FrameCaptureRecord->AddChunk(scope.Get());
+				m_FrameCaptureRecord->AddChunk(scope.Get());
+				
+				for(uint32_t sem=0; sem < pSubmits[s].waitSemaphoreCount; sem++)
+					GetResourceManager()->MarkResourceFrameReferenced(GetResID(pSubmits[s].pWaitSemaphores[sem]), eFrameRef_Read);
+
+				for(uint32_t sem=0; sem < pSubmits[s].signalSemaphoreCount; sem++)
+					GetResourceManager()->MarkResourceFrameReferenced(GetResID(pSubmits[s].pSignalSemaphores[sem]), eFrameRef_Read);
+			}
 		}
 	}
 	
 	return ret;
 }
 
+#if 0
 bool WrappedVulkan::Serialise_vkQueueBindSparse(
 	Serialiser*                                 localSerialiser,
 	VkQueue                                     queue,
