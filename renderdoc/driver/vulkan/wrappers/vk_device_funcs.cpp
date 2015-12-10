@@ -53,7 +53,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	// don't try and create our own layer on replay!
 	for(auto it = params.Layers.begin(); it != params.Layers.end(); ++it)
 	{
-		if(*it == "RenderDoc")
+		if(*it == RENDERDOC_LAYER_NAME)
 		{
 			params.Layers.erase(it);
 			break;
@@ -409,7 +409,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		for(uint32_t i=0; i < createInfo.enabledLayerNameCount; i++)
 		{
 			const char **layerNames = (const char **)createInfo.ppEnabledLayerNames;
-			if(!strcmp(layerNames[i], "RenderDoc"))
+			if(!strcmp(layerNames[i], RENDERDOC_LAYER_NAME))
 			{
 				for(uint32_t j=i; j < createInfo.enabledLayerNameCount-1; j++)
 					layerNames[j] = layerNames[j+1];

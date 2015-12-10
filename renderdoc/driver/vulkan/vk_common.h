@@ -58,6 +58,8 @@ struct VkGenericStruct
 	const VkGenericStruct *pNext;
 };
 
+#define RENDERDOC_LAYER_NAME "VK_LAYER_RENDERDOC_Capture"
+
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) ret func(__VA_ARGS__); bool CONCAT(Serialise_, func(Serialiser *localSerialiser, __VA_ARGS__));
 
 template<> void Serialiser::Serialise(const char *name, VkRect2D &el);

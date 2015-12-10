@@ -99,26 +99,26 @@ void hooked_vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks* 
 
 static const VkLayerProperties physLayers[] = {
 	{
-		"VK_LAYER_RENDERDOC_Capture",
-			VK_API_VERSION,
-			VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
-			"Debugging capture layer for RenderDoc",
+		RENDERDOC_LAYER_NAME,
+		VK_API_VERSION,
+		VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
+		"Debugging capture layer for RenderDoc",
 	}
 };
 
 static const VkExtensionProperties physExts[] = {
 	{
 		DEBUG_MARKER_EXTENSION_NAME,
-			VK_MAKE_VERSION(0, 1, 0),
+		VK_MAKE_VERSION(0, 1, 0),
 	}
 };
 
 static const VkLayerProperties globalLayers[] = {
 	{
-		"VK_LAYER_RENDERDOC_Capture",
-			VK_API_VERSION,
-			VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
-			"Debugging capture layer for RenderDoc",
+		RENDERDOC_LAYER_NAME,
+		VK_API_VERSION,
+		VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
+		"Debugging capture layer for RenderDoc",
 	}
 };
 
