@@ -61,7 +61,99 @@ using std::make_pair;
 
 namespace spv { Op OpUnknown = (Op)~0U; }
 
-const char *GLSL_STD_450_names[GLSLstd450Count] = {0};
+const char *GLSL_STD_450_names[] = {
+	"-", // Bad
+
+	"Round",
+	"RoundEven",
+	"Trunc",
+	"FAbs",
+	"SAbs",
+	"FSign",
+	"SSign",
+	"Floor",
+	"Ceil",
+	"Fract",
+
+	"Radians",
+	"Degrees",
+	"Sin",
+	"Cos",
+	"Tan",
+	"Asin",
+	"Acos",
+	"Atan",
+	"Sinh",
+	"Cosh",
+	"Tanh",
+	"Asinh",
+	"Acosh",
+	"Atanh",
+	"Atan2",
+
+	"Pow",
+	"Exp",
+	"Log",
+	"Exp2",
+	"Log2",
+	"Sqrt",
+	"InverseSqrt",
+
+	"Determinant",
+	"MatrixInverse",
+
+	"Modf",
+	"ModfStruct",
+	"FMin",
+	"UMin",
+	"SMin",
+	"FMax",
+	"UMax",
+	"SMax",
+	"FClamp",
+	"UClamp",
+	"SClamp",
+	"FMix",
+	"IMix",
+	"Step",
+	"SmoothStep",
+
+	"Fma",
+	"Frexp",
+	"FrexpStruct",
+	"Ldexp",
+
+	"PackSnorm4x8",
+	"PackUnorm4x8",
+	"PackSnorm2x16",
+	"PackUnorm2x16",
+	"PackHalf2x16",
+	"PackDouble2x32",
+	"UnpackSnorm2x16",
+	"UnpackUnorm2x16",
+	"UnpackHalf2x16",
+	"UnpackSnorm4x8",
+	"UnpackUnorm4x8",
+	"UnpackDouble2x32",
+
+	"Length",
+	"Distance",
+	"Cross",
+	"Normalize",
+	"FaceForward",
+	"Reflect",
+	"Refract",
+
+	"FindILsb",
+	"FindSMsb",
+	"FindUMsb",
+
+	"InterpolateAtCentroid",
+	"InterpolateAtSample",
+	"InterpolateAtOffset",
+};
+
+RDCCOMPILE_ASSERT( ARRAY_COUNT(GLSL_STD_450_names) == GLSLstd450Count, "Wrong number of GLSL extension function names" );
 
 // list of known generators, just for kicks
 struct { uint32_t magic; const char *name; } KnownGenerators[] = {
@@ -108,7 +200,6 @@ struct SPVDecoration
 		{
 			case spv::DecorationRowMajor:
 			case spv::DecorationColMajor:
-			case spv::DecorationSmooth:
 			case spv::DecorationNoPerspective:
 			case spv::DecorationFlat:
 			case spv::DecorationCentroid:
@@ -2341,7 +2432,6 @@ SystemAttribute BuiltInToSystemAttribute(const spv::BuiltIn el)
 		case spv::BuiltInSampleId:                         return eAttr_MSAASampleIndex;
 		case spv::BuiltInSamplePosition:                   return eAttr_MSAASamplePosition;
 		case spv::BuiltInSampleMask:                       return eAttr_MSAACoverage;
-		case spv::BuiltInFragColor:                        return eAttr_ColourOutput;
 		case spv::BuiltInFragDepth:                        return eAttr_DepthOutput;
 		//case spv::BuiltInVertexIndex:                      return eAttr_Vertex0Index;
 		//case spv::BuiltInInstanceIndex:                    return eAttr_Instance0Index;
@@ -2994,9 +3084,6 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				if(op.ext->setname == "GLSL.std.450")
 				{
 					op.ext->instructions = GLSL_STD_450_names;
-
-					if(GLSL_STD_450_names[0] == NULL)
-						GLSL_STD_450::GetDebugNames(GLSL_STD_450_names);
 				}
 
 				op.id = spirv[it+1];
@@ -4122,8 +4209,8 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpUnreachable:                              return "Unreachable";
 		case spv::OpLifetimeStart:                            return "LifetimeStart";
 		case spv::OpLifetimeStop:                             return "LifetimeStop";
-		case spv::OpAsyncGroupCopy:                           return "AsyncGroupCopy";
-		case spv::OpWaitGroupEvents:                          return "WaitGroupEvents";
+		case spv::OpGroupAsyncCopy:                           return "GroupAsyncCopy";
+		case spv::OpGroupWaitEvents:                          return "GroupWaitEvents";
 		case spv::OpGroupAll:                                 return "GroupAll";
 		case spv::OpGroupAny:                                 return "GroupAny";
 		case spv::OpGroupBroadcast:                           return "GroupBroadcast";
@@ -4190,9 +4277,9 @@ string ToStrHelper<false, spv::SourceLanguage>::Get(const spv::SourceLanguage &e
 {
 	switch(el)
 	{
-		case spv::SourceLanguageUnknown:    return "Unknown";
-		case spv::SourceLanguageESSL:       return "ESSL";
-		case spv::SourceLanguageGLSL:       return "GLSL";
+		case spv::SourceLanguageUnknown: return "Unknown";
+		case spv::SourceLanguageESSL:    return "ESSL";
+		case spv::SourceLanguageGLSL:    return "GLSL";
 		case spv::SourceLanguageOpenCL_C:   return "OpenCL C";
 		case spv::SourceLanguageOpenCL_CPP: return "OpenCL C++";
 		default: break;
@@ -4222,7 +4309,6 @@ string ToStrHelper<false, spv::Capability>::Get(const spv::Capability &el)
     case spv::CapabilityImageBasic:                                return "ImageBasic";
     case spv::CapabilityImageReadWrite:                            return "ImageReadWrite";
     case spv::CapabilityImageMipmap:                               return "ImageMipmap";
-    case spv::CapabilityImageSRGBWrite:                            return "ImageSRGBWrite";
     case spv::CapabilityPipes:                                     return "Pipes";
     case spv::CapabilityGroups:                                    return "Groups";
     case spv::CapabilityDeviceEnqueue:                             return "DeviceEnqueue";
@@ -4232,7 +4318,6 @@ string ToStrHelper<false, spv::Capability>::Get(const spv::Capability &el)
     case spv::CapabilityTessellationPointSize:                     return "TessellationPointSize";
     case spv::CapabilityGeometryPointSize:                         return "GeometryPointSize";
     case spv::CapabilityImageGatherExtended:                       return "ImageGatherExtended";
-    case spv::CapabilityStorageImageExtendedFormats:               return "StorageImageExtendedFormats";
     case spv::CapabilityStorageImageMultisample:                   return "StorageImageMultisample";
     case spv::CapabilityUniformBufferArrayDynamicIndexing:         return "UniformBufferArrayDynamicIndexing";
     case spv::CapabilitySampledImageArrayDynamicIndexing:          return "SampledImageArrayDynamicIndexing";
@@ -4246,7 +4331,7 @@ string ToStrHelper<false, spv::Capability>::Get(const spv::Capability &el)
     case spv::CapabilitySampledRect:                               return "SampledRect";
     case spv::CapabilityGenericPointer:                            return "GenericPointer";
     case spv::CapabilityInt8:                                      return "Int8";
-    case spv::CapabilityInputTarget:                               return "InputTarget";
+    case spv::CapabilityInputAttachment:                           return "InputAttachment";
     case spv::CapabilitySparseResidency:                           return "SparseResidency";
     case spv::CapabilityMinLod:                                    return "MinLod";
     case spv::CapabilitySampled1D:                                 return "Sampled1D";
@@ -4255,7 +4340,7 @@ string ToStrHelper<false, spv::Capability>::Get(const spv::Capability &el)
     case spv::CapabilitySampledBuffer:                             return "SampledBuffer";
     case spv::CapabilityImageBuffer:                               return "ImageBuffer";
     case spv::CapabilityImageMSArray:                              return "ImageMSArray";
-    case spv::CapabilityAdvancedFormats:                           return "AdvancedFormats";
+    case spv::CapabilityStorageImageExtendedFormats:               return "StorageImageExtendedFormats";
     case spv::CapabilityImageQuery:                                return "ImageQuery";
     case spv::CapabilityDerivativeControl:                         return "DerivativeControl";
     case spv::CapabilityInterpolationFunction:                     return "InterpolationFunction";
@@ -4284,7 +4369,6 @@ string ToStrHelper<false, spv::ExecutionMode>::Get(const spv::ExecutionMode &el)
     case spv::ExecutionModePointMode:                      return "PointMode";
     case spv::ExecutionModeXfb:                            return "Xfb";
     case spv::ExecutionModeDepthReplacing:                 return "DepthReplacing";
-    case spv::ExecutionModeDepthAny:                       return "DepthAny";
     case spv::ExecutionModeDepthGreater:                   return "DepthGreater";
     case spv::ExecutionModeDepthLess:                      return "DepthLess";
     case spv::ExecutionModeDepthUnchanged:                 return "DepthUnchanged";
@@ -4293,17 +4377,16 @@ string ToStrHelper<false, spv::ExecutionMode>::Get(const spv::ExecutionMode &el)
     case spv::ExecutionModeInputPoints:                    return "InputPoints";
     case spv::ExecutionModeInputLines:                     return "InputLines";
     case spv::ExecutionModeInputLinesAdjacency:            return "InputLinesAdjacency";
-    case spv::ExecutionModeInputTriangles:                 return "InputTriangles";
+    case spv::ExecutionModeTriangles:                      return "Triangles";
     case spv::ExecutionModeInputTrianglesAdjacency:        return "InputTrianglesAdjacency";
-    case spv::ExecutionModeInputQuads:                     return "InputQuads";
-    case spv::ExecutionModeInputIsolines:                  return "InputIsolines";
+    case spv::ExecutionModeQuads:                          return "Quads";
+    case spv::ExecutionModeIsolines:                       return "Isolines";
     case spv::ExecutionModeOutputVertices:                 return "OutputVertices";
     case spv::ExecutionModeOutputPoints:                   return "OutputPoints";
     case spv::ExecutionModeOutputLineStrip:                return "OutputLineStrip";
     case spv::ExecutionModeOutputTriangleStrip:            return "OutputTriangleStrip";
     case spv::ExecutionModeVecTypeHint:                    return "VecTypeHint";
     case spv::ExecutionModeContractionOff:                 return "ContractionOff";
-    case spv::ExecutionModeIndependentForwardProgress:     return "IndependentForwardProgress";
 		default: break;
 	}
 	
@@ -4373,7 +4456,6 @@ string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
 		case spv::DecorationGLSLPacked:                                 return "GLSLPacked";
 		case spv::DecorationCPacked:                                    return "CPacked";
 		case spv::DecorationBuiltIn:                                    return "BuiltIn";
-		case spv::DecorationSmooth:                                     return "Smooth";
 		case spv::DecorationNoPerspective:                              return "NoPerspective";
 		case spv::DecorationFlat:                                       return "Flat";
 		case spv::DecorationPatch:                                      return "Patch";
@@ -4403,7 +4485,7 @@ string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
 		case spv::DecorationFPFastMathMode:                             return "FPFastMathMode";
 		case spv::DecorationLinkageAttributes:                          return "LinkageAttributes";
 		case spv::DecorationNoContraction:                              return "NoContraction";
-		case spv::DecorationInputTargetIndex:                           return "InputTargetIndex";
+		case spv::DecorationInputAttachmentIndex:                       return "InputAttachmentIndex";
 		case spv::DecorationAlignment:                                  return "Alignment";
 		default: break;
 	}
@@ -4437,9 +4519,9 @@ string ToStrHelper<false, spv::StorageClass>::Get(const spv::StorageClass &el)
 		case spv::StorageClassInput:              return "Input";
 		case spv::StorageClassUniform:            return "Uniform";
 		case spv::StorageClassOutput:             return "Output";
-		case spv::StorageClassWorkgroupLocal:     return "WorkgroupLocal";
-		case spv::StorageClassWorkgroupGlobal:    return "WorkgroupGlobal";
-		case spv::StorageClassPrivateGlobal:      return "PrivateGlobal";
+		case spv::StorageClassWorkgroup:          return "Workgroup";
+		case spv::StorageClassCrossWorkgroup:     return "CrossWorkgroup";
+		case spv::StorageClassPrivate:            return "Private";
 		case spv::StorageClassFunction:           return "Function";
 		case spv::StorageClassGeneric:            return "Generic";
 		case spv::StorageClassPushConstant:       return "PushConstant";
@@ -4527,7 +4609,6 @@ string ToStrHelper<false, spv::BuiltIn>::Get(const spv::BuiltIn &el)
 		case spv::BuiltInSampleId:                         return "SampleId";
 		case spv::BuiltInSamplePosition:                   return "SamplePosition";
 		case spv::BuiltInSampleMask:                       return "SampleMask";
-		case spv::BuiltInFragColor:                        return "FragColor";
 		case spv::BuiltInFragDepth:                        return "FragDepth";
 		case spv::BuiltInHelperInvocation:                 return "HelperInvocation";
 		case spv::BuiltInNumWorkgroups:                    return "NumWorkgroups";
@@ -4541,7 +4622,6 @@ string ToStrHelper<false, spv::BuiltIn>::Get(const spv::BuiltIn &el)
 		case spv::BuiltInEnqueuedWorkgroupSize:            return "EnqueuedWorkgroupSize";
 		case spv::BuiltInGlobalOffset:                     return "GlobalOffset";
 		case spv::BuiltInGlobalLinearId:                   return "GlobalLinearId";
-		case spv::BuiltInWorkgroupLinearId:                return "WorkgroupLinearId";
 		case spv::BuiltInSubgroupSize:                     return "SubgroupSize";
 		case spv::BuiltInSubgroupMaxSize:                  return "SubgroupMaxSize";
 		case spv::BuiltInNumSubgroups:                     return "NumSubgroups";
