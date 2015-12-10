@@ -225,7 +225,7 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class Raster
         {
-            public bool depthClipEnable;
+            public bool depthClampEnable;
             public bool rasterizerDiscardEnable;
             public bool FrontCCW;
             public TriangleFillMode FillMode;

@@ -282,7 +282,7 @@
             this.slopeScaledBias = new System.Windows.Forms.Label();
             this.label18 = new System.Windows.Forms.Label();
             this.label19 = new System.Windows.Forms.Label();
-            this.depthClip = new System.Windows.Forms.PictureBox();
+            this.depthClamp = new System.Windows.Forms.PictureBox();
             this.fillMode = new System.Windows.Forms.Label();
             this.rasterizerDiscard = new System.Windows.Forms.PictureBox();
             this.label14 = new System.Windows.Forms.Label();
@@ -439,7 +439,7 @@
             this.groupBox31.SuspendLayout();
             this.tableLayoutPanel8.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.frontCCW)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.depthClip)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.depthClamp)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.rasterizerDiscard)).BeginInit();
             this.tabPS.SuspendLayout();
             this.panel6.SuspendLayout();
@@ -2083,7 +2083,7 @@
             this.tableLayoutPanel8.Controls.Add(label17, 4, 0);
             this.tableLayoutPanel8.Controls.Add(this.label18, 0, 2);
             this.tableLayoutPanel8.Controls.Add(this.label19, 2, 2);
-            this.tableLayoutPanel8.Controls.Add(this.depthClip, 1, 2);
+            this.tableLayoutPanel8.Controls.Add(this.depthClamp, 1, 2);
             this.tableLayoutPanel8.Controls.Add(this.fillMode, 1, 0);
             this.tableLayoutPanel8.Controls.Add(this.rasterizerDiscard, 3, 2);
             this.tableLayoutPanel8.Controls.Add(this.label14, 4, 2);
@@ -2227,7 +2227,7 @@
             this.label18.Name = "label18";
             this.label18.Size = new System.Drawing.Size(59, 13);
             this.label18.TabIndex = 9;
-            this.label18.Text = "Depth Clip:";
+            this.label18.Text = "Depth Clamp:";
             // 
             // label19
             // 
@@ -2239,16 +2239,16 @@
             this.label19.TabIndex = 10;
             this.label19.Text = "Rasterizer Discard:";
             // 
-            // depthClip
+            // depthClamp
             // 
-            this.depthClip.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.depthClip.Image = ((System.Drawing.Image)(resources.GetObject("depthClip.Image")));
-            this.depthClip.Location = new System.Drawing.Point(73, 56);
-            this.depthClip.Name = "depthClip";
-            this.depthClip.Size = new System.Drawing.Size(44, 16);
-            this.depthClip.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
-            this.depthClip.TabIndex = 13;
-            this.depthClip.TabStop = false;
+            this.depthClamp.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.depthClamp.Image = ((System.Drawing.Image)(resources.GetObject("depthClamp.Image")));
+            this.depthClamp.Location = new System.Drawing.Point(73, 56);
+            this.depthClamp.Name = "depthClamp";
+            this.depthClamp.Size = new System.Drawing.Size(44, 16);
+            this.depthClamp.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
+            this.depthClamp.TabIndex = 13;
+            this.depthClamp.TabStop = false;
             // 
             // fillMode
             // 
@@ -3458,7 +3458,7 @@
             this.tableLayoutPanel8.ResumeLayout(false);
             this.tableLayoutPanel8.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.frontCCW)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.depthClip)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.depthClamp)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.rasterizerDiscard)).EndInit();
             this.tabPS.ResumeLayout(false);
             this.panel6.ResumeLayout(false);
@@ -3554,7 +3554,7 @@
         private System.Windows.Forms.Label depthBiasClamp;
         private System.Windows.Forms.Label label18;
         private System.Windows.Forms.Label label19;
-        private System.Windows.Forms.PictureBox depthClip;
+        private System.Windows.Forms.PictureBox depthClamp;
         private System.Windows.Forms.Label cullMode;
         private System.Windows.Forms.Label fillMode;
         private System.Windows.Forms.PictureBox rasterizerDiscard;

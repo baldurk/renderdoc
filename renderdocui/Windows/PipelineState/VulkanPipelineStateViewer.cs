@@ -155,7 +155,7 @@ namespace renderdocui.Windows.PipelineState
             depthBiasClamp.Text = "0.0";
             slopeScaledBias.Text = "0.0";
 
-            depthClip.Image = tick;
+            depthClamp.Image = tick;
             rasterizerDiscard.Image = tick;
             lineWidth.Text = "1.0";
 
@@ -1093,7 +1093,7 @@ namespace renderdocui.Windows.PipelineState
             depthBiasClamp.Text = Formatter.Format(state.RS.depthBiasClamp);
             slopeScaledBias.Text = Formatter.Format(state.RS.slopeScaledDepthBias);
 
-            depthClip.Image = state.RS.depthClipEnable ? tick : cross;
+            depthClamp.Image = state.RS.depthClampEnable ? tick : cross;
             rasterizerDiscard.Image = state.RS.rasterizerDiscardEnable ? tick : cross;
             lineWidth.Text = Formatter.Format(state.RS.lineWidth);
 
@@ -2301,7 +2301,7 @@ namespace renderdocui.Windows.PipelineState
 
                 ExportHTMLTable(writer,
                     new string[] { "Depth Clip Enable", "Rasterizer Discard Enable" },
-                    new object[] { rs.depthClipEnable ? "Yes" : "No", rs.rasterizerDiscardEnable ? "Yes" : "No" });
+                    new object[] { rs.depthClampEnable ? "Yes" : "No", rs.rasterizerDiscardEnable ? "Yes" : "No" });
 
                 writer.WriteStartElement("p");
                 writer.WriteEndElement();
