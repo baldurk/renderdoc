@@ -884,7 +884,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	m_pDriver->FlushQ();
 
 	float *pData = NULL;
-	vt->MapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem), 0, 0, 0, (void **)&pData);
+	vt->MapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem), 0, VK_WHOLE_SIZE, 0, (void **)&pData);
 
 	RDCASSERT(pData != NULL);
 
@@ -4145,7 +4145,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
 	// map the buffer and copy to return buffer
 	byte *pData = NULL;
-	vkr = vt->MapMemory(Unwrap(dev), readbackMem, 0, 0, 0, (void **)&pData);
+	vkr = vt->MapMemory(Unwrap(dev), readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&pData);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	RDCASSERT(pData != NULL);

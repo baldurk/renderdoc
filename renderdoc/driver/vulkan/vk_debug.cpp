@@ -1019,7 +1019,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 
 			byte *pData = NULL;
-			vkr = vt->MapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem), 0, 0, 0, (void **)&pData);
+			vkr = vt->MapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem), 0, VK_WHOLE_SIZE, 0, (void **)&pData);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			RDCASSERT(pData != NULL);
@@ -1747,7 +1747,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 		m_pDriver->FlushQ();
 
 		byte *pData = NULL;
-		vkr = vt->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0, 0, 0, (void **)&pData);
+		vkr = vt->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0, VK_WHOLE_SIZE, 0, (void **)&pData);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		RDCASSERT(pData != NULL);
@@ -3984,7 +3984,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		byte *idxData = NULL;
-		vkr = m_pDriver->vkMapMemory(m_Device, uniqIdxBufMem, 0, 0, 0, (void **)&idxData);
+		vkr = m_pDriver->vkMapMemory(m_Device, uniqIdxBufMem, 0, VK_WHOLE_SIZE, 0, (void **)&idxData);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		memcpy(idxData, &indices[0], indices.size()*sizeof(uint32_t));
@@ -4294,7 +4294,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		
 		// upload rebased memory
 		byte *idxData = NULL;
-		vkr = m_pDriver->vkMapMemory(m_Device, idxBufMem, 0, 0, 0, (void **)&idxData);
+		vkr = m_pDriver->vkMapMemory(m_Device, idxBufMem, 0, VK_WHOLE_SIZE, 0, (void **)&idxData);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		memcpy(idxData, idx32, numIndices*idxsize);
@@ -4339,7 +4339,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 	// readback mesh data
 	byte *byteData = NULL;
-	vkr = m_pDriver->vkMapMemory(m_Device, readbackMem, 0, 0, 0, (void **)&byteData);
+	vkr = m_pDriver->vkMapMemory(m_Device, readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&byteData);
 	
 	// do near/far calculations
 	

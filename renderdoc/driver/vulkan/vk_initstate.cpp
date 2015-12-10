@@ -395,7 +395,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer 
 		VkDevice d = GetDev();
 		
 		byte *ptr = NULL;
-		ObjDisp(d)->MapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(contents.resource), 0, 0, 0, (void **)&ptr);
+		ObjDisp(d)->MapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(contents.resource), 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
 
 		size_t dataSize = (size_t)info->totalSize;
 
@@ -487,7 +487,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer 
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		byte *ptr = NULL;
-		ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, 0, 0, (void **)&ptr);
+		ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
 
 		size_t dummy = 0;
 		m_pSerialiser->SerialiseBuffer("data", ptr, dummy);
@@ -538,7 +538,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkImage *
 		VkDevice d = GetDev();
 		
 		byte *ptr = NULL;
-		ObjDisp(d)->MapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(contents.resource), 0, 0, 0, (void **)&ptr);
+		ObjDisp(d)->MapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(contents.resource), 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
 
 		size_t dataSize = (size_t)state->totalSize;
 		
@@ -690,7 +690,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkImage *
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		byte *ptr = NULL;
-		ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, 0, 0, (void **)&ptr);
+		ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
 
 		size_t dummy = 0;
 		m_pSerialiser->SerialiseBuffer("data", ptr, dummy);
@@ -1237,7 +1237,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			}
 			
 			byte *ptr = NULL;
-			ObjDisp(d)->MapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(initContents.resource), 0, 0, 0, (void **)&ptr);
+			ObjDisp(d)->MapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(initContents.resource), 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
 
 			size_t dataSize = (size_t)initContents.num;
 			
@@ -1456,7 +1456,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			byte *ptr = NULL;
-			ObjDisp(d)->MapMemory(Unwrap(d), uploadmem, 0, 0, 0, (void **)&ptr);
+			ObjDisp(d)->MapMemory(Unwrap(d), uploadmem, 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
 
 			size_t dummy = 0;
 			m_pSerialiser->SerialiseBuffer("data", ptr, dummy);
@@ -1634,7 +1634,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			byte *ptr = NULL;
-			ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, 0, 0, (void **)&ptr);
+			ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
 
 			size_t dummy = 0;
 			m_pSerialiser->SerialiseBuffer("data", ptr, dummy);

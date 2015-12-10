@@ -848,7 +848,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		// map memory and readback
 		byte *pData = NULL;
-		vkr = vt->MapMemory(Unwrap(dev), readbackMem, 0, 0, 0, (void **)&pData);
+		vkr = vt->MapMemory(Unwrap(dev), readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&pData);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		RDCASSERT(pData != NULL);
