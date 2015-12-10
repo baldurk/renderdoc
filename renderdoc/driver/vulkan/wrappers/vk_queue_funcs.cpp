@@ -375,7 +375,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	for(uint32_t i=0; i < submitCount; i++)
 	{
 		RDCASSERT(pSubmits[i].sType == VK_STRUCTURE_TYPE_SUBMIT_INFO && pSubmits[i].pNext == NULL);
-		unwrappedSubmits[i] = *pSubmits;
+		unwrappedSubmits[i] = pSubmits[i];
 
 		unwrappedSubmits[i].pWaitSemaphores = unwrappedSubmits[i].waitSemaphoreCount ? (VkSemaphore *)unwrappedObjects : NULL;
 		VkSemaphore *sems = (VkSemaphore *)unwrappedObjects;
@@ -584,7 +584,6 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	return ret;
 }
 
-#if 0
 bool WrappedVulkan::Serialise_vkQueueBindSparse(
 	Serialiser*                                 localSerialiser,
 	VkQueue                                     queue,
@@ -593,20 +592,63 @@ bool WrappedVulkan::Serialise_vkQueueBindSparse(
 	VkFence                                     fence)
 {
 	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queue));
-	SERIALISE_ELEMENT(ResourceId, imid, GetResID(image));
+	SERIALISE_ELEMENT(ResourceId, fid, GetResID(fence));
 
-	SERIALISE_ELEMENT(uint32_t, num, numBindings);
-	SERIALISE_ELEMENT_ARR(VkSparseImageMemoryBindInfo, binds, pBindInfo, num);
+	SERIALISE_ELEMENT(VkBindSparseInfo, bindInfo, *pBindInfo);
 	
-	if(m_State < WRITING && GetResourceManager()->HasLiveResource(imid))
+	// similar to vkQueueSubmit we don't need semaphores at all, just whether we waited on any.
+	// For waiting semaphores, since we don't track state we have to just conservatively
+	// wait for queue idle. Since we do that, there's equally no point in signalling semaphores
+
+	if(m_State < WRITING && bindInfo.waitSemaphoreCount > 0)
+		ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
+
+	if(m_State < WRITING)
 	{
 		queue = GetResourceManager()->GetLiveHandle<VkQueue>(qid);
-		image = GetResourceManager()->GetLiveHandle<VkImage>(imid);
+		fence = GetResourceManager()->GetLiveHandle<VkFence>(fid);
 
-		ObjDisp(queue)->QueueBindSparseImageMemory(Unwrap(queue), Unwrap(image), num, binds);
+		VkBindSparseInfo noSemBindInfo = bindInfo;
+		noSemBindInfo.pWaitSemaphores = NULL;
+		noSemBindInfo.waitSemaphoreCount = 0;
+		noSemBindInfo.pSignalSemaphores = NULL;
+		noSemBindInfo.signalSemaphoreCount = 0;
+
+		// remove any binds for resources that aren't present, since this
+		// is totally valid (if the resource wasn't referenced in anything
+		// else, it will be omitted from the capture)
+		VkSparseBufferMemoryBindInfo *buf = (VkSparseBufferMemoryBindInfo *)noSemBindInfo.pBufferBinds;
+		for(uint32_t i=0; i < noSemBindInfo.bufferBindCount; i++)
+		{
+			if(buf[i].buffer == VK_NULL_HANDLE)
+			{
+				noSemBindInfo.bufferBindCount--;
+				std::swap(buf[i], buf[noSemBindInfo.bufferBindCount]);
+			}
+		}
+		
+		VkSparseImageOpaqueMemoryBindInfo *imopaque = (VkSparseImageOpaqueMemoryBindInfo *)noSemBindInfo.pImageOpaqueBinds;
+		for(uint32_t i=0; i < noSemBindInfo.imageOpaqueBindCount; i++)
+		{
+			if(imopaque[i].image == VK_NULL_HANDLE)
+			{
+				noSemBindInfo.imageOpaqueBindCount--;
+				std::swap(imopaque[i], imopaque[noSemBindInfo.imageOpaqueBindCount]);
+			}
+		}
+		
+		VkSparseImageMemoryBindInfo *im = (VkSparseImageMemoryBindInfo *)noSemBindInfo.pImageBinds;
+		for(uint32_t i=0; i < noSemBindInfo.imageBindCount; i++)
+		{
+			if(im[i].image == VK_NULL_HANDLE)
+			{
+				noSemBindInfo.imageBindCount--;
+				std::swap(im[i], im[noSemBindInfo.imageBindCount]);
+			}
+		}
+
+		ObjDisp(queue)->QueueBindSparse(Unwrap(queue), 1, &noSemBindInfo, fence);
 	}
-
-	SAFE_DELETE_ARRAY(binds);
 
 	return true;
 }
@@ -621,27 +663,156 @@ VkResult WrappedVulkan::vkQueueBindSparse(
 	{
 		CACHE_THREAD_SERIALISER();
 		
-		SCOPED_SERIALISE_CONTEXT(BIND_SPARSE);
-		Serialise_vkQueueBindSparse(localSerialiser, queue, bindInfoCount, pBindInfo, fence);
+		for(uint32_t i=0; i < bindInfoCount; i++)
+		{
+			SCOPED_SERIALISE_CONTEXT(BIND_SPARSE);
+			Serialise_vkQueueBindSparse(localSerialiser, queue, 1, pBindInfo+i, fence);
 
-		m_FrameCaptureRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
-		GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
-		// images/buffers aren't marked referenced. If the only ref is a memory bind, we just skip it
+			m_FrameCaptureRecord->AddChunk(scope.Get());
+			GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+			GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
+			// images/buffers aren't marked referenced. If the only ref is a memory bind, we just skip it
+
+			for(uint32_t w=0; w < pBindInfo[i].waitSemaphoreCount; w++)
+				GetResourceManager()->MarkResourceFrameReferenced(GetResID(pBindInfo[i].pWaitSemaphores[w]), eFrameRef_Read);
+			for(uint32_t s=0; s < pBindInfo[i].signalSemaphoreCount; s++)
+				GetResourceManager()->MarkResourceFrameReferenced(GetResID(pBindInfo[i].pSignalSemaphores[s]), eFrameRef_Read);
+		}
 	}
 
+	// update our internal page tables
 	if(m_State >= WRITING)
 	{
-		GetRecord(image)->sparseInfo->Update(numBindings, pBindInfo);
+		for(uint32_t i=0; i < bindInfoCount; i++)
+		{
+			for(uint32_t buf=0; buf < pBindInfo[i].bufferBindCount; buf++)
+			{
+				const VkSparseBufferMemoryBindInfo &bind = pBindInfo[i].pBufferBinds[buf];
+				GetRecord(bind.buffer)->sparseInfo->Update(bind.bindCount, bind.pBinds);
+			}
+			
+			for(uint32_t op=0; op < pBindInfo[i].imageOpaqueBindCount; op++)
+			{
+				const VkSparseImageOpaqueMemoryBindInfo &bind = pBindInfo[i].pImageOpaqueBinds[op];
+				GetRecord(bind.image)->sparseInfo->Update(bind.bindCount, bind.pBinds);
+			}
+			
+			for(uint32_t op=0; op < pBindInfo[i].imageBindCount; op++)
+			{
+				const VkSparseImageMemoryBindInfo &bind = pBindInfo[i].pImageBinds[op];
+				GetRecord(bind.image)->sparseInfo->Update(bind.bindCount, bind.pBinds);
+			}
+		}
 	}
 	
-	VkSparseImageMemoryBindInfo *unwrappedBinds = GetTempArray<VkSparseImageMemoryBindInfo>(numBindings);
-	memcpy(unwrappedBinds, pBindInfo, sizeof(VkSparseImageMemoryBindInfo)*numBindings);
-	for(uint32_t i=0; i < numBindings; i++) unwrappedBinds[i].mem = Unwrap(unwrappedBinds[i].mem);
+	// need to allocate space for each bind batch
+	size_t tempmemSize = sizeof(VkBindSparseInfo)*bindInfoCount;
+	
+	for(uint32_t i=0; i < bindInfoCount; i++)
+	{
+		// within each batch, need to allocate space for each resource bind
+		tempmemSize += pBindInfo[i].bufferBindCount*sizeof(VkSparseBufferMemoryBindInfo);
+		tempmemSize += pBindInfo[i].imageOpaqueBindCount*sizeof(VkSparseImageOpaqueMemoryBindInfo);
+		tempmemSize += pBindInfo[i].imageBindCount*sizeof(VkSparseImageMemoryBindInfo);
+		tempmemSize += pBindInfo[i].waitSemaphoreCount*sizeof(VkSemaphore);
+		tempmemSize += pBindInfo[i].signalSemaphoreCount*sizeof(VkSparseImageMemoryBindInfo);
 
-	return ObjDisp(queue)->QueueBindSparseImageMemory(Unwrap(queue), Unwrap(image), numBindings, unwrappedBinds);
+		// within each resource bind, need to save space for each individual bind operation
+		for(uint32_t b=0; b < pBindInfo[i].bufferBindCount; b++)
+			tempmemSize += pBindInfo[i].pBufferBinds[b].bindCount*sizeof(VkSparseMemoryBind);
+		for(uint32_t b=0; b < pBindInfo[i].imageOpaqueBindCount; b++)
+			tempmemSize += pBindInfo[i].pImageOpaqueBinds[b].bindCount*sizeof(VkSparseMemoryBind);
+		for(uint32_t b=0; b < pBindInfo[i].imageBindCount; b++)
+			tempmemSize += pBindInfo[i].pImageBinds[b].bindCount*sizeof(VkSparseImageMemoryBind);
+	}
+
+	byte *memory = GetTempMemory(tempmemSize);
+
+	VkBindSparseInfo *unwrapped = (VkBindSparseInfo *)memory;
+	byte *next = (byte *)(unwrapped + bindInfoCount);
+	
+	// now go over each batch..
+	for(uint32_t i=0; i < bindInfoCount; i++)
+	{
+		// copy the original so we get all the params we don't need to change
+		RDCASSERT(pBindInfo[i].sType == VK_STRUCTURE_TYPE_BIND_SPARSE_INFO && pBindInfo[i].pNext == NULL);
+		unwrapped[i] = pBindInfo[i];
+
+		// unwrap the signal semaphores into a new array
+		VkSemaphore *signal = (VkSemaphore *)next;
+		next += sizeof(VkSemaphore)*unwrapped[i].signalSemaphoreCount;
+		unwrapped[i].pSignalSemaphores = signal;
+		for(uint32_t j=0; j < unwrapped[i].signalSemaphoreCount; j++)
+			signal[j] = Unwrap(pBindInfo[i].pSignalSemaphores[j]);
+		
+		// and the wait semaphores
+		VkSemaphore *wait = (VkSemaphore *)next;
+		next += sizeof(VkSemaphore)*unwrapped[i].waitSemaphoreCount;
+		unwrapped[i].pWaitSemaphores = wait;
+		for(uint32_t j=0; j < unwrapped[i].waitSemaphoreCount; j++)
+			wait[j] = Unwrap(pBindInfo[i].pWaitSemaphores[j]);
+		
+		// now copy & unwrap the sparse buffer binds
+		VkSparseBufferMemoryBindInfo *buf = (VkSparseBufferMemoryBindInfo *)next;
+		next += sizeof(VkSparseBufferMemoryBindInfo)*unwrapped[i].bufferBindCount;
+		unwrapped[i].pBufferBinds = buf;
+		for(uint32_t j=0; j < unwrapped[i].bufferBindCount; j++)
+		{
+			buf[j] = pBindInfo[i].pBufferBinds[j];
+			buf[j].buffer = Unwrap(buf[j].buffer);
+			
+			// for each buffer bind, copy & unwrap the individual memory binds too
+			VkSparseMemoryBind *binds = (VkSparseMemoryBind *)next;
+			next += sizeof(VkSparseMemoryBind)*buf[j].bindCount;
+			buf[j].pBinds = binds;
+			for(uint32_t k=0; k < buf[j].bindCount; k++)
+			{
+				binds[k] = pBindInfo[i].pBufferBinds[j].pBinds[k];
+				binds[k].memory = Unwrap(buf[j].pBinds[k].memory);
+			}
+		}
+		
+		// same as above
+		VkSparseImageOpaqueMemoryBindInfo *opaque = (VkSparseImageOpaqueMemoryBindInfo *)next;
+		next += sizeof(VkSparseImageOpaqueMemoryBindInfo)*unwrapped[i].imageOpaqueBindCount;
+		unwrapped[i].pImageOpaqueBinds = opaque;
+		for(uint32_t j=0; j < unwrapped[i].imageOpaqueBindCount; j++)
+		{
+			opaque[j] = pBindInfo[i].pImageOpaqueBinds[j];
+			opaque[j].image = Unwrap(opaque[j].image);
+			
+			VkSparseMemoryBind *binds = (VkSparseMemoryBind *)next;
+			next += sizeof(VkSparseMemoryBind)*opaque[j].bindCount;
+			opaque[j].pBinds = binds;
+			for(uint32_t k=0; k < opaque[j].bindCount; k++)
+			{
+				binds[k] = pBindInfo[i].pImageOpaqueBinds[j].pBinds[k];
+				binds[k].memory = Unwrap(opaque[j].pBinds[k].memory);
+			}
+		}
+		
+		// same as above
+		VkSparseImageMemoryBindInfo *im = (VkSparseImageMemoryBindInfo *)next;
+		next += sizeof(VkSparseImageMemoryBindInfo)*unwrapped[i].imageBindCount;
+		unwrapped[i].pImageBinds = im;
+		for(uint32_t j=0; j < unwrapped[i].imageBindCount; j++)
+		{
+			im[j] = pBindInfo[i].pImageBinds[j];
+			im[j].image = Unwrap(im[j].image);
+			
+			VkSparseImageMemoryBind *binds = (VkSparseImageMemoryBind *)next;
+			next += sizeof(VkSparseImageMemoryBind)*im[j].bindCount;
+			im[j].pBinds = binds;
+			for(uint32_t k=0; k < im[j].bindCount; k++)
+			{
+				binds[k] = pBindInfo[i].pImageBinds[j].pBinds[k];
+				binds[k].memory = Unwrap(im[j].pBinds[k].memory);
+			}
+		}
+	}
+
+	return ObjDisp(queue)->QueueBindSparse(Unwrap(queue), bindInfoCount, unwrapped, Unwrap(fence));
 }
-#endif
 
 bool WrappedVulkan::Serialise_vkQueueWaitIdle(Serialiser* localSerialiser, VkQueue queue)
 {
