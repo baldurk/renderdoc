@@ -654,7 +654,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 		VkShaderModuleCreateInfo modinfo = {
 			VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,
-			shaderSPIRV[i].size(), &shaderSPIRV[i][0],
+			shaderSPIRV[i].size()*sizeof(uint32_t), &shaderSPIRV[i][0],
 		};
 
 		vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &module[i]);
