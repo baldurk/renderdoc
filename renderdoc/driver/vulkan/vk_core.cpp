@@ -33,7 +33,7 @@
 
 static bool operator <(const VkExtensionProperties &a, const VkExtensionProperties &b)
 {
-	int cmp = strcmp(a.extName, b.extName);
+	int cmp = strcmp(a.extensionName, b.extensionName);
 	if(cmp == 0)
 		return a.specVersion < b.specVersion;
 
@@ -67,7 +67,6 @@ const char *VkChunkNames[] =
 	"vkCreateImageView",
 	"vkCreateDepthTargetView",
 	"vkCreateSampler",
-	"vkCreateShader",
 	"vkCreateShaderModule",
 	"vkCreatePipelineLayout",
 	"vkCreatePipelineCache",
@@ -94,8 +93,6 @@ const char *VkChunkNames[] =
 	"vkBeginCommandBuffer",
 	"vkEndCommandBuffer",
 
-	"vkQueueSignalSemaphore",
-	"vkQueueWaitSemaphore",
 	"vkQueueWaitIdle",
 	"vkDeviceWaitIdle",
 
@@ -103,9 +100,7 @@ const char *VkChunkNames[] =
 	"vkBindBufferMemory",
 	"vkBindImageMemory",
 	
-	"vkQueueBindSparseBufferMemory",
-	"vkQueueBindSparseImageOpaqueMemory",
-	"vkQueueBindSparseImageMemory",
+	"vkQueueBindSparse",
 
 	"vkCmdBeginRenderPass",
 	"vkCmdNextSubpass",
@@ -139,8 +134,7 @@ const char *VkChunkNames[] =
 
 	"vkCmdClearColorImage",
 	"vkCmdClearDepthStencilImage",
-	"vkCmdClearColorAttachment",
-	"vkCmdClearDepthStencilAttachment",
+	"vkCmdClearAttachments",
 	"vkCmdPipelineBarrier",
 
 	"vkCmdWriteTimestamp",
@@ -206,17 +200,17 @@ void VkInitParams::Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst)
 {
 	RDCASSERT(pCreateInfo);
 
-	if(pCreateInfo->pAppInfo)
+	if(pCreateInfo->pApplicationInfo)
 	{
 		// we don't support any extensions on appinfo structure
-		RDCASSERT(pCreateInfo->pAppInfo->pNext == NULL);
+		RDCASSERT(pCreateInfo->pApplicationInfo->pNext == NULL);
 
-		AppName = pCreateInfo->pAppInfo->pAppName ? pCreateInfo->pAppInfo->pAppName : "";
-		EngineName = pCreateInfo->pAppInfo->pEngineName ? pCreateInfo->pAppInfo->pEngineName : "";
+		AppName = pCreateInfo->pApplicationInfo->pApplicationName ? pCreateInfo->pApplicationInfo->pApplicationName : "";
+		EngineName = pCreateInfo->pApplicationInfo->pEngineName ? pCreateInfo->pApplicationInfo->pEngineName : "";
 
-		AppVersion = pCreateInfo->pAppInfo->appVersion;
-		EngineVersion = pCreateInfo->pAppInfo->engineVersion;
-		APIVersion = pCreateInfo->pAppInfo->apiVersion;
+		AppVersion = pCreateInfo->pApplicationInfo->applicationVersion;
+		EngineVersion = pCreateInfo->pApplicationInfo->engineVersion;
+		APIVersion = pCreateInfo->pApplicationInfo->apiVersion;
 	}
 	else
 	{
@@ -228,13 +222,13 @@ void VkInitParams::Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst)
 		APIVersion = 0;
 	}
 
-	Layers.resize(pCreateInfo->layerCount);
-	Extensions.resize(pCreateInfo->extensionCount);
+	Layers.resize(pCreateInfo->enabledLayerNameCount);
+	Extensions.resize(pCreateInfo->enabledExtensionNameCount);
 
-	for(uint32_t i=0; i < pCreateInfo->layerCount; i++)
+	for(uint32_t i=0; i < pCreateInfo->enabledLayerNameCount; i++)
 		Layers[i] = pCreateInfo->ppEnabledLayerNames[i];
 
-	for(uint32_t i=0; i < pCreateInfo->extensionCount; i++)
+	for(uint32_t i=0; i < pCreateInfo->enabledExtensionNameCount; i++)
 		Extensions[i] = pCreateInfo->ppEnabledExtensionNames[i];
 
 	InstanceID = inst;
@@ -374,8 +368,8 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
 	}
 	else
 	{	
-		VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, Unwrap(m_InternalCmds.m_CmdPool), VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-		VkResult vkr = ObjDisp(m_Device)->CreateCommandBuffer(Unwrap(m_Device), &cmdInfo, &ret);
+		VkCommandBufferAllocateInfo cmdInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, NULL, Unwrap(m_InternalCmds.m_CmdPool), VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1 };
+		VkResult vkr = ObjDisp(m_Device)->AllocateCommandBuffers(Unwrap(m_Device), &cmdInfo, &ret);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
@@ -395,7 +389,14 @@ void WrappedVulkan::SubmitCmds()
 	vector<VkCommandBuffer> cmds = m_InternalCmds.pendingcmds;
 	for(size_t i=0; i < cmds.size(); i++) cmds[i] = Unwrap(cmds[i]);
 
-	VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), (uint32_t)cmds.size(), &cmds[0], VK_NULL_HANDLE);
+	VkSubmitInfo submitInfo = {
+		VK_STRUCTURE_TYPE_SUBMIT_INFO, NULL,
+		0, NULL, // wait semaphores
+		(uint32_t)cmds.size(), &cmds[0], // command buffers
+		0, NULL, // signal semaphores
+	};
+
+	VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, VK_NULL_HANDLE);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(), m_InternalCmds.pendingcmds.begin(), m_InternalCmds.pendingcmds.end());
@@ -760,22 +761,21 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		// create identical image
 		VkImageCreateInfo imInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 			VK_IMAGE_TYPE_2D, swapInfo.format,
-			{ swapInfo.extent.width, swapInfo.extent.height, 1 }, 1, 1, 1,
-			VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
-			0,
+			{ swapInfo.extent.width, swapInfo.extent.height, 1 }, 1, 1,
+			VK_SAMPLE_COUNT_1_BIT,
+			VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
-		vt->CreateImage(Unwrap(dev), &imInfo, &readbackIm);
+		vt->CreateImage(Unwrap(dev), &imInfo, NULL, &readbackIm);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkMemoryRequirements mrq;
-		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), readbackIm, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->GetImageMemoryRequirements(Unwrap(dev), readbackIm, &mrq);
 
-		VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR, 0, 0 };
+		VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
 		VkSubresourceLayout layout = { 0 };
 		vt->GetImageSubresourceLayout(Unwrap(dev), readbackIm, &subr, &layout);
 
@@ -785,7 +785,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			mrq.size, GetReadbackMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &readbackMem);
+		vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &readbackMem);
 		RDCASSERT(vkr == VK_SUCCESS);
 		vkr = vt->BindImageMemory(Unwrap(dev), readbackIm, readbackMem, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -797,16 +797,16 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkImageCopy cpy = {
-			{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 			{ 0, 0, 0 },
-			{ VK_IMAGE_ASPECT_COLOR, 0, 0, 1 },
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 			{ 0, 0, 0 },
 			{ imInfo.extent.width, imInfo.extent.height, 1 },
 		};
 
 		VkImageMemoryBarrier bbBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_KHR, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			0, 0, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			Unwrap(backbuffer),
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
@@ -942,8 +942,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		vt->UnmapMemory(Unwrap(dev), readbackMem);
 
 		// delete all
-		vt->DestroyImage(Unwrap(dev), readbackIm);
-		vt->FreeMemory(Unwrap(dev), readbackMem);
+		vt->DestroyImage(Unwrap(dev), readbackIm, NULL);
+		vt->FreeMemory(Unwrap(dev), readbackMem, NULL);
 	}
 
 	byte *jpgbuf = NULL;
@@ -1264,14 +1264,14 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	// destroy any events we created for waiting on
 	for(size_t i=0; i < m_CleanupEvents.size(); i++)
-		ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i]);
+		ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
 
 	m_CleanupEvents.clear();
 
 	if(m_PartialReplayData.resultPartialCmdBuffer != VK_NULL_HANDLE)
 	{
 		// deliberately call our own function, so this is destroyed as a wrapped object
-		vkDestroyCommandBuffer(m_PartialReplayData.partialDevice, m_PartialReplayData.resultPartialCmdBuffer);
+		vkFreeCommandBuffers(m_PartialReplayData.partialDevice, m_PartialReplayData.resultPartialCmdPool, 1, &m_PartialReplayData.resultPartialCmdBuffer);
 		m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;
 	}
 
@@ -1339,14 +1339,14 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkEnumeratePhysicalDevices(GetMainSerialiser(), NULL, NULL, NULL);
 		break;
 	case CREATE_DEVICE:
-		Serialise_vkCreateDevice(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateDevice(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case GET_DEVICE_QUEUE:
 		Serialise_vkGetDeviceQueue(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, NULL);
 		break;
 
 	case ALLOC_MEM:
-		Serialise_vkAllocMemory(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkAllocateMemory(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case UNMAP_MEM:
 		Serialise_vkUnmapMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
@@ -1358,65 +1358,62 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		RDCERR("vkFreeMemory should not be serialised directly");
 		break;
 	case CREATE_CMD_POOL:
-		Serialise_vkCreateCommandPool(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateCommandPool(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_CMD_BUFFER:
 		RDCERR("vkCreateCommandBuffer should not be serialised directly");
 		break;
 	case CREATE_FRAMEBUFFER:
-		Serialise_vkCreateFramebuffer(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateFramebuffer(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_RENDERPASS:
-		Serialise_vkCreateRenderPass(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateRenderPass(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_DESCRIPTOR_POOL:
-		Serialise_vkCreateDescriptorPool(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateDescriptorPool(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_DESCRIPTOR_SET_LAYOUT:
-		Serialise_vkCreateDescriptorSetLayout(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateDescriptorSetLayout(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_BUFFER:
-		Serialise_vkCreateBuffer(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateBuffer(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_BUFFER_VIEW:
-		Serialise_vkCreateBufferView(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateBufferView(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_IMAGE:
-		Serialise_vkCreateImage(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateImage(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_IMAGE_VIEW:
-		Serialise_vkCreateImageView(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateImageView(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_SAMPLER:
-		Serialise_vkCreateSampler(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
-		break;
-	case CREATE_SHADER:
-		Serialise_vkCreateShader(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateSampler(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_SHADER_MODULE:
-		Serialise_vkCreateShaderModule(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateShaderModule(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_PIPE_LAYOUT:
-		Serialise_vkCreatePipelineLayout(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreatePipelineLayout(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_PIPE_CACHE:
-		Serialise_vkCreatePipelineCache(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreatePipelineCache(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_GRAPHICS_PIPE:
-		Serialise_vkCreateGraphicsPipelines(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL, NULL);
+		Serialise_vkCreateGraphicsPipelines(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL, NULL, NULL);
 		break;
 	case CREATE_COMPUTE_PIPE:
-		Serialise_vkCreateComputePipelines(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL, NULL);
+		Serialise_vkCreateComputePipelines(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL, NULL, NULL);
 		break;
 	case GET_SWAPCHAIN_IMAGE:
 		Serialise_vkGetSwapchainImagesKHR(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, NULL, NULL);
 		break;
 
 	case CREATE_SEMAPHORE:
-		Serialise_vkCreateSemaphore(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateSemaphore(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case CREATE_FENCE:
-		Serialise_vkCreateFence(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateFence(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case GET_FENCE_STATUS:
 		Serialise_vkGetFenceStatus(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
@@ -1429,7 +1426,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 		
 	case CREATE_EVENT:
-		Serialise_vkCreateEvent(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateEvent(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 	case GET_EVENT_STATUS:
 		Serialise_vkGetEventStatus(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
@@ -1442,11 +1439,11 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 
 	case CREATE_QUERY_POOL:
-		Serialise_vkCreateQueryPool(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateQueryPool(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 
 	case ALLOC_DESC_SET:
-		Serialise_vkAllocDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_DESCRIPTOR_SET_USAGE_MAX_ENUM, 0, NULL, NULL);
+		Serialise_vkAllocateDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case UPDATE_DESC_SET:
 		Serialise_vkUpdateDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, 0, NULL);
@@ -1459,12 +1456,6 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkEndCommandBuffer(GetMainSerialiser(), VK_NULL_HANDLE);
 		break;
 
-	case QUEUE_SIGNAL_SEMAPHORE:
-		Serialise_vkQueueSignalSemaphore(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
-		break;
-	case QUEUE_WAIT_SEMAPHORE:
-		Serialise_vkQueueWaitSemaphore(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE);
-		break;
 	case QUEUE_WAIT_IDLE:
 		Serialise_vkQueueWaitIdle(GetMainSerialiser(), VK_NULL_HANDLE);
 		break;
@@ -1482,21 +1473,15 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkBindImageMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
 		break;
 
-	case BIND_SPARSE_BUF:
-		Serialise_vkQueueBindSparseBufferMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
-		break;
-	case BIND_SPARSE_OPAQUE_IM:
-		Serialise_vkQueueBindSparseImageOpaqueMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
-		break;
-	case BIND_SPARSE_IM:
-		Serialise_vkQueueBindSparseImageMemory(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
+	case BIND_SPARSE:
+		Serialise_vkQueueBindSparse(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, VK_NULL_HANDLE);
 		break;
 
 	case BEGIN_RENDERPASS:
-		Serialise_vkCmdBeginRenderPass(GetMainSerialiser(), VK_NULL_HANDLE, NULL, VK_RENDER_PASS_CONTENTS_MAX_ENUM);
+		Serialise_vkCmdBeginRenderPass(GetMainSerialiser(), VK_NULL_HANDLE, NULL, VK_SUBPASS_CONTENTS_MAX_ENUM);
 		break;
 	case NEXT_SUBPASS:
-		Serialise_vkCmdNextSubpass(GetMainSerialiser(), VK_NULL_HANDLE, VK_RENDER_PASS_CONTENTS_MAX_ENUM);
+		Serialise_vkCmdNextSubpass(GetMainSerialiser(), VK_NULL_HANDLE, VK_SUBPASS_CONTENTS_MAX_ENUM);
 		break;
 	case EXEC_CMDS:
 		Serialise_vkCmdExecuteCommands(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL);
@@ -1554,7 +1539,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdCopyImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
 		break;
 	case BLIT_IMG:
-		Serialise_vkCmdBlitImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL, VK_TEX_FILTER_MAX_ENUM);
+		Serialise_vkCmdBlitImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL, VK_FILTER_MAX_ENUM);
 		break;
 	case RESOLVE_IMG:
 		Serialise_vkCmdResolveImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
@@ -1577,17 +1562,14 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	case CLEAR_DEPTHSTENCIL:
 		Serialise_vkCmdClearDepthStencilImage(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
 		break;
-	case CLEAR_COLOR_ATTACH:
-		Serialise_vkCmdClearColorAttachment(GetMainSerialiser(), VK_NULL_HANDLE, 0, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
-		break;
-	case CLEAR_DEPTHSTENCIL_ATTACH:
-		Serialise_vkCmdClearDepthStencilAttachment(GetMainSerialiser(), VK_NULL_HANDLE, 0, VK_IMAGE_LAYOUT_MAX_ENUM, NULL, 0, NULL);
+	case CLEAR_ATTACH:
+		Serialise_vkCmdClearAttachments(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, 0, NULL);
 		break;
 	case PIPELINE_BARRIER:
 		Serialise_vkCmdPipelineBarrier(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL);
 		break;
 	case WRITE_TIMESTAMP:
-		Serialise_vkCmdWriteTimestamp(GetMainSerialiser(), VK_NULL_HANDLE, VK_TIMESTAMP_TYPE_MAX_ENUM, VK_NULL_HANDLE, 0);
+		Serialise_vkCmdWriteTimestamp(GetMainSerialiser(), VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_NULL_HANDLE, 0);
 		break;
 	case COPY_QUERY_RESULTS:
 		Serialise_vkCmdCopyQueryPoolResults(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, VK_NULL_HANDLE, 0, 0, VK_QUERY_RESULT_DEFAULT);
@@ -1603,13 +1585,13 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 		
 	case CMD_SET_EVENT:
-		Serialise_vkCmdSetEvent(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_GPU_COMMANDS);
+		Serialise_vkCmdSetEvent(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 		break;
 	case CMD_RESET_EVENT:
-		Serialise_vkCmdResetEvent(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_GPU_COMMANDS);
+		Serialise_vkCmdResetEvent(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 		break;
 	case CMD_WAIT_EVENTS:
-		Serialise_vkCmdWaitEvents(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, VK_PIPELINE_STAGE_ALL_GPU_COMMANDS, VK_PIPELINE_STAGE_ALL_GPU_COMMANDS, 0, NULL);
+		Serialise_vkCmdWaitEvents(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, NULL);
 		break;
 
 	case DRAW:
@@ -1642,7 +1624,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 
 	case CREATE_SWAP_BUFFER:
-		Serialise_vkCreateSwapchainKHR(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateSwapchainKHR(GetMainSerialiser(), VK_NULL_HANDLE, NULL, NULL, NULL);
 		break;
 
 	case CAPTURE_SCOPE:

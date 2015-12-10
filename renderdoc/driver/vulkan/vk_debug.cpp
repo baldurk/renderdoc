@@ -185,11 +185,11 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 	RDCASSERT(vkr == VK_SUCCESS);
 }
 
-void VulkanDebugManager::GPUBuffer::FillDescriptor(VkDescriptorInfo &desc)
+void VulkanDebugManager::GPUBuffer::FillDescriptor(VkDescriptorBufferInfo &desc)
 {
-	desc.bufferInfo.buffer = Unwrap(buf);
-	desc.bufferInfo.offset = 0;
-	desc.bufferInfo.range = sz;
+	desc.buffer = Unwrap(buf);
+	desc.offset = 0;
+	desc.range = sz;
 }
 
 void VulkanDebugManager::GPUBuffer::Destroy(const VkLayerDispatchTable *vt, VkDevice dev)
@@ -1243,50 +1243,58 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	// don't need to ring this, as we hard-sync for readback anyway
 	m_HistogramUBO.Create(driver, dev, sizeof(histogramuniforms), 1, 0);
 
-	VkDescriptorInfo desc[8];
-	RDCEraseEl(desc);
+	VkDescriptorBufferInfo bufInfo[6];
+	RDCEraseEl(bufInfo);
 	
 	// tex display is updated right before rendering
 	
-	m_CheckerboardUBO.FillDescriptor(desc[0]);
-	m_TextGeneralUBO.FillDescriptor(desc[1]);
-	m_TextGlyphUBO.FillDescriptor(desc[2]);
-	m_TextStringUBO.FillDescriptor(desc[3]);
-	desc[4].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	desc[4].imageView = Unwrap(m_TextAtlasView);
-	desc[4].sampler = Unwrap(m_LinearSampler);
+	m_CheckerboardUBO.FillDescriptor(bufInfo[0]);
+	m_TextGeneralUBO.FillDescriptor(bufInfo[1]);
+	m_TextGlyphUBO.FillDescriptor(bufInfo[2]);
+	m_TextStringUBO.FillDescriptor(bufInfo[3]);
+	m_MeshUBO.FillDescriptor(bufInfo[4]);
+	m_OutlineUBO.FillDescriptor(bufInfo[5]);
 	
-	m_MeshUBO.FillDescriptor(desc[6]);
-	m_OutlineUBO.FillDescriptor(desc[7]);
-
+	VkDescriptorImageInfo atlasImInfo;
+	atlasImInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	atlasImInfo.imageView = Unwrap(m_TextAtlasView);
+	atlasImInfo.sampler = Unwrap(m_LinearSampler);
+	
 	VkWriteDescriptorSet writeSet[] = {
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_CheckerboardDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[0]
+			Unwrap(m_CheckerboardDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			NULL, &bufInfo[0], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[1]
+			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			NULL, &bufInfo[1], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[2]
+			Unwrap(m_TextDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			NULL, &bufInfo[2], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[3]
+			Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			NULL, &bufInfo[3], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc[4]
+			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+			&atlasImInfo, NULL, NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_MeshDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[6]
+			Unwrap(m_MeshDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			NULL, &bufInfo[4], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_OutlineDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[7]
+			Unwrap(m_OutlineDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			NULL, &bufInfo[5], NULL
 		},
 	};
 

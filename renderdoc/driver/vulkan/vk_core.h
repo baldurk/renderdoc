@@ -264,6 +264,7 @@ private:
 		// the command buffer chunks, the partial command buffer will be
 		// created as a temporary new command buffer and when it comes to
 		// the queue that should submit it, it can submit this instead.
+		VkCommandPool resultPartialCmdPool;
 		VkCommandBuffer resultPartialCmdBuffer;
 		VkDevice partialDevice; // device for above cmd buffer
 

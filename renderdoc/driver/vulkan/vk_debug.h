@@ -127,7 +127,7 @@ class VulkanDebugManager
 			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags);
 			void Destroy(const VkLayerDispatchTable *vt, VkDevice dev);
 
-			void FillDescriptor(VkDescriptorInfo &desc);
+			void FillDescriptor(VkDescriptorBufferInfo &desc);
 
 			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize &bindoffset, VkDeviceSize usedsize = 0);
 			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, uint32_t *bindoffset = NULL, VkDeviceSize usedsize = 0);
@@ -202,7 +202,6 @@ class VulkanDebugManager
 		VkPipelineLayout m_MeshPipeLayout;
 		VkDescriptorSet m_MeshDescSet;
 		GPUBuffer m_MeshUBO, m_MeshBBoxVB, m_MeshAxisFrustumVB;
-		VkShader m_MeshShaders[3];
 		VkShaderModule m_MeshModules[3];
 		
 		GPUBuffer m_MinMaxTileResult;                    // tile result buffer
@@ -236,7 +235,7 @@ class VulkanDebugManager
 
 		VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
 		
-		void PatchFixedColShader(VkShaderModule &mod, VkShader &shad, float col[4]);
+		void PatchFixedColShader(VkShaderModule &mod, float col[4]);
 		
 		void RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text);
 		void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
