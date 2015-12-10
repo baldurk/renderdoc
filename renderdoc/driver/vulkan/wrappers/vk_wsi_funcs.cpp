@@ -657,6 +657,8 @@ void WrappedVulkan::vkDestroySurfaceKHR(
 	// now set record pointer back to NULL so no-one tries to delete it
 	wrapper->record = NULL;
 
+	VkSurfaceKHR unwrappedObj = wrapper->real.As<VkSurfaceKHR>();
+
 	GetResourceManager()->ReleaseWrappedResource(surface, true);
-	ObjDisp(instance)->DestroySurfaceKHR(Unwrap(instance), wrapper->real.As<VkSurfaceKHR>(), pAllocator);
+	ObjDisp(instance)->DestroySurfaceKHR(Unwrap(instance), unwrappedObj, pAllocator);
 }
