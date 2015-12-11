@@ -239,6 +239,15 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 	VkResult vkr = VK_SUCCESS;
 
+	VkSurfaceCapabilitiesKHR capabilities;
+
+	ObjDisp(inst)->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(phys), surface, &capabilities);
+	
+	RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+	RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+	RDCASSERT(capabilities.minImageCount <= 2 && 2 <= capabilities.maxImageCount);
+
 	// check format and present mode from driver
 	{
 		uint32_t numFormats = 0;
