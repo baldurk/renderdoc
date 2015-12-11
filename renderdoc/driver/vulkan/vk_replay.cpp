@@ -3749,7 +3749,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	VkImageCreateInfo imCreateInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 			imInfo.type, imInfo.format, imInfo.extent,
-			imInfo.mipLevels, imInfo.arrayLayers, imInfo.samples,
+			(uint32_t)imInfo.mipLevels, (uint32_t)imInfo.arrayLayers, imInfo.samples,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
@@ -3905,7 +3905,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
 				0, tmpRP,
 				1, &tmpView[i],
-				imCreateInfo.extent.width, imCreateInfo.extent.height, 1,
+				(uint32_t)imCreateInfo.extent.width, (uint32_t)imCreateInfo.extent.height, 1,
 			};
 
 			vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &tmpFB[i]);
@@ -3975,9 +3975,9 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkImageResolve resolveRegion = {
-			{ isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, mip, arrayIdx, 1 },
+			{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), mip, arrayIdx, 1 },
 			{ 0, 0, 0 },
-			{ isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
+			{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), 0, 0, 1 },
 			{ 0, 0, 0 },
 			imCreateInfo.extent,
 		};
@@ -4084,14 +4084,14 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		}
 	}
 
-	VkImageSubresource sub = { isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, mip, arrayIdx };
+	VkImageSubresource sub = { VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), mip, arrayIdx };
 	VkSubresourceLayout sublayout;
 
 	vt->GetImageSubresourceLayout(Unwrap(dev), srcImage, &sub, &sublayout);
 	
 	VkBufferImageCopy copyregion = {
 		0, 0, 0,
-		{ isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, mip, arrayIdx, 1 },
+		{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), mip, arrayIdx, 1 },
 		{ 0, 0, 0, },
 		imCreateInfo.extent,
 	};
