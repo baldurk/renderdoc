@@ -33,6 +33,8 @@
 #include "serialise/string_utils.h"
 #include "maths/formatpacking.h"
 
+#include "common/shader_cache.h"
+
 #include "driver/d3d11/d3d11_resources.h"
 
 #include "d3d11_renderstate.h"
@@ -95,6 +97,59 @@ DXGI_FORMAT GetTypedFormatUIntPreferred(DXGI_FORMAT f)
 	return f;
 }
 
+typedef HRESULT (WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob** ppBlob);
+
+struct D3DBlobShaderCallbacks
+{
+	D3DBlobShaderCallbacks()
+	{
+		HMODULE d3dcompiler = GetD3DCompiler();
+
+		if(d3dcompiler == NULL)
+			RDCFATAL("Can't get handle to d3dcompiler_??.dll");
+
+		m_BlobCreate = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
+
+		if(m_BlobCreate == NULL)
+			RDCFATAL("d3dcompiler.dll doesn't contain D3DCreateBlob");
+	}
+
+	bool Create(uint32_t size, byte *data, ID3DBlob **ret) const
+	{
+		RDCASSERT(ret);
+
+		*ret = NULL;
+		HRESULT hr = m_BlobCreate((SIZE_T)size, ret);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Couldn't create blob of size %u from shadercache: %08x", size, hr);
+			return false;
+		}
+
+		memcpy((*ret)->GetBufferPointer(), data, size);
+
+		return true;
+	}
+
+	void Destroy(ID3DBlob *blob) const
+	{
+		blob->Release();
+	}
+
+	uint32_t GetSize(ID3DBlob *blob) const
+	{
+		return (uint32_t)blob->GetBufferSize();
+	}
+
+	byte *GetData(ID3DBlob *blob) const
+	{
+		return (byte *)blob->GetBufferPointer();
+	}
+
+	pD3DCreateBlob m_BlobCreate;
+} ShaderCacheCallbacks;
+
 D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 {
 	if(RenderDoc::Inst().GetCrashHandler())
@@ -152,119 +207,10 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 		}
 	}
 
-	string shadercache = FileIO::GetAppFolderFilename("shaders.cache");
+	bool success = LoadShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache, ShaderCacheCallbacks);
 
-	m_ShaderCacheDirty = true;
-
-	FILE *f = FileIO::fopen(shadercache.c_str(), "rb");
-	if(f)
-	{
-		FileIO::fseek64(f, 0, SEEK_END);
-		uint64_t cachelen = FileIO::ftell64(f);
-		FileIO::fseek64(f, 0, SEEK_SET);
-
-		if(cachelen < 8)
-		{
-			RDCERR("Invalid shader cache");
-			m_ShaderCacheDirty = true;
-		}
-		else
-		{
-			byte *cache = new byte[(size_t)cachelen];
-			FileIO::fread(cache, 1, (size_t)cachelen, f);
-
-			uint32_t *header = (uint32_t *)cache;
-
-			uint32_t version = header[0];
-
-			if(version != m_ShaderCacheVersion)
-			{
-				RDCDEBUG("Out of date or invalid shader cache version: %d", version);
-				m_ShaderCacheDirty = true;
-			}
-			else
-			{
-				uint32_t numentries = header[1];
-
-				byte *ptr = cache+sizeof(uint32_t)*2;
-
-				int64_t bufsize = (int64_t)cachelen-sizeof(uint32_t)*2;
-
-				HMODULE d3dcompiler = GetD3DCompiler();
-
-				if(d3dcompiler == NULL)
-				{
-					RDCFATAL("Can't get handle to d3dcompiler_??.dll");
-				}
-
-				typedef HRESULT (WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob** ppBlob);
-
-				pD3DCreateBlob blobCreate = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
-
-				if(blobCreate == NULL)
-				{
-					RDCFATAL("Can't get D3DCreateBlob from d3dcompiler_??.dll");
-				}
-
-				m_ShaderCacheDirty = false;
-
-				for(uint32_t i=0; i < numentries; i++)
-				{
-					if(bufsize < sizeof(uint32_t))
-					{
-						RDCERR("Invalid shader cache");
-						m_ShaderCacheDirty = true;
-						break;
-					}
-
-					uint32_t hash = *(uint32_t *)ptr; ptr += sizeof(uint32_t); bufsize -= sizeof(uint32_t);
-
-					if(bufsize < sizeof(uint32_t))
-					{
-						RDCERR("Invalid shader cache");
-						m_ShaderCacheDirty = true;
-						break;
-					}
-
-					uint32_t len = *(uint32_t *)ptr; ptr += sizeof(uint32_t); bufsize -= sizeof(uint32_t);
-
-					if(bufsize < len)
-					{
-						RDCERR("Invalid shader cache");
-						m_ShaderCacheDirty = true;
-						break;
-					}
-
-					byte *data = ptr; ptr += len; bufsize -= len;
-
-					ID3DBlob *blob = NULL;
-					hr = blobCreate((SIZE_T)len, &blob);
-
-					if(FAILED(hr))
-					{
-						RDCERR("Couldn't create blob of size %d from shadercache: %08x", len, hr);
-						m_ShaderCacheDirty = true;
-					}
-
-					memcpy(blob->GetBufferPointer(), data, len);
-
-					m_ShaderCache[hash] = blob;
-				}
-
-				if(bufsize != 0)
-				{
-					RDCERR("Invalid shader cache");
-					m_ShaderCacheDirty = true;
-				}
-
-				RDCDEBUG("Successfully loaded %d shaders from shader cache", m_ShaderCache.size());
-			}
-
-			delete[] cache;
-		}
-
-		fclose(f);
-	}
+	// if we failed to load from the cache
+	m_ShaderCacheDirty = !success;
 
 	m_CacheShaders = true;
 
@@ -284,39 +230,7 @@ D3D11DebugManager::~D3D11DebugManager()
 	PreDeviceShutdownCounters();
 
 	if(m_ShaderCacheDirty)
-	{
-		string shadercache = FileIO::GetAppFolderFilename("shaders.cache");
-
-		FILE *f = FileIO::fopen(shadercache.c_str(), "wb");
-		if(f)
-		{
-			uint32_t version = m_ShaderCacheVersion;
-			FileIO::fwrite(&version, 1, sizeof(version), f);
-			uint32_t numentries = (uint32_t)m_ShaderCache.size();
-			FileIO::fwrite(&numentries, 1, sizeof(numentries), f);
-			
-			auto it = m_ShaderCache.begin();
-			for(uint32_t i=0; i < numentries; i++)
-			{
-				uint32_t hash = it->first;
-				uint32_t len = (uint32_t)it->second->GetBufferSize();
-				FileIO::fwrite(&hash, 1, sizeof(hash), f);
-				FileIO::fwrite(&len, 1, sizeof(len), f);
-				FileIO::fwrite(it->second->GetBufferPointer(), 1, len, f);
-
-				it->second->Release();
-				++it;
-			}
-			
-			RDCDEBUG("Successfully wrote %d shaders to shader cache", m_ShaderCache.size());
-
-			fclose(f);
-		}
-		else
-		{
-			RDCERR("Error opening shader cache for write");
-		}
-	}
+		SaveShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache, ShaderCacheCallbacks);
 
 	ShutdownFontRendering();
 	ShutdownStreamOut();

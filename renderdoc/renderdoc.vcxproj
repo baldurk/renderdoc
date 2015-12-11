@@ -241,6 +241,7 @@
     <ClInclude Include="common\common.h" />
     <ClInclude Include="common\dds_readwrite.h" />
     <ClInclude Include="common\globalconfig.h" />
+    <ClInclude Include="common\shader_cache.h" />
     <ClInclude Include="common\threading.h" />
     <ClInclude Include="common\timing.h" />
     <ClInclude Include="common\wrapped_pool.h" />

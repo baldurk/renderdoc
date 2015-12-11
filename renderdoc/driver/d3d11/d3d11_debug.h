@@ -294,7 +294,9 @@ class D3D11DebugManager
 		uint64_t m_OutputWindowID;
 		map<uint64_t, OutputWindow> m_OutputWindows;
 
-		static const uint32_t m_ShaderCacheVersion = 2;
+		static const uint32_t m_ShaderCacheMagic   = 0xf000baba;
+		static const uint32_t m_ShaderCacheVersion = 3;
+
 		bool m_ShaderCacheDirty, m_CacheShaders;
 		map<uint32_t, ID3DBlob*> m_ShaderCache;
 
