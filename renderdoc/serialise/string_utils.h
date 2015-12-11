@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <stdint.h>
 #include <string>
 #include <vector>
 using std::string;
@@ -34,6 +35,8 @@ std::string strlower(const std::string& str);
 std::wstring strlower(const std::wstring& str);
 std::string strupper(const std::string& str);
 std::wstring strupper(const std::wstring& str);
+
+uint32_t strhash(const char *str, uint32_t existingHash = 5381);
 
 template<class strType> strType basename(const strType &path)
 {

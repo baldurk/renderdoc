@@ -359,24 +359,6 @@ D3D11DebugManager::~D3D11DebugManager()
 //////////////////////////////////////////////////////
 // debug/replay functions
 
-static uint32_t strhash(const char *str, uint32_t seed = 5381)
-{
-	if(str == NULL) return seed;
-
-	uint32_t hash = seed;
-	int c = *str;
-	str++;
-
-	while(c)
-	{
-		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-		c = *str;
-		str++;
-	}
-
-	return hash;
-}
-
 string D3D11DebugManager::GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags, const char *profile, ID3DBlob **srcblob)
 {
 	uint32_t hash = strhash(source);

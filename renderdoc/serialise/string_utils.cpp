@@ -28,6 +28,24 @@
 #include <ctype.h>
 #include <wctype.h>
 
+uint32_t strhash(const char *str, uint32_t seed)
+{
+	if(str == NULL) return seed;
+
+	uint32_t hash = seed;
+	int c = *str;
+	str++;
+
+	while(c)
+	{
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+		c = *str;
+		str++;
+	}
+
+	return hash;
+}
+
 string strlower(const string& str)
 {
 	string newstr(str);
