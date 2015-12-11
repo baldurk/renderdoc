@@ -1942,8 +1942,10 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
 		float *data;
 	} alias;
 
-	alias.spirv = &m_FixedColSPIRV[0];
-	size_t spirvLength = m_FixedColSPIRV.size();
+	vector<uint32_t> spv = m_FixedColSPIRV;
+
+	alias.spirv = &spv[0];
+	size_t spirvLength = spv.size();
 
 	size_t it = 5;
 	while(it < spirvLength)
@@ -1965,7 +1967,7 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
 	
 	VkShaderModuleCreateInfo modinfo = {
 		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,
-		m_FixedColSPIRV.size()*sizeof(uint32_t), alias.spirv,
+		spv.size()*sizeof(uint32_t), alias.spirv,
 	};
 
 	VkResult vkr = m_pDriver->vkCreateShaderModule(m_Device, &modinfo, NULL, &mod);
