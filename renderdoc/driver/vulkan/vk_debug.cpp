@@ -388,10 +388,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 		
-		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, NULL, &m_MeshFetchDescSetLayout);
+		// because this will go through partial replay, needs proper creation info etc so we go through our wrapped
+		// function
+		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_MeshFetchDescSetLayout);
 		RDCASSERT(vkr == VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_MeshFetchDescSetLayout);
 	}
 
 	{
@@ -1530,12 +1530,6 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	m_OutlineUBO.Destroy(vt, dev);
 	
-	if(m_MeshFetchDescSetLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_MeshFetchDescSetLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_MeshFetchDescSetLayout);
-	}
-	
 	if(m_HistogramDescSetLayout != VK_NULL_HANDLE)
 	{
 		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_HistogramDescSetLayout), NULL);
@@ -1575,7 +1569,10 @@ VulkanDebugManager::~VulkanDebugManager()
 	m_HistogramReadback.Destroy(vt, dev);
 	m_HistogramUBO.Destroy(vt, dev);
 
-	// overlay resources are allocated through driver
+	// overlay & postvs resources are allocated through driver
+	if(m_MeshFetchDescSetLayout != VK_NULL_HANDLE)
+		m_pDriver->vkDestroyDescriptorSetLayout(dev, m_MeshFetchDescSetLayout, NULL);
+
 	if(m_OverlayNoDepthFB != VK_NULL_HANDLE)
 		m_pDriver->vkDestroyFramebuffer(dev, m_OverlayNoDepthFB, NULL);
 
