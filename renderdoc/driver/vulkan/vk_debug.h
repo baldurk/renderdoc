@@ -234,6 +234,14 @@ class VulkanDebugManager
 		void ShutdownDebugData();
 
 		VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
+
+		static const uint32_t m_ShaderCacheMagic   = 0xf00d00d5;
+		static const uint32_t m_ShaderCacheVersion = 1;
+
+		bool m_ShaderCacheDirty, m_CacheShaders;
+		map<uint32_t, vector<uint32_t>*> m_ShaderCache;
+		
+		string GetSPIRVBlob(SPIRVShaderStage shadType, const std::vector<std::string> &sources, vector<uint32_t> **outBlob);
 		
 		void PatchFixedColShader(VkShaderModule &mod, float col[4]);
 		
@@ -245,7 +253,7 @@ class VulkanDebugManager
 		float m_FontCharAspect;
 		float m_FontCharSize;
 
-		vector<uint32_t> m_FixedColSPIRV;
+		vector<uint32_t> *m_FixedColSPIRV;
 		
 		map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
 

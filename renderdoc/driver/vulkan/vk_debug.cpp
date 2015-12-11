@@ -24,12 +24,14 @@
 
 #include "vk_debug.h"
 #include "vk_core.h"
-#include "maths/matrix.h"
-
-#include "stb/stb_truetype.h"
 
 #include "driver/shaders/spirv/spirv_common.h"
 
+#include "maths/matrix.h"
+#include "common/shader_cache.h"
+#include "serialise/string_utils.h"
+
+#include "3rdparty/stb/stb_truetype.h"
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 
 // VKTODOMED should share this between shader and C++ - need #include support in glslang
@@ -252,6 +254,84 @@ void VulkanDebugManager::GPUBuffer::Unmap(const VkLayerDispatchTable *vt, VkDevi
 	vt->UnmapMemory(Unwrap(dev), Unwrap(mem));
 }
 
+struct VulkanBlobShaderCallbacks
+{
+	bool Create(uint32_t size, byte *data, vector<uint32_t> **ret) const
+	{
+		RDCASSERT(ret);
+
+		vector<uint32_t> *blob = new vector<uint32_t>();
+
+		blob->resize(size/sizeof(uint32_t));
+		
+		memcpy(&(*blob)[0], data, size);
+
+		*ret = blob;
+
+		return true;
+	}
+
+	void Destroy(vector<uint32_t> *blob) const
+	{
+		delete blob;
+	}
+
+	uint32_t GetSize(vector<uint32_t> *blob) const
+	{
+		return (uint32_t)(blob->size()*sizeof(uint32_t));
+	}
+
+	byte *GetData(vector<uint32_t> *blob) const
+	{
+		return (byte *)&(*blob)[0];
+	}
+} ShaderCacheCallbacks;
+
+string VulkanDebugManager::GetSPIRVBlob(SPIRVShaderStage shadType, const std::vector<std::string> &sources, vector<uint32_t> **outBlob)
+{
+	RDCASSERT(sources.size() > 0);
+
+	uint32_t hash = strhash(sources[0].c_str());
+	for(size_t i=1; i < sources.size(); i++)
+		hash = strhash(sources[i].c_str(), hash);
+
+	char typestr[2] = { 'a', 0 };
+	typestr[0] += (int)shadType;
+	hash = strhash(typestr, hash);
+
+	if(m_ShaderCache.find(hash) != m_ShaderCache.end())
+	{
+		*outBlob = m_ShaderCache[hash];
+		return "";
+	}
+
+	vector<uint32_t> *spirv = new vector<uint32_t>();
+	string errors = CompileSPIRV(shadType, sources, *spirv);
+
+	if(!errors.empty())
+	{
+		string logerror = errors;
+		if(logerror.length() > 1024)
+			logerror = logerror.substr(0, 1024) + "...";
+
+		RDCWARN("Shader compile error:\n%s", logerror.c_str());
+
+		delete spirv;
+		*outBlob = NULL;
+		return errors;
+	}
+	
+	*outBlob = spirv;
+
+	if(m_CacheShaders)
+	{
+		m_ShaderCache[hash] = spirv;
+		m_ShaderCacheDirty = true;
+	}
+	
+	return errors;
+}
+
 VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 {
 	// VKTODOLOW needs tidy up - isn't scalable. Needs more classes like UBO above.
@@ -317,6 +397,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	m_Device = dev;
 	
+	bool success = LoadShaderCache("vkshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache, ShaderCacheCallbacks);
+
+	// if we failed to load from the cache
+	m_ShaderCacheDirty = !success;
+
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkResult vkr = VK_SUCCESS;
@@ -631,30 +716,32 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		NUM_SHADERS,
 	};
 
-	vector<uint32_t> shaderSPIRV[NUM_SHADERS];
+	vector<uint32_t> *shaderSPIRV[NUM_SHADERS];
 	VkShaderModule module[NUM_SHADERS];
 
 	RDCCOMPILE_ASSERT( ARRAY_COUNT(shaderSources) == ARRAY_COUNT(shaderStages), "Mismatched arrays!" );
 	RDCCOMPILE_ASSERT( ARRAY_COUNT(shaderSources) == NUM_SHADERS, "Mismatched arrays!" );
 
 	vector<string> sources;
+	
+	m_CacheShaders = true;
 
 	sources.push_back(GetEmbeddedResource(spirv_fixedcol_frag));
 
-	string err = CompileSPIRV(eSPIRVFragment, sources, m_FixedColSPIRV);
-	RDCASSERT(!m_FixedColSPIRV.empty());
+	string err = GetSPIRVBlob(eSPIRVFragment, sources, &m_FixedColSPIRV);
+	RDCASSERT(err.empty() && m_FixedColSPIRV);
 	
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
 		sources.clear();
 		sources.push_back(shaderSources[i]);
 
-		string err = CompileSPIRV(shaderStages[i], sources, shaderSPIRV[i]);
-		RDCASSERT(!m_FixedColSPIRV.empty());
+		string err = GetSPIRVBlob(shaderStages[i], sources, &shaderSPIRV[i]);
+		RDCASSERT(err.empty() && shaderSPIRV);
 
 		VkShaderModuleCreateInfo modinfo = {
 			VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,
-			shaderSPIRV[i].size()*sizeof(uint32_t), &shaderSPIRV[i][0],
+			shaderSPIRV[i]->size()*sizeof(uint32_t), &(*shaderSPIRV[i])[0],
 		};
 
 		vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &module[i]);
@@ -662,6 +749,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 		GetResourceManager()->WrapResource(Unwrap(dev), module[i]);
 	}
+	
+	m_CacheShaders = false;
 
 	VkRenderPass RGBA32RP, RGBA8RP, RGBA16RP, RGBA8MSRP; // compatible render passes for creating pipelines
 
@@ -1297,9 +1386,19 @@ VulkanDebugManager::~VulkanDebugManager()
 {
 	VkDevice dev = m_Device;
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
+	
+	if(m_ShaderCacheDirty)
+	{
+		SaveShaderCache("vkshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache, ShaderCacheCallbacks);
+	}
+	else
+	{
+		for(auto it = m_ShaderCache.begin(); it != m_ShaderCache.end(); ++it)
+			ShaderCacheCallbacks.Destroy(it->second);
+	}
 
 	VkResult vkr = VK_SUCCESS;
-
+	
 	for(auto it=m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
 	{
 		if(it->second.vsout.buf != VK_NULL_HANDLE)
@@ -1939,7 +2038,7 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
 		float *data;
 	} alias;
 
-	vector<uint32_t> spv = m_FixedColSPIRV;
+	vector<uint32_t> spv = *m_FixedColSPIRV;
 
 	alias.spirv = &spv[0];
 	size_t spirvLength = spv.size();

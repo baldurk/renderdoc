@@ -230,7 +230,14 @@ D3D11DebugManager::~D3D11DebugManager()
 	PreDeviceShutdownCounters();
 
 	if(m_ShaderCacheDirty)
+	{
 		SaveShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache, ShaderCacheCallbacks);
+	}
+	else
+	{
+		for(auto it = m_ShaderCache.begin(); it != m_ShaderCache.end(); ++it)
+			ShaderCacheCallbacks.Destroy(it->second);
+	}
 
 	ShutdownFontRendering();
 	ShutdownStreamOut();
