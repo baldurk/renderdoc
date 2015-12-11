@@ -273,13 +273,13 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
         else if (!wcsncmp(&myEnv[0], L"VK_DEVICE_LAYERS=", sizeof("VK_DEVICE_LAYERS=") - 1))
         {
             sawdevice = true;
-            newEnv += L"VK_DEVICE_LAYERS=RenderDoc;";
+            newEnv += L"VK_DEVICE_LAYERS=VK_LAYER_RENDERDOC_Capture;";
             myEnv += (sizeof("VK_DEVICE_LAYERS=") - 1);
         }
         else if (!wcsncmp(&myEnv[0], L"VK_INSTANCE_LAYERS=", sizeof("VK_INSTANCE_LAYERS=") - 1))
         {
             sawinstance = true;
-            newEnv += L"VK_INSTANCE_LAYERS=RenderDoc;";
+            newEnv += L"VK_INSTANCE_LAYERS=VK_LAYER_RENDERDOC_Capture;";
             myEnv += (sizeof("VK_INSTANCE_LAYERS=") - 1);
         }
         else
@@ -297,13 +297,13 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 
     if (!sawdevice)
     {
-        newEnv += L"VK_DEVICE_LAYERS=RenderDoc";
+        newEnv += L"VK_DEVICE_LAYERS=VK_LAYER_RENDERDOC_Capture";
         newEnv.push_back(L'\0');
     }
 
     if (!sawinstance)
     {
-        newEnv += L"VK_INSTANCE_LAYERS=RenderDoc";
+        newEnv += L"VK_INSTANCE_LAYERS=VK_LAYER_RENDERDOC_Capture";
         newEnv.push_back(L'\0');
     }
 
