@@ -1503,18 +1503,18 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 		VkDeviceSize offs = cfg.position.offset;
 		vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
 	}
+
+	// can't support secondary shading without a buffer - no pipeline will have been created
+	if(cfg.solidShadeMode == eShade_Secondary && cfg.second.buf == ResourceId())
+		cfg.solidShadeMode = eShade_None;
 	
-	if(cfg.second.buf != ResourceId())
+	if(cfg.solidShadeMode == eShade_Secondary)
 	{
 		VkBuffer vb = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(cfg.second.buf);
 
 		VkDeviceSize offs = cfg.second.offset;
 		vt->CmdBindVertexBuffers(Unwrap(cmd), 1, 1, UnwrapPtr(vb), &offs);
 	}
-
-	// can't support secondary shading without a buffer - no pipeline will have been created
-	if(cfg.solidShadeMode == eShade_Secondary && cfg.second.buf == ResourceId())
-		cfg.solidShadeMode = eShade_None;
 	
 	// solid render
 	if(cfg.solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList)
