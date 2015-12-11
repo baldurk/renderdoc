@@ -61,15 +61,14 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	}
 
 #if defined(FORCE_VALIDATION_LAYERS)
-	params.Layers.push_back("Threading");
-	params.Layers.push_back("MemTracker");
-	params.Layers.push_back("ObjectTracker");
-	params.Layers.push_back("DrawState");
-	params.Layers.push_back("ParamChecker");
-	params.Layers.push_back("ShaderChecker");
-	params.Layers.push_back("Swapchain");
-	params.Layers.push_back("DeviceLimits");
-	params.Layers.push_back("Image");
+	params.Layers.push_back("VK_LAYER_LUNARG_Threading");
+	params.Layers.push_back("VK_LAYER_LUNARG_MemTracker");
+	params.Layers.push_back("VK_LAYER_LUNARG_ObjectTracker");
+	params.Layers.push_back("VK_LAYER_LUNARG_DrawState");
+	params.Layers.push_back("VK_LAYER_LUNARG_ParamChecker");
+	params.Layers.push_back("VK_LAYER_LUNARG_Swapchain");
+	params.Layers.push_back("VK_LAYER_LUNARG_DeviceLimits");
+	params.Layers.push_back("VK_LAYER_LUNARG_Image");
 
 	params.Extensions.push_back("DEBUG_REPORT");
 #endif
@@ -424,15 +423,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		for(uint32_t i=0; i < createInfo.enabledLayerNameCount; i++)
 			layers.push_back(createInfo.ppEnabledLayerNames[i]);
 
-		layers.push_back("Threading");
-		layers.push_back("MemTracker");
-		layers.push_back("ObjectTracker");
-		layers.push_back("DrawState");
-		layers.push_back("ParamChecker");
-		layers.push_back("ShaderChecker");
-		layers.push_back("Swapchain");
-		layers.push_back("DeviceLimits");
-		layers.push_back("Image");
+		layers.push_back("VK_LAYER_LUNARG_Threading");
+		layers.push_back("VK_LAYER_LUNARG_MemTracker");
+		layers.push_back("VK_LAYER_LUNARG_ObjectTracker");
+		layers.push_back("VK_LAYER_LUNARG_DrawState");
+		layers.push_back("VK_LAYER_LUNARG_ParamChecker");
+		layers.push_back("VK_LAYER_LUNARG_Swapchain");
+		layers.push_back("VK_LAYER_LUNARG_DeviceLimits");
+		layers.push_back("VK_LAYER_LUNARG_Image");
 
 		createInfo.enabledLayerNameCount = (uint32_t)layers.size();
 		createInfo.ppEnabledLayerNames = &layers[0];
