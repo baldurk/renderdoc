@@ -24,8 +24,11 @@
  
 #version 420 core
 
-layout (location = 0) in vec4 INsecondary;
-layout (location = 1) in vec4 INnorm;
+in v2f
+{
+	vec4 secondary;
+	vec4 norm;
+} IN;
 
 layout (binding = 0, std140) uniform meshuniforms
 {
@@ -50,17 +53,17 @@ void main(void)
 	
 	if(type == MESHDISPLAY_SECONDARY)
 	{
-		color_out = vec4(INsecondary.xyz, 1);
+		color_out = vec4(IN.secondary.xyz, 1);
 	}
 	else if(type == MESHDISPLAY_SECONDARY_ALPHA)
 	{
-		color_out = vec4(INsecondary.www, 1);
+		color_out = vec4(IN.secondary.www, 1);
 	}
 	else if(type == MESHDISPLAY_FACELIT)
 	{
 		vec3 lightDir = normalize(vec3(0, -0.3f, -1));
 
-		color_out = vec4(Mesh.color.xyz*abs(dot(lightDir, INnorm.xyz)), 1);
+		color_out = vec4(Mesh.color.xyz*abs(dot(lightDir, IN.norm.xyz)), 1);
 	}
 	else //if(type == MESHDISPLAY_SOLID)
 	{

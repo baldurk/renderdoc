@@ -44,8 +44,11 @@ out gl_PerVertex
 	float gl_ClipDistance[];
 };
 
-layout (location = 0) out vec4 OUTsecondary;
-layout (location = 1) out vec4 OUTnorm;
+out v2f
+{
+	vec4 secondary;
+	vec4 norm;
+} OUT;
 
 void main(void)
 {
@@ -65,8 +68,8 @@ void main(void)
 
 	gl_Position = Mesh.mvp * pos;
 	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[gl_VertexID%4]*gl_Position.w;
-	OUTsecondary = secondary;
-	OUTnorm = vec4(0, 0, 1, 1);
+	OUT.secondary = secondary;
+	OUT.norm = vec4(0, 0, 1, 1);
 
 	// GL->VK conventions
 	gl_Position.y = -gl_Position.y;
