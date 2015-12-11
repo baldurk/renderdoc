@@ -452,6 +452,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		uint32_t qFamilyIdx = 0;
 		VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT);
 
+		// for queue priorities, if we need it
+		float one = 1.0f;
+
 		// if we need to change the requested queues, it will point to this
 		VkDeviceQueueCreateInfo *modQueues = NULL;
 
@@ -498,6 +501,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 				modQueues[createInfo.queueCreateInfoCount].queueFamilyIndex = qFamilyIdx;
 				modQueues[createInfo.queueCreateInfoCount].queueCount = 1;
+				modQueues[createInfo.queueCreateInfoCount].pQueuePriorities = &one;
 
 				createInfo.pQueueCreateInfos = modQueues;
 				createInfo.queueCreateInfoCount++;
@@ -606,6 +610,9 @@ VkResult WrappedVulkan::vkCreateDevice(
 	uint32_t qFamilyIdx = 0;
 	VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT);
 
+	// for queue priorities, if we need it
+	float one = 1.0f;
+
 	// if we need to change the requested queues, it will point to this
 	VkDeviceQueueCreateInfo *modQueues = NULL;
 
@@ -652,6 +659,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 		modQueues[createInfo.queueCreateInfoCount].queueFamilyIndex = qFamilyIdx;
 		modQueues[createInfo.queueCreateInfoCount].queueCount = 1;
+		modQueues[createInfo.queueCreateInfoCount].pQueuePriorities = &one;
 
 		createInfo.pQueueCreateInfos = modQueues;
 		createInfo.queueCreateInfoCount++;
