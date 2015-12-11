@@ -34,7 +34,7 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceSupportKHR(
 		VkSurfaceKHR                                surface,
     VkBool32*                                   pSupported)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceSurfaceSupportKHR(Unwrap(physicalDevice), queueFamilyIndex, surface, pSupported);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceSurfaceSupportKHR(Unwrap(physicalDevice), queueFamilyIndex, Unwrap(surface), pSupported);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
@@ -42,7 +42,7 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
     VkSurfaceKHR                                surface,
     VkSurfaceCapabilitiesKHR*                   pSurfaceCapabilities)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(physicalDevice), surface, pSurfaceCapabilities);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(physicalDevice), Unwrap(surface), pSurfaceCapabilities);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -51,7 +51,7 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceFormatsKHR(
     uint32_t*                                   pSurfaceFormatCount,
     VkSurfaceFormatKHR*                         pSurfaceFormats)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(physicalDevice), surface, pSurfaceFormatCount, pSurfaceFormats);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(physicalDevice), Unwrap(surface), pSurfaceFormatCount, pSurfaceFormats);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceSurfacePresentModesKHR(
@@ -60,7 +60,7 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceSurfacePresentModesKHR(
     uint32_t*                                   pPresentModeCount,
     VkPresentModeKHR*                           pPresentModes)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(physicalDevice), surface, pPresentModeCount, pPresentModes);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(physicalDevice), Unwrap(surface), pPresentModeCount, pPresentModes);
 }
 
 bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(

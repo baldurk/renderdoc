@@ -241,7 +241,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 	VkSurfaceCapabilitiesKHR capabilities;
 
-	ObjDisp(inst)->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(phys), surface, &capabilities);
+	ObjDisp(inst)->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(phys), Unwrap(surface), &capabilities);
 	
 	RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
 	RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
@@ -252,14 +252,14 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	{
 		uint32_t numFormats = 0;
 
-		vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), surface, &numFormats, NULL);
+		vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), Unwrap(surface), &numFormats, NULL);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		if(numFormats > 0)
 		{
 			VkSurfaceFormatKHR *formats = new VkSurfaceFormatKHR[numFormats];
 
-			vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), surface, &numFormats, formats);
+			vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), Unwrap(surface), &numFormats, formats);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			if(numFormats == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
@@ -297,14 +297,14 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 		uint32_t numModes = 0;
 
-		vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), surface, &numModes, NULL);
+		vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), Unwrap(surface), &numModes, NULL);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		if(numModes > 0)
 		{
 			VkPresentModeKHR *modes = new VkPresentModeKHR[numModes];
 
-			vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), surface, &numModes, modes);
+			vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), Unwrap(surface), &numModes, modes);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			// If mailbox mode is available, use it, as is the lowest-latency non-
