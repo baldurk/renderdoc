@@ -1121,14 +1121,7 @@ void WrappedVulkan::ReadLogInitialisation()
 		RenderDoc::Inst().SetProgress(FileInitialRead, float(m_pSerialiser->GetOffset())/float(m_pSerialiser->GetSize()));
 
 		if(context == CAPTURE_SCOPE)
-		{
-			GetResourceManager()->ApplyInitialContents();
-
-			SubmitCmds();
-			FlushQ();
-
 			ContextReplayLog(READING, 0, 0, false);
-		}
 
 		uint64_t offset2 = m_pSerialiser->GetOffset();
 
@@ -1181,6 +1174,16 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	Serialise_BeginCaptureFrame(!partial);
 	
 	ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
+
+	// apply initial contents here so that images are in the right layout
+	// (not undefined)
+	if(readType == READING)
+	{
+		GetResourceManager()->ApplyInitialContents();
+
+		SubmitCmds();
+		FlushQ();
+	}
 
 	m_pSerialiser->PopContext(header);
 
