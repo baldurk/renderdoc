@@ -1034,8 +1034,6 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	displayformat |= textype;
 
 	descSetBinding += textype;
-
-	// VKTODOMED: RESTYPE_TEXBUFFER
 	
 	if(!IsSRGBFormat(iminfo.format) && cfg.linearDisplayAsGamma)
 		displayformat |= TEXDISPLAY_GAMMA_CURVE;

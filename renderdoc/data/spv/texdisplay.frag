@@ -42,7 +42,7 @@ void main(void)
 
 	scr /= texdisplay.Scale;
 
-	if(texType == RESTYPE_TEX1D || texType == RESTYPE_TEXBUFFER)
+	if(texType == RESTYPE_TEX1D)
 	{
 		// by convention display 1D textures as 100 high
 		if(scr.x < 0.0f || scr.x > texdisplay.TextureResolutionPS.x || scr.y < 0.0f || scr.y > 100.0f)

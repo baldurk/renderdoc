@@ -159,9 +159,8 @@ BINDING (0, 0) uniform TexDisplayUBOData
 #define RESTYPE_TEX1D          0x1
 #define RESTYPE_TEX2D          0x2
 #define RESTYPE_TEX3D          0x3
-#define RESTYPE_TEXBUFFER      0x4
-#define RESTYPE_TEX2DMS        0x5
-#define RESTYPE_TEXTYPEMAX     0x6
+#define RESTYPE_TEX2DMS        0x4
+#define RESTYPE_TEXTYPEMAX     0x5
 
 #define MESHDISPLAY_SOLID           0x1
 #define MESHDISPLAY_FACELIT         0x2

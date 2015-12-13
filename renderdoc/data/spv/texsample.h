@@ -28,8 +28,7 @@
 layout (binding = 6) uniform sampler1DArray tex1DArray;
 layout (binding = 7) uniform sampler2DArray tex2DArray;
 layout (binding = 8) uniform sampler3D tex3D;
-layout (binding = 9) uniform samplerBuffer texBuffer;
-layout (binding = 10) uniform sampler2DMS tex2DMS;
+layout (binding = 9) uniform sampler2DMS tex2DMS;
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -46,10 +45,6 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 	else if (type == RESTYPE_TEX3D)
 	{
 		col = textureLod(tex3D, vec3(pos / texRes.xy, slice / texRes.z), float(mipLevel));
-	}
-	else if (type == RESTYPE_TEXBUFFER)
-	{
-		col = texelFetch(texBuffer, int(pos.x));
 	}
 	else if (type == RESTYPE_TEX2DMS)
 	{
@@ -80,8 +75,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 layout (binding = 11) uniform usampler1DArray texUInt1DArray;
 layout (binding = 12) uniform usampler2DArray texUInt2DArray;
 layout (binding = 13) uniform usampler3D texUInt3D;
-layout (binding = 14) uniform usamplerBuffer texUIntBuffer;
-layout (binding = 15) uniform usampler2DMS texUInt2DMS;
+layout (binding = 14) uniform usampler2DMS texUInt2DMS;
 
 uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -98,10 +92,6 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 	else if (type == RESTYPE_TEX3D)
 	{
 		col = texelFetch(texUInt3D, ivec3(pos, slice), mipLevel);
-	}
-	else if (type == RESTYPE_TEXBUFFER)
-	{
-		col = texelFetch(texUIntBuffer, int(pos.x));
 	}
 	else if (type == RESTYPE_TEX2DMS)
 	{
@@ -120,8 +110,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 layout (binding = 16) uniform isampler1DArray texSInt1DArray;
 layout (binding = 17) uniform isampler2DArray texSInt2DArray;
 layout (binding = 18) uniform isampler3D texSInt3D;
-layout (binding = 19) uniform isamplerBuffer texSIntBuffer;
-layout (binding = 20) uniform isampler2DMS texSInt2DMS;
+layout (binding = 19) uniform isampler2DMS texSInt2DMS;
 
 ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -138,10 +127,6 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 	else if (type == RESTYPE_TEX3D)
 	{
 		col = texelFetch(texSInt3D, ivec3(pos, slice), mipLevel);
-	}
-	else if (type == RESTYPE_TEXBUFFER)
-	{
-		col = texelFetch(texSIntBuffer, int(pos.x));
 	}
 	else if (type == RESTYPE_TEX2DMS)
 	{
