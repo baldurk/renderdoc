@@ -231,6 +231,9 @@
     <ClInclude Include="common\shader_cache.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="data\spv\debuguniforms.h">
+      <Filter>Resources\spv</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -446,12 +449,6 @@
       <Filter>Resources\spv</Filter>
     </None>
     <None Include="data\spv\text.vert">
-      <Filter>Resources\spv</Filter>
-    </None>
-    <None Include="data\spv\generic.frag">
-      <Filter>Resources\spv</Filter>
-    </None>
-    <None Include="data\spv\generic.vert">
       <Filter>Resources\spv</Filter>
     </None>
     <None Include="data\spv\fixedcol.frag">

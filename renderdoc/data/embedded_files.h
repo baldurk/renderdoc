@@ -60,5 +60,6 @@ DECLARE_EMBED(spirv_minmaxtile_comp);
 DECLARE_EMBED(spirv_minmaxresult_comp);
 DECLARE_EMBED(spirv_histogram_comp);
 DECLARE_EMBED(spirv_outline_frag);
+DECLARE_EMBED(spirv_debuguniforms_h);
 
 #undef DECLARE_EMBED

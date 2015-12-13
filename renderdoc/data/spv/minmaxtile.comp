@@ -22,37 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-// compute shaders that figure out the min/max values or histogram in a texture heirarchically
-// note that we have to conditionally compile this shader for float/uint/sint as doing that
-// dynamically produces a shader with too many temp registers unfortunately.
-
-#version 430 core
-
-#define HGRAM_PIXELS_PER_TILE  64u
-#define HGRAM_TILES_PER_BLOCK  32u
-
-#define HGRAM_NUM_BUCKETS	   256u
-
 layout(binding=0, std140) writeonly buffer minmaxtiledest
 {
 	vec4 tiles[];
 } dest;
-
-layout(binding=2, std140) uniform HistogramCBufferData
-{
-	uint HistogramChannels;
-	float HistogramMin;
-	float HistogramMax;
-	uint HistogramFlags;
-	
-	float HistogramSlice;
-	int HistogramMip;
-	int HistogramSample;
-	int HistogramNumSamples;
-
-	vec3 HistogramTextureResolution;
-	float Padding3;
-} minmax;
 
 layout (binding = 3) uniform sampler2D tex;
 
@@ -63,7 +36,7 @@ void main()
 	uvec3 tid = gl_LocalInvocationID;
 	uvec3 gid = gl_WorkGroupID;
 
-	uvec3 texDim = uvec3(minmax.HistogramTextureResolution);
+	uvec3 texDim = uvec3(histogram_minmax.HistogramTextureResolution);
 
 	uint blocksX = uint(ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK)));
 
@@ -81,7 +54,7 @@ void main()
 		{
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
-				vec4 data = textureLod(tex, vec2(x, y) / minmax.HistogramTextureResolution.xy, float(minmax.HistogramMip));
+				vec4 data = textureLod(tex, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy, float(histogram_minmax.HistogramMip));
 
 				if(i == 0)
 				{

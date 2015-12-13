@@ -22,20 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#version 420 core
-
 layout (location = 0) in vec4 position;
 layout (location = 1) in vec4 secondary;
-
-layout (binding = 0, std140) uniform meshuniforms
-{
-	mat4 mvp;
-	mat4 invProj;
-	vec4 color;
-	uint displayFormat;
-	uint homogenousInput;
-	vec2 pointSpriteSize;
-} Mesh;
 
 out gl_PerVertex
 {

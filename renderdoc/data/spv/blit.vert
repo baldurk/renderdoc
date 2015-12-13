@@ -22,8 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#version 420 core
-
 out gl_PerVertex
 {
 	vec4 gl_Position;

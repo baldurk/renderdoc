@@ -22,37 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-// compute shaders that figure out the min/max values or histogram in a texture heirarchically
-// note that we have to conditionally compile this shader for float/uint/sint as doing that
-// dynamically produces a shader with too many temp registers unfortunately.
-
-#version 430 core
-
-#define HGRAM_PIXELS_PER_TILE  64u
-#define HGRAM_TILES_PER_BLOCK  32u
-
-#define HGRAM_NUM_BUCKETS	   256u
-
 layout(binding=0, std140) writeonly buffer minmaxresultdest
 {
 	uint result[HGRAM_NUM_BUCKETS];
 } dest;
-
-layout(binding=2, std140) uniform HistogramCBufferData
-{
-	uint HistogramChannels;
-	float HistogramMin;
-	float HistogramMax;
-	uint HistogramFlags;
-	
-	float HistogramSlice;
-	int HistogramMip;
-	int HistogramSample;
-	int HistogramNumSamples;
-
-	vec3 HistogramTextureResolution;
-	float Padding3;
-} histogram;
 
 layout (binding = 3) uniform sampler2D tex;
 
@@ -63,7 +36,7 @@ void main()
 	uvec3 tid = gl_LocalInvocationID;
 	uvec3 gid = gl_WorkGroupID;
 
-	uvec3 texDim = uvec3(histogram.HistogramTextureResolution);
+	uvec3 texDim = uvec3(histogram_minmax.HistogramTextureResolution);
 
 	uint blocksX = uint(ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK)));
 
@@ -78,26 +51,26 @@ void main()
 			uint bucketIdx = HGRAM_NUM_BUCKETS+1;
 
 			{
-				vec4 data = textureLod(tex, vec2(x, y) / histogram.HistogramTextureResolution.xy, float(histogram.HistogramMip));
+				vec4 data = textureLod(tex, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy, float(histogram_minmax.HistogramMip));
 
 				float divisor = 0.0f;
 				float sum = 0.0f;
-				if((histogram.HistogramChannels & 0x1u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x1u) > 0)
 				{
 					sum += data.x;
 					divisor += 1.0f;
 				}
-				if((histogram.HistogramChannels & 0x2u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x2u) > 0)
 				{
 					sum += data.y;
 					divisor += 1.0f;
 				}
-				if((histogram.HistogramChannels & 0x4u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x4u) > 0)
 				{
 					sum += data.z;
 					divisor += 1.0f;
 				}
-				if((histogram.HistogramChannels & 0x8u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x8u) > 0)
 				{
 					sum += data.w;
 					divisor += 1.0f;
@@ -107,7 +80,7 @@ void main()
 				{
 					float val = sum/divisor;
 
-					float normalisedVal = (val - histogram.HistogramMin)/(histogram.HistogramMax - histogram.HistogramMin);
+					float normalisedVal = (val - histogram_minmax.HistogramMin)/(histogram_minmax.HistogramMax - histogram_minmax.HistogramMin);
 
 					if(normalisedVal < 0.0f)
 						normalisedVal = 2.0f;

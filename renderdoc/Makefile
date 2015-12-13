@@ -76,6 +76,7 @@ data/spv/histogramcs.spvo \
 data/spv/minmaxtilecs.spvo \
 data/spv/minmaxresultcs.spvo \
 data/spv/outline.spvo \
+data/spv/debuguniforms.ho \
 data/sourcecodepro.ttfo
 
 .PHONY: all

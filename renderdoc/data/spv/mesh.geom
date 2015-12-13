@@ -21,8 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
- 
-#version 420 core
 
 layout(triangles, invocations = 1) in;
 layout(triangle_strip, max_vertices = 3) out;
@@ -38,16 +36,6 @@ out v2f
 	vec4 secondary;
 	vec4 norm;
 } OUT;
-
-layout (binding = 0, std140) uniform meshuniforms
-{
-	mat4 mvp;
-	mat4 invProj;
-	vec4 color;
-	uint displayFormat;
-	uint homogenousInput;
-	vec2 pointSpriteSize;
-} Mesh;
 
 out gl_PerVertex
 {

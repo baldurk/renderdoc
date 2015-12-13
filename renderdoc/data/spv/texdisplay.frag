@@ -22,45 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#version 420 core
-
 layout (location = 0) out vec4 color_out;
-
-layout (binding = 0, std140) uniform displayuniforms
-{
-	vec2  Position;
-	float Scale;
-	float HDRMul;
-
-	vec4  Channels;
-
-	float RangeMinimum;
-	float InverseRangeSize;
-	float MipLevel;
-	int   FlipY;
-
-	vec3  TextureResolutionPS;
-	int   OutputDisplayFormat;
-
-	vec2  OutputRes;
-	int   RawOutput;
-	float Slice;
-
-	int   SampleIdx;
-	int   NumSamples;
-	vec2  Padding;
-} texdisplay;
-
-#define TEXDISPLAY_TYPEMASK    0xF
-#define TEXDISPLAY_UINT_TEX    0x10
-#define TEXDISPLAY_SINT_TEX    0x20
-#define TEXDISPLAY_NANS        0x80
-#define TEXDISPLAY_CLIPPING    0x100
-#define TEXDISPLAY_GAMMA_CURVE 0x200
-
-#ifndef FLT_EPSILON
-#define FLT_EPSILON 1.192092896e-07f
-#endif
 
 layout (binding = 1) uniform sampler2D tex;
 

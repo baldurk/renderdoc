@@ -22,34 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#version 420 core
-
-layout (binding = 0, std140) uniform fontuniforms
-{
-	vec2  TextPosition;
-	float txtpadding;
-	float TextSize;
-
-	vec2  CharacterSize;
-	vec2  FontScreenAspect;
-} general;
-
-struct glyph
-{
-	vec4 posdata;
-	vec4 uvdata;
-};
-
-layout (binding = 1, std140) uniform glyphdata
-{
-	glyph data[127-32];
-} glyphs;
-
-layout (binding = 2, std140) uniform stringdata
-{
-	uvec4 chars[256];
-} str;
-
 out gl_PerVertex
 {
 	vec4 gl_Position;
@@ -57,8 +29,11 @@ out gl_PerVertex
 	float gl_ClipDistance[];
 };
 
-layout (location = 0) out vec4 OUTtex;
-layout (location = 1) out vec2 OUTglyphuv;
+out v2f
+{
+	vec4 tex;
+	vec2 glyphuv;
+} OUT;
 
 void main(void)
 {
@@ -73,9 +48,9 @@ void main(void)
 	vec2 charPos = vec2(strindex + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
 	
 
-	glyph G = glyphs.data[ str.chars[strindex].x ];
+	FontGlyphData G = glyphs.data[ str.chars[strindex].x ];
 	
 	gl_Position = vec4(charPos.xy*2.0f*general.TextSize*general.FontScreenAspect.xy + vec2(-1, -1), 1, 1);
-	OUTglyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
-	OUTtex = G.uvdata * general.CharacterSize.xyxy;
+	OUT.glyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
+	OUT.tex = G.uvdata * general.CharacterSize.xyxy;
 }

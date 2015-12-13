@@ -46,6 +46,7 @@
 #define RESOURCE_spirv_minmaxresult_comp 413
 #define RESOURCE_spirv_histogram_comp    414
 #define RESOURCE_spirv_outline_frag      415
+#define RESOURCE_spirv_debuguniforms_h   416
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

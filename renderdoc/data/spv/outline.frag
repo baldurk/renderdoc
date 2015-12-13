@@ -22,18 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#version 420 core
-
 layout (location = 0) out vec4 color_out;
-
-layout (binding = 0, std140) uniform outlineuniforms
-{
-	vec4 Inner_Color;
-	vec4 Border_Color;
-	vec4 ViewRect;
-	uint Scissor;
-	uvec3 padding;
-} outline;
 
 void main(void)
 {

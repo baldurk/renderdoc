@@ -34,105 +34,7 @@
 #include "3rdparty/stb/stb_truetype.h"
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 
-// VKTODOMED should share this between shader and C++ - need #include support in glslang
-struct displayuniforms
-{
-	Vec2f Position;
-	float Scale;
-	float HDRMul;
-
-	Vec4f Channels;
-
-	float RangeMinimum;
-	float InverseRangeSize;
-	float MipLevel;
-	int   FlipY;
-
-	Vec3f TextureResolutionPS;
-	int   OutputDisplayFormat;
-
-	Vec2f OutputRes;
-	int   RawOutput;
-	float Slice;
-
-	int   SampleIdx;
-	int   NumSamples;
-	Vec2f Padding;
-};
-
-struct fontuniforms
-{
-	Vec2f TextPosition;
-	float txtpadding;
-	float TextSize;
-
-	Vec2f CharacterSize;
-	Vec2f FontScreenAspect;
-};
-		
-struct glyph
-{
-	Vec4f posdata;
-	Vec4f uvdata;
-};
-
-struct glyphdata
-{
-	glyph glyphs[127-32];
-};
-
-struct stringdata
-{
-	uint32_t str[256][4];
-};
-
-struct meshuniforms
-{
-	Matrix4f mvp;
-	Matrix4f invProj;
-	Vec4f color;
-	uint32_t displayFormat;
-	uint32_t homogenousInput;
-	Vec2f pointSpriteSize;
-};
-
-// histogram/minmax is calculated in blocks of NxN each with MxM tiles.
-// e.g. a tile is 32x32 pixels, then this is arranged in blocks of 32x32 tiles.
-// 1 compute thread = 1 tile, 1 compute group = 1 block
-//
-// NOTE because of this a block can cover more than the texture (think of a 1280x720
-// texture covered by 2x1 blocks)
-//
-// these values are in each dimension
-#define HGRAM_PIXELS_PER_TILE  64
-#define HGRAM_TILES_PER_BLOCK  32
-
-#define HGRAM_NUM_BUCKETS	   256
-
-struct histogramuniforms
-{
-	uint32_t HistogramChannels;
-	float HistogramMin;
-	float HistogramMax;
-	uint32_t HistogramFlags;
-	
-	float HistogramSlice;
-	uint32_t HistogramMip;
-	int HistogramSample;
-	int HistogramNumSamples;
-
-	Vec3f HistogramTextureResolution;
-	float Padding3;
-};
-
-struct outlineuniforms
-{
-	Vec4f Inner_Color;
-	Vec4f Border_Color;
-	Vec4f ViewRect;
-	uint32_t Scissor;
-	Vec3f padding;
-};
+#include "data/spv/debuguniforms.h"
 
 void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags)
 {
@@ -656,18 +558,18 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_ReadbackWindow.Create(driver, dev, STAGE_BUFFER_BYTE_SIZE, 1, GPUBuffer::eGPUBufferReadback);
 
 	m_OutlineUBO.Create(driver, dev, 128, 10, 0);
-	RDCCOMPILE_ASSERT(sizeof(outlineuniforms) <= 128, "outline UBO size");
+	RDCCOMPILE_ASSERT(sizeof(OutlineUBOData) <= 128, "outline UBO size");
 
 	m_CheckerboardUBO.Create(driver, dev, 128, 10, 0);
 	m_TexDisplayUBO.Create(driver, dev, 128, 10, 0);
 
-	RDCCOMPILE_ASSERT(sizeof(displayuniforms) <= 128, "tex display size");
+	RDCCOMPILE_ASSERT(sizeof(TexDisplayUBOData) <= 128, "tex display size");
 		
 	m_TextGeneralUBO.Create(driver, dev, 128, 100, 0); // make the ring conservatively large to handle many lines of text * several frames
-	RDCCOMPILE_ASSERT(sizeof(fontuniforms) <= 128, "font uniforms size");
+	RDCCOMPILE_ASSERT(sizeof(FontUBOData) <= 128, "font uniforms size");
 
-	m_TextStringUBO.Create(driver, dev, 4096, 10, 0); // we only use a subset of the [256] array needed for each line, so this ring can be smaller
-	RDCCOMPILE_ASSERT(sizeof(stringdata) <= 4096, "font uniforms size");
+	m_TextStringUBO.Create(driver, dev, 4096, 10, 0); // we only use a subset of the [MAX_SINGLE_LINE_LENGTH] array needed for each line, so this ring can be smaller
+	RDCCOMPILE_ASSERT(sizeof(StringUBOData) <= 4096, "font uniforms size");
 	
 	string shaderSources[] = {
 		GetEmbeddedResource(spirv_blit_vert),
@@ -730,11 +632,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	string err = GetSPIRVBlob(eSPIRVFragment, sources, &m_FixedColSPIRV);
 	RDCASSERT(err.empty() && m_FixedColSPIRV);
+
+	sources.resize(4);
+	sources[0] = "#version 430 core\n";
+	sources[1] = GetEmbeddedResource(spirv_debuguniforms_h);
+	sources[2] = ""; // #defines
 	
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
-		sources.clear();
-		sources.push_back(shaderSources[i]);
+		sources[3] = shaderSources[i];
 
 		string err = GetSPIRVBlob(shaderStages[i], sources, &shaderSPIRV[i]);
 		RDCASSERT(err.empty() && shaderSPIRV);
@@ -1027,9 +933,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		string font = GetEmbeddedResource(sourcecodepro_ttf);
 		byte *ttfdata = (byte *)font.c_str();
 
-		const int firstChar = int(' ') + 1;
-		const int lastChar = 127;
-		const int numChars = lastChar-firstChar;
+		const int firstChar = FONT_FIRST_CHAR;
+		const int lastChar = FONT_LAST_CHAR;
+		const int numChars = lastChar-firstChar+1;
+
+		RDCCOMPILE_ASSERT(FONT_FIRST_CHAR == int(' '), "Font defines are messed up");
 
 		byte *buf = new byte[width*height];
 
@@ -1126,7 +1034,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		m_TextGlyphUBO.Create(driver, dev, 4096, 1, 0); // doesn't need to be ring'd, as it's static
 		RDCCOMPILE_ASSERT(sizeof(Vec4f)*2*(numChars+1) < 4096, "font uniform size");
 
-		Vec4f *glyphData = (Vec4f *)m_TextGlyphUBO.Map(vt, dev, (uint32_t *)NULL);
+		FontGlyphData *glyphData = (FontGlyphData *)m_TextGlyphUBO.Map(vt, dev, (uint32_t *)NULL);
 
 		for(int i=0; i < numChars; i++)
 		{
@@ -1135,8 +1043,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			float x = b->xoff;
 			float y = b->yoff + maxheight;
 
-			glyphData[(i+1)*2 + 0] = Vec4f(x/b->xadvance, y/pixelHeight, b->xadvance/float(b->x1 - b->x0), pixelHeight/float(b->y1 - b->y0));
-			glyphData[(i+1)*2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
+			glyphData[i].posdata = Vec4f(x/b->xadvance, y/pixelHeight, b->xadvance/float(b->x1 - b->x0), pixelHeight/float(b->y1 - b->y0));
+			glyphData[i].uvdata = Vec4f(b->x0, b->y0, b->x1, b->y1);
 		}
 
 		m_TextGlyphUBO.Unmap(vt, dev);
@@ -1259,7 +1167,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		m_PickPixelReadbackBuffer.Create(driver, dev, sizeof(float)*4, 1, GPUBuffer::eGPUBufferReadback);
 	}
 
-	m_MeshUBO.Create(driver, dev, sizeof(meshuniforms), 16, 0);
+	m_MeshUBO.Create(driver, dev, sizeof(MeshUBOData), 16, 0);
 	m_MeshBBoxVB.Create(driver, dev, sizeof(Vec4f)*128, 16, GPUBuffer::eGPUBufferVBuffer);
 	
 	Vec4f TLN = Vec4f(-1.0f,  1.0f, 0.0f, 1.0f); // TopLeftNear, etc...
@@ -1320,7 +1228,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_HistogramReadback.Create(driver, dev, sizeof(uint32_t)*HGRAM_NUM_BUCKETS, 1, GPUBuffer::eGPUBufferReadback);
 
 	// don't need to ring this, as we hard-sync for readback anyway
-	m_HistogramUBO.Create(driver, dev, sizeof(histogramuniforms), 1, 0);
+	m_HistogramUBO.Create(driver, dev, sizeof(HistogramUBOData), 1, 0);
 
 	VkDescriptorBufferInfo bufInfo[6];
 	RDCEraseEl(bufInfo);
@@ -1733,7 +1641,7 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 
 	uint32_t offsets[2] = { 0 };
 
-	fontuniforms *ubo = (fontuniforms *)m_TextGeneralUBO.Map(vt, m_Device, &offsets[0]);
+	FontUBOData *ubo = (FontUBOData *)m_TextGeneralUBO.Map(vt, m_Device, &offsets[0]);
 
 	ubo->TextPosition.x = x;
 	ubo->TextPosition.y = y;
@@ -1749,11 +1657,15 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 
 	m_TextGeneralUBO.Unmap(vt, m_Device);
 
+	size_t len = strlen(text);
+	
+	RDCASSERT(len <= MAX_SINGLE_LINE_LENGTH);
+
 	// only map enough for our string
-	stringdata *stringData = (stringdata *)m_TextStringUBO.Map(vt, m_Device, &offsets[1], strlen(text)*sizeof(Vec4f));
+	StringUBOData *stringData = (StringUBOData *)m_TextStringUBO.Map(vt, m_Device, &offsets[1], len*sizeof(Vec4u));
 
 	for(size_t i=0; i < strlen(text); i++)
-		stringData->str[i][0] = uint32_t(text[i] - ' ');
+		stringData->chars[i].x = uint32_t(text[i] - ' ');
 
 	m_TextStringUBO.Unmap(vt, m_Device);
 	
@@ -2416,7 +2328,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 			uint32_t uboOffs = 0;
 
-			outlineuniforms *ubo = (outlineuniforms *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
+			OutlineUBOData *ubo = (OutlineUBOData *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
 
 			ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
 			ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
@@ -2438,7 +2350,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 											(float)m_pDriver->m_RenderState.scissors[0].extent.width,
 											(float)m_pDriver->m_RenderState.scissors[0].extent.height);
 
-				outlineuniforms *ubo = (outlineuniforms *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
+				OutlineUBOData *ubo = (OutlineUBOData *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
 
 				ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
 				ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);

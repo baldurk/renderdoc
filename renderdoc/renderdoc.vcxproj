@@ -255,6 +255,7 @@
     <ClInclude Include="data\glsl\texsample.h" />
     <ClInclude Include="data\hlsl\debugcbuffers.h" />
     <ClInclude Include="data\resource.h" />
+    <ClInclude Include="data\spv\debuguniforms.h" />
     <ClInclude Include="data\version.h" />
     <ClInclude Include="hooks\hooks.h" />
     <ClInclude Include="maths\camera.h" />
@@ -361,8 +362,6 @@
     <None Include="data\spv\blit.vert" />
     <None Include="data\spv\checkerboard.frag" />
     <None Include="data\spv\fixedcol.frag" />
-    <None Include="data\spv\generic.frag" />
-    <None Include="data\spv\generic.vert" />
     <None Include="data\spv\histogram.comp" />
     <None Include="data\spv\mesh.frag" />
     <None Include="data\spv\mesh.geom" />

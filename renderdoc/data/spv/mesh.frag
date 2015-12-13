@@ -22,23 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
  
-#version 420 core
-
 in v2f
 {
 	vec4 secondary;
 	vec4 norm;
 } IN;
-
-layout (binding = 0, std140) uniform meshuniforms
-{
-	mat4 mvp;
-	mat4 invProj;
-	vec4 color;
-	uint displayFormat;
-	uint homogenousInput;
-	vec2 pointSpriteSize;
-} Mesh;
 
 layout (location = 0) out vec4 color_out;
 
