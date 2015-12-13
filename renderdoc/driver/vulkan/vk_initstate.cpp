@@ -1060,7 +1060,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 			
 			void *barrier = (void *)&srcimBarrier;
 			
-			for (int si = 0; si < layout->subresourceStates.size(); si++)
+			for (size_t si = 0; si < layout->subresourceStates.size(); si++)
 			{
 				srcimBarrier.oldLayout = layout->subresourceStates[si].newLayout;
 				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
@@ -1074,7 +1074,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 			srcimBarrier.srcAccessMask = 0;
 			srcimBarrier.dstAccessMask = 0;
 			
-			for (int si = 0; si < layout->subresourceStates.size(); si++)
+			for (size_t si = 0; si < layout->subresourceStates.size(); si++)
 			{
 				srcimBarrier.newLayout = layout->subresourceStates[si].newLayout;
 				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
@@ -1112,7 +1112,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		VkDeviceMemory datamem = ToHandle<VkDeviceMemory>(res);
 		VkDeviceSize datasize = record->Length;
 
-		RDCASSERT(datamem);
+		RDCASSERT(datamem != VK_NULL_HANDLE);
 
 		RDCASSERT(record->Length > 0);
 		VkDeviceSize memsize = record->Length;
@@ -1797,7 +1797,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 				void *barrierptr = (void *)&barrier;
 
-				for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+				for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 				{
 					barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
@@ -1814,7 +1814,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 				barrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
 
-				for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+				for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 				{
 					barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 					barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
@@ -1847,7 +1847,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 				void *barrierptr = (void *)&barrier;
 
-				for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+				for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 				{
 					barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
@@ -1864,7 +1864,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 				barrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
 
-				for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+				for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 				{
 					barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
@@ -1924,7 +1924,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 			void *barrier = (void *)&dstimBarrier;
 
-			for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+			for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 			{
 				dstimBarrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
@@ -1942,7 +1942,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			dstimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			dstimBarrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
 			
-			for (int si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+			for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 			{
 				dstimBarrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 				dstimBarrier.dstAccessMask |= MakeAccessMask(dstimBarrier.newLayout);

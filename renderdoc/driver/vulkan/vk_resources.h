@@ -90,6 +90,19 @@ struct RealVkRes
 	template<typename T> T *AsPtr() { return (T*)&handle; }
 };
 
+// this is defined in a custom modification to vulkan.h, where on 32-bit systems
+// we gain type safety by using a C++ struct to wrap the uint64_t instead of using
+// a naked uint64_t typedef
+#ifdef VK_NON_DISPATCHABLE_WRAPPER_STRUCT
+
+#define NON_DISP_TO_UINT64(obj) obj.handle
+
+#else
+
+#define NON_DISP_TO_UINT64(obj) (uint64_t)obj
+
+#endif
+
 // since handles can overlap (ie. handle 1 might be valid for many types
 // if the ICD is using indexing or state packing instead of true pointers)
 // when storing wrapper object <-> real object we have to store the type
@@ -121,7 +134,7 @@ struct TypedRealHandle
 
 struct WrappedVkNonDispRes : public WrappedVkRes
 {
-	template<typename T> WrappedVkNonDispRes(T obj, ResourceId objId) : real(obj), id(objId), record(NULL) {}
+	template<typename T> WrappedVkNonDispRes(T obj, ResourceId objId) : real( NON_DISP_TO_UINT64(obj) ), id(objId), record(NULL) {}
 	
 	RealVkRes real;
 	ResourceId id;
@@ -391,13 +404,9 @@ template<typename inner> struct UnwrapHelper {};
 		typedef WrappedVkNonDispRes ParentType; \
 		typedef CONCAT(Wrapped, vulkantype) Outer; \
 		static TypedRealHandle ToTypedHandle(vulkantype real) \
-		{ TypedRealHandle h; h.type = (VkResourceType)Outer::TypeEnum; h.real = RealVkRes(real); return h; } \
-		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) (uintptr_t)wrapped; } \
+		{ TypedRealHandle h; h.type = (VkResourceType)Outer::TypeEnum; h.real = RealVkRes( NON_DISP_TO_UINT64(real) ); return h; } \
+		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) (uintptr_t) NON_DISP_TO_UINT64(wrapped); } \
 	};
-
-// VKTODOHIGH this no longer works on 32-bit since handles are no longer strongly typed.
-// solution will *probably* be to modify vulkan.h to use a C++ class with appropriate overrides,
-// constructors and operators to still be a 64-bit element but be strongly typed.
 
 UNWRAP_HELPER(VkInstance)
 UNWRAP_HELPER(VkPhysicalDevice)

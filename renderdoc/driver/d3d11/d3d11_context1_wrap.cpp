@@ -67,7 +67,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 			
 			if(WrappedID3D11Buffer::IsAlloc(DestResource))
 			{
-				srcLength = record->Length;
+				srcLength = (size_t)record->Length;
 
 				if(HasDestBox)
 					srcLength = RDCMIN((uint32_t)srcLength, pDstBox->right - pDstBox->left);
@@ -82,7 +82,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 
 				if(tex1)
 				{
-					srcLength = record->Length;
+					srcLength = (size_t)record->Length;
 
 					if(HasDestBox)
 						srcLength = RDCMIN((uint32_t)srcLength, pDstBox->right - pDstBox->left);

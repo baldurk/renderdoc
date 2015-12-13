@@ -143,8 +143,9 @@ void Serialiser::Serialise(const char *name, SigParameter &el)
 	Serialise("", el.channelUsedMask);
 	Serialise("", el.compCount);
 	Serialise("", el.stream);
+	Serialise("", el.arrayIndex);
 
-	SIZE_CHECK(SigParameter, 56);
+	SIZE_CHECK(SigParameter, 60);
 }
 
 template<>
@@ -754,6 +755,8 @@ template<>
 void Serialiser::Serialise(const char *name, VulkanPipelineState::ShaderStage &el)
 {
 	Serialise("", el.Shader);
+	Serialise("", el.entryPoint);
+
 	Serialise("", el.ShaderName);
 	Serialise("", el.customName);
 	Serialise("", el.BindpointMapping);
@@ -762,7 +765,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ShaderStage &e
 	if(m_Mode == READING)
 		el.ShaderDetails = NULL;
 
-	SIZE_CHECK(VulkanPipelineState::ShaderStage, 64);
+	SIZE_CHECK(VulkanPipelineState::ShaderStage, 72);
 }
 
 template<>
@@ -882,7 +885,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState &el)
 	Serialise("", el.DS);
 	Serialise("", el.Pass);
 
-	SIZE_CHECK(VulkanPipelineState, 792);
+	SIZE_CHECK(VulkanPipelineState, 840);
 }
 
 #pragma endregion Vulkan pipeline state
