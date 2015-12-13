@@ -589,7 +589,11 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 		{
 			vector<void *> barriers;
 			for(size_t i=0; i < imgBarriers.size(); i++)
+			{
+				imgBarriers[i].srcAccessMask = MakeAccessMask(imgBarriers[i].oldLayout);
+				imgBarriers[i].dstAccessMask = MakeAccessMask(imgBarriers[i].newLayout);
 				barriers.push_back(&imgBarriers[i]);
+			}
 			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, (uint32_t)imgBarriers.size(), (const void *const *)&barriers[0]);
 		}
 
@@ -1783,6 +1787,10 @@ VkBool32 WrappedVulkan::DebugCallback(
 				const char*         pLayerPrefix,
 				const char*         pMsg)
 {
+	// msgCode isn't fine grained enough to ignore just this one type of message
+	if(pLayerPrefix[0] == 'D' && pLayerPrefix[1] == 'S' && string(pMsg).find("Additional bits in accessMask") != string::npos)
+		return false;
+
 	RDCWARN("[%s] %s", pLayerPrefix, pMsg);
 	return false;
 }
