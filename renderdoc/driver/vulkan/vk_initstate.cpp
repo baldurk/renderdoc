@@ -722,7 +722,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 		buf->real.As<VkBuffer>(), 1, &unbind
 	};
 
-	// VKTODOMED need to signal/wait semaphore between the unbind and bind
+	// VKTODOLOW need to signal/wait semaphore between the unbind and bind
 	VkBindSparseInfo bindsparse = {
 		VK_STRUCTURE_TYPE_BIND_SPARSE_INFO, NULL,
 		0, NULL, // wait semaphores
@@ -741,7 +741,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 		bufBind.bindCount = info->numBinds;
 		bufBind.pBinds = info->binds;
 		
-		// VKTODOMED need to signal/wait semaphore after bind somehow
+		// VKTODOLOW need to signal/wait semaphore after bind somehow
 		ObjDisp(q)->QueueBindSparse(Unwrap(q), 1, &bindsparse, VK_NULL_HANDLE);
 	}
 	
@@ -804,7 +804,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 	{
 		// unbind the entire image so that any new areas that are bound are unbound again
 
-		// VKTODOMED not sure if this is the right size for opaque portion of partial resident
+		// VKTODOLOW not sure if this is the right size for opaque portion of partial resident
 		// sparse image? how is that determined?
 		VkSparseMemoryBind unbind = {
 			0, 0,
@@ -819,7 +819,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 			im->real.As<VkImage>(), 1, &unbind
 		};
 
-		// VKTODOMED need to signal/wait semaphore between the unbind and bind
+		// VKTODOLOW need to signal/wait semaphore between the unbind and bind
 		VkBindSparseInfo bindsparse = {
 			VK_STRUCTURE_TYPE_BIND_SPARSE_INFO, NULL,
 			0, NULL, // wait semaphores
@@ -837,7 +837,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 		{
 			opaqueBind.bindCount = info->opaqueCount;
 			opaqueBind.pBinds = info->opaque;
-			// VKTODOMED need to signal/wait semaphore after bind somehow
+			// VKTODOLOW need to signal/wait semaphore after bind somehow
 			ObjDisp(q)->QueueBindSparse(Unwrap(q), 1, &bindsparse, VK_NULL_HANDLE);
 		}
 	}
@@ -845,7 +845,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 	{
 		VkSparseImageMemoryBindInfo imgBinds[NUM_VK_IMAGE_ASPECTS] = { 0 };
 
-		// VKTODOMED need to signal/wait semaphore after bind somehow
+		// VKTODOLOW need to signal/wait semaphore after bind somehow
 		VkBindSparseInfo bindsparse = {
 			VK_STRUCTURE_TYPE_BIND_SPARSE_INFO, NULL,
 			0, NULL, // wait semaphores
