@@ -246,6 +246,7 @@ struct VulkanCreationInfo
 		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkImageCreateInfo* pCreateInfo);
 	
 		VkImageView view;
+		VkImageView stencilView;
 
 		VkImageType type;
 		VkFormat format;

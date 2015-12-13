@@ -25,6 +25,7 @@
 #pragma once
 
 #include "vk_common.h"
+#include "vk_info.h"
 #include "api/replay/renderdoc_replay.h"
 #include "replay/replay_driver.h"
 #include "core/core.h"
@@ -241,6 +242,8 @@ class VulkanReplay : public IReplayDriver
 		WrappedVulkan *m_pDriver;
 
 		bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, bool f32render);
+
+		void VulkanReplay::CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm, VulkanCreationInfo::Image &iminfo);
 
 		void FillCBufferVariables(rdctype::array<ShaderConstant>, vector<ShaderVariable> &outvars, const vector<byte> &data, size_t &offset);
 

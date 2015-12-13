@@ -341,6 +341,7 @@ void VulkanCreationInfo::BufferView::Init(VulkanResourceManager *resourceMan, Vu
 void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkImageCreateInfo* pCreateInfo)
 {
 	view = VK_NULL_HANDLE;
+	stencilView = VK_NULL_HANDLE;
 
 	type = pCreateInfo->imageType;
 	format = pCreateInfo->format;

@@ -736,107 +736,130 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	int oldW = m_DebugWidth, oldH = m_DebugHeight;
 
 	m_DebugWidth = m_DebugHeight = 1;
+	
+	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texture];
 
-	// render picked pixel to readback F32 RGBA texture
+	bool isStencil = IsStencilFormat(iminfo.format);
+
+	// do a second pass to render the stencil, if needed
+	for(int pass=0; pass < (isStencil ? 2 : 1); pass++)
 	{
-		TextureDisplay texDisplay;
+		// render picked pixel to readback F32 RGBA texture
+		{
+			TextureDisplay texDisplay;
 
-		texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
-		texDisplay.HDRMul = -1.0f;
-		texDisplay.linearDisplayAsGamma = true;
-		texDisplay.FlipY = false;
-		texDisplay.mip = mip;
-		texDisplay.sampleIdx = sample;
-		texDisplay.CustomShader = ResourceId();
-		texDisplay.sliceFace = sliceFace;
-		texDisplay.overlay = eTexOverlay_None;
-		texDisplay.rangemin = 0.0f;
-		texDisplay.rangemax = 1.0f;
-		texDisplay.scale = 1.0f;
-		texDisplay.texid = texture;
-		texDisplay.rawoutput = true;
-		texDisplay.offx = -float(x);
-		texDisplay.offy = -float(y);
-		
-		VkClearValue clearval = {0};
-		VkRenderPassBeginInfo rpbegin = {
-			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-			Unwrap(GetDebugManager()->m_PickPixelRP), Unwrap(GetDebugManager()->m_PickPixelFB),
-			{ { 0, 0, }, { 1, 1 } },
-			1, &clearval,
-		};
+			texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+			texDisplay.HDRMul = -1.0f;
+			texDisplay.linearDisplayAsGamma = true;
+			texDisplay.FlipY = false;
+			texDisplay.mip = mip;
+			texDisplay.sampleIdx = sample;
+			texDisplay.CustomShader = ResourceId();
+			texDisplay.sliceFace = sliceFace;
+			texDisplay.overlay = eTexOverlay_None;
+			texDisplay.rangemin = 0.0f;
+			texDisplay.rangemax = 1.0f;
+			texDisplay.scale = 1.0f;
+			texDisplay.texid = texture;
+			texDisplay.rawoutput = true;
+			texDisplay.offx = -float(x);
+			texDisplay.offy = -float(y);
 
-		RenderTextureInternal(texDisplay, rpbegin, true);
+			// only render green (stencil) in second pass
+			if(pass == 1)
+			{
+				texDisplay.Green = true;
+				texDisplay.Red = texDisplay.Blue = texDisplay.Alpha = false;
+			}
+
+			VkClearValue clearval = {0};
+			VkRenderPassBeginInfo rpbegin = {
+				VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+				Unwrap(GetDebugManager()->m_PickPixelRP), Unwrap(GetDebugManager()->m_PickPixelFB),
+				{ { 0, 0, }, { 1, 1 } },
+				1, &clearval,
+			};
+
+			RenderTextureInternal(texDisplay, rpbegin, true);
+		}
+
+		VkDevice dev = m_pDriver->GetDev();
+		VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+		const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+		VkResult vkr = VK_SUCCESS;
+
+		{
+			VkImageMemoryBarrier pickimBarrier = {
+				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+				0, 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+				Unwrap(GetDebugManager()->m_PickPixelImage),
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+			};
+
+			// update image layout from color attachment to transfer source, with proper memory barriers
+			pickimBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			pickimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+			VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
+
+			vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			void *barrier = (void *)&pickimBarrier;
+			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			pickimBarrier.oldLayout = pickimBarrier.newLayout;
+			pickimBarrier.srcAccessMask = pickimBarrier.dstAccessMask;
+
+			// do copy
+			VkBufferImageCopy region = {
+				0, 128, 1,
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
+				{ 0, 0, 0 },
+				{ 1, 1, 1 },
+			};
+			vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_PickPixelImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.buf), 1, &region);
+
+			// update image layout back to color attachment
+			pickimBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			pickimBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+			vt->EndCommandBuffer(Unwrap(cmd));
+		}
+
+		// submit cmds and wait for idle so we can readback
+		m_pDriver->SubmitCmds();
+		m_pDriver->FlushQ();
+
+		float *pData = NULL;
+		vt->MapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem), 0, VK_WHOLE_SIZE, 0, (void **)&pData);
+
+		RDCASSERT(pData != NULL);
+
+		if(pData == NULL)
+		{
+			RDCERR("Failed ot map readback buffer memory");
+		}
+		else
+		{
+			// only write stencil to .y
+			if(pass == 1)
+			{
+				pixel[1] = pData[1]/255.0f;
+			}
+			else
+			{
+				pixel[0] = pData[0];
+				pixel[1] = pData[1];
+				pixel[2] = pData[2];
+				pixel[3] = pData[3];
+			}
+		}
+
+		vt->UnmapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem));
 	}
-
-	VkDevice dev = m_pDriver->GetDev();
-	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
-	const VkLayerDispatchTable *vt = ObjDisp(dev);
-
-	VkResult vkr = VK_SUCCESS;
-
-	{
-		VkImageMemoryBarrier pickimBarrier = {
-			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-			Unwrap(GetDebugManager()->m_PickPixelImage),
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-		};
-
-		// update image layout from color attachment to transfer source, with proper memory barriers
-		pickimBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		pickimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
-
-		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		void *barrier = (void *)&pickimBarrier;
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
-		pickimBarrier.oldLayout = pickimBarrier.newLayout;
-		pickimBarrier.srcAccessMask = pickimBarrier.dstAccessMask;
-
-		// do copy
-		VkBufferImageCopy region = {
-			0, 128, 1,
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
-			{ 0, 0, 0 },
-			{ 1, 1, 1 },
-		};
-		vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_PickPixelImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.buf), 1, &region);
-
-		// update image layout back to color attachment
-		pickimBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		pickimBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
-
-		vt->EndCommandBuffer(Unwrap(cmd));
-	}
-
-	// submit cmds and wait for idle so we can readback
-	m_pDriver->SubmitCmds();
-	m_pDriver->FlushQ();
-
-	float *pData = NULL;
-	vt->MapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem), 0, VK_WHOLE_SIZE, 0, (void **)&pData);
-
-	RDCASSERT(pData != NULL);
-
-	if(pData == NULL)
-	{
-		RDCERR("Failed ot map readback buffer memory");
-	}
-	else
-	{
-		pixel[0] = pData[0];
-		pixel[1] = pData[1];
-		pixel[2] = pData[2];
-		pixel[3] = pData[3];
-	}
-
-	vt->UnmapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem));
 }
 
 uint32_t VulkanReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
@@ -876,36 +899,51 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[cfg.texid];
 	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[cfg.texid];
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.texid);
-	VkImageView liveImView = iminfo.view;
 
-	bool isDepth = (layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
+	VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+	
+	int displayformat = 0;
+	int descSetBinding = 0;
 
-	if(liveImView == VK_NULL_HANDLE)
+	if(IsUIntFormat(iminfo.format))
 	{
-		VkImageViewCreateInfo viewInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-			0, Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
-			iminfo.format,
-			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
-			{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
-		};
-
-		if(isDepth)
-		{
-			viewInfo.components.g = VK_COMPONENT_SWIZZLE_ZERO;
-			viewInfo.components.b = VK_COMPONENT_SWIZZLE_ZERO;
-			viewInfo.components.a = VK_COMPONENT_SWIZZLE_ZERO;
-		}
-
-		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &iminfo.view);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
-		// register as a live-only resource, so it is cleaned up properly
-		m_pDriver->GetResourceManager()->AddLiveResource(viewid, iminfo.view);
-
-		liveImView = iminfo.view;
+		descSetBinding = 10;
+		displayformat |= TEXDISPLAY_UINT_TEX;
 	}
+	else if(IsSIntFormat(iminfo.format))
+	{
+		descSetBinding = 15;
+		displayformat |= TEXDISPLAY_SINT_TEX;
+	}
+	else
+	{
+		descSetBinding = 5;
+	}
+
+	if(IsDepthOnlyFormat(layouts.format))
+	{
+		aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+	}
+	else if(IsDepthStencilFormat(layouts.format))
+	{
+		aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+		if(layouts.format == VK_FORMAT_S8_UINT || (!cfg.Red && cfg.Green))
+		{
+			aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+			descSetBinding = 10;
+			displayformat |= TEXDISPLAY_UINT_TEX;
+
+			// rescale the range so that stencil seems to fit to 0-1
+			cfg.rangemin *= 255.0f;
+			cfg.rangemax *= 255.0f;
+		}
+	}
+
+	CreateTexImageView(aspectFlags, liveIm, iminfo);
+
+	VkImageView liveImView = (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.stencilView : iminfo.view);
+
+	RDCASSERT(liveImView != VK_NULL_HANDLE);
 
 	uint32_t uboOffs = 0;
 	
@@ -993,23 +1031,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 			textype = RESTYPE_TEX2DMS;
 	}
 
-	int displayformat = textype;
-	int descSetBinding = textype;
+	displayformat |= textype;
 
-	if(IsUIntFormat(iminfo.format))
-	{
-		descSetBinding += 10;
-		displayformat |= TEXDISPLAY_UINT_TEX;
-	}
-	else if(IsSIntFormat(iminfo.format))
-	{
-		descSetBinding += 15;
-		displayformat |= TEXDISPLAY_SINT_TEX;
-	}
-	else
-	{
-		descSetBinding += 5;
-	}
+	descSetBinding += textype;
 
 	// VKTODOMED: RESTYPE_TEXBUFFER
 	
@@ -1060,7 +1084,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(liveIm),
-		{ VkImageAspectFlags(isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT), 0, 1, 0, 1 }
+		{ aspectFlags, 0, 1, 0, 1 }
 	};
 
 	// ensure all previous writes have completed
@@ -1095,7 +1119,11 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, UnwrapPtr(descset), 1, &uboOffs);
 
-		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
+		VkViewport viewport = {
+			(float)rpbegin.renderArea.offset.x, (float)rpbegin.renderArea.offset.y,
+			(float)m_DebugWidth, (float)m_DebugHeight,
+			0.0f, 1.0f
+		};
 		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
 
 		vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
@@ -1114,6 +1142,59 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	return true;
 }
 	
+void VulkanReplay::CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm, VulkanCreationInfo::Image &iminfo)
+{
+	VkDevice dev = m_pDriver->GetDev();
+
+	if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
+	{
+		if(iminfo.stencilView != VK_NULL_HANDLE)
+			return;
+	}
+	else
+	{
+		if(iminfo.view != VK_NULL_HANDLE)
+			return;
+	}
+
+	VkImageViewCreateInfo viewInfo = {
+		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+		0, Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+		iminfo.format,
+		{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
+		{ aspectFlags, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, RDCMAX(1U, (uint32_t)iminfo.arrayLayers), },
+	};
+
+	if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT)
+	{
+		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+		viewInfo.components.g = VK_COMPONENT_SWIZZLE_ZERO;
+		viewInfo.components.b = VK_COMPONENT_SWIZZLE_ZERO;
+		viewInfo.components.a = VK_COMPONENT_SWIZZLE_ZERO;
+	}
+	else if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
+	{
+		viewInfo.components.r = VK_COMPONENT_SWIZZLE_ZERO;
+		viewInfo.components.g = VK_COMPONENT_SWIZZLE_R;
+		viewInfo.components.b = VK_COMPONENT_SWIZZLE_ZERO;
+		viewInfo.components.a = VK_COMPONENT_SWIZZLE_ZERO;
+	}
+
+	VkImageView view;
+
+	VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &view);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), view);
+	// register as a live-only resource, so it is cleaned up properly
+	m_pDriver->GetResourceManager()->AddLiveResource(viewid, view);
+
+	if(aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT)
+		iminfo.stencilView = view;
+	else
+		iminfo.view = view;
+}
+
 void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 {
 	auto it = m_OutputWindows.find(m_ActiveWinID);
@@ -3252,37 +3333,17 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
 	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
-	VkImageView liveImView = iminfo.view;
 	
-	bool isDepth = (layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
+	VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+	if(IsDepthStencilFormat(layouts.format))
+		aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-	if(liveImView == VK_NULL_HANDLE)
-	{
-		VkImageViewCreateInfo viewInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-			0, Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
-			iminfo.format,
-			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
-			{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
-		};
+	CreateTexImageView(aspectFlags, liveIm, iminfo);
 
-		if(isDepth)
-		{
-			viewInfo.components.g = VK_COMPONENT_SWIZZLE_ZERO;
-			viewInfo.components.b = VK_COMPONENT_SWIZZLE_ZERO;
-			viewInfo.components.a = VK_COMPONENT_SWIZZLE_ZERO;
-		}
+	VkImageView liveImView = (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.stencilView : iminfo.view);
 
-		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &iminfo.view);
-		RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERT(liveImView != VK_NULL_HANDLE);
 
-		ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
-		// register as a live-only resource, so it is cleaned up properly
-		m_pDriver->GetResourceManager()->AddLiveResource(viewid, iminfo.view);
-
-		liveImView = iminfo.view;
-	}
-	
 	VkDescriptorImageInfo imdesc = {0};
 	imdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	imdesc.imageView = Unwrap(liveImView);
@@ -3369,7 +3430,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(liveIm),
-		{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), 0, 1, 0, 1 }
+		{ aspectFlags, 0, 1, 0, 1 }
 	};
 
 	// ensure all previous writes have completed
@@ -3484,38 +3545,17 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
 	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
-	VkImageView liveImView = iminfo.view;
 	
-	bool isDepth = (layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
-
-	// VKTODOMED extract this out somewhere
-	if(liveImView == VK_NULL_HANDLE)
-	{
-		VkImageViewCreateInfo viewInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-			0, Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
-			iminfo.format,
-			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
-			{ VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
-		};
-
-		if(isDepth)
-		{
-			viewInfo.components.g = VK_COMPONENT_SWIZZLE_ZERO;
-			viewInfo.components.b = VK_COMPONENT_SWIZZLE_ZERO;
-			viewInfo.components.a = VK_COMPONENT_SWIZZLE_ZERO;
-		}
-
-		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &iminfo.view);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
-		// register as a live-only resource, so it is cleaned up properly
-		m_pDriver->GetResourceManager()->AddLiveResource(viewid, iminfo.view);
-
-		liveImView = iminfo.view;
-	}
+	VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+	if(IsDepthStencilFormat(layouts.format))
+		aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 	
+	CreateTexImageView(aspectFlags, liveIm, iminfo);
+
+	VkImageView liveImView = (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.stencilView : iminfo.view);
+
+	RDCASSERT(liveImView != VK_NULL_HANDLE);
+
 	VkDescriptorImageInfo imdesc = {0};
 	imdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	imdesc.imageView = Unwrap(liveImView);
@@ -3589,7 +3629,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(liveIm),
-		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		{ aspectFlags, 0, 1, 0, 1 }
 	};
 
 	// ensure all previous writes have completed

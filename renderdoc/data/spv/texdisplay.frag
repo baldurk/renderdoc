@@ -90,8 +90,18 @@ void main(void)
 	// RGBM encoding
 	if(texdisplay.HDRMul > 0.0f)
 	{
-		col = vec4(col.rgb * col.a * texdisplay.HDRMul, 1.0);
+		if (uintTex)
+			col = vec4(ucol.rgb * ucol.a * uint(texdisplay.HDRMul), 1.0);
+		else if (sintTex)
+			col = vec4(scol.rgb * scol.a * int(texdisplay.HDRMul), 1.0);
+		else
+			col = vec4(col.rgb * col.a * texdisplay.HDRMul, 1.0);
 	}
+	
+	if (uintTex)
+		col = vec4(ucol);
+	else if (sintTex)
+		col = vec4(scol);
 
 	vec4 pre_range_col = col;
 
