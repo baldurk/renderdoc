@@ -345,7 +345,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		void DescribeCounter(uint32_t counterID, CounterDescription &desc);
 		vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counterID);
 		
-		void FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data);
+		void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data);
 		
 		void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData);
 		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
@@ -355,7 +355,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		
 		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
 
-		ShaderReflection *GetShader(ResourceId id);
+		ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 		
 		bool HasCallstacks();
 		void InitCallstackResolver();
@@ -429,7 +429,23 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		
 		map<ResourceId, ResourceId> m_LiveIDs;
 
-		map<ResourceId, ShaderReflection *> m_ShaderReflectionCache;
+		struct ShaderReflKey
+		{
+			ShaderReflKey() {}
+			ShaderReflKey(ResourceId i, string e) : id(i), entryPoint(e) {}
+
+			ResourceId id;
+			string entryPoint;
+			bool operator < (const ShaderReflKey &o) const
+			{
+				if(id != o.id)
+					return id < o.id;
+
+				return entryPoint < o.entryPoint;
+			}
+		};
+
+		map<ShaderReflKey, ShaderReflection *> m_ShaderReflectionCache;
 
 		Network::Socket *m_Socket;
 		Serialiser *m_FromReplaySerialiser;

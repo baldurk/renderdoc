@@ -247,8 +247,6 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetResolve(IntPtr real, UInt64[] callstack, UInt32 callstackLen, IntPtr outtrace);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr ReplayRenderer_GetShaderDetails(IntPtr real, ResourceId shader);
-        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetDebugMessages(IntPtr real, IntPtr outmsgs);
         
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -264,7 +262,7 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetUsage(IntPtr real, ResourceId id, IntPtr outusage);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetCBufferVariableContents(IntPtr real, ResourceId shader, UInt32 cbufslot, ResourceId buffer, UInt64 offs, IntPtr outvars);
+        private static extern bool ReplayRenderer_GetCBufferVariableContents(IntPtr real, ResourceId shader, IntPtr entryPoint, UInt32 cbufslot, ResourceId buffer, UInt64 offs, IntPtr outvars);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_SaveTexture(IntPtr real, TextureSave saveData, IntPtr path);
@@ -619,18 +617,6 @@ namespace renderdoc
             return ret;
         }
 
-        public ShaderReflection GetShaderDetails(ResourceId shader)
-        {
-            IntPtr mem = ReplayRenderer_GetShaderDetails(m_Real, shader);
-
-            ShaderReflection ret = null;
-
-            if (mem != IntPtr.Zero)
-                ret = (ShaderReflection)CustomMarshal.PtrToStructure(mem, typeof(ShaderReflection), false);
-
-            return ret;
-        }
-
         public DebugMessage[] GetDebugMessages()
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
@@ -727,17 +713,20 @@ namespace renderdoc
             return ret;
         }
 
-        public ShaderVariable[] GetCBufferVariableContents(ResourceId shader, UInt32 cbufslot, ResourceId buffer, UInt64 offs)
+        public ShaderVariable[] GetCBufferVariableContents(ResourceId shader, string entryPoint, UInt32 cbufslot, ResourceId buffer, UInt64 offs)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
-            bool success = ReplayRenderer_GetCBufferVariableContents(m_Real, shader, cbufslot, buffer, offs, mem);
+            IntPtr entry_mem = CustomMarshal.MakeUTF8String(entryPoint);
+
+            bool success = ReplayRenderer_GetCBufferVariableContents(m_Real, shader, entry_mem, cbufslot, buffer, offs, mem);
 
             ShaderVariable[] ret = null;
 
             if (success)
                 ret = (ShaderVariable[])CustomMarshal.GetTemplatedArray(mem, typeof(ShaderVariable), true);
 
+            CustomMarshal.Free(entry_mem);
             CustomMarshal.Free(mem);
 
             return ret;

@@ -1288,7 +1288,7 @@ bool ReplayRenderer::DebugThread(uint32_t groupid[3], uint32_t threadid[3], Shad
 	return true;
 }
 
-bool ReplayRenderer::GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars)
+bool ReplayRenderer::GetCBufferVariableContents(ResourceId shader, const char *entryPoint, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars)
 {
 	if(vars == NULL) return false;
 
@@ -1298,16 +1298,11 @@ bool ReplayRenderer::GetCBufferVariableContents(ResourceId shader, uint32_t cbuf
 
 	vector<ShaderVariable> v;
 
-	m_pDevice->FillCBufferVariables(m_pDevice->GetLiveID(shader), cbufslot, v, data);
+	m_pDevice->FillCBufferVariables(m_pDevice->GetLiveID(shader), entryPoint, cbufslot, v, data);
 
 	*vars = v;
 
 	return true;
-}
-
-ShaderReflection *ReplayRenderer::GetShaderDetails(ResourceId shader)
-{
-	return m_pDevice->GetShader(m_pDevice->GetLiveID(shader));
 }
 
 ReplayOutput *ReplayRenderer::CreateOutput(void *wndhandle, OutputType type)
@@ -1565,21 +1560,21 @@ void ReplayRenderer::FetchPipelineState()
 		D3D11PipelineState::ShaderStage *stage = &m_D3D11PipelineState.m_VS;
 		for(int i=0; i < 6; i++)
 			if(stage[i].Shader != ResourceId())
-				stage[i].ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader));
+				stage[i].ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader), "");
 	}
 	
 	{
 		GLPipelineState::ShaderStage *stage = &m_GLPipelineState.m_VS;
 		for(int i=0; i < 6; i++)
 			if(stage[i].Shader != ResourceId())
-				stage[i].ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader));
+				stage[i].ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader), "");
 	}
 	
 	{
 		VulkanPipelineState::ShaderStage *stage = &m_VulkanPipelineState.VS;
 		for(int i=0; i < 6; i++)
 			if(stage[i].Shader != ResourceId())
-				stage[i].ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader));
+				stage[i].ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader), stage[i].entryPoint.elems);
 	}
 }
 
@@ -1650,8 +1645,6 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBuffers(ReplayRen
 { return rend->GetBuffers(bufs); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetResolve(ReplayRenderer *rend, uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace)
 { return rend->GetResolve(callstack, callstackLen, trace); }
-extern "C" RENDERDOC_API ShaderReflection* RENDERDOC_CC ReplayRenderer_GetShaderDetails(ReplayRenderer *rend, ResourceId shader)
-{ return rend->GetShaderDetails(shader); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDebugMessages(ReplayRenderer *rend, rdctype::array<DebugMessage> *msgs)
 { return rend->GetDebugMessages(msgs); }
 
@@ -1667,8 +1660,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DebugThread(ReplayRe
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetUsage(ReplayRenderer *rend, ResourceId id, rdctype::array<EventUsage> *usage)
 { return rend->GetUsage(id, usage); }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(ReplayRenderer *rend, ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars)
-{ return rend->GetCBufferVariableContents(shader, cbufslot, buffer, offs, vars); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(ReplayRenderer *rend, ResourceId shader, const char *entryPoint, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars)
+{ return rend->GetCBufferVariableContents(shader, entryPoint, cbufslot, buffer, offs, vars); }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SaveTexture(ReplayRenderer *rend, const TextureSave &saveData, const char *path)
 { return rend->SaveTexture(saveData, path); }

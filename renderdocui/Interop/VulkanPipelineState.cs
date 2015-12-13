@@ -170,6 +170,9 @@ namespace renderdoc
 
             public ResourceId Shader;
             [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string entryPoint;
+
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string ShaderName;
             public bool customName;
             private IntPtr _ptr_ShaderDetails;

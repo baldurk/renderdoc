@@ -128,6 +128,8 @@ struct VulkanPipelineState
 	{
 		ShaderStage() : Shader(), ShaderDetails(NULL), customName(false) {}
 		ResourceId Shader;
+		rdctype::str entryPoint;
+
 		rdctype::str ShaderName;
 		bool32 customName;
 		ShaderReflection *ShaderDetails;

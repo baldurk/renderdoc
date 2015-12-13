@@ -1742,7 +1742,7 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
 					CopyProgramUniforms(gl.GetHookset(), progsrc, progdst);
 
 					if(i == 0)
-						CopyProgramAttribBindings(gl.GetHookset(), progsrc, progdst, GetShader(pipeDetails.stageShaders[i]));
+						CopyProgramAttribBindings(gl.GetHookset(), progsrc, progdst, GetShader(pipeDetails.stageShaders[i], ""));
 				}
 			}
 		}
@@ -1762,7 +1762,7 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
 				CopyProgramUniforms(gl.GetHookset(), Program, progdst);
 
 				if(i == 0)
-					CopyProgramAttribBindings(gl.GetHookset(), Program, progdst, GetShader(progDetails.stageShaders[i]));
+					CopyProgramAttribBindings(gl.GetHookset(), Program, progdst, GetShader(progDetails.stageShaders[i], ""));
 			}
 		}
 	}
@@ -2353,7 +2353,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 			if(pipeDetails.stageShaders[0] != ResourceId())
 			{
-				vsRefl = GetShader(pipeDetails.stageShaders[0]);
+				vsRefl = GetShader(pipeDetails.stageShaders[0], "");
 				vsProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].prog;
 				vsProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[0]).name;
 			}
@@ -2364,13 +2364,13 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			}
 			if(pipeDetails.stageShaders[2] != ResourceId())
 			{
-				tesRefl = GetShader(pipeDetails.stageShaders[2]);
+				tesRefl = GetShader(pipeDetails.stageShaders[2], "");
 				tesProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[2]].prog;
 				tesProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[2]).name;
 			}
 			if(pipeDetails.stageShaders[3] != ResourceId())
 			{
-				gsRefl = GetShader(pipeDetails.stageShaders[3]);
+				gsRefl = GetShader(pipeDetails.stageShaders[3], "");
 				gsProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[3]].prog;
 				gsProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[3]).name;
 			}
@@ -2382,7 +2382,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		if(progDetails.stageShaders[0] != ResourceId())
 		{
-			vsRefl = GetShader(progDetails.stageShaders[0]);
+			vsRefl = GetShader(progDetails.stageShaders[0], "");
 			vsProg = m_pDriver->m_Shaders[progDetails.stageShaders[0]].prog;
 		}
 		if(progDetails.stageShaders[1] != ResourceId())
@@ -2391,12 +2391,12 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		}
 		if(progDetails.stageShaders[2] != ResourceId())
 		{
-			tesRefl = GetShader(progDetails.stageShaders[2]);
+			tesRefl = GetShader(progDetails.stageShaders[2], "");
 			tesProg = m_pDriver->m_Shaders[progDetails.stageShaders[2]].prog;
 		}
 		if(progDetails.stageShaders[3] != ResourceId())
 		{
-			gsRefl = GetShader(progDetails.stageShaders[3]);
+			gsRefl = GetShader(progDetails.stageShaders[3], "");
 			gsProg = m_pDriver->m_Shaders[progDetails.stageShaders[3]].prog;
 		}
 

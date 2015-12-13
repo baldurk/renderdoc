@@ -1873,7 +1873,7 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 			stages[stageCount].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			stages[stageCount].stage = (VkShaderStageFlagBits)(1<<i);
 			stages[stageCount].module = GetResourceManager()->GetCurrentHandle<VkShaderModule>(pipeInfo.shaders[i].module);
-			stages[stageCount].pName = pipeInfo.shaders[i].name.c_str();
+			stages[stageCount].pName = pipeInfo.shaders[i].entryPoint.c_str();
 			stages[stageCount].pNext = NULL;
 			stages[stageCount].pSpecializationInfo = NULL;
 			stageCount++;
@@ -3888,12 +3888,13 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	if(p.shaders[0].module == ResourceId())
 		return;
 
-	// VKTODOHIGH handle shadermodule vs specific shader
-	const VulkanCreationInfo::ShaderModule &m = c.m_ShaderModule[p.shaders[0].module];
+	const VulkanCreationInfo::ShaderModule &m = c.m_ShaderModule[ p.shaders[0].module ];
+
+	ShaderReflection *refl = p.shaders[0].refl;
 
 	// no outputs from this shader? unexpected but theoretically possible (dummy VS before
 	// tessellation maybe). Just fill out an empty data set
-	if(m.refl.OutputSig.count == 0)
+	if(refl->OutputSig.count == 0)
 	{
 		// empty vertex output signature
 		m_PostVSData[idx].vsin.topo = p.topology;
@@ -4109,7 +4110,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	uint32_t bufStride = 0;
 	vector<uint32_t> modSpirv = m.spirv.spirv;
 
-	AddOutputDumping(m.refl, p.shaders[0].name.c_str(), descSet, minIndex, numVerts, modSpirv, bufStride);
+	AddOutputDumping(*refl, p.shaders[0].entryPoint.c_str(), descSet, minIndex, numVerts, modSpirv, bufStride);
 	
 	// create vertex shader with modified code
 	VkShaderModuleCreateInfo moduleInfo = {
@@ -4449,7 +4450,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	// expect position at the start of the buffer, as system values are sorted first
 	// and position is the first value
 
-	for(uint32_t i=1; m.refl.OutputSig[0].systemValue == eAttr_Position && i < numVerts; i++)
+	for(uint32_t i=1; refl->OutputSig[0].systemValue == eAttr_Position && i < numVerts; i++)
 	{
 		//////////////////////////////////////////////////////////////////////////////////
 		// derive near/far, assuming a standard perspective matrix
@@ -4528,7 +4529,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].vsout.idxFmt = state.ibuffer.bytewidth == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 	}
 
-	m_PostVSData[idx].vsout.hasPosOut = m.refl.OutputSig[0].systemValue == eAttr_Position;
+	m_PostVSData[idx].vsout.hasPosOut = refl->OutputSig[0].systemValue == eAttr_Position;
 
 	// delete pipeline layout
 	m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout, NULL);

@@ -1303,7 +1303,7 @@ bool ProxySerialiser::Tick()
 			GetBuffer(ResourceId());
 			break;
 		case eCommand_GetShader:
-			GetShader(ResourceId());
+			GetShader(ResourceId(), "");
 			break;
 		case eCommand_GetDebugMessages:
 			GetDebugMessages();
@@ -1354,7 +1354,7 @@ bool ProxySerialiser::Tick()
 		{
 			vector<ShaderVariable> vars;
 			vector<byte> data;
-			FillCBufferVariables(ResourceId(), 0, vars, data);
+			FillCBufferVariables(ResourceId(), "", 0, vars, data);
 			break;
 		}
 		case eCommand_GetBufferData:
@@ -1780,16 +1780,17 @@ void ProxySerialiser::DescribeCounter(uint32_t counterID, CounterDescription &de
 	return;
 }
 
-void ProxySerialiser::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
+void ProxySerialiser::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
 {
 	m_ToReplaySerialiser->Serialise("", shader);
+	m_ToReplaySerialiser->Serialise("", entryPoint);
 	m_ToReplaySerialiser->Serialise("", cbufSlot);
 	m_ToReplaySerialiser->Serialise("", outvars);
 	m_ToReplaySerialiser->Serialise("", (vector<byte> &)data);
 
 	if(m_ReplayHost)
 	{
-		m_Remote->FillCBufferVariables(shader, cbufSlot, outvars, data);
+		m_Remote->FillCBufferVariables(shader, entryPoint, cbufSlot, outvars, data);
 	}
 	else
 	{
@@ -1797,8 +1798,6 @@ void ProxySerialiser::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot,
 			return;
 	}
 	
-	m_FromReplaySerialiser->Serialise("", shader);
-	m_FromReplaySerialiser->Serialise("", cbufSlot);
 	m_FromReplaySerialiser->Serialise("", outvars);
 
 	return;
@@ -1945,13 +1944,14 @@ ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, TextureDisplayOverla
 	return ret;
 }
 
-ShaderReflection *ProxySerialiser::GetShader(ResourceId id)
+ShaderReflection *ProxySerialiser::GetShader(ResourceId id, string entryPoint)
 {
 	if(m_ReplayHost)
 	{
 		m_ToReplaySerialiser->Serialise("", id);
+		m_ToReplaySerialiser->Serialise("", entryPoint);
 
-		ShaderReflection *refl = m_Remote->GetShader(id);
+		ShaderReflection *refl = m_Remote->GetShader(id, entryPoint);
 
 		bool hasrefl = (refl != NULL);
 		m_FromReplaySerialiser->Serialise("", hasrefl);
@@ -1962,9 +1962,12 @@ ShaderReflection *ProxySerialiser::GetShader(ResourceId id)
 		return NULL;
 	}
 
-	if(m_ShaderReflectionCache.find(id) == m_ShaderReflectionCache.end())
+	ShaderReflKey key(id, entryPoint);
+
+	if(m_ShaderReflectionCache.find(key) == m_ShaderReflectionCache.end())
 	{
 		m_ToReplaySerialiser->Serialise("", id);
+		m_ToReplaySerialiser->Serialise("", entryPoint);
 
 		if(!SendReplayCommand(eCommand_GetShader))
 			return NULL;
@@ -1974,17 +1977,17 @@ ShaderReflection *ProxySerialiser::GetShader(ResourceId id)
 
 		if(hasrefl)
 		{
-			m_ShaderReflectionCache[id] = new ShaderReflection();
+			m_ShaderReflectionCache[key] = new ShaderReflection();
 
-			m_FromReplaySerialiser->Serialise("", *m_ShaderReflectionCache[id]);
+			m_FromReplaySerialiser->Serialise("", *m_ShaderReflectionCache[key]);
 		}
 		else
 		{
-			m_ShaderReflectionCache[id] = NULL;
+			m_ShaderReflectionCache[key] = NULL;
 		}
 	}
 
-	return m_ShaderReflectionCache[id];
+	return m_ShaderReflectionCache[key];
 }
 
 void ProxySerialiser::FreeTargetResource(ResourceId id)

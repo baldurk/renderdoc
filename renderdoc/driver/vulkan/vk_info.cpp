@@ -83,11 +83,18 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 			Shader &shad = shaders[s];
 			
 			shad.module = id;
-			shad.name = pCreateInfo->pStages[i].pName;
-			shad.refl = new ShaderReflection(info.m_ShaderModule[id].refl);
-			shad.refl->DebugInfo.entryFunc = pCreateInfo->pStages[i].pName;
-			// VKTODOLOW set this properly
-			shad.refl->DebugInfo.entryFile = 0;
+			shad.entryPoint = pCreateInfo->pStages[i].pName;
+
+			ShaderModule::Reflection &reflData = info.m_ShaderModule[id].m_Reflections[shad.entryPoint];
+
+			if(reflData.entryPoint.empty())
+			{
+				reflData.entryPoint = shad.entryPoint;
+				info.m_ShaderModule[id].spirv.MakeReflection(reflData.entryPoint, &reflData.refl, &reflData.mapping);
+			}
+
+			shad.refl = &reflData.refl;
+			shad.mapping = &reflData.mapping;
 		}
 
 		if(pCreateInfo->pVertexInputState)
@@ -207,11 +214,18 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 			Shader &shad = shaders[0];
 			
 			shad.module = id;
-			shad.name = pCreateInfo->stage.pName;
-			shad.refl = new ShaderReflection(info.m_ShaderModule[id].refl);
-			shad.refl->DebugInfo.entryFunc = pCreateInfo->stage.pName;
-			// VKTODOLOW set this properly
-			shad.refl->DebugInfo.entryFile = 0;
+			shad.entryPoint = pCreateInfo->stage.pName;
+
+			ShaderModule::Reflection &reflData = info.m_ShaderModule[id].m_Reflections[shad.entryPoint];
+
+			if(reflData.entryPoint.empty())
+			{
+				reflData.entryPoint = shad.entryPoint;
+				info.m_ShaderModule[id].spirv.MakeReflection(reflData.entryPoint, &reflData.refl, &reflData.mapping);
+			}
+
+			shad.refl = &reflData.refl;
+			shad.mapping = &reflData.mapping;
 		}
 
 		topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -386,6 +400,4 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan, 
 		RDCASSERT(pCreateInfo->codeSize % sizeof(uint32_t) == 0);
 		ParseSPIRV((uint32_t *)pCreateInfo->pCode, pCreateInfo->codeSize/sizeof(uint32_t), spirv);
 	}
-
-	spirv.MakeReflection(&refl, &mapping);
 }

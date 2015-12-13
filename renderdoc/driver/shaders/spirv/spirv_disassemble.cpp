@@ -1461,45 +1461,49 @@ SPVInstruction * SPVModule::GetByID(uint32_t id)
 	return &op;
 }
 
-void SPVModule::Disassemble()
+string SPVModule::Disassemble(const string &entryPoint)
 {
-	m_Disassembly = "SPIR-V:\n\n";
+	string retDisasm = "";
+
+	// TODO filter to only functions/resources used by entryPoint
+
+	retDisasm = "SPIR-V:\n\n";
 
 	const char *gen = "Unrecognised";
 
 	for(size_t i=0; i < ARRAY_COUNT(KnownGenerators); i++) if(KnownGenerators[i].magic == generator)	gen = KnownGenerators[i].name;
 
-	m_Disassembly += StringFormat::Fmt("Version %u, Generator %08x (%s)\n", moduleVersion, generator, gen);
-	m_Disassembly += StringFormat::Fmt("IDs up to {%u}\n", (uint32_t)ids.size());
+	retDisasm += StringFormat::Fmt("Version %u, Generator %08x (%s)\n", moduleVersion, generator, gen);
+	retDisasm += StringFormat::Fmt("IDs up to {%u}\n", (uint32_t)ids.size());
 
-	m_Disassembly += "\n";
+	retDisasm += "\n";
 
-	m_Disassembly += StringFormat::Fmt("Source is %s %u\n", ToStr::Get(sourceLang).c_str(), sourceVer);
+	retDisasm += StringFormat::Fmt("Source is %s %u\n", ToStr::Get(sourceLang).c_str(), sourceVer);
 	for(size_t s=0; s < sourceexts.size(); s++)
-		m_Disassembly += StringFormat::Fmt(" + %s\n", sourceexts[s]->str.c_str());
+		retDisasm += StringFormat::Fmt(" + %s\n", sourceexts[s]->str.c_str());
 
-	m_Disassembly += "\n";
+	retDisasm += "\n";
 
-	m_Disassembly += "Capabilities:";
+	retDisasm += "Capabilities:";
 	for(size_t c=0; c < capabilities.size(); c++)
-		m_Disassembly += StringFormat::Fmt(" %s", ToStr::Get(capabilities[c]).c_str());
-	m_Disassembly += "\n";
+		retDisasm += StringFormat::Fmt(" %s", ToStr::Get(capabilities[c]).c_str());
+	retDisasm += "\n";
 
 	for(size_t i=0; i < entries.size(); i++)
 	{
 		RDCASSERT(entries[i]->entry);
 		uint32_t func = entries[i]->entry->func;
 		RDCASSERT(ids[func]);
-		m_Disassembly += StringFormat::Fmt("Entry point '%s' (%s)\n", ids[func]->str.c_str(), ToStr::Get(entries[i]->entry->model).c_str());
+		retDisasm += StringFormat::Fmt("Entry point '%s' (%s)\n", ids[func]->str.c_str(), ToStr::Get(entries[i]->entry->model).c_str());
 
 		for(size_t m=0; m < entries[i]->entry->modes.size(); m++)
 		{
 			SPVExecutionMode &mode = entries[i]->entry->modes[m];
-			m_Disassembly += StringFormat::Fmt("            %s", ToStr::Get(mode.mode).c_str());
+			retDisasm += StringFormat::Fmt("            %s", ToStr::Get(mode.mode).c_str());
 			if(mode.mode == spv::ExecutionModeInvocations || mode.mode == spv::ExecutionModeOutputVertices)
-				m_Disassembly += StringFormat::Fmt(" = %u", mode.x);
+				retDisasm += StringFormat::Fmt(" = %u", mode.x);
 			if(mode.mode == spv::ExecutionModeLocalSize || mode.mode == spv::ExecutionModeLocalSizeHint)
-				m_Disassembly += StringFormat::Fmt(" = <%u, %u, %u>", mode.x, mode.y, mode.z);
+				retDisasm += StringFormat::Fmt(" = <%u, %u, %u>", mode.x, mode.y, mode.z);
 			if(mode.mode == spv::ExecutionModeVecTypeHint)
 			{
 				uint16_t dataType = (mode.x & 0xffff);
@@ -1507,33 +1511,33 @@ void SPVModule::Disassemble()
 				switch(dataType)
 				{
 					// 0 represents an 8-bit integer value.
-					case 0:  m_Disassembly += StringFormat::Fmt(" = byte%u", numComps); break;
+					case 0:  retDisasm += StringFormat::Fmt(" = byte%u", numComps); break;
 					// 1 represents a 16-bit integer value.
-					case 1:  m_Disassembly += StringFormat::Fmt(" = short%u", numComps); break;
+					case 1:  retDisasm += StringFormat::Fmt(" = short%u", numComps); break;
 					// 2 represents a 32-bit integer value.
-					case 2:  m_Disassembly += StringFormat::Fmt(" = int%u", numComps); break;
+					case 2:  retDisasm += StringFormat::Fmt(" = int%u", numComps); break;
 					// 3 represents a 64-bit integer value.
-					case 3:  m_Disassembly += StringFormat::Fmt(" = longlong%u", numComps); break;
+					case 3:  retDisasm += StringFormat::Fmt(" = longlong%u", numComps); break;
 					// 4 represents a 16-bit float value.
-					case 4:  m_Disassembly += StringFormat::Fmt(" = half%u", numComps); break;
+					case 4:  retDisasm += StringFormat::Fmt(" = half%u", numComps); break;
 					// 5 represents a 32-bit float value.
-					case 5:  m_Disassembly += StringFormat::Fmt(" = float%u", numComps); break;
+					case 5:  retDisasm += StringFormat::Fmt(" = float%u", numComps); break;
 					// 6 represents a 64-bit float value.
-					case 6:  m_Disassembly += StringFormat::Fmt(" = double%u", numComps); break;
+					case 6:  retDisasm += StringFormat::Fmt(" = double%u", numComps); break;
 					// ...
-					default: m_Disassembly += StringFormat::Fmt(" = invalid%u", numComps); break;
+					default: retDisasm += StringFormat::Fmt(" = invalid%u", numComps); break;
 				}
 			}
 
-			m_Disassembly += "\n";
+			retDisasm += "\n";
 		}
 	}
 
-	m_Disassembly += "\n";
+	retDisasm += "\n";
 
 	for(size_t i=0; i < structs.size(); i++)
 	{
-		m_Disassembly += StringFormat::Fmt("struct %s {\n", structs[i]->type->GetName().c_str());
+		retDisasm += StringFormat::Fmt("struct %s {\n", structs[i]->type->GetName().c_str());
 		for(size_t c=0; c < structs[i]->type->children.size(); c++)
 		{
 			auto member = structs[i]->type->children[c];
@@ -1543,9 +1547,9 @@ void SPVModule::Disassemble()
 			if(varName.empty())
 				varName = StringFormat::Fmt("_member%u", c);
 
-			m_Disassembly += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(structs[i]->type->decorations[c], varName).c_str());
+			retDisasm += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(structs[i]->type->decorations[c], varName).c_str());
 		}
-		m_Disassembly += StringFormat::Fmt("}; // struct %s\n\n", structs[i]->type->GetName().c_str());
+		retDisasm += StringFormat::Fmt("}; // struct %s\n\n", structs[i]->type->GetName().c_str());
 	}
 
 	for(size_t i=0; i < globals.size(); i++)
@@ -1564,10 +1568,10 @@ void SPVModule::Disassemble()
 		}
 
 		string varName = globals[i]->str;
-		m_Disassembly += StringFormat::Fmt("%s %s;\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->DeclareVariable(globals[i]->decorations, varName).c_str());
+		retDisasm += StringFormat::Fmt("%s %s;\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->DeclareVariable(globals[i]->decorations, varName).c_str());
 	}
 
-	m_Disassembly += "\n";
+	retDisasm += "\n";
 
 	for(size_t f=0; f < funcs.size(); f++)
 	{
@@ -1591,7 +1595,7 @@ void SPVModule::Disassemble()
 				args += ", ";
 		}
 
-		m_Disassembly += StringFormat::Fmt("%s %s(%s)%s {\n", func->retType->GetName().c_str(), funcs[f]->str.c_str(), args.c_str(), OptionalFlagString(func->control).c_str());
+		retDisasm += StringFormat::Fmt("%s %s(%s)%s {\n", func->retType->GetName().c_str(), funcs[f]->str.c_str(), args.c_str(), OptionalFlagString(func->control).c_str());
 
 		// local copy of variables vector
 		vector<SPVInstruction *> vars = func->variables;
@@ -2009,13 +2013,13 @@ void SPVModule::Disassemble()
 		for(size_t v=0; v < vars.size(); v++)
 		{
 			RDCASSERT(vars[v]->var && vars[v]->var->type);
-			m_Disassembly += string(indent, ' ') + vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
+			retDisasm += string(indent, ' ') + vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
 
 			varDeclared[v] = true;
 		}
 
 		if(!vars.empty())
-			m_Disassembly += "\n";
+			retDisasm += "\n";
 #endif
 
 		vector<uint32_t> selectionstack;
@@ -2176,8 +2180,8 @@ void SPVModule::Disassemble()
 							// begins and continue as normal.
 							if(indent > tabSize)
 							{
-								m_Disassembly += string(tabSize, ' ');
-								m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
+								retDisasm += string(tabSize, ' ');
+								retDisasm += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
 							}
 							else
 							{
@@ -2229,8 +2233,8 @@ void SPVModule::Disassemble()
 							// begins and continue as normal.
 							if(indent > tabSize)
 							{
-								m_Disassembly += string(tabSize, ' ');
-								m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
+								retDisasm += string(tabSize, ' ');
+								retDisasm += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
 							}
 							else
 							{
@@ -2275,8 +2279,8 @@ void SPVModule::Disassemble()
 						// begins and continue as normal.
 						if(indent > tabSize)
 						{
-							m_Disassembly += string(tabSize, ' ');
-							m_Disassembly += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
+							retDisasm += string(tabSize, ' ');
+							retDisasm += vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
 						}
 						else
 						{
@@ -2307,12 +2311,14 @@ void SPVModule::Disassemble()
 			funcops[o]->line = (int)o;
 		}
 
-		m_Disassembly += funcDisassembly;
+		retDisasm += funcDisassembly;
 
 		SAFE_DELETE_ARRAY(varDeclared);
 
-		m_Disassembly += StringFormat::Fmt("} // %s\n\n", funcs[f]->str.c_str());
+		retDisasm += StringFormat::Fmt("} // %s\n\n", funcs[f]->str.c_str());
 	}
+
+	return retDisasm;
 }
 
 void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant> &cblock)
@@ -2577,12 +2583,18 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 	}
 }
 
-void SPVModule::MakeReflection(ShaderReflection *reflection, ShaderBindpointMapping *mapping)
+void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *reflection, ShaderBindpointMapping *mapping)
 {
 	vector<SigParameter> inputs;
 	vector<SigParameter> outputs;
 	vector<cblockpair> cblocks;
 	vector<shaderrespair> resources;
+	
+	// VKTODOLOW filter to only functions/resources used by entryPoint
+
+	// VKTODOLOW set this properly
+	reflection->DebugInfo.entryFile = 0;
+	reflection->DebugInfo.entryFunc = entryPoint;
 
 	create_array_uninit(mapping->InputAttributes, 16);
 	for(size_t i=0; i < 16; i++) mapping->InputAttributes[i] = -1;

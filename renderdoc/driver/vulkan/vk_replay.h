@@ -84,7 +84,7 @@ class VulkanReplay : public IReplayDriver
 		vector<ResourceId> GetTextures();
 		FetchTexture GetTexture(ResourceId id);
 
-		ShaderReflection *GetShader(ResourceId id);
+		ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 		
 		vector<EventUsage> GetUsage(ResourceId id);
 
@@ -143,7 +143,7 @@ class VulkanReplay : public IReplayDriver
 
 		void RenderHighlightBox(float w, float h, float scale);
 		
-		void FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data);
+		void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data);
 		
 		vector<PixelModification> PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx);
 		ShaderDebugTrace DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);

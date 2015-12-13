@@ -168,7 +168,6 @@ struct ReplayRenderer : public IReplayRenderer
 		bool GetTextures(rdctype::array<FetchTexture> *texs);
 		bool GetBuffers(rdctype::array<FetchBuffer> *bufs);
 		bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);
-		ShaderReflection *GetShaderDetails(ResourceId shader);
 		bool GetDebugMessages(rdctype::array<DebugMessage> *msgs);
 		
 		bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx, rdctype::array<PixelModification> *history);
@@ -188,7 +187,7 @@ struct ReplayRenderer : public IReplayRenderer
 		
 		bool SaveTexture(const TextureSave &saveData, const char *path);
 
-		bool GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars);
+		bool GetCBufferVariableContents(ResourceId shader, const char *entryPoint, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars);
 	
 		ReplayOutput *CreateOutput(void *handle, OutputType type);
 

@@ -788,9 +788,9 @@ vector<DebugMessage> GLReplay::GetDebugMessages()
 	return m_pDriver->GetDebugMessages();
 }
 
-ShaderReflection *GLReplay::GetShader(ResourceId id)
+ShaderReflection *GLReplay::GetShader(ResourceId shader, string entryPoint)
 {
-	auto &shaderDetails = m_pDriver->m_Shaders[id];
+	auto &shaderDetails = m_pDriver->m_Shaders[shader];
 	
 	if(shaderDetails.prog == 0)
 	{
@@ -1044,7 +1044,7 @@ void GLReplay::SavePipelineState()
 				{
 					curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
 					stages[i]->Shader = rm->GetOriginalID(pipeDetails.stageShaders[i]);
-					refls[i] = GetShader(pipeDetails.stageShaders[i]);
+					refls[i] = GetShader(pipeDetails.stageShaders[i], "");
 					GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
 					mappings[i] = &stages[i]->BindpointMapping;
 				}
@@ -1064,7 +1064,7 @@ void GLReplay::SavePipelineState()
 			if(progDetails.stageShaders[i] != ResourceId())
 			{
 				stages[i]->Shader = rm->GetOriginalID(progDetails.stageShaders[i]);
-				refls[i] = GetShader(progDetails.stageShaders[i]);
+				refls[i] = GetShader(progDetails.stageShaders[i], "");
 				GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
 				mappings[i] = &stages[i]->BindpointMapping;
 			}
@@ -2019,7 +2019,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 	}
 }
 
-void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
+void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
 {
 	WrappedOpenGL &gl = *m_pDriver;
 	

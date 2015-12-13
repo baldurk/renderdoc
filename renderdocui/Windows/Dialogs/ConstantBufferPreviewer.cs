@@ -52,6 +52,7 @@ namespace renderdocui.Controls
             Slot = slot;
             ArrayIdx = idx;
             shader = m_Core.CurPipelineState.GetShader(stage);
+            entryPoint = m_Core.CurPipelineState.GetShaderEntryPoint(stage);
             UpdateLabels();
 
             ulong offs = 0;
@@ -60,7 +61,7 @@ namespace renderdocui.Controls
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
-                SetVariables(r.GetCBufferVariableContents(shader, Slot, cbuffer, offs));
+                SetVariables(r.GetCBufferVariableContents(shader, entryPoint, Slot, cbuffer, offs));
             });
 
             m_Core.AddLogViewer(this);
@@ -184,6 +185,7 @@ namespace renderdocui.Controls
             m_Core.CurPipelineState.GetConstantBuffer(Stage, Slot, ArrayIdx, out cbuffer, out offs, out size);
 
             shader = m_Core.CurPipelineState.GetShader(Stage);
+            entryPoint = m_Core.CurPipelineState.GetShaderEntryPoint(Stage);
             var reflection = m_Core.CurPipelineState.GetShaderReflection(Stage);
 
             UpdateLabels();
@@ -205,7 +207,7 @@ namespace renderdocui.Controls
 			{
 				m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
 				{
-					SetVariables(r.GetCBufferVariableContents(shader, Slot, cbuffer, offs));
+					SetVariables(r.GetCBufferVariableContents(shader, entryPoint, Slot, cbuffer, offs));
 				});
 			}
         }
@@ -214,6 +216,7 @@ namespace renderdocui.Controls
 
         private ResourceId cbuffer;
         private ResourceId shader;
+        private String entryPoint;
         private ShaderStageType Stage;
         private UInt32 Slot = 0;
         private UInt32 ArrayIdx = 0;

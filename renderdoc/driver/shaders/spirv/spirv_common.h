@@ -77,13 +77,11 @@ struct SPVModule
 	vector<SPVInstruction*> globals; // global variables
 	vector<SPVInstruction*> funcs; // functions
 	vector<SPVInstruction*> structs; // struct types
-
-	string m_Disassembly;
 	
 	SPVInstruction *GetByID(uint32_t id);
-	void Disassemble();
+	string Disassemble(const string &entryPoint);
 
-	void MakeReflection(ShaderReflection *reflection, ShaderBindpointMapping *mapping);
+	void MakeReflection(const string &entryPoint, ShaderReflection *reflection, ShaderBindpointMapping *mapping);
 };
 
 string CompileSPIRV(SPIRVShaderStage shadType, const vector<string> &sources, vector<uint32_t> &spirv);

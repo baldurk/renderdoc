@@ -55,9 +55,8 @@ void WrappedOpenGL::ShaderData::Compile(const GLHookSet &gl)
 		if(!spirvwords.empty())
 			ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
 
-		spirv.Disassemble();
-
-		reflection.Disassembly = spirv.m_Disassembly;
+		// for classic GL, entry point is always main
+		reflection.Disassembly = spirv.Disassemble("main");
 
 		create_array_uninit(reflection.DebugInfo.files, sources.size());
 		for(size_t i=0; i < sources.size(); i++)

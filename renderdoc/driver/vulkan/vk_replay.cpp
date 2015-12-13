@@ -780,11 +780,10 @@ FetchBuffer VulkanReplay::GetBuffer(ResourceId id)
 	return ret;
 }
 
-ShaderReflection *VulkanReplay::GetShader(ResourceId id)
+ShaderReflection *VulkanReplay::GetShader(ResourceId shader, string entryPoint)
 {
-	// VKTODOHIGH update handling of this now that shaders no longer exist
-	auto shad = m_pDriver->m_CreationInfo.m_ShaderModule.find(id);
-	
+	auto shad = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
+
 	if(shad == m_pDriver->m_CreationInfo.m_ShaderModule.end())
 	{
 		RDCERR("Can't get shader details");
@@ -792,15 +791,10 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId id)
 	}
 
 	// disassemble lazily on demand
-	if(shad->second.refl.Disassembly.count == 0)
-	{
-		if(shad->second.spirv.m_Disassembly.empty())
-			shad->second.spirv.Disassemble();
+	if(shad->second.m_Reflections[entryPoint].refl.Disassembly.count == 0)
+		shad->second.m_Reflections[entryPoint].refl.Disassembly = shad->second.spirv.Disassemble(entryPoint);
 
-		shad->second.refl.Disassembly = shad->second.spirv.m_Disassembly;
-	}
-
-	return &shad->second.refl;
+	return &shad->second.m_Reflections[entryPoint].refl;
 }
 
 void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
@@ -2670,11 +2664,13 @@ void VulkanReplay::SavePipelineState()
 			for(size_t i=0; i < ARRAY_COUNT(stages); i++)
 			{
 				stages[i]->Shader = rm->GetOriginalID(p.shaders[i].module);
+				stages[i]->entryPoint = p.shaders[i].entryPoint;
 				stages[i]->ShaderDetails = NULL;
 				stages[i]->customName = false;
 				stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Shader);
 				stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
-				stages[i]->BindpointMapping = c.m_ShaderModule[p.shaders[i].module].mapping;
+				if(p.shaders[i].mapping)
+					stages[i]->BindpointMapping = *p.shaders[i].mapping;
 			}
 
 			// Tessellation
@@ -3236,22 +3232,20 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 	}
 }
 
-void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
+void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
 {
 	// Correct SPIR-V will ultimately need to set explicit layout information for each type.
 	// For now, just assume D3D11 packing (float4 alignment on float4s, float3s, matrices, arrays and structures)
 	
-	// VKTODOHIGH update handling of this now that shaders no longer exist
-
 	auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
-	
+
 	if(it == m_pDriver->m_CreationInfo.m_ShaderModule.end())
 	{
 		RDCERR("Can't get shader details");
 		return;
 	}
 
-	ShaderReflection &refl = it->second.refl;
+	ShaderReflection &refl = it->second.m_Reflections[entryPoint].refl;
 
 	if(cbufSlot >= (uint32_t)refl.ConstantBlocks.count)
 	{

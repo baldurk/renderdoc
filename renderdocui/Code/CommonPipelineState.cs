@@ -343,6 +343,24 @@ namespace renderdocui.Code
             return null;
         }
 
+        public String GetShaderEntryPoint(ShaderStageType stage)
+        {
+            if (LogLoaded && IsLogVK)
+            {
+                switch (stage)
+                {
+                    case ShaderStageType.Vertex: return m_Vulkan.VS.entryPoint;
+                    case ShaderStageType.Tess_Control: return m_Vulkan.TCS.entryPoint;
+                    case ShaderStageType.Tess_Eval: return m_Vulkan.TES.entryPoint;
+                    case ShaderStageType.Geometry: return m_Vulkan.GS.entryPoint;
+                    case ShaderStageType.Fragment: return m_Vulkan.FS.entryPoint;
+                    case ShaderStageType.Compute: return m_Vulkan.CS.entryPoint;
+                }
+            }
+
+            return "";
+        }
+
         public ResourceId GetShader(ShaderStageType stage)
         {
             if (LogLoaded)

@@ -293,9 +293,9 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 	return tex;
 }
 
-ShaderReflection *D3D11Replay::GetShader(ResourceId id)
+ShaderReflection *D3D11Replay::GetShader(ResourceId shader, string entryPoint)
 {
-	auto it = WrappedShader::m_ShaderList.find(id);
+	auto it = WrappedShader::m_ShaderList.find(shader);
 
 	if(it == WrappedShader::m_ShaderList.end())
 		return NULL;
@@ -450,7 +450,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 		ResourceId layoutId = GetIDForResource(rs->IA.Layout);
 
 		ret.m_IA.layout = rm->GetOriginalID(layoutId);
-		ret.m_IA.Bytecode = GetShader(layoutId);
+		ret.m_IA.Bytecode = GetShader(layoutId, "");
 
 		create_array_uninit(ret.m_IA.layouts, vec.size());
 
@@ -1379,7 +1379,7 @@ void D3D11Replay::RenderHighlightBox(float w, float h, float scale)
 	m_pDevice->GetDebugManager()->RenderHighlightBox(w, h, scale);
 }
 
-void D3D11Replay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
+void D3D11Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
 {
 	auto it = WrappedShader::m_ShaderList.find(shader);
 

@@ -70,9 +70,8 @@ struct VulkanCreationInfo
 		struct Shader
 		{
 			Shader() : refl(NULL), mapping(NULL) {}
-			~Shader() { SAFE_DELETE(refl); }
 			ResourceId module;
-			string name;
+			string entryPoint;
 			ShaderReflection *refl;
 			ShaderBindpointMapping *mapping;
 		};
@@ -293,8 +292,14 @@ struct VulkanCreationInfo
 		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkShaderModuleCreateInfo* pCreateInfo);
 
 		SPVModule spirv;
-		ShaderReflection refl;
-		ShaderBindpointMapping mapping;
+
+		struct Reflection
+		{
+			string entryPoint;
+			ShaderReflection refl;
+			ShaderBindpointMapping mapping;
+		};
+		map<string, Reflection> m_Reflections;
 	};
 	map<ResourceId, ShaderModule> m_ShaderModule;
 
