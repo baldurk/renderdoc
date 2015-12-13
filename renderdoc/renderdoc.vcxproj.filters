@@ -234,6 +234,9 @@
     <ClInclude Include="data\spv\debuguniforms.h">
       <Filter>Resources\spv</Filter>
     </ClInclude>
+    <ClInclude Include="data\spv\texsample.h">
+      <Filter>Resources\spv</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

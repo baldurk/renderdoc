@@ -956,7 +956,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	
 	data->FlipY = cfg.FlipY ? 1 : 0;
 
-	data->MipLevel = (float)cfg.mip;
+	data->MipLevel = (int)cfg.mip;
 	data->Slice = 0;
 	if(iminfo.type != VK_IMAGE_TYPE_3D)
 		data->Slice = (float)cfg.sliceFace;
@@ -973,11 +973,45 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	
 	data->NumSamples = iminfo.samples;
 	data->SampleIdx = cfg.sampleIdx;
+	
+	if(cfg.sampleIdx == ~0U)
+		data->SampleIdx = -SampleCount(iminfo.samples);
 
 	data->OutputRes.x = (float)m_DebugWidth;
 	data->OutputRes.y = (float)m_DebugHeight;
 
-	int displayformat = 0;
+	int textype = 0;
+	
+	if(iminfo.type == VK_IMAGE_TYPE_1D)
+		textype = RESTYPE_TEX1D;
+	if(iminfo.type == VK_IMAGE_TYPE_3D)
+		textype = RESTYPE_TEX3D;
+	if(iminfo.type == VK_IMAGE_TYPE_2D)
+	{
+		textype = RESTYPE_TEX2D;
+		if(iminfo.samples != VK_SAMPLE_COUNT_1_BIT)
+			textype = RESTYPE_TEX2DMS;
+	}
+
+	int displayformat = textype;
+	int descSetBinding = textype;
+
+	if(IsUIntFormat(iminfo.format))
+	{
+		descSetBinding += 10;
+		displayformat |= TEXDISPLAY_UINT_TEX;
+	}
+	else if(IsSIntFormat(iminfo.format))
+	{
+		descSetBinding += 15;
+		displayformat |= TEXDISPLAY_SINT_TEX;
+	}
+	else
+	{
+		descSetBinding += 5;
+	}
+
+	// VKTODOMED: RESTYPE_TEXBUFFER
 	
 	if(!IsSRGBFormat(iminfo.format) && cfg.linearDisplayAsGamma)
 		displayformat |= TEXDISPLAY_GAMMA_CURVE;
@@ -988,7 +1022,6 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	if(cfg.overlay == eTexOverlay_Clipping)
 		displayformat |= TEXDISPLAY_CLIPPING;
 
-	// VKTODOMED handle different texture types/displays
 	data->OutputDisplayFormat = displayformat;
 	
 	data->RawOutput = cfg.rawoutput ? 1 : 0;
@@ -1010,7 +1043,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	VkWriteDescriptorSet writeSet[] = {
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(descset), 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			Unwrap(descset), descSetBinding, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			&imdesc, NULL, NULL
 		},
 		{

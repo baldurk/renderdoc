@@ -49,6 +49,32 @@ VkAccessFlags MakeAccessMask(VkImageLayout layout)
 	return VkAccessFlags(0);
 }
 
+int SampleCount(VkSampleCountFlagBits countFlag)
+{
+	switch(countFlag)
+	{
+		case VK_SAMPLE_COUNT_1_BIT:
+			return 1;
+		case VK_SAMPLE_COUNT_2_BIT:
+			return 2;
+		case VK_SAMPLE_COUNT_4_BIT:
+			return 4;
+		case VK_SAMPLE_COUNT_8_BIT:
+			return 8;
+		case VK_SAMPLE_COUNT_16_BIT:
+			return 16;
+		case VK_SAMPLE_COUNT_32_BIT:
+			return 32;
+		case VK_SAMPLE_COUNT_64_BIT:
+			return 64;
+		default:
+			RDCERR("Unrecognised/not single flag %x", countFlag);
+			break;
+	}
+
+	return 1;
+}
+
 ResourceFormat MakeResourceFormat(VkFormat fmt)
 {
 	ResourceFormat ret;

@@ -24,27 +24,68 @@
 
 layout (location = 0) out vec4 color_out;
 
-layout (binding = 1) uniform sampler2D tex;
+//#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
 
 void main(void)
 {
+	bool uintTex = (texdisplay.OutputDisplayFormat & TEXDISPLAY_UINT_TEX) != 0;
+	bool sintTex = (texdisplay.OutputDisplayFormat & TEXDISPLAY_SINT_TEX) != 0;
+
+	int texType = (texdisplay.OutputDisplayFormat & TEXDISPLAY_TYPEMASK);
+
+	vec4 col;
+	uvec4 ucol;
+	ivec4 scol;
+
 	// calc screen co-ords with origin top left, modified by Position
 	vec2 scr = gl_FragCoord.xy - texdisplay.Position.xy;
 
 	scr /= texdisplay.Scale;
-	
-	if(scr.x < 0.0f || scr.y < 0.0f ||
-	   scr.x > texdisplay.TextureResolutionPS.x || scr.y > texdisplay.TextureResolutionPS.y)
+
+	if(texType == RESTYPE_TEX1D || texType == RESTYPE_TEXBUFFER)
 	{
-		discard;
+		// by convention display 1D textures as 100 high
+		if(scr.x < 0.0f || scr.x > texdisplay.TextureResolutionPS.x || scr.y < 0.0f || scr.y > 100.0f)
+		   discard;
+	}
+	else
+	{
+		if(scr.x < 0.0f || scr.y < 0.0f ||
+		   scr.x > texdisplay.TextureResolutionPS.x || scr.y > texdisplay.TextureResolutionPS.y)
+		{
+			discard;
+		}
 	}
 
 	if (texdisplay.FlipY != 0)
 		scr.y = texdisplay.TextureResolutionPS.y - scr.y;
 
-	vec4 col = textureLod(tex, scr.xy / texdisplay.TextureResolutionPS.xy, float(texdisplay.MipLevel));
-
-	vec4 rawcol = col;
+	if(uintTex)
+	{
+		ucol = SampleTextureUInt4(texType, scr, texdisplay.Slice, texdisplay.MipLevel,
+		                          texdisplay.SampleIdx, texdisplay.TextureResolutionPS);
+	}
+	else if(sintTex)
+	{
+		scol = SampleTextureSInt4(texType, scr, texdisplay.Slice, texdisplay.MipLevel,
+		                          texdisplay.SampleIdx, texdisplay.TextureResolutionPS);
+	}
+	else
+	{
+		col = SampleTextureFloat4(texType, scr, texdisplay.Slice, texdisplay.MipLevel,
+		                          texdisplay.SampleIdx, texdisplay.TextureResolutionPS);
+	}
+	
+	if(texdisplay.RawOutput != 0)
+	{
+		if (uintTex)
+			color_out = uintBitsToFloat(ucol);
+		else if (sintTex)
+			color_out = intBitsToFloat(scol);
+		else
+			color_out = col;
+		return;
+	}
 
 	// RGBM encoding
 	if(texdisplay.HDRMul > 0.0f)
@@ -118,5 +159,5 @@ void main(void)
 		col.rgb = pow(clamp(col.rgb, 0.0f.xxx, 1.0f.xxx), 2.2f.xxx);
 	}
 
-	color_out = (texdisplay.RawOutput != 0 ? rawcol : col);
+	color_out = col;
 }

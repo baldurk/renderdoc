@@ -145,6 +145,7 @@ RESOURCE_spirv_minmaxresult_comp TYPE_EMBED   "spv/minmaxresult.comp"
 RESOURCE_spirv_histogram_comp    TYPE_EMBED   "spv/histogram.comp"
 RESOURCE_spirv_outline_frag      TYPE_EMBED   "spv/outline.frag"
 RESOURCE_spirv_debuguniforms_h   TYPE_EMBED   "spv/debuguniforms.h"
+RESOURCE_spirv_texsample_h       TYPE_EMBED   "spv/texsample.h"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

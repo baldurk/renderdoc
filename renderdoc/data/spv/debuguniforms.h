@@ -130,7 +130,7 @@ BINDING (0, 0) uniform TexDisplayUBOData
 
 	float RangeMinimum;
 	float InverseRangeSize;
-	float MipLevel;
+	int   MipLevel;
 	int   FlipY;
 
 	vec3  TextureResolutionPS;

@@ -30,11 +30,6 @@ in v2f
 
 layout (location = 0) out vec4 color_out;
 
-#define MESHDISPLAY_SOLID           0x1
-#define MESHDISPLAY_FACELIT         0x2
-#define MESHDISPLAY_SECONDARY       0x3
-#define MESHDISPLAY_SECONDARY_ALPHA 0x4
-
 void main(void)
 {
 	uint type = Mesh.displayFormat;

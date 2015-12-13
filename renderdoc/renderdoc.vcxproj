@@ -256,6 +256,7 @@
     <ClInclude Include="data\hlsl\debugcbuffers.h" />
     <ClInclude Include="data\resource.h" />
     <ClInclude Include="data\spv\debuguniforms.h" />
+    <ClInclude Include="data\spv\texsample.h" />
     <ClInclude Include="data\version.h" />
     <ClInclude Include="hooks\hooks.h" />
     <ClInclude Include="maths\camera.h" />

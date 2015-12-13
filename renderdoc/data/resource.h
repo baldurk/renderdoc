@@ -47,6 +47,7 @@
 #define RESOURCE_spirv_histogram_comp    414
 #define RESOURCE_spirv_outline_frag      415
 #define RESOURCE_spirv_debuguniforms_h   416
+#define RESOURCE_spirv_texsample_h       417
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

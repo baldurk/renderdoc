@@ -54,6 +54,8 @@ VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo);
 // set conservative access bits for this image layout
 VkAccessFlags MakeAccessMask(VkImageLayout layout);
 
+int SampleCount(VkSampleCountFlagBits countFlag);
+
 // structure for casting to easily iterate and template specialising Serialise
 struct VkGenericStruct
 {
