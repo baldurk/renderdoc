@@ -17,7 +17,7 @@ Current Support
 * On replay you can step into each vkQueueSubmit call to see the command buffers submitted, and step into them to browse through the commands.
 * The pipeline state will be displayed at each command, showing the data contained in each member of the pipeline createinfo struct, as well as dynamic state.
 * Simple disassembly/reflection of SPIR-V to determine which descriptors to read for read-only resources and uniform buffers. The uniform buffers will be listed separately and the member variables filled out.
-* Simple display of most 2D textures with mips in the texture viewer.
+* Texture display
 * You can view mesh input data both as data and a 3D preview
 * Mesh output data after vertex shader is fetched and displayed
 * Pipeline export to HTML
@@ -31,7 +31,6 @@ Known Issues
 
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
 * Sparse images with mips or array slices will not properly replay
-* Only 2D non-array non-integer textures can currently be displayed.
 * 'Quad overdraw' debug overlays aren't implemented.
 * No drawcall timings.
 
