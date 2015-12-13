@@ -1,15 +1,21 @@
 {
-    "file_format_version" : "1.0.0",
-    "layer" : {
-        "name": "VK_LAYER_RENDERDOC_Capture",
-        "type": "GLOBAL",
-        "library_path": ".\\renderdoc.dll",
-        "api_version": "0.210.1",
-        "implementation_version": "26",
-        "description": "Debugging capture layer for RenderDoc",
-        "functions": {
-          "vkGetInstanceProcAddr": "RenderDoc_GetInstanceProcAddr",
-          "vkGetDeviceProcAddr": "RenderDoc_GetDeviceProcAddr"
-        }
+  "file_format_version" : "1.0.0",
+  "layer" : {
+    "name": "VK_LAYER_RENDERDOC_Capture",
+    "type": "GLOBAL",
+    "library_path": ".\\renderdoc.dll",
+    "api_version": "0.210.1",
+    "implementation_version": "26",
+    "description": "Debugging capture layer for RenderDoc",
+    "functions": {
+      "vkGetInstanceProcAddr": "RenderDoc_GetInstanceProcAddr",
+      "vkGetDeviceProcAddr": "RenderDoc_GetDeviceProcAddr"
+    },
+    "enable_environment": {
+      "ENABLE_VULKAN_RENDERDOC_CAPTURE": "1"
+    },
+    "disable_environment": {
+      "DISABLE_VULKAN_RENDERDOC_CAPTURE_0_26": "1"
     }
+  }
 }
