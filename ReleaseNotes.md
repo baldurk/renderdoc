@@ -32,7 +32,6 @@ Known Issues
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
 * Sparse images with mips or array slices will not properly replay
 * 'Quad overdraw' debug overlays aren't implemented.
-* No drawcall timings.
 
 Future work, post 1.0
 ========
@@ -47,6 +46,7 @@ In no particular order, features that are not planned until after 1.0.
 * Mesh output data after geometry and tessellation shaders
 * Vertex picking
 * Pixel history
+* Drawcall timings
 * Custom visualisation shaders
 * Linux support with Qt UI
 * Shader edit & replace
