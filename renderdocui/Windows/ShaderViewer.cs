@@ -2063,6 +2063,9 @@ namespace renderdocui.Windows
 
         private void ShaderViewer_FormClosing(object sender, FormClosingEventArgs e)
         {
+            foreach (var sc in m_Scintillas)
+                sc.FindReplace.Window.Close();
+            m_FindAll.Close();
             if (m_CloseCallback != null)
                 m_CloseCallback();
         }
