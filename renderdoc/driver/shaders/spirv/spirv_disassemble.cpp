@@ -752,7 +752,14 @@ struct SPVInstruction
 			{
 				RDCASSERT(!inlineOp);
 
-				string arg = ids[flow->targets[0]]->Disassemble(ids, true);
+				uint32_t retID = flow->targets[0];
+
+				string arg;
+
+				if(ids[retID] == NULL)
+					arg = StringFormat::Fmt("<%u>", retID);
+				else
+					arg = ids[retID]->Disassemble(ids, true);
 
 				return StringFormat::Fmt("Return %s", arg.c_str());
 			}
