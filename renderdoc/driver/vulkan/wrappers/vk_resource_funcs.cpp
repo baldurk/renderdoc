@@ -548,6 +548,10 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 				m_FrameCaptureRecord->AddChunk(scope.Get());
 				GetResourceManager()->MarkResourceFrameReferenced(GetResID(pMemRanges[i].memory), eFrameRef_Write);
 			}
+			else
+			{
+				GetResourceManager()->MarkDirtyResource(memid);
+			}
 		}
 	}
 	
