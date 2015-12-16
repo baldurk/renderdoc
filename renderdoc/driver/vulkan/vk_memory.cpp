@@ -82,6 +82,8 @@ uint32_t WrappedVulkan::PhysicalDeviceData::GetMemoryIndex(uint32_t resourceRequ
 	return best;
 }
 
+#define CREATE_NON_COHERENT_ATTRACTIVE_MEMORY 0
+
 void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProps, uint32_t **memIdxMap)
 {
 	uint32_t *memmap = new uint32_t[32];
@@ -123,6 +125,7 @@ void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProp
 
 	for(uint32_t i=0; i < origCount; i++)
 	{
+#if CREATE_NON_COHERENT_ATTRACTIVE_MEMORY
 		if((origTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0)
 		{
 			// coherent type found.
@@ -158,6 +161,7 @@ void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProp
 			}
 		}
 		else
+#endif
 		{
 			// non-coherent already or non-hostvisible, just copy through
 			memProps->memoryTypes[newtypeidx] = origTypes[i];
