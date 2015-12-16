@@ -188,81 +188,138 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			break;
 
 		case eResDeviceMemory:
-			vt->FreeMemory(Unwrap(dev), nondisp->real.As<VkDeviceMemory>(), NULL);
+		{
+			VkDeviceMemory real = nondisp->real.As<VkDeviceMemory>();
 			GetResourceManager()->ReleaseWrappedResource(VkDeviceMemory(handle));
+			vt->FreeMemory(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResBuffer:
-			vt->DestroyBuffer(Unwrap(dev), nondisp->real.As<VkBuffer>(), NULL);
+		{
+			VkBuffer real = nondisp->real.As<VkBuffer>();
 			GetResourceManager()->ReleaseWrappedResource(VkBuffer(handle));
+			vt->DestroyBuffer(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResBufferView:
-			vt->DestroyBufferView(Unwrap(dev), nondisp->real.As<VkBufferView>(), NULL);
+		{
+			VkBufferView real = nondisp->real.As<VkBufferView>();
 			GetResourceManager()->ReleaseWrappedResource(VkBufferView(handle));
+			vt->DestroyBufferView(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResImage:
-			vt->DestroyImage(Unwrap(dev), nondisp->real.As<VkImage>(), NULL);
+		{
+			VkImage real = nondisp->real.As<VkImage>();
 			GetResourceManager()->ReleaseWrappedResource(VkImage(handle));
+			vt->DestroyImage(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResImageView:
-			vt->DestroyImageView(Unwrap(dev), nondisp->real.As<VkImageView>(), NULL);
+		{
+			VkImageView real = nondisp->real.As<VkImageView>();
 			GetResourceManager()->ReleaseWrappedResource(VkImageView(handle));
+			vt->DestroyImageView(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResFramebuffer:
-			vt->DestroyFramebuffer(Unwrap(dev), nondisp->real.As<VkFramebuffer>(), NULL);
+		{
+			VkFramebuffer real = nondisp->real.As<VkFramebuffer>();
 			GetResourceManager()->ReleaseWrappedResource(VkFramebuffer(handle));
+			vt->DestroyFramebuffer(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResRenderPass:
-			vt->DestroyRenderPass(Unwrap(dev), nondisp->real.As<VkRenderPass>(), NULL);
+		{
+			VkRenderPass real = nondisp->real.As<VkRenderPass>();
 			GetResourceManager()->ReleaseWrappedResource(VkRenderPass(handle));
+			vt->DestroyRenderPass(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResShaderModule:
-			vt->DestroyShaderModule(Unwrap(dev), nondisp->real.As<VkShaderModule>(), NULL);
+		{
+			VkShaderModule real = nondisp->real.As<VkShaderModule>();
 			GetResourceManager()->ReleaseWrappedResource(VkShaderModule(handle));
+			vt->DestroyShaderModule(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResPipelineCache:
-			vt->DestroyPipelineCache(Unwrap(dev), nondisp->real.As<VkPipelineCache>(), NULL);
+		{
+			VkPipelineCache real = nondisp->real.As<VkPipelineCache>();
 			GetResourceManager()->ReleaseWrappedResource(VkPipelineCache(handle));
+			vt->DestroyPipelineCache(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResPipelineLayout:
-			vt->DestroyPipelineLayout(Unwrap(dev), nondisp->real.As<VkPipelineLayout>(), NULL);
+		{
+			VkPipelineLayout real = nondisp->real.As<VkPipelineLayout>();
 			GetResourceManager()->ReleaseWrappedResource(VkPipelineLayout(handle));
+			vt->DestroyPipelineLayout(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResPipeline:
-			vt->DestroyPipeline(Unwrap(dev), nondisp->real.As<VkPipeline>(), NULL);
+		{
+			VkPipeline real = nondisp->real.As<VkPipeline>();
 			GetResourceManager()->ReleaseWrappedResource(VkPipeline(handle));
+			vt->DestroyPipeline(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResSampler:
-			vt->DestroySampler(Unwrap(dev), nondisp->real.As<VkSampler>(), NULL);
+		{
+			VkSampler real = nondisp->real.As<VkSampler>();
 			GetResourceManager()->ReleaseWrappedResource(VkSampler(handle));
+			vt->DestroySampler(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResDescriptorPool:
-			vt->DestroyDescriptorPool(Unwrap(dev), nondisp->real.As<VkDescriptorPool>(), NULL);
+		{
+			VkDescriptorPool real = nondisp->real.As<VkDescriptorPool>();
 			GetResourceManager()->ReleaseWrappedResource(VkDescriptorPool(handle));
+			vt->DestroyDescriptorPool(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResDescriptorSetLayout:
-			vt->DestroyDescriptorSetLayout(Unwrap(dev), nondisp->real.As<VkDescriptorSetLayout>(), NULL);
+		{
+			VkDescriptorSetLayout real = nondisp->real.As<VkDescriptorSetLayout>();
 			GetResourceManager()->ReleaseWrappedResource(VkDescriptorSetLayout(handle));
+			vt->DestroyDescriptorSetLayout(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResCommandPool:
-			vt->DestroyCommandPool(Unwrap(dev), nondisp->real.As<VkCommandPool>(), NULL);
+		{
+			VkCommandPool real = nondisp->real.As<VkCommandPool>();
 			GetResourceManager()->ReleaseWrappedResource(VkCommandPool(handle));
+			vt->DestroyCommandPool(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResFence:
-			vt->DestroyFence(Unwrap(dev), nondisp->real.As<VkFence>(), NULL);
+		{
+			VkFence real = nondisp->real.As<VkFence>();
 			GetResourceManager()->ReleaseWrappedResource(VkFence(handle));
+			vt->DestroyFence(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResEvent:
-			vt->DestroyEvent(Unwrap(dev), nondisp->real.As<VkEvent>(), NULL);
+		{
+			VkEvent real = nondisp->real.As<VkEvent>();
 			GetResourceManager()->ReleaseWrappedResource(VkEvent(handle));
+			vt->DestroyEvent(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResQueryPool:
-			vt->DestroyQueryPool(Unwrap(dev), nondisp->real.As<VkQueryPool>(), NULL);
+		{
+			VkQueryPool real = nondisp->real.As<VkQueryPool>();
 			GetResourceManager()->ReleaseWrappedResource(VkQueryPool(handle));
+			vt->DestroyQueryPool(Unwrap(dev), real, NULL);
 			break;
+		}
 		case eResSemaphore:
-			vt->DestroySemaphore(Unwrap(dev), nondisp->real.As<VkSemaphore>(), NULL);
+		{
+			VkSemaphore real = nondisp->real.As<VkSemaphore>();
 			GetResourceManager()->ReleaseWrappedResource(VkSemaphore(handle));
+			vt->DestroySemaphore(Unwrap(dev), real, NULL);
 			break;
+		}
 	}
 
 	return true;
