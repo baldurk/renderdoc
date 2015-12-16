@@ -87,7 +87,10 @@ void ResourceRecord::Delete(ResourceRecordHandler *mgr)
 		DeleteChunks();
 
 		if(ResID != ResourceId())
+		{
+			mgr->MarkCleanResource(ResID);
 			mgr->RemoveResourceRecord(ResID);
+		}
 
 		mgr->DestroyResourceRecord(this);
 	}

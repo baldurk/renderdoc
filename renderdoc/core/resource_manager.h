@@ -71,6 +71,7 @@ class ResourceRecordHandler
 {
 	public:
 		virtual void MarkDirtyResource(ResourceId id) = 0;
+		virtual void MarkCleanResource(ResourceId id) = 0;
 		virtual void MarkPendingDirty(ResourceId id) = 0;
 		virtual void RemoveResourceRecord(ResourceId id) = 0;
 		virtual void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType) = 0;
