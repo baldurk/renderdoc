@@ -2513,7 +2513,9 @@ void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el)
 {
 	ScopedContext scope(this, name, "VkDeviceQueueCreateInfo", 0, true);
 	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+	//RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+	if(m_Mode >= WRITING && el.sType != VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
+		RDCWARN("sType not set properly: %u", el.sType);
 	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("flags", (VkFlagWithNoBits &)el.flags);
