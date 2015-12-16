@@ -334,8 +334,6 @@ VkResult WrappedVulkan::vkFreeDescriptorSets(
 
 	VkResult ret = ObjDisp(device)->FreeDescriptorSets(Unwrap(device), Unwrap(descriptorPool), count, unwrapped);
 
-	SAFE_DELETE_ARRAY(unwrapped);
-
 	return ret;
 }
 
