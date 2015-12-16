@@ -193,6 +193,7 @@ namespace renderdoc
         R5G5B5A1,
         R9G9B9E5,
         R4G4B4A4,
+        R4G4,
         D16S8,
         D24S8,
         D32S8,

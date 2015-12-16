@@ -517,6 +517,7 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
 			case eSpecial_S8:
 				return DXGI_FORMAT_R8_UINT;
 			default:
+			case eSpecial_R4G4:
 			case eSpecial_D16S8:
 			case eSpecial_ETC2:
 			case eSpecial_EAC:
@@ -776,6 +777,7 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 				break;
 			case eSpecial_D16S8:
 			case eSpecial_YUV:
+			case eSpecial_R4G4:
 				RDCERR("Unsupported file format %u", data.format.specialFormat);
 				return false;
 			default:
@@ -1048,6 +1050,7 @@ dds_data load_dds_from_file(FILE *f)
 			break;
 		case eSpecial_D16S8:
 		case eSpecial_YUV:
+		case eSpecial_R4G4:
 			RDCERR("Unsupported file format %u", ret.format.specialFormat);
 			return error;
 		default:

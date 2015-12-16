@@ -93,13 +93,16 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 		return ret;
 	}
 
-	// VKTODOMED R4G4, R4G4B4A4, and refactor BGRA formats
-
 	switch(fmt)
 	{
+		case VK_FORMAT_R4G4_UNORM_PACK8:
+			ret.special = true;
+			ret.specialFormat = eSpecial_R4G4;
+			break;
+		case VK_FORMAT_R4G4B4A4_UNORM_PACK16:
 		case VK_FORMAT_B4G4R4A4_UNORM_PACK16:
 			ret.special = true;
-			ret.specialFormat = eSpecial_B4G4R4A4;
+			ret.specialFormat = eSpecial_R4G4B4A4;
 			break;
 		case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
 		case VK_FORMAT_A2B10G10R10_SNORM_PACK32:
@@ -117,6 +120,17 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 		case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32:
 			ret.special = true;
 			ret.specialFormat = eSpecial_R9G9B9E5;
+			break;
+		case VK_FORMAT_R5G6B5_UNORM_PACK16:
+		case VK_FORMAT_B5G6R5_UNORM_PACK16:
+			ret.special = true;
+			ret.specialFormat = eSpecial_R5G6B5;
+			break;
+		case VK_FORMAT_R5G5B5A1_UNORM_PACK16:
+		case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
+		case VK_FORMAT_A1R5G5B5_UNORM_PACK16:
+			ret.special = true;
+			ret.specialFormat = eSpecial_R5G5B5A1;
 			break;
 		case VK_FORMAT_D16_UNORM_S8_UINT:
 			ret.special = true;
@@ -214,6 +228,16 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 			ret.special = true;
 			ret.specialFormat = eSpecial_ASTC;
 			break;
+		default:
+			break;
+	}
+
+	switch(fmt)
+	{
+		case VK_FORMAT_B4G4R4A4_UNORM_PACK16:
+		case VK_FORMAT_B5G6R5_UNORM_PACK16:
+		case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
+		case VK_FORMAT_A1R5G5B5_UNORM_PACK16:
 		case VK_FORMAT_B8G8R8A8_UNORM:
 		case VK_FORMAT_B8G8R8A8_SNORM:
 		case VK_FORMAT_B8G8R8A8_USCALED:
@@ -221,8 +245,13 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 		case VK_FORMAT_B8G8R8A8_UINT:
 		case VK_FORMAT_B8G8R8A8_SINT:
 		case VK_FORMAT_B8G8R8A8_SRGB:
-			ret.special = true;
-			ret.specialFormat = eSpecial_B8G8R8A8;
+		case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+		case VK_FORMAT_A2B10G10R10_SNORM_PACK32:
+		case VK_FORMAT_A2B10G10R10_USCALED_PACK32:
+		case VK_FORMAT_A2B10G10R10_SSCALED_PACK32:
+		case VK_FORMAT_A2B10G10R10_UINT_PACK32:
+		case VK_FORMAT_A2B10G10R10_SINT_PACK32:
+			ret.bgraOrder = true;
 			break;
 		default:
 			break;
@@ -773,48 +802,35 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
 			}
 			case eSpecial_R10G10B10A2:
 				if(fmt.compType == eCompType_UNorm)
-					ret = VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+					ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_UNORM_PACK32 : VK_FORMAT_A2R10G10B10_UNORM_PACK32;
 				else if(fmt.compType == eCompType_UInt)
-					ret = VK_FORMAT_A2R10G10B10_UINT_PACK32;
+					ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_UINT_PACK32 : VK_FORMAT_A2R10G10B10_UINT_PACK32;
 				else if(fmt.compType == eCompType_UScaled)
-					ret = VK_FORMAT_A2R10G10B10_USCALED_PACK32;
+					ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_USCALED_PACK32 : VK_FORMAT_A2R10G10B10_USCALED_PACK32;
 				else if(fmt.compType == eCompType_SNorm)
-					ret = VK_FORMAT_A2R10G10B10_SNORM_PACK32;
+					ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_SNORM_PACK32 : VK_FORMAT_A2R10G10B10_SNORM_PACK32;
 				else if(fmt.compType == eCompType_SInt)
-					ret = VK_FORMAT_A2R10G10B10_SINT_PACK32;
+					ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_SINT_PACK32 : VK_FORMAT_A2R10G10B10_SINT_PACK32;
 				else if(fmt.compType == eCompType_SScaled)
-					ret = VK_FORMAT_A2R10G10B10_SSCALED_PACK32;
+					ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_SSCALED_PACK32 : VK_FORMAT_A2R10G10B10_SSCALED_PACK32;
 				break;
 			case eSpecial_R11G11B10:
 				ret = VK_FORMAT_B10G11R11_UFLOAT_PACK32;
 				break;
-			case eSpecial_B5G6R5:
+			case eSpecial_R5G6B5:
 				ret = VK_FORMAT_B5G6R5_UNORM_PACK16;
 				break;
-			case eSpecial_B5G5R5A1:
-				ret = VK_FORMAT_B5G5R5A1_UNORM_PACK16;
+			case eSpecial_R5G5B5A1:
+				ret = fmt.bgraOrder ? VK_FORMAT_B5G5R5A1_UNORM_PACK16 : VK_FORMAT_B5G5R5A1_UNORM_PACK16;
 				break;
 			case eSpecial_R9G9B9E5:
 				ret = VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
 				break;
-			case eSpecial_B8G8R8A8:
-				if(fmt.srgbCorrected)
-					ret = VK_FORMAT_B8G8R8A8_SRGB;
-				else if(fmt.compType == eCompType_UNorm)
-					ret = VK_FORMAT_B8G8R8A8_UNORM;
-				else if(fmt.compType == eCompType_UInt)
-					ret = VK_FORMAT_B8G8R8A8_UINT;
-				else if(fmt.compType == eCompType_UScaled)
-					ret = VK_FORMAT_B8G8R8A8_USCALED;
-				else if(fmt.compType == eCompType_SNorm)
-					ret = VK_FORMAT_B8G8R8A8_SNORM;
-				else if(fmt.compType == eCompType_SInt)
-					ret = VK_FORMAT_B8G8R8A8_SINT;
-				else if(fmt.compType == eCompType_SScaled)
-					ret = VK_FORMAT_B8G8R8A8_SSCALED;
+			case eSpecial_R4G4B4A4:
+				ret = fmt.bgraOrder ? VK_FORMAT_R4G4B4A4_UNORM_PACK16 : VK_FORMAT_B4G4R4A4_UNORM_PACK16;
 				break;
-			case eSpecial_B4G4R4A4:
-				ret = VK_FORMAT_B4G4R4A4_UNORM_PACK16;
+			case eSpecial_R4G4:
+				ret = VK_FORMAT_R4G4_UNORM_PACK8;
 				break;
 			case eSpecial_D24S8:
 				ret = VK_FORMAT_D24_UNORM_S8_UINT;
@@ -831,7 +847,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
 	{
 		if(fmt.srgbCorrected)
 		{
-			ret = VK_FORMAT_R8G8B8A8_SRGB;
+			ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_SRGB : VK_FORMAT_R8G8B8A8_SRGB;
 		}
 		else if(fmt.compByteWidth == 4)
 		{
@@ -842,19 +858,23 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
 		}
 		else if(fmt.compByteWidth == 2)
 		{
-			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R16G16B16A16_SFLOAT;
-			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R16G16B16A16_SINT;
-			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R16G16B16A16_UINT;
-			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R16G16B16A16_SNORM;
-			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R16G16B16A16_UNORM;
+			     if(fmt.compType == eCompType_Float)   ret = VK_FORMAT_R16G16B16A16_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)    ret = VK_FORMAT_R16G16B16A16_SINT;
+			else if(fmt.compType == eCompType_UInt)    ret = VK_FORMAT_R16G16B16A16_UINT;
+			else if(fmt.compType == eCompType_SNorm)   ret = VK_FORMAT_R16G16B16A16_SNORM;
+			else if(fmt.compType == eCompType_UNorm)   ret = VK_FORMAT_R16G16B16A16_UNORM;
+			else if(fmt.compType == eCompType_SScaled) ret = VK_FORMAT_R16G16B16A16_SSCALED;
+			else if(fmt.compType == eCompType_UScaled) ret = VK_FORMAT_R16G16B16A16_USCALED;
 			else RDCERR("Unrecognised component type");
 		}
 		else if(fmt.compByteWidth == 1)
 		{
-			     if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R8G8B8A8_SINT;
-			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R8G8B8A8_UINT;
-			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R8G8B8A8_SNORM;
-			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R8G8B8A8_UNORM;
+			     if(fmt.compType == eCompType_SInt)    ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_SINT : VK_FORMAT_R8G8B8A8_SINT;
+			else if(fmt.compType == eCompType_UInt)    ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_UINT : VK_FORMAT_R8G8B8A8_UINT;
+			else if(fmt.compType == eCompType_SNorm)   ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_SNORM : VK_FORMAT_R8G8B8A8_SNORM;
+			else if(fmt.compType == eCompType_UNorm)   ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_UNORM : VK_FORMAT_R8G8B8A8_UNORM;
+			else if(fmt.compType == eCompType_SScaled) ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_SSCALED : VK_FORMAT_R8G8B8A8_SSCALED;
+			else if(fmt.compType == eCompType_UScaled) ret = fmt.bgraOrder ? VK_FORMAT_B8G8R8A8_USCALED : VK_FORMAT_R8G8B8A8_USCALED;
 			else RDCERR("Unrecognised component type");
 		}
 		else
@@ -877,19 +897,23 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
 		}
 		else if(fmt.compByteWidth == 2)
 		{
-			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R16G16B16_SFLOAT;
-			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R16G16B16_SINT;
-			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R16G16B16_UINT;
-			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R16G16B16_SNORM;
-			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R16G16B16_UNORM;
+			     if(fmt.compType == eCompType_Float)   ret = VK_FORMAT_R16G16B16_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)    ret = VK_FORMAT_R16G16B16_SINT;
+			else if(fmt.compType == eCompType_UInt)    ret = VK_FORMAT_R16G16B16_UINT;
+			else if(fmt.compType == eCompType_SNorm)   ret = VK_FORMAT_R16G16B16_SNORM;
+			else if(fmt.compType == eCompType_UNorm)   ret = VK_FORMAT_R16G16B16_UNORM;
+			else if(fmt.compType == eCompType_SScaled) ret = VK_FORMAT_R16G16B16_SSCALED;
+			else if(fmt.compType == eCompType_UScaled) ret = VK_FORMAT_R16G16B16_USCALED;
 			else RDCERR("Unrecognised component type");
 		}
 		else if(fmt.compByteWidth == 1)
 		{
-			     if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R8G8B8_SINT;
-			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R8G8B8_UINT;
-			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R8G8B8_SNORM;
-			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R8G8B8_UNORM;
+			     if(fmt.compType == eCompType_SInt)    ret = VK_FORMAT_R8G8B8_SINT;
+			else if(fmt.compType == eCompType_UInt)    ret = VK_FORMAT_R8G8B8_UINT;
+			else if(fmt.compType == eCompType_SNorm)   ret = VK_FORMAT_R8G8B8_SNORM;
+			else if(fmt.compType == eCompType_UNorm)   ret = VK_FORMAT_R8G8B8_UNORM;
+			else if(fmt.compType == eCompType_SScaled) ret = VK_FORMAT_R8G8B8_SSCALED;
+			else if(fmt.compType == eCompType_UScaled) ret = VK_FORMAT_R8G8B8_USCALED;
 			else RDCERR("Unrecognised component type");
 		}
 		else
@@ -908,19 +932,23 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
 		}
 		else if(fmt.compByteWidth == 2)
 		{
-			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R16G16_SFLOAT;
-			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R16G16_SINT;
-			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R16G16_UINT;
-			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R16G16_SNORM;
-			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R16G16_UNORM;
+			     if(fmt.compType == eCompType_Float)   ret = VK_FORMAT_R16G16_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)    ret = VK_FORMAT_R16G16_SINT;
+			else if(fmt.compType == eCompType_UInt)    ret = VK_FORMAT_R16G16_UINT;
+			else if(fmt.compType == eCompType_SNorm)   ret = VK_FORMAT_R16G16_SNORM;
+			else if(fmt.compType == eCompType_UNorm)   ret = VK_FORMAT_R16G16_UNORM;
+			else if(fmt.compType == eCompType_SScaled) ret = VK_FORMAT_R16G16_SSCALED;
+			else if(fmt.compType == eCompType_UScaled) ret = VK_FORMAT_R16G16_USCALED;
 			else RDCERR("Unrecognised component type");
 		}
 		else if(fmt.compByteWidth == 1)
 		{
-			     if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R8G8_SINT;
-			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R8G8_UINT;
-			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R8G8_SNORM;
-			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R8G8_UNORM;
+			     if(fmt.compType == eCompType_SInt)    ret = VK_FORMAT_R8G8_SINT;
+			else if(fmt.compType == eCompType_UInt)    ret = VK_FORMAT_R8G8_UINT;
+			else if(fmt.compType == eCompType_SNorm)   ret = VK_FORMAT_R8G8_SNORM;
+			else if(fmt.compType == eCompType_UNorm)   ret = VK_FORMAT_R8G8_UNORM;
+			else if(fmt.compType == eCompType_SScaled) ret = VK_FORMAT_R8G8_SSCALED;
+			else if(fmt.compType == eCompType_UScaled) ret = VK_FORMAT_R8G8_USCALED;
 			else RDCERR("Unrecognised component type");
 		}
 		else
@@ -940,20 +968,24 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
 		}
 		else if(fmt.compByteWidth == 2)
 		{
-			     if(fmt.compType == eCompType_Float) ret = VK_FORMAT_R16_SFLOAT;
-			else if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R16_SINT;
-			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R16_UINT;
-			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R16_SNORM;
-			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R16_UNORM;
-			else if(fmt.compType == eCompType_Depth) ret = VK_FORMAT_D16_UNORM;
+			     if(fmt.compType == eCompType_Float)   ret = VK_FORMAT_R16_SFLOAT;
+			else if(fmt.compType == eCompType_SInt)    ret = VK_FORMAT_R16_SINT;
+			else if(fmt.compType == eCompType_UInt)    ret = VK_FORMAT_R16_UINT;
+			else if(fmt.compType == eCompType_SNorm)   ret = VK_FORMAT_R16_SNORM;
+			else if(fmt.compType == eCompType_UNorm)   ret = VK_FORMAT_R16_UNORM;
+			else if(fmt.compType == eCompType_Depth)   ret = VK_FORMAT_D16_UNORM;
+			else if(fmt.compType == eCompType_UScaled) ret = VK_FORMAT_R16_USCALED;
+			else if(fmt.compType == eCompType_SScaled) ret = VK_FORMAT_R16_SSCALED;
 			else RDCERR("Unrecognised component type");
 		}
 		else if(fmt.compByteWidth == 1)
 		{
-			     if(fmt.compType == eCompType_SInt)  ret = VK_FORMAT_R8_SINT;
-			else if(fmt.compType == eCompType_UInt)  ret = VK_FORMAT_R8_UINT;
-			else if(fmt.compType == eCompType_SNorm) ret = VK_FORMAT_R8_SNORM;
-			else if(fmt.compType == eCompType_UNorm) ret = VK_FORMAT_R8_UNORM;
+			     if(fmt.compType == eCompType_SInt)    ret = VK_FORMAT_R8_SINT;
+			else if(fmt.compType == eCompType_UInt)    ret = VK_FORMAT_R8_UINT;
+			else if(fmt.compType == eCompType_SNorm)   ret = VK_FORMAT_R8_SNORM;
+			else if(fmt.compType == eCompType_UNorm)   ret = VK_FORMAT_R8_UNORM;
+			else if(fmt.compType == eCompType_UScaled) ret = VK_FORMAT_R8_USCALED;
+			else if(fmt.compType == eCompType_SScaled) ret = VK_FORMAT_R8_SSCALED;
 			else RDCERR("Unrecognised component type");
 		}
 		else

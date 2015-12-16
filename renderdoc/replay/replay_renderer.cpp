@@ -706,6 +706,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 				break;
 			case eSpecial_D16S8:
 			case eSpecial_YUV:
+			case eSpecial_R4G4:
 				RDCERR("Unsupported file format %u", td.format.specialFormat);
 				return false;
 			default:

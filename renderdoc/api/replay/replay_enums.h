@@ -193,6 +193,7 @@ enum SpecialFormat
 	eSpecial_R5G5B5A1,
 	eSpecial_R9G9B9E5,
 	eSpecial_R4G4B4A4,
+	eSpecial_R4G4,
 	eSpecial_D16S8,
 	eSpecial_D24S8,
 	eSpecial_D32S8,
