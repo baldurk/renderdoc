@@ -722,14 +722,19 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 		buf->real.As<VkBuffer>(), 1, &unbind
 	};
 
-	// VKTODOLOW need to signal/wait semaphore between the unbind and bind
+	VkDevice d = GetDev();
+	
+	// this semaphore separates the unbind and bind, as there isn't an ordering guarantee
+	// for two adjacent batches that bind the same resource.
+	VkSemaphore sem = GetNextSemaphore();
+
 	VkBindSparseInfo bindsparse = {
 		VK_STRUCTURE_TYPE_BIND_SPARSE_INFO, NULL,
 		0, NULL, // wait semaphores
 		1, &bufBind,
 		0, NULL, // image opaque
 		0, NULL, // image bind
-		0, NULL, // signal semaphores
+		1, UnwrapPtr(sem), // signal semaphores
 	};
 	
 	// first unbind all
@@ -740,16 +745,24 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 	{
 		bufBind.bindCount = info->numBinds;
 		bufBind.pBinds = info->binds;
+
+		// wait for unbind semaphore
+		bindsparse.waitSemaphoreCount = 1;
+		bindsparse.pWaitSemaphores = bindsparse.pSignalSemaphores;
+
+		bindsparse.signalSemaphoreCount = 0;
+		bindsparse.pSignalSemaphores = NULL;
 		
-		// VKTODOLOW need to signal/wait semaphore after bind somehow
 		ObjDisp(q)->QueueBindSparse(Unwrap(q), 1, &bindsparse, VK_NULL_HANDLE);
 	}
+
+	// marks that the above semaphore has been used, so next time we
+	// flush it will be moved back to the pool
+	SubmitSemaphores();
 	
 	VkResult vkr = VK_SUCCESS;
 
 	VkBuffer srcBuf = (VkBuffer)(uint64_t)contents.resource;
-
-	VkDevice d = GetDev();
 
 	VkCommandBuffer cmd = GetNextCmd();
 	
@@ -791,6 +804,8 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
 
+	FlushQ();
+
 	return true;
 }
 
@@ -818,15 +833,16 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 		VkSparseImageOpaqueMemoryBindInfo opaqueBind = {
 			im->real.As<VkImage>(), 1, &unbind
 		};
+		
+		VkSemaphore sem = GetNextSemaphore();
 
-		// VKTODOLOW need to signal/wait semaphore between the unbind and bind
 		VkBindSparseInfo bindsparse = {
 			VK_STRUCTURE_TYPE_BIND_SPARSE_INFO, NULL,
 			0, NULL, // wait semaphores
 			0, NULL, // buffer bind
 			1, &opaqueBind,
 			0, NULL, // image bind
-			0, NULL, // signal semaphores
+			1, UnwrapPtr(sem), // signal semaphores
 		};
 		
 		// first unbind all
@@ -837,15 +853,25 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 		{
 			opaqueBind.bindCount = info->opaqueCount;
 			opaqueBind.pBinds = info->opaque;
-			// VKTODOLOW need to signal/wait semaphore after bind somehow
+
+			// wait for unbind semaphore
+			bindsparse.waitSemaphoreCount = 1;
+			bindsparse.pWaitSemaphores = bindsparse.pSignalSemaphores;
+
+			bindsparse.signalSemaphoreCount = 0;
+			bindsparse.pSignalSemaphores = NULL;
+
 			ObjDisp(q)->QueueBindSparse(Unwrap(q), 1, &bindsparse, VK_NULL_HANDLE);
 		}
+
+		// marks that the above semaphore has been used, so next time we
+		// flush it will be moved back to the pool
+		SubmitSemaphores();
 	}
 
 	{
 		VkSparseImageMemoryBindInfo imgBinds[NUM_VK_IMAGE_ASPECTS] = { 0 };
 
-		// VKTODOLOW need to signal/wait semaphore after bind somehow
 		VkBindSparseInfo bindsparse = {
 			VK_STRUCTURE_TYPE_BIND_SPARSE_INFO, NULL,
 			0, NULL, // wait semaphores

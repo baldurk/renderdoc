@@ -406,6 +406,43 @@ void WrappedVulkan::SubmitCmds()
 	m_InternalCmds.pendingcmds.clear();
 }
 
+VkSemaphore WrappedVulkan::GetNextSemaphore()
+{
+	VkSemaphore ret;
+
+	if(!m_InternalCmds.freesems.empty())
+	{
+		ret = m_InternalCmds.freesems.back();
+		m_InternalCmds.freesems.pop_back();
+
+		// assume semaphore is back to unsignaled state after being waited on
+	}
+	else
+	{	
+		VkSemaphoreCreateInfo semInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+		VkResult vkr = ObjDisp(m_Device)->CreateSemaphore(Unwrap(m_Device), &semInfo, NULL, &ret);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
+	}
+
+	m_InternalCmds.pendingsems.push_back(ret);
+
+	return ret;
+}
+
+void WrappedVulkan::SubmitSemaphores()
+{
+	// nothing to do
+	if(m_InternalCmds.pendingsems.empty())
+		return;
+
+	// no actual submission, just mark them as 'done with' so they will be
+	// recycled on next flush
+	m_InternalCmds.submittedsems.insert(m_InternalCmds.submittedsems.end(), m_InternalCmds.pendingsems.begin(), m_InternalCmds.pendingsems.end());
+	m_InternalCmds.pendingsems.clear();
+}
+
 void WrappedVulkan::FlushQ()
 {
 	// VKTODOLOW could do away with the need for this function by keeping

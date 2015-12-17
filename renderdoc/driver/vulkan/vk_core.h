@@ -207,16 +207,27 @@ private:
 			freecmds.clear();
 			pendingcmds.clear();
 			submittedcmds.clear();
+			
+			freecmds.clear();
+			pendingcmds.clear();
+			submittedcmds.clear();
 		}
 
 		VkCommandPool m_CmdPool; // the command pool used for allocating our own command buffers
 	
-		vector<VkCommandBuffer> freecmds;
-		// -> record ->
-		vector<VkCommandBuffer> pendingcmds;
-		// -> submit ->
-		vector<VkCommandBuffer> submittedcmds;
-		// -> flush/waitidle -> freecmds
+		vector<VkCommandBuffer> freecmds;       // <
+		// -> GetNextCmd() ->                   // |
+		vector<VkCommandBuffer> pendingcmds;    // |
+		// -> SubmitCmds() ->                      |
+		vector<VkCommandBuffer> submittedcmds;  // |
+		// -> FlushQ() ----------------------------^
+
+		vector<VkSemaphore> freesems;      // <
+		// -> GetNextSemaphore() ->        // |
+		vector<VkSemaphore> pendingsems;   // |
+		// -> SubmitSemaphores() ->           |
+		vector<VkSemaphore> submittedsems; // |
+		// -> FlushQ() -----------------------^
 	} m_InternalCmds;
 
 	vector<VkDeviceMemory> m_CleanupMems;
@@ -229,6 +240,8 @@ private:
 	VkPhysicalDevice GetPhysDev()    { RDCASSERT(m_PhysicalDevice != VK_NULL_HANDLE); return m_PhysicalDevice; }
 	VkCommandBuffer GetNextCmd();
 	void SubmitCmds();
+	VkSemaphore GetNextSemaphore();
+	void SubmitSemaphores();
 	void FlushQ();
 
 	const VkPhysicalDeviceFeatures &GetDeviceFeatures()

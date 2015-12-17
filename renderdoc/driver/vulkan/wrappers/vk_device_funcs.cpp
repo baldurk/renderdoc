@@ -759,8 +759,9 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks* pAllocator)
 {
-	// flush out any pending commands
+	// flush out any pending commands/semaphores
 	SubmitCmds();
+	SubmitSemaphores();
 	FlushQ();
 	
 	// MULTIDEVICE this function will need to check if the device is the one we
@@ -783,6 +784,12 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
 	{
 		ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.m_CmdPool), NULL);
 		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.m_CmdPool);
+	}
+	
+	for(size_t i=0; i < m_InternalCmds.freesems.size(); i++)
+	{
+		ObjDisp(m_Device)->DestroySemaphore(Unwrap(m_Device), Unwrap(m_InternalCmds.freesems[i]), NULL);
+		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freesems[i]);
 	}
 
 	m_InternalCmds.Reset();
