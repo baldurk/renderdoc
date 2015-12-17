@@ -32,7 +32,7 @@
 	void WrappedVulkan::vk ## func(VkDevice device, type obj, const VkAllocationCallbacks* pAllocator) \
 	{ \
 		type unwrappedObj = Unwrap(obj); \
-		if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true); \
+		GetResourceManager()->ReleaseWrappedResource(obj, true); \
 		ObjDisp(device)->func(Unwrap(device), unwrappedObj, pAllocator); \
 	}
 
@@ -83,7 +83,7 @@ void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj, c
 	}
 
 	VkSwapchainKHR unwrappedObj = Unwrap(obj);
-	if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true);
+	GetResourceManager()->ReleaseWrappedResource(obj, true);
 	ObjDisp(device)->DestroySwapchainKHR(Unwrap(device), unwrappedObj, pAllocator);
 }
 
@@ -92,7 +92,7 @@ void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj, const VkAllocat
 {
 	m_ImageLayouts.erase(GetResID(obj));
 	VkImage unwrappedObj = Unwrap(obj);
-	if(GetResourceManager()->HasWrapper(ToTypedHandle(unwrappedObj))) GetResourceManager()->ReleaseWrappedResource(obj, true);
+	GetResourceManager()->ReleaseWrappedResource(obj, true);
 	return ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedObj, pAllocator);
 }
 
