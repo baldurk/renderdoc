@@ -329,7 +329,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 					GetResourceManager()->WrapResource(Unwrap(device), cmd);
 				}
 
-				m_PartialReplayData.resultPartialCmdPool = GetResourceManager()->GetNonDispWrapper(allocInfo.commandPool)->real.As<VkCommandPool>();
+				m_PartialReplayData.resultPartialCmdPool = (VkCommandPool)(uint64_t)GetResourceManager()->GetNonDispWrapper(allocInfo.commandPool);
 				m_PartialReplayData.resultPartialCmdBuffer = cmd;
 				m_PartialReplayData.partialDevice = device;
 
