@@ -106,13 +106,15 @@ VkResult WrappedVulkan::vkGetSwapchainImagesKHR(
 	{
 		uint32_t numImages = *pCount;
 
+		VkResourceRecord *swapRecord = GetRecord(swapchain);
+
 		for(uint32_t i=0; i < numImages; i++)
 		{
 			// these were all wrapped and serialised on swapchain create - we just have to
 			// return the wrapped image in that case
-			if(GetResourceManager()->HasWrapper(ToTypedHandle(pSwapchainImages[i])))
+			if(swapRecord->swapInfo->images[i].im != VK_NULL_HANDLE)
 			{
-				pSwapchainImages[i] = (VkImage)(uint64_t)GetResourceManager()->GetWrapper(ToTypedHandle(pSwapchainImages[i]));
+				pSwapchainImages[i] = swapRecord->swapInfo->images[i].im;
 			}
 			else
 			{
@@ -378,6 +380,12 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 				
 				swapInfo.lastPresent = 0;
 				swapInfo.images.resize(numSwapImages);
+				for(uint32_t i=0; i < numSwapImages; i++)
+				{
+					swapInfo.images[i].im = VK_NULL_HANDLE;
+					swapInfo.images[i].view = VK_NULL_HANDLE;
+					swapInfo.images[i].fb = VK_NULL_HANDLE;
+				}
 
 				VkImage* images = new VkImage[numSwapImages];
 

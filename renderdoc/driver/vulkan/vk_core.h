@@ -194,6 +194,7 @@ private:
 	VkQueue m_Queue; // the queue used for our own command buffer work
 
 	vector<VkPhysicalDevice> m_PhysicalDevices;
+	vector<VkQueue*> m_QueueFamilies;
 
 	vector<uint32_t *> m_MemIdxMaps;
 	void RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProps, uint32_t **memIdxMap);

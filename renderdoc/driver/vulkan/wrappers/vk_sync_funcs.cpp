@@ -523,34 +523,27 @@ VkResult WrappedVulkan::vkCreateSemaphore(
 
 	if(ret == VK_SUCCESS)
 	{
-		if(GetResourceManager()->HasWrapper(ToTypedHandle(*pSemaphore)))
+		ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pSemaphore);
+
+		if(m_State >= WRITING)
 		{
-			*pSemaphore = (VkSemaphore)(uint64_t)GetResourceManager()->GetWrapper(ToTypedHandle(*pSemaphore));
+			Chunk *chunk = NULL;
+
+			{
+				CACHE_THREAD_SERIALISER();
+
+				SCOPED_SERIALISE_CONTEXT(CREATE_SEMAPHORE);
+				Serialise_vkCreateSemaphore(localSerialiser, device, pCreateInfo, NULL, pSemaphore);
+
+				chunk = scope.Get();
+			}
+
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSemaphore);
+			record->AddChunk(chunk);
 		}
 		else
 		{
-			ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pSemaphore);
-
-			if(m_State >= WRITING)
-			{
-				Chunk *chunk = NULL;
-
-				{
-					CACHE_THREAD_SERIALISER();
-
-					SCOPED_SERIALISE_CONTEXT(CREATE_SEMAPHORE);
-					Serialise_vkCreateSemaphore(localSerialiser, device, pCreateInfo, NULL, pSemaphore);
-
-					chunk = scope.Get();
-				}
-
-				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSemaphore);
-				record->AddChunk(chunk);
-			}
-			else
-			{
-				GetResourceManager()->AddLiveResource(id, *pSemaphore);
-			}
+			GetResourceManager()->AddLiveResource(id, *pSemaphore);
 		}
 	}
 

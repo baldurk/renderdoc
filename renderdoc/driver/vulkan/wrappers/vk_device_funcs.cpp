@@ -212,6 +212,13 @@ void WrappedVulkan::Shutdown()
 	m_Device = VK_NULL_HANDLE;
 	m_Instance = VK_NULL_HANDLE;
 
+	m_PhysicalDevices.clear();
+
+	for(size_t i=0; i < m_QueueFamilies.size(); i++)
+		delete[] m_QueueFamilies[i];
+
+	m_QueueFamilies.clear();
+
 	// finally destroy device then instance
 	vt->DestroyDevice(dev, NULL);
 	vit->DestroyInstance(inst, NULL);
@@ -333,9 +340,9 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 		// it's perfectly valid for enumerate type functions to return the same handle
 		// each time. If that happens, we will already have a wrapper created so just
 		// return the wrapped object to the user and do nothing else
-		if(GetResourceManager()->HasWrapper(ToTypedHandle(devices[i])))
+		if(m_PhysicalDevices[i] != VK_NULL_HANDLE)
 		{
-			devices[i] = (VkPhysicalDevice)GetResourceManager()->GetWrapper(ToTypedHandle(devices[i]));
+			devices[i] = m_PhysicalDevices[i];
 		}
 		else
 		{
@@ -666,6 +673,18 @@ VkResult WrappedVulkan::vkCreateDevice(
 	SAFE_DELETE_ARRAY(props);
 
 	RDCDEBUG("Might want to fiddle with createinfo - e.g. to remove VK_RenderDoc from set of extensions or similar");
+
+	m_QueueFamilies.resize(createInfo.queueCreateInfoCount);
+	for(size_t i=0; i < m_QueueFamilies.size(); i++)
+	{
+		uint32_t family = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
+		uint32_t count = createInfo.pQueueCreateInfos[i].queueCount;
+		m_QueueFamilies.resize(RDCMAX(m_QueueFamilies.size(), size_t(family+1)));
+
+		m_QueueFamilies[family] = new VkQueue[count];
+		for(uint32_t q=0; q < count; q++)
+			m_QueueFamilies[family][q] = VK_NULL_HANDLE;
+	}
 
 	VkResult ret = GetDeviceDispatchTable(*pDevice)->CreateDevice(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice);
 

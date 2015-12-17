@@ -69,19 +69,20 @@ void WrappedVulkan::vkGetDeviceQueue(
 {
 	ObjDisp(device)->GetDeviceQueue(Unwrap(device), queueFamilyIndex, queueIndex, pQueue);
 
+	RDCASSERT(m_State >= WRITING);
+
 	{
 		// it's perfectly valid for enumerate type functions to return the same handle
 		// each time. If that happens, we will already have a wrapper created so just
 		// return the wrapped object to the user and do nothing else
-		if(GetResourceManager()->HasWrapper(ToTypedHandle(*pQueue)))
+		if(m_QueueFamilies[queueFamilyIndex][queueIndex] != VK_NULL_HANDLE)
 		{
-			*pQueue = (VkQueue)GetResourceManager()->GetWrapper(ToTypedHandle(*pQueue));
+			*pQueue = m_QueueFamilies[queueFamilyIndex][queueIndex];
 		}
 		else
 		{
 			ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pQueue);
 
-			if(m_State >= WRITING)
 			{
 				Chunk *chunk = NULL;
 
@@ -108,10 +109,8 @@ void WrappedVulkan::vkGetDeviceQueue(
 
 				record->AddChunk(chunk);
 			}
-			else
-			{
-				GetResourceManager()->AddLiveResource(id, *pQueue);
-			}
+
+			m_QueueFamilies[queueFamilyIndex][queueIndex] = *pQueue;
 
 			if(queueFamilyIndex == m_QueueFamilyIdx)
 			{
