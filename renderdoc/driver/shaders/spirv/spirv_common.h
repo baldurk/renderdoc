@@ -60,7 +60,7 @@ struct SPVModule
 
 	vector<uint32_t> spirv;
 
-	uint32_t moduleVersion;
+	struct { uint8_t major, minor; } moduleVersion;
 	uint32_t generator;
 
 	spv::SourceLanguage sourceLang;

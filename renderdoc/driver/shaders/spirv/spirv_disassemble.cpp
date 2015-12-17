@@ -155,9 +155,17 @@ const char *GLSL_STD_450_names[] = {
 
 RDCCOMPILE_ASSERT( ARRAY_COUNT(GLSL_STD_450_names) == GLSLstd450Count, "Wrong number of GLSL extension function names" );
 
-// list of known generators, just for kicks
-struct { uint32_t magic; const char *name; } KnownGenerators[] = {
-	{ 0x051a00bb, "glslang" },
+// https://www.khronos.org/registry/spir-v/api/spir-v.xml
+struct GeneratorID { uint32_t toolid; const char *vendor; const char *tool; const char *comment; } KnownGenerators[] = {
+	// 0 reserved
+	{ 1  , "LunarG"        , "Unknown"                    , "Contact TBD" },
+	{ 2  , "Valve"         , "Unknown"                    , "Contact TBD" },
+	{ 3  , "Codeplay"      , "Unknown"                    , "Contact Neil Henning, neil@codeplay.com" },
+	{ 4  , "NVIDIA"        , "Unknown"                    , "Contact Kerch Holt, kholt@nvidia.com" },
+	{ 5  , "ARM"           , "Unknown"                    , "Contact Alexander Galazin, alexander.galazin@arm.com" },
+	{ 6  , "Khronos"       , "LLVM/SPIR-V Translator"     , "Contact Yaxun (Sam) Liu, yaxun.liu@amd.com" },
+	{ 7  , "Khronos"       , "SPIR-V Tools Assembler"     , "Contact David Neto, dneto@google.com" },
+	{ 8  , "Khronos"       , "Glslang Reference Front End", "Contact John Kessenich, johnkessenich@google.com" },
 };
 
 template<typename EnumType>
@@ -1439,7 +1447,7 @@ static bool IsUnmodified(SPVFunction *func, SPVInstruction *from, SPVInstruction
 
 SPVModule::SPVModule()
 {
-	moduleVersion = 0;
+	moduleVersion.major = moduleVersion.minor = 0;
 	generator = 0;
 	sourceVer = 0;
 }
@@ -1474,13 +1482,21 @@ string SPVModule::Disassemble(const string &entryPoint)
 
 	// TODO filter to only functions/resources used by entryPoint
 
-	retDisasm = "SPIR-V:\n\n";
+	retDisasm = StringFormat::Fmt("SPIR-V %u.%u:\n\n", moduleVersion.major, moduleVersion.minor);
 
-	const char *gen = "Unrecognised";
+	GeneratorID *gen = NULL;
 
-	for(size_t i=0; i < ARRAY_COUNT(KnownGenerators); i++) if(KnownGenerators[i].magic == generator)	gen = KnownGenerators[i].name;
+	uint32_t toolid = (generator&0xffff0000)>>16;
+	uint32_t version = (generator&0xffff);
 
-	retDisasm += StringFormat::Fmt("Version %u, Generator %08x (%s)\n", moduleVersion, generator, gen);
+	for(size_t i=0; i < ARRAY_COUNT(KnownGenerators); i++)
+		if(KnownGenerators[i].toolid == toolid)
+			gen = &KnownGenerators[i];
+
+	if(gen)
+		retDisasm += StringFormat::Fmt("%s from %s (%s) - version 0x%04x\n", gen->tool, gen->vendor, gen->comment, version);
+	else
+		retDisasm += StringFormat::Fmt("Generator not recognised: %08x\n", generator);
 	retDisasm += StringFormat::Fmt("IDs up to {%u}\n", (uint32_t)ids.size());
 
 	retDisasm += "\n";
@@ -2984,13 +3000,17 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 		return;
 	}
 	
-	module.moduleVersion = spirv[1];
+	uint32_t packedVersion = spirv[1]; 
 
-	if(module.moduleVersion != spv::Version)
+	if(packedVersion != spv::Version)
 	{
 		RDCERR("Unsupported SPIR-V version: %08x", spirv[1]);
 		return;
 	}
+
+	// Bytes: 0 | major | minor | 0
+	module.moduleVersion.major = uint8_t((packedVersion & 0x00ff0000)>>16);
+	module.moduleVersion.minor = uint8_t((packedVersion & 0x0000ff00)>> 8);
 
 	module.spirv.assign(spirv, spirv+spirvLength);
 
