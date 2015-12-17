@@ -156,8 +156,10 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 			auto origit = m_OriginalIDs.find(id);
 			if(origit != m_OriginalIDs.end())
 				EraseLiveResource(origit->second);
+			
+			if(m_State < WRITING)
+				ResourceManager::RemoveWrapper(ToTypedHandle(Unwrap(obj)));
 
-			ResourceManager::RemoveWrapper(ToTypedHandle(Unwrap(obj)));
 			ResourceManager::ReleaseCurrentResource(id);
 			VkResourceRecord *record = GetRecord(obj);
 			if(record)
