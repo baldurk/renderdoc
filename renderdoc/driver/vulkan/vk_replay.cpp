@@ -2710,6 +2710,13 @@ void VulkanReplay::SavePipelineState()
 				stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
 				if(p.shaders[i].mapping)
 					stages[i]->BindpointMapping = *p.shaders[i].mapping;
+
+				create_array_uninit(stages[i]->specialization, p.shaders[i].specialization.size());
+				for(size_t s=0; s < p.shaders[i].specialization.size(); s++)
+				{
+					stages[i]->specialization[s].specID = p.shaders[i].specialization[s].specID;
+					create_array_init(stages[i]->specialization[s].data, p.shaders[i].specialization[s].size, p.shaders[i].specialization[s].data);
+				}
 			}
 
 			// Tessellation

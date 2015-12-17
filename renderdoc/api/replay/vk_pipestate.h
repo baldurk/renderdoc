@@ -141,7 +141,12 @@ struct VulkanPipelineState
 
 		ShaderStageType stage;
 
-		// VKTODOMED specialization info
+		struct SpecInfo
+		{
+			uint32_t specID;
+			rdctype::array<byte> data;
+		};
+		rdctype::array<SpecInfo> specialization;
 	} VS, TCS, TES, GS, FS, CS;
 
 	struct Tessellation

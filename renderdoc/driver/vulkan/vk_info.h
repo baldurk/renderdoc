@@ -74,6 +74,15 @@ struct VulkanCreationInfo
 			string entryPoint;
 			ShaderReflection *refl;
 			ShaderBindpointMapping *mapping;
+
+			vector<byte> specdata;
+			struct SpecInfo
+			{
+				uint32_t specID;
+				byte *data;
+				size_t size;
+			};
+			vector<SpecInfo> specialization;
 		};
 		Shader shaders[6];
 

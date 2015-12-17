@@ -93,6 +93,22 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 				info.m_ShaderModule[id].spirv.MakeReflection(reflData.entryPoint, &reflData.refl, &reflData.mapping);
 			}
 
+			if(pCreateInfo->pStages[i].pSpecializationInfo)
+			{
+				shad.specdata.resize(pCreateInfo->pStages[i].pSpecializationInfo->dataSize);
+				memcpy(&shad.specdata[0], pCreateInfo->pStages[i].pSpecializationInfo->pData, shad.specdata.size());
+
+				const VkSpecializationMapEntry *maps = pCreateInfo->pStages[i].pSpecializationInfo->pMapEntries;
+				for(uint32_t s=0; s < pCreateInfo->pStages[i].pSpecializationInfo->mapEntryCount; s++)
+				{
+					Shader::SpecInfo spec;
+					spec.specID = maps[s].constantID;
+					spec.data = &shad.specdata[maps[s].offset];
+					// ignore maps[s].size, assume it's enough for the type
+					shad.specialization.push_back(spec);
+				}
+			}
+
 			shad.refl = &reflData.refl;
 			shad.mapping = &reflData.mapping;
 		}
@@ -222,6 +238,22 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 			{
 				reflData.entryPoint = shad.entryPoint;
 				info.m_ShaderModule[id].spirv.MakeReflection(reflData.entryPoint, &reflData.refl, &reflData.mapping);
+			}
+
+			if(pCreateInfo->stage.pSpecializationInfo)
+			{
+				shad.specdata.resize(pCreateInfo->stage.pSpecializationInfo->dataSize);
+				memcpy(&shad.specdata[0], pCreateInfo->stage.pSpecializationInfo->pData, shad.specdata.size());
+
+				const VkSpecializationMapEntry *maps = pCreateInfo->stage.pSpecializationInfo->pMapEntries;
+				for(uint32_t s=0; s < pCreateInfo->stage.pSpecializationInfo->mapEntryCount; s++)
+				{
+					Shader::SpecInfo spec;
+					spec.specID = maps[s].constantID;
+					spec.data = &shad.specdata[maps[s].offset];
+					spec.size = maps[s].size;
+					shad.specialization.push_back(spec);
+				}
 			}
 
 			shad.refl = &reflData.refl;

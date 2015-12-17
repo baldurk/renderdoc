@@ -182,6 +182,16 @@ namespace renderdoc
             public ShaderBindpointMapping BindpointMapping;
 
             public ShaderStageType stage;
+
+            [StructLayout(LayoutKind.Sequential)]
+            struct SpecInfo
+            {
+                public UInt32 specID;
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public byte[] data;
+            };
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            SpecInfo[] specialization;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderStage VS, TCS, TES, GS, FS, CS;
