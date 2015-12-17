@@ -140,7 +140,8 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 
 			AddCurrentResource(id, wrapped);
 
-			AddWrapper(wrapped, ToTypedHandle(obj));
+			if(m_State < WRITING)
+				AddWrapper(wrapped, ToTypedHandle(obj));
 
 			obj = realtype((uint64_t)wrapped);
 
