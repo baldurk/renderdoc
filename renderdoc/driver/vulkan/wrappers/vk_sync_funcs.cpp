@@ -495,18 +495,8 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(
 		}
 		else
 		{
-			if(GetResourceManager()->HasWrapper(ToTypedHandle(sem)))
-			{
-				// VKTODOMED need to handle duplicate objects better than this, perhaps
-				ResourceId live = GetResourceManager()->GetNonDispWrapper(sem)->id;
-				RDCDEBUG("Doing hack for duplicate objects that replay expects to be distinct - %llu -> %llu", id, live);
-				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
-			}
-			else
-			{
-				ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sem);
-				GetResourceManager()->AddLiveResource(id, sem);
-			}
+			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sem);
+			GetResourceManager()->AddLiveResource(id, sem);
 		}
 	}
 

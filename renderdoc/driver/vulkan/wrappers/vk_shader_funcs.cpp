@@ -52,10 +52,26 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), layout);
-			GetResourceManager()->AddLiveResource(id, layout);
+			ResourceId live;
 
-			m_CreationInfo.m_PipelineLayout[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(layout)))
+			{
+				live = GetResourceManager()->GetNonDispWrapper(layout)->id;
+
+				// destroy this instance of the duplicate, as we must have matching create/destroy
+				// calls and there won't be a wrapped resource hanging around to destroy this one.
+				ObjDisp(device)->DestroyPipelineLayout(Unwrap(device), layout, NULL);
+
+				// whenever the new ID is requested, return the old ID, via replacements.
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+			}
+			else
+			{
+				live = GetResourceManager()->WrapResource(Unwrap(device), layout);
+				GetResourceManager()->AddLiveResource(id, layout);
+			
+				m_CreationInfo.m_PipelineLayout[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			}
 		}
 	}
 
@@ -137,10 +153,26 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sh);
-			GetResourceManager()->AddLiveResource(id, sh);
+			ResourceId live;
 
-			m_CreationInfo.m_ShaderModule[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(sh)))
+			{
+				live = GetResourceManager()->GetNonDispWrapper(sh)->id;
+
+				// destroy this instance of the duplicate, as we must have matching create/destroy
+				// calls and there won't be a wrapped resource hanging around to destroy this one.
+				ObjDisp(device)->DestroyShaderModule(Unwrap(device), sh, NULL);
+
+				// whenever the new ID is requested, return the old ID, via replacements.
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+			}
+			else
+			{
+				live = GetResourceManager()->WrapResource(Unwrap(device), sh);
+				GetResourceManager()->AddLiveResource(id, sh);
+			
+				m_CreationInfo.m_ShaderModule[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			}
 		}
 	}
 
@@ -286,10 +318,26 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
-			GetResourceManager()->AddLiveResource(id, pipe);
-		
-			m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			ResourceId live;
+
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(pipe)))
+			{
+				live = GetResourceManager()->GetNonDispWrapper(pipe)->id;
+
+				// destroy this instance of the duplicate, as we must have matching create/destroy
+				// calls and there won't be a wrapped resource hanging around to destroy this one.
+				ObjDisp(device)->DestroyPipeline(Unwrap(device), pipe, NULL);
+
+				// whenever the new ID is requested, return the old ID, via replacements.
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+			}
+			else
+			{
+				live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
+				GetResourceManager()->AddLiveResource(id, pipe);
+			
+				m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			}
 		}
 	}
 
@@ -411,10 +459,26 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
-			GetResourceManager()->AddLiveResource(id, pipe);
-		
-			m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			ResourceId live;
+
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(pipe)))
+			{
+				live = GetResourceManager()->GetNonDispWrapper(pipe)->id;
+
+				// destroy this instance of the duplicate, as we must have matching create/destroy
+				// calls and there won't be a wrapped resource hanging around to destroy this one.
+				ObjDisp(device)->DestroyPipeline(Unwrap(device), pipe, NULL);
+
+				// whenever the new ID is requested, return the old ID, via replacements.
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+			}
+			else
+			{
+				live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
+				GetResourceManager()->AddLiveResource(id, pipe);
+			
+				m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			}
 		}
 	}
 

@@ -119,10 +119,26 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), layout);
-			GetResourceManager()->AddLiveResource(id, layout);
-		
-			m_CreationInfo.m_DescSetLayout[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			ResourceId live;
+
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(layout)))
+			{
+				live = GetResourceManager()->GetNonDispWrapper(layout)->id;
+
+				// destroy this instance of the duplicate, as we must have matching create/destroy
+				// calls and there won't be a wrapped resource hanging around to destroy this one.
+				ObjDisp(device)->DestroyDescriptorSetLayout(Unwrap(device), layout, NULL);
+
+				// whenever the new ID is requested, return the old ID, via replacements.
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+			}
+			else
+			{
+				live = GetResourceManager()->WrapResource(Unwrap(device), layout);
+				GetResourceManager()->AddLiveResource(id, layout);
+			
+				m_CreationInfo.m_DescSetLayout[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			}
 		}
 	}
 

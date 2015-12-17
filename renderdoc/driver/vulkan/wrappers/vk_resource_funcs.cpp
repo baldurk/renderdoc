@@ -822,10 +822,26 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), view);
-			GetResourceManager()->AddLiveResource(id, view);
-		
-			m_CreationInfo.m_BufferView[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			ResourceId live;
+
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(view)))
+			{
+				live = GetResourceManager()->GetNonDispWrapper(view)->id;
+
+				// destroy this instance of the duplicate, as we must have matching create/destroy
+				// calls and there won't be a wrapped resource hanging around to destroy this one.
+				ObjDisp(device)->DestroyBufferView(Unwrap(device), view, NULL);
+
+				// whenever the new ID is requested, return the old ID, via replacements.
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+			}
+			else
+			{
+				live = GetResourceManager()->WrapResource(Unwrap(device), view);
+				GetResourceManager()->AddLiveResource(id, view);
+			
+				m_CreationInfo.m_BufferView[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			}
 		}
 	}
 
@@ -1093,10 +1109,26 @@ bool WrappedVulkan::Serialise_vkCreateImageView(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), view);
-			GetResourceManager()->AddLiveResource(id, view);
-		
-			m_CreationInfo.m_ImageView[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			ResourceId live;
+
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(view)))
+			{
+				live = GetResourceManager()->GetNonDispWrapper(view)->id;
+
+				// destroy this instance of the duplicate, as we must have matching create/destroy
+				// calls and there won't be a wrapped resource hanging around to destroy this one.
+				ObjDisp(device)->DestroyImageView(Unwrap(device), view, NULL);
+
+				// whenever the new ID is requested, return the old ID, via replacements.
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+			}
+			else
+			{
+				live = GetResourceManager()->WrapResource(Unwrap(device), view);
+				GetResourceManager()->AddLiveResource(id, view);
+			
+				m_CreationInfo.m_ImageView[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			}
 		}
 	}
 

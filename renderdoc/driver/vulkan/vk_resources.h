@@ -380,10 +380,22 @@ struct WrappedVkSurfaceKHR : WrappedVkNonDispRes
 	enum { TypeEnum = eResSurface, };
 };
 
-// VKTODOMED Need to find out which resources can validly return duplicate
-// handles for unique creates. E.g. if there are the same input parameters
-// to multiple create calls - perhaps it is valid for any handle to be
-// returned twice.
+// Note: we assume only the following resources can return duplicate handles (and so
+// on replay we need to handle two distinct ids with the same handle.
+// Other resources are discounted because they have 'state' or otherwise wouldn't make
+// sense to alias. Some of these are very *unlikely* to alias/duplicate, but they could
+// in theory do so e.g. if the inputs to the create function were hashed.
+// Listed in order from least likely to most likely to alias:
+//
+// * VkPipeline
+// * VkShaderModule
+// * VkRenderPass
+// * VkPipelineLayout
+// * VkDescriptorSetLayout
+// * VkFramebuffer
+// * VkBufferView
+// * VkImageView
+// * VkSampler
 
 // template magic voodoo to unwrap types
 template<typename inner> struct UnwrapHelper {};

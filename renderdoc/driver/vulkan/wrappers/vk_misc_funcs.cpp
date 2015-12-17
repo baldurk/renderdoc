@@ -351,10 +351,26 @@ bool WrappedVulkan::Serialise_vkCreateSampler(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), samp);
-			GetResourceManager()->AddLiveResource(id, samp);
-		
-			m_CreationInfo.m_Sampler[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			ResourceId live;
+
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(samp)))
+			{
+				live = GetResourceManager()->GetNonDispWrapper(samp)->id;
+
+				// destroy this instance of the duplicate, as we must have matching create/destroy
+				// calls and there won't be a wrapped resource hanging around to destroy this one.
+				ObjDisp(device)->DestroySampler(Unwrap(device), samp, NULL);
+
+				// whenever the new ID is requested, return the old ID, via replacements.
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+			}
+			else
+			{
+				live = GetResourceManager()->WrapResource(Unwrap(device), samp);
+				GetResourceManager()->AddLiveResource(id, samp);
+			
+				m_CreationInfo.m_Sampler[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			}
 		}
 	}
 
@@ -424,10 +440,26 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), fb);
-			GetResourceManager()->AddLiveResource(id, fb);
-		
-			m_CreationInfo.m_Framebuffer[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			ResourceId live;
+
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(fb)))
+			{
+				live = GetResourceManager()->GetNonDispWrapper(fb)->id;
+
+				// destroy this instance of the duplicate, as we must have matching create/destroy
+				// calls and there won't be a wrapped resource hanging around to destroy this one.
+				ObjDisp(device)->DestroyFramebuffer(Unwrap(device), fb, NULL);
+
+				// whenever the new ID is requested, return the old ID, via replacements.
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+			}
+			else
+			{
+				live = GetResourceManager()->WrapResource(Unwrap(device), fb);
+				GetResourceManager()->AddLiveResource(id, fb);
+			
+				m_CreationInfo.m_Framebuffer[live].Init(GetResourceManager(), m_CreationInfo, &info);
+			}
 		}
 	}
 
@@ -532,27 +564,58 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), rp);
-			GetResourceManager()->AddLiveResource(id, rp);
+			ResourceId live;
 
-			// make a version of the render pass that loads from its attachments,
-			// so it can be used for replaying a single draw after a render pass
-			// without doing a clear or a DONT_CARE load.
-			for(uint32_t i=0; i < info.attachmentCount; i++)
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(rp)))
 			{
-				att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-				att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+				live = GetResourceManager()->GetNonDispWrapper(rp)->id;
+
+				// destroy this instance of the duplicate, as we must have matching create/destroy
+				// calls and there won't be a wrapped resource hanging around to destroy this one.
+				ObjDisp(device)->DestroyRenderPass(Unwrap(device), rp, NULL);
+
+				// whenever the new ID is requested, return the old ID, via replacements.
+				GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
 			}
+			else
+			{
+				live = GetResourceManager()->WrapResource(Unwrap(device), rp);
+				GetResourceManager()->AddLiveResource(id, rp);
 
-			ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRP);
-			RDCASSERT(ret == VK_SUCCESS);
+				// make a version of the render pass that loads from its attachments,
+				// so it can be used for replaying a single draw after a render pass
+				// without doing a clear or a DONT_CARE load.
+				for(uint32_t i=0; i < info.attachmentCount; i++)
+				{
+					att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+					att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+				}
 
-			ResourceId loadRPid = GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
-			
-			// register as a live-only resource, so it is cleaned up properly
-			GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRP);
-		
-			m_CreationInfo.m_RenderPass[live] = rpinfo;
+				ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRP);
+				RDCASSERT(ret == VK_SUCCESS);
+				
+				// handle the loadRP being a duplicate
+				if(GetResourceManager()->HasWrapper(ToTypedHandle(rpinfo.loadRP)))
+				{
+					// just fetch the existing wrapped object
+					rpinfo.loadRP = (VkRenderPass)(uint64_t)GetResourceManager()->GetNonDispWrapper(rpinfo.loadRP);
+
+					// destroy this instance of the duplicate, as we must have matching create/destroy
+					// calls and there won't be a wrapped resource hanging around to destroy this one.
+					ObjDisp(device)->DestroyRenderPass(Unwrap(device), rpinfo.loadRP, NULL);
+
+					// don't need to ReplaceResource as no IDs are involved
+				}
+				else
+				{
+					ResourceId loadRPid = GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
+
+					// register as a live-only resource, so it is cleaned up properly
+					GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRP);
+				}
+				
+				m_CreationInfo.m_RenderPass[live] = rpinfo;
+			}
 		}
 	}
 
