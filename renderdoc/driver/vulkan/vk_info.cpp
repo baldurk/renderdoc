@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_info.h"
+#include "3rdparty/glslang/SPIRV/spirv.hpp"
 
 void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
 {
@@ -75,10 +76,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 			ResourceId id = resourceMan->GetNonDispWrapper(pCreateInfo->pStages[i].module)->id;
 
 			// convert shader bit to shader index
-			int s=0;
-			for(; s < 6; s++)
-				if(pCreateInfo->pStages[i].stage == (1<<s))
-					break;
+			int s = StageIndex(pCreateInfo->pStages[i].stage);
 
 			Shader &shad = shaders[s];
 			
@@ -430,7 +428,23 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan, 
 	}
 	else
 	{
-		RDCASSERT(pCreateInfo->codeSize % sizeof(uint32_t) == 0);
-		ParseSPIRV((uint32_t *)pCreateInfo->pCode, pCreateInfo->codeSize/sizeof(uint32_t), spirv);
+		static const unsigned int MagicNumber = 0x07230203; // SPIR-V magic number
+
+		// is the SPIR-V version 0? assume GLSL
+
+		if(pCreateInfo->pCode[0] == MagicNumber && pCreateInfo->pCode[1] == 0)
+		{
+			// GLSL - compile to SPIR-V ourselves
+			const char *src = (const char *)(pCreateInfo->pCode+3);
+			vector<string> srcs; srcs.push_back(src);
+			vector<uint32_t> spirv_code;
+			string ret = CompileSPIRV((SPIRVShaderStage)StageIndex((VkShaderStageFlagBits)pCreateInfo->pCode[2]), srcs, spirv_code);
+			ParseSPIRV(&spirv_code[0], spirv_code.size(), spirv);
+		}
+		else
+		{
+			RDCASSERT(pCreateInfo->codeSize % sizeof(uint32_t) == 0);
+			ParseSPIRV((uint32_t *)pCreateInfo->pCode, pCreateInfo->codeSize/sizeof(uint32_t), spirv);
+		}
 	}
 }

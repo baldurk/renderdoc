@@ -55,6 +55,7 @@ VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo);
 VkAccessFlags MakeAccessMask(VkImageLayout layout);
 
 int SampleCount(VkSampleCountFlagBits countFlag);
+int StageIndex(VkShaderStageFlagBits stageFlag);
 
 // structure for casting to easily iterate and template specialising Serialise
 struct VkGenericStruct

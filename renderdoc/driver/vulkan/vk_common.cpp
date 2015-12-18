@@ -75,6 +75,30 @@ int SampleCount(VkSampleCountFlagBits countFlag)
 	return 1;
 }
 
+int StageIndex(VkShaderStageFlagBits stageFlag)
+{
+	switch(stageFlag)
+	{
+		case VK_SHADER_STAGE_VERTEX_BIT:
+			return 0;
+		case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:
+			return 1;
+		case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:
+			return 2;
+		case VK_SHADER_STAGE_GEOMETRY_BIT:
+			return 3;
+		case VK_SHADER_STAGE_FRAGMENT_BIT:
+			return 4;
+		case VK_SHADER_STAGE_COMPUTE_BIT:
+			return 5;
+		default:
+			RDCERR("Unrecognised/not single flag %x", stageFlag);
+			break;
+	}
+
+	return 0;
+}
+
 ResourceFormat MakeResourceFormat(VkFormat fmt)
 {
 	ResourceFormat ret;
