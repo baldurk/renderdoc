@@ -42,7 +42,7 @@
 	HookInit(CreateXcbSurfaceKHR); \
 	HookInit(GetPhysicalDeviceXcbPresentationSupportKHR);
 
-#define HookInit_PlatformSpecific_Xcb() \
+#define HookDefine_PlatformSpecific_Xcb() \
 	HookDefine5(VkResult, vkCreateXcbSurfaceKHR, VkInstance, instance, xcb_connection_t*, connection, xcb_window_t, window, const VkAllocationCallbacks*, pAllocator, VkSurfaceKHR*, pSurface); \
 	HookDefine4(VkBool32, vkGetPhysicalDeviceXcbPresentationSupportKHR, VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex, xcb_connection_t*, connection, xcb_visualid_t, visual_id); \
 
@@ -59,7 +59,7 @@
 	HookInit(CreateXlibSurfaceKHR); \
 	HookInit(GetPhysicalDeviceXlibPresentationSupportKHR);
 
-#define HookInit_PlatformSpecific_Xlib() \
+#define HookDefine_PlatformSpecific_Xlib() \
 	HookDefine5(VkResult, vkCreateXlibSurfaceKHR, VkInstance, instance, Display*, dpy, Window, window, const VkAllocationCallbacks*, pAllocator, VkSurfaceKHR*, pSurface); \
 	HookDefine4(VkBool32, vkGetPhysicalDeviceXlibPresentationSupportKHR, VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex, Display*, dpy, VisualID, visualID); \
 

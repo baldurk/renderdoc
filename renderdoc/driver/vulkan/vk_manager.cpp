@@ -298,7 +298,7 @@ void VulkanResourceManager::MarkSparseMapReferenced(SparseMapping *sparse)
 		MarkResourceFrameReferenced(GetResID(sparse->opaquemappings[i].memory), eFrameRef_Read);
 
 	for(int a=0; a < NUM_VK_IMAGE_ASPECTS; a++)
-			for(VkDeviceSize i=0; sparse->pages[a] && i < sparse->imgdim.width*sparse->imgdim.height*sparse->imgdim.depth; i++)
+			for(VkDeviceSize i=0; sparse->pages[a] && i < VkDeviceSize(sparse->imgdim.width*sparse->imgdim.height*sparse->imgdim.depth); i++)
 				MarkResourceFrameReferenced(GetResID(sparse->pages[a][i].first), eFrameRef_Read);
 }
 

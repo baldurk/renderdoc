@@ -185,16 +185,16 @@ void GLReplay::InitDebugData()
 
 	DebugData.outWidth = 0.0f; DebugData.outHeight = 0.0f;
 	
-	string blitvsSource = GetEmbeddedResource(blit_vert);
-	string blitfsSource = GetEmbeddedResource(blit_frag);
+	string blitvsSource = GetEmbeddedResource(glsl_blit_vert);
+	string blitfsSource = GetEmbeddedResource(glsl_blit_frag);
 
 	DebugData.blitProg = CreateShaderProgram(blitvsSource.c_str(), blitfsSource.c_str());
 	
 	string glslheader = "#version 420 core\n\n";
-	glslheader += GetEmbeddedResource(debuguniforms_h);
+	glslheader += GetEmbeddedResource(glsl_debuguniforms_h);
 
-	string texfs = GetEmbeddedResource(texsample_h);
-	texfs += GetEmbeddedResource(texdisplay_frag);
+	string texfs = GetEmbeddedResource(glsl_texsample_h);
+	texfs += GetEmbeddedResource(glsl_texdisplay_frag);
 
 	DebugData.texDisplayVSProg = CreateShaderProgram(blitvsSource.c_str(), NULL);
 
@@ -231,12 +231,12 @@ void GLReplay::InitDebugData()
 
 		string glsl = "#version 450 core\n\n";
 		glsl += "#define RENDERDOC_QuadOverdrawPS\n\n";
-		glsl += GetEmbeddedResource(quadoverdraw_frag);
+		glsl += GetEmbeddedResource(glsl_quadoverdraw_frag);
 		DebugData.quadoverdrawFSProg = CreateShaderProgram(NULL, glsl.c_str());
 
 		glsl = "#version 420 core\n\n";
 		glsl += "#define RENDERDOC_QOResolvePS\n\n";
-		glsl += GetEmbeddedResource(quadoverdraw_frag);
+		glsl += GetEmbeddedResource(glsl_quadoverdraw_frag);
 		DebugData.quadoverdrawResolveProg = CreateShaderProgram(blitvsSource.c_str(), glsl.c_str());
 	}
 	else
@@ -247,28 +247,28 @@ void GLReplay::InitDebugData()
 		glsl += "#define RENDERDOC_QuadOverdrawPS\n\n";
 		glsl += "#define dFdxFine dFdx\n\n"; // dFdx fine functions not available before GLSL 450
 		glsl += "#define dFdyFine dFdy\n\n"; // use normal dFdx, which might be coarse, so won't show quad overdraw properly
-		glsl += GetEmbeddedResource(quadoverdraw_frag);
+		glsl += GetEmbeddedResource(glsl_quadoverdraw_frag);
 		DebugData.quadoverdrawFSProg = CreateShaderProgram(NULL, glsl.c_str());
 
 		glsl = "#version 420 core\n\n";
 		glsl += "#define RENDERDOC_QOResolvePS\n\n";
-		glsl += GetEmbeddedResource(quadoverdraw_frag);
+		glsl += GetEmbeddedResource(glsl_quadoverdraw_frag);
 		DebugData.quadoverdrawResolveProg = CreateShaderProgram(blitvsSource.c_str(), glsl.c_str());
 	}
 	
-	string checkerfs = GetEmbeddedResource(checkerboard_frag);
+	string checkerfs = GetEmbeddedResource(glsl_checkerboard_frag);
 	
 	DebugData.checkerProg = CreateShaderProgram(blitvsSource.c_str(), checkerfs.c_str());
 
-	string genericvsSource = GetEmbeddedResource(generic_vert);
-	string genericfsSource = GetEmbeddedResource(generic_frag);
+	string genericvsSource = GetEmbeddedResource(glsl_generic_vert);
+	string genericfsSource = GetEmbeddedResource(glsl_generic_frag);
 
 	DebugData.genericProg = CreateShaderProgram(genericvsSource.c_str(), genericfsSource.c_str());
 	DebugData.genericFSProg = CreateShaderProgram(NULL, genericfsSource.c_str());
 	
-	string meshvs = GetEmbeddedResource(mesh_vert);
-	string meshgs = GetEmbeddedResource(mesh_geom);
-	string meshfs = GetEmbeddedResource(mesh_frag);
+	string meshvs = GetEmbeddedResource(glsl_mesh_vert);
+	string meshgs = GetEmbeddedResource(glsl_mesh_geom);
+	string meshfs = GetEmbeddedResource(glsl_mesh_frag);
 	meshfs = glslheader + meshfs;
 	
 	DebugData.meshProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str());
@@ -350,8 +350,8 @@ void GLReplay::InitDebugData()
 	
 	// histogram/minmax data
 	{
-		string histogramglsl = GetEmbeddedResource(texsample_h);
-		histogramglsl += GetEmbeddedResource(histogram_comp);
+		string histogramglsl = GetEmbeddedResource(glsl_texsample_h);
+		histogramglsl += GetEmbeddedResource(glsl_histogram_comp);
 
 		RDCEraseEl(DebugData.minmaxTileProgram);
 		RDCEraseEl(DebugData.histogramProgram);
@@ -421,18 +421,18 @@ void GLReplay::InitDebugData()
 	
 	{
 		string glsl = "#version 420 core\n\n#define MS2Array main\n\n";
-		glsl += GetEmbeddedResource(arraymscopy_comp);
+		glsl += GetEmbeddedResource(glsl_arraymscopy_comp);
 
 		DebugData.MS2Array = CreateCShaderProgram(glsl.c_str());
 		
 		glsl = "#version 420 core\n\n#define Array2MS main\n\n";
-		glsl += GetEmbeddedResource(arraymscopy_comp);
+		glsl += GetEmbeddedResource(glsl_arraymscopy_comp);
 
 		DebugData.Array2MS = CreateCShaderProgram(glsl.c_str());
 	}
 
 	{
-		string glsl = GetEmbeddedResource(mesh_comp);
+		string glsl = GetEmbeddedResource(glsl_mesh_comp);
 
 		DebugData.meshPickProgram = CreateCShaderProgram(glsl.c_str());
 	}
@@ -518,7 +518,7 @@ void GLReplay::InitDebugData()
 	
 	DebugData.replayQuadProg = CreateShaderProgram(blitvsSource.c_str(), genericfsSource.c_str());
 	
-	string outlinefsSource = GetEmbeddedResource(outline_frag);
+	string outlinefsSource = GetEmbeddedResource(glsl_outline_frag);
 
 	DebugData.outlineQuadProg = CreateShaderProgram(blitvsSource.c_str(), outlinefsSource.c_str());
 

@@ -36,6 +36,8 @@
 
 #include "data/spv/debuguniforms.h"
 
+const VkDeviceSize STAGE_BUFFER_BYTE_SIZE = 16*1024*1024ULL;
+
 void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
@@ -586,18 +588,18 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCCOMPILE_ASSERT(sizeof(StringUBOData) <= 4096, "font uniforms size");
 	
 	string shaderSources[] = {
-		GetEmbeddedResource(spirv_blit_vert),
-		GetEmbeddedResource(spirv_checkerboard_frag),
-		GetEmbeddedResource(spirv_texdisplay_frag),
-		GetEmbeddedResource(spirv_text_vert),
-		GetEmbeddedResource(spirv_text_frag),
-		GetEmbeddedResource(spirv_mesh_vert),
-		GetEmbeddedResource(spirv_mesh_geom),
-		GetEmbeddedResource(spirv_mesh_frag),
-		GetEmbeddedResource(spirv_minmaxtile_comp),
-		GetEmbeddedResource(spirv_minmaxresult_comp),
-		GetEmbeddedResource(spirv_histogram_comp),
-		GetEmbeddedResource(spirv_outline_frag),
+		GetEmbeddedResource(spv_blit_vert),
+		GetEmbeddedResource(spv_checkerboard_frag),
+		GetEmbeddedResource(spv_texdisplay_frag),
+		GetEmbeddedResource(spv_text_vert),
+		GetEmbeddedResource(spv_text_frag),
+		GetEmbeddedResource(spv_mesh_vert),
+		GetEmbeddedResource(spv_mesh_geom),
+		GetEmbeddedResource(spv_mesh_frag),
+		GetEmbeddedResource(spv_minmaxtile_comp),
+		GetEmbeddedResource(spv_minmaxresult_comp),
+		GetEmbeddedResource(spv_histogram_comp),
+		GetEmbeddedResource(spv_outline_frag),
 	};
 
 	SPIRVShaderStage shaderStages[] = {
@@ -642,14 +644,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	m_CacheShaders = true;
 
-	sources.push_back(GetEmbeddedResource(spirv_fixedcol_frag));
+	sources.push_back(GetEmbeddedResource(spv_fixedcol_frag));
 
 	string err = GetSPIRVBlob(eSPIRVFragment, sources, &m_FixedColSPIRV);
 	RDCASSERT(err.empty() && m_FixedColSPIRV);
 
 	sources.resize(4);
 	sources[0] = "#version 430 core\n";
-	sources[1] = GetEmbeddedResource(spirv_debuguniforms_h);
+	sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
 	sources[2] = ""; // #defines/#includes
 	
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
@@ -658,10 +660,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		sources[3] = shaderSources[i];
 
 		if(sources[3].find("#include \"texsample.h\"") != string::npos)
-			sources[2] = GetEmbeddedResource(spirv_texsample_h);
+			sources[2] = GetEmbeddedResource(spv_texsample_h);
 
 		string err = GetSPIRVBlob(shaderStages[i], sources, &shaderSPIRV[i]);
-		RDCASSERT(err.empty() && shaderSPIRV);
+		RDCASSERT(err.empty() && shaderSPIRV[i]);
 
 		VkShaderModuleCreateInfo modinfo = {
 			VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,

@@ -468,7 +468,7 @@ private:
 
 public:
 	WrappedVulkan(const char *logFilename);
-	~WrappedVulkan();
+	virtual ~WrappedVulkan();
 
 	ResourceId GetContextResourceID() { return m_FrameCaptureRecord->GetResourceID(); }
 

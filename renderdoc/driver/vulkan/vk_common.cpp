@@ -44,6 +44,8 @@ VkAccessFlags MakeAccessMask(VkImageLayout layout)
 			return VkAccessFlags(VK_ACCESS_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT);
 		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
 			return VkAccessFlags(VK_ACCESS_TRANSFER_READ_BIT);
+		default:
+			break;
 	}
 
 	return VkAccessFlags(0);

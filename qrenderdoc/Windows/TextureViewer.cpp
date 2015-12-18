@@ -160,7 +160,7 @@ void TextureViewer::OnLogfileLoaded()
 #endif
 
 	m_Core->Renderer()->BlockInvoke([wnd, this](IReplayRenderer *r) {
-		m_Output = r->CreateOutput(wnd);
+		m_Output = r->CreateOutput(wnd, eOutputType_TexDisplay);
 		ui->render->SetOutput(m_Output);
 
 		OutputConfig c = { eOutputType_TexDisplay };

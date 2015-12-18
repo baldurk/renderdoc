@@ -221,7 +221,6 @@ class VulkanDebugManager
 		VkPipeline m_OutlinePipeline;
 		GPUBuffer m_OutlineUBO;
 		
-		static const VkDeviceSize STAGE_BUFFER_BYTE_SIZE = 16*1024*1024ULL;
 		GPUBuffer m_ReadbackWindow;
 		
 		VkDescriptorSetLayout m_MeshFetchDescSetLayout;

@@ -196,8 +196,7 @@ int renderdoccmd(int argc, char **argv)
 					byte *jpgbuf = new byte[len];
 					RENDERDOC_GetThumbnail(argv[2], jpgbuf, len);
 
-					FILE *f = NULL;
-					fopen_s(&f, jpgname.c_str(), "wb");
+					FILE *f = fopen(jpgname.c_str(), "wb");
 
 					if(!f)
 					{

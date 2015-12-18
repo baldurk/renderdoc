@@ -903,7 +903,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
 	
 	int displayformat = 0;
-	int descSetBinding = 0;
+	uint32_t descSetBinding = 0;
 
 	if(IsUIntFormat(iminfo.format))
 	{
@@ -1556,6 +1556,9 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 				break;
 			case eShade_Secondary:
 				pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary];
+				break;
+			case eShade_None:
+			case eShade_Count:
 				break;
 		}
 		

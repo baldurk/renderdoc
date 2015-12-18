@@ -243,7 +243,7 @@ class VulkanReplay : public IReplayDriver
 
 		bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, bool f32render);
 
-		void VulkanReplay::CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm, VulkanCreationInfo::Image &iminfo);
+		void CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm, VulkanCreationInfo::Image &iminfo);
 
 		void FillCBufferVariables(rdctype::array<ShaderConstant>, vector<ShaderVariable> &outvars, const vector<byte> &data, size_t &offset);
 

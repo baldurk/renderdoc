@@ -46,9 +46,9 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 	screen = iter.data;
 }
 
-void VulkanReplay::OutputWindow::InitSurfaceDescription(VkInstance inst)
+void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 {
-	VkResult vkr = ObjDisp(inst)->vkCreateXcbSurfaceKHR(Unwrap(inst), connection, &wnd, NULL, &surface);
+	VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), connection, wnd, NULL, &surface);
 	RDCASSERT(vkr == VK_SUCCESS);
 }
 
@@ -109,7 +109,7 @@ VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(
 		
 		// since there's no point in allocating a full resource record and storing the window
 		// handle under there somewhere, we just cast. We won't use the resource record for anything
-		wrapped->record = (VkResourceRecord *)window;
+		wrapped->record = (VkResourceRecord *)(uintptr_t)window;
 		
 		Keyboard::UseConnection(connection);
 	}

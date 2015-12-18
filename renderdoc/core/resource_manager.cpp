@@ -41,8 +41,8 @@ namespace ResourceIDGen
 		// almost 32 years generating 100000 IDs per frame at 10000 FPS.
 
 		// only add this value once (since we're not |'ing on a bit)
-		if(globalIDCounter < 1000000000000000000ULL)
-			globalIDCounter = RDCMAX(uint64_t(globalIDCounter), uint64_t(globalIDCounter+1000000000000000000ULL));
+		if(globalIDCounter < 1000000000000000000LL)
+			globalIDCounter = RDCMAX(int64_t(globalIDCounter), int64_t(globalIDCounter+1000000000000000000LL));
 	}
 };
 

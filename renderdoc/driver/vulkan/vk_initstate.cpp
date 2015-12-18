@@ -445,7 +445,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer 
 		}
 		else
 		{
-			info->numUniqueMems = NULL;
+			info->memDataOffs = NULL;
 		}
 		
 		m_pSerialiser->Serialise("totalSize", info->totalSize);

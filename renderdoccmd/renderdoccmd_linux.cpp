@@ -99,7 +99,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 
 	void *connectionScreenWindow[] = { (void *)connection, (void *)(uintptr_t)scr, (void *)(uintptr_t)window };
 
-	ReplayOutput *out = ReplayRenderer_CreateOutput(renderer, connectionScreenWindow);
+	ReplayOutput *out = ReplayRenderer_CreateOutput(renderer, connectionScreenWindow, eOutputType_TexDisplay);
 
 	OutputConfig c = { eOutputType_TexDisplay };
 

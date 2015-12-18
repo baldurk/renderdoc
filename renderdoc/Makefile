@@ -63,20 +63,21 @@ data/glsl/quadoverdraw.frago \
 data/glsl/histogram.compo \
 data/glsl/arraymscopy.compo \
 data/glsl/outline.frago \
-data/spv/blitvs.spvo \
-data/spv/checkerboardfs.spvo \
-data/spv/texdisplayfs.spvo \
-data/spv/textvs.spvo \
-data/spv/textfs.spvo \
-data/spv/fixedcolfs.spvo \
-data/spv/meshvs.spvo \
-data/spv/meshgs.spvo \
-data/spv/meshfs.spvo \
-data/spv/histogramcs.spvo \
-data/spv/minmaxtilecs.spvo \
-data/spv/minmaxresultcs.spvo \
-data/spv/outline.spvo \
+data/spv/blit.verto \
+data/spv/checkerboard.frago \
+data/spv/texdisplay.frago \
+data/spv/text.verto \
+data/spv/text.frago \
+data/spv/fixedcol.frago \
+data/spv/mesh.verto \
+data/spv/mesh.geomo \
+data/spv/mesh.frago \
+data/spv/histogram.compo \
+data/spv/minmaxtile.compo \
+data/spv/minmaxresult.compo \
+data/spv/outline.frago \
 data/spv/debuguniforms.ho \
+data/spv/texsample.ho \
 data/sourcecodepro.ttfo
 
 .PHONY: all
@@ -96,10 +97,10 @@ $(OBJDIR)/%.o: %.c
 # to produce the right symbol names
 OBJGEN = \
 mkdir -p $$(dirname $@); \
-cd $$(dirname $<); \
-objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@); \
+cd data/; \
+objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(echo $< | sed -e '{s/data\///g}') $$(basename $@); \
 cd - > /dev/null 2>&1; \
-mv $$(dirname $<)/$$(basename $@) $@;
+mv data/$$(basename $@) $@;
 
 $(OBJDIR)/%.verto: %.vert
 	@echo Object building $@

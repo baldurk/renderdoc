@@ -1107,9 +1107,9 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
 			gl.glCreateProgram && gl.glAttachShader && gl.glLinkProgram && gl.glGetProgramiv && gl.glGetProgramInfoLog)
 		{
 			string textvs = "#version 420 core\n\n";
-			textvs += GetEmbeddedResource(debuguniforms_h);
-			textvs += GetEmbeddedResource(text_vert);
-			string textfs = GetEmbeddedResource(text_frag);
+			textvs += GetEmbeddedResource(glsl_debuguniforms_h);
+			textvs += GetEmbeddedResource(glsl_text_vert);
+			string textfs = GetEmbeddedResource(glsl_text_frag);
 
 			GLuint vs = gl.glCreateShader(eGL_VERTEX_SHADER);
 			GLuint fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);

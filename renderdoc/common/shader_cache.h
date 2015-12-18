@@ -77,7 +77,7 @@ bool LoadShaderCache(const char *filename,
 
 			for(uint32_t i=0; i < numentries; i++)
 			{
-				if(bufsize < sizeof(uint32_t))
+				if((size_t)bufsize < sizeof(uint32_t))
 				{
 					RDCERR("Invalid shader cache - truncated, not enough data for shader hash");
 					ret = false;
@@ -86,7 +86,7 @@ bool LoadShaderCache(const char *filename,
 
 				uint32_t hash = *(uint32_t *)ptr; ptr += sizeof(uint32_t); bufsize -= sizeof(uint32_t);
 
-				if(bufsize < sizeof(uint32_t))
+				if((size_t)bufsize < sizeof(uint32_t))
 				{
 					RDCERR("Invalid shader cache - truncated, not enough data for shader length");
 					ret = false;
