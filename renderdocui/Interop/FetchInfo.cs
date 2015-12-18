@@ -146,6 +146,9 @@ namespace renderdoc
         }
         public static bool operator ==(ResourceFormat x, ResourceFormat y)
         {
+            if ((object)x == null) return (object)y == null;
+            if ((object)y == null) return (object)x == null;
+
             if (x.special || y.special)
                 return x.special == y.special && x.specialFormat == y.specialFormat;
 

@@ -80,8 +80,8 @@ namespace renderdocui.Code
         }
         public static bool operator ==(FormatElement x, FormatElement y)
         {
-            if ((object)x == null) return false;
-            if ((object)y == null) return false;
+            if ((object)x == null) return (object)y == null;
+            if ((object)y == null) return (object)x == null;
 
             return x.name == y.name &&
                 x.buffer == y.buffer &&

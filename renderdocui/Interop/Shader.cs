@@ -482,6 +482,9 @@ namespace renderdoc
         }
         public static bool operator ==(BindpointMap x, BindpointMap y)
         {
+            if ((object)x == null) return (object)y == null;
+            if ((object)y == null) return (object)x == null;
+
             return x.bindset == y.bindset &&
                 x.bind == y.bind;
         }
