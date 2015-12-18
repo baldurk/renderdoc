@@ -652,6 +652,7 @@
             this.vsInBufferView.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_ColumnHeaderMouseClick);
             this.vsInBufferView.Scroll += new System.Windows.Forms.ScrollEventHandler(this.bufferView_Scroll);
             this.vsInBufferView.SelectionChanged += new System.EventHandler(this.bufferView_SelectionChanged);
+            this.vsInBufferView.CellPainting += new System.Windows.Forms.DataGridViewCellPaintingEventHandler(this.bufferView_CellPaint);
             this.vsInBufferView.Paint += new System.Windows.Forms.PaintEventHandler(this.bufferView_Paint);
             this.vsInBufferView.Enter += new System.EventHandler(this.bufferView_EnterLeave);
             this.vsInBufferView.Leave += new System.EventHandler(this.bufferView_EnterLeave);
@@ -699,6 +700,7 @@
             this.vsOutBufferView.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_ColumnHeaderMouseClick);
             this.vsOutBufferView.Scroll += new System.Windows.Forms.ScrollEventHandler(this.bufferView_Scroll);
             this.vsOutBufferView.SelectionChanged += new System.EventHandler(this.bufferView_SelectionChanged);
+            this.vsOutBufferView.CellPainting += new System.Windows.Forms.DataGridViewCellPaintingEventHandler(this.bufferView_CellPaint);
             this.vsOutBufferView.Paint += new System.Windows.Forms.PaintEventHandler(this.bufferView_Paint);
             this.vsOutBufferView.Enter += new System.EventHandler(this.bufferView_EnterLeave);
             this.vsOutBufferView.Leave += new System.EventHandler(this.bufferView_EnterLeave);
@@ -992,6 +994,7 @@
             this.gsOutBufferView.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_ColumnHeaderMouseClick);
             this.gsOutBufferView.Scroll += new System.Windows.Forms.ScrollEventHandler(this.bufferView_Scroll);
             this.gsOutBufferView.SelectionChanged += new System.EventHandler(this.bufferView_SelectionChanged);
+            this.gsOutBufferView.CellPainting += new System.Windows.Forms.DataGridViewCellPaintingEventHandler(this.bufferView_CellPaint);
             this.gsOutBufferView.Paint += new System.Windows.Forms.PaintEventHandler(this.bufferView_Paint);
             this.gsOutBufferView.Enter += new System.EventHandler(this.bufferView_EnterLeave);
             this.gsOutBufferView.Leave += new System.EventHandler(this.bufferView_EnterLeave);

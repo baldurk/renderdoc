@@ -1190,28 +1190,6 @@ namespace renderdocui.Windows
 
         #region Setting Column Headers
 
-        private void UI_MergeColumns(DataGridView grid, int col, uint num, Graphics g)
-        {
-            for(int i=0; i < num; i++)
-            {
-                if (col + i >= grid.Columns.Count) break;
-
-                DataGridViewCell hc = grid.Columns[col + i].HeaderCell;
-                Rectangle hcRct = grid.GetCellDisplayRectangle(hc.ColumnIndex, -1, true);
-
-                Rectangle left = new Rectangle(hcRct.Left, hcRct.Top + 2, 1, hcRct.Height - 4);
-                Rectangle right = new Rectangle(hcRct.Left+hcRct.Width-1, hcRct.Top + 2, 1, hcRct.Height - 4);
-
-                using (var brush = new SolidBrush(grid.Columns[col + i].HeaderCell.Style.BackColor))
-                {
-                    if (i != 0)
-                        g.FillRectangle(brush, left);
-                    if (i != num - 1)
-                        g.FillRectangle(brush, right);
-                }
-            }
-        }
-
         private void UI_UpdateMeshColumns(MeshDataStage type, FormatElement[] el)
         {
             bool active = (type == m_MeshDisplay.type);
@@ -2228,12 +2206,68 @@ namespace renderdocui.Windows
 
             if (input == null) return;
 
-            uint i = 1;
-            foreach (var el in input.BufferFormats)
+            var grid = (DataGridView)sender;
+
+            int i = MeshView ? 2 : 1;
+
+            using (Graphics g = grid.CreateGraphics())
             {
-                UI_MergeColumns((DataGridView)sender, (int)i, el.format.compCount, e.Graphics);
-                i += el.format.compCount;
+                foreach (var el in input.BufferFormats)
+                {
+                    int baseCol = i;
+
+                    i += (int)el.format.compCount;
+
+                    Rectangle stringBounds = Rectangle.Empty;
+                    for (int f = baseCol; f < i; f++)
+                    {
+                        Rectangle r = grid.GetCellDisplayRectangle(f, -1, true);
+
+                        if (r.Width > 0)
+                        {
+                            r.Width -= grid.Columns[f].DividerWidth;
+
+                            if (stringBounds.Width == 0)
+                                stringBounds = r;
+                            else
+                                stringBounds = Rectangle.Union(stringBounds, r);
+                        }
+                    }
+
+                    stringBounds.X += 1;
+                    stringBounds.Y += 2;
+                    stringBounds.Width -= 2;
+                    stringBounds.Height -= 3;
+
+                    var sf = new StringFormat(StringFormat.GenericDefault);
+
+                    sf.Trimming = StringTrimming.EllipsisCharacter;
+                    sf.FormatFlags |= StringFormatFlags.NoWrap;
+
+                    using (Brush b = new SolidBrush(grid.ColumnHeadersDefaultCellStyle.BackColor))
+                        g.FillRectangle(b, stringBounds);
+                    using (Brush b = new SolidBrush(ForeColor))
+                        g.DrawString(el.name, grid.Font, b, stringBounds, sf);
+                }
             }
+        }
+
+        private void bufferView_CellPaint(object sender, DataGridViewCellPaintingEventArgs e)
+        {
+            // only paint the cell headers
+            if (e.RowIndex != -1) return;
+
+            Input input = GetUIState(sender).m_Input;
+
+            if (input == null) return;
+
+            // display the initial columns as normal
+            if (e.ColumnIndex < (MeshView ? 2 : 1))
+                return;
+
+            // for others, just paint the border
+            e.Paint(e.CellBounds, DataGridViewPaintParts.Border);
+            e.Handled = true;
         }
 
         private void render_Paint(object sender, PaintEventArgs e)
