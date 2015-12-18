@@ -331,30 +331,48 @@ namespace renderdocui.Windows.PipelineState
 
             var samplers = new Dictionary<ResourceId, SamplerData>();
 
-            // don't have a column layout for resources yet, so second column is just a
-            // string formatted with all the relevant data
-            if (stage.ShaderDetails != null)
+            for(int bindset = 0; bindset < pipe.DescSets.Length; bindset++)
             {
-                foreach (var shaderRes in stage.ShaderDetails.ReadOnlyResources)
+                for(int bind = 0; bind < pipe.DescSets[bindset].bindings.Length; bind++)
                 {
-                    BindpointMap bindMap = stage.BindpointMapping.ReadOnlyResources[shaderRes.bindPoint];
+                    ShaderResource shaderRes = null;
+                    BindpointMap bindMap = null;
 
-                    VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement[] slotBinds = null;
-                    ShaderBindType bindType = ShaderBindType.Unknown;
-                    ShaderStageBits stageBits = 0;
-
-                    if (bindMap.bindset < pipe.DescSets.Length && bindMap.bind < pipe.DescSets[bindMap.bindset].bindings.Length)
+                    if (shaderDetails != null)
                     {
-                        slotBinds = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds;
-                        bindType = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].type;
-                        stageBits = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].stageFlags;
+                        foreach (var ro in shaderDetails.ReadOnlyResources)
+                        {
+                            if (stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset == bindset &&
+                                stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind == bind)
+                            {
+                                shaderRes = ro;
+                                bindMap = stage.BindpointMapping.ReadOnlyResources[ro.bindPoint];
+                            }
+                        }
                     }
+
+                    VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement[] slotBinds =
+                        pipe.DescSets[bindset].bindings[bind].binds;
+                    ShaderBindType bindType = pipe.DescSets[bindset].bindings[bind].type;
+                    ShaderStageBits stageBits = pipe.DescSets[bindset].bindings[bind].stageFlags;
+
+                    // skip descriptors that aren't for this shader stage
+                    if (!stageBits.HasFlag((ShaderStageBits)(1 << (int)stage.stage)))
+                        continue;
+
+                    // these are treated as uniform buffers
+                    if (bindType == ShaderBindType.ReadOnlyBuffer)
+                        continue;
 
                     // consider it filled if any array element is filled
                     bool filledSlot = false;
-                    for (UInt32 idx = 0; idx < bindMap.arraySize; idx++)
+                    for (int idx = 0; idx < slotBinds.Length; idx++)
+                    {
                         filledSlot |= slotBinds[idx].res != ResourceId.Null;
-                    bool usedSlot = bindMap.used;
+                        if(bindType == ShaderBindType.Sampler || bindType == ShaderBindType.ImageSampler)
+                            filledSlot |= slotBinds[idx].sampler != ResourceId.Null;
+                    }
+                    bool usedSlot = bindMap != null && bindMap.used;
 
                     // show if
                     if (usedSlot || // it's referenced by the shader - regardless of empty or not
@@ -364,15 +382,16 @@ namespace renderdocui.Windows.PipelineState
                     {
                         TreelistView.NodeCollection parentNodes = resources.Nodes;
 
-                        string setname = bindMap.bindset.ToString();
+                        string setname = bindset.ToString();
 
-                        string slotname = bindMap.bind.ToString();
-                        slotname += ": " + shaderRes.name;
+                        string slotname = bind.ToString();
+                        if(shaderRes != null)
+                            slotname += ": " + shaderRes.name;
 
                         // for arrays, add a parent element that we add the real cbuffers below
-                        if (bindMap.arraySize > 1)
+                        if (slotBinds.Length > 1)
                         {
-                            var node = parentNodes.Add(new object[] { "", setname, slotname, String.Format("Array[{0}]", bindMap.arraySize), "", "", "", "" });
+                            var node = parentNodes.Add(new object[] { "", setname, slotname, String.Format("Array[{0}]", slotBinds.Length), "", "", "", "" });
 
                             node.TreeColumn = 0;
 
@@ -385,15 +404,15 @@ namespace renderdocui.Windows.PipelineState
                             parentNodes = node.Nodes;
                         }
 
-                        for (UInt32 idx = 0; idx < bindMap.arraySize; idx++)
+                        for (int idx = 0; idx < slotBinds.Length; idx++)
                         {
                             var descriptorBind = slotBinds[idx];
 
-                            if (bindMap.arraySize > 1)
+                            if (slotBinds.Length > 1)
                             {
-                                slotname = String.Format("{0}: {1}[{2}]", bindMap.bind, shaderRes.name, idx);
+                                slotname = String.Format("{0}[{1}]", bind, idx);
 
-                                if (shaderRes.name.Length > 0)
+                                if (shaderRes != null && shaderRes.name.Length > 0)
                                     slotname += ": " + shaderRes.name;
                             }
 
@@ -454,8 +473,7 @@ namespace renderdocui.Windows.PipelineState
 
                             TreelistView.Node node = null;
 
-                            if (bindType == ShaderBindType.ReadOnlyBuffer ||
-                                bindType == ShaderBindType.ReadWriteBuffer ||
+                            if (bindType == ShaderBindType.ReadWriteBuffer ||
                                 bindType == ShaderBindType.ReadOnlyTBuffer ||
                                 bindType == ShaderBindType.ReadWriteTBuffer
                                 )
@@ -463,7 +481,7 @@ namespace renderdocui.Windows.PipelineState
                                 if (!isbuf)
                                 {
                                     node = parentNodes.Add(new object[] {
-                                        "", bindMap.bindset, slotname, bindType, "-", 
+                                        "", bindset, slotname, bindType, "-", 
                                         "-",
                                         "",
                                         "",
@@ -474,7 +492,7 @@ namespace renderdocui.Windows.PipelineState
                                 else
                                 {
                                     node = parentNodes.Add(new object[] {
-                                        "", bindMap.bindset, slotname, bindType, name, 
+                                        "", bindset, slotname, bindType, name, 
                                         String.Format("{0} bytes", len),
                                         String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.size),
                                         "",
@@ -496,7 +514,7 @@ namespace renderdocui.Windows.PipelineState
                                 if (descriptorBind.sampler == ResourceId.Null)
                                 {
                                     node = parentNodes.Add(new object[] {
-                                        "", bindMap.bindset, slotname, bindType, "-", 
+                                        "", bindset, slotname, bindType, "-", 
                                         "-",
                                         "",
                                         "",
@@ -506,7 +524,7 @@ namespace renderdocui.Windows.PipelineState
                                 }
                                 else
                                 {
-                                    node = parentNodes.Add(MakeSampler(bindMap.bindset.ToString(), slotname, descriptorBind));
+                                    node = parentNodes.Add(MakeSampler(bindset.ToString(), slotname, descriptorBind));
 
                                     if (!filledSlot)
                                         EmptyRow(node);
@@ -526,7 +544,7 @@ namespace renderdocui.Windows.PipelineState
                                 if (descriptorBind.res == ResourceId.Null)
                                 {
                                     node = parentNodes.Add(new object[] {
-                                        "", bindMap.bindset, slotname, bindType, "-", 
+                                        "", bindset, slotname, bindType, "-", 
                                         "-",
                                         "",
                                         "",
@@ -559,7 +577,7 @@ namespace renderdocui.Windows.PipelineState
                                         dim += String.Format(", {0}x MSAA", samples);
 
                                     node = parentNodes.Add(new object[] {
-                                        "", bindMap.bindset, slotname, typename, name, 
+                                        "", bindset, slotname, typename, name, 
                                         dim,
                                         format,
                                         arraydim,
@@ -581,7 +599,7 @@ namespace renderdocui.Windows.PipelineState
                                     if (descriptorBind.sampler == ResourceId.Null)
                                     {
                                         node = parentNodes.Add(new object[] {
-                                            "", bindMap.bindset, slotname, bindType, "-", 
+                                            "", bindset, slotname, bindType, "-", 
                                             "-",
                                             "",
                                             "",
@@ -629,20 +647,45 @@ namespace renderdocui.Windows.PipelineState
             vs = cbuffers.VScrollValue();
             cbuffers.BeginUpdate();
             cbuffers.Nodes.Clear();
-            if(stage.ShaderDetails != null)
+            for(int bindset = 0; bindset < pipe.DescSets.Length; bindset++)
             {
-                UInt32 slot = 0;
-                foreach (var b in shaderDetails.ConstantBlocks)
+                for(int bind = 0; bind < pipe.DescSets[bindset].bindings.Length; bind++)
                 {
-                    BindpointMap bindMap = stage.BindpointMapping.ConstantBlocks[b.bindPoint];
+                    ConstantBlock cblock = null;
+                    BindpointMap bindMap = null;
 
-                    bool usedSlot = bindMap.used;
+                    UInt32 slot = 0;
+                    if (shaderDetails != null)
+                    {
+                        for (slot = 0; slot < (uint)shaderDetails.ConstantBlocks.Length; slot++)
+                        {
+                            ConstantBlock cb = shaderDetails.ConstantBlocks[slot];
+                            if (stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset == bindset &&
+                                stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bind == bind)
+                            {
+                                cblock = cb;
+                                bindMap = stage.BindpointMapping.ConstantBlocks[cb.bindPoint];
+                            }
+                        }
+                    }
 
-                    var slotBinds = pipe.DescSets[bindMap.bindset].bindings[bindMap.bind].binds;
+                    var slotBinds = pipe.DescSets[bindset].bindings[bind].binds;
+                    ShaderBindType bindType = pipe.DescSets[bindset].bindings[bind].type;
+                    ShaderStageBits stageBits = pipe.DescSets[bindset].bindings[bind].stageFlags;
+
+                    // skip descriptors that aren't for this shader stage
+                    if (!stageBits.HasFlag((ShaderStageBits)(1 << (int)stage.stage)))
+                        continue;
+
+                    // these are treated as uniform buffers
+                    if (bindType != ShaderBindType.ReadOnlyBuffer)
+                        continue;
+
+                    bool usedSlot = bindMap != null && bindMap.used;
 
                     // consider it filled if any array element is filled (or it's push constants)
-                    bool filledSlot = !b.bufferBacked;
-                    for (UInt32 idx = 0; idx < bindMap.arraySize; idx++)
+                    bool filledSlot = cblock != null && !cblock.bufferBacked;
+                    for (int idx = 0; idx < slotBinds.Length; idx++)
                         filledSlot |= slotBinds[idx].res != ResourceId.Null;
 
                     // show if
@@ -653,15 +696,16 @@ namespace renderdocui.Windows.PipelineState
                     {
                         TreelistView.NodeCollection parentNodes = cbuffers.Nodes;
 
-                        string setname = bindMap.bindset.ToString();
+                        string setname = bindset.ToString();
 
-                        string slotname = bindMap.bind.ToString();
-                        slotname += ": " + b.name;
+                        string slotname = bind.ToString();
+                        if (cblock != null && cblock.name.Length > 0)
+                            slotname += ": " + cblock.name;
 
                         // for arrays, add a parent element that we add the real cbuffers below
-                        if (bindMap.arraySize > 1)
+                        if (slotBinds.Length > 1)
                         {
-                            var node = parentNodes.Add(new object[] { "", setname, slotname, String.Format("Array[{0}]", bindMap.arraySize), "", "" });
+                            var node = parentNodes.Add(new object[] { "", setname, slotname, String.Format("Array[{0}]", slotBinds.Length), "", "" });
 
                             node.TreeColumn = 0;
 
@@ -674,16 +718,21 @@ namespace renderdocui.Windows.PipelineState
                             parentNodes = node.Nodes;
                         }
 
-                        for (UInt32 idx = 0; idx < bindMap.arraySize; idx++)
+                        for (int idx = 0; idx < slotBinds.Length; idx++)
                         {
                             var descriptorBind = slotBinds[idx];
 
-                            if (bindMap.arraySize > 1)
-                                slotname = String.Format("{0}: {1}[{2}]", bindMap.bind, b.name, idx);
+                            if (slotBinds.Length > 1)
+                            {
+                                slotname = String.Format("{0}[{1}]", bind, idx);
+
+                                if (cblock != null && cblock.name.Length > 0)
+                                    slotname += ": " + cblock.name;
+                            }
 
                             string name = "UBO " + descriptorBind.res.ToString();
                             UInt64 length = descriptorBind.size;
-                            int numvars = b.variables.Length;
+                            int numvars = cblock != null ? cblock.variables.Length : 0;
 
                             if (!filledSlot)
                             {
@@ -702,10 +751,10 @@ namespace renderdocui.Windows.PipelineState
                             string vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
 
                             // push constants
-                            if (!b.bufferBacked)
+                            if (cblock != null && !cblock.bufferBacked)
                             {
                                 setname = "";
-                                slotname = b.name;
+                                slotname = cblock.name;
                                 name = "Push constants";
                                 vecrange = "";
                                 sizestr = String.Format("{0} Variables", numvars);
@@ -718,7 +767,7 @@ namespace renderdocui.Windows.PipelineState
 
                             node.Image = global::renderdocui.Properties.Resources.action;
                             node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                            node.Tag = new CBufferTag(slot, idx);
+                            node.Tag = new CBufferTag(slot, (uint)idx);
 
                             if (!filledSlot)
                                 EmptyRow(node);
