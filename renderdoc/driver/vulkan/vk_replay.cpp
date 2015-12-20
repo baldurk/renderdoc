@@ -530,9 +530,9 @@ void VulkanReplay::ReadLogInitialisation()
 	m_pDriver->ReadLogInitialisation();
 }
 
-void VulkanReplay::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
+void VulkanReplay::ReplayLog(uint32_t frameID, uint32_t endEventID, ReplayLogType replayType)
 {
-	m_pDriver->ReplayLog(frameID, startEventID, endEventID, replayType);
+	m_pDriver->ReplayLog(frameID, 0, endEventID, replayType);
 }
 
 vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)

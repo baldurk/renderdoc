@@ -197,14 +197,14 @@ bool ReplayRenderer::SetFrameEvent(uint32_t frameID, uint32_t eventID, bool forc
 		m_FrameID = frameID;
 		m_EventID = eventID;
 
-		m_pDevice->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+		m_pDevice->ReplayLog(frameID, eventID, eReplay_WithoutDraw);
 
 		FetchPipelineState();
 
 		for(size_t i=0; i < m_Outputs.size(); i++)
 			m_Outputs[i]->SetFrameEvent(frameID, eventID);
 		
-		m_pDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		m_pDevice->ReplayLog(frameID, eventID, eReplay_OnlyDraw);
 	}
 
 	return true;
@@ -1312,11 +1312,11 @@ ReplayOutput *ReplayRenderer::CreateOutput(void *wndhandle, OutputType type)
 
 	m_Outputs.push_back(out);
 
-	m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_WithoutDraw);
+	m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_WithoutDraw);
 	
 	out->SetFrameEvent(m_FrameID, m_EventID);
 
-	m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_OnlyDraw);
+	m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_OnlyDraw);
 
 	return out;
 }

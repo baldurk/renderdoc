@@ -1855,7 +1855,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		float colVal[] = { 0.8f, 0.1f, 0.8f, 1.0f };
 		gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, colVal);
 
-		ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		ReplayLog(frameID,  eventID, eReplay_OnlyDraw);
 	}
 	else if(overlay == eTexOverlay_Wireframe)
 	{
@@ -1868,7 +1868,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
-		ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		ReplayLog(frameID, eventID, eReplay_OnlyDraw);
 	}
 	else if(overlay == eTexOverlay_ViewportScissor)
 	{
@@ -1922,7 +1922,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		float red[] = { 1.0f, 0.0f, 0.0f, 1.0f };
 		gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, red);
 
-		ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		ReplayLog(frameID, eventID, eReplay_OnlyDraw);
 
 		GLuint curDepth = 0, curStencil = 0;
 
@@ -2018,7 +2018,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		                     0, 0, DebugData.overlayTexWidth, DebugData.overlayTexHeight,
 												 GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 
-		ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		ReplayLog(frameID, eventID, eReplay_OnlyDraw);
 
 		// unset depth/stencil textures from overlay FBO and delete temp depth/stencil
 		if(curDepth != 0 && curDepth == curStencil)
@@ -2041,7 +2041,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		GLint colLoc = gl.glGetUniformLocation(DebugData.genericFSProg, "RENDERDOC_GenericFS_Color");
 		gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, col);
 		
-		ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		ReplayLog(frameID, eventID, eReplay_OnlyDraw);
 		
 		// only enable cull face if it was enabled originally (otherwise
 		// we just render green over the exact same area, so it shows up "passing")
@@ -2053,7 +2053,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 		gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, col);
 
-		ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		ReplayLog(frameID, eventID, eReplay_OnlyDraw);
 	}
 	else if(overlay == eTexOverlay_ClearBeforeDraw || overlay == eTexOverlay_ClearBeforePass)
 	{
@@ -2067,7 +2067,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		if(!events.empty())
 		{
 			if(overlay == eTexOverlay_ClearBeforePass)
-				ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+				ReplayLog(frameID, events[0], eReplay_WithoutDraw);
 			else
 				gl.glBindFramebuffer(eGL_FRAMEBUFFER, rs.DrawFBO); // if we don't replay the real state, restore drawFBO to clear it
 			
@@ -2077,14 +2077,14 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 			for(size_t i=0; i < events.size(); i++)
 			{
-				ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+				ReplayLog(frameID, events[i], eReplay_OnlyDraw);
 
 				if(overlay == eTexOverlay_ClearBeforePass)
 				{
-					ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+					ReplayLog(frameID, events[i], eReplay_OnlyDraw);
 
 					if(i+1 < events.size())
-						ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+						ReplayLog(frameID, events[i+1], eReplay_WithoutDraw);
 				}
 			}
 		}
@@ -2152,7 +2152,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 				gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, quadtexs[1], 0);
 
 				if(overlay == eTexOverlay_QuadOverdrawPass)
-					ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+					ReplayLog(frameID, events[0], eReplay_WithoutDraw);
 				else
 					rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
 				
@@ -2218,7 +2218,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 															 0, 0, texDetails.width, texDetails.height,
 															 GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 					
-					ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+					m_pDriver->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
 
 					// pop the state that we messed with
 					{
@@ -2240,10 +2240,10 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 					if(overlay == eTexOverlay_QuadOverdrawPass)
 					{
-						ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+						m_pDriver->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
 
 						if(i+1 < events.size())
-							ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+							m_pDriver->ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
 					}
 				}
 
@@ -2287,7 +2287,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 				gl.glDeleteTextures(3, quadtexs);
 
 				if(overlay == eTexOverlay_QuadOverdrawPass)
-					ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+					ReplayLog(frameID, eventID, eReplay_WithoutDraw);
 			}
 		}
 	}

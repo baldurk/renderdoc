@@ -1288,7 +1288,7 @@ bool ProxySerialiser::Tick()
 			SetContextFilter(ResourceId(), 0, 0);
 			break;
 		case eCommand_ReplayLog:
-			ReplayLog(0, 0, 0, (ReplayLogType)0);
+			ReplayLog(0, 0, (ReplayLogType)0);
 			break;
 		case eCommand_GetPassEvents:
 			GetPassEvents(0, 0);
@@ -1612,16 +1612,15 @@ void ProxySerialiser::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint3
 	}
 }
 
-void ProxySerialiser::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
+void ProxySerialiser::ReplayLog(uint32_t frameID, uint32_t endEventID, ReplayLogType replayType)
 {
 	m_ToReplaySerialiser->Serialise("", frameID);
-	m_ToReplaySerialiser->Serialise("", startEventID);
 	m_ToReplaySerialiser->Serialise("", endEventID);
 	m_ToReplaySerialiser->Serialise("", replayType);
 	
 	if(m_ReplayHost)
 	{
-		m_Remote->ReplayLog(frameID, startEventID, endEventID, replayType);
+		m_Remote->ReplayLog(frameID, endEventID, replayType);
 	}
 	else
 	{

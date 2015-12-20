@@ -163,7 +163,7 @@ void ReplayOutput::RefreshOverlay()
 		{
 			m_pDevice->InitPostVSBuffers(m_FrameID, passEvents);
 
-			m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_WithoutDraw);
+			m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_WithoutDraw);
 		}
 	}
 }
@@ -488,15 +488,15 @@ void ReplayOutput::DisplayTex()
 	{
 		if(m_OverlayDirty)
 		{
-			m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_WithoutDraw);
+			m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_WithoutDraw);
 			RefreshOverlay();
-			m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_OnlyDraw);
+			m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_OnlyDraw);
 		}
 	}
 	else if(m_ForceOverlayRefresh)
 	{
 		m_ForceOverlayRefresh = false;
-		m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_Full);
+		m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_Full);
 	}
 		
 	if(m_RenderData.texDisplay.CustomShader != ResourceId())
@@ -562,9 +562,9 @@ void ReplayOutput::DisplayMesh()
 
 	if(draw && m_OverlayDirty)
 	{
-		m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_WithoutDraw);
+		m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_WithoutDraw);
 		RefreshOverlay();
-		m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_OnlyDraw);
+		m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_OnlyDraw);
 	}
 	
 	m_pDevice->BindOutputWindow(m_MainOutput.outputID, true);

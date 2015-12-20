@@ -65,10 +65,10 @@ void GLReplay::ReadLogInitialisation()
 	m_pDriver->ReadLogInitialisation();
 }
 
-void GLReplay::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
+void GLReplay::ReplayLog(uint32_t frameID, uint32_t endEventID, ReplayLogType replayType)
 {
 	MakeCurrentReplayContext(&m_ReplayCtx);
-	m_pDriver->ReplayLog(frameID, startEventID, endEventID, replayType);
+	m_pDriver->ReplayLog(frameID, 0, endEventID, replayType);
 }
 
 vector<uint32_t> GLReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)
