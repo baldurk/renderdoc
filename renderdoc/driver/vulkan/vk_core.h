@@ -96,6 +96,12 @@ struct DrawcallTreeNode
 #undef SERIALISED_PARAMETER
 #define SERIALISED_PARAMETER Serialiser *localSerialiser,
 
+struct DrawcallCallback
+{
+	virtual void PreDraw(uint32_t eid) = 0;
+	virtual void PostDraw(uint32_t eid) = 0;
+};
+
 class WrappedVulkan : public IFrameCapturer
 {
 private:
@@ -147,6 +153,8 @@ private:
 	VulkanDebugManager *m_DebugManager;
 
 	Threading::CriticalSection m_CapTransitionLock;
+
+	DrawcallCallback *m_DrawcallCallback;
 	
 	uint32_t m_FrameCounter;
 
@@ -284,10 +292,11 @@ private:
 		VkCommandBuffer resultPartialCmdBuffer;
 		VkDevice partialDevice; // device for above cmd buffer
 
-		// if we're replaying just a single draw we don't go through the
+		// if we're replaying just a single draw or a particular command
+		// buffer subsection of command events, we don't go through the
 		// whole original command buffers to set up the partial replay,
 		// so we just set this command buffer
-		VkCommandBuffer singleDrawCmdBuffer;
+		VkCommandBuffer outsideCmdBuffer;
 
 		// this records where in the frame a command buffer was submitted,
 		// so that we know if our replay range ends in one of these ranges
@@ -332,18 +341,18 @@ private:
 
 	bool IsPartialCmd(ResourceId cmdid)
 	{
-		return m_PartialReplayData.singleDrawCmdBuffer != VK_NULL_HANDLE ||
+		return m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE ||
 			cmdid == m_PartialReplayData.partialParent;
 	}
 	bool InPartialRange()
 	{
-		return m_PartialReplayData.singleDrawCmdBuffer != VK_NULL_HANDLE ||
+		return m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE ||
 			m_BakedCmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent;
 	}
 	VkCommandBuffer PartialCmdBuf()
 	{
-		if(m_PartialReplayData.singleDrawCmdBuffer != VK_NULL_HANDLE)
-			return m_PartialReplayData.singleDrawCmdBuffer;
+		if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
+			return m_PartialReplayData.outsideCmdBuffer;
 		return m_PartialReplayData.resultPartialCmdBuffer;
 	}
 
@@ -493,6 +502,8 @@ public:
 	vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 	FetchAPIEvent GetEvent(uint32_t eventID);
 	const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
+
+	void SetDrawcallCB(DrawcallCallback *cb) { m_DrawcallCallback = cb; }
 
 	// Device initialization
 

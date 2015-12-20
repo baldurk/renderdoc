@@ -583,7 +583,11 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)
 		if(start == draw)
 			break;
 
-		if(start->flags & eDraw_Drawcall)
+		// include pass boundaries, these will be filtered out later
+		// so we don't actually do anything (init postvs/draw overlay)
+		// but it's useful to have the first part of the pass as part
+		// of the list
+		if(start->flags & (eDraw_Drawcall|eDraw_PassBoundary))
 			passEvents.push_back(start->eventID);
 
 		start = m_pDriver->GetDrawcall(frameID, (uint32_t)start->next);
@@ -3772,9 +3776,46 @@ void VulkanReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	GetDebugManager()->InitPostVSBuffers(frameID, eventID);
 }
 
+struct InitPostVSCallback : public DrawcallCallback
+{
+	InitPostVSCallback(WrappedVulkan *vk, VulkanReplay *rp, uint32_t frameID, const vector<uint32_t> &events)
+		: m_pDriver(vk)
+		, m_pReplay(rp)
+		, m_FrameID(frameID)
+	  , m_Events(events)
+	{ m_pDriver->SetDrawcallCB(this); }
+	~InitPostVSCallback()
+	{ m_pDriver->SetDrawcallCB(NULL); }
+
+	void PreDraw(uint32_t eid)
+	{
+		if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
+			m_pReplay->InitPostVSBuffers(m_FrameID, eid);
+	}
+
+	void PostDraw(uint32_t eid)
+	{
+	}
+
+	uint32_t m_FrameID;
+	WrappedVulkan *m_pDriver;
+	VulkanReplay *m_pReplay;
+	const vector<uint32_t> &m_Events;
+};
+
 void VulkanReplay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &events)
 {
-	// Stub, will implement this in a minute
+	// first we must replay up to the first event without replaying it. This ensures any
+	// non-command buffer calls like memory unmaps etc all happen correctly before this
+	// command buffer
+	m_pDriver->ReplayLog(frameID, 0, events.front(), eReplay_WithoutDraw);
+
+	InitPostVSCallback cb(m_pDriver, this, frameID, events);
+
+	// now we replay the events, which are guaranteed (because we generated them in
+	// GetPassEvents above) to come from the same command buffer, so the event IDs are
+	// still locally continuous, even if we jump into replaying.
+	m_pDriver->ReplayLog(frameID, events.front(), events.back(), eReplay_Full);
 }
 
 vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)

@@ -45,8 +45,12 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
+			if(m_DrawcallCallback) m_DrawcallCallback->PreDraw(m_RootEventID);
+
 			commandBuffer = PartialCmdBuf();
 			ObjDisp(commandBuffer)->CmdDraw(Unwrap(commandBuffer), vtxCount, instCount, firstVtx, firstInst);
+
+			if(m_DrawcallCallback) m_DrawcallCallback->PostDraw(m_RootEventID);
 		}
 	}
 	else if(m_State == READING)
@@ -975,8 +979,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
+			if(m_DrawcallCallback) m_DrawcallCallback->PreDraw(m_RootEventID);
+
 			commandBuffer = PartialCmdBuf();
 			ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
+
+			if(m_DrawcallCallback) m_DrawcallCallback->PostDraw(m_RootEventID);
 		}
 	}
 	else if(m_State == READING)

@@ -283,11 +283,13 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 	m_FirstEventID = 0;
 	m_LastEventID = ~0U;
 
+	m_DrawcallCallback = NULL;
+
 	m_LastCmdBufferID = ResourceId();
 
 	m_PartialReplayData.renderPassActive = false;
 	m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;
-	m_PartialReplayData.singleDrawCmdBuffer = VK_NULL_HANDLE;
+	m_PartialReplayData.outsideCmdBuffer = VK_NULL_HANDLE;
 	m_PartialReplayData.partialParent = ResourceId();
 	m_PartialReplayData.baseEvent = 0;
 
@@ -1277,15 +1279,20 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		if(m_State == EXECUTING && startEventID == endEventID)
 			break;
 
-		if(m_LastCmdBufferID != ResourceId())
+		// increment root event ID either if we didn't just replay a cmd
+		// buffer event, OR if we are doing a frame sub-section replay,
+		// in which case it's up to the calling code to make sure we only
+		// replay inside a command buffer (if we crossed command buffer
+		// boundaries, the event IDs would no longer match up).
+		if(m_LastCmdBufferID == ResourceId() || startEventID > 1)
+		{
+			m_RootEventID++;
+		}
+		else
 		{
 			// these events are completely omitted, so don't increment the curEventID
 			if(context != BEGIN_CMD_BUFFER && context != END_CMD_BUFFER)
 				m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
-		}
-		else
-		{
-			m_RootEventID++;
 		}
 	}
 
@@ -1766,6 +1773,22 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			m_RenderState.m_ResourceManager = GetResourceManager();
 		}
 
+		VkResult vkr = VK_SUCCESS;
+		
+		// we'll need our own command buffer if we're replaying just a subsection
+		// of events within a single command buffer record - always if it's only
+		// one drawcall, or if start event ID is > 0 we assume the outside code
+		// has chosen a subsection that lies within a command buffer
+		if(partial)
+		{
+			VkCommandBuffer cmd = m_PartialReplayData.outsideCmdBuffer = GetNextCmd();
+			
+			VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
+
+			vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+			RDCASSERT(vkr == VK_SUCCESS);
+		}
+
 		if(replayType == eReplay_Full)
 		{
 			ContextReplayLog(EXECUTING, startEventID, endEventID, partial);
@@ -1776,13 +1799,8 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 		}
 		else if(replayType == eReplay_OnlyDraw)
 		{
-			VkCommandBuffer cmd = m_PartialReplayData.singleDrawCmdBuffer = GetNextCmd();
-			
-			VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
+			VkCommandBuffer cmd = m_PartialReplayData.outsideCmdBuffer;
 
-			VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-			RDCASSERT(vkr == VK_SUCCESS);
-			
 			bool rpWasActive = m_PartialReplayData.renderPassActive;
 
 			// if a render pass was active, begin it and set up the partial replay state
@@ -1800,15 +1818,20 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			// but we want to keep the partial replay data state intact, so restore
 			// whether or not a render pass was active.
 			m_PartialReplayData.renderPassActive = rpWasActive;
-			
+		}
+		else
+			RDCFATAL("Unexpected replay type");
+
+		if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
+		{
+			VkCommandBuffer cmd = m_PartialReplayData.outsideCmdBuffer;
+
 			ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 
 			SubmitCmds();
 
-			m_PartialReplayData.singleDrawCmdBuffer = VK_NULL_HANDLE;
+			m_PartialReplayData.outsideCmdBuffer = VK_NULL_HANDLE;
 		}
-		else
-			RDCFATAL("Unexpected replay type");
 	}
 }
 
