@@ -96,7 +96,7 @@ vector<uint32_t> GLReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)
 		if(start->flags & eDraw_Drawcall)
 			passEvents.push_back(start->eventID);
 
-		start = m_pDriver->GetDrawcall((uint32_t)start->next, 0);
+		start = m_pDriver->GetDrawcall(frameID, (uint32_t)start->next);
 	}
 
 	return passEvents;

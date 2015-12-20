@@ -197,7 +197,6 @@ struct ReplayRenderer : public IReplayRenderer
 		ReplayCreateStatus PostCreateInit(IReplayDriver *device);
 		
 		FetchDrawcall *GetDrawcallByEID(uint32_t eventID, uint32_t defEventID);
-		FetchDrawcall *SetupDrawcallPointers(FetchFrameInfo frame, rdctype::array<FetchDrawcall> &draws, FetchDrawcall *parent, FetchDrawcall *previous);
 	
 		IReplayDriver *GetDevice() { return m_pDevice; }
 		

@@ -155,3 +155,44 @@ class IReplayDriver : public IRemoteDriver
 		virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4]) = 0;
 		virtual uint32_t PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y) = 0;
 };
+
+// utility function useful in any driver implementation
+template<typename FetchDrawcallContainer>
+FetchDrawcall *SetupDrawcallPointers(vector<FetchDrawcall*> *drawcallTable, ResourceId contextID, FetchDrawcallContainer &draws,
+                                     FetchDrawcall *parent, FetchDrawcall *previous)
+{
+	FetchDrawcall *ret = NULL;
+
+	for(size_t i=0; i < draws.size(); i++)
+	{
+		FetchDrawcall *draw = &draws[i];
+
+		draw->parent = parent ? parent->eventID : 0;
+
+		if(draw->children.count > 0)
+		{
+			ret = previous = SetupDrawcallPointers(drawcallTable, contextID, draw->children, draw, previous);
+		}
+		else if(draw->flags & (eDraw_PushMarker|eDraw_SetMarker|eDraw_Present|eDraw_MultiDraw))
+		{
+			// don't want to set up previous/next links for markers
+		}
+		else
+		{
+			if(previous != NULL)
+				previous->next = draw->eventID;
+			draw->previous = previous ? previous->eventID : 0;
+
+			if(drawcallTable)
+			{
+				RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID || draw->context != contextID);
+				drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID+1)));
+				(*drawcallTable)[draw->eventID] = draw;
+			}
+
+			ret = previous = draw;
+		}
+	}
+
+	return ret;
+}

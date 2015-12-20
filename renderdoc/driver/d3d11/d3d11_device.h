@@ -267,7 +267,7 @@ private:
 	vector<DebugMessage> m_DebugMessages;
 
 	vector<FetchFrameRecord> m_FrameRecord;
-	const FetchDrawcall *GetDrawcall(const FetchDrawcall *draw, uint32_t eventID);
+	vector<FetchDrawcall*> m_Drawcalls;
 public:
 	static const int AllocPoolCount = 4;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Device, AllocPoolCount);

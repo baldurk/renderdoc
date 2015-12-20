@@ -155,7 +155,7 @@ private:
 	double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
 
 	vector<FetchFrameRecord> m_FrameRecord;
-	const FetchDrawcall *GetDrawcall(const FetchDrawcall *draw, uint32_t eventID);
+	vector<FetchDrawcall *> m_Drawcalls;
 
 	struct PhysicalDeviceData
 	{

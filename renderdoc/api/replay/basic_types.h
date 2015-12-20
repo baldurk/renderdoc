@@ -72,6 +72,9 @@ struct array
 
 	T &operator [](size_t i) { return elems[i]; }
 	const T &operator [](size_t i) const { return elems[i]; }
+
+	// to help simple template specializations for vector/rdctype::array
+	size_t size() { return (size_t)count; }
 	
 	array(const T *const in) { elems = 0; count = 0; *this = in; }
 	array &operator =(const T *const in);

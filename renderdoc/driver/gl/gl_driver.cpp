@@ -3978,6 +3978,8 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	{
 		GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
 		GetFrameRecord().back().frameInfo.debugMessages = GetDebugMessages();
+
+		SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().back().frameInfo.immContextId, GetFrameRecord().back().drawcallList, NULL, NULL);
 		
 		// it's easier to remove duplicate usages here than check it as we go.
 		// this means if textures are bound in multiple places in the same draw
@@ -4431,50 +4433,12 @@ FetchAPIEvent WrappedOpenGL::GetEvent(uint32_t eventID)
 	return m_Events[0];
 }
 
-const FetchDrawcall *WrappedOpenGL::GetDrawcall(const FetchDrawcall *draw, uint32_t eventID)
-{
-	if(draw == NULL) return NULL;
-	if(draw->eventID == eventID) return draw;
-
-	int32_t count = draw->children.count;
-	for(int32_t i=0; i < count; i++)
-	{
-		const FetchDrawcall *cur = &draw->children.elems[i];
-		const FetchDrawcall *next = i+1 < count ? &draw->children.elems[i+1] : NULL;
-
-		if(next && next->eventID <= eventID)
-			continue;
-
-		cur = GetDrawcall(cur, eventID);
-
-		if(cur)
-			return cur;
-	}
-
-	return NULL;
-}
-
 const FetchDrawcall *WrappedOpenGL::GetDrawcall(uint32_t frameID, uint32_t eventID)
 {
-	if(frameID >= m_FrameRecord.size())
+	if(eventID >= m_Drawcalls.size())
 		return NULL;
 
-	size_t count = m_FrameRecord[frameID].drawcallList.size();
-	for(size_t i=0; i < count; i++)
-	{
-		const FetchDrawcall *cur = &m_FrameRecord[frameID].drawcallList[i];
-		const FetchDrawcall *next = i+1 < count ? &m_FrameRecord[frameID].drawcallList[i+1] : NULL;
-
-		if(next && next->eventID <= eventID)
-			continue;
-
-		cur = GetDrawcall(cur, eventID);
-
-		if(cur)
-			return cur;
-	}
-	
-	return NULL;
+	return m_Drawcalls[eventID];
 }
 
 void WrappedOpenGL::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)

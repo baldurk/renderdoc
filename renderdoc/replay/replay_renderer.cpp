@@ -1487,45 +1487,10 @@ ReplayCreateStatus ReplayRenderer::PostCreateInit(IReplayDriver *device)
 		m_FrameRecord.back().frameInfo = fr[i].frameInfo;
 		m_FrameRecord.back().m_DrawCallList = fr[i].drawcallList;
 		
-		SetupDrawcallPointers(fr[i].frameInfo, m_FrameRecord.back().m_DrawCallList, NULL, NULL);
+		SetupDrawcallPointers(&m_Drawcalls, fr[i].frameInfo.immContextId, m_FrameRecord.back().m_DrawCallList, NULL, NULL);
 	}
 
 	return eReplayCreate_Success;
-}
-
-FetchDrawcall *ReplayRenderer::SetupDrawcallPointers(FetchFrameInfo frame, rdctype::array<FetchDrawcall> &draws, FetchDrawcall *parent, FetchDrawcall *previous)
-{
-	FetchDrawcall *ret = NULL;
-
-	for(int32_t i=0; i < draws.count; i++)
-	{
-		FetchDrawcall *draw = &draws[i];
-
-		draw->parent = parent ? parent->eventID : 0;
-
-		if(draw->children.count > 0)
-		{
-			ret = previous = SetupDrawcallPointers(frame, draw->children, draw, previous);
-		}
-		else if(draw->flags & (eDraw_PushMarker|eDraw_SetMarker|eDraw_Present|eDraw_MultiDraw))
-		{
-			// don't want to set up previous/next links for markers
-		}
-		else
-		{
-			if(previous != NULL)
-				previous->next = draw->eventID;
-			draw->previous = previous ? previous->eventID : 0;
-
-			RDCASSERT(m_Drawcalls.empty() || draw->eventID > m_Drawcalls.back()->eventID || draw->context != frame.immContextId);
-			m_Drawcalls.resize(RDCMAX(m_Drawcalls.size(), size_t(draw->eventID+1)));
-			m_Drawcalls[draw->eventID] = draw;
-
-			ret = previous = draw;
-		}
-	}
-
-	return ret;
 }
 
 void ReplayRenderer::FileChanged()

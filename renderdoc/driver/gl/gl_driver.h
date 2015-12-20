@@ -189,8 +189,7 @@ class WrappedOpenGL : public IFrameCapturer
 		{ if(!m_CoherentMaps.empty()) PersistentMapMemoryBarrier(m_CoherentMaps); }
 
 		vector<FetchFrameRecord> m_FrameRecord;
-		
-		const FetchDrawcall *GetDrawcall(const FetchDrawcall *draw, uint32_t eventID);
+		vector<FetchDrawcall*> m_Drawcalls;
 		
 		static const char *GetChunkName(uint32_t idx);
 		
