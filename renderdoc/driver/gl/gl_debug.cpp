@@ -3291,6 +3291,28 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		gl.glEnable(eGL_RASTERIZER_DISCARD);
 }
 
+void GLReplay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &passEvents)
+{
+	uint32_t prev = 0;
+	
+	// since we can always replay between drawcalls, just loop through all the events
+	// doing partial replays and calling InitPostVSBuffers for each
+	for(size_t i=0; i < passEvents.size(); i++)
+	{
+		if(prev != passEvents[i])
+		{
+			m_pDriver->ReplayLog(frameID, prev, passEvents[i], eReplay_WithoutDraw);
+
+			prev = passEvents[i];
+		}
+
+		const FetchDrawcall *d = m_pDriver->GetDrawcall(frameID, passEvents[i]);
+
+		if(d)
+			InitPostVSBuffers(frameID, passEvents[i]);
+	}
+}
+
 MeshFormat GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
 	GLPostVSData postvs;

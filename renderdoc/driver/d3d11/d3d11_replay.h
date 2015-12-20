@@ -71,6 +71,8 @@ class D3D11Replay : public IReplayDriver
 		void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
 		void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 
+		vector<uint32_t> GetPassEvents(uint32_t frameID, uint32_t eventID);
+
 		uint64_t MakeOutputWindow(void *w, bool depth);
 		void DestroyOutputWindow(uint64_t id);
 		bool CheckResizeOutputWindow(uint64_t id);
@@ -82,6 +84,7 @@ class D3D11Replay : public IReplayDriver
 		void FlipOutputWindow(uint64_t id);
 
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
+		void InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &passEvents);
 
 		ResourceId GetLiveID(ResourceId id);
 		

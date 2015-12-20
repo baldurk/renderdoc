@@ -35,6 +35,8 @@ enum CommandPacketType
 	eCommand_SetCtxFilter,
 	eCommand_ReplayLog,
 
+	eCommand_GetPassEvents,
+
 	eCommand_GetTextures,
 	eCommand_GetTexture,
 	eCommand_GetBuffers,
@@ -59,6 +61,7 @@ enum CommandPacketType
 	eCommand_FillCBufferVariables,
 
 	eCommand_InitPostVS,
+	eCommand_InitPostVSVec,
 	eCommand_GetPostVS,
 
 	eCommand_InitStackResolver,
@@ -334,6 +337,8 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
 		void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 		
+		vector<uint32_t> GetPassEvents(uint32_t frameID, uint32_t eventID);
+
 		vector<EventUsage> GetUsage(ResourceId id);
 		vector<FetchFrameRecord> GetFrameRecord();
 		
@@ -351,6 +356,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
 		
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
+		void InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &passEvents);
 		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
 		
 		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);

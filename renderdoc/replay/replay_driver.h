@@ -78,7 +78,10 @@ class IRemoteDriver
 		virtual void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv) = 0;
 		virtual void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType) = 0;
 
+		virtual vector<uint32_t> GetPassEvents(uint32_t frameID, uint32_t eventID) = 0;
+
 		virtual void InitPostVSBuffers(uint32_t frameID, uint32_t eventID) = 0;
+		virtual void InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &passEvents) = 0;
 
 		virtual ResourceId GetLiveID(ResourceId id) = 0;
 		

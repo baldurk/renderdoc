@@ -535,6 +535,63 @@ void VulkanReplay::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t e
 	m_pDriver->ReplayLog(frameID, startEventID, endEventID, replayType);
 }
 
+vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)
+{
+	vector<uint32_t> passEvents;
+	
+	const FetchDrawcall *draw = m_pDriver->GetDrawcall(frameID, eventID);
+
+	if(!draw)
+		return passEvents;
+
+	// for vulkan a pass == a renderpass, if we're not inside a
+	// renderpass then there are no pass events.
+	const FetchDrawcall *start = draw;
+	while(start)
+	{
+		// if we've come to the beginning of a pass, break out of the loop, we've
+		// found the start.
+		// Note that vkCmdNextSubPass has both Begin and End flags set, so it will
+		// break out here before we hit the terminating case looking for eDraw_EndPass
+		if(start->flags & eDraw_BeginPass)
+			break;
+
+		// if we come to the END of a pass, since we were iterating backwards that
+		// means we started outside of a pass, so return empty set.
+		// Note that vkCmdNextSubPass has both Begin and End flags set, so it will
+		// break out above before we hit this terminating case
+		if(start->flags & eDraw_EndPass)
+			return passEvents;
+
+		// if we've come to the start of the log we were outside of a render pass
+		// to start with
+		if(start->previous == 0)
+			return passEvents;
+
+		// step back
+		start = m_pDriver->GetDrawcall(frameID, (uint32_t)start->previous);
+
+		// something went wrong, start->previous was non-zero but we didn't
+		// get a draw. Abort
+		if(!start)
+			return passEvents;
+	}
+
+	// store all the draw eventIDs up to the one specified at the start
+	while(start)
+	{
+		if(start == draw)
+			break;
+
+		if(start->flags & eDraw_Drawcall)
+			passEvents.push_back(start->eventID);
+
+		start = m_pDriver->GetDrawcall((uint32_t)start->next, 0);
+	}
+
+	return passEvents;
+}
+
 ResourceId VulkanReplay::GetLiveID(ResourceId id)
 {
 	return m_pDriver->GetResourceManager()->GetLiveID(id);
@@ -3713,6 +3770,11 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 void VulkanReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 {
 	GetDebugManager()->InitPostVSBuffers(frameID, eventID);
+}
+
+void VulkanReplay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &events)
+{
+	// Stub, will implement this in a minute
 }
 
 vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)

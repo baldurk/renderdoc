@@ -137,33 +137,8 @@ void ReplayOutput::RefreshOverlay()
 {
 	FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
 	
-	{
-		passEvents.clear();
-
-		FetchDrawcall *start = draw;
-		while(start && start->previous != 0 && (m_pRenderer->GetDrawcallByEID((uint32_t)start->previous, 0)->flags & eDraw_Clear) == 0)
-		{
-			FetchDrawcall *prev = m_pRenderer->GetDrawcallByEID((uint32_t)start->previous, 0);
-
-			if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) || start->depthOut != prev->depthOut)
-				break;
-
-			start = prev;
-		}
-
-		while(start)
-		{
-			if(start == draw)
-				break;
-
-			if(start->flags & eDraw_Drawcall)
-			{
-				passEvents.push_back(start->eventID);
-			}
-
-			start = m_pRenderer->GetDrawcallByEID((uint32_t)start->next, 0);
-		}
-	}
+	passEvents = m_pDevice->GetPassEvents(m_FrameID, m_LastDeferredEvent > 0 ? m_LastDeferredEvent : m_EventID);
+		
 
 	if(m_Config.m_Type == eOutputType_TexDisplay && m_RenderData.texDisplay.overlay != eTexOverlay_None)
 	{
@@ -186,24 +161,7 @@ void ReplayOutput::RefreshOverlay()
 
 		if(!m_RenderData.meshDisplay.thisDrawOnly && !passEvents.empty())
 		{
-			uint32_t prev = 0;
-
-			for(size_t i=0; i < passEvents.size(); i++)
-			{
-				if(prev != passEvents[i])
-				{
-					m_pDevice->ReplayLog(m_FrameID, prev, passEvents[i], eReplay_WithoutDraw);
-
-					prev = passEvents[i];
-				}
-
-				FetchDrawcall *d = m_pRenderer->GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
-
-				if(d)
-				{
-					m_pDevice->InitPostVSBuffers(m_FrameID, passEvents[i]);
-				}
-			}
+			m_pDevice->InitPostVSBuffers(m_FrameID, passEvents);
 
 			m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_WithoutDraw);
 		}

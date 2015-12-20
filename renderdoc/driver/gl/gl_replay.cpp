@@ -71,6 +71,37 @@ void GLReplay::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEv
 	m_pDriver->ReplayLog(frameID, startEventID, endEventID, replayType);
 }
 
+vector<uint32_t> GLReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)
+{
+	vector<uint32_t> passEvents;
+	
+	const FetchDrawcall *draw = m_pDriver->GetDrawcall(frameID, eventID);
+
+	const FetchDrawcall *start = draw;
+	while(start && start->previous != 0 && (m_pDriver->GetDrawcall(frameID, (uint32_t)start->previous)->flags & eDraw_Clear) == 0)
+	{
+		const FetchDrawcall *prev = m_pDriver->GetDrawcall(frameID, (uint32_t)start->previous);
+
+		if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) || start->depthOut != prev->depthOut)
+			break;
+
+		start = prev;
+	}
+
+	while(start)
+	{
+		if(start == draw)
+			break;
+
+		if(start->flags & eDraw_Drawcall)
+			passEvents.push_back(start->eventID);
+
+		start = m_pDriver->GetDrawcall((uint32_t)start->next, 0);
+	}
+
+	return passEvents;
+}
+
 vector<FetchFrameRecord> GLReplay::GetFrameRecord()
 {
 	return m_pDriver->GetFrameRecord();

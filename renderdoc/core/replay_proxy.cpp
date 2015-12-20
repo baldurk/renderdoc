@@ -1290,6 +1290,9 @@ bool ProxySerialiser::Tick()
 		case eCommand_ReplayLog:
 			ReplayLog(0, 0, 0, (ReplayLogType)0);
 			break;
+		case eCommand_GetPassEvents:
+			GetPassEvents(0, 0);
+			break;
 		case eCommand_GetAPIProperties:
 			GetAPIProperties();
 			break;
@@ -1375,6 +1378,12 @@ bool ProxySerialiser::Tick()
 		case eCommand_InitPostVS:
 			InitPostVSBuffers(0, 0);
 			break;
+		case eCommand_InitPostVSVec:
+		{
+			vector<uint32_t> dummy;
+			InitPostVSBuffers(0, dummy);
+			break;
+		}
 		case eCommand_GetPostVS:
 			GetPostVSBuffers(0, 0, 0, eMeshDataStage_Unknown);
 			break;
@@ -1622,6 +1631,28 @@ void ProxySerialiser::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_
 		m_TextureProxyCache.clear();
 		m_BufferProxyCache.clear();
 	}
+}
+
+vector<uint32_t> ProxySerialiser::GetPassEvents(uint32_t frameID, uint32_t eventID)
+{
+	vector<uint32_t> ret;
+	
+	m_ToReplaySerialiser->Serialise("", frameID);
+	m_ToReplaySerialiser->Serialise("", eventID);
+
+	if(m_ReplayHost)
+	{
+		ret = m_Remote->GetPassEvents(frameID, eventID);
+	}
+	else
+	{
+		if(!SendReplayCommand(eCommand_GetPassEvents))
+			return ret;
+	}
+
+	m_FromReplaySerialiser->Serialise("", ret);
+
+	return ret;
 }
 
 vector<EventUsage> ProxySerialiser::GetUsage(ResourceId id)
@@ -1892,6 +1923,22 @@ void ProxySerialiser::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	else
 	{
 		if(!SendReplayCommand(eCommand_InitPostVS))
+			return;
+	}
+}
+
+void ProxySerialiser::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &events)
+{
+	m_ToReplaySerialiser->Serialise("", frameID);
+	m_ToReplaySerialiser->Serialise("", (vector<uint32_t> &)events);
+	
+	if(m_ReplayHost)
+	{
+		m_Remote->InitPostVSBuffers(frameID, events);
+	}
+	else
+	{
+		if(!SendReplayCommand(eCommand_InitPostVSVec))
 			return;
 	}
 }

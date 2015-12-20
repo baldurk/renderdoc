@@ -1243,6 +1243,36 @@ void D3D11Replay::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t en
 	m_pDevice->ReplayLog(frameID, startEventID, endEventID, replayType);
 }
 
+vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t frameID, uint32_t eventID)
+{
+	vector<uint32_t> passEvents;
+	
+	const FetchDrawcall *draw = m_pDevice->GetDrawcall(frameID, eventID);
+
+	const FetchDrawcall *start = draw;
+	while(start && start->previous != 0 && (m_pDevice->GetDrawcall(frameID, (uint32_t)start->previous)->flags & eDraw_Clear) == 0)
+	{
+		const FetchDrawcall *prev = m_pDevice->GetDrawcall(frameID, (uint32_t)start->previous);
+
+		if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) || start->depthOut != prev->depthOut)
+			break;
+
+		start = prev;
+	}
+
+	while(start)
+	{
+		if(start == draw)
+			break;
+
+		if(start->flags & eDraw_Drawcall)
+			passEvents.push_back(start->eventID);
+
+		start = m_pDevice->GetDrawcall((uint32_t)start->next, 0);
+	}
+
+	return passEvents;
+}
 
 uint64_t D3D11Replay::MakeOutputWindow(void *w, bool depth)
 {
@@ -1292,6 +1322,28 @@ void D3D11Replay::FlipOutputWindow(uint64_t id)
 void D3D11Replay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 {
 	m_pDevice->GetDebugManager()->InitPostVSBuffers(frameID, eventID);
+}
+
+void D3D11Replay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &passEvents)
+{
+	uint32_t prev = 0;
+	
+	// since we can always replay between drawcalls, just loop through all the events
+	// doing partial replays and calling InitPostVSBuffers for each
+	for(size_t i=0; i < passEvents.size(); i++)
+	{
+		if(prev != passEvents[i])
+		{
+			m_pDevice->ReplayLog(frameID, prev, passEvents[i], eReplay_WithoutDraw);
+
+			prev = passEvents[i];
+		}
+
+		const FetchDrawcall *d = m_pDevice->GetDrawcall(frameID, passEvents[i]);
+
+		if(d)
+			m_pDevice->GetDebugManager()->InitPostVSBuffers(frameID, passEvents[i]);
+	}
 }
 
 ResourceId D3D11Replay::GetLiveID(ResourceId id)

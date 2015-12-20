@@ -120,6 +120,7 @@ class ImageViewer : public IReplayDriver
 		VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
 		void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv) {}
 		void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType) {}
+		vector<uint32_t> GetPassEvents(uint32_t frameID, uint32_t eventID) { return vector<uint32_t>(); }
 		vector<EventUsage> GetUsage(ResourceId id) { return vector<EventUsage>(); }
 		bool IsRenderOutput(ResourceId id) { return false; }
 		ResourceId GetLiveID(ResourceId id) { return id; }
@@ -129,6 +130,7 @@ class ImageViewer : public IReplayDriver
 		void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data) {}
 		void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData) {}
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID) {}
+		void InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &eventID) {}
 		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage) { MeshFormat ret; RDCEraseEl(ret); return ret; }
 		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents) { return ResourceId(); }
 		ShaderReflection *GetShader(ResourceId shader, string entryPoint) { return NULL; }

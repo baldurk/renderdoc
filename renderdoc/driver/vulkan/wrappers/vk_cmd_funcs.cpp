@@ -624,7 +624,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 		AddEvent(BEGIN_RENDERPASS, desc);
 		FetchDrawcall draw;
 		draw.name = StringFormat::Fmt("vkCmdBeginRenderPass(%s)", opDesc.c_str());
-		draw.flags |= eDraw_Clear;
+		draw.flags |= eDraw_PassBoundary|eDraw_BeginPass;
 
 		AddDrawcall(draw, true);
 	}
@@ -707,7 +707,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(
 		AddEvent(NEXT_SUBPASS, desc);
 		FetchDrawcall draw;
 		draw.name = StringFormat::Fmt("vkCmdNextSubpass() => %u", m_RenderState.subpass);
-		draw.flags |= eDraw_Clear;
+		draw.flags |= eDraw_PassBoundary|eDraw_BeginPass|eDraw_EndPass;
 
 		AddDrawcall(draw, true);
 	}
@@ -856,7 +856,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 		AddEvent(END_RENDERPASS, desc);
 		FetchDrawcall draw;
 		draw.name = StringFormat::Fmt("vkCmdEndRenderPass(%s)", opDesc.c_str());
-		draw.flags |= eDraw_Clear;
+		draw.flags |= eDraw_PassBoundary|eDraw_EndPass;
 
 		AddDrawcall(draw, true);
 	}
