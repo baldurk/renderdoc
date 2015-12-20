@@ -578,8 +578,8 @@ namespace renderdocui.Windows
                     {
                         FormatElement curPos = GetPosHighlightFormatElement(stages[i]);
                         FormatElement curSecond = GetSecondHighlightFormatElement(stages[i]);
-                        if (prevPos[i] != curPos) UI_AutoFetchRenderComponents(stages[i], true);
-                        if (prevSecond[i] != curSecond) UI_AutoFetchRenderComponents(stages[i], false);
+                        if (prevPos[i] == null || prevPos[i] != curPos) UI_AutoFetchRenderComponents(stages[i], true);
+                        if (prevSecond[i] == null || prevSecond[i] != curSecond) UI_AutoFetchRenderComponents(stages[i], false);
                     }
                 }
 
