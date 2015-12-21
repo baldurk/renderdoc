@@ -2218,6 +2218,9 @@ namespace renderdocui.Windows
 
                     i += (int)el.format.compCount;
 
+                    if(i > grid.ColumnCount)
+                        break;
+
                     Rectangle stringBounds = Rectangle.Empty;
                     for (int f = baseCol; f < i; f++)
                     {
