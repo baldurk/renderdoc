@@ -197,6 +197,13 @@ class VulkanDebugManager
 		VkRenderPass m_OverlayNoDepthRP;
 		VkExtent2D m_OverlayDim;
 		VkDeviceSize m_OverlayMemSize;
+
+		GPUBuffer m_OverdrawRampUBO;
+		VkDescriptorSetLayout m_QuadDescSetLayout;
+		VkDescriptorSet m_QuadDescSet;
+		VkPipelineLayout m_QuadResolvePipeLayout;
+		VkPipeline m_QuadResolvePipeline;
+		vector<uint32_t> *m_QuadSPIRV;
 		
 		VkDescriptorSetLayout m_MeshDescSetLayout;
 		VkPipelineLayout m_MeshPipeLayout;
@@ -227,7 +234,7 @@ class VulkanDebugManager
 		VkDescriptorSet m_MeshFetchDescSet;
 
 		MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary, const MeshFormat &secondary);
-
+		void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
 	private:
 		void InitDebugData();
 		void ShutdownDebugData();
@@ -245,9 +252,10 @@ class VulkanDebugManager
 		void PatchFixedColShader(VkShaderModule &mod, float col[4]);
 		
 		void RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text);
-		void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
 		static const int FONT_TEX_WIDTH = 256;
 		static const int FONT_TEX_HEIGHT = 128;
+
+		LogState m_State;
 
 		float m_FontCharAspect;
 		float m_FontCharSize;

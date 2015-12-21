@@ -370,6 +370,8 @@
     <None Include="data\spv\minmaxresult.comp" />
     <None Include="data\spv\minmaxtile.comp" />
     <None Include="data\spv\outline.frag" />
+    <None Include="data\spv\quadresolve.frag" />
+    <None Include="data\spv\quadwrite.frag" />
     <None Include="data\spv\texdisplay.frag" />
     <None Include="data\spv\text.frag" />
     <None Include="data\spv\text.vert" />

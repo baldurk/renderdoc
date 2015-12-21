@@ -109,6 +109,35 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
 	for(uint32_t i=0; i < subpass; i++)
 		ObjDisp(cmd)->CmdNextSubpass(Unwrap(cmd), VK_SUBPASS_CONTENTS_INLINE);
 
+	BindPipeline(cmd);
+
+	if(!views.empty())
+		ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), (uint32_t)views.size(), &views[0]);
+	if(!scissors.empty())
+		ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), (uint32_t)scissors.size(), &scissors[0]);
+
+	ObjDisp(cmd)->CmdSetBlendConstants(Unwrap(cmd), blendConst);
+	ObjDisp(cmd)->CmdSetDepthBounds(Unwrap(cmd), mindepth, maxdepth);
+	ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), lineWidth);
+	ObjDisp(cmd)->CmdSetDepthBias(Unwrap(cmd), bias.depth, bias.biasclamp, bias.slope);
+
+	ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.ref);
+	ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.compare);
+	ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.write);
+
+	ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.ref);
+	ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.compare);
+	ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.write);
+
+	if(ibuffer.buf != ResourceId())
+		ObjDisp(cmd)->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf)), ibuffer.offs, ibuffer.bytewidth == 4 ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16);
+
+	for(size_t i=0; i < vbuffers.size(); i++)
+		ObjDisp(cmd)->CmdBindVertexBuffers(Unwrap(cmd), (uint32_t)i, 1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)), &vbuffers[i].offs);
+}
+
+void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
+{
 	if(graphics.pipeline != ResourceId())
 	{
 		ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetResourceManager()->GetCurrentHandle<VkPipeline>(graphics.pipeline)));
@@ -150,6 +179,12 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
 		ResourceId pipeLayoutId = m_CreationInfo.m_Pipeline[compute.pipeline].layout;
 		VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
+		const vector<VkPushConstantRange> &pushRanges = m_CreationInfo.m_PipelineLayout[pipeLayoutId].pushRanges;
+
+		// only set push constant ranges that the layout uses
+		for(size_t i=0; i < pushRanges.size(); i++)
+			ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags, pushRanges[i].offset, pushRanges[i].size, pushconsts+pushRanges[i].offset);
+
 		const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[pipeLayoutId].descSetLayouts;
 
 		for(size_t i=0; i < descSetLayouts.size(); i++)
@@ -158,34 +193,10 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
 
 			if(compute.descSets[i] != ResourceId())
 			{
-				ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(layout), (uint32_t)i,
+				ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(layout), (uint32_t)i,
 					1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(compute.descSets[i])),
 					descLayout.dynamicCount, descLayout.dynamicCount == 0 ? NULL : &compute.offsets[i][0]);
 			}
 		}
 	}
-
-	if(!views.empty())
-		ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), (uint32_t)views.size(), &views[0]);
-	if(!scissors.empty())
-		ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), (uint32_t)scissors.size(), &scissors[0]);
-
-	ObjDisp(cmd)->CmdSetBlendConstants(Unwrap(cmd), blendConst);
-	ObjDisp(cmd)->CmdSetDepthBounds(Unwrap(cmd), mindepth, maxdepth);
-	ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), lineWidth);
-	ObjDisp(cmd)->CmdSetDepthBias(Unwrap(cmd), bias.depth, bias.biasclamp, bias.slope);
-
-	ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.ref);
-	ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.compare);
-	ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.write);
-
-	ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.ref);
-	ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.compare);
-	ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.write);
-
-	if(ibuffer.buf != ResourceId())
-		ObjDisp(cmd)->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf)), ibuffer.offs, ibuffer.bytewidth == 4 ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16);
-
-	for(size_t i=0; i < vbuffers.size(); i++)
-		ObjDisp(cmd)->CmdBindVertexBuffers(Unwrap(cmd), (uint32_t)i, 1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)), &vbuffers[i].offs);
 }

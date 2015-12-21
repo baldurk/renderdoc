@@ -478,6 +478,12 @@
     <None Include="data\spv\outline.frag">
       <Filter>Resources\spv</Filter>
     </None>
+    <None Include="data\spv\quadwrite.frag">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\quadresolve.frag">
+      <Filter>Resources\spv</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

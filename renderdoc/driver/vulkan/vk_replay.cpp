@@ -3787,13 +3787,18 @@ struct InitPostVSCallback : public DrawcallCallback
 	~InitPostVSCallback()
 	{ m_pDriver->SetDrawcallCB(NULL); }
 
-	void PreDraw(uint32_t eid)
+	void PreDraw(uint32_t eid, VkCommandBuffer cmd)
 	{
 		if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
 			m_pReplay->InitPostVSBuffers(m_FrameID, eid);
 	}
 
-	void PostDraw(uint32_t eid)
+	bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
+	{
+		return false;
+	}
+
+	void PostRedraw(uint32_t eid, VkCommandBuffer cmd)
 	{
 	}
 

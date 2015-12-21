@@ -31,7 +31,6 @@ Known Issues
 
 * Memory/image barriers are as yet unverified, potentially could lead to bad capture or replay.
 * Sparse images with mips or array slices will not properly replay
-* 'Quad overdraw' debug overlays aren't implemented.
 
 Future work, post 1.0
 ========

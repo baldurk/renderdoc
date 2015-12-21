@@ -48,6 +48,8 @@
 #define RESOURCE_spv_outline_frag      415
 #define RESOURCE_spv_debuguniforms_h   416
 #define RESOURCE_spv_texsample_h       417
+#define RESOURCE_spv_quadresolve_frag  418
+#define RESOURCE_spv_quadwrite_frag    419
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

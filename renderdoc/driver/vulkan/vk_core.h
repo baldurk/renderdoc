@@ -98,8 +98,24 @@ struct DrawcallTreeNode
 
 struct DrawcallCallback
 {
-	virtual void PreDraw(uint32_t eid) = 0;
-	virtual void PostDraw(uint32_t eid) = 0;
+	// the three callbacks are used to allow the callback implementor to either
+	// do a modified draw before or after the real thing.
+	//
+	// PreDraw()
+	// do draw call as specified by the log
+	// PostDraw()
+	// if PostDraw() returns true:
+	//   do draw call again
+	//   PostRedraw()
+	//
+	// So either the modification happens in PreDraw, the modified draw happens,
+	// then in PostDraw() the implementation can elect to undo the modifications
+	// and do the real draw by returning true. OR they can do nothing in PreDraw,
+	// do the real draw, then in PostDraw return true to apply the modifications
+	// which are then undone in PostRedraw.
+	virtual void PreDraw(uint32_t eid, VkCommandBuffer cmd) = 0;
+	virtual bool PostDraw(uint32_t eid, VkCommandBuffer cmd) = 0;
+	virtual void PostRedraw(uint32_t eid, VkCommandBuffer cmd) = 0;
 };
 
 class WrappedVulkan : public IFrameCapturer
@@ -240,17 +256,6 @@ private:
 
 	vector<VkDeviceMemory> m_CleanupMems;
 	vector<VkEvent> m_CleanupEvents;
-
-	// return the pre-selected device and queue
-	VkDevice GetDev()    { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Device; }
-	VkQueue  GetQ()      { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Queue; }
-	VkInstance GetInstance()    { RDCASSERT(m_Instance != VK_NULL_HANDLE); return m_Instance; }
-	VkPhysicalDevice GetPhysDev()    { RDCASSERT(m_PhysicalDevice != VK_NULL_HANDLE); return m_PhysicalDevice; }
-	VkCommandBuffer GetNextCmd();
-	void SubmitCmds();
-	VkSemaphore GetNextSemaphore();
-	void SubmitSemaphores();
-	void FlushQ();
 
 	const VkPhysicalDeviceFeatures &GetDeviceFeatures()
 	{ return m_PhysicalDeviceData.features; }
@@ -483,6 +488,8 @@ public:
 
 	VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
 	VulkanDebugManager *GetDebugManager() { return m_DebugManager; }
+
+	LogState GetState() { return m_State; }
 	
 	VulkanReplay *GetReplay() { return &m_Replay; }
 	
@@ -502,6 +509,19 @@ public:
 	vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 	FetchAPIEvent GetEvent(uint32_t eventID);
 	const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
+
+	// return the pre-selected device and queue
+	VkDevice GetDev()    { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Device; }
+	VkQueue  GetQ()      { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Queue; }
+	VkInstance GetInstance()    { RDCASSERT(m_Instance != VK_NULL_HANDLE); return m_Instance; }
+	VkPhysicalDevice GetPhysDev()    { RDCASSERT(m_PhysicalDevice != VK_NULL_HANDLE); return m_PhysicalDevice; }
+	VkCommandBuffer GetNextCmd();
+	void SubmitCmds();
+	VkSemaphore GetNextSemaphore();
+	void SubmitSemaphores();
+	void FlushQ();
+
+	VulkanRenderState &GetRenderState() { return m_RenderState; }
 
 	void SetDrawcallCB(DrawcallCallback *cb) { m_DrawcallCallback = cb; }
 

@@ -62,5 +62,7 @@ DECLARE_EMBED(spv_histogram_comp);
 DECLARE_EMBED(spv_outline_frag);
 DECLARE_EMBED(spv_debuguniforms_h);
 DECLARE_EMBED(spv_texsample_h);
+DECLARE_EMBED(spv_quadresolve_frag);
+DECLARE_EMBED(spv_quadwrite_frag);
 
 #undef DECLARE_EMBED
