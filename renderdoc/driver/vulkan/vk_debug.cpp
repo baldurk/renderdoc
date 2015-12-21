@@ -4286,17 +4286,6 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			NULL, &fetchdesc, NULL
 		};
 		m_pDriver->vkUpdateDescriptorSets(dev, 1, &write, 0, NULL);
-
-		vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		// do single draw
-		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
-		
-		cmd = m_pDriver->GetNextCmd();
-
-		vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
 		
 		// do single draw
 		modifiedstate.BeginRenderPassAndApplyState(cmd);
