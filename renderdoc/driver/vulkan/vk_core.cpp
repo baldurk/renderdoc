@@ -1287,6 +1287,9 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		if(m_LastCmdBufferID == ResourceId() || startEventID > 1)
 		{
 			m_RootEventID++;
+
+			if(startEventID > 1)
+				m_pSerialiser->SetOffset(GetEvent(m_RootEventID).fileOffset);
 		}
 		else
 		{
