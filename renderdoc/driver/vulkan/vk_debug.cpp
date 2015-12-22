@@ -2205,11 +2205,10 @@ struct QuadOverdrawCallback : public DrawcallCallback
 				att->colorWriteMask = 0x0;
 			}
 
-			// disable tests and depth/stencil writes
+			// disable depth/stencil writes
 			VkPipelineDepthStencilStateCreateInfo *ds = (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
-			ds->depthTestEnable = false;
 			ds->depthWriteEnable = false;
-			ds->stencilTestEnable = false;
+			ds->stencilTestEnable = true;
 			ds->depthBoundsTestEnable = false;
 			ds->front.passOp = ds->front.failOp = ds->front.depthFailOp = VK_STENCIL_OP_KEEP;
 			ds->back.passOp = ds->back.failOp = ds->back.depthFailOp = VK_STENCIL_OP_KEEP;
