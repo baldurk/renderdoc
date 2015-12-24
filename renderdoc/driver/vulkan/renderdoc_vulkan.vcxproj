@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="vk_counters.cpp" />
     <ClCompile Include="vk_dispatchtables.cpp" />
     <ClCompile Include="vk_initstate.cpp" />
     <ClCompile Include="vk_memory.cpp" />

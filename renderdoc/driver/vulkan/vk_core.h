@@ -508,6 +508,7 @@ public:
 
 	vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 	FetchAPIEvent GetEvent(uint32_t eventID);
+	uint32_t GetMaxEID() { return m_Events.back().eventID; }
 	const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
 
 	// return the pre-selected device and queue

@@ -172,6 +172,13 @@ class VulkanReplay : public IReplayDriver
 		void InitCallstackResolver();
 		bool HasCallstacks();
 		Callstack::StackResolver *GetCallstackResolver();
+
+		// called before any VkDevice is created, to init any counters
+		static void PreDeviceInitCounters();
+		// called after any VkDevice is destroyed, to do corresponding shutdown of counters
+		static void PostDeviceShutdownCounters();
+		// called after the VkDevice is created, to init any counters
+		void PostDeviceInitCounters();
 	private:
 		struct OutputWindow
 		{
@@ -249,7 +256,10 @@ class VulkanReplay : public IReplayDriver
 		void CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm, VulkanCreationInfo::Image &iminfo);
 
 		void FillCBufferVariables(rdctype::array<ShaderConstant>, vector<ShaderVariable> &outvars, const vector<byte> &data, size_t &offset);
-
+		
+		// called before the VkDevice is destroyed, to shutdown any counters
+		void PreDeviceShutdownCounters();
+		
 		VulkanDebugManager *GetDebugManager();
 		VulkanResourceManager *GetResourceManager();
 };

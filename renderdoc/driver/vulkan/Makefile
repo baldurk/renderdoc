@@ -20,6 +20,7 @@ vk_manager.o \
 vk_resources.o \
 vk_debug.o \
 vk_replay.o \
+vk_counters.o \
 vk_info.o \
 vk_state.o \
 vk_linux.o \

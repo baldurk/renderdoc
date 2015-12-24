@@ -242,6 +242,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_pDriver = driver;
 	m_State = m_pDriver->GetState();
 
+	driver->GetReplay()->PostDeviceInitCounters();
+
 	m_ResourceManager = m_pDriver->GetResourceManager();
 
 	m_DescriptorPool = VK_NULL_HANDLE;

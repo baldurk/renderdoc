@@ -511,8 +511,12 @@ VulkanResourceManager *VulkanReplay::GetResourceManager()
 
 void VulkanReplay::Shutdown()
 {
+	PreDeviceShutdownCounters();
+
 	m_pDriver->Shutdown();
 	delete m_pDriver;
+
+	VulkanReplay::PostDeviceShutdownCounters();
 }
 
 APIProperties VulkanReplay::GetAPIProperties()
@@ -4314,23 +4318,6 @@ void VulkanReplay::RemoveReplacement(ResourceId id)
 	VULKANNOTIMP("RemoveReplacement");
 }
 
-vector<uint32_t> VulkanReplay::EnumerateCounters()
-{
-	VULKANNOTIMP("EnumerateCounters");
-	return vector<uint32_t>();
-}
-
-void VulkanReplay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
-{
-	RDCUNIMPLEMENTED("DescribeCounter");
-}
-
-vector<CounterResult> VulkanReplay::FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters)
-{
-	RDCUNIMPLEMENTED("FetchCounters");
-	return vector<CounterResult>();
-}
-
 void VulkanReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 {
 	VULKANNOTIMP("BuildTargetShader");
@@ -4429,6 +4416,8 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
 		RDCLOG("Captured API version is not the same as RenderDoc's built version, expected %d got %d", VK_API_VERSION, initParams.APIVersion);
 		RDCLOG("This isn't a problem as this information is optional, but RenderDoc will replay with its own API version");
 	}
+	
+	VulkanReplay::PreDeviceInitCounters();
 
 	WrappedVulkan *vk = new WrappedVulkan(logfile);
 	vk->Initialise(initParams);
