@@ -1487,7 +1487,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(
 	SERIALISE_ELEMENT(VkShaderStageFlagBits, flags, (VkShaderStageFlagBits)stageFlags);
 	SERIALISE_ELEMENT(uint32_t, s, start);
 	SERIALISE_ELEMENT(uint32_t, len, length);
-	SERIALISE_ELEMENT_BUF(byte *, vals, (byte *)values, (size_t)(len*4));
+	SERIALISE_ELEMENT_BUF(byte *, vals, (byte *)values, (size_t)len);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
