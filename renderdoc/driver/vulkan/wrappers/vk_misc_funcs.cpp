@@ -103,17 +103,6 @@ void WrappedVulkan::vkFreeCommandBuffers(VkDevice device, VkCommandPool commandP
 	{
 		WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(pCommandBuffers[c]);
 
-		if(wrapped->record)
-		{
-			if(wrapped->record->bakedCommands)
-			{
-				wrapped->record->bakedCommands->Delete(GetResourceManager());
-				wrapped->record->bakedCommands = NULL;
-			}
-			wrapped->record->Delete(GetResourceManager());
-			wrapped->record = NULL;
-		}
-
 		VkCommandBuffer unwrapped = wrapped->real.As<VkCommandBuffer>();
 
 		GetResourceManager()->ReleaseWrappedResource(pCommandBuffers[c]);

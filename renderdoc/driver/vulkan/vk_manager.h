@@ -169,6 +169,12 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 				// though that the pool isn't going to be destroyed while
 				// either allocation or freeing happens, so we only need to
 				// lock against concurrent allocs or deletes of children.
+				
+				if(record && record->bakedCommands)
+				{
+					record->bakedCommands->Delete(this);
+					record->bakedCommands = NULL;
+				}
 
 				if(record->pool)
 				{

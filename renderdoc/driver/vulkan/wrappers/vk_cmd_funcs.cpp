@@ -239,7 +239,14 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(
 
 				record->bakedCommands = NULL;
 
-				record->AddParent(GetRecord(pAllocateInfo->commandPool));
+				record->pool = GetRecord(pAllocateInfo->commandPool);
+				record->AddParent(record->pool);
+
+				{
+					record->pool->LockChunks();
+					record->pool->pooledChildren.push_back(record);
+					record->pool->UnlockChunks();
+				}
 
 				// we don't serialise this as we never create this command buffer directly.
 				// Instead we create a command buffer for each baked list that we find.
