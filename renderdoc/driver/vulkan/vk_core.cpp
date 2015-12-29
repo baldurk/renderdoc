@@ -1868,6 +1868,30 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 
 	draw.depthOut = ResourceId();
 
+	if(m_RenderState.framebuffer != ResourceId() && m_RenderState.renderPass != ResourceId())
+	{
+		vector<VulkanCreationInfo::Framebuffer::Attachment> &atts = m_CreationInfo.m_Framebuffer[m_RenderState.framebuffer].attachments;
+
+		RDCASSERT(m_RenderState.subpass < m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses.size());
+
+		vector<uint32_t> &colAtt = m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses[m_RenderState.subpass].colorAttachments;
+		int32_t dsAtt = m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses[m_RenderState.subpass].depthstencilAttachment;
+
+		RDCASSERT(colAtt.size() < 8);
+		
+		for(int i=0; i < 8 && i < colAtt.size(); i++)
+		{
+			RDCASSERT(colAtt[i] < atts.size());
+			draw.outputs[i] = atts[ colAtt[i] ].view;
+		}
+
+		if(dsAtt != -1)
+		{
+			RDCASSERT(dsAtt < atts.size());
+			draw.depthOut = atts[dsAtt].view;
+		}
+	}
+
 	ResourceId pipe = m_RenderState.graphics.pipeline;
 	if(pipe != ResourceId())
 		draw.topology = MakePrimitiveTopology(m_CreationInfo.m_Pipeline[pipe].topology, m_CreationInfo.m_Pipeline[pipe].patchControlPoints);
