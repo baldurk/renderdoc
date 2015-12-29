@@ -122,7 +122,7 @@ class VulkanReplay : public IReplayDriver
 				
 		vector<uint32_t> EnumerateCounters();
 		void DescribeCounter(uint32_t counterID, CounterDescription &desc);
-		vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters);
+		vector<CounterResult> FetchCounters(uint32_t frameID, const vector<uint32_t> &counters);
 
 		bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval);
 		bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram);

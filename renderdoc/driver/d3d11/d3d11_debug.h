@@ -141,7 +141,7 @@ class D3D11DebugManager
 
 		vector<uint32_t> EnumerateCounters();
 		void DescribeCounter(uint32_t counterID, CounterDescription &desc);
-		vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters);
+		vector<CounterResult> FetchCounters(uint32_t frameID, const vector<uint32_t> &counters);
 
 		void RenderText(float x, float y, const char *textfmt, ...);
 		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg);

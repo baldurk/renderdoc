@@ -235,7 +235,7 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetDrawcalls(IntPtr real, UInt32 frameID, IntPtr outdraws);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_FetchCounters(IntPtr real, UInt32 frameID, UInt32 minEventID, UInt32 maxEventID, IntPtr counters, UInt32 numCounters, IntPtr outresults);
+        private static extern bool ReplayRenderer_FetchCounters(IntPtr real, UInt32 frameID, IntPtr counters, UInt32 numCounters, IntPtr outresults);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_EnumerateCounters(IntPtr real, IntPtr outcounters);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -471,7 +471,7 @@ namespace renderdoc
             }
         }
 
-        public Dictionary<uint, List<CounterResult>> FetchCounters(UInt32 frameID, UInt32 minEventID, UInt32 maxEventID, UInt32[] counters)
+        public Dictionary<uint, List<CounterResult>> FetchCounters(UInt32 frameID, UInt32[] counters)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
@@ -481,7 +481,7 @@ namespace renderdoc
             for (int i = 0; i < counters.Length; i++)
                 Marshal.WriteInt32(countersmem, sizeof(UInt32) * i, (int)counters[i]);
 
-            bool success = ReplayRenderer_FetchCounters(m_Real, frameID, minEventID, maxEventID, countersmem, (uint)counters.Length, mem);
+            bool success = ReplayRenderer_FetchCounters(m_Real, frameID, countersmem, (uint)counters.Length, mem);
 
             CustomMarshal.Free(countersmem);
 

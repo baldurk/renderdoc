@@ -1396,9 +1396,9 @@ void D3D11Replay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
 	m_pDevice->GetDebugManager()->DescribeCounter(counterID, desc);
 }
 
-vector<CounterResult> D3D11Replay::FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters)
+vector<CounterResult> D3D11Replay::FetchCounters(uint32_t frameID, const vector<uint32_t> &counters)
 {
-	return m_pDevice->GetDebugManager()->FetchCounters(frameID, minEventID, maxEventID, counters);
+	return m_pDevice->GetDebugManager()->FetchCounters(frameID, counters);
 }
 
 void D3D11Replay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)

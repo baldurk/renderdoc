@@ -97,7 +97,7 @@ class IRemoteDriver
 		
 		virtual vector<uint32_t> EnumerateCounters() = 0;
 		virtual void DescribeCounter(uint32_t counterID, CounterDescription &desc) = 0;
-		virtual vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counterID) = 0;
+		virtual vector<CounterResult> FetchCounters(uint32_t frameID, const vector<uint32_t> &counterID) = 0;
 		
 		virtual void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data) = 0;
 

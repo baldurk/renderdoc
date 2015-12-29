@@ -1344,7 +1344,7 @@ bool ProxySerialiser::Tick()
 		case eCommand_FetchCounters:
 		{
 			vector<uint32_t> counters;
-			FetchCounters(0, 0, 0, counters);
+			FetchCounters(0, counters);
 			break;
 		}
 		case eCommand_EnumerateCounters:
@@ -1751,18 +1751,16 @@ ResourceId ProxySerialiser::GetLiveID(ResourceId id)
 	return ret;
 }
 
-vector<CounterResult> ProxySerialiser::FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters)
+vector<CounterResult> ProxySerialiser::FetchCounters(uint32_t frameID, const vector<uint32_t> &counters)
 {
 	vector<CounterResult> ret;
 	
 	m_ToReplaySerialiser->Serialise("", frameID);
-	m_ToReplaySerialiser->Serialise("", minEventID);
-	m_ToReplaySerialiser->Serialise("", maxEventID);
 	m_ToReplaySerialiser->Serialise("", (vector<uint32_t> &)counters);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->FetchCounters(frameID, minEventID, maxEventID, counters);
+		ret = m_Remote->FetchCounters(frameID, counters);
 	}
 	else
 	{

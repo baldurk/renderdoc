@@ -780,7 +780,7 @@ namespace renderdocui.Windows
 
                 Dictionary<uint, List<CounterResult>>[] times = new Dictionary<uint, List<CounterResult>>[m_Core.FrameInfo.Length];
                 for (int curFrame = 0; curFrame < m_Core.FrameInfo.Length; curFrame++)
-                    times[curFrame] = r.FetchCounters((UInt32)curFrame, 0, ~0U, counters);
+                    times[curFrame] = r.FetchCounters((UInt32)curFrame, counters);
 
                 BeginInvoke((MethodInvoker)delegate
                 {

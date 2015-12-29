@@ -162,7 +162,7 @@ struct ReplayRenderer : public IReplayRenderer
 		
 		bool GetFrameInfo(rdctype::array<FetchFrameInfo> *frame);
 		bool GetDrawcalls(uint32_t frameID, rdctype::array<FetchDrawcall> *draws);
-		bool FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
+		bool FetchCounters(uint32_t frameID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
 		bool EnumerateCounters(rdctype::array<uint32_t> *counters);
 		bool DescribeCounter(uint32_t counterID, CounterDescription *desc);
 		bool GetTextures(rdctype::array<FetchTexture> *texs);

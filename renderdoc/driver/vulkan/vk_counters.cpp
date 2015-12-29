@@ -104,7 +104,7 @@ struct GPUTimerCallback : public DrawcallCallback
 	vector<uint32_t> m_Results;
 };
 
-vector<CounterResult> VulkanReplay::FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters)
+vector<CounterResult> VulkanReplay::FetchCounters(uint32_t frameID, const vector<uint32_t> &counters)
 {
 	uint32_t maxEID = m_pDriver->GetMaxEID();
 

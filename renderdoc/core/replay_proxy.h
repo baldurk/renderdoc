@@ -348,7 +348,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		
 		vector<uint32_t> EnumerateCounters();
 		void DescribeCounter(uint32_t counterID, CounterDescription &desc);
-		vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counterID);
+		vector<CounterResult> FetchCounters(uint32_t frameID, const vector<uint32_t> &counterID);
 		
 		void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data);
 		

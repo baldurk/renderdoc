@@ -191,7 +191,7 @@ struct IReplayRenderer
 
 	virtual bool GetFrameInfo(rdctype::array<FetchFrameInfo> *frame) = 0;
 	virtual bool GetDrawcalls(uint32_t frameID, rdctype::array<FetchDrawcall> *draws) = 0;
-	virtual bool FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results) = 0;
+	virtual bool FetchCounters(uint32_t frameID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results) = 0;
 	virtual bool EnumerateCounters(rdctype::array<uint32_t> *counters) = 0;
 	virtual bool DescribeCounter(uint32_t counterID, CounterDescription *desc) = 0;
 	virtual bool GetTextures(rdctype::array<FetchTexture> *texs) = 0;
@@ -258,7 +258,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeTargetResource(R
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(ReplayRenderer *rend, rdctype::array<FetchFrameInfo> *frame);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, uint32_t frameID, rdctype::array<FetchDrawcall> *draws);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FetchCounters(ReplayRenderer *rend, uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FetchCounters(ReplayRenderer *rend, uint32_t frameID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_EnumerateCounters(ReplayRenderer *rend, rdctype::array<uint32_t> *counters);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DescribeCounter(ReplayRenderer *rend, uint32_t counterID, CounterDescription *desc);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetTextures(ReplayRenderer *rend, rdctype::array<FetchTexture> *texs);

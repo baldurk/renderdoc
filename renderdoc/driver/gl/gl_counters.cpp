@@ -83,8 +83,6 @@ struct GPUTimer
 struct CounterContext
 {
 	uint32_t frameID;
-	uint32_t minEID;
-	uint32_t maxEID;
 	uint32_t eventStart;
 	vector<GPUTimer> timers;
 	int reuseIdx;
@@ -103,9 +101,6 @@ void GLReplay::FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode)
 
 		GPUTimer *timer = NULL;
 		
-		bool includeEvent = (d.eventID >= ctx.minEID && d.eventID <= ctx.maxEID);
-
-		if(includeEvent)
 		{
 			if(ctx.reuseIdx == -1)
 			{
@@ -125,7 +120,7 @@ void GLReplay::FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode)
 
 		m_pDriver->ReplayLog(ctx.frameID, ctx.eventStart, d.eventID, eReplay_WithoutDraw);
 		
-		if(includeEvent && timer->obj)
+		if(timer->obj)
 		{
 			m_pDriver->glBeginQuery(eGL_TIME_ELAPSED, timer->obj);
 			m_pDriver->ReplayLog(ctx.frameID, ctx.eventStart, d.eventID, eReplay_OnlyDraw);
@@ -140,7 +135,7 @@ void GLReplay::FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode)
 	}
 }
 
-vector<CounterResult> GLReplay::FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters)
+vector<CounterResult> GLReplay::FetchCounters(uint32_t frameID, const vector<uint32_t> &counters)
 {
 	vector<CounterResult> ret;
 
@@ -156,12 +151,10 @@ vector<CounterResult> GLReplay::FetchCounters(uint32_t frameID, uint32_t minEven
 	RDCASSERT(counters.size() == 1);
 	RDCASSERT(counterID == eCounter_EventGPUDuration);
 	
-	SCOPED_TIMER("Fetch Counters over %u-%u for %u", minEventID, maxEventID, counterID);
+	SCOPED_TIMER("Fetch Counters for %u", counterID);
 
 	CounterContext ctx;
 	ctx.frameID = frameID;
-	ctx.minEID = minEventID;
-	ctx.maxEID = maxEventID;
 
 	for(int loop=0; loop < 1; loop++)
 	{
