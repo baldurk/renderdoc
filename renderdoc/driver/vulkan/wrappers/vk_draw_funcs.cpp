@@ -43,9 +43,9 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 
 			if(m_DrawcallCallback) m_DrawcallCallback->PreDraw(m_RootEventID, commandBuffer);
 
@@ -144,9 +144,9 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdBlitImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions, f);
 		}
 	}
@@ -244,9 +244,9 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(
 		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdResolveImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions);
 		}
 	}
@@ -343,9 +343,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdCopyImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions);
 		}
 	}
@@ -440,9 +440,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 		srcBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdCopyBufferToImage(Unwrap(commandBuffer), Unwrap(srcBuffer), Unwrap(destImage), layout, count, regions);
 		}
 	}
@@ -537,9 +537,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdCopyImageToBuffer(Unwrap(commandBuffer), Unwrap(srcImage), layout, Unwrap(destBuffer), count, regions);
 		}
 	}
@@ -635,9 +635,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 		srcBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(srcid);
 		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(dstid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(srcBuffer), Unwrap(destBuffer), count, regions);
 		}
 	}
@@ -733,9 +733,9 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 	{
 		image = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdClearColorImage(Unwrap(commandBuffer), Unwrap(image), layout, &col, count, ranges);
 		}
 	}
@@ -816,9 +816,9 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 	{
 		image = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdClearDepthStencilImage(Unwrap(commandBuffer), Unwrap(image), l, &ds, count, ranges);
 		}
 	}
@@ -898,9 +898,9 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(
 	
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdClearAttachments(Unwrap(commandBuffer), acount, atts, rcount, rects);
 		}
 	}
@@ -985,9 +985,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 
 			if(m_DrawcallCallback) m_DrawcallCallback->PreDraw(m_RootEventID, commandBuffer);
 
@@ -1079,9 +1079,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 	{
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
 		}
 	}
@@ -1140,9 +1140,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 	{
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
 		}
 	}
@@ -1196,9 +1196,9 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(
 
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
 		}
 	}
@@ -1250,9 +1250,9 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 	{
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = PartialCmdBuf();
+			commandBuffer = RerecordCmdBuf();
 			ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
 		}
 	}

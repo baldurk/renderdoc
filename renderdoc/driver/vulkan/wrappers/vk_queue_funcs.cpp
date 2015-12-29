@@ -284,10 +284,10 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 				if(eid == m_PartialReplayData.baseEvent)
 				{
-					ResourceId partial = GetResID(PartialCmdBuf());
+					ResourceId partial = GetResID(RerecordCmdBuf());
 					RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
 					trimmedCmdIds.push_back(partial);
-					trimmedCmds.push_back(Unwrap(PartialCmdBuf()));
+					trimmedCmds.push_back(Unwrap(RerecordCmdBuf()));
 				}
 				else if(m_LastEventID >= end)
 				{

@@ -1855,6 +1855,25 @@ VkBool32 WrappedVulkan::DebugCallback(
 	return false;
 }
 
+bool WrappedVulkan::ShouldRerecordCmd(ResourceId cmdid)
+{
+	return m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE ||
+		cmdid == m_PartialReplayData.partialParent;
+}
+
+bool WrappedVulkan::InRerecordRange()
+{
+	return m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE ||
+		m_BakedCmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent;
+}
+
+VkCommandBuffer WrappedVulkan::RerecordCmdBuf()
+{
+	if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
+		return m_PartialReplayData.outsideCmdBuffer;
+	return m_PartialReplayData.resultPartialCmdBuffer;
+}
+
 void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 {
 	m_AddedDrawcall = true;

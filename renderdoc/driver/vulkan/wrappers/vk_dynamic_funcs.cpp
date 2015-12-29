@@ -39,9 +39,9 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(
 	
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = PartialCmdBuf();
+			cmdBuffer = RerecordCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetViewport(Unwrap(cmdBuffer), count, views);
 			m_RenderState.views.assign(views, views + count);
 		}
@@ -93,9 +93,9 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(
 	
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = PartialCmdBuf();
+			cmdBuffer = RerecordCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetScissor(Unwrap(cmdBuffer), count, scissors);
 			m_RenderState.scissors.assign(scissors, scissors + count);
 		}
@@ -145,9 +145,9 @@ bool WrappedVulkan::Serialise_vkCmdSetLineWidth(
 	
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = PartialCmdBuf();
+			cmdBuffer = RerecordCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetLineWidth(Unwrap(cmdBuffer), width);
 			m_RenderState.lineWidth = width;
 		}
@@ -198,9 +198,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBias(
 	
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = PartialCmdBuf();
+			cmdBuffer = RerecordCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetDepthBias(Unwrap(cmdBuffer), bias, biasclamp, slope);
 			m_RenderState.bias.depth = bias;
 			m_RenderState.bias.biasclamp = biasclamp;
@@ -259,9 +259,9 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(
 	
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = PartialCmdBuf();
+			cmdBuffer = RerecordCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetBlendConstants(Unwrap(cmdBuffer), blendFactor);
 			memcpy(m_RenderState.blendConst, blendFactor, sizeof(blendFactor));
 		}
@@ -310,9 +310,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(
 	
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = PartialCmdBuf();
+			cmdBuffer = RerecordCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetDepthBounds(Unwrap(cmdBuffer), mind, maxd);
 			m_RenderState.mindepth = mind;
 			m_RenderState.maxdepth = maxd;
@@ -363,9 +363,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(
 	
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = PartialCmdBuf();
+			cmdBuffer = RerecordCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetStencilCompareMask(Unwrap(cmdBuffer), face, mask);
 
 			if(face & VK_STENCIL_FACE_FRONT_BIT)
@@ -419,9 +419,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(
 	
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = PartialCmdBuf();
+			cmdBuffer = RerecordCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetStencilWriteMask(Unwrap(cmdBuffer), face, mask);
 
 			if(face & VK_STENCIL_FACE_FRONT_BIT)
@@ -475,9 +475,9 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(
 	
 	if(m_State == EXECUTING)
 	{
-		if(IsPartialCmd(cmdid) && InPartialRange())
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = PartialCmdBuf();
+			cmdBuffer = RerecordCmdBuf();
 			ObjDisp(cmdBuffer)->CmdSetStencilReference(Unwrap(cmdBuffer), face, mask);
 
 			if(face & VK_STENCIL_FACE_FRONT_BIT)

@@ -344,23 +344,9 @@ private:
 	// All IDs are original IDs, not live.
 	VulkanRenderState m_RenderState;
 
-	bool IsPartialCmd(ResourceId cmdid)
-	{
-		return m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE ||
-			cmdid == m_PartialReplayData.partialParent;
-	}
-	bool InPartialRange()
-	{
-		return m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE ||
-			m_BakedCmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent;
-	}
-	VkCommandBuffer PartialCmdBuf()
-	{
-		if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
-			return m_PartialReplayData.outsideCmdBuffer;
-		return m_PartialReplayData.resultPartialCmdBuffer;
-	}
-
+	bool ShouldRerecordCmd(ResourceId cmdid);
+	bool InRerecordRange();
+	VkCommandBuffer RerecordCmdBuf();
 
 	// this info is stored in the record on capture, but we
 	// need it on replay too
