@@ -3806,6 +3806,11 @@ struct InitPostVSCallback : public DrawcallCallback
 	{
 	}
 
+	bool RecordAllCmds()
+	{
+		return false;
+	}
+
 	uint32_t m_FrameID;
 	WrappedVulkan *m_pDriver;
 	VulkanReplay *m_pReplay;

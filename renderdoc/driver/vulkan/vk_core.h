@@ -116,6 +116,11 @@ struct DrawcallCallback
 	virtual void PreDraw(uint32_t eid, VkCommandBuffer cmd) = 0;
 	virtual bool PostDraw(uint32_t eid, VkCommandBuffer cmd) = 0;
 	virtual void PostRedraw(uint32_t eid, VkCommandBuffer cmd) = 0;
+
+	// should we re-record all command buffers? this needs to be true if the range
+	// being replayed is larger than one command buffer (which usually means the
+	// whole frame).
+	virtual bool RecordAllCmds() = 0;
 };
 
 class WrappedVulkan : public IFrameCapturer

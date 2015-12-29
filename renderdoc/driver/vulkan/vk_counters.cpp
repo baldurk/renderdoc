@@ -98,6 +98,11 @@ struct GPUTimerCallback : public DrawcallCallback
 	{
 	}
 
+	bool RecordAllCmds()
+	{
+		return true;
+	}
+
 	WrappedVulkan *m_pDriver;
 	VulkanReplay *m_pReplay;
 	VkQueryPool m_QueryPool;

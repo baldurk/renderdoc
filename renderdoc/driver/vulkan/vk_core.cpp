@@ -1857,14 +1857,24 @@ VkBool32 WrappedVulkan::DebugCallback(
 
 bool WrappedVulkan::ShouldRerecordCmd(ResourceId cmdid)
 {
-	return m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE ||
-		cmdid == m_PartialReplayData.partialParent;
+	if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
+		return true;
+
+	if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+		return true;
+
+	return cmdid == m_PartialReplayData.partialParent;
 }
 
 bool WrappedVulkan::InRerecordRange()
 {
-	return m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE ||
-		m_BakedCmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent;
+	if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
+		return true;
+	
+	if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+		return true;
+
+	return m_BakedCmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent;
 }
 
 VkCommandBuffer WrappedVulkan::RerecordCmdBuf()

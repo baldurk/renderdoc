@@ -2314,6 +2314,11 @@ struct QuadOverdrawCallback : public DrawcallCallback
 		// nothing to do
 	}
 
+	bool RecordAllCmds()
+	{
+		return false;
+	}
+
 	uint32_t m_FrameID;
 	WrappedVulkan *m_pDriver;
 	VulkanDebugManager *m_pDebug;
