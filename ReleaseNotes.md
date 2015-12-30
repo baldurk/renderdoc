@@ -50,4 +50,3 @@ In no particular order, features that are not planned until after 1.0.
 * Linux support with Qt UI
 * Shader edit & replace
 * Mesh geometry/tessellation output capture
-* Queue-level API events are not listed, only API calls associated with a cmd buffer
