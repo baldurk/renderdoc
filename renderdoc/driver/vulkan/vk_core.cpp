@@ -1943,37 +1943,45 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 
 	draw.depthOut = ResourceId();
 
-	if(m_RenderState.framebuffer != ResourceId() && m_RenderState.renderPass != ResourceId())
+	draw.indexByteWidth = 0;
+	draw.topology = eTopology_Unknown;
+
+	if(m_LastCmdBufferID != ResourceId())
 	{
-		vector<VulkanCreationInfo::Framebuffer::Attachment> &atts = m_CreationInfo.m_Framebuffer[m_RenderState.framebuffer].attachments;
+		ResourceId pipe = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.pipeline;
+		if(pipe != ResourceId())
+			draw.topology = MakePrimitiveTopology(m_CreationInfo.m_Pipeline[pipe].topology, m_CreationInfo.m_Pipeline[pipe].patchControlPoints);
 
-		RDCASSERT(m_RenderState.subpass < m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses.size());
+		draw.indexByteWidth = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth;
 
-		vector<uint32_t> &colAtt = m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses[m_RenderState.subpass].colorAttachments;
-		int32_t dsAtt = m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses[m_RenderState.subpass].depthstencilAttachment;
+		ResourceId fb = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer;
+		ResourceId rp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass;
+		uint32_t sp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
 
-		RDCASSERT(colAtt.size() < 8);
-		
-		for(int i=0; i < 8 && i < colAtt.size(); i++)
+		if(fb != ResourceId() && rp != ResourceId())
 		{
-			RDCASSERT(colAtt[i] < atts.size());
-			draw.outputs[i] = atts[ colAtt[i] ].view;
-		}
+			vector<VulkanCreationInfo::Framebuffer::Attachment> &atts = m_CreationInfo.m_Framebuffer[fb].attachments;
 
-		if(dsAtt != -1)
-		{
-			RDCASSERT(dsAtt < atts.size());
-			draw.depthOut = atts[dsAtt].view;
+			RDCASSERT(sp < m_CreationInfo.m_RenderPass[rp].subpasses.size());
+
+			vector<uint32_t> &colAtt = m_CreationInfo.m_RenderPass[rp].subpasses[sp].colorAttachments;
+			int32_t dsAtt = m_CreationInfo.m_RenderPass[rp].subpasses[sp].depthstencilAttachment;
+
+			RDCASSERT(colAtt.size() < 8);
+			
+			for(int i=0; i < 8 && i < colAtt.size(); i++)
+			{
+				RDCASSERT(colAtt[i] < atts.size());
+				draw.outputs[i] = atts[ colAtt[i] ].view;
+			}
+
+			if(dsAtt != -1)
+			{
+				RDCASSERT(dsAtt < atts.size());
+				draw.depthOut = atts[dsAtt].view;
+			}
 		}
 	}
-
-	ResourceId pipe = m_RenderState.graphics.pipeline;
-	if(pipe != ResourceId())
-		draw.topology = MakePrimitiveTopology(m_CreationInfo.m_Pipeline[pipe].topology, m_CreationInfo.m_Pipeline[pipe].patchControlPoints);
-	else
-		draw.topology = eTopology_Unknown;
-
-	draw.indexByteWidth = m_RenderState.ibuffer.bytewidth;
 
 	if(m_LastCmdBufferID != ResourceId())
 		m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount++;

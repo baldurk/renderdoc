@@ -28,8 +28,8 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
 {
 	string opDesc = "";
 
-	const VulkanCreationInfo::RenderPass &info = m_CreationInfo.m_RenderPass[m_RenderState.renderPass];
-	const VulkanCreationInfo::Framebuffer &fbinfo = m_CreationInfo.m_Framebuffer[m_RenderState.framebuffer];
+	const VulkanCreationInfo::RenderPass &info = m_CreationInfo.m_RenderPass[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass];
+	const VulkanCreationInfo::Framebuffer &fbinfo = m_CreationInfo.m_Framebuffer[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer];
 
 	const vector<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
 
@@ -42,7 +42,7 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
 		bool colsame = true;
 
 		// find which attachment is the depth-stencil one
-		int32_t dsAttach = info.subpasses[m_RenderState.subpass].depthstencilAttachment;
+		int32_t dsAttach = info.subpasses[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass].depthstencilAttachment;
 		bool hasStencil = false;
 		bool depthonly = false;
 
@@ -51,7 +51,7 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
 		if(dsAttach >= 0)
 		{
 			hasStencil = !IsDepthOnlyFormat(fbinfo.attachments[dsAttach].format);
-			depthonly = info.subpasses[m_RenderState.subpass].colorAttachments.size() == 0;
+			depthonly = info.subpasses[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass].colorAttachments.size() == 0;
 		}
 
 		// first colour attachment, if there is one
@@ -365,8 +365,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 				// non-baked ID. The baked ID is referenced by the submit itself.
 				//
 				// In vkEndCommandBuffer we erase the non-baked reference, and since
-				// we know the serialised command buffers are independent (ie. aren't
-				// overlapping in the capture even if they were recorded overlapping)
+				// we know you can only be recording a command buffer once at a time
+				// (even if it's baked to several command buffers in the frame)
 				// there's no issue with clashes here.
 				m_RerecordCmds[bakeId] = cmd;
 				m_RerecordCmds[cmdId] = cmd;
@@ -647,10 +647,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 
 		ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &beginInfo, cont);
 		
-		// track during reading
-		m_RenderState.subpass = 0;
-		m_RenderState.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
-		m_RenderState.framebuffer = GetResourceManager()->GetNonDispWrapper(beginInfo.framebuffer)->id;
+		// track while reading, for fetching the right set of outputs in AddDrawcall
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = GetResourceManager()->GetNonDispWrapper(beginInfo.renderPass)->id;
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = GetResourceManager()->GetNonDispWrapper(beginInfo.framebuffer)->id;
 
 		const string desc = localSerialiser->GetDebugStr();
 		
@@ -734,8 +734,8 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(
 
 		ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), cont);
 
-		// track during reading
-		m_RenderState.subpass++;
+		// track while reading, for fetching the right set of outputs in AddDrawcall
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
 
 		const string desc = localSerialiser->GetDebugStr();
 
@@ -995,11 +995,8 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		pipeline = GetResourceManager()->GetLiveHandle<VkPipeline>(pipeid);
 
-		// track this while reading, as we need to bind current topology & index byte width to draws
-		if(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
-			m_RenderState.graphics.pipeline = GetResID(pipeline);
-		else
-			m_RenderState.compute.pipeline = GetResID(pipeline);
+		// track while reading, as we need to bind current topology & index byte width in AddDrawcall
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].state.pipeline = GetResID(pipeline);
 
 		ObjDisp(commandBuffer)->CmdBindPipeline(Unwrap(commandBuffer), bind, Unwrap(pipeline));
 	}
@@ -1331,8 +1328,8 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-		// track this while reading, as we need to bind current topology & index byte width to draws
-		m_RenderState.ibuffer.bytewidth = idxType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
+		// track while reading, as we need to bind current topology & index byte width in AddDrawcall
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = (idxType == VK_INDEX_TYPE_UINT32 ? 4 : 2);
 		
 		ObjDisp(commandBuffer)->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offs, idxType);
 	}

@@ -2900,37 +2900,49 @@ void VulkanReplay::SavePipelineState()
 
 			// Renderpass
 			m_VulkanPipelineState.Pass.renderpass.obj = rm->GetOriginalID(state.renderPass);
-			m_VulkanPipelineState.Pass.renderpass.inputAttachments = c.m_RenderPass[state.renderPass].subpasses[state.subpass].inputAttachments;
-			m_VulkanPipelineState.Pass.renderpass.colorAttachments = c.m_RenderPass[state.renderPass].subpasses[state.subpass].colorAttachments;
-			m_VulkanPipelineState.Pass.renderpass.depthstencilAttachment = c.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
+			if(state.renderPass != ResourceId())
+			{
+				m_VulkanPipelineState.Pass.renderpass.inputAttachments = c.m_RenderPass[state.renderPass].subpasses[state.subpass].inputAttachments;
+				m_VulkanPipelineState.Pass.renderpass.colorAttachments = c.m_RenderPass[state.renderPass].subpasses[state.subpass].colorAttachments;
+				m_VulkanPipelineState.Pass.renderpass.depthstencilAttachment = c.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
+			}
 
 			m_VulkanPipelineState.Pass.framebuffer.obj = rm->GetOriginalID(state.framebuffer);
-
-			m_VulkanPipelineState.Pass.framebuffer.width = c.m_Framebuffer[state.framebuffer].width;
-			m_VulkanPipelineState.Pass.framebuffer.height = c.m_Framebuffer[state.framebuffer].height;
-			m_VulkanPipelineState.Pass.framebuffer.layers = c.m_Framebuffer[state.framebuffer].layers;
-
-			create_array_uninit(m_VulkanPipelineState.Pass.framebuffer.attachments, c.m_Framebuffer[state.framebuffer].attachments.size());
-			for(size_t i=0; i < c.m_Framebuffer[state.framebuffer].attachments.size(); i++)
+			
+			if(state.framebuffer != ResourceId())
 			{
-				ResourceId viewid = c.m_Framebuffer[state.framebuffer].attachments[i].view;
+				m_VulkanPipelineState.Pass.framebuffer.width = c.m_Framebuffer[state.framebuffer].width;
+				m_VulkanPipelineState.Pass.framebuffer.height = c.m_Framebuffer[state.framebuffer].height;
+				m_VulkanPipelineState.Pass.framebuffer.layers = c.m_Framebuffer[state.framebuffer].layers;
 
-				if(viewid != ResourceId())
+				create_array_uninit(m_VulkanPipelineState.Pass.framebuffer.attachments, c.m_Framebuffer[state.framebuffer].attachments.size());
+				for(size_t i=0; i < c.m_Framebuffer[state.framebuffer].attachments.size(); i++)
 				{
-					m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = rm->GetOriginalID(viewid);
-					m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = rm->GetOriginalID(c.m_ImageView[viewid].image);
+					ResourceId viewid = c.m_Framebuffer[state.framebuffer].attachments[i].view;
 
-					m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseMip = c.m_ImageView[viewid].range.baseMipLevel;
-					m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseLayer = c.m_ImageView[viewid].range.baseArrayLayer;
-				}
-				else
-				{
-					m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = ResourceId();
-					m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = ResourceId();
+					if(viewid != ResourceId())
+					{
+						m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = rm->GetOriginalID(viewid);
+						m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = rm->GetOriginalID(c.m_ImageView[viewid].image);
 
-					m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseMip = 0;
-					m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseLayer = 0;
+						m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseMip = c.m_ImageView[viewid].range.baseMipLevel;
+						m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseLayer = c.m_ImageView[viewid].range.baseArrayLayer;
+					}
+					else
+					{
+						m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = ResourceId();
+						m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = ResourceId();
+
+						m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseMip = 0;
+						m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseLayer = 0;
+					}
 				}
+			}
+			else
+			{
+				m_VulkanPipelineState.Pass.framebuffer.width = 0;
+				m_VulkanPipelineState.Pass.framebuffer.height = 0;
+				m_VulkanPipelineState.Pass.framebuffer.layers = 0;
 			}
 
 			m_VulkanPipelineState.Pass.renderArea.x = state.renderArea.offset.x;

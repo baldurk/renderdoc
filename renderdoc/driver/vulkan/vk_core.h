@@ -288,6 +288,16 @@ private:
 		vector<FetchAPIEvent> curEvents;
 		list<DrawcallTreeNode *> drawStack;
 
+		struct
+		{
+			ResourceId pipeline;
+			uint32_t idxWidth;
+
+			ResourceId renderPass;
+			ResourceId framebuffer;
+			uint32_t subpass;
+		} state;
+
 		vector< pair<ResourceId, ImageRegionState> > imgbarriers;
 
 		DrawcallTreeNode *draw; // the root draw to copy from when submitting
