@@ -158,6 +158,8 @@ const char *VkChunkNames[] =
 	"vkCmdDbgMarker", // no equivalent function at the moment
 	"vkCmdDbgMarkerEnd",
 
+	"vkDbgSetObjectName",
+
 	"vkCreateSwapchainKHR",
 
 	"Capture",
@@ -1711,6 +1713,9 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 	case END_EVENT:
 		Serialise_vkCmdDbgMarkerEnd(GetMainSerialiser(), VK_NULL_HANDLE);
+		break;
+	case SET_NAME:
+		Serialise_vkDbgSetObjectName(GetMainSerialiser(), VK_NULL_HANDLE, VK_OBJECT_TYPE_MAX_ENUM, 0, 0, NULL);
 		break;
 
 	case CREATE_SWAP_BUFFER:

@@ -520,6 +520,17 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 		GetResourceManager()->RemoveReplacement(cmdid);
 
 		ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
+		
+		if(m_State == READING && !m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
+		{
+			FetchDrawcall draw;
+			draw.name = "API Calls";
+			draw.flags |= eDraw_SetMarker;
+
+			AddDrawcall(draw, true);
+
+			m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+		}
 
 		{
 			if(GetDrawcallStack().size() > 1)
@@ -528,6 +539,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 
 		{
 			m_BakedCmdBufferInfo[bakeId].draw = m_BakedCmdBufferInfo[m_LastCmdBufferID].draw;
+			m_BakedCmdBufferInfo[bakeId].curEvents = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents;
 			m_BakedCmdBufferInfo[bakeId].curEventID = 0;
 			m_BakedCmdBufferInfo[bakeId].eventCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
 			m_BakedCmdBufferInfo[bakeId].drawCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount;
@@ -2069,6 +2081,9 @@ void WrappedVulkan::vkCmdDbgMarkerBegin(
 			VkCommandBuffer  commandBuffer,
 			const char*     pMarker)
 {
+	if(ObjDisp(commandBuffer)->CmdDbgMarkerBegin)
+		ObjDisp(commandBuffer)->CmdDbgMarkerBegin(Unwrap(commandBuffer), pMarker);
+	
 	if(m_State >= WRITING)
 	{
 		VkResourceRecord *record = GetRecord(commandBuffer);
@@ -2104,6 +2119,9 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(Serialiser* localSerialiser, VkC
 void WrappedVulkan::vkCmdDbgMarkerEnd(
 	VkCommandBuffer  commandBuffer)
 {
+	if(ObjDisp(commandBuffer)->CmdDbgMarkerEnd)
+		ObjDisp(commandBuffer)->CmdDbgMarkerEnd(Unwrap(commandBuffer));
+	
 	if(m_State >= WRITING)
 	{
 		VkResourceRecord *record = GetRecord(commandBuffer);

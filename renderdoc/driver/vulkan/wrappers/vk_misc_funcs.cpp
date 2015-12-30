@@ -778,3 +778,142 @@ VkResult WrappedVulkan::vkDbgDestroyMsgCallback(
 	return ObjDisp(instance)->DbgDestroyMsgCallback(Unwrap(instance), msgCallback);
 }
 
+VkResult WrappedVulkan::vkDbgSetObjectTag(
+		VkDevice device,
+		VkDbgObjectType objType,
+		uint64_t object,
+		size_t tagSize,
+		const void* pTag)
+{
+	if(ObjDisp(device)->DbgSetObjectTag)
+		ObjDisp(device)->DbgSetObjectTag(device, objType, object, tagSize, pTag);
+
+	// don't do anything with the tags
+
+	return VK_SUCCESS;
+}
+
+static VkResourceRecord *GetObjRecord(VkDbgObjectType objType, uint64_t object)
+{
+	switch(objType)
+	{
+		case VK_OBJECT_TYPE_INSTANCE:
+			return GetRecord((VkInstance)object);
+		case VK_OBJECT_TYPE_PHYSICAL_DEVICE:
+			return GetRecord((VkPhysicalDevice)object);
+		case VK_OBJECT_TYPE_DEVICE:
+			return GetRecord((VkDevice)object);
+		case VK_OBJECT_TYPE_QUEUE:
+			return GetRecord((VkQueue)object);
+		case VK_OBJECT_TYPE_COMMAND_BUFFER:
+			return GetRecord((VkCommandBuffer)object);
+		case VK_OBJECT_TYPE_DEVICE_MEMORY:
+			return GetRecord((VkDeviceMemory)object);
+		case VK_OBJECT_TYPE_BUFFER:
+			return GetRecord((VkBuffer)object);
+		case VK_OBJECT_TYPE_BUFFER_VIEW:
+			return GetRecord((VkBufferView)object);
+		case VK_OBJECT_TYPE_IMAGE:
+			return GetRecord((VkImage)object);
+		case VK_OBJECT_TYPE_IMAGE_VIEW:
+			return GetRecord((VkImageView)object);
+		case VK_OBJECT_TYPE_ATTACHMENT_VIEW:
+			return NULL;
+		case VK_OBJECT_TYPE_SHADER_MODULE:
+			return GetRecord((VkShaderModule)object);
+		case VK_OBJECT_TYPE_SHADER:
+			return NULL;
+		case VK_OBJECT_TYPE_PIPELINE:
+			return GetRecord((VkPipeline)object);
+		case VK_OBJECT_TYPE_PIPELINE_LAYOUT:
+			return GetRecord((VkPipelineLayout)object);
+		case VK_OBJECT_TYPE_SAMPLER:
+			return GetRecord((VkSampler)object);
+		case VK_OBJECT_TYPE_DESCRIPTOR_SET:
+			return GetRecord((VkDescriptorSet)object);
+		case VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT:
+			return GetRecord((VkDescriptorSetLayout)object);
+		case VK_OBJECT_TYPE_DESCRIPTOR_POOL:
+			return GetRecord((VkDescriptorPool)object);
+		case VK_OBJECT_TYPE_FENCE:
+			return GetRecord((VkFence)object);
+		case VK_OBJECT_TYPE_SEMAPHORE:
+			return GetRecord((VkSemaphore)object);
+		case VK_OBJECT_TYPE_EVENT:
+			return GetRecord((VkEvent)object);
+		case VK_OBJECT_TYPE_QUERY_POOL:
+			return GetRecord((VkQueryPool)object);
+		case VK_OBJECT_TYPE_FRAMEBUFFER:
+			return GetRecord((VkFramebuffer)object);
+		case VK_OBJECT_TYPE_RENDER_PASS:
+			return GetRecord((VkRenderPass)object);
+		case VK_OBJECT_TYPE_PIPELINE_CACHE:
+			return GetRecord((VkPipelineCache)object);
+		case VK_OBJECT_TYPE_SURFACE_KHR:
+			return GetRecord((VkSurfaceKHR)object);
+		case VK_OBJECT_TYPE_SWAPCHAIN_KHR:
+			return GetRecord((VkSwapchainKHR)object);
+		case VK_OBJECT_TYPE_COMMAND_POOL:
+			return GetRecord((VkCommandPool)object);
+	}
+	return NULL;
+}
+
+bool WrappedVulkan::Serialise_vkDbgSetObjectName(
+		Serialiser *localSerialiser,
+		VkDevice device,
+		VkDbgObjectType objType,
+		uint64_t object,
+		size_t nameSize,
+		const char* pName)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetObjRecord(objType, object)->GetResourceID());
+	
+	string name;
+	if(m_State >= WRITING)
+		name = string(pName, pName+nameSize);
+
+	localSerialiser->Serialise("name", name);
+
+	if(m_State == READING)
+		m_CreationInfo.m_Names[GetResourceManager()->GetLiveID(id)] = name;
+
+	return true;
+}
+
+VkResult WrappedVulkan::vkDbgSetObjectName(
+		VkDevice device,
+		VkDbgObjectType objType,
+		uint64_t object,
+		size_t nameSize,
+		const char* pName)
+{
+	if(ObjDisp(device)->DbgSetObjectName)
+		ObjDisp(device)->DbgSetObjectName(device, objType, object, nameSize, pName);
+	
+	if(m_State >= WRITING)
+	{
+		Chunk *chunk = NULL;
+		
+		VkResourceRecord *record = GetObjRecord(objType, object);
+
+		if(!record)
+		{
+			RDCERR("Unrecognised object %d %llu", objType, object);
+			return VK_SUCCESS;
+		}
+
+		{
+			CACHE_THREAD_SERIALISER();
+
+			SCOPED_SERIALISE_CONTEXT(SET_NAME);
+			Serialise_vkDbgSetObjectName(localSerialiser, device, objType, object, nameSize, pName);
+
+			chunk = scope.Get();
+		}
+
+		record->AddChunk(chunk);
+	}
+
+	return VK_SUCCESS;
+}

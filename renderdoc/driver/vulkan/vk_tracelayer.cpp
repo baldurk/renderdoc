@@ -169,6 +169,9 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDocEnumerateDeviceExtensionProperties(
 #undef HookInit
 #define HookInit(function) if (!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) return (PFN_vkVoidFunction) &CONCAT(hooked_vk, function);
 
+#undef HookInitExtension
+#define HookInitExtension(ext, function) if (instDevInfo->ext && !strcmp(pName, STRINGIZE(CONCAT(vk, function)))) return (PFN_vkVoidFunction) &CONCAT(hooked_vk, function);
+
 // proc addr routines
 
 VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetDeviceProcAddr(VkDevice device, const char* pName)
@@ -188,6 +191,10 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetDeviceProcAddr(VkDevi
 		return (PFN_vkVoidFunction) &hooked_vkDestroyDevice;
 
 	HookInitVulkanDevice();
+
+	InstanceDeviceInfo *instDevInfo = GetRecord(device)->instDevInfo;
+
+	HookInitVulkanDeviceExts();
 
 	if (GetDeviceDispatchTable(device)->GetDeviceProcAddr == NULL)
 		return NULL;

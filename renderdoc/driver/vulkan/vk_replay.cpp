@@ -2773,8 +2773,15 @@ void VulkanReplay::SavePipelineState()
 				stages[i]->Shader = rm->GetOriginalID(p.shaders[i].module);
 				stages[i]->entryPoint = p.shaders[i].entryPoint;
 				stages[i]->ShaderDetails = NULL;
-				stages[i]->customName = false;
-				stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Shader);
+
+				stages[i]->customName = true;
+				stages[i]->ShaderName = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
+				if(stages[i]->ShaderName.count == 0)
+				{
+					stages[i]->customName = false;
+					stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Shader);
+				}
+
 				stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
 				if(p.shaders[i].mapping)
 					stages[i]->BindpointMapping = *p.shaders[i].mapping;

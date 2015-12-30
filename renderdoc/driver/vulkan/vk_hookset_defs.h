@@ -223,6 +223,19 @@
 	HookInit(AcquireNextImageKHR); \
 	HookInit(QueuePresentKHR);
 
+#define CheckInstanceExts()
+
+#define CheckDeviceExts() \
+	CheckExt(VK_LUNARG_DEBUG_MARKER)
+
+#define HookInitVulkanInstanceExts()
+
+#define HookInitVulkanDeviceExts() \
+	HookInitExtension(VK_LUNARG_DEBUG_MARKER, CmdDbgMarkerBegin); \
+	HookInitExtension(VK_LUNARG_DEBUG_MARKER, CmdDbgMarkerEnd); \
+	HookInitExtension(VK_LUNARG_DEBUG_MARKER, DbgSetObjectTag); \
+	HookInitExtension(VK_LUNARG_DEBUG_MARKER, DbgSetObjectName);
+
 #define DefineHooks() \
 	HookDefine3(VkResult, vkEnumeratePhysicalDevices, VkInstance, instance, uint32_t*, pPhysicalDeviceCount, VkPhysicalDevice*, pPhysicalDevices); \
 	HookDefine2(void, vkGetPhysicalDeviceFeatures, VkPhysicalDevice, physicalDevice, VkPhysicalDeviceFeatures*, pFeatures); \
@@ -355,6 +368,10 @@
 	HookDefine1(void, vkCmdEndRenderPass, VkCommandBuffer, commandBuffer); \
 	HookDefine5(VkResult, vkDbgCreateMsgCallback, VkInstance, instance, VkFlags, msgFlags, const PFN_vkDbgMsgCallback, pfnMsgCallback, void*, pUserData, VkDbgMsgCallback*, pMsgCallback); \
 	HookDefine2(VkResult, vkDbgDestroyMsgCallback, VkInstance, instance, VkDbgMsgCallback, msgCallback); \
+	HookDefine2(void, vkCmdDbgMarkerBegin, VkCommandBuffer, commandBuffer, const char*, pMarker); \
+	HookDefine1(void, vkCmdDbgMarkerEnd, VkCommandBuffer, commandBuffer); \
+	HookDefine5(VkResult, vkDbgSetObjectTag, VkDevice, device, VkDbgObjectType, objType, uint64_t, object, size_t, tagSize, const void*, pTag); \
+	HookDefine5(VkResult, vkDbgSetObjectName, VkDevice, device, VkDbgObjectType, objType, uint64_t, object, size_t, nameSize, const char*, pName); \
 	HookDefine4(VkResult, vkGetPhysicalDeviceSurfaceSupportKHR, VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex, VkSurfaceKHR, surface, VkBool32*, pSupported); \
 	HookDefine3(VkResult, vkGetPhysicalDeviceSurfaceCapabilitiesKHR, VkPhysicalDevice, physicalDevice, VkSurfaceKHR, surface, VkSurfaceCapabilitiesKHR*, pSurfaceProperties); \
 	HookDefine4(VkResult, vkGetPhysicalDeviceSurfaceFormatsKHR, VkPhysicalDevice, physicalDevice, VkSurfaceKHR, surface, uint32_t*, pSurfaceFormatCount, VkSurfaceFormatKHR*, pSurfaceFormats); \
@@ -366,3 +383,17 @@
 	HookDefine2(VkResult, vkQueuePresentKHR, VkQueue, queue, VkPresentInfoKHR*, pPresentInfo); \
 	HookDefine3(void, vkDestroySurfaceKHR, VkInstance, instance, VkSurfaceKHR, surface, const VkAllocationCallbacks*, pAllocator); \
 	HookDefine_PlatformSpecific()
+
+struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
+{
+	// extensions here
+};
+
+struct VkLayerDispatchTableExtended : VkLayerDispatchTable
+{
+	// VK_LUNARG_DEBUG_MARKER
+	PFN_vkCmdDbgMarkerBegin CmdDbgMarkerBegin;
+	PFN_vkCmdDbgMarkerEnd CmdDbgMarkerEnd;
+	PFN_vkDbgSetObjectTag DbgSetObjectTag;
+	PFN_vkDbgSetObjectName DbgSetObjectName;
+};

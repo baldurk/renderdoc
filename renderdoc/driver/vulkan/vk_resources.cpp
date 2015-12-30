@@ -590,6 +590,9 @@ VkResourceRecord::~VkResourceRecord()
 	if(resType == eResBuffer || resType == eResImage)
 		SAFE_DELETE(sparseInfo);
 
+	if(resType == eResInstance || resType == eResDevice)
+		SAFE_DELETE(instDevInfo);
+
 	if(resType == eResSwapchain)
 		SAFE_DELETE(swapInfo);
 

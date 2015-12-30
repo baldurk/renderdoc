@@ -28,6 +28,7 @@
 #include "common/wrapped_pool.h"
 
 #include "vk_common.h"
+#include "vk_hookset_defs.h"
 
 struct VkResourceRecord;
 
@@ -180,7 +181,7 @@ struct WrappedVkInstance : WrappedVkDispRes
 {
 	WrappedVkInstance(VkInstance obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkInstance InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkInstance);
-	typedef VkLayerInstanceDispatchTable DispatchTableType;
+	typedef VkLayerInstanceDispatchTableExtended DispatchTableType;
 	enum { UseInstanceDispatchTable = true, };
 	enum { TypeEnum = eResInstance, };
 };
@@ -188,7 +189,7 @@ struct WrappedVkPhysicalDevice : WrappedVkDispRes
 {
 	WrappedVkPhysicalDevice(VkPhysicalDevice obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkPhysicalDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPhysicalDevice);
-	typedef VkLayerInstanceDispatchTable DispatchTableType;
+	typedef VkLayerInstanceDispatchTableExtended DispatchTableType;
 	enum { UseInstanceDispatchTable = true, };
 	enum { TypeEnum = eResPhysicalDevice, };
 };
@@ -196,7 +197,7 @@ struct WrappedVkDevice : WrappedVkDispRes
 {
 	WrappedVkDevice(VkDevice obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDevice);
-	typedef VkLayerDispatchTable DispatchTableType;
+	typedef VkLayerDispatchTableExtended DispatchTableType;
 	enum { UseInstanceDispatchTable = false, };
 	enum { TypeEnum = eResDevice, };
 };
@@ -204,7 +205,7 @@ struct WrappedVkQueue : WrappedVkDispRes
 {
 	WrappedVkQueue(VkQueue obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkQueue InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkQueue);
-	typedef VkLayerDispatchTable DispatchTableType;
+	typedef VkLayerDispatchTableExtended DispatchTableType;
 	enum { UseInstanceDispatchTable = false, };
 	enum { TypeEnum = eResQueue, };
 };
@@ -215,7 +216,7 @@ struct WrappedVkCommandBuffer : WrappedVkDispRes
 	static const int AllocPoolCount = 32*1024;
 	static const int AllocPoolMaxByteSize = 2*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCommandBuffer, AllocPoolCount, AllocPoolMaxByteSize);
-	typedef VkLayerDispatchTable DispatchTableType;
+	typedef VkLayerDispatchTableExtended DispatchTableType;
 	enum { UseInstanceDispatchTable = false, };
 	enum { TypeEnum = eResCommandBuffer, };
 };
@@ -592,6 +593,19 @@ struct SwapchainInfo
 	uint32_t lastPresent;
 };
 
+struct InstanceDeviceInfo
+{
+#undef CheckExt
+#define CheckExt(name) name = false;
+	InstanceDeviceInfo() { CheckDeviceExts(); CheckInstanceExts(); }
+
+#undef CheckExt
+#define CheckExt(name) bool name;
+
+	CheckDeviceExts();
+	CheckInstanceExts();
+};
+
 struct SparseMapping
 {
 	SparseMapping()
@@ -780,6 +794,7 @@ struct VkResourceRecord : public ResourceRecord
 		{
 			void *ptrunion;                               // for initialisation to NULL
 			VkPhysicalDeviceMemoryProperties *memProps;   // only for physical devices
+			InstanceDeviceInfo *instDevInfo;                  // only for logical devices or instances
 			SparseMapping *sparseInfo;                    // only for buffers, images, and views of them
 			SwapchainInfo *swapInfo;                      // only for swapchains
 			MemMapState *memMapState;                     // only for device memory

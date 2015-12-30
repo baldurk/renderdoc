@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_common.h"
+#include "vk_resources.h"
 #include "vk_hookset_defs.h"
 
 #include "os/os_specific.h"
@@ -30,8 +31,8 @@
 
 #include <unordered_map>
 
-static VkLayerDispatchTable replayDeviceTable = {0};
-static VkLayerInstanceDispatchTable replayInstanceTable = {0};
+static VkLayerDispatchTableExtended replayDeviceTable;
+static VkLayerInstanceDispatchTableExtended replayInstanceTable;
 
 static bool replay = false;
 
@@ -45,26 +46,28 @@ void InitReplayTables(void *vulkanModule)
 	#define HookInit(name) table.name = (CONCAT(PFN_vk, name))Process::GetFunctionAddress(vulkanModule, STRINGIZE(CONCAT(vk, name)))
 	
 	{
-		VkLayerDispatchTable &table = replayDeviceTable;
+		VkLayerDispatchTableExtended &table = replayDeviceTable;
+		memset(&table, 0, sizeof(table));
 		HookInit(GetDeviceProcAddr);
 		HookInitVulkanDevice();
 	}
 
 	{
-		VkLayerInstanceDispatchTable &table = replayInstanceTable;
+		VkLayerInstanceDispatchTableExtended &table = replayInstanceTable;
+		memset(&table, 0, sizeof(table));
 		HookInit(GetInstanceProcAddr);
 		HookInitVulkanInstance();
 	}
 }
 
+#define InstanceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetInstanceProcAddr(instance, STRINGIZE(CONCAT(vk, func)));
+
 void InitInstanceReplayTables(VkInstance instance)
 {
-	VkLayerInstanceDispatchTable *table = GetInstanceDispatchTable(NULL);
+	VkLayerInstanceDispatchTable *table = GetInstanceDispatchTable(instance);
 	RDCASSERT(table);
 
 	// we know we'll only have one instance, so this is safe
-	
-#define InstanceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetInstanceProcAddr(instance, STRINGIZE(CONCAT(vk, func)));
 	
 	InstanceGPA(GetPhysicalDeviceSurfaceCapabilitiesKHR)
 	InstanceGPA(GetPhysicalDeviceSurfaceFormatsKHR)
@@ -86,33 +89,59 @@ void InitInstanceReplayTables(VkInstance instance)
 #endif
 	
 	InstanceGPA(DestroySurfaceKHR)
-
-#undef InstanceGPA
 }
 
+void InitInstanceExtensionTables(VkInstance instance)
+{
+	VkLayerInstanceDispatchTableExtended *table = GetInstanceDispatchTable(instance);
+	RDCASSERT(table);
+
+	InstanceDeviceInfo *info = GetRecord(instance)->instDevInfo;
+	
+#undef HookInitExtension
+#define HookInitExtension(ext, func) if(info->ext) { InstanceGPA(func); }
+
+	HookInitVulkanInstanceExts();
+}
+
+#undef InstanceGPA
+
+#define DeviceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetDeviceProcAddr(device, STRINGIZE(CONCAT(vk, func)));
+	
 void InitDeviceReplayTables(VkDevice device)
 {
-	VkLayerDispatchTable *table = GetDeviceDispatchTable(NULL);
+	VkLayerDispatchTable *table = GetDeviceDispatchTable(device);
 	RDCASSERT(table);
 	
 	// MULTIDEVICE each device will need a replay table
 
-#define DeviceGPA(func) table->func = (CONCAT(PFN_vk, func))table->GetDeviceProcAddr(device, STRINGIZE(CONCAT(vk, func)));
-	
 	DeviceGPA(CreateSwapchainKHR)
 	DeviceGPA(DestroySwapchainKHR)
 	DeviceGPA(GetSwapchainImagesKHR)
 	DeviceGPA(AcquireNextImageKHR)
 	DeviceGPA(QueuePresentKHR)
-
-#undef DeviceGPA
 }
 
+void InitDeviceExtensionTables(VkDevice device)
+{
+	VkLayerDispatchTableExtended *table = GetDeviceDispatchTable(device);
+	RDCASSERT(table);
+
+	InstanceDeviceInfo *info = GetRecord(device)->instDevInfo;
+
+#undef HookInitExtension
+#define HookInitExtension(ext, func) if(info->ext) { DeviceGPA(func); }
+
+	HookInitVulkanDeviceExts();
+}
+
+#undef DeviceGPA
+
 static Threading::CriticalSection devlock;
-std::map<void *, VkLayerDispatchTable> devlookup;
+std::map<void *, VkLayerDispatchTableExtended> devlookup;
 
 static Threading::CriticalSection instlock;
-std::map<void *, VkLayerInstanceDispatchTable> instlookup;
+std::map<void *, VkLayerInstanceDispatchTableExtended> instlookup;
 
 static void *GetKey(void *obj)
 {
@@ -124,7 +153,7 @@ void InitDeviceTable(const VkBaseLayerObject *obj)
 {
 	void *key = GetKey(obj->baseObject);
 	
-	VkLayerDispatchTable *table = NULL;
+	VkLayerDispatchTableExtended *table = NULL;
 
 	{
 		SCOPED_LOCK(devlock);
@@ -146,7 +175,7 @@ void InitInstanceTable(const VkBaseLayerObject *obj)
 {
 	void *key = GetKey(obj->baseObject);
 	
-	VkLayerInstanceDispatchTable *table = NULL;
+	VkLayerInstanceDispatchTableExtended *table = NULL;
 
 	{
 		SCOPED_LOCK(instlock);
@@ -168,7 +197,7 @@ void InitInstanceTable(const VkBaseLayerObject *obj)
 	HookInit(EnumerateDeviceLayerProperties);
 }
 
-VkLayerDispatchTable *GetDeviceDispatchTable(void *device)
+VkLayerDispatchTableExtended *GetDeviceDispatchTable(void *device)
 {
 	if(replay) return &replayDeviceTable;
 
@@ -186,7 +215,7 @@ VkLayerDispatchTable *GetDeviceDispatchTable(void *device)
 	}
 }
 
-VkLayerInstanceDispatchTable *GetInstanceDispatchTable(void *instance)
+VkLayerInstanceDispatchTableExtended *GetInstanceDispatchTable(void *instance)
 {
 	if(replay) return &replayInstanceTable;
 

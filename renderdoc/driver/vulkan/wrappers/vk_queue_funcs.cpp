@@ -374,6 +374,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<DrawcallTreeNode> &nodes, ve
 		auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
 		m_DrawcallUses.insert(it, use);
 
+		n.children.clear();
 		InsertDrawsAndRefreshIDs(n.children, cmdBufNodes[i].children, baseEventID, baseDrawID);
 
 		nodes.push_back(n);

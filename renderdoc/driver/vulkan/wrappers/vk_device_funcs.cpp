@@ -147,7 +147,19 @@ VkResult WrappedVulkan::vkCreateInstance(
 	RDCASSERT(m_State >= WRITING);
 
 	m_InitParams.Set(pCreateInfo, GetResID(m_Instance));
-	GetResourceManager()->AddResourceRecord(m_Instance);
+	VkResourceRecord *record = GetResourceManager()->AddResourceRecord(m_Instance);
+
+	record->instDevInfo = new InstanceDeviceInfo();
+	
+#undef CheckExt
+#define CheckExt(name) if(!strcmp(pCreateInfo->ppEnabledExtensionNames[i], STRINGIZE(name))) { record->instDevInfo->name = true; }
+
+	for(uint32_t i=0; i < pCreateInfo->enabledExtensionNameCount; i++)
+	{
+		CheckInstanceExts();
+	}
+
+	InitInstanceExtensionTables(m_Instance);
 
 	*pInstance = m_Instance;
 	
@@ -421,6 +433,19 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				for(uint32_t j=i; j < createInfo.enabledLayerNameCount-1; j++)
 					layerNames[j] = layerNames[j+1];
 				createInfo.enabledLayerNameCount--;
+			}
+		}
+
+		// disable this extension as we might have captured it but we don't need
+		// to replay it
+		for(uint32_t i=0; i < createInfo.enabledExtensionNameCount; i++)
+		{
+			const char **extNames = (const char **)createInfo.ppEnabledExtensionNames;
+			if(!strcmp(extNames[i], DEBUG_MARKER_EXTENSION_NAME))
+			{
+				for(uint32_t j=i; j < createInfo.enabledExtensionNameCount-1; j++)
+					extNames[j] = extNames[j+1];
+				createInfo.enabledExtensionNameCount--;
 			}
 		}
 		
@@ -711,6 +736,18 @@ VkResult WrappedVulkan::vkCreateDevice(
 			record->AddChunk(chunk);
 
 			record->memIdxMap = GetRecord(physicalDevice)->memIdxMap;
+
+			record->instDevInfo = new InstanceDeviceInfo();
+
+#undef CheckExt
+#define CheckExt(name) if(!strcmp(createInfo.ppEnabledExtensionNames[i], STRINGIZE(name))) { record->instDevInfo->name = true; }
+
+			for(uint32_t i=0; i < createInfo.enabledExtensionNameCount; i++)
+			{
+				CheckDeviceExts();
+			}
+		
+			InitDeviceExtensionTables(*pDevice);
 
 			GetRecord(m_Instance)->AddParent(record);
 		}

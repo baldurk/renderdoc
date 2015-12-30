@@ -1358,7 +1358,7 @@ public:
 		VkRenderPass                                renderPass,
     const VkAllocationCallbacks*                pAllocator);
 
-	// Debug functions
+	// DEBUG_REPORT functions
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgCreateMsgCallback,
     VkInstance                          instance,
@@ -1370,13 +1370,29 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgDestroyMsgCallback,
     VkInstance                          instance,
     VkDbgMsgCallback                    msgCallback);
-	
+
+	// VK_LUNARG_DEBUG_MARKER functions
+
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDbgMarkerBegin,
-		VkCommandBuffer  commandBuffer,
-		const char*     pMarker);
+		VkCommandBuffer commandBuffer,
+		const char* pMarker);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDbgMarkerEnd,
-		VkCommandBuffer  commandBuffer);
+		VkCommandBuffer commandBuffer);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgSetObjectTag,
+		VkDevice device,
+		VkDbgObjectType objType,
+		uint64_t object,
+		size_t tagSize,
+		const void* pTag);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgSetObjectName,
+		VkDevice device,
+		VkDbgObjectType objType,
+		uint64_t object,
+		size_t nameSize,
+		const char* pName);
 
 	// Windowing extension functions
 

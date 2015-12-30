@@ -34,12 +34,18 @@
 
 #include <vulkan/vk_layer.h>
 
+#include "vk_hookset_defs.h"
+
 void InitReplayTables(void *vulkanModule);
+
 void InitInstanceReplayTables(VkInstance instance);
 void InitDeviceReplayTables(VkDevice device);
 
-VkLayerDispatchTable *GetDeviceDispatchTable(void *device);
-VkLayerInstanceDispatchTable *GetInstanceDispatchTable(void *instance);
+void InitInstanceExtensionTables(VkInstance instance);
+void InitDeviceExtensionTables(VkDevice device);
+
+VkLayerDispatchTableExtended *GetDeviceDispatchTable(void *device);
+VkLayerInstanceDispatchTableExtended *GetInstanceDispatchTable(void *instance);
 
 class WrappedVulkan;
 
