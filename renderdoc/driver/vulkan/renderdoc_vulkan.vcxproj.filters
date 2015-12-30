@@ -142,7 +142,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="windows\renderdoc.json">
+    <None Include="renderdoc.json">
       <Filter>Layer</Filter>
     </None>
   </ItemGroup>

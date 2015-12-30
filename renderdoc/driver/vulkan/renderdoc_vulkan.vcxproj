@@ -72,10 +72,10 @@
     <ClInclude Include="vk_state.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="windows\renderdoc.json" />
+    <None Include="renderdoc.json" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="windows\renderdoc.json">
+    <Content Include="renderdoc.json">
       <Link>renderdoc.json</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

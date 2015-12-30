@@ -54,7 +54,10 @@ OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(OBJECTS))
 
 -include $(OBJDIR_OBJECTS:.o=.d)
 
-rdoc_vulkan.a: $(OBJDIR_OBJECTS)
+renderdoc_capture.json: renderdoc.json
+	sed '{s%...renderdoc.dll%./librenderdoc.so%}' < renderdoc.json > renderdoc_capture.json
+
+rdoc_vulkan.a: $(OBJDIR_OBJECTS) renderdoc_capture.json
 	ar rcs rdoc_vulkan.a $(OBJDIR_OBJECTS)
 
 .PHONY: clean
