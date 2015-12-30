@@ -3782,9 +3782,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 struct InitPostVSCallback : public DrawcallCallback
 {
-	InitPostVSCallback(WrappedVulkan *vk, VulkanReplay *rp, uint32_t frameID, const vector<uint32_t> &events)
+	InitPostVSCallback(WrappedVulkan *vk, uint32_t frameID, const vector<uint32_t> &events)
 		: m_pDriver(vk)
-		, m_pReplay(rp)
 		, m_FrameID(frameID)
 	  , m_Events(events)
 	{ m_pDriver->SetDrawcallCB(this); }
@@ -3794,7 +3793,7 @@ struct InitPostVSCallback : public DrawcallCallback
 	void PreDraw(uint32_t eid, VkCommandBuffer cmd)
 	{
 		if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
-			m_pReplay->InitPostVSBuffers(m_FrameID, eid);
+			m_pDriver->GetDebugManager()->InitPostVSBuffers(m_FrameID, eid);
 	}
 
 	bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -3810,10 +3809,15 @@ struct InitPostVSCallback : public DrawcallCallback
 	{
 		return false;
 	}
+	
+	void AliasEvent(uint32_t primary, uint32_t alias)
+	{
+		if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())
+			m_pDriver->GetDebugManager()->AliasPostVSBuffers(m_FrameID, primary, alias);
+	}
 
 	uint32_t m_FrameID;
 	WrappedVulkan *m_pDriver;
-	VulkanReplay *m_pReplay;
 	const vector<uint32_t> &m_Events;
 };
 
@@ -3824,7 +3828,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &e
 	// command buffer
 	m_pDriver->ReplayLog(frameID, 0, events.front(), eReplay_WithoutDraw);
 
-	InitPostVSCallback cb(m_pDriver, this, frameID, events);
+	InitPostVSCallback cb(m_pDriver, frameID, events);
 
 	// now we replay the events, which are guaranteed (because we generated them in
 	// GetPassEvents above) to come from the same command buffer, so the event IDs are

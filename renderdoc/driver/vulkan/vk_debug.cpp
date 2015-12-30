@@ -2318,6 +2318,11 @@ struct QuadOverdrawCallback : public DrawcallCallback
 	{
 		return false;
 	}
+	
+	void AliasEvent(uint32_t primary, uint32_t alias)
+	{
+		// don't care
+	}
 
 	uint32_t m_FrameID;
 	WrappedVulkan *m_pDriver;
@@ -4318,7 +4323,12 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
 
 void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 {
+	// go through any aliasing
+	if(m_PostVSAlias.find(eventID) != m_PostVSAlias.end())
+		eventID = m_PostVSAlias[eventID];
+
 	auto idx = std::make_pair(frameID, eventID);
+
 	if(m_PostVSData.find(idx) != m_PostVSData.end())
 		return;
 
@@ -4980,6 +4990,10 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
+	// go through any aliasing
+	if(m_PostVSAlias.find(eventID) != m_PostVSAlias.end())
+		eventID = m_PostVSAlias[eventID];
+
 	VulkanPostVSData postvs;
 	RDCEraseEl(postvs);
 

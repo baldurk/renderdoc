@@ -121,6 +121,12 @@ struct DrawcallCallback
 	// being replayed is larger than one command buffer (which usually means the
 	// whole frame).
 	virtual bool RecordAllCmds() = 0;
+
+	// if a command buffer is recorded once and submitted N > 1 times, then the same
+	// drawcall will have several EIDs that refer to it. We'll only do the full 
+	// callbacks above for the first EID, then call this function for the others
+	// to indicate that they are the same.
+	virtual void AliasEvent(uint32_t primary, uint32_t alias) = 0;
 };
 
 class WrappedVulkan : public IFrameCapturer
@@ -176,6 +182,10 @@ private:
 	Threading::CriticalSection m_CapTransitionLock;
 
 	DrawcallCallback *m_DrawcallCallback;
+
+	// util function to handle fetching the right eventID, calling any
+	// aliases then calling PreDraw.
+	uint32_t HandlePreDraw(VkCommandBuffer commandBuffer);
 	
 	uint32_t m_FrameCounter;
 
@@ -232,7 +242,7 @@ private:
 	{
 		void Reset()
 		{
-			m_CmdPool = VK_NULL_HANDLE;
+			cmdpool = VK_NULL_HANDLE;
 			freecmds.clear();
 			pendingcmds.clear();
 			submittedcmds.clear();
@@ -242,7 +252,7 @@ private:
 			submittedcmds.clear();
 		}
 
-		VkCommandPool m_CmdPool; // the command pool used for allocating our own command buffers
+		VkCommandPool cmdpool; // the command pool used for allocating our own command buffers
 	
 		vector<VkCommandBuffer> freecmds;       // <
 		// -> GetNextCmd() ->                   // |
@@ -290,6 +300,24 @@ private:
 	// handled.
 	ResourceId m_LastCmdBufferID;
 	int m_CmdBuffersInProgress;
+
+	// this is a list of uint64_t file offset -> uint32_t EIDs of where each
+	// drawcall is used. E.g. the drawcall at offset 873954 is EID 50. If a
+	// command buffer is submitted more than once, there may be more than
+	// one entry here - the drawcall will be aliased among several EIDs, with
+	// the first one being the 'primary'
+	struct DrawcallUse
+	{
+		DrawcallUse(uint64_t offs, uint32_t eid) : fileOffset(offs), eventID(eid) {}
+		uint64_t fileOffset;
+		uint32_t eventID;
+		bool operator<(const DrawcallUse &o) const
+		{
+			if(fileOffset != o.fileOffset) return fileOffset < o.fileOffset;
+			return eventID < o.eventID;
+		}
+	};
+	vector<DrawcallUse> m_DrawcallUses;
 
 	struct PartialReplayData
 	{
@@ -344,6 +372,8 @@ private:
 		bool renderPassActive;
 	} m_PartialReplayData;
 
+	map<ResourceId, VkCommandBuffer> m_RerecordCmds;
+
 	// There is only a state while currently partially replaying, it's
 	// undefined/empty otherwise.
 	// All IDs are original IDs, not live.
@@ -351,7 +381,7 @@ private:
 
 	bool ShouldRerecordCmd(ResourceId cmdid);
 	bool InRerecordRange();
-	VkCommandBuffer RerecordCmdBuf();
+	VkCommandBuffer RerecordCmdBuf(ResourceId cmdid);
 
 	// this info is stored in the record on capture, but we
 	// need it on replay too

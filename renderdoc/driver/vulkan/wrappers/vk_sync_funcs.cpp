@@ -562,7 +562,7 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(
 		
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = RerecordCmdBuf();
+			cmdBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), Unwrap(event), mask);
 		}
 	}
@@ -619,7 +619,7 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = RerecordCmdBuf();
+			cmdBuffer = RerecordCmdBuf(cmdid);
 			//ObjDisp(cmdBuffer)->CmdResetEvent(Unwrap(cmdBuffer), Unwrap(event), mask);
 		}
 	}
@@ -718,7 +718,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 	{
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			cmdBuffer = RerecordCmdBuf();
+			cmdBuffer = RerecordCmdBuf(cmdid);
 
 			VkEventCreateInfo evInfo = {
 				VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, NULL, 0,
@@ -736,7 +736,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 			// register to clean this event up once we're done replaying this section of the log
 			m_CleanupEvents.push_back(ev);
 
-			ResourceId cmd = GetResID(RerecordCmdBuf());
+			ResourceId cmd = GetResID(RerecordCmdBuf(cmdid));
 			GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts, (uint32_t)imBarriers.size(), &imBarriers[0]);
 		}
 	}

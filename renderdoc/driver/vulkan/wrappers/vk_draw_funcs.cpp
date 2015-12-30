@@ -45,19 +45,16 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 	{
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 
-			if(m_DrawcallCallback) m_DrawcallCallback->PreDraw(m_RootEventID, commandBuffer);
+			uint32_t eventID = HandlePreDraw(commandBuffer);
 
 			ObjDisp(commandBuffer)->CmdDraw(Unwrap(commandBuffer), vtxCount, instCount, firstVtx, firstInst);
 
-			if(m_DrawcallCallback)
+			if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
 			{
-				if(m_DrawcallCallback->PostDraw(m_RootEventID, commandBuffer))
-				{
-					ObjDisp(commandBuffer)->CmdDraw(Unwrap(commandBuffer), vtxCount, instCount, firstVtx, firstInst);
-					m_DrawcallCallback->PostRedraw(m_RootEventID, commandBuffer);
-				}
+				ObjDisp(commandBuffer)->CmdDraw(Unwrap(commandBuffer), vtxCount, instCount, firstVtx, firstInst);
+				m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
 			}
 		}
 	}
@@ -146,7 +143,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdBlitImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions, f);
 		}
 	}
@@ -246,7 +243,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdResolveImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions);
 		}
 	}
@@ -345,7 +342,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdCopyImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions);
 		}
 	}
@@ -442,7 +439,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdCopyBufferToImage(Unwrap(commandBuffer), Unwrap(srcBuffer), Unwrap(destImage), layout, count, regions);
 		}
 	}
@@ -539,7 +536,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdCopyImageToBuffer(Unwrap(commandBuffer), Unwrap(srcImage), layout, Unwrap(destBuffer), count, regions);
 		}
 	}
@@ -637,7 +634,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(srcBuffer), Unwrap(destBuffer), count, regions);
 		}
 	}
@@ -735,7 +732,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdClearColorImage(Unwrap(commandBuffer), Unwrap(image), layout, &col, count, ranges);
 		}
 	}
@@ -818,7 +815,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdClearDepthStencilImage(Unwrap(commandBuffer), Unwrap(image), l, &ds, count, ranges);
 		}
 	}
@@ -900,7 +897,7 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(
 	{
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdClearAttachments(Unwrap(commandBuffer), acount, atts, rcount, rects);
 		}
 	}
@@ -987,19 +984,16 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 	{
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
-
-			if(m_DrawcallCallback) m_DrawcallCallback->PreDraw(m_RootEventID, commandBuffer);
+			commandBuffer = RerecordCmdBuf(cmdid);
+			
+			uint32_t eventID = HandlePreDraw(commandBuffer);
 
 			ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
 
-			if(m_DrawcallCallback)
+			if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
 			{
-				if(m_DrawcallCallback->PostDraw(m_RootEventID, commandBuffer))
-				{
-					ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
-					m_DrawcallCallback->PostRedraw(m_RootEventID, commandBuffer);
-				}
+				ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
+				m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
 			}
 		}
 	}
@@ -1081,7 +1075,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
 		}
 	}
@@ -1142,7 +1136,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
 		}
 	}
@@ -1198,7 +1192,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(
 	{
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
 		}
 	}
@@ -1252,7 +1246,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
-			commandBuffer = RerecordCmdBuf();
+			commandBuffer = RerecordCmdBuf(cmdid);
 			ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
 		}
 	}

@@ -174,8 +174,8 @@ void WrappedVulkan::Shutdown()
 		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freecmds[i]);
 
 	// destroy the pool
-	ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.m_CmdPool), NULL);
-	GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.m_CmdPool);
+	ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.cmdpool), NULL);
+	GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.cmdpool);
 	
 	// we do more in Shutdown than the equivalent vkDestroyInstance since on replay there's
 	// no explicit vkDestroyDevice, we destroy the device here then the instance
@@ -555,13 +555,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 		VkResult vkr = VK_SUCCESS;
 
-		if(m_InternalCmds.m_CmdPool == VK_NULL_HANDLE)
+		if(m_InternalCmds.cmdpool == VK_NULL_HANDLE)
 		{
 			VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, NULL, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, qFamilyIdx };
-			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL, &m_InternalCmds.m_CmdPool);
+			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL, &m_InternalCmds.cmdpool);
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.m_CmdPool);
+			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.cmdpool);
 		}
 		
 		ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.props);
@@ -728,13 +728,13 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 		m_QueueFamilyIdx = qFamilyIdx;
 
-		if(m_InternalCmds.m_CmdPool == VK_NULL_HANDLE)
+		if(m_InternalCmds.cmdpool == VK_NULL_HANDLE)
 		{
 			VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, NULL, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, qFamilyIdx };
-			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL, &m_InternalCmds.m_CmdPool);
+			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL, &m_InternalCmds.cmdpool);
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.m_CmdPool);
+			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.cmdpool);
 		}
 		
 		ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.props);
@@ -780,10 +780,10 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
 		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freecmds[i]);
 
 	// destroy our command pool
-	if(m_InternalCmds.m_CmdPool != VK_NULL_HANDLE)
+	if(m_InternalCmds.cmdpool != VK_NULL_HANDLE)
 	{
-		ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.m_CmdPool), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.m_CmdPool);
+		ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.cmdpool), NULL);
+		GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.cmdpool);
 	}
 	
 	for(size_t i=0; i < m_InternalCmds.freesems.size(); i++)

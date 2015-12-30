@@ -264,6 +264,21 @@ struct CounterResult
 	CounterResult(uint32_t EID, uint32_t c, uint32_t data) : eventID(EID), counterID(c) { value.u32 = data; }
 	CounterResult(uint32_t EID, uint32_t c, uint64_t data) : eventID(EID), counterID(c) { value.u64 = data; }
 
+	bool operator <(const CounterResult &o) const
+	{
+		if(eventID != o.eventID) return eventID < o.eventID;
+		if(counterID != o.counterID) return counterID < o.counterID;
+
+		// don't compare values, just consider equal
+		return false;
+	}
+
+	bool operator ==(const CounterResult &o) const
+	{
+		// don't compare values, just consider equal by EID/counterID
+		return eventID == o.eventID && counterID == o.counterID;
+	}
+
 	uint32_t eventID;
 	uint32_t counterID;
 	union

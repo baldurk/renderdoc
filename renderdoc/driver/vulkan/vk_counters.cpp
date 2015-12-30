@@ -103,10 +103,20 @@ struct GPUTimerCallback : public DrawcallCallback
 		return true;
 	}
 
+	void AliasEvent(uint32_t primary, uint32_t alias)
+	{
+		m_AliasEvents.push_back(std::make_pair(primary, alias));
+	}
+
 	WrappedVulkan *m_pDriver;
 	VulkanReplay *m_pReplay;
 	VkQueryPool m_QueryPool;
 	vector<uint32_t> m_Results;
+	// events which are the 'same' from being the same command buffer resubmitted
+	// multiple times in the frame. We will only get the full callback when we're
+	// recording the command buffer, and will be given the first EID. After that
+	// we'll just be told which other EIDs alias this event.
+	vector< pair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
 vector<CounterResult> VulkanReplay::FetchCounters(uint32_t frameID, const vector<uint32_t> &counters)
@@ -168,6 +178,25 @@ vector<CounterResult> VulkanReplay::FetchCounters(uint32_t frameID, const vector
 
 		ret.push_back(result);
 	}
+
+	for(size_t i=0; i < cb.m_AliasEvents.size(); i++)
+	{
+		CounterResult search;
+		search.counterID = eCounter_EventGPUDuration;
+		search.eventID = cb.m_AliasEvents[i].first;
+
+		// find the result we're aliasing
+		auto it = std::find(ret.begin(), ret.end(), search);
+		RDCASSERT(it != ret.end());
+
+		// duplicate the result and append
+		CounterResult aliased = *it;
+		aliased.eventID = cb.m_AliasEvents[i].second;
+		ret.push_back(aliased);
+	}
+
+	// sort so that the alias results appear in the right places
+	std::sort(ret.begin(), ret.end());
 
 	return ret;
 }

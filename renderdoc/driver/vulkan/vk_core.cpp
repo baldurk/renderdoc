@@ -373,7 +373,7 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
 	}
 	else
 	{	
-		VkCommandBufferAllocateInfo cmdInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, NULL, Unwrap(m_InternalCmds.m_CmdPool), VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1 };
+		VkCommandBufferAllocateInfo cmdInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, NULL, Unwrap(m_InternalCmds.cmdpool), VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1 };
 		VkResult vkr = ObjDisp(m_Device)->AllocateCommandBuffers(Unwrap(m_Device), &cmdInfo, &ret);
 		RDCASSERT(vkr == VK_SUCCESS);
 
@@ -457,6 +457,32 @@ void WrappedVulkan::FlushQ()
 		m_InternalCmds.freecmds.insert(m_InternalCmds.freecmds.end(), m_InternalCmds.submittedcmds.begin(), m_InternalCmds.submittedcmds.end());
 		m_InternalCmds.submittedcmds.clear();
 	}
+}
+
+uint32_t WrappedVulkan::HandlePreDraw(VkCommandBuffer commandBuffer)
+{
+	if(!m_DrawcallCallback) return 0;
+
+	// look up the EID this drawcall came from
+	DrawcallUse use(m_CurChunkOffset, 0);
+	auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+	RDCASSERT(it != m_DrawcallUses.end());
+
+	uint32_t eventID = it->eventID;
+
+	RDCASSERT(eventID != 0);
+
+	// handle all aliases of this drawcall
+	++it;
+	while(it != m_DrawcallUses.end() && it->fileOffset == m_CurChunkOffset)
+	{
+		m_DrawcallCallback->AliasEvent(eventID, it->eventID);
+		++it;
+	}
+
+	m_DrawcallCallback->PreDraw(eventID, commandBuffer);
+
+	return eventID;
 }
 
 const char * WrappedVulkan::GetChunkName(uint32_t idx)
@@ -1197,7 +1223,7 @@ void WrappedVulkan::ReadLogInitialisation()
 	m_pSerialiser->SetDebugText(false);
 
 	// ensure the capture at least created a device and fetched a queue.
-	RDCASSERT(m_Device != VK_NULL_HANDLE && m_Queue != VK_NULL_HANDLE && m_InternalCmds.m_CmdPool != VK_NULL_HANDLE);
+	RDCASSERT(m_Device != VK_NULL_HANDLE && m_Queue != VK_NULL_HANDLE && m_InternalCmds.cmdpool != VK_NULL_HANDLE);
 }
 
 void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial)
@@ -1328,6 +1354,16 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		vkFreeCommandBuffers(m_PartialReplayData.partialDevice, m_PartialReplayData.resultPartialCmdPool, 1, &m_PartialReplayData.resultPartialCmdBuffer);
 		m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;
 	}
+
+	for(auto it = m_RerecordCmds.begin(); it != m_RerecordCmds.end(); ++it)
+	{
+		VkCommandBuffer cmd = it->second;
+
+		// same as above (these are created in an identical way)
+		vkFreeCommandBuffers(GetDev(), m_InternalCmds.cmdpool, 1, &cmd);
+	}
+
+	m_RerecordCmds.clear();
 
 	m_State = READING;
 }
@@ -1877,10 +1913,20 @@ bool WrappedVulkan::InRerecordRange()
 	return m_BakedCmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent;
 }
 
-VkCommandBuffer WrappedVulkan::RerecordCmdBuf()
+VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid)
 {
 	if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
 		return m_PartialReplayData.outsideCmdBuffer;
+	
+	if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+	{
+		auto it = m_RerecordCmds.find(cmdid);
+
+		RDCASSERT(it != m_RerecordCmds.end());
+
+		return it->second;
+	}
+
 	return m_PartialReplayData.resultPartialCmdBuffer;
 }
 

@@ -265,7 +265,11 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 		m_RootEventID--;
 
-		if(m_LastEventID == startEID)
+		if(numCmds == 0)
+		{
+			// do nothing, don't bother with the logic below
+		}
+		else if(m_LastEventID == startEID)
 		{
 			RDCDEBUG("Queue Submit no replay %u == %u", m_LastEventID, startEID);
 		}
@@ -284,10 +288,10 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 				if(eid == m_PartialReplayData.baseEvent)
 				{
-					ResourceId partial = GetResID(RerecordCmdBuf());
+					ResourceId partial = GetResID(RerecordCmdBuf(cmdIds[c]));
 					RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
 					trimmedCmdIds.push_back(partial);
-					trimmedCmds.push_back(Unwrap(RerecordCmdBuf()));
+					trimmedCmds.push_back(Unwrap(RerecordCmdBuf(cmdIds[c])));
 				}
 				else if(m_LastEventID >= end)
 				{
@@ -315,8 +319,30 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 				GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
 			}
 		}
+		else if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+		{
+			RDCDEBUG("Queue Submit re-recording from %u", m_RootEventID);
+
+			vector<VkCommandBuffer> rerecordedCmds;
+
+			for(uint32_t c=0; c < numCmds; c++)
+			{
+				VkCommandBuffer cmd = RerecordCmdBuf(cmdIds[c]);
+				ResourceId rerecord = GetResID(cmd);
+				RDCDEBUG("Queue Submit fully re-recorded replay of %llu, using %llu", cmdIds[c], rerecord);
+				rerecordedCmds.push_back(Unwrap(cmd));
+				
+				GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[rerecord].imgbarriers, m_ImageLayouts);
+			}
+			
+			submitInfo.commandBufferCount = (uint32_t)rerecordedCmds.size();
+			submitInfo.pCommandBuffers = &rerecordedCmds[0];
+			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
+		}
 		else
 		{
+			RDCDEBUG("Queue Submit full replay %u >= %u", m_LastEventID, m_RootEventID);
+
 			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
 
 			for(uint32_t i=0; i < numCmds; i++)
@@ -345,6 +371,12 @@ void WrappedVulkan::RefreshIDs(vector<DrawcallTreeNode> &nodes, uint32_t baseEve
 			nodes[i].draw.events[e].eventID += baseEventID;
 			m_Events.push_back(nodes[i].draw.events[e]);
 		}
+
+		DrawcallUse use(m_Events.back().fileOffset, nodes[i].draw.eventID);
+
+		// insert in sorted location
+		auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+		m_DrawcallUses.insert(it, use);
 
 		RefreshIDs(nodes[i].children, baseEventID, baseDrawID);
 	}
