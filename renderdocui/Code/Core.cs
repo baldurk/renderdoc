@@ -293,7 +293,7 @@ namespace renderdocui.Code
 
             foreach (var d in draws)
             {
-                ret |= (d.flags & (DrawcallFlags.PushMarker | DrawcallFlags.SetMarker)) > 0 && (d.flags & DrawcallFlags.CmdList) == 0;
+                ret |= (d.flags & DrawcallFlags.PushMarker) > 0 && (d.flags & DrawcallFlags.CmdList) == 0;
                 ret |= ContainsMarker(d.children);
             }
 
@@ -315,20 +315,30 @@ namespace renderdocui.Code
             int passID = 1;
 
             int start = 0;
+            int refdraw = 0;
 
             int counter = 1;
 
             for (int i = 1; i < draws.Length; i++)
             {
-                if (PassEquivalent(draws[i], draws[start]))
+                if ((draws[refdraw].flags & (DrawcallFlags.Copy | DrawcallFlags.SetMarker)) > 0)
+                {
+                    refdraw = i;
+                    continue;
+                }
+
+                if ((draws[i].flags & (DrawcallFlags.Copy | DrawcallFlags.SetMarker)) > 0)
+                    continue;
+
+                if (PassEquivalent(draws[i], draws[refdraw]))
                     continue;
 
                 int end = i-1;
 
                 if (end - start < 2 ||
-                    draws[i].children.Length > 0 || draws[start].children.Length > 0 ||
+                    draws[i].children.Length > 0 || draws[refdraw].children.Length > 0 ||
                     draws[i].context != m_FrameInfo[frameID].immContextId ||
-                    draws[start].context != m_FrameInfo[frameID].immContextId)
+                    draws[refdraw].context != m_FrameInfo[frameID].immContextId)
                 {
                     for (int j = start; j <= end; j++)
                     {
@@ -337,6 +347,7 @@ namespace renderdocui.Code
                     }
 
                     start = i;
+                    refdraw = i;
                     continue;
                 }
 
@@ -365,12 +376,13 @@ namespace renderdocui.Code
 
                 mark.name = "Guessed Pass";
 
+                minOutCount = Math.Max(1, minOutCount);
 
-                if((draws[end].flags & DrawcallFlags.Dispatch) != 0)
+                if ((draws[end].flags & DrawcallFlags.Dispatch) != 0)
                     mark.name = String.Format("Compute Pass #{0}", computepassID++);
                 else if (maxOutCount == 0)
                     mark.name = String.Format("Depth-only Pass #{0}", depthpassID++);
-                else if(minOutCount == maxOutCount)
+                else if (minOutCount == maxOutCount)
                     mark.name = String.Format("Colour Pass #{0} ({1} Targets{2})", passID++, minOutCount, draws[end].depthOut == ResourceId.Null ? "" : " + Depth");
                 else
                     mark.name = String.Format("Colour Pass #{0} ({1}-{2} Targets{3})", passID++, minOutCount, maxOutCount, draws[end].depthOut == ResourceId.Null ? "" : " + Depth");
@@ -386,6 +398,7 @@ namespace renderdocui.Code
                 ret.Add(mark);
 
                 start = i;
+                refdraw = i;
                 counter++;
             }
 

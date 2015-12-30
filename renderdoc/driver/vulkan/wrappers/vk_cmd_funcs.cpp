@@ -378,7 +378,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 			ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &info);
 		}
 
-		m_BakedCmdBufferInfo[cmdId].curEventID = 1;
+		m_BakedCmdBufferInfo[cmdId].curEventID = 0;
 	}
 	else if(m_State == READING)
 	{
@@ -415,8 +415,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 			m_BakedCmdBufferInfo[cmdId].draw = draw;
 			
 			// On queue submit we increment all child events/drawcalls by
-			// m_RootEventID insert them into the tree.
-			m_BakedCmdBufferInfo[cmdId].curEventID = 1;
+			// m_RootEventID and insert them into the tree.
+			m_BakedCmdBufferInfo[cmdId].curEventID = 0;
 			m_BakedCmdBufferInfo[cmdId].eventCount = 0;
 			m_BakedCmdBufferInfo[cmdId].drawCount = 0;
 
@@ -497,7 +497,9 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 			commandBuffer = RerecordCmdBuf(cmdid);
 			RDCDEBUG("Ending partial command buffer for %llu baked to %llu", cmdid, bakeId);
 
-			if(m_PartialReplayData.renderPassActive)
+			bool recordAll = m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds();
+
+			if(!recordAll && m_PartialReplayData.renderPassActive)
 				ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
 
 			ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
@@ -519,21 +521,6 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 
 		ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
-		if(!m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
-		{
-			FetchDrawcall draw;
-			draw.name = "API Calls";
-			draw.flags |= eDraw_SetMarker;
-
-			// VKTODOLOW hack, give this drawcall the same event ID as its last child, by
-			// decrementing then incrementing again.
-			m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID--;
-
-			AddDrawcall(draw, true);
-			
-			m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
-		}
-
 		{
 			if(GetDrawcallStack().size() > 1)
 				GetDrawcallStack().pop_back();
@@ -542,8 +529,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 		{
 			m_BakedCmdBufferInfo[bakeId].draw = m_BakedCmdBufferInfo[m_LastCmdBufferID].draw;
 			m_BakedCmdBufferInfo[bakeId].curEventID = 0;
-			m_BakedCmdBufferInfo[bakeId].eventCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID-1;
-			RDCASSERT(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID >= 1);
+			m_BakedCmdBufferInfo[bakeId].eventCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
 			m_BakedCmdBufferInfo[bakeId].drawCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount;
 			
 			m_BakedCmdBufferInfo[m_LastCmdBufferID].draw = NULL;
@@ -894,6 +880,11 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 		draw.flags |= eDraw_PassBoundary|eDraw_EndPass;
 
 		AddDrawcall(draw, true);
+
+		// track while reading, reset this to empty so AddDrawcall sets no outputs,
+		// but only AFTER the above AddDrawcall (we want it grouped together)
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
 	}
 
 	return true;

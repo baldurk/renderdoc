@@ -467,7 +467,7 @@ private:
 		
 	DrawcallTreeNode m_ParentDrawcall;
 
-	void RefreshIDs(vector<DrawcallTreeNode> &nodes, uint32_t baseEventID, uint32_t baseDrawID);
+	void InsertDrawsAndRefreshIDs(vector<DrawcallTreeNode> &nodes, vector<DrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID, uint32_t baseDrawID);
 
 	list<DrawcallTreeNode *> m_DrawcallStack;
 

@@ -199,58 +199,46 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		}
 
 		AddEvent(QUEUE_SUBMIT, desc);
-		string name = "vkQueueSubmit(" +
-						ToStr::Get(numCmds) + ")";
 
-		FetchDrawcall draw;
-		draw.name = name;
-
-		draw.flags |= eDraw_PushMarker;
-
-		AddDrawcall(draw, true);
-
-		// add command buffer draws under here
-		GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
-
+		// we're adding multiple events, need to increment ourselves
 		m_RootEventID++;
+
+		string basename = "vkQueueSubmit(" + ToStr::Get(numCmds) + ")";
 
 		for(uint32_t c=0; c < numCmds; c++)
 		{
-			string name = "[" + ToStr::Get(cmdIds[c]) + "]";
+			string name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)", basename.c_str(), c, ToStr::Get(cmdIds[c]).c_str());
 
-			AddEvent(QUEUE_SUBMIT, "cmd " + name);
-
+			// add a fake marker
 			FetchDrawcall draw;
 			draw.name = name;
-
-			draw.flags |= eDraw_PushMarker;
-
+			draw.flags |= eDraw_SetMarker;
+			AddEvent(SET_MARKER, name);
 			AddDrawcall(draw, true);
-
-			DrawcallTreeNode &d = GetDrawcallStack().back()->children.back();
-
-			// copy DrawcallTreeNode children
-			d.children = m_BakedCmdBufferInfo[cmdIds[c]].draw->children;
-
-			// assign new event and drawIDs
-			RefreshIDs(d.children, m_RootEventID, m_RootDrawcallID);
+			m_RootEventID++;
+			
+			// insert the baked command buffer in-line into this list of notes, assigning new event and drawIDs
+			InsertDrawsAndRefreshIDs(GetDrawcallStack().back()->children, m_BakedCmdBufferInfo[cmdIds[c]].draw->children, m_RootEventID, m_RootDrawcallID);
 
 			m_PartialReplayData.cmdBufferSubmits[cmdIds[c]].push_back(m_RootEventID);
 
-			// 1 extra for the [0] virtual event for the command buffer
-			m_RootEventID += 1+m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
+			m_RootEventID += m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
 			m_RootDrawcallID += m_BakedCmdBufferInfo[cmdIds[c]].drawCount;
+			
+			name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c, ToStr::Get(cmdIds[c]).c_str());
+			draw.name = name;
+			AddEvent(SET_MARKER, name);
+			AddDrawcall(draw, true);
+			m_RootEventID++;
 		}
 
-		// the outer loop will increment the event ID but we've handled
-		// it ourselves, so 'undo' that.
+		// account for the outer loop thinking we've added one event and incrementing,
+		// since we've done all the handling ourselves this will be off by one.
 		m_RootEventID--;
-
-		// done adding command buffers
-		m_DrawcallStack.pop_back();
 	}
 	else if(m_State == EXECUTING)
 	{
+		// account for the queue submit event
 		m_RootEventID++;
 
 		uint32_t startEID = m_RootEventID;
@@ -258,66 +246,21 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		// advance m_CurEventID to match the events added when reading
 		for(uint32_t c=0; c < numCmds; c++)
 		{
-			// 1 extra for the [0] virtual event for the command buffer
-			m_RootEventID += 1+m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
-			m_RootDrawcallID += m_BakedCmdBufferInfo[cmdIds[c]].drawCount;
+			// 2 extra for the virtual labels around the command buffer
+			m_RootEventID += 2+m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
+			m_RootDrawcallID += 2+m_BakedCmdBufferInfo[cmdIds[c]].drawCount;
 		}
 
+		// same accounting for the outer loop as above
 		m_RootEventID--;
 
 		if(numCmds == 0)
 		{
 			// do nothing, don't bother with the logic below
 		}
-		else if(m_LastEventID == startEID)
+		else if(m_LastEventID <= startEID)
 		{
 			RDCDEBUG("Queue Submit no replay %u == %u", m_LastEventID, startEID);
-		}
-		else if(m_LastEventID > startEID && m_LastEventID < m_RootEventID)
-		{
-			RDCDEBUG("Queue Submit partial replay %u < %u", m_LastEventID, m_RootEventID);
-
-			uint32_t eid = startEID;
-
-			vector<ResourceId> trimmedCmdIds;
-			vector<VkCommandBuffer> trimmedCmds;
-
-			for(uint32_t c=0; c < numCmds; c++)
-			{
-				uint32_t end = eid + m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
-
-				if(eid == m_PartialReplayData.baseEvent)
-				{
-					ResourceId partial = GetResID(RerecordCmdBuf(cmdIds[c]));
-					RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
-					trimmedCmdIds.push_back(partial);
-					trimmedCmds.push_back(Unwrap(RerecordCmdBuf(cmdIds[c])));
-				}
-				else if(m_LastEventID >= end)
-				{
-					RDCDEBUG("Queue Submit full replay %llu", cmdIds[c]);
-					trimmedCmdIds.push_back(cmdIds[c]);
-					trimmedCmds.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdIds[c])));
-				}
-				else
-				{
-					RDCDEBUG("Queue not submitting %llu", cmdIds[c]);
-				}
-
-				eid += 1+m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
-			}
-
-			RDCASSERT(trimmedCmds.size() > 0);
-			
-			submitInfo.commandBufferCount = (uint32_t)trimmedCmds.size();
-			submitInfo.pCommandBuffers = &trimmedCmds[0];
-			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
-
-			for(uint32_t i=0; i < trimmedCmdIds.size(); i++)
-			{
-				ResourceId cmd = trimmedCmdIds[i];
-				GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
-			}
 		}
 		else if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
 		{
@@ -339,6 +282,57 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			submitInfo.pCommandBuffers = &rerecordedCmds[0];
 			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
 		}
+		else if(m_LastEventID > startEID && m_LastEventID < m_RootEventID)
+		{
+			RDCDEBUG("Queue Submit partial replay %u < %u", m_LastEventID, m_RootEventID);
+
+			uint32_t eid = startEID;
+
+			vector<ResourceId> trimmedCmdIds;
+			vector<VkCommandBuffer> trimmedCmds;
+
+			for(uint32_t c=0; c < numCmds; c++)
+			{
+				// account for the virtual vkBeginCommandBuffer label at the start of the events here
+				// so it matches up to baseEvent
+				eid++;
+
+				uint32_t end = eid + m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
+
+				if(eid == m_PartialReplayData.baseEvent)
+				{
+					ResourceId partial = GetResID(RerecordCmdBuf(cmdIds[c]));
+					RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
+					trimmedCmdIds.push_back(partial);
+					trimmedCmds.push_back(Unwrap(RerecordCmdBuf(cmdIds[c])));
+				}
+				else if(m_LastEventID >= end)
+				{
+					RDCDEBUG("Queue Submit full replay %llu", cmdIds[c]);
+					trimmedCmdIds.push_back(cmdIds[c]);
+					trimmedCmds.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdIds[c])));
+				}
+				else
+				{
+					RDCDEBUG("Queue not submitting %llu", cmdIds[c]);
+				}
+
+				// 1 extra to account for the virtual end command buffer label (begin is accounted for above)
+				eid += 1+m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
+			}
+
+			RDCASSERT(trimmedCmds.size() > 0);
+			
+			submitInfo.commandBufferCount = (uint32_t)trimmedCmds.size();
+			submitInfo.pCommandBuffers = &trimmedCmds[0];
+			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
+
+			for(uint32_t i=0; i < trimmedCmdIds.size(); i++)
+			{
+				ResourceId cmd = trimmedCmdIds[i];
+				GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
+			}
+		}
 		else
 		{
 			RDCDEBUG("Queue Submit full replay %u >= %u", m_LastEventID, m_RootEventID);
@@ -358,27 +352,31 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 	return true;
 }
 
-void WrappedVulkan::RefreshIDs(vector<DrawcallTreeNode> &nodes, uint32_t baseEventID, uint32_t baseDrawID)
+void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<DrawcallTreeNode> &nodes, vector<DrawcallTreeNode> &cmdBufNodes,
+                                             uint32_t baseEventID, uint32_t baseDrawID)
 {
 	// assign new drawcall IDs
-	for(size_t i=0; i < nodes.size(); i++)
+	for(size_t i=0; i < cmdBufNodes.size(); i++)
 	{
-		nodes[i].draw.eventID += baseEventID;
-		nodes[i].draw.drawcallID += baseDrawID;
+		DrawcallTreeNode n = cmdBufNodes[i];
+		n.draw.eventID += baseEventID;
+		n.draw.drawcallID += baseDrawID;
 
-		for(int32_t e=0; e < nodes[i].draw.events.count; e++)
+		for(int32_t e=0; e < n.draw.events.count; e++)
 		{
-			nodes[i].draw.events[e].eventID += baseEventID;
-			m_Events.push_back(nodes[i].draw.events[e]);
+			n.draw.events[e].eventID += baseEventID;
+			m_Events.push_back(n.draw.events[e]);
 		}
 
-		DrawcallUse use(m_Events.back().fileOffset, nodes[i].draw.eventID);
+		DrawcallUse use(m_Events.back().fileOffset, n.draw.eventID);
 
 		// insert in sorted location
 		auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
 		m_DrawcallUses.insert(it, use);
 
-		RefreshIDs(nodes[i].children, baseEventID, baseDrawID);
+		InsertDrawsAndRefreshIDs(n.children, cmdBufNodes[i].children, baseEventID, baseDrawID);
+
+		nodes.push_back(n);
 	}
 }
 
