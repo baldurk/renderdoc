@@ -143,6 +143,7 @@ struct VulkanPipelineState
 
 		struct SpecInfo
 		{
+			SpecInfo() : specID(0) {}
 			uint32_t specID;
 			rdctype::array<byte> data;
 		};
@@ -201,7 +202,7 @@ struct VulkanPipelineState
 	struct ColorBlend
 	{
 		ColorBlend()
-			: alphaToCoverageEnable(false), logicOpEnable(false)
+			: alphaToCoverageEnable(false), alphaToOneEnable(false), logicOpEnable(false)
 		{
 			blendConst[0] = blendConst[1] = blendConst[2] = blendConst[3] = 0.0f;
 		}
@@ -260,6 +261,8 @@ struct VulkanPipelineState
 	{
 		struct RenderPass
 		{
+			RenderPass() : depthstencilAttachment(-1) {}
+
 			ResourceId obj;
 			// VKTODOMED renderpass and subpass information here
 			
