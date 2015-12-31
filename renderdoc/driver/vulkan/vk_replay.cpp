@@ -80,6 +80,27 @@ struct meshuniforms
 #define MESHDISPLAY_SECONDARY       0x3
 #define MESHDISPLAY_SECONDARY_ALPHA 0x4
 
+#define HGRAM_PIXELS_PER_TILE  64
+#define HGRAM_TILES_PER_BLOCK  32
+
+#define HGRAM_NUM_BUCKETS	   256
+
+struct histogramuniforms
+{
+	uint32_t HistogramChannels;
+	float HistogramMin;
+	float HistogramMax;
+	uint32_t HistogramFlags;
+	
+	float HistogramSlice;
+	uint32_t HistogramMip;
+	int HistogramSample;
+	int HistogramNumSamples;
+
+	Vec3f HistogramTextureResolution;
+	float Padding3;
+};
+
 VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), height(0),
 	dsimg(VK_NULL_HANDLE), dsmem(VK_NULL_HANDLE)
 {
@@ -3133,14 +3154,411 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, ve
 
 bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
 {
-	RDCUNIMPLEMENTED("GetMinMax");
-	return false;
+	VkDevice dev = m_pDriver->GetDev();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
+	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
+	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
+
+	// VKTODOMED handle multiple subresources with different layouts etc
+	VkImageLayout origLayout = layouts.subresourceStates[0].newLayout;
+	VkImageView liveImView = iminfo.view;
+
+	if(liveImView == VK_NULL_HANDLE)
+	{
+		VkImageViewCreateInfo viewInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
+			iminfo.format,
+			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
+			0
+		};
+
+		// Only needed on AMD - does the wrong thing on nvidia - so commented for now while AMD
+		// drivers aren't on 0.9.2
+		//if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
+			//std::swap(viewInfo.channels.r, viewInfo.channels.b);
+
+		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, &iminfo.view);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
+		// register as a live-only resource, so it is cleaned up properly
+		m_pDriver->GetResourceManager()->AddLiveResource(viewid, iminfo.view);
+
+		liveImView = iminfo.view;
+	}
+	
+	VkDescriptorInfo desc = {0};
+	desc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	desc.imageView = Unwrap(liveImView);
+	desc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
+
+	VkDescriptorInfo bufdescs[3];
+	RDCEraseEl(bufdescs);
+	GetDebugManager()->m_MinMaxTileResult.FillDescriptor(bufdescs[0]);
+	GetDebugManager()->m_MinMaxResult.FillDescriptor(bufdescs[1]);
+	GetDebugManager()->m_HistogramUBO.FillDescriptor(bufdescs[2]);
+
+	VkWriteDescriptorSet writeSet[] = {
+
+		// first pass on tiles
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
+			0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[0] // destination = tile result
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
+			1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[0] // source = unused, bind tile result
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
+			2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &bufdescs[2]
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
+			3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
+		},
+
+		// second pass from tiles to result
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[1]),
+			0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[1] // destination = result
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[1]),
+			1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[0] // source = tile result
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[1]),
+			2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &bufdescs[2]
+		},
+	};
+
+	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+	
+	histogramuniforms *data = (histogramuniforms *)GetDebugManager()->m_HistogramUBO.Map(vt, dev, NULL);
+	
+	data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width)>>mip, 1U);
+	data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height)>>mip, 1U);
+	data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.arraySize)>>mip, 1U);
+	data->HistogramSlice = (float)sliceFace;
+	data->HistogramMip = (int)mip;
+	data->HistogramNumSamples = iminfo.samples;
+	data->HistogramSample = (int)RDCCLAMP(sample, 0U, uint32_t(iminfo.samples)-1);
+	if(sample == ~0U) data->HistogramSample = -iminfo.samples;
+	data->HistogramMin = 0.0f;
+	data->HistogramMax = 1.0f;
+	data->HistogramChannels = 0xf;
+
+	if(iminfo.type == VK_IMAGE_TYPE_3D)
+		data->HistogramSlice = float(sliceFace)/float(iminfo.extent.depth);
+	
+	GetDebugManager()->m_HistogramUBO.Unmap(vt, dev);
+
+	VkImageMemoryBarrier srcimTrans = {
+		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+		0, 0, origLayout, VK_IMAGE_LAYOUT_GENERAL,
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		Unwrap(liveIm),
+		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+	};
+
+	// ensure all previous writes have completed
+	srcimTrans.outputMask =
+		VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
+		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
+		VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
+		VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	// before we go reading
+	srcimTrans.inputMask = VK_MEMORY_INPUT_SHADER_READ_BIT;
+
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	
+	vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+	void *barrier = (void *)&srcimTrans;
+
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	srcimTrans.oldLayout = srcimTrans.newLayout;
+
+	srcimTrans.outputMask = 0;
+	srcimTrans.inputMask = 0;
+	
+	int blocksX = (int)ceil(iminfo.extent.width/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+	int blocksY = (int)ceil(iminfo.extent.height/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+
+	vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_MinMaxTilePipe));
+	vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_HistogramPipeLayout),
+														0, 1, UnwrapPtr(GetDebugManager()->m_HistogramDescSet[0]), 0, NULL);
+
+	vt->CmdDispatch(Unwrap(cmd), blocksX, blocksY, 1);
+
+	VkBufferMemoryBarrier tilebarrier = {
+		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
+		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT, VK_MEMORY_INPUT_SHADER_READ_BIT,
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		Unwrap(GetDebugManager()->m_MinMaxTileResult.buf),
+		0, GetDebugManager()->m_MinMaxTileResult.totalsize,
+	};
+
+	// image layout back to normal
+	srcimTrans.newLayout = origLayout;
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+	// ensure shader writes complete before coalescing the tiles
+	barrier = (void *)&tilebarrier;
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+	vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_MinMaxResultPipe));
+	vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_HistogramPipeLayout),
+														0, 1, UnwrapPtr(GetDebugManager()->m_HistogramDescSet[1]), 0, NULL);
+
+	vt->CmdDispatch(Unwrap(cmd), 1, 1, 1);
+
+	// ensure shader writes complete before copying back to readback buffer
+	tilebarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+	tilebarrier.buffer = Unwrap(GetDebugManager()->m_MinMaxResult.buf);
+	tilebarrier.size = GetDebugManager()->m_MinMaxResult.totalsize;
+	
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+	VkBufferCopy bufcopy = {
+		0, 0, GetDebugManager()->m_MinMaxResult.totalsize,
+	};
+
+	vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_MinMaxResult.buf), Unwrap(GetDebugManager()->m_MinMaxReadback.buf), 1, &bufcopy);
+	
+	// wait for copy to complete before mapping
+	tilebarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	tilebarrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT;
+	tilebarrier.buffer = Unwrap(GetDebugManager()->m_MinMaxReadback.buf);
+	tilebarrier.size = GetDebugManager()->m_MinMaxResult.totalsize;
+	
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+	vt->EndCommandBuffer(Unwrap(cmd));
+	
+	// submit cmds and wait for idle so we can readback
+	m_pDriver->SubmitCmds();
+	m_pDriver->FlushQ();
+	
+	Vec4f *minmax = (Vec4f *)GetDebugManager()->m_MinMaxReadback.Map(vt, dev, NULL);
+	
+	minval[0] = minmax[0].x;
+	minval[1] = minmax[0].y;
+	minval[2] = minmax[0].z;
+	minval[3] = minmax[0].w;
+
+	maxval[0] = minmax[1].x;
+	maxval[1] = minmax[1].y;
+	maxval[2] = minmax[1].z;
+	maxval[3] = minmax[1].w;
+
+	GetDebugManager()->m_MinMaxReadback.Unmap(vt, dev);
+	
+	return true;
 }
 
 bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
 {
-	RDCUNIMPLEMENTED("GetHistogram");
-	return false;
+	if(minval >= maxval) return false;
+
+	VkDevice dev = m_pDriver->GetDev();
+	VkCmdBuffer cmd = m_pDriver->GetNextCmd();
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+	ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
+	VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
+	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
+
+	// VKTODOMED handle multiple subresources with different layouts etc
+	VkImageLayout origLayout = layouts.subresourceStates[0].newLayout;
+	VkImageView liveImView = iminfo.view;
+
+	if(liveImView == VK_NULL_HANDLE)
+	{
+		VkImageViewCreateInfo viewInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
+			iminfo.format,
+			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, 1, },
+			0
+		};
+
+		// Only needed on AMD - does the wrong thing on nvidia - so commented for now while AMD
+		// drivers aren't on 0.9.2
+		//if(iminfo.format == VK_FORMAT_B8G8R8A8_UNORM || iminfo.format == VK_FORMAT_B8G8R8A8_SRGB)
+			//std::swap(viewInfo.channels.r, viewInfo.channels.b);
+
+		VkResult vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, &iminfo.view);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		ResourceId viewid = m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), iminfo.view);
+		// register as a live-only resource, so it is cleaned up properly
+		m_pDriver->GetResourceManager()->AddLiveResource(viewid, iminfo.view);
+
+		liveImView = iminfo.view;
+	}
+	
+	VkDescriptorInfo desc = {0};
+	desc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	desc.imageView = Unwrap(liveImView);
+	desc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
+
+	VkDescriptorInfo bufdescs[2];
+	RDCEraseEl(bufdescs);
+	GetDebugManager()->m_HistogramBuf.FillDescriptor(bufdescs[0]);
+	GetDebugManager()->m_HistogramUBO.FillDescriptor(bufdescs[1]);
+
+	VkWriteDescriptorSet writeSet[] = {
+
+		// histogram pass
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
+			0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[0] // destination = histogram result
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
+			1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &bufdescs[0] // source = unused, bind histogram result
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
+			2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &bufdescs[1]
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
+			3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
+		},
+	};
+
+	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+	
+	histogramuniforms *data = (histogramuniforms *)GetDebugManager()->m_HistogramUBO.Map(vt, dev, NULL);
+	
+	data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width)>>mip, 1U);
+	data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height)>>mip, 1U);
+	data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.arraySize)>>mip, 1U);
+	data->HistogramSlice = (float)sliceFace;
+	data->HistogramMip = (int)mip;
+	data->HistogramNumSamples = iminfo.samples;
+	data->HistogramSample = (int)RDCCLAMP(sample, 0U, uint32_t(iminfo.samples)-1);
+	if(sample == ~0U) data->HistogramSample = -iminfo.samples;
+	data->HistogramMin = minval;
+	data->HistogramMax = maxval;
+
+	uint32_t chans = 0;
+	if(channels[0]) chans |= 0x1;
+	if(channels[1]) chans |= 0x2;
+	if(channels[2]) chans |= 0x4;
+	if(channels[3]) chans |= 0x8;
+	
+	data->HistogramChannels = chans;
+	data->HistogramFlags = 0;
+
+	if(iminfo.type == VK_IMAGE_TYPE_3D)
+		data->HistogramSlice = float(sliceFace)/float(iminfo.extent.depth);
+	
+	GetDebugManager()->m_HistogramUBO.Unmap(vt, dev);
+
+	VkImageMemoryBarrier srcimTrans = {
+		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+		0, 0, origLayout, VK_IMAGE_LAYOUT_GENERAL,
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		Unwrap(liveIm),
+		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+	};
+
+	// ensure all previous writes have completed
+	srcimTrans.outputMask =
+		VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
+		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
+		VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
+		VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	// before we go reading
+	srcimTrans.inputMask = VK_MEMORY_INPUT_SHADER_READ_BIT;
+
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+	
+	vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+	void *barrier = (void *)&srcimTrans;
+
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	srcimTrans.oldLayout = srcimTrans.newLayout;
+
+	srcimTrans.outputMask = 0;
+	srcimTrans.inputMask = 0;
+	
+	int blocksX = (int)ceil(iminfo.extent.width/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+	int blocksY = (int)ceil(iminfo.extent.height/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+
+	vt->CmdFillBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_HistogramBuf.buf), 0, GetDebugManager()->m_HistogramBuf.totalsize, 0);
+
+	vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_HistogramPipe));
+	vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_HistogramPipeLayout),
+														0, 1, UnwrapPtr(GetDebugManager()->m_HistogramDescSet[0]), 0, NULL);
+
+	vt->CmdDispatch(Unwrap(cmd), blocksX, blocksY, 1);
+
+	VkBufferMemoryBarrier tilebarrier = {
+		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
+		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT, VK_MEMORY_INPUT_TRANSFER_BIT,
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		Unwrap(GetDebugManager()->m_HistogramBuf.buf),
+		0, GetDebugManager()->m_HistogramBuf.totalsize,
+	};
+
+	// image layout back to normal
+	srcimTrans.newLayout = origLayout;
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+	// ensure shader writes complete before copying to readback buf
+	barrier = (void *)&tilebarrier;
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+	VkBufferCopy bufcopy = {
+		0, 0, GetDebugManager()->m_HistogramBuf.totalsize,
+	};
+
+	vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_HistogramBuf.buf), Unwrap(GetDebugManager()->m_HistogramReadback.buf), 1, &bufcopy);
+	
+	// wait for copy to complete before mapping
+	tilebarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	tilebarrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT;
+	tilebarrier.buffer = Unwrap(GetDebugManager()->m_HistogramReadback.buf);
+	tilebarrier.size = GetDebugManager()->m_HistogramReadback.totalsize;
+	
+	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+	vt->EndCommandBuffer(Unwrap(cmd));
+	
+	// submit cmds and wait for idle so we can readback
+	m_pDriver->SubmitCmds();
+	m_pDriver->FlushQ();
+
+	uint32_t *buckets = (uint32_t *)GetDebugManager()->m_HistogramReadback.Map(vt, dev, NULL);
+
+	histogram.assign(buckets, buckets+HGRAM_NUM_BUCKETS);
+
+	GetDebugManager()->m_HistogramReadback.Unmap(vt, dev);
+
+	return true;
 }
 
 void VulkanReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)

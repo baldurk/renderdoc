@@ -74,6 +74,7 @@ class VulkanDebugManager
 			{
 				eGPUBufferReadback = 0x1,
 				eGPUBufferVBuffer = 0x2,
+				eGPUBufferSSBO = 0x4,
 			};
 			GPUBuffer() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE) {}
 			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags);
@@ -162,6 +163,17 @@ class VulkanDebugManager
 		GPUBuffer m_MeshUBO, m_MeshBBoxVB, m_MeshAxisFrustumVB;
 		VkShader m_MeshShaders[3];
 		VkShaderModule m_MeshModules[3];
+		
+		GPUBuffer m_MinMaxTileResult;                    // tile result buffer
+		GPUBuffer m_MinMaxResult, m_MinMaxReadback;      // Vec4f[2] final result buffer
+		GPUBuffer m_HistogramBuf, m_HistogramReadback;   // uint32_t * num buckets buffer
+		VkDescriptorSetLayout m_HistogramDescSetLayout;
+		VkPipelineLayout m_HistogramPipeLayout;
+		VkDescriptorSet m_HistogramDescSet[2];
+		GPUBuffer m_HistogramUBO;
+		VkPipeline m_MinMaxResultPipe;
+		VkPipeline m_MinMaxTilePipe;
+		VkPipeline m_HistogramPipe;
 
 		MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary, const MeshFormat &secondary);
 

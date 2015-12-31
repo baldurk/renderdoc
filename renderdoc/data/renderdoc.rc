@@ -142,6 +142,9 @@ RESOURCE_fixedcolfs_spv     TYPE_EMBED   "spv/fixedcolfs.spv"
 RESOURCE_meshvs_spv         TYPE_EMBED   "spv/meshvs.spv"
 RESOURCE_meshgs_spv         TYPE_EMBED   "spv/meshgs.spv"
 RESOURCE_meshfs_spv         TYPE_EMBED   "spv/meshfs.spv"
+RESOURCE_minmaxtilecs_spv   TYPE_EMBED   "spv/minmaxtilecs.spv"
+RESOURCE_minmaxresultcs_spv TYPE_EMBED   "spv/minmaxresultcs.spv"
+RESOURCE_histogramcs_spv    TYPE_EMBED   "spv/histogramcs.spv"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

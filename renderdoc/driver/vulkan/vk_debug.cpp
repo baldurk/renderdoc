@@ -99,6 +99,35 @@ struct meshuniforms
 	Vec2f pointSpriteSize;
 };
 
+// histogram/minmax is calculated in blocks of NxN each with MxM tiles.
+// e.g. a tile is 32x32 pixels, then this is arranged in blocks of 32x32 tiles.
+// 1 compute thread = 1 tile, 1 compute group = 1 block
+//
+// NOTE because of this a block can cover more than the texture (think of a 1280x720
+// texture covered by 2x1 blocks)
+//
+// these values are in each dimension
+#define HGRAM_PIXELS_PER_TILE  64
+#define HGRAM_TILES_PER_BLOCK  32
+
+#define HGRAM_NUM_BUCKETS	   256
+
+struct histogramuniforms
+{
+	uint32_t HistogramChannels;
+	float HistogramMin;
+	float HistogramMax;
+	uint32_t HistogramFlags;
+	
+	float HistogramSlice;
+	uint32_t HistogramMip;
+	int HistogramSample;
+	int HistogramNumSamples;
+
+	Vec3f HistogramTextureResolution;
+	float Padding3;
+};
+
 void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
@@ -125,6 +154,9 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 	
 	if(flags & eGPUBufferVBuffer)
 		bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	
+	if(flags & eGPUBufferSSBO)
+		bufInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
 	VkResult vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, &buf);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -365,6 +397,25 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		GetResourceManager()->WrapResource(Unwrap(dev), m_TextDescSetLayout);
 	}
 
+	{
+		VkDescriptorSetLayoutBinding layoutBinding[] = {
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, }
+		};
+
+		VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, NULL,
+			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
+		};
+
+		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_HistogramDescSetLayout);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramDescSetLayout);
+	}
+
 	VkPipelineLayoutCreateInfo pipeLayoutInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, NULL,
 		1, UnwrapPtr(m_TexDisplayDescSetLayout),
@@ -404,15 +455,23 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	GetResourceManager()->WrapResource(Unwrap(dev), m_MeshPipeLayout);
 
+	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_HistogramDescSetLayout);
+	
+	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_HistogramPipeLayout);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramPipeLayout);
+
 	VkDescriptorTypeCount descPoolTypes[] = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024, },
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1024, },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024, },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024, },
 	};
 	
 	VkDescriptorPoolCreateInfo descpoolInfo = {
 		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, NULL,
-		VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 4+ARRAY_COUNT(m_TexDisplayDescSet),
+		VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 6+ARRAY_COUNT(m_TexDisplayDescSet),
 		ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
 	};
 	
@@ -453,6 +512,18 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	GetResourceManager()->WrapResource(Unwrap(dev), m_MeshDescSet);
+	
+	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
+		UnwrapPtr(m_HistogramDescSetLayout), &m_HistogramDescSet[0]);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramDescSet[0]);
+	
+	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
+		UnwrapPtr(m_HistogramDescSetLayout), &m_HistogramDescSet[1]);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramDescSet[1]);
 
 	m_GenericUBO.Create(driver, dev, 128, 10, 0);
 	RDCCOMPILE_ASSERT(sizeof(genericuniforms) <= 128, "outline strip VBO size");
@@ -504,6 +575,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		GetEmbeddedResource(meshvs_spv),
 		GetEmbeddedResource(meshgs_spv),
 		GetEmbeddedResource(meshfs_spv),
+		GetEmbeddedResource(minmaxtilecs_spv),
+		GetEmbeddedResource(minmaxresultcs_spv),
+		GetEmbeddedResource(histogramcs_spv),
 	};
 
 	VkShaderStage shaderStages[] = {
@@ -517,6 +591,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VK_SHADER_STAGE_VERTEX,
 		VK_SHADER_STAGE_GEOMETRY,
 		VK_SHADER_STAGE_FRAGMENT,
+		VK_SHADER_STAGE_COMPUTE,
+		VK_SHADER_STAGE_COMPUTE,
+		VK_SHADER_STAGE_COMPUTE,
 	};
 	
 	enum shaderIdx
@@ -531,6 +608,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		MESHVS,
 		MESHGS,
 		MESHFS,
+		MINMAXTILECS,
+		MINMAXRESULTCS,
+		HISTOGRAMCS,
 		NUM_SHADERS,
 	};
 
@@ -755,6 +835,35 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_HighlightBoxPipeline);
+
+	VkComputePipelineCreateInfo compPipeInfo = {
+		VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, NULL,
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_COMPUTE, VK_NULL_HANDLE, NULL },
+		0, // flags
+		Unwrap(m_HistogramPipeLayout),
+		VK_NULL_HANDLE, 0, // base pipeline VkPipeline
+	};
+
+	compPipeInfo.stage.shader = Unwrap(shader[MINMAXTILECS]);
+	
+	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, &m_MinMaxTilePipe);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	GetResourceManager()->WrapResource(Unwrap(dev), m_MinMaxTilePipe);
+	
+	compPipeInfo.stage.shader = Unwrap(shader[MINMAXRESULTCS]);
+	
+	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, &m_MinMaxResultPipe);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	GetResourceManager()->WrapResource(Unwrap(dev), m_MinMaxResultPipe);
+	
+	compPipeInfo.stage.shader = Unwrap(shader[HISTOGRAMCS]);
+	
+	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, &m_HistogramPipe);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramPipe);
 
 	vt->DestroyRenderPass(Unwrap(dev), RGBA32RP);
 	vt->DestroyRenderPass(Unwrap(dev), RGBA8RP);
@@ -1099,6 +1208,21 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	memcpy(axisData, axisFrustum, sizeof(axisFrustum));
 
 	m_MeshAxisFrustumVB.Unmap(vt, dev);
+	
+	const uint32_t maxTexDim = 16384;
+	const uint32_t blockPixSize = HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK;
+	const uint32_t maxBlocksNeeded = (maxTexDim*maxTexDim)/(blockPixSize*blockPixSize);
+
+	const size_t byteSize = 2*sizeof(Vec4f)*HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK*maxBlocksNeeded;
+
+	m_MinMaxTileResult.Create(driver, dev, byteSize, 1, GPUBuffer::eGPUBufferSSBO);
+	m_MinMaxResult.Create(driver, dev, sizeof(Vec4f)*2, 1, GPUBuffer::eGPUBufferSSBO);
+	m_MinMaxReadback.Create(driver, dev, sizeof(Vec4f)*2, 1, GPUBuffer::eGPUBufferReadback);
+	m_HistogramBuf.Create(driver, dev, sizeof(uint32_t)*HGRAM_NUM_BUCKETS, 1, GPUBuffer::eGPUBufferSSBO);
+	m_HistogramReadback.Create(driver, dev, sizeof(uint32_t)*HGRAM_NUM_BUCKETS, 1, GPUBuffer::eGPUBufferReadback);
+
+	// don't need to ring this, as we hard-sync for readback anyway
+	m_HistogramUBO.Create(driver, dev, sizeof(histogramuniforms), 1, 0);
 
 	VkDescriptorInfo desc[7];
 	RDCEraseEl(desc);
@@ -1194,6 +1318,9 @@ VulkanDebugManager::~VulkanDebugManager()
 	GetResourceManager()->ReleaseWrappedResource(m_TextDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_MeshDescSet);
 	
+	for(size_t i=0; i < ARRAY_COUNT(m_HistogramDescSet); i++)
+		GetResourceManager()->ReleaseWrappedResource(m_HistogramDescSet[i]);
+
 	for(size_t i=0; i < ARRAY_COUNT(m_TexDisplayDescSet); i++)
 		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDescSet[i]);
 
@@ -1375,6 +1502,43 @@ VulkanDebugManager::~VulkanDebugManager()
 	m_OutlineStripVBO.Destroy(vt, dev);
 	m_GenericUBO.Destroy(vt, dev);
 	
+	if(m_HistogramDescSetLayout != VK_NULL_HANDLE)
+	{
+		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_HistogramDescSetLayout));
+		GetResourceManager()->ReleaseWrappedResource(m_HistogramDescSetLayout);
+	}
+
+	if(m_HistogramPipeLayout != VK_NULL_HANDLE)
+	{
+		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_HistogramPipeLayout));
+		GetResourceManager()->ReleaseWrappedResource(m_HistogramPipeLayout);
+	}
+
+	if(m_MinMaxResultPipe != VK_NULL_HANDLE)
+	{
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_MinMaxResultPipe));
+		GetResourceManager()->ReleaseWrappedResource(m_MinMaxResultPipe);
+	}
+
+	if(m_MinMaxTilePipe != VK_NULL_HANDLE)
+	{
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_MinMaxTilePipe));
+		GetResourceManager()->ReleaseWrappedResource(m_MinMaxTilePipe);
+	}
+
+	if(m_HistogramPipe != VK_NULL_HANDLE)
+	{
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_HistogramPipe));
+		GetResourceManager()->ReleaseWrappedResource(m_HistogramPipe);
+	}
+
+	m_MinMaxTileResult.Destroy(vt, dev);
+	m_MinMaxResult.Destroy(vt, dev);
+	m_MinMaxReadback.Destroy(vt, dev);
+	m_HistogramBuf.Destroy(vt, dev);
+	m_HistogramReadback.Destroy(vt, dev);
+	m_HistogramUBO.Destroy(vt, dev);
+
 	// overlay resources are allocated through driver
 	if(m_OverlayNoDepthFB != VK_NULL_HANDLE)
 		m_pDriver->vkDestroyFramebuffer(dev, m_OverlayNoDepthFB);

@@ -496,6 +496,24 @@
     <None Include="data\spv\meshfs.spv">
       <Filter>Resources\spv</Filter>
     </None>
+    <None Include="data\spv\histogram.comp">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\histogramcs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\minmaxresult.comp">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\minmaxresultcs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\minmaxtile.comp">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\minmaxtilecs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

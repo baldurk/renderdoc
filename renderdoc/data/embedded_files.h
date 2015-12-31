@@ -58,5 +58,8 @@ DECLARE_EMBED(fixedcolfs_spv);
 DECLARE_EMBED(meshvs_spv);
 DECLARE_EMBED(meshgs_spv);
 DECLARE_EMBED(meshfs_spv);
+DECLARE_EMBED(minmaxtilecs_spv);
+DECLARE_EMBED(minmaxresultcs_spv);
+DECLARE_EMBED(histogramcs_spv);
 
 #undef DECLARE_EMBED
