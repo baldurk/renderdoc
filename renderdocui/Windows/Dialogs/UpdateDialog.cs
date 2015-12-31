@@ -135,12 +135,13 @@ namespace renderdocui.Windows.Dialogs
                             try
                             {
                                 process.Start();
-                                Application.Exit();
+                                Environment.Exit(0);
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
                                 // if there was an exception, display an error and don't exit.
-                                MessageBox.Show("Unknown error encountered while trying to launch updater!", "Error updating", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                MessageBox.Show(String.Format("Unknown error '{0}' encountered while trying to launch updater!", ex),
+                                                "Error updating", MessageBoxButtons.OK, MessageBoxIcon.Error);
                                 Close();
                             }
                         });
