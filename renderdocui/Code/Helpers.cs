@@ -185,6 +185,166 @@ namespace renderdocui.Code
 
             RefreshAssociations();
         }
+
+        private static string GetVulkanJSONPath(bool wow6432)
+        {
+            string basepath = Path.GetDirectoryName(Application.ExecutablePath);
+            if (wow6432)
+                basepath = Path.Combine(basepath, "x86");
+
+            return Path.Combine(basepath, "renderdoc.json");
+        }
+
+        private static RegistryKey GetVulkanImplicitLayersKey(bool write, bool wow6432)
+        {
+            try
+            {
+                string basepath = "SOFTWARE\\";
+                if (wow6432)
+                    basepath += "Wow6432Node\\";
+
+                if(write)
+                    return Registry.LocalMachine.CreateSubKey(basepath + "Khronos\\Vulkan\\ImplicitLayers");
+                else
+                    return Registry.LocalMachine.OpenSubKey(basepath + "Khronos\\Vulkan\\ImplicitLayers");
+            }
+            catch (Exception)
+            {
+            }
+            return null;
+        }
+
+        public static bool CheckVulkanLayerRegistration(out bool hasOtherJSON, out bool thisRegistered, out string[] otherJSONs)
+        {
+            RegistryKey key = GetVulkanImplicitLayersKey(false, false);
+
+            // if we couldn't even get the ImplicitLayers reg key the system doesn't have the
+            // vulkan runtime, so we return as if we are not registered (as that's the case).
+            // People not using vulkan can either ignore the message, or click to set it up
+            // and it will go away as we'll have rights to create it.
+            if (key == null)
+            {
+                hasOtherJSON = false;
+                otherJSONs = new string[] { };
+                thisRegistered = false;
+                return false;
+            }
+
+            string myJSON = Path.GetFullPath(GetVulkanJSONPath(false));
+
+            string[] names = key.GetValueNames();
+
+            // defaults
+            thisRegistered = false;
+            hasOtherJSON = false;
+
+            List<string> others = new List<string>();
+
+            foreach (var n in names)
+            {
+                if(Path.GetFullPath(n) == myJSON)
+                {
+                    thisRegistered = true;
+                }
+                else if(n.IndexOf("renderdoc.json") > 0)
+                {
+                    hasOtherJSON = true;
+                    others.Add(Path.GetFullPath(n));
+                }
+            }
+
+            // if we're 64-bit update that too. For 32-bit the above path covers it.
+            if (Environment.Is64BitProcess)
+            {
+                myJSON = Path.GetFullPath(GetVulkanJSONPath(true));
+                key = GetVulkanImplicitLayersKey(false, true);
+
+                names = key.GetValueNames();
+
+                foreach (var n in names)
+                {
+                    if (Path.GetFullPath(n) == myJSON)
+                    {
+                        thisRegistered = true;
+                    }
+                    else if (n.IndexOf("renderdoc.json") > 0)
+                    {
+                        hasOtherJSON = true;
+                        others.Add(Path.GetFullPath(n));
+                    }
+                }
+            }
+
+            if(hasOtherJSON)
+                otherJSONs = others.ToArray();
+            else
+                otherJSONs = new string[] {};
+
+            // return true if all is OK
+            return !hasOtherJSON && thisRegistered;
+        }
+
+        public static bool CheckVulkanLayerRegistration()
+        {
+            bool dummy1, dummy2;
+            string[] dummy3;
+            return CheckVulkanLayerRegistration(out dummy1, out dummy2, out dummy3);
+        }
+
+        public static void RegisterVulkanLayer()
+        {
+            if (!IsElevated)
+            {
+                var process = new Process();
+                process.StartInfo = new ProcessStartInfo(Application.ExecutablePath, "--registerVKLayer");
+                process.StartInfo.Verb = "runas";
+                try
+                {
+                    process.Start();
+                    // wait for process to finish
+                    process.WaitForExit();
+                }
+                catch (Exception)
+                {
+                }
+                return;
+            }
+
+            // we know we're elevated, so open the key for write
+            RegistryKey key = GetVulkanImplicitLayersKey(true, false);
+
+            if (key != null)
+            {
+                string[] names = key.GetValueNames();
+
+                // for simplicity we just delete *all* renderdoc.json values, then
+                // add our own, even if it was there before.
+                foreach (var n in names)
+                    if (n.IndexOf("renderdoc.json") > 0)
+                        key.DeleteValue(n);
+
+                key.SetValue(GetVulkanJSONPath(false), (uint)0, RegistryValueKind.DWord);
+            }
+
+            // if we're 64-bit update that too. For 32-bit the above path covers it.
+            if (Environment.Is64BitProcess)
+            {
+                key = GetVulkanImplicitLayersKey(true, true);
+
+                if (key != null)
+                {
+                    string[] names = key.GetValueNames();
+
+                    // for simplicity we just delete *all* renderdoc.json values, then
+                    // add our own, even if it was there before.
+                    foreach (var n in names)
+                        if (n.IndexOf("renderdoc.json") > 0)
+                            key.DeleteValue(n);
+
+                    key.SetValue(GetVulkanJSONPath(true), (uint)0, RegistryValueKind.DWord);
+                }
+            }
+        }
     }
 
     // KeyValuePair isn't serializable, so we make our own that is

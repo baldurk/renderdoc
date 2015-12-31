@@ -79,6 +79,7 @@
             this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
             this.programGroup = new System.Windows.Forms.GroupBox();
             this.processGroup = new System.Windows.Forms.GroupBox();
+            this.vulkanLayerWarn = new System.Windows.Forms.Button();
             label2 = new System.Windows.Forms.Label();
             label1 = new System.Windows.Forms.Label();
             pid = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -134,7 +135,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label5.Location = new System.Drawing.Point(9, 16);
             label5.Name = "label5";
-            label5.Size = new System.Drawing.Size(473, 23);
+            label5.Size = new System.Drawing.Size(475, 23);
             label5.TabIndex = 3;
             label5.Text = "NOTE: Injecting only works when the process has not used the target API";
             // 
@@ -157,10 +158,10 @@
             this.actionsGroup.AutoSize = true;
             this.actionsGroup.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.actionsGroup.Controls.Add(this.actionsFlow);
-            this.actionsGroup.Location = new System.Drawing.Point(10, 500);
+            this.actionsGroup.Location = new System.Drawing.Point(10, 558);
             this.actionsGroup.Margin = new System.Windows.Forms.Padding(10);
             this.actionsGroup.Name = "actionsGroup";
-            this.actionsGroup.Size = new System.Drawing.Size(195, 65);
+            this.actionsGroup.Size = new System.Drawing.Size(197, 65);
             this.actionsGroup.TabIndex = 11;
             this.actionsGroup.TabStop = false;
             this.actionsGroup.Text = "Actions";
@@ -217,10 +218,10 @@
             this.globalGroup.AutoSize = true;
             this.globalGroup.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.globalGroup.Controls.Add(this.globalFlow);
-            this.globalGroup.Location = new System.Drawing.Point(10, 585);
+            this.globalGroup.Location = new System.Drawing.Point(10, 643);
             this.globalGroup.Margin = new System.Windows.Forms.Padding(10);
             this.globalGroup.Name = "globalGroup";
-            this.globalGroup.Size = new System.Drawing.Size(195, 80);
+            this.globalGroup.Size = new System.Drawing.Size(197, 80);
             this.globalGroup.TabIndex = 12;
             this.globalGroup.TabStop = false;
             this.globalGroup.Text = "Global Process Hook";
@@ -256,10 +257,10 @@
             this.capOptsGroup.AutoSize = true;
             this.capOptsGroup.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.capOptsGroup.Controls.Add(this.capOptsFlow);
-            this.capOptsGroup.Location = new System.Drawing.Point(10, 367);
+            this.capOptsGroup.Location = new System.Drawing.Point(10, 425);
             this.capOptsGroup.Margin = new System.Windows.Forms.Padding(10);
             this.capOptsGroup.Name = "capOptsGroup";
-            this.capOptsGroup.Size = new System.Drawing.Size(195, 113);
+            this.capOptsGroup.Size = new System.Drawing.Size(197, 113);
             this.capOptsGroup.TabIndex = 4;
             this.capOptsGroup.TabStop = false;
             this.capOptsGroup.Text = "Capture Options";
@@ -421,7 +422,6 @@
             this.VerifyMapWrites.Size = new System.Drawing.Size(130, 20);
             this.VerifyMapWrites.TabIndex = 18;
             this.VerifyMapWrites.Text = "Verify Map() Writes";
-            this.toolTip.SetToolTip(this.AutoStart, "When enabled, causes Map() pointers to be validated to check for buffer overruns.");
             this.VerifyMapWrites.UseVisualStyleBackColor = true;
             // 
             // AutoStart
@@ -443,9 +443,9 @@
             this.panel2.Controls.Add(this.save);
             this.panel2.Controls.Add(this.close);
             this.panel2.Controls.Add(this.capture);
-            this.panel2.Location = new System.Drawing.Point(3, 678);
+            this.panel2.Location = new System.Drawing.Point(3, 736);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(209, 26);
+            this.panel2.Size = new System.Drawing.Size(211, 26);
             this.panel2.TabIndex = 8;
             // 
             // load
@@ -475,7 +475,7 @@
             // close
             // 
             this.close.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.close.Location = new System.Drawing.Point(162, 3);
+            this.close.Location = new System.Drawing.Point(164, 3);
             this.close.Margin = new System.Windows.Forms.Padding(0);
             this.close.Name = "close";
             this.close.Size = new System.Drawing.Size(41, 23);
@@ -487,7 +487,7 @@
             // capture
             // 
             this.capture.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.capture.Location = new System.Drawing.Point(105, 3);
+            this.capture.Location = new System.Drawing.Point(107, 3);
             this.capture.Margin = new System.Windows.Forms.Padding(0);
             this.capture.Name = "capture";
             this.capture.Size = new System.Drawing.Size(52, 23);
@@ -538,14 +538,14 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdline.Location = new System.Drawing.Point(137, 71);
             this.cmdline.Name = "cmdline";
-            this.cmdline.Size = new System.Drawing.Size(52, 20);
+            this.cmdline.Size = new System.Drawing.Size(54, 20);
             this.cmdline.TabIndex = 4;
             this.toolTip.SetToolTip(this.cmdline, "The command-line that will be passed to the executable on launch");
             // 
             // workDirBrowse
             // 
             this.workDirBrowse.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.workDirBrowse.Location = new System.Drawing.Point(165, 45);
+            this.workDirBrowse.Location = new System.Drawing.Point(167, 45);
             this.workDirBrowse.Name = "workDirBrowse";
             this.workDirBrowse.Size = new System.Drawing.Size(24, 20);
             this.workDirBrowse.TabIndex = 3;
@@ -560,7 +560,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.workDirPath.Location = new System.Drawing.Point(137, 45);
             this.workDirPath.Name = "workDirPath";
-            this.workDirPath.Size = new System.Drawing.Size(22, 20);
+            this.workDirPath.Size = new System.Drawing.Size(24, 20);
             this.workDirPath.TabIndex = 2;
             this.toolTip.SetToolTip(this.workDirPath, "The working directory the executable will be launched in");
             this.workDirPath.TextChanged += new System.EventHandler(this.workDirPath_TextChanged);
@@ -570,7 +570,7 @@
             // exeBrowse
             // 
             this.exeBrowse.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.exeBrowse.Location = new System.Drawing.Point(165, 18);
+            this.exeBrowse.Location = new System.Drawing.Point(167, 18);
             this.exeBrowse.Name = "exeBrowse";
             this.exeBrowse.Size = new System.Drawing.Size(24, 20);
             this.exeBrowse.TabIndex = 1;
@@ -586,7 +586,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.exePath.Location = new System.Drawing.Point(137, 19);
             this.exePath.Name = "exePath";
-            this.exePath.Size = new System.Drawing.Size(22, 20);
+            this.exePath.Size = new System.Drawing.Size(24, 20);
             this.exePath.TabIndex = 0;
             this.toolTip.SetToolTip(this.exePath, "The executable file to launch");
             this.exePath.TextChanged += new System.EventHandler(this.exePath_TextChanged);
@@ -596,7 +596,7 @@
             // pidRefresh
             // 
             this.pidRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.pidRefresh.Location = new System.Drawing.Point(410, 180);
+            this.pidRefresh.Location = new System.Drawing.Point(412, 180);
             this.pidRefresh.Name = "pidRefresh";
             this.pidRefresh.Size = new System.Drawing.Size(75, 23);
             this.pidRefresh.TabIndex = 6;
@@ -619,7 +619,7 @@
             this.pidList.Location = new System.Drawing.Point(6, 42);
             this.pidList.MultiSelect = false;
             this.pidList.Name = "pidList";
-            this.pidList.Size = new System.Drawing.Size(183, 129);
+            this.pidList.Size = new System.Drawing.Size(185, 129);
             this.pidList.TabIndex = 5;
             this.toolTip.SetToolTip(this.pidList, "Select the process to inject into - must not yet have utilised the target API");
             this.pidList.UseCompatibleStateImageBehavior = false;
@@ -634,21 +634,23 @@
             this.tableLayoutPanel2.ColumnCount = 1;
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel2.Controls.Add(this.programGroup, 0, 0);
-            this.tableLayoutPanel2.Controls.Add(this.panel2, 0, 5);
-            this.tableLayoutPanel2.Controls.Add(this.capOptsGroup, 0, 2);
+            this.tableLayoutPanel2.Controls.Add(this.panel2, 0, 6);
+            this.tableLayoutPanel2.Controls.Add(this.capOptsGroup, 0, 3);
             this.tableLayoutPanel2.Controls.Add(this.processGroup, 0, 1);
-            this.tableLayoutPanel2.Controls.Add(this.actionsGroup, 0, 3);
-            this.tableLayoutPanel2.Controls.Add(this.globalGroup, 0, 4);
+            this.tableLayoutPanel2.Controls.Add(this.actionsGroup, 0, 4);
+            this.tableLayoutPanel2.Controls.Add(this.globalGroup, 0, 5);
+            this.tableLayoutPanel2.Controls.Add(this.vulkanLayerWarn, 0, 2);
             this.tableLayoutPanel2.Location = new System.Drawing.Point(0, 0);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
-            this.tableLayoutPanel2.RowCount = 6;
+            this.tableLayoutPanel2.RowCount = 7;
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.Size = new System.Drawing.Size(215, 707);
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel2.Size = new System.Drawing.Size(217, 765);
             this.tableLayoutPanel2.TabIndex = 8;
             // 
             // programGroup
@@ -666,7 +668,7 @@
             this.programGroup.Location = new System.Drawing.Point(10, 10);
             this.programGroup.Margin = new System.Windows.Forms.Padding(10);
             this.programGroup.Name = "programGroup";
-            this.programGroup.Size = new System.Drawing.Size(195, 108);
+            this.programGroup.Size = new System.Drawing.Size(197, 108);
             this.programGroup.TabIndex = 10;
             this.programGroup.TabStop = false;
             this.programGroup.Text = "Program";
@@ -681,10 +683,30 @@
             this.processGroup.Location = new System.Drawing.Point(10, 138);
             this.processGroup.Margin = new System.Windows.Forms.Padding(10);
             this.processGroup.Name = "processGroup";
-            this.processGroup.Size = new System.Drawing.Size(195, 209);
+            this.processGroup.Size = new System.Drawing.Size(197, 209);
             this.processGroup.TabIndex = 9;
             this.processGroup.TabStop = false;
             this.processGroup.Text = "Process";
+            // 
+            // vulkanLayerWarn
+            // 
+            this.vulkanLayerWarn.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.vulkanLayerWarn.BackColor = System.Drawing.SystemColors.Info;
+            this.vulkanLayerWarn.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.vulkanLayerWarn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.vulkanLayerWarn.Image = global::renderdocui.Properties.Resources.information;
+            this.vulkanLayerWarn.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.vulkanLayerWarn.Location = new System.Drawing.Point(3, 367);
+            this.vulkanLayerWarn.Margin = new System.Windows.Forms.Padding(3, 10, 3, 10);
+            this.vulkanLayerWarn.Name = "vulkanLayerWarn";
+            this.vulkanLayerWarn.Size = new System.Drawing.Size(211, 38);
+            this.vulkanLayerWarn.TabIndex = 13;
+            this.vulkanLayerWarn.Text = "Warning: Vulkan capture is not configured. Click here to set up Vulkan capture.";
+            this.vulkanLayerWarn.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.vulkanLayerWarn.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
+            this.vulkanLayerWarn.UseVisualStyleBackColor = false;
+            this.vulkanLayerWarn.Click += new System.EventHandler(this.vulkanLayerWarn_Click);
             // 
             // CaptureDialog
             // 
@@ -692,7 +714,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoScroll = true;
             this.AutoScrollMinSize = new System.Drawing.Size(215, 0);
-            this.ClientSize = new System.Drawing.Size(215, 736);
+            this.ClientSize = new System.Drawing.Size(214, 738);
             this.Controls.Add(this.tableLayoutPanel2);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "CaptureDialog";
@@ -770,6 +792,7 @@
         private System.Windows.Forms.GroupBox actionsGroup;
         private System.Windows.Forms.GroupBox globalGroup;
         private System.Windows.Forms.Label globalLabel;
+        private System.Windows.Forms.Button vulkanLayerWarn;
 
     }
 }

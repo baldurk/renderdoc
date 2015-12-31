@@ -174,6 +174,8 @@ namespace renderdocui.Windows.Dialogs
 
             Icon = global::renderdocui.Properties.Resources.icon;
 
+            vulkanLayerWarn.Visible = !Helpers.CheckVulkanLayerRegistration();
+
             var defaults = new CaptureSettings();
             defaults.Inject = false;
             
@@ -884,6 +886,66 @@ namespace renderdocui.Windows.Dialogs
         {
             if (toggleGlobalHook.Checked)
                 toggleGlobalHook.Checked = false;
+        }
+
+        private void vulkanLayerWarn_Click(object sender, EventArgs e)
+        {
+            string caption = "Configure Vulkan layer settings in registry?";
+
+            bool hasOtherJSON = false;
+            bool thisRegistered = false;
+            string[] otherJSONs = new string[] {};
+
+            Helpers.CheckVulkanLayerRegistration(out hasOtherJSON, out thisRegistered, out otherJSONs);
+
+            string myJSON = Path.GetDirectoryName(Application.ExecutablePath) + Path.DirectorySeparatorChar + "renderdoc.json";
+
+            string msg = "Vulkan capture happens through the API's layer mechanism. RenderDoc has detected that ";
+
+            if (hasOtherJSON)
+            {
+                msg += "there " + (otherJSONs.Length > 1 ? "are other RenderDoc builds" : "is another RenderDoc build") +
+                    " registered already. " + (otherJSONs.Length > 1 ? "They" : "It") +
+                    " must be disabled so that capture can happen without nasty clashes.";
+
+                if (!thisRegistered)
+                    msg += " Also ";
+            }
+
+            if (!thisRegistered)
+            {
+                msg += "the layer for this installation is not yet registered. This could be due to an " +
+                    "upgrade from a version that didn't support Vulkan, or if this version is just a loose unzip/dev build.";
+            }
+
+            msg += "\n\nWould you like to proceed with the following changes?\n\n";
+
+            if (hasOtherJSON)
+            {
+                foreach (var j in otherJSONs)
+                    msg += "Unregister: " + j + "\n";
+
+                msg += "\n";
+            }
+
+            if (!thisRegistered)
+            {
+                msg += "Register: " + myJSON + "\n";
+                if (Environment.Is64BitProcess)
+                    msg += "Register: " + myJSON.Replace("renderdoc.json", @"x86\renderdoc.json") + "\n";
+                msg += "\n";
+            }
+
+            msg += "This is a one-off change to the registry, it won't be needed again unless the installation moves.";
+            
+            DialogResult res = MessageBox.Show(msg, caption, MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+
+            if (res == DialogResult.Yes)
+            {
+                Helpers.RegisterVulkanLayer();
+
+                vulkanLayerWarn.Visible = !Helpers.CheckVulkanLayerRegistration();
+            }
         }
     }
 }

@@ -60,6 +60,12 @@ namespace renderdocui.Code
                 return;
             }
 
+            if (args.Contains("--registerVKLayer"))
+            {
+                Helpers.RegisterVulkanLayer();
+                return;
+            }
+
             Win32PInvoke.LoadLibrary("renderdoc.dll");
 
             // clean up any update that just happened
@@ -155,6 +161,19 @@ namespace renderdocui.Code
                 {
                     cfg.CheckUpdate_UpdateAvailable = false;
                     cfg.CheckUpdate_UpdateResponse = "";
+
+                    bool hasOtherJSON;
+                    bool thisRegistered;
+                    string[] otherJSONs;
+
+                    bool configured = Helpers.CheckVulkanLayerRegistration(out hasOtherJSON, out thisRegistered, out otherJSONs);
+
+                    // if nothing is configured (ie. no other JSON files), then set up our layer
+                    // as part of the update process.
+                    if (!configured && !hasOtherJSON && !thisRegistered)
+                    {
+                        Helpers.RegisterVulkanLayer();
+                    }
                 }
             }
 
