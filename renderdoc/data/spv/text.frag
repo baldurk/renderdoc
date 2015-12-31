@@ -27,7 +27,7 @@
 layout (binding = 3) uniform sampler2D tex0;
 layout (location = 0) out vec4 color_out;
 
-// LunarG sample driver doesn't support in/out blocks yet it seems
+// VKTODOHIGH LunarG sample driver doesn't support in/out blocks yet it seems
 /*
 in v2f
 {

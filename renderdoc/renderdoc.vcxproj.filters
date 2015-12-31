@@ -478,6 +478,24 @@
     <None Include="data\spv\fixedcolfs.spv">
       <Filter>Resources\spv</Filter>
     </None>
+    <None Include="data\spv\mesh.frag">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\mesh.geom">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\mesh.vert">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\meshgs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\meshvs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\meshfs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

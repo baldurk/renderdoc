@@ -21,70 +21,58 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
-
+ 
 #version 420 core
-
-layout (binding = 0, std140) uniform fontuniforms
-{
-	vec2  TextPosition;
-	float txtpadding;
-	float TextSize;
-
-	vec2  CharacterSize;
-	vec2  FontScreenAspect;
-} general;
-
-struct glyph
-{
-	vec4 posdata;
-	vec4 uvdata;
-};
-
-layout (binding = 1, std140) uniform glyphdata
-{
-	glyph data[127-32];
-} glyphs;
-
-layout (binding = 2, std140) uniform stringdata
-{
-	uvec4 chars[256];
-} str;
-
-out gl_PerVertex
-{
-	vec4 gl_Position;
-	float gl_PointSize;
-	float gl_ClipDistance[];
-};
 
 // VKTODOHIGH LunarG sample driver doesn't support in/out blocks yet it seems
 /*
-out v2f
+in v2f
 {
-	vec4 tex;
-	vec2 glyphuv;
-} OUT;
+	vec4 secondary;
+	vec4 norm;
+} IN;
 */
 
-layout (location = 0) out vec4 OUTtex;
-layout (location = 1) out vec2 OUTglyphuv;
+layout (location = 0) in vec4 INsecondary;
+layout (location = 1) in vec4 INnorm;
+
+layout (binding = 0, std140) uniform meshuniforms
+{
+	mat4 mvp;
+	mat4 invProj;
+	vec4 color;
+	uint displayFormat;
+	uint homogenousInput;
+	vec2 pointSpriteSize;
+} Mesh;
+
+layout (location = 0) out vec4 color_out;
+
+#define MESHDISPLAY_SOLID           0x1
+#define MESHDISPLAY_FACELIT         0x2
+#define MESHDISPLAY_SECONDARY       0x3
+#define MESHDISPLAY_SECONDARY_ALPHA 0x4
 
 void main(void)
 {
-	const vec3 verts[4] = vec3[4](vec3( 0.0,  0.0, 0.5),
-                                  vec3( 1.0,  0.0, 0.5),
-                                  vec3( 0.0,  1.0, 0.5),
-                                  vec3( 1.0,  1.0, 0.5));
+	uint type = Mesh.displayFormat;
+	
+	if(type == MESHDISPLAY_SECONDARY)
+	{
+		color_out = vec4(INsecondary.xyz, 1);
+	}
+	else if(type == MESHDISPLAY_SECONDARY_ALPHA)
+	{
+		color_out = vec4(INsecondary.www, 1);
+	}
+	else if(type == MESHDISPLAY_FACELIT)
+	{
+		vec3 lightDir = normalize(vec3(0, -0.3f, -1));
 
-	vec3 pos = verts[gl_VertexID];
-	uint strindex = gl_InstanceID;
-	
-	vec2 charPos = vec2(strindex + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
-	
-
-	glyph G = glyphs.data[ str.chars[strindex].x ];
-	
-	gl_Position = vec4(charPos.xy*2.0f*general.TextSize*general.FontScreenAspect.xy + vec2(-1, -1), 1, 1);
-	OUTglyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
-	OUTtex = G.uvdata * general.CharacterSize.xyxy;
+		color_out = vec4(Mesh.color.xyz*abs(dot(lightDir, INnorm.xyz)), 1);
+	}
+	else //if(type == MESHDISPLAY_SOLID)
+	{
+		color_out = vec4(Mesh.color.xyz, 1);
+	}
 }

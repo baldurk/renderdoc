@@ -71,6 +71,9 @@ data/spv/textfs.spvo \
 data/spv/genericvs.spvo \
 data/spv/genericfs.spvo \
 data/spv/fixedcolfs.spvo \
+data/spv/meshvs.spvo \
+data/spv/meshgs.spvo \
+data/spv/meshfs.spvo \
 data/sourcecodepro.ttfo
 
 .PHONY: all

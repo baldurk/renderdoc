@@ -139,6 +139,9 @@ RESOURCE_textfs_spv         TYPE_EMBED   "spv/textfs.spv"
 RESOURCE_genericvs_spv      TYPE_EMBED   "spv/genericvs.spv"
 RESOURCE_genericfs_spv      TYPE_EMBED   "spv/genericfs.spv"
 RESOURCE_fixedcolfs_spv     TYPE_EMBED   "spv/fixedcolfs.spv"
+RESOURCE_meshvs_spv         TYPE_EMBED   "spv/meshvs.spv"
+RESOURCE_meshgs_spv         TYPE_EMBED   "spv/meshfs.spv"
+RESOURCE_meshfs_spv         TYPE_EMBED   "spv/meshfs.spv"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

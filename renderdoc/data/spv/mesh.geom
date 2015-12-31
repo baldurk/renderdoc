@@ -21,34 +21,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
-
+ 
 #version 420 core
 
-layout (binding = 0, std140) uniform fontuniforms
-{
-	vec2  TextPosition;
-	float txtpadding;
-	float TextSize;
+layout(triangles, invocations = 1) in;
+layout(triangle_strip, max_vertices = 3) out;
 
-	vec2  CharacterSize;
-	vec2  FontScreenAspect;
-} general;
-
-struct glyph
+in v2f
 {
-	vec4 posdata;
-	vec4 uvdata;
-};
+	vec4 secondary;
+	vec4 norm;
+} IN[];
 
-layout (binding = 1, std140) uniform glyphdata
+out v2f
 {
-	glyph data[127-32];
-} glyphs;
+	vec4 secondary;
+	vec4 norm;
+} OUT;
 
-layout (binding = 2, std140) uniform stringdata
+layout (binding = 0, std140) uniform meshuniforms
 {
-	uvec4 chars[256];
-} str;
+	mat4 mvp;
+	mat4 invProj;
+	vec4 color;
+	uint displayFormat;
+	uint homogenousInput;
+	vec2 pointSpriteSize;
+} Mesh;
 
 out gl_PerVertex
 {
@@ -57,34 +56,18 @@ out gl_PerVertex
 	float gl_ClipDistance[];
 };
 
-// VKTODOHIGH LunarG sample driver doesn't support in/out blocks yet it seems
-/*
-out v2f
+void main()
 {
-	vec4 tex;
-	vec2 glyphuv;
-} OUT;
-*/
+    vec4 faceEdgeA = (Mesh.invProj * gl_in[1].gl_Position) - (Mesh.invProj * gl_in[0].gl_Position);
+    vec4 faceEdgeB = (Mesh.invProj * gl_in[2].gl_Position) - (Mesh.invProj * gl_in[0].gl_Position);
+    vec3 faceNormal = normalize( cross(faceEdgeA.xyz, faceEdgeB.xyz) );
 
-layout (location = 0) out vec4 OUTtex;
-layout (location = 1) out vec2 OUTglyphuv;
-
-void main(void)
-{
-	const vec3 verts[4] = vec3[4](vec3( 0.0,  0.0, 0.5),
-                                  vec3( 1.0,  0.0, 0.5),
-                                  vec3( 0.0,  1.0, 0.5),
-                                  vec3( 1.0,  1.0, 0.5));
-
-	vec3 pos = verts[gl_VertexID];
-	uint strindex = gl_InstanceID;
-	
-	vec2 charPos = vec2(strindex + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
-	
-
-	glyph G = glyphs.data[ str.chars[strindex].x ];
-	
-	gl_Position = vec4(charPos.xy*2.0f*general.TextSize*general.FontScreenAspect.xy + vec2(-1, -1), 1, 1);
-	OUTglyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
-	OUTtex = G.uvdata * general.CharacterSize.xyxy;
+    for(int i=0; i < 3; i++)
+    {
+		gl_Position = gl_in[i].gl_Position;
+		OUT.secondary = IN[i].secondary;
+		OUT.norm = vec4(faceNormal.xyz, 1);
+        EmitVertex();
+    }
+    EndPrimitive();
 }

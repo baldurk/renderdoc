@@ -41,6 +41,9 @@
 #define RESOURCE_genericvs_spv      406
 #define RESOURCE_genericfs_spv      407
 #define RESOURCE_fixedcolfs_spv     408
+#define RESOURCE_meshvs_spv         409
+#define RESOURCE_meshgs_spv         410
+#define RESOURCE_meshfs_spv         411
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

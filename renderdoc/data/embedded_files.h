@@ -55,5 +55,8 @@ DECLARE_EMBED(textfs_spv);
 DECLARE_EMBED(genericvs_spv);
 DECLARE_EMBED(genericfs_spv);
 DECLARE_EMBED(fixedcolfs_spv);
+DECLARE_EMBED(meshvs_spv);
+DECLARE_EMBED(meshgs_spv);
+DECLARE_EMBED(meshfs_spv);
 
 #undef DECLARE_EMBED

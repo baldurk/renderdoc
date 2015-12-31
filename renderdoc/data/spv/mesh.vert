@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2015 Baldur Karlsson
+ * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,31 +24,18 @@
 
 #version 420 core
 
-layout (binding = 0, std140) uniform fontuniforms
-{
-	vec2  TextPosition;
-	float txtpadding;
-	float TextSize;
+layout (location = 0) in vec4 position;
+layout (location = 1) in vec4 secondary;
 
-	vec2  CharacterSize;
-	vec2  FontScreenAspect;
-} general;
-
-struct glyph
+layout (binding = 0, std140) uniform meshuniforms
 {
-	vec4 posdata;
-	vec4 uvdata;
-};
-
-layout (binding = 1, std140) uniform glyphdata
-{
-	glyph data[127-32];
-} glyphs;
-
-layout (binding = 2, std140) uniform stringdata
-{
-	uvec4 chars[256];
-} str;
+	mat4 mvp;
+	mat4 invProj;
+	vec4 color;
+	uint displayFormat;
+	uint homogenousInput;
+	vec2 pointSpriteSize;
+} Mesh;
 
 out gl_PerVertex
 {
@@ -61,30 +48,34 @@ out gl_PerVertex
 /*
 out v2f
 {
-	vec4 tex;
-	vec2 glyphuv;
+	vec4 secondary;
+	vec4 norm;
 } OUT;
 */
 
-layout (location = 0) out vec4 OUTtex;
-layout (location = 1) out vec2 OUTglyphuv;
+layout (location = 0) out vec4 OUTsecondary;
+layout (location = 1) out vec4 OUTnorm;
 
 void main(void)
 {
-	const vec3 verts[4] = vec3[4](vec3( 0.0,  0.0, 0.5),
-                                  vec3( 1.0,  0.0, 0.5),
-                                  vec3( 0.0,  1.0, 0.5),
-                                  vec3( 1.0,  1.0, 0.5));
+	vec2 psprite[4] =
+	{
+		vec2(-1.0f, -1.0f),
+		vec2(-1.0f,  1.0f),
+		vec2( 1.0f, -1.0f),
+		vec2( 1.0f,  1.0f)
+	};
 
-	vec3 pos = verts[gl_VertexID];
-	uint strindex = gl_InstanceID;
-	
-	vec2 charPos = vec2(strindex + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
-	
+	vec4 pos = position;
+	if(Mesh.homogenousInput == 0)
+		pos = vec4(position.xyz, 1);
 
-	glyph G = glyphs.data[ str.chars[strindex].x ];
-	
-	gl_Position = vec4(charPos.xy*2.0f*general.TextSize*general.FontScreenAspect.xy + vec2(-1, -1), 1, 1);
-	OUTglyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
-	OUTtex = G.uvdata * general.CharacterSize.xyxy;
+	gl_Position = Mesh.mvp * pos;
+	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[gl_VertexID%4]*gl_Position.w;
+	OUTsecondary = secondary;
+	OUTnorm = vec4(0, 0, 1, 1);
+
+    // GL->VK conventions
+    gl_Position.y = -gl_Position.y;
+    gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
 }
