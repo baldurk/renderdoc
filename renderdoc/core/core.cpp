@@ -195,6 +195,8 @@ void RenderDoc::Initialise()
 
 	if(!IsReplayApp())
 	{
+		Process::ApplyEnvironmentModification();
+
 		uint32_t port = RenderDoc_FirstCaptureNetworkPort;
 
 		Network::Socket *sock = Network::CreateServerSocket("0.0.0.0", port&0xffff, 4);

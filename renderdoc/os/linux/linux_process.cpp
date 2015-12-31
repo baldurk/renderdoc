@@ -35,7 +35,50 @@
 
 #include "serialise/string_utils.h"
 
-pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char *const *envp)
+static vector<Process::EnvironmentModification> &GetEnvModifications()
+{
+	static vector<Process::EnvironmentModification> envCallbacks;
+	return envCallbacks;
+}
+
+static map<string, string> EnvStringToEnvMap(const char **envstring)
+{
+	map<string, string> ret;
+
+	const char **e = envstring;
+
+	while(*e)
+	{
+		const char *equals = strchr(*e, '=');
+
+		string name;
+		string value;
+		
+		name.assign(e, equals);
+		value = equals+1;
+
+		ret[name] = value;
+
+		e++;
+	}
+
+	return ret;
+}
+
+void Process::RegisterEnvironmentModification(Process::EnvironmentModification modif)
+{
+	GetEnvModifications().push_back(modif);
+}
+
+// on linux we apply environment changes before launching the program, as
+// there is no support for injecting/loading renderdoc into a running program
+// in any way, and we also have some environment changes that we *have* to make
+// for correct hooking (LD_LIBRARY_PATH/LD_PRELOAD)
+void Process::ApplyEnvironmentModification()
+{
+}
+
+static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char *const *envp)
 {
 	if(!app) return (pid_t)0;
 
@@ -212,171 +255,89 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 		RDCERR("Invalid empty 'app'");
 		return 0;
 	}
-
-	char **envp = NULL;
-
-	int nenv = 0;
-	for(; environ[nenv]; nenv++);
-
-	const int numEnvAdd = 7;
-	// LD_LIBRARY_PATH
-	// LD_PRELOAD
-	// VK_LAYER_PATH
-	// VK_DEVICE_LAYERS
-	// VK_INSTANCE_LAYERS
-	// RENDERDOC_CAPTUREOPTS
-	// RENDERDOC_LOGFILE
-
-	// might find these already existant in the environment
-	bool libpath = false;
-	bool preload = false;
-	bool layerdirs = false;
-	bool devicelayers = false;
-	bool instancelayers = false;
-
-	nenv += 1+numEnvAdd; // account for terminating NULL we need to replicate, and up to N additional environment varibales
-
-	envp = new char*[nenv];
-
-	string localpath;
-	FileIO::GetExecutableFilename(localpath);
-	localpath = dirname(localpath);
-
-	int i=0; int srci=0;
-	for(; i < nenv; srci++)
+	
+	// turn environment string to a UTF-8 map
+	map<string, string> env = EnvStringToEnvMap(environ);
+	vector<EnvironmentModification> &modifications = GetEnvModifications();
+	
+	string libpath;
 	{
-		if(environ[srci] == NULL)
-		{
-			envp[i] = NULL;
-			break;
-		}
-
-		size_t len = strlen(environ[srci])+1;
-
-		if(!strncmp(environ[srci], "LD_LIBRARY_PATH=", sizeof("LD_LIBRARY_PATH=")-1))
-		{
-			libpath = true;
-			envp[i] = new char[len+localpath.length()+1];
-			memcpy(envp[i], environ[srci], len);
-			strcat(envp[i], ":");
-			strcat(envp[i], localpath.c_str());
-		}
-		else if(!strncmp(environ[srci], "LD_PRELOAD=", sizeof("LD_PRELOAD=")-1))
-		{
-			preload = true;
-			envp[i] = new char[len+sizeof("librenderdoc.so")];
-			memcpy(envp[i], environ[srci], len);
-			strcat(envp[i], ":librenderdoc.so");
-		}
-		else if(!strncmp(environ[srci], "VK_LAYER_PATH=", sizeof("VK_LAYER_PATH=")-1))
-		{
-			layerdirs = true;
-			envp[i] = new char[len+1+localpath.length()+30];
-			memcpy(envp[i], environ[srci], len);
-			strcat(envp[i], ":");
-			strcat(envp[i], localpath.c_str());
-		}
-		else if(!strncmp(environ[srci], "VK_DEVICE_LAYERS=", sizeof("VK_DEVICE_LAYERS=")-1))
-		{
-			devicelayers = true;
-			envp[i] = new char[len+sizeof(":RenderDoc")];
-			memcpy(envp[i], environ[srci], len);
-			strcat(envp[i], ":RenderDoc");
-		}
-		else if(!strncmp(environ[srci], "VK_INSTANCE_LAYERS=", sizeof("VK_INSTANCE_LAYERS=")-1))
-		{
-			instancelayers = true;
-			envp[i] = new char[len+sizeof(":RenderDoc")];
-			memcpy(envp[i], environ[srci], len);
-			strcat(envp[i], ":RenderDoc");
-		}
-		else if(!strncmp(environ[srci], "RENDERDOC_", sizeof("RENDERDOC_")-1))
-		{
-			// skip this variable entirely
-			continue;
-		}
-		else
-		{
-			// basic copy
-			envp[i] = new char[len];
-			memcpy(envp[i], environ[srci], len);
-		}
-
-		i++;
+		FileIO::GetExecutableFilename(libpath);
+		libpath = dirname(libpath);
 	}
 
-	if(!libpath)
+	string optstr;
 	{
-		string e = StringFormat::Fmt("LD_LIBRARY_PATH=%s", localpath.c_str());
-		envp[i] = new char[e.length()+1];
-		memcpy(envp[i], e.c_str(), e.length()+1);
-		i++;
-		envp[i] = NULL;
-	}
-
-	if(!preload)
-	{
-		string e = StringFormat::Fmt("LD_PRELOAD=%s/librenderdoc.so", localpath.c_str());
-		envp[i] = new char[e.length()+1];
-		memcpy(envp[i], e.c_str(), e.length()+1);
-		i++;
-		envp[i] = NULL;
-	}
-
-	if(!layerdirs)
-	{
-		string e = StringFormat::Fmt("VK_LAYER_PATH=%s", localpath.c_str());
-		envp[i] = new char[e.length()+1];
-		memcpy(envp[i], e.c_str(), e.length()+1);
-		i++;
-		envp[i] = NULL;
-	}
-
-	if(!devicelayers)
-	{
-		string e = StringFormat::Fmt("VK_DEVICE_LAYERS=RenderDoc");
-		envp[i] = new char[e.length()+1];
-		memcpy(envp[i], e.c_str(), e.length()+1);
-		i++;
-		envp[i] = NULL;
-	}
-
-	if(!instancelayers)
-	{
-		string e = StringFormat::Fmt("VK_INSTANCE_LAYERS=RenderDoc");
-		envp[i] = new char[e.length()+1];
-		memcpy(envp[i], e.c_str(), e.length()+1);
-		i++;
-		envp[i] = NULL;
-	}
-
-	if(opts)
-	{
-		string optstr;
+		optstr.reserve(sizeof(CaptureOptions)*2+1);
+		byte *b = (byte *)opts;
+		for(size_t i=0; i < sizeof(CaptureOptions); i++)
 		{
-			optstr.reserve(sizeof(CaptureOptions)*2+1);
-			byte *b = (byte *)opts;
-			for(size_t i=0; i < sizeof(CaptureOptions); i++)
-			{
-				optstr.push_back(char( 'a' + ((b[i] >> 4)&0xf) ));
-				optstr.push_back(char( 'a' + ((b[i]     )&0xf) ));
-			}
+			optstr.push_back(char( 'a' + ((b[i] >> 4)&0xf) ));
+			optstr.push_back(char( 'a' + ((b[i]     )&0xf) ));
 		}
-
-		string e = StringFormat::Fmt("RENDERDOC_CAPTUREOPTS=%s", optstr.c_str());
-		envp[i] = new char[e.length()+1];
-		memcpy(envp[i], e.c_str(), e.length()+1);
-		i++;
-		envp[i] = NULL;
 	}
 
-	if(logfile)
+	modifications.push_back(EnvironmentModification(eEnvModification_AppendPlatform, "LD_LIBRARY_PATH", libpath.c_str()));
+	modifications.push_back(EnvironmentModification(eEnvModification_AppendPlatform, "LD_PRELOAD", "librenderdoc.so"));
+	modifications.push_back(EnvironmentModification(eEnvModification_Replace, "RENDERDOC_LOGFILE", logfile));
+	modifications.push_back(EnvironmentModification(eEnvModification_Replace, "RENDERDOC_CAPTUREOPTS", optstr.c_str()));
+
+	for(size_t i=0; i < modifications.size(); i++)
 	{
-		string e = StringFormat::Fmt("RENDERDOC_LOGFILE=%s", logfile);
-		envp[i] = new char[e.length()+1];
-		memcpy(envp[i], e.c_str(), e.length()+1);
+		EnvironmentModification &m = modifications[i];
+
+		string value = env[m.name];
+
+		switch(m.type)
+		{
+			case eEnvModification_Replace:
+				value = m.value;
+				break;
+			case eEnvModification_Append:
+				value += m.value;
+				break;
+			case eEnvModification_AppendColon:
+				if(!value.empty())
+					value += ":";
+				value += m.value;
+				break;
+			case eEnvModification_AppendPlatform:
+			case eEnvModification_AppendSemiColon:
+				if(!value.empty())
+					value += ";";
+				value += m.value;
+				break;
+			case eEnvModification_Prepend:
+				value = m.value + value;
+				break;
+			case eEnvModification_PrependColon:
+				if(!value.empty())
+					value = m.value + ":" + value;
+				else
+					value = m.value;
+				break;
+			case eEnvModification_PrependPlatform:
+			case eEnvModification_PrependSemiColon:
+				if(!value.empty())
+					value = m.value + ";" + value;
+				else
+					value = m.value;
+				break;
+			default:
+				RDCERR("Unexpected environment modification type");
+		}
+	}
+
+	char **envp = new char *[env.size()+1];
+	envp[env.size()] = NULL;
+
+	int i=0;
+	for(auto it=env.begin(); it != env.end(); it++)
+	{
+		string envline = it->first + "=" + it->second;
+		envp[i] = new char[envline.size()+1];
+		memcpy(envp[i], envline.c_str(), envline.size()+1);
 		i++;
-		envp[i] = NULL;
 	}
 
 	pid_t childPid = RunProcess(app, workingDir, cmdLine, envp);

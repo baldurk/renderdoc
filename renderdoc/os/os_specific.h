@@ -38,13 +38,42 @@
 
 #include <string>
 #include <vector>
+#include <map>
 using std::string;
 using std::vector;
+using std::map;
 
 struct CaptureOptions;
 
 namespace Process
 {
+	enum ModificationType
+	{
+		eEnvModification_Replace = 0,
+
+		// prepend/append options will replace if there is no existing variable
+		eEnvModification_Append,          // append with no separators
+		eEnvModification_AppendColon,     // append, separated by colons
+		eEnvModification_AppendSemiColon, // append, separated by semi-colons
+		eEnvModification_AppendPlatform,  // append, separated by colons for linux & semi-colons for windows
+
+		eEnvModification_Prepend,          // prepend with no separators
+		eEnvModification_PrependColon,     // prepend, separated by colons
+		eEnvModification_PrependSemiColon, // prepend, separated by semi-colons
+		eEnvModification_PrependPlatform,  // prepend, separated by colons for linux & semi-colons for windows
+	};
+	struct EnvironmentModification
+	{
+		EnvironmentModification() : type(eEnvModification_Replace), name(""), value("") {}
+		EnvironmentModification(ModificationType t, const char *n, const char *v) : type(t), name(n), value(v) {}
+		ModificationType type;
+		string name;
+		string value;
+	};
+	void RegisterEnvironmentModification(EnvironmentModification modif);
+
+	void ApplyEnvironmentModification();
+
 	void StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions *opts);
 	uint32_t InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool waitForExit);
 	uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdLine);

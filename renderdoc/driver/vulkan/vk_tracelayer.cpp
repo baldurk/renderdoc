@@ -35,8 +35,11 @@
 
 #include "common/common.h"
 #include "common/threading.h"
+#include "serialise/string_utils.h"
 
 #include "data/version.h"
+
+#include "os/os_specific.h"
 
 // this should be in the vulkan definition header
 #ifdef WIN32
@@ -46,6 +49,20 @@
 
 void InitDeviceTable(const VkBaseLayerObject *obj);
 void InitInstanceTable(const VkBaseLayerObject *obj);
+
+// in vk_<platform>.cpp
+bool LayerRegistered();
+
+struct RegisterCallback
+{
+	RegisterCallback()
+	{
+		// we assume the implicit layer is registered - the UI will prompt the user about installing it.
+		Process::RegisterEnvironmentModification(Process::EnvironmentModification(Process::eEnvModification_Replace, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "1"));
+	}
+};
+
+static RegisterCallback registercb;
 
 // RenderDoc State
 

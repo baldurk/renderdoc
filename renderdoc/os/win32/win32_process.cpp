@@ -36,6 +36,104 @@
 #include <string>
 using std::string;
 
+static vector<Process::EnvironmentModification> &GetEnvModifications()
+{
+	static vector<Process::EnvironmentModification> envCallbacks;
+	return envCallbacks;
+}
+
+static map<string, string> EnvStringToEnvMap(const wchar_t *envstring)
+{
+	map<string, string> ret;
+
+	const wchar_t *e = envstring;
+
+	while(*e)
+	{
+		const wchar_t *equals = wcschr(e, L'=');
+
+		wstring name;
+		wstring value;
+		
+		name.assign(e, equals);
+		value = equals+1;
+
+		ret[StringFormat::Wide2UTF8(name)] = StringFormat::Wide2UTF8(value);
+
+		e += name.size(); // jump to =
+		e++; // advance past it
+		e += value.size(); // jump to \0
+		e++; // advance past it
+	}
+
+	return ret;
+}
+
+void Process::RegisterEnvironmentModification(Process::EnvironmentModification modif)
+{
+	GetEnvModifications().push_back(modif);
+}
+
+// on windows we apply environment changes here, after process initialisation
+// but before any real work (in RenderDoc::Initialise) so that we support
+// injecting the dll into processes we didn't launch (ie didn't control the
+// starting environment for), or even the application loading the dll itself
+// without any interaction with our replay app.
+void Process::ApplyEnvironmentModification()
+{
+	// turn environment string to a UTF-8 map
+	map<string, string> currentEnv = EnvStringToEnvMap(GetEnvironmentStringsW());
+	vector<EnvironmentModification> &modifications = GetEnvModifications();
+
+	for(size_t i=0; i < modifications.size(); i++)
+	{
+		EnvironmentModification &m = modifications[i];
+
+		string value = currentEnv[m.name];
+
+		switch(m.type)
+		{
+			case eEnvModification_Replace:
+				value = m.value;
+				break;
+			case eEnvModification_Append:
+				value += m.value;
+				break;
+			case eEnvModification_AppendColon:
+				if(!value.empty())
+					value += ":";
+				value += m.value;
+				break;
+			case eEnvModification_AppendPlatform:
+			case eEnvModification_AppendSemiColon:
+				if(!value.empty())
+					value += ";";
+				value += m.value;
+				break;
+			case eEnvModification_Prepend:
+				value = m.value + value;
+				break;
+			case eEnvModification_PrependColon:
+				if(!value.empty())
+					value = m.value + ":" + value;
+				else
+					value = m.value;
+				break;
+			case eEnvModification_PrependPlatform:
+			case eEnvModification_PrependSemiColon:
+				if(!value.empty())
+					value = m.value + ";" + value;
+				else
+					value = m.value;
+				break;
+			default:
+				RDCERR("Unexpected environment modification type");
+		}
+
+		SetEnvironmentVariableW(StringFormat::UTF82Wide(m.name).c_str(), StringFormat::UTF82Wide(value).c_str());
+	}
+}
+
 // helpers for various shims and dlls etc, not part of the public API
 extern "C" __declspec(dllexport)
 void __cdecl RENDERDOC_GetRemoteAccessIdent(uint32_t *ident)
@@ -54,7 +152,6 @@ void __cdecl RENDERDOC_SetLogFile(const char *log)
 {
 	if(log) RenderDoc::Inst().SetLogFile(log);
 }
-
 void InjectDLL(HANDLE hProcess, wstring libName)
 {
 	wchar_t dllPath[MAX_PATH + 1] = {0};
@@ -202,116 +299,58 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
 
 static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, const char *cmdLine)
 {
-    PROCESS_INFORMATION pi;
-    STARTUPINFO si;
-    SECURITY_ATTRIBUTES pSec;
-    SECURITY_ATTRIBUTES tSec;
+	PROCESS_INFORMATION pi;
+	STARTUPINFO si;
+	SECURITY_ATTRIBUTES pSec;
+	SECURITY_ATTRIBUTES tSec;
 
-    RDCEraseEl(pi);
-    RDCEraseEl(si);
-    RDCEraseEl(pSec);
-    RDCEraseEl(tSec);
+	RDCEraseEl(pi);
+	RDCEraseEl(si);
+	RDCEraseEl(pSec);
+	RDCEraseEl(tSec);
 
-    pSec.nLength = sizeof(pSec);
-    tSec.nLength = sizeof(tSec);
+	pSec.nLength = sizeof(pSec);
+	tSec.nLength = sizeof(tSec);
 
-    wstring workdir = L"";
+	wstring workdir = L"";
 
-    if (workingDir != NULL && workingDir[0] != 0)
-        workdir = StringFormat::UTF82Wide(string(workingDir));
-    else
-        workdir = StringFormat::UTF82Wide(dirname(string(app)));
+	if(workingDir != NULL && workingDir[0] != 0)
+		workdir = StringFormat::UTF82Wide(string(workingDir));
+	else
+		workdir = StringFormat::UTF82Wide(dirname(string(app)));
 
-    wchar_t *paramsAlloc = NULL;
+	wchar_t *paramsAlloc = NULL;
 
-    wstring wapp = StringFormat::UTF82Wide(string(app));
+	wstring wapp = StringFormat::UTF82Wide(string(app));
 
-    // CreateProcessW can modify the params, need space.
-    size_t len = wapp.length() + 10;
+	// CreateProcessW can modify the params, need space.
+	size_t len = wapp.length()+10;
 
-    wstring wcmd = L"";
+	wstring wcmd = L"";
 
-    if (cmdLine != NULL && cmdLine[0] != 0)
-    {
-        wcmd = StringFormat::UTF82Wide(string(cmdLine));
-        len += wcmd.length();
-    }
+	if(cmdLine != NULL && cmdLine[0] != 0)
+	{
+		wcmd = StringFormat::UTF82Wide(string(cmdLine));
+		len += wcmd.length();
+	}
 
-    paramsAlloc = new wchar_t[len];
+	paramsAlloc = new wchar_t[len];
 
-    RDCEraseMem(paramsAlloc, len*sizeof(wchar_t));
+	RDCEraseMem(paramsAlloc, len*sizeof(wchar_t));
 
-    wcscpy_s(paramsAlloc, len, L"\"");
-    wcscat_s(paramsAlloc, len, wapp.c_str());
-    wcscat_s(paramsAlloc, len, L"\"");
+	wcscpy_s(paramsAlloc, len, L"\"");
+	wcscat_s(paramsAlloc, len, wapp.c_str());
+	wcscat_s(paramsAlloc, len, L"\"");
 
-    if (cmdLine != NULL && cmdLine[0] != 0)
-    {
-        wcscat_s(paramsAlloc, len, L" ");
-        wcscat_s(paramsAlloc, len, wcmd.c_str());
-    }
-
-    // VKTODOLOW refactor all this once loader supports implicit layers
-    const wchar_t *myEnv = GetEnvironmentStringsW();
-
-    wstring newEnv;
-
-    // copy up to the terminating "\0\0"
-    bool sawpath = false;
-    bool sawdevice = false;
-    bool sawinstance = false;
-    while (myEnv[0] != L'\0' || myEnv[1] != L'\0')
-    {
-        if (!wcsncmp(&myEnv[0], L"VK_LAYER_PATH=", sizeof("VK_LAYER_PATH=") - 1))
-        {
-            sawpath = true;
-            newEnv += L"VK_LAYER_PATH=";
-            newEnv += dirname(StringFormat::UTF82Wide(FileIO::GetReplayAppFilename()));
-            newEnv += L";";
-            myEnv += (sizeof("VK_LAYER_PATH=") - 1);
-        }
-        else if (!wcsncmp(&myEnv[0], L"VK_DEVICE_LAYERS=", sizeof("VK_DEVICE_LAYERS=") - 1))
-        {
-            sawdevice = true;
-            newEnv += L"VK_DEVICE_LAYERS=VK_LAYER_RENDERDOC_Capture;";
-            myEnv += (sizeof("VK_DEVICE_LAYERS=") - 1);
-        }
-        else if (!wcsncmp(&myEnv[0], L"VK_INSTANCE_LAYERS=", sizeof("VK_INSTANCE_LAYERS=") - 1))
-        {
-            sawinstance = true;
-            newEnv += L"VK_INSTANCE_LAYERS=VK_LAYER_RENDERDOC_Capture;";
-            myEnv += (sizeof("VK_INSTANCE_LAYERS=") - 1);
-        }
-        else
-            newEnv.push_back(*(myEnv++));
-    }
-
-    newEnv.push_back(L'\0');
-
-    if (!sawpath)
-    {
-        newEnv += L"VK_LAYER_PATH=";
-        newEnv += dirname(StringFormat::UTF82Wide(FileIO::GetReplayAppFilename()));
-        newEnv.push_back(L'\0');
-    }
-
-    if (!sawdevice)
-    {
-        newEnv += L"VK_DEVICE_LAYERS=VK_LAYER_RENDERDOC_Capture";
-        newEnv.push_back(L'\0');
-    }
-
-    if (!sawinstance)
-    {
-        newEnv += L"VK_INSTANCE_LAYERS=VK_LAYER_RENDERDOC_Capture";
-        newEnv.push_back(L'\0');
-    }
-
-	newEnv.push_back(L'\0');
+	if(cmdLine != NULL && cmdLine[0] != 0)
+	{
+		wcscat_s(paramsAlloc, len, L" ");
+		wcscat_s(paramsAlloc, len, wcmd.c_str());
+	}
 
 	BOOL retValue = CreateProcessW(NULL, paramsAlloc,
 		&pSec, &tSec, false, CREATE_SUSPENDED|CREATE_UNICODE_ENVIRONMENT,
-		(void *)newEnv.c_str(), workdir.c_str(), &si, &pi);
+		NULL, workdir.c_str(), &si, &pi);
 
 	SAFE_DELETE_ARRAY(paramsAlloc);
 
@@ -644,4 +683,3 @@ uint32_t Process::GetCurrentPID()
 {
 	return (uint32_t)GetCurrentProcessId();
 }
-
