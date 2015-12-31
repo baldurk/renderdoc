@@ -175,8 +175,10 @@ class VulkanReplay : public IReplayDriver
 			uint32_t numImgs;
 			VkImage colimg[8];
 			VkAttachmentView colview[8];
+			VkFramebuffer fb[8], fbdepth[8];
 			VkImageMemoryBarrier coltrans[8];
 			VkImageMemoryBarrier *curcoltrans;
+			VkRenderPass renderpass;
 			uint32_t curidx;
 
 			VkImage dsimg;
@@ -197,4 +199,30 @@ class VulkanReplay : public IReplayDriver
 		bool m_Proxy;
 		
 		WrappedVulkan *m_pDriver;
+
+		// Debug data
+
+		void InitDebugData();
+
+		struct UBO
+		{
+			VkBuffer buf;
+			VkDeviceMemory mem;
+			VkBufferView view;
+		};
+
+		VkPipelineCache m_PipelineCache;
+		VkDynamicColorBlendState m_DynamicCBStateWhite;
+		VkDynamicRasterState m_DynamicRSState;
+		VkDynamicDepthStencilState m_DynamicDSStateDisabled;
+		
+		VkPipeline m_CheckerboardPipeline;
+		UBO m_CheckerboardUBO;
+
+		VkPipeline m_TexDisplayPipeline;
+		VkDescriptorSetLayout m_TexDisplayDescSetLayout;
+		VkPipelineLayout m_TexDisplayPipeLayout;
+		VkDescriptorPool m_TexDisplayDescPool;
+		VkDescriptorSet m_TexDisplayDescSet;
+		UBO m_TexDisplayUBO;
 };

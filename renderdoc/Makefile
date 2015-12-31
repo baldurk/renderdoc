@@ -63,6 +63,9 @@ data/glsl/quadoverdraw.frago \
 data/glsl/histogram.compo \
 data/glsl/arraymscopy.compo \
 data/glsl/outline.frago \
+data/spv/blitvs.spv \
+data/spv/checkerboardfs.spv \
+data/spv/texdisplayfs.spv \
 data/sourcecodepro.ttfo
 
 .PHONY: all
@@ -103,6 +106,9 @@ $(OBJDIR)/%.ttfo: %.ttf
 	@echo Object building $@
 	@$(OBJGEN)
 $(OBJDIR)/%.ho: %.h
+	@echo Object building $@
+	@$(OBJGEN)
+$(OBJDIR)/%.spvo: %.spv
 	@echo Object building $@
 	@$(OBJGEN)
 

@@ -70,6 +70,9 @@
     <Filter Include="Hooks">
       <UniqueIdentifier>{3e51a921-b167-4794-937d-e77573a928b8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resources\spv">
+      <UniqueIdentifier>{188ad934-e74f-4805-b74b-167f8760fab6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -426,6 +429,18 @@
     </None>
     <None Include="data\glsl\outline.frag">
       <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\spv\blitvs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\blit.vert">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\texdisplay.frag">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\texdisplayfs.spv">
+      <Filter>Resources\spv</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

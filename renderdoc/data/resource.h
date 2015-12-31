@@ -33,6 +33,10 @@
 
 #define RESOURCE_sourcecodepro_ttf  301
 
+#define RESOURCE_blitvs_spv         401
+#define RESOURCE_checkerboardfs_spv 402
+#define RESOURCE_texdisplayfs_spv   403
+
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a
 #define STRINGIZE(a) STRINGIZE2(a)

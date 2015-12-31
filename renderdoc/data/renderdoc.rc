@@ -131,6 +131,10 @@ RESOURCE_outline_frag      TYPE_EMBED   "glsl/outline.frag"
 
 RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
 
+RESOURCE_blitvs_spv         TYPE_EMBED   "spv/blitvs.spv"
+RESOURCE_checkerboardfs_spv TYPE_EMBED   "spv/checkerboardfs.spv"
+RESOURCE_texdisplayfs_spv   TYPE_EMBED   "spv/texdisplayfs.spv"
+
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //

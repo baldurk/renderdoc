@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2015 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,33 +22,29 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#version 420 core
 
-#define DECLARE_EMBED(filename) \
-	extern char CONCAT( CONCAT(_binary_, filename) , _start) ; \
-	extern char CONCAT( CONCAT(_binary_, filename) , _end) ;
+layout (location = 0) out vec4 color_out;
 
-DECLARE_EMBED(debuguniforms_h);
-DECLARE_EMBED(texsample_h);
-DECLARE_EMBED(blit_vert);
-DECLARE_EMBED(blit_frag);
-DECLARE_EMBED(texdisplay_frag);
-DECLARE_EMBED(checkerboard_frag);
-DECLARE_EMBED(histogram_comp);
-DECLARE_EMBED(quadoverdraw_frag);
-DECLARE_EMBED(arraymscopy_comp);
-DECLARE_EMBED(mesh_vert);
-DECLARE_EMBED(mesh_frag);
-DECLARE_EMBED(mesh_geom);
-DECLARE_EMBED(mesh_comp);
-DECLARE_EMBED(generic_vert);
-DECLARE_EMBED(generic_frag);
-DECLARE_EMBED(text_frag);
-DECLARE_EMBED(text_vert);
-DECLARE_EMBED(sourcecodepro_ttf);
-DECLARE_EMBED(outline_frag);
-DECLARE_EMBED(blitvs_spv);
-DECLARE_EMBED(checkerboardfs_spv);
-DECLARE_EMBED(texdisplayfs_spv);
+layout (binding = 0, std140) uniform checkeruniforms
+{
+    vec4 lightCol;
+    vec4 darkCol;
+} checker;
 
-#undef DECLARE_EMBED
+void main(void)
+{
+	vec2 ab = mod(gl_FragCoord.xy, 128.0f.xx);
+
+	if(
+		(ab.x < 64 && ab.y < 64) ||
+		(ab.x > 64 && ab.y > 64)
+		)
+	{
+		color_out = vec4(sqrt(checker.lightCol.rgb), 1);
+	}
+	else
+	{
+		color_out = vec4(sqrt(checker.darkCol.rgb), 1);
+	}
+}
