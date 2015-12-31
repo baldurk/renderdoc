@@ -48,9 +48,9 @@ class VulkanDebugManager
 
 		void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
 		
-		struct UBO
+		struct GPUBuffer
 		{
-			UBO() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE), view(VK_NULL_HANDLE) {}
+			GPUBuffer() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE), view(VK_NULL_HANDLE) {}
 			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size);
 			void Destroy(const VkLayerDispatchTable *vt, VkDevice dev);
 
@@ -73,21 +73,28 @@ class VulkanDebugManager
 		VkPipelineLayout m_CheckerboardPipeLayout;
 		VkDescriptorSet m_CheckerboardDescSet;
 		VkPipeline m_CheckerboardPipeline;
-		UBO m_CheckerboardUBO;
+		GPUBuffer m_CheckerboardUBO;
+
+		VkDescriptorSetLayout m_GenericDescSetLayout;
+		VkPipelineLayout m_GenericPipeLayout;
+		VkDescriptorSet m_GenericDescSet;
+		VkPipeline m_GenericPipeline;
+		GPUBuffer m_OutlineStripVBO;
+		GPUBuffer m_GenericUBO;
 
 		VkDescriptorSetLayout m_TexDisplayDescSetLayout;
 		VkPipelineLayout m_TexDisplayPipeLayout;
 		VkDescriptorSet m_TexDisplayDescSet;
 		VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline;
-		UBO m_TexDisplayUBO;
+		GPUBuffer m_TexDisplayUBO;
 		
 		VkDescriptorSetLayout m_TextDescSetLayout;
 		VkPipelineLayout m_TextPipeLayout;
 		VkDescriptorSet m_TextDescSet;
 		VkPipeline m_TextPipeline;
-		UBO m_TextGeneralUBO;
-		UBO m_TextGlyphUBO;
-		UBO m_TextStringUBO;
+		GPUBuffer m_TextGeneralUBO;
+		GPUBuffer m_TextGlyphUBO;
+		GPUBuffer m_TextStringUBO;
 		VkImage m_TextAtlas;
 		VkDeviceMemory m_TextAtlasMem;
 		VkImageView m_TextAtlasView;

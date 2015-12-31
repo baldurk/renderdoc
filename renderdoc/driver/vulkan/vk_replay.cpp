@@ -55,6 +55,13 @@ struct displayuniforms
 	Vec2f Padding;
 };
 
+struct genericuniforms
+{
+	Vec4f Offset;
+	Vec4f Scale;
+	Vec4f Color;
+};
+
 VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), height(0),
 	dsimg(VK_NULL_HANDLE), dsmem(VK_NULL_HANDLE)
 {
@@ -847,8 +854,6 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	void *barrier = (void *)&outw.bbtrans;
-
 	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
 	// needs to be ring-buffered
 	Vec4f *data = (Vec4f *)GetDebugManager()->m_CheckerboardUBO.Map(vt, dev);
@@ -896,9 +901,85 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	
 void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 {
-	VULKANNOTIMP("RenderHighlightBox");
-}
+	auto it = m_OutputWindows.find(m_ActiveWinID);
+	if(m_ActiveWinID == 0 || it == m_OutputWindows.end())
+		return;
+
+	OutputWindow &outw = it->second;
+
+	VkDevice dev = m_pDriver->GetDev();
+	VkCmdBuffer cmd = m_pDriver->GetCmd();
+	VkQueue q = m_pDriver->GetQ();
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 	
+	VkResult vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
+	RDCASSERT(vkr == VK_SUCCESS);
+	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	const float xpixdim = 2.0f/w;
+	const float ypixdim = 2.0f/h;
+	
+	const float xdim = scale*xpixdim;
+	const float ydim = scale*ypixdim;
+
+	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
+	// needs to be ring-buffered
+	genericuniforms *data = (genericuniforms *)GetDebugManager()->m_GenericUBO.Map(vt, dev);
+	data->Offset = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+	data->Scale = Vec4f(xdim, ydim, 1.0f, 1.0f);
+	data->Color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+	GetDebugManager()->m_GenericUBO.Unmap(vt, dev);
+
+	{
+		VkClearValue clearval = {0};
+		VkRenderPassBeginInfo rpbegin = {
+			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+			Unwrap(outw.renderpass), Unwrap(outw.fb),
+			{ { 0, 0, }, { outw.width, outw.height } },
+			1, &clearval,
+		};
+		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+
+		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_GenericPipeline));
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_GenericPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_GenericDescSet), 0, NULL);
+
+		vt->CmdBindDynamicViewportState(Unwrap(cmd), Unwrap(outw.fullVP));
+		vt->CmdBindDynamicRasterState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicRSState));
+		vt->CmdBindDynamicColorBlendState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicCBStateWhite));
+		vt->CmdBindDynamicDepthStencilState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicDSStateDisabled));
+
+		VkDeviceSize zero = 0;
+		vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_OutlineStripVBO.buf), &zero);
+
+		vt->CmdDraw(Unwrap(cmd), 0, 8, 0, 1);
+
+		genericuniforms secondOutline;
+		secondOutline.Offset = Vec4f(-xpixdim, ypixdim, 0.0f, 0.0f);
+		secondOutline.Scale = Vec4f(xdim+xpixdim*2, ydim+ypixdim*2, 1.0f, 1.0f);
+		secondOutline.Color = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+
+		vt->CmdUpdateBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_GenericUBO.buf), 0, sizeof(genericuniforms), (uint32_t *)&secondOutline);
+
+		vt->CmdDraw(Unwrap(cmd), 0, 8, 0, 1);
+
+		vt->CmdEndRenderPass(Unwrap(cmd));
+	}
+
+	vkr = vt->EndCommandBuffer(Unwrap(cmd));
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	vkr = vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
+	// into a single command buffer and we can just have several allocated
+	// ring-buffer style
+	vt->QueueWaitIdle(Unwrap(q));
+}
+
 ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	RDCUNIMPLEMENTED("RenderOverlay");

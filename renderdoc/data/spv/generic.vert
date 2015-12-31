@@ -22,37 +22,25 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#version 420 core
 
-#define DECLARE_EMBED(filename) \
-	extern char CONCAT( CONCAT(_binary_, filename) , _start) ; \
-	extern char CONCAT( CONCAT(_binary_, filename) , _end) ;
+layout (location = 0) in vec4 position;
 
-DECLARE_EMBED(debuguniforms_h);
-DECLARE_EMBED(texsample_h);
-DECLARE_EMBED(blit_vert);
-DECLARE_EMBED(blit_frag);
-DECLARE_EMBED(texdisplay_frag);
-DECLARE_EMBED(checkerboard_frag);
-DECLARE_EMBED(histogram_comp);
-DECLARE_EMBED(quadoverdraw_frag);
-DECLARE_EMBED(arraymscopy_comp);
-DECLARE_EMBED(mesh_vert);
-DECLARE_EMBED(mesh_frag);
-DECLARE_EMBED(mesh_geom);
-DECLARE_EMBED(mesh_comp);
-DECLARE_EMBED(generic_vert);
-DECLARE_EMBED(generic_frag);
-DECLARE_EMBED(text_frag);
-DECLARE_EMBED(text_vert);
-DECLARE_EMBED(sourcecodepro_ttf);
-DECLARE_EMBED(outline_frag);
-DECLARE_EMBED(blitvs_spv);
-DECLARE_EMBED(checkerboardfs_spv);
-DECLARE_EMBED(texdisplayfs_spv);
-DECLARE_EMBED(textvs_spv);
-DECLARE_EMBED(textfs_spv);
-DECLARE_EMBED(genericvs_spv);
-DECLARE_EMBED(genericfs_spv);
+layout (binding = 0, std140) uniform genericuniforms
+{
+    vec4 offset;
+    vec4 scale;
+	vec4 color;
+} generic;
 
-#undef DECLARE_EMBED
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+	float gl_ClipDistance[];
+};
+
+void main(void)
+{
+    gl_Position = position*generic.scale + generic.offset;
+}

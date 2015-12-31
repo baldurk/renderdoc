@@ -38,6 +38,8 @@
 #define RESOURCE_texdisplayfs_spv   403
 #define RESOURCE_textvs_spv         404
 #define RESOURCE_textfs_spv         405
+#define RESOURCE_genericvs_spv      406
+#define RESOURCE_genericfs_spv      407
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

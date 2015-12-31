@@ -460,6 +460,18 @@
     <None Include="data\spv\textvs.spv">
       <Filter>Resources\spv</Filter>
     </None>
+    <None Include="data\spv\generic.frag">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\generic.vert">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\genericfs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\genericvs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

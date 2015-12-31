@@ -62,6 +62,13 @@ struct fontuniforms
 	Vec2f CharacterSize;
 	Vec2f FontScreenAspect;
 };
+
+struct genericuniforms
+{
+	Vec4f Offset;
+	Vec4f Scale;
+	Vec4f Color;
+};
 		
 struct glyph
 {
@@ -79,7 +86,7 @@ struct stringdata
 	uint32_t str[256][4];
 };
 
-void VulkanDebugManager::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size)
+void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
@@ -124,7 +131,7 @@ void VulkanDebugManager::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDevi
 	VKMGR()->WrapResource(Unwrap(dev), view);
 }
 
-void VulkanDebugManager::UBO::Destroy(const VkLayerDispatchTable *vt, VkDevice dev)
+void VulkanDebugManager::GPUBuffer::Destroy(const VkLayerDispatchTable *vt, VkDevice dev)
 {
 	VkResult vkr = VK_SUCCESS;
 	if(view != VK_NULL_HANDLE)
@@ -152,7 +159,7 @@ void VulkanDebugManager::UBO::Destroy(const VkLayerDispatchTable *vt, VkDevice d
 	}
 }
 
-void *VulkanDebugManager::UBO::Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize offset, VkDeviceSize size)
+void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize offset, VkDeviceSize size)
 {
 	void *ptr = NULL;
 	VkResult vkr = vt->MapMemory(Unwrap(dev), Unwrap(mem), offset, size, 0, (void **)&ptr);
@@ -160,7 +167,7 @@ void *VulkanDebugManager::UBO::Map(const VkLayerDispatchTable *vt, VkDevice dev,
 	return ptr;
 }
 
-void VulkanDebugManager::UBO::Unmap(const VkLayerDispatchTable *vt, VkDevice dev)
+void VulkanDebugManager::GPUBuffer::Unmap(const VkLayerDispatchTable *vt, VkDevice dev)
 {
 	vt->UnmapMemory(Unwrap(dev), Unwrap(mem));
 }
@@ -199,6 +206,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_TextAtlas = VK_NULL_HANDLE;
 	m_TextAtlasMem = VK_NULL_HANDLE;
 	m_TextAtlasView = VK_NULL_HANDLE;
+
+	m_GenericDescSetLayout = VK_NULL_HANDLE;
+	m_GenericPipeLayout = VK_NULL_HANDLE;
+	m_GenericDescSet = VK_NULL_HANDLE;
+	m_GenericPipeline = VK_NULL_HANDLE;
 
 	m_Device = dev;
 	
@@ -247,6 +259,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VKMGR()->WrapResource(Unwrap(dev), m_CheckerboardDescSetLayout);
+
+		// identical layout
+		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_GenericDescSetLayout);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VKMGR()->WrapResource(Unwrap(dev), m_GenericDescSetLayout);
 	}
 
 	{
@@ -310,6 +328,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VKMGR()->WrapResource(Unwrap(dev), m_TextPipeLayout);
 
+	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_GenericDescSetLayout);
+	
+	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_GenericPipeLayout);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	VKMGR()->WrapResource(Unwrap(dev), m_GenericPipeLayout);
+
 	VkDescriptorTypeCount descPoolTypes[] = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024, },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024, },
@@ -320,7 +345,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
 	};
 	
-	vkr = vt->CreateDescriptorPool(Unwrap(dev), VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 3, &descpoolInfo, &m_DescriptorPool);
+	vkr = vt->CreateDescriptorPool(Unwrap(dev), VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 4, &descpoolInfo, &m_DescriptorPool);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VKMGR()->WrapResource(Unwrap(dev), m_DescriptorPool);
@@ -343,6 +368,40 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VKMGR()->WrapResource(Unwrap(dev), m_TextDescSet);
+	
+	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
+		UnwrapPtr(m_GenericDescSetLayout), &m_GenericDescSet, &count);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	VKMGR()->WrapResource(Unwrap(dev), m_GenericDescSet);
+
+	m_GenericUBO.Create(driver, dev, 128);
+	RDCCOMPILE_ASSERT(sizeof(genericuniforms) <= 128, "outline strip VBO size");
+
+	{
+		float data[] = {
+			0.0f, -1.0f, 0.0f, 1.0f,
+			1.0f, -1.0f, 0.0f, 1.0f,
+
+			1.0f, -1.0f, 0.0f, 1.0f,
+			1.0f,  0.0f, 0.0f, 1.0f,
+
+			1.0f,  0.0f, 0.0f, 1.0f,
+			0.0f,  0.0f, 0.0f, 1.0f,
+
+			0.0f,  0.1f, 0.0f, 1.0f,
+			0.0f, -1.0f, 0.0f, 1.0f,
+		};
+		
+		m_OutlineStripVBO.Create(driver, dev, 128);
+		RDCCOMPILE_ASSERT(sizeof(data) <= 128, "outline strip VBO size");
+		
+		float *mapped = (float *)m_OutlineStripVBO.Map(vt, dev);
+
+		memcpy(mapped, data, sizeof(data));
+
+		m_OutlineStripVBO.Unmap(vt, dev);
+	}
 
 	m_CheckerboardUBO.Create(driver, dev, 128);
 	m_TexDisplayUBO.Create(driver, dev, 128);
@@ -391,6 +450,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		GetEmbeddedResource(texdisplayfs_spv),
 		GetEmbeddedResource(textvs_spv),
 		GetEmbeddedResource(textfs_spv),
+		GetEmbeddedResource(genericvs_spv),
+		GetEmbeddedResource(genericfs_spv),
 	};
 	
 	enum shaderIdx
@@ -400,6 +461,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		TEXDISPLAYFS,
 		TEXTVS,
 		TEXTFS,
+		GENERICVS,
+		GENERICFS,
 	};
 
 	VkShaderModule module[ARRAY_COUNT(shaderSources)];
@@ -530,6 +593,35 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VKMGR()->WrapResource(Unwrap(dev), m_TextPipeline);
+	
+	ia.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+	attState.blendEnable = false;
+
+	VkVertexInputBindingDescription vertexBind = {
+		0, sizeof(Vec4f), VK_VERTEX_INPUT_STEP_RATE_VERTEX,
+	};
+
+	VkVertexInputAttributeDescription vertexAttr = {
+		0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0,
+	};
+
+	VkPipelineVertexInputStateCreateInfo vi = {
+		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, NULL,
+		1, &vertexBind,
+		1, &vertexAttr,
+	};
+
+	pipeInfo.pVertexInputState = &vi;
+	
+	stages[0].shader = Unwrap(shader[GENERICVS]);
+	stages[1].shader = Unwrap(shader[GENERICFS]);
+
+	pipeInfo.layout = Unwrap(m_GenericPipeLayout);
+
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_GenericPipeline);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	VKMGR()->WrapResource(Unwrap(dev), m_GenericPipeline);
 
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
@@ -694,7 +786,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		m_TextGlyphUBO.Unmap(vt, dev);
 	}
 
-	VkDescriptorInfo desc[6];
+	VkDescriptorInfo desc[7];
 	RDCEraseEl(desc);
 	
 	// checkerboard
@@ -711,6 +803,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	desc[5].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	desc[5].imageView = Unwrap(m_TextAtlasView);
 	desc[5].sampler = Unwrap(m_LinearSampler);
+	
+	// generic
+	desc[6].bufferView = Unwrap(m_GenericUBO.view);
 
 	VkWriteDescriptorSet writeSet[] = {
 		{
@@ -736,6 +831,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc[5]
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(m_GenericDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[6]
 		},
 	};
 
@@ -889,6 +988,30 @@ VulkanDebugManager::~VulkanDebugManager()
 		RDCASSERT(vkr == VK_SUCCESS);
 		VKMGR()->ReleaseWrappedResource(m_TextAtlasMem);
 	}
+	
+	if(m_GenericDescSetLayout != VK_NULL_HANDLE)
+	{
+		vkr = vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_GenericDescSetLayout));
+		RDCASSERT(vkr == VK_SUCCESS);
+		VKMGR()->ReleaseWrappedResource(m_GenericDescSetLayout);
+	}
+
+	if(m_GenericPipeLayout != VK_NULL_HANDLE)
+	{
+		vkr = vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_GenericPipeLayout));
+		RDCASSERT(vkr == VK_SUCCESS);
+		VKMGR()->ReleaseWrappedResource(m_GenericPipeLayout);
+	}
+
+	if(m_GenericPipeline != VK_NULL_HANDLE)
+	{
+		vkr = vt->DestroyPipeline(Unwrap(dev), Unwrap(m_GenericPipeline));
+		RDCASSERT(vkr == VK_SUCCESS);
+		VKMGR()->ReleaseWrappedResource(m_GenericPipeline);
+	}
+
+	m_OutlineStripVBO.Destroy(vt, dev);
+	m_GenericUBO.Destroy(vt, dev);
 }
 
 void VulkanDebugManager::RenderText(const TextPrintState &textstate, float x, float y, const char *textfmt, ...)

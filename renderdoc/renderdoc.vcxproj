@@ -361,6 +361,10 @@
     <None Include="data\spv\blitvs.spv" />
     <None Include="data\spv\checkerboard.frag" />
     <None Include="data\spv\checkerboardfs.spv" />
+    <None Include="data\spv\generic.frag" />
+    <None Include="data\spv\generic.vert" />
+    <None Include="data\spv\genericfs.spv" />
+    <None Include="data\spv\genericvs.spv" />
     <None Include="data\spv\texdisplay.frag" />
     <None Include="data\spv\texdisplayfs.spv" />
     <None Include="data\spv\text.frag" />
