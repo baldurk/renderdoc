@@ -8,7 +8,7 @@ MACROS=-DLINUX \
 CFLAGS=-c -Wall -Werror -Wno-unused -Wno-unknown-pragmas -fPIC $(MACROS) -I. -I3rdparty/
 CPPFLAGS=-std=c++11 -g -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
 LDFLAGS=-lpthread -lrt -shared -ldl -lX11 -lxcb-keysyms
-LIBS=driver/gl/rdoc_gl.a driver/vulkan/rdoc_vulkan.a driver/shaders/spirv/rdoc_spirv.a $(VULKAN_SDK_SRC)/build/layers/liblayer_utils.so
+LIBS=driver/gl/rdoc_gl.a driver/vulkan/rdoc_vulkan.a driver/shaders/spirv/rdoc_spirv.a
 OBJDIR=.obj
 OBJECTS=replay/replay_output.o \
 replay/replay_renderer.o \
@@ -134,7 +134,7 @@ force_look:
 	true
 
 librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA) $(LIBS)
-	$(CPP) -o librenderdoc.so $(OBJDIR_DATA) -Wl,--whole-archive $(LIBS) -Wl,--no-whole-archive $(OBJDIR_OBJECTS) $(LDFLAGS) -Wl,-rpath,$(VULKAN_SDK_SRC)/build/layers
+	$(CPP) -o librenderdoc.so $(OBJDIR_DATA) -Wl,--whole-archive $(LIBS) -Wl,--no-whole-archive $(OBJDIR_OBJECTS) $(LDFLAGS)
 
 .PHONY: clean
 clean:
