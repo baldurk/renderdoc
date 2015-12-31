@@ -358,35 +358,20 @@
     <None Include="data\hlsl\mesh.hlsl" />
     <None Include="data\hlsl\multisample.hlsl" />
     <None Include="data\spv\blit.vert" />
-    <None Include="data\spv\blitvs.spv" />
     <None Include="data\spv\checkerboard.frag" />
-    <None Include="data\spv\checkerboardfs.spv" />
     <None Include="data\spv\fixedcol.frag" />
-    <None Include="data\spv\fixedcolfs.spv" />
     <None Include="data\spv\generic.frag" />
     <None Include="data\spv\generic.vert" />
-    <None Include="data\spv\genericfs.spv" />
-    <None Include="data\spv\genericvs.spv" />
     <None Include="data\spv\histogram.comp" />
-    <None Include="data\spv\histogramcs.spv" />
     <None Include="data\spv\mesh.frag" />
     <None Include="data\spv\mesh.geom" />
     <None Include="data\spv\mesh.vert" />
-    <None Include="data\spv\meshfs.spv" />
-    <None Include="data\spv\meshgs.spv" />
-    <None Include="data\spv\meshvs.spv" />
     <None Include="data\spv\minmaxresult.comp" />
-    <None Include="data\spv\minmaxresultcs.spv" />
     <None Include="data\spv\minmaxtile.comp" />
-    <None Include="data\spv\minmaxtilecs.spv" />
     <None Include="data\spv\outline.frag" />
-    <None Include="data\spv\outlinefs.spv" />
     <None Include="data\spv\texdisplay.frag" />
-    <None Include="data\spv\texdisplayfs.spv" />
     <None Include="data\spv\text.frag" />
     <None Include="data\spv\text.vert" />
-    <None Include="data\spv\textfs.spv" />
-    <None Include="data\spv\textvs.spv" />
     <None Include="os\win32\comexport.def" />
   </ItemGroup>
   <ItemGroup>

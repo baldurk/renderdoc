@@ -33,19 +33,19 @@
 
 #define RESOURCE_sourcecodepro_ttf  301
 
-#define RESOURCE_blitvs_spv         401
-#define RESOURCE_checkerboardfs_spv 402
-#define RESOURCE_texdisplayfs_spv   403
-#define RESOURCE_textvs_spv         404
-#define RESOURCE_textfs_spv         405
-#define RESOURCE_fixedcolfs_spv     408
-#define RESOURCE_meshvs_spv         409
-#define RESOURCE_meshgs_spv         410
-#define RESOURCE_meshfs_spv         411
-#define RESOURCE_minmaxtilecs_spv   412
-#define RESOURCE_minmaxresultcs_spv 413
-#define RESOURCE_histogramcs_spv    414
-#define RESOURCE_outlinefs_spv      415
+#define RESOURCE_spirv_blit_vert         401
+#define RESOURCE_spirv_checkerboard_frag 402
+#define RESOURCE_spirv_texdisplay_frag   403
+#define RESOURCE_spirv_text_vert         404
+#define RESOURCE_spirv_text_frag         405
+#define RESOURCE_spirv_fixedcol_frag     408
+#define RESOURCE_spirv_mesh_vert         409
+#define RESOURCE_spirv_mesh_geom         410
+#define RESOURCE_spirv_mesh_frag         411
+#define RESOURCE_spirv_minmaxtile_comp   412
+#define RESOURCE_spirv_minmaxresult_comp 413
+#define RESOURCE_spirv_histogram_comp    414
+#define RESOURCE_spirv_outline_frag      415
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

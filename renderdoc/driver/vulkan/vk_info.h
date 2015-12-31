@@ -72,6 +72,7 @@ struct VulkanCreationInfo
 			Shader() : refl(NULL), mapping(NULL) {}
 			~Shader() { SAFE_DELETE(refl); }
 			ResourceId module;
+			string name;
 			ShaderReflection *refl;
 			ShaderBindpointMapping *mapping;
 		};
@@ -120,7 +121,7 @@ struct VulkanCreationInfo
 		float lineWidth;
 
 		// VkPipelineMultisampleStateCreateInfo
-		uint32_t rasterizationSamples;
+		VkSampleCountFlagBits rasterizationSamples;
 		bool sampleShadingEnable;
 		float minSampleShading;
 		VkSampleMask sampleMask;

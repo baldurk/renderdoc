@@ -430,22 +430,13 @@
     <None Include="data\glsl\outline.frag">
       <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\blitvs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
     <None Include="data\spv\blit.vert">
       <Filter>Resources\spv</Filter>
     </None>
     <None Include="data\spv\texdisplay.frag">
       <Filter>Resources\spv</Filter>
     </None>
-    <None Include="data\spv\texdisplayfs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
     <None Include="data\spv\checkerboard.frag">
-      <Filter>Resources\spv</Filter>
-    </None>
-    <None Include="data\spv\checkerboardfs.spv">
       <Filter>Resources\spv</Filter>
     </None>
     <None Include="data\spv\text.frag">
@@ -454,28 +445,13 @@
     <None Include="data\spv\text.vert">
       <Filter>Resources\spv</Filter>
     </None>
-    <None Include="data\spv\textfs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
-    <None Include="data\spv\textvs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
     <None Include="data\spv\generic.frag">
       <Filter>Resources\spv</Filter>
     </None>
     <None Include="data\spv\generic.vert">
       <Filter>Resources\spv</Filter>
     </None>
-    <None Include="data\spv\genericfs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
-    <None Include="data\spv\genericvs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
     <None Include="data\spv\fixedcol.frag">
-      <Filter>Resources\spv</Filter>
-    </None>
-    <None Include="data\spv\fixedcolfs.spv">
       <Filter>Resources\spv</Filter>
     </None>
     <None Include="data\spv\mesh.frag">
@@ -487,37 +463,16 @@
     <None Include="data\spv\mesh.vert">
       <Filter>Resources\spv</Filter>
     </None>
-    <None Include="data\spv\meshgs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
-    <None Include="data\spv\meshvs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
-    <None Include="data\spv\meshfs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
     <None Include="data\spv\histogram.comp">
-      <Filter>Resources\spv</Filter>
-    </None>
-    <None Include="data\spv\histogramcs.spv">
       <Filter>Resources\spv</Filter>
     </None>
     <None Include="data\spv\minmaxresult.comp">
       <Filter>Resources\spv</Filter>
     </None>
-    <None Include="data\spv\minmaxresultcs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
     <None Include="data\spv\minmaxtile.comp">
       <Filter>Resources\spv</Filter>
     </None>
-    <None Include="data\spv\minmaxtilecs.spv">
-      <Filter>Resources\spv</Filter>
-    </None>
     <None Include="data\spv\outline.frag">
-      <Filter>Resources\spv</Filter>
-    </None>
-    <None Include="data\spv\outlinefs.spv">
       <Filter>Resources\spv</Filter>
     </None>
   </ItemGroup>

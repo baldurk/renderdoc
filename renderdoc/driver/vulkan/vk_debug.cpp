@@ -28,6 +28,8 @@
 
 #include "stb/stb_truetype.h"
 
+#include "driver/shaders/spirv/spirv_common.h"
+
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 
 // VKTODOMED should share this between shader and C++ - need #include support in glslang
@@ -583,33 +585,33 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCCOMPILE_ASSERT(sizeof(stringdata) <= 4096, "font uniforms size");
 	
 	string shaderSources[] = {
-		GetEmbeddedResource(blitvs_spv),
-		GetEmbeddedResource(checkerboardfs_spv),
-		GetEmbeddedResource(texdisplayfs_spv),
-		GetEmbeddedResource(textvs_spv),
-		GetEmbeddedResource(textfs_spv),
-		GetEmbeddedResource(meshvs_spv),
-		GetEmbeddedResource(meshgs_spv),
-		GetEmbeddedResource(meshfs_spv),
-		GetEmbeddedResource(minmaxtilecs_spv),
-		GetEmbeddedResource(minmaxresultcs_spv),
-		GetEmbeddedResource(histogramcs_spv),
-		GetEmbeddedResource(outlinefs_spv),
+		GetEmbeddedResource(spirv_blit_vert),
+		GetEmbeddedResource(spirv_checkerboard_frag),
+		GetEmbeddedResource(spirv_texdisplay_frag),
+		GetEmbeddedResource(spirv_text_vert),
+		GetEmbeddedResource(spirv_text_frag),
+		GetEmbeddedResource(spirv_mesh_vert),
+		GetEmbeddedResource(spirv_mesh_geom),
+		GetEmbeddedResource(spirv_mesh_frag),
+		GetEmbeddedResource(spirv_minmaxtile_comp),
+		GetEmbeddedResource(spirv_minmaxresult_comp),
+		GetEmbeddedResource(spirv_histogram_comp),
+		GetEmbeddedResource(spirv_outline_frag),
 	};
 
-	VkShaderStage shaderStages[] = {
-		VK_SHADER_STAGE_VERTEX,
-		VK_SHADER_STAGE_FRAGMENT,
-		VK_SHADER_STAGE_FRAGMENT,
-		VK_SHADER_STAGE_VERTEX,
-		VK_SHADER_STAGE_FRAGMENT,
-		VK_SHADER_STAGE_VERTEX,
-		VK_SHADER_STAGE_GEOMETRY,
-		VK_SHADER_STAGE_FRAGMENT,
-		VK_SHADER_STAGE_COMPUTE,
-		VK_SHADER_STAGE_COMPUTE,
-		VK_SHADER_STAGE_COMPUTE,
-		VK_SHADER_STAGE_FRAGMENT,
+	SPIRVShaderStage shaderStages[] = {
+		eSPIRVVertex,
+		eSPIRVFragment,
+		eSPIRVFragment,
+		eSPIRVVertex,
+		eSPIRVFragment,
+		eSPIRVVertex,
+		eSPIRVGeometry,
+		eSPIRVFragment,
+		eSPIRVCompute,
+		eSPIRVCompute,
+		eSPIRVCompute,
+		eSPIRVFragment,
 	};
 	
 	enum shaderIdx
@@ -629,42 +631,43 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		NUM_SHADERS,
 	};
 
+	vector<uint32_t> shaderSPIRV[NUM_SHADERS];
+	VkShaderModule module[NUM_SHADERS];
+
 	RDCCOMPILE_ASSERT( ARRAY_COUNT(shaderSources) == ARRAY_COUNT(shaderStages), "Mismatched arrays!" );
 	RDCCOMPILE_ASSERT( ARRAY_COUNT(shaderSources) == NUM_SHADERS, "Mismatched arrays!" );
 
-	VkShaderModule module[ARRAY_COUNT(shaderSources)];
-	VkShader shader[ARRAY_COUNT(shaderSources)];
+	vector<string> sources;
+
+	sources.push_back(GetEmbeddedResource(spirv_fixedcol_frag));
+
+	string err = CompileSPIRV(eSPIRVFragment, sources, m_FixedColSPIRV);
+	RDCASSERT(!m_FixedColSPIRV.empty());
 	
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
+		sources.clear();
+		sources.push_back(shaderSources[i]);
+
+		string err = CompileSPIRV(shaderStages[i], sources, shaderSPIRV[i]);
+		RDCASSERT(!m_FixedColSPIRV.empty());
+
 		VkShaderModuleCreateInfo modinfo = {
-			VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL,
-			shaderSources[i].size(), (void *)&shaderSources[i][0], 0,
+			VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,
+			shaderSPIRV[i].size(), &shaderSPIRV[i][0],
 		};
 
-		vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, &module[i]);
+		vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &module[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(dev), module[i]);
-
-		VkShaderCreateInfo shadinfo = {
-			VK_STRUCTURE_TYPE_SHADER_CREATE_INFO, NULL,
-			Unwrap(module[i]), "main", 0,
-			shaderStages[i],
-		};
-
-		vkr = vt->CreateShader(Unwrap(dev), &shadinfo, &shader[i]);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), shader[i]);
 	}
 
 	VkRenderPass RGBA32RP, RGBA8RP, RGBA16RP, RGBA8MSRP; // compatible render passes for creating pipelines
 
 	{
 		VkAttachmentDescription attDesc = {
-			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-			VK_FORMAT_R8G8B8A8_UNORM, 1,
+			0, VK_FORMAT_R8G8B8A8_UNORM, VK_SAMPLE_COUNT_1_BIT,
 			VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -673,69 +676,68 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
 		VkSubpassDescription sub = {
-			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+			0, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			0, NULL, // inputs
 			1, &attRef, // color
 			NULL, // resolve
-			{ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED }, // depth-stencil
+			NULL, // depth-stencil
 			0, NULL, // preserve
 		};
 
 		VkRenderPassCreateInfo rpinfo = {
-				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0,
 				1, &attDesc,
 				1, &sub,
 				0, NULL, // dependencies
 		};
 		
-		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA8RP);
+		vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &RGBA8RP);
 
 		attDesc.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
-		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA32RP);
+		vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &RGBA32RP);
 
 		attDesc.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 
-		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA16RP);
+		vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &RGBA16RP);
 
 		attDesc.samples = VULKAN_MESH_VIEW_SAMPLES;
 		attDesc.format = VK_FORMAT_R8G8B8A8_SRGB;
 		
-		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA8MSRP);
+		vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &RGBA8MSRP);
 	}
 
 	VkPipelineShaderStageCreateInfo stages[2] = {
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_VERTEX, VK_NULL_HANDLE, NULL },
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_FRAGMENT, VK_NULL_HANDLE, NULL },
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT, VK_NULL_HANDLE, "main", NULL },
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT, VK_NULL_HANDLE, "main", NULL },
 	};
 
 	VkPipelineInputAssemblyStateCreateInfo ia = {
-		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL, 0,
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, false,
 	};
 
 	VkRect2D scissor = { { 0, 0 }, { 4096, 4096 } };
 
 	VkPipelineViewportStateCreateInfo vp = {
-		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL, 0,
 		1, NULL,
 		1, &scissor
 	};
 
-	VkPipelineRasterStateCreateInfo rs = {
-		VK_STRUCTURE_TYPE_PIPELINE_RASTER_STATE_CREATE_INFO, NULL,
-		true, false, VK_FILL_MODE_SOLID, VK_CULL_MODE_NONE, VK_FRONT_FACE_CW,
+	VkPipelineRasterizationStateCreateInfo rs = {
+		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO, NULL, 0,
+		true, false, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE,
 		false, 0.0f, 0.0f, 0.0f, 1.0f,
 	};
 
 	VkPipelineMultisampleStateCreateInfo msaa = {
-		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL,
-		1, false, 0.0f, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL, 0,
+		VK_SAMPLE_COUNT_1_BIT, false, 0.0f, NULL, false, false,
 	};
 
 	VkPipelineDepthStencilStateCreateInfo ds = {
-		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, NULL, 0,
 		false, false, VK_COMPARE_OP_ALWAYS, false, false,
 		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
 		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
@@ -744,14 +746,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VkPipelineColorBlendAttachmentState attState = {
 		false,
-		VK_BLEND_ONE, VK_BLEND_ZERO, VK_BLEND_OP_ADD,
-		VK_BLEND_ONE, VK_BLEND_ZERO, VK_BLEND_OP_ADD,
+		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD,
+		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD,
 		0xf,
 	};
 
 	VkPipelineColorBlendStateCreateInfo cb = {
-		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, NULL,
-		false, false, false, VK_LOGIC_OP_NOOP,
+		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, NULL, 0,
+		false, VK_LOGIC_OP_NO_OP,
 		1, &attState,
 		{ 1.0f, 1.0f, 1.0f, 1.0f }
 	};
@@ -759,12 +761,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	VkDynamicState dynstates[] = { VK_DYNAMIC_STATE_VIEWPORT };
 
 	VkPipelineDynamicStateCreateInfo dyn = {
-		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, NULL, 0,
 		ARRAY_COUNT(dynstates), dynstates,
 	};
 
 	VkGraphicsPipelineCreateInfo pipeInfo = {
-		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, NULL, 0,
 		2, stages,
 		NULL, // vertex input
 		&ia,
@@ -775,7 +777,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		&ds,
 		&cb,
 		&dyn,
-		0, // flags
 		Unwrap(m_CheckerboardPipeLayout),
 		RGBA8RP,
 		0, // sub pass
@@ -783,10 +784,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		0, // base pipeline index
 	};
 
-	stages[0].shader = Unwrap(shader[BLITVS]);
-	stages[1].shader = Unwrap(shader[CHECKERBOARDFS]);
+	stages[0].module = Unwrap(module[BLITVS]);
+	stages[1].module = Unwrap(module[CHECKERBOARDFS]);
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_CheckerboardPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_CheckerboardPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardPipeline);
@@ -794,27 +795,27 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	msaa.rasterizationSamples = VULKAN_MESH_VIEW_SAMPLES;
 	pipeInfo.renderPass = RGBA8MSRP;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_CheckerboardMSAAPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_CheckerboardMSAAPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	msaa.rasterizationSamples = 1;
+	msaa.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 	pipeInfo.renderPass = RGBA8RP;
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardMSAAPipeline);
 	
-	stages[0].shader = Unwrap(shader[BLITVS]);
-	stages[1].shader = Unwrap(shader[TEXDISPLAYFS]);
+	stages[0].module = Unwrap(module[BLITVS]);
+	stages[1].module = Unwrap(module[TEXDISPLAYFS]);
 
 	pipeInfo.layout = Unwrap(m_TexDisplayPipeLayout);
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_TexDisplayPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TexDisplayPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayPipeline);
 
 	pipeInfo.renderPass = RGBA32RP;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_TexDisplayF32Pipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TexDisplayF32Pipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayF32Pipeline);
@@ -822,74 +823,73 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	pipeInfo.renderPass = RGBA8RP;
 
 	attState.blendEnable = true;
-	attState.srcBlendColor = VK_BLEND_SRC_ALPHA;
-	attState.destBlendColor = VK_BLEND_ONE_MINUS_SRC_ALPHA;
+	attState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	attState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_TexDisplayBlendPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TexDisplayBlendPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayBlendPipeline);
 
 	ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 	
-	stages[0].shader = Unwrap(shader[TEXTVS]);
-	stages[1].shader = Unwrap(shader[TEXTFS]);
+	stages[0].module = Unwrap(module[TEXTVS]);
+	stages[1].module = Unwrap(module[TEXTFS]);
 
 	pipeInfo.layout = Unwrap(m_TextPipeLayout);
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_TextPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TextPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_TextPipeline);
 	
-	stages[0].shader = Unwrap(shader[BLITVS]);
-	stages[1].shader = Unwrap(shader[OUTLINEFS]);
+	stages[0].module = Unwrap(module[BLITVS]);
+	stages[1].module = Unwrap(module[OUTLINEFS]);
 
 	pipeInfo.layout = Unwrap(m_OutlinePipeLayout);
 
 	pipeInfo.renderPass = RGBA16RP;
 	
-	attState.srcBlendAlpha = VK_BLEND_SRC_ALPHA;
-	attState.destBlendAlpha = VK_BLEND_ONE_MINUS_SRC_ALPHA;
+	attState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	attState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_OutlinePipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_OutlinePipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_OutlinePipeline);
 
 	VkComputePipelineCreateInfo compPipeInfo = {
-		VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, NULL,
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_COMPUTE, VK_NULL_HANDLE, NULL },
-		0, // flags
+		VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, NULL, 0,
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_COMPUTE_BIT, VK_NULL_HANDLE, "main", NULL },
 		Unwrap(m_HistogramPipeLayout),
 		VK_NULL_HANDLE, 0, // base pipeline VkPipeline
 	};
 
-	compPipeInfo.stage.shader = Unwrap(shader[MINMAXTILECS]);
+	compPipeInfo.stage.module = Unwrap(module[MINMAXTILECS]);
 	
-	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, &m_MinMaxTilePipe);
+	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxTilePipe);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_MinMaxTilePipe);
 	
-	compPipeInfo.stage.shader = Unwrap(shader[MINMAXRESULTCS]);
+	compPipeInfo.stage.module = Unwrap(module[MINMAXRESULTCS]);
 	
-	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, &m_MinMaxResultPipe);
+	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxResultPipe);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_MinMaxResultPipe);
 	
-	compPipeInfo.stage.shader = Unwrap(shader[HISTOGRAMCS]);
+	compPipeInfo.stage.module = Unwrap(module[HISTOGRAMCS]);
 	
-	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, &m_HistogramPipe);
+	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_HistogramPipe);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramPipe);
 	
-	vt->DestroyRenderPass(Unwrap(dev), RGBA16RP);
-	vt->DestroyRenderPass(Unwrap(dev), RGBA32RP);
-	vt->DestroyRenderPass(Unwrap(dev), RGBA8RP);
-	vt->DestroyRenderPass(Unwrap(dev), RGBA8MSRP);
+	vt->DestroyRenderPass(Unwrap(dev), RGBA16RP, NULL);
+	vt->DestroyRenderPass(Unwrap(dev), RGBA32RP, NULL);
+	vt->DestroyRenderPass(Unwrap(dev), RGBA8RP, NULL);
+	vt->DestroyRenderPass(Unwrap(dev), RGBA8MSRP, NULL);
 
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
@@ -897,25 +897,19 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		// pipelines later
 		if(i == MESHVS)
 		{
-			m_MeshShaders[0] = shader[i];
 			m_MeshModules[0] = module[i];
 		}
 		else if(i == MESHGS)
 		{
-			m_MeshShaders[1] = shader[i];
 			m_MeshModules[1] = module[i];
 		}
 		else if(i == MESHFS)
 		{
-			m_MeshShaders[2] = shader[i];
 			m_MeshModules[2] = module[i];
 		}
 		else
 		{
-			vt->DestroyShader(Unwrap(dev), Unwrap(shader[i]));
-			GetResourceManager()->ReleaseWrappedResource(shader[i]);
-
-			vt->DestroyShaderModule(Unwrap(dev), Unwrap(module[i]));
+			vt->DestroyShaderModule(Unwrap(dev), Unwrap(module[i]), NULL);
 			GetResourceManager()->ReleaseWrappedResource(module[i]);
 		}
 	}
@@ -931,12 +925,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		int width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
 
 		VkImageCreateInfo imInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 			VK_IMAGE_TYPE_2D, VK_FORMAT_R8_UNORM,
-			{ width, height, 1 }, 1, 1, 1,
+			{ width, height, 1 }, 1, 1, VK_SAMPLE_COUNT_1_BIT,
 			VK_IMAGE_TILING_LINEAR,
 			VK_IMAGE_USAGE_SAMPLED_BIT,
-			0,
 			VK_SHARING_MODE_EXCLUSIVE,
 			0, NULL,
 			VK_IMAGE_LAYOUT_PREINITIALIZED,
@@ -969,14 +962,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 		// create and fill image
 		{
-			vkr = vt->CreateImage(Unwrap(dev), &imInfo, &m_TextAtlas);
+			vkr = vt->CreateImage(Unwrap(dev), &imInfo, NULL, &m_TextAtlas);
 			RDCASSERT(vkr == VK_SUCCESS);
 				
 			GetResourceManager()->WrapResource(Unwrap(dev), m_TextAtlas);
 
 			VkMemoryRequirements mrq;
-			vkr = vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_TextAtlas), &mrq);
-			RDCASSERT(vkr == VK_SUCCESS);
+			vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_TextAtlas), &mrq);
 
 			VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
 			VkSubresourceLayout layout = { 0 };
@@ -988,7 +980,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				mrq.size, driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
 			};
 
-			vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &m_TextAtlasMem);
+			vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &m_TextAtlasMem);
 			RDCASSERT(vkr == VK_SUCCESS);
 				
 			GetResourceManager()->WrapResource(Unwrap(dev), m_TextAtlasMem);
@@ -997,15 +989,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			RDCASSERT(vkr == VK_SUCCESS);
 			
 			VkImageViewCreateInfo viewInfo = {
-				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL, 0,
 				Unwrap(m_TextAtlas), VK_IMAGE_VIEW_TYPE_2D,
 				imInfo.format,
-				{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_ZERO, VK_CHANNEL_SWIZZLE_ZERO, VK_CHANNEL_SWIZZLE_ONE },
+				{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ONE },
 				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
-				0,
 			};
 
-			vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, &m_TextAtlasView);
+			vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &m_TextAtlasView);
 			RDCASSERT(vkr == VK_SUCCESS);
 				
 			GetResourceManager()->WrapResource(Unwrap(dev), m_TextAtlasView);
@@ -1021,7 +1012,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 			};
 
-			barrier.outputMask = VK_MEMORY_OUTPUT_HOST_WRITE_BIT | VK_MEMORY_OUTPUT_TRANSFER_BIT;
+			barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT|VK_ACCESS_TRANSFER_WRITE_BIT;
 
 			void *barrierptr = (void *)&barrier;
 
@@ -1067,25 +1058,23 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		// create image
 		
 		VkImageCreateInfo imInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 			VK_IMAGE_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT,
-			{ 1, 1, 1 }, 1, 1, 1,
+			{ 1, 1, 1 }, 1, 1, VK_SAMPLE_COUNT_1_BIT,
 			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT,
-			0,
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
 			VK_SHARING_MODE_EXCLUSIVE,
 			0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 		
-		vkr = vt->CreateImage(Unwrap(dev), &imInfo, &m_PickPixelImage);
+		vkr = vt->CreateImage(Unwrap(dev), &imInfo, NULL, &m_PickPixelImage);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelImage);
 
 		VkMemoryRequirements mrq;
-		vkr = vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_PickPixelImage), &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_PickPixelImage), &mrq);
 
 		VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
 		VkSubresourceLayout layout = { 0 };
@@ -1097,7 +1086,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &m_PickPixelImageMem);
+		vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &m_PickPixelImageMem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelImageMem);
@@ -1106,15 +1095,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkImageViewCreateInfo viewInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL, 0,
 			Unwrap(m_PickPixelImage), VK_IMAGE_VIEW_TYPE_2D,
 			VK_FORMAT_R32G32B32A32_SFLOAT,
-			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
-			0,
 		};
 
-		vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, &m_PickPixelImageView);
+		vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &m_PickPixelImageView);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelImageView);
@@ -1136,8 +1124,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 		// create render pass
 		VkAttachmentDescription attDesc = {
-			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-			VK_FORMAT_R32G32B32A32_SFLOAT, 1,
+			0, VK_FORMAT_R32G32B32A32_SFLOAT, VK_SAMPLE_COUNT_1_BIT,
 			VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -1146,36 +1133,35 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
 		VkSubpassDescription sub = {
-			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+			0, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			0, NULL, // inputs
 			1, &attRef, // color
 			NULL, // resolve
-			{ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED }, // depth-stencil
+			NULL, // depth-stencil
 			0, NULL, // preserve
 		};
 
 		VkRenderPassCreateInfo rpinfo = {
-				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0,
 				1, &attDesc,
 				1, &sub,
 				0, NULL, // dependencies
 		};
 
-		vkr = vt->CreateRenderPass(Unwrap(dev), &rpinfo, &m_PickPixelRP);
+		vkr = vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &m_PickPixelRP);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelRP);
 
 		// create framebuffer
 		VkFramebufferCreateInfo fbinfo = {
-			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL, 0,
 			Unwrap(m_PickPixelRP),
 			1, UnwrapPtr(m_PickPixelImageView),
 			1, 1, 1,
 		};
 
-		vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, &m_PickPixelFB);
+		vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &m_PickPixelFB);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelFB);
@@ -1287,7 +1273,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			&atlasImInfo, NULL, NULL
 		},
 		{
@@ -1719,17 +1705,13 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 
 	VkBufferMemoryBarrier bufBarrier = {
 		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
-		0, VK_MEMORY_INPUT_TRANSFER_BIT,
+		0, VK_ACCESS_TRANSFER_READ_BIT,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(srcBuf),
 		srcoffset, sizeRemaining,
 	};
 
-	bufBarrier.outputMask = 
-		VK_MEMORY_OUTPUT_COLOR_ATTACHMENT_BIT|
-		VK_MEMORY_OUTPUT_SHADER_WRITE_BIT|
-		VK_MEMORY_OUTPUT_DEPTH_STENCIL_ATTACHMENT_BIT|
-		VK_MEMORY_OUTPUT_TRANSFER_BIT;
+	bufBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
 	
 	void *barrierptr = (void *)&bufBarrier;
 	
@@ -1749,8 +1731,8 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 		VkBufferCopy region = { srcoffset, 0, chunkSize };
 		vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(m_ReadbackWindow.buf), 1, &region);
 		
-		bufBarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
-		bufBarrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT;
+		bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		bufBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
 		bufBarrier.buffer = Unwrap(m_ReadbackWindow.buf);
 		bufBarrier.offset = 0;
 		bufBarrier.size = chunkSize;
@@ -1790,11 +1772,12 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 
 	for(uint32_t i=0; i < 6; i++)
 	{
-		if(pipeInfo.shaders[i] != ResourceId())
+		if(pipeInfo.shaders[i].module != ResourceId())
 		{
 			stages[stageCount].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			stages[stageCount].stage = (VkShaderStage)i;
-			stages[stageCount].shader = GetResourceManager()->GetCurrentHandle<VkShader>(pipeInfo.shaders[i]);
+			stages[stageCount].stage = (VkShaderStageFlagBits)(1<<i);
+			stages[stageCount].module = GetResourceManager()->GetCurrentHandle<VkShaderModule>(pipeInfo.shaders[i].module);
+			stages[stageCount].pName = pipeInfo.shaders[i].name.c_str();
 			stages[stageCount].pNext = NULL;
 			stages[stageCount].pSpecializationInfo = NULL;
 			stageCount++;
@@ -1809,22 +1792,22 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 	vi.pVertexAttributeDescriptions = viattr;
 	vi.pVertexBindingDescriptions = vibind;
 
-	vi.attributeCount = (uint32_t)pipeInfo.vertexAttrs.size();
-	vi.bindingCount = (uint32_t)pipeInfo.vertexBindings.size();
+	vi.vertexAttributeDescriptionCount = (uint32_t)pipeInfo.vertexAttrs.size();
+	vi.vertexBindingDescriptionCount = (uint32_t)pipeInfo.vertexBindings.size();
 
-	for(uint32_t i=0; i < vi.attributeCount; i++)
+	for(uint32_t i=0; i < vi.vertexAttributeDescriptionCount; i++)
 	{
 		viattr[i].binding = pipeInfo.vertexAttrs[i].binding;
-		viattr[i].offsetInBytes = pipeInfo.vertexAttrs[i].byteoffset;
+		viattr[i].offset = pipeInfo.vertexAttrs[i].byteoffset;
 		viattr[i].format = pipeInfo.vertexAttrs[i].format;
 		viattr[i].location = pipeInfo.vertexAttrs[i].location;
 	}
 
-	for(uint32_t i=0; i < vi.bindingCount; i++)
+	for(uint32_t i=0; i < vi.vertexBindingDescriptionCount; i++)
 	{
 		vibind[i].binding = pipeInfo.vertexBindings[i].vbufferBinding;
-		vibind[i].strideInBytes = pipeInfo.vertexBindings[i].bytestride;
-		vibind[i].stepRate = pipeInfo.vertexBindings[i].perInstance ? VK_VERTEX_INPUT_STEP_RATE_INSTANCE : VK_VERTEX_INPUT_STEP_RATE_VERTEX;
+		vibind[i].stride = pipeInfo.vertexBindings[i].bytestride;
+		vibind[i].inputRate = pipeInfo.vertexBindings[i].perInstance ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX;
 	}
 
 	RDCASSERT(ARRAY_COUNT(viattr) >= pipeInfo.vertexAttrs.size());
@@ -1857,17 +1840,17 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 	RDCASSERT(ARRAY_COUNT(views) >= pipeInfo.viewports.size());
 	RDCASSERT(ARRAY_COUNT(scissors) >= pipeInfo.scissors.size());
 	
-	static VkPipelineRasterStateCreateInfo rs = { VK_STRUCTURE_TYPE_PIPELINE_RASTER_STATE_CREATE_INFO };
+	static VkPipelineRasterizationStateCreateInfo rs = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
 
-	rs.depthClipEnable = pipeInfo.depthClampEnable;
+	rs.depthClampEnable = pipeInfo.depthClampEnable;
 	rs.rasterizerDiscardEnable = pipeInfo.rasterizerDiscardEnable,
-	rs.fillMode = pipeInfo.fillMode;
+	rs.polygonMode = pipeInfo.polygonMode;
 	rs.cullMode = pipeInfo.cullMode;
 	rs.frontFace = pipeInfo.frontFace;
 	rs.depthBiasEnable = pipeInfo.depthBiasEnable;
-	rs.depthBias = pipeInfo.depthBiasConstantFactor;
+	rs.depthBiasConstantFactor = pipeInfo.depthBiasConstantFactor;
 	rs.depthBiasClamp = pipeInfo.depthBiasClamp;
-	rs.slopeScaledDepthBias = pipeInfo.depthBiasSlopeFactor;
+	rs.depthBiasSlopeFactor = pipeInfo.depthBiasSlopeFactor;
 	rs.lineWidth = pipeInfo.lineWidth;
 
 	static VkPipelineMultisampleStateCreateInfo msaa = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
@@ -1876,6 +1859,8 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 	msaa.sampleShadingEnable = pipeInfo.sampleShadingEnable;
 	msaa.minSampleShading = pipeInfo.minSampleShading;
 	msaa.pSampleMask = &pipeInfo.sampleMask;
+	msaa.alphaToCoverageEnable = pipeInfo.alphaToCoverageEnable;
+	msaa.alphaToOneEnable = pipeInfo.alphaToOneEnable;
 
 	static VkPipelineDepthStencilStateCreateInfo ds = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
 
@@ -1890,11 +1875,9 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 
 	static VkPipelineColorBlendStateCreateInfo cb = { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
 
-	cb.alphaToCoverageEnable = pipeInfo.alphaToCoverageEnable;
-	cb.alphaToOneEnable = pipeInfo.alphaToOneEnable;
 	cb.logicOpEnable = pipeInfo.logicOpEnable;
 	cb.logicOp = pipeInfo.logicOp;
-	memcpy(cb.blendConst, pipeInfo.blendConst, sizeof(cb.blendConst));
+	memcpy(cb.blendConstants, pipeInfo.blendConst, sizeof(cb.blendConstants));
 
 	static VkPipelineColorBlendAttachmentState atts[32] = { 0 };
 
@@ -1904,25 +1887,25 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 	for(uint32_t i=0; i < cb.attachmentCount; i++)
 	{
 		atts[i].blendEnable = pipeInfo.attachments[i].blendEnable;
-		atts[i].channelWriteMask = pipeInfo.attachments[i].channelWriteMask;
-		atts[i].blendOpAlpha = pipeInfo.attachments[i].alphaBlend.Operation;
-		atts[i].srcBlendAlpha = pipeInfo.attachments[i].alphaBlend.Source;
-		atts[i].destBlendAlpha = pipeInfo.attachments[i].alphaBlend.Destination;
-		atts[i].blendOpColor = pipeInfo.attachments[i].blend.Operation;
-		atts[i].srcBlendColor = pipeInfo.attachments[i].blend.Source;
-		atts[i].destBlendColor = pipeInfo.attachments[i].blend.Destination;
+		atts[i].colorWriteMask = pipeInfo.attachments[i].channelWriteMask;
+		atts[i].alphaBlendOp = pipeInfo.attachments[i].alphaBlend.Operation;
+		atts[i].srcAlphaBlendFactor = pipeInfo.attachments[i].alphaBlend.Source;
+		atts[i].dstAlphaBlendFactor = pipeInfo.attachments[i].alphaBlend.Destination;
+		atts[i].colorBlendOp = pipeInfo.attachments[i].blend.Operation;
+		atts[i].srcColorBlendFactor = pipeInfo.attachments[i].blend.Source;
+		atts[i].dstColorBlendFactor = pipeInfo.attachments[i].blend.Destination;
 	}
 
 	RDCASSERT(ARRAY_COUNT(atts) >= pipeInfo.attachments.size());
 
-	static VkDynamicState dynSt[VK_DYNAMIC_STATE_NUM];
+	static VkDynamicState dynSt[VK_DYNAMIC_STATE_RANGE_SIZE];
 
 	static VkPipelineDynamicStateCreateInfo dyn = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 
 	dyn.dynamicStateCount = 0;
 	dyn.pDynamicStates = dynSt;
 
-	for(uint32_t i=0; i < VK_DYNAMIC_STATE_NUM; i++)
+	for(uint32_t i=0; i < VK_DYNAMIC_STATE_RANGE_SIZE; i++)
 		if(pipeInfo.dynamicStates[i])
 			dynSt[dyn.dynamicStateCount++] = (VkDynamicState)i;
 
@@ -1930,6 +1913,7 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 	
 	VkGraphicsPipelineCreateInfo ret = {
 		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, NULL,
+		pipeInfo.flags,
 		stageCount, stages,
 		&vi,
 		&ia,
@@ -1940,7 +1924,6 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 		&ds,
 		&cb,
 		&dyn,
-		pipeInfo.flags,
 		GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeInfo.layout),
 		GetResourceManager()->GetCurrentHandle<VkRenderPass>(pipeInfo.renderpass),
 		pipeInfo.subpass,
@@ -1951,27 +1934,22 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 	pipeCreateInfo = ret;
 }
 
-void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, VkShader &shad, float col[4])
+void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
 {
-	string fixedcol = GetEmbeddedResource(fixedcolfs_spv);
-
 	union
 	{
-		char *str;
 		uint32_t *spirv;
 		float *data;
 	} alias;
 
-	alias.str = &fixedcol[0];
-
-	uint32_t *spirv = alias.spirv;
-	size_t spirvLength = fixedcol.size()/sizeof(uint32_t);
+	alias.spirv = &m_FixedColSPIRV[0];
+	size_t spirvLength = m_FixedColSPIRV.size();
 
 	size_t it = 5;
 	while(it < spirvLength)
 	{
-		uint16_t WordCount = spirv[it]>>spv::WordCountShift;
-		spv::Op opcode = spv::Op(spirv[it]&spv::OpCodeMask);
+		uint16_t WordCount = alias.spirv[it]>>spv::WordCountShift;
+		spv::Op opcode = spv::Op(alias.spirv[it]&spv::OpCodeMask);
 
 		if(opcode == spv::OpConstant)
 		{
@@ -1986,20 +1964,11 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, VkShader &shad
 	}
 	
 	VkShaderModuleCreateInfo modinfo = {
-		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL,
-		fixedcol.size(), (void *)spirv, 0,
+		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,
+		m_FixedColSPIRV.size()*sizeof(uint32_t), alias.spirv,
 	};
 
-	VkResult vkr = m_pDriver->vkCreateShaderModule(m_Device, &modinfo, &mod);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	VkShaderCreateInfo shadinfo = {
-		VK_STRUCTURE_TYPE_SHADER_CREATE_INFO, NULL,
-		mod, "main", 0,
-		VK_SHADER_STAGE_FRAGMENT,
-	};
-
-	vkr = m_pDriver->vkCreateShader(m_Device, &shadinfo, &shad);
+	VkResult vkr = m_pDriver->vkCreateShaderModule(m_Device, &modinfo, NULL, &mod);
 	RDCASSERT(vkr == VK_SUCCESS);
 }
 
@@ -2019,10 +1988,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 	// if the overlay image is the wrong size, free it
 	if(m_OverlayImage != VK_NULL_HANDLE && (iminfo.extent.width != m_OverlayDim.width || iminfo.extent.height != m_OverlayDim.height))
 	{
-		m_pDriver->vkDestroyRenderPass(m_Device, m_OverlayNoDepthRP);
-		m_pDriver->vkDestroyFramebuffer(m_Device, m_OverlayNoDepthFB);
-		m_pDriver->vkDestroyImageView(m_Device, m_OverlayImageView);
-		m_pDriver->vkDestroyImage(m_Device, m_OverlayImage);
+		m_pDriver->vkDestroyRenderPass(m_Device, m_OverlayNoDepthRP, NULL);
+		m_pDriver->vkDestroyFramebuffer(m_Device, m_OverlayNoDepthFB, NULL);
+		m_pDriver->vkDestroyImageView(m_Device, m_OverlayImageView, NULL);
+		m_pDriver->vkDestroyImage(m_Device, m_OverlayImage, NULL);
 
 		m_OverlayImage = VK_NULL_HANDLE;
 		m_OverlayImageView = VK_NULL_HANDLE;
@@ -2040,23 +2009,22 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		m_OverlayDim.height = iminfo.extent.height;
 
 		VkImageCreateInfo imInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 			VK_IMAGE_TYPE_2D, VK_FORMAT_R16G16B16A16_SFLOAT,
-			{ m_OverlayDim.width, m_OverlayDim.height, 1 }, 1, 1, 1,
+			{ m_OverlayDim.width, m_OverlayDim.height, 1 },
+			1, 1, VK_SAMPLE_COUNT_1_BIT,
 			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT,
-			0,
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
 			VK_SHARING_MODE_EXCLUSIVE,
 			0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
-		vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, &m_OverlayImage);
+		vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &m_OverlayImage);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkMemoryRequirements mrq;
-		vkr = m_pDriver->vkGetImageMemoryRequirements(m_Device, m_OverlayImage, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		m_pDriver->vkGetImageMemoryRequirements(m_Device, m_OverlayImage, &mrq);
 
 		// if no memory is allocated, or it's not enough,
 		// then allocate
@@ -2064,7 +2032,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		{
 			if(m_OverlayImageMem != VK_NULL_HANDLE)
 			{
-				m_pDriver->vkFreeMemory(m_Device, m_OverlayImageMem);
+				m_pDriver->vkFreeMemory(m_Device, m_OverlayImageMem, NULL);
 			}
 
 			VkMemoryAllocateInfo allocInfo = {
@@ -2072,7 +2040,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 				mrq.size, m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 			};
 
-			vkr = m_pDriver->vkAllocMemory(m_Device, &allocInfo, &m_OverlayImageMem);
+			vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &m_OverlayImageMem);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			m_OverlayMemSize = mrq.size;
@@ -2082,15 +2050,14 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkImageViewCreateInfo viewInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL, 0,
 			m_OverlayImage, VK_IMAGE_VIEW_TYPE_2D,
 			imInfo.format,
-			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
-			0,
 		};
 
-		vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, &m_OverlayImageView);
+		vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_OverlayImageView);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// need to update image layout into valid state
@@ -2111,8 +2078,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 		
 		VkAttachmentDescription colDesc = {
-			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-			imInfo.format, 1,
+			0, imInfo.format, VK_SAMPLE_COUNT_1_BIT,
 			VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -2121,34 +2087,33 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		VkAttachmentReference colRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
 		VkSubpassDescription sub = {
-			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+			0, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			0, NULL, // inputs
 			1, &colRef, // color
 			NULL, // resolve
-			{ VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED }, // depth-stencil
+			NULL, // depth-stencil
 			0, NULL, // preserve
 		};
 
 		VkRenderPassCreateInfo rpinfo = {
-				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0,
 				1, &colDesc,
 				1, &sub,
 				0, NULL, // dependencies
 		};
 
-		vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, &m_OverlayNoDepthRP);
+		vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &m_OverlayNoDepthRP);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// Create framebuffer rendering just to overlay image, no depth
 		VkFramebufferCreateInfo fbinfo = {
-			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
+			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL, 0,
 			m_OverlayNoDepthRP,
 			1, &m_OverlayImageView,
 			(uint32_t)m_OverlayDim.width, (uint32_t)m_OverlayDim.height, 1,
 		};
 
-		vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, &m_OverlayNoDepthFB);
+		vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &m_OverlayNoDepthFB);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// can't create a framebuffer or renderpass for overlay image + depth as that
@@ -2190,9 +2155,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		
 		// make patched shader
 		VkShaderModule mod = VK_NULL_HANDLE;
-		VkShader shad = VK_NULL_HANDLE;
 
-		PatchFixedColShader(mod, shad, highlightCol);
+		PatchFixedColShader(mod, highlightCol);
 
 		// make patched pipeline
 		VkGraphicsPipelineCreateInfo pipeCreateInfo;
@@ -2206,14 +2170,14 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		ds->stencilTestEnable = false;
 		ds->depthBoundsTestEnable = false;
 
-		VkPipelineRasterStateCreateInfo *rs = (VkPipelineRasterStateCreateInfo *)pipeCreateInfo.pRasterState;
+		VkPipelineRasterizationStateCreateInfo *rs = (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
 		rs->cullMode = VK_CULL_MODE_NONE;
 		rs->rasterizerDiscardEnable = false;
-		rs->depthClipEnable = false;
+		rs->depthClampEnable = true;
 		
 		if(overlay == eTexOverlay_Wireframe && m_pDriver->GetDeviceFeatures().fillModeNonSolid)
 		{
-			rs->fillMode = VK_FILL_MODE_WIREFRAME;
+			rs->polygonMode = VK_POLYGON_MODE_LINE;
 			rs->lineWidth = 1.0f;
 		}
 
@@ -2224,7 +2188,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		{
 			VkPipelineColorBlendAttachmentState *att = (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
 			att->blendEnable = false;
-			att->channelWriteMask = 0xf;
+			att->colorWriteMask = 0xf;
 		}
 
 		// set scissors to max
@@ -2244,9 +2208,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		for(uint32_t i=0; i < pipeCreateInfo.stageCount; i++)
 		{
 			VkPipelineShaderStageCreateInfo &sh = (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
-			if(sh.stage == VK_SHADER_STAGE_FRAGMENT)
+			if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
 			{
-				sh.shader = shad;
+				sh.module = mod;
+				sh.pName = "main";
 				found = true;
 				break;
 			}
@@ -2258,11 +2223,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			// big enough for all shaders
 			
 			VkPipelineShaderStageCreateInfo &sh = (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
-			sh.pNext = NULL;
-			sh.pSpecializationInfo = NULL;
 			sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			sh.shader = shad;
-			sh.stage = VK_SHADER_STAGE_FRAGMENT;
+			sh.pNext = NULL;
+			sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			sh.module = mod;
+			sh.pName = "main";
+			sh.pSpecializationInfo = NULL;
 		}
 
 		vkr = vt->EndCommandBuffer(Unwrap(cmd));
@@ -2270,7 +2236,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 		VkPipeline pipe = VK_NULL_HANDLE;
 		
-		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, &pipe);
+		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL, &pipe);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// modify state
@@ -2306,9 +2272,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		// restore state
 		m_pDriver->m_RenderState = prevstate;
 
-		m_pDriver->vkDestroyPipeline(m_Device, pipe);
-		m_pDriver->vkDestroyShaderModule(m_Device, mod);
-		m_pDriver->vkDestroyShader(m_Device, shad);
+		m_pDriver->vkDestroyPipeline(m_Device, pipe, NULL);
+		m_pDriver->vkDestroyShaderModule(m_Device, mod, NULL);
 	}
 	else if(overlay == eTexOverlay_ViewportScissor)
 	{
@@ -2329,19 +2294,24 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			};
 			vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkRect3D rect = {
+			VkClearRect rect = {
 				{
-					m_pDriver->m_RenderState.renderArea.offset.x,
-					m_pDriver->m_RenderState.renderArea.offset.y,
-					0,
+					{
+						m_pDriver->m_RenderState.renderArea.offset.x,
+						m_pDriver->m_RenderState.renderArea.offset.y,
+					},
+					{
+						m_pDriver->m_RenderState.renderArea.extent.width,
+						m_pDriver->m_RenderState.renderArea.extent.height,
+					}
 				},
-				{
-					m_pDriver->m_RenderState.renderArea.extent.width,
-					m_pDriver->m_RenderState.renderArea.extent.height,
-					1,
-				},
+				0, 1,
 			};
-			vt->CmdClearColorAttachment(Unwrap(cmd), 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)black, 1, &rect);
+			VkClearAttachment blackclear = {
+				VK_IMAGE_ASPECT_COLOR_BIT, 0,
+				{ 0.0f, 0.0f, 0.0f, 0.0f }
+			};
+			vt->CmdClearAttachments(Unwrap(cmd), 1, &blackclear, 1, &rect);
 			
 			VkViewport viewport = m_pDriver->m_RenderState.views[0];
 			vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
@@ -2379,8 +2349,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 				m_OutlineUBO.Unmap(vt, m_Device);
 
-				viewport.originX = scissor.x;
-				viewport.originY = scissor.y;
+				viewport.x       = scissor.x;
+				viewport.y       = scissor.y;
 				viewport.width   = scissor.z;
 				viewport.height  = scissor.w;
 				
@@ -2409,17 +2379,16 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		
 		// make patched shader
 		VkShaderModule mod[2] = {0};
-		VkShader shad[2] = {0};
 		VkPipeline pipe[2] = {0};
 
 		// first shader, no culling, writes red
-		PatchFixedColShader(mod[0], shad[0], highlightCol);
+		PatchFixedColShader(mod[0], highlightCol);
 
 		highlightCol[0] = 0.0f;
 		highlightCol[1] = 1.0f;
 
 		// second shader, normal culling, writes green
-		PatchFixedColShader(mod[1], shad[1], highlightCol);
+		PatchFixedColShader(mod[1], highlightCol);
 
 		// make patched pipeline
 		VkGraphicsPipelineCreateInfo pipeCreateInfo;
@@ -2433,11 +2402,11 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		ds->stencilTestEnable = false;
 		ds->depthBoundsTestEnable = false;
 
-		VkPipelineRasterStateCreateInfo *rs = (VkPipelineRasterStateCreateInfo *)pipeCreateInfo.pRasterState;
-		VkCullMode origCullMode = rs->cullMode;
+		VkPipelineRasterizationStateCreateInfo *rs = (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
+		VkCullModeFlags origCullMode = rs->cullMode;
 		rs->cullMode = VK_CULL_MODE_NONE; // first render without any culling
 		rs->rasterizerDiscardEnable = false;
-		rs->depthClipEnable = false;
+		rs->depthClampEnable = true;
 
 		VkPipelineColorBlendStateCreateInfo *cb = (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
 		cb->logicOpEnable = false;
@@ -2446,7 +2415,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		{
 			VkPipelineColorBlendAttachmentState *att = (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
 			att->blendEnable = false;
-			att->channelWriteMask = 0xf;
+			att->colorWriteMask = 0xf;
 		}
 
 		// set scissors to max
@@ -2467,9 +2436,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		for(uint32_t i=0; i < pipeCreateInfo.stageCount; i++)
 		{
 			VkPipelineShaderStageCreateInfo &sh = (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
-			if(sh.stage == VK_SHADER_STAGE_FRAGMENT)
+			if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
 			{
-				sh.shader = shad[0];
+				sh.module = mod[0];
+				sh.pName = "main";
 				fragShader = &sh;
 				break;
 			}
@@ -2481,11 +2451,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			// big enough for all shaders
 			
 			VkPipelineShaderStageCreateInfo &sh = (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
-			sh.pNext = NULL;
-			sh.pSpecializationInfo = NULL;
 			sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			sh.shader = shad[0];
-			sh.stage = VK_SHADER_STAGE_FRAGMENT;
+			sh.pNext = NULL;
+			sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			sh.module = mod[0];
+			sh.pName = "main";
+			sh.pSpecializationInfo = NULL;
 
 			fragShader = &sh;
 		}
@@ -2493,13 +2464,13 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		vkr = vt->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
 		
-		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, &pipe[0]);
+		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL, &pipe[0]);
 		RDCASSERT(vkr == VK_SUCCESS);
 		
-		fragShader->shader = shad[1];
+		fragShader->module = mod[1];
 		rs->cullMode = origCullMode;
 		
-		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, &pipe[1]);
+		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL, &pipe[1]);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// modify state
@@ -2538,9 +2509,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 		for(int i=0; i < 2; i++)
 		{
-			m_pDriver->vkDestroyPipeline(m_Device, pipe[i]);
-			m_pDriver->vkDestroyShaderModule(m_Device, mod[i]);
-			m_pDriver->vkDestroyShader(m_Device, shad[i]);
+			m_pDriver->vkDestroyPipeline(m_Device, pipe[i], NULL);
+			m_pDriver->vkDestroyShaderModule(m_Device, mod[i], NULL);
 		}
 	}
 	else if(overlay == eTexOverlay_Depth || overlay == eTexOverlay_Stencil)
@@ -2565,15 +2535,13 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		{
 			VkAttachmentDescription attDescs[] = {
 				{
-					VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-					VK_FORMAT_R16G16B16A16_SFLOAT, 1,
+					0, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT,
 					VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 					VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 				},
 				{
-					VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-					VK_FORMAT_UNDEFINED, 1, // will patch this just below
+					0, VK_FORMAT_UNDEFINED, VK_SAMPLE_COUNT_1_BIT, // will patch this just below
 					VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 					VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 					VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
@@ -2586,25 +2554,25 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			attDescs[1].format = createinfo.m_Image[depthIm].format;
 
 			VkAttachmentReference colRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+			VkAttachmentReference dsRef = { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 
 			VkSubpassDescription sub = {
-				VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
-				VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+				0, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				0, NULL, // inputs
 				1, &colRef, // color
 				NULL, // resolve
-				{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }, // depth-stencil
+				&dsRef, // depth-stencil
 				0, NULL, // preserve
 			};
 
 			VkRenderPassCreateInfo rpinfo = {
-					VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+					VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0,
 					2, attDescs,
 					1, &sub,
 					0, NULL, // dependencies
 			};
 
-			vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, &depthRP);
+			vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &depthRP);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			VkImageView views[] = {
@@ -2614,13 +2582,13 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 			// Create framebuffer rendering just to overlay image, no depth
 			VkFramebufferCreateInfo fbinfo = {
-				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
+				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL, 0,
 				depthRP,
 				2, views,
 				(uint32_t)m_OverlayDim.width, (uint32_t)m_OverlayDim.height, 1,
 			};
 
-			vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, &depthFB);
+			vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &depthFB);
 			RDCASSERT(vkr == VK_SUCCESS);
 		}
 
@@ -2635,17 +2603,16 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		
 		// make patched shader
 		VkShaderModule mod[2] = {0};
-		VkShader shad[2] = {0};
 		VkPipeline pipe[2] = {0};
 
 		// first shader, no depth testing, writes red
-		PatchFixedColShader(mod[0], shad[0], highlightCol);
+		PatchFixedColShader(mod[0], highlightCol);
 
 		highlightCol[0] = 0.0f;
 		highlightCol[1] = 1.0f;
 
 		// second shader, enabled depth testing, writes green
-		PatchFixedColShader(mod[1], shad[1], highlightCol);
+		PatchFixedColShader(mod[1], highlightCol);
 
 		// make patched pipeline
 		VkGraphicsPipelineCreateInfo pipeCreateInfo;
@@ -2661,10 +2628,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		ds->stencilTestEnable = false;
 		ds->depthBoundsTestEnable = false;
 
-		VkPipelineRasterStateCreateInfo *rs = (VkPipelineRasterStateCreateInfo *)pipeCreateInfo.pRasterState;
+		VkPipelineRasterizationStateCreateInfo *rs = (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
 		rs->cullMode = VK_CULL_MODE_NONE;
 		rs->rasterizerDiscardEnable = false;
-		rs->depthClipEnable = false;
+		rs->depthClampEnable = true;
 
 		VkPipelineColorBlendStateCreateInfo *cb = (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
 		cb->logicOpEnable = false;
@@ -2673,7 +2640,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		{
 			VkPipelineColorBlendAttachmentState *att = (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
 			att->blendEnable = false;
-			att->channelWriteMask = 0xf;
+			att->colorWriteMask = 0xf;
 		}
 
 		// set scissors to max
@@ -2694,9 +2661,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		for(uint32_t i=0; i < pipeCreateInfo.stageCount; i++)
 		{
 			VkPipelineShaderStageCreateInfo &sh = (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
-			if(sh.stage == VK_SHADER_STAGE_FRAGMENT)
+			if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
 			{
-				sh.shader = shad[0];
+				sh.module = mod[0];
+				sh.pName = "main";
 				fragShader = &sh;
 				break;
 			}
@@ -2708,11 +2676,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			// big enough for all shaders
 			
 			VkPipelineShaderStageCreateInfo &sh = (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
-			sh.pNext = NULL;
-			sh.pSpecializationInfo = NULL;
 			sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			sh.shader = shad[0];
-			sh.stage = VK_SHADER_STAGE_FRAGMENT;
+			sh.pNext = NULL;
+			sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			sh.module = mod[0];
+			sh.pName = "main";
+			sh.pSpecializationInfo = NULL;
 
 			fragShader = &sh;
 		}
@@ -2720,10 +2689,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		vkr = vt->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
 		
-		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, &pipe[0]);
+		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL, &pipe[0]);
 		RDCASSERT(vkr == VK_SUCCESS);
 		
-		fragShader->shader = shad[1];
+		fragShader->module = mod[1];
 
 		if(depthRP != VK_NULL_HANDLE)
 		{
@@ -2734,7 +2703,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			pipeCreateInfo.renderPass = depthRP;
 		}
 		
-		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, &pipe[1]);
+		vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL, &pipe[1]);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// modify state
@@ -2778,15 +2747,14 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 		for(int i=0; i < 2; i++)
 		{
-			m_pDriver->vkDestroyPipeline(m_Device, pipe[i]);
-			m_pDriver->vkDestroyShaderModule(m_Device, mod[i]);
-			m_pDriver->vkDestroyShader(m_Device, shad[i]);
+			m_pDriver->vkDestroyPipeline(m_Device, pipe[i], NULL);
+			m_pDriver->vkDestroyShaderModule(m_Device, mod[i], NULL);
 		}
 		
 		if(depthRP != VK_NULL_HANDLE)
 		{
-			m_pDriver->vkDestroyRenderPass(m_Device, depthRP);
-			m_pDriver->vkDestroyFramebuffer(m_Device, depthFB);
+			m_pDriver->vkDestroyRenderPass(m_Device, depthRP, NULL);
+			m_pDriver->vkDestroyFramebuffer(m_Device, depthFB, NULL);
 		}
 	}
 
@@ -2827,7 +2795,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 	
 	VkFormat secondaryFmt = secondary.buf == ResourceId() ? VK_FORMAT_UNDEFINED : MakeVkFormat(fmt);
 	
-	RDCCOMPILE_ASSERT(VK_FORMAT_NUM <= 255, "Mesh pipeline cache key needs an extra bit for format");
+	RDCCOMPILE_ASSERT(VK_FORMAT_RANGE_SIZE <= 255, "Mesh pipeline cache key needs an extra bit for format");
 	
 	key |= ((uint32_t)primaryFmt & 0xff) << bit;
 	bit += 8;
@@ -2862,13 +2830,13 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 		{
 			0,
 			primary.stride,
-			VK_VERTEX_INPUT_STEP_RATE_VERTEX
+			VK_VERTEX_INPUT_RATE_VERTEX
 		},
 		// secondary
 		{
 			1,
 			secondary.stride,
-			VK_VERTEX_INPUT_STEP_RATE_VERTEX
+			VK_VERTEX_INPUT_RATE_VERTEX
 		}
 	};
 
@@ -2892,44 +2860,44 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 	};
 
 	VkPipelineVertexInputStateCreateInfo vi = {
-		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, NULL, 0,
 		1, binds,
 		2, vertAttrs,
 	};
 	
 	VkPipelineShaderStageCreateInfo stages[3] = {
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_MAX_ENUM, VK_NULL_HANDLE, NULL },
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_MAX_ENUM, VK_NULL_HANDLE, NULL },
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, VK_SHADER_STAGE_MAX_ENUM, VK_NULL_HANDLE, NULL },
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_ALL_GRAPHICS, VK_NULL_HANDLE, "main", NULL },
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_ALL_GRAPHICS, VK_NULL_HANDLE, "main", NULL },
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_ALL_GRAPHICS, VK_NULL_HANDLE, "main", NULL },
 	};
 
 	VkPipelineInputAssemblyStateCreateInfo ia = {
-		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL, 0,
 		primary.topo >= eTopology_PatchList ? VK_PRIMITIVE_TOPOLOGY_POINT_LIST : MakeVkPrimitiveTopology(primary.topo), false,
 	};
 
 	VkRect2D scissor = { { 0, 0 }, { 4096, 4096 } };
 
 	VkPipelineViewportStateCreateInfo vp = {
-		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL, 0,
 		1, NULL,
 		1, &scissor
 	};
 
-	VkPipelineRasterStateCreateInfo rs = {
-		VK_STRUCTURE_TYPE_PIPELINE_RASTER_STATE_CREATE_INFO, NULL,
-		true, false, VK_FILL_MODE_SOLID, VK_CULL_MODE_NONE, VK_FRONT_FACE_CW,
+	VkPipelineRasterizationStateCreateInfo rs = {
+		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO, NULL, 0,
+		false, false, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE,
 		false, 0.0f, 0.0f, 0.0f, 1.0f,
 	};
 
 	VkPipelineMultisampleStateCreateInfo msaa = {
-		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL,
-		VULKAN_MESH_VIEW_SAMPLES, false, 0.0f, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL, 0,
+		VULKAN_MESH_VIEW_SAMPLES, false, 0.0f, NULL, false, false
 	};
 
 	VkPipelineDepthStencilStateCreateInfo ds = {
-		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, NULL,
-		true, true, VK_COMPARE_OP_LESS_EQUAL, false, false,
+		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, NULL, 0,
+		true, true, VK_COMPARE_OP_LESS_OR_EQUAL, false, false,
 		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
 		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
 		0.0f, 1.0f,
@@ -2937,14 +2905,14 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 
 	VkPipelineColorBlendAttachmentState attState = {
 		false,
-		VK_BLEND_ONE, VK_BLEND_ZERO, VK_BLEND_OP_ADD,
-		VK_BLEND_ONE, VK_BLEND_ZERO, VK_BLEND_OP_ADD,
+		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD,
+		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD,
 		0xf,
 	};
 
 	VkPipelineColorBlendStateCreateInfo cb = {
-		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, NULL,
-		false, false, false, VK_LOGIC_OP_NOOP,
+		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, NULL, 0,
+		false, VK_LOGIC_OP_NO_OP,
 		1, &attState,
 		{ 1.0f, 1.0f, 1.0f, 1.0f }
 	};
@@ -2952,7 +2920,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 	VkDynamicState dynstates[] = { VK_DYNAMIC_STATE_VIEWPORT };
 
 	VkPipelineDynamicStateCreateInfo dyn = {
-		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, NULL, 0,
 		ARRAY_COUNT(dynstates), dynstates,
 	};
 	
@@ -2961,15 +2929,13 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 	{
 		VkAttachmentDescription attDesc[] = {
 			{
-				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-				VK_FORMAT_R8G8B8A8_SRGB, VULKAN_MESH_VIEW_SAMPLES,
+				0, VK_FORMAT_R8G8B8A8_SRGB, VULKAN_MESH_VIEW_SAMPLES,
 				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 			},
 			{
-				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-				VK_FORMAT_D32_SFLOAT, VULKAN_MESH_VIEW_SAMPLES,
+				0, VK_FORMAT_D32_SFLOAT, VULKAN_MESH_VIEW_SAMPLES,
 				VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -2977,29 +2943,29 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 		};
 
 		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+		VkAttachmentReference dsRef = { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 
 		VkSubpassDescription sub = {
-			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION, NULL,
-			VK_PIPELINE_BIND_POINT_GRAPHICS, 0,
+			0, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			0, NULL, // inputs
 			1, &attRef, // color
 			NULL, // resolve
-			{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }, // depth-stencil
+			&dsRef, // depth-stencil
 			0, NULL, // preserve
 		};
 
 		VkRenderPassCreateInfo rpinfo = {
-				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL,
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0,
 				2, attDesc,
 				1, &sub,
 				0, NULL, // dependencies
 		};
 		
-		vt->CreateRenderPass(Unwrap(m_Device), &rpinfo, &rp);
+		vt->CreateRenderPass(Unwrap(m_Device), &rpinfo, NULL, &rp);
 	}
 
 	VkGraphicsPipelineCreateInfo pipeInfo = {
-		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, NULL, 0,
 		2, stages,
 		&vi,
 		&ia,
@@ -3010,7 +2976,6 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 		&ds,
 		&cb,
 		&dyn,
-		0, // flags
 		Unwrap(m_MeshPipeLayout),
 		rp,
 		0, // sub pass
@@ -3019,33 +2984,33 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 	};
 	
 	// wireframe pipeline
-	stages[0].shader = Unwrap(m_MeshShaders[0]);
-	stages[0].stage = VK_SHADER_STAGE_VERTEX;
-	stages[1].shader = Unwrap(m_MeshShaders[2]);
-	stages[1].stage = VK_SHADER_STAGE_FRAGMENT;
+	stages[0].module = Unwrap(m_MeshModules[0]);
+	stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+	stages[1].module = Unwrap(m_MeshModules[2]);
+	stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	rs.fillMode = VK_FILL_MODE_WIREFRAME;
+	rs.polygonMode = VK_POLYGON_MODE_LINE;
 	rs.lineWidth = 1.0f;
 	ds.depthTestEnable = false;
 	
-	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	ds.depthTestEnable = true;
 	
-	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	// solid shading pipeline
-	rs.fillMode = VK_FILL_MODE_SOLID;
+	rs.polygonMode = VK_POLYGON_MODE_FILL;
 	ds.depthTestEnable = false;
 	
-	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	ds.depthTestEnable = true;
 	
-	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	if(secondary.buf != ResourceId())
@@ -3055,32 +3020,32 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
 		vertAttrs[1].format = secondaryFmt;
 		RDCASSERT(secondaryFmt != VK_FORMAT_UNDEFINED);
 
-		vi.bindingCount = 2;
+		vi.vertexBindingDescriptionCount = 2;
 
-		vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Secondary]);
+		vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &cache.pipes[MeshDisplayPipelines::ePipe_Secondary]);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
 	vertAttrs[1].binding = 0;
-	vi.bindingCount = 1;
+	vi.vertexBindingDescriptionCount = 1;
 
 	// flat lit pipeline, needs geometry shader to calculate face normals
-	stages[0].shader = Unwrap(m_MeshShaders[0]);
-	stages[0].stage = VK_SHADER_STAGE_VERTEX;
-	stages[1].shader = Unwrap(m_MeshShaders[1]);
-	stages[1].stage = VK_SHADER_STAGE_GEOMETRY;
-	stages[2].shader = Unwrap(m_MeshShaders[2]);
-	stages[2].stage = VK_SHADER_STAGE_FRAGMENT;
+	stages[0].module = Unwrap(m_MeshModules[0]);
+	stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+	stages[1].module = Unwrap(m_MeshModules[1]);
+	stages[1].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+	stages[2].module = Unwrap(m_MeshModules[2]);
+	stages[2].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 	pipeInfo.stageCount = 3;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, &cache.pipes[MeshDisplayPipelines::ePipe_Lit]);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &cache.pipes[MeshDisplayPipelines::ePipe_Lit]);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	for(uint32_t i=0; i < MeshDisplayPipelines::ePipe_Count; i++)
 		if(cache.pipes[i] != VK_NULL_HANDLE)
 			GetResourceManager()->WrapResource(Unwrap(m_Device), cache.pipes[i]);
 
-	vt->DestroyRenderPass(Unwrap(m_Device), rp);
+	vt->DestroyRenderPass(Unwrap(m_Device), rp, NULL);
 	
 	return cache;
 }
@@ -3811,7 +3776,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	if(m_PostVSData.find(idx) != m_PostVSData.end())
 		return;
 
-	if(!m_pDriver->GetDeviceFeatures().vertexSideEffects)
+	if(!m_pDriver->GetDeviceFeatures().vertexPipelineStoresAndAtomics)
 		return;
 
 	const VulkanRenderState &state = m_pDriver->m_RenderState;
@@ -3822,15 +3787,15 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 	const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
 
-	if(p.shaders[VK_SHADER_STAGE_VERTEX] == ResourceId())
+	if(p.shaders[0].module == ResourceId())
 		return;
 
-	const VulkanCreationInfo::Shader &s = c.m_Shader[p.shaders[VK_SHADER_STAGE_VERTEX]];
-	const VulkanCreationInfo::ShaderModule &m = c.m_ShaderModule[s.module];
+	// VKTODOHIGH handle shadermodule vs specific shader
+	const VulkanCreationInfo::ShaderModule &m = c.m_ShaderModule[p.shaders[0].module];
 
 	// no outputs from this shader? unexpected but theoretically possible (dummy VS before
 	// tessellation maybe). Just fill out an empty data set
-	if(s.refl.OutputSig.count == 0)
+	if(m.refl.OutputSig.count == 0)
 	{
 		// empty vertex output signature
 		m_PostVSData[idx].vsin.topo = p.topology;
@@ -3874,14 +3839,14 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	const vector<VkPushConstantRange> &push = c.m_PipelineLayout[p.layout].pushRanges;
 
 	VkPipelineLayoutCreateInfo pipeLayoutInfo = {
-		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, NULL,
+		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, NULL, 0,
 		descSet+1, descSetLayouts,
 		(uint32_t)push.size(), push.empty() ? NULL : &push[0],
 	};
 	
 	// create pipeline layout with same descriptor set layouts, plus our mesh output set
 	VkPipelineLayout pipeLayout;
-	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, &pipeLayout);
+	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	SAFE_DELETE_ARRAY(descSetLayouts);
@@ -3902,7 +3867,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	ia->topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
 	// enable rasterizer discard
-	VkPipelineRasterStateCreateInfo *rs = (VkPipelineRasterStateCreateInfo *)pipeCreateInfo.pRasterState;
+	VkPipelineRasterizationStateCreateInfo *rs = (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
 	rs->rasterizerDiscardEnable = true;
 
 	VkBuffer meshBuffer = VK_NULL_HANDLE, readbackBuffer = VK_NULL_HANDLE;
@@ -3934,14 +3899,14 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		// if there are no active bindings assume the vertex shader is generating its own data
 		// and don't clamp the indices
-		if(pipeCreateInfo.pVertexInputState->bindingCount == 0)
+		if(pipeCreateInfo.pVertexInputState->vertexBindingDescriptionCount == 0)
 			maxIdx = ~0U;
 
-		for(uint32_t b=0; b < pipeCreateInfo.pVertexInputState->bindingCount; b++)
+		for(uint32_t b=0; b < pipeCreateInfo.pVertexInputState->vertexBindingDescriptionCount; b++)
 		{
 			const VkVertexInputBindingDescription &input = pipeCreateInfo.pVertexInputState->pVertexBindingDescriptions[b];
 			// only vertex inputs (not instance inputs) count
-			if(input.stepRate == VK_VERTEX_INPUT_STEP_RATE_VERTEX)
+			if(input.inputRate == VK_VERTEX_INPUT_RATE_VERTEX)
 			{
 				RDCASSERT(b < state.vbuffers.size());
 				ResourceId buf = state.vbuffers[b].buf;
@@ -3953,7 +3918,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				// the end of the buffer. The maximum valid index at all is the one that reads
 				// off the end of ALL buffers (so we max it with any other maxindex value
 				// calculated).
-				maxIdx = RDCMAX(maxIdx, uint32_t( (bufsize - offs) / input.strideInBytes ));
+				maxIdx = RDCMAX(maxIdx, uint32_t( (bufsize - offs) / input.stride ));
 			}
 		}
 
@@ -4000,12 +3965,11 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			indices.size()*sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		};
 
-		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &uniqIdxBuf);
+		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &uniqIdxBuf);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkMemoryRequirements mrq;
-		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, uniqIdxBuf, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		m_pDriver->vkGetBufferMemoryRequirements(dev, uniqIdxBuf, &mrq);
 
 		VkMemoryAllocateInfo allocInfo = {
 			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
@@ -4013,7 +3977,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = m_pDriver->vkAllocMemory(dev, &allocInfo, &uniqIdxBufMem);
+		vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &uniqIdxBufMem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		vkr = m_pDriver->vkBindBufferMemory(dev, uniqIdxBuf, uniqIdxBufMem, 0);
@@ -4029,16 +3993,15 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		bufInfo.size = numIndices*idxsize;
 		
-		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &idxBuf);
+		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &idxBuf);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, idxBuf, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		m_pDriver->vkGetBufferMemoryRequirements(dev, idxBuf, &mrq);
 
 		allocInfo.allocationSize = mrq.size;
 		allocInfo.memoryTypeIndex = m_pDriver->GetUploadMemoryIndex(mrq.memoryTypeBits);
 
-		vkr = m_pDriver->vkAllocMemory(dev, &allocInfo, &idxBufMem);
+		vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &idxBufMem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		vkr = m_pDriver->vkBindBufferMemory(dev, idxBuf, idxBufMem, 0);
@@ -4048,42 +4011,33 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	uint32_t bufStride = 0;
 	vector<uint32_t> modSpirv = m.spirv.spirv;
 
-	AddOutputDumping(s.refl, s.entry.c_str(), descSet, minIndex, numVerts, modSpirv, bufStride);
+	AddOutputDumping(m.refl, p.shaders[0].name.c_str(), descSet, minIndex, numVerts, modSpirv, bufStride);
 	
 	// create vertex shader with modified code
 	VkShaderModuleCreateInfo moduleInfo = {
-		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL,
-		modSpirv.size()*sizeof(uint32_t), (void *)&modSpirv[0], 0,
+		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,
+		modSpirv.size()*sizeof(uint32_t), &modSpirv[0],
 	};
 
 	VkShaderModule module;
-	vkr = m_pDriver->vkCreateShaderModule(dev, &moduleInfo, &module);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	VkShaderCreateInfo shadinfo = {
-		VK_STRUCTURE_TYPE_SHADER_CREATE_INFO, NULL,
-		module, s.entry.c_str(), 0,
-		VK_SHADER_STAGE_VERTEX,
-	};
-
-	VkShader shad;
-	vkr = m_pDriver->vkCreateShader(m_Device, &shadinfo, &shad);
+	vkr = m_pDriver->vkCreateShaderModule(dev, &moduleInfo, NULL, &module);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// change vertex shader to use our modified code
 	for(uint32_t i=0; i < pipeCreateInfo.stageCount; i++)
 	{
 		VkPipelineShaderStageCreateInfo &sh = (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
-		if(sh.stage == VK_SHADER_STAGE_VERTEX)
+		if(sh.stage == VK_SHADER_STAGE_VERTEX_BIT)
 		{
-			sh.shader = shad;
+			sh.module = module;
+			// entry point name remains the same
 			break;
 		}
 	}
 
 	// create new pipeline
 	VkPipeline pipe;
-	vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, &pipe);
+	vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL, &pipe);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// make copy of state to draw from
@@ -4110,17 +4064,16 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		bufInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &meshBuffer);
+		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &meshBuffer);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &readbackBuffer);
+		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &readbackBuffer);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkMemoryRequirements mrq;
-		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
 
 		VkMemoryAllocateInfo allocInfo = {
 			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
@@ -4128,7 +4081,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = m_pDriver->vkAllocMemory(dev, &allocInfo, &meshMem);
+		vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &meshMem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		vkr = m_pDriver->vkBindBufferMemory(dev, meshBuffer, meshMem, 0);
@@ -4139,21 +4092,22 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		allocInfo.memoryTypeIndex = m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits);
 
-		vkr = m_pDriver->vkAllocMemory(dev, &allocInfo, &readbackMem);
+		vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &readbackMem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		vkr = m_pDriver->vkBindBufferMemory(dev, readbackBuffer, readbackMem, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// vkUpdateDescriptorSet desc set to point to buffer
-		VkDescriptorInfo fetchdesc = { 0 };
-		fetchdesc.bufferInfo.buffer = meshBuffer;
-		fetchdesc.bufferInfo.offset = 0;
-		fetchdesc.bufferInfo.range = bufInfo.size;
+		VkDescriptorBufferInfo fetchdesc = { 0 };
+		fetchdesc.buffer = meshBuffer;
+		fetchdesc.offset = 0;
+		fetchdesc.range = bufInfo.size;
 
 		VkWriteDescriptorSet write = {
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			m_MeshFetchDescSet, 0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &fetchdesc
+			m_MeshFetchDescSet, 0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			NULL, &fetchdesc, NULL
 		};
 		m_pDriver->vkUpdateDescriptorSets(dev, 1, &write, 0, NULL);
 		
@@ -4171,7 +4125,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		
 		VkBufferMemoryBarrier meshbufbarrier = {
 				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
-				VK_MEMORY_OUTPUT_SHADER_WRITE_BIT, VK_MEMORY_INPUT_TRANSFER_BIT|VK_MEMORY_INPUT_VERTEX_ATTRIBUTE_FETCH_BIT,
+				VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT|VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 				Unwrap(meshBuffer),
 				0, bufInfo.size,
@@ -4189,8 +4143,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// copy to readback buffer
 		ObjDisp(dev)->CmdCopyBuffer(Unwrap(cmd), Unwrap(meshBuffer), Unwrap(readbackBuffer), 1, &bufcopy);
 
-		meshbufbarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
-		meshbufbarrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT;
+		meshbufbarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		meshbufbarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
 		meshbufbarrier.buffer = Unwrap(readbackBuffer);
 	
 		// wait for copy to finish
@@ -4220,17 +4174,16 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		bufInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &meshBuffer);
+		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &meshBuffer);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, &readbackBuffer);
+		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &readbackBuffer);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkMemoryRequirements mrq;
-		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
 		
 		VkMemoryAllocateInfo allocInfo = {
 			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
@@ -4238,18 +4191,17 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = m_pDriver->vkAllocMemory(dev, &allocInfo, &meshMem);
+		vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &meshMem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		vkr = m_pDriver->vkBindBufferMemory(dev, meshBuffer, meshMem, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 		
-		vkr = m_pDriver->vkGetBufferMemoryRequirements(dev, readbackBuffer, &mrq);
-		RDCASSERT(vkr == VK_SUCCESS);
+		m_pDriver->vkGetBufferMemoryRequirements(dev, readbackBuffer, &mrq);
 
 		allocInfo.memoryTypeIndex = m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits);
 
-		vkr = m_pDriver->vkAllocMemory(dev, &allocInfo, &readbackMem);
+		vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &readbackMem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		vkr = m_pDriver->vkBindBufferMemory(dev, readbackBuffer, readbackMem, 0);
@@ -4257,7 +4209,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		VkBufferMemoryBarrier meshbufbarrier = {
 				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
-				VK_MEMORY_OUTPUT_HOST_WRITE_BIT, VK_MEMORY_INPUT_INDEX_FETCH_BIT,
+				VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_INDEX_READ_BIT,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 				Unwrap(uniqIdxBuf),
 				0, indices.size()*sizeof(uint32_t),
@@ -4292,14 +4244,15 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		modifiedstate.ibuffer.buf = GetResID(uniqIdxBuf);
 		
 		// vkUpdateDescriptorSet desc set to point to buffer
-		VkDescriptorInfo fetchdesc = { 0 };
-		fetchdesc.bufferInfo.buffer = meshBuffer;
-		fetchdesc.bufferInfo.offset = 0;
-		fetchdesc.bufferInfo.range = bufInfo.size;
+		VkDescriptorBufferInfo fetchdesc = { 0 };
+		fetchdesc.buffer = meshBuffer;
+		fetchdesc.offset = 0;
+		fetchdesc.range = bufInfo.size;
 
 		VkWriteDescriptorSet write = {
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			m_MeshFetchDescSet, 0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &fetchdesc
+			m_MeshFetchDescSet, 0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			NULL, &fetchdesc, NULL
 		};
 		m_pDriver->vkUpdateDescriptorSets(dev, 1, &write, 0, NULL);
 
@@ -4358,8 +4311,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// wait for mesh output writing to finish
 		meshbufbarrier.buffer = Unwrap(meshBuffer);
 		meshbufbarrier.size = bufSize;
-		meshbufbarrier.outputMask = VK_MEMORY_OUTPUT_SHADER_WRITE_BIT;
-		meshbufbarrier.inputMask = VK_MEMORY_INPUT_TRANSFER_BIT;
+		meshbufbarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+		meshbufbarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
 		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 		
@@ -4370,8 +4323,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// copy to readback buffer
 		ObjDisp(dev)->CmdCopyBuffer(Unwrap(cmd), Unwrap(meshBuffer), Unwrap(readbackBuffer), 1, &bufcopy);
 
-		meshbufbarrier.outputMask = VK_MEMORY_OUTPUT_TRANSFER_BIT;
-		meshbufbarrier.inputMask = VK_MEMORY_INPUT_HOST_READ_BIT;
+		meshbufbarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		meshbufbarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
 		meshbufbarrier.buffer = Unwrap(readbackBuffer);
 	
 		// wait for copy to finish
@@ -4399,7 +4352,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	// expect position at the start of the buffer, as system values are sorted first
 	// and position is the first value
 
-	for(uint32_t i=1; s.refl.OutputSig[0].systemValue == eAttr_Position && i < numVerts; i++)
+	for(uint32_t i=1; m.refl.OutputSig[0].systemValue == eAttr_Position && i < numVerts; i++)
 	{
 		//////////////////////////////////////////////////////////////////////////////////
 		// derive near/far, assuming a standard perspective matrix
@@ -4444,13 +4397,13 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	m_pDriver->vkUnmapMemory(m_Device, readbackMem);
 
 	// clean up temporary memories
-	m_pDriver->vkDestroyBuffer(m_Device, readbackBuffer);
-	m_pDriver->vkFreeMemory(m_Device, readbackMem);
+	m_pDriver->vkDestroyBuffer(m_Device, readbackBuffer, NULL);
+	m_pDriver->vkFreeMemory(m_Device, readbackMem, NULL);
 
 	if(uniqIdxBuf != VK_NULL_HANDLE)
 	{
-		m_pDriver->vkDestroyBuffer(m_Device, uniqIdxBuf);
-		m_pDriver->vkFreeMemory(m_Device, uniqIdxBufMem);
+		m_pDriver->vkDestroyBuffer(m_Device, uniqIdxBuf, NULL);
+		m_pDriver->vkFreeMemory(m_Device, uniqIdxBufMem, NULL);
 	}
 
 	// fill out m_PostVSData
@@ -4478,17 +4431,16 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].vsout.idxFmt = state.ibuffer.bytewidth == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 	}
 
-	m_PostVSData[idx].vsout.hasPosOut = s.refl.OutputSig[0].systemValue == eAttr_Position;
+	m_PostVSData[idx].vsout.hasPosOut = m.refl.OutputSig[0].systemValue == eAttr_Position;
 
 	// delete pipeline layout
-	m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout);
+	m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout, NULL);
 
 	// delete pipeline
-	m_pDriver->vkDestroyPipeline(dev, pipe);
+	m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
 
 	// delete shader/shader module
-	m_pDriver->vkDestroyShader(dev, shad);
-	m_pDriver->vkDestroyShaderModule(dev, module);
+	m_pDriver->vkDestroyShaderModule(dev, module, NULL);
 }
 
 MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)

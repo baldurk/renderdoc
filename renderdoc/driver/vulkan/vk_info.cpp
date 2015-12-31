@@ -76,6 +76,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 			Shader &shad = shaders[ pCreateInfo->pStages[i].stage ];
 			
 			shad.module = id;
+			shad.name = pCreateInfo->pStages[i].pName;
 			shad.refl = new ShaderReflection(info.m_ShaderModule[id].refl);
 			shad.refl->DebugInfo.entryFunc = pCreateInfo->pStages[i].pName;
 			// VKTODOLOW set this properly
@@ -199,6 +200,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 			Shader &shad = shaders[0];
 			
 			shad.module = id;
+			shad.name = pCreateInfo->stage.pName;
 			shad.refl = new ShaderReflection(info.m_ShaderModule[id].refl);
 			shad.refl->DebugInfo.entryFunc = pCreateInfo->stage.pName;
 			// VKTODOLOW set this properly
@@ -220,7 +222,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 		// VkPipelineMultisampleStateCreateInfo
-		rasterizationSamples = 1;
+		rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 		sampleShadingEnable = false;
 		minSampleShading = 1.0f;
 		sampleMask = ~0U;

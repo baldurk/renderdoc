@@ -262,6 +262,9 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 		m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
 	}
 
+	InitSPIRVCompiler();
+	RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
+
 	m_Replay.SetDriver(this);
 
 	m_FrameCounter = 0;

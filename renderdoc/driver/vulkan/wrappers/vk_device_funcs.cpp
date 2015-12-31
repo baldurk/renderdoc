@@ -522,20 +522,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		else
 			RDCWARN("robustBufferAccess = false, out of bounds access due to bugs in application or RenderDoc may cause crashes");
 
-		if(availFeatures.vertexSideEffects)
-			enabledFeatures.vertexSideEffects = true;
+		if(availFeatures.vertexPipelineStoresAndAtomics)
+			enabledFeatures.vertexPipelineStoresAndAtomics = true;
 		else
-			RDCWARN("vertexSideEffects = false, VS output mesh data will not be available");
-
-		if(availFeatures.geometrySideEffects)
-			enabledFeatures.geometrySideEffects = true;
-		else
-			RDCWARN("geometrySideEffects = false, GS output mesh data will not be available");
-
-		if(availFeatures.tessellationSideEffects)
-			enabledFeatures.tessellationSideEffects = true;
-		else
-			RDCWARN("tessellationSideEffects = false, Tess output mesh data will not be available");
+			RDCWARN("vertexPipelineStoresAndAtomics = false, output mesh data will not be available");
 
 		// PORTABILITY check that extensions and layers supported in capture (from createInfo) are supported in replay
 

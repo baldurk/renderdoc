@@ -244,6 +244,8 @@ class VulkanDebugManager
 
 		float m_FontCharAspect;
 		float m_FontCharSize;
+
+		vector<uint32_t> m_FixedColSPIRV;
 		
 		map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
 
