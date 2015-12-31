@@ -66,6 +66,8 @@ data/glsl/outline.frago \
 data/spv/blitvs.spvo \
 data/spv/checkerboardfs.spvo \
 data/spv/texdisplayfs.spvo \
+data/spv/textvs.spvo \
+data/spv/textfs.spvo \
 data/sourcecodepro.ttfo
 
 .PHONY: all

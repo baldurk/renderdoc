@@ -215,5 +215,5 @@ class VulkanReplay : public IReplayDriver
 		
 		WrappedVulkan *m_pDriver;
 
-		VulkanDebugManager &GetDebugManager();
+		VulkanDebugManager *GetDebugManager();
 };

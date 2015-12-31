@@ -363,6 +363,10 @@
     <None Include="data\spv\checkerboardfs.spv" />
     <None Include="data\spv\texdisplay.frag" />
     <None Include="data\spv\texdisplayfs.spv" />
+    <None Include="data\spv\text.frag" />
+    <None Include="data\spv\text.vert" />
+    <None Include="data\spv\textfs.spv" />
+    <None Include="data\spv\textvs.spv" />
     <None Include="os\win32\comexport.def" />
   </ItemGroup>
   <ItemGroup>

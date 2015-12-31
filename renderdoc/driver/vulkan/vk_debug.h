@@ -30,11 +30,23 @@
 #include "replay/replay_driver.h"
 #include "core/core.h"
 
+struct TextPrintState
+{
+	VkQueue q;
+	VkCmdBuffer cmd;
+	VkRenderPass rp;
+	VkFramebuffer fb;
+	VkDynamicViewportState vp;
+	int32_t w, h;
+};
+
 class VulkanDebugManager
 {
 	public:
 		VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkImageView fakeBBView);
 		~VulkanDebugManager();
+
+		void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
 		
 		struct UBO
 		{
@@ -71,10 +83,29 @@ class VulkanDebugManager
 		VkDescriptorSet m_TexDisplayDescSet;
 		VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline;
 		UBO m_TexDisplayUBO;
+		
+		VkDescriptorSetLayout m_TextDescSetLayout;
+		VkPipelineLayout m_TextPipeLayout;
+		VkDescriptorSet m_TextDescSet;
+		VkPipeline m_TextPipeline;
+		UBO m_TextGeneralUBO;
+		UBO m_TextGlyphUBO;
+		UBO m_TextStringUBO;
+		VkImage m_TextAtlas;
+		VkDeviceMemory m_TextAtlasMem;
+		VkImageView m_TextAtlasView;
 
 	private:
 		void InitDebugData();
 		void ShutdownDebugData();
+		
+		void RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text);
+		static const int FONT_TEX_WIDTH = 256;
+		static const int FONT_TEX_HEIGHT = 128;
+
+		float m_FontCharAspect;
+		float m_FontCharSize;
+
 		
 		WrappedVulkan *m_pDriver;
 

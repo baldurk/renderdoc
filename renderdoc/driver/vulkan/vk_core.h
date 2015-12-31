@@ -339,6 +339,7 @@ private:
 		int arraySize;
 
 		VkRenderPass rp;
+		VkDynamicViewportState vp;
 
 		struct SwapImage
 		{

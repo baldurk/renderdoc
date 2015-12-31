@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2015 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,35 +22,29 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#version 420 core
 
-#define DECLARE_EMBED(filename) \
-	extern char CONCAT( CONCAT(_binary_, filename) , _start) ; \
-	extern char CONCAT( CONCAT(_binary_, filename) , _end) ;
+layout (binding = 3) uniform sampler2D tex0;
+layout (location = 0) out vec4 color_out;
 
-DECLARE_EMBED(debuguniforms_h);
-DECLARE_EMBED(texsample_h);
-DECLARE_EMBED(blit_vert);
-DECLARE_EMBED(blit_frag);
-DECLARE_EMBED(texdisplay_frag);
-DECLARE_EMBED(checkerboard_frag);
-DECLARE_EMBED(histogram_comp);
-DECLARE_EMBED(quadoverdraw_frag);
-DECLARE_EMBED(arraymscopy_comp);
-DECLARE_EMBED(mesh_vert);
-DECLARE_EMBED(mesh_frag);
-DECLARE_EMBED(mesh_geom);
-DECLARE_EMBED(mesh_comp);
-DECLARE_EMBED(generic_vert);
-DECLARE_EMBED(generic_frag);
-DECLARE_EMBED(text_frag);
-DECLARE_EMBED(text_vert);
-DECLARE_EMBED(sourcecodepro_ttf);
-DECLARE_EMBED(outline_frag);
-DECLARE_EMBED(blitvs_spv);
-DECLARE_EMBED(checkerboardfs_spv);
-DECLARE_EMBED(texdisplayfs_spv);
-DECLARE_EMBED(textvs_spv);
-DECLARE_EMBED(textfs_spv);
+in v2f
+{
+	vec4 tex;
+	vec2 glyphuv;
+} IN;
 
-#undef DECLARE_EMBED
+void main(void)
+{
+	float text = 0;
+
+	if(IN.glyphuv.x >= 0.0f && IN.glyphuv.x <= 1.0f && 
+	   IN.glyphuv.y >= 0.0f && IN.glyphuv.y <= 1.0f)
+	{
+		vec2 uv;
+		uv.x = mix(IN.tex.x, IN.tex.z, IN.glyphuv.x);
+		uv.y = mix(IN.tex.y, IN.tex.w, IN.glyphuv.y);
+		text = texture(tex0, uv.xy).x;
+	}
+
+	color_out = vec4(text.xxx, clamp(text + 0.5f, 0.0f, 1.0f));
+}

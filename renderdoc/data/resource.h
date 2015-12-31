@@ -36,6 +36,8 @@
 #define RESOURCE_blitvs_spv         401
 #define RESOURCE_checkerboardfs_spv 402
 #define RESOURCE_texdisplayfs_spv   403
+#define RESOURCE_textvs_spv         404
+#define RESOURCE_textfs_spv         405
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

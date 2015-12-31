@@ -397,9 +397,9 @@ VulkanReplay::VulkanReplay()
 	m_BindDepth = false;
 }
 
-VulkanDebugManager &VulkanReplay::GetDebugManager()
+VulkanDebugManager *VulkanReplay::GetDebugManager()
 {
-	return *m_pDriver->GetDebugManager();
+	return m_pDriver->GetDebugManager();
 }
 
 void VulkanReplay::Shutdown()
@@ -627,7 +627,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 
 	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
 	// needs to be ring-buffered
-	displayuniforms *data = (displayuniforms *)GetDebugManager().m_TexDisplayUBO.Map(vt, dev);
+	displayuniforms *data = (displayuniforms *)GetDebugManager()->m_TexDisplayUBO.Map(vt, dev);
 
 	data->Padding = 0;
 	
@@ -705,18 +705,18 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	
 	data->RawOutput = cfg.rawoutput ? 1 : 0;
 
-	GetDebugManager().m_TexDisplayUBO.Unmap(vt, dev);
+	GetDebugManager()->m_TexDisplayUBO.Unmap(vt, dev);
 	
 	VkDescriptorInfo desc = {0};
 	desc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	desc.imageView = GetDebugManager().m_FakeBBImView;
-	desc.sampler = GetDebugManager().m_PointSampler;
+	desc.imageView = GetDebugManager()->m_FakeBBImView;
+	desc.sampler = GetDebugManager()->m_PointSampler;
 	if(cfg.mip == 0 && cfg.scale < 1.0f)
-		desc.sampler = GetDebugManager().m_LinearSampler;
+		desc.sampler = GetDebugManager()->m_LinearSampler;
 
 	VkWriteDescriptorSet writeSet = {
 		VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-		GetDebugManager().m_TexDisplayDescSet, 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
+		GetDebugManager()->m_TexDisplayDescSet, 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
 	};
 
 	VkResult vkr = vt->UpdateDescriptorSets(dev, 1, &writeSet, 0, NULL);
@@ -752,13 +752,13 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 		vt->CmdBeginRenderPass(cmd, &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
 		// VKTODOMED will need a way to disable blend for other things
-		vt->CmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, cfg.rawoutput ? GetDebugManager().m_TexDisplayPipeline : GetDebugManager().m_TexDisplayBlendPipeline);
-		vt->CmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, GetDebugManager().m_TexDisplayPipeLayout, 0, 1, &GetDebugManager().m_TexDisplayDescSet, 0, NULL);
+		vt->CmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, cfg.rawoutput ? GetDebugManager()->m_TexDisplayPipeline : GetDebugManager()->m_TexDisplayBlendPipeline);
+		vt->CmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, GetDebugManager()->m_TexDisplayPipeLayout, 0, 1, &GetDebugManager()->m_TexDisplayDescSet, 0, NULL);
 
 		vt->CmdBindDynamicViewportState(cmd, outw.fullVP);
-		vt->CmdBindDynamicRasterState(cmd, GetDebugManager().m_DynamicRSState);
-		vt->CmdBindDynamicColorBlendState(cmd, GetDebugManager().m_DynamicCBStateWhite);
-		vt->CmdBindDynamicDepthStencilState(cmd, GetDebugManager().m_DynamicDSStateDisabled);
+		vt->CmdBindDynamicRasterState(cmd, GetDebugManager()->m_DynamicRSState);
+		vt->CmdBindDynamicColorBlendState(cmd, GetDebugManager()->m_DynamicCBStateWhite);
+		vt->CmdBindDynamicDepthStencilState(cmd, GetDebugManager()->m_DynamicDSStateDisabled);
 
 		vt->CmdDraw(cmd, 0, 4, 0, 1);
 		vt->CmdEndRenderPass(cmd);
@@ -803,14 +803,14 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
 	// needs to be ring-buffered
-	Vec4f *data = (Vec4f *)GetDebugManager().m_CheckerboardUBO.Map(vt, dev);
+	Vec4f *data = (Vec4f *)GetDebugManager()->m_CheckerboardUBO.Map(vt, dev);
 	data[0].x = light.x;
 	data[0].y = light.y;
 	data[0].z = light.z;
 	data[1].x = dark.x;
 	data[1].y = dark.y;
 	data[1].z = dark.z;
-	GetDebugManager().m_CheckerboardUBO.Unmap(vt, dev);
+	GetDebugManager()->m_CheckerboardUBO.Unmap(vt, dev);
 
 	{
 		VkClearValue clearval = {0};
@@ -822,13 +822,13 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		};
 		vt->CmdBeginRenderPass(cmd, &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
-		vt->CmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, GetDebugManager().m_CheckerboardPipeline);
-		vt->CmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, GetDebugManager().m_CheckerboardPipeLayout, 0, 1, &GetDebugManager().m_CheckerboardDescSet, 0, NULL);
+		vt->CmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, GetDebugManager()->m_CheckerboardPipeline);
+		vt->CmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, GetDebugManager()->m_CheckerboardPipeLayout, 0, 1, &GetDebugManager()->m_CheckerboardDescSet, 0, NULL);
 
 		vt->CmdBindDynamicViewportState(cmd, outw.fullVP);
-		vt->CmdBindDynamicRasterState(cmd, GetDebugManager().m_DynamicRSState);
-		vt->CmdBindDynamicColorBlendState(cmd, GetDebugManager().m_DynamicCBStateWhite);
-		vt->CmdBindDynamicDepthStencilState(cmd, GetDebugManager().m_DynamicDSStateDisabled);
+		vt->CmdBindDynamicRasterState(cmd, GetDebugManager()->m_DynamicRSState);
+		vt->CmdBindDynamicColorBlendState(cmd, GetDebugManager()->m_DynamicCBStateWhite);
+		vt->CmdBindDynamicDepthStencilState(cmd, GetDebugManager()->m_DynamicDSStateDisabled);
 
 		vt->CmdDraw(cmd, 0, 4, 0, 1);
 		vt->CmdEndRenderPass(cmd);

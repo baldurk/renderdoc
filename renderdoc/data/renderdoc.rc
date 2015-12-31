@@ -134,6 +134,8 @@ RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
 RESOURCE_blitvs_spv         TYPE_EMBED   "spv/blitvs.spv"
 RESOURCE_checkerboardfs_spv TYPE_EMBED   "spv/checkerboardfs.spv"
 RESOURCE_texdisplayfs_spv   TYPE_EMBED   "spv/texdisplayfs.spv"
+RESOURCE_textvs_spv         TYPE_EMBED   "spv/textvs.spv"
+RESOURCE_textfs_spv         TYPE_EMBED   "spv/textfs.spv"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

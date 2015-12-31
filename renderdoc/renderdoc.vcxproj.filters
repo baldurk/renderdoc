@@ -448,6 +448,18 @@
     <None Include="data\spv\checkerboardfs.spv">
       <Filter>Resources\spv</Filter>
     </None>
+    <None Include="data\spv\text.frag">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\text.vert">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\textfs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\textvs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

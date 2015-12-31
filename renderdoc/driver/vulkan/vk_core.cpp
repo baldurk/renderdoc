@@ -434,6 +434,8 @@ WrappedVulkan::~WrappedVulkan()
 
 		//if(it->second.rp != VK_NULL_HANDLE)
 			//device_dispatch_table(GetDev())->DestroyRenderPass(GetDev(), it->second.rp);
+		//if(it->second.vp != VK_NULL_HANDLE)
+			//device_dispatch_table(GetDev())->DestroyDynamicViewportState(GetDev(), it->second.vp);
 	}
 	m_SwapChainInfo.clear();
 
@@ -6701,6 +6703,19 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 				RDCASSERT(vkr == VK_SUCCESS);
 			}
 
+			{
+				VkViewport vp = { 0.0f, 0.0f, (float)pCreateInfo->imageExtent.width, (float)pCreateInfo->imageExtent.height, 0.0f, 1.0f, };
+				VkRect2D sc = { { 0, 0 }, { pCreateInfo->imageExtent.width, pCreateInfo->imageExtent.height } };
+
+				VkDynamicViewportStateCreateInfo vpInfo = {
+					VK_STRUCTURE_TYPE_DYNAMIC_VIEWPORT_STATE_CREATE_INFO, NULL,
+					1, &vp, &sc
+				};
+
+				vkr = vt->CreateDynamicViewportState(device, &vpInfo, &swapInfo.vp);
+				RDCASSERT(vkr == VK_SUCCESS);
+			}
+
 			// serialise out the swap chain images
 			{
 				size_t swapChainImagesSize;
@@ -6783,10 +6798,8 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 			VkQueue                                 queue,
 			VkPresentInfoWSI*                       pPresentInfo)
 {
-	VkResult ret = device_dispatch_table(queue)->QueuePresentWSI(queue, pPresentInfo);
-
-	if(ret != VK_SUCCESS || pPresentInfo->swapChainCount == 0)
-		return ret;
+	if(pPresentInfo->swapChainCount == 0)
+		return VK_ERROR_INVALID_VALUE;
 
 	RenderDoc::Inst().SetCurrentDriver(RDC_Vulkan);
 	
@@ -6808,6 +6821,9 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 	const SwapInfo &swapInfo = m_SwapChainInfo[swapid];
 
 	VkImage backbuffer = swapInfo.images[pPresentInfo->imageIndices[0]].im;
+	
+	// VKTODOLOW multiple windows/captures etc
+	bool activeWindow = true; //RenderDoc::Inst().IsActiveWindow((ID3D11Device *)this, swapdesc.OutputWindow);
 
 	if(m_State == WRITING_IDLE)
 	{
@@ -6836,14 +6852,104 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 			m_AvgFrametime /= double(m_FrameTimes.size());
 
 			m_FrameTimes.clear();
+		}
+		
+		uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
-			RDCLOG("Frame: %d. F12/PrtScr to capture. %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
-				m_FrameCounter, m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
-			for(size_t i=0; i < m_FrameRecord.size(); i++)
-				RDCLOG("Captured Frame %d. Multiple frame capture not supported.\n", m_FrameRecord[i].frameInfo.frameNumber);
+		if(overlay & eRENDERDOC_Overlay_Enabled)
+		{
+			VkRenderPass rp = swapInfo.rp;
+			VkDynamicViewportState vp = swapInfo.vp;
+			VkFramebuffer fb = swapInfo.images[pPresentInfo->imageIndices[0]].fb;
+
+			// VKTODOLOW only handling queue == GetQ()
+			RDCASSERT(GetQ() == queue);
+
+			VkLayerDispatchTable *vt = device_dispatch_table(GetDev());
+
+			vt->QueueWaitIdle(GetQ());
+
+			TextPrintState textstate = { GetQ(), GetCmd(), rp, fb, vp, swapInfo.extent.width, swapInfo.extent.height };
+
+			if(activeWindow)
+			{
+				vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetCaptureKeys();
+
+				string overlayText = "Vulkan. ";
+
+				for(size_t i=0; i < keys.size(); i++)
+				{
+					if(i > 0)
+						overlayText += ", ";
+
+					overlayText += ToStr::Get(keys[i]);
+				}
+
+				if(!keys.empty())
+					overlayText += " to capture.";
+
+				if(overlay & eRENDERDOC_Overlay_FrameNumber)
+				{
+					overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
+				}
+				if(overlay & eRENDERDOC_Overlay_FrameRate)
+				{
+					overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
+																					m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
+				}
+
+				float y=0.0f;
+
+				if(!overlayText.empty())
+				{
+					GetDebugManager()->RenderText(textstate, 0.0f, y, overlayText.c_str());
+					y += 1.0f;
+				}
+
+				if(overlay & eRENDERDOC_Overlay_CaptureList)
+				{
+					GetDebugManager()->RenderText(textstate, 0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
+					y += 1.0f;
+
+					uint64_t now = Timing::GetUnixTimestamp();
+					for(size_t i=0; i < m_FrameRecord.size(); i++)
+					{
+						if(now - m_FrameRecord[i].frameInfo.captureTime < 20)
+						{
+							GetDebugManager()->RenderText(textstate, 0.0f, y, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
+							y += 1.0f;
+						}
+					}
+				}
+
+				// VKTODOLOW failed frames
+
 #if !defined(RELEASE)
-			// RDCLOG("%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
+				GetDebugManager()->RenderText(textstate, 0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
+				y += 1.0f;
 #endif
+			}
+			else
+			{
+				vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetFocusKeys();
+
+				string str = "Vulkan. Inactive swapchain.";
+
+				for(size_t i=0; i < keys.size(); i++)
+				{
+					if(i == 0)
+						str += " ";
+					else
+						str += ", ";
+
+					str += ToStr::Get(keys[i]);
+				}
+
+				if(!keys.empty())
+					str += " to cycle between swapchains";
+
+				GetDebugManager()->RenderText(textstate, 0.0f, 0.0f, str.c_str());
+			}
 		}
 	}
 	
@@ -7182,6 +7288,7 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 
 		FetchFrameRecord record;
 		record.frameInfo.frameNumber = m_FrameCounter+1;
+		record.frameInfo.captureTime = Timing::GetUnixTimestamp();
 		m_FrameRecord.push_back(record);
 
 		GetResourceManager()->ClearReferencedResources();
@@ -7194,8 +7301,8 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 
 		RDCLOG("Starting capture, frame %u", m_FrameCounter);
 	}
-
-	return ret;
+	
+	return device_dispatch_table(queue)->QueuePresentWSI(queue, pPresentInfo);
 }
 
 bool WrappedVulkan::Prepare_InitialState(VkResource res)
