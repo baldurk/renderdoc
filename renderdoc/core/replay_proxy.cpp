@@ -738,7 +738,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::VertexInput::A
 	Serialise("", el.format);
 	Serialise("", el.byteoffset);
 
-	SIZE_CHECK(VulkanPipelineState::VertexInput::Attribute, 48);
+	SIZE_CHECK(VulkanPipelineState::VertexInput::Attribute, 52);
 }
 
 template<>
@@ -749,6 +749,15 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::VertexInput &e
 	Serialise("", el.vbuffers);
 
 	SIZE_CHECK(VulkanPipelineState::VertexInput, 24);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::ShaderStage::SpecInfo &el)
+{
+	Serialise("", el.specID);
+	Serialise("", el.data);
+
+	SIZE_CHECK(VulkanPipelineState::ShaderStage::SpecInfo, 12);
 }
 
 template<>
@@ -764,8 +773,10 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ShaderStage &e
 
 	if(m_Mode == READING)
 		el.ShaderDetails = NULL;
+	
+	Serialise("", el.specialization);
 
-	SIZE_CHECK(VulkanPipelineState::ShaderStage, 72);
+	SIZE_CHECK(VulkanPipelineState::ShaderStage, 80);
 }
 
 template<>
@@ -885,7 +896,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState &el)
 	Serialise("", el.DS);
 	Serialise("", el.Pass);
 
-	SIZE_CHECK(VulkanPipelineState, 840);
+	SIZE_CHECK(VulkanPipelineState, 888);
 }
 
 #pragma endregion Vulkan pipeline state
@@ -1037,6 +1048,7 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
 	Serialise("", el.compCount);
 	Serialise("", el.compByteWidth);
 	Serialise("", el.compType);
+	Serialise("", el.bgraOrder);
 	Serialise("", el.specialFormat);
 	Serialise("", el.showAlpha);
 	Serialise("", el.topo);

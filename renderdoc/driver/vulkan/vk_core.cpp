@@ -1974,7 +1974,7 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 
 			RDCASSERT(colAtt.size() < 8);
 			
-			for(int i=0; i < 8 && i < colAtt.size(); i++)
+			for(int i=0; i < 8 && i < (int)colAtt.size(); i++)
 			{
 				RDCASSERT(colAtt[i] < atts.size());
 				draw.outputs[i] = atts[ colAtt[i] ].view;
@@ -1982,7 +1982,7 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 
 			if(dsAtt != -1)
 			{
-				RDCASSERT(dsAtt < atts.size());
+				RDCASSERT(dsAtt < (int32_t)atts.size());
 				draw.depthOut = atts[dsAtt].view;
 			}
 		}

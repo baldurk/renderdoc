@@ -1477,7 +1477,7 @@ VulkanDebugManager::~VulkanDebugManager()
 	GetResourceManager()->ReleaseWrappedResource(m_TextDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_MeshDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_OutlineDescSet);
-	if(m_QuadDescSet)
+	if(m_QuadDescSet != VK_NULL_HANDLE)
 	{
 		GetResourceManager()->ReleaseWrappedResource(m_MeshFetchDescSet);
 		GetResourceManager()->ReleaseWrappedResource(m_QuadDescSet);
