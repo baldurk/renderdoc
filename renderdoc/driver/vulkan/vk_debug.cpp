@@ -65,13 +65,6 @@ struct fontuniforms
 	Vec2f CharacterSize;
 	Vec2f FontScreenAspect;
 };
-
-struct genericuniforms
-{
-	Vec4f Offset;
-	Vec4f Scale;
-	Vec4f Color;
-};
 		
 struct glyph
 {
@@ -297,11 +290,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_TextAtlasMem = VK_NULL_HANDLE;
 	m_TextAtlasView = VK_NULL_HANDLE;
 
-	m_GenericDescSetLayout = VK_NULL_HANDLE;
-	m_GenericPipeLayout = VK_NULL_HANDLE;
-	m_GenericDescSet = VK_NULL_HANDLE;
-	m_HighlightBoxPipeline = VK_NULL_HANDLE;
-		
 	m_OverlayImageMem = VK_NULL_HANDLE;
 	m_OverlayImage = VK_NULL_HANDLE;
 	m_OverlayImageView = VK_NULL_HANDLE;
@@ -375,12 +363,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardDescSetLayout);
-
-		// identical layout
-		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_GenericDescSetLayout);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_GenericDescSetLayout);
 
 		// identical layout
 		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_MeshDescSetLayout);
@@ -491,13 +473,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	GetResourceManager()->WrapResource(Unwrap(dev), m_TextPipeLayout);
 
-	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_GenericDescSetLayout);
-	
-	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_GenericPipeLayout);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_GenericPipeLayout);
-
 	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_OutlineDescSetLayout);
 	
 	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_OutlinePipeLayout);
@@ -559,12 +534,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	GetResourceManager()->WrapResource(Unwrap(dev), m_TextDescSet);
 	
 	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
-		UnwrapPtr(m_GenericDescSetLayout), &m_GenericDescSet);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_GenericDescSet);
-	
-	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
 		UnwrapPtr(m_OutlineDescSetLayout), &m_OutlineDescSet);
 	RDCASSERT(vkr == VK_SUCCESS);
 
@@ -596,36 +565,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	m_ReadbackWindow.Create(driver, dev, STAGE_BUFFER_BYTE_SIZE, 1, GPUBuffer::eGPUBufferReadback);
 
-	m_GenericUBO.Create(driver, dev, 128, 10, 0);
-	RDCCOMPILE_ASSERT(sizeof(genericuniforms) <= 128, "generic UBO size");
-
 	m_OutlineUBO.Create(driver, dev, 128, 10, 0);
 	RDCCOMPILE_ASSERT(sizeof(outlineuniforms) <= 128, "outline UBO size");
-	
-	{
-		float data[] = {
-			0.0f,  0.0f, 0.0f, 1.0f,
-			1.0f,  0.0f, 0.0f, 1.0f,
-
-			1.0f,  0.0f, 0.0f, 1.0f,
-			1.0f,  1.0f, 0.0f, 1.0f,
-
-			1.0f,  1.0f, 0.0f, 1.0f,
-			0.0f,  1.0f, 0.0f, 1.0f,
-
-			0.0f,  1.0f, 0.0f, 1.0f,
-			0.0f, -0.1f, 0.0f, 1.0f,
-		};
-		
-		m_OutlineStripVBO.Create(driver, dev, 128, 1, 0); // doesn't need to be ring buffered
-		RDCCOMPILE_ASSERT(sizeof(data) <= 128, "outline strip VBO size");
-		
-		float *mapped = (float *)m_OutlineStripVBO.Map(vt, dev, (uint32_t *)NULL);
-
-		memcpy(mapped, data, sizeof(data));
-
-		m_OutlineStripVBO.Unmap(vt, dev);
-	}
 
 	m_CheckerboardUBO.Create(driver, dev, 128, 10, 0);
 	m_TexDisplayUBO.Create(driver, dev, 128, 10, 0);
@@ -644,8 +585,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		GetEmbeddedResource(texdisplayfs_spv),
 		GetEmbeddedResource(textvs_spv),
 		GetEmbeddedResource(textfs_spv),
-		GetEmbeddedResource(genericvs_spv),
-		GetEmbeddedResource(genericfs_spv),
 		GetEmbeddedResource(meshvs_spv),
 		GetEmbeddedResource(meshgs_spv),
 		GetEmbeddedResource(meshfs_spv),
@@ -658,8 +597,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	VkShaderStage shaderStages[] = {
 		VK_SHADER_STAGE_VERTEX,
 		VK_SHADER_STAGE_FRAGMENT,
-		VK_SHADER_STAGE_FRAGMENT,
-		VK_SHADER_STAGE_VERTEX,
 		VK_SHADER_STAGE_FRAGMENT,
 		VK_SHADER_STAGE_VERTEX,
 		VK_SHADER_STAGE_FRAGMENT,
@@ -679,8 +616,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		TEXDISPLAYFS,
 		TEXTVS,
 		TEXTFS,
-		GENERICVS,
-		GENERICFS,
 		MESHVS,
 		MESHGS,
 		MESHFS,
@@ -918,37 +853,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_OutlinePipeline);
-
-	pipeInfo.renderPass = RGBA8RP;
-	
-	ia.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-	attState.blendEnable = false;
-
-	VkVertexInputBindingDescription vertexBind = {
-		0, sizeof(Vec4f), VK_VERTEX_INPUT_STEP_RATE_VERTEX,
-	};
-
-	VkVertexInputAttributeDescription vertexAttr = {
-		0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0,
-	};
-
-	VkPipelineVertexInputStateCreateInfo vi = {
-		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, NULL,
-		1, &vertexBind,
-		1, &vertexAttr,
-	};
-
-	pipeInfo.pVertexInputState = &vi;
-	
-	stages[0].shader = Unwrap(shader[GENERICVS]);
-	stages[1].shader = Unwrap(shader[GENERICFS]);
-
-	pipeInfo.layout = Unwrap(m_GenericPipeLayout);
-
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_HighlightBoxPipeline);
-	RDCASSERT(vkr == VK_SUCCESS);
-	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_HighlightBoxPipeline);
 
 	VkComputePipelineCreateInfo compPipeInfo = {
 		VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, NULL,
@@ -1353,7 +1257,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	desc[4].imageView = Unwrap(m_TextAtlasView);
 	desc[4].sampler = Unwrap(m_LinearSampler);
 	
-	m_GenericUBO.FillDescriptor(desc[5]);
 	m_MeshUBO.FillDescriptor(desc[6]);
 	m_OutlineUBO.FillDescriptor(desc[7]);
 
@@ -1377,10 +1280,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc[4]
-		},
-		{
-			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_GenericDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[5]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
@@ -1443,7 +1342,6 @@ VulkanDebugManager::~VulkanDebugManager()
 	}
 	
 	GetResourceManager()->ReleaseWrappedResource(m_CheckerboardDescSet);
-	GetResourceManager()->ReleaseWrappedResource(m_GenericDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_TextDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_MeshDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_OutlineDescSet);
@@ -1617,27 +1515,6 @@ VulkanDebugManager::~VulkanDebugManager()
 	m_MeshUBO.Destroy(vt, dev);
 	m_MeshBBoxVB.Destroy(vt, dev);
 	m_MeshAxisFrustumVB.Destroy(vt, dev);
-
-	if(m_GenericDescSetLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_GenericDescSetLayout));
-		GetResourceManager()->ReleaseWrappedResource(m_GenericDescSetLayout);
-	}
-
-	if(m_GenericPipeLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_GenericPipeLayout));
-		GetResourceManager()->ReleaseWrappedResource(m_GenericPipeLayout);
-	}
-
-	if(m_HighlightBoxPipeline != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_HighlightBoxPipeline));
-		GetResourceManager()->ReleaseWrappedResource(m_HighlightBoxPipeline);
-	}
-
-	m_OutlineStripVBO.Destroy(vt, dev);
-	m_GenericUBO.Destroy(vt, dev);
 
 	if(m_OutlineDescSetLayout != VK_NULL_HANDLE)
 	{

@@ -65,13 +65,6 @@ struct displayuniforms
 #define TEXDISPLAY_CLIPPING    0x100
 #define TEXDISPLAY_GAMMA_CURVE 0x200
 
-struct genericuniforms
-{
-	Vec4f Offset;
-	Vec4f Scale;
-	Vec4f Color;
-};
-
 struct meshuniforms
 {
 	Matrix4f mvp;
@@ -1230,20 +1223,6 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 	
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
-	
-	const float xpixdim = 2.0f/w;
-	const float ypixdim = 2.0f/h;
-	
-	const float xdim = scale*xpixdim;
-	const float ydim = scale*ypixdim;
-
-	uint32_t uboOffs = 0;
-
-	genericuniforms *data = (genericuniforms *)GetDebugManager()->m_GenericUBO.Map(vt, dev, &uboOffs);
-	data->Offset = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
-	data->Scale = Vec4f(xdim, ydim, 1.0f, 1.0f);
-	data->Color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
-	GetDebugManager()->m_GenericUBO.Unmap(vt, dev);
 
 	{
 		VkClearValue clearval = {0};
@@ -1254,26 +1233,41 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 			1, &clearval,
 		};
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
-
-		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_HighlightBoxPipeline));
-		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_GenericPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_GenericDescSet), 1, &uboOffs);
-
-		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
-		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
-
-		VkDeviceSize zero = 0;
-		vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(GetDebugManager()->m_OutlineStripVBO.buf), &zero);
 		
-		vt->CmdDraw(Unwrap(cmd), 8, 1, 0, 0);
+		VkClearColorValue black = { 0.0f, 0.0f, 0.0f, 1.0f };
+		VkClearColorValue white = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-		genericuniforms secondOutline;
-		secondOutline.Offset = Vec4f(-xpixdim, -ypixdim, 0.0f, 0.0f);
-		secondOutline.Scale = Vec4f(xdim+xpixdim*2, ydim+ypixdim*2, 1.0f, 1.0f);
-		secondOutline.Color = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+		int32_t sz = int32_t(scale);
 
-		vt->CmdUpdateBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_GenericUBO.buf), uboOffs, sizeof(genericuniforms), (uint32_t *)&secondOutline);
-		
-		vt->CmdDraw(Unwrap(cmd), 8, 1, 0, 0);
+		VkOffset2D tl = { int32_t(w/2.0f + 0.5f), int32_t(h/2.0f + 0.5f) };
+
+		VkRect3D rect[4] = {
+			{ { tl.x, tl.y, 0 },    { 1, sz, 1 }, },
+			{ { tl.x+sz, tl.y, 0 }, { 1, sz+1, 1 }, },
+			{ { tl.x, tl.y, 0 },    { sz, 1, 1 }, },
+			{ { tl.x, tl.y+sz, 0 }, { sz, 1, 1 }, },
+		};
+
+		// inner
+		vt->CmdClearColorAttachment(Unwrap(cmd), 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &white, 4, rect);
+
+		rect[0].offset.x--;
+		rect[1].offset.x++;
+		rect[2].offset.x--;
+		rect[3].offset.x--;
+
+		rect[0].offset.y--;
+		rect[1].offset.y--;
+		rect[2].offset.y--;
+		rect[3].offset.y++;
+
+		rect[0].extent.height += 2;
+		rect[1].extent.height += 2;
+		rect[2].extent.width += 2;
+		rect[3].extent.width += 2;
+
+		// outer
+		vt->CmdClearColorAttachment(Unwrap(cmd), 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &black, 4, rect);
 
 		vt->CmdEndRenderPass(Unwrap(cmd));
 	}

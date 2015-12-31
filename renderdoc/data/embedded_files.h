@@ -52,8 +52,6 @@ DECLARE_EMBED(checkerboardfs_spv);
 DECLARE_EMBED(texdisplayfs_spv);
 DECLARE_EMBED(textvs_spv);
 DECLARE_EMBED(textfs_spv);
-DECLARE_EMBED(genericvs_spv);
-DECLARE_EMBED(genericfs_spv);
 DECLARE_EMBED(fixedcolfs_spv);
 DECLARE_EMBED(meshvs_spv);
 DECLARE_EMBED(meshgs_spv);

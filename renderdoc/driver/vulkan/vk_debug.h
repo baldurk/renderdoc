@@ -159,13 +159,6 @@ class VulkanDebugManager
 		VkPipeline m_CheckerboardMSAAPipeline;
 		GPUBuffer m_CheckerboardUBO;
 
-		VkDescriptorSetLayout m_GenericDescSetLayout;
-		VkPipelineLayout m_GenericPipeLayout;
-		VkDescriptorSet m_GenericDescSet;
-		VkPipeline m_HighlightBoxPipeline;
-		GPUBuffer m_OutlineStripVBO;
-		GPUBuffer m_GenericUBO;
-
 		VkDescriptorSetLayout m_TexDisplayDescSetLayout;
 		VkPipelineLayout m_TexDisplayPipeLayout;
 		VkDescriptorSet m_TexDisplayDescSet[16]; // ring buffered to allow multiple texture renders between flushes

@@ -68,8 +68,6 @@ data/spv/checkerboardfs.spvo \
 data/spv/texdisplayfs.spvo \
 data/spv/textvs.spvo \
 data/spv/textfs.spvo \
-data/spv/genericvs.spvo \
-data/spv/genericfs.spvo \
 data/spv/fixedcolfs.spvo \
 data/spv/meshvs.spvo \
 data/spv/meshgs.spvo \
