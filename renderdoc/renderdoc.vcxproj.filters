@@ -514,6 +514,12 @@
     <None Include="data\spv\minmaxtilecs.spv">
       <Filter>Resources\spv</Filter>
     </None>
+    <None Include="data\spv\outline.frag">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\outlinefs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

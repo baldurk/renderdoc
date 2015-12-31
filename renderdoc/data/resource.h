@@ -47,6 +47,7 @@
 #define RESOURCE_minmaxtilecs_spv   412
 #define RESOURCE_minmaxresultcs_spv 413
 #define RESOURCE_histogramcs_spv    414
+#define RESOURCE_outlinefs_spv      415
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

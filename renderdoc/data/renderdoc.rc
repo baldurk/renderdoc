@@ -145,6 +145,7 @@ RESOURCE_meshfs_spv         TYPE_EMBED   "spv/meshfs.spv"
 RESOURCE_minmaxtilecs_spv   TYPE_EMBED   "spv/minmaxtilecs.spv"
 RESOURCE_minmaxresultcs_spv TYPE_EMBED   "spv/minmaxresultcs.spv"
 RESOURCE_histogramcs_spv    TYPE_EMBED   "spv/histogramcs.spv"
+RESOURCE_outlinefs_spv      TYPE_EMBED   "spv/outlinefs.spv"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

@@ -379,6 +379,8 @@
     <None Include="data\spv\minmaxresultcs.spv" />
     <None Include="data\spv\minmaxtile.comp" />
     <None Include="data\spv\minmaxtilecs.spv" />
+    <None Include="data\spv\outline.frag" />
+    <None Include="data\spv\outlinefs.spv" />
     <None Include="data\spv\texdisplay.frag" />
     <None Include="data\spv\texdisplayfs.spv" />
     <None Include="data\spv\text.frag" />

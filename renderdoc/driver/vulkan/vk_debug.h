@@ -175,6 +175,12 @@ class VulkanDebugManager
 		VkPipeline m_MinMaxTilePipe;
 		VkPipeline m_HistogramPipe;
 
+		VkDescriptorSetLayout m_OutlineDescSetLayout;
+		VkPipelineLayout m_OutlinePipeLayout;
+		VkDescriptorSet m_OutlineDescSet;
+		VkPipeline m_OutlinePipeline;
+		GPUBuffer m_OutlineUBO;
+
 		MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary, const MeshFormat &secondary);
 
 	private:

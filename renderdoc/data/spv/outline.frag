@@ -22,45 +22,53 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#version 420 core
 
-#define DECLARE_EMBED(filename) \
-	extern char CONCAT( CONCAT(_binary_, filename) , _start) ; \
-	extern char CONCAT( CONCAT(_binary_, filename) , _end) ;
+layout (location = 0) out vec4 color_out;
 
-DECLARE_EMBED(debuguniforms_h);
-DECLARE_EMBED(texsample_h);
-DECLARE_EMBED(blit_vert);
-DECLARE_EMBED(blit_frag);
-DECLARE_EMBED(texdisplay_frag);
-DECLARE_EMBED(checkerboard_frag);
-DECLARE_EMBED(histogram_comp);
-DECLARE_EMBED(quadoverdraw_frag);
-DECLARE_EMBED(arraymscopy_comp);
-DECLARE_EMBED(mesh_vert);
-DECLARE_EMBED(mesh_frag);
-DECLARE_EMBED(mesh_geom);
-DECLARE_EMBED(mesh_comp);
-DECLARE_EMBED(generic_vert);
-DECLARE_EMBED(generic_frag);
-DECLARE_EMBED(text_frag);
-DECLARE_EMBED(text_vert);
-DECLARE_EMBED(sourcecodepro_ttf);
-DECLARE_EMBED(outline_frag);
-DECLARE_EMBED(blitvs_spv);
-DECLARE_EMBED(checkerboardfs_spv);
-DECLARE_EMBED(texdisplayfs_spv);
-DECLARE_EMBED(textvs_spv);
-DECLARE_EMBED(textfs_spv);
-DECLARE_EMBED(genericvs_spv);
-DECLARE_EMBED(genericfs_spv);
-DECLARE_EMBED(fixedcolfs_spv);
-DECLARE_EMBED(meshvs_spv);
-DECLARE_EMBED(meshgs_spv);
-DECLARE_EMBED(meshfs_spv);
-DECLARE_EMBED(minmaxtilecs_spv);
-DECLARE_EMBED(minmaxresultcs_spv);
-DECLARE_EMBED(histogramcs_spv);
-DECLARE_EMBED(outlinefs_spv);
+layout (binding = 0, std140) uniform outlineuniforms
+{
+	vec4 Inner_Color;
+	vec4 Border_Color;
+	vec4 ViewRect;
+	uint Scissor;
+	uvec3 padding;
+} outline;
 
-#undef DECLARE_EMBED
+void main(void)
+{
+	vec4 ret = outline.Inner_Color;
+
+	vec2 rectPos = gl_FragCoord.xy - outline.ViewRect.xy;
+	vec2 rectSize = outline.ViewRect.zw;
+ 
+	vec2 ab = mod(rectPos.xy, 32.0f.xx);
+
+	bool checkerVariant = (
+			(ab.x < 16 && ab.y < 16) ||
+			(ab.x > 16 && ab.y > 16)
+		);
+
+	if(outline.Scissor == 0)
+	{
+		if(rectPos.x < 3.0f || rectPos.x > rectSize.x - 3.0f ||
+		   rectPos.y < 3.0f || rectPos.y > rectSize.y - 3.0f)
+		{
+			ret = outline.Border_Color;
+		}
+	}
+	else
+	{
+		if(rectPos.x < 3.0f || rectPos.x > rectSize.x - 3.0f ||
+		   rectPos.y < 3.0f || rectPos.y > rectSize.y - 3.0f)
+		{
+			ret = checkerVariant ? vec4(1, 1, 1, 1) : vec4(0, 0, 0, 1);
+		}
+		else
+		{
+			ret = vec4(0, 0, 0, 0);
+		}
+	}
+
+	color_out = ret;
+}

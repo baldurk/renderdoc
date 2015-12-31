@@ -128,6 +128,15 @@ struct histogramuniforms
 	float Padding3;
 };
 
+struct outlineuniforms
+{
+	Vec4f Inner_Color;
+	Vec4f Border_Color;
+	Vec4f ViewRect;
+	uint32_t Scissor;
+	Vec3f padding;
+};
+
 void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
@@ -299,6 +308,24 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_OverlayNoDepthRP = VK_NULL_HANDLE;
 	RDCEraseEl(m_OverlayDim);
 	m_OverlayMemSize = 0;
+		
+	m_MeshDescSetLayout = VK_NULL_HANDLE;
+	m_MeshPipeLayout = VK_NULL_HANDLE;
+	m_MeshDescSet = VK_NULL_HANDLE;
+	RDCEraseEl(m_MeshShaders);
+	RDCEraseEl(m_MeshModules);
+
+	m_HistogramDescSetLayout = VK_NULL_HANDLE;
+	m_HistogramPipeLayout = VK_NULL_HANDLE;
+	RDCEraseEl(m_HistogramDescSet);
+	m_MinMaxResultPipe = VK_NULL_HANDLE;
+	m_MinMaxTilePipe = VK_NULL_HANDLE;
+	m_HistogramPipe = VK_NULL_HANDLE;
+
+	m_OutlineDescSetLayout = VK_NULL_HANDLE;
+	m_OutlinePipeLayout = VK_NULL_HANDLE;
+	m_OutlineDescSet = VK_NULL_HANDLE;
+	m_OutlinePipeline = VK_NULL_HANDLE;
 
 	m_Device = dev;
 	
@@ -359,6 +386,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(dev), m_MeshDescSetLayout);
+
+		// identical layout
+		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_OutlineDescSetLayout);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(dev), m_OutlineDescSetLayout);
 	}
 
 	{
@@ -448,6 +481,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	GetResourceManager()->WrapResource(Unwrap(dev), m_GenericPipeLayout);
 
+	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_OutlineDescSetLayout);
+	
+	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_OutlinePipeLayout);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	GetResourceManager()->WrapResource(Unwrap(dev), m_OutlinePipeLayout);
+
 	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_MeshDescSetLayout);
 	
 	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_MeshPipeLayout);
@@ -471,7 +511,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	VkDescriptorPoolCreateInfo descpoolInfo = {
 		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, NULL,
-		VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 6+ARRAY_COUNT(m_TexDisplayDescSet),
+		VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 7+ARRAY_COUNT(m_TexDisplayDescSet),
 		ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
 	};
 	
@@ -508,6 +548,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	GetResourceManager()->WrapResource(Unwrap(dev), m_GenericDescSet);
 	
 	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
+		UnwrapPtr(m_OutlineDescSetLayout), &m_OutlineDescSet);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	GetResourceManager()->WrapResource(Unwrap(dev), m_OutlineDescSet);
+	
+	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
 		UnwrapPtr(m_MeshDescSetLayout), &m_MeshDescSet);
 	RDCASSERT(vkr == VK_SUCCESS);
 
@@ -526,8 +572,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramDescSet[1]);
 
 	m_GenericUBO.Create(driver, dev, 128, 10, 0);
-	RDCCOMPILE_ASSERT(sizeof(genericuniforms) <= 128, "outline strip VBO size");
+	RDCCOMPILE_ASSERT(sizeof(genericuniforms) <= 128, "generic UBO size");
 
+	m_OutlineUBO.Create(driver, dev, 128, 10, 0);
+	RDCCOMPILE_ASSERT(sizeof(outlineuniforms) <= 128, "outline UBO size");
+	
 	{
 		float data[] = {
 			0.0f,  0.0f, 0.0f, 1.0f,
@@ -578,6 +627,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		GetEmbeddedResource(minmaxtilecs_spv),
 		GetEmbeddedResource(minmaxresultcs_spv),
 		GetEmbeddedResource(histogramcs_spv),
+		GetEmbeddedResource(outlinefs_spv),
 	};
 
 	VkShaderStage shaderStages[] = {
@@ -594,6 +644,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VK_SHADER_STAGE_COMPUTE,
 		VK_SHADER_STAGE_COMPUTE,
 		VK_SHADER_STAGE_COMPUTE,
+		VK_SHADER_STAGE_FRAGMENT,
 	};
 	
 	enum shaderIdx
@@ -611,6 +662,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		MINMAXTILECS,
 		MINMAXRESULTCS,
 		HISTOGRAMCS,
+		OUTLINEFS,
 		NUM_SHADERS,
 	};
 
@@ -644,7 +696,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		GetResourceManager()->WrapResource(Unwrap(dev), shader[i]);
 	}
 
-	VkRenderPass RGBA32RP, RGBA8RP; // compatible render passes for creating pipelines, either RGBA F32 or RGBA8
+	VkRenderPass RGBA32RP, RGBA8RP, RGBA16RP; // compatible render passes for creating pipelines
 
 	{
 		VkAttachmentDescription attDesc = {
@@ -679,6 +731,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		attDesc.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
 		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA32RP);
+
+		attDesc.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+
+		vt->CreateRenderPass(Unwrap(dev), &rpinfo, &RGBA16RP);
 	}
 
 	VkPipelineShaderStageCreateInfo stages[2] = {
@@ -807,6 +863,23 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_TextPipeline);
 	
+	stages[0].shader = Unwrap(shader[BLITVS]);
+	stages[1].shader = Unwrap(shader[OUTLINEFS]);
+
+	pipeInfo.layout = Unwrap(m_OutlinePipeLayout);
+
+	pipeInfo.renderPass = RGBA16RP;
+	
+	attState.srcBlendAlpha = VK_BLEND_SRC_ALPHA;
+	attState.destBlendAlpha = VK_BLEND_ONE_MINUS_SRC_ALPHA;
+
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_OutlinePipeline);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	GetResourceManager()->WrapResource(Unwrap(dev), m_OutlinePipeline);
+
+	pipeInfo.renderPass = RGBA8RP;
+	
 	ia.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
 	attState.blendEnable = false;
 
@@ -864,7 +937,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramPipe);
-
+	
+	vt->DestroyRenderPass(Unwrap(dev), RGBA16RP);
 	vt->DestroyRenderPass(Unwrap(dev), RGBA32RP);
 	vt->DestroyRenderPass(Unwrap(dev), RGBA8RP);
 
@@ -1224,15 +1298,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	// don't need to ring this, as we hard-sync for readback anyway
 	m_HistogramUBO.Create(driver, dev, sizeof(histogramuniforms), 1, 0);
 
-	VkDescriptorInfo desc[7];
+	VkDescriptorInfo desc[8];
 	RDCEraseEl(desc);
 	
-	// checkerboard
-	m_CheckerboardUBO.FillDescriptor(desc[0]);
-
 	// tex display is updated right before rendering
-
-	// text
+	
+	m_CheckerboardUBO.FillDescriptor(desc[0]);
 	m_TextGeneralUBO.FillDescriptor(desc[1]);
 	m_TextGlyphUBO.FillDescriptor(desc[2]);
 	m_TextStringUBO.FillDescriptor(desc[3]);
@@ -1240,11 +1311,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	desc[4].imageView = Unwrap(m_TextAtlasView);
 	desc[4].sampler = Unwrap(m_LinearSampler);
 	
-	// generic
 	m_GenericUBO.FillDescriptor(desc[5]);
-
-	// mesh
 	m_MeshUBO.FillDescriptor(desc[6]);
+	m_OutlineUBO.FillDescriptor(desc[7]);
 
 	VkWriteDescriptorSet writeSet[] = {
 		{
@@ -1274,6 +1343,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(m_MeshDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[6]
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			Unwrap(m_OutlineDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &desc[7]
 		},
 	};
 
@@ -1317,6 +1390,8 @@ VulkanDebugManager::~VulkanDebugManager()
 	GetResourceManager()->ReleaseWrappedResource(m_GenericDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_TextDescSet);
 	GetResourceManager()->ReleaseWrappedResource(m_MeshDescSet);
+	GetResourceManager()->ReleaseWrappedResource(m_OutlineDescSet);
+
 	
 	for(size_t i=0; i < ARRAY_COUNT(m_HistogramDescSet); i++)
 		GetResourceManager()->ReleaseWrappedResource(m_HistogramDescSet[i]);
@@ -1501,6 +1576,26 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	m_OutlineStripVBO.Destroy(vt, dev);
 	m_GenericUBO.Destroy(vt, dev);
+
+	if(m_OutlineDescSetLayout != VK_NULL_HANDLE)
+	{
+		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_OutlineDescSetLayout));
+		GetResourceManager()->ReleaseWrappedResource(m_OutlineDescSetLayout);
+	}
+
+	if(m_OutlinePipeLayout != VK_NULL_HANDLE)
+	{
+		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_OutlinePipeLayout));
+		GetResourceManager()->ReleaseWrappedResource(m_OutlinePipeLayout);
+	}
+
+	if(m_OutlinePipeline != VK_NULL_HANDLE)
+	{
+		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_OutlinePipeline));
+		GetResourceManager()->ReleaseWrappedResource(m_OutlinePipeline);
+	}
+
+	m_OutlineUBO.Destroy(vt, dev);
 	
 	if(m_HistogramDescSetLayout != VK_NULL_HANDLE)
 	{
@@ -1942,7 +2037,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			m_OverlayImage, VK_IMAGE_VIEW_TYPE_2D,
 			imInfo.format,
 			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, },
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
 			0,
 		};
 
@@ -2165,6 +2260,93 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		m_pDriver->vkDestroyPipeline(m_Device, pipe);
 		m_pDriver->vkDestroyShaderModule(m_Device, mod);
 		m_pDriver->vkDestroyShader(m_Device, shad);
+	}
+	else if(overlay == eTexOverlay_ViewportScissor &&
+	        !m_pDriver->m_PartialReplayData.state.views.empty() &&
+					m_pDriver->m_PartialReplayData.state.graphics.pipeline != ResourceId())
+	{
+		// clear the whole image to opaque black. We'll overwite the render area with transparent black
+		// before rendering the viewport/scissors
+		float black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+		
+		black[3] = 0.0f;
+
+		{
+			VkClearValue clearval = {0};
+			VkRenderPassBeginInfo rpbegin = {
+				VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+				Unwrap(m_OverlayNoDepthRP), Unwrap(m_OverlayNoDepthFB),
+				m_pDriver->m_PartialReplayData.state.renderArea,
+				1, &clearval,
+			};
+			vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+
+			VkRect3D rect = {
+				{
+					m_pDriver->m_PartialReplayData.state.renderArea.offset.x,
+					m_pDriver->m_PartialReplayData.state.renderArea.offset.y,
+					0,
+				},
+				{
+					m_pDriver->m_PartialReplayData.state.renderArea.extent.width,
+					m_pDriver->m_PartialReplayData.state.renderArea.extent.height,
+					1,
+				},
+			};
+			vt->CmdClearColorAttachment(Unwrap(cmd), 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)black, 1, &rect);
+			
+			VkViewport viewport = m_pDriver->m_PartialReplayData.state.views[0];
+			vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+
+			uint32_t uboOffs = 0;
+
+			outlineuniforms *ubo = (outlineuniforms *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
+
+			ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+			ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
+			ubo->Scissor = 0;
+			ubo->ViewRect = (Vec4f &)viewport;
+			
+			m_OutlineUBO.Unmap(vt, m_Device);
+				
+			vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_OutlinePipeline));
+			vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_OutlinePipeLayout),
+																0, 1, UnwrapPtr(m_OutlineDescSet), 1, &uboOffs);
+
+			vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+
+			if(!m_pDriver->m_PartialReplayData.state.scissors.empty())
+			{
+				Vec4f scissor((float)m_pDriver->m_PartialReplayData.state.scissors[0].offset.x,
+				              (float)m_pDriver->m_PartialReplayData.state.scissors[0].offset.y,
+											(float)m_pDriver->m_PartialReplayData.state.scissors[0].extent.width,
+											(float)m_pDriver->m_PartialReplayData.state.scissors[0].extent.height);
+
+				outlineuniforms *ubo = (outlineuniforms *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
+
+				ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+				ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
+				ubo->Scissor = 1;
+				ubo->ViewRect = scissor;
+
+				m_OutlineUBO.Unmap(vt, m_Device);
+
+				viewport.originX = scissor.x;
+				viewport.originY = scissor.y;
+				viewport.width   = scissor.z;
+				viewport.height  = scissor.w;
+				
+				vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+				vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_OutlinePipeLayout),
+																	0, 1, UnwrapPtr(m_OutlineDescSet), 1, &uboOffs);
+				
+				vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+			}
+
+			vt->CmdEndRenderPass(Unwrap(cmd));
+		}
+
 	}
 
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
