@@ -125,6 +125,8 @@ class VulkanDebugManager
 		VkDeviceMemory m_OverlayImageMem;
 		VkImage m_OverlayImage;
 		VkImageView m_OverlayImageView;
+		VkFramebuffer m_OverlayNoDepthFB;
+		VkRenderPass m_OverlayNoDepthRP;
 		VkExtent2D m_OverlayDim;
 		VkDeviceSize m_OverlayMemSize;
 
@@ -132,7 +134,10 @@ class VulkanDebugManager
 		void InitDebugData();
 		void ShutdownDebugData();
 		
+		void PatchFixedColShader(VkShaderModule &mod, VkShader &shad, float col[4]);
+		
 		void RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text);
+		void MakeGraphicsPipelineInfo( VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline );
 		static const int FONT_TEX_WIDTH = 256;
 		static const int FONT_TEX_HEIGHT = 128;
 

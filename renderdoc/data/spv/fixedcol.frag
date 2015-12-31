@@ -22,38 +22,15 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#version 420 core
 
-#define DECLARE_EMBED(filename) \
-	extern char CONCAT( CONCAT(_binary_, filename) , _start) ; \
-	extern char CONCAT( CONCAT(_binary_, filename) , _end) ;
+layout (location = 0) out vec4 color_out;
 
-DECLARE_EMBED(debuguniforms_h);
-DECLARE_EMBED(texsample_h);
-DECLARE_EMBED(blit_vert);
-DECLARE_EMBED(blit_frag);
-DECLARE_EMBED(texdisplay_frag);
-DECLARE_EMBED(checkerboard_frag);
-DECLARE_EMBED(histogram_comp);
-DECLARE_EMBED(quadoverdraw_frag);
-DECLARE_EMBED(arraymscopy_comp);
-DECLARE_EMBED(mesh_vert);
-DECLARE_EMBED(mesh_frag);
-DECLARE_EMBED(mesh_geom);
-DECLARE_EMBED(mesh_comp);
-DECLARE_EMBED(generic_vert);
-DECLARE_EMBED(generic_frag);
-DECLARE_EMBED(text_frag);
-DECLARE_EMBED(text_vert);
-DECLARE_EMBED(sourcecodepro_ttf);
-DECLARE_EMBED(outline_frag);
-DECLARE_EMBED(blitvs_spv);
-DECLARE_EMBED(checkerboardfs_spv);
-DECLARE_EMBED(texdisplayfs_spv);
-DECLARE_EMBED(textvs_spv);
-DECLARE_EMBED(textfs_spv);
-DECLARE_EMBED(genericvs_spv);
-DECLARE_EMBED(genericfs_spv);
-DECLARE_EMBED(fixedcolfs_spv);
-
-#undef DECLARE_EMBED
+void main(void)
+{
+	// used to have a shader-replacement pixel shader
+	// that outputs a fixed colour, without needing a
+	// slot in a descriptor set. We re-write the SPIR-V
+	// on the fly to replace these constants
+    color_out = vec4(1.1f, 2.2f, 3.3f, 4.4f);
+}

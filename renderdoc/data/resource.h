@@ -40,6 +40,7 @@
 #define RESOURCE_textfs_spv         405
 #define RESOURCE_genericvs_spv      406
 #define RESOURCE_genericfs_spv      407
+#define RESOURCE_fixedcolfs_spv     408
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

@@ -70,6 +70,7 @@ data/spv/textvs.spvo \
 data/spv/textfs.spvo \
 data/spv/genericvs.spvo \
 data/spv/genericfs.spvo \
+data/spv/fixedcolfs.spvo \
 data/sourcecodepro.ttfo
 
 .PHONY: all

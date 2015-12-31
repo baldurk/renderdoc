@@ -361,6 +361,8 @@
     <None Include="data\spv\blitvs.spv" />
     <None Include="data\spv\checkerboard.frag" />
     <None Include="data\spv\checkerboardfs.spv" />
+    <None Include="data\spv\fixedcol.frag" />
+    <None Include="data\spv\fixedcolfs.spv" />
     <None Include="data\spv\generic.frag" />
     <None Include="data\spv\generic.vert" />
     <None Include="data\spv\genericfs.spv" />

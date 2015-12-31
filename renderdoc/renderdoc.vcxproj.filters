@@ -472,6 +472,12 @@
     <None Include="data\spv\genericvs.spv">
       <Filter>Resources\spv</Filter>
     </None>
+    <None Include="data\spv\fixedcol.frag">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\fixedcolfs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">
