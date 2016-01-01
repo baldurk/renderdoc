@@ -26,7 +26,7 @@
 #include "vk_info.h"
 #include "vk_resources.h"
 
-VulkanRenderState::VulkanRenderState(VulkanCreationInfo &createInfo)
+VulkanRenderState::VulkanRenderState(VulkanCreationInfo *createInfo)
 	: m_CreationInfo(createInfo)
 {
 	compute.pipeline = graphics.pipeline = renderPass = framebuffer = ResourceId();
@@ -95,14 +95,14 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
 
 	VkClearValue empty[16] = {0};
 
-	RDCASSERT(ARRAY_COUNT(empty) >= m_CreationInfo.m_RenderPass[renderPass].attachments.size());
+	RDCASSERT(ARRAY_COUNT(empty) >= m_CreationInfo->m_RenderPass[renderPass].attachments.size());
 
 	VkRenderPassBeginInfo rpbegin = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-		Unwrap(m_CreationInfo.m_RenderPass[renderPass].loadRP),
+		Unwrap(m_CreationInfo->m_RenderPass[renderPass].loadRP),
 		Unwrap(GetResourceManager()->GetCurrentHandle<VkFramebuffer>(framebuffer)),
 		renderArea,
-		(uint32_t)m_CreationInfo.m_RenderPass[renderPass].attachments.size(), empty,
+		(uint32_t)m_CreationInfo->m_RenderPass[renderPass].attachments.size(), empty,
 	};
 	ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -142,21 +142,21 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 	{
 		ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetResourceManager()->GetCurrentHandle<VkPipeline>(graphics.pipeline)));
 
-		ResourceId pipeLayoutId = m_CreationInfo.m_Pipeline[graphics.pipeline].layout;
+		ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[graphics.pipeline].layout;
 		VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
-		const vector<VkPushConstantRange> &pushRanges = m_CreationInfo.m_PipelineLayout[pipeLayoutId].pushRanges;
+		const vector<VkPushConstantRange> &pushRanges = m_CreationInfo->m_PipelineLayout[pipeLayoutId].pushRanges;
 
 		// only set push constant ranges that the layout uses
 		for(size_t i=0; i < pushRanges.size(); i++)
 			ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags, pushRanges[i].offset, pushRanges[i].size, pushconsts+pushRanges[i].offset);
 
-		const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[pipeLayoutId].descSetLayouts;
+		const vector<ResourceId> &descSetLayouts = m_CreationInfo->m_PipelineLayout[pipeLayoutId].descSetLayouts;
 
 		// only iterate over the desc sets that this layout actually uses, not all that were bound
 		for(size_t i=0; i < descSetLayouts.size(); i++)
 		{
-			const DescSetLayout &descLayout = m_CreationInfo.m_DescSetLayout[ descSetLayouts[i] ];
+			const DescSetLayout &descLayout = m_CreationInfo->m_DescSetLayout[ descSetLayouts[i] ];
 
 			if(i < graphics.descSets.size() && graphics.descSets[i] != ResourceId())
 			{
@@ -176,20 +176,20 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 	{
 		ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetResourceManager()->GetCurrentHandle<VkPipeline>(compute.pipeline)));
 
-		ResourceId pipeLayoutId = m_CreationInfo.m_Pipeline[compute.pipeline].layout;
+		ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[compute.pipeline].layout;
 		VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
-		const vector<VkPushConstantRange> &pushRanges = m_CreationInfo.m_PipelineLayout[pipeLayoutId].pushRanges;
+		const vector<VkPushConstantRange> &pushRanges = m_CreationInfo->m_PipelineLayout[pipeLayoutId].pushRanges;
 
 		// only set push constant ranges that the layout uses
 		for(size_t i=0; i < pushRanges.size(); i++)
 			ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags, pushRanges[i].offset, pushRanges[i].size, pushconsts+pushRanges[i].offset);
 
-		const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[pipeLayoutId].descSetLayouts;
+		const vector<ResourceId> &descSetLayouts = m_CreationInfo->m_PipelineLayout[pipeLayoutId].descSetLayouts;
 
 		for(size_t i=0; i < descSetLayouts.size(); i++)
 		{
-			const DescSetLayout &descLayout = m_CreationInfo.m_DescSetLayout[ descSetLayouts[i] ];
+			const DescSetLayout &descLayout = m_CreationInfo->m_DescSetLayout[ descSetLayouts[i] ];
 
 			if(compute.descSets[i] != ResourceId())
 			{

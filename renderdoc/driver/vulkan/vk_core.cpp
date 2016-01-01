@@ -237,7 +237,7 @@ void VkInitParams::Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst)
 }
 
 WrappedVulkan::WrappedVulkan(const char *logFilename)
-	: m_RenderState(m_CreationInfo)
+	: m_RenderState(&m_CreationInfo)
 {
 #if defined(RELEASE)
 	const bool debugSerialiser = false;
@@ -1813,7 +1813,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			RDCASSERT(m_PartialReplayData.resultPartialCmdBuffer == VK_NULL_HANDLE);
 			m_PartialReplayData.partialParent = ResourceId();
 			m_PartialReplayData.baseEvent = 0;
-			m_RenderState = VulkanRenderState(m_CreationInfo);
+			m_RenderState = VulkanRenderState(&m_CreationInfo);
 			m_RenderState.m_ResourceManager = GetResourceManager();
 		}
 

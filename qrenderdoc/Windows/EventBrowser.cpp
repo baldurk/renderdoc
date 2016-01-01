@@ -182,7 +182,7 @@ void EventBrowser::on_timeDraws_clicked()
 		uint32_t counters[] = { eCounter_EventGPUDuration };
 
 		rdctype::array<CounterResult> results;
-		r->FetchCounters(m_Core->CurFrame(), 0, ~0U, counters, 1, &results);
+		r->FetchCounters(m_Core->CurFrame(), counters, 1, &results);
 
 		GUIInvoke::blockcall([this, results]() {
 			SetDrawcallTimes(ui->events->topLevelItem(0), results);

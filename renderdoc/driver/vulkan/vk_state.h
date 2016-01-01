@@ -33,7 +33,7 @@ class VulkanResourceManager;
 
 struct VulkanRenderState
 {
-	VulkanRenderState(VulkanCreationInfo &createInfo);
+	VulkanRenderState(VulkanCreationInfo *createInfo);
 	VulkanRenderState &operator =(const VulkanRenderState &o);
 	void BeginRenderPassAndApplyState(VkCommandBuffer cmd);
 	void BindPipeline(VkCommandBuffer cmd);
@@ -80,7 +80,7 @@ struct VulkanRenderState
 	VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
 
 	VulkanResourceManager *m_ResourceManager;
-	VulkanCreationInfo &m_CreationInfo;
+	VulkanCreationInfo *m_CreationInfo;
 };
 
 

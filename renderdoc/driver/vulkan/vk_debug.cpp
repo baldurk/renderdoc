@@ -2135,7 +2135,7 @@ struct QuadOverdrawCallback : public DrawcallCallback
 		, m_pDebug(vk->GetDebugManager())
 		, m_FrameID(frameID)
 		, m_Events(events)
-		, m_PrevState(VulkanCreationInfo())
+		, m_PrevState(NULL)
 	{ m_pDriver->SetDrawcallCB(this); }
 	~QuadOverdrawCallback()
 	{ m_pDriver->SetDrawcallCB(NULL); }
@@ -2160,7 +2160,7 @@ struct QuadOverdrawCallback : public DrawcallCallback
 		// if we don't get a hit, create a modified pipeline
 		if(pipe == VK_NULL_HANDLE)
 		{
-			VulkanCreationInfo &c = pipestate.m_CreationInfo;
+			VulkanCreationInfo &c = *pipestate.m_CreationInfo;
 
 			VulkanCreationInfo::Pipeline &p = c.m_Pipeline[pipestate.graphics.pipeline];
 			

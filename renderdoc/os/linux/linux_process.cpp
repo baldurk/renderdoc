@@ -54,7 +54,7 @@ static map<string, string> EnvStringToEnvMap(const char **envstring)
 		string name;
 		string value;
 		
-		name.assign(e, equals);
+		name.assign(*e, equals);
 		value = equals+1;
 
 		ret[name] = value;
@@ -257,7 +257,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 	}
 	
 	// turn environment string to a UTF-8 map
-	map<string, string> env = EnvStringToEnvMap(environ);
+	map<string, string> env = EnvStringToEnvMap((const char **)environ);
 	vector<EnvironmentModification> &modifications = GetEnvModifications();
 	
 	string libpath;

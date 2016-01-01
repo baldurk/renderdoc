@@ -78,6 +78,8 @@ data/spv/minmaxresult.compo \
 data/spv/outline.frago \
 data/spv/debuguniforms.ho \
 data/spv/texsample.ho \
+data/spv/quadwrite.frago \
+data/spv/quadresolve.frago \
 data/sourcecodepro.ttfo
 
 .PHONY: all

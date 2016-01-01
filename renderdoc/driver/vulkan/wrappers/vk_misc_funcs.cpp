@@ -855,6 +855,9 @@ static VkResourceRecord *GetObjRecord(VkDbgObjectType objType, uint64_t object)
 			return GetRecord((VkSwapchainKHR)object);
 		case VK_OBJECT_TYPE_COMMAND_POOL:
 			return GetRecord((VkCommandPool)object);
+		case VK_OBJECT_TYPE_NUM:
+		case VK_OBJECT_TYPE_MAX_ENUM:
+			return NULL;
 	}
 	return NULL;
 }
