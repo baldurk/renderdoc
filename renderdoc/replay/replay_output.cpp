@@ -543,8 +543,6 @@ void ReplayOutput::DisplayMesh()
 {
 	FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
 
-	bool nomesh = false;
-
 	if(draw == NULL ||
 	   m_MainOutput.outputID == 0 ||
 	   m_Width <= 0 || m_Height <= 0 ||
