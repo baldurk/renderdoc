@@ -140,7 +140,9 @@ struct CachedHookData
 			!_stricmp(modName, "gdi32.dll") ||
 			 strstr(lowername, "msvcr") == lowername ||
 			 strstr(lowername, "msvcp") == lowername ||
-			 strstr(lowername, "nv-vk") == lowername)
+			 strstr(lowername, "nv-vk") == lowername ||
+			 strstr(lowername, "amdvlk") == lowername ||
+			 strstr(lowername, "igvk") == lowername)
 				return;
 
 		// set module pointer if we are hooking exports from this module
