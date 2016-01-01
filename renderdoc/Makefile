@@ -120,9 +120,6 @@ $(OBJDIR)/%.ttfo: %.ttf
 $(OBJDIR)/%.ho: %.h
 	@echo Object building $@
 	@$(OBJGEN)
-$(OBJDIR)/%.spvo: %.spv
-	@echo Object building $@
-	@$(OBJGEN)
 
 OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(OBJECTS))
 OBJDIR_DATA=$(addprefix $(OBJDIR)/, $(DATA))
