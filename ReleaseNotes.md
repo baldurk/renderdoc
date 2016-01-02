@@ -23,6 +23,7 @@ Current Support
 * Pipeline export to HTML
 * Render overlays like Drawcall highlight, wireframe, depth-test pass/fail etc
 * Texture range auto-fit and histogram display
+* Show resource usage of each image/buffer and where it's used in different parts of the pipeline during the frame.
 * Threading should be pretty efficient - no heavy locks on common paths (outside of creation/deletion)
 * Saving textures to file
 

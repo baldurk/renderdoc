@@ -352,13 +352,13 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 	return true;
 }
 
-void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<DrawcallTreeNode> &nodes, vector<DrawcallTreeNode> &cmdBufNodes,
+void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &nodes, vector<VulkanDrawcallTreeNode> &cmdBufNodes,
                                              uint32_t baseEventID, uint32_t baseDrawID)
 {
 	// assign new drawcall IDs
 	for(size_t i=0; i < cmdBufNodes.size(); i++)
 	{
-		DrawcallTreeNode n = cmdBufNodes[i];
+		VulkanDrawcallTreeNode n = cmdBufNodes[i];
 		n.draw.eventID += baseEventID;
 		n.draw.drawcallID += baseDrawID;
 
@@ -376,6 +376,13 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<DrawcallTreeNode> &nodes, ve
 
 		n.children.clear();
 		InsertDrawsAndRefreshIDs(n.children, cmdBufNodes[i].children, baseEventID, baseDrawID);
+
+		for(auto it=n.resourceUsage.begin(); it != n.resourceUsage.end(); ++it)
+		{
+			EventUsage u = it->second;
+			u.eventID += baseEventID;
+			m_ResourceUses[it->first].push_back(u);
+		}
 
 		nodes.push_back(n);
 	}

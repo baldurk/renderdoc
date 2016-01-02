@@ -380,7 +380,8 @@ enum ResourceUsage
 	eUsage_GS_RWResource,
 	eUsage_PS_RWResource,
 	eUsage_CS_RWResource,
-
+	
+	eUsage_InputTarget,
 	eUsage_ColourTarget,
 	eUsage_DepthStencilTarget,
 

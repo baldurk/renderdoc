@@ -411,7 +411,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 		}
 
 		{
-			DrawcallTreeNode *draw = new DrawcallTreeNode;
+			VulkanDrawcallTreeNode *draw = new VulkanDrawcallTreeNode;
 			m_BakedCmdBufferInfo[cmdId].draw = draw;
 			
 			// On queue submit we increment all child events/drawcalls by
@@ -1153,6 +1153,19 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 	{
 		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		layout = GetResourceManager()->GetLiveHandle<VkPipelineLayout>(layoutid);
+		
+		// track while reading, as we need to track resource usage
+		vector<ResourceId> &descsets =
+			(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
+			? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphicsDescSets
+			: m_BakedCmdBufferInfo[m_LastCmdBufferID].state.computeDescSets;
+
+		// expand as necessary
+		if(descsets.size() < first + numSets)
+			descsets.resize(first + numSets);
+
+		for(uint32_t i=0; i < numSets; i++)
+			descsets[first+i] = descriptorIDs[i];
 
 		ObjDisp(commandBuffer)->CmdBindDescriptorSets(Unwrap(commandBuffer), bind, Unwrap(layout), first, numSets, sets, offsCount, offs);
 	}
@@ -1258,6 +1271,13 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 	{
 		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 		
+		// track while reading, as we need to track resource usage
+		if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.size() < start + count)
+			m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.resize(start + count);
+
+		for(uint32_t i=0; i < count; i++)
+			m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers[start + i] = bufids[i];
+
 		ObjDisp(commandBuffer)->CmdBindVertexBuffers(Unwrap(commandBuffer), start, count, &bufs[0], &offs[0]);
 	}
 
@@ -1334,6 +1354,9 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 		// track while reading, as we need to bind current topology & index byte width in AddDrawcall
 		m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = (idxType == VK_INDEX_TYPE_UINT32 ? 4 : 2);
 		
+		// track while reading, as we need to track resource usage
+		m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer = GetResID(buffer);
+
 		ObjDisp(commandBuffer)->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offs, idxType);
 	}
 

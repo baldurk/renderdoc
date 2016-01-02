@@ -225,7 +225,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		// VkPipelineShaderStageCreateInfo
 		{
 			ResourceId id = resourceMan->GetNonDispWrapper(pCreateInfo->stage.module)->id;
-			Shader &shad = shaders[0];
+			Shader &shad = shaders[5]; // 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
 			
 			shad.module = id;
 			shad.entryPoint = pCreateInfo->stage.pName;

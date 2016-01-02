@@ -60,14 +60,16 @@ struct VkInitParams : public RDCInitParams
 	ResourceId InstanceID;
 };
 
-struct DrawcallTreeNode
+struct VulkanDrawcallTreeNode
 {
-	DrawcallTreeNode() {}
-	explicit DrawcallTreeNode(FetchDrawcall d) : draw(d) {}
+	VulkanDrawcallTreeNode() {}
+	explicit VulkanDrawcallTreeNode(FetchDrawcall d) : draw(d) {}
 	FetchDrawcall draw;
-	vector<DrawcallTreeNode> children;
+	vector<VulkanDrawcallTreeNode> children;
 
-	DrawcallTreeNode &operator =(FetchDrawcall d) { *this = DrawcallTreeNode(d); return *this; }
+	vector< pair<ResourceId, EventUsage> > resourceUsage;
+
+	VulkanDrawcallTreeNode &operator =(FetchDrawcall d) { *this = VulkanDrawcallTreeNode(d); return *this; }
 	
 	vector<FetchDrawcall> Bake()
 	{
@@ -286,12 +288,17 @@ private:
 	struct BakedCmdBufferInfo
 	{
 		vector<FetchAPIEvent> curEvents;
-		list<DrawcallTreeNode *> drawStack;
+		list<VulkanDrawcallTreeNode *> drawStack;
 
-		struct
+		struct CmdBufferState
 		{
 			ResourceId pipeline;
+			vector<ResourceId> graphicsDescSets;
+			vector<ResourceId> computeDescSets;
+
 			uint32_t idxWidth;
+			ResourceId ibuffer;
+			vector<ResourceId> vbuffers;
 
 			ResourceId renderPass;
 			ResourceId framebuffer;
@@ -300,7 +307,7 @@ private:
 
 		vector< pair<ResourceId, ImageRegionState> > imgbarriers;
 
-		DrawcallTreeNode *draw; // the root draw to copy from when submitting
+		VulkanDrawcallTreeNode *draw; // the root draw to copy from when submitting
 		uint32_t eventCount; // how many events are in this cmd buffer, for quick skipping
 		uint32_t curEventID; // current event ID while reading or executing
 		uint32_t drawCount; // similar to above
@@ -426,6 +433,8 @@ private:
 	map<ResourceId, BakedCmdBufferInfo> m_BakedCmdBufferInfo;
 	// immutable creation data
 	VulkanCreationInfo m_CreationInfo;
+
+	map<ResourceId, vector<EventUsage> > m_ResourceUses;
 		
 	static const char *GetChunkName(uint32_t idx);
 	
@@ -465,13 +474,13 @@ private:
 	uint32_t m_RootEventID, m_RootDrawcallID;
 	uint32_t m_FirstEventID, m_LastEventID;
 		
-	DrawcallTreeNode m_ParentDrawcall;
+	VulkanDrawcallTreeNode m_ParentDrawcall;
 
-	void InsertDrawsAndRefreshIDs(vector<DrawcallTreeNode> &nodes, vector<DrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID, uint32_t baseDrawID);
+	void InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &nodes, vector<VulkanDrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID, uint32_t baseDrawID);
 
-	list<DrawcallTreeNode *> m_DrawcallStack;
+	list<VulkanDrawcallTreeNode *> m_DrawcallStack;
 
-	list<DrawcallTreeNode *> &GetDrawcallStack()
+	list<VulkanDrawcallTreeNode *> &GetDrawcallStack()
 	{
 		if(m_LastCmdBufferID != ResourceId())
 			return m_BakedCmdBufferInfo[m_LastCmdBufferID].drawStack;
@@ -484,6 +493,8 @@ private:
 	void ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, bool forceExecute);
 	void AddDrawcall(FetchDrawcall d, bool hasEvents);
 	void AddEvent(VulkanChunkType type, string description);
+
+	void AddUsage(VulkanDrawcallTreeNode &drawNode);
 		
 	// no copy semantics
 	WrappedVulkan(const WrappedVulkan &);
@@ -541,6 +552,8 @@ public:
 	FetchAPIEvent GetEvent(uint32_t eventID);
 	uint32_t GetMaxEID() { return m_Events.back().eventID; }
 	const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
+
+	vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
 
 	// return the pre-selected device and queue
 	VkDevice GetDev()    { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Device; }

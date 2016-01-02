@@ -1999,19 +1999,163 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 
 		draw.events = srcEvents; srcEvents.clear();
 	}
-
-	//AddUsage(draw);
 	
 	// should have at least the root drawcall here, push this drawcall
 	// onto the back's children list.
 	if(!GetDrawcallStack().empty())
 	{
-		DrawcallTreeNode node(draw);
+		VulkanDrawcallTreeNode node(draw);
+
+		if(m_LastCmdBufferID != ResourceId())
+			AddUsage(node);
+
 		node.children.insert(node.children.begin(), draw.children.elems, draw.children.elems+draw.children.count);
 		GetDrawcallStack().back()->children.push_back(node);
 	}
 	else
 		RDCERR("Somehow lost drawcall stack!");
+}
+
+void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
+{
+	FetchDrawcall &d = drawNode.draw;
+
+	const BakedCmdBufferInfo::CmdBufferState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
+	VulkanCreationInfo &c = m_CreationInfo;
+	uint32_t e = d.eventID;
+
+	if((d.flags & (eDraw_Drawcall|eDraw_Dispatch)) == 0)
+		return;
+	
+	//////////////////////////////
+	// Vertex input
+
+	if(d.flags & eDraw_UseIBuffer && state.ibuffer != ResourceId())
+		drawNode.resourceUsage.push_back(std::make_pair(state.ibuffer, EventUsage(e, eUsage_IndexBuffer)));
+
+	for(size_t i=0; i < state.vbuffers.size(); i++)
+		drawNode.resourceUsage.push_back(std::make_pair(state.vbuffers[i], EventUsage(e, eUsage_VertexBuffer)));
+	
+	//////////////////////////////
+	// Shaders
+
+	for(int shad=0; shad < 6; shad++)
+	{
+		VulkanCreationInfo::Pipeline::Shader &sh = c.m_Pipeline[state.pipeline].shaders[shad];
+		if(sh.module == ResourceId()) continue;
+
+		// 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
+		const vector<ResourceId> &descSets = (shad == 5 ? state.computeDescSets : state.graphicsDescSets);
+
+		RDCASSERT(sh.mapping);
+
+		struct ResUsageType
+		{
+			ResUsageType(rdctype::array<BindpointMap> &a, ResourceUsage u)
+				: arr(a), usage(u) {}
+			rdctype::array<BindpointMap> &arr;
+			ResourceUsage usage;
+		};
+
+		ResUsageType types[] = {
+			ResUsageType(sh.mapping->ReadOnlyResources, eUsage_VS_Resource),
+			ResUsageType(sh.mapping->ReadWriteResources, eUsage_VS_RWResource),
+			ResUsageType(sh.mapping->ConstantBlocks, eUsage_VS_Constants),
+		};
+
+		for(size_t t=0; t < ARRAY_COUNT(types); t++)
+		{
+			for(int32_t i=0; i < types[t].arr.count; i++)
+			{
+				if(!types[t].arr[i].used) continue;
+
+				int32_t bindset = types[t].arr[i].bindset;
+				int32_t bind = types[t].arr[i].bind;
+
+				RDCASSERT(bindset < (int32_t)descSets.size());
+				
+				DescriptorSetInfo &descset = m_DescriptorSetState[ descSets[bindset] ];
+				DescSetLayout &layout = c.m_DescSetLayout[ descset.layout ];
+
+				RDCASSERT(bind < (int32_t)layout.bindings.size());
+				
+				// handled as part of the framebuffer attachments
+				if(layout.bindings[bind].descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+					continue;
+				
+				// we don't mark samplers with usage
+				if(layout.bindings[bind].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
+					continue;
+
+				ResourceUsage usage = ResourceUsage(types[t].usage + shad);
+
+				RDCASSERT(bind < (int32_t)descset.currentBindings.size());
+
+				for(uint32_t a=0; a < layout.bindings[bind].descriptorCount; a++)
+				{
+					DescriptorSetSlot &slot = descset.currentBindings[bind][a];
+					
+					ResourceId id;
+
+					switch(layout.bindings[bind].descriptorType)
+					{
+						case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+						case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+						case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+							if(slot.imageInfo.imageView != VK_NULL_HANDLE)
+								id = c.m_ImageView[GetResourceManager()->GetNonDispWrapper(slot.imageInfo.imageView)->id].image;
+							break;
+						case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+						case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+							if(slot.texelBufferView != VK_NULL_HANDLE)
+								id = c.m_BufferView[GetResourceManager()->GetNonDispWrapper(slot.texelBufferView)->id].buffer;
+							break;
+						case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+						case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+						case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+						case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+							if(slot.bufferInfo.buffer != VK_NULL_HANDLE)
+								id = GetResourceManager()->GetNonDispWrapper(slot.bufferInfo.buffer)->id;
+							break;
+						default:
+							RDCERR("Unexpected type %d", layout.bindings[bind].descriptorType);
+							break;
+					}
+
+					drawNode.resourceUsage.push_back(std::make_pair(id, EventUsage(e, usage)));
+				}
+			}
+		}
+	}
+
+	//////////////////////////////
+	// Framebuffer/renderpass
+
+	if(state.renderPass != ResourceId() && state.framebuffer != ResourceId())
+	{
+		VulkanCreationInfo::RenderPass &rp = c.m_RenderPass[state.renderPass];
+		VulkanCreationInfo::Framebuffer &fb = c.m_Framebuffer[state.framebuffer];
+
+		RDCASSERT(state.subpass < rp.subpasses.size());
+
+		for(size_t i=0; i < rp.subpasses[state.subpass].inputAttachments.size(); i++)
+		{
+			uint32_t att = rp.subpasses[state.subpass].inputAttachments[i];
+			drawNode.resourceUsage.push_back(std::make_pair(c.m_ImageView[fb.attachments[att].view].image, EventUsage(e, eUsage_InputTarget)));
+		}
+
+		for(size_t i=0; i < rp.subpasses[state.subpass].colorAttachments.size(); i++)
+		{
+			uint32_t att = rp.subpasses[state.subpass].colorAttachments[i];
+			drawNode.resourceUsage.push_back(std::make_pair(c.m_ImageView[fb.attachments[att].view].image, EventUsage(e, eUsage_ColourTarget)));
+		}
+
+		if(rp.subpasses[state.subpass].depthstencilAttachment >= 0)
+		{
+			int32_t att = rp.subpasses[state.subpass].depthstencilAttachment;
+			drawNode.resourceUsage.push_back(std::make_pair(c.m_ImageView[fb.attachments[att].view].image, EventUsage(e, eUsage_DepthStencilTarget)));
+		}
+	}
 }
 
 void WrappedVulkan::AddEvent(VulkanChunkType type, string description)

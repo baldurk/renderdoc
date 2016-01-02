@@ -125,7 +125,8 @@ struct TypedRealHandle
 
 	bool operator ==(const TypedRealHandle o) const
 	{
-		return type == o.type && real == o.real;
+		// NULL compares as equal regardless of type.
+		return (real.handle == 0 && o.real.handle == 0) || (type == o.type && real == o.real);
 	}
 	bool operator !=(const TypedRealHandle o) const
 	{

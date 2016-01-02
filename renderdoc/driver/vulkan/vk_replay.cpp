@@ -3857,8 +3857,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &e
 
 vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)
 {
-	VULKANNOTIMP("GetUsage");
-	return vector<EventUsage>();
+	return m_pDriver->GetUsage(id);
 }
 
 void VulkanReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)

@@ -377,6 +377,7 @@ namespace renderdoc
         PS_RWResource,
         CS_RWResource,
 
+        InputTarget,
     	ColourTarget,
     	DepthStencilTarget,
 
@@ -636,6 +637,7 @@ namespace renderdoc
                     case ResourceUsage.PS_RWResource: return "PS - UAV";
                     case ResourceUsage.CS_RWResource: return "CS - UAV";
 
+                    case ResourceUsage.InputTarget: return "Colour Input";
                     case ResourceUsage.ColourTarget: return "Rendertarget";
                     case ResourceUsage.DepthStencilTarget: return "Depthstencil";
 
@@ -650,8 +652,10 @@ namespace renderdoc
                     case ResourceUsage.CopyDst: return "Copy - Dest";
                 }
             }
-            else if (apitype == APIPipelineStateType.OpenGL)
+            else if (apitype == APIPipelineStateType.OpenGL || apitype == APIPipelineStateType.Vulkan)
             {
+                bool vk = (apitype == APIPipelineStateType.Vulkan);
+
                 switch (usage)
                 {
                     case ResourceUsage.VertexBuffer: return "Vertex Buffer";
@@ -680,15 +684,16 @@ namespace renderdoc
                     case ResourceUsage.PS_RWResource: return "PS - Image/SSBO";
                     case ResourceUsage.CS_RWResource: return "CS - Image/SSBO";
 
+                    case ResourceUsage.InputTarget: return "FBO Input";
                     case ResourceUsage.ColourTarget: return "FBO Colour";
                     case ResourceUsage.DepthStencilTarget: return "FBO Depthstencil";
 
                     case ResourceUsage.Clear: return "Clear";
 
                     case ResourceUsage.GenMips: return "Generate Mips";
-                    case ResourceUsage.Resolve: return "Framebuffer blit";
-                    case ResourceUsage.ResolveSrc: return "Framebuffer blit - Source";
-                    case ResourceUsage.ResolveDst: return "Framebuffer blit - Dest";
+                    case ResourceUsage.Resolve: return vk ? "Resolve" : "Framebuffer blit";
+                    case ResourceUsage.ResolveSrc: return vk ? "Resolve - Source" : "Framebuffer blit - Source";
+                    case ResourceUsage.ResolveDst: return vk ? "Resolve - Dest" : "Framebuffer blit - Dest";
                     case ResourceUsage.Copy: return "Copy";
                     case ResourceUsage.CopySrc: return "Copy - Source";
                     case ResourceUsage.CopyDst: return "Copy - Dest";
