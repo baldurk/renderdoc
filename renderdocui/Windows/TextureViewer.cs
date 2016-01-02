@@ -3544,7 +3544,40 @@ namespace renderdocui.Windows
 
                             var curDraw = m_Core.GetDrawcall(m_Core.CurFrame, u.eventID);
 
-                            if (u.usage != us || curDraw.previous == null || curDraw.previous.eventID != end)
+                            bool distinct = false;
+
+                            // if the usage is different from the last, add a new entry,
+                            // or if the previous draw link is broken.
+                            if (u.usage != us || curDraw.previous == null)
+                            {
+                                distinct = true;
+                            }
+                            else
+                            {
+                                // otherwise search back through real draws, to see if the
+                                // last event was where we were - otherwise it's a new
+                                // distinct set of drawcalls and should have a separate
+                                // entry in the context menu
+                                FetchDrawcall prev = curDraw.previous;
+
+                                while(prev != null && prev.eventID > end)
+                                {
+                                    if((prev.flags & (DrawcallFlags.Dispatch|DrawcallFlags.Drawcall|DrawcallFlags.CmdList)) == 0)
+                                    {
+                                        prev = prev.previous;
+                                    }
+                                    else
+                                    {
+                                        distinct = true;
+                                        break;
+                                    }
+
+                                    if(prev == null)
+                                        distinct = true;
+                                }
+                            }
+
+                            if(distinct)
                             {
                                 AddResourceUsageEntry(menuItems, start, end, us);
                                 start = end = u.eventID;
