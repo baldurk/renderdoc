@@ -340,13 +340,27 @@ namespace renderdocui.Windows.PipelineState
 
                     if (shaderDetails != null)
                     {
-                        foreach (var ro in shaderDetails.ReadOnlyResources)
+                        for(int i=0; i < shaderDetails.ReadOnlyResources.Length; i++)
                         {
+                            var ro = shaderDetails.ReadOnlyResources[i];
+
                             if (stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset == bindset &&
                                 stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind == bind)
                             {
                                 shaderRes = ro;
                                 bindMap = stage.BindpointMapping.ReadOnlyResources[ro.bindPoint];
+                            }
+                        }
+                        
+                        for(int i=0; i < shaderDetails.ReadWriteResources.Length; i++)
+                        {
+                            var rw = shaderDetails.ReadWriteResources[i];
+
+                            if (stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset == bindset &&
+                                stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bind == bind)
+                            {
+                                shaderRes = rw;
+                                bindMap = stage.BindpointMapping.ReadWriteResources[rw.bindPoint];
                             }
                         }
                     }
