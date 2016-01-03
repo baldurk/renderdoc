@@ -268,7 +268,7 @@ namespace renderdocui.Windows
                 else if (compute)
                 {
                     // only return compute resources for one stage
-                    if (stage == ShaderStageType.Pixel)
+                    if (stage == ShaderStageType.Pixel || stage == ShaderStageType.Compute)
                         return core.CurPipelineState.GetReadWriteResources(ShaderStageType.Compute);
                     else
                         return new Dictionary<BindpointMap, BoundResource[]>();
@@ -303,7 +303,7 @@ namespace renderdocui.Windows
                 else if (compute)
                 {
                     // only return compute resources for one stage
-                    if (stage == ShaderStageType.Pixel)
+                    if (stage == ShaderStageType.Pixel || stage == ShaderStageType.Compute)
                         return core.CurPipelineState.GetReadOnlyResources(ShaderStageType.Compute);
                     else
                         return new Dictionary<BindpointMap, BoundResource[]>();
@@ -1178,6 +1178,11 @@ namespace renderdocui.Windows
                 else
                 {
                     prev.Init();
+                    IntPtr handle = prev.ThumbnailHandle;
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                    {
+                        m_Output.AddThumbnail(handle, ResourceId.Null);
+                    });
                 }
 
                 prev.Tag = follow;
@@ -1308,6 +1313,7 @@ namespace renderdocui.Windows
 
             var curDraw = m_Core.GetDrawcall(frameID, eventID);
             bool copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy|DrawcallFlags.Resolve)) != 0;
+            bool compute = curDraw != null && (curDraw.flags & (DrawcallFlags.Dispatch)) != 0;
 
             for(int rt=0; rt < RTs.Length; rt++)
             {
@@ -1350,6 +1356,8 @@ namespace renderdocui.Windows
                 ShaderStageType.Geometry,
                 ShaderStageType.Pixel
             };
+
+            if (compute) stages = new ShaderStageType[] { ShaderStageType.Compute };
 
             // display resources used for all stages
             foreach (ShaderStageType stage in stages)
