@@ -1850,6 +1850,9 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			// if a render pass was active, begin it and set up the partial replay state
 			if(m_PartialReplayData.renderPassActive)
 				m_RenderState.BeginRenderPassAndApplyState(cmd);
+			// if we had a compute pipeline, need to bind that
+			else if(m_RenderState.compute.pipeline != ResourceId())
+				m_RenderState.BindPipeline(cmd);
 
 			ContextReplayLog(EXECUTING, endEventID, endEventID, partial);
 
