@@ -62,6 +62,14 @@ namespace renderdocui.Windows.PipelineState
             public UInt32 arrayIdx;
         };
 
+        class BufferResTag
+        {
+            public BufferResTag(bool rw, UInt32 b, ResourceId i) { rwRes = rw; bindPoint = b; ID = i; }
+            public bool rwRes;
+            public UInt32 bindPoint;
+            public ResourceId ID;
+        };
+
         private Dictionary<TreelistView.Node, TreelistView.Node> m_CombinedImageSamplers = new Dictionary<TreelistView.Node, TreelistView.Node>();
 
         public VulkanPipelineStateViewer(Core core, DockContent c)
@@ -338,6 +346,9 @@ namespace renderdocui.Windows.PipelineState
                     ShaderResource shaderRes = null;
                     BindpointMap bindMap = null;
 
+                    bool isrw = false;
+                    uint bindPoint = 0;
+
                     if (shaderDetails != null)
                     {
                         for(int i=0; i < shaderDetails.ReadOnlyResources.Length; i++)
@@ -347,6 +358,7 @@ namespace renderdocui.Windows.PipelineState
                             if (stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset == bindset &&
                                 stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind == bind)
                             {
+                                bindPoint = (uint)i;
                                 shaderRes = ro;
                                 bindMap = stage.BindpointMapping.ReadOnlyResources[ro.bindPoint];
                             }
@@ -359,6 +371,8 @@ namespace renderdocui.Windows.PipelineState
                             if (stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset == bindset &&
                                 stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bind == bind)
                             {
+                                bindPoint = (uint)i;
+                                isrw = true;
                                 shaderRes = rw;
                                 bindMap = stage.BindpointMapping.ReadWriteResources[rw.bindPoint];
                             }
@@ -479,7 +493,7 @@ namespace renderdocui.Windows.PipelineState
                                     name = bufs[t].name;
                                     restype = ShaderResourceType.Buffer;
 
-                                    tag = bufs[t];
+                                    tag = new BufferResTag(isrw, bindPoint, bufs[t].ID);
 
                                     isbuf = true;
                                 }
@@ -1431,17 +1445,31 @@ namespace renderdocui.Windows.PipelineState
                         viewer.ViewTexture(tex.ID, true);
                 }
             }
-            else if (tag is FetchBuffer)
+            else if (tag is BufferResTag)
             {
-                FetchBuffer buf = (FetchBuffer)tag;
+                BufferResTag buf = (BufferResTag)tag;
 
-                // no format detection yet
-                var deets = stage.ShaderDetails;
+                ShaderResource shaderRes = buf.rwRes
+                    ? stage.ShaderDetails.ReadWriteResources[buf.bindPoint]
+                    : stage.ShaderDetails.ReadOnlyResources[buf.bindPoint];
+
+                string format = "// struct " + shaderRes.variableType.Name + Environment.NewLine;
+
+                if (shaderRes.variableType.members.Length > 1)
+                {
+                    format += "// members skipped as they are fixed size:" + Environment.NewLine;
+                    for (int i = 0; i < shaderRes.variableType.members.Length - 1; i++)
+                    {
+                        format += shaderRes.variableType.members[i].type.descriptor.name + " " + shaderRes.variableType.members[i].name + ";" + Environment.NewLine;
+                    }
+                }
+
+                format += "{" + Environment.NewLine + FormatMembers(1, "", shaderRes.variableType.members.Last().type.members) + "}";
 
                 if (buf.ID != ResourceId.Null)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(true, buf.ID);
+                    viewer.ViewRawBuffer(true, buf.ID, format);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }
