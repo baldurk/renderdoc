@@ -654,7 +654,7 @@ namespace renderdocui.Windows.PipelineState
                     ConstantBlock cblock = null;
                     BindpointMap bindMap = null;
 
-                    UInt32 slot = 0;
+                    uint slot = uint.MaxValue;
                     if (shaderDetails != null)
                     {
                         for (slot = 0; slot < (uint)shaderDetails.ConstantBlocks.Length; slot++)
@@ -665,8 +665,12 @@ namespace renderdocui.Windows.PipelineState
                             {
                                 cblock = cb;
                                 bindMap = stage.BindpointMapping.ConstantBlocks[cb.bindPoint];
+                                break;
                             }
                         }
+
+                        if (slot >= (uint)shaderDetails.ConstantBlocks.Length)
+                            slot = uint.MaxValue;
                     }
 
                     var slotBinds = pipe.DescSets[bindset].bindings[bind].binds;
@@ -776,8 +780,6 @@ namespace renderdocui.Windows.PipelineState
                                 InactiveRow(node);
                         }
                     }
-
-                    slot++;
                 }
             }
             cbuffers.EndUpdate();
@@ -1630,7 +1632,7 @@ namespace renderdocui.Windows.PipelineState
 
         private void ShowCBuffer(VulkanPipelineState.ShaderStage stage, CBufferTag tag)
         {
-            if (tag == null) return;
+            if (tag == null || tag.slotIdx == uint.MaxValue) return;
 
             VulkanPipelineState.Pipeline pipe = m_Core.CurVulkanPipelineState.graphics;
             if(stage.stage == ShaderStageType.Compute)
