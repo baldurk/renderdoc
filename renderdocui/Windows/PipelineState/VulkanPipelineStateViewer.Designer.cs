@@ -3265,7 +3265,7 @@
             this.csResources.Size = new System.Drawing.Size(1070, 195);
             this.csResources.TabIndex = 1;
             this.csResources.Text = "Outputs";
-            this.csResources.TreeColumn = 7;
+            this.csResources.TreeColumn = 8;
             this.csResources.ViewOptions.Indent = 0;
             this.csResources.ViewOptions.ShowLine = false;
             this.csResources.ViewOptions.PadForPlusMinus = false;
@@ -3325,7 +3325,7 @@
             this.csCBuffers.Size = new System.Drawing.Size(1070, 195);
             this.csCBuffers.TabIndex = 11;
             this.csCBuffers.Text = "Constant Buffers";
-            this.csCBuffers.TreeColumn = 5;
+            this.csCBuffers.TreeColumn = 6;
             this.csCBuffers.ViewOptions.Indent = 0;
             this.csCBuffers.ViewOptions.PadForPlusMinus = false;
             this.csCBuffers.ViewOptions.ShowLine = false;

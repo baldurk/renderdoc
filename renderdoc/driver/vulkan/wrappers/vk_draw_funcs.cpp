@@ -1201,6 +1201,26 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(
 		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
 		ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			AddEvent(DISPATCH, desc);
+			string name = "vkCmdDispatch(" +
+				ToStr::Get(X) + "," +
+				ToStr::Get(Y) + "," +
+				ToStr::Get(Z) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.dispatchDimension[0] = X;
+			draw.dispatchDimension[1] = Y;
+			draw.dispatchDimension[2] = Z;
+
+			draw.flags |= eDraw_Dispatch;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	return true;

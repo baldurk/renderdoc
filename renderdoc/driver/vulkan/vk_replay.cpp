@@ -2720,7 +2720,39 @@ void VulkanReplay::SavePipelineState()
 		m_VulkanPipelineState.graphics.obj = rm->GetOriginalID(state.graphics.pipeline);
 
 		if(state.compute.pipeline != ResourceId())
-			m_VulkanPipelineState.compute.flags = c.m_Pipeline[state.compute.pipeline].flags;
+		{
+			const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.compute.pipeline];
+
+			m_VulkanPipelineState.compute.flags = p.flags;
+
+			VulkanPipelineState::ShaderStage &stage = m_VulkanPipelineState.CS;
+
+			int i=5; // 5 is the CS idx (VS, TCS, TES, GS, FS, CS)
+			{
+				stage.Shader = rm->GetOriginalID(p.shaders[i].module);
+				stage.entryPoint = p.shaders[i].entryPoint;
+				stage.ShaderDetails = NULL;
+
+				stage.customName = true;
+				stage.ShaderName = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
+				if(stage.ShaderName.count == 0)
+				{
+					stage.customName = false;
+					stage.ShaderName = StringFormat::Fmt("Shader %llu", stage.Shader);
+				}
+
+				stage.stage = eShaderStage_Compute;
+				if(p.shaders[i].mapping)
+					stage.BindpointMapping = *p.shaders[i].mapping;
+
+				create_array_uninit(stage.specialization, p.shaders[i].specialization.size());
+				for(size_t s=0; s < p.shaders[i].specialization.size(); s++)
+				{
+					stage.specialization[s].specID = p.shaders[i].specialization[s].specID;
+					create_array_init(stage.specialization[s].data, p.shaders[i].specialization[s].size, p.shaders[i].specialization[s].data);
+				}
+			}
+		}
 
 		if(state.graphics.pipeline != ResourceId())
 		{
@@ -2765,7 +2797,6 @@ void VulkanReplay::SavePipelineState()
 				&m_VulkanPipelineState.TES,
 				&m_VulkanPipelineState.GS,
 				&m_VulkanPipelineState.FS,
-				&m_VulkanPipelineState.CS,
 			};
 
 			for(size_t i=0; i < ARRAY_COUNT(stages); i++)
