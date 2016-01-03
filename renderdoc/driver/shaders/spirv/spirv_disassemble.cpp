@@ -213,6 +213,7 @@ struct SPVDecoration
 			case spv::DecorationCentroid:
 			case spv::DecorationGLSLShared:
 			case spv::DecorationBlock:
+			case spv::DecorationBufferBlock:
 				return ToStr::Get(decoration);
 			case spv::DecorationArrayStride: // might hide these, it adds no value
 				return StringFormat::Fmt("ArrayStride=%u", val);
@@ -267,7 +268,7 @@ struct SPVEntryPoint
 struct SPVTypeData
 {
 	SPVTypeData() :
-		baseType(NULL), storage(spv::StorageClassUniformConstant),
+		baseType(NULL), storage(spv::StorageClassUniformConstant), decorations(NULL),
 			texdim(spv::Dim2D), sampled(2), arrayed(false), depth(false), multisampled(false), imgformat(spv::ImageFormatUnknown),
 		bitCount(32), vectorSize(1), matrixSize(1), arraySize(1) {}
 
@@ -433,9 +434,11 @@ struct SPVTypeData
 		return name;
 	}
 
+	vector<SPVDecoration> *decorations;
+
 	// struct/function
 	vector< pair<SPVTypeData *, string> > children;
-	vector< vector<SPVDecoration> > decorations; // matches children
+	vector< vector<SPVDecoration> > childDecorations; // matches children
 
 	// pointer
 	spv::StorageClass storage;
@@ -1570,7 +1573,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 			if(varName.empty())
 				varName = StringFormat::Fmt("_member%u", c);
 
-			retDisasm += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(structs[i]->type->decorations[c], varName).c_str());
+			retDisasm += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(structs[i]->type->childDecorations[c], varName).c_str());
 		}
 		retDisasm += StringFormat::Fmt("}; // struct %s\n\n", structs[i]->type->GetName().c_str());
 	}
@@ -2390,8 +2393,8 @@ void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant
 
 			cblock[i].type.descriptor.rowMajorStorage = false;
 			
-			for(size_t d=0; d < type->decorations[i].size(); d++)
-				if(type->decorations[i][d].decoration == spv::DecorationRowMajor)
+			for(size_t d=0; d < type->childDecorations[i].size(); d++)
+				if(type->childDecorations[i][d].decoration == spv::DecorationRowMajor)
 					cblock[i].type.descriptor.rowMajorStorage = true;
 
 			if(t->type == SPVTypeData::eMatrix)
@@ -2537,7 +2540,7 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 		// we don't support nested structs yet
 		RDCASSERT(childIdx == ~0U);
 		for(size_t c=0; c < type->children.size(); c++)
-			AddSignatureParameter(id, (uint32_t)c, varName + "." + type->children[c].second, type->children[c].first, type->decorations[c], sigarray);
+			AddSignatureParameter(id, (uint32_t)c, varName + "." + type->children[c].second, type->children[c].first, type->childDecorations[c], sigarray);
 		return;
 	}
 
@@ -2699,7 +2702,7 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 				// if this is a struct (primary case, with gl_PerVertex), check each child for use in an OpAccessChain
 				if(inst->var->type->type == SPVTypeData::ePointer && inst->var->type->baseType->type == SPVTypeData::eStruct)
 				{
-					vector< vector<SPVDecoration> > &childDecorations = inst->var->type->baseType->decorations;
+					vector< vector<SPVDecoration> > &childDecorations = inst->var->type->baseType->childDecorations;
 
 					for(size_t c=0; c < childDecorations.size(); c++)
 					{
@@ -2806,6 +2809,10 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 				// list as it's not bound anywhere (most likely, declared but not used)
 				bindmap.bind = -1;
 
+				bool ssbo = false;
+
+				ShaderResource res;
+
 				for(size_t d=0; d < inst->decorations.size(); d++)
 				{
 					if(inst->decorations[d].decoration == spv::DecorationDescriptorSet)
@@ -2814,8 +2821,33 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 						bindmap.bind = (int32_t)inst->decorations[d].val;
 				}
 
-				MakeConstantBlockVariables(type, cblock.variables);
+				for(size_t d=0; type->decorations && d < type->decorations->size(); d++)
+				{
+					if((*type->decorations)[d].decoration == spv::DecorationBufferBlock)
+						ssbo = true;
+				}
 
+				if(ssbo)
+				{
+					res.IsSampler = false;
+					res.IsSRV = false;
+					res.IsTexture = false;
+					res.name = cblock.name;
+					res.resType = eResType_Buffer;
+
+					res.variableType.descriptor.cols = 0;
+					res.variableType.descriptor.rows = 0;
+					res.variableType.descriptor.rowMajorStorage = false;
+					res.variableType.descriptor.rows = 0;
+					res.variableType.descriptor.type = eVar_Float;
+					res.variableType.descriptor.name = type->GetName();
+
+					MakeConstantBlockVariables(type, res.variableType.members);
+				}
+				else
+				{
+					MakeConstantBlockVariables(type, cblock.variables);
+				}
 
 				bindmap.used = false;
 
@@ -2840,7 +2872,10 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 				// are used, unless it's push constants (which is handled elsewhere)
 				RDCASSERT(!bindmap.used || !cblock.bufferBacked || bindmap.bind >= 0);
 				
-				cblocks.push_back(cblockpair(bindmap, cblock));
+				if(ssbo)
+					resources.push_back(shaderrespair(bindmap, res));
+				else
+					cblocks.push_back(cblockpair(bindmap, cblock));
 			}
 			else
 			{
@@ -3256,7 +3291,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 					// names might come later from OpMemberName instructions
 					op.type->children.push_back(make_pair(memberInst->type, ""));
-					op.type->decorations.push_back(vector<SPVDecoration>());
+					op.type->childDecorations.push_back(vector<SPVDecoration>());
 				}
 
 				module.structs.push_back(&op);
@@ -3338,7 +3373,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 					// function parameters have no name
 					op.type->children.push_back(make_pair(argInst->type, ""));
-					op.type->decorations.push_back(vector<SPVDecoration>());
+					op.type->childDecorations.push_back(vector<SPVDecoration>());
 				}
 
 				SPVInstruction *baseTypeInst = module.GetByID(spirv[it+2]);
@@ -3961,6 +3996,9 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 					d.val = spirv[it+3];
 
 				inst->decorations.push_back(d);
+
+				if(inst->type)
+					inst->type->decorations = &inst->decorations;
 				break;
 			}
 			case spv::OpMemberDecorate:
@@ -3979,7 +4017,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				if(WordCount > 4)
 					d.val = spirv[it+4];
 
-				structInst->type->decorations[memberIdx].push_back(d);
+				structInst->type->childDecorations[memberIdx].push_back(d);
 				break;
 			}
 			case spv::OpGroupDecorate:
