@@ -717,7 +717,7 @@ namespace renderdoc
                     case ShaderStageType.Compute: return "Compute";
                 }
             }
-            else if(apitype == APIPipelineStateType.OpenGL)
+            else if (apitype == APIPipelineStateType.OpenGL || apitype == APIPipelineStateType.Vulkan)
             {
                 switch (stage)
                 {
