@@ -767,7 +767,7 @@ VkResult WrappedVulkan::vkDbgCreateMsgCallback(
 	void*                               pUserData,
 	VkDbgMsgCallback*                   pMsgCallback)
 {
-	// VKTODOLOW intercept this and point to our own callback
+	// don't need to wrap this, as we will create our own independent callback
 	return ObjDisp(instance)->DbgCreateMsgCallback(Unwrap(instance), msgFlags, pfnMsgCallback, pUserData, pMsgCallback);
 }
 
