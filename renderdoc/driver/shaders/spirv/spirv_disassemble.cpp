@@ -2909,10 +2909,8 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 				else if(type->texdim == spv::DimBuffer)
 					res.resType = eResType_Buffer;
 
-				// TODO once we're on SPIR-V 1.0, update this handling
-				res.IsSampler = true;
-				res.IsTexture = true;
-				res.IsSRV = true;
+				res.IsSampler = type->type == SPVTypeData::eSampledImage;
+				res.IsTexture = res.resType != eResType_Buffer;
 
 				bool isrw = false;
 
@@ -2922,6 +2920,12 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 					isrw = (sampledType->sampled == 2);
 					sampledType = sampledType->baseType;
 				}
+				if(type->type == SPVTypeData::eImage)
+				{
+					isrw = true;
+				}
+				
+				res.IsSRV = !isrw;
 
 				if(sampledType->type == SPVTypeData::eFloat)
 					res.variableType.descriptor.type = eVar_Float;
