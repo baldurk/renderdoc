@@ -258,7 +258,18 @@ VkResult WrappedVulkan::vkCreatePipelineCache(
 		const VkAllocationCallbacks*                pAllocator,
 		VkPipelineCache*                            pPipelineCache)
 {
-	VkResult ret = ObjDisp(device)->CreatePipelineCache(Unwrap(device), pCreateInfo, pAllocator, pPipelineCache);
+	// pretend the user didn't provide any cache data
+
+	VkPipelineCacheCreateInfo createInfo = *pCreateInfo;
+	createInfo.initialDataSize = 0;
+	createInfo.pInitialData = NULL;
+
+	if(pCreateInfo->initialDataSize > 0)
+	{
+		RDCWARN("Application provided pipeline cache data! This is invalid, as RenderDoc reports incompatibility with previous caches");
+	}
+
+	VkResult ret = ObjDisp(device)->CreatePipelineCache(Unwrap(device), &createInfo, pAllocator, pPipelineCache);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -272,7 +283,7 @@ VkResult WrappedVulkan::vkCreatePipelineCache(
 				CACHE_THREAD_SERIALISER();
 		
 				SCOPED_SERIALISE_CONTEXT(CREATE_PIPE_CACHE);
-				Serialise_vkCreatePipelineCache(localSerialiser, device, pCreateInfo, NULL, pPipelineCache);
+				Serialise_vkCreatePipelineCache(localSerialiser, device, &createInfo, NULL, pPipelineCache);
 
 				chunk = scope.Get();
 			}

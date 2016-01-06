@@ -361,7 +361,7 @@ namespace StringFormat
 
 		delete[] buf;
 
-		if(result.length()+1 < bufSize)
+		if(result.length()+1 <= bufSize)
 		{
 			memcpy(str, result.c_str(), result.length());
 			str[result.length()] = 0;

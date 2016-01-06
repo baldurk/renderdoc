@@ -24,6 +24,22 @@
 
 #include "../vk_core.h"
 
+static char fakeRenderDocUUID[VK_UUID_SIZE+1] = {};
+
+void MakeFakeUUID()
+{
+	// assign a fake UUID, so that we get SPIR-V instead of cached pipeline data.
+	// the start is "rdoc", and the end is the time that this call was first made
+	if(fakeRenderDocUUID[0] == 0)
+	{
+		// 0123456789ABCDEF
+		// rdocyymmddHHMMSS
+		// we pass size+1 so that there's room for a null terminator (the UUID doesn't
+		// need a null terminator as it's a fixed size non-string array)
+		StringFormat::sntimef(fakeRenderDocUUID, VK_UUID_SIZE+1, "rdoc%y%m%d%H%M%S");
+	}
+}
+
 void WrappedVulkan::vkGetPhysicalDeviceFeatures(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceFeatures*                   pFeatures)
@@ -70,9 +86,9 @@ void WrappedVulkan::vkGetPhysicalDeviceProperties(
 {
 	ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), pProperties);
 	
-	// assign a random UUID, so that we get SPIR-V instead of cached pipeline data.
-	srand((unsigned int)(uintptr_t)pProperties);
-	for(int i=0; i < VK_UUID_SIZE; i++) pProperties->pipelineCacheUUID[i] = (rand()>>6)&0xff;
+	MakeFakeUUID();
+
+	memcpy(pProperties->pipelineCacheUUID, fakeRenderDocUUID, VK_UUID_SIZE);
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties(
@@ -182,11 +198,46 @@ VkResult WrappedVulkan::vkGetPipelineCacheData(
 	size_t*                                     pDataSize,
 	void*                                       pData)
 {
-	if(pDataSize)
-		*pDataSize = 0;
+	size_t totalSize = 16 + VK_UUID_SIZE + 4; // required header (16+UUID) and 4 0 bytes
+
+	if(pDataSize && !pData)
+		*pDataSize = totalSize;
+
+	if(pData)
+	{
+		if(*pDataSize < totalSize)
+		{
+			memset(pData, 0, *pDataSize);
+			return VK_INCOMPLETE;
+		}
+
+		uint32_t *ptr = (uint32_t *)pData;
+
+		ptr[0] = (uint32_t)totalSize;
+		// VKTODOHIGH VK_PIPELINE_CACHE_HEADER_VERSION_ONE on new header
+		ptr[1] = 1;
+		// just in case the user expects a valid vendorID/deviceID, write the real one
+		// MULTIDEVICE need to get the right physical device for this device
+		ptr[2] = m_PhysicalDeviceData.props.vendorID;
+		ptr[3] = m_PhysicalDeviceData.props.deviceID;
+
+		MakeFakeUUID();
+
+		memcpy(ptr+4, fakeRenderDocUUID, VK_UUID_SIZE);
+		// [4], [5], [6], [7]
+
+		RDCCOMPILE_ASSERT(VK_UUID_SIZE == 16, "VK_UUID_SIZE has changed");
+
+		// empty bytes
+		ptr[8] = 0;
+	}
+
 	// we don't want the application to use pipeline caches at all, and especially
-	// don't want to return any data for future use.
-	return VK_INCOMPLETE;
+	// don't want to return any data for future use. We thus return a technically
+	// valid but empty pipeline cache. Our UUID changes every run so in theory the
+	// application should never provide an old cache, but just in case we will nop
+	// it out in create pipeline cache
+	return VK_SUCCESS;
 }
 
 VkResult WrappedVulkan::vkMergePipelineCaches(
@@ -195,9 +246,6 @@ VkResult WrappedVulkan::vkMergePipelineCaches(
 	uint32_t                                    srcCacheCount,
 	const VkPipelineCache*                      pSrcCaches)
 {
-	// hopefully we'll never get here, because we don't ever return a valid pipeline
-	// cache ourselves, our UUID should not match anyone's so the application should
-	// not upload a pipeline cache from elsewhere. So there will be nothing to merge,
-	// in theory.
-	return VK_INCOMPLETE;
+	// do nothing, our pipeline caches are always dummies
+	return VK_SUCCESS;
 }
