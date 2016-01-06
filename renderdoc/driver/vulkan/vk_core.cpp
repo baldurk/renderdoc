@@ -722,6 +722,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 	GetResourceManager()->ClearReferencedResources();
 
 	GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Instance), eFrameRef_Read);
+	GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Device), eFrameRef_Read);
+	GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Queue), eFrameRef_Read);
 
 	// need to do all this atomically so that no other commands
 	// will check to see if they need to markdirty or markpendingdirty
