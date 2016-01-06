@@ -212,7 +212,7 @@ VkResult WrappedVulkan::vkResetCommandPool(
 			VkCommandPool                               cmdPool,
 			VkCommandPoolResetFlags                     flags)
 {
-	return ObjDisp(device)->ResetCommandPool(device, cmdPool, flags);
+	return ObjDisp(device)->ResetCommandPool(Unwrap(device), Unwrap(cmdPool), flags);
 }
 
 
