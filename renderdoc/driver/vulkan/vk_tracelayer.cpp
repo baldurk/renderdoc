@@ -215,7 +215,7 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetDeviceProcAddr(VkDevi
 
 	if (GetDeviceDispatchTable(device)->GetDeviceProcAddr == NULL)
 		return NULL;
-	return GetDeviceDispatchTable(device)->GetDeviceProcAddr(device, pName);
+	return GetDeviceDispatchTable(device)->GetDeviceProcAddr(Unwrap(device), pName);
 }
 
 VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetInstanceProcAddr(VkInstance instance, const char* pName)
@@ -236,9 +236,22 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetInstanceProcAddr(VkIn
 
 	HookInitVulkanInstance();
 
+	InstanceDeviceInfo *instDevInfo = GetRecord(instance)->instDevInfo;
+
+	HookInitVulkanInstanceExts();
+
+	// GetInstanceProcAddr must also unconditionally return all device functions
+	
+#undef HookInitExtension
+#define HookInitExtension(ext, function) if (!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) return (PFN_vkVoidFunction) &CONCAT(hooked_vk, function);
+
+	HookInitVulkanDevice();
+
+	HookInitVulkanDeviceExts();
+
 	if (GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
 		return NULL;
-	return GetInstanceDispatchTable(instance)->GetInstanceProcAddr(instance, pName);
+	return GetInstanceDispatchTable(instance)->GetInstanceProcAddr(Unwrap(instance), pName);
 }
 
 }

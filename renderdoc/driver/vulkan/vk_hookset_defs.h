@@ -24,11 +24,19 @@
 
 #pragma once
 
+// since we don't use these macros, we undefine them so they don't interfere
+// with bool names etc
+#undef VK_KHR_xlib_surface
+#undef VK_KHR_xcb_surface
+#undef VK_KHR_win32_surface
+#undef VK_KHR_surface
+#undef VK_KHR_swapchain
+
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
-#define HookInit_PlatformSpecific() \
-	HookInit(CreateWin32SurfaceKHR); \
-	HookInit(GetPhysicalDeviceWin32PresentationSupportKHR);
+#define HookInitInstance_PlatformSpecific() \
+	HookInitExtension(VK_KHR_win32_surface, CreateWin32SurfaceKHR); \
+	HookInitExtension(VK_KHR_win32_surface, GetPhysicalDeviceWin32PresentationSupportKHR);
 
 #define HookDefine_PlatformSpecific() \
 	HookDefine5(VkResult, vkCreateWin32SurfaceKHR, VkInstance, instance, HINSTANCE, hinstance, HWND, hwnd, const VkAllocationCallbacks*, pAllocator, VkSurfaceKHR*, pSurface); \
@@ -38,9 +46,9 @@
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
 
-#define HookInit_PlatformSpecific_Xcb() \
-	HookInit(CreateXcbSurfaceKHR); \
-	HookInit(GetPhysicalDeviceXcbPresentationSupportKHR);
+#define HookInitInstance_PlatformSpecific_Xcb() \
+	HookInitExtension(VK_KHR_xcb_surface, CreateXcbSurfaceKHR); \
+	HookInitExtension(VK_KHR_xcb_surface, GetPhysicalDeviceXcbPresentationSupportKHR);
 
 #define HookDefine_PlatformSpecific_Xcb() \
 	HookDefine5(VkResult, vkCreateXcbSurfaceKHR, VkInstance, instance, xcb_connection_t*, connection, xcb_window_t, window, const VkAllocationCallbacks*, pAllocator, VkSurfaceKHR*, pSurface); \
@@ -48,16 +56,16 @@
 
 #else
 
-#define HookInit_PlatformSpecific_Xcb()
+#define HookInitInstance_PlatformSpecific_Xcb()
 #define HookDefine_PlatformSpecific_Xcb()
 
 #endif
 
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
 
-#define HookInit_PlatformSpecific_Xlib() \
-	HookInit(CreateXlibSurfaceKHR); \
-	HookInit(GetPhysicalDeviceXlibPresentationSupportKHR);
+#define HookInitInstance_PlatformSpecific_Xlib() \
+	HookInitExtension(VK_KHR_xlib_surface, CreateXlibSurfaceKHR); \
+	HookInitExtension(VK_KHR_xlib_surface, GetPhysicalDeviceXlibPresentationSupportKHR);
 
 #define HookDefine_PlatformSpecific_Xlib() \
 	HookDefine5(VkResult, vkCreateXlibSurfaceKHR, VkInstance, instance, Display*, dpy, Window, window, const VkAllocationCallbacks*, pAllocator, VkSurfaceKHR*, pSurface); \
@@ -65,12 +73,12 @@
 
 #else
 
-#define HookInit_PlatformSpecific_Xlib()
+#define HookInitInstance_PlatformSpecific_Xlib()
 #define HookDefine_PlatformSpecific_Xlib()
 
 #endif
 
-#define HookInit_PlatformSpecific() HookInit_PlatformSpecific_Xcb() HookInit_PlatformSpecific_Xlib()
+#define HookInitInstance_PlatformSpecific() HookInitInstance_PlatformSpecific_Xcb() HookInitInstance_PlatformSpecific_Xlib()
 #define HookDefine_PlatformSpecific() HookDefine_PlatformSpecific_Xcb() HookDefine_PlatformSpecific_Xlib()
 
 #endif
@@ -85,15 +93,7 @@
 	HookInit(GetPhysicalDeviceSparseImageFormatProperties); \
 	HookInit(GetPhysicalDeviceProperties); \
 	HookInit(GetPhysicalDeviceQueueFamilyProperties); \
-	HookInit(GetPhysicalDeviceMemoryProperties); \
-	HookInit(DbgCreateMsgCallback); \
-	HookInit(DbgDestroyMsgCallback); \
-	HookInit(DestroySurfaceKHR); \
-	HookInit(GetPhysicalDeviceSurfaceSupportKHR); \
-	HookInit(GetPhysicalDeviceSurfaceCapabilitiesKHR); \
-	HookInit(GetPhysicalDeviceSurfaceFormatsKHR); \
-	HookInit(GetPhysicalDeviceSurfacePresentModesKHR); \
-	HookInit_PlatformSpecific()
+	HookInit(GetPhysicalDeviceMemoryProperties);
 
 #define HookInitVulkanDevice() \
 	HookInit(CreateDevice); \
@@ -216,25 +216,41 @@
 	HookInit(CmdBeginRenderPass); \
 	HookInit(CmdNextSubpass); \
 	HookInit(CmdExecuteCommands); \
-	HookInit(CmdEndRenderPass); \
-	HookInit(CreateSwapchainKHR); \
-	HookInit(DestroySwapchainKHR); \
-	HookInit(GetSwapchainImagesKHR); \
-	HookInit(AcquireNextImageKHR); \
-	HookInit(QueuePresentKHR);
+	HookInit(CmdEndRenderPass);
 
-#define CheckInstanceExts()
+// for simplicity and since the check itself is platform agnostic,
+// these aren't protected in platform defines
+#define CheckInstanceExts() \
+	CheckExt(VK_KHR_xlib_surface) \
+	CheckExt(VK_KHR_xcb_surface) \
+	CheckExt(VK_KHR_win32_surface) \
+	CheckExt(VK_KHR_surface) \
+	CheckExt(DEBUG_REPORT)
 
 #define CheckDeviceExts() \
-	CheckExt(VK_LUNARG_DEBUG_MARKER)
+	CheckExt(VK_LUNARG_DEBUG_MARKER) \
+	CheckExt(VK_KHR_swapchain)
 
-#define HookInitVulkanInstanceExts()
+#define HookInitVulkanInstanceExts() \
+	HookInitExtension(VK_KHR_surface, DestroySurfaceKHR); \
+	HookInitExtension(VK_KHR_surface, GetPhysicalDeviceSurfaceSupportKHR); \
+	HookInitExtension(VK_KHR_surface, GetPhysicalDeviceSurfaceCapabilitiesKHR); \
+	HookInitExtension(VK_KHR_surface, GetPhysicalDeviceSurfaceFormatsKHR); \
+	HookInitExtension(VK_KHR_surface, GetPhysicalDeviceSurfacePresentModesKHR); \
+	HookInitExtension(DEBUG_REPORT, DbgCreateMsgCallback); \
+	HookInitExtension(DEBUG_REPORT, DbgDestroyMsgCallback); \
+	HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts() \
 	HookInitExtension(VK_LUNARG_DEBUG_MARKER, CmdDbgMarkerBegin); \
 	HookInitExtension(VK_LUNARG_DEBUG_MARKER, CmdDbgMarkerEnd); \
 	HookInitExtension(VK_LUNARG_DEBUG_MARKER, DbgSetObjectTag); \
-	HookInitExtension(VK_LUNARG_DEBUG_MARKER, DbgSetObjectName);
+	HookInitExtension(VK_LUNARG_DEBUG_MARKER, DbgSetObjectName); \
+	HookInitExtension(VK_KHR_swapchain, CreateSwapchainKHR); \
+	HookInitExtension(VK_KHR_swapchain, DestroySwapchainKHR); \
+	HookInitExtension(VK_KHR_swapchain, GetSwapchainImagesKHR); \
+	HookInitExtension(VK_KHR_swapchain, AcquireNextImageKHR); \
+	HookInitExtension(VK_KHR_swapchain, QueuePresentKHR);
 
 #define DefineHooks() \
 	HookDefine3(VkResult, vkEnumeratePhysicalDevices, VkInstance, instance, uint32_t*, pPhysicalDeviceCount, VkPhysicalDevice*, pPhysicalDevices); \
