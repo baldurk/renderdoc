@@ -399,6 +399,10 @@ struct SPVTypeData
 			{
 				name = StringFormat::Fmt("%s*", baseType->GetName().c_str());
 			}
+			else if(type == eArray)
+			{
+				name = StringFormat::Fmt("%s[%u]", baseType->GetName().c_str(), arraySize);
+			}
 			else if(type == eImage)
 			{
 				string typestring = baseType->GetName();
@@ -1126,6 +1130,13 @@ struct SPVInstruction
 
 				if(!inlineOp)
 					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
+
+				// can't gracefully handle unknown arguments here
+				if(op->arguments[0]->opcode == spv::OpUnknown || op->arguments[0]->opcode == spv::OpUnknown)
+				{
+					ret += StringFormat::Fmt("VectorShuffle(%s, %s)", op->arguments[0]->Disassemble(ids, true), op->arguments[1]->Disassemble(ids, true));
+					return ret;
+				}
 
 				SPVTypeData *vec1type = op->arguments[0]->op->type;
 				SPVTypeData *vec2type = op->arguments[1]->constant ? op->arguments[1]->constant->type : op->arguments[1]->op->type;
