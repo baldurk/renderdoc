@@ -2131,9 +2131,20 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(Serialiser* localSerialiser, VkC
 	{
 		FetchDrawcall draw;
 		draw.name = "API Calls";
-		draw.flags |= eDraw_SetMarker;
+		draw.flags = eDraw_SetMarker;
 
 		AddDrawcall(draw, true);
+	}
+		
+	if(m_State == READING)
+	{
+		// dummy draw that is consumed when this command buffer
+		// is being in-lined into the call stream
+		FetchDrawcall draw;
+		draw.name = "Pop()";
+		draw.flags = eDraw_PopMarker;
+
+		AddDrawcall(draw, false);
 	}
 
 	return true;

@@ -396,27 +396,29 @@ namespace renderdoc
     public enum DrawcallFlags
     {
         // types
-        Clear        = 0x01,
-        Drawcall     = 0x02,
-        Dispatch     = 0x04,
-        CmdList      = 0x08,
-        SetMarker    = 0x10,
-        PushMarker   = 0x20,
-        Present      = 0x40,
-        MultiDraw    = 0x80,
-        Copy         = 0x100,
-        Resolve      = 0x200,
-        PassBoundary = 0x400,
+        Clear        = 0x0001,
+        Drawcall     = 0x0002,
+        Dispatch     = 0x0004,
+        CmdList      = 0x0008,
+        SetMarker    = 0x0010,
+        PushMarker   = 0x0020,
+        PopMarker    = 0x0040, // this is only for internal tracking use
+        Present      = 0x0080,
+        MultiDraw    = 0x0100,
+        Copy         = 0x0200,
+        Resolve      = 0x0400,
+        GenMips      = 0x0800,
+        PassBoundary = 0x1000,
 
         // flags
-        UseIBuffer  = 0x01000,
-        Instanced   = 0x02000,
-        Auto        = 0x04000,
-        Indirect    = 0x08000,
-        ClearColour = 0x10000,
-        ClearDepth  = 0x20000,
-        BeginPass   = 0x40000,
-        EndPass     = 0x80000,
+        UseIBuffer        = 0x010000,
+        Instanced         = 0x020000,
+        Auto              = 0x040000,
+        Indirect          = 0x080000,
+        ClearColour       = 0x100000,
+        ClearDepthStencil = 0x200000,
+        BeginPass         = 0x400000,
+        EndPass           = 0x800000,
     };
 
     public enum SolidShadeMode

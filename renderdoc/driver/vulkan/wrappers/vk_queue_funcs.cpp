@@ -218,7 +218,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			m_RootEventID++;
 			
 			// insert the baked command buffer in-line into this list of notes, assigning new event and drawIDs
-			InsertDrawsAndRefreshIDs(GetDrawcallStack().back()->children, m_BakedCmdBufferInfo[cmdIds[c]].draw->children, m_RootEventID, m_RootDrawcallID);
+			InsertDrawsAndRefreshIDs(m_BakedCmdBufferInfo[cmdIds[c]].draw->children, m_RootEventID, m_RootDrawcallID);
 
 			m_PartialReplayData.cmdBufferSubmits[cmdIds[c]].push_back(m_RootEventID);
 
@@ -352,12 +352,21 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 	return true;
 }
 
-void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &nodes, vector<VulkanDrawcallTreeNode> &cmdBufNodes,
-                                             uint32_t baseEventID, uint32_t baseDrawID)
+void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID, uint32_t baseDrawID)
 {
 	// assign new drawcall IDs
 	for(size_t i=0; i < cmdBufNodes.size(); i++)
 	{
+		if(cmdBufNodes[i].draw.flags & eDraw_PopMarker)
+		{
+			RDCASSERT(GetDrawcallStack().size() > 1);
+			if(GetDrawcallStack().size() > 1)
+				GetDrawcallStack().pop_back();
+
+			// Skip - pop marker draws aren't processed otherwise, we just apply them to the drawcall stack.
+			continue;
+		}
+
 		VulkanDrawcallTreeNode n = cmdBufNodes[i];
 		n.draw.eventID += baseEventID;
 		n.draw.drawcallID += baseDrawID;
@@ -374,8 +383,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &nod
 		auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
 		m_DrawcallUses.insert(it, use);
 
-		n.children.clear();
-		InsertDrawsAndRefreshIDs(n.children, cmdBufNodes[i].children, baseEventID, baseDrawID);
+		RDCASSERT(n.children.empty());
 
 		for(auto it=n.resourceUsage.begin(); it != n.resourceUsage.end(); ++it)
 		{
@@ -384,7 +392,11 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &nod
 			m_ResourceUses[it->first].push_back(u);
 		}
 
-		nodes.push_back(n);
+		GetDrawcallStack().back()->children.push_back(n);
+		
+		// if this is a push marker too, step down the drawcall stack
+		if(cmdBufNodes[i].draw.flags & eDraw_PushMarker)
+			GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
 	}
 }
 

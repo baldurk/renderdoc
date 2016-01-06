@@ -1391,19 +1391,7 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
 	{
 		// no push/pop necessary
 	}
-	else if(m_State == READING && chunk == BEGIN_EVENT)
-	{
-		// push down the drawcallstack to the latest drawcall
-		GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
-	}
-	else if(m_State == READING && chunk == END_EVENT)
-	{
-		// refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
-		RDCASSERT(GetDrawcallStack().size() > 1);
-		if(GetDrawcallStack().size() > 1)
-			GetDrawcallStack().pop_back();
-	}
-	else if(m_State == READING && (chunk == BEGIN_CMD_BUFFER || chunk == END_CMD_BUFFER))
+	else if(m_State == READING && (chunk == BEGIN_CMD_BUFFER || chunk == END_CMD_BUFFER || chunk == BEGIN_EVENT || chunk == END_EVENT))
 	{
 		// don't add these events - they will be handled when inserted in-line into queue submit
 	}

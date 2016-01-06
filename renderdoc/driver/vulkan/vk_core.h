@@ -476,7 +476,7 @@ private:
 		
 	VulkanDrawcallTreeNode m_ParentDrawcall;
 
-	void InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &nodes, vector<VulkanDrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID, uint32_t baseDrawID);
+	void InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID, uint32_t baseDrawID);
 
 	list<VulkanDrawcallTreeNode *> m_DrawcallStack;
 

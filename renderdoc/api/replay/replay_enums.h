@@ -399,28 +399,29 @@ enum ResourceUsage
 enum DrawcallFlags
 {
 	// types
-	eDraw_Clear        = 0x01,
-	eDraw_Drawcall     = 0x02,
-	eDraw_Dispatch     = 0x04,
-	eDraw_CmdList      = 0x08,
-	eDraw_SetMarker    = 0x10,
-	eDraw_PushMarker   = 0x20,
-	eDraw_Present      = 0x40,
-	eDraw_MultiDraw    = 0x80,
-	eDraw_Copy         = 0x100,
-	eDraw_Resolve      = 0x200,
-	eDraw_GenMips      = 0x400,
-	eDraw_PassBoundary = 0x800,
+	eDraw_Clear        = 0x0001,
+	eDraw_Drawcall     = 0x0002,
+	eDraw_Dispatch     = 0x0004,
+	eDraw_CmdList      = 0x0008,
+	eDraw_SetMarker    = 0x0010,
+	eDraw_PushMarker   = 0x0020,
+	eDraw_PopMarker    = 0x0040, // this is only for internal tracking use
+	eDraw_Present      = 0x0080,
+	eDraw_MultiDraw    = 0x0100,
+	eDraw_Copy         = 0x0200,
+	eDraw_Resolve      = 0x0400,
+	eDraw_GenMips      = 0x0800,
+	eDraw_PassBoundary = 0x1000,
 
 	// flags
-	eDraw_UseIBuffer        = 0x01000,
-	eDraw_Instanced         = 0x02000,
-	eDraw_Auto              = 0x04000,
-	eDraw_Indirect          = 0x08000,
-	eDraw_ClearColour       = 0x10000,
-	eDraw_ClearDepthStencil = 0x20000,
-	eDraw_BeginPass         = 0x40000,
-	eDraw_EndPass           = 0x80000,
+	eDraw_UseIBuffer        = 0x010000,
+	eDraw_Instanced         = 0x020000,
+	eDraw_Auto              = 0x040000,
+	eDraw_Indirect          = 0x080000,
+	eDraw_ClearColour       = 0x100000,
+	eDraw_ClearDepthStencil = 0x200000,
+	eDraw_BeginPass         = 0x400000,
+	eDraw_EndPass           = 0x800000,
 };
 
 enum SolidShadeMode
