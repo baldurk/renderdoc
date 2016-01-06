@@ -321,13 +321,13 @@ namespace renderdocui.Code
 
             for (int i = 1; i < draws.Length; i++)
             {
-                if ((draws[refdraw].flags & (DrawcallFlags.Copy | DrawcallFlags.SetMarker)) > 0)
+                if ((draws[refdraw].flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.SetMarker)) > 0)
                 {
                     refdraw = i;
                     continue;
                 }
 
-                if ((draws[i].flags & (DrawcallFlags.Copy | DrawcallFlags.SetMarker)) > 0)
+                if ((draws[i].flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.SetMarker)) > 0)
                     continue;
 
                 if (PassEquivalent(draws[i], draws[refdraw]))
@@ -378,7 +378,7 @@ namespace renderdocui.Code
 
                 minOutCount = Math.Max(1, minOutCount);
 
-                if ((draws[end].flags & DrawcallFlags.Dispatch) != 0)
+                if ((draws[refdraw].flags & DrawcallFlags.Dispatch) != 0)
                     mark.name = String.Format("Compute Pass #{0}", computepassID++);
                 else if (maxOutCount == 0)
                     mark.name = String.Format("Depth-only Pass #{0}", depthpassID++);
