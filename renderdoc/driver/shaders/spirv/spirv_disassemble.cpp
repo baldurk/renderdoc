@@ -2908,8 +2908,8 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 				SPVTypeData *sampledType = type->baseType;
 				if(sampledType->type == SPVTypeData::eImage)
 				{
-					sampledType = sampledType->baseType;
 					isrw = (sampledType->sampled == 2);
+					sampledType = sampledType->baseType;
 				}
 
 				if(sampledType->type == SPVTypeData::eFloat)
