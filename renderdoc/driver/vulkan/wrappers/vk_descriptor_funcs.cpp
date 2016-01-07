@@ -757,6 +757,13 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 					if(GetRecord(bind.bufferInfo.buffer)->baseResource != ResourceId())
 						record->RemoveBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource);
 				}
+				
+				// NULL everything out now so that we don't accidentally reference an object
+				// that was removed already
+				bind.texelBufferView = VK_NULL_HANDLE;
+				bind.bufferInfo.buffer = VK_NULL_HANDLE;
+				bind.imageInfo.imageView = VK_NULL_HANDLE;
+				bind.imageInfo.sampler = VK_NULL_HANDLE;
 
 				if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
 					pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
@@ -770,6 +777,13 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 					pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
 				{
 					bind.imageInfo = pDescriptorWrites[i].pImageInfo[d];
+
+					// ignore descriptors not part of the write, by NULL'ing out those members
+					// as they might not even point to a valid object
+					if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
+						bind.imageInfo.imageView = VK_NULL_HANDLE;
+					else if(pDescriptorWrites[i].descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+						bind.imageInfo.sampler = VK_NULL_HANDLE;
 				}
 				else
 				{
