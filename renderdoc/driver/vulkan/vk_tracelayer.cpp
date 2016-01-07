@@ -238,6 +238,20 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetInstanceProcAddr(VkIn
 
 	InstanceDeviceInfo *instDevInfo = GetRecord(instance)->instDevInfo;
 
+	// TEMPORARY HACK until loader is patched
+	InstanceDeviceInfo dummy;
+	dummy.VK_KHR_xlib_surface = true;
+	dummy.VK_KHR_xcb_surface = true;
+	dummy.VK_KHR_win32_surface = true;
+	dummy.VK_KHR_surface = true;
+	dummy.VK_KHR_swapchain = true;
+
+	if(!WrappedVkInstance::IsAlloc(instance))
+	{
+		RDCLOG("Doing workaround for non-wrapped instance passed to GIPA");
+		instDevInfo = &dummy;
+	}
+
 	HookInitVulkanInstanceExts();
 
 	// GetInstanceProcAddr must also unconditionally return all device functions
