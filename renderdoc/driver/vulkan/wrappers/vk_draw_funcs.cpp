@@ -1200,6 +1200,11 @@ void WrappedVulkan::vkCmdDrawIndirect(
 		Serialise_vkCmdDrawIndirect(localSerialiser, commandBuffer, buffer, offset, count, stride);
 
 		record->AddChunk(scope.Get());
+
+		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
+		if(GetRecord(buffer)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(buffer)->sparseInfo);
 	}
 }
 
@@ -1261,6 +1266,11 @@ void WrappedVulkan::vkCmdDrawIndexedIndirect(
 		Serialise_vkCmdDrawIndexedIndirect(localSerialiser, commandBuffer, buffer, offset, count, stride);
 
 		record->AddChunk(scope.Get());
+
+		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
+		if(GetRecord(buffer)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(buffer)->sparseInfo);
 	}
 }
 
@@ -1389,5 +1399,10 @@ void WrappedVulkan::vkCmdDispatchIndirect(
 		Serialise_vkCmdDispatchIndirect(localSerialiser, commandBuffer, buffer, offset);
 
 		record->AddChunk(scope.Get());
+
+		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
+		if(GetRecord(buffer)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(buffer)->sparseInfo);
 	}
 }
