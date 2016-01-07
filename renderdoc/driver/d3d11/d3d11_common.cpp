@@ -588,7 +588,11 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 			ret.special = true;
 	}
 
-	switch(fmt)
+	// fetch component type from typedFormat so that we don't set eCompType_None.
+	// This is a bit of a hack but it's more consistent overall.
+	DXGI_FORMAT typedFormat = GetTypedFormat(fmt);
+
+	switch(typedFormat)
 	{
 		case DXGI_FORMAT_R32G32B32A32_TYPELESS:
 		case DXGI_FORMAT_R32G32B32_TYPELESS:
@@ -600,6 +604,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 		case DXGI_FORMAT_R8G8B8A8_TYPELESS:
 		case DXGI_FORMAT_R8G8_TYPELESS:
 		case DXGI_FORMAT_R8_TYPELESS:
+			RDCERR("We should have converted format to typed! %d", typedFormat);
 			ret.compType = eCompType_None;
 			break;
 		case DXGI_FORMAT_R32G32B32A32_FLOAT:
@@ -672,6 +677,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 			break;
 
 		case DXGI_FORMAT_R24G8_TYPELESS:
+			RDCERR("We should have converted format to typed! %d", typedFormat);
 			ret.compType = eCompType_None;
 			break;
 		case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
@@ -694,6 +700,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 		case DXGI_FORMAT_BC4_TYPELESS:
 		case DXGI_FORMAT_BC5_TYPELESS:
 		case DXGI_FORMAT_BC7_TYPELESS:
+			RDCERR("We should have converted format to typed! %d", typedFormat);
 			ret.compType = eCompType_None;
 			break;
 		case DXGI_FORMAT_R8G8_B8G8_UNORM:
