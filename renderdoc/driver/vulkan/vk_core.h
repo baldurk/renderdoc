@@ -466,6 +466,8 @@ private:
 	bool Serialise_SparseInitialState(ResourceId id, WrappedVkImage *im, VulkanResourceManager::InitialContentData contents);
 	bool Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents);
 	bool Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceManager::InitialContentData contents);
+
+	void ApplyInitialContents();
 		
 	vector<FetchAPIEvent> m_RootEvents, m_Events;
 	bool m_AddedDrawcall;

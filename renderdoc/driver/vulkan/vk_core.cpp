@@ -1247,7 +1247,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	// (not undefined)
 	if(readType == READING)
 	{
-		GetResourceManager()->ApplyInitialContents();
+		ApplyInitialContents();
 
 		SubmitCmds();
 		FlushQ();
@@ -1370,6 +1370,49 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	m_RerecordCmds.clear();
 
 	m_State = READING;
+}
+
+void WrappedVulkan::ApplyInitialContents()
+{
+	// add a global memory barrier to ensure all writes have finished and are synchronised
+	// add memory barrier to ensure this copy completes before any subsequent work
+	// this is a very blunt instrument but it ensures we don't get random artifacts around
+	// frame restart where we may be skipping a lot of important synchronisation
+	VkMemoryBarrier memBarrier = {
+		VK_STRUCTURE_TYPE_MEMORY_BARRIER, NULL,
+		VK_ACCESS_ALL_WRITE_BITS,
+		VK_ACCESS_ALL_READ_BITS,
+	};
+
+	void *barrier = (void *)&memBarrier;
+
+	VkCommandBuffer cmd = GetNextCmd();
+
+	VkResult vkr = VK_SUCCESS;
+	
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
+
+	vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	
+	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	// actually apply the initial contents here
+	GetResourceManager()->ApplyInitialContents();
+	
+	// likewise again to make sure the initial states are all applied
+	cmd = GetNextCmd();
+	
+	vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	
+	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+	RDCASSERT(vkr == VK_SUCCESS);
 }
 
 void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, bool forceExecute)
@@ -1788,7 +1831,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 	
 	if(!partial)
 	{
-		GetResourceManager()->ApplyInitialContents();
+		ApplyInitialContents();
 
 		SubmitCmds();
 		FlushQ();

@@ -790,17 +790,6 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
 	}
 
-	// add memory barrier to ensure this copy completes before any subsequent work
-	VkMemoryBarrier memBarrier = {
-		VK_STRUCTURE_TYPE_MEMORY_BARRIER, NULL,
-		VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT,
-		VK_ACCESS_ALL_READ_BITS,
-	};
-
-	void *barrier = (void *)&memBarrier;
-
-	ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
-
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
 
@@ -928,17 +917,6 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 
 		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
 	}
-
-	// add memory barrier to ensure this copy completes before any subsequent work
-	VkMemoryBarrier memBarrier = {
-		VK_STRUCTURE_TYPE_MEMORY_BARRIER, NULL,
-		VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT,
-		VK_ACCESS_ALL_READ_BITS,
-	};
-
-	void *barrier = (void *)&memBarrier;
-
-	ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -2033,18 +2011,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		VkBufferCopy region = { 0, dstMemOffs, datasize };
 
 		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
-	
-		// add memory barrier to ensure this copy completes before any subsequent work
-		VkMemoryBarrier memBarrier = {
-			VK_STRUCTURE_TYPE_MEMORY_BARRIER, NULL,
-			VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT,
-			VK_ACCESS_ALL_READ_BITS,
-		};
-
-		void *barrier = (void *)&memBarrier;
-
-		ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
-
+		
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
