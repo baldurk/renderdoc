@@ -875,7 +875,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		RGBA8RP,
 		0, // sub pass
 		VK_NULL_HANDLE, // base pipeline handle
-		0, // base pipeline index
+		-1, // base pipeline index
 	};
 
 	stages[0].module = Unwrap(module[BLITVS]);

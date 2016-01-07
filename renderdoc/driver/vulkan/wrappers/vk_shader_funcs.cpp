@@ -401,9 +401,21 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 
 				{
 					CACHE_THREAD_SERIALISER();
+
+					VkGraphicsPipelineCreateInfo modifiedCreateInfo;
+					const VkGraphicsPipelineCreateInfo *createInfo = &pCreateInfos[i];
+
+					// since we serialise one by one, we need to fixup basePipelineIndex
+					if(createInfo->basePipelineIndex != -1 && createInfo->basePipelineIndex < (int)i)
+					{
+						modifiedCreateInfo = *createInfo;
+						modifiedCreateInfo.basePipelineHandle = pPipelines[modifiedCreateInfo.basePipelineIndex];
+						modifiedCreateInfo.basePipelineIndex = -1;
+						createInfo = &modifiedCreateInfo;
+					}
 		
 					SCOPED_SERIALISE_CONTEXT(CREATE_GRAPHICS_PIPE);
-					Serialise_vkCreateGraphicsPipelines(localSerialiser, device, pipelineCache, 1, &pCreateInfos[i], NULL, &pPipelines[i]);
+					Serialise_vkCreateGraphicsPipelines(localSerialiser, device, pipelineCache, 1, createInfo, NULL, &pPipelines[i]);
 
 					chunk = scope.Get();
 				}
