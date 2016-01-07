@@ -296,6 +296,7 @@ namespace renderdoc
             public UInt32 cols;
             public UInt32 elements;
             public bool rowMajorStorage;
+            public UInt32 arrayStride;
             [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string name;
         };

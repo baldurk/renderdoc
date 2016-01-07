@@ -154,6 +154,7 @@ struct ShaderVariableType
 		uint32_t      cols;
 		uint32_t      elements;
 		bool32        rowMajorStorage;
+		uint32_t      arrayStride;
 		rdctype::str name;
 	} descriptor;
 

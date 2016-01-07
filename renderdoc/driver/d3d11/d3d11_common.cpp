@@ -884,6 +884,20 @@ ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32
 	ret.descriptor.elements = type.descriptor.elements;
 	ret.descriptor.name = type.descriptor.name;
 	ret.descriptor.rowMajorStorage = (type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS);
+
+	uint32_t baseElemSize = (ret.descriptor.type == eVar_Double) ? 8 : 4;
+	if(ret.descriptor.rowMajorStorage)
+	{
+		uint32_t primary = ret.descriptor.rows;
+		if(primary == 3) primary = 4;
+		ret.descriptor.arrayStride = baseElemSize*primary*ret.descriptor.cols;
+	}
+	else
+	{
+		uint32_t primary = ret.descriptor.cols;
+		if(primary == 3) primary = 4;
+		ret.descriptor.arrayStride = baseElemSize*primary*ret.descriptor.rows;
+	}
 	
 	uint32_t o = offset;
 	

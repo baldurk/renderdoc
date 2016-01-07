@@ -39,6 +39,7 @@ struct DynShaderVariableType
 		uint32_t      cols;
 		uint32_t      elements;
 		bool32        rowMajorStorage;
+		uint32_t      arrayStride;
 		string        name;
 	} descriptor;
 
@@ -91,6 +92,7 @@ void copy(rdctype::array<ShaderConstant> &outvars, const vector<DynShaderConstan
 		outvars[i].type.descriptor.cols = invars[i].type.descriptor.cols;
 		outvars[i].type.descriptor.elements = invars[i].type.descriptor.elements;
 		outvars[i].type.descriptor.rowMajorStorage = invars[i].type.descriptor.rowMajorStorage;
+		outvars[i].type.descriptor.arrayStride = invars[i].type.descriptor.arrayStride;
 		outvars[i].type.descriptor.name = invars[i].type.descriptor.name;
 		copy(outvars[i].type.members, invars[i].type.members);
 	}
@@ -411,10 +413,10 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
 	GLint numParentBlocks, vector<DynShaderConstant> *parentBlocks,
 	vector<DynShaderConstant> *defaultBlock)
 {
-	const size_t numProps = 7;
+	const size_t numProps = 8;
 
 	GLenum resProps[numProps] = {
-		eGL_TYPE, eGL_NAME_LENGTH, eGL_LOCATION, eGL_BLOCK_INDEX, eGL_ARRAY_SIZE, eGL_OFFSET, eGL_IS_ROW_MAJOR,
+		eGL_TYPE, eGL_NAME_LENGTH, eGL_LOCATION, eGL_BLOCK_INDEX, eGL_ARRAY_SIZE, eGL_OFFSET, eGL_IS_ROW_MAJOR, eGL_ARRAY_STRIDE
 	};
 
 	// GL_LOCATION not valid for buffer variables (it's only used if offset comes back -1, which will never
@@ -422,7 +424,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
 	if(query == eGL_BUFFER_VARIABLE)
 		resProps[2] = eGL_OFFSET;
 	
-	GLint values[numProps] = { -1, -1, -1, -1, -1, -1, -1 };
+	GLint values[numProps] = { -1, -1, -1, -1, -1, -1, -1, -1 };
 	gl.glGetProgramResourceiv(sepProg, query, varIdx, numProps, resProps, numProps, NULL, values);
 
 	DynShaderConstant var;
@@ -632,6 +634,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
 	}
 
 	var.type.descriptor.rowMajorStorage = (values[6] > 0);
+	var.type.descriptor.arrayStride = values[7];
 
 	var.name.resize(values[1]-1);
 	gl.glGetProgramResourceName(sepProg, query, varIdx, values[1], NULL, &var.name[0]);
@@ -809,6 +812,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		res.variableType.descriptor.cols = 4;
 		res.variableType.descriptor.elements = 0;
 		res.variableType.descriptor.rowMajorStorage = false;
+		res.variableType.descriptor.arrayStride = 0;
 
 		// float samplers
 		if(values[0] == eGL_SAMPLER_BUFFER)
@@ -1385,6 +1389,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			res.variableType.descriptor.cols = 0;
 			res.variableType.descriptor.elements = len;
 			res.variableType.descriptor.rowMajorStorage = false;
+			res.variableType.descriptor.arrayStride = 0;
 			res.variableType.descriptor.name = "buffer";
 			res.variableType.descriptor.type = eVar_UInt;
 			res.bindPoint = (int32_t)rwresources.size();

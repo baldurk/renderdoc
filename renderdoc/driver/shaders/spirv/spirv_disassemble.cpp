@@ -2367,13 +2367,24 @@ void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant
 	{
 		SPVTypeData *t = type->children[i].first;
 		cblock[i].name = type->children[i].second;
-		// TODO do we need to fill these out?
-		cblock[i].reg.vec = 0;
-		cblock[i].reg.comp = 0;
+
+		for(size_t d=0; d < type->childDecorations[i].size(); d++)
+		{
+			if(type->childDecorations[i][d].decoration == spv::DecorationOffset)
+			{
+				uint32_t byteOffset = type->childDecorations[i][d].val;
+				RDCASSERT(byteOffset%4 == 0); // assume uint32_t aligned
+				byteOffset /= 4;
+				cblock[i].reg.vec = byteOffset/4;
+				cblock[i].reg.comp = byteOffset%4;
+				break;
+			}
+		}
 
 		string suffix = "";
 
 		cblock[i].type.descriptor.elements = 1;
+		cblock[i].type.descriptor.arrayStride = 0;
 
 		if(t->type == SPVTypeData::eArray)
 		{
@@ -2387,6 +2398,28 @@ void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant
 				suffix += StringFormat::Fmt("[%u]", t->arraySize);
 				cblock[i].type.descriptor.elements = t->arraySize;
 			}
+
+			bool foundArrayStride = false;
+
+			for(size_t d=0; d < type->childDecorations[i].size(); d++)
+			{
+				if(type->childDecorations[i][d].decoration == spv::DecorationArrayStride)
+				{
+					cblock[i].type.descriptor.arrayStride = type->childDecorations[i][d].val;
+					foundArrayStride = true;
+					break;
+				}
+			}
+
+			for(size_t d=0; !foundArrayStride && t->decorations && d < t->decorations->size(); d++)
+			{
+				if((*t->decorations)[d].decoration == spv::DecorationArrayStride)
+				{
+					cblock[i].type.descriptor.arrayStride = (*t->decorations)[d].val;
+					break;
+				}
+			}
+
 			t = t->baseType;
 		}
 
@@ -2405,8 +2438,13 @@ void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant
 			cblock[i].type.descriptor.rowMajorStorage = false;
 			
 			for(size_t d=0; d < type->childDecorations[i].size(); d++)
+			{
 				if(type->childDecorations[i][d].decoration == spv::DecorationRowMajor)
+				{
 					cblock[i].type.descriptor.rowMajorStorage = true;
+					break;
+				}
+			}
 
 			if(t->type == SPVTypeData::eMatrix)
 			{

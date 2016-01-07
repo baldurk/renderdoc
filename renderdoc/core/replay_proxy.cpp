@@ -157,9 +157,10 @@ void Serialiser::Serialise(const char *name, ShaderVariableType &el)
 	Serialise("", el.descriptor.cols);
 	Serialise("", el.descriptor.elements);
 	Serialise("", el.descriptor.rowMajorStorage);
+	Serialise("", el.descriptor.arrayStride);
 	Serialise("", el.members);
 
-	SIZE_CHECK(ShaderVariableType, 36);
+	SIZE_CHECK(ShaderVariableType, 40);
 }
 
 template<>
