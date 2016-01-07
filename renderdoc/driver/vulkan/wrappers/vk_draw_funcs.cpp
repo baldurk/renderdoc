@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
+#include "../vk_debug.h"
 
 bool WrappedVulkan::Serialise_vkCmdDraw(
 	Serialiser*    localSerialiser,
@@ -1176,6 +1177,43 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
 		ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			VkDrawIndirectCommand unknown = {0};
+			vector<byte> argbuf;
+			GetDebugManager()->GetBufferData(GetResID(buffer), offs, sizeof(VkDrawIndirectCommand) + (cnt-1)*strd, argbuf);
+			VkDrawIndirectCommand *args = (VkDrawIndirectCommand *)&argbuf[0];
+
+			if(argbuf.size() < sizeof(VkDrawIndirectCommand))
+			{
+				RDCERR("Couldn't fetch arguments buffer for vkCmdDrawIndirect");
+				args = &unknown;
+			}
+
+			if(cnt > 1)
+			{
+				RDCWARN("Stepping inside multi indirect draws not yet supported");
+			}
+
+			AddEvent(DRAW_INDIRECT, desc);
+			string name = "vkCmdDrawIndirect(<" +
+				ToStr::Get(args->vertexCount) + "," +
+				ToStr::Get(args->instanceCount) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.numIndices = args->vertexCount;
+			draw.numInstances = args->instanceCount;
+			draw.indexOffset = 0;
+			draw.vertexOffset = args->firstVertex;
+			draw.instanceOffset = args->firstInstance;
+
+			draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	return true;
@@ -1242,6 +1280,43 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
 		ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			VkDrawIndexedIndirectCommand unknown = {0};
+			vector<byte> argbuf;
+			GetDebugManager()->GetBufferData(GetResID(buffer), offs, sizeof(VkDrawIndexedIndirectCommand) + (cnt-1)*strd, argbuf);
+			VkDrawIndexedIndirectCommand *args = (VkDrawIndexedIndirectCommand *)&argbuf[0];
+
+			if(argbuf.size() < sizeof(VkDrawIndexedIndirectCommand))
+			{
+				RDCERR("Couldn't fetch arguments buffer for vkCmdDrawIndexedIndirect");
+				args = &unknown;
+			}
+
+			if(cnt > 1)
+			{
+				RDCWARN("Stepping inside multi indirect draws not yet supported");
+			}
+
+			AddEvent(DRAW_INDEXED_INDIRECT, desc);
+			string name = "vkCmdDrawIndexedIndirect(<" +
+				ToStr::Get(args->indexCount) + "," +
+				ToStr::Get(args->instanceCount) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.numIndices = args->indexCount;
+			draw.numInstances = args->instanceCount;
+			draw.indexOffset = args->firstIndex;
+			draw.vertexOffset = args->vertexOffset;
+			draw.instanceOffset = args->firstInstance;
+
+			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	return true;
@@ -1350,7 +1425,7 @@ void WrappedVulkan::vkCmdDispatch(
 
 bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 			Serialiser*                                 localSerialiser,
-			VkCommandBuffer                                 commandBuffer,
+			VkCommandBuffer                             commandBuffer,
 			VkBuffer                                    buffer,
 			VkDeviceSize                                offset)
 {
@@ -1377,6 +1452,37 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
 		ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			VkDispatchIndirectCommand unknown = {0};
+			vector<byte> argbuf;
+			GetDebugManager()->GetBufferData(GetResID(buffer), offs, sizeof(VkDispatchIndirectCommand), argbuf);
+			VkDispatchIndirectCommand *args = (VkDispatchIndirectCommand *)&argbuf[0];
+
+			if(argbuf.size() < sizeof(VkDispatchIndirectCommand))
+			{
+				RDCERR("Couldn't fetch arguments buffer for vkCmdDispatchIndirect");
+				args = &unknown;
+			}
+
+			AddEvent(DISPATCH_INDIRECT, desc);
+			string name = "vkCmdDispatchIndirect(<" +
+				ToStr::Get(args->x) + "," +
+				ToStr::Get(args->y) + "," +
+				ToStr::Get(args->z) + ">)";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.dispatchDimension[0] = args->x;
+			draw.dispatchDimension[1] = args->y;
+			draw.dispatchDimension[2] = args->z;
+
+			draw.flags |= eDraw_Dispatch|eDraw_Indirect;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	return true;
