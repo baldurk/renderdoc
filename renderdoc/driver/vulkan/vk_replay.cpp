@@ -3188,7 +3188,7 @@ void VulkanReplay::SavePipelineState()
 	}
 }
 
-void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, vector<ShaderVariable> &outvars, const vector<byte> &data, size_t &offset)
+void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, vector<ShaderVariable> &outvars, const vector<byte> &data)
 {
 	for(int v=0; v < invars.count; v++)
 	{
@@ -3200,11 +3200,10 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 		bool rowMajor = invars[v].type.descriptor.rowMajorStorage != 0;
 		bool isArray = elems > 1;
 
+		size_t dataOffset = invars[v].reg.vec*sizeof(Vec4f) + invars[v].reg.comp*sizeof(float);
+
 		if(invars[v].type.members.count > 0)
 		{
-			// structs are aligned
-			offset = AlignUp16(offset);
-
 			ShaderVariable var;
 			var.name = basename;
 			var.rows = var.columns = 0;
@@ -3216,9 +3215,6 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 			{
 				for(uint32_t i=0; i < elems; i++)
 				{
-					// each struct in the array is aligned
-					offset = AlignUp16(offset);
-
 					ShaderVariable vr;
 					vr.name = StringFormat::Fmt("%s[%u]", basename.c_str(), i);
 					vr.rows = vr.columns = 0;
@@ -3226,7 +3222,7 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 
 					vector<ShaderVariable> mems;
 
-					FillCBufferVariables(invars[v].type.members, mems, data, offset);
+					FillCBufferVariables(invars[v].type.members, mems, data);
 
 					vr.isStruct = true;
 
@@ -3241,7 +3237,7 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 			{
 				var.isStruct = true;
 
-				FillCBufferVariables(invars[v].type.members, varmembers, data, offset);
+				FillCBufferVariables(invars[v].type.members, varmembers, data);
 			}
 
 			{
@@ -3251,65 +3247,6 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 
 			continue;
 		}
-		
-		// NOTE this won't work as-is for doubles, the below logic
-		// assumes 32-bit values. This code will all go away anyway
-		// once offsets & strides are correctly listed per-element
-		size_t elemByteSize = sizeof(uint32_t);
-		size_t sz = elemByteSize;
-
-		// vector
-		if(cols == 1)
-		{
-			if(isArray)
-			{
-				// arrays are aligned to float4 boundary
-				offset = AlignUp16(offset);
-
-				// array elements are also aligned - note, last
-				// element only takes up however much space it would
-				// so e.g. a float3 array leaves one float at the end
-				// that could be there
-				sz *= 4*elems;
-				sz -= (4-rows)*elemByteSize;
-			}
-			else if(rows > 2)
-			{
-				// float3s and float4s are aligned
-				offset = AlignUp16(offset);
-				sz *= rows;
-			}
-		}
-		else
-		{
-			// matrices are aligned to float4 boundary
-			offset = AlignUp16(offset);
-
-			// matrices act like an array of vectors, whether they
-			// are an array or not. We just need to determine if
-			// those vectors are the matrix's rows, or its columns,
-			// and adjust number of elements - even a float2x2 is
-			// stored in two float4s.
-			if(rowMajor)
-			{
-				// account for array elems as well as columns.
-				// Note the last array elem can have space after
-				// it which can be filled with another element, so
-				// need to ensure the 'stride' accounts for that.
-				sz *= 4*elems*cols;
-				sz -= (4-rows)*elemByteSize;
-			}
-			else
-			{
-				sz *= 4*elems*rows;
-				sz -= (4-cols)*elemByteSize;
-			}
-		}
-		
-		// after alignment, this is where we'll read from
-		size_t dataOffset = offset;
-
-		offset += sz;
 
 		size_t outIdx = outvars.size();
 		outvars.resize(outvars.size()+1);
@@ -3320,6 +3257,10 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 			outvars[outIdx].type = invars[v].type.descriptor.type;
 			outvars[outIdx].isStruct = false;
 			outvars[outIdx].columns = cols;
+
+			size_t elemByteSize = 4;
+			if(outvars[outIdx].type == eVar_Double)
+				elemByteSize = 8;
 
 			ShaderVariable &var = outvars[outIdx];
 
@@ -3377,9 +3318,11 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 				
 				string base = outvars[outIdx].name.elems;
 
+				// primary is the 'major' direction
+				// so we copy secondaryDim number of primaryDim-sized elements
 				uint32_t primaryDim = cols;
 				uint32_t secondaryDim = rows;
-				if(rowMajor)
+				if(isMatrix && rowMajor)
 				{
 					primaryDim = rows;
 					secondaryDim = cols;
@@ -3393,7 +3336,9 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 					varmembers[e].isStruct = false;
 					varmembers[e].columns = cols;
 					
-					size_t rowDataOffset = dataOffset+e*primaryDim*4*elemByteSize;
+					size_t rowDataOffset = dataOffset;
+
+					dataOffset += invars[v].type.descriptor.arrayStride;
 
 					if(rowDataOffset < data.size())
 					{
@@ -3402,10 +3347,12 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 						// each primary element (row or column) is stored in a float4.
 						// we copy some padding here, but that will come out in the wash
 						// when we transpose
-						for(uint32_t p=0; p < primaryDim; p++)
+						for(uint32_t s=0; s < secondaryDim; s++)
 						{
-							memcpy(&(varmembers[e].value.uv[secondaryDim*p]), d + 4*elemByteSize*p,
-								RDCMIN(data.size()- rowDataOffset, elemByteSize*secondaryDim));
+							uint32_t matStride = primaryDim;
+							if(matStride == 3) matStride = 4;
+							memcpy(&(varmembers[e].value.uv[primaryDim*s]), d + matStride*elemByteSize*s,
+								RDCMIN(data.size() - rowDataOffset, elemByteSize*primaryDim));
 						}
 
 						if(!rowMajor)
@@ -3451,18 +3398,16 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
 
 	ConstantBlock &c = refl.ConstantBlocks[cbufSlot];
 
-	size_t zero = 0;
-
 	if(c.bufferBacked)
 	{
-		FillCBufferVariables(c.variables, outvars, data, zero);
+		FillCBufferVariables(c.variables, outvars, data);
 	}
 	else
 	{
 		vector<byte> pushdata;
 		pushdata.resize(sizeof(m_pDriver->m_RenderState.pushconsts));
 		memcpy(&pushdata[0], m_pDriver->m_RenderState.pushconsts, pushdata.size());
-		FillCBufferVariables(c.variables, outvars, pushdata, zero);
+		FillCBufferVariables(c.variables, outvars, pushdata);
 	}
 
 }

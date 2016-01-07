@@ -255,7 +255,7 @@ class VulkanReplay : public IReplayDriver
 
 		void CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm, VulkanCreationInfo::Image &iminfo);
 
-		void FillCBufferVariables(rdctype::array<ShaderConstant>, vector<ShaderVariable> &outvars, const vector<byte> &data, size_t &offset);
+		void FillCBufferVariables(rdctype::array<ShaderConstant>, vector<ShaderVariable> &outvars, const vector<byte> &data);
 		
 		// called before the VkDevice is destroyed, to shutdown any counters
 		void PreDeviceShutdownCounters();
