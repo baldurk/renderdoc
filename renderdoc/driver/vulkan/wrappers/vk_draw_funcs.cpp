@@ -171,6 +171,18 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 			draw.copyDestination = dstid;
 
 			AddDrawcall(draw, true);
+
+			VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+			
+			if(srcImage == destImage)
+			{
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(srcImage), EventUsage(drawNode.draw.eventID, eUsage_Resolve)));
+			}
+			else
+			{
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(srcImage), EventUsage(drawNode.draw.eventID, eUsage_ResolveSrc)));
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(destImage), EventUsage(drawNode.draw.eventID, eUsage_ResolveSrc)));
+			}
 		}
 	}
 
@@ -271,6 +283,18 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(
 			draw.copyDestination = dstid;
 
 			AddDrawcall(draw, true);
+
+			VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+			
+			if(srcImage == destImage)
+			{
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(srcImage), EventUsage(drawNode.draw.eventID, eUsage_Resolve)));
+			}
+			else
+			{
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(srcImage), EventUsage(drawNode.draw.eventID, eUsage_ResolveSrc)));
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(destImage), EventUsage(drawNode.draw.eventID, eUsage_ResolveDst)));
+			}
 		}
 	}
 
@@ -358,18 +382,30 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 
 		{
 			AddEvent(RESOLVE_IMG, desc);
-			string name = "vkCmdResolveImage(" +
+			string name = "vkCmdCopyImage(" +
 				ToStr::Get(srcid) + "," +
 				ToStr::Get(dstid) + ")";
 
 			FetchDrawcall draw;
 			draw.name = name;
-			draw.flags |= eDraw_Resolve;
+			draw.flags |= eDraw_Copy;
 
 			draw.copySource = srcid;
 			draw.copyDestination = dstid;
 
 			AddDrawcall(draw, true);
+
+			VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+			
+			if(srcImage == destImage)
+			{
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(srcImage), EventUsage(drawNode.draw.eventID, eUsage_Copy)));
+			}
+			else
+			{
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(srcImage), EventUsage(drawNode.draw.eventID, eUsage_CopySrc)));
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(destImage), EventUsage(drawNode.draw.eventID, eUsage_CopyDst)));
+			}
 		}
 	}
 
@@ -467,6 +503,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 			draw.copyDestination = imgid;
 
 			AddDrawcall(draw, true);
+
+			VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+			
+			drawNode.resourceUsage.push_back(std::make_pair(GetResID(srcBuffer), EventUsage(drawNode.draw.eventID, eUsage_CopySrc)));
+			drawNode.resourceUsage.push_back(std::make_pair(GetResID(destImage), EventUsage(drawNode.draw.eventID, eUsage_CopyDst)));
 		}
 	}
 
@@ -564,6 +605,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 			draw.copyDestination = bufid;
 
 			AddDrawcall(draw, true);
+
+			VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+			
+			drawNode.resourceUsage.push_back(std::make_pair(GetResID(srcImage), EventUsage(drawNode.draw.eventID, eUsage_CopySrc)));
+			drawNode.resourceUsage.push_back(std::make_pair(GetResID(destBuffer), EventUsage(drawNode.draw.eventID, eUsage_CopyDst)));
 		}
 	}
 
@@ -662,6 +708,18 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 			draw.copyDestination = dstid;
 
 			AddDrawcall(draw, true);
+
+			VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+			if(srcBuffer == destBuffer)
+			{
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(srcBuffer), EventUsage(drawNode.draw.eventID, eUsage_Copy)));
+			}
+			else
+			{
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(srcBuffer), EventUsage(drawNode.draw.eventID, eUsage_CopySrc)));
+				drawNode.resourceUsage.push_back(std::make_pair(GetResID(destBuffer), EventUsage(drawNode.draw.eventID, eUsage_CopyDst)));
+			}
 		}
 	}
 
@@ -755,6 +813,10 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 			draw.flags |= eDraw_Clear|eDraw_ClearColour;
 
 			AddDrawcall(draw, true);
+
+			VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+			drawNode.resourceUsage.push_back(std::make_pair(GetResID(image), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
 		}
 	}
 
@@ -839,6 +901,10 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 			draw.flags |= eDraw_Clear|eDraw_ClearDepthStencil;
 
 			AddDrawcall(draw, true);
+
+			VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+			drawNode.resourceUsage.push_back(std::make_pair(GetResID(image), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
 		}
 	}
 
@@ -928,6 +994,31 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(
 			}
 
 			AddDrawcall(draw, true);
+
+			VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+			const BakedCmdBufferInfo::CmdBufferState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
+			
+			if(state.renderPass != ResourceId() && state.framebuffer != ResourceId())
+			{
+				VulkanCreationInfo::RenderPass &rp = m_CreationInfo.m_RenderPass[state.renderPass];
+				VulkanCreationInfo::Framebuffer &fb = m_CreationInfo.m_Framebuffer[state.framebuffer];
+
+				RDCASSERT(state.subpass < rp.subpasses.size());
+
+				for(size_t i=0; i < rp.subpasses[state.subpass].colorAttachments.size(); i++)
+				{
+					uint32_t att = rp.subpasses[state.subpass].colorAttachments[i];
+					drawNode.resourceUsage.push_back(std::make_pair(m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
+					                                                EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+				}
+
+				if(draw.flags & eDraw_ClearDepthStencil && rp.subpasses[state.subpass].depthstencilAttachment >= 0)
+				{
+					int32_t att = rp.subpasses[state.subpass].depthstencilAttachment;
+					drawNode.resourceUsage.push_back(std::make_pair(m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
+					                                                EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+				}
+			}
 		}
 	}
 	
