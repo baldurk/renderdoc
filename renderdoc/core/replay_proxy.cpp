@@ -171,7 +171,7 @@ void Serialiser::Serialise(const char *name, ShaderConstant &el)
 	Serialise("", el.reg.comp);
 	Serialise("", el.type);
 
-	SIZE_CHECK(ShaderConstant, 52);
+	SIZE_CHECK(ShaderConstant, 56);
 }
 
 template<>
@@ -196,7 +196,7 @@ void Serialiser::Serialise(const char *name, ShaderResource &el)
 	Serialise("", el.variableType);
 	Serialise("", el.bindPoint);
 
-	SIZE_CHECK(ShaderResource, 64);
+	SIZE_CHECK(ShaderResource, 68);
 }
 
 template<>
@@ -466,7 +466,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState &el)
 	Serialise("", el.m_RS);
 	Serialise("", el.m_OM);
 
-	SIZE_CHECK(D3D11PipelineState, 1040);
+	SIZE_CHECK(D3D11PipelineState, 1048);
 }
 
 #pragma endregion D3D11 pipeline state
