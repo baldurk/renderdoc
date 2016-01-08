@@ -17,7 +17,12 @@
                       IncludeMaximum="yes"
                       Maximum="$(env.RENDERDOC_VERSION)"
                       Property="OLDERVERSIONBEINGUPGRADED" />
+      <UpgradeVersion OnlyDetect="yes" Property="NEWERVERSIONDETECTED" Minimum="$(env.RENDERDOC_VERSION)" IncludeMinimum="no" />
     </Upgrade>
+
+    <Condition Message="A later version of [ProductName] is already installed"> 
+      NOT NEWERVERSIONDETECTED
+    </Condition> 
 
     <Media Id='1' Cabinet='renderdoc.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
     <Property Id='DiskPrompt' Value="RenderDoc Installation [1]" />
