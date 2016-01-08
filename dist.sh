@@ -69,9 +69,9 @@ VERSION=`egrep "#define RENDERDOC_VERSION_(MAJOR|MINOR)" renderdoc/data/version.
 export RENDERDOC_VERSION="${VERSION}.0"
 
 /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.8/bin/candle.exe -o dist/Installer32.wixobj installer/Installer32.wxs
-/c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.8/bin/light.exe -ext WixUIExtension -sw1076 -o dist/Installer32.msi dist/Installer32.wixobj
+/c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.8/bin/light.exe -ext WixUIExtension -sw1076 -loc installer/customtext.wxl -o dist/Installer32.msi dist/Installer32.wixobj
 
 /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.8/bin/candle.exe -o dist/Installer64.wixobj installer/Installer64.wxs
-/c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.8/bin/light.exe -ext WixUIExtension -sw1076 -o dist/Installer64.msi dist/Installer64.wixobj
+/c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.8/bin/light.exe -ext WixUIExtension -sw1076 -loc installer/customtext.wxl -o dist/Installer64.msi dist/Installer64.wixobj
 
 rm dist/*.wixobj dist/*.wixpdb
