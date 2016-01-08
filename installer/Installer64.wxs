@@ -323,6 +323,9 @@
 
     <WixVariable Id="WixUILicenseRtf" Value="installer/LICENSE.rtf" />
 
+    <WixVariable Id="WixUIBannerBmp" Value="installer/bannrbmp.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="installer/dlgbmp.bmp" />
+
     <Icon Id="chm.ico"  SourceFile="installer/chm.ico" />
     <Icon Id="icon.ico" SourceFile="renderdocui/Resources/icon.ico" />
     <Property Id="ARPPRODUCTICON" Value="icon.ico" />
