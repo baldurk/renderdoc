@@ -909,7 +909,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Prepare
 		prepared++;
 
 #if VERBOSE_DIRTY_RESOURCES
-		RDCDEBUG("Dirty Resource %llu", id);
+		RDCDEBUG("Prepare Resource %llu", id);
 #endif
 
 		Prepare_InitialState(res);
@@ -941,6 +941,8 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 	uint32_t dirty = 0;
 	uint32_t skipped = 0;
 	
+	RDCDEBUG("Checking %u possibly dirty resources", (uint32_t)m_DirtyResources.size());
+
 	for(auto it=m_DirtyResources.begin(); it != m_DirtyResources.end(); ++it)
 	{
 		ResourceId id = *it;
@@ -949,21 +951,41 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 			 !RenderDoc::Inst().GetCaptureOptions().RefAllResources)
 		{
 #if VERBOSE_DIRTY_RESOURCES
-			RDCDEBUG("Resource %llu is GPU dirty but not referenced - skipping", id);
+			RDCDEBUG("Dirty tesource %llu is GPU dirty but not referenced - skipping", id);
 #endif
 			skipped++;
 			continue;
 		}
 		
-		if(!HasCurrentResource(id)) continue;
+		if(!HasCurrentResource(id))
+		{
+#if VERBOSE_DIRTY_RESOURCES
+			RDCDEBUG("Resource %llu no longer exists - skipping", id);
+#endif
+			continue;
+		}
 
 		RecordType *record = GetResourceRecord(id);
 		WrappedResourceType res = GetCurrentResource(id);
 
-		if(record == NULL || record->SpecialResource) continue;
+		if(record == NULL)
+		{
+#if VERBOSE_DIRTY_RESOURCES
+			RDCDEBUG("Resource %llu has no resource record - skipping", id);
+#endif
+			continue;
+		}
+
+		if(record->SpecialResource)
+		{
+#if VERBOSE_DIRTY_RESOURCES
+			RDCDEBUG("Resource %llu is special - skipping", id);
+#endif
+			continue;
+		}
 
 #if VERBOSE_DIRTY_RESOURCES
-		RDCDEBUG("Dirty Resource %llu", id);
+		RDCDEBUG("Serialising dirty Resource %llu", id);
 #endif
 
 		dirty++;
