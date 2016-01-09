@@ -1164,6 +1164,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
 		srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
+		srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(srcimBarrier.oldLayout);
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 	}
 

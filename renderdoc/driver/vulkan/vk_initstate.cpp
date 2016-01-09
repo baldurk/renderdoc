@@ -1949,7 +1949,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			// first update the live image layout into destination optimal (the initial state
 			// image is always and permanently in source optimal already).
 			dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			dstimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
 			dstimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
 			void *barrier = (void *)&dstimBarrier;
@@ -1957,6 +1956,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 			{
 				dstimBarrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+				dstimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(dstimBarrier.oldLayout);
 				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 			}
 			
