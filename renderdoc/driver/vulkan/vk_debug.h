@@ -152,7 +152,6 @@ class VulkanDebugManager
 			VulkanResourceManager *m_ResourceManager;
 		};
 
-		// VKTODOLOW make this all private/wrapped up
 		VkDescriptorPool m_DescriptorPool;
 		VkSampler m_LinearSampler, m_PointSampler;
 

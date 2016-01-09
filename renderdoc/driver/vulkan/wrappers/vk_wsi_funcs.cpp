@@ -623,8 +623,6 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 			SubmitCmds();
 
-			// VKTODOLOW once we have a more sophisticated way of re-using submitted command
-			// buffers once they've executed and are safe to recycle, this can be removed
 			FlushQ();
 		}
 	}

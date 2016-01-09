@@ -238,7 +238,6 @@ string VulkanDebugManager::GetSPIRVBlob(SPIRVShaderStage shadType, const std::ve
 
 VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 {
-	// VKTODOLOW needs tidy up - isn't scalable. Needs more classes like UBO above.
 	m_pDriver = driver;
 	m_State = m_pDriver->GetState();
 

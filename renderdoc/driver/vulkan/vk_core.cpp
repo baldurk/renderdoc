@@ -450,7 +450,10 @@ void WrappedVulkan::SubmitSemaphores()
 void WrappedVulkan::FlushQ()
 {
 	// VKTODOLOW could do away with the need for this function by keeping
-	// commands until N presents later, or something, or checking on fences
+	// commands until N presents later, or something, or checking on fences.
+	// If we do so, then check each use for FlushQ to see if it needs a
+	// CPU-GPU sync or whether it is just looking to recycle command buffers
+	// (Particularly the one in vkQueuePresentKHR drawing the overlay)
 
 	ObjDisp(m_Queue)->QueueWaitIdle(Unwrap(m_Queue));
 
