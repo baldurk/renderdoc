@@ -78,7 +78,7 @@ void VulkanResourceManager::RecordSingleBarrier(vector< pair<ResourceId, ImageRe
 				it->second.subresourceRange.layerCount == numslices)
 			{
 				// verify
-				//RDCASSERT(it->second.state == t.oldLayout);
+				//RDCASSERT(it->second.newLayout == t.oldLayout);
 
 				// apply it (prevstate is from the start of all barriers accumulated, so only set once)
 				if(it->second.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
@@ -367,9 +367,9 @@ void VulkanResourceManager::ApplyBarriers(vector< pair<ResourceId, ImageRegionSt
 				   it->subresourceRange.layerCount == numslices)
 				{
 					/*
-					RDCASSERT(t.prevstate == UNKNOWN_PREV_IMG_LAYOUT || it->state == UNKNOWN_PREV_IMG_LAYOUT || // renderdoc untracked/ignored
-					          it->state == t.prevstate || // valid barrier
-										t.prevstate == VK_IMAGE_LAYOUT_UNDEFINED); // can barrier from UNDEFINED to any state
+					RDCASSERT(t.oldLayout == UNKNOWN_PREV_IMG_LAYOUT || it->newLayout == UNKNOWN_PREV_IMG_LAYOUT || // renderdoc untracked/ignored
+					          it->newLayout == t.oldLayout || // valid barrier
+										t.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED); // can barrier from UNDEFINED to any state
 					*/
 					t.oldLayout = it->newLayout;
 					it->newLayout = t.newLayout;
