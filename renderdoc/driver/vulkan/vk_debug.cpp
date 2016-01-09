@@ -3119,6 +3119,101 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			m_pDriver->vkDestroyFramebuffer(m_Device, depthFB, NULL);
 		}
 	}
+	else if(overlay == eTexOverlay_ClearBeforeDraw || overlay == eTexOverlay_ClearBeforePass)
+	{
+		// clear the overlay image itself
+		float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+
+		vector<uint32_t> events = passEvents;
+
+		if(overlay == eTexOverlay_ClearBeforeDraw)
+			events.clear();
+
+		events.push_back(eventID);
+
+		{
+			vkr = vt->EndCommandBuffer(Unwrap(cmd));
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			size_t startEvent = 0;
+
+			// if we're ClearBeforePass the first event will be a vkBeginRenderPass.
+			// if there are any other events, we need to play up to right before them
+			// so that we have all the render state set up to do
+			// BeginRenderPassAndApplyState and a clear. If it's just the begin, we
+			// just play including it, do the clear, then we won't replay anything
+			// in the loop below
+			if(overlay == eTexOverlay_ClearBeforePass)
+			{
+				const FetchDrawcall *draw = m_pDriver->GetDrawcall(frameID, events[0]);
+				if(draw && draw->flags & eDraw_BeginPass)
+				{
+					if(events.size() == 1)
+					{
+						m_pDriver->ReplayLog(frameID, 0, events[0], eReplay_Full);
+					}
+					else
+					{
+						startEvent = 1;
+						m_pDriver->ReplayLog(frameID, 0, events[1], eReplay_WithoutDraw);
+					}
+				}
+			}
+			else
+			{
+				m_pDriver->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+			}
+
+			cmd = m_pDriver->GetNextCmd();
+
+			vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			m_pDriver->m_RenderState.BeginRenderPassAndApplyState(cmd);
+
+			VkClearAttachment blackclear = {
+				VK_IMAGE_ASPECT_COLOR_BIT, 0,
+				{ 0.0f, 0.0f, 0.0f, 0.0f }
+			};
+			vector<VkClearAttachment> atts;
+
+			VulkanCreationInfo::Framebuffer &fb = m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.framebuffer];
+			VulkanCreationInfo::RenderPass &rp = m_pDriver->m_CreationInfo.m_RenderPass[m_pDriver->m_RenderState.renderPass];
+
+			for(size_t i=0; i < rp.subpasses[m_pDriver->m_RenderState.subpass].colorAttachments.size(); i++)
+			{
+				blackclear.colorAttachment = rp.subpasses[m_pDriver->m_RenderState.subpass].colorAttachments[i];
+				atts.push_back(blackclear);
+			}
+
+			VkClearRect rect = {
+				{
+					{ 0, 0 },
+					{ fb.width, fb.height },
+				},
+				0, 1,
+			};
+
+			vt->CmdClearAttachments(Unwrap(cmd), (uint32_t)atts.size(), &atts[0], 1, &rect);
+
+			vkr = vt->EndCommandBuffer(Unwrap(cmd));
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			for(size_t i = startEvent; i < events.size(); i++)
+			{
+				m_pDriver->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+				if(overlay == eTexOverlay_ClearBeforePass && i+1 < events.size())
+					m_pDriver->ReplayLog(frameID, events[i]+1, events[i+1], eReplay_WithoutDraw);
+			}
+
+			cmd = m_pDriver->GetNextCmd();
+
+			vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+			RDCASSERT(vkr == VK_SUCCESS);
+		}
+	}
 	else if(overlay == eTexOverlay_QuadOverdrawPass || overlay == eTexOverlay_QuadOverdrawDraw)
 	{
 		VulkanRenderState prevstate = m_pDriver->m_RenderState;

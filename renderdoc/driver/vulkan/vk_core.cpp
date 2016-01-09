@@ -1854,6 +1854,8 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 		}
 
 		VkResult vkr = VK_SUCCESS;
+
+		bool rpWasActive = false;
 		
 		// we'll need our own command buffer if we're replaying just a subsection
 		// of events within a single command buffer record - always if it's only
@@ -1867,6 +1869,15 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 
 			vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 			RDCASSERT(vkr == VK_SUCCESS);
+
+			rpWasActive = m_PartialReplayData.renderPassActive;
+
+			// if a render pass was active, begin it and set up the partial replay state
+			if(m_PartialReplayData.renderPassActive)
+				m_RenderState.BeginRenderPassAndApplyState(cmd);
+			// if we had a compute pipeline, need to bind that
+			else if(m_RenderState.compute.pipeline != ResourceId())
+				m_RenderState.BindPipeline(cmd);
 		}
 
 		if(replayType == eReplay_Full)
@@ -1879,18 +1890,14 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 		}
 		else if(replayType == eReplay_OnlyDraw)
 		{
-			VkCommandBuffer cmd = m_PartialReplayData.outsideCmdBuffer;
-
-			bool rpWasActive = m_PartialReplayData.renderPassActive;
-
-			// if a render pass was active, begin it and set up the partial replay state
-			if(m_PartialReplayData.renderPassActive)
-				m_RenderState.BeginRenderPassAndApplyState(cmd);
-			// if we had a compute pipeline, need to bind that
-			else if(m_RenderState.compute.pipeline != ResourceId())
-				m_RenderState.BindPipeline(cmd);
-
 			ContextReplayLog(EXECUTING, endEventID, endEventID, partial);
+		}
+		else
+			RDCFATAL("Unexpected replay type");
+
+		if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
+		{
+			VkCommandBuffer cmd = m_PartialReplayData.outsideCmdBuffer;
 
 			// check if the render pass is active - it could have become active
 			// even if it wasn't before (if the above event was a CmdBeginRenderPass)
@@ -1901,13 +1908,6 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			// but we want to keep the partial replay data state intact, so restore
 			// whether or not a render pass was active.
 			m_PartialReplayData.renderPassActive = rpWasActive;
-		}
-		else
-			RDCFATAL("Unexpected replay type");
-
-		if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
-		{
-			VkCommandBuffer cmd = m_PartialReplayData.outsideCmdBuffer;
 
 			ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 
