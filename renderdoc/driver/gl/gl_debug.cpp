@@ -2067,25 +2067,20 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		if(!events.empty())
 		{
 			if(overlay == eTexOverlay_ClearBeforePass)
-				ReplayLog(frameID, events[0], eReplay_WithoutDraw);
+				m_pDriver->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
 			else
 				gl.glBindFramebuffer(eGL_FRAMEBUFFER, rs.DrawFBO); // if we don't replay the real state, restore drawFBO to clear it
-			
+
 			float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 			for(int i=0; i < 8; i++)
 				gl.glClearBufferfv(eGL_COLOR, i, black);
 
 			for(size_t i=0; i < events.size(); i++)
 			{
-				ReplayLog(frameID, events[i], eReplay_OnlyDraw);
+				m_pDriver->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
 
-				if(overlay == eTexOverlay_ClearBeforePass)
-				{
-					ReplayLog(frameID, events[i], eReplay_OnlyDraw);
-
-					if(i+1 < events.size())
-						ReplayLog(frameID, events[i+1], eReplay_WithoutDraw);
-				}
+				if(overlay == eTexOverlay_ClearBeforePass && i+1 < events.size())
+					m_pDriver->ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
 			}
 		}
 	}
