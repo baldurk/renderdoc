@@ -1927,9 +1927,17 @@ VkBool32 WrappedVulkan::DebugCallback(
 				const char*         pLayerPrefix,
 				const char*         pMsg)
 {
+	// VKTODOHIGH once on new layers, location will be unique enough
+
 	// msgCode isn't fine grained enough to ignore just this one type of message
-	if(pLayerPrefix[0] == 'D' && pLayerPrefix[1] == 'S' && string(pMsg).find("Additional bits in accessMask") != string::npos)
-		return false;
+	if(pLayerPrefix[0] == 'D' && pLayerPrefix[1] == 'S')
+	{
+		string msg(pMsg);
+		if(msg.find("Additional bits in accessMask") != string::npos)
+			return false;
+		if(msg.find("It is recommended you use RenderPass LOAD_OP_CLEAR") != string::npos)
+			return false;
+	}
 
 	RDCWARN("[%s] %s", pLayerPrefix, pMsg);
 	return false;

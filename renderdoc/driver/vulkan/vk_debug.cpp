@@ -540,6 +540,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 128, },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 128, },
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 128, },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 128, },
 	};
 	
 	VkDescriptorPoolCreateInfo descpoolInfo = {
@@ -4518,7 +4519,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// create buffer with unique 0-based indices
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
-			indices.size()*sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			indices.size()*sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT|VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		};
 
 		vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &uniqIdxBuf);

@@ -1476,7 +1476,7 @@ FloatVector VulkanReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay
 
 void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
-	if(cfg.position.buf == ResourceId())
+	if(cfg.position.buf == ResourceId() || cfg.position.numVerts == 0)
 		return;
 	
 	auto it = m_OutputWindows.find(m_ActiveWinID);
@@ -2548,6 +2548,9 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	
+	outw.bbBarrier.srcAccessMask = outw.bbBarrier.dstAccessMask;
+	outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 }
