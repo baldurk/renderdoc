@@ -970,7 +970,7 @@ void WrappedID3D11Device::ProcessChunk(uint64_t offset, D3D11ChunkType context)
 	default:
 		// ignore system chunks
 		if(context == INITIAL_CONTENTS)
-			Serialise_InitialState(NULL);
+			Serialise_InitialState(ResourceId(), NULL);
 		else if(context < FIRST_CHUNK_ID)
 			m_pSerialiser->SkipCurrentChunk();
 		else
@@ -1321,7 +1321,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 	return true;
 }
 
-bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
+bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceChild *res)
 {
 	ResourceType type = Resource_Unknown;
 	ResourceId Id = ResourceId();

@@ -1796,7 +1796,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	default:
 		// ignore system chunks
 		if((int)context == (int)INITIAL_CONTENTS)
-			Serialise_InitialState(NULL);
+			Serialise_InitialState(ResourceId(), NULL);
 		else if((int)context < (int)FIRST_CHUNK_ID)
 			m_pSerialiser->SkipCurrentChunk();
 		else

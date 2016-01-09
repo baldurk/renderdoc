@@ -106,9 +106,9 @@ bool D3D11ResourceManager::Prepare_InitialState(ID3D11DeviceChild *res)
 	return m_Device->Prepare_InitialState(res);
 }
 
-bool D3D11ResourceManager::Serialise_InitialState(ID3D11DeviceChild *res)
+bool D3D11ResourceManager::Serialise_InitialState(ResourceId id, ID3D11DeviceChild *res)
 {
-	return m_Device->Serialise_InitialState(res);
+	return m_Device->Serialise_InitialState(id, res);
 }
 
 void D3D11ResourceManager::Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData)

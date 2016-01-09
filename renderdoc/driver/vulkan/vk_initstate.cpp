@@ -377,7 +377,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 	return true;
 }
 
-bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents)
+bool WrappedVulkan::Serialise_SparseBufferInitialState(ResourceId id, VulkanResourceManager::InitialContentData contents)
 {
 	if(m_State >= WRITING)
 	{
@@ -502,7 +502,7 @@ bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer 
 	return true;
 }
 
-bool WrappedVulkan::Serialise_SparseInitialState(ResourceId id, WrappedVkImage *im, VulkanResourceManager::InitialContentData contents)
+bool WrappedVulkan::Serialise_SparseImageInitialState(ResourceId id, VulkanResourceManager::InitialContentData contents)
 {
 	if(m_State >= WRITING)
 	{
@@ -1201,15 +1201,20 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 	return false;
 }
 
-bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
+// second parameter isn't used, as we might be serialising init state for a deleted resource
+bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 {
 	// use same serialiser as resource manager
 	Serialiser *localSerialiser = GetMainSerialiser();
+	
+	VkResourceRecord *record = NULL;
+	if(m_State >= WRITING)
+		record = GetResourceManager()->GetResourceRecord(resid);
 
-	SERIALISE_ELEMENT(VkResourceType, type, IdentifyTypeByPtr(res));
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(res));
-
-	if(m_State < WRITING) res = GetResourceManager()->GetLiveResource(id);
+	// use the record's resource, not the one passed in, because the passed in one
+	// might be null if it was deleted
+	SERIALISE_ELEMENT(VkResourceType, type, IdentifyTypeByPtr(record->Resource));
+	SERIALISE_ELEMENT(ResourceId, id, resid);
 	
 	if(m_State >= WRITING)
 	{
@@ -1217,7 +1222,6 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 		if(type == eResDescriptorSet)
 		{
-			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
 			RDCASSERT(record->descInfo && record->descInfo->layout);
 			const DescSetLayout &layout = *record->descInfo->layout;
 
@@ -1231,7 +1235,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 		}
 		else if(type == eResBuffer)
 		{
-			return Serialise_SparseInitialState(id, (WrappedVkBuffer *)res, initContents);
+			return Serialise_SparseBufferInitialState(id, initContents);
 		}
 		else if(type == eResDeviceMemory || type == eResImage)
 		{
@@ -1245,7 +1249,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			{
 				// contains page mapping
 				RDCASSERT(type == eResImage);
-				return Serialise_SparseInitialState(id, (WrappedVkImage *)res, initContents);
+				return Serialise_SparseImageInitialState(id, initContents);
 			}
 			
 			byte *ptr = NULL;
@@ -1265,6 +1269,8 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 	}
 	else
 	{
+		WrappedVkRes *res = GetResourceManager()->GetLiveResource(id);
+	
 		RDCASSERT(res != NULL);
 
 		ResourceId liveid = GetResourceManager()->GetLiveID(id);
@@ -1417,7 +1423,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 		}
 		else if(type == eResBuffer)
 		{
-			return Serialise_SparseInitialState(id, (WrappedVkBuffer *)NULL, VulkanResourceManager::InitialContentData());
+			return Serialise_SparseBufferInitialState(id, VulkanResourceManager::InitialContentData());
 		}
 		else if(type == eResImage)
 		{
@@ -1426,7 +1432,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			if(isSparse)
 			{
-				return Serialise_SparseInitialState(id, (WrappedVkImage *)NULL, VulkanResourceManager::InitialContentData());
+				return Serialise_SparseImageInitialState(id, VulkanResourceManager::InitialContentData());
 			}
 
 			uint32_t dataSize = 0;

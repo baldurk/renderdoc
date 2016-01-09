@@ -804,7 +804,7 @@ bool GLResourceManager::Force_InitialState(GLResource res)
 	return false;
 }
 
-bool GLResourceManager::Serialise_InitialState(GLResource res)
+bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 {
 	ResourceId Id = ResourceId();
 

@@ -322,7 +322,7 @@ public:
 	// log replaying
 	
 	bool Prepare_InitialState(ID3D11DeviceChild *res);
-	bool Serialise_InitialState(ID3D11DeviceChild *res);
+	bool Serialise_InitialState(ResourceId resid, ID3D11DeviceChild *res);
 	void Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData);
 	void Apply_InitialState(ID3D11DeviceChild *live, D3D11ResourceManager::InitialContentData initial);
 

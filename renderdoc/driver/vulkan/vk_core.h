@@ -462,8 +462,8 @@ private:
 
 	bool Prepare_SparseInitialState(WrappedVkBuffer *buf);
 	bool Prepare_SparseInitialState(WrappedVkImage *im);
-	bool Serialise_SparseInitialState(ResourceId id, WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents);
-	bool Serialise_SparseInitialState(ResourceId id, WrappedVkImage *im, VulkanResourceManager::InitialContentData contents);
+	bool Serialise_SparseBufferInitialState(ResourceId id, VulkanResourceManager::InitialContentData contents);
+	bool Serialise_SparseImageInitialState(ResourceId id, VulkanResourceManager::InitialContentData contents);
 	bool Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourceManager::InitialContentData contents);
 	bool Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceManager::InitialContentData contents);
 
@@ -539,7 +539,7 @@ public:
 	
 	// replay interface
 	bool Prepare_InitialState(WrappedVkRes *res);
-	bool Serialise_InitialState(WrappedVkRes *res);
+	bool Serialise_InitialState(ResourceId resid, WrappedVkRes *res);
 	void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
 	void Apply_InitialState(WrappedVkRes *live, VulkanResourceManager::InitialContentData initial);
 

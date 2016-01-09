@@ -428,9 +428,10 @@ class ResourceManager : public ResourceRecordHandler
 		virtual bool ResourceTypeRelease(WrappedResourceType res) = 0;
 
 		virtual bool Force_InitialState(WrappedResourceType res) = 0;
+		virtual bool AllowDeletedResource_InitialState() { return false; }
 		virtual bool Need_InitialStateChunk(WrappedResourceType res) = 0;
 		virtual bool Prepare_InitialState(WrappedResourceType res) = 0;
-		virtual bool Serialise_InitialState(WrappedResourceType res) = 0;
+		virtual bool Serialise_InitialState(ResourceId id, WrappedResourceType res) = 0;
 		virtual void Create_InitialState(ResourceId id, WrappedResourceType live, bool hasData) = 0;
 		virtual void Apply_InitialState(WrappedResourceType live, InitialContentData initial) = 0;
 
@@ -956,8 +957,11 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 			skipped++;
 			continue;
 		}
+
+		WrappedResourceType res = (WrappedResourceType)RecordType::NullResource;
+		bool isAlive = HasCurrentResource(id);
 		
-		if(!HasCurrentResource(id))
+		if(!AllowDeletedResource_InitialState() && !isAlive)
 		{
 #if VERBOSE_DIRTY_RESOURCES
 			RDCDEBUG("Resource %llu no longer exists - skipping", id);
@@ -965,8 +969,10 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 			continue;
 		}
 
+		if(isAlive)
+			res = GetCurrentResource(id);
+
 		RecordType *record = GetResourceRecord(id);
-		WrappedResourceType res = GetCurrentResource(id);
 
 		if(record == NULL)
 		{
@@ -993,7 +999,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 		if(!Need_InitialStateChunk(res))
 		{
 			// just need to grab data, don't create chunk
-			Serialise_InitialState(res);
+			Serialise_InitialState(id, res);
 			continue;
 		}
 
@@ -1007,7 +1013,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 		{
 			ScopedContext scope(m_pSerialiser, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
 
-			Serialise_InitialState(res);
+			Serialise_InitialState(id, res);
 
 			fileSerialiser->Insert(scope.Get(true));
 		}
@@ -1035,7 +1041,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 			{
 				ScopedContext scope(m_pSerialiser, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
 
-				Serialise_InitialState(it->second);
+				Serialise_InitialState(it->first, it->second);
 
 				fileSerialiser->Insert(scope.Get(true));
 			}

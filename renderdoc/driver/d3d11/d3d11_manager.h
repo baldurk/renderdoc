@@ -196,7 +196,7 @@ class D3D11ResourceManager : public ResourceManager<ID3D11DeviceChild*, ID3D11De
 		bool Force_InitialState(ID3D11DeviceChild *res);
 		bool Need_InitialStateChunk(ID3D11DeviceChild *res);
 		bool Prepare_InitialState(ID3D11DeviceChild *res);
-		bool Serialise_InitialState(ID3D11DeviceChild *res);
+		bool Serialise_InitialState(ResourceId resid, ID3D11DeviceChild *res);
 		void Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData);
 		void Apply_InitialState(ID3D11DeviceChild *live, InitialContentData data);
 

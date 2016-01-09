@@ -489,9 +489,9 @@ bool VulkanResourceManager::Prepare_InitialState(WrappedVkRes *res)
 	return m_Core->Prepare_InitialState(res);
 }
 
-bool VulkanResourceManager::Serialise_InitialState(WrappedVkRes *res)
+bool VulkanResourceManager::Serialise_InitialState(ResourceId resid, WrappedVkRes *res)
 {
-	return m_Core->Serialise_InitialState(res);
+	return m_Core->Serialise_InitialState(resid, res);
 }
 
 void VulkanResourceManager::Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData)

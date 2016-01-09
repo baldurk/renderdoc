@@ -221,7 +221,7 @@ class GLResourceManager : public ResourceManager<GLResource, GLResource, GLResou
 		void MarkFBOReferenced(GLResource res, FrameRefType ref);
 
 		bool Prepare_InitialState(GLResource res, byte *blob);
-		bool Serialise_InitialState(GLResource res);
+		bool Serialise_InitialState(ResourceId resid, GLResource res);
 
 	private:
 		bool SerialisableResource(ResourceId id, GLResourceRecord *record);
