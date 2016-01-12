@@ -1046,6 +1046,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		
 		for (size_t si = 0; si < layout->subresourceStates.size(); si++)
 		{
+			srcimBarrier.subresourceRange = layout->subresourceStates[si].subresourceRange;
 			srcimBarrier.oldLayout = layout->subresourceStates[si].newLayout;
 			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 		}
@@ -1094,6 +1095,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		
 		for (size_t si = 0; si < layout->subresourceStates.size(); si++)
 		{
+			srcimBarrier.subresourceRange = layout->subresourceStates[si].subresourceRange;
 			srcimBarrier.newLayout = layout->subresourceStates[si].newLayout;
 			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 		}
@@ -1830,6 +1832,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 				for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 				{
+					barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 					barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 				}
@@ -1847,6 +1850,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 				for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 				{
+					barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 					barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 					barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
 					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
@@ -1880,6 +1884,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 				for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 				{
+					barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 					barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 				}
@@ -1897,6 +1902,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 				for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 				{
+					barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 					barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
 				}
@@ -1957,6 +1963,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 			for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 			{
+				dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 				dstimBarrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 				dstimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(dstimBarrier.oldLayout);
 				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
@@ -1976,6 +1983,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			
 			for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 			{
+				dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 				dstimBarrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 				dstimBarrier.dstAccessMask |= MakeAccessMask(dstimBarrier.newLayout);
 				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);

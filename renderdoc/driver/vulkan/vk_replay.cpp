@@ -1165,6 +1165,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
+		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
 		srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(srcimBarrier.oldLayout);
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
@@ -1198,6 +1199,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
+		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
 		srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
@@ -3545,6 +3547,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
+		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 	}
@@ -3574,6 +3577,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	// image layout back to normal
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
+		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
 		srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
@@ -3749,6 +3753,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
+		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 	}
@@ -3780,6 +3785,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	// image layout back to normal
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
+		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
 		srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
 		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
@@ -4176,6 +4182,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
 		for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 		{
+			srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 			srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
 			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 		}
@@ -4198,6 +4205,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		// image layout back to normal
 		for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 		{
+			srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 			srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
 			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 		}
@@ -4246,6 +4254,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
 		for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 		{
+			srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 			srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
 			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 		}
@@ -4297,6 +4306,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		// image layout back to normal
 		for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 		{
+			srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 			srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
 			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 		}
