@@ -386,7 +386,6 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
             correct = false;
             infoSink.info.message(EPrefixError, "#version: compute shaders require es profile with version 310 or above, or non-es profile with version 420 or above");
             version = profile == EEsProfile ? 310 : 430; // 420 supports the extension, correction is to 430 which does not
-            profile = ECoreProfile;
         }
         break;
     default:

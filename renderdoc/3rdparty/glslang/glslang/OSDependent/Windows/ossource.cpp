@@ -32,7 +32,7 @@
 //POSSIBILITY OF SUCH DAMAGE.
 //
 
-#include "osinclude.h"
+#include "../osinclude.h"
 
 #define STRICT
 #define VC_EXTRALEAN 1
@@ -41,6 +41,7 @@
 #include <process.h>
 #include <psapi.h>
 #include <stdio.h>
+#include <stdint.h>
 
 //
 // This file contains contains the Window-OS-specific functions
@@ -51,6 +52,16 @@
 #endif
 
 namespace glslang {
+
+inline OS_TLSIndex ToGenericTLSIndex (DWORD handle)
+{
+	return (OS_TLSIndex)((uintptr_t)handle + 1);
+}
+
+inline DWORD ToNativeTLSIndex (OS_TLSIndex nIndex)
+{
+	return (DWORD)((uintptr_t)nIndex - 1);
+}
 
 //
 // Thread Local Storage Operations
@@ -63,7 +74,7 @@ OS_TLSIndex OS_AllocTLSIndex()
 		return OS_INVALID_TLS_INDEX;
 	}
 
-	return dwIndex;
+	return ToGenericTLSIndex(dwIndex);
 }
 
 
@@ -74,7 +85,7 @@ bool OS_SetTLSValue(OS_TLSIndex nIndex, void *lpvValue)
 		return false;
 	}
 
-	if (TlsSetValue(nIndex, lpvValue))
+	if (TlsSetValue(ToNativeTLSIndex(nIndex), lpvValue))
 		return true;
 	else
 		return false;
@@ -83,7 +94,7 @@ bool OS_SetTLSValue(OS_TLSIndex nIndex, void *lpvValue)
 void* OS_GetTLSValue(OS_TLSIndex nIndex)
 {
 	assert(nIndex != OS_INVALID_TLS_INDEX);
-	return TlsGetValue(nIndex);
+	return TlsGetValue(ToNativeTLSIndex(nIndex));
 }
 
 bool OS_FreeTLSIndex(OS_TLSIndex nIndex)
@@ -93,7 +104,7 @@ bool OS_FreeTLSIndex(OS_TLSIndex nIndex)
 		return false;
 	}
 
-	if (TlsFree(nIndex))
+	if (TlsFree(ToNativeTLSIndex(nIndex)))
 		return true;
 	else
 		return false;
@@ -116,10 +127,14 @@ void ReleaseGlobalLock()
     ReleaseMutex(GlobalLock);
 }
 
+unsigned int __stdcall EnterGenericThread (void* entry)
+{
+	return ((TThreadEntrypoint)entry)(0);
+}
+
 void* OS_CreateThread(TThreadEntrypoint entry)
 {
-    return (void*)_beginthreadex(0, 0, entry, 0, 0, 0);
-    //return CreateThread(0, 0, entry, 0, 0, 0);
+    return (void*)_beginthreadex(0, 0, EnterGenericThread, entry, 0, 0);
 }
 
 void OS_WaitForAllThreads(void* threads, int numThreads)

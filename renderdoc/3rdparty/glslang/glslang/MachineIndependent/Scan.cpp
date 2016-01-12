@@ -293,10 +293,33 @@ int yylex(YYSTYPE* glslangTokenDesc, glslang::TParseContext& parseContext)
 
 namespace {
 
+struct str_eq
+{
+    bool operator()(const char* lhs, const char* rhs) const
+    {
+        return strcmp(lhs, rhs) == 0;
+    }
+};
+
+struct str_hash
+{
+    size_t operator()(const char* str) const
+    {
+        // djb2
+        unsigned long hash = 5381;
+        int c;
+
+        while ((c = *str++))
+            hash = ((hash << 5) + hash) + c;
+
+        return hash;
+    }
+};
+
 // A single global usable by all threads, by all versions, by all languages.
 // After a single process-level initialization, this is read only and thread safe
-std::unordered_map<std::string, int>* KeywordMap = nullptr;
-std::unordered_set<std::string>* ReservedSet = nullptr;
+std::unordered_map<const char*, int, str_hash, str_eq>* KeywordMap = nullptr;
+std::unordered_set<const char*, str_hash, str_eq>* ReservedSet = nullptr;
 
 };
 
@@ -309,7 +332,7 @@ void TScanContext::fillInKeywordMap()
         // but, the only risk is if two threads called simultaneously
         return;
     }
-    KeywordMap = new std::unordered_map<std::string, int>;
+    KeywordMap = new std::unordered_map<const char*, int, str_hash, str_eq>;
 
     (*KeywordMap)["const"] =                   CONST;
     (*KeywordMap)["uniform"] =                 UNIFORM;
@@ -481,7 +504,7 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["resource"] =                RESOURCE;
     (*KeywordMap)["superp"] =                  SUPERP;
 
-    ReservedSet = new std::unordered_set<std::string>;
+    ReservedSet = new std::unordered_set<const char*, str_hash, str_eq>;
     
     ReservedSet->insert("common");
     ReservedSet->insert("partition");

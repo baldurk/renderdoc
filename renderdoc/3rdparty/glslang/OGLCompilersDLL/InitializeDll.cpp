@@ -74,7 +74,12 @@ bool InitProcess()
         return false;
     }
 
-    InitThread();
+    if (! InitThread()) {
+        assert(0 && "InitProcess(): Failed to initialize thread");
+
+        glslang::ReleaseGlobalLock();
+        return false;
+    }
 
     glslang::ReleaseGlobalLock();
     return true;

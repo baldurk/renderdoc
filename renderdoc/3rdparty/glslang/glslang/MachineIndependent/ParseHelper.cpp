@@ -518,8 +518,9 @@ TIntermTyped* TParseContext::handleBracketDereference(const TSourceLoc& loc, TIn
                     requireProfile(base->getLoc(), ~EEsProfile, "variable indexing buffer block array");
                 else if (base->getQualifier().storage == EvqUniform)
                     profileRequires(base->getLoc(), EEsProfile, 0, Num_AEP_gpu_shader5, AEP_gpu_shader5, "variable indexing uniform block array");
-                else
-                    requireProfile(base->getLoc(), ~EEsProfile, "variable indexing in/out block array");
+                else {
+                    // input/output blocks either don't exist or can be variable indexed
+                }
             } else if (language == EShLangFragment && base->getQualifier().isPipeOutput())
                 requireProfile(base->getLoc(), ~EEsProfile, "variable indexing fragment shader ouput array");
             else if (base->getBasicType() == EbtSampler && version >= 130) {
@@ -661,7 +662,7 @@ void TParseContext::handleIoResizeArrayAccess(const TSourceLoc& /*loc*/, TInterm
     // fix array size, if it can be fixed and needs to be fixed (will allow variable indexing)
     if (symbolNode->getType().isImplicitlySizedArray()) {
         int newSize = getIoArrayImplicitSize();
-        if (newSize)
+        if (newSize > 0)
             symbolNode->getWritableType().changeOuterArraySize(newSize);
     }
 }
@@ -702,7 +703,7 @@ int TParseContext::getIoArrayImplicitSize() const
     if (language == EShLangGeometry)
         return TQualifier::mapGeometryToSize(intermediate.getInputPrimitive());
     else if (language == EShLangTessControl)
-        return intermediate.getVertices();
+        return intermediate.getVertices() != TQualifier::layoutNotSet ? intermediate.getVertices() : 0;
     else
         return 0;
 }
@@ -1871,6 +1872,21 @@ bool TParseContext::lValueErrorCheck(const TSourceLoc& loc, const char* op, TInt
         switch(binaryNode->getOp()) {
         case EOpIndexDirect:
         case EOpIndexIndirect:
+            // ...  tessellation control shader ...
+            // If a per-vertex output variable is used as an l-value, it is a
+            // compile-time or link-time error if the expression indicating the
+            // vertex index is not the identifier gl_InvocationID.
+            if (language == EShLangTessControl) {
+                const TType& leftType = binaryNode->getLeft()->getType();
+                if (leftType.getQualifier().storage == EvqVaryingOut && ! leftType.getQualifier().patch && binaryNode->getLeft()->getAsSymbolNode()) {
+                    // we have a per-vertex output
+                    const TIntermSymbol* rightSymbol = binaryNode->getRight()->getAsSymbolNode();
+                    if (! rightSymbol || rightSymbol->getQualifier().builtIn != EbvInvocationId)
+                        error(loc, "tessellation-control per-vertex output l-value must be indexed with gl_InvocationID", "[]", "");
+                }
+            }
+
+            // fall through
         case EOpIndexDirectStruct:
             return lValueErrorCheck(loc, op, binaryNode->getLeft());
         case EOpVectorSwizzle:
@@ -2399,9 +2415,14 @@ void TParseContext::globalQualifierTypeCheck(const TSourceLoc& loc, const TQuali
         return;
     }
 
-    if (publicType.basicType == EbtInt || publicType.basicType == EbtUint || publicType.basicType == EbtDouble) {
+    if (publicType.basicType == EbtInt || publicType.basicType == EbtUint || publicType.basicType == EbtDouble)
         profileRequires(loc, EEsProfile, 300, nullptr, "shader input/output");
-        if (! qualifier.flat) {
+
+    if (! qualifier.flat) {
+        if (publicType.basicType == EbtInt || publicType.basicType == EbtUint || publicType.basicType == EbtDouble ||
+            (publicType.userDef && (publicType.userDef->containsBasicType(EbtInt) ||
+                                    publicType.userDef->containsBasicType(EbtUint) || 
+                                    publicType.userDef->containsBasicType(EbtDouble)))) {
             if (qualifier.storage == EvqVaryingIn && language == EShLangFragment)
                 error(loc, "must be qualified as flat", TType::getBasicString(publicType.basicType), GetStorageQualifierString(qualifier.storage));
             else if (qualifier.storage == EvqVaryingOut && language == EShLangVertex && version == 300)
@@ -3859,7 +3880,10 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
 
     case EShLangTessControl:
         if (id == "vertices") {
-            publicType.shaderQualifiers.vertices = value;
+            if (value == 0)
+                error(loc, "must be greater than 0", "vertices", "");
+            else
+                publicType.shaderQualifiers.vertices = value;
             return;
         }
         break;
@@ -3870,7 +3894,10 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
     case EShLangGeometry:
         if (id == "invocations") {
             profileRequires(loc, ECompatibilityProfile | ECoreProfile, 400, nullptr, "invocations");
-            publicType.shaderQualifiers.invocations = value;
+            if (value == 0)
+                error(loc, "must be at least 1", "invocations", "");
+            else
+                publicType.shaderQualifiers.invocations = value;
             return;
         }
         if (id == "max_vertices") {
@@ -4257,9 +4284,9 @@ void TParseContext::checkNoShaderLayouts(const TSourceLoc& loc, const TShaderQua
 
     if (shaderQualifiers.geometry != ElgNone)
         error(loc, message, TQualifier::getGeometryString(shaderQualifiers.geometry), "");
-    if (shaderQualifiers.invocations > 0)
+    if (shaderQualifiers.invocations != TQualifier::layoutNotSet)
         error(loc, message, "invocations", "");
-    if (shaderQualifiers.vertices > 0) {
+    if (shaderQualifiers.vertices != TQualifier::layoutNotSet) {
         if (language == EShLangGeometry)
             error(loc, message, "max_vertices", "");
         else if (language == EShLangTessControl)
@@ -4447,7 +4474,13 @@ void TParseContext::declareTypeDefaults(const TSourceLoc& loc, const TPublicType
 //
 TIntermNode* TParseContext::declareVariable(const TSourceLoc& loc, TString& identifier, const TPublicType& publicType, TArraySizes* arraySizes, TIntermTyped* initializer)
 {
-    TType type(publicType);
+    TType type(publicType);  // shallow copy; 'type' shares the arrayness and structure definition with 'publicType'
+    if (type.isImplicitlySizedArray()) {
+        // Because "int[] a = int[2](...), b = int[3](...)" makes two arrays a and b
+        // of different sizes, for this case sharing the shallow copy of arrayness
+        // with the publicType oversubscribes it, so get a deep copy of the arrayness.
+        type.newArraySizes(*publicType.arraySizes);
+    }
 
     if (voidErrorCheck(loc, identifier, type.getBasicType()))
         return nullptr;
@@ -5165,7 +5198,7 @@ void TParseContext::blockStageIoCheck(const TSourceLoc& loc, const TQualifier& q
         profileRequires(loc, EEsProfile, 300, nullptr, "uniform block");
         profileRequires(loc, ENoProfile, 140, nullptr, "uniform block");
         if (currentBlockQualifier.layoutPacking == ElpStd430)
-            requireProfile(loc, ~EEsProfile, "std430 on a uniform block");
+            error(loc, "requires the 'buffer' storage qualifier", "std430", "");
         break;
     case EvqBuffer:
         requireProfile(loc, EEsProfile | ECoreProfile | ECompatibilityProfile, "buffer block");
@@ -5317,8 +5350,12 @@ void TParseContext::fixBlockUniformOffsets(TQualifier& qualifier, TTypeList& typ
         const TSourceLoc& memberLoc = typeList[member].loc;
 
         // "When align is applied to an array, it effects only the start of the array, not the array's internal stride."
-        
-        int memberAlignment = intermediate.getBaseAlignment(*typeList[member].type, memberSize, qualifier.layoutPacking == ElpStd140);
+
+        // modify just the children's view of matrix layout, if there is one for this member
+        TLayoutMatrix subMatrixLayout = typeList[member].type->getQualifier().layoutMatrix;
+        int dummyStride;
+        int memberAlignment = intermediate.getBaseAlignment(*typeList[member].type, memberSize, dummyStride, qualifier.layoutPacking == ElpStd140,
+                                                            subMatrixLayout != ElmNone ? subMatrixLayout == ElmRowMajor : qualifier.layoutMatrix == ElmRowMajor);
         if (memberQualifier.hasOffset()) {
             // "The specified offset must be a multiple 
             // of the base alignment of the type of the block member it qualifies, or a compile-time error results."
@@ -5416,7 +5453,7 @@ void TParseContext::invariantCheck(const TSourceLoc& loc, const TQualifier& qual
 //
 void TParseContext::updateStandaloneQualifierDefaults(const TSourceLoc& loc, const TPublicType& publicType)
 {
-    if (publicType.shaderQualifiers.vertices) {
+    if (publicType.shaderQualifiers.vertices != TQualifier::layoutNotSet) {
         assert(language == EShLangTessControl || language == EShLangGeometry);
         const char* id = (language == EShLangTessControl) ? "vertices" : "max_vertices";
 
@@ -5428,7 +5465,7 @@ void TParseContext::updateStandaloneQualifierDefaults(const TSourceLoc& loc, con
         if (language == EShLangTessControl)
             checkIoArraysConsistency(loc);
     }
-    if (publicType.shaderQualifiers.invocations) {
+    if (publicType.shaderQualifiers.invocations != TQualifier::layoutNotSet) {
         if (publicType.qualifier.storage != EvqVaryingIn)
             error(loc, "can only apply to 'in'", "invocations", "");
         if (! intermediate.setInvocations(publicType.shaderQualifiers.invocations))

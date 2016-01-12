@@ -269,7 +269,7 @@ TFunction::TFunction(const TFunction& copyOf) : TSymbol(copyOf)
 
     numExtensions = 0;
     extensions = 0;
-    if (copyOf.extensions > 0)
+    if (copyOf.extensions != 0)
         setExtensions(copyOf.numExtensions, copyOf.extensions);
     returnType.deepCopy(copyOf.returnType);
     mangledName = copyOf.mangledName;

@@ -102,7 +102,7 @@ public:
     Id makeStructResultType(Id type0, Id type1);
     Id makeVectorType(Id component, int size);
     Id makeMatrixType(Id component, int cols, int rows);
-    Id makeArrayType(Id element, unsigned size);
+    Id makeArrayType(Id element, unsigned size, int stride);  // 0 means no stride decoration
     Id makeRuntimeArray(Id element);
     Id makeFunctionType(Id returnType, std::vector<Id>& paramTypes);
     Id makeImageType(Id sampledType, Dim, bool depth, bool arrayed, bool ms, unsigned sampled, ImageFormat format);
@@ -116,29 +116,31 @@ public:
     Op getTypeClass(Id typeId) const { return getOpCode(typeId); }
     Op getMostBasicTypeClass(Id typeId) const;
     int getNumComponents(Id resultId) const { return getNumTypeComponents(getTypeId(resultId)); }
-    int getNumTypeComponents(Id typeId) const;
+    int getNumTypeConstituents(Id typeId) const;
+    int getNumTypeComponents(Id typeId) const { return getNumTypeConstituents(typeId); }
     Id getScalarTypeId(Id typeId) const;
     Id getContainedTypeId(Id typeId) const;
     Id getContainedTypeId(Id typeId, int) const;
     StorageClass getTypeStorageClass(Id typeId) const { return module.getStorageClass(typeId); }
 
-    bool isPointer(Id resultId)     const { return isPointerType(getTypeId(resultId)); }
-    bool isScalar(Id resultId)      const { return isScalarType(getTypeId(resultId)); }
-    bool isVector(Id resultId)      const { return isVectorType(getTypeId(resultId)); }
-    bool isMatrix(Id resultId)      const { return isMatrixType(getTypeId(resultId)); }
-    bool isAggregate(Id resultId)   const { return isAggregateType(getTypeId(resultId)); }
-    bool isBoolType(Id typeId)      const { return groupedTypes[OpTypeBool].size() > 0 && typeId == groupedTypes[OpTypeBool].back()->getResultId(); }
+    bool isPointer(Id resultId)      const { return isPointerType(getTypeId(resultId)); }
+    bool isScalar(Id resultId)       const { return isScalarType(getTypeId(resultId)); }
+    bool isVector(Id resultId)       const { return isVectorType(getTypeId(resultId)); }
+    bool isMatrix(Id resultId)       const { return isMatrixType(getTypeId(resultId)); }
+    bool isAggregate(Id resultId)    const { return isAggregateType(getTypeId(resultId)); }
+    bool isSampledImage(Id resultId) const { return isSampledImageType(getTypeId(resultId)); }
 
-    bool isPointerType(Id typeId)   const { return getTypeClass(typeId) == OpTypePointer; }
-    bool isScalarType(Id typeId)    const { return getTypeClass(typeId) == OpTypeFloat  || getTypeClass(typeId) == OpTypeInt || getTypeClass(typeId) == OpTypeBool; }
-    bool isVectorType(Id typeId)    const { return getTypeClass(typeId) == OpTypeVector; }
-    bool isMatrixType(Id typeId)    const { return getTypeClass(typeId) == OpTypeMatrix; }
-    bool isStructType(Id typeId)    const { return getTypeClass(typeId) == OpTypeStruct; }
-    bool isArrayType(Id typeId)     const { return getTypeClass(typeId) == OpTypeArray; }
-    bool isAggregateType(Id typeId) const { return isArrayType(typeId) || isStructType(typeId); }
-    bool isImageType(Id typeId)     const { return getTypeClass(typeId) == OpTypeImage; }
-    bool isSamplerType(Id typeId)   const { return getTypeClass(typeId) == OpTypeSampler; }
-    bool isSampledImageType(Id typeId)   const { return getTypeClass(typeId) == OpTypeSampledImage; }
+    bool isBoolType(Id typeId)         const { return groupedTypes[OpTypeBool].size() > 0 && typeId == groupedTypes[OpTypeBool].back()->getResultId(); }
+    bool isPointerType(Id typeId)      const { return getTypeClass(typeId) == OpTypePointer; }
+    bool isScalarType(Id typeId)       const { return getTypeClass(typeId) == OpTypeFloat  || getTypeClass(typeId) == OpTypeInt || getTypeClass(typeId) == OpTypeBool; }
+    bool isVectorType(Id typeId)       const { return getTypeClass(typeId) == OpTypeVector; }
+    bool isMatrixType(Id typeId)       const { return getTypeClass(typeId) == OpTypeMatrix; }
+    bool isStructType(Id typeId)       const { return getTypeClass(typeId) == OpTypeStruct; }
+    bool isArrayType(Id typeId)        const { return getTypeClass(typeId) == OpTypeArray; }
+    bool isAggregateType(Id typeId)    const { return isArrayType(typeId) || isStructType(typeId); }
+    bool isImageType(Id typeId)        const { return getTypeClass(typeId) == OpTypeImage; }
+    bool isSamplerType(Id typeId)      const { return getTypeClass(typeId) == OpTypeSampler; }
+    bool isSampledImageType(Id typeId) const { return getTypeClass(typeId) == OpTypeSampledImage; }
 
     bool isConstantOpCode(Op opcode) const;
     bool isConstant(Id resultId) const { return isConstantOpCode(getOpCode(resultId)); }
@@ -149,7 +151,7 @@ public:
     int getTypeNumColumns(Id typeId) const
     {
         assert(isMatrixType(typeId));
-        return getNumTypeComponents(typeId);
+        return getNumTypeConstituents(typeId);
     }
     int getNumColumns(Id resultId) const { return getTypeNumColumns(getTypeId(resultId)); }
     int getTypeNumRows(Id typeId) const
@@ -264,11 +266,13 @@ public:
     // (No true lvalue or stores are used.)
     Id createLvalueSwizzle(Id typeId, Id target, Id source, std::vector<unsigned>& channels);
 
-    // If the value passed in is an instruction and the precision is not EMpNone,
+    // If the value passed in is an instruction and the precision is not NoPrecision,
     // it gets tagged with the requested precision.
-    void setPrecision(Id /* value */, Decoration /* precision */)
+    void setPrecision(Id /* value */, Decoration precision)
     {
-        // TODO
+        if (precision != NoPrecision) {
+            ;// TODO
+        }
     }
 
     // Can smear a scalar to a vector for the following forms:
@@ -278,12 +282,17 @@ public:
     //   - promoteScalar(scalar, scalar)  // do nothing
     // Other forms are not allowed.
     //
+    // Generally, the type of 'scalar' does not need to be the same type as the components in 'vector'.
+    // The type of the created vector is a vector of components of the same type as the scalar.
+    //
     // Note: One of the arguments will change, with the result coming back that way rather than 
     // through the return value.
     void promoteScalar(Decoration precision, Id& left, Id& right);
 
-    // make a value by smearing the scalar to fill the type
-    Id smearScalar(Decoration precision, Id scalarVal, Id);
+    // Make a value by smearing the scalar to fill the type.
+    // vectorType should be the correct type for making a vector of scalarVal.
+    // (No conversions are done.)
+    Id smearScalar(Decoration precision, Id scalarVal, Id vectorType);
 
     // Create a call to a built-in function.
     Id createBuiltinCall(Decoration precision, Id resultType, Id builtins, int entryPoint, std::vector<Id>& args);
@@ -316,7 +325,7 @@ public:
     Id createBitFieldInsertCall(Decoration precision, Id, Id, Id, Id);
 
     // Reduction comparision for composites:  For equal and not-equal resulting in a scalar.
-    Id createCompare(Decoration precision, Id, Id, bool /* true if for equal, fales if for not-equal */);
+    Id createCompositeCompare(Decoration precision, Id, Id, bool /* true if for equal, false if for not-equal */);
 
     // OpCompositeConstruct
     Id createCompositeConstruct(Id typeId, std::vector<Id>& constituents);

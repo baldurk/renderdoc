@@ -35,8 +35,14 @@
 //
 // This file contains the Linux-specific functions
 //
-#include "osinclude.h"
+#include "../osinclude.h"
 #include "../../../OGLCompilersDLL/InitializeDll.h"
+
+#include <pthread.h>
+#include <semaphore.h>
+#include <assert.h>
+#include <errno.h>
+#include <stdint.h>
 
 namespace glslang {
 
@@ -95,6 +101,16 @@ void OS_CleanupThreadData(void)
 //
 // Thread Local Storage Operations
 //
+inline OS_TLSIndex PthreadKeyToTLSIndex(pthread_key_t key)
+{
+	return (OS_TLSIndex)((uintptr_t)key + 1);
+}
+
+inline pthread_key_t TLSIndexToPthreadKey(OS_TLSIndex nIndex)
+{
+	return (pthread_key_t)((uintptr_t)nIndex - 1);
+}
+
 OS_TLSIndex OS_AllocTLSIndex()
 {
 	pthread_key_t pPoolIndex;
@@ -104,10 +120,10 @@ OS_TLSIndex OS_AllocTLSIndex()
 	//
 	if ((pthread_key_create(&pPoolIndex, NULL)) != 0) {
 		assert(0 && "OS_AllocTLSIndex(): Unable to allocate Thread Local Storage");
-		return false;
+		return OS_INVALID_TLS_INDEX;
 	}
 	else
-		return pPoolIndex;
+		return PthreadKeyToTLSIndex(pPoolIndex);
 }
 
 
@@ -118,12 +134,20 @@ bool OS_SetTLSValue(OS_TLSIndex nIndex, void *lpvValue)
 		return false;
 	}
 
-	if (pthread_setspecific(nIndex, lpvValue) == 0)
+	if (pthread_setspecific(TLSIndexToPthreadKey(nIndex), lpvValue) == 0)
 		return true;
 	else
 		return false;
 }
 
+void* OS_GetTLSValue(OS_TLSIndex nIndex)
+{
+	//
+	// This function should return 0 if nIndex is invalid.
+	//
+	assert(nIndex != OS_INVALID_TLS_INDEX);
+	return pthread_getspecific(TLSIndexToPthreadKey(nIndex)); 
+}
 
 bool OS_FreeTLSIndex(OS_TLSIndex nIndex)
 {
@@ -135,7 +159,7 @@ bool OS_FreeTLSIndex(OS_TLSIndex nIndex)
 	//
 	// Delete the global pool key.
 	//
-	if (pthread_key_delete(nIndex) == 0)
+	if (pthread_key_delete(TLSIndexToPthreadKey(nIndex)) == 0)
 		return true;
 	else
 		return false;

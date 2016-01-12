@@ -293,7 +293,12 @@ public:
 
     Instruction* getInstruction(Id id) const { return idToInstruction[id]; }
     spv::Id getTypeId(Id resultId) const { return idToInstruction[resultId]->getTypeId(); }
-    StorageClass getStorageClass(Id typeId) const { return (StorageClass)idToInstruction[typeId]->getImmediateOperand(0); }
+    StorageClass getStorageClass(Id typeId) const
+    {
+        assert(idToInstruction[typeId]->getOpCode() == spv::OpTypePointer);
+        return (StorageClass)idToInstruction[typeId]->getImmediateOperand(0);
+    }
+
     void dump(std::vector<unsigned int>& out) const
     {
         for (int f = 0; f < (int)functions.size(); ++f)

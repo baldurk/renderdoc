@@ -121,9 +121,13 @@ public:
             return memberList[index].type->getQualifier().layoutOffset;
 
         int memberSize;
+        int dummyStride;
         int offset = 0;
         for (int m = 0; m <= index; ++m) {
-            int memberAlignment = intermediate.getBaseAlignment(*memberList[m].type, memberSize, type.getQualifier().layoutPacking == ElpStd140);
+            // modify just the children's view of matrix layout, if there is one for this member
+            TLayoutMatrix subMatrixLayout = memberList[m].type->getQualifier().layoutMatrix;
+            int memberAlignment = intermediate.getBaseAlignment(*memberList[m].type, memberSize, dummyStride, type.getQualifier().layoutPacking == ElpStd140,
+                                                                subMatrixLayout != ElmNone ? subMatrixLayout == ElmRowMajor : type.getQualifier().layoutMatrix == ElmRowMajor);
             RoundToPow2(offset, memberAlignment);
             if (m < index)
                 offset += memberSize;
@@ -141,7 +145,9 @@ public:
         int lastOffset = getOffset(blockType, lastIndex);
 
         int lastMemberSize;
-        intermediate.getBaseAlignment(*memberList[lastIndex].type, lastMemberSize, blockType.getQualifier().layoutPacking == ElpStd140);
+        int dummyStride;
+        intermediate.getBaseAlignment(*memberList[lastIndex].type, lastMemberSize, dummyStride, blockType.getQualifier().layoutPacking == ElpStd140,
+                                      blockType.getQualifier().layoutMatrix == ElmRowMajor);
 
         return lastOffset + lastMemberSize;
     }

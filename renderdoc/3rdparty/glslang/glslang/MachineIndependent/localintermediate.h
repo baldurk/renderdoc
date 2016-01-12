@@ -126,7 +126,8 @@ class TIntermediate {
 public:
     explicit TIntermediate(EShLanguage l, int v = 0, EProfile p = ENoProfile) : language(l), treeRoot(0), profile(p), version(v), spv(0),
         numMains(0), numErrors(0), recursive(false),
-        invocations(0), vertices(0), inputPrimitive(ElgNone), outputPrimitive(ElgNone), pixelCenterInteger(false), originUpperLeft(false),
+        invocations(TQualifier::layoutNotSet), vertices(TQualifier::layoutNotSet), inputPrimitive(ElgNone), outputPrimitive(ElgNone),
+        pixelCenterInteger(false), originUpperLeft(false),
         vertexSpacing(EvsNone), vertexOrder(EvoNone), pointMode(false), earlyFragmentTests(false), depthLayout(EldNone), depthReplacing(false), blendEquations(0), xfbMode(false)
     {
         localSize[0] = 1;
@@ -204,7 +205,7 @@ public:
 
     bool setInvocations(int i) 
     {
-        if (invocations > 0)
+        if (invocations != TQualifier::layoutNotSet)
             return invocations == i;
         invocations = i;
         return true;
@@ -212,7 +213,7 @@ public:
     int getInvocations() const { return invocations; }
     bool setVertices(int m)
     {
-        if (vertices > 0)
+        if (vertices != TQualifier::layoutNotSet)
             return vertices == m;
         vertices = m;
         return true;
@@ -304,7 +305,7 @@ public:
     }
     int addXfbBufferOffset(const TType&);
     unsigned int computeTypeXfbSize(const TType&, bool& containsDouble) const;
-    static int getBaseAlignment(const TType&, int& size, bool std140);
+    static int getBaseAlignment(const TType&, int& size, int& stride, bool std140, bool rowMajor);
 
 protected:
     void error(TInfoSink& infoSink, const char*);

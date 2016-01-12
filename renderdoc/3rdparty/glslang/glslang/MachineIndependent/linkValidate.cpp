@@ -100,7 +100,7 @@ void TIntermediate::merge(TInfoSink& infoSink, TIntermediate& unit)
     else if (outputPrimitive != unit.outputPrimitive)
         error(infoSink, "Contradictory output layout primitives");
     
-    if (vertices == 0)
+    if (vertices == TQualifier::layoutNotSet)
         vertices = unit.vertices;
     else if (vertices != unit.vertices) {
         if (language == EShLangGeometry)
@@ -359,6 +359,10 @@ void TIntermediate::finalCheck(TInfoSink& infoSink)
     // overlap/alias/missing I/O, etc.
     inOutLocationCheck(infoSink);
 
+    // invocations
+    if (invocations == TQualifier::layoutNotSet)
+        invocations = 1;
+
     if (inIoAccessed("gl_ClipDistance") && inIoAccessed("gl_ClipVertex"))
         error(infoSink, "Can only use one of gl_ClipDistance or gl_ClipVertex (gl_ClipDistance is preferred)");
 
@@ -409,7 +413,7 @@ void TIntermediate::finalCheck(TInfoSink& infoSink)
     case EShLangVertex:
         break;
     case EShLangTessControl:
-        if (vertices == 0)
+        if (vertices == TQualifier::layoutNotSet)
             error(infoSink, "At least one shader must specify an output layout(vertices=...)");
         break;
     case EShLangTessEvaluation:
@@ -425,7 +429,7 @@ void TIntermediate::finalCheck(TInfoSink& infoSink)
             error(infoSink, "At least one shader must specify an input layout primitive");
         if (outputPrimitive == ElgNone)
             error(infoSink, "At least one shader must specify an output layout primitive");
-        if (vertices == 0)
+        if (vertices == TQualifier::layoutNotSet)
             error(infoSink, "At least one shader must specify a layout(max_vertices = value)");
         break;
     case EShLangFragment:
@@ -561,7 +565,7 @@ void TIntermediate::inOutLocationCheck(TInfoSink& infoSink)
     if (profile == EEsProfile) {
         if (numFragOut > 1 && fragOutWithNoLocation)
             error(infoSink, "when more than one fragment shader output, all must have location qualifiers");
-    }        
+    }
 }
 
 TIntermSequence& TIntermediate::findLinkerObjects() const
@@ -854,8 +858,14 @@ int TIntermediate::getBaseAlignmentScalar(const TType& type, int& size)
 // otherwise it does not, yielding std430 rules.
 //
 // The size is returned in the 'size' parameter
+//
+// The stride is only non-0 for arrays or matrices, and is the stride of the
+// top-level object nested within the type.  E.g., for an array of matrices,
+// it is the distances needed between matrices, despite the rules saying the
+// stride comes from the flattening down to vectors.
+//
 // Return value is the alignment of the type.
-int TIntermediate::getBaseAlignment(const TType& type, int& size, bool std140)
+int TIntermediate::getBaseAlignment(const TType& type, int& size, int& stride, bool std140, bool rowMajor)
 {
     int alignment;
 
@@ -912,16 +922,23 @@ int TIntermediate::getBaseAlignment(const TType& type, int& size, bool std140)
     //
     //   10. If the member is an array of S structures, the S elements of the array are laid
     //       out in order, according to rule (9).
+    //
+    //   Assuming, for rule 10:  The stride is the same as the size of an element.
 
-    // rules 4, 6, and 8
+    stride = 0;
+    int dummyStride;
+
+    // rules 4, 6, 8, and 10
     if (type.isArray()) {
         // TODO: perf: this might be flattened by using getCumulativeArraySize(), and a deref that discards all arrayness
         TType derefType(type, 0);
-        alignment = getBaseAlignment(derefType, size, std140);
+        alignment = getBaseAlignment(derefType, size, dummyStride, std140, rowMajor);
         if (std140)
             alignment = std::max(baseAlignmentVec4Std140, alignment);
         RoundToPow2(size, alignment);
-        size *= type.getOuterArraySize();
+        stride = size;  // uses full matrix size for stride of an array of matrices (not quite what rule 6/8, but what's expected)
+                        // uses the assumption for rule 10 in the comment above
+        size = stride * type.getOuterArraySize();
         return alignment;
     }
 
@@ -933,7 +950,10 @@ int TIntermediate::getBaseAlignment(const TType& type, int& size, bool std140)
         int maxAlignment = std140 ? baseAlignmentVec4Std140 : 0;
         for (size_t m = 0; m < memberList.size(); ++m) {
             int memberSize;
-            int memberAlignment = getBaseAlignment(*memberList[m].type, memberSize, std140);
+            // modify just the children's view of matrix layout, if there is one for this member
+            TLayoutMatrix subMatrixLayout = memberList[m].type->getQualifier().layoutMatrix;
+            int memberAlignment = getBaseAlignment(*memberList[m].type, memberSize, dummyStride, std140,
+                                                   (subMatrixLayout != ElmNone) ? (subMatrixLayout == ElmRowMajor) : rowMajor);
             maxAlignment = std::max(maxAlignment, memberAlignment);
             RoundToPow2(size, memberAlignment);         
             size += memberSize;
@@ -964,14 +984,15 @@ int TIntermediate::getBaseAlignment(const TType& type, int& size, bool std140)
         // rule 5: deref to row, not to column, meaning the size of vector is num columns instead of num rows
         TType derefType(type, 0, type.getQualifier().layoutMatrix == ElmRowMajor);
             
-        alignment = getBaseAlignment(derefType, size, std140);
+        alignment = getBaseAlignment(derefType, size, dummyStride, std140, rowMajor);
         if (std140)
             alignment = std::max(baseAlignmentVec4Std140, alignment);
         RoundToPow2(size, alignment);
-        if (type.getQualifier().layoutMatrix == ElmRowMajor)
-            size *= type.getMatrixRows();
+        stride = size;  // use intra-matrix stride for stride of a just a matrix
+        if (rowMajor)
+            size = stride * type.getMatrixRows();
         else
-            size *= type.getMatrixCols();
+            size = stride * type.getMatrixCols();
 
         return alignment;
     }

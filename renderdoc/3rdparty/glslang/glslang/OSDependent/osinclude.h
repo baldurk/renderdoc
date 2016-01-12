@@ -32,15 +32,34 @@
 //POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef __ROOT_OSINCLUDE_H
-#define __ROOT_OSINCLUDE_H
+#ifndef __OSINCLUDE_H
+#define __OSINCLUDE_H
 
-#if defined(GLSLANG_OSINCLUDE_WIN32)
-#include "Windows/osinclude.h"
-#elif defined(GLSLANG_OSINCLUDE_UNIX)
-#include "Unix/osinclude.h"
-#else
-#error "Unknown platform"
-#endif
+namespace glslang {
 
-#endif // __ROOT_OSINCLUDE_H
+//
+// Thread Local Storage Operations
+//
+typedef void* OS_TLSIndex;
+#define OS_INVALID_TLS_INDEX ((void*)0)
+
+OS_TLSIndex OS_AllocTLSIndex();
+bool        OS_SetTLSValue(OS_TLSIndex nIndex, void *lpvValue);
+bool        OS_FreeTLSIndex(OS_TLSIndex nIndex);
+void*       OS_GetTLSValue(OS_TLSIndex nIndex);
+
+void InitGlobalLock();
+void GetGlobalLock();
+void ReleaseGlobalLock();
+
+typedef unsigned int (*TThreadEntrypoint)(void*);
+void* OS_CreateThread(TThreadEntrypoint);
+void OS_WaitForAllThreads(void* threads, int numThreads);
+
+void OS_Sleep(int milliseconds);
+
+void OS_DumpMemoryCounters();
+
+} // end namespace glslang
+
+#endif // __OSINCLUDE_H
