@@ -1322,11 +1322,10 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 				VkBufferView *dstTexelBuffer = (VkBufferView *)dstData;
 				dstData += layout.bindings[j].descriptorCount;
 
-				// all pointers but the correct one will be ignored so we can safely
-				// set all three.
-				writes[i].pBufferInfo = dstBuffer;
-				writes[i].pImageInfo = dstImage;
-				writes[i].pTexelBufferView = dstTexelBuffer;
+				// the correct one will be set below
+				writes[i].pBufferInfo = NULL;
+				writes[i].pImageInfo = NULL;
+				writes[i].pTexelBufferView = NULL;
 
 				// check that the resources we need for this write are present,
 				// as some might have been skipped due to stale descriptor set
@@ -1359,6 +1358,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 								dstImage[d] = src[d].imageInfo;
 								valid &= (src[d].imageInfo.sampler != VK_NULL_HANDLE);
 							}
+							writes[i].pImageInfo = dstImage;
 							break;
 						}
 						case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
@@ -1369,6 +1369,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 								valid &= (src[d].imageInfo.sampler != VK_NULL_HANDLE);
 								valid &= (src[d].imageInfo.imageView != VK_NULL_HANDLE);
 							}
+							writes[i].pImageInfo = dstImage;
 							break;
 						}
 						case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
@@ -1380,6 +1381,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 								dstImage[d] = src[d].imageInfo;
 								valid &= (src[d].imageInfo.imageView != VK_NULL_HANDLE);
 							}
+							writes[i].pImageInfo = dstImage;
 							break;
 						}
 						case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
@@ -1390,6 +1392,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 								dstTexelBuffer[d] = src[d].texelBufferView;
 								valid &= (src[d].texelBufferView != VK_NULL_HANDLE);
 							}
+							writes[i].pTexelBufferView = dstTexelBuffer;
 							break;
 						}
 						case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
@@ -1402,6 +1405,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 								dstBuffer[d] = src[d].bufferInfo;
 								valid &= (src[d].bufferInfo.buffer != VK_NULL_HANDLE);
 							}
+							writes[i].pBufferInfo = dstBuffer;
 							break;
 						}
 						default:
