@@ -5,6 +5,7 @@ RenderDoc is licensed under the MIT License:
 > The MIT License (MIT)
 > 
 > Copyright (c) 2015-2016 Baldur Karlsson
+>
 > Copyright (c) 2014 Crytek
 > 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
