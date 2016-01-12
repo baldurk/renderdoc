@@ -1925,21 +1925,41 @@ VkBool32 WrappedVulkan::DebugCallback(
 				const char*                                 pLayerPrefix,
 				const char*                                 pMessage)
 {
-	// VKTODOHIGH once on new layers, location will be unique enough
+	bool isSC = !strcmp(pLayerPrefix, "SC");
 
-	/*
-	// msgCode isn't fine grained enough to ignore just this one type of message
-	if(pLayerPrefix[0] == 'D' && pLayerPrefix[1] == 'S')
-	{
-		string msg(pMsg);
-		if(msg.find("Additional bits in accessMask") != string::npos)
-			return false;
-		if(msg.find("It is recommended you use RenderPass LOAD_OP_CLEAR") != string::npos)
-			return false;
-	}
-	*/
+	// Just way too spammy and inaccurate
+	if(isSC)
+		return false;
+	
+	bool isDS = !strcmp(pLayerPrefix, "DS");
 
-	RDCWARN("[%s:%u] %s", pLayerPrefix, (uint32_t)location, pMessage);
+	// Additional bits in accessMask
+	// ignore as we are just conservative in our access masks
+	if(isDS && location == 4937)
+		return false;
+
+	// Recommended to use LOAD_OP_CLEAR
+	// Optimisation that we don't really need to do and increases complexity
+	// a fair amount.
+	if(isDS && location == 4695)
+		return false;
+
+	bool isMEM = !strcmp(pLayerPrefix, "MEM");
+
+	// Memory is aliased between image and buffer
+	// ignore memory aliasing warning - we make use of the memory in disjoint ways
+	// and copy image data over separately, so our use is safe
+	// no location set for this one, so ignore by code (maybe too coarse)
+	if(isMEM && messageCode == 3)
+		return false;
+	
+	// cannot read invalid memory
+	// this message is a good one, but it can't detect storage writes from shader
+	// at the moment so memory is wrongly marked as invalid
+	if(isMEM && location == 483)
+		return false;
+
+	RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
 	return false;
 }
 
