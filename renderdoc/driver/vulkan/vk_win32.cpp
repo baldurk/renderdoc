@@ -34,12 +34,17 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 
 void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 {
-	HINSTANCE hinst;
+	VkWin32SurfaceCreateInfoKHR createInfo;
 
+	createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+	createInfo.pNext = NULL;
+	createInfo.flags = 0;
+	createInfo.hwnd = wnd;
+	
 	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-		(const char *)&dllLocator, (HMODULE *)&hinst);
+		(const char *)&dllLocator, (HMODULE *)&createInfo.hinstance);
 
-	VkResult vkr = ObjDisp(inst)->CreateWin32SurfaceKHR(Unwrap(inst), hinst, wnd, NULL, &surface);
+	VkResult vkr = ObjDisp(inst)->CreateWin32SurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
 	RDCASSERT(vkr == VK_SUCCESS);
 }
 
@@ -70,15 +75,14 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 
 VkResult WrappedVulkan::vkCreateWin32SurfaceKHR(
     VkInstance                                  instance,
-    HINSTANCE                                   hinstance,
-    HWND                                        hwnd,
-    const VkAllocationCallbacks*                pAllocator,
-    VkSurfaceKHR*                               pSurface)
+		const VkWin32SurfaceCreateInfoKHR*          pCreateInfo,
+		const VkAllocationCallbacks*                pAllocator,
+		VkSurfaceKHR*                               pSurface)
 {
 	// should not come in here at all on replay
 	RDCASSERT(m_State >= WRITING);
 
-	VkResult ret = ObjDisp(instance)->CreateWin32SurfaceKHR(Unwrap(instance), hinstance, hwnd, pAllocator, pSurface);
+	VkResult ret = ObjDisp(instance)->CreateWin32SurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -88,9 +92,9 @@ VkResult WrappedVulkan::vkCreateWin32SurfaceKHR(
 		
 		// since there's no point in allocating a full resource record and storing the window
 		// handle under there somewhere, we just cast. We won't use the resource record for anything
-		wrapped->record = (VkResourceRecord *)hwnd;
+		wrapped->record = (VkResourceRecord *)pCreateInfo->hwnd;
 
-		Keyboard::AddInputWindow((void *)hwnd);
+		Keyboard::AddInputWindow((void *)pCreateInfo->hwnd);
 	}
 
 	return ret;
@@ -105,5 +109,5 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceWin32PresentationSupportKHR(
 
 void *LoadVulkanLibrary()
 {
-	return Process::LoadModule("vulkan-0.dll");
+	return Process::LoadModule("vulkan-1.dll");
 }

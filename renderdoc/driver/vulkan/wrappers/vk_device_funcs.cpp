@@ -61,16 +61,16 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	}
 
 #if defined(FORCE_VALIDATION_LAYERS)
-	params.Layers.push_back("VK_LAYER_LUNARG_Threading");
-	params.Layers.push_back("VK_LAYER_LUNARG_MemTracker");
-	params.Layers.push_back("VK_LAYER_LUNARG_ObjectTracker");
-	params.Layers.push_back("VK_LAYER_LUNARG_DrawState");
-	params.Layers.push_back("VK_LAYER_LUNARG_ParamChecker");
-	params.Layers.push_back("VK_LAYER_LUNARG_Swapchain");
-	params.Layers.push_back("VK_LAYER_LUNARG_DeviceLimits");
-	params.Layers.push_back("VK_LAYER_LUNARG_Image");
+	params.Layers.push_back("VK_LAYER_LUNARG_threading");
+	params.Layers.push_back("VK_LAYER_LUNARG_mem_tracker");
+	params.Layers.push_back("VK_LAYER_LUNARG_object_tracker");
+	params.Layers.push_back("VK_LAYER_LUNARG_draw_state");
+	params.Layers.push_back("VK_LAYER_LUNARG_param_checker");
+	params.Layers.push_back("VK_LAYER_LUNARG_swapchain");
+	params.Layers.push_back("VK_LAYER_LUNARG_device_limits");
+	params.Layers.push_back("VK_LAYER_LUNARG_image");
 
-	params.Extensions.push_back("DEBUG_REPORT");
+	params.Extensions.push_back("VK_EXT_debug_report");
 #endif
 
 	const char **layerscstr = new const char *[params.Layers.size()];
@@ -112,11 +112,16 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	m_Queue = VK_NULL_HANDLE;
 	m_InternalCmds.Reset();
 
-	if(ObjDisp(m_Instance)->DbgCreateMsgCallback)
+	if(ObjDisp(m_Instance)->CreateDebugReportCallbackEXT)
 	{
-		ObjDisp(m_Instance)->DbgCreateMsgCallback(Unwrap(m_Instance),
-			VK_DBG_REPORT_WARN_BIT|VK_DBG_REPORT_PERF_WARN_BIT|VK_DBG_REPORT_ERROR_BIT,
-			&DebugCallbackStatic, this, &m_DbgMsgCallback);
+		VkDebugReportCallbackCreateInfoEXT debugInfo = {};
+		debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+		debugInfo.pNext = NULL;
+		debugInfo.pfnCallback = &DebugCallbackStatic;
+		debugInfo.pUserData = this;
+		debugInfo.flags = VK_DEBUG_REPORT_WARN_BIT_EXT|VK_DEBUG_REPORT_PERF_WARN_BIT_EXT|VK_DEBUG_REPORT_ERROR_BIT_EXT;
+
+		ObjDisp(m_Instance)->CreateDebugReportCallbackEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgMsgCallback);
 	}
 
 	SAFE_DELETE_ARRAY(layerscstr);
@@ -153,7 +158,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 #undef CheckExt
 #define CheckExt(name) if(!strcmp(pCreateInfo->ppEnabledExtensionNames[i], STRINGIZE(name))) { record->instDevInfo->name = true; }
 
-	for(uint32_t i=0; i < pCreateInfo->enabledExtensionNameCount; i++)
+	for(uint32_t i=0; i < pCreateInfo->enabledExtensionCount; i++)
 	{
 		CheckInstanceExts();
 	}
@@ -200,8 +205,8 @@ void WrappedVulkan::Shutdown()
 	// destroy debug manager and any objects it created
 	SAFE_DELETE(m_DebugManager);
 
-	if(ObjDisp(m_Instance)->DbgDestroyMsgCallback && m_DbgMsgCallback != VK_NULL_HANDLE)
-		ObjDisp(m_Instance)->DbgDestroyMsgCallback(Unwrap(m_Instance), m_DbgMsgCallback);
+	if(ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT && m_DbgMsgCallback != VK_NULL_HANDLE)
+		ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT(Unwrap(m_Instance), m_DbgMsgCallback, NULL);
 
 	// need to store the unwrapped device and instance to destroy the
 	// API object after resource manager shutdown
@@ -422,46 +427,46 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		VkDeviceCreateInfo createInfo = serCreateInfo;
 		
 		// don't try and create our own layer on replay!
-		for(uint32_t i=0; i < createInfo.enabledLayerNameCount; i++)
+		for(uint32_t i=0; i < createInfo.enabledLayerCount; i++)
 		{
 			const char **layerNames = (const char **)createInfo.ppEnabledLayerNames;
 			if(!strcmp(layerNames[i], RENDERDOC_LAYER_NAME))
 			{
-				for(uint32_t j=i; j < createInfo.enabledLayerNameCount-1; j++)
+				for(uint32_t j=i; j < createInfo.enabledLayerCount-1; j++)
 					layerNames[j] = layerNames[j+1];
-				createInfo.enabledLayerNameCount--;
+				createInfo.enabledLayerCount--;
 			}
 		}
 
 		// disable this extension as we might have captured it but we don't need
 		// to replay it
-		for(uint32_t i=0; i < createInfo.enabledExtensionNameCount; i++)
+		for(uint32_t i=0; i < createInfo.enabledExtensionCount; i++)
 		{
 			const char **extNames = (const char **)createInfo.ppEnabledExtensionNames;
 			if(!strcmp(extNames[i], DEBUG_MARKER_EXTENSION_NAME))
 			{
-				for(uint32_t j=i; j < createInfo.enabledExtensionNameCount-1; j++)
+				for(uint32_t j=i; j < createInfo.enabledExtensionCount-1; j++)
 					extNames[j] = extNames[j+1];
-				createInfo.enabledExtensionNameCount--;
+				createInfo.enabledExtensionCount--;
 			}
 		}
 		
 #if defined(FORCE_VALIDATION_LAYERS)
 		vector<const char *> layers;
 
-		for(uint32_t i=0; i < createInfo.enabledLayerNameCount; i++)
+		for(uint32_t i=0; i < createInfo.enabledLayerCount; i++)
 			layers.push_back(createInfo.ppEnabledLayerNames[i]);
 
-		layers.push_back("VK_LAYER_LUNARG_Threading");
-		layers.push_back("VK_LAYER_LUNARG_MemTracker");
-		layers.push_back("VK_LAYER_LUNARG_ObjectTracker");
-		layers.push_back("VK_LAYER_LUNARG_DrawState");
-		layers.push_back("VK_LAYER_LUNARG_ParamChecker");
-		layers.push_back("VK_LAYER_LUNARG_Swapchain");
-		layers.push_back("VK_LAYER_LUNARG_DeviceLimits");
-		layers.push_back("VK_LAYER_LUNARG_Image");
+		layers.push_back("VK_LAYER_LUNARG_threading");
+		layers.push_back("VK_LAYER_LUNARG_mem_tracker");
+		layers.push_back("VK_LAYER_LUNARG_object_tracker");
+		layers.push_back("VK_LAYER_LUNARG_draw_state");
+		layers.push_back("VK_LAYER_LUNARG_param_checker");
+		layers.push_back("VK_LAYER_LUNARG_swapchain");
+		layers.push_back("VK_LAYER_LUNARG_device_limits");
+		layers.push_back("VK_LAYER_LUNARG_image");
 
-		createInfo.enabledLayerNameCount = (uint32_t)layers.size();
+		createInfo.enabledLayerCount = (uint32_t)layers.size();
 		createInfo.ppEnabledLayerNames = &layers[0];
 #endif
 
@@ -752,7 +757,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 #undef CheckExt
 #define CheckExt(name) if(!strcmp(createInfo.ppEnabledExtensionNames[i], STRINGIZE(name))) { record->instDevInfo->name = true; }
 
-			for(uint32_t i=0; i < createInfo.enabledExtensionNameCount; i++)
+			for(uint32_t i=0; i < createInfo.enabledExtensionCount; i++)
 			{
 				CheckDeviceExts();
 			}

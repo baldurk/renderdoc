@@ -657,60 +657,54 @@ void WrappedVulkan::vkCmdResetEvent(
 
 bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 			Serialiser*                                 localSerialiser,
-			VkCommandBuffer                                 cmdBuffer,
+			VkCommandBuffer                             cmdBuffer,
 			uint32_t                                    eventCount,
 			const VkEvent*                              pEvents,
 			VkPipelineStageFlags                        srcStageMask,
-			VkPipelineStageFlags                        destStageMask,
-			uint32_t                                    memBarrierCount,
-			const void* const*                          ppMemBarriers)
+			VkPipelineStageFlags                        dstStageMask,
+			uint32_t                                    memoryBarrierCount,
+			const VkMemoryBarrier*                      pMemoryBarriers,
+			uint32_t                                    bufferMemoryBarrierCount,
+			const VkBufferMemoryBarrier*                pBufferMemoryBarriers,
+			uint32_t                                    imageMemoryBarrierCount,
+			const VkImageMemoryBarrier*                 pImageMemoryBarriers)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(VkPipelineStageFlags, src, srcStageMask);
-	SERIALISE_ELEMENT(VkPipelineStageFlags, dest, destStageMask);
+	SERIALISE_ELEMENT(VkPipelineStageFlags, dest, dstStageMask);
 	
 	// we don't serialise the original events as we are going to replace this
 	// with our own
+	
+	SERIALISE_ELEMENT(uint32_t, memCount, memoryBarrierCount);
+	SERIALISE_ELEMENT(uint32_t, bufCount, bufferMemoryBarrierCount);
+	SERIALISE_ELEMENT(uint32_t, imgCount, imageMemoryBarrierCount);
 
 	// we keep the original memory barriers
-	SERIALISE_ELEMENT(uint32_t, memCount, memBarrierCount);
+	SERIALISE_ELEMENT_ARR(VkMemoryBarrier, memBarriers, pMemoryBarriers, memCount);
+	SERIALISE_ELEMENT_ARR(VkBufferMemoryBarrier, bufMemBarriers, pBufferMemoryBarriers, bufCount);
+	SERIALISE_ELEMENT_ARR(VkImageMemoryBarrier, imgMemBarriers, pImageMemoryBarriers, imgCount);
 
-	vector<VkGenericStruct*> mems;
-	vector<VkImageMemoryBarrier> imBarriers;
+	vector<VkImageMemoryBarrier> imgBarriers;
+	vector<VkBufferMemoryBarrier> bufBarriers;
 
-	for(uint32_t i=0; i < memCount; i++)
+	// it's possible for buffer or image to be NULL if it refers to a resource that is otherwise
+	// not in the log (barriers do not mark resources referenced). If the resource in question does
+	// not exist, then it's safe to skip this barrier.
+	
+	if(m_State < WRITING)
 	{
-		SERIALISE_ELEMENT(VkStructureType, stype, ((VkGenericStruct *)ppMemBarriers[i])->sType);
-
-		if(stype == VK_STRUCTURE_TYPE_MEMORY_BARRIER)
-		{
-			SERIALISE_ELEMENT(VkMemoryBarrier, barrier, *((VkMemoryBarrier *)ppMemBarriers[i]));
-
-			if(m_State < WRITING)
-				mems.push_back((VkGenericStruct *)new VkMemoryBarrier(barrier));
-		}
-		else if(stype == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER)
-		{
-			SERIALISE_ELEMENT(VkBufferMemoryBarrier, barrier, *((VkBufferMemoryBarrier *)ppMemBarriers[i]));
-
-			// it's possible for buffer to be NULL if it refers to a buffer that is otherwise
-			// not in the log (barriers do not mark resources referenced). If the buffer does
-			// not exist, then it's safe to skip this barrier.
-			if(m_State < WRITING && barrier.buffer != VK_NULL_HANDLE)
-				mems.push_back((VkGenericStruct *)new VkBufferMemoryBarrier(barrier));
-		}
-		else if(stype == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
-		{
-			SERIALISE_ELEMENT(VkImageMemoryBarrier, barrier, *((VkImageMemoryBarrier *)ppMemBarriers[i]));
-
-			// same as buffers above, allow images to not exist and skip their barriers.
-			if(m_State < WRITING && barrier.image != VK_NULL_HANDLE)
-			{
-				mems.push_back((VkGenericStruct *)new VkImageMemoryBarrier(barrier));
-				imBarriers.push_back(barrier);
-			}
-		}
+		for(uint32_t i=0; i < bufCount; i++)
+			if(bufMemBarriers[i].buffer != VK_NULL_HANDLE)
+				bufBarriers.push_back(bufMemBarriers[i]);
+		
+		for(uint32_t i=0; i < imgCount; i++)
+			if(imgBarriers[i].image != VK_NULL_HANDLE)
+				imgBarriers.push_back(imgMemBarriers[i]);
 	}
+
+	SAFE_DELETE_ARRAY(bufMemBarriers);
+	SAFE_DELETE_ARRAY(imgMemBarriers);
 
 	// see top of this file for current event/fence handling
 
@@ -731,13 +725,16 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 			ObjDisp(cmdBuffer)->ResetEvent(Unwrap(GetDev()), ev);
 			ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), ev, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-			ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, src, dest, (uint32_t)mems.size(), (const void **)&mems[0]);
+			ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, src, dest,
+				memCount, memBarriers,
+				(uint32_t)bufBarriers.size(), &bufBarriers[0],
+				(uint32_t)imgBarriers.size(), &imgBarriers[0]);
 
 			// register to clean this event up once we're done replaying this section of the log
 			m_CleanupEvents.push_back(ev);
 
 			ResourceId cmd = GetResID(RerecordCmdBuf(cmdid));
-			GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts, (uint32_t)imBarriers.size(), &imBarriers[0]);
+			GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts, (uint32_t)imgBarriers.size(), &imgBarriers[0]);
 		}
 	}
 	else if(m_State == READING)
@@ -755,17 +752,19 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 		ObjDisp(cmdBuffer)->ResetEvent(Unwrap(GetDev()), ev);
 		ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), ev, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-		ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, src, dest, (uint32_t)mems.size(), (const void **)&mems[0]);
+		ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, src, dest,
+				memCount, memBarriers,
+				(uint32_t)bufBarriers.size(), &bufBarriers[0],
+				(uint32_t)imgBarriers.size(), &imgBarriers[0]);
 
 		// register to clean this event up once we're done replaying this section of the log
 		m_CleanupEvents.push_back(ev);
 		
 		ResourceId cmd = GetResID(cmdBuffer);
-		GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts, (uint32_t)imBarriers.size(), &imBarriers[0]);
+		GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts, (uint32_t)imgBarriers.size(), &imgBarriers[0]);
 	}
 
-	for(size_t i=0; i < mems.size(); i++)
-		delete mems[i];
+	SAFE_DELETE_ARRAY(memBarriers);
 
 	return true;
 }
@@ -775,55 +774,42 @@ void WrappedVulkan::vkCmdWaitEvents(
 			uint32_t                                    eventCount,
 			const VkEvent*                              pEvents,
 			VkPipelineStageFlags                        srcStageMask,
-			VkPipelineStageFlags                        destStageMask,
-			uint32_t                                    memBarrierCount,
-			const void* const*                          ppMemBarriers)
+			VkPipelineStageFlags                        dstStageMask,
+			uint32_t                                    memoryBarrierCount,
+			const VkMemoryBarrier*                      pMemoryBarriers,
+			uint32_t                                    bufferMemoryBarrierCount,
+			const VkBufferMemoryBarrier*                pBufferMemoryBarriers,
+			uint32_t                                    imageMemoryBarrierCount,
+			const VkImageMemoryBarrier*                 pImageMemoryBarriers)
 {
 	{
-		// conservatively request memory for worst case to avoid needing to iterate
-		// twice to count
-		byte *memory = GetTempMemory( sizeof(VkEvent)*eventCount + ( sizeof(void*) + sizeof(VkImageMemoryBarrier) + sizeof(VkBufferMemoryBarrier) )*memBarrierCount);
+		byte *memory = GetTempMemory( sizeof(VkEvent)*eventCount +
+			sizeof(VkBufferMemoryBarrier)*bufferMemoryBarrierCount + 
+			sizeof(VkImageMemoryBarrier)*imageMemoryBarrierCount);
 
 		VkEvent *ev = (VkEvent *)memory;
 		VkImageMemoryBarrier *im = (VkImageMemoryBarrier *)(ev + eventCount);
-		VkBufferMemoryBarrier *buf = (VkBufferMemoryBarrier *)(im + memBarrierCount);
+		VkBufferMemoryBarrier *buf = (VkBufferMemoryBarrier *)(im + imageMemoryBarrierCount);
 
 		for(uint32_t i=0; i < eventCount; i++)
 			ev[i] = Unwrap(pEvents[i]);
 
-		size_t imCount = 0, bufCount = 0;
-		
-		void **unwrappedBarriers = (void **)(buf + memBarrierCount);
-
-		for(uint32_t i=0; i < memBarrierCount; i++)
+		for(uint32_t i=0; i < bufferMemoryBarrierCount; i++)
 		{
-			VkGenericStruct *header = (VkGenericStruct *)ppMemBarriers[i];
+			buf[i] = pBufferMemoryBarriers[i];
+			buf[i].buffer = Unwrap(buf[i].buffer);
+		}
 
-			if(header->sType == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
-			{
-				VkImageMemoryBarrier &barrier = im[imCount];
-				barrier = *(VkImageMemoryBarrier *)header;
-				barrier.image = Unwrap(barrier.image);
-				unwrappedBarriers[i] = &im[imCount];
-
-				imCount++;
-			}
-			else if(header->sType == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER)
-			{
-				VkBufferMemoryBarrier &barrier = buf[bufCount];
-				barrier = *(VkBufferMemoryBarrier *)header;
-				barrier.buffer = Unwrap(barrier.buffer);
-				unwrappedBarriers[i] = &buf[bufCount];
-
-				bufCount++;
-			}
-			else
-			{
-				unwrappedBarriers[i] = (void *)ppMemBarriers[i];
-			}
+		for(uint32_t i=0; i < imageMemoryBarrierCount; i++)
+		{
+			im[i] = pImageMemoryBarriers[i];
+			im[i].image = Unwrap(im[i].image);
 		}
 		
-		ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), eventCount, ev, srcStageMask, destStageMask, memBarrierCount, unwrappedBarriers);
+		ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), eventCount, ev, srcStageMask, dstStageMask,
+			memoryBarrierCount, pMemoryBarriers,
+			bufferMemoryBarrierCount, buf,
+			imageMemoryBarrierCount, im);
 	}
 
 	if(m_State >= WRITING)
@@ -833,22 +819,15 @@ void WrappedVulkan::vkCmdWaitEvents(
 		CACHE_THREAD_SERIALISER();
 
 		SCOPED_SERIALISE_CONTEXT(CMD_WAIT_EVENTS);
-		Serialise_vkCmdWaitEvents(localSerialiser, cmdBuffer, eventCount, pEvents, srcStageMask, destStageMask, memBarrierCount, ppMemBarriers);
+		Serialise_vkCmdWaitEvents(localSerialiser, cmdBuffer, eventCount, pEvents, srcStageMask, dstStageMask,
+			memoryBarrierCount, pMemoryBarriers,
+			bufferMemoryBarrierCount, pBufferMemoryBarriers,
+			imageMemoryBarrierCount, pImageMemoryBarriers);
 		
-		vector<VkImageMemoryBarrier> imBarriers;
-
-		for(uint32_t i=0; i < memBarrierCount; i++)
-		{
-			VkStructureType stype = ((VkGenericStruct *)ppMemBarriers[i])->sType;
-
-			if(stype == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
-				imBarriers.push_back(*((VkImageMemoryBarrier *)ppMemBarriers[i]));
-		}
-		
-		ResourceId cmd = GetResID(cmdBuffer);
+		if(imageMemoryBarrierCount > 0)
 		{
 			SCOPED_LOCK(m_ImageLayoutsLock);
-			GetResourceManager()->RecordBarriers(GetRecord(cmdBuffer)->cmdInfo->imgbarriers, m_ImageLayouts, (uint32_t)imBarriers.size(), &imBarriers[0]);
+			GetResourceManager()->RecordBarriers(GetRecord(cmdBuffer)->cmdInfo->imgbarriers, m_ImageLayouts, imageMemoryBarrierCount, pImageMemoryBarriers);
 		}
 
 		record->AddChunk(scope.Get());

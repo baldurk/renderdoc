@@ -155,8 +155,8 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 	
 	// need to count how many VkSampler arrays to allocate for
 	for(uint32_t i=0; i < pCreateInfo->bindingCount; i++)
-		if(pCreateInfo->pBinding[i].pImmutableSamplers)
-			tempmemSize += pCreateInfo->pBinding[i].descriptorCount;
+		if(pCreateInfo->pBindings[i].pImmutableSamplers)
+			tempmemSize += pCreateInfo->pBindings[i].descriptorCount;
 
 	byte *memory = GetTempMemory(tempmemSize);
 
@@ -165,7 +165,7 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 
 	for(uint32_t i=0; i < pCreateInfo->bindingCount; i++)
 	{
-		unwrapped[i] = pCreateInfo->pBinding[i];
+		unwrapped[i] = pCreateInfo->pBindings[i];
 
 		if(unwrapped[i].pImmutableSamplers)
 		{
@@ -177,7 +177,7 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 	}
 
 	VkDescriptorSetLayoutCreateInfo unwrappedInfo = *pCreateInfo;
-	unwrappedInfo.pBinding = unwrapped;
+	unwrappedInfo.pBindings = unwrapped;
 	VkResult ret = ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), &unwrappedInfo, pAllocator, pSetLayout);
 
 	if(ret == VK_SUCCESS)
@@ -257,7 +257,7 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(
 		const VkDescriptorSetAllocateInfo*          pAllocateInfo,
     VkDescriptorSet*                            pDescriptorSets)
 {
-	size_t tempmemSize = sizeof(VkDescriptorSetAllocateInfo) + sizeof(VkDescriptorSetLayout)*pAllocateInfo->setLayoutCount;
+	size_t tempmemSize = sizeof(VkDescriptorSetAllocateInfo) + sizeof(VkDescriptorSetLayout)*pAllocateInfo->descriptorSetCount;
 	
 	byte *memory = GetTempMemory(tempmemSize);
 
@@ -267,14 +267,14 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(
 	*unwrapped = *pAllocateInfo;
 	unwrapped->pSetLayouts = layouts;
 	unwrapped->descriptorPool = Unwrap(unwrapped->descriptorPool);
-	for(uint32_t i=0; i < pAllocateInfo->setLayoutCount; i++)
+	for(uint32_t i=0; i < pAllocateInfo->descriptorSetCount; i++)
 		layouts[i] = Unwrap(pAllocateInfo->pSetLayouts[i]);
 
 	VkResult ret = ObjDisp(device)->AllocateDescriptorSets(Unwrap(device), unwrapped, pDescriptorSets);
 
 	if(ret != VK_SUCCESS) return ret;
 
-	for(uint32_t i=0; i < pAllocateInfo->setLayoutCount; i++)
+	for(uint32_t i=0; i < pAllocateInfo->descriptorSetCount; i++)
 	{
 		ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pDescriptorSets[i]);
 
@@ -286,7 +286,7 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(
 				CACHE_THREAD_SERIALISER();
 
 				VkDescriptorSetAllocateInfo info = *pAllocateInfo;
-				info.setLayoutCount = 1;
+				info.descriptorSetCount = 1;
 				info.pSetLayouts += i;
 
 				SCOPED_SERIALISE_CONTEXT(ALLOC_DESC_SET);

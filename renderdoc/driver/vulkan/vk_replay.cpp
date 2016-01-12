@@ -267,7 +267,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			2, imformat, imcolspace, { width, height }, 1,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
-			VK_SURFACE_TRANSFORM_NONE_BIT_KHR, VkCompositeAlphaFlagBitsKHR(0),
+			VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR, VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 			presentmode, true,
 			Unwrap(old),
 	};
@@ -872,8 +872,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 			vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			void *barrier = (void *)&pickimBarrier;
-			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			DoPipelineBarrier(cmd, 1, &pickimBarrier);
 			pickimBarrier.oldLayout = pickimBarrier.newLayout;
 			pickimBarrier.srcAccessMask = pickimBarrier.dstAccessMask;
 
@@ -889,7 +888,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 			// update image layout back to color attachment
 			pickimBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			pickimBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			DoPipelineBarrier(cmd, 1, &pickimBarrier);
 
 			vt->EndCommandBuffer(Unwrap(cmd));
 		}
@@ -1159,14 +1158,12 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	
 	vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
-	void *barrier = (void *)&srcimBarrier;
-
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
 		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
 		srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(srcimBarrier.oldLayout);
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		DoPipelineBarrier(cmd, 1, &srcimBarrier);
 	}
 
 	srcimBarrier.oldLayout = srcimBarrier.newLayout;
@@ -1189,7 +1186,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 			(float)m_DebugWidth, (float)m_DebugHeight,
 			0.0f, 1.0f
 		};
-		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+		vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
 		vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 		vt->CmdEndRenderPass(Unwrap(cmd));
@@ -1200,7 +1197,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
 		srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		DoPipelineBarrier(cmd, 1, &srcimBarrier);
 	}
 
 	vt->EndCommandBuffer(Unwrap(cmd));
@@ -1304,7 +1301,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 1, &uboOffs);
 
 		VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
-		vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+		vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 		
 		vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 		vt->CmdEndRenderPass(Unwrap(cmd));
@@ -1509,7 +1506,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 	vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 	
 	VkViewport viewport = { 0.0f, 0.0f, (float)m_DebugWidth, (float)m_DebugHeight, 0.0f, 1.0f };
-	vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+	vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 	
 	Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(m_DebugWidth)/float(m_DebugHeight));
 	Matrix4f InvProj = projMat.Inverse();
@@ -1942,7 +1939,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 			RDCASSERT(vkr == VK_SUCCESS);
 			vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 			
-			vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+			vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 		}
 
 		PrimitiveTopology meshtopo = cfg.position.topo;
@@ -2466,6 +2463,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	// semaphore is short lived, so not wrapped, if it's cached (ideally)
 	// then it should be wrapped
 	VkSemaphore sem;
+	VkPipelineStageFlags stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 	VkSemaphoreCreateInfo semInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, NULL, VK_FENCE_CREATE_SIGNALED_BIT };
 
 	VkResult vkr = vt->CreateSemaphore(Unwrap(dev), &semInfo, NULL, &sem);
@@ -2476,7 +2474,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
 	VkSubmitInfo submitInfo = {
 		VK_STRUCTURE_TYPE_SUBMIT_INFO, NULL,
-		1, &sem,
+		1, &sem, &stage,
 		0, NULL, // cmd buffers
 		0, NULL, // signal semaphores
 	};
@@ -2493,20 +2491,17 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	void *barrier[] = {
-		(void *)&outw.bbBarrier,
-		(void *)&outw.colBarrier[outw.curidx],
-		(void *)&outw.depthBarrier,
-	};
-
 	outw.depthBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	
 	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	outw.bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 	outw.colBarrier[outw.curidx].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	outw.colBarrier[outw.curidx].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, depth ? 3 : 2, barrier);
+	
+	DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
+	DoPipelineBarrier(cmd, 1, &outw.colBarrier[outw.curidx]);
+	if(depth)
+		DoPipelineBarrier(cmd, 1, &outw.depthBarrier);
 
 	outw.depthBarrier.oldLayout = outw.depthBarrier.newLayout;
 	outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
@@ -2534,14 +2529,12 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	void *barrier = &outw.bbBarrier;
-
 	outw.bbBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 	outw.bbBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	outw.bbBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
 
 	vt->CmdClearColorImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)col, 1, &outw.bbBarrier.subresourceRange);
 
@@ -2550,7 +2543,7 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	outw.bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
 	
 	outw.bbBarrier.srcAccessMask = outw.bbBarrier.dstAccessMask;
 	outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
@@ -2576,15 +2569,13 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkClearDepthStencilValue ds = { depth, stencil };
-	
-	void *barrier = &outw.depthBarrier;
 
 	outw.depthBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 	outw.depthBarrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	outw.depthBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 	outw.depthBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &outw.depthBarrier);
 
 	vt->CmdClearDepthStencilImage(Unwrap(cmd), Unwrap(outw.dsimg), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &ds, 1, &outw.depthBarrier.subresourceRange);
 	
@@ -2593,7 +2584,7 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 	outw.depthBarrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 	outw.depthBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &outw.depthBarrier);
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 }
@@ -2615,16 +2606,12 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	void *barrier[] = {
-		(void *)&outw.bbBarrier,
-		(void *)&outw.colBarrier[outw.curidx],
-	};
-
 	// ensure rendering has completed before copying
 	outw.bbBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 	outw.bbBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, barrier);
+	DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
+	DoPipelineBarrier(cmd, 1, &outw.colBarrier[outw.curidx]);
 	outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
 	outw.bbBarrier.srcAccessMask = 0;
 	outw.bbBarrier.dstAccessMask = 0;
@@ -2658,8 +2645,9 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	// make sure copy has completed before present
 	outw.colBarrier[outw.curidx].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 	outw.colBarrier[outw.curidx].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
+	
+	DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
+	DoPipelineBarrier(cmd, 1, &outw.colBarrier[outw.curidx]);
 
 	outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
 	outw.bbBarrier.srcAccessMask = outw.bbBarrier.dstAccessMask;
@@ -3536,13 +3524,11 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	
 	vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
-	void *barrier = (void *)&srcimBarrier;
-
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
 		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		DoPipelineBarrier(cmd, 1, &srcimBarrier);
 	}
 
 	srcimBarrier.oldLayout = srcimBarrier.newLayout;
@@ -3573,12 +3559,11 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
 		srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		DoPipelineBarrier(cmd, 1, &srcimBarrier);
 	}
 
 	// ensure shader writes complete before coalescing the tiles
-	barrier = (void *)&tilebarrier;
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &tilebarrier);
 
 	vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_MinMaxResultPipe));
 	vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_HistogramPipeLayout),
@@ -3591,7 +3576,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	tilebarrier.buffer = Unwrap(GetDebugManager()->m_MinMaxResult.buf);
 	tilebarrier.size = GetDebugManager()->m_MinMaxResult.totalsize;
 	
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &tilebarrier);
 
 	VkBufferCopy bufcopy = {
 		0, 0, GetDebugManager()->m_MinMaxResult.totalsize,
@@ -3605,7 +3590,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	tilebarrier.buffer = Unwrap(GetDebugManager()->m_MinMaxReadback.buf);
 	tilebarrier.size = GetDebugManager()->m_MinMaxResult.totalsize;
 	
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &tilebarrier);
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 	
@@ -3737,13 +3722,11 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	
 	vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
-	void *barrier = (void *)&srcimBarrier;
-
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
 		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		DoPipelineBarrier(cmd, 1, &srcimBarrier);
 	}
 
 	srcimBarrier.oldLayout = srcimBarrier.newLayout;
@@ -3776,12 +3759,11 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 		srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 		srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
 		srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		DoPipelineBarrier(cmd, 1, &srcimBarrier);
 	}
 
 	// ensure shader writes complete before copying to readback buf
-	barrier = (void *)&tilebarrier;
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &tilebarrier);
 
 	VkBufferCopy bufcopy = {
 		0, 0, GetDebugManager()->m_HistogramBuf.totalsize,
@@ -3795,7 +3777,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	tilebarrier.buffer = Unwrap(GetDebugManager()->m_HistogramReadback.buf);
 	tilebarrier.size = GetDebugManager()->m_HistogramReadback.totalsize;
 	
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &tilebarrier);
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 	
@@ -3958,9 +3940,9 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		imCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 		imCreateInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-		imCreateInfo.extent.width = RDCMAX(1, imCreateInfo.extent.width>>mip);
-		imCreateInfo.extent.height = RDCMAX(1, imCreateInfo.extent.height>>mip);
-		imCreateInfo.extent.depth = RDCMAX(1, imCreateInfo.extent.depth>>mip);
+		imCreateInfo.extent.width = RDCMAX(1U, imCreateInfo.extent.width>>mip);
+		imCreateInfo.extent.height = RDCMAX(1U, imCreateInfo.extent.height>>mip);
+		imCreateInfo.extent.depth = RDCMAX(1U, imCreateInfo.extent.depth>>mip);
 
 		// create render texture similar to readback texture
 		vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
@@ -3988,9 +3970,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		};
 		
 		// move tmp image into transfer destination layout
-		void *barrier = (void *)&dstimBarrier;
-		
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
 		// end this command buffer, the rendertexture below will use its own and we want to ensure ordering
 		vt->EndCommandBuffer(Unwrap(cmd));
@@ -4099,8 +4079,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 		dstimBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 		dstimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		
+		DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
 		// these have already been selected, don't need to fetch that subresource
 		// when copying back to readback buffer
@@ -4116,8 +4096,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		imCreateInfo.arrayLayers = 1;
 		imCreateInfo.mipLevels = 1;
 
-		imCreateInfo.extent.width = RDCMAX(1, imCreateInfo.extent.width>>mip);
-		imCreateInfo.extent.height = RDCMAX(1, imCreateInfo.extent.height>>mip);
+		imCreateInfo.extent.width = RDCMAX(1U, imCreateInfo.extent.width>>mip);
+		imCreateInfo.extent.height = RDCMAX(1U, imCreateInfo.extent.height>>mip);
 
 		// create resolve texture
 		vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
@@ -4165,13 +4145,11 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		// before we go resolving
 		srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-		void *barrier = (void *)&srcimBarrier;
-
 		for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 		{
 			srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 			srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
-			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			DoPipelineBarrier(cmd, 1, &srcimBarrier);
 		}
 
 		srcimBarrier.oldLayout = srcimBarrier.newLayout;
@@ -4180,32 +4158,26 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		srcimBarrier.dstAccessMask = 0;
 		
 		// move tmp image into transfer destination layout
-		barrier = (void *)&dstimBarrier;
-		
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
 		// resolve from live texture to resolve texture
 		vt->CmdResolveImage(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(tmpImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &resolveRegion);
-		
-		barrier = (void *)&srcimBarrier;
 		
 		// image layout back to normal
 		for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 		{
 			srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 			srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
-			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			DoPipelineBarrier(cmd, 1, &srcimBarrier);
 		}
 
 		// wait for resolve to finish before copy to buffer
-		barrier = (void *)&dstimBarrier;
-
 		dstimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		dstimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 		dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 		
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
 		srcImage = tmpImage;
 
@@ -4228,8 +4200,6 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		{ aspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
 	};
 
-	void *barrier = (void *)&srcimBarrier;
-
 	// if we have no tmpImage, we're copying directly from the real image
 	if(tmpImage == VK_NULL_HANDLE)
 	{
@@ -4242,7 +4212,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		{
 			srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 			srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
-			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			DoPipelineBarrier(cmd, 1, &srcimBarrier);
 		}
 	}
 
@@ -4294,7 +4264,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		{
 			srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
 			srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
-			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			DoPipelineBarrier(cmd, 1, &srcimBarrier);
 		}
 	}
 
@@ -4307,8 +4277,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	};
 
 	// wait for copy to finish before reading back to host
-	barrier = (void *)&bufBarrier;
-	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &bufBarrier);
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 

@@ -26,11 +26,13 @@
 
 bool WrappedVulkan::Serialise_vkCmdSetViewport(
 			Serialiser*                                 localSerialiser,
-			VkCommandBuffer                                 cmdBuffer,
+			VkCommandBuffer                             cmdBuffer,
+			uint32_t                                    firstViewport,
 			uint32_t                                    viewportCount,
 			const VkViewport*                           pViewports)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(uint32_t, first, firstViewport);
 	SERIALISE_ELEMENT(uint32_t, count, viewportCount);
 	SERIALISE_ELEMENT_ARR(VkViewport, views, pViewports, count);
 
@@ -42,15 +44,20 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
 			cmdBuffer = RerecordCmdBuf(cmdid);
-			ObjDisp(cmdBuffer)->CmdSetViewport(Unwrap(cmdBuffer), count, views);
-			m_RenderState.views.assign(views, views + count);
+			ObjDisp(cmdBuffer)->CmdSetViewport(Unwrap(cmdBuffer), first, count, views);
+
+			if(m_RenderState.views.size() < first + count)
+				m_RenderState.views.resize(first + count);
+
+			for(uint32_t i=0; i < count; i++)
+				m_RenderState.views[first + i] = views[i];
 		}
 	}
 	else if(m_State == READING)
 	{
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
-		ObjDisp(cmdBuffer)->CmdSetViewport(Unwrap(cmdBuffer), count, views);
+		ObjDisp(cmdBuffer)->CmdSetViewport(Unwrap(cmdBuffer), first, count, views);
 	}
 
 	SAFE_DELETE_ARRAY(views);
@@ -59,11 +66,12 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(
 }
 
 void WrappedVulkan::vkCmdSetViewport(
-			VkCommandBuffer                                 cmdBuffer,
+			VkCommandBuffer                             cmdBuffer,
+			uint32_t                                    firstViewport,
 			uint32_t                                    viewportCount,
 			const VkViewport*                           pViewports)
 {
-	ObjDisp(cmdBuffer)->CmdSetViewport(Unwrap(cmdBuffer), viewportCount, pViewports);
+	ObjDisp(cmdBuffer)->CmdSetViewport(Unwrap(cmdBuffer), firstViewport, viewportCount, pViewports);
 
 	if(m_State >= WRITING)
 	{
@@ -72,7 +80,7 @@ void WrappedVulkan::vkCmdSetViewport(
 		CACHE_THREAD_SERIALISER();
 
 		SCOPED_SERIALISE_CONTEXT(SET_VP);
-		Serialise_vkCmdSetViewport(localSerialiser, cmdBuffer, viewportCount, pViewports);
+		Serialise_vkCmdSetViewport(localSerialiser, cmdBuffer, firstViewport, viewportCount, pViewports);
 
 		record->AddChunk(scope.Get());
 	}
@@ -80,11 +88,13 @@ void WrappedVulkan::vkCmdSetViewport(
 
 bool WrappedVulkan::Serialise_vkCmdSetScissor(
 			Serialiser*                                 localSerialiser,
-			VkCommandBuffer                                 cmdBuffer,
+			VkCommandBuffer                             cmdBuffer,
+			uint32_t                                    firstScissor,
 			uint32_t                                    scissorCount,
 			const VkRect2D*                             pScissors)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(uint32_t, first, firstScissor);
 	SERIALISE_ELEMENT(uint32_t, count, scissorCount);
 	SERIALISE_ELEMENT_ARR(VkRect2D, scissors, pScissors, count);
 
@@ -96,15 +106,20 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
 			cmdBuffer = RerecordCmdBuf(cmdid);
-			ObjDisp(cmdBuffer)->CmdSetScissor(Unwrap(cmdBuffer), count, scissors);
-			m_RenderState.scissors.assign(scissors, scissors + count);
+			ObjDisp(cmdBuffer)->CmdSetScissor(Unwrap(cmdBuffer), first, count, scissors);
+
+			if(m_RenderState.scissors.size() < first + count)
+				m_RenderState.scissors.resize(first + count);
+
+			for(uint32_t i=0; i < count; i++)
+				m_RenderState.scissors[first + i] = scissors[i];
 		}
 	}
 	else if(m_State == READING)
 	{
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
-		ObjDisp(cmdBuffer)->CmdSetScissor(Unwrap(cmdBuffer), count, scissors);
+		ObjDisp(cmdBuffer)->CmdSetScissor(Unwrap(cmdBuffer), first, count, scissors);
 	}
 
 	SAFE_DELETE_ARRAY(scissors);
@@ -114,10 +129,11 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(
 
 void WrappedVulkan::vkCmdSetScissor(
 			VkCommandBuffer                                 cmdBuffer,
+			uint32_t                                    firstScissor,
 			uint32_t                                    scissorCount,
 			const VkRect2D*                             pScissors)
 {
-	ObjDisp(cmdBuffer)->CmdSetScissor(Unwrap(cmdBuffer), scissorCount, pScissors);
+	ObjDisp(cmdBuffer)->CmdSetScissor(Unwrap(cmdBuffer), firstScissor, scissorCount, pScissors);
 
 	if(m_State >= WRITING)
 	{
@@ -126,7 +142,7 @@ void WrappedVulkan::vkCmdSetScissor(
 		CACHE_THREAD_SERIALISER();
 
 		SCOPED_SERIALISE_CONTEXT(SET_SCISSOR);
-		Serialise_vkCmdSetScissor(localSerialiser, cmdBuffer, scissorCount, pScissors);
+		Serialise_vkCmdSetScissor(localSerialiser, cmdBuffer, firstScissor, scissorCount, pScissors);
 
 		record->AddChunk(scope.Get());
 	}

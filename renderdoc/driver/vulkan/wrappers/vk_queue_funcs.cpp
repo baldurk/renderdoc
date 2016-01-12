@@ -181,7 +181,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 	VkSubmitInfo submitInfo = {
 		VK_STRUCTURE_TYPE_SUBMIT_INFO, NULL,
-		0, NULL, // wait semaphores
+		0, NULL, NULL, // wait semaphores
 		numCmds, cmds, // command buffers
 		0, NULL, // signal semaphores
 	};

@@ -101,6 +101,33 @@ int StageIndex(VkShaderStageFlagBits stageFlag)
 	return 0;
 }
 
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkImageMemoryBarrier *barriers)
+{
+	ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd),
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+		0, NULL,          // global memory barriers
+		0, NULL,          // buffer memory barriers
+		count, barriers); // image memory barriers
+}
+
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkBufferMemoryBarrier *barriers)
+{
+	ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd),
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+		0, NULL,          // global memory barriers
+		count, barriers,  // buffer memory barriers
+		0, NULL);         // image memory barriers
+}
+
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkMemoryBarrier *barriers)
+{
+	ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd),
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+		count, barriers, // global memory barriers
+		0, NULL,         // buffer memory barriers
+		0, NULL);        // image memory barriers
+}
+
 ResourceFormat MakeResourceFormat(VkFormat fmt)
 {
 	ResourceFormat ret;
@@ -1435,9 +1462,6 @@ string ToStrHelper<false, VkQueryResultFlagBits>::Get(const VkQueryResultFlagBit
 {
 	string ret;
 
-	if(el == VK_QUERY_RESULT_DEFAULT)
-		return "VK_QUERY_RESULT_DEFAULT";
-
 	if(el & VK_QUERY_RESULT_64_BIT)                    ret += " | VK_QUERY_RESULT_64_BIT";
 	if(el & VK_QUERY_RESULT_WAIT_BIT)                  ret += " | VK_QUERY_RESULT_WAIT_BIT";
 	if(el & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)     ret += " | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT";
@@ -1537,10 +1561,11 @@ template<>
 string ToStrHelper<false, VkStencilFaceFlagBits>::Get(const VkStencilFaceFlagBits &el)
 {
 	// technically a bitfield but each combination has a particular meaning
-	if(el == VK_STENCIL_FACE_NONE)        return "VK_STENCIL_FACE_NONE";
 	if(el == VK_STENCIL_FACE_FRONT_BIT)   return "VK_STENCIL_FACE_FRONT";
 	if(el == VK_STENCIL_FACE_BACK_BIT)    return "VK_STENCIL_FACE_BACK";
 	if(el == VK_STENCIL_FRONT_AND_BACK)   return "VK_STENCIL_FRONT_AND_BACK";
+
+	if(el == 0)                           return "VK_STENCIL_FACE_NONE";
 	
 	return StringFormat::Fmt("VkStencilFaceFlagBits<%d>", el);
 }
@@ -1845,7 +1870,6 @@ string ToStrHelper<false, VkSamplerMipmapMode>::Get(const VkSamplerMipmapMode &e
 {
 	switch(el)
 	{
-		case VK_SAMPLER_MIPMAP_MODE_BASE:    return "BASE";
 		case VK_SAMPLER_MIPMAP_MODE_NEAREST: return "NEAREST";
 		case VK_SAMPLER_MIPMAP_MODE_LINEAR:  return "LINEAR";
 		default: break;		 
@@ -2399,13 +2423,13 @@ string ToStrHelper<false, VkClearAttachment>::Get(const VkClearAttachment &el)
 template<>
 string ToStrHelper<false, VkExtent2D>::Get(const VkExtent2D &el)
 {
-	return StringFormat::Fmt("VkExtent<%d,%d>", el.width, el.height);
+	return StringFormat::Fmt("VkExtent<%u,%u>", el.width, el.height);
 }
 
 template<>
 string ToStrHelper<false, VkExtent3D>::Get(const VkExtent3D &el)
 {
-	return StringFormat::Fmt("VkExtent<%d,%d,%d>", el.width, el.height, el.depth);
+	return StringFormat::Fmt("VkExtent<%u,%u,%u>", el.width, el.height, el.depth);
 }
 
 template<>
@@ -2461,7 +2485,6 @@ string ToStrHelper<false, VkSurfaceTransformFlagBitsKHR>::Get(const VkSurfaceTra
 {
 	string ret;
 
-	if(el & VK_SURFACE_TRANSFORM_NONE_BIT_KHR)                          ret += " | VK_SURFACE_TRANSFORM_NONE_BIT_KHR";
 	if(el & VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR)                     ret += " | VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR";
 	if(el & VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR)                    ret += " | VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR";
 	if(el & VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR)                    ret += " | VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR";
@@ -2600,6 +2623,7 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 	Serialise("dualSrcBlend", el.dualSrcBlend);
 	Serialise("logicOp", el.logicOp);
 	Serialise("multiDrawIndirect", el.multiDrawIndirect);
+	Serialise("drawIndirectFirstInstance", el.drawIndirectFirstInstance);
 	Serialise("depthClamp", el.depthClamp);
 	Serialise("depthBiasClamp", el.depthBiasClamp);
 	Serialise("fillModeNonSolid", el.fillModeNonSolid);
@@ -2643,6 +2667,7 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
 	Serialise("sparseResidency16Samples", el.sparseResidency16Samples);
 	Serialise("sparseResidencyAliased", el.sparseResidencyAliased);
 	Serialise("variableMultisampleRate", el.variableMultisampleRate);
+	Serialise("inheritedQueries", el.inheritedQueries);
 }
 
 template<>
@@ -2753,6 +2778,7 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceLimits &el)
 	Serialise("sampledImageStencilSampleCounts", el.sampledImageStencilSampleCounts);
 	Serialise("storageImageSampleCounts", el.storageImageSampleCounts);
 	Serialise("maxSampleMaskWords", el.maxSampleMaskWords);
+	Serialise("timestampComputeAndGraphics", el.timestampComputeAndGraphics);
 	Serialise("timestampPeriod", el.timestampPeriod);
 	Serialise("maxClipDistances", el.maxClipDistances);
 	Serialise("maxCullDistances", el.maxCullDistances);
@@ -2817,14 +2843,14 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	SerialiseComplexArray("pQueueCreateInfos", (VkDeviceQueueCreateInfo *&)el.pQueueCreateInfos, el.queueCreateInfoCount);
 
 	// need to do this by hand to use string DB
-	Serialise("extensionCount", el.enabledExtensionNameCount);
+	Serialise("extensionCount", el.enabledExtensionCount);
 	
 	if(m_Mode == READING)
-		el.ppEnabledExtensionNames = el.enabledExtensionNameCount ? new char*[el.enabledExtensionNameCount] : NULL;
+		el.ppEnabledExtensionNames = el.enabledExtensionCount ? new char*[el.enabledExtensionCount] : NULL;
 	
 	// cast away const on array so we can assign to it on reading
 	const char **exts = (const char **)el.ppEnabledExtensionNames;
-	for(uint32_t i=0; i < el.enabledExtensionNameCount; i++)
+	for(uint32_t i=0; i < el.enabledExtensionCount; i++)
 	{
 		string s = "";
 		if(m_Mode == WRITING && exts[i] != NULL)
@@ -2840,14 +2866,14 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	}
 
 	// need to do this by hand to use string DB
-	Serialise("layerCount", el.enabledLayerNameCount);
+	Serialise("layerCount", el.enabledLayerCount);
 	
 	if(m_Mode == READING)
-		el.ppEnabledLayerNames = el.enabledLayerNameCount ? new char*[el.enabledLayerNameCount] : NULL;
+		el.ppEnabledLayerNames = el.enabledLayerCount ? new char*[el.enabledLayerCount] : NULL;
 	
 	// cast away const on array so we can assign to it on reading
 	const char **layers = (const char **)el.ppEnabledLayerNames;
-	for(uint32_t i=0; i < el.enabledLayerNameCount; i++)
+	for(uint32_t i=0; i < el.enabledLayerCount; i++)
 	{
 		string s = "";
 		if(m_Mode == WRITING && layers[i] != NULL)
@@ -3453,7 +3479,23 @@ void Serialiser::Serialise(const char *name, VkCommandBufferAllocateInfo &el)
 	
 	SerialiseObject(VkCommandPool, "commandPool", el.commandPool);
 	Serialise("level", el.level);
-	Serialise("bufferCount", el.bufferCount);
+	Serialise("bufferCount", el.commandBufferCount);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkCommandBufferInheritanceInfo &el)
+{
+	ScopedContext scope(this, name, "VkCommandBufferInheritanceInfo", 0, true);
+
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO);
+	SerialiseNext(this, el.sType, el.pNext);
+	
+	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
+	Serialise("subpass", el.subpass);
+	SerialiseObject(VkFramebuffer, "framebuffer", el.framebuffer);
+	Serialise("occlusionQueryEnable", el.occlusionQueryEnable);
+	Serialise("queryFlags", (VkQueryControlFlagBits &)el.queryFlags);
+	Serialise("pipelineStatistics", (VkQueryPipelineStatisticFlagBits &)el.pipelineStatistics);
 }
 
 template<>
@@ -3463,14 +3505,19 @@ void Serialiser::Serialise(const char *name, VkCommandBufferBeginInfo &el)
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
 	SerialiseNext(this, el.sType, el.pNext);
-	
+
 	Serialise("flags", (VkCommandBufferUsageFlagBits &)el.flags);
-	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
-	Serialise("subpass", el.subpass);
-	SerialiseObject(VkFramebuffer, "framebuffer", el.framebuffer);
-	Serialise("occlusionQueryEnable", el.occlusionQueryEnable);
-	Serialise("queryFlags", (VkQueryControlFlagBits &)el.queryFlags);
-	Serialise("pipelineStatistics", (VkQueryPipelineStatisticFlagBits &)el.pipelineStatistics);
+	SerialiseOptionalObject(this, "el.pInheritanceInfo", (VkCommandBufferInheritanceInfo *&)el.pInheritanceInfo);
+}
+
+template<>
+void Serialiser::Deserialise(const VkCommandBufferBeginInfo* const el) const
+{
+	if(m_Mode == READING)
+	{
+		RDCASSERT(el->pNext == NULL); // otherwise delete
+		delete el->pInheritanceInfo;
+	}
 }
 
 template<>
@@ -3497,7 +3544,7 @@ void Serialiser::Serialise(const char *name, VkQueryPoolCreateInfo &el)
 	
 	Serialise("flags", (VkFlagWithNoBits &)el.flags);
 	Serialise("queryType", el.queryType);
-	Serialise("entryCount", el.entryCount);
+	Serialise("queryCount", el.queryCount);
 	Serialise("pipelineStatistics", (VkQueryPipelineStatisticFlagBits &)el.pipelineStatistics);
 }
 
@@ -3981,14 +4028,14 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetAllocateInfo &el)
 	
 	// need to do this one by hand since it's just an array of objects that don't themselves have
 	// a Serialise overload
-	Serialise("setLayoutCount", el.setLayoutCount);
+	Serialise("descriptorSetCount", el.descriptorSetCount);
 
 	if(m_Mode == READING)
-		el.pSetLayouts = el.setLayoutCount ? new VkDescriptorSetLayout[el.setLayoutCount] : NULL;
+		el.pSetLayouts = el.descriptorSetCount ? new VkDescriptorSetLayout[el.descriptorSetCount] : NULL;
 
 	// cast away const on array so we can assign to it on reading
 	VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout*)el.pSetLayouts;
-	for(uint32_t i=0; i < el.setLayoutCount; i++)
+	for(uint32_t i=0; i < el.descriptorSetCount; i++)
 		SerialiseObject(VkDescriptorSetLayout, "pSetLayouts", layouts[i]);
 }
 
@@ -4155,7 +4202,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el
 	SerialiseNext(this, el.sType, el.pNext);
 	
 	Serialise("flags", (VkFlagWithNoBits &)el.flags);
-	SerialiseComplexArray("pBinding", (VkDescriptorSetLayoutBinding *&)el.pBinding, el.bindingCount);
+	SerialiseComplexArray("pBindings", (VkDescriptorSetLayoutBinding *&)el.pBindings, el.bindingCount);
 }
 
 template<>
@@ -4165,9 +4212,9 @@ void Serialiser::Deserialise(const VkDescriptorSetLayoutCreateInfo* const el) co
 	{
 		RDCASSERT(el->pNext == NULL); // otherwise delete
 		for (uint32_t i=0; i<el->bindingCount; i++)
-			if(el->pBinding[i].pImmutableSamplers)
-				delete[] el->pBinding[i].pImmutableSamplers;
-		delete [] el->pBinding;
+			if(el->pBindings[i].pImmutableSamplers)
+				delete[] el->pBindings[i].pImmutableSamplers;
+		delete [] el->pBindings;
 	}
 }
 
@@ -4223,11 +4270,9 @@ void Serialiser::Serialise(const char *name, VkImageBlit &el)
 	ScopedContext scope(this, name, "VkImageBlit", 0, true);
 
 	Serialise("srcSubresource", el.srcSubresource);
-	Serialise("srcOffset", el.srcOffset);
-	Serialise("srcExtent", el.srcExtent);
+	SerialisePODArray<2>("srcOffsets", el.srcOffsets);
 	Serialise("dstSubresource", el.dstSubresource);
-	Serialise("dstOffset", el.dstOffset);
-	Serialise("dstExtent", el.dstExtent);
+	SerialisePODArray<2>("dstOffsets", el.dstOffsets);
 }
 
 template<>

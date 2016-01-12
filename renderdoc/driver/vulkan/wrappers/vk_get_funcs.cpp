@@ -214,8 +214,7 @@ VkResult WrappedVulkan::vkGetPipelineCacheData(
 		uint32_t *ptr = (uint32_t *)pData;
 
 		ptr[0] = (uint32_t)totalSize;
-		// VKTODOHIGH VK_PIPELINE_CACHE_HEADER_VERSION_ONE on new header
-		ptr[1] = 1;
+		ptr[1] = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
 		// just in case the user expects a valid vendorID/deviceID, write the real one
 		// MULTIDEVICE need to get the right physical device for this device
 		ptr[2] = m_PhysicalDeviceData.props.vendorID;

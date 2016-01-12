@@ -48,7 +48,15 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 
 void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 {
-	VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), connection, wnd, NULL, &surface);
+	VkXcbSurfaceCreateInfoKHR createInfo;
+
+	createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+	createInfo.pNext = NULL;
+	createInfo.flags = 0;
+	createInfo.connection = connection;
+	createInfo.window = wnd;
+
+	VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
 	RDCASSERT(vkr == VK_SUCCESS);
 }
 
@@ -91,15 +99,14 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceXcbPresentationSupportKHR(
 
 VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(
     VkInstance                                  instance,
-    xcb_connection_t*                           connection,
-    xcb_window_t                                window,
+    const VkXcbSurfaceCreateInfoKHR*            pCreateInfo,
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
 	// should not come in here at all on replay
 	RDCASSERT(m_State >= WRITING);
 
-	VkResult ret = ObjDisp(instance)->CreateXcbSurfaceKHR(Unwrap(instance), connection, window, pAllocator, pSurface);
+	VkResult ret = ObjDisp(instance)->CreateXcbSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -109,9 +116,9 @@ VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(
 		
 		// since there's no point in allocating a full resource record and storing the window
 		// handle under there somewhere, we just cast. We won't use the resource record for anything
-		wrapped->record = (VkResourceRecord *)(uintptr_t)window;
+		wrapped->record = (VkResourceRecord *)(uintptr_t)pCreateInfo->window;
 		
-		Keyboard::UseConnection(connection);
+		Keyboard::UseConnection(pCreateInfo->connection);
 	}
 
 	return ret;
@@ -132,15 +139,14 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceXlibPresentationSupportKHR(
 
 VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(
     VkInstance                                  instance,
-    Display*                                    dpy,
-    Window                                      window,
+    const VkXlibSurfaceCreateInfoKHR*           pCreateInfo,
     const VkAllocationCallbacks*                pAllocator,
     VkSurfaceKHR*                               pSurface)
 {
 	// should not come in here at all on replay
 	RDCASSERT(m_State >= WRITING);
 
-	VkResult ret = ObjDisp(instance)->CreateXlibSurfaceKHR(Unwrap(instance), dpy, window, pAllocator, pSurface);
+	VkResult ret = ObjDisp(instance)->CreateXlibSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -150,10 +156,10 @@ VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(
 		
 		// since there's no point in allocating a full resource record and storing the window
 		// handle under there somewhere, we just cast. We won't use the resource record for anything
-		wrapped->record = (VkResourceRecord *)window;
+		wrapped->record = (VkResourceRecord *)pCreateInfo->window;
 		
 		// VKTODOLOW Should support Xlib here
-		//Keyboard::UseConnection(dpy);
+		//Keyboard::UseConnection(pCreateInfo->dpy);
 	}
 
 	return ret;

@@ -643,11 +643,11 @@ void SparseMapping::Update(uint32_t numBindings, const VkSparseImageMemoryBind *
 
 		pair<VkDeviceMemory, VkDeviceSize> mempair = std::make_pair(newBind.memory, newBind.memoryOffset);
 		
-		for(int32_t z=offsInPages.z; z < offsInPages.z+extInPages.depth; z++)
+		for(uint32_t z=offsInPages.z; z < offsInPages.z+extInPages.depth; z++)
 		{
-			for(int32_t y=offsInPages.y; y < offsInPages.y+extInPages.height; y++)
+			for(uint32_t y=offsInPages.y; y < offsInPages.y+extInPages.height; y++)
 			{
-				for(int32_t x=offsInPages.x; x < offsInPages.x+extInPages.width; x++)
+				for(uint32_t x=offsInPages.x; x < offsInPages.x+extInPages.width; x++)
 				{
 					pageTable[ z*imgdim.width*imgdim.height + y*imgdim.width + x ] = mempair;
 				}

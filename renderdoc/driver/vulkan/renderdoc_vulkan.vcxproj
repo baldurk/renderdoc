@@ -60,6 +60,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="official\vk_ext_debug_report.h" />
+    <ClInclude Include="official\vk_layer.h" />
+    <ClInclude Include="official\vk_lunarg_debug_marker.h" />
+    <ClInclude Include="official\vk_platform.h" />
+    <ClInclude Include="official\vulkan.h" />
     <ClInclude Include="vk_common.h" />
     <ClInclude Include="vk_core.h" />
     <ClInclude Include="vk_debug.h" />
@@ -129,7 +134,7 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(VK_SDK_PATH)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <ExcludePath>$(ExcludePath)</ExcludePath>
     <TargetName>driver_$(ProjectName)</TargetName>

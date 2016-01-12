@@ -24,7 +24,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <vulkan/vk_layer.h>
+#include "official/vk_layer.h"
 
 // RenderDoc Includes
 
@@ -93,6 +93,15 @@ static RegisterCallback registercb;
 #define HookDefine8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
 	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
 	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8); }
+#define HookDefine9(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9, p9) \
+	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8, p9); }
+#define HookDefine10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10) \
+	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10); }
+#define HookDefine11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11) \
+	ret VKAPI_CALL CONCAT(hooked_, function)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11) \
+	{ return CoreDisp(p1)->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); }
 
 DefineHooks();
 

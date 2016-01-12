@@ -30,14 +30,6 @@
 #include "replay/replay_driver.h"
 #include "core/core.h"
 
-#ifdef WIN32
-// undefined clashing windows #defines
-#undef CreateEvent
-#undef CreateSemaphore
-#endif
-
-#include <vulkan/vk_layer.h>
-
 #if defined(WIN32)
 
 #include <windows.h>

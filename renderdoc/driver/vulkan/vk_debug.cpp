@@ -328,6 +328,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
 		0.0f, // lod bias
+		false, // enable aniso
 		1.0f, // max aniso
 		false, VK_COMPARE_OP_NEVER,
 		0.0f, 128.0f, // min/max lod
@@ -1127,9 +1128,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT|VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-			void *barrierptr = (void *)&barrier;
-
-			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+			DoPipelineBarrier(cmd, 1, &barrier);
 
 			byte *pData = NULL;
 			vkr = vt->MapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem), 0, VK_WHOLE_SIZE, 0, (void **)&pData);
@@ -1237,10 +1236,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			Unwrap(m_PickPixelImage),
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 		};
-
-		void *barrierptr = (void *)&barrier;
-
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		
+		DoPipelineBarrier(cmd, 1, &barrier);
 
 		// create render pass
 		VkAttachmentDescription attDesc = {
@@ -1763,7 +1760,7 @@ void VulkanDebugManager::BeginText(const TextPrintState &textstate)
 	vt->CmdBindPipeline(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeline));
 
 	VkViewport viewport = { 0.0f, 0.0f, (float)textstate.w, (float)textstate.h, 0.0f, 1.0f };
-	vt->CmdSetViewport(Unwrap(textstate.cmd), 1, &viewport);
+	vt->CmdSetViewport(Unwrap(textstate.cmd), 0, 1, &viewport);
 }
 
 void VulkanDebugManager::RenderText(const TextPrintState &textstate, float x, float y, const char *textfmt, ...)
@@ -1867,10 +1864,8 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 
 	bufBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
 	
-	void *barrierptr = (void *)&bufBarrier;
-	
 	// wait for previous writes to happen before we copy to our window buffer
-	ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+	DoPipelineBarrier(cmd, 1, &bufBarrier);
 		
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -1892,7 +1887,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 		bufBarrier.size = chunkSize;
 		
 		// wait for transfer to happen before we read
-		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		DoPipelineBarrier(cmd, 1, &bufBarrier);
 		
 		vkr = vt->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -2434,10 +2429,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		};
 
 		m_pDriver->m_ImageLayouts[GetResID(m_OverlayImage)].subresourceStates[0].newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		void *barrierptr = (void *)&barrier;
-
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		
+		DoPipelineBarrier(cmd, 1, &barrier);
 		
 		VkAttachmentDescription colDesc = {
 			0, imInfo.format, VK_SAMPLE_COUNT_1_BIT,
@@ -2676,7 +2669,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			vt->CmdClearAttachments(Unwrap(cmd), 1, &blackclear, 1, &rect);
 			
 			VkViewport viewport = m_pDriver->m_RenderState.views[0];
-			vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+			vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
 			uint32_t uboOffs = 0;
 
@@ -2716,7 +2709,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 				viewport.width   = scissor.z;
 				viewport.height  = scissor.w;
 				
-				vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+				vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 				vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_OutlinePipeLayout),
 																	0, 1, UnwrapPtr(m_OutlineDescSet), 1, &uboOffs);
 				
@@ -3238,7 +3231,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			VkImageCreateInfo imInfo = {
 				VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 				VK_IMAGE_TYPE_2D, VK_FORMAT_R32_UINT,
-				{ RDCMAX(1, m_OverlayDim.width>>1), RDCMAX(1, m_OverlayDim.height>>1), 1 },
+				{ RDCMAX(1U, m_OverlayDim.width>>1), RDCMAX(1U, m_OverlayDim.height>>1), 1 },
 				1, 4, VK_SAMPLE_COUNT_1_BIT,
 				VK_IMAGE_TILING_OPTIMAL,
 				VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_STORAGE_BIT|VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -3297,10 +3290,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 4 }
 			};
 
-			void *barrier = &quadImBarrier;
-			
 			// clear all to black
-			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			DoPipelineBarrier(cmd, 1, &quadImBarrier);
 			vt->CmdClearColorImage(Unwrap(cmd), Unwrap(quadImg), VK_IMAGE_LAYOUT_GENERAL, (VkClearColorValue *)&black, 1, &quadImBarrier.subresourceRange);
 			
 			quadImBarrier.srcAccessMask = quadImBarrier.dstAccessMask;
@@ -3309,7 +3300,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			quadImBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 
 			// set to general layout, for load/store operations
-			vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			DoPipelineBarrier(cmd, 1, &quadImBarrier);
 
 			// end this cmd buffer so the image is in the right state for the next part
 			vkr = vt->EndCommandBuffer(Unwrap(cmd));
@@ -3350,7 +3341,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 				quadImBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			
 				// wait for writing to finish
-				vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+				DoPipelineBarrier(cmd, 1, &quadImBarrier);
 				
 				VkClearValue clearval = {0};
 				VkRenderPassBeginInfo rpbegin = {
@@ -3370,7 +3361,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 					(float)m_OverlayDim.height,
 					0.0f, 1.0f
 				};
-				vt->CmdSetViewport(Unwrap(cmd), 1, &viewport);
+				vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
 				vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 				vt->CmdEndRenderPass(Unwrap(cmd));
@@ -4782,10 +4773,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				0, bufInfo.size,
 		};
 
-		void *barrierptr = (void *)&meshbufbarrier;
-
 		// wait for writing to finish
-		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 		
 		VkBufferCopy bufcopy = {
 			0, 0, bufInfo.size,
@@ -4799,7 +4788,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		meshbufbarrier.buffer = Unwrap(readbackBuffer);
 	
 		// wait for copy to finish
-		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 		
 		vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -4866,8 +4855,6 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				0, indices.size()*sizeof(uint32_t),
 		};
 
-		void *barrierptr = (void *)&meshbufbarrier;
-		
 		VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
 		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
@@ -4876,7 +4863,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		RDCASSERT(vkr == VK_SUCCESS);
 		
 		// wait for upload to finish
-		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 
 		// fill destination buffer with 0s to ensure unwritten vertices have sane data
 		ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(meshBuffer), 0, bufInfo.size, 0);
@@ -4884,7 +4871,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// wait to finish
 		meshbufbarrier.buffer = Unwrap(meshBuffer);
 		meshbufbarrier.size = bufInfo.size;
-		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 
 		// set bufSize
 		bufSize = numVerts*RDCMAX(1U, drawcall->numInstances)*bufStride;
@@ -4946,15 +4933,15 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		meshbufbarrier.size = numIndices*idxsize;
 
 		// wait for upload to finish
-		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 		
 		// wait for mesh output writing to finish
 		meshbufbarrier.buffer = Unwrap(meshBuffer);
 		meshbufbarrier.size = bufSize;
 		meshbufbarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 		meshbufbarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		
+		DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 		
 		VkBufferCopy bufcopy = {
 			0, 0, bufInfo.size,
@@ -4968,7 +4955,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		meshbufbarrier.buffer = Unwrap(readbackBuffer);
 	
 		// wait for copy to finish
-		ObjDisp(dev)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+		DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 		
 		vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);

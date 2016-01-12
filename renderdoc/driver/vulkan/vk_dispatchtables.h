@@ -32,7 +32,7 @@
 #undef CreateSemaphore
 #endif
 
-#include <vulkan/vk_layer.h>
+#include "official/vk_layer.h"
 
 #include "vk_hookset_defs.h"
 

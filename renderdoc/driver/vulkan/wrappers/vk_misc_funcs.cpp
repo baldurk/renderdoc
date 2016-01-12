@@ -750,37 +750,50 @@ VkResult WrappedVulkan::vkCreateQueryPool(
 VkResult WrappedVulkan::vkGetQueryPoolResults(
 		VkDevice                                    device,
 		VkQueryPool                                 queryPool,
-		uint32_t                                    startQuery,
+		uint32_t                                    firstQuery,
 		uint32_t                                    queryCount,
 		size_t                                      dataSize,
 		void*                                       pData,
 		VkDeviceSize                                stride,
 		VkQueryResultFlags                          flags)
 {
-	return ObjDisp(device)->GetQueryPoolResults(Unwrap(device), Unwrap(queryPool), startQuery, queryCount, dataSize, pData, stride, flags);
+	return ObjDisp(device)->GetQueryPoolResults(Unwrap(device), Unwrap(queryPool), firstQuery, queryCount, dataSize, pData, stride, flags);
 }
 
-VkResult WrappedVulkan::vkDbgCreateMsgCallback(
-	VkInstance                          instance,
-	VkFlags                             msgFlags,
-	const PFN_vkDbgMsgCallback          pfnMsgCallback,
-	void*                               pUserData,
-	VkDbgMsgCallback*                   pMsgCallback)
+VkResult WrappedVulkan::vkCreateDebugReportCallbackEXT(
+		VkInstance                                  instance,
+    const VkDebugReportCallbackCreateInfoEXT*   pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
+    VkDebugReportCallbackEXT*                   pCallback)
 {
 	// don't need to wrap this, as we will create our own independent callback
-	return ObjDisp(instance)->DbgCreateMsgCallback(Unwrap(instance), msgFlags, pfnMsgCallback, pUserData, pMsgCallback);
+	return ObjDisp(instance)->CreateDebugReportCallbackEXT(Unwrap(instance), pCreateInfo, pAllocator, pCallback);
 }
 
-VkResult WrappedVulkan::vkDbgDestroyMsgCallback(
-	VkInstance                          instance,
-	VkDbgMsgCallback                    msgCallback)
+void WrappedVulkan::vkDestroyDebugReportCallbackEXT(
+		VkInstance                                  instance,
+		VkDebugReportCallbackEXT                    callback,
+    const VkAllocationCallbacks*                pAllocator)
 {
-	return ObjDisp(instance)->DbgDestroyMsgCallback(Unwrap(instance), msgCallback);
+	return ObjDisp(instance)->DestroyDebugReportCallbackEXT(Unwrap(instance), callback, pAllocator);
+}
+
+void WrappedVulkan::vkDebugReportMessageEXT(
+    VkInstance                                  instance,
+    VkDebugReportFlagsEXT                       flags,
+    VkDebugReportObjectTypeEXT                  objectType,
+    uint64_t                                    object,
+    size_t                                      location,
+    int32_t                                     messageCode,
+    const char*                                 pLayerPrefix,
+    const char*                                 pMessage)
+{
+	return ObjDisp(instance)->DebugReportMessageEXT(Unwrap(instance), flags, objectType, object, location, messageCode, pLayerPrefix, pMessage);
 }
 
 VkResult WrappedVulkan::vkDbgSetObjectTag(
 		VkDevice device,
-		VkDbgObjectType objType,
+		VkDebugReportObjectTypeEXT objType,
 		uint64_t object,
 		size_t tagSize,
 		const void* pTag)
@@ -793,71 +806,64 @@ VkResult WrappedVulkan::vkDbgSetObjectTag(
 	return VK_SUCCESS;
 }
 
-static VkResourceRecord *GetObjRecord(VkDbgObjectType objType, uint64_t object)
+static VkResourceRecord *GetObjRecord(VkDebugReportObjectTypeEXT objType, uint64_t object)
 {
 	switch(objType)
 	{
-		case VK_OBJECT_TYPE_INSTANCE:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT:
 			return GetRecord((VkInstance)object);
-		case VK_OBJECT_TYPE_PHYSICAL_DEVICE:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT:
 			return GetRecord((VkPhysicalDevice)object);
-		case VK_OBJECT_TYPE_DEVICE:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT:
 			return GetRecord((VkDevice)object);
-		case VK_OBJECT_TYPE_QUEUE:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT:
 			return GetRecord((VkQueue)object);
-		case VK_OBJECT_TYPE_COMMAND_BUFFER:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT:
 			return GetRecord((VkCommandBuffer)object);
-		case VK_OBJECT_TYPE_DEVICE_MEMORY:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT:
 			return GetRecord((VkDeviceMemory)object);
-		case VK_OBJECT_TYPE_BUFFER:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT:
 			return GetRecord((VkBuffer)object);
-		case VK_OBJECT_TYPE_BUFFER_VIEW:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_VIEW_EXT:
 			return GetRecord((VkBufferView)object);
-		case VK_OBJECT_TYPE_IMAGE:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT:
 			return GetRecord((VkImage)object);
-		case VK_OBJECT_TYPE_IMAGE_VIEW:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT:
 			return GetRecord((VkImageView)object);
-		case VK_OBJECT_TYPE_ATTACHMENT_VIEW:
-			return NULL;
-		case VK_OBJECT_TYPE_SHADER_MODULE:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT:
 			return GetRecord((VkShaderModule)object);
-		case VK_OBJECT_TYPE_SHADER:
-			return NULL;
-		case VK_OBJECT_TYPE_PIPELINE:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT:
 			return GetRecord((VkPipeline)object);
-		case VK_OBJECT_TYPE_PIPELINE_LAYOUT:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT:
 			return GetRecord((VkPipelineLayout)object);
-		case VK_OBJECT_TYPE_SAMPLER:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT:
 			return GetRecord((VkSampler)object);
-		case VK_OBJECT_TYPE_DESCRIPTOR_SET:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT:
 			return GetRecord((VkDescriptorSet)object);
-		case VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT:
 			return GetRecord((VkDescriptorSetLayout)object);
-		case VK_OBJECT_TYPE_DESCRIPTOR_POOL:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_POOL_EXT:
 			return GetRecord((VkDescriptorPool)object);
-		case VK_OBJECT_TYPE_FENCE:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_FENCE_EXT:
 			return GetRecord((VkFence)object);
-		case VK_OBJECT_TYPE_SEMAPHORE:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_SEMAPHORE_EXT:
 			return GetRecord((VkSemaphore)object);
-		case VK_OBJECT_TYPE_EVENT:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_EVENT_EXT:
 			return GetRecord((VkEvent)object);
-		case VK_OBJECT_TYPE_QUERY_POOL:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_QUERY_POOL_EXT:
 			return GetRecord((VkQueryPool)object);
-		case VK_OBJECT_TYPE_FRAMEBUFFER:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT:
 			return GetRecord((VkFramebuffer)object);
-		case VK_OBJECT_TYPE_RENDER_PASS:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT:
 			return GetRecord((VkRenderPass)object);
-		case VK_OBJECT_TYPE_PIPELINE_CACHE:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_CACHE_EXT:
 			return GetRecord((VkPipelineCache)object);
-		case VK_OBJECT_TYPE_SURFACE_KHR:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT:
 			return GetRecord((VkSurfaceKHR)object);
-		case VK_OBJECT_TYPE_SWAPCHAIN_KHR:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT:
 			return GetRecord((VkSwapchainKHR)object);
-		case VK_OBJECT_TYPE_COMMAND_POOL:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT:
 			return GetRecord((VkCommandPool)object);
-		case VK_OBJECT_TYPE_NUM:
-		case VK_OBJECT_TYPE_MAX_ENUM:
-			return NULL;
 	}
 	return NULL;
 }
@@ -865,7 +871,7 @@ static VkResourceRecord *GetObjRecord(VkDbgObjectType objType, uint64_t object)
 bool WrappedVulkan::Serialise_vkDbgSetObjectName(
 		Serialiser *localSerialiser,
 		VkDevice device,
-		VkDbgObjectType objType,
+		VkDebugReportObjectTypeEXT objType,
 		uint64_t object,
 		size_t nameSize,
 		const char* pName)
@@ -886,7 +892,7 @@ bool WrappedVulkan::Serialise_vkDbgSetObjectName(
 
 VkResult WrappedVulkan::vkDbgSetObjectName(
 		VkDevice device,
-		VkDbgObjectType objType,
+		VkDebugReportObjectTypeEXT objType,
 		uint64_t object,
 		size_t nameSize,
 		const char* pName)

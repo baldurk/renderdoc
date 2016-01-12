@@ -32,20 +32,20 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
 	bindings.resize(pCreateInfo->bindingCount);
 	for(uint32_t i=0; i < pCreateInfo->bindingCount; i++)
 	{
-		bindings[i].descriptorCount = pCreateInfo->pBinding[i].descriptorCount;
-		bindings[i].descriptorType = pCreateInfo->pBinding[i].descriptorType;
-		bindings[i].stageFlags = pCreateInfo->pBinding[i].stageFlags;
+		bindings[i].descriptorCount = pCreateInfo->pBindings[i].descriptorCount;
+		bindings[i].descriptorType = pCreateInfo->pBindings[i].descriptorType;
+		bindings[i].stageFlags = pCreateInfo->pBindings[i].stageFlags;
 
 		if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
 			 bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
 			dynamicCount++;
 
-		if(pCreateInfo->pBinding[i].pImmutableSamplers)
+		if(pCreateInfo->pBindings[i].pImmutableSamplers)
 		{
 			bindings[i].immutableSampler = new ResourceId[bindings[i].descriptorCount];
 
 			for(uint32_t s=0; s < bindings[i].descriptorCount; s++)
-				bindings[i].immutableSampler[s] = resourceMan->GetNonDispWrapper(pCreateInfo->pBinding[i].pImmutableSamplers[s])->id;
+				bindings[i].immutableSampler[s] = resourceMan->GetNonDispWrapper(pCreateInfo->pBindings[i].pImmutableSamplers[s])->id;
 		}
 	}
 }

@@ -76,8 +76,9 @@ void InitInstanceReplayTables(VkInstance instance)
 	InstanceGPA(GetPhysicalDeviceSurfaceFormatsKHR)
 	InstanceGPA(GetPhysicalDeviceSurfacePresentModesKHR)
 	InstanceGPA(GetPhysicalDeviceSurfaceSupportKHR)
-	InstanceGPA(DbgCreateMsgCallback)
-	InstanceGPA(DbgDestroyMsgCallback)
+	InstanceGPA(CreateDebugReportCallbackEXT)
+	InstanceGPA(DestroyDebugReportCallbackEXT)
+	InstanceGPA(DebugReportMessageEXT)
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
 	InstanceGPA(CreateWin32SurfaceKHR)

@@ -38,9 +38,11 @@
 
 #include "core/core.h"
 
-#include <vulkan/vulkan.h>
-#include <vulkan/vk_lunarg_debug_marker.h>
-#include <vulkan/vk_lunarg_debug_report.h>
+#define VK_NO_PROTOTYPES
+
+#include "official/vulkan.h"
+#include "official/vk_lunarg_debug_marker.h"
+#include "official/vk_ext_debug_report.h"
 
 #include "api/replay/renderdoc_replay.h"
 
@@ -53,6 +55,10 @@ VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo);
 
 // set conservative access bits for this image layout
 VkAccessFlags MakeAccessMask(VkImageLayout layout);
+
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkImageMemoryBarrier *barriers);
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkBufferMemoryBarrier *barriers);
+void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkMemoryBarrier *barriers);
 
 int SampleCount(VkSampleCountFlagBits countFlag);
 int StageIndex(VkShaderStageFlagBits stageFlag);
@@ -140,6 +146,7 @@ template<> void Serialiser::Deserialise(const VkDescriptorSetAllocateInfo* const
 template<> void Serialiser::Deserialise(const VkFramebufferCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkRenderPassCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkRenderPassBeginInfo* const el) const;
+template<> void Serialiser::Deserialise(const VkCommandBufferBeginInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkPipelineCacheCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkPipelineLayoutCreateInfo* const el) const;
 template<> void Serialiser::Deserialise(const VkShaderModuleCreateInfo* const el) const;

@@ -227,7 +227,7 @@ private:
 	};
 
 	VkInstance m_Instance; // the instance corresponding to this WrappedVulkan
-	VkDbgMsgCallback m_DbgMsgCallback; // the instance's dbg msg callback handle
+	VkDebugReportCallbackEXT m_DbgMsgCallback; // the instance's dbg msg callback handle
 	VkPhysicalDevice m_PhysicalDevice; // the physical device we created m_Device with
 	VkDevice m_Device; // the device used for our own command buffer work
 	PhysicalDeviceData m_PhysicalDeviceData; // the data about the physical device used for the above device;
@@ -503,25 +503,25 @@ private:
 	WrappedVulkan &operator =(const WrappedVulkan &);
 
 	VkBool32 DebugCallback(
-				VkFlags             msgFlags,
-				VkDbgObjectType     objType,
-				uint64_t            srcObject,
-				size_t              location,
-				int32_t             msgCode,
-				const char*         pLayerPrefix,
-				const char*         pMsg);
+				VkDebugReportFlagsEXT                       flags,
+				VkDebugReportObjectTypeEXT                  objectType,
+				uint64_t                                    object,
+				size_t                                      location,
+				int32_t                                     messageCode,
+				const char*                                 pLayerPrefix,
+				const char*                                 pMessage);
 	
 	static VkBool32 DebugCallbackStatic(
-				VkFlags             msgFlags,
-				VkDbgObjectType     objType,
-				uint64_t            srcObject,
-				size_t              location,
-				int32_t             msgCode,
-				const char*         pLayerPrefix,
-				const char*         pMsg,
-				void*               pUserData)
+				VkDebugReportFlagsEXT                       flags,
+				VkDebugReportObjectTypeEXT                  objectType,
+				uint64_t                                    object,
+				size_t                                      location,
+				int32_t                                     messageCode,
+				const char*                                 pLayerPrefix,
+				const char*                                 pMessage,
+				const void*                                 pUserData)
 	{
-		return ((WrappedVulkan *)pUserData)->DebugCallback(msgFlags, objType, srcObject, location, msgCode, pLayerPrefix, pMsg);
+		return ((WrappedVulkan *)pUserData)->DebugCallback(flags, objectType, object, location, messageCode, pLayerPrefix, pMessage);
 	}
 
 public:
@@ -677,7 +677,7 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetQueryPoolResults,
 		VkDevice                                    device,
 		VkQueryPool                                 queryPool,
-		uint32_t                                    startQuery,
+		uint32_t                                    firstQuery,
 		uint32_t                                    queryCount,
 		size_t                                      dataSize,
 		void*                                       pData,
@@ -1073,11 +1073,13 @@ public:
 	
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetViewport,
 		VkCommandBuffer                             commandBuffer,
+		uint32_t                                    firstViewport,
 		uint32_t                                    viewportCount,
 		const VkViewport*                           pViewports);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetScissor,
 		VkCommandBuffer                             commandBuffer,
+		uint32_t                                    firstScissor,
 		uint32_t                                    scissorCount,
 		const VkRect2D*                             pScissors);
 
@@ -1133,7 +1135,7 @@ public:
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers,
 		VkCommandBuffer                             commandBuffer,
-		uint32_t                                    startBinding,
+		uint32_t                                    firstBinding,
 		uint32_t                                    bindingCount,
 		const VkBuffer*                             pBuffers,
 		const VkDeviceSize*                         pOffsets);
@@ -1281,17 +1283,25 @@ public:
 		uint32_t                                    eventCount,
 		const VkEvent*                              pEvents,
 		VkPipelineStageFlags                        srcStageMask,
-		VkPipelineStageFlags                        destStageMask,
-		uint32_t                                    memoryBarrierCount,
-		const void* const*                          ppMemoryBarriers);
+		VkPipelineStageFlags                        dstStageMask,
+    uint32_t                                    memoryBarrierCount,
+    const VkMemoryBarrier*                      pMemoryBarriers,
+    uint32_t                                    bufferMemoryBarrierCount,
+    const VkBufferMemoryBarrier*                pBufferMemoryBarriers,
+    uint32_t                                    imageMemoryBarrierCount,
+    const VkImageMemoryBarrier*                 pImageMemoryBarriers);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPipelineBarrier,
 		VkCommandBuffer                             commandBuffer,
 		VkPipelineStageFlags                        srcStageMask,
 		VkPipelineStageFlags                        dstStageMask,
     VkDependencyFlags                           dependencyFlags,
-		uint32_t                                    memoryBarrierCount,
-		const void* const*                          ppMemoryBarriers);
+    uint32_t                                    memoryBarrierCount,
+    const VkMemoryBarrier*                      pMemoryBarriers,
+    uint32_t                                    bufferMemoryBarrierCount,
+    const VkBufferMemoryBarrier*                pBufferMemoryBarriers,
+    uint32_t                                    imageMemoryBarrierCount,
+    const VkImageMemoryBarrier*                 pImageMemoryBarriers);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPushConstants,
 		VkCommandBuffer                             commandBuffer,
@@ -1315,19 +1325,19 @@ public:
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdExecuteCommands,
 		VkCommandBuffer                             commandBuffer,
-    uint32_t                                    commandBuffersCount,
+    uint32_t                                    commandBufferCount,
     const VkCommandBuffer*                      pCommandBuffers);
 	
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteTimestamp,
 		VkCommandBuffer                             commandBuffer,
 		VkPipelineStageFlagBits                     pipelineStage,
 		VkQueryPool                                 queryPool,
-    uint32_t                                    entry);
+    uint32_t                                    query);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyQueryPoolResults,
 		VkCommandBuffer                             commandBuffer,
 		VkQueryPool                                 queryPool,
-		uint32_t                                    startQuery,
+		uint32_t                                    firstQuery,
 		uint32_t                                    queryCount,
 		VkBuffer                                    dstBuffer,
 		VkDeviceSize                                dstOffset,
@@ -1337,18 +1347,18 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginQuery,
 		VkCommandBuffer                             commandBuffer,
 		VkQueryPool                                 queryPool,
-		uint32_t                                    entry,
+		uint32_t                                    query,
 		VkQueryControlFlags                         flags);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndQuery,
 		VkCommandBuffer                             commandBuffer,
 		VkQueryPool                                 queryPool,
-		uint32_t                                    entry);
+		uint32_t                                    query);
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResetQueryPool,
 		VkCommandBuffer                             commandBuffer,
 		VkQueryPool                                 queryPool,
-		uint32_t                                    startQuery,
+		uint32_t                                    firstQuery,
 		uint32_t                                    queryCount);
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateFramebuffer,
@@ -1373,18 +1383,28 @@ public:
 		VkRenderPass                                renderPass,
     const VkAllocationCallbacks*                pAllocator);
 
-	// DEBUG_REPORT functions
+	// VK_EXT_debug_report functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgCreateMsgCallback,
-    VkInstance                          instance,
-    VkFlags                             msgFlags,
-    const PFN_vkDbgMsgCallback          pfnMsgCallback,
-    void*                               pUserData,
-    VkDbgMsgCallback*                   pMsgCallback);
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDebugReportCallbackEXT,
+    VkInstance                                  instance,
+    const VkDebugReportCallbackCreateInfoEXT*   pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
+    VkDebugReportCallbackEXT*                   pCallback);
 	
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgDestroyMsgCallback,
-    VkInstance                          instance,
-    VkDbgMsgCallback                    msgCallback);
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDestroyDebugReportCallbackEXT,
+    VkInstance                                  instance,
+		VkDebugReportCallbackEXT                    callback,
+    const VkAllocationCallbacks*                pAllocator);
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkDebugReportMessageEXT,
+    VkInstance                                  instance,
+    VkDebugReportFlagsEXT                       flags,
+    VkDebugReportObjectTypeEXT                  objectType,
+    uint64_t                                    object,
+    size_t                                      location,
+    int32_t                                     messageCode,
+    const char*                                 pLayerPrefix,
+    const char*                                 pMessage);
 
 	// VK_LUNARG_DEBUG_MARKER functions
 
@@ -1397,14 +1417,14 @@ public:
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgSetObjectTag,
 		VkDevice device,
-		VkDbgObjectType objType,
+		VkDebugReportObjectTypeEXT objType,
 		uint64_t object,
 		size_t tagSize,
 		const void* pTag);
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgSetObjectName,
 		VkDevice device,
-		VkDbgObjectType objType,
+		VkDebugReportObjectTypeEXT objType,
 		uint64_t object,
 		size_t nameSize,
 		const char* pName);
@@ -1474,8 +1494,7 @@ public:
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 	VkResult vkCreateWin32SurfaceKHR(
 			VkInstance                                  instance,
-			HINSTANCE                                   hinstance,
-			HWND                                        hwnd,
+			const VkWin32SurfaceCreateInfoKHR*          pCreateInfo,
 			const VkAllocationCallbacks*                pAllocator,
 			VkSurfaceKHR*                               pSurface);
 

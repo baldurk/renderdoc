@@ -612,11 +612,11 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(ResourceId id, VulkanResou
 
 					uint32_t i=0;
 
-					for(int32_t z=0; z < imgdim.depth; z++)
+					for(uint32_t z=0; z < imgdim.depth; z++)
 					{
-						for(int32_t y=0; y < imgdim.height; y++)
+						for(uint32_t y=0; y < imgdim.height; y++)
 						{
-							for(int32_t x=0; x < imgdim.width; x++)
+							for(uint32_t x=0; x < imgdim.width; x++)
 							{
 								VkSparseImageMemoryBind &p = state->pageBinds[a][i];
 
@@ -1042,13 +1042,11 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		// before we go reading
 		srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 		
-		void *barrier = (void *)&srcimBarrier;
-		
 		for (size_t si = 0; si < layout->subresourceStates.size(); si++)
 		{
 			srcimBarrier.subresourceRange = layout->subresourceStates[si].subresourceRange;
 			srcimBarrier.oldLayout = layout->subresourceStates[si].newLayout;
-			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			DoPipelineBarrier(cmd, 1, &srcimBarrier);
 		}
 
 		VkDeviceSize bufOffset = 0;
@@ -1081,9 +1079,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 				ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), im->real.As<VkImage>(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstBuf, 1, &region);
 
 				// update the extent for the next mip
-				extent.width = RDCMAX(extent.width>>1, 1);
-				extent.height = RDCMAX(extent.height>>1, 1);
-				extent.depth = RDCMAX(extent.depth>>1, 1);
+				extent.width = RDCMAX(extent.width>>1, 1U);
+				extent.height = RDCMAX(extent.height>>1, 1U);
+				extent.depth = RDCMAX(extent.depth>>1, 1U);
 			}
 		}
 
@@ -1097,7 +1095,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		{
 			srcimBarrier.subresourceRange = layout->subresourceStates[si].subresourceRange;
 			srcimBarrier.newLayout = layout->subresourceStates[si].newLayout;
-			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+			DoPipelineBarrier(cmd, 1, &srcimBarrier);
 		}
 
 		vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
@@ -1580,8 +1578,6 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 					// layout between capture and replay
 					bufOffset += sublayout.size;
 
-					void *barrier = (void *)&srcimBarrier;
-
 					srcimBarrier.subresourceRange.baseArrayLayer = a;
 					srcimBarrier.subresourceRange.baseMipLevel = m;
 					
@@ -1589,8 +1585,8 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 					srcimBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 					srcimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 					srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-					ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+					
+					DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
 					ObjDisp(d)->CmdCopyBufferToImage(Unwrap(cmd), buf, Unwrap(im), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
@@ -1600,12 +1596,12 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 					srcimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 					srcimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 					srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+					
+					DoPipelineBarrier(cmd, 1, &srcimBarrier);
 
-					ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
-
-					extent.width = RDCMAX(extent.width>>1, 1);
-					extent.height = RDCMAX(extent.height>>1, 1);
-					extent.depth = RDCMAX(extent.depth>>1, 1);
+					extent.width = RDCMAX(extent.width>>1, 1U);
+					extent.height = RDCMAX(extent.height>>1, 1U);
+					extent.depth = RDCMAX(extent.depth>>1, 1U);
 				}
 			}
 
@@ -1831,13 +1827,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				// clear completes before subsequent operations
 				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-				void *barrierptr = (void *)&barrier;
-
 				for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 				{
 					barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 					barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
-					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+					DoPipelineBarrier(cmd, 1, &barrier);
 				}
 				
 				VkClearColorValue clearval = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -1856,7 +1850,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 					barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 					barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 					barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
-					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+					DoPipelineBarrier(cmd, 1, &barrier);
 				}
 
 				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
@@ -1883,13 +1877,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				// clear completes before subsequent operations
 				barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-				void *barrierptr = (void *)&barrier;
-
 				for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 				{
 					barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 					barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
-					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+					DoPipelineBarrier(cmd, 1, &barrier);
 				}
 				
 				VkClearDepthStencilValue clearval = { 1.0f, 0 };
@@ -1907,7 +1899,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				{
 					barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 					barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
-					ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrierptr);
+					DoPipelineBarrier(cmd, 1, &barrier);
 				}
 
 				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
@@ -1962,14 +1954,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			dstimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-			void *barrier = (void *)&dstimBarrier;
-
 			for (size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
 			{
 				dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 				dstimBarrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 				dstimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(dstimBarrier.oldLayout);
-				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+				DoPipelineBarrier(cmd, 1, &dstimBarrier);
 			}
 			
 			ObjDisp(cmd)->CmdCopyImage(Unwrap(cmd),
@@ -1989,13 +1979,13 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
 				dstimBarrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
 				dstimBarrier.dstAccessMask |= MakeAccessMask(dstimBarrier.newLayout);
-				ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+				DoPipelineBarrier(cmd, 1, &dstimBarrier);
 			}
 
 			// update the extent for the next mip
-			extent.width = RDCMAX(extent.width>>1, 1);
-			extent.height = RDCMAX(extent.height>>1, 1);
-			extent.depth = RDCMAX(extent.depth>>1, 1);
+			extent.width = RDCMAX(extent.width>>1, 1U);
+			extent.height = RDCMAX(extent.height>>1, 1U);
+			extent.depth = RDCMAX(extent.depth>>1, 1U);
 		}
 
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));

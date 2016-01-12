@@ -114,6 +114,21 @@
     <ClInclude Include="vk_state.h">
       <Filter>Util</Filter>
     </ClInclude>
+    <ClInclude Include="official\vk_layer.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\vk_lunarg_debug_marker.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\vk_platform.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\vulkan.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\vk_ext_debug_report.h">
+      <Filter>official</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="OS">
@@ -139,6 +154,9 @@
     </Filter>
     <Filter Include="Wrappers">
       <UniqueIdentifier>{346edd99-3a86-4782-8ad5-f6efecf8bb0b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official">
+      <UniqueIdentifier>{9580e52e-f3ab-4ef9-80d1-c673e5f25ef7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

@@ -224,13 +224,13 @@ void VkInitParams::Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst)
 		APIVersion = 0;
 	}
 
-	Layers.resize(pCreateInfo->enabledLayerNameCount);
-	Extensions.resize(pCreateInfo->enabledExtensionNameCount);
+	Layers.resize(pCreateInfo->enabledLayerCount);
+	Extensions.resize(pCreateInfo->enabledExtensionCount);
 
-	for(uint32_t i=0; i < pCreateInfo->enabledLayerNameCount; i++)
+	for(uint32_t i=0; i < pCreateInfo->enabledLayerCount; i++)
 		Layers[i] = pCreateInfo->ppEnabledLayerNames[i];
 
-	for(uint32_t i=0; i < pCreateInfo->enabledExtensionNameCount; i++)
+	for(uint32_t i=0; i < pCreateInfo->enabledExtensionCount; i++)
 		Extensions[i] = pCreateInfo->ppEnabledExtensionNames[i];
 
 	InstanceID = inst;
@@ -398,7 +398,7 @@ void WrappedVulkan::SubmitCmds()
 
 	VkSubmitInfo submitInfo = {
 		VK_STRUCTURE_TYPE_SUBMIT_INFO, NULL,
-		0, NULL, // wait semaphores
+		0, NULL, NULL, // wait semaphores
 		(uint32_t)cmds.size(), &cmds[0], // command buffers
 		0, NULL, // signal semaphores
 	};
@@ -657,14 +657,12 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 		if(!imgBarriers.empty())
 		{
-			vector<void *> barriers;
 			for(size_t i=0; i < imgBarriers.size(); i++)
 			{
 				imgBarriers[i].srcAccessMask = MakeAccessMask(imgBarriers[i].oldLayout);
 				imgBarriers[i].dstAccessMask = MakeAccessMask(imgBarriers[i].newLayout);
-				barriers.push_back(&imgBarriers[i]);
 			}
-			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, (uint32_t)imgBarriers.size(), (const void *const *)&barriers[0]);
+			ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, 0, NULL, 0, NULL, (uint32_t)imgBarriers.size(), &imgBarriers[0]);
 		}
 
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
@@ -818,7 +816,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 	uint32_t thheight = 0;
 
 	// gather backbuffer screenshot
-	const int32_t maxSize = 1024;
+	const uint32_t maxSize = 1024;
 
 	if(swap != VK_NULL_HANDLE)
 	{
@@ -904,7 +902,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			&readBarrier,
 		};
 
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, (void **)barriers);
+		DoPipelineBarrier(cmd, 1, &bbBarrier);
+		DoPipelineBarrier(cmd, 1, &readBarrier);
 
 		vt->CmdCopyImage(Unwrap(cmd), Unwrap(backbuffer), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, readbackIm, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cpy);
 
@@ -913,8 +912,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		readBarrier.oldLayout = readBarrier.newLayout;
 		readBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-		vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, (void **)barriers);
+		
+		DoPipelineBarrier(cmd, 1, &bbBarrier);
+		DoPipelineBarrier(cmd, 1, &readBarrier);
 
 		vkr = vt->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -1387,8 +1387,6 @@ void WrappedVulkan::ApplyInitialContents()
 		VK_ACCESS_ALL_READ_BITS,
 	};
 
-	void *barrier = (void *)&memBarrier;
-
 	VkCommandBuffer cmd = GetNextCmd();
 
 	VkResult vkr = VK_SUCCESS;
@@ -1398,7 +1396,7 @@ void WrappedVulkan::ApplyInitialContents()
 	vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &memBarrier);
 	
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -1412,7 +1410,7 @@ void WrappedVulkan::ApplyInitialContents()
 	vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
-	ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	DoPipelineBarrier(cmd, 1, &memBarrier);
 	
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -1622,10 +1620,10 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdBindPipeline(GetMainSerialiser(), VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_NULL_HANDLE);
 		break;
 	case SET_VP:
-		Serialise_vkCmdSetViewport(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL);
+		Serialise_vkCmdSetViewport(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, NULL);
 		break;
 	case SET_SCISSOR:
-		Serialise_vkCmdSetScissor(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL);
+		Serialise_vkCmdSetScissor(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, NULL);
 		break;
 	case SET_LINE_WIDTH:
 		Serialise_vkCmdSetLineWidth(GetMainSerialiser(), VK_NULL_HANDLE, 0);
@@ -1640,13 +1638,13 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdSetDepthBounds(GetMainSerialiser(), VK_NULL_HANDLE, 0.0f, 0.0f);
 		break;
 	case SET_STENCIL_COMP_MASK:
-		Serialise_vkCmdSetStencilCompareMask(GetMainSerialiser(), VK_NULL_HANDLE, VK_STENCIL_FACE_NONE, 0);
+		Serialise_vkCmdSetStencilCompareMask(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0);
 		break;
 	case SET_STENCIL_WRITE_MASK:
-		Serialise_vkCmdSetStencilWriteMask(GetMainSerialiser(), VK_NULL_HANDLE, VK_STENCIL_FACE_NONE, 0);
+		Serialise_vkCmdSetStencilWriteMask(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0);
 		break;
 	case SET_STENCIL_REF:
-		Serialise_vkCmdSetStencilReference(GetMainSerialiser(), VK_NULL_HANDLE, VK_STENCIL_FACE_NONE, 0);
+		Serialise_vkCmdSetStencilReference(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0);
 		break;
 	case BIND_DESCRIPTOR_SET:
 		Serialise_vkCmdBindDescriptorSets(GetMainSerialiser(), VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_NULL_HANDLE, 0, 0, NULL, 0, NULL);
@@ -1694,13 +1692,13 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdClearAttachments(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, 0, NULL);
 		break;
 	case PIPELINE_BARRIER:
-		Serialise_vkCmdPipelineBarrier(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL);
+		Serialise_vkCmdPipelineBarrier(GetMainSerialiser(), VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL, 0, NULL, 0, NULL);
 		break;
 	case WRITE_TIMESTAMP:
 		Serialise_vkCmdWriteTimestamp(GetMainSerialiser(), VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_NULL_HANDLE, 0);
 		break;
 	case COPY_QUERY_RESULTS:
-		Serialise_vkCmdCopyQueryPoolResults(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, VK_NULL_HANDLE, 0, 0, VK_QUERY_RESULT_DEFAULT);
+		Serialise_vkCmdCopyQueryPoolResults(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, VK_NULL_HANDLE, 0, 0, 0);
 		break;
 	case BEGIN_QUERY:
 		Serialise_vkCmdBeginQuery(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
@@ -1719,7 +1717,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdResetEvent(GetMainSerialiser(), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 		break;
 	case CMD_WAIT_EVENTS:
-		Serialise_vkCmdWaitEvents(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, NULL);
+		Serialise_vkCmdWaitEvents(GetMainSerialiser(), VK_NULL_HANDLE, 0, NULL, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, NULL, 0, NULL, 0, NULL);
 		break;
 
 	case DRAW:
@@ -1751,7 +1749,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCmdDbgMarkerEnd(GetMainSerialiser(), VK_NULL_HANDLE);
 		break;
 	case SET_NAME:
-		Serialise_vkDbgSetObjectName(GetMainSerialiser(), VK_NULL_HANDLE, VK_OBJECT_TYPE_MAX_ENUM, 0, 0, NULL);
+		Serialise_vkDbgSetObjectName(GetMainSerialiser(), VK_NULL_HANDLE, VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT, 0, 0, NULL);
 		break;
 
 	case CREATE_SWAP_BUFFER:
@@ -1919,16 +1917,17 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 }
 
 VkBool32 WrappedVulkan::DebugCallback(
-				VkFlags             msgFlags,
-				VkDbgObjectType     objType,
-				uint64_t            srcObject,
-				size_t              location,
-				int32_t             msgCode,
-				const char*         pLayerPrefix,
-				const char*         pMsg)
+				VkDebugReportFlagsEXT                       flags,
+				VkDebugReportObjectTypeEXT                  objectType,
+				uint64_t                                    object,
+				size_t                                      location,
+				int32_t                                     messageCode,
+				const char*                                 pLayerPrefix,
+				const char*                                 pMessage)
 {
 	// VKTODOHIGH once on new layers, location will be unique enough
 
+	/*
 	// msgCode isn't fine grained enough to ignore just this one type of message
 	if(pLayerPrefix[0] == 'D' && pLayerPrefix[1] == 'S')
 	{
@@ -1938,8 +1937,9 @@ VkBool32 WrappedVulkan::DebugCallback(
 		if(msg.find("It is recommended you use RenderPass LOAD_OP_CLEAR") != string::npos)
 			return false;
 	}
+	*/
 
-	RDCWARN("[%s] %s", pLayerPrefix, pMsg);
+	RDCWARN("[%s:%u] %s", pLayerPrefix, (uint32_t)location, pMessage);
 	return false;
 }
 

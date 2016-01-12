@@ -112,9 +112,9 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
 	BindPipeline(cmd);
 
 	if(!views.empty())
-		ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), (uint32_t)views.size(), &views[0]);
+		ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)views.size(), &views[0]);
 	if(!scissors.empty())
-		ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), (uint32_t)scissors.size(), &scissors[0]);
+		ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)scissors.size(), &scissors[0]);
 
 	ObjDisp(cmd)->CmdSetBlendConstants(Unwrap(cmd), blendConst);
 	ObjDisp(cmd)->CmdSetDepthBounds(Unwrap(cmd), mindepth, maxdepth);
