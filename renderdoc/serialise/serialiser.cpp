@@ -492,8 +492,6 @@ Serialiser::Serialiser(size_t length, const byte *memoryBuf, bool fileheader)
 	}
 	else if(header->version == SERIALISE_VERSION)
 	{
-		const byte *memoryBufEnd = memoryBuf + length;
-
 		memoryBuf += sizeof(FileHeader);
 
 		// when loading in-memory we only care about the first section, which should be binary
