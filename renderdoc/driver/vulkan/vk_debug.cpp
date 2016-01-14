@@ -2881,8 +2881,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)highlightCol, 1, &subresourceRange);
 
-		VkFramebuffer depthFB;
-		VkRenderPass depthRP;
+		VkFramebuffer depthFB = VK_NULL_HANDLE;
+		VkRenderPass depthRP = VK_NULL_HANDLE;
 
 		const VulkanRenderState &state = m_pDriver->m_RenderState;
 		VulkanCreationInfo &createinfo = m_pDriver->m_CreationInfo;
