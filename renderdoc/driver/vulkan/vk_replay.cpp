@@ -966,7 +966,6 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.texid);
 
 	VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-	VkImageAspectFlags aspectFlagsBarrier = VK_IMAGE_ASPECT_COLOR_BIT;
 	
 	int displayformat = 0;
 	uint32_t descSetBinding = 0;
@@ -988,12 +987,11 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	if(IsDepthOnlyFormat(layouts.format))
 	{
-		aspectFlagsBarrier = aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+		aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 	}
 	else if(IsDepthStencilFormat(layouts.format))
 	{
 		aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-		aspectFlagsBarrier = VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT; // barriers must cover both aspects
 		if(layouts.format == VK_FORMAT_S8_UINT || (!cfg.Red && cfg.Green))
 		{
 			aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -1149,7 +1147,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(liveIm),
-		{ aspectFlagsBarrier, 0, 1, 0, 1 }
+		{ 0, 0, 1, 0, 1 } // will be overwritten by subresourceRange
 	};
 
 	// ensure all previous writes have completed
@@ -3431,13 +3429,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
 	
 	VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-	VkImageAspectFlags aspectFlagsBarrier = VK_IMAGE_ASPECT_COLOR_BIT;
 	if(IsDepthStencilFormat(layouts.format))
-	{
-		aspectFlagsBarrier = aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-		if(!IsDepthOnlyFormat(layouts.format))
-			aspectFlagsBarrier |= VK_IMAGE_ASPECT_STENCIL_BIT;
-	}
+		aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
 	CreateTexImageView(aspectFlags, liveIm, iminfo);
 
@@ -3531,7 +3524,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(liveIm),
-		{ aspectFlagsBarrier, 0, 1, 0, 1 }
+		{ 0, 0, 1, 0, 1 } // will be overwritten by subresourceRange below
 	};
 
 	// ensure all previous writes have completed
@@ -3650,13 +3643,8 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(texid);
 	
 	VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-	VkImageAspectFlags aspectFlagsBarrier = VK_IMAGE_ASPECT_COLOR_BIT;
 	if(IsDepthStencilFormat(layouts.format))
-	{
-		aspectFlagsBarrier = aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-		if(!IsDepthOnlyFormat(layouts.format))
-			aspectFlagsBarrier |= VK_IMAGE_ASPECT_STENCIL_BIT;
-	}
+		aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 	
 	CreateTexImageView(aspectFlags, liveIm, iminfo);
 
@@ -3737,7 +3725,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(liveIm),
-		{ aspectFlagsBarrier, 0, 1, 0, 1 }
+		{ 0, 0, 1, 0, 1 } // will be overwritten by subresourceRange below
 	};
 
 	// ensure all previous writes have completed
@@ -3930,6 +3918,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 	};
 	
 	bool isDepth = (layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
+	VkImageAspectFlags aspectMask = layouts.subresourceStates[0].subresourceRange.aspectMask;
 
 	VkImage srcImage = Unwrap(GetResourceManager()->GetCurrentHandle<VkImage>(tex));
 	VkImage tmpImage = VK_NULL_HANDLE;
@@ -4160,8 +4149,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			srcImage,
-			{ VkImageAspectFlags(isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT),
-			0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
+			{ aspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
 		};
 		
 		VkImageMemoryBarrier dstimBarrier = {
@@ -4169,8 +4157,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			tmpImage,
-			{ VkImageAspectFlags(isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT),
-			0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
+			{ aspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
 		};
 
 		// ensure all previous writes have completed
@@ -4238,8 +4225,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		srcImage,
-		{ VkImageAspectFlags(isDepth ? (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT) : VK_IMAGE_ASPECT_COLOR_BIT),
-		0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
+		{ aspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS }
 	};
 
 	void *barrier = (void *)&srcimBarrier;

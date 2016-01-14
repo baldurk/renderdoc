@@ -66,7 +66,6 @@ void VulkanResourceManager::RecordSingleBarrier(vector< pair<ResourceId, ImageRe
 		if(it->first < id) continue;
 		if(it->first != id) break;
 
-		if(it->second.subresourceRange.aspectMask & t.subresourceRange.aspectMask)
 		{
 			// we've found a range that completely matches our region, doesn't matter if that's
 			// a whole image and the barrier is the whole image, or it's one subresource.
@@ -172,10 +171,6 @@ void VulkanResourceManager::RecordSingleBarrier(vector< pair<ResourceId, ImageRe
 				}
 			}
 		}
-
-		// if we've gone past where the new subresource range would sit
-		if(it->second.subresourceRange.aspectMask > t.subresourceRange.aspectMask)
-			break;
 
 		// otherwise continue to try and find the subresource range
 	}
@@ -298,8 +293,8 @@ void VulkanResourceManager::MarkSparseMapReferenced(SparseMapping *sparse)
 		MarkResourceFrameReferenced(GetResID(sparse->opaquemappings[i].memory), eFrameRef_Read);
 
 	for(int a=0; a < NUM_VK_IMAGE_ASPECTS; a++)
-			for(VkDeviceSize i=0; sparse->pages[a] && i < VkDeviceSize(sparse->imgdim.width*sparse->imgdim.height*sparse->imgdim.depth); i++)
-				MarkResourceFrameReferenced(GetResID(sparse->pages[a][i].first), eFrameRef_Read);
+		for(VkDeviceSize i=0; sparse->pages[a] && i < VkDeviceSize(sparse->imgdim.width*sparse->imgdim.height*sparse->imgdim.depth); i++)
+			MarkResourceFrameReferenced(GetResID(sparse->pages[a][i].first), eFrameRef_Read);
 }
 
 void VulkanResourceManager::ApplyBarriers(vector< pair<ResourceId, ImageRegionState> > &states, map<ResourceId, ImageLayouts> &layouts)
@@ -350,12 +345,13 @@ void VulkanResourceManager::ApplyBarriers(vector< pair<ResourceId, ImageRegionSt
 				it->range.baseArrayLayer, it->range.layerCount,
 				ToStr::Get(it->oldLayout).c_str(), ToStr::Get(it->newLayout).c_str());
 
-			// image barriers are handled by initially inserting one subresource range for each aspect,
-			// and whenever we need more fine-grained detail we split it immediately for one range for
-			// each subresource in that aspect. Thereafter if a barrier comes in that covers multiple
-			// subresources, we update all matching ranges.
+			// image barriers are handled by initially inserting one subresource range for the whole object,
+			// and whenever we need more fine-grained detail we split it immediately.
+			// Thereafter if a barrier comes in that covers multiple subresources, we update all matching ranges.
+			// NOTE: Depth-stencil images must always be trasnsitioned together for both aspects, so we don't
+			// have to worry about different aspects being in different states and can in fact ignore the aspect
+			// for the purpose of this case.
 
-			if(it->subresourceRange.aspectMask & t.subresourceRange.aspectMask)
 			{
 				// we've found a range that completely matches our region, doesn't matter if that's
 				// a whole image and the barrier is the whole image, or it's one subresource.
@@ -461,10 +457,6 @@ void VulkanResourceManager::ApplyBarriers(vector< pair<ResourceId, ImageRegionSt
 					}
 				}
 			}
-
-			// if we've gone past where the new subresource range would sit
-			if(it->subresourceRange.aspectMask > t.subresourceRange.aspectMask)
-				break;
 
 			// otherwise continue to try and find the subresource range
 		}

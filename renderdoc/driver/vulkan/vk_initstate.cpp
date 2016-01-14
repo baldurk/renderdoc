@@ -1024,7 +1024,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
 		if (IsDepthStencilFormat(layout->format))
-			aspectFlags = IsDepthOnlyFormat(layout->format) ? VK_IMAGE_ASPECT_DEPTH_BIT : (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT);
+			aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 			
 		VkImageMemoryBarrier srcimBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -1540,7 +1540,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 
 			VkFormat fmt = m_CreationInfo.m_Image[liveim->id].format;
 			if (IsDepthStencilFormat(fmt))
-				aspectFlags = IsDepthOnlyFormat(fmt) ? VK_IMAGE_ASPECT_DEPTH_BIT : (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT);
+				aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
 			VkImageMemoryBarrier srcimBarrier = {
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -1931,7 +1931,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 		VkFormat fmt = m_CreationInfo.m_Image[id].format;
 		if (IsDepthStencilFormat(fmt))
-			aspectFlags = IsDepthOnlyFormat(fmt) ? VK_IMAGE_ASPECT_DEPTH_BIT : (VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT);
+			aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
 		VkImageMemoryBarrier dstimBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
