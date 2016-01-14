@@ -140,8 +140,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	GetResourceManager()->WrapResource(m_Instance, m_Instance);
 
-	if(ret != VK_SUCCESS)
-		return ret;
+	*pInstance = m_Instance;
 
 	// should only be called during capture
 	RDCASSERT(m_State >= WRITING);
@@ -160,8 +159,6 @@ VkResult WrappedVulkan::vkCreateInstance(
 	}
 
 	InitInstanceExtensionTables(m_Instance);
-
-	*pInstance = m_Instance;
 	
 	m_DbgMsgCallback = VK_NULL_HANDLE;
 	m_PhysicalDevice = VK_NULL_HANDLE;
@@ -170,7 +167,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 	m_Queue = VK_NULL_HANDLE;
 	m_InternalCmds.Reset();
 
-	return VK_SUCCESS;
+	return ret;
 }
 
 void WrappedVulkan::Shutdown()
