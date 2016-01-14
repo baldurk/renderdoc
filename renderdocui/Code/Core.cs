@@ -318,8 +318,6 @@ namespace renderdocui.Code
             int start = 0;
             int refdraw = 0;
 
-            int counter = 1;
-
             for (int i = 1; i < draws.Length; i++)
             {
                 if ((draws[refdraw].flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.SetMarker)) > 0)
@@ -342,10 +340,7 @@ namespace renderdocui.Code
                     draws[refdraw].context != m_FrameInfo[frameID].immContextId)
                 {
                     for (int j = start; j <= end; j++)
-                    {
                         ret.Add(draws[j]);
-                        counter++;
-                    }
 
                     start = i;
                     refdraw = i;
@@ -400,11 +395,13 @@ namespace renderdocui.Code
 
                 start = i;
                 refdraw = i;
-                counter++;
             }
 
             if (start < draws.Length)
-                ret.Add(draws[start]);
+            {
+                for (int j = start; j < draws.Length; j++)
+                    ret.Add(draws[j]);
+            }
 
             return ret.ToArray();
         }
