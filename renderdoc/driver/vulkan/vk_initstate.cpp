@@ -1550,6 +1550,9 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 				{ aspectFlags, 0, 1, 0, 1 }
 			};
 
+			if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(fmt))
+				srcimBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+
 			VkDeviceSize bufOffset = 0;
 
 			// copy each slice/mip individually
@@ -1890,7 +1893,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				}
 				
 				VkClearDepthStencilValue clearval = { 1.0f, 0 };
-				VkImageSubresourceRange range = { VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
+				VkImageSubresourceRange range = { barrier.subresourceRange.aspectFlags, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
 
 				ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), ToHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearval, 1, &range);
 
