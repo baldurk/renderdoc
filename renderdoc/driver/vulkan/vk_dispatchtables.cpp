@@ -68,6 +68,9 @@ void InitInstanceReplayTables(VkInstance instance)
 	RDCASSERT(table);
 
 	// we know we'll only have one instance, so this is safe
+
+	InstanceGPA(EnumerateDeviceExtensionProperties)
+	InstanceGPA(EnumerateDeviceLayerProperties)
 	
 	InstanceGPA(GetPhysicalDeviceSurfaceCapabilitiesKHR)
 	InstanceGPA(GetPhysicalDeviceSurfaceFormatsKHR)

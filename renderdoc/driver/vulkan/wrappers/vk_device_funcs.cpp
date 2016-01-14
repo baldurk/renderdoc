@@ -559,6 +559,21 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		else
 			RDCWARN("vertexPipelineStoresAndAtomics = false, output mesh data will not be available");
 
+		uint32_t numExts = 0;
+
+		VkResult vkr = ObjDisp(physicalDevice)->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), NULL, &numExts, NULL);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkExtensionProperties *exts = new VkExtensionProperties[numExts];
+
+		vkr = ObjDisp(physicalDevice)->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), NULL, &numExts, exts);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		for(uint32_t i=0; i < numExts; i++)
+			RDCLOG("Ext %u: %s (%u)", i, exts[i].extensionName, exts[i].specVersion);
+
+		SAFE_DELETE_ARRAY(exts);
+
 		// PORTABILITY check that extensions and layers supported in capture (from createInfo) are supported in replay
 
 		VkResult ret = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, NULL, &device);
@@ -574,8 +589,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		m_Device = device;
 
 		m_QueueFamilyIdx = qFamilyIdx;
-
-		VkResult vkr = VK_SUCCESS;
 
 		if(m_InternalCmds.cmdpool == VK_NULL_HANDLE)
 		{
