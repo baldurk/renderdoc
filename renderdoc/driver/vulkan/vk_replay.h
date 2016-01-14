@@ -195,7 +195,7 @@ class VulkanReplay : public IReplayDriver
 
 			WINDOW_HANDLE_DECL
 
-			int32_t width, height;
+			uint32_t width, height;
 
 			VkSurfaceKHR surface;
 			VkSwapchainKHR swap;
@@ -227,7 +227,7 @@ class VulkanReplay : public IReplayDriver
 		uint64_t m_OutputWinID;
 		uint64_t m_ActiveWinID;
 		bool m_BindDepth;
-		int m_DebugWidth, m_DebugHeight;
+		uint32_t m_DebugWidth, m_DebugHeight;
 		
 		// simple cache for when we need buffer data for highlighting
 		// vertices, typical use will be lots of vertices in the same

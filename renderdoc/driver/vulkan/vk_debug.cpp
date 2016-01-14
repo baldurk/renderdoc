@@ -1032,7 +1032,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	{
-		int width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
+		uint32_t width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
 
 		VkImageCreateInfo imInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
@@ -1137,7 +1137,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 			RDCASSERT(pData != NULL);
 
-			for(int32_t row = 0; row < height; row++)
+			for(uint32_t row = 0; row < height; row++)
 			{
 				memcpy(pData, buf, width);
 				pData += layout.rowPitch;

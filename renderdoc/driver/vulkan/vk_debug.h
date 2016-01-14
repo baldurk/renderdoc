@@ -35,7 +35,7 @@ struct TextPrintState
 	VkCommandBuffer cmd;
 	VkRenderPass rp;
 	VkFramebuffer fb;
-	int32_t w, h;
+	uint32_t w, h;
 };
 
 struct MeshDisplayPipelines
@@ -255,8 +255,8 @@ class VulkanDebugManager
 		void PatchFixedColShader(VkShaderModule &mod, float col[4]);
 		
 		void RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text);
-		static const int FONT_TEX_WIDTH = 256;
-		static const int FONT_TEX_HEIGHT = 128;
+		static const uint32_t FONT_TEX_WIDTH = 256;
+		static const uint32_t FONT_TEX_HEIGHT = 128;
 
 		LogState m_State;
 

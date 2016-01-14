@@ -1352,15 +1352,15 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 			{ 1.0f, 1.0f, 1.0f, 1.0f }
 		};
 
-		int32_t sz = int32_t(scale);
+		uint32_t sz = uint32_t(scale);
 
 		VkOffset2D tl = { int32_t(w/2.0f + 0.5f), int32_t(h/2.0f + 0.5f) };
 
 		VkClearRect rect[4] = {
-			{ { { tl.x, tl.y },    { 1, sz }, }, 0, 1 },
-			{ { { tl.x+sz, tl.y }, { 1, sz+1 }, }, 0, 1 },
-			{ { { tl.x, tl.y },    { sz, 1 }, }, 0, 1 },
-			{ { { tl.x, tl.y+sz }, { sz, 1 }, }, 0, 1 },
+			{ { { tl.x            , tl.y    }, { 1, sz }, }, 0, 1 },
+			{ { { tl.x+(int32_t)sz, tl.y    }, { 1, sz+1 }, }, 0, 1 },
+			{ { { tl.x            , tl.y    }, { sz, 1 }, }, 0, 1 },
+			{ { { tl.x            , tl.y+(int32_t)sz }, { sz, 1 }, }, 0, 1 },
 		};
 
 		// inner
