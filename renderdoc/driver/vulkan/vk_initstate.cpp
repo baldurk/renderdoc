@@ -1889,7 +1889,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				}
 				
 				VkClearDepthStencilValue clearval = { 1.0f, 0 };
-				VkImageSubresourceRange range = { barrier.subresourceRange.aspectFlags, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
+				VkImageSubresourceRange range = { barrier.subresourceRange.aspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
 
 				ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), ToHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearval, 1, &range);
 
