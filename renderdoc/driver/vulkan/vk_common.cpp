@@ -3597,6 +3597,7 @@ void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el)
 	Serialise("addressModeV", el.addressModeV);
 	Serialise("addressModeW", el.addressModeW);
 	Serialise("mipLodBias", el.mipLodBias);
+	Serialise("anisotropyEnable", el.anisotropyEnable);
 	Serialise("maxAnisotropy", el.maxAnisotropy);
 	Serialise("compareEnable", el.compareEnable);
 	Serialise("compareOp", el.compareOp);
