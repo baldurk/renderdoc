@@ -3633,7 +3633,8 @@ void Serialiser::Serialise(const char *name, VkPipelineShaderStageCreateInfo &el
 		}
 		else
 		{
-			string str = (char *)m_BufferHead-s.length();
+			string str;
+			str.assign((char *)m_BufferHead-s.length(), s.length());
 			m_StringDB.insert(str);
 			el.pName = m_StringDB.find(str)->c_str();
 		}
