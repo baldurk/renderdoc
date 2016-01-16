@@ -584,7 +584,7 @@ struct SPVConstant
 			bool identical = true;
 			for(size_t i=1; i < children.size(); i++)
 			{
-				if(children[i]->u64 != children[0]->u64)
+				if(children[i] == NULL || children[i]->u64 != children[0]->u64)
 				{
 					identical = false;
 					break;
@@ -615,7 +615,11 @@ struct SPVConstant
 			ret += GetValString();
 		for(size_t i=0; i < children.size(); i++)
 		{
-			ret += children[i]->GetIDName();
+			if(children[i] != NULL)
+				ret += children[i]->GetIDName();
+			else
+				ret += "????";
+
 			if(i+1 < children.size())
 			{
 				ret += ", ";
