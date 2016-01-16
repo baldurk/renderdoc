@@ -102,6 +102,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 					Shader::SpecInfo spec;
 					spec.specID = maps[s].constantID;
 					spec.data = &shad.specdata[maps[s].offset];
+					spec.size = maps[s].size;
 					// ignore maps[s].size, assume it's enough for the type
 					shad.specialization.push_back(spec);
 				}
