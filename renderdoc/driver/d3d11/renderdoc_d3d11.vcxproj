@@ -66,19 +66,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
-    <ExecutablePath>$(ProgramFiles)\Windows Kits\8.1\bin\x86;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x86;$(LibraryPath)</LibraryPath>
-    <ExcludePath>$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(ExcludePath)</ExcludePath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <ExcludePath>$(ExcludePath)</ExcludePath>
     <TargetName>driver_$(ProjectName)</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
-    <ExecutablePath>$(ProgramFiles)\Windows Kits\8.1\bin\x86;$(ExecutablePath)</ExecutablePath>
-    <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x86;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
-    <ExcludePath>$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(ExcludePath)</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
@@ -92,17 +84,17 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
-    <ExecutablePath>$(ProgramFiles)\Windows Kits\8.1\bin;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x64;$(LibraryPath)</LibraryPath>
-    <ExcludePath>$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(ExcludePath)</ExcludePath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <ExcludePath>$(ExcludePath)</ExcludePath>
     <TargetName>driver_$(ProjectName)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">
-    <ExecutablePath>$(ProgramFiles)\Windows Kits\8.1\bin\x86;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x86;$(LibraryPath)</LibraryPath>
-    <ExcludePath>$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(ExcludePath)</ExcludePath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <ExcludePath>$(ExcludePath)</ExcludePath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <TargetName>driver_$(ProjectName)</TargetName>
@@ -186,14 +178,6 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM=win32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d11_analyse.cpp" />

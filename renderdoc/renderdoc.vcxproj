@@ -68,36 +68,36 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-    <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x86;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>$(ProgramFiles)\Windows Kits\8.1\bin\x86;$(ExecutablePath)</ExecutablePath>
-    <ExcludePath>$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(ExcludePath)</ExcludePath>
+    <IncludePath>$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <ExcludePath>$(ExcludePath)</ExcludePath>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-    <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x64;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>$(ProgramFiles)\Windows Kits\8.1\bin;$(ExecutablePath)</ExecutablePath>
-    <ExcludePath>$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(ExcludePath)</ExcludePath>
+    <IncludePath>$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <ExcludePath>$(ExcludePath)</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-    <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x86;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>$(ProgramFiles)\Windows Kits\8.1\bin\x86;$(ExecutablePath)</ExecutablePath>
-    <ExcludePath>$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(ExcludePath)</ExcludePath>
+    <IncludePath>$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <ExcludePath>$(ExcludePath)</ExcludePath>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-    <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x64;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>$(ProgramFiles)\Windows Kits\8.1\bin;$(ExecutablePath)</ExecutablePath>
-    <ExcludePath>$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(ExcludePath)</ExcludePath>
+    <IncludePath>$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <ExcludePath>$(ExcludePath)</ExcludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
