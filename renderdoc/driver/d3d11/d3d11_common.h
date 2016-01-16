@@ -31,12 +31,12 @@
 // if you don't have the windows 8.1 SDK, remove this define to exclude the 11.1 functionality
 #define INCLUDE_D3D_11_1
 
-#include <dxgi.h>
-#include <d3d11.h>
+#include "official/dxgi.h"
+#include "official/d3d11.h"
 
 #if defined(INCLUDE_D3D_11_1)
-#include <d3d11_1.h>
-#include <d3d11_2.h>
+#include "official/d3d11_1.h"
+#include "official/d3d11_2.h"
 #else
 #define D3D11_1_UAV_SLOT_COUNT 64
 #endif

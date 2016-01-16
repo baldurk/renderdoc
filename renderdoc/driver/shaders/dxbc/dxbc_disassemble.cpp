@@ -29,8 +29,6 @@
 #include "dxbc_disassemble.h"
 #include "serialise/string_utils.h"
 
-#include <d3d11shader.h>
-
 #include <math.h>
 
 namespace DXBC
@@ -89,7 +87,7 @@ namespace VersionToken
 	static MaskedElement<uint32_t,							0x000000f0> MajorVersion;
 	static MaskedElement<uint32_t,							0x0000000f> MinorVersion;
 
-	static MaskedElement<D3D11_SHADER_VERSION_TYPE,			0xffff0000> ProgramType;
+	static MaskedElement<D3D11_ShaderType,			0xffff0000> ProgramType;
 };
 
 namespace LengthToken
@@ -369,12 +367,12 @@ void DXBCFile::MakeDisassemblyString()
 
 	switch(m_Type)
 	{
-		case D3D11_SHVER_PIXEL_SHADER:		m_Disassembly += "ps_"; break;
-		case D3D11_SHVER_VERTEX_SHADER:		m_Disassembly += "vs_"; break;
-		case D3D11_SHVER_GEOMETRY_SHADER:	m_Disassembly += "gs_"; break;
-		case D3D11_SHVER_HULL_SHADER:		m_Disassembly += "hs_"; break;
-		case D3D11_SHVER_DOMAIN_SHADER:		m_Disassembly += "ds_"; break;
-		case D3D11_SHVER_COMPUTE_SHADER:	m_Disassembly += "cs_"; break;
+		case D3D11_ShaderType_Pixel:		m_Disassembly += "ps_"; break;
+		case D3D11_ShaderType_Vertex:		m_Disassembly += "vs_"; break;
+		case D3D11_ShaderType_Geometry:	m_Disassembly += "gs_"; break;
+		case D3D11_ShaderType_Hull:		m_Disassembly += "hs_"; break;
+		case D3D11_ShaderType_Domain:		m_Disassembly += "ds_"; break;
+		case D3D11_ShaderType_Compute:	m_Disassembly += "cs_"; break;
 		default: RDCERR("Unknown shader type: %u", m_Type); break;
 	}
 

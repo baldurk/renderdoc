@@ -83,10 +83,10 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
-    <ExecutablePath>$(ProgramFiles)\Windows Kits\8.1\bin;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x64;$(LibraryPath)</LibraryPath>
-    <ExcludePath>$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(ExcludePath)</ExcludePath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <ExcludePath>$(ExcludePath)</ExcludePath>
     <TargetName>driver_$(ProjectName)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -223,6 +223,17 @@
     <ClInclude Include="d3d11_renderstate.h" />
     <ClInclude Include="d3d11_replay.h" />
     <ClInclude Include="d3d11_resources.h" />
+    <ClInclude Include="official\d3d11.h" />
+    <ClInclude Include="official\d3d11sdklayers.h" />
+    <ClInclude Include="official\d3d11_1.h" />
+    <ClInclude Include="official\d3d11_2.h" />
+    <ClInclude Include="official\d3d11_3.h" />
+    <ClInclude Include="official\d3dcommon.h" />
+    <ClInclude Include="official\d3dcompiler.h" />
+    <ClInclude Include="official\dxgi.h" />
+    <ClInclude Include="official\dxgi1_2.h" />
+    <ClInclude Include="official\dxgi1_3.h" />
+    <ClInclude Include="official\winapifamily.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\shaders\dxbc\renderdoc_dxbc.vcxproj">

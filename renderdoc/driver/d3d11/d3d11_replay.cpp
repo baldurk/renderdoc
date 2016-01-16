@@ -31,7 +31,7 @@
 #include "d3d11_renderstate.h"
 #include "d3d11_replay.h"
 
-#include <d3dcompiler.h>
+#include "official/d3dcompiler.h"
 
 #include "driver/shaders/dxbc/dxbc_debug.h"
 

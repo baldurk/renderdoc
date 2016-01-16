@@ -379,8 +379,14 @@ HRESULT WrappedIDXGISwapChain2::GetBuffer(
 	/* [out][in] */ void **ppSurface)
 {
 	if(ppSurface == NULL) return E_INVALIDARG;
+	
+	// ID3D10Texture2D UUID {9B7E4C04-342C-4106-A19F-4F2704F689F0}
+	static const GUID ID3D10Texture2D_uuid = { 0x9b7e4c04, 0x342c, 0x4106, { 0xa1, 0x9f, 0x4f, 0x27, 0x04, 0xf6, 0x89, 0xf0 } };
 
-	if(riid == __uuidof(ID3D10Texture2D) || riid == __uuidof(ID3D10Resource))
+	// ID3D10Resource  UUID {9B7E4C01-342C-4106-A19F-4F2704F689F0}
+	static const GUID ID3D10Resource_uuid = { 0x9b7e4c01, 0x342c, 0x4106, { 0xa1, 0x9f, 0x4f, 0x27, 0x04, 0xf6, 0x89, 0xf0 } };
+
+	if(riid == ID3D10Texture2D_uuid || riid == ID3D10Resource_uuid)
 	{
 		RDCERR("Querying swapchain buffers via D3D10 interface UUIDs is not supported");
 		return E_NOINTERFACE;

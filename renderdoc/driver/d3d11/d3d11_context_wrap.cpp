@@ -28,6 +28,12 @@
 #include "driver/d3d11/d3d11_resources.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 
+#include "official/dxgi.h"
+
+#ifndef DXGI_ERROR_INVALID_CALL
+#define DXGI_ERROR_INVALID_CALL                 MAKE_DXGI_HRESULT(1)
+#endif
+
 #include "serialise/string_utils.h"
 
 uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];

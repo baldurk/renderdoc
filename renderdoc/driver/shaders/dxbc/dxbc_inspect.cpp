@@ -31,8 +31,6 @@
 #include "dxbc_sdbg.h"
 #include "dxbc_spdb.h"
 
-#include <D3D11Shader.h>
-
 using std::make_pair;
 
 namespace DXBC
@@ -480,7 +478,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
 	// default to vertex shader to support blobs without RDEF chunks (e.g. used with
 	// input layouts if they're super stripped down)
-	m_Type = D3D11_SHVER_VERTEX_SHADER;
+	m_Type = D3D11_ShaderType_Vertex;
 
 	bool rdefFound = false;
 
@@ -507,19 +505,19 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 			}
 
 			if(h->targetShaderStage == 0xffff)
-				m_Type = D3D11_SHVER_PIXEL_SHADER;
+				m_Type = D3D11_ShaderType_Pixel;
 			else if(h->targetShaderStage == 0xfffe)
-				m_Type = D3D11_SHVER_VERTEX_SHADER;
+				m_Type = D3D11_ShaderType_Vertex;
 			
 			else if(h->targetShaderStage == 0x4753) // 'GS'
-				m_Type = D3D11_SHVER_GEOMETRY_SHADER;
+				m_Type = D3D11_ShaderType_Geometry;
 
 			else if(h->targetShaderStage == 0x4853) // 'HS'
-				m_Type = D3D11_SHVER_HULL_SHADER;
+				m_Type = D3D11_ShaderType_Hull;
 			else if(h->targetShaderStage == 0x4453) // 'DS'
-				m_Type = D3D11_SHVER_DOMAIN_SHADER;
+				m_Type = D3D11_ShaderType_Domain;
 			else if(h->targetShaderStage == 0x4353) // 'CS'
-				m_Type = D3D11_SHVER_COMPUTE_SHADER;
+				m_Type = D3D11_ShaderType_Compute;
 
 			m_Resources.reserve(h->resources.count);
 
@@ -820,10 +818,10 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 					(desc.regChannelMask & 0x4 ? 1 : 0) +
 					(desc.regChannelMask & 0x8 ? 1 : 0);
 
-				RDCASSERT(m_Type != (D3D11_SHADER_VERSION_TYPE)-1);
+				RDCASSERT(m_Type != (D3D11_ShaderType)-1);
 
 				// pixel shader outputs with registers are always targets
-				if(m_Type == D3D11_SHVER_PIXEL_SHADER && output && desc.systemValue == eAttr_None &&
+				if(m_Type == D3D11_ShaderType_Pixel && output && desc.systemValue == eAttr_None &&
 					desc.regIndex >= 0 && desc.regIndex <= 16)
 					desc.systemValue = eAttr_ColourOutput;
 

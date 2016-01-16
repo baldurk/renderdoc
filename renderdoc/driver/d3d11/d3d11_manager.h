@@ -26,11 +26,6 @@
 
 #pragma once
 
-#define INITGUID
-
-#include <d3d11.h>
-#include <dxgi.h>
-
 #include "driver/d3d11/d3d11_common.h"
 
 #include "core/core.h"

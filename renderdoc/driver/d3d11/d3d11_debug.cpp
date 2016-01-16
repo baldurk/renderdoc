@@ -42,7 +42,7 @@
 
 #include "stb/stb_truetype.h"
 
-#include <d3dcompiler.h>
+#include "official/d3dcompiler.h"
 
 // used for serialising out ms textures - converts typeless to uint typed where possible,
 // or float/unorm if necessary. Only typeless formats are converted.
@@ -3311,7 +3311,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 			auto dxbc = it->second->GetDXBC();
 
 			RDCASSERT(dxbc);
-			RDCASSERT(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER);
+			RDCASSERT(dxbc->m_Type == D3D11_ShaderType_Pixel);
 
 			if(m_WrappedDevice->GetResourceManager()->HasLiveResource(cfg.CustomShader))
 			{

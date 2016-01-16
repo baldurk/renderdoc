@@ -26,8 +26,8 @@
 
 #pragma once
 
-#include <dxgi.h>
-#include <d3d11.h>
+#include "../d3d11/official/dxgi.h"
+#include "../d3d11/official/d3d11.h"
 
 // if you don't have the windows 8.1 SDK, remove this define to exclude the DXGI1.2+ functionality
 #define INCLUDE_DXGI_1_2
@@ -103,8 +103,8 @@ class WrappedID3D11Device;
 struct ID3D11Resource;
 
 #if defined(INCLUDE_DXGI_1_2)
-#include <dxgi1_2.h>
-#include <dxgi1_3.h>
+#include "../d3d11/official/dxgi1_2.h"
+#include "../d3d11/official/dxgi1_3.h"
 #endif
 
 #if defined(INCLUDE_DXGI_1_2)

@@ -26,7 +26,6 @@
 
 // TODO remove me
 #include "driver/d3d11/d3d11_device.h"
-#include <d3d11shader.h>
 
 #include <math.h>
 
@@ -2371,17 +2370,17 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				UINT slot = (UINT)(op.operands[1].indices[0].index&0xffffffff);
 
 				ID3D11ShaderResourceView *srv = NULL;
-				if(s.dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
+				if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
 					context->VSGetShaderResources(slot, 1, &srv);
-				else if(s.dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
+				else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
 					context->HSGetShaderResources(slot, 1, &srv);
-				else if(s.dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
+				else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
 					context->DSGetShaderResources(slot, 1, &srv);
-				else if(s.dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
+				else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
 					context->GSGetShaderResources(slot, 1, &srv);
-				else if(s.dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
+				else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
 					context->PSGetShaderResources(slot, 1, &srv);
-				else if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+				else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
 					context->CSGetShaderResources(slot, 1, &srv);
 
 				if(srv)
@@ -2598,7 +2597,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				if(op.operands[1].type == TYPE_UNORDERED_ACCESS_VIEW)
 				{
 					ID3D11UnorderedAccessView *uav = NULL;
-					if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+					if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
 						context->CSGetUnorderedAccessViews(slot, 1, &uav);
 					else
 						context->OMGetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, slot, 1, &uav);
@@ -2634,17 +2633,17 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				else
 				{
 					ID3D11ShaderResourceView *srv = NULL;
-					if(s.dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
+					if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
 						context->VSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
+					else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
 						context->HSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
+					else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
 						context->DSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
+					else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
 						context->GSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
+					else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
 						context->PSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+					else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
 						context->CSGetShaderResources(slot, 1, &srv);
 					
 					if(srv)
@@ -2754,17 +2753,17 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				if(op.operands[2].type != TYPE_UNORDERED_ACCESS_VIEW)
 				{
 					ID3D11ShaderResourceView *srv = NULL;
-					if(s.dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
+					if(s.dxbc->m_Type == D3D11_ShaderType_Vertex)
 						context->VSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
+					else if(s.dxbc->m_Type == D3D11_ShaderType_Hull)
 						context->HSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
+					else if(s.dxbc->m_Type == D3D11_ShaderType_Domain)
 						context->DSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
+					else if(s.dxbc->m_Type == D3D11_ShaderType_Geometry)
 						context->GSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
+					else if(s.dxbc->m_Type == D3D11_ShaderType_Pixel)
 						context->PSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+					else if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
 						context->CSGetShaderResources(slot, 1, &srv);
 
 					if(srv)
@@ -2925,7 +2924,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				else
 				{
 					ID3D11UnorderedAccessView *uav = NULL;
-					if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+					if(s.dxbc->m_Type == D3D11_ShaderType_Compute)
 					{
 						context->CSGetUnorderedAccessViews(slot, 1, &uav);
 					}
@@ -3867,30 +3866,30 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			// fetch SRV and sampler from the shader stage we're debugging that this opcode wants to
 			// load from
 
-			if(dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
+			if(dxbc->m_Type == D3D11_ShaderType_Vertex)
 				context->VSGetShaderResources(texSlot, 1, &usedSRV);
-			else if(dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
+			else if(dxbc->m_Type == D3D11_ShaderType_Hull)
 				context->HSGetShaderResources(texSlot, 1, &usedSRV);
-			else if(dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
+			else if(dxbc->m_Type == D3D11_ShaderType_Domain)
 				context->DSGetShaderResources(texSlot, 1, &usedSRV);
-			else if(dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
+			else if(dxbc->m_Type == D3D11_ShaderType_Geometry)
 				context->GSGetShaderResources(texSlot, 1, &usedSRV);
-			else if(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
+			else if(dxbc->m_Type == D3D11_ShaderType_Pixel)
 				context->PSGetShaderResources(texSlot, 1, &usedSRV);
-			else if(dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+			else if(dxbc->m_Type == D3D11_ShaderType_Compute)
 				context->CSGetShaderResources(texSlot, 1, &usedSRV);
 			
-			if(dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
+			if(dxbc->m_Type == D3D11_ShaderType_Vertex)
 				context->VSGetSamplers(sampSlot, 1, &usedSamp);
-			else if(dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
+			else if(dxbc->m_Type == D3D11_ShaderType_Hull)
 				context->HSGetSamplers(sampSlot, 1, &usedSamp);
-			else if(dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
+			else if(dxbc->m_Type == D3D11_ShaderType_Domain)
 				context->DSGetSamplers(sampSlot, 1, &usedSamp);
-			else if(dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
+			else if(dxbc->m_Type == D3D11_ShaderType_Geometry)
 				context->GSGetSamplers(sampSlot, 1, &usedSamp);
-			else if(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
+			else if(dxbc->m_Type == D3D11_ShaderType_Pixel)
 				context->PSGetSamplers(sampSlot, 1, &usedSamp);
-			else if(dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+			else if(dxbc->m_Type == D3D11_ShaderType_Compute)
 				context->CSGetSamplers(sampSlot, 1, &usedSamp);
 
 			// set onto PS while we perform the sample

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2015-2016 Baldur Karlsson
+ * * Copyright (c) 2015-2016 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,9 +23,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
-#include <d3d9.h>
-
 #include "driver/d3d11/d3d11_device.h"
 
 #include "hooks/hooks.h"
@@ -37,6 +34,8 @@ typedef int (WINAPI* PFN_END_EVENT)( );
 typedef int (WINAPI* PFN_SET_MARKER_EVENT)( DWORD, WCHAR* );
 typedef void (WINAPI* PFN_SET_OPTIONS)( DWORD );
 typedef DWORD (WINAPI* PFN_GET_OPTIONS)( );
+
+struct IDirect3D9;
 
 typedef IDirect3D9* (WINAPI* PFN_D3D9_CREATE)( UINT );
 

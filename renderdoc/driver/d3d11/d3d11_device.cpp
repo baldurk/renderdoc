@@ -38,10 +38,6 @@
 
 #include "jpeg-compressor/jpge.h"
 
-#if defined(INCLUDE_D3D_11_1)
-#include <d3d11shadertracing.h>
-#endif
-
 const char *D3D11ChunkNames[] =
 {
 	"ID3D11Device::Initialisation",
@@ -521,6 +517,12 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 	// DEFINE_GUID(IID_IDirect3DDevice9, 0xd0223b96, 0xbf7a, 0x43fd, 0x92, 0xbd, 0xa4, 0x3b, 0xd, 0x82, 0xb9, 0xeb);
 	static const GUID IDirect3DDevice9_uuid = { 0xd0223b96, 0xbf7a, 0x43fd, { 0x92, 0xbd, 0xa4, 0x3b, 0xd, 0x82, 0xb9, 0xeb } };
 
+	// ID3D10Device UUID {9B7E4C0F-342C-4106-A19F-4F2704F689F0}
+	static const GUID ID3D10Device_uuid = { 0x9b7e4c0f, 0x342c, 0x4106, { 0xa1, 0x9f, 0x4f, 0x27, 0x04, 0xf6, 0x89, 0xf0 } };
+
+	// ID3D11ShaderTraceFactory UUID {1fbad429-66ab-41cc-9617-667ac10e4459}
+	static const GUID ID3D11ShaderTraceFactory_uuid = { 0x1fbad429, 0x66ab, 0x41cc, { 0x96, 0x17, 0x66, 0x7a, 0xc1, 0x0e, 0x44, 0x59 } };
+
 	// RenderDoc UUID {A7AA6116-9C8D-4BBA-9083-B4D816B71B78}
 	static const GUID IRenderDoc_uuid = { 0xa7aa6116, 0x9c8d, 0x4bba, { 0x90, 0x83, 0xb4, 0xd8, 0x16, 0xb7, 0x1b, 0x78 } };
 
@@ -598,7 +600,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 		*ppvObject = (ID3D11Device *)this;
 		return S_OK;
 	}
-	else if(riid == __uuidof(ID3D10Device))
+	else if(riid == ID3D10Device_uuid)
 	{
 		RDCWARN("Trying to get ID3D10Device - not supported.");
 		*ppvObject = NULL;
@@ -638,7 +640,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 			return E_NOINTERFACE;
 		}
 	}
-	else if(riid == __uuidof(ID3D11ShaderTraceFactory))
+	else if(riid == ID3D11ShaderTraceFactory_uuid)
 	{
 		RDCWARN("Trying to get ID3D11ShaderTraceFactory. Not supported at this time.");
 		*ppvObject = NULL;

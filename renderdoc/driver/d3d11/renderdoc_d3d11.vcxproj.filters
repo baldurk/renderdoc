@@ -16,6 +16,9 @@
     <Filter Include="Common">
       <UniqueIdentifier>{5d657033-628b-4aff-93f9-ce8538be5dd5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="official">
+      <UniqueIdentifier>{069c5202-e850-427b-9353-250795a60436}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d11_context1_wrap.cpp">
@@ -94,6 +97,39 @@
     </ClInclude>
     <ClInclude Include="d3d11_common.h">
       <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\d3d11_1.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\d3d11_2.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\d3d11sdklayers.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\d3dcommon.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\d3dcompiler.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\dxgi.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\dxgi1_2.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\dxgi1_3.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\winapifamily.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\d3d11.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\d3d11_3.h">
+      <Filter>official</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

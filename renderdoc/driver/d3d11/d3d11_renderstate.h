@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include <d3d11.h>
-
 #include "core/core.h"
 #include "driver/d3d11/d3d11_manager.h"
 #include "common/common.h"
