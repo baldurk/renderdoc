@@ -139,7 +139,10 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		else
 			patchControlPoints = 0;
 
-		viewportCount = pCreateInfo->pViewportState->viewportCount;
+		if(pCreateInfo->pViewportState)
+			viewportCount = pCreateInfo->pViewportState->viewportCount;
+		else
+			viewportCount = 0;
 
 		viewports.resize(viewportCount);
 		scissors.resize(viewportCount);
@@ -166,44 +169,88 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 		lineWidth = pCreateInfo->pRasterizationState->lineWidth;
 
 		// VkPipelineMultisampleStateCreateInfo
-		rasterizationSamples = pCreateInfo->pMultisampleState->rasterizationSamples;
-		sampleShadingEnable = pCreateInfo->pMultisampleState->sampleShadingEnable ? true : false;
-		minSampleShading = pCreateInfo->pMultisampleState->minSampleShading;
-		sampleMask = pCreateInfo->pMultisampleState->pSampleMask ? *pCreateInfo->pMultisampleState->pSampleMask : ~0U;
-		alphaToCoverageEnable = pCreateInfo->pMultisampleState->alphaToCoverageEnable ? true : false;
-		alphaToOneEnable = pCreateInfo->pMultisampleState->alphaToOneEnable ? true : false;
+		if(pCreateInfo->pMultisampleState)
+		{
+			rasterizationSamples = pCreateInfo->pMultisampleState->rasterizationSamples;
+			sampleShadingEnable = pCreateInfo->pMultisampleState->sampleShadingEnable ? true : false;
+			minSampleShading = pCreateInfo->pMultisampleState->minSampleShading;
+			sampleMask = pCreateInfo->pMultisampleState->pSampleMask ? *pCreateInfo->pMultisampleState->pSampleMask : ~0U;
+			alphaToCoverageEnable = pCreateInfo->pMultisampleState->alphaToCoverageEnable ? true : false;
+			alphaToOneEnable = pCreateInfo->pMultisampleState->alphaToOneEnable ? true : false;
+		}
+		else
+		{
+			rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+			sampleShadingEnable = false;
+			minSampleShading = 1.0f;
+			sampleMask = ~0U;
+			alphaToCoverageEnable = false;
+			alphaToOneEnable = false;
+		}
 
 		// VkPipelineDepthStencilStateCreateInfo
-		depthTestEnable = pCreateInfo->pDepthStencilState->depthTestEnable ? true : false;
-		depthWriteEnable = pCreateInfo->pDepthStencilState->depthWriteEnable ? true : false;
-		depthCompareOp = pCreateInfo->pDepthStencilState->depthCompareOp;
-		depthBoundsEnable = pCreateInfo->pDepthStencilState->depthBoundsTestEnable ? true : false;
-		stencilTestEnable = pCreateInfo->pDepthStencilState->stencilTestEnable ? true : false;
-		front = pCreateInfo->pDepthStencilState->front;
-		back = pCreateInfo->pDepthStencilState->back;
-		minDepthBounds = pCreateInfo->pDepthStencilState->minDepthBounds;
-		maxDepthBounds = pCreateInfo->pDepthStencilState->maxDepthBounds;
+		if(pCreateInfo->pDepthStencilState)
+		{
+			depthTestEnable = pCreateInfo->pDepthStencilState->depthTestEnable ? true : false;
+			depthWriteEnable = pCreateInfo->pDepthStencilState->depthWriteEnable ? true : false;
+			depthCompareOp = pCreateInfo->pDepthStencilState->depthCompareOp;
+			depthBoundsEnable = pCreateInfo->pDepthStencilState->depthBoundsTestEnable ? true : false;
+			stencilTestEnable = pCreateInfo->pDepthStencilState->stencilTestEnable ? true : false;
+			front = pCreateInfo->pDepthStencilState->front;
+			back = pCreateInfo->pDepthStencilState->back;
+			minDepthBounds = pCreateInfo->pDepthStencilState->minDepthBounds;
+			maxDepthBounds = pCreateInfo->pDepthStencilState->maxDepthBounds;
+		}
+		else
+		{
+			depthTestEnable = false;
+			depthWriteEnable = false;
+			depthCompareOp = VK_COMPARE_OP_ALWAYS;
+			depthBoundsEnable = false;
+			stencilTestEnable = false;
+			front.failOp = VK_STENCIL_OP_KEEP;
+			front.passOp = VK_STENCIL_OP_KEEP;
+			front.depthFailOp = VK_STENCIL_OP_KEEP;
+			front.compareOp = VK_COMPARE_OP_ALWAYS;
+			front.compareMask = 0xff;
+			front.writeMask = 0xff;
+			front.reference = 0;
+			back = front;
+			minDepthBounds = 0.0f;
+			maxDepthBounds = 1.0f;
+		}
 
 		// VkPipelineColorBlendStateCreateInfo
-		logicOpEnable = pCreateInfo->pColorBlendState->logicOpEnable ? true : false;
-		logicOp = pCreateInfo->pColorBlendState->logicOp;
-		memcpy(blendConst, pCreateInfo->pColorBlendState->blendConstants, sizeof(blendConst));
-
-		attachments.resize(pCreateInfo->pColorBlendState->attachmentCount);
-
-		for(uint32_t i=0; i < pCreateInfo->pColorBlendState->attachmentCount; i++)
+		if(pCreateInfo->pColorBlendState)
 		{
-			attachments[i].blendEnable = pCreateInfo->pColorBlendState->pAttachments[i].blendEnable ? true : false;
+			logicOpEnable = pCreateInfo->pColorBlendState->logicOpEnable ? true : false;
+			logicOp = pCreateInfo->pColorBlendState->logicOp;
+			memcpy(blendConst, pCreateInfo->pColorBlendState->blendConstants, sizeof(blendConst));
 
-			attachments[i].blend.Source = pCreateInfo->pColorBlendState->pAttachments[i].srcColorBlendFactor;
-			attachments[i].blend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].dstColorBlendFactor;
-			attachments[i].blend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].colorBlendOp;
+			attachments.resize(pCreateInfo->pColorBlendState->attachmentCount);
 
-			attachments[i].alphaBlend.Source = pCreateInfo->pColorBlendState->pAttachments[i].srcAlphaBlendFactor;
-			attachments[i].alphaBlend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].dstAlphaBlendFactor;
-			attachments[i].alphaBlend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].alphaBlendOp;
+			for(uint32_t i=0; i < pCreateInfo->pColorBlendState->attachmentCount; i++)
+			{
+				attachments[i].blendEnable = pCreateInfo->pColorBlendState->pAttachments[i].blendEnable ? true : false;
 
-			attachments[i].channelWriteMask = pCreateInfo->pColorBlendState->pAttachments[i].colorWriteMask;
+				attachments[i].blend.Source = pCreateInfo->pColorBlendState->pAttachments[i].srcColorBlendFactor;
+				attachments[i].blend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].dstColorBlendFactor;
+				attachments[i].blend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].colorBlendOp;
+
+				attachments[i].alphaBlend.Source = pCreateInfo->pColorBlendState->pAttachments[i].srcAlphaBlendFactor;
+				attachments[i].alphaBlend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].dstAlphaBlendFactor;
+				attachments[i].alphaBlend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].alphaBlendOp;
+
+				attachments[i].channelWriteMask = pCreateInfo->pColorBlendState->pAttachments[i].colorWriteMask;
+			}
+		}
+		else
+		{
+			logicOpEnable = false;
+			logicOp = VK_LOGIC_OP_NO_OP;
+			RDCEraseEl(blendConst);
+
+			attachments.clear();
 		}
 
 		RDCEraseEl(dynamicStates);
