@@ -3660,10 +3660,13 @@ void Serialiser::Serialise(const char *name, VkSpecializationInfo &el)
 	ScopedContext scope(this, name, "VkSpecializationInfo", 0, true);
 
 	uint64_t dataSize = el.dataSize;
-	Serialise("dataSize", el.dataSize);
+	Serialise("dataSize", dataSize);
 	size_t sz = (size_t)dataSize;
-	el.dataSize = sz;
-	if(m_Mode == READING) el.pData = NULL;
+	if(m_Mode == READING)
+	{
+		el.pData = NULL;
+		el.dataSize = sz;
+	}
 	SerialiseBuffer("pData", (byte *&)el.pData, sz);
 
 	SerialiseComplexArray("pMapEntries", (VkSpecializationMapEntry *&)el.pMapEntries, el.mapEntryCount);
