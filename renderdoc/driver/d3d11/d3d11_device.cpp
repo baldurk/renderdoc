@@ -261,13 +261,11 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	if(RenderDoc::Inst().GetCrashHandler())
 		RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D11Device));
 
-#if defined(INCLUDE_D3D_11_1)
 	m_pDevice1 = NULL;
 	m_pDevice->QueryInterface(__uuidof(ID3D11Device1), (void **)&m_pDevice1);
 
 	m_pDevice2 = NULL;
 	m_pDevice->QueryInterface(__uuidof(ID3D11Device2), (void **)&m_pDevice2);
-#endif
 
 	m_Replay.SetDevice(this);
 
@@ -417,10 +415,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
 	m_CachedStateObjects.clear();
 
-#if defined(INCLUDE_D3D_11_1)
 	SAFE_RELEASE(m_pDevice1);
 	SAFE_RELEASE(m_pDevice2);
-#endif
 	
 	SAFE_RELEASE(m_pImmediateContext);
 
@@ -487,10 +483,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11Debug::QueryInterface(REFIID riid, void *
 	if(riid == __uuidof(ID3D11InfoQueue)
 		 || riid == __uuidof(ID3D11Debug)
 		 || riid == __uuidof(ID3D11Device)
-#if defined(INCLUDE_D3D_11_1)
 		 || riid == __uuidof(ID3D11Device1)
 		 || riid == __uuidof(ID3D11Device2)
-#endif
 		 )
 		return m_pDevice->QueryInterface(riid, ppvObject);
 
@@ -560,7 +554,6 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 			return hr;
 		}
 	}
-#if defined(INCLUDE_DXGI_1_2)
 	else if(riid == __uuidof(IDXGIDevice2))
 	{
 		hr = m_pDevice->QueryInterface(riid, ppvObject);
@@ -593,7 +586,6 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 			return hr;
 		}
 	}
-#endif
 	else if(riid == __uuidof(ID3D11Device))
 	{
 		AddRef();
@@ -612,7 +604,6 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 		*ppvObject = NULL;
 		return E_NOINTERFACE;
 	}
-#if defined(INCLUDE_D3D_11_1)
 	else if(riid == __uuidof(ID3D11Device1))
 	{
 		if(m_pDevice1)
@@ -646,7 +637,6 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 		*ppvObject = NULL;
 		return E_NOINTERFACE;
 	}
-#endif
 	else if(riid == __uuidof(ID3D11InfoQueue))
 	{
 		RDCWARN("Returning a dummy ID3D11InfoQueue that does nothing. This ID3D11InfoQueue will not work!");
@@ -786,11 +776,9 @@ vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
 			case D3D11_MESSAGE_CATEGORY_EXECUTION:
 				msg.category = eDbgCategory_Execution;
 				break;
-#if defined(INCLUDE_D3D_11_1)
 			case D3D11_MESSAGE_CATEGORY_SHADER:
 				msg.category = eDbgCategory_Shaders;
 				break;
-#endif
 			default:
 				RDCWARN("Unexpected message category: %d", message->Category);
 				break;
@@ -810,11 +798,9 @@ vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
 			case D3D11_MESSAGE_SEVERITY_INFO:
 				msg.severity = eDbgSeverity_Info;
 				break;
-#if defined(INCLUDE_D3D_11_1)
 			case D3D11_MESSAGE_SEVERITY_MESSAGE:
 				msg.severity = eDbgSeverity_Info;
 				break;
-#endif
 			default:
 				RDCWARN("Unexpected message severity: %d", message->Severity);
 				break;
@@ -930,19 +916,12 @@ void WrappedID3D11Device::ProcessChunk(uint64_t offset, D3D11ChunkType context)
 	case CREATE_RASTER_STATE:
 		Serialise_CreateRasterizerState(0x0, 0x0);
 		break;
-#if defined(INCLUDE_D3D_11_1)
 	case CREATE_BLEND_STATE1:
 		Serialise_CreateBlendState1(0x0, 0x0);
 		break;
 	case CREATE_RASTER_STATE1:
 		Serialise_CreateRasterizerState1(0x0, 0x0);
 		break;
-#else
-	case CREATE_BLEND_STATE1:
-	case CREATE_RASTER_STATE1:
-		RDCERR("Replaying log with D3D11.1 events on a build without D3D11.1 support");
-		break;
-#endif
 	case CREATE_SAMPLER_STATE:
 		Serialise_CreateSamplerState(0x0, 0x0);
 		break;

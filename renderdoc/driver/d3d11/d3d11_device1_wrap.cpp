@@ -28,7 +28,6 @@
 #include "d3d11_resources.h"
 #include "d3d11_context.h"
 
-#if defined(INCLUDE_D3D_11_1)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // ID3D11Device1 interface
 
@@ -298,5 +297,3 @@ HRESULT WrappedID3D11Device::CheckMultisampleQualityLevels1(
 
 	return m_pDevice2->CheckMultisampleQualityLevels1(Format, SampleCount, Flags, pNumQualityLevels);
 }
-
-#endif

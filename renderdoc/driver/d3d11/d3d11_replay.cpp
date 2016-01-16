@@ -840,7 +840,6 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			ret.m_RS.m_State.SlopeScaledDepthBias = desc.SlopeScaledDepthBias;
 			ret.m_RS.m_State.ForcedSampleCount = 0;
 
-#if defined(INCLUDE_D3D_11_1)
 			D3D11_RASTERIZER_DESC1 desc1;
 			RDCEraseEl(desc1);
 
@@ -849,7 +848,6 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				((ID3D11RasterizerState1 *)rs->RS.State)->GetDesc1(&desc1);
 				ret.m_RS.m_State.ForcedSampleCount = desc1.ForcedSampleCount;
 			}
-#endif
 
 			ret.m_RS.m_State.State = rm->GetOriginalID(GetIDForResource(rs->RS.State));
 		}
@@ -1102,7 +1100,6 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			ret.m_OM.m_BlendState.AlphaToCoverage = desc.AlphaToCoverageEnable == TRUE;
 			ret.m_OM.m_BlendState.IndependentBlend = desc.IndependentBlendEnable == TRUE;
 			
-#if defined(INCLUDE_D3D_11_1)
 			bool state1 = false;
 			D3D11_BLEND_DESC1 desc1;
 			RDCEraseEl(desc1);
@@ -1113,7 +1110,6 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 				state1 = true;
 			}
-#endif
 
 			create_array_uninit(ret.m_OM.m_BlendState.Blends, 8);
 			for(size_t i=0; i < 8; i++)
@@ -1122,13 +1118,8 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 				blend.Enabled = desc.RenderTarget[i].BlendEnable == TRUE;
 
-#if defined(INCLUDE_D3D_11_1)
 				blend.LogicEnabled = state1 && desc1.RenderTarget[i].LogicOpEnable == TRUE;
 				blend.LogicOp = state1 ? ToStr::Get(desc1.RenderTarget[i].LogicOp) : "NOOP";
-#else
-				blend.LogicEnabled = false;
-				blend.LogicOp = "NOOP";
-#endif
 
 				blend.m_AlphaBlend.Source = ToStr::Get(desc.RenderTarget[i].SrcBlendAlpha);
 				blend.m_AlphaBlend.Destination = ToStr::Get(desc.RenderTarget[i].DestBlendAlpha);
@@ -1163,13 +1154,8 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			blend.m_Blend.Destination = ToStr::Get(D3D11_BLEND_ZERO);
 			blend.m_Blend.Operation = ToStr::Get(D3D11_BLEND_OP_ADD);
 
-#if defined(INCLUDE_D3D_11_1)
 			blend.LogicEnabled = false;
 			blend.LogicOp = ToStr::Get(D3D11_LOGIC_OP_NOOP);
-#else
-			blend.LogicEnabled = false;
-			blend.LogicOp = "NOOP";
-#endif
 
 			blend.WriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 				
@@ -1891,11 +1877,7 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver *
 	int i=-2;
 
 	// force using our feature levels as we require >= 11_0 for analysis
-#if defined(INCLUDE_D3D_11_1)
 	D3D_FEATURE_LEVEL featureLevelArray11_1[] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0 };
-#else
-	D3D_FEATURE_LEVEL featureLevelArray11_1[] = { D3D_FEATURE_LEVEL_11_0 };
-#endif
 	UINT numFeatureLevels11_1 = ARRAY_COUNT(featureLevelArray11_1);
 
 	D3D_FEATURE_LEVEL featureLevelArray11_0[] = { D3D_FEATURE_LEVEL_11_0 };

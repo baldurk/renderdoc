@@ -37,8 +37,6 @@
 WRAPPED_POOL_INST(WrappedID3D11DeviceContext);
 WRAPPED_POOL_INST(WrappedID3D11CommandList);
 
-
-#if defined(INCLUDE_D3D_11_1)
 INT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::BeginEvent(LPCWSTR Name)
 {
 	if(m_Context)
@@ -75,7 +73,6 @@ HRESULT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::QueryInterface(REFII
 
 	return E_NOINTERFACE;
 }
-#endif
 
 extern uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 extern uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
@@ -93,7 +90,6 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device* real
 		NullCBCounts[i] = 4096;
 	}
 
-#if defined(INCLUDE_D3D_11_1)
 	D3D11_FEATURE_DATA_D3D11_OPTIONS features;
 	RDCEraseEl(features);
 	HRESULT hr = m_pDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &features, sizeof(features));
@@ -107,7 +103,6 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device* real
 
 	m_pRealContext2 = NULL;
 	m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext2), (void **)&m_pRealContext2);
-#endif
 
 #if defined(RELEASE)
 	const bool debugSerialiser = false;
@@ -152,9 +147,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device* real
 	m_CurDrawcallID = 1;
 
 	m_MarkerIndentLevel = 0;
-#if defined(INCLUDE_D3D_11_1)
 	m_UserAnnotation.SetContext(this);
-#endif
 
 	m_CurrentPipelineState = new D3D11RenderState((Serialiser *)NULL);
 	m_DoStateVerify = m_State >= WRITING;
@@ -193,10 +186,8 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
 		SAFE_DELETE(m_pSerialiser);
 	}
 
-#if defined(INCLUDE_D3D_11_1)
 	SAFE_RELEASE(m_pRealContext1);
 	SAFE_RELEASE(m_pRealContext2);
-#endif
 
 	SAFE_DELETE(m_CurrentPipelineState);
 	SAFE_RELEASE(m_pRealContext);
@@ -845,7 +836,6 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 		context->Serialise_End(0x0);
 		break;
 		
-#if defined(INCLUDE_D3D_11_1)
 	case COPY_SUBRESOURCE_REGION1:
 		context->Serialise_CopySubresourceRegion1(0x0, 0, 0, 0, 0, 0x0, 0, 0x0, 0);
 		break;
@@ -874,19 +864,6 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 	case SET_CS_CBUFFERS1:
 		context->Serialise_CSSetConstantBuffers1(0, 0, 0x0, 0x0, 0x0);
 		break;
-#else
-	case COPY_SUBRESOURCE_REGION1:
-	case UPDATE_SUBRESOURCE1:
-	case CLEAR_VIEW:
-	case SET_VS_CBUFFERS1:
-	case SET_HS_CBUFFERS1:
-	case SET_DS_CBUFFERS1:
-	case SET_GS_CBUFFERS1:
-	case SET_PS_CBUFFERS1:
-	case SET_CS_CBUFFERS1:
-		RDCERR("Replaying log with D3D11.1 events on a build without D3D11.1 support");
-		break;
-#endif
 
 	case PUSH_EVENT:
 		context->Serialise_PushEvent(0, L"");
@@ -1359,7 +1336,6 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID rii
 		AddRef();
 		return S_OK;
 	}
-#if defined(INCLUDE_D3D_11_1)
 	else if(riid == __uuidof(ID3D11DeviceContext1))
 	{
 		if(m_pRealContext1)
@@ -1393,7 +1369,6 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID rii
 		m_UserAnnotation.AddRef();
 		return S_OK;
 	}
-#endif
 	else
 	{
 		string guid = ToStr::Get(riid);

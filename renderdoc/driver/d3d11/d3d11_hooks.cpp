@@ -215,9 +215,7 @@ private:
 		
 		bool suppress = false;
 
-#if defined(INCLUDE_D3D_11_1)
 		suppress = (Flags & D3D11_CREATE_DEVICE_PREVENT_ALTERING_LAYER_SETTINGS_FROM_REGISTRY) != 0;
-#endif
 
 		if(suppress && !reading)
 		{

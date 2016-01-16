@@ -71,7 +71,6 @@ struct MapIntercept
 
 class WrappedID3D11DeviceContext;
 
-#if defined(INCLUDE_D3D_11_1)
 // ID3DUserDefinedAnnotation
 class WrappedID3DUserDefinedAnnotation : public RefCounter, public ID3DUserDefinedAnnotation
 {
@@ -94,7 +93,6 @@ class WrappedID3DUserDefinedAnnotation : public RefCounter, public ID3DUserDefin
 	private:
 		WrappedID3D11DeviceContext *m_Context;
 };
-#endif
 
 enum CaptureFailReason
 {
@@ -126,13 +124,7 @@ struct DrawcallTreeNode
 	}
 };
 
-#if defined(INCLUDE_D3D_11_1)
-#define D3DCONTEXTPARENT ID3D11DeviceContext2
-#else
-#define D3DCONTEXTPARENT ID3D11DeviceContext
-#endif
-
-class WrappedID3D11DeviceContext : public RefCounter, public D3DCONTEXTPARENT
+class WrappedID3D11DeviceContext : public RefCounter, public ID3D11DeviceContext2
 {
 private:
 	friend class WrappedID3D11DeviceContext;
@@ -171,12 +163,10 @@ private:
 
 	WrappedID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pRealContext;
-#if defined(INCLUDE_D3D_11_1)
 	ID3D11DeviceContext1* m_pRealContext1;
 	bool m_SetCBuffer1;
 
 	ID3D11DeviceContext2* m_pRealContext2;
-#endif
 
 	set<D3D11ResourceRecord *> m_DeferredRecords;
 	map<ResourceId, int> m_MapResourceRecordAllocs;
@@ -200,9 +190,7 @@ private:
 	vector<FetchAPIEvent> m_CurEvents, m_Events;
 	bool m_AddedDrawcall;
 	
-#if defined(INCLUDE_D3D_11_1)
 	WrappedID3DUserDefinedAnnotation m_UserAnnotation;
-#endif
 	int32_t m_MarkerIndentLevel;
 
 	struct Annotation
@@ -272,11 +260,7 @@ public:
 	ID3D11DeviceContext1* GetReal1() { return m_pRealContext1; }
 	ID3D11DeviceContext2* GetReal2() { return m_pRealContext2; }
 
-#if defined(INCLUDE_D3D_11_1)
 	bool IsFL11_1();
-#else
-	bool IsFL11_1() { return false; }
-#endif
 
 	void ProcessChunk(uint64_t offset, D3D11ChunkType chunk, bool forceExecute);
 	void ReplayFakeContext(ResourceId id);
@@ -858,7 +842,6 @@ public:
 			UINT SrcDepthPitch,
 			UINT CopyFlags));
     
-#if defined(INCLUDE_D3D_11_1)
 	IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, CopySubresourceRegion1( 
 			ID3D11Resource *pDstResource,
 			UINT DstSubresource,
@@ -1028,5 +1011,4 @@ public:
 	virtual void STDMETHODCALLTYPE BeginEventInt(LPCWSTR pLabel, INT Data);
 	
 	virtual void STDMETHODCALLTYPE EndEvent();
-#endif
 };

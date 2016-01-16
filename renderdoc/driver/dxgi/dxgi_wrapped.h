@@ -26,11 +26,8 @@
 
 #pragma once
 
-#include "../d3d11/official/dxgi.h"
-#include "../d3d11/official/d3d11.h"
-
-// if you don't have the windows 8.1 SDK, remove this define to exclude the DXGI1.2+ functionality
-#define INCLUDE_DXGI_1_2
+#include "../d3d11/official/dxgi1_3.h"
+#include "../d3d11/official/d3d11_3.h"
 
 #include "common/common.h"
 #include "common/wrapped_pool.h"
@@ -102,24 +99,11 @@ public:
 class WrappedID3D11Device;
 struct ID3D11Resource;
 
-#if defined(INCLUDE_DXGI_1_2)
-#include "../d3d11/official/dxgi1_2.h"
-#include "../d3d11/official/dxgi1_3.h"
-#endif
-
-#if defined(INCLUDE_DXGI_1_2)
-#define SWAPCHAINPARENT IDXGISwapChain2
-#else
-#define SWAPCHAINPARENT IDXGISwapChain
-#endif
-
-class WrappedIDXGISwapChain2 : public SWAPCHAINPARENT, public RefCountDXGIObject
+class WrappedIDXGISwapChain2 : public IDXGISwapChain2, public RefCountDXGIObject
 {
 	IDXGISwapChain* m_pReal;
-#if defined(INCLUDE_DXGI_1_2)
 	IDXGISwapChain1* m_pReal1;
 	IDXGISwapChain2* m_pReal2;
-#endif
 	WrappedID3D11Device *m_pDevice;
 	unsigned int m_iRefcount;
 
@@ -199,7 +183,6 @@ public:
 		return m_pReal->GetLastPresentCount(pLastPresentCount);
 	}
 
-#if defined(INCLUDE_DXGI_1_2)
 	//////////////////////////////
 	// implement IDXGISwapChain1
 	
@@ -328,7 +311,6 @@ public:
 	{
 		return m_pReal2->GetMatrixTransform(pMatrix);
 	}
-#endif
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -710,8 +692,6 @@ public:
 		return m_pReal->IsCurrent();
 	}
 };
-
-#if defined(INCLUDE_DXGI_1_2)
 
 class WrappedIDXGIDevice2 : public IDXGIDevice2, public RefCountDXGIObject
 {
@@ -1458,5 +1438,3 @@ public:
 		return m_pReal->GetCreationFlags();
 	}
 };
-
-#endif

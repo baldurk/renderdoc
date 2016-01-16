@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "official/d3d11.h"
+#include "official/d3d11_3.h"
 
 #include <utility>
 #include <list>

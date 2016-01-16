@@ -52,10 +52,8 @@ WRAPPED_POOL_INST(WrappedID3D11Query);
 WRAPPED_POOL_INST(WrappedID3D11Predicate);
 WRAPPED_POOL_INST(WrappedID3D11ClassInstance);
 WRAPPED_POOL_INST(WrappedID3D11ClassLinkage);
-#if defined(INCLUDE_D3D_11_1)
 WRAPPED_POOL_INST(WrappedID3D11RasterizerState1);
 WRAPPED_POOL_INST(WrappedID3D11BlendState1);
-#endif
 
 map<ResourceId,WrappedID3D11Texture1D::TextureEntry> WrappedTexture<ID3D11Texture1D, D3D11_TEXTURE1D_DESC>::m_TextureList;
 map<ResourceId,WrappedID3D11Texture2D::TextureEntry> WrappedTexture<ID3D11Texture2D, D3D11_TEXTURE2D_DESC>::m_TextureList;
@@ -277,7 +275,6 @@ UINT GetFormatBPP(DXGI_FORMAT f)
 			ret *= 16;
 			break;
 
-#if defined(INCLUDE_D3D_11_1)
 		case DXGI_FORMAT_AYUV:
 		case DXGI_FORMAT_Y410:
 		case DXGI_FORMAT_YUY2:
@@ -293,13 +290,15 @@ UINT GetFormatBPP(DXGI_FORMAT f)
 		case DXGI_FORMAT_IA44:
 		case DXGI_FORMAT_P8:
 		case DXGI_FORMAT_A8P8:
+		case DXGI_FORMAT_P208:
+		case DXGI_FORMAT_V208:
+		case DXGI_FORMAT_V408:
 			RDCERR("Video formats not supported");
 			break;
 
 		case DXGI_FORMAT_B4G4R4A4_UNORM:
 			ret *= 2; // 4 channels, half a byte each
 			break;
-#endif
 
 		default:
 			RDCFATAL("Unrecognised DXGI Format: %d", f);
@@ -438,7 +437,6 @@ UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip)
 				  RDCMAX(Depth>>mip,1);
 			ret *= 1;
 			break;
-#if defined(INCLUDE_D3D_11_1)
 		case DXGI_FORMAT_AYUV:
 		case DXGI_FORMAT_Y410:
 		case DXGI_FORMAT_YUY2:
@@ -454,13 +452,15 @@ UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip)
 		case DXGI_FORMAT_IA44:
 		case DXGI_FORMAT_P8:
 		case DXGI_FORMAT_A8P8:
+		case DXGI_FORMAT_P208:
+		case DXGI_FORMAT_V208:
+		case DXGI_FORMAT_V408:
 			RDCERR("Video formats not supported");
 			break;
 
 		case DXGI_FORMAT_B4G4R4A4_UNORM:
 			ret *= 2; // 4 channels, half a byte each
 			break;
-#endif
 		default:
 			RDCFATAL("Unrecognised DXGI Format: %d", Format);
 			break;
@@ -1325,7 +1325,6 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f)
 		case DXGI_FORMAT_BC7_UNORM_SRGB:
 			return DXGI_FORMAT_BC7_TYPELESS;
 
-#if defined(INCLUDE_D3D_11_1)
 		case DXGI_FORMAT_R1_UNORM:
 		case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
 		case DXGI_FORMAT_B5G6R5_UNORM:
@@ -1346,10 +1345,12 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f)
 		case DXGI_FORMAT_IA44:
 		case DXGI_FORMAT_P8:
 		case DXGI_FORMAT_A8P8:
+		case DXGI_FORMAT_P208:
+		case DXGI_FORMAT_V208:
+		case DXGI_FORMAT_V408:
 		case DXGI_FORMAT_B4G4R4A4_UNORM:
 			RDCERR("No Typeless DXGI Format for %d", f);
 			return DXGI_FORMAT_UNKNOWN;
-#endif
 
 		default:
 			RDCFATAL("Unrecognised DXGI Format: %d", f);
@@ -1432,12 +1433,10 @@ ResourceId GetIDForResource(ID3D11DeviceChild *ptr)
 		return ((WrappedID3D11DepthStencilState *)ptr)->GetResourceID();
 	if(WrappedID3D11SamplerState::IsAlloc(ptr))
 		return ((WrappedID3D11SamplerState *)ptr)->GetResourceID();
-#if defined(INCLUDE_D3D_11_1)
 	if(WrappedID3D11RasterizerState1::IsAlloc(ptr))
 		return ((WrappedID3D11RasterizerState1 *)ptr)->GetResourceID();
 	if(WrappedID3D11BlendState1::IsAlloc(ptr))
 		return ((WrappedID3D11BlendState1 *)ptr)->GetResourceID();
-#endif
 	
 	if(WrappedID3D11RenderTargetView::IsAlloc(ptr))
 		return ((WrappedID3D11RenderTargetView *)ptr)->GetResourceID();
@@ -1501,12 +1500,10 @@ ResourceType IdentifyTypeByPtr(IUnknown *ptr)
 		return Resource_DepthStencilState;
 	if(WrappedID3D11SamplerState::IsAlloc(ptr))
 		return Resource_SamplerState;
-#if defined(INCLUDE_D3D_11_1)
 	if(WrappedID3D11RasterizerState1::IsAlloc(ptr))
 		return Resource_RasterizerState1;
 	if(WrappedID3D11BlendState1::IsAlloc(ptr))
 		return Resource_BlendState1;
-#endif
 	
 	if(WrappedID3D11RenderTargetView::IsAlloc(ptr))
 		return Resource_RenderTargetView;

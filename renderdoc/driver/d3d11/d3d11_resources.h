@@ -109,14 +109,7 @@ class TrackedResource
 };
 
 template<typename NestedType>
-class WrappedDXGIInterface : public RefCounter, public IDXGIKeyedMutex
-#if defined(INCLUDE_D3D_11_1)
-	, public IDXGISurface2
-	, public IDXGIResource1
-#else
-	, public IDXGISurface1
-	, public IDXGIResource
-#endif
+class WrappedDXGIInterface : public RefCounter, public IDXGIKeyedMutex, public IDXGISurface2, public IDXGIResource1
 {
 public:
 	WrappedID3D11Device* m_pDevice;
@@ -192,7 +185,6 @@ public:
 			AddRef();
 			return S_OK;
 		}
-#if defined(INCLUDE_D3D_11_1)
 		if(riid == __uuidof(IDXGIResource1))
 		{
 			*ppvObject = (IDXGIResource1 *)this;
@@ -205,7 +197,6 @@ public:
 			AddRef();
 			return S_OK;
 		}
-#endif
 
 		return m_pWrapped->QueryInterface(riid, ppvObject);
 	}
@@ -421,7 +412,6 @@ public:
 		return hr;
 	}
 
-#if defined(INCLUDE_D3D_11_1)
 	//////////////////////////////
 	// Implement IDXGIResource1
 	virtual HRESULT STDMETHODCALLTYPE CreateSubresourceSurface(UINT index, IDXGISurface2 **ppSurface)
@@ -458,7 +448,6 @@ public:
 		if(pSubresourceIndex) pSubresourceIndex = 0;
 		return QueryInterface(riid, ppParentResource);
 	}
-#endif
 };
 
 template<typename NestedType>
@@ -545,10 +534,8 @@ public:
 			|| riid == __uuidof(IDXGIKeyedMutex)
 			|| riid == __uuidof(IDXGISurface)
 			|| riid == __uuidof(IDXGISurface1)
-#if defined(INCLUDE_D3D_11_1)
 			|| riid == __uuidof(IDXGIResource1)
 			|| riid == __uuidof(IDXGISurface2)
-#endif
 			)
 		{
 			// ensure the real object has this interface
@@ -574,10 +561,8 @@ public:
 			else if(riid == __uuidof(IDXGIKeyedMutex))      *ppvObject = (IDXGIKeyedMutex *)dxgiWrapper;
 			else if(riid == __uuidof(IDXGISurface))         *ppvObject = (IDXGISurface *)dxgiWrapper;
 			else if(riid == __uuidof(IDXGISurface1))        *ppvObject = (IDXGISurface1 *)dxgiWrapper;
-#if defined(INCLUDE_D3D_11_1)
 			else if(riid == __uuidof(IDXGIResource1))       *ppvObject = (IDXGIResource1 *)dxgiWrapper;
 			else if(riid == __uuidof(IDXGISurface2))        *ppvObject = (IDXGISurface2 *)dxgiWrapper;
-#endif
 
 			return S_OK;
 		}
@@ -1422,7 +1407,6 @@ public:
 	}
 };
 
-#if defined(INCLUDE_D3D_11_1)
 class WrappedID3D11RasterizerState1 : public WrappedDeviceChild<ID3D11RasterizerState1>
 {
 public:
@@ -1474,4 +1458,3 @@ public:
 		m_pReal->GetDesc1(pDesc);
 	}
 };
-#endif

@@ -741,35 +741,12 @@ D3D11RenderState::D3D11RenderState(WrappedID3D11DeviceContext *context)
 	context->PSGetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, PS.Samplers);
 	context->PSGetShader((ID3D11PixelShader **)&PS.Shader, PS.Instances, &PS.NumInstances);
 
-#if defined(INCLUDE_D3D_11_1)
 	context->VSGetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, VS.ConstantBuffers, VS.CBOffsets, VS.CBCounts);
 	context->DSGetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, DS.ConstantBuffers, DS.CBOffsets, DS.CBCounts);
 	context->HSGetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, HS.ConstantBuffers, HS.CBOffsets, HS.CBCounts);
 	context->GSGetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, GS.ConstantBuffers, GS.CBOffsets, GS.CBCounts);
 	context->CSGetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, CS.ConstantBuffers, CS.CBOffsets, CS.CBCounts);
 	context->PSGetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, PS.ConstantBuffers, PS.CBOffsets, PS.CBCounts);
-#else
-	context->VSGetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, VS.ConstantBuffers);
-	context->DSGetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, DS.ConstantBuffers);
-	context->HSGetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, HS.ConstantBuffers);
-	context->GSGetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, GS.ConstantBuffers);
-	context->CSGetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, CS.ConstantBuffers);
-	context->PSGetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, PS.ConstantBuffers);
-
-	RDCEraseEl(VS.CBOffsets);
-	RDCEraseEl(DS.CBOffsets);
-	RDCEraseEl(HS.CBOffsets);
-	RDCEraseEl(GS.CBOffsets);
-	RDCEraseEl(CS.CBOffsets);
-	RDCEraseEl(PS.CBOffsets);
-	
-	RDCEraseEl(VS.CBCounts);
-	RDCEraseEl(DS.CBCounts);
-	RDCEraseEl(HS.CBCounts);
-	RDCEraseEl(GS.CBCounts);
-	RDCEraseEl(CS.CBCounts);
-	RDCEraseEl(PS.CBCounts);
-#endif
 
 	// OM
 	context->OMGetBlendState(&OM.BlendState, OM.BlendFactor, &OM.SampleMask);
@@ -858,21 +835,12 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
 	context->PSSetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, PS.Samplers);
 	context->PSSetShader((ID3D11PixelShader *)PS.Shader, PS.Instances, PS.NumInstances);
 	
-#if defined(INCLUDE_D3D_11_1)
 	context->VSSetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, VS.ConstantBuffers, VS.CBOffsets, VS.CBCounts);
 	context->DSSetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, DS.ConstantBuffers, DS.CBOffsets, DS.CBCounts);
 	context->HSSetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, HS.ConstantBuffers, HS.CBOffsets, HS.CBCounts);
 	context->GSSetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, GS.ConstantBuffers, GS.CBOffsets, GS.CBCounts);
 	context->CSSetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, CS.ConstantBuffers, CS.CBOffsets, CS.CBCounts);
 	context->PSSetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, PS.ConstantBuffers, PS.CBOffsets, PS.CBCounts);
-#else
-	context->VSSetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, VS.ConstantBuffers);
-	context->DSSetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, DS.ConstantBuffers);
-	context->HSSetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, HS.ConstantBuffers);
-	context->GSSetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, GS.ConstantBuffers);
-	context->CSSetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, CS.ConstantBuffers);
-	context->PSSetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, PS.ConstantBuffers);
-#endif
 
 	// OM
 	context->OMSetBlendState(OM.BlendState, OM.BlendFactor, OM.SampleMask);

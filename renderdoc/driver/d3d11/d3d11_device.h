@@ -174,13 +174,7 @@ struct DummyID3D11InfoQueue : public ID3D11InfoQueue
 class WrappedID3D11ClassLinkage;
 enum CaptureFailReason;
 
-#if defined(INCLUDE_D3D_11_1)
-#define D3DDEVICEPARENT ID3D11Device2
-#else
-#define D3DDEVICEPARENT ID3D11Device
-#endif
-
-class WrappedID3D11Device : public IFrameCapturer, public D3DDEVICEPARENT
+class WrappedID3D11Device : public IFrameCapturer, public ID3D11Device2
 {
 private:
 	// since enumeration creates a lot of devices, save
@@ -209,10 +203,8 @@ private:
 	D3D11InitParams m_InitParams;
 
 	ID3D11Device* m_pDevice;
-#if defined(INCLUDE_D3D_11_1)
 	ID3D11Device1* m_pDevice1;
 	ID3D11Device2* m_pDevice2;
-#endif
 	ID3D11InfoQueue *m_pInfoQueue;
 	WrappedID3D11DeviceContext* m_pImmediateContext;
 
@@ -571,7 +563,6 @@ public:
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual UINT STDMETHODCALLTYPE, GetExceptionMode( void));
 
-#if defined(INCLUDE_D3D_11_1)
 	//////////////////////////////
 	// implement ID3D11Device1
 	
@@ -633,5 +624,4 @@ public:
 			UINT SampleCount,
 			UINT Flags,
 			UINT *pNumQualityLevels);
-#endif
 };

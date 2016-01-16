@@ -28,18 +28,8 @@
 
 #define INITGUID
 
-// if you don't have the windows 8.1 SDK, remove this define to exclude the 11.1 functionality
-#define INCLUDE_D3D_11_1
-
-#include "official/dxgi.h"
-#include "official/d3d11.h"
-
-#if defined(INCLUDE_D3D_11_1)
-#include "official/d3d11_1.h"
-#include "official/d3d11_2.h"
-#else
-#define D3D11_1_UAV_SLOT_COUNT 64
-#endif
+#include "official/dxgi1_3.h"
+#include "official/d3d11_3.h"
 
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
@@ -154,11 +144,8 @@ template<> void Serialiser::Serialise(const char *name, D3D11_COUNTER_DESC &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_INPUT_ELEMENT_DESC &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_SO_DECLARATION_ENTRY &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_SUBRESOURCE_DATA &el);
-
-#if defined(INCLUDE_D3D_11_1)
 template<> void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC1 &el);
-#endif
 
 #pragma region Chunks
 

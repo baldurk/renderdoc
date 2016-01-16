@@ -146,14 +146,12 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 			}
 			else
 			{
-#if defined(INCLUDE_D3D_11_1)
 				if(m_pRealContext1)
 				{
 					m_pRealContext1->UpdateSubresource1(m_pDevice->GetResourceManager()->UnwrapResource(DestResource), DestSubresource, pBox,
 															SourceData, SourceRowPitch, SourceDepthPitch, flags);
 				}
 				else
-#endif
 				{
 					RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
 					m_pDevice->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
@@ -234,14 +232,12 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 			}
 			else
 			{
-#if defined(INCLUDE_D3D_11_1)
 				if(m_pRealContext1)
 				{
 					m_pRealContext1->UpdateSubresource1(m_pDevice->GetResourceManager()->UnwrapResource(DestResource), DestSubresource, NULL,
 														bufData, SourceRowPitch, SourceDepthPitch, flags);
 				}
 				else
-#endif
 				{
 					RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
 				}
@@ -258,7 +254,6 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource, UINT DstSubresource, const D3D11_BOX *pDstBox,
 													const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch, UINT CopyFlags)
 {
-#if defined(INCLUDE_D3D_11_1)
 	if(m_pRealContext1 == NULL) return;
 
 	DrainAnnotationQueue();
@@ -284,12 +279,8 @@ void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource
 
 	m_pRealContext1->UpdateSubresource1(m_pDevice->GetResourceManager()->UnwrapResource(pDstResource), DstSubresource, pDstBox,
 											pSrcData, SrcRowPitch, SrcDepthPitch, CopyFlags);
-#else
-	return;
-#endif
 }
 
-#if defined(INCLUDE_D3D_11_1)
 bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(ID3D11Resource *pDstResource, UINT DstSubresource,
 																	UINT DstX, UINT DstY, UINT DstZ,
 																	ID3D11Resource *pSrcResource, UINT SrcSubresource, const D3D11_BOX *pSrcBox, UINT CopyFlags)
@@ -1381,4 +1372,3 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
 	if(m_pRealContext1 == NULL) return;
 	m_pRealContext1->DiscardView1(pResourceView, pRects, NumRects);
 }
-#endif

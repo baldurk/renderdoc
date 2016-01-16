@@ -81,9 +81,7 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(
 		Descriptor.MiscFlags &= ~(D3D11_RESOURCE_MISC_SHARED
 															|D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX
 															|D3D11_RESOURCE_MISC_GDI_COMPATIBLE
-#if defined(INCLUDE_D3D_11_1)
 															|D3D11_RESOURCE_MISC_SHARED_NTHANDLE
-#endif
 															);
 
 		D3D11_SUBRESOURCE_DATA data;
@@ -345,9 +343,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(
 		Descriptor.MiscFlags &= ~(D3D11_RESOURCE_MISC_SHARED
 															|D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX
 															|D3D11_RESOURCE_MISC_GDI_COMPATIBLE
-#if defined(INCLUDE_D3D_11_1)
 															|D3D11_RESOURCE_MISC_SHARED_NTHANDLE
-#endif
 															);
 
 		if(HasInitialData)
@@ -446,9 +442,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(
 		Descriptor.MiscFlags &= ~(D3D11_RESOURCE_MISC_SHARED
 															|D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX
 															|D3D11_RESOURCE_MISC_GDI_COMPATIBLE
-#if defined(INCLUDE_D3D_11_1)
 															|D3D11_RESOURCE_MISC_SHARED_NTHANDLE
-#endif
 															);
 
 		if(HasInitialData)
@@ -547,9 +541,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(
 		Descriptor.MiscFlags &= ~(D3D11_RESOURCE_MISC_SHARED
 															|D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX
 															|D3D11_RESOURCE_MISC_GDI_COMPATIBLE
-#if defined(INCLUDE_D3D_11_1)
 															|D3D11_RESOURCE_MISC_SHARED_NTHANDLE
-#endif
 															);
 
 		if(HasInitialData)
@@ -2536,9 +2528,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(
 			Descriptor.MiscFlags &= ~(D3D11_RESOURCE_MISC_SHARED
 																|D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX
 																|D3D11_RESOURCE_MISC_GDI_COMPATIBLE
-#if defined(INCLUDE_D3D_11_1)
 																|D3D11_RESOURCE_MISC_SHARED_NTHANDLE
-#endif
 															 );
 
 			D3D11_SUBRESOURCE_DATA data;
@@ -2615,9 +2605,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(
 			Descriptor.MiscFlags &= ~(D3D11_RESOURCE_MISC_SHARED
 																|D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX
 																|D3D11_RESOURCE_MISC_GDI_COMPATIBLE
-#if defined(INCLUDE_D3D_11_1)
 																|D3D11_RESOURCE_MISC_SHARED_NTHANDLE
-#endif
 															 );
 
 			hr = m_pDevice->CreateTexture1D(&Descriptor, NULL, &ret);
@@ -2662,9 +2650,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(
 			Descriptor.MiscFlags &= ~(D3D11_RESOURCE_MISC_SHARED
 																|D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX
 																|D3D11_RESOURCE_MISC_GDI_COMPATIBLE
-#if defined(INCLUDE_D3D_11_1)
 																|D3D11_RESOURCE_MISC_SHARED_NTHANDLE
-#endif
 															 );
 
 			hr = m_pDevice->CreateTexture2D(&Descriptor, NULL, &ret);
@@ -2709,9 +2695,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(
 			Descriptor.MiscFlags &= ~(D3D11_RESOURCE_MISC_SHARED
 																|D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX
 																|D3D11_RESOURCE_MISC_GDI_COMPATIBLE
-#if defined(INCLUDE_D3D_11_1)
 																|D3D11_RESOURCE_MISC_SHARED_NTHANDLE
-#endif
 															 );
 
 			hr = m_pDevice->CreateTexture3D(&Descriptor, NULL, &ret);

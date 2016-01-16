@@ -275,24 +275,20 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
 			case eSpecial_R9G9B9E5:
 				ret = DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
 				break;
-#if defined(INCLUDE_D3D_11_1)
 			case eSpecial_R4G4B4A4:
 				RDCASSERT(fmt.bgraOrder);
 				ret = DXGI_FORMAT_B4G4R4A4_UNORM;
 				break;
-#endif
 			case eSpecial_D24S8:
 				ret = DXGI_FORMAT_R24G8_TYPELESS;
 				break;
 			case eSpecial_D32S8:
 				ret = DXGI_FORMAT_R32G8X24_TYPELESS;
 				break;
-#if defined(INCLUDE_D3D_11_1)
 			case eSpecial_YUV:
 				RDCERR("Video format not unambiguously encoded");
 				ret = DXGI_FORMAT_AYUV;
 				break;
-#endif
 			case eSpecial_S8:
 				RDCERR("D3D11 has no stencil-only format");
 				break;
@@ -820,7 +816,6 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 			ret.specialFormat = eSpecial_R9G9B9E5;
 			break;
 
-#if defined(INCLUDE_D3D_11_1)
 		case DXGI_FORMAT_AYUV:
 		case DXGI_FORMAT_Y410:
 		case DXGI_FORMAT_Y416:
@@ -836,6 +831,9 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 		case DXGI_FORMAT_IA44:
 		case DXGI_FORMAT_P8:
 		case DXGI_FORMAT_A8P8:
+		case DXGI_FORMAT_P208:
+		case DXGI_FORMAT_V208:
+		case DXGI_FORMAT_V408:
 			ret.specialFormat = eSpecial_YUV;
 			break;
 
@@ -843,7 +841,6 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 			ret.specialFormat = eSpecial_R4G4B4A4;
 			ret.bgraOrder = true;
 			break;
-#endif
 
 		default:
 			break;
@@ -1579,7 +1576,6 @@ template<> void Serialiser::Serialise(const char *name, D3D11_SUBRESOURCE_DATA &
 	Serialise("SysMemSlicePitch", el.SysMemSlicePitch);
 }
 
-#if defined(INCLUDE_D3D_11_1)
 template<>
 void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el)
 {
@@ -1630,7 +1626,6 @@ void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC1 &el)
 	Serialise("AntialiasedLineEnable", el.AntialiasedLineEnable);
 	Serialise("ForcedSampleCount", el.ForcedSampleCount);
 }
-#endif
 
 /////////////////////////////////////////////////////////////
 // Trivial structures
@@ -2012,9 +2007,9 @@ string ToStrHelper<false, D3D_FEATURE_LEVEL>::Get(const D3D_FEATURE_LEVEL &el)
 		TOSTR_CASE_STRINGIZE(D3D_FEATURE_LEVEL_10_0)
 		TOSTR_CASE_STRINGIZE(D3D_FEATURE_LEVEL_10_1)
 		TOSTR_CASE_STRINGIZE(D3D_FEATURE_LEVEL_11_0)
-#if defined(INCLUDE_D3D_11_1)
 		TOSTR_CASE_STRINGIZE(D3D_FEATURE_LEVEL_11_1)
-#endif
+		TOSTR_CASE_STRINGIZE(D3D_FEATURE_LEVEL_12_0)
+		TOSTR_CASE_STRINGIZE(D3D_FEATURE_LEVEL_12_1)
 		default: break;
 	}
 	
@@ -2166,7 +2161,6 @@ string ToStrHelper<false, D3D11_INPUT_CLASSIFICATION>::Get(const D3D11_INPUT_CLA
 	return tostrBuf;
 }
 
-#if defined(INCLUDE_D3D_11_1)
 string ToStrHelper<false, D3D11_LOGIC_OP>::Get(const D3D11_LOGIC_OP &el)
 {
 	switch(el)
@@ -2195,7 +2189,6 @@ string ToStrHelper<false, D3D11_LOGIC_OP>::Get(const D3D11_LOGIC_OP &el)
 
 	return tostrBuf;
 }
-#endif
 
 string ToStrHelper<false, DXGI_FORMAT>::Get(const DXGI_FORMAT &el)
 {
@@ -2300,8 +2293,6 @@ string ToStrHelper<false, DXGI_FORMAT>::Get(const DXGI_FORMAT &el)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_BC7_TYPELESS)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_BC7_UNORM)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_BC7_UNORM_SRGB)
-		
-#if defined(INCLUDE_D3D_11_1)
 		// D3D11.1 formats
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_AYUV)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_Y410)
@@ -2319,7 +2310,10 @@ string ToStrHelper<false, DXGI_FORMAT>::Get(const DXGI_FORMAT &el)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_P8)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_A8P8)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_B4G4R4A4_UNORM)
-#endif
+		// D3D11.2 formats
+		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_P208)
+		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_V208)
+		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_V408)
 		default: break;
 	}
 	

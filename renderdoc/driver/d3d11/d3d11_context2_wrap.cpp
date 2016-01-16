@@ -25,8 +25,6 @@
 
 #include "d3d11_context.h"
 
-#if defined(INCLUDE_D3D_11_1)
-
 HRESULT WrappedID3D11DeviceContext::UpdateTileMappings( 
 		ID3D11Resource *pTiledResource,
 		UINT NumTiledResourceRegions,
@@ -133,5 +131,3 @@ void WrappedID3D11DeviceContext::EndEvent()
 {
 	PopEvent();
 }
-
-#endif
