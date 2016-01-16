@@ -318,13 +318,13 @@ VkResult WrappedVulkan::vkMapMemory(
 			MemMapState &state = *memrecord->memMapState;
 
 			// ensure size is valid
-			RDCASSERT(size == 0 || size <= memrecord->Length);
+			RDCASSERT(size == VK_WHOLE_SIZE || (size > 0 && size <= memrecord->Length));
 
 			state.mappedPtr = (byte *)realData;
 			state.refData = NULL;
 
 			state.mapOffset = offset;
-			state.mapSize = size == 0 ? memrecord->Length : size;
+			state.mapSize = size == VK_WHOLE_SIZE ? memrecord->Length : size;
 			state.mapFlushed = false;
 
 			*ppData = realData;
