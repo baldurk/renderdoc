@@ -319,7 +319,8 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 		VkPipeline pipe = VK_NULL_HANDLE;
 
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-		pipelineCache = GetResourceManager()->GetLiveHandle<VkPipelineCache>(cacheId);
+		// don't use pipeline caches on replay
+		pipelineCache = VK_NULL_HANDLE; //GetResourceManager()->GetLiveHandle<VkPipelineCache>(cacheId);
 
 		VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), 1, &info, NULL, &pipe);
 
