@@ -1916,6 +1916,19 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 	VulkanCreationInfo::Pipeline &pipeInfo = m_pDriver->m_CreationInfo.m_Pipeline[pipeline];
 
 	static VkPipelineShaderStageCreateInfo stages[6];
+	static VkSpecializationInfo specInfo[6];
+	static vector<VkSpecializationMapEntry> specMapEntries;
+
+	size_t specEntries = 0;
+	
+	for(uint32_t i=0; i < 6; i++)
+		if(pipeInfo.shaders[i].module != ResourceId())
+			if(!pipeInfo.shaders[i].specialization.empty())
+				specEntries += pipeInfo.shaders[i].specialization.size();
+
+	specMapEntries.resize(specEntries);
+
+	VkSpecializationMapEntry *entry = &specMapEntries[0];
 
 	uint32_t stageCount = 0;
 
@@ -1929,6 +1942,38 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 			stages[stageCount].pName = pipeInfo.shaders[i].entryPoint.c_str();
 			stages[stageCount].pNext = NULL;
 			stages[stageCount].pSpecializationInfo = NULL;
+
+			if(!pipeInfo.shaders[i].specialization.empty())
+			{
+				stages[stageCount].pSpecializationInfo = &specInfo[i];
+				specInfo[i].pMapEntries = entry;
+				specInfo[i].mapEntryCount = (uint32_t)pipeInfo.shaders[i].specialization.size();
+
+				byte *minDataPtr = NULL;
+				byte *maxDataPtr = NULL;
+
+				for(size_t s=0; s < pipeInfo.shaders[i].specialization.size(); s++)
+				{
+					entry[s].constantID = pipeInfo.shaders[i].specialization[s].specID;
+					entry[s].size = pipeInfo.shaders[i].specialization[s].size;
+
+					if(minDataPtr == NULL)
+						minDataPtr = pipeInfo.shaders[i].specialization[s].data;
+					else
+						minDataPtr = RDCMIN(minDataPtr, pipeInfo.shaders[i].specialization[s].data);
+
+					maxDataPtr = RDCMAX(minDataPtr, pipeInfo.shaders[i].specialization[s].data+entry[s].size);
+				}
+
+				for(size_t s=0; s < pipeInfo.shaders[i].specialization.size(); s++)
+					entry[s].offset = (uint32_t)(pipeInfo.shaders[i].specialization[s].data - minDataPtr);
+
+				specInfo[i].dataSize = (maxDataPtr - minDataPtr);
+				specInfo[i].pData = (const void *)minDataPtr;
+
+				entry += specInfo[i].mapEntryCount;
+			}
+
 			stageCount++;
 		}
 	}
