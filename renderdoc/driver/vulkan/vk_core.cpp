@@ -2119,8 +2119,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
 		struct ResUsageType
 		{
 			ResUsageType(rdctype::array<BindpointMap> &a, ResourceUsage u)
-				: arr(a), usage(u) {}
-			rdctype::array<BindpointMap> &arr;
+				: bindmap(a), usage(u) {}
+			rdctype::array<BindpointMap> &bindmap;
 			ResourceUsage usage;
 		};
 
@@ -2132,12 +2132,15 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
 
 		for(size_t t=0; t < ARRAY_COUNT(types); t++)
 		{
-			for(int32_t i=0; i < types[t].arr.count; i++)
+			for(int32_t i=0; i < types[t].bindmap.count; i++)
 			{
-				if(!types[t].arr[i].used) continue;
+				if(!types[t].bindmap[i].used) continue;
 
-				int32_t bindset = types[t].arr[i].bindset;
-				int32_t bind = types[t].arr[i].bind;
+				// ignore push constants
+				if(t == 2 && !sh.refl->ConstantBlocks[i].bufferBacked) continue;
+
+				int32_t bindset = types[t].bindmap[i].bindset;
+				int32_t bind = types[t].bindmap[i].bind;
 
 				RDCASSERT(bindset < (int32_t)descSets.size());
 				
