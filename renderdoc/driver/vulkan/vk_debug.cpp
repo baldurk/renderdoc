@@ -3737,8 +3737,8 @@ inline uint32_t MakeSPIRVOp(spv::Op op, uint32_t WordCount)
 	return (uint32_t(op) & spv::OpCodeMask) | (WordCount << spv::WordCountShift);
 }
 
-void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
-	uint32_t descSet, uint32_t minIndex, uint32_t numVerts,
+static void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
+	uint32_t descSet, uint32_t vertexIndexOffset, uint32_t instanceIndexOffset, uint32_t numVerts,
 	vector<uint32_t> &modSpirv, uint32_t &bufStride)
 {
 	uint32_t *spirv = &modSpirv[0];
@@ -3805,10 +3805,10 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
 		uint16_t WordCount = spirv[it]>>spv::WordCountShift;
 		spv::Op opcode = spv::Op(spirv[it]&spv::OpCodeMask);
 
-		if(opcode == spv::OpDecorate && spirv[it+2] == spv::DecorationBuiltIn && spirv[it+3] == spv::BuiltInVertexId)
+		if(opcode == spv::OpDecorate && spirv[it+2] == spv::DecorationBuiltIn && spirv[it+3] == spv::BuiltInVertexIndex)
 			vertidxID = spirv[it+1];
 
-		if(opcode == spv::OpDecorate && spirv[it+2] == spv::DecorationBuiltIn && spirv[it+3] == spv::BuiltInInstanceId)
+		if(opcode == spv::OpDecorate && spirv[it+2] == spv::DecorationBuiltIn && spirv[it+3] == spv::BuiltInInstanceIndex)
 			instidxID = spirv[it+1];
 
 		if(opcode == spv::OpTypeInt && spirv[it+2] == 32 && spirv[it+3] == 1)
@@ -3980,7 +3980,7 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
 			MakeSPIRVOp(spv::OpDecorate, 4),
 			vertidxID,
 			spv::DecorationBuiltIn,
-			spv::BuiltInVertexId,
+			spv::BuiltInVertexIndex,
 		};
 
 		// insert at the end of the decorations before the types
@@ -4017,7 +4017,7 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
 			MakeSPIRVOp(spv::OpDecorate, 4),
 			instidxID,
 			spv::DecorationBuiltIn,
-			spv::BuiltInInstanceId,
+			spv::BuiltInInstanceIndex,
 		};
 
 		// insert at the end of the decorations before the types
@@ -4106,7 +4106,8 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
 
 	uint32_t outBufferVarID = 0;
 	uint32_t numVertsConstID = 0;
-	uint32_t minIndexConstID = 0;
+	uint32_t vertexIndexOffsetConstID = 0;
+	uint32_t instanceIndexOffsetConstID = 0;
 
 	// now add the structure type etc for our output buffer
 	{
@@ -4158,21 +4159,37 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
 		// update offsets to account for inserted op
 		typeVarOffset += ARRAY_COUNT(instanceStrideConstOp);
 		
-		// add a constant for the number of verts, the 'instance stride' of the array
-		minIndexConstID = idBound++;
+		// add a constant for the value that VertexIndex starts at, so we can get a 0-based vertex index
+		vertexIndexOffsetConstID = idBound++;
 
-		uint32_t minIndexConstOp[] = {
+		uint32_t vertexIndexOffsetConstOp[] = {
 			MakeSPIRVOp(spv::OpConstant, 4),
 			sint32ID,
-			minIndexConstID,
-			minIndex,
+			vertexIndexOffsetConstID,
+			vertexIndexOffset,
 		};
 
 		// insert at the end of the types/variables section
-		modSpirv.insert(modSpirv.begin()+typeVarOffset, minIndexConstOp, minIndexConstOp+ARRAY_COUNT(minIndexConstOp));
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, vertexIndexOffsetConstOp, vertexIndexOffsetConstOp+ARRAY_COUNT(vertexIndexOffsetConstOp));
 
 		// update offsets to account for inserted op
-		typeVarOffset += ARRAY_COUNT(minIndexConstOp);
+		typeVarOffset += ARRAY_COUNT(vertexIndexOffsetConstOp);
+		
+		// add a constant for the value that InstanceIndex starts at, so we can get a 0-based instance index
+		instanceIndexOffsetConstID = idBound++;
+
+		uint32_t instanceIndexOffsetConstOp[] = {
+			MakeSPIRVOp(spv::OpConstant, 4),
+			sint32ID,
+			instanceIndexOffsetConstID,
+			instanceIndexOffset,
+		};
+
+		// insert at the end of the types/variables section
+		modSpirv.insert(modSpirv.begin()+typeVarOffset, instanceIndexOffsetConstOp, instanceIndexOffsetConstOp+ARRAY_COUNT(instanceIndexOffsetConstOp));
+
+		// update offsets to account for inserted op
+		typeVarOffset += ARRAY_COUNT(instanceIndexOffsetConstOp);
 		
 		uint32_t outputStructID = idBound++;
 
@@ -4325,20 +4342,27 @@ void AddOutputDumping(const ShaderReflection &refl, const char *entryName,
 		dumpCode.push_back(sint32ID);
 		dumpCode.push_back(loadedInstID);
 		dumpCode.push_back(instidxID);
-
+		
+		uint32_t rebasedInstID = idBound++;
+		dumpCode.push_back(MakeSPIRVOp(spv::OpISub, 5));
+		dumpCode.push_back(sint32ID);
+		dumpCode.push_back(rebasedInstID);                  // rebasedInst = 
+		dumpCode.push_back(loadedInstID);                   //    gl_InstanceIndex -
+		dumpCode.push_back(instanceIndexOffsetConstID);     //    instanceIndexOffset
+		
 		uint32_t startVertID = idBound++;
 		dumpCode.push_back(MakeSPIRVOp(spv::OpIMul, 5));
 		dumpCode.push_back(sint32ID);
 		dumpCode.push_back(startVertID);           // startVert = 
-		dumpCode.push_back(loadedInstID);          //    gl_InstanceID *
+		dumpCode.push_back(rebasedInstID);         //    rebasedInst *
 		dumpCode.push_back(numVertsConstID);       //    numVerts
 
 		uint32_t rebasedVertID = idBound++;
 		dumpCode.push_back(MakeSPIRVOp(spv::OpISub, 5));
 		dumpCode.push_back(sint32ID);
-		dumpCode.push_back(rebasedVertID);         // rebasedVert = 
-		dumpCode.push_back(loadedVtxID);           //    gl_VertexID -
-		dumpCode.push_back(minIndexConstID);       //    minIndex
+		dumpCode.push_back(rebasedVertID);                  // rebasedVert = 
+		dumpCode.push_back(loadedVtxID);                    //    gl_VertexIndex -
+		dumpCode.push_back(vertexIndexOffsetConstID);       //    vertexIndexOffset
 		
 		uint32_t arraySlotID = idBound++;
 		dumpCode.push_back(MakeSPIRVOp(spv::OpIAdd, 5));
@@ -4577,6 +4601,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 	uint32_t minIndex = 0, maxIndex = 0;
 
+	uint32_t vertexIndexOffset = 0;
+
 	if((drawcall->flags & eDraw_UseIBuffer) != 0)
 	{
 		// fetch ibuffer
@@ -4643,6 +4669,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		minIndex = indices[0];
 		maxIndex = indices[ indices.size()-1 ];
+
+		vertexIndexOffset = minIndex + drawcall->vertexOffset;
 		
 		// set numVerts
 		numVerts = maxIndex - minIndex + 1;
@@ -4695,11 +4723,16 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		vkr = m_pDriver->vkBindBufferMemory(dev, idxBuf, idxBufMem, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
+	else
+	{
+		// firstVertex
+		vertexIndexOffset = drawcall->vertexOffset;
+	}
 
 	uint32_t bufStride = 0;
 	vector<uint32_t> modSpirv = m.spirv.spirv;
 
-	AddOutputDumping(*refl, p.shaders[0].entryPoint.c_str(), descSet, minIndex, numVerts, modSpirv, bufStride);
+	AddOutputDumping(*refl, p.shaders[0].entryPoint.c_str(), descSet, vertexIndexOffset, drawcall->instanceOffset, numVerts, modSpirv, bufStride);
 	
 	// create vertex shader with modified code
 	VkShaderModuleCreateInfo moduleInfo = {
