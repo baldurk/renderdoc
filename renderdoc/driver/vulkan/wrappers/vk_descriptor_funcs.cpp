@@ -156,7 +156,7 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 	// need to count how many VkSampler arrays to allocate for
 	for(uint32_t i=0; i < pCreateInfo->bindingCount; i++)
 		if(pCreateInfo->pBindings[i].pImmutableSamplers)
-			tempmemSize += pCreateInfo->pBindings[i].descriptorCount;
+			tempmemSize += pCreateInfo->pBindings[i].descriptorCount*sizeof(VkSampler);
 
 	byte *memory = GetTempMemory(tempmemSize);
 
