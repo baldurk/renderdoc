@@ -45,7 +45,14 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
 			bindings[i].immutableSampler = new ResourceId[bindings[i].descriptorCount];
 
 			for(uint32_t s=0; s < bindings[i].descriptorCount; s++)
-				bindings[i].immutableSampler[s] = resourceMan->GetNonDispWrapper(pCreateInfo->pBindings[i].pImmutableSamplers[s])->id;
+			{
+				// during writing, the create info contains the *wrapped* objects.
+				// on replay, we have the wrapper map so we can look it up
+				if(resourceMan->IsWriting())
+					bindings[i].immutableSampler[s] = GetResID(pCreateInfo->pBindings[i].pImmutableSamplers[s]);
+				else
+					bindings[i].immutableSampler[s] = resourceMan->GetNonDispWrapper(pCreateInfo->pBindings[i].pImmutableSamplers[s])->id;
+			}
 		}
 	}
 }

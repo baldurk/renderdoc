@@ -317,6 +317,9 @@ class ResourceManager : public ResourceRecordHandler
 			byte *blob;
 		};
 
+		bool IsWriting() { return m_State >= WRITING; }
+		bool IsReading() { return m_State < WRITING; }
+
 		///////////////////////////////////////////
 		// Capture-side methods
 		
