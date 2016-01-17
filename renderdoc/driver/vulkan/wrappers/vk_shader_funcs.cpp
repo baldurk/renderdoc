@@ -551,8 +551,11 @@ VkResult WrappedVulkan::vkCreateComputePipelines(
 				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pPipelines[i]);
 				record->AddChunk(chunk);
 
-				VkResourceRecord *cacherecord = GetRecord(pipelineCache);
-				record->AddParent(cacherecord);
+				if(pipelineCache != VK_NULL_HANDLE)
+				{
+					VkResourceRecord *cacherecord = GetRecord(pipelineCache);
+					record->AddParent(cacherecord);
+				}
 
 				VkResourceRecord *layoutrecord = GetRecord(pCreateInfos[i].layout);
 				record->AddParent(layoutrecord);
