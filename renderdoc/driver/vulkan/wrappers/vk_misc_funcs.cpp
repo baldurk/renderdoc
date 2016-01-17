@@ -90,7 +90,10 @@ void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj, c
 // needs to be separate so we don't erase from m_ImageLayouts in other destroy functions
 void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj, const VkAllocationCallbacks* pAllocator)
 {
-	m_ImageLayouts.erase(GetResID(obj));
+	{
+		SCOPED_LOCK(m_ImageLayoutsLock);
+		m_ImageLayouts.erase(GetResID(obj));
+	}
 	VkImage unwrappedObj = Unwrap(obj);
 	GetResourceManager()->ReleaseWrappedResource(obj, true);
 	return ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedObj, pAllocator);
