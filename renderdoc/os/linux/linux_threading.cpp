@@ -52,6 +52,11 @@ namespace Atomic
 	{
 		return __sync_add_and_fetch(i, int32_t(1));
 	}
+	
+	int32_t Dec32(volatile int32_t *i)
+	{
+		return __sync_add_and_fetch(i, int32_t(-1));
+	}
 
 	int64_t Inc64(volatile int64_t *i)
 	{

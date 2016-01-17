@@ -166,6 +166,7 @@ namespace Network
 namespace Atomic
 {
 	int32_t Inc32(volatile int32_t *i);
+	int32_t Dec32(volatile int32_t *i);
 	int64_t Inc64(volatile int64_t *i);
 	int64_t Dec64(volatile int64_t *i);
 	int64_t ExchAdd64(volatile int64_t *i, int64_t a);

@@ -54,6 +54,11 @@ namespace Atomic
 	{
 		return (int32_t)InterlockedIncrement((volatile LONG *)i);
 	}
+	
+	int32_t Dec32(volatile int32_t *i)
+	{
+		return (int32_t)InterlockedDecrement((volatile LONG *)i);
+	}
 
 	int64_t Inc64(volatile int64_t *i)
 	{

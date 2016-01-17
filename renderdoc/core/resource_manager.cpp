@@ -63,9 +63,9 @@ void ResourceRecord::AddResourceReferences(ResourceRecordHandler *mgr)
 
 void ResourceRecord::Delete(ResourceRecordHandler *mgr)
 {
-	RefCount--;
-	RDCASSERT(RefCount >= 0);
-	if(RefCount <= 0)
+	int32_t ref = Atomic::Dec32(&RefCount);
+	RDCASSERT(ref >= 0);
+	if(ref <= 0)
 	{
 		for(auto it = Parents.begin(); it != Parents.end(); ++it)
 			(*it)->Delete(mgr);

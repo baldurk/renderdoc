@@ -156,7 +156,7 @@ struct ResourceRecord
 			recordlist.insert(m_Chunks.begin(), m_Chunks.end());
 	}
 
-	void AddRef() { RefCount++; }	
+	void AddRef() { Atomic::Inc32(&RefCount); }	
 	int GetRefCount() const { return RefCount; }
 	void Delete(ResourceRecordHandler *mgr);
 
@@ -269,7 +269,7 @@ struct ResourceRecord
 	bool DataWritten;
 
 protected:
-	int RefCount;
+	volatile int32_t RefCount;
 
 	byte *DataPtr;
 	uint64_t DataOffset;
