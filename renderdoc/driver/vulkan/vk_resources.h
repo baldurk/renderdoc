@@ -806,7 +806,7 @@ struct VkResourceRecord : public ResourceRecord
 
 		VkResourceRecord *bakedCommands;
 
-		static const int MaxImageAttachments = 8;
+		static const int MaxImageAttachments = 9; // 8 Colour and 1 Depth
 
 		// pointer to either the pool this item is allocated from, or the children allocated
 		// from this pool. Protected by the chunk lock 

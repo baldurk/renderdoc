@@ -495,7 +495,7 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 			record->AddChunk(chunk);
 
 			record->imageAttachments = new VkResourceRecord*[VkResourceRecord::MaxImageAttachments];
-			RDCASSERT(pCreateInfo->attachmentCount < VkResourceRecord::MaxImageAttachments);
+			RDCASSERT(pCreateInfo->attachmentCount <= VkResourceRecord::MaxImageAttachments);
 
 			RDCEraseMem(record->imageAttachments, sizeof(ResourceId)*VkResourceRecord::MaxImageAttachments);
 
