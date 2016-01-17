@@ -403,8 +403,14 @@ void WrappedVulkan::SubmitCmds()
 		0, NULL, // signal semaphores
 	};
 
-	VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, VK_NULL_HANDLE);
-	RDCASSERT(vkr == VK_SUCCESS);
+	// we might have work to do (e.g. debug manager creation command buffer) but
+	// no queue, if the device is destroyed immediately. In this case we can just
+	// skip the submit
+	if(m_Queue != VK_NULL_HANDLE)
+	{
+		VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, VK_NULL_HANDLE);
+		RDCASSERT(vkr == VK_SUCCESS);
+	}
 
 	m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(), m_InternalCmds.pendingcmds.begin(), m_InternalCmds.pendingcmds.end());
 	m_InternalCmds.pendingcmds.clear();
@@ -454,8 +460,13 @@ void WrappedVulkan::FlushQ()
 	// If we do so, then check each use for FlushQ to see if it needs a
 	// CPU-GPU sync or whether it is just looking to recycle command buffers
 	// (Particularly the one in vkQueuePresentKHR drawing the overlay)
+	
 
-	ObjDisp(m_Queue)->QueueWaitIdle(Unwrap(m_Queue));
+	// see comment in SubmitQ()
+	if(m_Queue != VK_NULL_HANDLE)
+	{
+		ObjDisp(m_Queue)->QueueWaitIdle(Unwrap(m_Queue));
+	}
 
 	if(!m_InternalCmds.submittedcmds.empty())
 	{
