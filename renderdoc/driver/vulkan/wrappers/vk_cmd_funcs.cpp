@@ -1057,21 +1057,26 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
 	
-	ResourceId *descriptorIDs = new ResourceId[numSets];
+	ResourceId *descriptorIDs = NULL;
 
 	VkDescriptorSet *sets = (VkDescriptorSet *)pDescriptorSets;
 	if(m_State < WRITING)
+	{
+		descriptorIDs = new ResourceId[numSets];
 		sets = new VkDescriptorSet[numSets];
+	}
 
 	for(uint32_t i=0; i < numSets; i++)
 	{
+		ResourceId id;
 		if(m_State >= WRITING)
-			descriptorIDs[i] = GetResID(sets[i]);
+			id = GetResID(sets[i]);
 
-		localSerialiser->Serialise("DescriptorSet", descriptorIDs[i]);
+		localSerialiser->Serialise("DescriptorSet", id);
 
 		if(m_State < WRITING)
 		{
+			descriptorIDs[i] = id;
 			sets[i] = GetResourceManager()->GetLiveHandle<VkDescriptorSet>(descriptorIDs[i]);
 			descriptorIDs[i] = GetResID(sets[i]);
 			sets[i] = Unwrap(sets[i]);
@@ -1179,9 +1184,11 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 	}
 
 	if(m_State < WRITING)
+	{
 		SAFE_DELETE_ARRAY(sets);
+		SAFE_DELETE_ARRAY(descriptorIDs);
+	}
 
-	SAFE_DELETE_ARRAY(descriptorIDs);
 	SAFE_DELETE_ARRAY(offs);
 
 	return true;
