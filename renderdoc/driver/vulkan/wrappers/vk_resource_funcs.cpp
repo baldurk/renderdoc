@@ -555,7 +555,7 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 		}
 	}
 	
-	VkMappedMemoryRange *unwrapped = new VkMappedMemoryRange[memRangeCount];
+	VkMappedMemoryRange *unwrapped = GetTempArray<VkMappedMemoryRange>(memRangeCount);
 	for(uint32_t i=0; i < memRangeCount; i++)
 	{
 		unwrapped[i] = pMemRanges[i];
@@ -563,8 +563,6 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 	}
 
 	VkResult ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped);
-
-	SAFE_DELETE_ARRAY(unwrapped);
 
 	return ret;
 }
@@ -574,9 +572,16 @@ VkResult WrappedVulkan::vkInvalidateMappedMemoryRanges(
 		uint32_t                                    memRangeCount,
 		const VkMappedMemoryRange*                  pMemRanges)
 {
+	VkMappedMemoryRange *unwrapped = GetTempArray<VkMappedMemoryRange>(memRangeCount);
+	for(uint32_t i=0; i < memRangeCount; i++)
+	{
+		unwrapped[i] = pMemRanges[i];
+		unwrapped[i].memory = Unwrap(unwrapped[i].memory);
+	}
+
 	// don't need to serialise this, readback from mapped memory is not captured
 	// and is only relevant for the application.
-	return ObjDisp(device)->InvalidateMappedMemoryRanges(Unwrap(device), memRangeCount, pMemRanges);
+	return ObjDisp(device)->InvalidateMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped);
 }
 
 // Generic API object functions
