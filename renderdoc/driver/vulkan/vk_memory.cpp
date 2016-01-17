@@ -103,8 +103,9 @@ void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProp
 	// pick non-coherent memory and do proper flushing as necessary.
 
 	// we want to add a new heap, hopefully there is room
+#if CREATE_NON_COHERENT_ATTRACTIVE_MEMORY
 	RDCASSERT(memProps->memoryHeapCount < VK_MAX_MEMORY_HEAPS-1);
-
+	
 	uint32_t coherentHeap = memProps->memoryHeapCount;
 	memProps->memoryHeapCount++;
 
@@ -113,6 +114,7 @@ void WrappedVulkan::RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProp
 	// bigger).
 	memProps->memoryHeaps[coherentHeap].flags = 0; // not device local
 	memProps->memoryHeaps[coherentHeap].size = 32*1024*1024;
+#endif
 
 	// for every coherent memory type, add a non-coherent type first, then
 	// mark the coherent type with our crappy heap
