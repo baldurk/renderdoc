@@ -4193,6 +4193,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpName:
 			case spv::OpMemberName:
 			case spv::OpLine:
+			case spv::OpNoLine:
 			case spv::OpDecorate:
 			case spv::OpMemberDecorate:
 			case spv::OpGroupDecorate:
@@ -4256,15 +4257,12 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			}
 			case spv::OpLine:
 			{
-				SPVInstruction *varInst = module.GetByID(spirv[it+1]);
-				RDCASSERT(varInst);
-
-				SPVInstruction *fileInst = module.GetByID(spirv[it+2]);
-				RDCASSERT(fileInst);
-
-				varInst->source.filename = fileInst->str;
-				varInst->source.line = spirv[it+3];
-				varInst->source.col = spirv[it+4];
+				// VKTODOLOW this now applies to all statements until OpNoLine or end of block
+				break;
+			}
+			case spv::OpNoLine:
+			{
+				// see above
 				break;
 			}
 			case spv::OpDecorate:
