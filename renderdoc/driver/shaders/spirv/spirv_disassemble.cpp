@@ -465,7 +465,10 @@ struct SPVTypeData
 
 struct SPVOperation
 {
-	SPVOperation() : type(NULL), access(spv::MemoryAccessMaskNone), funcCall(0), complexity(0), mathop(false), inlineArgs(0) {}
+	SPVOperation() : type(NULL), access(spv::MemoryAccessMaskNone), funcCall(0), complexity(0), mathop(false), inlineArgs(0)
+	{
+		RDCEraseEl(im);
+	}
 
 	SPVTypeData *type;
 
@@ -494,6 +497,18 @@ struct SPVOperation
 	// arguments always reference IDs that already exist (branch/flow
 	// control type statements aren't SPVOperations)
 	vector<SPVInstruction*> arguments;
+
+	struct
+	{
+		SPVInstruction *bias;
+		SPVInstruction *lod;
+		SPVInstruction *dx, *dy;
+		SPVInstruction *constOffset;
+		SPVInstruction *offset;
+		SPVInstruction *gatherOffsets;
+		SPVInstruction *sampleIdx;
+		SPVInstruction *minLod;
+	} im;
 
 	void GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg);
 };
@@ -1096,6 +1111,12 @@ struct SPVInstruction
 			// texture samples almost identical to function call
 			case spv::OpImageSampleImplicitLod:
 			case spv::OpImageSampleExplicitLod:
+			case spv::OpImageSampleDrefImplicitLod:
+			case spv::OpImageSampleDrefExplicitLod:
+			case spv::OpImageSampleProjImplicitLod:
+			case spv::OpImageSampleProjExplicitLod:
+			case spv::OpImageSampleProjDrefImplicitLod:
+			case spv::OpImageSampleProjDrefExplicitLod:
 			// conversions can be treated the same way
 			case spv::OpConvertFToS:
 			case spv::OpConvertFToU:
@@ -1123,7 +1144,28 @@ struct SPVInstruction
 					string arg;
 					op->GetArg(ids, i, arg);
 
+					if(op->im.bias == op->arguments[i])
+						ret += "Bias = ";
+					else if(op->im.constOffset == op->arguments[i])
+						ret += "ConstOffset = ";
+					else if(op->im.dx == op->arguments[i])
+						ret += "Gradients = <";
+					else if(op->im.gatherOffsets == op->arguments[i])
+						ret += "GatherOffsets = ";
+					else if(op->im.lod == op->arguments[i])
+						ret += "LOD = ";
+					else if(op->im.minLod == op->arguments[i])
+						ret += "MinLOD = ";
+					else if(op->im.offset == op->arguments[i])
+						ret += "Offset = ";
+					else if(op->im.sampleIdx == op->arguments[i])
+						ret += "SampleIdx = ";
+
 					ret += arg;
+
+					if(op->im.dy == op->arguments[i])
+						ret += ">"; // closes < above when processing dx
+
 					if(i+1 < op->arguments.size())
 						ret += ", ";
 				}
@@ -3797,19 +3839,27 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			}
 			case spv::OpImageSampleImplicitLod:
 			case spv::OpImageSampleExplicitLod:
+			case spv::OpImageSampleDrefImplicitLod:
+			case spv::OpImageSampleDrefExplicitLod:
+			case spv::OpImageSampleProjImplicitLod:
+			case spv::OpImageSampleProjExplicitLod:
+			case spv::OpImageSampleProjDrefImplicitLod:
+			case spv::OpImageSampleProjDrefExplicitLod:
 			{
-				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
+				uint32_t idx = 1;
+
+				SPVInstruction *typeInst = module.GetByID(spirv[it+idx]); idx++;
 				RDCASSERT(typeInst && typeInst->type);
 				
 				op.op = new SPVOperation();
 				op.op->type = typeInst->type;
 
-				op.id = spirv[it+2];
-				module.ids[spirv[it+2]] = &op;
+				op.id = spirv[it+idx]; idx++;
+				module.ids[op.id] = &op;
 
 				// sampled image
 				{
-					SPVInstruction *argInst = module.GetByID(spirv[it+3]);
+					SPVInstruction *argInst = module.GetByID(spirv[it+idx]); idx++;
 					RDCASSERT(argInst);
 
 					op.op->arguments.push_back(argInst);
@@ -3817,16 +3867,122 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				
 				// co-ords
 				{
-					SPVInstruction *argInst = module.GetByID(spirv[it+4]);
+					SPVInstruction *argInst = module.GetByID(spirv[it+idx]); idx++;
+					RDCASSERT(argInst);
+
+					op.op->arguments.push_back(argInst);
+				}
+
+				// Dref (depth reference)
+				if(op.opcode == spv::OpImageSampleDrefImplicitLod ||
+					op.opcode == spv::OpImageSampleDrefExplicitLod ||
+					op.opcode == spv::OpImageSampleProjDrefImplicitLod ||
+					op.opcode == spv::OpImageSampleProjDrefExplicitLod)
+				{
+					SPVInstruction *argInst = module.GetByID(spirv[it+idx]); idx++;
 					RDCASSERT(argInst);
 
 					op.op->arguments.push_back(argInst);
 				}
 
 				// const argument bitfield
+				uint32_t imMask = 0;
+				if(WordCount > 5)
+				{
+					imMask = spirv[it+idx];
+					idx++;
+				}
+
+				// explicit lod instructions must pass a lod argument
+				if(op.opcode == spv::OpImageSampleExplicitLod ||
+					op.opcode == spv::OpImageSampleDrefExplicitLod ||
+					op.opcode == spv::OpImageSampleProjExplicitLod ||
+					op.opcode == spv::OpImageSampleProjDrefExplicitLod)
+					RDCASSERT(imMask & spv::ImageOperandsLodMask);
 
 				// optional arguments
+
+				if(imMask & spv::ImageOperandsBiasMask)
 				{
+					RDCASSERT(WordCount > idx);
+					RDCASSERT(op.opcode != spv::OpImageSampleExplicitLod &&
+						op.opcode != spv::OpImageSampleDrefExplicitLod &&
+						op.opcode != spv::OpImageSampleProjExplicitLod &&
+						op.opcode != spv::OpImageSampleProjDrefExplicitLod);
+					op.op->im.bias = module.GetByID(spirv[it+idx]); idx++;
+					RDCASSERT(op.op->im.bias);
+					op.op->arguments.push_back(op.op->im.bias);
+				}
+
+				if(imMask & spv::ImageOperandsLodMask)
+				{
+					RDCASSERT(WordCount > idx);
+					RDCASSERT(op.opcode == spv::OpImageSampleExplicitLod ||
+						op.opcode == spv::OpImageSampleDrefExplicitLod ||
+						op.opcode == spv::OpImageSampleProjExplicitLod ||
+						op.opcode == spv::OpImageSampleProjDrefExplicitLod);
+					op.op->im.lod = module.GetByID(spirv[it+idx]); idx++;
+					RDCASSERT(op.op->im.lod);
+					op.op->arguments.push_back(op.op->im.lod);
+				}
+
+				if(imMask & spv::ImageOperandsGradMask)
+				{
+					RDCASSERT(WordCount > idx+1);
+					RDCASSERT(op.opcode == spv::OpImageSampleExplicitLod ||
+						op.opcode == spv::OpImageSampleDrefExplicitLod ||
+						op.opcode == spv::OpImageSampleProjExplicitLod ||
+						op.opcode == spv::OpImageSampleProjDrefExplicitLod);
+					op.op->im.dx = module.GetByID(spirv[it+idx]); idx++;
+					op.op->im.dy = module.GetByID(spirv[it+idx]); idx++;
+					RDCASSERT(op.op->im.dx && op.op->im.dy);
+					op.op->arguments.push_back(op.op->im.dx);
+					op.op->arguments.push_back(op.op->im.dy);
+				}
+
+				if(imMask & spv::ImageOperandsConstOffsetMask)
+				{
+					RDCASSERT(WordCount > idx);
+					op.op->im.constOffset = module.GetByID(spirv[it+idx]); idx++;
+					RDCASSERT(op.op->im.constOffset);
+					op.op->arguments.push_back(op.op->im.constOffset);
+				}
+
+				if(imMask & spv::ImageOperandsOffsetMask)
+				{
+					RDCASSERT(WordCount > idx);
+					op.op->im.offset = module.GetByID(spirv[it+idx]); idx++;
+					RDCASSERT(op.op->im.offset);
+					op.op->arguments.push_back(op.op->im.offset);
+				}
+
+				if(imMask & spv::ImageOperandsConstOffsetsMask)
+				{
+					RDCASSERT(WordCount > idx);
+					RDCASSERT(op.opcode == spv::OpImageGather ||
+						op.opcode == spv::OpImageDrefGather);
+					op.op->im.gatherOffsets = module.GetByID(spirv[it+idx]); idx++;
+					RDCASSERT(op.op->im.gatherOffsets);
+					op.op->arguments.push_back(op.op->im.gatherOffsets);
+				}
+
+				if(imMask & spv::ImageOperandsSampleMask)
+				{
+					RDCASSERT(WordCount > idx);
+					RDCASSERT(op.opcode == spv::OpImageFetch ||
+						op.opcode == spv::OpImageRead ||
+						op.opcode == spv::OpImageWrite);
+					op.op->im.sampleIdx = module.GetByID(spirv[it+idx]); idx++;
+					RDCASSERT(op.op->im.sampleIdx);
+					op.op->arguments.push_back(op.op->im.sampleIdx);
+				}
+
+				if(imMask & spv::ImageOperandsMinLodMask)
+				{
+					RDCASSERT(WordCount > idx);
+					op.op->im.minLod = module.GetByID(spirv[it+idx]); idx++;
+					RDCASSERT(op.op->im.minLod);
+					op.op->arguments.push_back(op.op->im.minLod);
 				}
 				
 				curBlock->instructions.push_back(&op);
