@@ -923,6 +923,7 @@ struct SPVInstruction
 			case spv::OpCompositeExtract:
 			case spv::OpCompositeInsert:
 			case spv::OpAccessChain:
+			case spv::OpInBoundsAccessChain:
 			{
 				RDCASSERT(op);
 				
@@ -949,8 +950,10 @@ struct SPVInstruction
 				if(type->type == SPVTypeData::ePointer)
 					type = type->baseType;
 
-				size_t start = (opcode == spv::OpAccessChain ? 1                    : 0                  );
-				size_t count = (opcode == spv::OpAccessChain ? op->arguments.size() : op->literals.size());
+				bool accessChain = (opcode == spv::OpAccessChain || opcode == spv::OpInBoundsAccessChain);
+
+				size_t start = (accessChain ? 1                    : 0                 );
+				size_t count = (accessChain ? op->arguments.size() : op->literals.size());
 
 				string accessString = "";
 
@@ -958,7 +961,7 @@ struct SPVInstruction
 				{
 					bool constant = false;
 					int32_t idx = -1;
-					if(opcode != spv::OpAccessChain)
+					if(!accessChain)
 					{
 						idx = (int32_t)op->literals[i];
 						constant = true;
@@ -1021,7 +1024,7 @@ struct SPVInstruction
 
 						i++;
 						
-						if(opcode != spv::OpAccessChain)
+						if(!accessChain)
 						{
 							idx = (int32_t)op->literals[i];
 						}
@@ -1823,6 +1826,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 							if(arg->op->complexity >= maxAllowedComplexity ||
 									(arg->op->arguments.size() > 2 &&
 									 arg->opcode != spv::OpAccessChain &&
+									 arg->opcode != spv::OpInBoundsAccessChain &&
 									 arg->opcode != spv::OpSelect &&
 									 arg->opcode != spv::OpCompositeConstruct))
 								continue;
@@ -2927,7 +2931,9 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 							{
 								// we're only interested in OpAccessChain, which must be used to fetch the
 								// child for use. If we find one with the right index, then we're done
-								if(operations[o]->op && operations[o]->opcode == spv::OpAccessChain)
+								if(operations[o]->op &&
+									(operations[o]->opcode == spv::OpAccessChain ||
+									operations[o]->opcode == spv::OpInBoundsAccessChain))
 								{
 									for(size_t a=0; a < operations[o]->op->arguments.size()-1; a++)
 									{
