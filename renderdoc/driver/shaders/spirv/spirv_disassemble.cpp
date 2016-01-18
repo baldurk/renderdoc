@@ -737,7 +737,9 @@ struct SPVInstruction
 	{
 		if(str.empty())
 		{
-			if(constant)
+			if(opcode == spv::OpConstantNull)
+				str = "null";
+			else if(constant)
 				str = constant->GetIDName();
 			else
 				str = DefaultIDName(id);
@@ -750,6 +752,10 @@ struct SPVInstruction
 	{
 		switch(opcode)
 		{
+			case spv::OpUndef:
+			{
+				return "UNDEFINED_VALUE";
+			}
 			case spv::OpConstant:
 			case spv::OpConstantComposite:
 			case spv::OpVariable:
@@ -1524,6 +1530,14 @@ string SPVModule::Disassemble(const string &entryPoint)
 		retDisasm += StringFormat::Fmt(" + %s\n", sourceexts[s]->str.c_str());
 
 	retDisasm += "\n";
+
+	if(!extensions.empty())
+	{
+		retDisasm += "SPIR-V Extensions:";
+		for(size_t e=0; e < extensions.size(); e++)
+			retDisasm += extensions[e];
+		retDisasm += "\n";
+	}
 
 	retDisasm += "Capabilities:";
 	for(size_t c=0; c < capabilities.size(); c++)
@@ -3187,6 +3201,12 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				module.sourceexts.push_back(&op);
 				break;
 			}
+			case spv::OpExtension:
+			{
+				string ext = (const char *)&spirv[it+1];
+				module.extensions.push_back(ext);
+				break;
+			}
 			case spv::OpCapability:
 			{
 				module.capabilities.push_back((spv::Capability)spirv[it+1]);
@@ -3484,6 +3504,20 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				module.ids[spirv[it+2]] = &op;
 				break;
 			}
+			case spv::OpConstantNull:
+			{
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.constant = new SPVConstant();
+				op.constant->type = typeInst->type;
+
+				op.constant->u32 = 0;
+
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+				break;
+			}
 			case spv::OpConstant:
 			{
 				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
@@ -3578,6 +3612,17 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			}
 			//////////////////////////////////////////////////////////////////////
 			// Variables
+			case spv::OpUndef:
+			{
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
+				RDCASSERT(typeInst && typeInst->type);
+
+				// no parameters, will be disassembled as appropriate
+
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+				break;
+			}
 			case spv::OpVariable:
 			{
 				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
@@ -3998,6 +4043,9 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpGroupMemberDecorate:
 			case spv::OpDecorationGroup:
 				// Handled in second pass once all IDs are in place
+				break;
+			case spv::OpNop:
+				// nothing to do, ignore
 				break;
 			default:
 			{

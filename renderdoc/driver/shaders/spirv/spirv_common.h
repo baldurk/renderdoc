@@ -66,6 +66,8 @@ struct SPVModule
 	spv::SourceLanguage sourceLang;
 	uint32_t sourceVer;
 
+	vector<string> extensions;
+
 	vector<spv::Capability> capabilities;
 
 	vector<SPVInstruction*> operations; // all operations (including those that don't generate an ID)
