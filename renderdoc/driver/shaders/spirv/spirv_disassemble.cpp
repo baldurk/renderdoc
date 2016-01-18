@@ -1117,12 +1117,20 @@ struct SPVInstruction
 			case spv::OpImageSampleProjExplicitLod:
 			case spv::OpImageSampleProjDrefImplicitLod:
 			case spv::OpImageSampleProjDrefExplicitLod:
-			// conversions can be treated the same way
+			// conversions and unary operations taking one ID can be treated the same way
 			case spv::OpConvertFToS:
 			case spv::OpConvertFToU:
 			case spv::OpConvertUToF:
 			case spv::OpConvertSToF:
+			case spv::OpQuantizeToF16:
+			case spv::OpFConvert:
+			case spv::OpUConvert:
+			case spv::OpSConvert:
 			case spv::OpBitcast:
+			case spv::OpAny:
+			case spv::OpAll:
+			case spv::OpIsNan:
+			case spv::OpIsInf:
 			case spv::OpFunctionCall:
 			{
 				RDCASSERT(op);
@@ -1247,6 +1255,7 @@ struct SPVInstruction
 				return ret;
 			}
 			case spv::OpFNegate:
+			case spv::OpSNegate:
 			case spv::OpNot:
 			case spv::OpLogicalNot:
 			{
@@ -1257,6 +1266,7 @@ struct SPVInstruction
 				switch(opcode)
 				{
 					case spv::OpFNegate:
+					case spv::OpSNegate:
 						c = '-';
 						break;
 					case spv::OpNot:
@@ -1287,25 +1297,55 @@ struct SPVInstruction
 			case spv::OpIMul:
 			case spv::OpFMul:
 			case spv::OpFDiv:
+			case spv::OpUDiv:
+			case spv::OpSDiv:
 			case spv::OpFMod:
+			case spv::OpUMod:
+			case spv::OpSMod:
+			case spv::OpFRem:
+			case spv::OpSRem:
 			case spv::OpVectorTimesScalar:
+			case spv::OpMatrixTimesScalar:
 			case spv::OpMatrixTimesVector:
 			case spv::OpVectorTimesMatrix:
 			case spv::OpMatrixTimesMatrix:
+			case spv::OpIEqual:
+			case spv::OpINotEqual:
 			case spv::OpSLessThan:
 			case spv::OpSLessThanEqual:
+			case spv::OpSGreaterThan:
+			case spv::OpSGreaterThanEqual:
+			case spv::OpULessThan:
+			case spv::OpULessThanEqual:
+			case spv::OpUGreaterThan:
+			case spv::OpUGreaterThanEqual:
+			case spv::OpFOrdEqual:
+			case spv::OpFOrdNotEqual:
 			case spv::OpFOrdLessThan:
+			case spv::OpFOrdLessThanEqual:
 			case spv::OpFOrdGreaterThan:
 			case spv::OpFOrdGreaterThanEqual:
+			case spv::OpFUnordEqual:
+			case spv::OpFUnordNotEqual:
+			case spv::OpFUnordLessThan:
+			case spv::OpFUnordLessThanEqual:
+			case spv::OpFUnordGreaterThan:
+			case spv::OpFUnordGreaterThanEqual:
 			case spv::OpLogicalAnd:
 			case spv::OpLogicalOr:
+			case spv::OpLogicalEqual:
 			case spv::OpLogicalNotEqual:
+			case spv::OpBitwiseAnd:
+			case spv::OpBitwiseOr:
+			case spv::OpBitwiseXor:
 			case spv::OpShiftLeftLogical:
+			case spv::OpShiftRightLogical:
+			case spv::OpShiftRightArithmetic:
 			{
 				// binary math operation
 				RDCASSERT(op);
 
-				char opstr[3] = { '?', 0, 0 };
+				char opstr[4] = { '?', 0, 0, 0 };
 				switch(opcode)
 				{
 					case spv::OpIAdd:
@@ -1319,29 +1359,51 @@ struct SPVInstruction
 					case spv::OpIMul:
 					case spv::OpFMul:
 					case spv::OpVectorTimesScalar:
+					case spv::OpMatrixTimesScalar:
 					case spv::OpMatrixTimesVector:
 					case spv::OpVectorTimesMatrix:
 					case spv::OpMatrixTimesMatrix:
 						opstr[0] = '*';
 						break;
 					case spv::OpSLessThan:
+					case spv::OpULessThan:
 					case spv::OpFOrdLessThan:
+					case spv::OpFUnordLessThan:
 						opstr[0] = '<';
 						break;
 					case spv::OpSLessThanEqual:
+					case spv::OpULessThanEqual:
+					case spv::OpFOrdLessThanEqual:
+					case spv::OpFUnordLessThanEqual:
 						opstr[0] = '<'; opstr[1] = '=';
 						break;
+					case spv::OpSGreaterThan:
+					case spv::OpUGreaterThan:
 					case spv::OpFOrdGreaterThan:
+					case spv::OpFUnordGreaterThan:
 						opstr[0] = '>';
 						break;
+					case spv::OpSGreaterThanEqual:
+					case spv::OpUGreaterThanEqual:
 					case spv::OpFOrdGreaterThanEqual:
+					case spv::OpFUnordGreaterThanEqual:
 						opstr[0] = '>'; opstr[1] = '=';
 						break;
 					case spv::OpFDiv:
+					case spv::OpUDiv:
+					case spv::OpSDiv:
 						opstr[0] = '/';
 						break;
 					case spv::OpFMod:
+					case spv::OpUMod:
+					case spv::OpSMod:
 						opstr[0] = '%';
+						break;
+					case spv::OpFRem:
+					case spv::OpSRem:
+						opstr[0] = 'r';
+						opstr[1] = 'e';
+						opstr[2] = 'm';
 						break;
 					case spv::OpLogicalAnd:
 						opstr[0] = opstr[1] = '&';
@@ -1349,13 +1411,38 @@ struct SPVInstruction
 					case spv::OpLogicalOr:
 						opstr[0] = opstr[1] = '|';
 						break;
+					case spv::OpBitwiseAnd:
+						opstr[0] = '&';
+						break;
+					case spv::OpBitwiseOr:
+						opstr[0] = '|';
+						break;
+					case spv::OpBitwiseXor:
+						opstr[0] = '^';
+						break;
+					case spv::OpIEqual:
+					case spv::OpLogicalEqual:
+					case spv::OpFOrdEqual:
+					case spv::OpFUnordEqual:
+						opstr[0] = '='; opstr[1] = '=';
+						break;
+					case spv::OpINotEqual:
 					case spv::OpLogicalNotEqual:
+					case spv::OpFOrdNotEqual:
+					case spv::OpFUnordNotEqual:
 						opstr[0] = '!'; opstr[1] = '=';
 						break;
 					case spv::OpShiftLeftLogical:
 						opstr[0] = '<'; opstr[1] = '<';
 						break;
+					// essentially unsigned vs signed shift right, so display without
+					// distinction
+					case spv::OpShiftRightLogical:
+					case spv::OpShiftRightArithmetic:
+						opstr[0] = '>'; opstr[1] = '>';
+						break;
 					default:
+						RDCERR("Unhandled bin math op in switch");
 						break;
 				}
 
@@ -3807,7 +3894,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 				op.op->access = spv::MemoryAccessMaskNone;
 				if(WordCount > 4)
-						op.op->access = spv::MemoryAccessMask(spirv[it+4]);
+					op.op->access = spv::MemoryAccessMask(spirv[it+4]);
 				
 				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
@@ -3832,7 +3919,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 				op.op->access = spv::MemoryAccessMaskNone;
 				if(WordCount > 3)
-						op.op->access = spv::MemoryAccessMask(spirv[it+4]);
+					op.op->access = spv::MemoryAccessMask(spirv[it+3]);
 				
 				curBlock->instructions.push_back(&op);
 				break;
@@ -3988,12 +4075,20 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				curBlock->instructions.push_back(&op);
 				break;
 			}
-			// conversions can be treated as if they were function calls
+			// conversions and unary operations taking one ID can be treated the same way
 			case spv::OpConvertFToS:
 			case spv::OpConvertFToU:
 			case spv::OpConvertUToF:
 			case spv::OpConvertSToF:
+			case spv::OpQuantizeToF16:
+			case spv::OpFConvert:
+			case spv::OpUConvert:
+			case spv::OpSConvert:
 			case spv::OpBitcast:
+			case spv::OpAny:
+			case spv::OpAll:
+			case spv::OpIsNan:
+			case spv::OpIsInf:
 			case spv::OpFunctionCall:
 			{
 				int word = 1;
@@ -4100,28 +4195,60 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpIMul:
 			case spv::OpFMul:
 			case spv::OpFDiv:
+			case spv::OpUDiv:
+			case spv::OpSDiv:
 			case spv::OpFMod:
+			case spv::OpUMod:
+			case spv::OpSMod:
+			case spv::OpFRem:
+			case spv::OpSRem:
 			case spv::OpVectorTimesScalar:
+			case spv::OpMatrixTimesScalar:
 			case spv::OpMatrixTimesVector:
 			case spv::OpVectorTimesMatrix:
 			case spv::OpMatrixTimesMatrix:
+			case spv::OpIEqual:
+			case spv::OpINotEqual:
 			case spv::OpSLessThan:
 			case spv::OpSLessThanEqual:
+			case spv::OpSGreaterThan:
+			case spv::OpSGreaterThanEqual:
+			case spv::OpULessThan:
+			case spv::OpULessThanEqual:
+			case spv::OpUGreaterThan:
+			case spv::OpUGreaterThanEqual:
+			case spv::OpFOrdEqual:
+			case spv::OpFOrdNotEqual:
 			case spv::OpFOrdLessThan:
+			case spv::OpFOrdLessThanEqual:
 			case spv::OpFOrdGreaterThan:
 			case spv::OpFOrdGreaterThanEqual:
+			case spv::OpFUnordEqual:
+			case spv::OpFUnordNotEqual:
+			case spv::OpFUnordLessThan:
+			case spv::OpFUnordLessThanEqual:
+			case spv::OpFUnordGreaterThan:
+			case spv::OpFUnordGreaterThanEqual:
 			case spv::OpLogicalAnd:
 			case spv::OpLogicalOr:
+			case spv::OpLogicalEqual:
 			case spv::OpLogicalNotEqual:
+			case spv::OpBitwiseAnd:
+			case spv::OpBitwiseOr:
+			case spv::OpBitwiseXor:
 			case spv::OpShiftLeftLogical:
+			case spv::OpShiftRightLogical:
+			case spv::OpShiftRightArithmetic:
 
 			case spv::OpFNegate:
+			case spv::OpSNegate:
 			case spv::OpNot:
 			case spv::OpLogicalNot:
 				mathop = true; // deliberate fallthrough
 				
 			case spv::OpCompositeConstruct:
 			case spv::OpAccessChain:
+			case spv::OpInBoundsAccessChain:
 			case spv::OpDot:
 			case spv::OpSelect:
 			{
