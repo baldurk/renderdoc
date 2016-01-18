@@ -497,7 +497,7 @@ namespace renderdocui.Windows
             }
 
             {
-                m_DisassemblyView = MakeEditor("scintillaDisassem", disasm, false);
+                m_DisassemblyView = MakeEditor("scintillaDisassem", disasm, m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan);
                 m_DisassemblyView.IsReadOnly = true;
                 m_DisassemblyView.TabIndex = 0;
 
@@ -751,6 +751,8 @@ namespace renderdocui.Windows
             ((System.ComponentModel.ISupportInitialize)(scintilla1)).EndInit();
 
             string syntaxtype = m_Core.APIProps.ShaderExtension.Substring(1);
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+                syntaxtype = "hlsl";
             var syntaxpath = Path.Combine(Core.ConfigDirectory, syntaxtype + ".xml");
 
             if (!File.Exists(syntaxpath) ||
