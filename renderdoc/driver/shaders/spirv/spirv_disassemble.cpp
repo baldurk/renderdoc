@@ -59,6 +59,9 @@ using std::make_pair;
 // first use of that variable
 #define C_VARIABLE_DECLARATIONS 0
 
+// show the offset/arraystride/matrixstride decorations for structure packing
+#define SHOW_STRUCT_PACKING 0
+
 namespace spv { Op OpUnknown = (Op)~0U; }
 
 const char *GLSL_STD_450_names[] = {
@@ -210,25 +213,55 @@ struct SPVDecoration
 			case spv::DecorationColMajor:
 			case spv::DecorationNoPerspective:
 			case spv::DecorationFlat:
+			case spv::DecorationPatch:
 			case spv::DecorationCentroid:
+			case spv::DecorationSample:
 			case spv::DecorationGLSLShared:
 			case spv::DecorationBlock:
 			case spv::DecorationBufferBlock:
+			case spv::DecorationRelaxedPrecision:
+			case spv::DecorationInvariant:
+			case spv::DecorationRestrict:
+			case spv::DecorationVolatile:
+			case spv::DecorationAliased:
+			case spv::DecorationCoherent:
+			case spv::DecorationNonWritable:
+			case spv::DecorationNonReadable:
 				return ToStr::Get(decoration);
-			case spv::DecorationArrayStride: // might hide these, it adds no value
-				return StringFormat::Fmt("ArrayStride=%u", val);
-			case spv::DecorationMatrixStride: // might hide these, it adds no value
+			case spv::DecorationUniform:
+				return StringFormat::Fmt("DynamicallyUniform", val);
 				return StringFormat::Fmt("MatrixStride=%u", val);
 			case spv::DecorationLocation:
 				return StringFormat::Fmt("Location=%u", val);
+			case spv::DecorationComponent:
+				return StringFormat::Fmt("Location=%u", val);
 			case spv::DecorationBinding:
 				return StringFormat::Fmt("Bind=%u", val);
+			case spv::DecorationIndex:
+				return StringFormat::Fmt("Index=%u", val);
+			case spv::DecorationStream:
+				return StringFormat::Fmt("Stream=%u", val);
 			case spv::DecorationDescriptorSet:
 				return StringFormat::Fmt("DescSet=%u", val);
 			case spv::DecorationBuiltIn:
 				return StringFormat::Fmt("Builtin %s", ToStr::Get((spv::BuiltIn)val).c_str());
 			case spv::DecorationSpecId:
 				return StringFormat::Fmt("Specialize[%u]", ToStr::Get(decoration).c_str(), val);
+
+#if SHOW_STRUCT_PACKING
+			case spv::DecorationOffset:
+				return StringFormat::Fmt("Offset=%u", val);
+			case spv::DecorationArrayStride:
+				return StringFormat::Fmt("ArrayStride=%u", val);
+			case spv::DecorationMatrixStride:
+				return StringFormat::Fmt("MatrixStride=%u", val);
+#else
+			case spv::DecorationOffset:
+			case spv::DecorationArrayStride:
+			case spv::DecorationMatrixStride:
+				return "";
+#endif
+
 			default:
 				break;
 		}
@@ -324,7 +357,9 @@ struct SPVTypeData
 				builtin = &decorations[d];
 				continue;
 			}
-			ret += decorations[d].Str() + " ";
+			string decorationStr = decorations[d].Str();
+			if(!decorationStr.empty())
+				ret += decorationStr + " ";
 		}
 
 		if(type == ePointer && baseType->type == eArray)
