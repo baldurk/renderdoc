@@ -2538,6 +2538,20 @@ string SPVModule::Disassemble(const string &entryPoint)
 			funcops[o]->line = (int)o;
 		}
 
+		// declare any variables that didn't get declared inline somewhere above
+#if !C_VARIABLE_DECLARATIONS
+		for(size_t v=0; v < vars.size(); v++)
+		{
+			if(varDeclared[v]) continue;
+
+			RDCASSERT(vars[v]->var && vars[v]->var->type);
+			retDisasm += string(indent, ' ') + vars[v]->var->type->DeclareVariable(vars[v]->decorations, vars[v]->GetIDName()) + ";\n";
+		}
+
+		if(!vars.empty())
+			retDisasm += "\n";
+#endif
+
 		retDisasm += funcDisassembly;
 
 		SAFE_DELETE_ARRAY(varDeclared);
