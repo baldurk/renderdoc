@@ -4602,6 +4602,7 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpImageDrefGather:                          return "ImageDrefGather";
 		case spv::OpImageRead:                                return "ImageRead";
 		case spv::OpImageWrite:                               return "ImageWrite";
+		case spv::OpImage:                                    return "Image";
 		case spv::OpImageQueryFormat:                         return "ImageQueryFormat";
 		case spv::OpImageQueryOrder:                          return "ImageQueryOrder";
 		case spv::OpImageQuerySizeLod:                        return "ImageQuerySizeLod";
