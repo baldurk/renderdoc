@@ -4039,12 +4039,12 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 					idx++;
 				}
 
-				// explicit lod instructions must pass a lod argument
+				// explicit lod instructions must pass a lod or grad argument
 				if(op.opcode == spv::OpImageSampleExplicitLod ||
 					op.opcode == spv::OpImageSampleDrefExplicitLod ||
 					op.opcode == spv::OpImageSampleProjExplicitLod ||
 					op.opcode == spv::OpImageSampleProjDrefExplicitLod)
-					RDCASSERT(imMask & spv::ImageOperandsLodMask);
+					RDCASSERT(imMask & (spv::ImageOperandsLodMask|spv::ImageOperandsGradMask));
 
 				// optional arguments
 
