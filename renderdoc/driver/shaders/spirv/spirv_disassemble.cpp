@@ -1807,7 +1807,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 
 				if(instr->op)
 				{
-					int maxcomplex = 0;
+					int maxcomplex = instr->op->complexity;
 
 					for(size_t a=0; a < instr->op->arguments.size(); a++)
 					{
@@ -4114,6 +4114,11 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 				if(op.opcode == spv::OpFunctionCall)
 				{
+					// never combine function calls. It can sometimes be nice, but since
+					// we can combine multiple times and function calls have side-effects,
+					// it can appear to change the meaning of the code.
+					op.op->complexity = 100;
+
 					op.op->funcCall = spirv[it+word];
 
 					word++;
