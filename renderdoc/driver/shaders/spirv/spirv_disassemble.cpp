@@ -4033,7 +4033,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 				// const argument bitfield
 				uint32_t imMask = 0;
-				if(WordCount > 5)
+				if(WordCount > idx)
 				{
 					imMask = spirv[it+idx];
 					idx++;
