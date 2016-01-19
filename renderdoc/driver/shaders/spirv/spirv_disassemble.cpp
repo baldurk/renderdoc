@@ -2293,14 +2293,18 @@ string SPVModule::Disassemble(const string &entryPoint)
 					// TODO handle if the loop header condition expression isn't sufficiently in-lined.
 					// We need to force inline it.
 					funcDisassembly += string(indent, ' ');
-					funcDisassembly += "while(" + funcops[o]->block->exitFlow->flow->condition->Disassemble(ids, true) + ") {\n";
+					if(funcops[o]->block->exitFlow->flow->condition)
+						funcDisassembly += "while(" + funcops[o]->block->exitFlow->flow->condition->Disassemble(ids, true) + ") {\n";
+					else
+						funcDisassembly += "while(true) {\n";
 
 					loopheadstack.push_back(funcops[o]->id);
 					loopstartstack.push_back(funcops[o]->block->exitFlow->flow->targets[0]);
 					loopmergestack.push_back(funcops[o]->block->mergeFlow->flow->targets[0]);
 
-					// false from the condition should jump straight to merge block
-					RDCASSERT(funcops[o]->block->exitFlow->flow->targets[1] == funcops[o]->block->mergeFlow->flow->targets[0]);
+					// should be either unconditional, or false from the condition should jump straight to merge block
+					RDCASSERT(funcops[o]->block->exitFlow->flow->targets.size() == 1 ||
+						funcops[o]->block->exitFlow->flow->targets[1] == funcops[o]->block->mergeFlow->flow->targets[0]);
 
 					indent += tabSize;
 				}
