@@ -3705,10 +3705,10 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				if(WordCount > 3)
 				{
 					// only handle 32-bit or 64-bit constants
-					RDCASSERT(WordCount <= 4);
+					RDCASSERT(WordCount <= 5);
 
 					uint64_t lo = spirv[it+3];
-					uint64_t hi = spirv[it+4];
+					uint64_t hi = WordCount == 5 ? spirv[it+4] : 0;
 
 					op.constant->u64 = lo | (hi<<32);
 				}
