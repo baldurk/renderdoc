@@ -89,6 +89,36 @@
 
       </content>
     </section>
+    <section address="important">
+      <title>Documentation and Tutorials</title>
+	  <content>
+	    
+	    <para>
+	      I have recorded some <externalLink>
+<linkText>youtube videos</linkText>
+<linkAlternateText>Tutorial videos on YouTube</linkAlternateText>
+<linkUri>http://www.youtube.com/user/baldurkarlsson/</linkUri>
+</externalLink> showing the use of some basic features and an introduction/overview.
+	    </para>
+	    
+	    <para>
+	      There is also a great presentation by 
+ <externalLink>
+<linkText>@Icetigris</linkText>
+<linkAlternateText>@Icetigris on Twitter</linkAlternateText>
+<linkUri>https://twitter.com/Icetigris</linkUri>
+</externalLink> which goes into some details of how RenderDoc can be used in real
+	      world situations: 
+ <externalLink>
+<linkText>slides are up here</linkText>
+<linkAlternateText>Slides for the presentation</linkAlternateText>
+<linkUri>https://docs.google.com/presentation/d/1LQUMIld4SGoQVthnhT1scoA3k4Sg0as14G4NeSiSgFU/edit#slide=id.p</linkUri>
+</externalLink>.
+	    </para>
+
+
+      </content>
+    </section>
     <section address="contact">
       <title>Contact info, Feedback, Bug reports</title>
 	  <content>
