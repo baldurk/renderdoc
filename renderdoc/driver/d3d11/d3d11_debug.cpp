@@ -4118,6 +4118,8 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		Vec4f *pos0 = (Vec4f *)byteData;
 
+		bool found = false;
+
 		for(UINT64 i=1; numPosComponents == 4 && i < numPrims.NumPrimitivesWritten; i++)
 		{
 			//////////////////////////////////////////////////////////////////////////////////
@@ -4140,7 +4142,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 			Vec4f *pos = (Vec4f *)(byteData + i*stride);
 
-			if(fabs(pos->w - pos0->w) > 0.01f)
+			if(fabs(pos->w - pos0->w) > 0.01f && fabs(pos->z - pos0->z) > 0.01f)
 			{
 				Vec2f A(pos0->w, pos0->z);
 				Vec2f B(pos->w, pos->z);
@@ -4153,8 +4155,19 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				nearp = -c/m;
 				farp = c/(1-m);
 
+				found = true;
+
 				break;
 			}
+		}
+
+		// if we didn't find anything, all z's and w's were identical.
+		// If the z is positive and w greater for the first element then
+		// we detect this projection as reversed z with infinite far plane
+		if(!found && pos0->z > 0.0f && pos0->w > pos0->z)
+		{
+			nearp = pos0->z;
+			farp = FLT_MAX;
 		}
 
 		m_pImmediateContext->Unmap(m_SOStagingBuffer, 0);
@@ -4698,7 +4711,9 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 		{
 			// the derivation of the projection matrix might not be right (hell, it could be an
 			// orthographic projection). But it'll be close enough likely.
-			Matrix4f guessProj = Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect);
+			Matrix4f guessProj = cfg.position.farPlane != FLT_MAX
+				? Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect)
+				: Matrix4f::ReversePerspective(cfg.fov, cfg.position.nearPlane, cfg.aspect);
 
 			if(cfg.ortho)
 			{

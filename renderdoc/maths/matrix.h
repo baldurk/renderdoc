@@ -60,6 +60,7 @@ class Matrix4f
 		static Matrix4f RotationZYX(const Vec3f &rot);
 		static Matrix4f Orthographic(const float nearplane, const float farplane);
 		static Matrix4f Perspective(const float degfov, const float nearplane, const float farplane, const float aspect);
+		static Matrix4f ReversePerspective(const float degfov, const float nearplane, const float aspect);
 
 		inline float operator[](const size_t i) const
 		{

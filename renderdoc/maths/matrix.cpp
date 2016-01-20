@@ -391,3 +391,17 @@ Matrix4f Matrix4f::Perspective(const float degfov, const float N, const float F,
 	
 	return Matrix4f(persp);
 }
+
+Matrix4f Matrix4f::ReversePerspective(const float degfov, const float N, const float A)
+{
+	const float radfov = degfov * (3.1415926535f/180.0f);
+	float S = 1/tanf(radfov * 0.5f);
+	
+	float persp[16] = { S/A, 0.0f, 0.0f, 0.0f,
+						0.0f, S, 0.0f, 0.0f,
+						0.0f, 0.0f, 0.0f, 1.0f,
+						0.0f, 0.0f, N, 0.0f,
+						};
+	
+	return Matrix4f(persp);
+}
