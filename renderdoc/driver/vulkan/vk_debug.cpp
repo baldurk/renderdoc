@@ -5053,6 +5053,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	float farp = 100.0f;
 
 	Vec4f *pos0 = (Vec4f *)byteData;
+
+	bool found = false;
 	
 	// expect position at the start of the buffer, as system values are sorted first
 	// and position is the first value
@@ -5080,7 +5082,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		Vec4f *pos = (Vec4f *)(byteData + i*bufStride);
 
 		// skip invalid vertices (w=0)
-		if(pos->w > 0.0f && fabs(pos->w - pos0->w) > 0.01f)
+		if(pos->w != 0.0f && fabs(pos->w - pos0->w) > 0.01f && fabs(pos->z - pos0->z) > 0.01f)
 		{
 			Vec2f A(pos0->w, pos0->z);
 			Vec2f B(pos->w, pos->z);
@@ -5095,8 +5097,19 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			nearp = -c/m;
 			farp = c/(1-m);
 
+			found = true;
+
 			break;
 		}
+	}
+
+	// if we didn't find anything, all z's and w's were identical.
+	// If the z is positive and w greater for the first element then
+	// we detect this projection as reversed z with infinite far plane
+	if(!found && pos0->z > 0.0f && pos0->w > pos0->z)
+	{
+		nearp = pos0->z;
+		farp = FLT_MAX;
 	}
 
 	m_pDriver->vkUnmapMemory(m_Device, readbackMem);

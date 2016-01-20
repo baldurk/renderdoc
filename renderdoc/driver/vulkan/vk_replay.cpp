@@ -1520,7 +1520,9 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 	{
 		// the derivation of the projection matrix might not be right (hell, it could be an
 		// orthographic projection). But it'll be close enough likely.
-		Matrix4f guessProj = Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect);
+		Matrix4f guessProj = cfg.position.farPlane != FLT_MAX
+			? Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect)
+			: Matrix4f::ReversePerspective(cfg.fov, cfg.position.nearPlane, cfg.aspect);
 
 		if(cfg.ortho)
 		{
