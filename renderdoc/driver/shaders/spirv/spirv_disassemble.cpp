@@ -1146,7 +1146,9 @@ struct SPVInstruction
 
 				return ret;
 			}
-			// texture samples almost identical to function call
+			// Most of the following are just of the form OpcodeName(arg1, arg2, arg3..)
+			// like a function call. Operations can very by return type (e.g. image
+			// vs imagesparse opcodes) without changing their disassembly
 			case spv::OpImageSampleImplicitLod:
 			case spv::OpImageSampleExplicitLod:
 			case spv::OpImageSampleDrefImplicitLod:
@@ -1155,7 +1157,22 @@ struct SPVInstruction
 			case spv::OpImageSampleProjExplicitLod:
 			case spv::OpImageSampleProjDrefImplicitLod:
 			case spv::OpImageSampleProjDrefExplicitLod:
-			// conversions and unary operations taking one ID can be treated the same way
+			case spv::OpImageSparseSampleImplicitLod:
+			case spv::OpImageSparseSampleExplicitLod:
+			case spv::OpImageSparseSampleDrefImplicitLod:
+			case spv::OpImageSparseSampleDrefExplicitLod:
+			case spv::OpImageSparseSampleProjImplicitLod:
+			case spv::OpImageSparseSampleProjExplicitLod:
+			case spv::OpImageSparseSampleProjDrefImplicitLod:
+			case spv::OpImageSparseSampleProjDrefExplicitLod:
+			case spv::OpImageFetch:
+			case spv::OpImageGather:
+			case spv::OpImageDrefGather:
+			case spv::OpImageRead:
+			case spv::OpImageWrite:
+			case spv::OpImageSparseFetch:
+			case spv::OpImageSparseGather:
+			case spv::OpImageSparseDrefGather:
 			case spv::OpConvertFToS:
 			case spv::OpConvertFToU:
 			case spv::OpConvertUToF:
@@ -1165,10 +1182,36 @@ struct SPVInstruction
 			case spv::OpUConvert:
 			case spv::OpSConvert:
 			case spv::OpBitcast:
+			case spv::OpBitReverse:
+			case spv::OpBitCount:
 			case spv::OpAny:
 			case spv::OpAll:
 			case spv::OpIsNan:
 			case spv::OpIsInf:
+			case spv::OpOuterProduct:
+			case spv::OpTranspose:
+			case spv::OpCopyObject:
+			case spv::OpDPdx:
+			case spv::OpDPdy:
+			case spv::OpFwidth:
+			case spv::OpDPdxFine:
+			case spv::OpDPdyFine:
+			case spv::OpFwidthFine:
+			case spv::OpDPdxCoarse:
+			case spv::OpDPdyCoarse:
+			case spv::OpFwidthCoarse:
+			case spv::OpEmitVertex:
+			case spv::OpEmitStreamVertex:
+			case spv::OpEndPrimitive:
+			case spv::OpEndStreamPrimitive:
+			case spv::OpImageSparseTexelsResident:
+			case spv::OpImage:
+			case spv::OpSampledImage:
+			case spv::OpImageQuerySizeLod:
+			case spv::OpImageQuerySize:
+			case spv::OpImageQueryLod:
+			case spv::OpImageQueryLevels:
+			case spv::OpImageQuerySamples:
 			case spv::OpFunctionCall:
 			{
 				RDCASSERT(op);
@@ -1178,14 +1221,33 @@ struct SPVInstruction
 				if(!inlineOp && op->type->type != SPVTypeData::eVoid)
 					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
 
-				if(opcode == spv::OpFunctionCall)
-					ret += ids[op->funcCall]->GetIDName() + "(";
-				else if(opcode == spv::OpBitcast)
-					ret += "Bitcast<" + op->type->GetName() + ">(";
-				else
-					ret += ToStr::Get(opcode) + "(";
+				size_t numArgs = op->arguments.size();
 
-				for(size_t i=0; i < op->arguments.size(); i++)
+				if(opcode == spv::OpFunctionCall)
+				{
+					ret += ids[op->funcCall]->GetIDName() + "(";
+				}
+				else if(opcode == spv::OpBitcast)
+				{
+					ret += "Bitcast<" + op->type->GetName() + ">(";
+				}
+				else if(opcode == spv::OpImageGather)
+				{
+					// last argument is the component, reads better to have this
+					// as part of the operation (if it was a constant instead of
+					// an ID
+					string arg;
+					op->GetArg(ids, numArgs-1, arg);
+					ret += "ImageGather[" + arg + "](";
+
+					numArgs--;
+				}
+				else
+				{
+					ret += ToStr::Get(opcode) + "(";
+				}
+
+				for(size_t i=0; i < numArgs; i++)
 				{
 					string arg;
 					op->GetArg(ids, i, arg);
@@ -3991,11 +4053,80 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpImageSampleProjExplicitLod:
 			case spv::OpImageSampleProjDrefImplicitLod:
 			case spv::OpImageSampleProjDrefExplicitLod:
+			// these only vary from the above by return type, which doesn't change
+			// their disassembly
+			case spv::OpImageSparseSampleImplicitLod:
+			case spv::OpImageSparseSampleExplicitLod:
+			case spv::OpImageSparseSampleDrefImplicitLod:
+			case spv::OpImageSparseSampleDrefExplicitLod:
+			case spv::OpImageSparseSampleProjImplicitLod:
+			case spv::OpImageSparseSampleProjExplicitLod:
+			case spv::OpImageSparseSampleProjDrefImplicitLod:
+			case spv::OpImageSparseSampleProjDrefExplicitLod:
+			// similarly the image operations are very close
+			case spv::OpImageFetch:
+			case spv::OpImageGather:
+			case spv::OpImageDrefGather:
+			case spv::OpImageRead:
+			case spv::OpImageWrite:
+			case spv::OpImageSparseFetch:
+			case spv::OpImageSparseGather:
+			case spv::OpImageSparseDrefGather:
 			{
 				uint32_t idx = 1;
 
 				SPVInstruction *typeInst = module.GetByID(spirv[it+idx]); idx++;
 				RDCASSERT(typeInst && typeInst->type);
+
+				// bucket the different opcodes
+				bool implicit = false, dref = false, image = false;
+				switch(op.opcode)
+				{
+					case spv::OpImageSampleImplicitLod:
+					case spv::OpImageSampleDrefImplicitLod:
+					case spv::OpImageSampleProjImplicitLod:
+					case spv::OpImageSampleProjDrefImplicitLod:
+					case spv::OpImageSparseSampleImplicitLod:
+					case spv::OpImageSparseSampleDrefImplicitLod:
+					case spv::OpImageSparseSampleProjImplicitLod:
+					case spv::OpImageSparseSampleProjDrefImplicitLod:
+						implicit = true;
+						break;
+					default:
+						break;
+				}
+				switch(op.opcode)
+				{
+					case spv::OpImageFetch:
+					case spv::OpImageGather:
+					case spv::OpImageDrefGather:
+					case spv::OpImageRead:
+					case spv::OpImageWrite:
+					case spv::OpImageSparseFetch:
+					case spv::OpImageSparseGather:
+					case spv::OpImageSparseDrefGather:
+						image = true;
+						break;
+					default:
+						break;
+				}
+				switch(op.opcode)
+				{
+					case spv::OpImageSampleDrefImplicitLod:
+					case spv::OpImageSampleDrefExplicitLod:
+					case spv::OpImageSampleProjDrefImplicitLod:
+					case spv::OpImageSampleProjDrefExplicitLod:
+					case spv::OpImageDrefGather:
+					case spv::OpImageSparseSampleDrefImplicitLod:
+					case spv::OpImageSparseSampleDrefExplicitLod:
+					case spv::OpImageSparseSampleProjDrefImplicitLod:
+					case spv::OpImageSparseSampleProjDrefExplicitLod:
+					case spv::OpImageSparseDrefGather:
+						dref = true;
+						break;
+					default:
+						break;
+				}
 				
 				op.op = new SPVOperation();
 				op.op->type = typeInst->type;
@@ -4019,11 +4150,9 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 					op.op->arguments.push_back(argInst);
 				}
 
-				// Dref (depth reference)
-				if(op.opcode == spv::OpImageSampleDrefImplicitLod ||
-					op.opcode == spv::OpImageSampleDrefExplicitLod ||
-					op.opcode == spv::OpImageSampleProjDrefImplicitLod ||
-					op.opcode == spv::OpImageSampleProjDrefExplicitLod)
+				// Dref (depth reference), gather (component) and write (written value)
+				// have an extra value
+				if(dref || op.opcode == spv::OpImageGather || op.opcode == spv::OpImageWrite)
 				{
 					SPVInstruction *argInst = module.GetByID(spirv[it+idx]); idx++;
 					RDCASSERT(argInst);
@@ -4039,11 +4168,8 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 					idx++;
 				}
 
-				// explicit lod instructions must pass a lod or grad argument
-				if(op.opcode == spv::OpImageSampleExplicitLod ||
-					op.opcode == spv::OpImageSampleDrefExplicitLod ||
-					op.opcode == spv::OpImageSampleProjExplicitLod ||
-					op.opcode == spv::OpImageSampleProjDrefExplicitLod)
+				// explicit lod sample instructions must pass a lod or grad argument
+				if(!implicit && !image)
 					RDCASSERT(imMask & (spv::ImageOperandsLodMask|spv::ImageOperandsGradMask));
 
 				// optional arguments
@@ -4051,10 +4177,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				if(imMask & spv::ImageOperandsBiasMask)
 				{
 					RDCASSERT(WordCount > idx);
-					RDCASSERT(op.opcode != spv::OpImageSampleExplicitLod &&
-						op.opcode != spv::OpImageSampleDrefExplicitLod &&
-						op.opcode != spv::OpImageSampleProjExplicitLod &&
-						op.opcode != spv::OpImageSampleProjDrefExplicitLod);
+					RDCASSERT(implicit);
 					op.op->im.bias = module.GetByID(spirv[it+idx]); idx++;
 					RDCASSERT(op.op->im.bias);
 					op.op->arguments.push_back(op.op->im.bias);
@@ -4063,10 +4186,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				if(imMask & spv::ImageOperandsLodMask)
 				{
 					RDCASSERT(WordCount > idx);
-					RDCASSERT(op.opcode == spv::OpImageSampleExplicitLod ||
-						op.opcode == spv::OpImageSampleDrefExplicitLod ||
-						op.opcode == spv::OpImageSampleProjExplicitLod ||
-						op.opcode == spv::OpImageSampleProjDrefExplicitLod);
+					RDCASSERT(!implicit);
 					op.op->im.lod = module.GetByID(spirv[it+idx]); idx++;
 					RDCASSERT(op.op->im.lod);
 					op.op->arguments.push_back(op.op->im.lod);
@@ -4075,10 +4195,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				if(imMask & spv::ImageOperandsGradMask)
 				{
 					RDCASSERT(WordCount > idx+1);
-					RDCASSERT(op.opcode == spv::OpImageSampleExplicitLod ||
-						op.opcode == spv::OpImageSampleDrefExplicitLod ||
-						op.opcode == spv::OpImageSampleProjExplicitLod ||
-						op.opcode == spv::OpImageSampleProjDrefExplicitLod);
+					RDCASSERT(!implicit);
 					op.op->im.dx = module.GetByID(spirv[it+idx]); idx++;
 					op.op->im.dy = module.GetByID(spirv[it+idx]); idx++;
 					RDCASSERT(op.op->im.dx && op.op->im.dy);
@@ -4134,7 +4251,70 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				curBlock->instructions.push_back(&op);
 				break;
 			}
-			// conversions and unary operations taking one ID can be treated the same way
+			// any operations that just take N IDs as parameters can be treated the same way
+			case spv::OpIAdd:
+			case spv::OpFAdd:
+			case spv::OpISub:
+			case spv::OpFSub:
+			case spv::OpIMul:
+			case spv::OpFMul:
+			case spv::OpFDiv:
+			case spv::OpUDiv:
+			case spv::OpSDiv:
+			case spv::OpFMod:
+			case spv::OpUMod:
+			case spv::OpSMod:
+			case spv::OpFRem:
+			case spv::OpSRem:
+			case spv::OpVectorTimesScalar:
+			case spv::OpMatrixTimesScalar:
+			case spv::OpMatrixTimesVector:
+			case spv::OpVectorTimesMatrix:
+			case spv::OpMatrixTimesMatrix:
+			case spv::OpIEqual:
+			case spv::OpINotEqual:
+			case spv::OpSLessThan:
+			case spv::OpSLessThanEqual:
+			case spv::OpSGreaterThan:
+			case spv::OpSGreaterThanEqual:
+			case spv::OpULessThan:
+			case spv::OpULessThanEqual:
+			case spv::OpUGreaterThan:
+			case spv::OpUGreaterThanEqual:
+			case spv::OpFOrdEqual:
+			case spv::OpFOrdNotEqual:
+			case spv::OpFOrdLessThan:
+			case spv::OpFOrdLessThanEqual:
+			case spv::OpFOrdGreaterThan:
+			case spv::OpFOrdGreaterThanEqual:
+			case spv::OpFUnordEqual:
+			case spv::OpFUnordNotEqual:
+			case spv::OpFUnordLessThan:
+			case spv::OpFUnordLessThanEqual:
+			case spv::OpFUnordGreaterThan:
+			case spv::OpFUnordGreaterThanEqual:
+			case spv::OpLogicalAnd:
+			case spv::OpLogicalOr:
+			case spv::OpLogicalEqual:
+			case spv::OpLogicalNotEqual:
+			case spv::OpBitwiseAnd:
+			case spv::OpBitwiseOr:
+			case spv::OpBitwiseXor:
+			case spv::OpShiftLeftLogical:
+			case spv::OpShiftRightLogical:
+			case spv::OpShiftRightArithmetic:
+
+			case spv::OpFNegate:
+			case spv::OpSNegate:
+			case spv::OpNot:
+			case spv::OpLogicalNot:
+				mathop = true; // deliberate fallthrough
+				
+			case spv::OpCompositeConstruct:
+			case spv::OpAccessChain:
+			case spv::OpInBoundsAccessChain:
+			case spv::OpDot:
+			case spv::OpSelect:
 			case spv::OpConvertFToS:
 			case spv::OpConvertFToU:
 			case spv::OpConvertUToF:
@@ -4144,10 +4324,36 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpUConvert:
 			case spv::OpSConvert:
 			case spv::OpBitcast:
+			case spv::OpBitReverse:
+			case spv::OpBitCount:
 			case spv::OpAny:
 			case spv::OpAll:
 			case spv::OpIsNan:
 			case spv::OpIsInf:
+			case spv::OpOuterProduct:
+			case spv::OpTranspose:
+			case spv::OpCopyObject:
+			case spv::OpDPdx:
+			case spv::OpDPdy:
+			case spv::OpFwidth:
+			case spv::OpDPdxFine:
+			case spv::OpDPdyFine:
+			case spv::OpFwidthFine:
+			case spv::OpDPdxCoarse:
+			case spv::OpDPdyCoarse:
+			case spv::OpFwidthCoarse:
+			case spv::OpEmitVertex:
+			case spv::OpEmitStreamVertex:
+			case spv::OpEndPrimitive:
+			case spv::OpEndStreamPrimitive:
+			case spv::OpImageSparseTexelsResident:
+			case spv::OpImage:
+			case spv::OpSampledImage:
+			case spv::OpImageQuerySizeLod:
+			case spv::OpImageQuerySize:
+			case spv::OpImageQueryLod:
+			case spv::OpImageQueryLevels:
+			case spv::OpImageQuerySamples:
 			case spv::OpFunctionCall:
 			{
 				int word = 1;
@@ -4159,6 +4365,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 				op.op = new SPVOperation();
 				op.op->type = typeInst->type;
+				op.op->mathop = mathop;
 
 				op.id = spirv[it+word];
 				module.ids[spirv[it+word]] = &op;
@@ -4247,93 +4454,6 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
 
-				curBlock->instructions.push_back(&op);
-				break;
-			}
-			//////////////////////////////////////////////////////////////////////
-			// Easy to handle opcodes with just some number of ID parameters
-			case spv::OpIAdd:
-			case spv::OpFAdd:
-			case spv::OpISub:
-			case spv::OpFSub:
-			case spv::OpIMul:
-			case spv::OpFMul:
-			case spv::OpFDiv:
-			case spv::OpUDiv:
-			case spv::OpSDiv:
-			case spv::OpFMod:
-			case spv::OpUMod:
-			case spv::OpSMod:
-			case spv::OpFRem:
-			case spv::OpSRem:
-			case spv::OpVectorTimesScalar:
-			case spv::OpMatrixTimesScalar:
-			case spv::OpMatrixTimesVector:
-			case spv::OpVectorTimesMatrix:
-			case spv::OpMatrixTimesMatrix:
-			case spv::OpIEqual:
-			case spv::OpINotEqual:
-			case spv::OpSLessThan:
-			case spv::OpSLessThanEqual:
-			case spv::OpSGreaterThan:
-			case spv::OpSGreaterThanEqual:
-			case spv::OpULessThan:
-			case spv::OpULessThanEqual:
-			case spv::OpUGreaterThan:
-			case spv::OpUGreaterThanEqual:
-			case spv::OpFOrdEqual:
-			case spv::OpFOrdNotEqual:
-			case spv::OpFOrdLessThan:
-			case spv::OpFOrdLessThanEqual:
-			case spv::OpFOrdGreaterThan:
-			case spv::OpFOrdGreaterThanEqual:
-			case spv::OpFUnordEqual:
-			case spv::OpFUnordNotEqual:
-			case spv::OpFUnordLessThan:
-			case spv::OpFUnordLessThanEqual:
-			case spv::OpFUnordGreaterThan:
-			case spv::OpFUnordGreaterThanEqual:
-			case spv::OpLogicalAnd:
-			case spv::OpLogicalOr:
-			case spv::OpLogicalEqual:
-			case spv::OpLogicalNotEqual:
-			case spv::OpBitwiseAnd:
-			case spv::OpBitwiseOr:
-			case spv::OpBitwiseXor:
-			case spv::OpShiftLeftLogical:
-			case spv::OpShiftRightLogical:
-			case spv::OpShiftRightArithmetic:
-
-			case spv::OpFNegate:
-			case spv::OpSNegate:
-			case spv::OpNot:
-			case spv::OpLogicalNot:
-				mathop = true; // deliberate fallthrough
-				
-			case spv::OpCompositeConstruct:
-			case spv::OpAccessChain:
-			case spv::OpInBoundsAccessChain:
-			case spv::OpDot:
-			case spv::OpSelect:
-			{
-				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
-				RDCASSERT(typeInst && typeInst->type);
-
-				op.op = new SPVOperation();
-				op.op->type = typeInst->type;
-				op.op->mathop = mathop;
-				
-				for(int i=3; i < WordCount; i++)
-				{
-					SPVInstruction *argInst = module.GetByID(spirv[it+i]);
-					RDCASSERT(argInst);
-
-					op.op->arguments.push_back(argInst);
-				}
-				
-				op.id = spirv[it+2];
-				module.ids[spirv[it+2]] = &op;
-				
 				curBlock->instructions.push_back(&op);
 				break;
 			}
