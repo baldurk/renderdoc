@@ -258,6 +258,8 @@ class RenderDoc
 		void SetActiveWindow(void *dev, void *wnd);
 		bool EndFrameCapture(void *dev, void *wnd);
 
+		bool MatchClosestWindow(void *&dev, void *&wnd);
+
 		bool IsActiveWindow(void *dev, void *wnd) { return dev == m_ActiveWindow.dev && wnd == m_ActiveWindow.wnd; }
 
 		void TriggerCapture() { m_Cap = true; }

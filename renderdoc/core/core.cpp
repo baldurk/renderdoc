@@ -319,7 +319,7 @@ void RenderDoc::Shutdown()
 	}
 }
 
-IFrameCapturer *RenderDoc::MatchFrameCapturer(void *dev, void *wnd)
+bool RenderDoc::MatchClosestWindow(void *&dev, void *&wnd)
 {
 	DeviceWnd dw(dev, wnd);
 
@@ -338,7 +338,25 @@ IFrameCapturer *RenderDoc::MatchFrameCapturer(void *dev, void *wnd)
 		++it;
 	}
 
-	if(it == m_WindowFrameCapturers.end())
+	if(it != m_WindowFrameCapturers.end())
+	{
+		dev = it->first.dev;
+		wnd = it->first.wnd;
+		return true;
+	}
+
+	return false;
+}
+
+IFrameCapturer *RenderDoc::MatchFrameCapturer(void *dev, void *wnd)
+{
+	DeviceWnd dw(dev, wnd);
+
+	// try and find the closest frame capture registered, and update
+	// the values in dw to point to it precisely
+	bool exactMatch = MatchClosestWindow(dw.dev, dw.wnd);
+
+	if(!exactMatch)
 	{
 		// handle off-screen rendering where there are no device/window pairs in
 		// m_WindowFrameCapturers, instead we use the first matching device frame capturer
@@ -353,6 +371,14 @@ IFrameCapturer *RenderDoc::MatchFrameCapturer(void *dev, void *wnd)
 		}
 
 		RDCERR("Couldn't find matching frame capturer for device %p window %p", dev, wnd);
+		return NULL;
+	}
+
+	auto it = m_WindowFrameCapturers.find(dw);
+
+	if(it == m_WindowFrameCapturers.end())
+	{
+		RDCERR("Couldn't find frame capturer after exact match!");
 		return NULL;
 	}
 

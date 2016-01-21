@@ -133,6 +133,12 @@ static void SetActiveWindow(void *device, void *wndHandle)
 static void StartFrameCapture(void *device, void *wndHandle)
 {
 	RenderDoc::Inst().StartFrameCapture(device, wndHandle);
+
+	if(device == NULL || wndHandle == NULL)
+		RenderDoc::Inst().MatchClosestWindow(device, wndHandle);
+
+	if(device != NULL && wndHandle != NULL)
+		RenderDoc::Inst().SetActiveWindow(device, wndHandle);
 }
 
 static uint32_t IsFrameCapturing()
