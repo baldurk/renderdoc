@@ -863,6 +863,10 @@ struct SPVInstruction
 
 				return StringFormat::Fmt("%s [true: %.2f%%, false: %.2f%%]", flow->condition->Disassemble(ids, true).c_str(), a, b);
 			}
+			case spv::OpSwitch:
+			{
+				return StringFormat::Fmt("switch(%s)", flow->condition->Disassemble(ids, true).c_str());
+			}
 			case spv::OpSelectionMerge:
 			{
 				RDCASSERT(!inlineOp);
@@ -2235,13 +2239,58 @@ string SPVModule::Disassemble(const string &entryPoint)
 				funcops.push_back(block->block->exitFlow);
 			}
 		}
+		
+		// keep track of switch statements, as they can contain
+		//     Branch 123
+		//     Label 123
+		// that we want to keep, to identify breaks and fallthroughs
+		vector< pair<uint32_t,SPVFlowControl*> > switchstack;
 
 		// find redundant branch/label pairs
 		for(size_t l=0; l < funcops.size()-1;)
 		{
+			if(funcops[l]->opcode == spv::OpSwitch)
+			{
+				RDCASSERT(l > 1 && funcops[l-1]->opcode == spv::OpSelectionMerge);
+				switchstack.push_back(std::make_pair(funcops[l-1]->flow->targets[0], funcops[l]->flow));
+			}
+
+			if(funcops[l]->opcode == spv::OpLabel)
+			{
+				if(!switchstack.empty() && switchstack.back().first == funcops[l]->id)
+					switchstack.pop_back();
+			}
+
 			if(funcops[l]->opcode == spv::OpBranch)
 			{
-				if(funcops[l+1]->opcode == spv::OpLabel && funcops[l]->flow->targets[0] == funcops[l+1]->id)
+				uint32_t branchTarget = funcops[l]->flow->targets[0];
+				
+				bool skip = false;
+
+				for(size_t sw=0; sw < switchstack.size(); sw++)
+				{
+					if(switchstack[sw].first == branchTarget)
+					{
+						l++;
+						skip = true;
+						break;
+					}
+
+					for(size_t t=0; t < switchstack[sw].second->targets.size(); t++)
+					{
+						if(switchstack[sw].second->targets[t] == branchTarget)
+						{
+							l++;
+							skip = true;
+							break;
+						}
+					}
+				}
+
+				if(skip)
+					continue;
+
+				if(funcops[l+1]->opcode == spv::OpLabel && branchTarget == funcops[l+1]->id)
 				{
 					uint32_t label = funcops[l+1]->id;
 
@@ -2286,6 +2335,8 @@ string SPVModule::Disassemble(const string &entryPoint)
 			l++;
 		}
 
+		RDCASSERT(switchstack.empty());
+
 		size_t tabSize = 2;
 		size_t indent = tabSize;
 
@@ -2320,7 +2371,62 @@ string SPVModule::Disassemble(const string &entryPoint)
 		{
 			if(funcops[o]->opcode == spv::OpLabel)
 			{
-				if(!elsestack.empty() && elsestack.back() == funcops[o]->id)
+				bool handled = false;
+
+				if(!switchstack.empty())
+				{
+					if(switchstack.back().first == funcops[o]->id)
+					{
+						// handle the end of the switch block
+						indent -= tabSize;
+
+						handled = true;
+
+						funcDisassembly += string(indent, ' ');
+						funcDisassembly += "}\n";
+						selectionstack.pop_back();
+						switchstack.pop_back();
+					}
+					else
+					{
+						SPVInstruction *cond = switchstack.back().second->condition;
+						vector<uint32_t> &targets = switchstack.back().second->targets;
+						vector<uint32_t> &values = switchstack.back().second->literals;
+						for(size_t t=0; t < targets.size(); t++)
+						{
+							if(targets[t] == funcops[o]->id)
+							{
+								handled = true;
+
+								if(t == targets.size()-1)
+								{
+									funcDisassembly += string(indent - tabSize, ' ');
+									funcDisassembly += "default:\n";
+								}
+								else
+								{
+									RDCASSERT(t < values.size());
+									funcDisassembly += string(indent - tabSize, ' ');
+
+									if((cond->op && cond->op->type->type == SPVTypeData::eSInt) ||
+										(cond->op && cond->op->type->type == SPVTypeData::eSInt))
+									{
+										funcDisassembly += StringFormat::Fmt("case %d:\n", values[t]);
+									}
+									else
+									{
+										funcDisassembly += StringFormat::Fmt("case %u:\n", values[t]);
+									}
+								}
+							}
+						}
+					}
+				}
+
+				if(handled)
+				{
+				}
+				else if(!elsestack.empty() && elsestack.back() == funcops[o]->id)
 				{
 					// handle meeting an else block
 					funcDisassembly += string(indent - tabSize, ' ');
@@ -2377,7 +2483,43 @@ string SPVModule::Disassemble(const string &entryPoint)
 			}
 			else if(funcops[o]->opcode == spv::OpBranch)
 			{
-				if(!selectionstack.empty() && funcops[o]->flow->targets[0] == selectionstack.back())
+				bool handled = false;
+
+				if(!switchstack.empty())
+				{
+					if(switchstack.back().first == funcops[o]->flow->targets[0])
+					{
+						// this branch is to the selection merge label of the switch statement, it must
+						// be a break instruction
+						funcDisassembly += string(indent, ' ');
+						funcDisassembly += "break;\n";
+
+						handled = true;
+					}
+					else
+					{
+						vector<uint32_t> &targets = switchstack.back().second->targets;
+						for(size_t t=0; t < targets.size(); t++)
+						{
+							if(targets[t] == funcops[o]->flow->targets[0])
+							{
+								// if we're branching to one of the targets of the switch statement,
+								// assume this is fall-through. Normally only the switch itself would
+								// branch to one of these labels, but if a case branches to another
+								// that is a representation of fall-through.
+								// Note in this case the label will also be the next funcop, but this
+								// is required by the spec so we just assert
+								RDCASSERT(o+1 < funcops.size() && funcops[o+1]->id == targets[t]);
+								handled = true;
+							}
+						}
+					}
+				}
+
+				if(handled)
+				{
+				}
+				else if(!selectionstack.empty() && funcops[o]->flow->targets[0] == selectionstack.back())
 				{
 					// if we're at the end of a true if path there will be a goto to
 					// the merge block before the false path label. Don't output it
@@ -2417,23 +2559,40 @@ string SPVModule::Disassemble(const string &entryPoint)
 			}
 			else if(funcops[o]->opcode == spv::OpSelectionMerge)
 			{
+				RDCASSERT(o+1 < funcops.size());
+				
 				selectionstack.push_back(funcops[o]->flow->targets[0]);
-
-				RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpBranchConditional);
+				
 				o++;
 
-				funcDisassembly += string(indent, ' ');
-				funcDisassembly += "if(" + funcops[o]->Disassemble(ids, false) + ") {\n";
+				if(funcops[o]->opcode == spv::OpBranchConditional)
+				{
+					funcDisassembly += string(indent, ' ');
+					funcDisassembly += "if(" + funcops[o]->Disassemble(ids, false) + ") {\n";
 
-				indent += tabSize;
+					indent += tabSize;
 
-				// does the branch have an else case
-				if(funcops[o]->flow->targets[1] != selectionstack.back())
-					elsestack.push_back(funcops[o]->flow->targets[1]);
+					// does the branch have an else case
+					if(funcops[o]->flow->targets[1] != selectionstack.back())
+						elsestack.push_back(funcops[o]->flow->targets[1]);
 
-				RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpLabel &&
-					funcops[o+1]->id == funcops[o]->flow->targets[0]);
-				o++; // skip outputting this label, it becomes our { essentially
+					RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpLabel &&
+						funcops[o+1]->id == funcops[o]->flow->targets[0]);
+					o++; // skip outputting this label, it becomes our { essentially
+				}
+				else if(funcops[o]->opcode == spv::OpSwitch)
+				{
+					funcDisassembly += string(indent, ' ');
+					funcDisassembly += funcops[o]->Disassemble(ids, false) + " {\n";
+
+					indent += tabSize;
+
+					switchstack.push_back(std::make_pair(selectionstack.back(), funcops[o]->flow));
+				}
+				else
+				{
+					RDCERR("Unexpected opcode following selection merge");
+				}
 			}
 			else if(funcops[o]->opcode == spv::OpCompositeInsert && o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpStore)
 			{
@@ -2599,6 +2758,13 @@ string SPVModule::Disassemble(const string &entryPoint)
 
 			funcops[o]->line = (int)o;
 		}
+
+		RDCASSERT(switchstack.empty());
+		RDCASSERT(selectionstack.empty());
+		RDCASSERT(elsestack.empty());
+		RDCASSERT(loopheadstack.empty());
+		RDCASSERT(loopstartstack.empty());
+		RDCASSERT(loopmergestack.empty());
 
 		// declare any variables that didn't get declared inline somewhere above
 #if !C_VARIABLE_DECLARATIONS
@@ -3973,6 +4139,33 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 					op.flow->literals.push_back(spirv[it+4]);
 					op.flow->literals.push_back(spirv[it+5]);
 				}
+
+				curBlock->exitFlow = &op;
+				curBlock = NULL;
+				break;
+			}
+			case spv::OpSwitch:
+			{
+				op.flow = new SPVFlowControl();
+
+				SPVInstruction *condInst = module.GetByID(spirv[it+1]);
+				RDCASSERT(condInst);
+
+				op.flow->condition = condInst;
+
+				if(condInst->op)
+					RDCASSERT(condInst->op->type->IsBasicInt() && condInst->op->type->bitCount <= 32);
+				if(condInst->var)
+					RDCASSERT(condInst->var->type->IsBasicInt() && condInst->var->type->bitCount <= 32);
+
+				for(int i=3; i < WordCount; i+=2)
+				{
+					op.flow->literals.push_back(spirv[it+i+0]);
+					op.flow->targets.push_back(spirv[it+i+1]);
+				}
+
+				// first target is always the default
+				op.flow->targets.push_back(spirv[it+2]);
 
 				curBlock->exitFlow = &op;
 				curBlock = NULL;
