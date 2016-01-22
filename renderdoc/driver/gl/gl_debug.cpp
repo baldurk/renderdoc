@@ -34,6 +34,7 @@
 #include "serialise/string_utils.h"
 
 #include <algorithm>
+#include <float.h>
 
 GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 {
