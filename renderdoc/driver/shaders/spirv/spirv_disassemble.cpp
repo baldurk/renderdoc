@@ -2449,6 +2449,9 @@ string SPVModule::Disassemble(const string &entryPoint)
 
 					funcDisassembly += string(indent, ' ');
 					funcDisassembly += "}\n";
+
+					loopheadstack.pop_back();
+					loopstartstack.pop_back();
 					loopmergestack.pop_back();
 				}
 				else if(!loopstartstack.empty() && loopstartstack.back() == funcops[o]->id)
