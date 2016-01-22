@@ -117,7 +117,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 		VkDebugReportCallbackCreateInfoEXT debugInfo = {};
 		debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
 		debugInfo.pNext = NULL;
-		debugInfo.pfnCallback = &DebugCallbackStatic;
+		debugInfo.pfnCallback = (PFN_vkDebugReportCallbackEXT)&DebugCallbackStatic;
 		debugInfo.pUserData = this;
 		debugInfo.flags = VK_DEBUG_REPORT_WARN_BIT_EXT|VK_DEBUG_REPORT_PERF_WARN_BIT_EXT|VK_DEBUG_REPORT_ERROR_BIT_EXT;
 
