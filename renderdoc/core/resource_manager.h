@@ -506,9 +506,10 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Shutdow
 	while(!m_LiveResourceMap.empty())
 	{
 		auto it = m_LiveResourceMap.begin();
+		ResourceId id = it->first;
 		ResourceTypeRelease(it->second);
 
-		auto removeit = m_LiveResourceMap.find(it->first);
+		auto removeit = m_LiveResourceMap.find(id);
 		if(removeit != m_LiveResourceMap.end())
 			m_LiveResourceMap.erase(removeit);
 	}
@@ -516,9 +517,10 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Shutdow
 	while(!m_InframeResourceMap.empty())
 	{
 		auto it = m_InframeResourceMap.begin();
+		ResourceId id = it->first;
 		ResourceTypeRelease(it->second);
 
-		auto removeit = m_InframeResourceMap.find(it->first);
+		auto removeit = m_InframeResourceMap.find(id);
 		if(removeit != m_InframeResourceMap.end())
 			m_InframeResourceMap.erase(removeit);
 	}
