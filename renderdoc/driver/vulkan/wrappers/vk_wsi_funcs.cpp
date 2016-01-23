@@ -474,13 +474,17 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 	}
 	
 	vector<VkSwapchainKHR> unwrappedSwaps;
+	vector<VkSemaphore> unwrappedSems;
 	
 	VkPresentInfoKHR unwrappedInfo = *pPresentInfo;
 
 	for(uint32_t i=0; i < unwrappedInfo.swapchainCount; i++)
 		unwrappedSwaps.push_back(Unwrap(unwrappedInfo.pSwapchains[i]));
+	for(uint32_t i=0; i < unwrappedInfo.waitSemaphoreCount; i++)
+		unwrappedSems.push_back(Unwrap(unwrappedInfo.pWaitSemaphores[i]));
 
-	unwrappedInfo.pSwapchains = &unwrappedSwaps.front();
+	unwrappedInfo.pSwapchains = unwrappedInfo.swapchainCount ? &unwrappedSwaps[0] : NULL;
+	unwrappedInfo.pWaitSemaphores = unwrappedInfo.waitSemaphoreCount ? &unwrappedSems[0] : NULL;
 
 	// Don't support any extensions for present info
 	RDCASSERT(pPresentInfo->pNext == NULL);
