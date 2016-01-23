@@ -3109,9 +3109,6 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 	reflection->DebugInfo.entryFile = 0;
 	reflection->DebugInfo.entryFunc = entryPoint;
 
-	create_array_uninit(mapping->InputAttributes, 16);
-	for(size_t i=0; i < 16; i++) mapping->InputAttributes[i] = -1;
-
 	// TODO need to fetch these
 	reflection->DispatchThreadsDimension[0] = 0;
 	reflection->DispatchThreadsDimension[1] = 0;
@@ -3486,6 +3483,15 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 
 	std::sort(inputs.begin(), inputs.end(), sig_param_sort());
 	std::sort(outputs.begin(), outputs.end(), sig_param_sort());
+
+	size_t numInputs = 16;
+	
+	for(size_t i=0; i < inputs.size(); i++)
+		if(inputs[i].systemValue == eAttr_None)
+			numInputs = RDCMAX(numInputs, (size_t)inputs[i].regIndex+1);
+	
+	create_array_uninit(mapping->InputAttributes, numInputs);
+	for(size_t i=0; i < numInputs; i++) mapping->InputAttributes[i] = -1;
 
 	for(size_t i=0; i < inputs.size(); i++)
 		if(inputs[i].systemValue == eAttr_None)
