@@ -3026,8 +3026,50 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 	{
 		// we don't support nested structs yet
 		RDCASSERT(childIdx == ~0U);
+
+		// it's invalid to include built-in and 'normal' outputs in the same struct. One
+		// way this can happen is if a SPIR-V generator incorrectly puts in legacy elements
+		// into an implicit gl_PerVertex struct, but they don't have a builtin to associate
+		// with. We can safely skip these parameters
+
+		// check to see if this struct contains some builtins
+		bool hasBuiltins = false;
+		for(size_t c=0; c < type->childDecorations.size(); c++)
+		{
+			for(size_t d=0; d < type->childDecorations[c].size(); d++)
+			{
+				if(type->childDecorations[c][d].decoration == spv::DecorationBuiltIn)
+				{
+					hasBuiltins = true;
+					break;
+				}
+			}
+		}
+
 		for(size_t c=0; c < type->children.size(); c++)
+		{
+			// if this struct has builtins, see if this child is a builtin
+			if(hasBuiltins)
+			{
+				bool isBuiltin = false;
+
+				for(size_t d=0; d < type->childDecorations[c].size(); d++)
+				{
+					if(type->childDecorations[c][d].decoration == spv::DecorationBuiltIn)
+					{
+						isBuiltin = true;
+						break;
+					}
+				}
+
+				// if it's not a builtin, then skip it
+				if(!isBuiltin)
+					continue;
+			}
+
 			AddSignatureParameter(id, (uint32_t)c, varName + "." + type->children[c].second, type->children[c].first, type->childDecorations[c], sigarray);
+		}
+
 		return;
 	}
 
