@@ -1204,10 +1204,6 @@ struct SPVInstruction
 			case spv::OpDPdxCoarse:
 			case spv::OpDPdyCoarse:
 			case spv::OpFwidthCoarse:
-			case spv::OpEmitVertex:
-			case spv::OpEmitStreamVertex:
-			case spv::OpEndPrimitive:
-			case spv::OpEndStreamPrimitive:
 			case spv::OpImageSparseTexelsResident:
 			case spv::OpImage:
 			case spv::OpSampledImage:
@@ -1285,6 +1281,13 @@ struct SPVInstruction
 				ret += ")";
 
 				return ret;
+			}
+			case spv::OpEmitVertex:
+			case spv::OpEmitStreamVertex:
+			case spv::OpEndPrimitive:
+			case spv::OpEndStreamPrimitive:
+			{
+				return ToStr::Get(opcode) + "()";
 			}
 			case spv::OpVectorShuffle:
 			{
@@ -4538,10 +4541,6 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpDPdxCoarse:
 			case spv::OpDPdyCoarse:
 			case spv::OpFwidthCoarse:
-			case spv::OpEmitVertex:
-			case spv::OpEmitStreamVertex:
-			case spv::OpEndPrimitive:
-			case spv::OpEndStreamPrimitive:
 			case spv::OpImageSparseTexelsResident:
 			case spv::OpImage:
 			case spv::OpSampledImage:
@@ -4589,6 +4588,17 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				}
 
 				curBlock->instructions.push_back(&op);
+				break;
+			}
+			case spv::OpEmitVertex:
+			case spv::OpEmitStreamVertex:
+			case spv::OpEndPrimitive:
+			case spv::OpEndStreamPrimitive:
+			{
+				// these don't emit an ID, don't take a type, they are just
+				// single operations
+				op.op = new SPVOperation();
+				op.op->type = NULL;
 				break;
 			}
 			case spv::OpVectorShuffle:
