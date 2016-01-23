@@ -511,7 +511,7 @@ private:
 				const char*                                 pLayerPrefix,
 				const char*                                 pMessage);
 	
-	static VkBool32 DebugCallbackStatic(
+	static VkBool32 VKAPI_PTR DebugCallbackStatic(
 				VkDebugReportFlagsEXT                       flags,
 				VkDebugReportObjectTypeEXT                  objectType,
 				uint64_t                                    object,
