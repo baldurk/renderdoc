@@ -146,7 +146,14 @@ namespace renderdocui.Windows
             }
         }
 
-        private const int MaxRowCount = 200000;
+        private int MaxRowCount
+        {
+            get
+            {
+                // for now, don't clamp rows on mesh view
+                return MeshView ? int.MaxValue : 200000;
+            }
+        }
 
         // one UI state for each stage
         private UIState m_VSIn = new UIState(MeshDataStage.VSIn);
