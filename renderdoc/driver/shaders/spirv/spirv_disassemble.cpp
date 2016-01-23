@@ -1218,7 +1218,7 @@ struct SPVInstruction
 
 				string ret = "";
 
-				if(!inlineOp && op->type->type != SPVTypeData::eVoid)
+				if(!inlineOp && op->type && op->type->type != SPVTypeData::eVoid)
 					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
 
 				size_t numArgs = op->arguments.size();
@@ -4274,8 +4274,13 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			{
 				uint32_t idx = 1;
 
-				SPVInstruction *typeInst = module.GetByID(spirv[it+idx]); idx++;
-				RDCASSERT(typeInst && typeInst->type);
+				SPVInstruction *typeInst = NULL;
+				
+				if(op.opcode != spv::OpImageWrite)
+				{
+					typeInst = module.GetByID(spirv[it+idx]); idx++;
+					RDCASSERT(typeInst && typeInst->type);
+				}
 
 				// bucket the different opcodes
 				bool implicit = false, dref = false, image = false;
@@ -4328,10 +4333,13 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				}
 				
 				op.op = new SPVOperation();
-				op.op->type = typeInst->type;
-
-				op.id = spirv[it+idx]; idx++;
-				module.ids[op.id] = &op;
+				
+				if(op.opcode != spv::OpImageWrite)
+				{
+					op.op->type = typeInst->type;
+					op.id = spirv[it+idx]; idx++;
+					module.ids[op.id] = &op;
+				}
 
 				// sampled image
 				{
