@@ -1894,7 +1894,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 			vkr = vt->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			GetBufferData(cfg.position.buf, 0, 0, m_HighlightCache.data);
+			uint64_t maxIndex = cfg.position.numVerts;
 
 			if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
 			{
@@ -1920,19 +1920,30 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 				if(bytesize == 1)
 				{
 					for(uint32_t i=0; i < numIndices; i++)
+					{
 						m_HighlightCache.indices[i] = uint32_t(idx8[i]);
+						maxIndex = RDCMAX(maxIndex, (uint64_t)m_HighlightCache.indices[i]);
+					}
 				}
 				else if(bytesize == 2)
 				{
 					for(uint32_t i=0; i < numIndices; i++)
+					{
 						m_HighlightCache.indices[i] = uint32_t(idx16[i]);
+						maxIndex = RDCMAX(maxIndex, (uint64_t)m_HighlightCache.indices[i]);
+					}
 				}
 				else if(bytesize == 4)
 				{
 					for(uint32_t i=0; i < numIndices; i++)
+					{
 						m_HighlightCache.indices[i] = idx32[i];
+						maxIndex = RDCMAX(maxIndex, (uint64_t)m_HighlightCache.indices[i]);
+					}
 				}
 			}
+			
+			GetBufferData(cfg.position.buf, cfg.position.offset, (maxIndex+1)*cfg.position.stride, m_HighlightCache.data);
 
 			// get a new cmdbuffer and begin it
 			cmd = m_pDriver->GetNextCmd();
@@ -1951,7 +1962,9 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 		byte *data = &m_HighlightCache.data[0]; // buffer start
 		byte *dataEnd = data + m_HighlightCache.data.size();
 
-		data += cfg.position.offset; // to start of position data
+		// we already accounted for cfg.position.offset when fetching the cache
+		// above (since this is constant)
+		//data += cfg.position.offset; // to start of position data
 		
 		///////////////////////////////////////////////////////////////
 		// vectors to be set from buffers, depending on topology
