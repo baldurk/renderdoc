@@ -573,11 +573,33 @@ VkResult WrappedVulkan::vkQueueSubmit(
 				size_t diffStart = 0, diffEnd = 0;
 				bool found = true;
 
+				// disable for now as there seem to be bugs.
+#if 0
+				// this causes vkFlushMappedMemoryRanges call to allocate and copy to refData
+				// from serialised buffer. We want to copy *precisely* the serialised data,
+				// otherwise there is a gap in time between serialising out a snapshot of
+				// the buffer and whenever we then copy into the ref data, e.g. below.
+				// during this time, data could be written to the buffer and it won't have
+				// been caught in the serialised snapshot, and if it doesn't change then
+				// it *also* won't be caught in any future FindDiffRange() calls.
+				//
+				// Likewise once refData is allocated, the call below will also update it
+				// with the data serialised out for the same reason.
+				//
+				// Note: it's still possible that data is being written to by the
+				// application while it's being serialised out in the snapshot below. That
+				// is OK, since the application is responsible for ensuring it's not writing
+				// data that would be needed by the GPU in this submit. As long as the
+				// refdata we use for future use is identical to what was serialised, we
+				// shouldn't miss anything
+				state.needRefData = true;
+
 				// if we have a previous set of data, compare.
 				// otherwise just serialise it all
 				if(state.refData)
 					found = FindDiffRange((byte *)state.mappedPtr, state.refData, (size_t)state.mapSize, diffStart, diffEnd);
 				else
+#endif
 					diffEnd = (size_t)state.mapSize;
 
 				if(found)
@@ -593,21 +615,6 @@ VkResult WrappedVulkan::vkQueueSubmit(
 							(VkDeviceMemory)(uint64_t)record->Resource,
 							state.mapOffset+diffStart, diffEnd-diffStart
 						};
-						// this causes the call within to allocate state.refData and copy what was
-						// serialised into it. We want to copy *precisely* the serialised data,
-						// otherwise there is a gap in time between serialising out a snapshot of
-						// the buffer and whenever we then copy into the ref data, e.g. below.
-						// during this time, data could be written to the buffer and it won't have
-						// been caught in the serialised snapshot, and if it doesn't change then
-						// it *also* won't be caught in any future FindDiffRange() calls.
-						//
-						// Note: it's still possible that data is being written to by the
-						// application while it's being serialised out in the snapshot below. That
-						// is OK, since the application is responsible for ensuring it's not writing
-						// data that would be needed by the GPU in this submit. As long as the
-						// refdata we use for future use is identical to what was serialised, we
-						// shouldn't miss anything
-						state.needRefData = true;
 						vkFlushMappedMemoryRanges(dev, 1, &range);
 						state.mapFlushed = false;
 					}
