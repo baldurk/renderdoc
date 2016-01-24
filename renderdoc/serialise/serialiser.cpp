@@ -957,11 +957,6 @@ Serialiser::~Serialiser()
 
 void Serialiser::WriteBytes( const byte *buf, size_t nBytes )
 {
-#ifdef DEBUG_TEXT_SERIALISER
-	if(m_Mode == DEBUGWRITING)
-		return;
-#endif
-
 	if(m_HasError)
 	{
 		RDCERR("Writing bytes with error state serialiser");
