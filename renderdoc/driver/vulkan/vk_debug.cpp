@@ -323,7 +323,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	VkSamplerCreateInfo sampInfo = {
 		VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, NULL, 0,
 		VK_FILTER_LINEAR, VK_FILTER_LINEAR,
-		VK_SAMPLER_MIPMAP_MODE_LINEAR, 
+		VK_SAMPLER_MIPMAP_MODE_NEAREST,
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
@@ -343,7 +343,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	sampInfo.minFilter = VK_FILTER_NEAREST;
 	sampInfo.magFilter = VK_FILTER_NEAREST;
-	sampInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
 
 	vkr = vt->CreateSampler(Unwrap(dev), &sampInfo, NULL, &m_PointSampler);
 	RDCASSERT(vkr == VK_SUCCESS);
