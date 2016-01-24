@@ -686,9 +686,11 @@ struct MemMapState
 {
 	MemMapState()
 		: mapOffset(0), mapSize(0)
-		, mapFlushed(false), mapCoherent(false), mappedPtr(NULL), refData(NULL)
+		, needRefData(false), mapFlushed(false), mapCoherent(false)
+		, mappedPtr(NULL), refData(NULL)
 	{ }
 	VkDeviceSize mapOffset, mapSize;
+	bool needRefData;
 	bool mapFlushed;
 	bool mapCoherent;
 	byte *mappedPtr;

@@ -593,16 +593,26 @@ VkResult WrappedVulkan::vkQueueSubmit(
 							(VkDeviceMemory)(uint64_t)record->Resource,
 							state.mapOffset+diffStart, diffEnd-diffStart
 						};
+						// this causes the call within to allocate state.refData and copy what was
+						// serialised into it. We want to copy *precisely* the serialised data,
+						// otherwise there is a gap in time between serialising out a snapshot of
+						// the buffer and whenever we then copy into the ref data, e.g. below.
+						// during this time, data could be written to the buffer and it won't have
+						// been caught in the serialised snapshot, and if it doesn't change then
+						// it *also* won't be caught in any future FindDiffRange() calls.
+						//
+						// Note: it's still possible that data is being written to by the
+						// application while it's being serialised out in the snapshot below. That
+						// is OK, since the application is responsible for ensuring it's not writing
+						// data that would be needed by the GPU in this submit. As long as the
+						// refdata we use for future use is identical to what was serialised, we
+						// shouldn't miss anything
+						state.needRefData = true;
 						vkFlushMappedMemoryRanges(dev, 1, &range);
 						state.mapFlushed = false;
 					}
 
 					GetResourceManager()->MarkPendingDirty(record->GetResourceID());
-
-					// allocate ref data so we can compare next time to minimise serialised data
-					if(state.refData == NULL)
-						state.refData = Serialiser::AllocAlignedBuffer((size_t)state.mapSize, 64);
-					memcpy(state.refData, state.mappedPtr, (size_t)state.mapSize);
 				}
 				else
 				{
