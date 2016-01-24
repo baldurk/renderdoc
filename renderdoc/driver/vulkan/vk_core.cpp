@@ -714,6 +714,7 @@ void WrappedVulkan::FinishCapture()
 		{
 			Serialiser::FreeAlignedBuffer((*it)->memMapState->refData);
 			(*it)->memMapState->refData = NULL;
+			(*it)->memMapState->needRefData = false;
 		}
 	}
 }

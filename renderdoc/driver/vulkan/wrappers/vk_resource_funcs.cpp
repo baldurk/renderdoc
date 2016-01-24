@@ -489,11 +489,17 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 
 	// if we need to save off this serialised buffer as reference for future comparison,
 	// do so now. See the call to vkFlushMappedMemoryRanges in WrappedVulkan::vkQueueSubmit()
-	if(m_State >= WRITING && state->needRefData && !state->refData)
+	if(m_State >= WRITING && state->needRefData)
 	{
-		// if we're in this case, the range should be for the whole memory region.
-		RDCASSERT(memOffset == 0 && memSize == state->mapSize);
+		if(!state->refData)
+		{
+			// if we're in this case, the range should be for the whole memory region.
+			RDCASSERT(memOffset == 0 && memSize == state->mapSize);
 
+			// allocate ref data so we can compare next time to minimise serialised data
+			state->refData = Serialiser::AllocAlignedBuffer((size_t)state->mapSize);
+		}
+		
 		// it's no longer safe to use state->mappedPtr, we need to save *precisely* what
 		// was serialised. We do this by copying out of the serialiser since we know this
 		// memory is not changing
@@ -501,9 +507,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 
 		byte *serialisedData = localSerialiser->GetRawPtr(offs);
 
-		// allocate ref data so we can compare next time to minimise serialised data
-		state->refData = Serialiser::AllocAlignedBuffer((size_t)state->mapSize);
-		memcpy(state->refData, serialisedData, (size_t)state->mapSize);
+		memcpy(state->refData, serialisedData + (size_t)memOffset, (size_t)memSize);
 	}
 
 	if(m_State < WRITING)
