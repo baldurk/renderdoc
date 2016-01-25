@@ -309,6 +309,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
 
 			if(object)
 			{
+				a.level = 0;
 				gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &a.level);
 				gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
 				gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, &a.layer);
@@ -1738,7 +1739,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 					}
 					else
 					{
-						gl.glNamedFramebufferTextureEXT(live.name, data->attachmentNames[i], obj, 0);
+						gl.glNamedFramebufferTextureEXT(live.name, data->attachmentNames[i], obj, a.level);
 					}
 				}
 			}
