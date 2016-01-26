@@ -554,6 +554,7 @@ void ReplayOutput::DisplayMesh()
 		float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 		m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
 		m_pDevice->ClearOutputWindowColour(m_MainOutput.outputID, color);
+		m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 		m_pDevice->RenderCheckerboard(Vec3f(0.666f, 0.666f, 0.666f), Vec3f(0.333f, 0.333f, 0.333f));
 
 		return;
