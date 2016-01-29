@@ -25,6 +25,10 @@
 #include "../vk_core.h"
 #include "../vk_debug.h"
 
+// vk_dispatchtables.cpp
+void InitDeviceTable(VkDevice dev, PFN_vkGetDeviceProcAddr gpa);
+void InitInstanceTable(VkInstance inst, PFN_vkGetInstanceProcAddr gpa);
+
 // Init/shutdown order:
 //
 // On capture, WrappedVulkan is new'd and delete'd before vkCreateInstance() and after vkDestroyInstance()
@@ -138,11 +142,34 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	// don't support any extensions for this createinfo
 	RDCASSERT(pCreateInfo->pApplicationInfo == NULL || pCreateInfo->pApplicationInfo->pNext == NULL);
-	RDCASSERT(pCreateInfo->pNext == NULL);
+
+	VkLayerInstanceCreateInfo *layerCreateInfo = (VkLayerInstanceCreateInfo *)pCreateInfo->pNext;
+
+	// step through the chain of pNext until we get to the link info
+	while(layerCreateInfo &&
+				(layerCreateInfo->sType != VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO || 
+				 layerCreateInfo->function != VK_LAYER_LINK_INFO)
+			)
+	{
+		// we don't handle any pNext elements other than this create info struct
+		RDCASSERT(layerCreateInfo->sType == VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO);
+		layerCreateInfo = (VkLayerInstanceCreateInfo *)layerCreateInfo->pNext;
+	}
+	RDCASSERT(layerCreateInfo);
+	// make sure there are no elements after this, that we don't handle
+	RDCASSERT(layerCreateInfo->pNext == NULL);
+
+	PFN_vkGetInstanceProcAddr gpa = layerCreateInfo->u.pLayerInfo->pfnNextGetInstanceProcAddr;
+	// move chain on for next layer
+	layerCreateInfo->u.pLayerInfo = layerCreateInfo->u.pLayerInfo->pNext;
+
+	PFN_vkCreateInstance createFunc = (PFN_vkCreateInstance)gpa(VK_NULL_HANDLE, "vkCreateInstance");
+	
+	VkResult ret = createFunc(pCreateInfo, pAllocator, pInstance);
 
 	m_Instance = *pInstance;
 
-	VkResult ret = GetInstanceDispatchTable(*pInstance)->CreateInstance(pCreateInfo, pAllocator, &m_Instance);
+	InitInstanceTable(m_Instance, gpa);
 
 	GetResourceManager()->WrapResource(m_Instance, m_Instance);
 
@@ -726,7 +753,37 @@ VkResult WrappedVulkan::vkCreateDevice(
 			m_QueueFamilies[family][q] = VK_NULL_HANDLE;
 	}
 
-	VkResult ret = GetDeviceDispatchTable(*pDevice)->CreateDevice(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice);
+	VkLayerDeviceCreateInfo *layerCreateInfo = (VkLayerDeviceCreateInfo *)pCreateInfo->pNext;
+
+	// step through the chain of pNext until we get to the link info
+	while(layerCreateInfo &&
+				(layerCreateInfo->sType != VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO || 
+				 layerCreateInfo->function != VK_LAYER_LINK_INFO)
+			)
+	{
+		// we don't handle any pNext elements other than this create info struct
+		RDCASSERT(layerCreateInfo->sType == VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO);
+		layerCreateInfo = (VkLayerDeviceCreateInfo *)layerCreateInfo->pNext;
+	}
+	RDCASSERT(layerCreateInfo);
+
+	// make sure there are no elements after this, that we don't handle
+	RDCASSERT(layerCreateInfo->pNext == NULL);
+
+	PFN_vkGetDeviceProcAddr gdpa = layerCreateInfo->u.pLayerInfo->pfnNextGetDeviceProcAddr;
+	PFN_vkGetInstanceProcAddr gipa = layerCreateInfo->u.pLayerInfo->pfnNextGetInstanceProcAddr;
+	// move chain on for next layer
+	layerCreateInfo->u.pLayerInfo = layerCreateInfo->u.pLayerInfo->pNext;
+
+	PFN_vkCreateDevice createFunc = (PFN_vkCreateDevice)gipa(VK_NULL_HANDLE, "vkCreateDevice");
+
+	VkResult ret = createFunc(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice);
+	
+	// don't serialise out any of the pNext stuff for layer initialisation
+	// (note that we asserted above that there was nothing else in the chain)
+	createInfo.pNext = NULL;
+
+	InitDeviceTable(*pDevice, gdpa);
 
 	if(ret == VK_SUCCESS)
 	{

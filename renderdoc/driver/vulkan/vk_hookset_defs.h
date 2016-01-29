@@ -405,11 +405,19 @@
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
 {
+	// for consistency & ease, we declare the CreateInstance pointer here
+	// even though it won't actually ever get used
+	PFN_vkCreateInstance CreateInstance;
+
 	// extensions here
 };
 
 struct VkLayerDispatchTableExtended : VkLayerDispatchTable
 {
+	// for consistency & ease, we declare the CreateDevice pointer here
+	// even though it won't actually ever get used
+	PFN_vkCreateDevice CreateDevice;
+
 	// VK_LUNARG_DEBUG_MARKER
 	PFN_vkCmdDbgMarkerBegin CmdDbgMarkerBegin;
 	PFN_vkCmdDbgMarkerEnd CmdDbgMarkerEnd;

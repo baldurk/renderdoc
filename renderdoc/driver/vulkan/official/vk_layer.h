@@ -15,18 +15,11 @@
 #  define VK_LAYER_EXPORT
 #endif
 
-typedef void * (VKAPI_PTR *PFN_vkGPA)(void* obj, const char * pName);
-typedef struct VkBaseLayerObject_
-{
-    PFN_vkGPA pGPA;
-    void* nextObject;
-    void* baseObject;
-} VkBaseLayerObject;
+
 
 typedef struct VkLayerDispatchTable_
 {
     PFN_vkGetDeviceProcAddr GetDeviceProcAddr;
-    PFN_vkCreateDevice CreateDevice;
     PFN_vkDestroyDevice DestroyDevice;
     PFN_vkGetDeviceQueue GetDeviceQueue;
     PFN_vkQueueSubmit QueueSubmit;
@@ -157,7 +150,6 @@ typedef struct VkLayerDispatchTable_
 typedef struct VkLayerInstanceDispatchTable_
 {
     PFN_vkGetInstanceProcAddr GetInstanceProcAddr;
-    PFN_vkCreateInstance CreateInstance;
     PFN_vkDestroyInstance DestroyInstance;
     PFN_vkEnumeratePhysicalDevices EnumeratePhysicalDevices;
     PFN_vkGetPhysicalDeviceFeatures GetPhysicalDeviceFeatures;
@@ -208,7 +200,7 @@ typedef struct VkLayerDbgFunctionNode_
     VkDebugReportCallbackEXT msgCallback;
     PFN_vkDebugReportCallbackEXT pfnMsgCallback;
     VkFlags msgFlags;
-    const void *pUserData;
+    void *pUserData;
     struct VkLayerDbgFunctionNode_ *pNext;
 } VkLayerDbgFunctionNode;
 
@@ -220,6 +212,71 @@ typedef enum VkLayerDbgAction_
     VK_DBG_LAYER_ACTION_BREAK = 0x4,
     VK_DBG_LAYER_ACTION_DEBUG_OUTPUT = 0x8,
 } VkLayerDbgAction;
+
+// ------------------------------------------------------------------------------------------------
+// CreateInstance and CreateDevice support structures
+
+typedef enum VkLayerFunction_
+{
+    VK_LAYER_LINK_INFO = 0,
+    VK_LAYER_DEVICE_INFO = 1,
+    VK_LAYER_INSTANCE_INFO = 2
+} VkLayerFunction;
+
+/*
+ * When creating the device chain the loader needs to pass
+ * down information about it's device structure needed at
+ * the end of the chain. Passing the data via the
+ * VkLayerInstanceInfo avoids issues with finding the
+ * exact instance being used.
+ */
+typedef struct VkLayerInstanceInfo_ {
+    void *instance_info;
+    PFN_vkGetInstanceProcAddr pfnNextGetInstanceProcAddr;
+} VkLayerInstanceInfo;
+
+typedef struct VkLayerInstanceLink_ {
+    struct VkLayerInstanceLink_* pNext;
+    PFN_vkGetInstanceProcAddr pfnNextGetInstanceProcAddr;
+} VkLayerInstanceLink;
+
+/*
+ * When creating the device chain the loader needs to pass
+ * down information about it's device structure needed at
+ * the end of the chain. Passing the data via the
+ * VkLayerDeviceInfo avoids issues with finding the
+ * exact instance being used.
+ */
+typedef struct VkLayerDeviceInfo_ {
+    void *device_info;
+    PFN_vkGetInstanceProcAddr pfnNextGetInstanceProcAddr;
+} VkLayerDeviceInfo;
+
+typedef struct {
+    VkStructureType sType; // VK_STRUCTURE_TYPE_LAYER_INSTANCE_CREATE_INFO
+    const void* pNext;
+    VkLayerFunction function;
+    union {
+        VkLayerInstanceLink* pLayerInfo;
+        VkLayerInstanceInfo instanceInfo;
+    } u;
+} VkLayerInstanceCreateInfo;
+
+typedef struct VkLayerDeviceLink_ {
+    struct VkLayerDeviceLink_* pNext;
+    PFN_vkGetInstanceProcAddr pfnNextGetInstanceProcAddr;
+    PFN_vkGetDeviceProcAddr pfnNextGetDeviceProcAddr;
+} VkLayerDeviceLink;
+
+typedef struct {
+    VkStructureType sType; // VK_STRUCTURE_TYPE_LAYER_DEVICE_CREATE_INFO
+    const void* pNext;
+    VkLayerFunction function;
+    union {
+        VkLayerDeviceLink* pLayerInfo;
+        VkLayerDeviceInfo deviceInfo;
+    } u;
+} VkLayerDeviceCreateInfo;
 
 // ------------------------------------------------------------------------------------------------
 // API functions

@@ -519,7 +519,7 @@ private:
 				int32_t                                     messageCode,
 				const char*                                 pLayerPrefix,
 				const char*                                 pMessage,
-				const void*                                 pUserData)
+				void*                                       pUserData)
 	{
 		return ((WrappedVulkan *)pUserData)->DebugCallback(flags, objectType, object, location, messageCode, pLayerPrefix, pMessage);
 	}

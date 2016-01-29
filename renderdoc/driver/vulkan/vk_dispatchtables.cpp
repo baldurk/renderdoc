@@ -153,10 +153,10 @@ static void *GetKey(void *obj)
 	return (void *)*tablePtr;
 }
 
-void InitDeviceTable(const VkBaseLayerObject *obj)
+void InitDeviceTable(VkDevice dev, PFN_vkGetDeviceProcAddr gpa)
 {
-	void *key = GetKey(obj->baseObject);
-	
+	void *key = GetKey(dev);
+
 	VkLayerDispatchTableExtended *table = NULL;
 
 	{
@@ -165,19 +165,18 @@ void InitDeviceTable(const VkBaseLayerObject *obj)
 		table = &devlookup[key];
 	}
 
-	// init the GetDeviceProcAddr function first
-	table->GetDeviceProcAddr = (PFN_vkGetDeviceProcAddr)obj->pGPA((VkDevice)obj->nextObject, "vkGetDeviceProcAddr");
-		
+	table->GetDeviceProcAddr = gpa;
+
 	// fetch the rest of the functions
 	#undef HookInit
-	#define HookInit(name) if(table->name == NULL) table->name = (CONCAT(PFN_vk, name))obj->pGPA((VkDevice)obj->baseObject, STRINGIZE(CONCAT(vk, name)))
+	#define HookInit(name) if(table->name == NULL) table->name = (CONCAT(PFN_vk, name))gpa(dev, STRINGIZE(CONCAT(vk, name)))
 
 	HookInitVulkanDevice();
 }
 
-void InitInstanceTable(const VkBaseLayerObject *obj)
+void InitInstanceTable(VkInstance inst, PFN_vkGetInstanceProcAddr gpa)
 {
-	void *key = GetKey(obj->baseObject);
+	void *key = GetKey(inst);
 	
 	VkLayerInstanceDispatchTableExtended *table = NULL;
 
@@ -188,14 +187,14 @@ void InitInstanceTable(const VkBaseLayerObject *obj)
 	}
 
 	// init the GetInstanceProcAddr function first
-	table->GetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)obj->pGPA((VkInstance)obj->nextObject, "vkGetInstanceProcAddr");
-		
+	table->GetInstanceProcAddr = gpa;
+
 	// fetch the rest of the functions
 	#undef HookInit
-	#define HookInit(name) if(table->name == NULL) table->name = (CONCAT(PFN_vk, name))obj->pGPA((VkInstance)obj->baseObject, STRINGIZE(CONCAT(vk, name)))
+	#define HookInit(name) if(table->name == NULL) table->name = (CONCAT(PFN_vk, name))gpa(inst, STRINGIZE(CONCAT(vk, name)))
 
 	HookInitVulkanInstance();
-	
+
 	// we also need these functions for layer handling
 	HookInit(EnumerateDeviceExtensionProperties);
 	HookInit(EnumerateDeviceLayerProperties);

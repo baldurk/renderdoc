@@ -47,9 +47,6 @@
 #define VK_LAYER_EXPORT extern "C" __declspec(dllexport)
 #endif
 
-void InitDeviceTable(const VkBaseLayerObject *obj);
-void InitInstanceTable(const VkBaseLayerObject *obj);
-
 // in vk_<platform>.cpp
 bool LayerRegistered();
 
@@ -170,7 +167,7 @@ VkResult getProps(uint32_t *dstCount, void *dstProps, uint32_t srcCount, void *s
 
 extern "C" {
 
-VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDocEnumerateDeviceLayerProperties(
+VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDoc_EnumerateDeviceLayerProperties(
 	VkPhysicalDevice                            physicalDevice,
 	uint32_t*                                   pPropertyCount,
 	VkLayerProperties*                          pProperties)
@@ -178,7 +175,7 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDocEnumerateDeviceLayerProperties(
 	return getProps(pPropertyCount, pProperties, ARRAY_COUNT(physLayers), (void *)physLayers, sizeof(VkLayerProperties));
 }
 
-VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDocEnumerateDeviceExtensionProperties(
+VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDoc_EnumerateDeviceExtensionProperties(
 	VkPhysicalDevice        physicalDevice,
 	const char             *pLayerName,
 	uint32_t               *pPropertyCount,
@@ -207,64 +204,42 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDocEnumerateDeviceExtensionProperties(
 
 VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetDeviceProcAddr(VkDevice device, const char* pName)
 {
-	if (device == NULL)
-		return NULL;
-
-	/* loader uses this to force layer initialization; device object is wrapped */
-	if (!strcmp("vkGetDeviceProcAddr", pName)) {
-		InitDeviceTable((const VkBaseLayerObject *) device);
+	if(!strcmp("vkGetDeviceProcAddr", pName))
 		return (PFN_vkVoidFunction) &RenderDoc_GetDeviceProcAddr;
-	}
-
-	if (!strcmp("vkCreateDevice", pName))
+	if(!strcmp("vkCreateDevice", pName))
 		return (PFN_vkVoidFunction) &hooked_vkCreateDevice;
-	if (!strcmp("vkDestroyDevice", pName))
+	if(!strcmp("vkDestroyDevice", pName))
 		return (PFN_vkVoidFunction) &hooked_vkDestroyDevice;
 
 	HookInitVulkanDevice();
+	
+	if(device == VK_NULL_HANDLE)
+		return NULL;
 
 	InstanceDeviceInfo *instDevInfo = GetRecord(device)->instDevInfo;
 
 	HookInitVulkanDeviceExts();
 
-	if (GetDeviceDispatchTable(device)->GetDeviceProcAddr == NULL)
+	if(GetDeviceDispatchTable(device)->GetDeviceProcAddr == NULL)
 		return NULL;
 	return GetDeviceDispatchTable(device)->GetDeviceProcAddr(Unwrap(device), pName);
 }
 
 VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetInstanceProcAddr(VkInstance instance, const char* pName)
 {
-	if (instance == NULL)
-		return NULL;
-
-	/* loader uses this to force layer initialization; instance object is wrapped */
-	if (!strcmp("vkGetInstanceProcAddr", pName)) {
-		InitInstanceTable((const VkBaseLayerObject *) instance);
+	if(!strcmp("vkGetInstanceProcAddr", pName))
 		return (PFN_vkVoidFunction) &RenderDoc_GetInstanceProcAddr;
-	}
-
-	if (!strcmp("vkEnumerateDeviceLayerProperties", pName))
-		return (PFN_vkVoidFunction) &RenderDocEnumerateDeviceLayerProperties;
-	if (!strcmp("vkEnumerateDeviceExtensionProperties", pName))
-		return (PFN_vkVoidFunction) &RenderDocEnumerateDeviceExtensionProperties;
+	if(!strcmp("vkEnumerateDeviceLayerProperties", pName))
+		return (PFN_vkVoidFunction) &RenderDoc_EnumerateDeviceLayerProperties;
+	if(!strcmp("vkEnumerateDeviceExtensionProperties", pName))
+		return (PFN_vkVoidFunction) &RenderDoc_EnumerateDeviceExtensionProperties;
 
 	HookInitVulkanInstance();
+	
+	if(instance == VK_NULL_HANDLE)
+		return NULL;
 
 	InstanceDeviceInfo *instDevInfo = GetRecord(instance)->instDevInfo;
-
-	// TEMPORARY HACK until loader is patched
-	InstanceDeviceInfo dummy;
-	dummy.VK_KHR_xlib_surface = true;
-	dummy.VK_KHR_xcb_surface = true;
-	dummy.VK_KHR_win32_surface = true;
-	dummy.VK_KHR_surface = true;
-	dummy.VK_KHR_swapchain = true;
-
-	if(!WrappedVkInstance::IsAlloc(instance))
-	{
-		RDCLOG("Doing workaround for non-wrapped instance passed to GIPA");
-		instDevInfo = &dummy;
-	}
 
 	HookInitVulkanInstanceExts();
 
@@ -277,7 +252,7 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetInstanceProcAddr(VkIn
 
 	HookInitVulkanDeviceExts();
 
-	if (GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
+	if(GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
 		return NULL;
 	return GetInstanceDispatchTable(instance)->GetInstanceProcAddr(Unwrap(instance), pName);
 }
