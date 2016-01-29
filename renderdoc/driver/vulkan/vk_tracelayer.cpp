@@ -196,7 +196,12 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDocEnumerateDeviceExtensionProperties(
 #define HookInit(function) if (!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) return (PFN_vkVoidFunction) &CONCAT(hooked_vk, function);
 
 #undef HookInitExtension
-#define HookInitExtension(ext, function) if (instDevInfo->ext && !strcmp(pName, STRINGIZE(CONCAT(vk, function)))) return (PFN_vkVoidFunction) &CONCAT(hooked_vk, function);
+#define HookInitExtension(ext, function) \
+	if (!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) \
+	{ \
+		if(instDevInfo->ext) return (PFN_vkVoidFunction) &CONCAT(hooked_vk, function); \
+		else RDCWARN("Requested function %s but extension %s is not enabled!", STRINGIZE(function), STRINGIZE(ext)); \
+	}
 
 // proc addr routines
 
