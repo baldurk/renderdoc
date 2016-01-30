@@ -3560,14 +3560,6 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
 	vt->CmdDispatch(Unwrap(cmd), blocksX, blocksY, 1);
 
-	VkBufferMemoryBarrier tilebarrier = {
-		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
-		VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-		Unwrap(GetDebugManager()->m_MinMaxTileResult.buf),
-		0, GetDebugManager()->m_MinMaxTileResult.totalsize,
-	};
-
 	// image layout back to normal
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
@@ -3576,6 +3568,14 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 		srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
 		DoPipelineBarrier(cmd, 1, &srcimBarrier);
 	}
+
+	VkBufferMemoryBarrier tilebarrier = {
+		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
+		VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		Unwrap(GetDebugManager()->m_MinMaxTileResult.buf),
+		0, GetDebugManager()->m_MinMaxTileResult.totalsize,
+	};
 
 	// ensure shader writes complete before coalescing the tiles
 	DoPipelineBarrier(cmd, 1, &tilebarrier);
@@ -3587,7 +3587,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	vt->CmdDispatch(Unwrap(cmd), 1, 1, 1);
 
 	// ensure shader writes complete before copying back to readback buffer
-	tilebarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+	tilebarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+	tilebarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 	tilebarrier.buffer = Unwrap(GetDebugManager()->m_MinMaxResult.buf);
 	tilebarrier.size = GetDebugManager()->m_MinMaxResult.totalsize;
 	
@@ -3760,14 +3761,6 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
 	vt->CmdDispatch(Unwrap(cmd), blocksX, blocksY, 1);
 
-	VkBufferMemoryBarrier tilebarrier = {
-		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
-		VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-		Unwrap(GetDebugManager()->m_HistogramBuf.buf),
-		0, GetDebugManager()->m_HistogramBuf.totalsize,
-	};
-
 	// image layout back to normal
 	for (size_t si = 0; si < layouts.subresourceStates.size(); si++)
 	{
@@ -3776,6 +3769,14 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 		srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
 		DoPipelineBarrier(cmd, 1, &srcimBarrier);
 	}
+
+	VkBufferMemoryBarrier tilebarrier = {
+		VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
+		VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		Unwrap(GetDebugManager()->m_HistogramBuf.buf),
+		0, GetDebugManager()->m_HistogramBuf.totalsize,
+	};
 
 	// ensure shader writes complete before copying to readback buf
 	DoPipelineBarrier(cmd, 1, &tilebarrier);
