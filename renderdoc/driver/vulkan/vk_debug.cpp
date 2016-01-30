@@ -2530,12 +2530,48 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 	{
 		// don't do anything, no drawcall capable of making overlays selected
 		float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+
+		VkImageMemoryBarrier barrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(m_OverlayImage),
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
+
+		DoPipelineBarrier(cmd, 1, &barrier);
+
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+
+		std::swap(barrier.oldLayout, barrier.newLayout);
+		std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+		barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+		DoPipelineBarrier(cmd, 1, &barrier);
 	}
 	else if(overlay == eTexOverlay_NaN || overlay == eTexOverlay_Clipping)
 	{
 		float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+
+		VkImageMemoryBarrier barrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(m_OverlayImage),
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
+
+		DoPipelineBarrier(cmd, 1, &barrier);
+
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+
+		std::swap(barrier.oldLayout, barrier.newLayout);
+		std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+		barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+		DoPipelineBarrier(cmd, 1, &barrier);
 	}
 	else if(overlay == eTexOverlay_Drawcall || overlay == eTexOverlay_Wireframe)
 	{
@@ -2548,7 +2584,24 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			highlightCol[2] = 0.0f;
 		}
 
-		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)highlightCol, 1, &subresourceRange);
+		VkImageMemoryBarrier barrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(m_OverlayImage),
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
+
+		DoPipelineBarrier(cmd, 1, &barrier);
+
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)highlightCol, 1, &subresourceRange);
+
+		std::swap(barrier.oldLayout, barrier.newLayout);
+		std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+		barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+		DoPipelineBarrier(cmd, 1, &barrier);
 
 		highlightCol[3] = 1.0f;
 		
@@ -2682,7 +2735,25 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		// clear the whole image to opaque black. We'll overwite the render area with transparent black
 		// before rendering the viewport/scissors
 		float black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+
+		VkImageMemoryBarrier barrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(m_OverlayImage),
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
+
+		DoPipelineBarrier(cmd, 1, &barrier);
+
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+
+		std::swap(barrier.oldLayout, barrier.newLayout);
+		std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+		barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+		DoPipelineBarrier(cmd, 1, &barrier);
 		
 		black[3] = 0.0f;
 
@@ -2770,8 +2841,25 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 	else if(overlay == eTexOverlay_BackfaceCull)
 	{
 		float highlightCol[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		
+		VkImageMemoryBarrier barrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(m_OverlayImage),
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
 
-		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)highlightCol, 1, &subresourceRange);
+		DoPipelineBarrier(cmd, 1, &barrier);
+
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)highlightCol, 1, &subresourceRange);
+
+		std::swap(barrier.oldLayout, barrier.newLayout);
+		std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+		barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+		DoPipelineBarrier(cmd, 1, &barrier);
 
 		highlightCol[0] = 1.0f;
 		highlightCol[3] = 1.0f;
@@ -2918,8 +3006,25 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 	else if(overlay == eTexOverlay_Depth || overlay == eTexOverlay_Stencil)
 	{
 		float highlightCol[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		
+		VkImageMemoryBarrier barrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(m_OverlayImage),
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
 
-		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)highlightCol, 1, &subresourceRange);
+		DoPipelineBarrier(cmd, 1, &barrier);
+
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)highlightCol, 1, &subresourceRange);
+
+		std::swap(barrier.oldLayout, barrier.newLayout);
+		std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+		barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+		DoPipelineBarrier(cmd, 1, &barrier);
 
 		VkFramebuffer depthFB = VK_NULL_HANDLE;
 		VkRenderPass depthRP = VK_NULL_HANDLE;
@@ -3163,7 +3268,25 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 	{
 		// clear the overlay image itself
 		float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+		
+		VkImageMemoryBarrier barrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			Unwrap(m_OverlayImage),
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+		};
+
+		DoPipelineBarrier(cmd, 1, &barrier);
+
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+
+		std::swap(barrier.oldLayout, barrier.newLayout);
+		std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+		barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+		DoPipelineBarrier(cmd, 1, &barrier);
 
 		vector<uint32_t> events = passEvents;
 
@@ -3262,7 +3385,25 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			SCOPED_TIMER("Quad Overdraw");
 			
 			float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-			vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+			
+			VkImageMemoryBarrier barrier = {
+				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+				Unwrap(m_OverlayImage),
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+			};
+
+			DoPipelineBarrier(cmd, 1, &barrier);
+
+			vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1, &subresourceRange);
+
+			std::swap(barrier.oldLayout, barrier.newLayout);
+			std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+			barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+			DoPipelineBarrier(cmd, 1, &barrier);
 
 			vector<uint32_t> events = passEvents;
 
