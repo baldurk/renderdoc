@@ -3490,31 +3490,24 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			// set to general layout, for load/store operations
 			DoPipelineBarrier(cmd, 1, &quadImBarrier);
 
+			VkMemoryBarrier memBarrier = {
+				VK_STRUCTURE_TYPE_MEMORY_BARRIER, NULL,
+				VK_ACCESS_ALL_WRITE_BITS,
+				VK_ACCESS_ALL_READ_BITS,
+			};
+			
+			DoPipelineBarrier(cmd, 1, &memBarrier);
+
 			// end this cmd buffer so the image is in the right state for the next part
 			vkr = vt->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			if(overlay == eTexOverlay_QuadOverdrawPass)
-				m_pDriver->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+			m_pDriver->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
 
 			// declare callback struct here
 			QuadOverdrawCallback cb(m_pDriver, frameID, events);
 
-			if(overlay == eTexOverlay_QuadOverdrawPass)
-			{
-				m_pDriver->ReplayLog(frameID, events.front(), events.back(), eReplay_Full);
-			}
-			else
-			{
-				// don't have the driver call the callback
-				m_pDriver->SetDrawcallCB(NULL);
-
-				// call PreDraw to set up per-draw changed state without binding anything
-				cb.PreDraw(events.back(), NULL);
-
-				// do the single drawcall, which will bind the pipeline above
-				m_pDriver->ReplayLog(frameID, events.front(), events.back(), eReplay_OnlyDraw);
-			}
+			m_pDriver->ReplayLog(frameID, events.front(), events.back(), eReplay_Full);
 
 			// resolve pass
 			{
@@ -3572,10 +3565,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		}
 
 		// restore back to normal
-		if(overlay == eTexOverlay_QuadOverdrawPass)
-			m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
-		else
-			m_pDriver->m_RenderState = prevstate;
+		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
 
 		cmd = m_pDriver->GetNextCmd();
 
