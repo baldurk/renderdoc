@@ -3524,7 +3524,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
 	VkImageMemoryBarrier srcimBarrier = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		Unwrap(liveIm),
 		{ 0, 0, 1, 0, 1 } // will be overwritten by subresourceRange below
