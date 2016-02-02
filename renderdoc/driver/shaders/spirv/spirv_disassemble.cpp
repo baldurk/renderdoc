@@ -1297,16 +1297,24 @@ struct SPVInstruction
 
 				if(!inlineOp)
 					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
+				
+				SPVTypeData *vec1type = NULL;
+				SPVTypeData *vec2type = NULL;
+
+				if(op->arguments[0]->constant) vec1type = op->arguments[0]->constant->type;
+				if(op->arguments[0]->var) vec1type = op->arguments[0]->var->type;
+				if(op->arguments[0]->op) vec1type = op->arguments[0]->op->type;
+				
+				if(op->arguments[1]->constant) vec2type = op->arguments[1]->constant->type;
+				if(op->arguments[1]->var) vec2type = op->arguments[1]->var->type;
+				if(op->arguments[1]->op) vec2type = op->arguments[1]->op->type;
 
 				// can't gracefully handle unknown arguments here
-				if(op->arguments[0]->opcode == spv::OpUnknown || op->arguments[0]->opcode == spv::OpUnknown)
+				if(op->arguments[0]->opcode == spv::OpUnknown || op->arguments[0]->opcode == spv::OpUnknown || vec1type == NULL || vec2type == NULL)
 				{
 					ret += StringFormat::Fmt("VectorShuffle(%s, %s)", op->arguments[0]->Disassemble(ids, true), op->arguments[1]->Disassemble(ids, true));
 					return ret;
 				}
-
-				SPVTypeData *vec1type = op->arguments[0]->op->type;
-				SPVTypeData *vec2type = op->arguments[1]->constant ? op->arguments[1]->constant->type : op->arguments[1]->op->type;
 
 				RDCASSERT(vec1type->type == SPVTypeData::eVector && vec2type->type == SPVTypeData::eVector);
 
