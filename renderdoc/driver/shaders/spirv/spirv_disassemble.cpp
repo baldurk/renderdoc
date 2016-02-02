@@ -3510,6 +3510,10 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 					roresources.push_back(shaderrespair(bindmap, res));
 			}
 		}
+		else if(inst->var->storage == spv::StorageClassPrivate)
+		{
+			// silently allow
+		}
 		else
 		{
 			RDCWARN("Unexpected storage class for global: %s", ToStr::Get(inst->var->storage).c_str());
