@@ -4901,7 +4901,12 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	modifiedstate.graphics.pipeline = GetResID(pipe);
 
 	// push back extra descriptor set to partial replay state
-	modifiedstate.graphics.descSets.push_back( GetResID(m_MeshFetchDescSet) );
+	// note that we examined the used pipeline layout above and inserted our descriptor set
+	// after any the application used. So there might be more bound, but we want to ensure to
+	// bind to the slot we're using
+	RDCASSERT(modifiedstate.graphics.descSets.size() >= descSet);
+	modifiedstate.graphics.descSets.resize(descSet);
+	modifiedstate.graphics.descSets[descSet] = GetResID(m_MeshFetchDescSet);
 
 	if((drawcall->flags & eDraw_UseIBuffer) == 0)
 	{
