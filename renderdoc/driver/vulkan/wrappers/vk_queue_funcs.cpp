@@ -573,8 +573,10 @@ VkResult WrappedVulkan::vkQueueSubmit(
 				size_t diffStart = 0, diffEnd = 0;
 				bool found = true;
 
-				// disable for now as there seem to be bugs.
-#if 0
+				// enabled as this is necessary for programs with very large coherent mappings
+				// (> 1GB) as otherwise more than a couple of vkQueueSubmit calls leads to vast
+				// memory allocation. There might still be bugs lurking in here though
+#if 1
 				// this causes vkFlushMappedMemoryRanges call to allocate and copy to refData
 				// from serialised buffer. We want to copy *precisely* the serialised data,
 				// otherwise there is a gap in time between serialising out a snapshot of
