@@ -1033,7 +1033,7 @@
             this.groupBox9.Size = new System.Drawing.Size(1076, 219);
             this.groupBox9.TabIndex = 12;
             this.groupBox9.TabStop = false;
-            this.groupBox9.Text = "Constant Buffers";
+            this.groupBox9.Text = "Uniform Buffers";
             // 
             // vsCBuffers
             // 
@@ -1071,7 +1071,7 @@
             this.vsCBuffers.RowOptions.ShowHeader = false;
             this.vsCBuffers.Size = new System.Drawing.Size(1070, 200);
             this.vsCBuffers.TabIndex = 11;
-            this.vsCBuffers.Text = "Constant Buffers";
+            this.vsCBuffers.Text = "Uniform Buffers";
             this.vsCBuffers.TreeColumn = 6;
             this.vsCBuffers.ViewOptions.Indent = 0;
             this.vsCBuffers.ViewOptions.PadForPlusMinus = false;
@@ -1264,7 +1264,7 @@
             this.groupBox15.Size = new System.Drawing.Size(1076, 219);
             this.groupBox15.TabIndex = 12;
             this.groupBox15.TabStop = false;
-            this.groupBox15.Text = "Constant Buffers";
+            this.groupBox15.Text = "Uniform Buffers";
             // 
             // hsCBuffers
             // 
@@ -1302,7 +1302,7 @@
             this.hsCBuffers.RowOptions.ShowHeader = false;
             this.hsCBuffers.Size = new System.Drawing.Size(1070, 200);
             this.hsCBuffers.TabIndex = 11;
-            this.hsCBuffers.Text = "Constant Buffers";
+            this.hsCBuffers.Text = "Uniform Buffers";
             this.hsCBuffers.TreeColumn = 6;
             this.hsCBuffers.ViewOptions.Indent = 0;
             this.hsCBuffers.ViewOptions.PadForPlusMinus = false;
@@ -1495,7 +1495,7 @@
             this.groupBox21.Size = new System.Drawing.Size(1076, 219);
             this.groupBox21.TabIndex = 12;
             this.groupBox21.TabStop = false;
-            this.groupBox21.Text = "Constant Buffers";
+            this.groupBox21.Text = "Uniform Buffers";
             // 
             // dsCBuffers
             // 
@@ -1533,7 +1533,7 @@
             this.dsCBuffers.RowOptions.ShowHeader = false;
             this.dsCBuffers.Size = new System.Drawing.Size(1070, 200);
             this.dsCBuffers.TabIndex = 11;
-            this.dsCBuffers.Text = "Constant Buffers";
+            this.dsCBuffers.Text = "Uniform Buffers";
             this.dsCBuffers.TreeColumn = 5;
             this.dsCBuffers.ViewOptions.Indent = 0;
             this.dsCBuffers.ViewOptions.PadForPlusMinus = false;
@@ -1725,7 +1725,7 @@
             this.geomCBufGroupBox.Size = new System.Drawing.Size(1076, 219);
             this.geomCBufGroupBox.TabIndex = 12;
             this.geomCBufGroupBox.TabStop = false;
-            this.geomCBufGroupBox.Text = "Constant Buffers";
+            this.geomCBufGroupBox.Text = "Uniform Buffers";
             // 
             // gsCBuffers
             // 
@@ -2477,7 +2477,7 @@
             this.pixelCBufGroupBox.Size = new System.Drawing.Size(1076, 219);
             this.pixelCBufGroupBox.TabIndex = 12;
             this.pixelCBufGroupBox.TabStop = false;
-            this.pixelCBufGroupBox.Text = "Constant Buffers";
+            this.pixelCBufGroupBox.Text = "Uniform Buffers";
             // 
             // psCBuffers
             // 
@@ -2515,7 +2515,7 @@
             this.psCBuffers.RowOptions.ShowHeader = false;
             this.psCBuffers.Size = new System.Drawing.Size(1070, 200);
             this.psCBuffers.TabIndex = 11;
-            this.psCBuffers.Text = "Constant Buffers";
+            this.psCBuffers.Text = "Uniform Buffers";
             this.psCBuffers.TreeColumn = 6;
             this.psCBuffers.ViewOptions.Indent = 0;
             this.psCBuffers.ViewOptions.PadForPlusMinus = false;
@@ -3286,7 +3286,7 @@
             this.groupBox36.Size = new System.Drawing.Size(1076, 214);
             this.groupBox36.TabIndex = 12;
             this.groupBox36.TabStop = false;
-            this.groupBox36.Text = "Constant Buffers";
+            this.groupBox36.Text = "Uniform Buffers";
             // 
             // csCBuffers
             // 
@@ -3324,7 +3324,7 @@
             this.csCBuffers.RowOptions.ShowHeader = false;
             this.csCBuffers.Size = new System.Drawing.Size(1070, 195);
             this.csCBuffers.TabIndex = 11;
-            this.csCBuffers.Text = "Constant Buffers";
+            this.csCBuffers.Text = "Uniform Buffers";
             this.csCBuffers.TreeColumn = 6;
             this.csCBuffers.ViewOptions.Indent = 0;
             this.csCBuffers.ViewOptions.PadForPlusMinus = false;
