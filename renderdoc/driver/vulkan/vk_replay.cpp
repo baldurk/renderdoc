@@ -4453,7 +4453,7 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
 
 	if(initParams.APIVersion != VK_API_VERSION)
 	{
-		RDCLOG("Captured API version is not the same as RenderDoc's built version, expected %d got %d", VK_API_VERSION, initParams.APIVersion);
+		RDCLOG("Captured API version is not the same as RenderDoc's built version, expected %x got %x", VK_API_VERSION, initParams.APIVersion);
 		RDCLOG("This isn't a problem as this information is optional, but RenderDoc will replay with its own API version");
 	}
 	
