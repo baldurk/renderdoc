@@ -2194,10 +2194,10 @@ struct QuadOverdrawCallback : public DrawcallCallback
 		VulkanRenderState &pipestate = m_pDriver->GetRenderState();
 
 		// check cache first
-		VkPipeline pipe = m_PipelineCache[pipestate.graphics.pipeline];
+		pair<uint32_t, VkPipeline> pipe = m_PipelineCache[pipestate.graphics.pipeline];
 
 		// if we don't get a hit, create a modified pipeline
-		if(pipe == VK_NULL_HANDLE)
+		if(pipe.second == VK_NULL_HANDLE)
 		{
 			VulkanCreationInfo &c = *pipestate.m_CreationInfo;
 
@@ -2320,18 +2320,22 @@ struct QuadOverdrawCallback : public DrawcallCallback
 				sh.pSpecializationInfo = NULL;
 			}
 			
-			vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL, &pipe);
+			vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL, &pipe.second);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			ObjDisp(dev)->DestroyShaderModule(Unwrap(dev), Unwrap(module), NULL);
 			m_pDriver->GetResourceManager()->ReleaseWrappedResource(module);
 
+			pipe.first = descSet;
+
 			m_PipelineCache[pipestate.graphics.pipeline] = pipe;
 		}
 
 		// modify state for first draw call
-		pipestate.graphics.pipeline = GetResID(pipe);
-		pipestate.graphics.descSets.push_back(GetResID(m_pDebug->m_QuadDescSet));
+		pipestate.graphics.pipeline = GetResID(pipe.second);
+		RDCASSERT(pipestate.graphics.descSets.size() >= pipe.first);
+		pipestate.graphics.descSets.resize(pipe.first+1);
+		pipestate.graphics.descSets[pipe.first] = GetResID(m_pDebug->m_QuadDescSet);
 		
 		if(cmd)
 			pipestate.BindPipeline(cmd);
@@ -2372,7 +2376,7 @@ struct QuadOverdrawCallback : public DrawcallCallback
 	const vector<uint32_t> &m_Events;
 
 	// cache modified pipelines
-	map<ResourceId, VkPipeline> m_PipelineCache;
+	map<ResourceId, pair<uint32_t,VkPipeline> > m_PipelineCache;
 	VulkanRenderState m_PrevState;
 };
 
@@ -3560,7 +3564,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 			for(auto it=cb.m_PipelineCache.begin(); it != cb.m_PipelineCache.end(); ++it)
 			{
-				m_pDriver->vkDestroyPipeline(m_Device, it->second, NULL);
+				m_pDriver->vkDestroyPipeline(m_Device, it->second.second, NULL);
 			}
 		}
 
