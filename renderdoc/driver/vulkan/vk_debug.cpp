@@ -4905,7 +4905,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	// after any the application used. So there might be more bound, but we want to ensure to
 	// bind to the slot we're using
 	RDCASSERT(modifiedstate.graphics.descSets.size() >= descSet);
-	modifiedstate.graphics.descSets.resize(descSet);
+	modifiedstate.graphics.descSets.resize(descSet+1);
 	modifiedstate.graphics.descSets[descSet] = GetResID(m_MeshFetchDescSet);
 
 	if((drawcall->flags & eDraw_UseIBuffer) == 0)
