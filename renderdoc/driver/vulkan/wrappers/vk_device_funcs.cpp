@@ -712,8 +712,6 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 	SAFE_DELETE_ARRAY(props);
 
-	RDCDEBUG("Might want to fiddle with createinfo - e.g. to remove VK_RenderDoc from set of extensions or similar");
-
 	m_QueueFamilies.resize(createInfo.queueCreateInfoCount);
 	for(size_t i=0; i < m_QueueFamilies.size(); i++)
 	{
