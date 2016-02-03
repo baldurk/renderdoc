@@ -261,6 +261,12 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		}
 	}
 
+	VkBool32 supported = false;
+	ObjDisp(inst)->GetPhysicalDeviceSurfaceSupportKHR(Unwrap(phys), driver->GetQFamilyIdx(), Unwrap(surface), &supported);
+
+	// can't really recover from this anyway
+	RDCASSERT(supported);
+
 	VkSwapchainCreateInfoKHR swapInfo = {
 			VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, NULL,
 			0, Unwrap(surface),

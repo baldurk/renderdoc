@@ -559,6 +559,7 @@ public:
 
 	// return the pre-selected device and queue
 	VkDevice GetDev()    { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Device; }
+	uint32_t GetQFamilyIdx() { return m_QueueFamilyIdx; }
 	VkQueue  GetQ()      { RDCASSERT(m_Device != VK_NULL_HANDLE); return m_Queue; }
 	VkInstance GetInstance()    { RDCASSERT(m_Instance != VK_NULL_HANDLE); return m_Instance; }
 	VkPhysicalDevice GetPhysDev()    { RDCASSERT(m_PhysicalDevice != VK_NULL_HANDLE); return m_PhysicalDevice; }
