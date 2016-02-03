@@ -157,7 +157,14 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	VkSwapchainKHR old = swap;
 	swap = VK_NULL_HANDLE;
 
+	// we can't destroy the surface until all swapchains are destroyed, so 
+	// we also save the surface here and restore it back after destroy
+	VkSurfaceKHR oldsurf = surface;
+	surface = VK_NULL_HANDLE;
+
 	Destroy(driver, device);
+
+	surface = oldsurf;
 
 	if(surface == VK_NULL_HANDLE)
 	{
