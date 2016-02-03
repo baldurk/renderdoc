@@ -753,6 +753,13 @@ VkResult WrappedVulkan::vkCreateDevice(
 			record->memIdxMap = GetRecord(physicalDevice)->memIdxMap;
 
 			record->instDevInfo = new InstanceDeviceInfo();
+		
+#undef CheckExt
+#define CheckExt(name) record->instDevInfo->name = GetRecord(m_Instance)->instDevInfo->name;
+
+			// inherit extension enablement from instance, that way GetDeviceProcAddress can check
+			// for enabled extensions for instance functions
+			CheckInstanceExts();
 
 #undef CheckExt
 #define CheckExt(name) if(!strcmp(createInfo.ppEnabledExtensionNames[i], STRINGIZE(name))) { record->instDevInfo->name = true; }
