@@ -811,6 +811,28 @@ namespace renderdocui.Windows.PipelineState
                     }
                 }
             }
+
+            // search for push constants and add them last
+            if (shaderDetails != null)
+            {
+                for (int cb = 0; cb < shaderDetails.ConstantBlocks.Length; cb++)
+                {
+                    var cblock = shaderDetails.ConstantBlocks[cb];
+                    if (cblock.bufferBacked == false)
+                    {
+                        // could maybe get range from ShaderVariable.reg if it's filled out
+                        // from SPIR-V side.
+
+                        var node = cbuffers.Nodes.Add(new object[] { "", "",
+                        cblock.name, "Push constants",
+                        "", String.Format("{0} Variables", cblock.variables.Length) });
+
+                        node.Image = global::renderdocui.Properties.Resources.action;
+                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                        node.Tag = new CBufferTag((uint)cb, 0);
+                    }
+                }
+            }
             cbuffers.EndUpdate();
             cbuffers.NodesSelection.Clear();
             cbuffers.SetVScrollValue(vs);

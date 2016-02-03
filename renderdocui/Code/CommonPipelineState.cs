@@ -833,6 +833,15 @@ namespace renderdocui.Code
                     {
                         var bind = s.BindpointMapping.ConstantBlocks[s.ShaderDetails.ConstantBlocks[BufIdx].bindPoint];
 
+                        if (s.ShaderDetails.ConstantBlocks[BufIdx].bufferBacked == false)
+                        {
+                            // dummy values, it would be nice to fetch these properly
+                            buf = ResourceId.Null;
+                            ByteOffset = 0;
+                            ByteSize = 1024;
+                            return;
+                        }
+
                         var descriptorBind = pipe.DescSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
 
                         buf = descriptorBind.res;

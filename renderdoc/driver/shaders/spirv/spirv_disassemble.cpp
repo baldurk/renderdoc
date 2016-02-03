@@ -3357,6 +3357,9 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 						bindmap.bind = (int32_t)inst->decorations[d].val;
 				}
 
+				// set something crazy so this doesn't overlap with a real buffer binding
+				if(pushConst) bindmap.bindset = 10000;
+
 				for(size_t d=0; type->decorations && d < type->decorations->size(); d++)
 				{
 					if((*type->decorations)[d].decoration == spv::DecorationBufferBlock)
