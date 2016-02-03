@@ -613,7 +613,7 @@
             // panel1
             // 
             this.panel1.AutoScroll = true;
-            this.panel1.AutoScrollMinSize = new System.Drawing.Size(280, 400);
+            this.panel1.AutoScrollMinSize = new System.Drawing.Size(280, 300);
             this.panel1.Controls.Add(this.tableLayoutPanel1);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(0, 0);
@@ -865,7 +865,7 @@
             // panel2
             // 
             this.panel2.AutoScroll = true;
-            this.panel2.AutoScrollMinSize = new System.Drawing.Size(0, 500);
+            this.panel2.AutoScrollMinSize = new System.Drawing.Size(0, 300);
             this.panel2.Controls.Add(this.tableLayoutPanel2);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel2.Location = new System.Drawing.Point(0, 0);
@@ -1095,7 +1095,7 @@
             // panel3
             // 
             this.panel3.AutoScroll = true;
-            this.panel3.AutoScrollMinSize = new System.Drawing.Size(0, 500);
+            this.panel3.AutoScrollMinSize = new System.Drawing.Size(0, 300);
             this.panel3.Controls.Add(this.tableLayoutPanel3);
             this.panel3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel3.Location = new System.Drawing.Point(0, 0);
@@ -1326,7 +1326,7 @@
             // panel4
             // 
             this.panel4.AutoScroll = true;
-            this.panel4.AutoScrollMinSize = new System.Drawing.Size(0, 500);
+            this.panel4.AutoScrollMinSize = new System.Drawing.Size(0, 300);
             this.panel4.Controls.Add(this.tableLayoutPanel4);
             this.panel4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel4.Location = new System.Drawing.Point(0, 0);
@@ -1557,7 +1557,7 @@
             // panel5
             // 
             this.panel5.AutoScroll = true;
-            this.panel5.AutoScrollMinSize = new System.Drawing.Size(0, 500);
+            this.panel5.AutoScrollMinSize = new System.Drawing.Size(0, 300);
             this.panel5.Controls.Add(this.geomTableLayout);
             this.panel5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel5.Location = new System.Drawing.Point(0, 0);
@@ -2308,7 +2308,7 @@
             // panel6
             // 
             this.panel6.AutoScroll = true;
-            this.panel6.AutoScrollMinSize = new System.Drawing.Size(0, 500);
+            this.panel6.AutoScrollMinSize = new System.Drawing.Size(0, 300);
             this.panel6.Controls.Add(this.pixelTableLayout);
             this.panel6.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel6.Location = new System.Drawing.Point(0, 0);
@@ -3012,7 +3012,7 @@
             // panel7
             // 
             this.panel7.AutoScroll = true;
-            this.panel7.AutoScrollMinSize = new System.Drawing.Size(0, 500);
+            this.panel7.AutoScrollMinSize = new System.Drawing.Size(0, 300);
             this.panel7.Controls.Add(this.tableLayoutPanel7);
             this.panel7.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel7.Location = new System.Drawing.Point(0, 0);
