@@ -3197,7 +3197,7 @@ void VulkanReplay::SavePipelineState()
 	}
 }
 
-void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, vector<ShaderVariable> &outvars, const vector<byte> &data)
+void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, vector<ShaderVariable> &outvars, const vector<byte> &data, size_t baseOffset)
 {
 	for(int v=0; v < invars.count; v++)
 	{
@@ -3209,7 +3209,7 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 		bool rowMajor = invars[v].type.descriptor.rowMajorStorage != 0;
 		bool isArray = elems > 1;
 
-		size_t dataOffset = invars[v].reg.vec*sizeof(Vec4f) + invars[v].reg.comp*sizeof(float);
+		size_t dataOffset = baseOffset + invars[v].reg.vec*sizeof(Vec4f) + invars[v].reg.comp*sizeof(float);
 
 		if(invars[v].type.members.count > 0)
 		{
@@ -3231,7 +3231,9 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 
 					vector<ShaderVariable> mems;
 
-					FillCBufferVariables(invars[v].type.members, mems, data);
+					FillCBufferVariables(invars[v].type.members, mems, data, dataOffset);
+
+					dataOffset += invars[v].type.descriptor.arrayStride;
 
 					vr.isStruct = true;
 
@@ -3246,7 +3248,7 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 			{
 				var.isStruct = true;
 
-				FillCBufferVariables(invars[v].type.members, varmembers, data);
+				FillCBufferVariables(invars[v].type.members, varmembers, data, dataOffset);
 			}
 
 			{
@@ -3409,14 +3411,14 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
 
 	if(c.bufferBacked)
 	{
-		FillCBufferVariables(c.variables, outvars, data);
+		FillCBufferVariables(c.variables, outvars, data, 0);
 	}
 	else
 	{
 		vector<byte> pushdata;
 		pushdata.resize(sizeof(m_pDriver->m_RenderState.pushconsts));
 		memcpy(&pushdata[0], m_pDriver->m_RenderState.pushconsts, pushdata.size());
-		FillCBufferVariables(c.variables, outvars, pushdata);
+		FillCBufferVariables(c.variables, outvars, pushdata, 0);
 	}
 
 }
