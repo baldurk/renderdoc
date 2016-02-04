@@ -270,7 +270,7 @@ namespace renderdocui.Code
 
                     foreach (var n in names)
                     {
-                        if (Path.GetFullPath(n) == myJSON)
+                        if (String.Compare(Path.GetFullPath(n), myJSON, StringComparison.CurrentCultureIgnoreCase) == 0)
                         {
                             thisRegistered = true;
                         }
