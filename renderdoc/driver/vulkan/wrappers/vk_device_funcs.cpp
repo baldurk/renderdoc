@@ -69,6 +69,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	params.Layers.push_back("VK_LAYER_LUNARG_swapchain");
 	params.Layers.push_back("VK_LAYER_LUNARG_device_limits");
 	params.Layers.push_back("VK_LAYER_LUNARG_image");
+	params.Layers.push_back("VK_LAYER_GOOGLE_unique_objects");
 
 	params.Extensions.push_back("VK_EXT_debug_report");
 #endif
@@ -465,6 +466,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		layers.push_back("VK_LAYER_LUNARG_swapchain");
 		layers.push_back("VK_LAYER_LUNARG_device_limits");
 		layers.push_back("VK_LAYER_LUNARG_image");
+		layers.push_back("VK_LAYER_GOOGLE_unique_objects");
 
 		createInfo.enabledLayerCount = (uint32_t)layers.size();
 		createInfo.ppEnabledLayerNames = &layers[0];
