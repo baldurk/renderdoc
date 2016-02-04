@@ -260,18 +260,25 @@ namespace renderdocui.Code
                 myJSON = Path.GetFullPath(GetVulkanJSONPath(true));
                 key = GetVulkanImplicitLayersKey(false, true);
 
-                names = key.GetValueNames();
-
-                foreach (var n in names)
+                if (key == null)
                 {
-                    if (Path.GetFullPath(n) == myJSON)
+                    thisRegistered = false;
+                }
+                else
+                {
+                    names = key.GetValueNames();
+
+                    foreach (var n in names)
                     {
-                        thisRegistered = true;
-                    }
-                    else if (n.IndexOf("renderdoc.json") > 0)
-                    {
-                        hasOtherJSON = true;
-                        others.Add(Path.GetFullPath(n));
+                        if (Path.GetFullPath(n) == myJSON)
+                        {
+                            thisRegistered = true;
+                        }
+                        else if (n.IndexOf("renderdoc.json") > 0)
+                        {
+                            hasOtherJSON = true;
+                            others.Add(Path.GetFullPath(n));
+                        }
                     }
                 }
             }
