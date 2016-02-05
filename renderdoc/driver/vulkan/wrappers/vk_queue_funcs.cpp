@@ -69,6 +69,8 @@ void WrappedVulkan::vkGetDeviceQueue(
 {
 	ObjDisp(device)->GetDeviceQueue(Unwrap(device), queueFamilyIndex, queueIndex, pQueue);
 
+	SetDispatchTableOverMagicNumber(device, *pQueue);
+
 	RDCASSERT(m_State >= WRITING);
 
 	{

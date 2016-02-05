@@ -483,6 +483,23 @@ typename UnwrapHelper<RealType>::Outer::DispatchTableType *ObjDisp(RealType obj)
 }
 
 template<typename RealType>
+void SetDispatchTableOverMagicNumber(VkDevice parent, RealType obj)
+{
+	// since we wrap this object, the loader won't have a chance to write the loader table into it
+	// over the magic number. Instead, we do it ourselves.
+	typename UnwrapHelper<RealType>::Outer *wrapped = GetWrapped(obj);
+	if(wrapped->loaderTable == 0x01CDC0DE)
+		wrapped->loaderTable = GetWrapped(parent)->loaderTable;
+}
+
+template<typename RealType>
+void SetMagicNumberOverDispatchTable(RealType obj)
+{
+	typename UnwrapHelper<RealType>::Outer *wrapped = GetWrapped(obj);
+	wrapped->loaderTable = 0x01CDC0DE;
+}
+
+template<typename RealType>
 WrappedVulkan *CoreDisp(RealType obj)
 {
 	return (WrappedVulkan *)GetWrapped(obj)->core;

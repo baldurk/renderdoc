@@ -231,7 +231,12 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(
 	{
 		for(uint32_t i=0; i < unwrappedInfo.commandBufferCount; i++)
 		{
+			SetDispatchTableOverMagicNumber(device, pCommandBuffers[i]);
+
 			ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pCommandBuffers[i]);
+
+			// loader expects command buffers to have the magic number in them
+			SetMagicNumberOverDispatchTable(pCommandBuffers[i]);
 
 			if(m_State >= WRITING)
 			{

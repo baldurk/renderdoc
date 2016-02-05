@@ -377,6 +377,9 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
 	{	
 		VkCommandBufferAllocateInfo cmdInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, NULL, Unwrap(m_InternalCmds.cmdpool), VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1 };
 		VkResult vkr = ObjDisp(m_Device)->AllocateCommandBuffers(Unwrap(m_Device), &cmdInfo, &ret);
+
+		SetDispatchTableOverMagicNumber(m_Device, ret);
+
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
