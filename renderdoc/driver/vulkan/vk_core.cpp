@@ -1412,6 +1412,10 @@ void WrappedVulkan::ApplyInitialContents()
 	
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
+	
+	// sync all GPU work so we can also apply descriptor set initial contents
+	SubmitCmds();
+	FlushQ();
 
 	// actually apply the initial contents here
 	GetResourceManager()->ApplyInitialContents();
@@ -1947,13 +1951,23 @@ VkBool32 WrappedVulkan::DebugCallback(
 
 	// Additional bits in accessMask
 	// ignore as we are just conservative in our access masks
-	if(isDS && location == 4937)
+	if(isDS && location == 5709)
 		return false;
 
 	// Recommended to use LOAD_OP_CLEAR
 	// Optimisation that we don't really need to do and increases complexity
 	// a fair amount.
-	if(isDS && location == 4695)
+	if(isDS && location == 5454)
+		return false;
+
+	// Can't vkUpdateDescriptorSets() on descriptor set that is in use
+	// unfortunately this fires erroneously on initial contents
+	if(isDS && location == 2290)
+		return false;
+
+	// Fence 0 is already in use by another submission.
+	// Invalid error, not accounting for VK_NULL_HANDLE as fence parameter
+	if(isDS && messageCode == 14 && object == 0)
 		return false;
 
 	bool isMEM = !strcmp(pLayerPrefix, "MEM");
@@ -1968,7 +1982,7 @@ VkBool32 WrappedVulkan::DebugCallback(
 	// cannot read invalid memory
 	// this message is a good one, but it can't detect storage writes from shader
 	// at the moment so memory is wrongly marked as invalid
-	if(isMEM && location == 483)
+	if(isMEM && location == 488)
 		return false;
 
 	RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
