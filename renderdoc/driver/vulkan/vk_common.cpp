@@ -2015,7 +2015,7 @@ string ToStrHelper<false, VkMemoryPropertyFlagBits>::Get(const VkMemoryPropertyF
 	if(!ret.empty())
 		ret = ret.substr(3);
 	else
-		ret = "VK_MEMORY_PROPERTY_DEVICE_ONLY";
+		ret = "-";
 
 	return ret;
 }
