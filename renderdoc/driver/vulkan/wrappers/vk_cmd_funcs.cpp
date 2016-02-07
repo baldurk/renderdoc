@@ -450,6 +450,7 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(
 			record->bakedCommands->Delete(GetResourceManager());
 
 		record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+		record->bakedCommands->SpecialResource = true;
 		record->bakedCommands->Resource = (WrappedVkRes *)commandBuffer;
 		record->bakedCommands->cmdInfo = new CmdBufferRecordingInfo();
 

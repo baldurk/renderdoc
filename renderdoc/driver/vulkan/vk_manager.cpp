@@ -37,7 +37,7 @@ void Serialiser::Serialise(const char *name, ImageRegionState &el)
 
 bool VulkanResourceManager::SerialisableResource(ResourceId id, VkResourceRecord *record)
 {
-	if(id == m_Core->GetContextResourceID())
+	if(record->SpecialResource || id == m_Core->GetContextResourceID())
 		return false;
 	return true;
 }
