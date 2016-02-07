@@ -1952,9 +1952,9 @@ VkBool32 WrappedVulkan::DebugCallback(
 	
 	bool isDS = !strcmp(pLayerPrefix, "DS");
 
-	// Additional bits in accessMask
-	// ignore as we are just conservative in our access masks
-	if(isDS && location == 5709)
+	// All access mask/barrier messages.
+	// These are just too spammy/false positive/unreliable to keep
+	if(isDS && messageCode == 11)
 		return false;
 
 	// Recommended to use LOAD_OP_CLEAR
