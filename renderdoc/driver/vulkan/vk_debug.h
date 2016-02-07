@@ -214,6 +214,15 @@ class VulkanDebugManager
 		GPUBuffer m_MeshUBO, m_MeshBBoxVB, m_MeshAxisFrustumVB;
 		VkShaderModule m_MeshModules[3];
 		
+		enum TextureType
+		{
+			eTexType_1D = 1, // implicitly an array
+			eTexType_2D, // implicitly an array
+			eTexType_3D,
+			eTexType_2DMS,
+			eTexType_Max
+		};
+		
 		GPUBuffer m_MinMaxTileResult;                    // tile result buffer
 		GPUBuffer m_MinMaxResult, m_MinMaxReadback;      // Vec4f[2] final result buffer
 		GPUBuffer m_HistogramBuf, m_HistogramReadback;   // uint32_t * num buckets buffer
@@ -221,9 +230,9 @@ class VulkanDebugManager
 		VkPipelineLayout m_HistogramPipeLayout;
 		VkDescriptorSet m_HistogramDescSet[2];
 		GPUBuffer m_HistogramUBO;
-		VkPipeline m_MinMaxResultPipe;
-		VkPipeline m_MinMaxTilePipe;
-		VkPipeline m_HistogramPipe;
+		VkPipeline m_HistogramPipe[eTexType_Max][3]; // float, uint, sint
+		VkPipeline m_MinMaxTilePipe[eTexType_Max][3]; // float, uint, sint
+		VkPipeline m_MinMaxResultPipe[3]; // float, uint, sint
 
 		VkDescriptorSetLayout m_OutlineDescSetLayout;
 		VkPipelineLayout m_OutlinePipeLayout;

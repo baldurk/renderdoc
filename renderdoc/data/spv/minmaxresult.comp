@@ -24,12 +24,24 @@
 
 layout(binding=0, std140) writeonly buffer minmaxresultdest
 {
+#if UINT_TEX
+	uvec4 result[2];
+#elif SINT_TEX
+	ivec4 result[2];
+#else
 	vec4 result[2];
+#endif
 } dest;
 
 layout(binding=1, std140) readonly buffer minmaxtilesrc
 {
+#if UINT_TEX
+	uvec4 tiles[];
+#elif SINT_TEX
+	ivec4 tiles[];
+#else
 	vec4 tiles[];
+#endif
 } src;
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
@@ -41,8 +53,16 @@ void main()
 	uint blocksX = uint(ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK)));
 	uint blocksY = uint(ceil(float(texDim.y)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK)));
 
+#if UINT_TEX
+	uvec4 minvalU = src.tiles[0];
+	uvec4 maxvalU = src.tiles[1];
+#elif SINT_TEX
+	ivec4 minvalI = src.tiles[0];
+	ivec4 maxvalI = src.tiles[1];
+#else
 	vec4 minvalF = src.tiles[0];
 	vec4 maxvalF = src.tiles[1];
+#endif
 	
 	// i is the tile we're looking at
 	for(uint i=1; i < blocksX*blocksY*HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK; i++)
@@ -58,12 +78,28 @@ void main()
 		if(blockXY.x*(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK) + tileXY.x*HGRAM_PIXELS_PER_TILE < texDim.x &&
 		   blockXY.y*(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK) + tileXY.y*HGRAM_PIXELS_PER_TILE < texDim.y)
 		{
+#if UINT_TEX
+			minvalU = min(minvalU, src.tiles[i*2 + 0]);
+			maxvalU = max(maxvalU, src.tiles[i*2 + 1]);
+#elif SINT_TEX
+			minvalI = min(minvalI, src.tiles[i*2 + 0]);
+			maxvalI = max(maxvalI, src.tiles[i*2 + 1]);
+#else
 			minvalF = min(minvalF, src.tiles[i*2 + 0]);
 			maxvalF = max(maxvalF, src.tiles[i*2 + 1]);
+#endif
 		}
 	}
 	
+#if UINT_TEX
+	dest.result[0] = minvalU;
+	dest.result[1] = maxvalU;
+#elif SINT_TEX
+	dest.result[0] = minvalI;
+	dest.result[1] = maxvalI;
+#else
 	dest.result[0] = minvalF;
 	dest.result[1] = maxvalF;
+#endif
 }
 

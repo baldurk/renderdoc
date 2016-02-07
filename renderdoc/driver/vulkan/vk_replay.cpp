@@ -1241,6 +1241,11 @@ void VulkanReplay::CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage li
 		{ aspectFlags, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0, RDCMAX(1U, (uint32_t)iminfo.arrayLayers), },
 	};
 
+	if(iminfo.type == VK_IMAGE_TYPE_1D)
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D;
+	if(iminfo.type == VK_IMAGE_TYPE_3D)
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
+
 	if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT)
 	{
 		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
@@ -3457,9 +3462,42 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	RDCASSERT(liveImView != VK_NULL_HANDLE);
 
 	VkDescriptorImageInfo imdesc = {0};
-	imdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	imdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	imdesc.imageView = Unwrap(liveImView);
 	imdesc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
+	
+	int descSetBinding = 0;
+	uint32_t intTypeIndex = 0;
+
+	if(IsUIntFormat(iminfo.format))
+	{
+		descSetBinding = 10;
+		intTypeIndex = 1;
+	}
+	else if(IsSIntFormat(iminfo.format))
+	{
+		descSetBinding = 15;
+		intTypeIndex = 2;
+	}
+	else
+	{
+		descSetBinding = 5;
+	}
+
+	int textype = 0;
+	
+	if(iminfo.type == VK_IMAGE_TYPE_1D)
+		textype = RESTYPE_TEX1D;
+	if(iminfo.type == VK_IMAGE_TYPE_3D)
+		textype = RESTYPE_TEX3D;
+	if(iminfo.type == VK_IMAGE_TYPE_2D)
+	{
+		textype = RESTYPE_TEX2D;
+		if(iminfo.samples != VK_SAMPLE_COUNT_1_BIT)
+			textype = RESTYPE_TEX2DMS;
+	}
+
+	descSetBinding += textype;
 
 	VkDescriptorBufferInfo bufdescs[3];
 	RDCEraseEl(bufdescs);
@@ -3491,7 +3529,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-			3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			descSetBinding, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			&imdesc, NULL, NULL
 		},
 
@@ -3569,7 +3607,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	int blocksX = (int)ceil(iminfo.extent.width/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
 	int blocksY = (int)ceil(iminfo.extent.height/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
 
-	vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_MinMaxTilePipe));
+	vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_MinMaxTilePipe[textype][intTypeIndex]));
 	vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_HistogramPipeLayout),
 														0, 1, UnwrapPtr(GetDebugManager()->m_HistogramDescSet[0]), 0, NULL);
 
@@ -3595,7 +3633,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	// ensure shader writes complete before coalescing the tiles
 	DoPipelineBarrier(cmd, 1, &tilebarrier);
 
-	vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_MinMaxResultPipe));
+	vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_MinMaxResultPipe[intTypeIndex]));
 	vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_HistogramPipeLayout),
 														0, 1, UnwrapPtr(GetDebugManager()->m_HistogramDescSet[1]), 0, NULL);
 
@@ -3663,6 +3701,39 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 		aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 	
 	CreateTexImageView(aspectFlags, liveIm, iminfo);
+	
+	int descSetBinding = 0;
+	uint32_t intTypeIndex = 0;
+
+	if(IsUIntFormat(iminfo.format))
+	{
+		descSetBinding = 10;
+		intTypeIndex = 1;
+	}
+	else if(IsSIntFormat(iminfo.format))
+	{
+		descSetBinding = 15;
+		intTypeIndex = 2;
+	}
+	else
+	{
+		descSetBinding = 5;
+	}
+
+	int textype = 0;
+	
+	if(iminfo.type == VK_IMAGE_TYPE_1D)
+		textype = RESTYPE_TEX1D;
+	if(iminfo.type == VK_IMAGE_TYPE_3D)
+		textype = RESTYPE_TEX3D;
+	if(iminfo.type == VK_IMAGE_TYPE_2D)
+	{
+		textype = RESTYPE_TEX2D;
+		if(iminfo.samples != VK_SAMPLE_COUNT_1_BIT)
+			textype = RESTYPE_TEX2DMS;
+	}
+
+	descSetBinding += textype;
 
 	VkImageView liveImView = (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.stencilView : iminfo.view);
 
@@ -3702,7 +3773,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(GetDebugManager()->m_HistogramDescSet[0]),
-			3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+			descSetBinding, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 			&imdesc, NULL, NULL
 		},
 	};
@@ -3770,7 +3841,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
 	vt->CmdFillBuffer(Unwrap(cmd), Unwrap(GetDebugManager()->m_HistogramBuf.buf), 0, GetDebugManager()->m_HistogramBuf.totalsize, 0);
 
-	vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_HistogramPipe));
+	vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_HistogramPipe[textype][intTypeIndex]));
 	vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(GetDebugManager()->m_HistogramPipeLayout),
 														0, 1, UnwrapPtr(GetDebugManager()->m_HistogramDescSet[0]), 0, NULL);
 

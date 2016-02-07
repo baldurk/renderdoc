@@ -297,9 +297,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_HistogramDescSetLayout = VK_NULL_HANDLE;
 	m_HistogramPipeLayout = VK_NULL_HANDLE;
 	RDCEraseEl(m_HistogramDescSet);
-	m_MinMaxResultPipe = VK_NULL_HANDLE;
-	m_MinMaxTilePipe = VK_NULL_HANDLE;
-	m_HistogramPipe = VK_NULL_HANDLE;
+	RDCEraseEl(m_MinMaxResultPipe);
+	RDCEraseEl(m_MinMaxTilePipe);
+	RDCEraseEl(m_HistogramPipe);
 
 	m_OutlineDescSetLayout = VK_NULL_HANDLE;
 	m_OutlinePipeLayout = VK_NULL_HANDLE;
@@ -467,7 +467,21 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			{ 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
 			{ 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
 			{ 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
-			{ 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, }
+			{ 6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 9, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 15, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 16, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 17, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 18, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 19, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ 20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, },
 		};
 
 		VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
@@ -712,6 +726,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
+		// these modules will be compiled later
+		if(i == HISTOGRAMCS || i == MINMAXTILECS || i == MINMAXRESULTCS)
+			continue;
+
 		sources[0] = "#version 430 core\n";
 		sources[2] = "";
 		sources[3] = shaderSources[i];
@@ -972,27 +990,96 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		Unwrap(m_HistogramPipeLayout),
 		VK_NULL_HANDLE, 0, // base pipeline VkPipeline
 	};
+	
+	sources.resize(5);
+	sources[0] = "#version 430 core\n";
+	sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
+	sources[2] = GetEmbeddedResource(spv_texsample_h);
+	
+	for(size_t t=eTexType_1D; t < eTexType_Max; t++)
+	{
+		for(size_t f=0; f < 3; f++)
+		{
+			VkShaderModule minmaxtile;
+			VkShaderModule minmaxresult;
+			VkShaderModule histogram;
+			string err;
+			vector<uint32_t> *blob;
+			VkShaderModuleCreateInfo modinfo = {
+				VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,
+				0, NULL,
+			};
 
-	compPipeInfo.stage.module = Unwrap(module[MINMAXTILECS]);
-	
-	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxTilePipe);
-	RDCASSERT(vkr == VK_SUCCESS);
-	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_MinMaxTilePipe);
-	
-	compPipeInfo.stage.module = Unwrap(module[MINMAXRESULTCS]);
-	
-	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxResultPipe);
-	RDCASSERT(vkr == VK_SUCCESS);
-	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_MinMaxResultPipe);
-	
-	compPipeInfo.stage.module = Unwrap(module[HISTOGRAMCS]);
-	
-	vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_HistogramPipe);
-	RDCASSERT(vkr == VK_SUCCESS);
-	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramPipe);
+			sources[3] = string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+			sources[3] += string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
+			sources[3] += string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
+
+			sources[4] = shaderSources[HISTOGRAMCS];
+
+			err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
+			RDCASSERT(err.empty() && blob);
+
+			modinfo.codeSize = blob->size()*sizeof(uint32_t);
+			modinfo.pCode = &(*blob)[0];
+
+			vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &histogram);
+			RDCASSERT(vkr == VK_SUCCESS);
+			
+			sources[4] = shaderSources[MINMAXTILECS];
+
+			err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
+			RDCASSERT(err.empty() && blob);
+
+			modinfo.codeSize = blob->size()*sizeof(uint32_t);
+			modinfo.pCode = &(*blob)[0];
+
+			vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &minmaxtile);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			if(t == 1)
+			{
+				sources[4] = shaderSources[MINMAXRESULTCS];
+
+				err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
+				RDCASSERT(err.empty() && blob);
+
+				modinfo.codeSize = blob->size()*sizeof(uint32_t);
+				modinfo.pCode = &(*blob)[0];
+
+				vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &minmaxresult);
+				RDCASSERT(vkr == VK_SUCCESS);
+			}
+
+			compPipeInfo.stage.module = minmaxtile;
+
+			vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxTilePipe[t][f]);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			GetResourceManager()->WrapResource(Unwrap(dev), m_MinMaxTilePipe[t][f]);
+
+			compPipeInfo.stage.module = histogram;
+
+			vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_HistogramPipe[t][f]);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramPipe[t][f]);
+
+			compPipeInfo.stage.module = minmaxresult;
+
+			if(t == 1)
+			{
+				vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxResultPipe[f]);
+				RDCASSERT(vkr == VK_SUCCESS);
+
+				GetResourceManager()->WrapResource(Unwrap(dev), m_MinMaxResultPipe[f]);
+			}
+
+			vt->DestroyShaderModule(Unwrap(dev), histogram, NULL);
+			vt->DestroyShaderModule(Unwrap(dev), minmaxtile, NULL);
+			if(t == 1)
+				vt->DestroyShaderModule(Unwrap(dev), minmaxresult, NULL);
+		}
+	}
 	
 	vt->DestroyRenderPass(Unwrap(dev), RGBA16RP, NULL);
 	vt->DestroyRenderPass(Unwrap(dev), RGBA32RP, NULL);
@@ -1016,6 +1103,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		else if(i == MESHFS)
 		{
 			m_MeshModules[2] = module[i];
+		}
+		else if(i == HISTOGRAMCS || i == MINMAXTILECS || i == MINMAXRESULTCS)
+		{
+			// not compiled normally
+			continue;
 		}
 		else
 		{
@@ -1680,22 +1772,28 @@ VulkanDebugManager::~VulkanDebugManager()
 		GetResourceManager()->ReleaseWrappedResource(m_HistogramPipeLayout);
 	}
 
-	if(m_MinMaxResultPipe != VK_NULL_HANDLE)
+	for(size_t t=1; t < eTexType_Max; t++)
 	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_MinMaxResultPipe), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_MinMaxResultPipe);
-	}
+		for(size_t f=0; f < 3; f++)
+		{
+			if(m_MinMaxTilePipe[t][f] != VK_NULL_HANDLE)
+			{
+				vt->DestroyPipeline(Unwrap(dev), Unwrap(m_MinMaxTilePipe[t][f]), NULL);
+				GetResourceManager()->ReleaseWrappedResource(m_MinMaxTilePipe[t][f]);
+			}
 
-	if(m_MinMaxTilePipe != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_MinMaxTilePipe), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_MinMaxTilePipe);
-	}
+			if(m_HistogramPipe[t][f] != VK_NULL_HANDLE)
+			{
+				vt->DestroyPipeline(Unwrap(dev), Unwrap(m_HistogramPipe[t][f]), NULL);
+				GetResourceManager()->ReleaseWrappedResource(m_HistogramPipe[t][f]);
+			}
 
-	if(m_HistogramPipe != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_HistogramPipe), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_HistogramPipe);
+			if(t == 1 && m_MinMaxResultPipe[f] != VK_NULL_HANDLE)
+			{
+				vt->DestroyPipeline(Unwrap(dev), Unwrap(m_MinMaxResultPipe[f]), NULL);
+				GetResourceManager()->ReleaseWrappedResource(m_MinMaxResultPipe[f]);
+			}
+		}
 	}
 
 	m_ReadbackWindow.Destroy(vt, dev);
