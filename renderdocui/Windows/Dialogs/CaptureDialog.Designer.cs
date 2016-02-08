@@ -721,6 +721,7 @@
             this.ShowHint = WeifenLuo.WinFormsUI.Docking.DockState.Document;
             this.Text = "CaptureDialog";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.CaptureDialog_FormClosing);
+            this.Shown += new System.EventHandler(this.CaptureDialog_Shown);
             this.actionsGroup.ResumeLayout(false);
             this.actionsGroup.PerformLayout();
             this.actionsFlow.ResumeLayout(false);

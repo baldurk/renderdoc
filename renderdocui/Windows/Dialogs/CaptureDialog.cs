@@ -480,6 +480,11 @@ namespace renderdocui.Windows.Dialogs
             }
         }
 
+        private void CaptureDialog_Shown(object sender, EventArgs e)
+        {
+            vulkanLayerWarn.Visible = !Helpers.CheckVulkanLayerRegistration();
+        }
+
         #endregion
 
         private void capOptsGroup_Layout(object sender, LayoutEventArgs e)
