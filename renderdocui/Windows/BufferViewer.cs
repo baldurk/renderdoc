@@ -520,6 +520,8 @@ namespace renderdocui.Windows
             {
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {
+                    if (IsDisposed) return;
+
                     m_Output = r.CreateOutput(RenderHandle, OutputType.MeshDisplay);
                     m_Output.SetOutputConfig(m_OutConfig);
                     RT_UpdateRenderOutput(r);
@@ -695,6 +697,7 @@ namespace renderdocui.Windows
         {
             get
             {
+                if (IsDisposed) return 0;
                 uint offs = 0;
                 uint.TryParse(byteOffset.Text, out offs);
                 return offs;
@@ -752,10 +755,14 @@ namespace renderdocui.Windows
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
+                if (IsDisposed) return;
+
                 var contents = RT_FetchBufferContents(MeshDataStage.VSIn, r, input);
 
                 this.BeginInvoke(new Action(() =>
                 {
+                    if (IsDisposed) return;
+
                     UI_SetRowsData(MeshDataStage.VSIn, contents, 0);
                     UI_SetColumns(MeshDataStage.VSIn, input.BufferFormats);
                 }));
