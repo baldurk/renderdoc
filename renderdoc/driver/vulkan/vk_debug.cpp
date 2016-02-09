@@ -1124,13 +1124,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	{
-		uint32_t width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
+		const uint32_t width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
 
 		VkImageCreateInfo imInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 			VK_IMAGE_TYPE_2D, VK_FORMAT_R8_UNORM,
 			{ width, height, 1 }, 1, 1, VK_SAMPLE_COUNT_1_BIT,
-			VK_IMAGE_TILING_LINEAR,
+			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_SHARING_MODE_EXCLUSIVE,
 			0, NULL,
@@ -1181,7 +1181,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			// allocate readback memory
 			VkMemoryAllocateInfo allocInfo = {
 				VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
-				mrq.size, driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
+				mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 			};
 
 			vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &m_TextAtlasMem);
@@ -1210,31 +1210,56 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			VkImageMemoryBarrier barrier = {
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 				0, 0,
-				VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 				Unwrap(m_TextAtlas),
 				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 			};
 
-			barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT|VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_HOST_WRITE_BIT|VK_ACCESS_TRANSFER_WRITE_BIT;
 
 			DoPipelineBarrier(cmd, 1, &barrier);
 
-			byte *pData = NULL;
-			vkr = vt->MapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem), 0, VK_WHOLE_SIZE, 0, (void **)&pData);
-			RDCASSERT(vkr == VK_SUCCESS);
+			// create temporary memory and buffer to upload atlas
+			m_TextAtlasUpload.Create(driver, dev, 32768, 1, 0); // doesn't need to be ring'd, as it's static
+			RDCCOMPILE_ASSERT(width*height <= 32768, "font uniform size");
+			
+			byte *pData = (byte *)m_TextAtlasUpload.Map(vt, dev, (uint32_t *)NULL);
+			RDCASSERT(pData);
 
-			RDCASSERT(pData != NULL);
+			memcpy(pData, buf, width*height);
+			
+			m_TextAtlasUpload.Unmap(vt, dev);
 
-			for(uint32_t row = 0; row < height; row++)
-			{
-				memcpy(pData, buf, width);
-				pData += layout.rowPitch;
-				buf += width;
-			}
+			VkBufferMemoryBarrier uploadbarrier = {
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
+				VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+				Unwrap(m_TextAtlasUpload.buf),
+				0, 32768,
+			};
 
-			vt->UnmapMemory(Unwrap(dev), Unwrap(m_TextAtlasMem));
+			// ensure host writes finish before copy
+			DoPipelineBarrier(cmd, 1, &uploadbarrier);
+
+			VkBufferImageCopy bufRegion = {
+					0, 0, 0,
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
+					{ 0, 0, 0, },
+					{ width, height, 1 },
+			};
+			
+			// copy to image
+			vt->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(m_TextAtlasUpload.buf), Unwrap(m_TextAtlas), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufRegion);
+
+			barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT|VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			// ensure atlas is filled before reading in shader
+			DoPipelineBarrier(cmd, 1, &barrier);
 		}
 
 		m_TextGlyphUBO.Create(driver, dev, 4096, 1, 0); // doesn't need to be ring'd, as it's static
@@ -1705,6 +1730,7 @@ VulkanDebugManager::~VulkanDebugManager()
 	m_TextGeneralUBO.Destroy(vt, dev);
 	m_TextGlyphUBO.Destroy(vt, dev);
 	m_TextStringUBO.Destroy(vt, dev);
+	m_TextAtlasUpload.Destroy(vt, dev);
 
 	if(m_TextAtlasView != VK_NULL_HANDLE)
 	{

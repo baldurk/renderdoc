@@ -192,6 +192,7 @@ class VulkanDebugManager
 		VkImage m_TextAtlas;
 		VkDeviceMemory m_TextAtlasMem;
 		VkImageView m_TextAtlasView;
+		GPUBuffer m_TextAtlasUpload;
 		
 		VkDeviceMemory m_OverlayImageMem;
 		VkImage m_OverlayImage;
