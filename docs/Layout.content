@@ -50,11 +50,17 @@
         <HelpKeyword index="K" term="RenderDoc Internals" />
       </HelpKeywords>
     </Topic>
-    <Topic id="11ea4311-b9ea-450a-8c80-b510ffc8b1a6" visible="True" title="OpenGL Support">
+    <Topic id="11ea4311-b9ea-450a-8c80-b510ffc8b1a6" visible="True" isSelected="true" title="OpenGL Support">
       <HelpKeywords>
         <HelpKeyword index="K" term="OpenGL" />
         <HelpKeyword index="K" term="OpenGL Support" />
         <HelpKeyword index="K" term="GL Support" />
+      </HelpKeywords>
+    </Topic>
+    <Topic id="b08af848-7c58-4ff4-9a2a-6bb5cfb0b037" visible="True" title="Vulkan Support">
+      <HelpKeywords>
+        <HelpKeyword index="K" term="Vulkan" />
+        <HelpKeyword index="K" term="Vulkan Support" />
       </HelpKeywords>
     </Topic>
   </Topic>
@@ -185,7 +191,7 @@
         <HelpKeyword index="K" term="API Messages" />
       </HelpKeywords>
     </Topic>
-    <Topic id="6e2e26be-982c-4a2c-9d45-629009f0a479" visible="True" isSelected="true" title="Python Shell">
+    <Topic id="6e2e26be-982c-4a2c-9d45-629009f0a479" visible="True" title="Python Shell">
       <HelpKeywords>
         <HelpKeyword index="K" term="Python Scripting" />
         <HelpKeyword index="K" term="Python Shell" />

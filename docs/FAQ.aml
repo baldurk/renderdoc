@@ -115,12 +115,13 @@
       <content>
         <para>
           Currently RenderDoc supports D3D11 (including the D3D11.1/11.2 extensions where available),
-          and core profile OpenGL. Note OpenGL is a complex sprawling API, so see the details of
+          Vulkan, and core profile OpenGL. Note OpenGL is a complex sprawling API, so see the details of
           what is supported in <link xlink:href="D1612D25-C8BA-4349-9CE2-1E57D60F98C5">its own page</link>.
+          Since Vulkan support is in its early stages, it also has <link xlink:href="b08af848-7c58-4ff4-9a2a-6bb5cfb0b037">its own page</link>.
         </para>
         <para>
-          In future API support is planned for at D3D9 when time and scheduling allows. Higher priority are
-          the new APIs coming - Vulkan and D3D12. Mantle support will likely not happen as the API is not
+          In future API support is planned for at D3D9 when time and scheduling allows. Higher priority is
+          D3D12 now that Vulkan support is available. Mantle support will not happen as the API is not
           planned to be publically available anymore.
         </para>
       </content>
@@ -182,6 +183,9 @@
           For OpenGL RenderDoc will only capture core profile applications, in general, and expects
           to be able to create a core 4.3 context which includes EXT_direct_state_access and ARB_buffer_storage.
           For more details see the <link xlink:href="11ea4311-b9ea-450a-8c80-b510ffc8b1a6">OpenGL</link> page.
+        </para>
+        <para>
+          With Vulkan RenderDoc should fully support any Vulkan application.
         </para>
       </content>
     </section>
@@ -402,6 +406,9 @@
  #define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B</code>
 </alert>
 
+        </para>
+        <para>
+          A similar extension for Vulkan will be proposed after release.
         </para>
       </content>
     </section>

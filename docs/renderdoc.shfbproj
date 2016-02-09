@@ -84,6 +84,7 @@
     <ResourceItems Include="Resources.items" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Vulkan.aml" />
     <None Include="Windows\PythonShell.aml" />
     <None Include="OpenGL.aml" />
     <None Include="Windows\DebugMessages.aml" />
@@ -121,6 +122,10 @@
     <Tokens Include="Tokens.tokens" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="imgs\Screenshots\LayerRegistration.png">
+      <ImageId>LayerRegistration</ImageId>
+      <AlternateText>Vulkan Layer Registration</AlternateText>
+    </Image>
     <Image Include="imgs\Screenshots\PixelHistoryTimeline.png">
       <ImageId>PixelHistoryTimeline</ImageId>
       <AlternateText>Pixel History Timeline</AlternateText>

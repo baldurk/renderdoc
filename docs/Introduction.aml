@@ -3,9 +3,9 @@
   <developerConceptualDocument xmlns="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink">
     <summary>
       <para>
-      	<mediaLinkInline><image xlink:href="logo"/></mediaLinkInline>
-      	Welcome to RenderDoc - a graphics debugger, currently available for
-      	D3D11 and OpenGL development on windows.
+        <mediaLinkInline><image xlink:href="logo"/></mediaLinkInline>
+        Welcome to RenderDoc - a graphics debugger, currently available for
+        D3D11, Vulkan and OpenGL development on windows.
       </para>
     </summary>
     <introduction>

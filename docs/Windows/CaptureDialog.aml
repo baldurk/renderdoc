@@ -128,6 +128,8 @@
     possible serialise this out and include it in the logfile for later inspection. e.g. on D3D11 this will
     activate the D3D debug layer and save out any messages, which can later be viewed in the
     <link xlink:href="1f098896-0e60-485a-b879-900a4a320b80" /> window. For OpenGL this means ARB_debug_output.
+    For Vulkan this option is unavailable due to RenderDoc being inserted as a layer and not able to activate
+    other layers (this would contradict the API's explicit nature).
     The overhead from enabling this option is largely the same as the overhead of enabling the
     debug device without RenderDoc involved.</para></entry>
     <entry><para>Disabled</para></entry>
@@ -178,6 +180,10 @@
     RenderDoc will essentially have missed its chance to capture it by the time you hit the capture key. Enabling
     this option will cause RenderDoc to pre-emptively capture all command lists just in case they are used.</para>
     
+<alert class="note">
+  <para>This option has no effect on Vulkan - all command lists are implicitly captured.</para>
+</alert>
+
 <alert class="caution">
   <para>This may have a significant performance hit.</para>
 </alert>

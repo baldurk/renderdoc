@@ -81,7 +81,8 @@
 			    </para>
 			  </listItem>
 			  <listItem>
-			    <para>There are several such notes for OpenGL, which are noted on <link xlink:href="11ea4311-b9ea-450a-8c80-b510ffc8b1a6">its own page</link>.
+			    <para>There are several such notes for OpenGL, which are noted on <link xlink:href="11ea4311-b9ea-450a-8c80-b510ffc8b1a6">its own page</link>,
+			    as well as for Vulkan on <link xlink:href="b08af848-7c58-4ff4-9a2a-6bb5cfb0b037">its own page</link>.
 			    </para>
 			  </listItem>
 			</list>
