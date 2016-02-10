@@ -185,7 +185,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	ObjDisp(inst)->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(phys), Unwrap(surface), &capabilities);
 	
 	RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-	RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+	// AMD currently doesn't report this capability but I believe it's safe.
+	RDCASSERT(driver->IsAMD() || capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
 	RDCASSERT(capabilities.minImageCount <= 2 && (2 <= capabilities.maxImageCount || capabilities.maxImageCount == 0));
 
