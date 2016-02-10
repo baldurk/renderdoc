@@ -419,6 +419,214 @@ void TBuiltIns::initialize(int version, EProfile profile, int spv)
             "\n");
     }
 
+    //
+    // double functions added to desktop 4.00, but not fma, frexp, ldexp, or pack/unpack
+    //
+    if (profile != EEsProfile && version >= 400) {
+        commonBuiltins.append(
+
+            "double sqrt(double);"
+            "dvec2  sqrt(dvec2);"
+            "dvec3  sqrt(dvec3);"
+            "dvec4  sqrt(dvec4);"
+
+            "double inversesqrt(double);"
+            "dvec2  inversesqrt(dvec2);"
+            "dvec3  inversesqrt(dvec3);"
+            "dvec4  inversesqrt(dvec4);"
+
+            "double abs(double);"
+            "dvec2  abs(dvec2);"
+            "dvec3  abs(dvec3);"
+            "dvec4  abs(dvec4);"
+
+            "double sign(double);"
+            "dvec2  sign(dvec2);"
+            "dvec3  sign(dvec3);"
+            "dvec4  sign(dvec4);"
+
+            "double floor(double);"
+            "dvec2  floor(dvec2);"
+            "dvec3  floor(dvec3);"
+            "dvec4  floor(dvec4);"
+
+            "double trunc(double);"
+            "dvec2  trunc(dvec2);"
+            "dvec3  trunc(dvec3);"
+            "dvec4  trunc(dvec4);"
+
+            "double round(double);"
+            "dvec2  round(dvec2);"
+            "dvec3  round(dvec3);"
+            "dvec4  round(dvec4);"
+
+            "double roundEven(double);"
+            "dvec2  roundEven(dvec2);"
+            "dvec3  roundEven(dvec3);"
+            "dvec4  roundEven(dvec4);"
+
+            "double ceil(double);"
+            "dvec2  ceil(dvec2);"
+            "dvec3  ceil(dvec3);"
+            "dvec4  ceil(dvec4);"
+
+            "double fract(double);"
+            "dvec2  fract(dvec2);"
+            "dvec3  fract(dvec3);"
+            "dvec4  fract(dvec4);"
+
+            "double mod(double, double);"
+            "dvec2  mod(dvec2 , double);"
+            "dvec3  mod(dvec3 , double);"
+            "dvec4  mod(dvec4 , double);"
+            "dvec2  mod(dvec2 , dvec2);"
+            "dvec3  mod(dvec3 , dvec3);"
+            "dvec4  mod(dvec4 , dvec4);"
+
+            "double modf(double, out double);"
+            "dvec2  modf(dvec2,  out dvec2);"
+            "dvec3  modf(dvec3,  out dvec3);"
+            "dvec4  modf(dvec4,  out dvec4);"
+
+            "double min(double, double);"
+            "dvec2  min(dvec2,  double);"
+            "dvec3  min(dvec3,  double);"
+            "dvec4  min(dvec4,  double);"
+            "dvec2  min(dvec2,  dvec2);"
+            "dvec3  min(dvec3,  dvec3);"
+            "dvec4  min(dvec4,  dvec4);"
+
+            "double max(double, double);"
+            "dvec2  max(dvec2 , double);"
+            "dvec3  max(dvec3 , double);"
+            "dvec4  max(dvec4 , double);"
+            "dvec2  max(dvec2 , dvec2);"
+            "dvec3  max(dvec3 , dvec3);"
+            "dvec4  max(dvec4 , dvec4);"
+
+            "double clamp(double, double, double);"
+            "dvec2  clamp(dvec2 , double, double);"
+            "dvec3  clamp(dvec3 , double, double);"
+            "dvec4  clamp(dvec4 , double, double);"
+            "dvec2  clamp(dvec2 , dvec2 , dvec2);"
+            "dvec3  clamp(dvec3 , dvec3 , dvec3);"
+            "dvec4  clamp(dvec4 , dvec4 , dvec4);"
+
+            "double mix(double, double, double);"
+            "dvec2  mix(dvec2,  dvec2,  double);"
+            "dvec3  mix(dvec3,  dvec3,  double);"
+            "dvec4  mix(dvec4,  dvec4,  double);"
+            "dvec2  mix(dvec2,  dvec2,  dvec2);"
+            "dvec3  mix(dvec3,  dvec3,  dvec3);"
+            "dvec4  mix(dvec4,  dvec4,  dvec4);"
+            "double mix(double, double, bool);"
+            "dvec2  mix(dvec2,  dvec2,  bvec2);"
+            "dvec3  mix(dvec3,  dvec3,  bvec3);"
+            "dvec4  mix(dvec4,  dvec4,  bvec4);"
+
+            "double step(double, double);"
+            "dvec2  step(dvec2 , dvec2);"
+            "dvec3  step(dvec3 , dvec3);"
+            "dvec4  step(dvec4 , dvec4);"
+            "dvec2  step(double, dvec2);"
+            "dvec3  step(double, dvec3);"
+            "dvec4  step(double, dvec4);"
+
+            "double smoothstep(double, double, double);"
+            "dvec2  smoothstep(dvec2 , dvec2 , dvec2);"
+            "dvec3  smoothstep(dvec3 , dvec3 , dvec3);"
+            "dvec4  smoothstep(dvec4 , dvec4 , dvec4);"
+            "dvec2  smoothstep(double, double, dvec2);"
+            "dvec3  smoothstep(double, double, dvec3);"
+            "dvec4  smoothstep(double, double, dvec4);"
+
+            "bool  isnan(double);"
+            "bvec2 isnan(dvec2);"
+            "bvec3 isnan(dvec3);"
+            "bvec4 isnan(dvec4);"
+
+            "bool  isinf(double);"
+            "bvec2 isinf(dvec2);"
+            "bvec3 isinf(dvec3);"
+            "bvec4 isinf(dvec4);"
+
+            "double length(double);"
+            "double length(dvec2);"
+            "double length(dvec3);"
+            "double length(dvec4);"
+
+            "double distance(double, double);"
+            "double distance(dvec2 , dvec2);"
+            "double distance(dvec3 , dvec3);"
+            "double distance(dvec4 , dvec4);"
+
+            "double dot(double, double);"
+            "double dot(dvec2 , dvec2);"
+            "double dot(dvec3 , dvec3);"
+            "double dot(dvec4 , dvec4);"
+
+            "dvec3 cross(dvec3, dvec3);"
+
+            "double normalize(double);"
+            "dvec2  normalize(dvec2);"
+            "dvec3  normalize(dvec3);"
+            "dvec4  normalize(dvec4);"
+
+            "double faceforward(double, double, double);"
+            "dvec2  faceforward(dvec2,  dvec2,  dvec2);"
+            "dvec3  faceforward(dvec3,  dvec3,  dvec3);"
+            "dvec4  faceforward(dvec4,  dvec4,  dvec4);"
+                 
+            "double reflect(double, double);"
+            "dvec2  reflect(dvec2 , dvec2 );"
+            "dvec3  reflect(dvec3 , dvec3 );"
+            "dvec4  reflect(dvec4 , dvec4 );"
+                 
+            "double refract(double, double, double);"
+            "dvec2  refract(dvec2 , dvec2 , double);"
+            "dvec3  refract(dvec3 , dvec3 , double);"
+            "dvec4  refract(dvec4 , dvec4 , double);"
+
+            "dmat2 matrixCompMult(dmat2, dmat2);"
+            "dmat3 matrixCompMult(dmat3, dmat3);"
+            "dmat4 matrixCompMult(dmat4, dmat4);"
+            "dmat2x3 matrixCompMult(dmat2x3, dmat2x3);"
+            "dmat2x4 matrixCompMult(dmat2x4, dmat2x4);"
+            "dmat3x2 matrixCompMult(dmat3x2, dmat3x2);"
+            "dmat3x4 matrixCompMult(dmat3x4, dmat3x4);"
+            "dmat4x2 matrixCompMult(dmat4x2, dmat4x2);"
+            "dmat4x3 matrixCompMult(dmat4x3, dmat4x3);"
+
+            "dmat2   outerProduct(dvec2, dvec2);"
+            "dmat3   outerProduct(dvec3, dvec3);"
+            "dmat4   outerProduct(dvec4, dvec4);"
+            "dmat2x3 outerProduct(dvec3, dvec2);"
+            "dmat3x2 outerProduct(dvec2, dvec3);"
+            "dmat2x4 outerProduct(dvec4, dvec2);"
+            "dmat4x2 outerProduct(dvec2, dvec4);"
+            "dmat3x4 outerProduct(dvec4, dvec3);"
+            "dmat4x3 outerProduct(dvec3, dvec4);"
+
+            "dmat2   transpose(dmat2);"
+            "dmat3   transpose(dmat3);"
+            "dmat4   transpose(dmat4);"
+            "dmat2x3 transpose(dmat3x2);"
+            "dmat3x2 transpose(dmat2x3);"
+            "dmat2x4 transpose(dmat4x2);"
+            "dmat4x2 transpose(dmat2x4);"
+            "dmat3x4 transpose(dmat4x3);"
+            "dmat4x3 transpose(dmat3x4);"
+
+            "double determinant(dmat2);"
+            "double determinant(dmat3);"
+            "double determinant(dmat4);"
+
+            "dmat2 inverse(dmat2);"
+            "dmat3 inverse(dmat3);"
+            "dmat4 inverse(dmat4);"
+        );
+    }
+
     if ((profile == EEsProfile && version >= 310) ||
         (profile != EEsProfile && version >= 430)) {
         commonBuiltins.append(
@@ -1956,6 +2164,14 @@ void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, i
             }
         }
     }
+
+    //
+    // sparseTexelsResidentARB()
+    //
+
+    if (profile != EEsProfile && version >= 450) {
+        commonBuiltins.append("bool sparseTexelsResidentARB(int code);\n");
+    }
 }
 
 //
@@ -2069,6 +2285,15 @@ void TBuiltIns::addImageFunctions(TSampler sampler, TString& typeName, int versi
     commonBuiltins.append(prefixes[sampler.type]);
     commonBuiltins.append("vec4);\n");
 
+    if (sampler.dim != Esd1D && sampler.dim != EsdBuffer && profile != EEsProfile && version >= 450) {
+        commonBuiltins.append("int sparseImageLoadARB(readonly volatile coherent ");
+        commonBuiltins.append(imageParams);
+        commonBuiltins.append(", out ");
+        commonBuiltins.append(prefixes[sampler.type]);
+        commonBuiltins.append("vec4");
+        commonBuiltins.append(");\n");
+    }
+
     if ( profile != EEsProfile ||
         (profile == EEsProfile && version >= 310)) {
         if (sampler.type == EbtInt || sampler.type == EbtUint) {
@@ -2123,7 +2348,7 @@ void TBuiltIns::addImageFunctions(TSampler sampler, TString& typeName, int versi
 //
 // Add all the texture lookup functions for the given type.
 //
-void TBuiltIns::addSamplingFunctions(TSampler sampler, TString& typeName, int /*version*/, EProfile /*profile*/)
+void TBuiltIns::addSamplingFunctions(TSampler sampler, TString& typeName, int version, EProfile profile)
 {
     //
     // texturing
@@ -2196,97 +2421,148 @@ void TBuiltIns::addSamplingFunctions(TSampler sampler, TString& typeName, int /*
                                 if (extraProj && (sampler.dim == Esd3D || sampler.shadow))
                                     continue;
 
-                                TString s;
+                                for (int lodClamp = 0; lodClamp <= 1 ;++lodClamp) { // loop over "bool" lod clamp
 
-                                // return type
-                                if (sampler.shadow)
-                                    s.append("float ");
-                                else {
-                                    s.append(prefixes[sampler.type]);
-                                    s.append("vec4 ");
-                                }
+                                    if (lodClamp && (profile == EEsProfile || version < 450))
+                                        continue;
+                                    if (lodClamp && (proj || lod || fetch))
+                                        continue;
 
-                                // name
-                                if (fetch)
-                                    s.append("texel");
-                                else
-                                    s.append("texture");
-                                if (proj)
-                                    s.append("Proj");
-                                if (lod)
-                                    s.append("Lod");
-                                if (grad)
-                                    s.append("Grad");
-                                if (fetch)
-                                    s.append("Fetch");
-                                if (offset)
-                                    s.append("Offset");
-                                s.append("(");
+                                    for (int sparse = 0; sparse <= 1; ++sparse) { // loop over "bool" sparse or not
 
-                                // sampler type
-                                s.append(typeName);
+                                        if (sparse && (profile == EEsProfile || version < 450))
+                                            continue;
+                                        // Sparse sampling is not for 1D/1D array texture, buffer texture, and projective texture
+                                        if (sparse && (sampler.dim == Esd1D || sampler.dim == EsdBuffer || proj))
+                                            continue;
 
-                                // P coordinate
-                                if (extraProj)
-                                    s.append(",vec4");
-                                else {
-                                    s.append(",");
-                                    TBasicType t = fetch ? EbtInt : EbtFloat;
-                                    if (totalDims == 1)
-                                        s.append(TType::getBasicString(t));
-                                    else {
-                                        s.append(prefixes[t]);
-                                        s.append("vec");
-                                        s.append(postfixes[totalDims]);
+                                        TString s;
+
+                                        // return type
+                                        if (sparse)
+                                            s.append("int ");
+                                        else {
+                                            if (sampler.shadow)
+                                                s.append("float ");
+                                            else {
+                                                s.append(prefixes[sampler.type]);
+                                                s.append("vec4 ");
+                                            }
+                                        }
+
+                                        // name
+                                        if (sparse) {
+                                            if (fetch)
+                                                s.append("sparseTexel");
+                                            else
+                                                s.append("sparseTexture");
+                                        } else {
+                                            if (fetch)
+                                                s.append("texel");
+                                            else
+                                                s.append("texture");
+                                        }
+                                        if (proj)
+                                            s.append("Proj");
+                                        if (lod)
+                                            s.append("Lod");
+                                        if (grad)
+                                            s.append("Grad");
+                                        if (fetch)
+                                            s.append("Fetch");
+                                        if (offset)
+                                            s.append("Offset");
+                                        if (lodClamp)
+                                            s.append("Clamp");
+                                        if (lodClamp || sparse)
+                                            s.append("ARB");
+                                        s.append("(");
+
+                                        // sampler type
+                                        s.append(typeName);
+
+                                        // P coordinate
+                                        if (extraProj)
+                                            s.append(",vec4");
+                                        else {
+                                            s.append(",");
+                                            TBasicType t = fetch ? EbtInt : EbtFloat;
+                                            if (totalDims == 1)
+                                                s.append(TType::getBasicString(t));
+                                            else {
+                                                s.append(prefixes[t]);
+                                                s.append("vec");
+                                                s.append(postfixes[totalDims]);
+                                            }
+                                        }
+
+                                        if (bias && compare)
+                                            continue;
+
+                                        // non-optional lod argument (lod that's not driven by lod loop) or sample
+                                        if ((fetch && sampler.dim != EsdBuffer && sampler.dim != EsdRect && !sampler.ms) ||
+                                            (sampler.ms && fetch))
+                                            s.append(",int");
+
+                                        // non-optional lod
+                                        if (lod)
+                                            s.append(",float");
+
+                                        // gradient arguments
+                                        if (grad) {
+                                            if (dimMap[sampler.dim] == 1)
+                                                s.append(",float,float");
+                                            else {
+                                                s.append(",vec");
+                                                s.append(postfixes[dimMap[sampler.dim]]);
+                                                s.append(",vec");
+                                                s.append(postfixes[dimMap[sampler.dim]]);
+                                            }
+                                        }
+
+                                        // offset
+                                        if (offset) {
+                                            if (dimMap[sampler.dim] == 1)
+                                                s.append(",int");
+                                            else {
+                                                s.append(",ivec");
+                                                s.append(postfixes[dimMap[sampler.dim]]);
+                                            }
+                                        }
+
+                                        // non-optional compare
+                                        if (compare)
+                                            s.append(",float");
+
+                                        // lod clamp
+                                        if (lodClamp)
+                                            s.append(",float");
+
+                                        // texel out (for sparse texture)
+                                        if (sparse) {
+                                            s.append(",out ");
+                                            if (sampler.shadow)
+                                                s.append("float ");
+                                            else {
+                                                s.append(prefixes[sampler.type]);
+                                                s.append("vec4 ");
+                                            }
+                                        }
+
+                                        // optional bias
+                                        if (bias)
+                                            s.append(",float");
+
+                                        s.append(");\n");
+
+                                        // Add to the per-language set of built-ins
+
+                                        if (bias)
+                                            stageBuiltins[EShLangFragment].append(s);
+                                        else
+                                            commonBuiltins.append(s);
                                     }
                                 }
-
-                                if (bias && compare)
-                                    continue;
-
-                                // non-optional lod argument (lod that's not driven by lod loop) or sample
-                                if ((fetch && sampler.dim != EsdBuffer && sampler.dim != EsdRect && !sampler.ms) ||
-                                    (sampler.ms && fetch))
-                                    s.append(",int");
-
-                                // non-optional lod
-                                if (lod)
-                                    s.append(",float");
-
-                                // gradient arguments
-                                if (grad) {
-                                    if (dimMap[sampler.dim] == 1)
-                                        s.append(",float,float");
-                                    else {
-                                        s.append(",vec");
-                                        s.append(postfixes[dimMap[sampler.dim]]);
-                                        s.append(",vec");
-                                        s.append(postfixes[dimMap[sampler.dim]]);
-                                    }
-                                }
-
-                                // offset
-                                if (offset) {
-                                    if (dimMap[sampler.dim] == 1)
-                                        s.append(",int");
-                                    else {
-                                        s.append(",ivec");
-                                        s.append(postfixes[dimMap[sampler.dim]]);
-                                    }
-                                }
-
-                                // optional bias or non-optional compare
-                                if (bias || compare)
-                                    s.append(",float");
-
-                                s.append(");\n");
-
-                                // Add to the per-language set of built-ins
-
-                                if (bias)
-                                    stageBuiltins[EShLangFragment].append(s);
-                                else
-                                    commonBuiltins.append(s);
                             }
                         }
                     }
@@ -2303,7 +2579,7 @@ void TBuiltIns::addSamplingFunctions(TSampler sampler, TString& typeName, int /*
 //
 // Add all the texture gather functions for the given type.
 //
-void TBuiltIns::addGatherFunctions(TSampler sampler, TString& typeName, int version, EProfile /* profile */)
+void TBuiltIns::addGatherFunctions(TSampler sampler, TString& typeName, int version, EProfile profile)
 {
     switch (sampler.dim) {
     case Esd2D:
@@ -2330,51 +2606,71 @@ void TBuiltIns::addGatherFunctions(TSampler sampler, TString& typeName, int vers
             if (offset > 0 && sampler.dim == EsdCube)
                 continue;
 
-            TString s;
+            for (int sparse = 0; sparse <= 1; ++sparse) { // loop over "bool" sparse or not
+                if (sparse && (profile == EEsProfile || version < 450))
+                    continue;
 
-            // return type
-            s.append(prefixes[sampler.type]);
-            s.append("vec4 ");
+                TString s;
 
-            // name
-            s.append("textureGather");
-            switch (offset) {
-            case 1:
-                s.append("Offset");
-                break;
-            case 2:
-                s.append("Offsets");
-            default:
-                break;
+                // return type
+                if (sparse)
+                    s.append("int ");
+                else {
+                    s.append(prefixes[sampler.type]);
+                    s.append("vec4 ");
+                }
+
+                // name
+                if (sparse)
+                    s.append("sparseTextureGather");
+                else
+                    s.append("textureGather");
+                switch (offset) {
+                case 1:
+                    s.append("Offset");
+                    break;
+                case 2:
+                    s.append("Offsets");
+                default:
+                    break;
+                }
+                if (sparse)
+                    s.append("ARB");
+                s.append("(");
+
+                // sampler type argument
+                s.append(typeName);
+
+                // P coordinate argument
+                s.append(",vec");
+                int totalDims = dimMap[sampler.dim] + (sampler.arrayed ? 1 : 0);
+                s.append(postfixes[totalDims]);
+
+                // refZ argument
+                if (sampler.shadow)
+                    s.append(",float");
+
+                // offset argument
+                if (offset > 0) {
+                    s.append(",ivec2");
+                    if (offset == 2)
+                        s.append("[4]");
+                }
+
+                // texel out (for sparse texture)
+                if (sparse) {
+                    s.append(",out ");
+                    s.append(prefixes[sampler.type]);
+                    s.append("vec4 ");
+                }
+
+                // comp argument
+                if (comp)
+                    s.append(",int");
+
+                s.append(");\n");
+                commonBuiltins.append(s);
             }
-            s.append("(");
-
-            // sampler type argument
-            s.append(typeName);
-
-            // P coordinate argument
-            s.append(",vec");
-            int totalDims = dimMap[sampler.dim] + (sampler.arrayed ? 1 : 0);
-            s.append(postfixes[totalDims]);
-
-            // refZ argument
-            if (sampler.shadow)
-                s.append(",float");
-
-            // offset argument
-            if (offset > 0) {
-                s.append(",ivec2");
-                if (offset == 2)
-                    s.append("[4]");
-            }
-
-            // comp argument
-            if (comp)
-                s.append(",int");
-
-            s.append(");\n");
-            commonBuiltins.append(s);
-            //printf("%s", s.c_str());
         }
     }
 }
@@ -3164,6 +3460,37 @@ void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage langua
             symbolTable.setFunctionExtensions("fwidthCoarse", 1, &E_GL_ARB_derivative_control);
         }
 
+        // E_GL_ARB_sparse_texture2
+        if (profile != EEsProfile)
+        {
+            symbolTable.setFunctionExtensions("sparseTextureARB",              1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTextureLodARB",           1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTextureOffsetARB",        1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTexelFetchARB",           1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTexelFetchOffsetARB",     1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTextureLodOffsetARB",     1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTextureGradARB",          1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTextureGradOffsetARB",    1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTextureGatherARB",        1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTextureGatherOffsetARB",  1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTextureGatherOffsetsARB", 1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseImageLoadARB",            1, &E_GL_ARB_sparse_texture2);
+            symbolTable.setFunctionExtensions("sparseTexelsResident",          1, &E_GL_ARB_sparse_texture2);
+        }
+
+        // E_GL_ARB_sparse_texture_clamp
+        if (profile != EEsProfile)
+        {
+            symbolTable.setFunctionExtensions("sparseTextureClampARB",              1, &E_GL_ARB_sparse_texture_clamp);
+            symbolTable.setFunctionExtensions("sparseTextureOffsetClampARB",        1, &E_GL_ARB_sparse_texture_clamp);
+            symbolTable.setFunctionExtensions("sparseTextureGradClampARB",          1, &E_GL_ARB_sparse_texture_clamp);
+            symbolTable.setFunctionExtensions("sparseTextureGradOffsetClampARB",    1, &E_GL_ARB_sparse_texture_clamp);
+            symbolTable.setFunctionExtensions("textureClampARB",                    1, &E_GL_ARB_sparse_texture_clamp);
+            symbolTable.setFunctionExtensions("textureOffsetClampARB",              1, &E_GL_ARB_sparse_texture_clamp);
+            symbolTable.setFunctionExtensions("textureGradClampARB",                1, &E_GL_ARB_sparse_texture_clamp);
+            symbolTable.setFunctionExtensions("textureGradOffsetClampARB",          1, &E_GL_ARB_sparse_texture_clamp);
+        }
+
         symbolTable.setVariableExtensions("gl_FragDepthEXT", 1, &E_GL_EXT_frag_depth);
 
         if (profile == EEsProfile) {
@@ -3369,6 +3696,11 @@ void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage langua
         symbolTable.relateToOperator("textureGatherOffset",     EOpTextureGatherOffset);
         symbolTable.relateToOperator("textureGatherOffsets",    EOpTextureGatherOffsets);
 
+        symbolTable.relateToOperator("noise1", EOpNoise);
+        symbolTable.relateToOperator("noise2", EOpNoise);
+        symbolTable.relateToOperator("noise3", EOpNoise);
+        symbolTable.relateToOperator("noise4", EOpNoise);
+
         if (spv == 0 && (IncludeLegacy(version, profile, spv) || (profile == EEsProfile && version == 100))) {
             symbolTable.relateToOperator("ftransform",               EOpFtransform);
 
@@ -3422,6 +3754,32 @@ void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage langua
             symbolTable.relateToOperator("shadow2DLod",              EOpTextureLod);
             symbolTable.relateToOperator("shadow1DProjLod",          EOpTextureProjLod);
             symbolTable.relateToOperator("shadow2DProjLod",          EOpTextureProjLod);
+        }
+
+        if (profile != EEsProfile)
+        {
+            symbolTable.relateToOperator("sparseTextureARB",                EOpSparseTexture);
+            symbolTable.relateToOperator("sparseTextureLodARB",             EOpSparseTextureLod);
+            symbolTable.relateToOperator("sparseTextureOffsetARB",          EOpSparseTextureOffset);
+            symbolTable.relateToOperator("sparseTexelFetchARB",             EOpSparseTextureFetch);
+            symbolTable.relateToOperator("sparseTexelFetchOffsetARB",       EOpSparseTextureFetchOffset);
+            symbolTable.relateToOperator("sparseTextureLodOffsetARB",       EOpSparseTextureLodOffset);
+            symbolTable.relateToOperator("sparseTextureGradARB",            EOpSparseTextureGrad);
+            symbolTable.relateToOperator("sparseTextureGradOffsetARB",      EOpSparseTextureGradOffset);
+            symbolTable.relateToOperator("sparseTextureGatherARB",          EOpSparseTextureGather);
+            symbolTable.relateToOperator("sparseTextureGatherOffsetARB",    EOpSparseTextureGatherOffset);
+            symbolTable.relateToOperator("sparseTextureGatherOffsetsARB",   EOpSparseTextureGatherOffsets);
+            symbolTable.relateToOperator("sparseImageLoadARB",              EOpSparseImageLoad);
+            symbolTable.relateToOperator("sparseTexelsResidentARB",         EOpSparseTexelsResident);
+
+            symbolTable.relateToOperator("sparseTextureClampARB",           EOpSparseTextureClamp);
+            symbolTable.relateToOperator("sparseTextureOffsetClampARB",     EOpSparseTextureOffsetClamp);
+            symbolTable.relateToOperator("sparseTextureGradClampARB",       EOpSparseTextureGradClamp);
+            symbolTable.relateToOperator("sparseTextureGradOffsetClampARB", EOpSparseTextureGradOffsetClamp);
+            symbolTable.relateToOperator("textureClampARB",                 EOpTextureClamp);
+            symbolTable.relateToOperator("textureOffsetClampARB",           EOpTextureOffsetClamp);
+            symbolTable.relateToOperator("textureGradClampARB",             EOpTextureGradClamp);
+            symbolTable.relateToOperator("textureGradOffsetClampARB",       EOpTextureGradOffsetClamp);
         }
     }
 

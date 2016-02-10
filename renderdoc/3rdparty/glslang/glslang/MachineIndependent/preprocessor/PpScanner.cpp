@@ -242,11 +242,11 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
 
     ppToken->ival = 0;
     ppToken->space = false;
-    ch = pp->getChar();
+    ch = getch();
     for (;;) {
         while (ch == ' ' || ch == '\t') {
             ppToken->space = true;
-            ch = pp->getChar();
+            ch = getch();
         }
 
         ppToken->loc = pp->parseContext.getCurrentLoc();
@@ -271,13 +271,13 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
             do {
                 if (len < MaxTokenLength) {
                     tokenText[len++] = (char)ch;
-                    ch = pp->getChar();
+                    ch = getch();
                 } else {
                     if (! AlreadyComplained) {
                         pp->parseContext.ppError(ppToken->loc, "name too long", "", "");
                         AlreadyComplained = 1;
                     }
-                    ch = pp->getChar();
+                    ch = getch();
                 }
             } while ((ch >= 'a' && ch <= 'z') ||
                      (ch >= 'A' && ch <= 'Z') ||
@@ -289,18 +289,18 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                 continue;
 
             tokenText[len] = '\0';
-            pp->ungetChar();
+            ungetch();
             ppToken->atom = pp->LookUpAddString(tokenText);
             return PpAtomIdentifier;
         case '0':
             ppToken->name[len++] = (char)ch;
-            ch = pp->getChar();
+            ch = getch();
             if (ch == 'x' || ch == 'X') {
                 // must be hexidecimal
 
                 bool isUnsigned = false;
                 ppToken->name[len++] = (char)ch;
-                ch = pp->getChar();
+                ch = getch();
                 if ((ch >= '0' && ch <= '9') ||
                     (ch >= 'A' && ch <= 'F') ||
                     (ch >= 'a' && ch <= 'f')) {
@@ -325,7 +325,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                             }
                             ival = 0xffffffff;
                         }
-                        ch = pp->getChar();
+                        ch = getch();
                     } while ((ch >= '0' && ch <= '9') ||
                              (ch >= 'A' && ch <= 'F') ||
                              (ch >= 'a' && ch <= 'f'));
@@ -337,7 +337,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                         ppToken->name[len++] = (char)ch;
                     isUnsigned = true;
                 } else
-                    pp->ungetChar();
+                    ungetch();
                 ppToken->name[len] = '\0';
                 ppToken->ival = (int)ival;
 
@@ -366,7 +366,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                         ival = (ival << 3) | ii;
                     } else
                         octalOverflow = true;
-                    ch = pp->getChar();
+                    ch = getch();
                 }
 
                 // could be part of a float...
@@ -379,7 +379,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                             pp->parseContext.ppError(ppToken->loc, "numeric literal too long", "", "");
                             AlreadyComplained = 1;
                         }
-                        ch = pp->getChar();
+                        ch = getch();
                     } while (ch >= '0' && ch <= '9');
                 }
                 if (ch == '.' || ch == 'e' || ch == 'f' || ch == 'E' || ch == 'F' || ch == 'l' || ch == 'L') 
@@ -394,7 +394,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                         ppToken->name[len++] = (char)ch;
                     isUnsigned = true;
                 } else
-                    pp->ungetChar();
+                    ungetch();
                 ppToken->name[len] = '\0';
 
                 if (octalOverflow)
@@ -419,7 +419,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                     pp->parseContext.ppError(ppToken->loc, "numeric literal too long", "", "");
                     AlreadyComplained = 1;
                 }
-                ch = pp->getChar();
+                ch = getch();
             } while (ch >= '0' && ch <= '9');
             if (ch == '.' || ch == 'e' || ch == 'f' || ch == 'E' || ch == 'F' || ch == 'l' || ch == 'L') {
                 return pp->lFloatConst(len, ch, ppToken);
@@ -432,7 +432,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                         ppToken->name[len++] = (char)ch;
                     uint = true;
                 } else
-                    pp->ungetChar();
+                    ungetch();
 
                 ppToken->name[len] = '\0';
                 ival = 0;
@@ -456,153 +456,153 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
             }
             break;
         case '-':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '-') {
                 return PpAtomDecrement;
             } else if (ch == '=') {
                 return PpAtomSub;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '-';
             }
         case '+':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '+') {
                 return PpAtomIncrement;
             } else if (ch == '=') {
                 return PpAtomAdd;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '+';
             }
         case '*':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '=') {
                 return PpAtomMul;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '*';
             }
         case '%':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '=') {
                 return PpAtomMod;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '%';
             }
         case '^':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '^') {
                 return PpAtomXor;
             } else {
                 if (ch == '=')
                     return PpAtomXorAssign;
                 else{
-                    pp->ungetChar();
+                    ungetch();
                     return '^';
                 }
             }
 
         case '=':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '=') {
                 return PpAtomEQ;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '=';
             }
         case '!':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '=') {
                 return PpAtomNE;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '!';
             }
         case '|':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '|') {
                 return PpAtomOr;
             } else if (ch == '=') {
                 return PpAtomOrAssign;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '|';
             }
         case '&':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '&') {
                 return PpAtomAnd;
             } else if (ch == '=') {
                 return PpAtomAndAssign;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '&';
             }
         case '<':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '<') {
-                ch = pp->getChar();
+                ch = getch();
                 if (ch == '=')
                     return PpAtomLeftAssign;
                 else {
-                    pp->ungetChar();
+                    ungetch();
                     return PpAtomLeft;
                 }
             } else if (ch == '=') {
                 return PpAtomLE;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '<';
             }
         case '>':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '>') {
-                ch = pp->getChar();
+                ch = getch();
                 if (ch == '=')
                     return PpAtomRightAssign;
                 else {
-                    pp->ungetChar();
+                    ungetch();
                     return PpAtomRight;
                 }
             } else if (ch == '=') {
                 return PpAtomGE;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '>';
             }
         case '.':
-            ch = pp->getChar();
+            ch = getch();
             if (ch >= '0' && ch <= '9') {
-                pp->ungetChar();
+                ungetch();
                 return pp->lFloatConst(0, '.', ppToken);
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '.';
             }
         case '/':
-            ch = pp->getChar();
+            ch = getch();
             if (ch == '/') {
                 pp->inComment = true;
                 do {
-                    ch = pp->getChar();
+                    ch = getch();
                 } while (ch != '\n' && ch != EndOfInput);
                 ppToken->space = true;
                 pp->inComment = false;
 
                 return ch;
             } else if (ch == '*') {
-                ch = pp->getChar();
+                ch = getch();
                 do {
                     while (ch != '*') {
                         if (ch == EndOfInput) {
                             pp->parseContext.ppError(ppToken->loc, "End of input in comment", "comment", "");
                             return ch;
                         }
-                        ch = pp->getChar();
+                        ch = getch();
                     }
-                    ch = pp->getChar();
+                    ch = getch();
                     if (ch == EndOfInput) {
                         pp->parseContext.ppError(ppToken->loc, "End of input in comment", "comment", "");
                         return ch;
@@ -614,29 +614,29 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
             } else if (ch == '=') {
                 return PpAtomDiv;
             } else {
-                pp->ungetChar();
+                ungetch();
                 return '/';
             }
             break;
         case '"':
-            ch = pp->getChar();
+            ch = getch();
             while (ch != '"' && ch != '\n' && ch != EndOfInput) {
                 if (len < MaxTokenLength) {
                     tokenText[len] = (char)ch;
                     len++;
-                    ch = pp->getChar();
+                    ch = getch();
                 } else
                     break;
             };
             tokenText[len] = '\0';
             if (ch != '"') {
-                pp->ungetChar();
+                ungetch();
                 pp->parseContext.ppError(ppToken->loc, "End of line in string", "string", "");
             }
             return PpAtomConstString;
         }
 
-        ch = pp->getChar();
+        ch = getch();
     }
 }
 

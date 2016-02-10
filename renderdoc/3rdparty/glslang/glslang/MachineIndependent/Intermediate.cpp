@@ -457,6 +457,10 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
     case EOpMatrixTimesVector:
     case EOpMatrixTimesScalar:
 
+    case EOpAnd:
+    case EOpInclusiveOr:
+    case EOpExclusiveOr:
+
     case EOpFunctionCall:
     case EOpReturn:
     case EOpAssign:

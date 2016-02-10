@@ -852,7 +852,7 @@ TIntermTyped* TIntermediate::foldConstructor(TIntermAggregate* aggrNode)
 
 //
 // Constant folding of a bracket (array-style) dereference or struct-like dot
-// dereference.  Can handle any thing except a multi-character swizzle, though
+// dereference.  Can handle anything except a multi-character swizzle, though
 // all swizzles may go to foldSwizzle().
 //
 TIntermTyped* TIntermediate::foldDereference(TIntermTyped* node, int index, const TSourceLoc& loc)
@@ -861,14 +861,19 @@ TIntermTyped* TIntermediate::foldDereference(TIntermTyped* node, int index, cons
     dereferencedType.getQualifier().storage = EvqConst;
     TIntermTyped* result = 0;
     int size = dereferencedType.computeNumComponents();
-    
+
+    // arrays, vectors, matrices, all use simple multiplicative math
+    // while structures need to add up heterogeneous members
     int start;
-    if (node->isStruct()) {
+    if (node->isArray() || ! node->isStruct())
+        start = size * index;
+    else {
+        // it is a structure
+        assert(node->isStruct());
         start = 0;
         for (int i = 0; i < index; ++i)
             start += (*node->getType().getStruct())[i].type->computeNumComponents();
-    } else
-        start = size * index;
+    }
 
     result = addConstantUnion(TConstUnionArray(node->getAsConstantUnion()->getConstArray(), start, size), node->getType(), loc);
 

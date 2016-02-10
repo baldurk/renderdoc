@@ -19,6 +19,7 @@ spirv_compile.o \
 spirv_disassemble.o \
 glslang/OGLCompilersDLL/InitializeDll.o \
 glslang/SPIRV/GlslangToSpv.o \
+glslang/SPIRV/InReadableOrder.o \
 glslang/SPIRV/SpvBuilder.o \
 glslang/glslang/GenericCodeGen/CodeGen.o \
 glslang/glslang/GenericCodeGen/Link.o \

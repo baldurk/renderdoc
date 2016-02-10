@@ -15,6 +15,9 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\GlslangToSpv.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\InReadableOrder.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
@@ -204,12 +207,6 @@
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\osinclude.h">
-      <Filter>3rdparty\glslang</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\osinclude.h">
-      <Filter>3rdparty\glslang</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Unix\osinclude.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Public\ShaderLang.h">

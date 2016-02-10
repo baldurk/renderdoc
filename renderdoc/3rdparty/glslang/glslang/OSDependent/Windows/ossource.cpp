@@ -147,6 +147,8 @@ void OS_Sleep(int milliseconds)
     Sleep(milliseconds);
 }
 
+//#define DUMP_COUNTERS
+
 void OS_DumpMemoryCounters()
 {
 #ifdef DUMP_COUNTERS

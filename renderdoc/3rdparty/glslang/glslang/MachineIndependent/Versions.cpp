@@ -173,6 +173,8 @@ void TParseContext::initializeExtensionBehavior()
     extensionBehavior[E_GL_ARB_derivative_control]           = EBhDisable;
     extensionBehavior[E_GL_ARB_shader_texture_image_samples] = EBhDisable;
     extensionBehavior[E_GL_ARB_viewport_array]               = EBhDisable;
+    extensionBehavior[E_GL_ARB_sparse_texture2]              = EBhDisable;
+    extensionBehavior[E_GL_ARB_sparse_texture_clamp]         = EBhDisable;
 //    extensionBehavior[E_GL_ARB_cull_distance]                = EBhDisable;    // present for 4.5, but need extension control over block members
 
     // #line and #include
@@ -274,6 +276,8 @@ const char* TParseContext::getPreamble()
             "#define GL_ARB_derivative_control 1\n"
             "#define GL_ARB_shader_texture_image_samples 1\n"
             "#define GL_ARB_viewport_array 1\n"
+            "#define GL_ARB_sparse_texture2 1\n"
+            "#define GL_ARB_sparse_texture_clamp 1\n"
 
             "#define GL_GOOGLE_cpp_style_line_directive 1\n"
             "#define GL_GOOGLE_include_directive 1\n"

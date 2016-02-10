@@ -39,8 +39,8 @@
 // "Mask" in their name, and a parallel enum that has the shift
 // amount (1 << x) for each corresponding enumerant.
 
-#ifndef spirv_H
-#define spirv_H
+#ifndef spirv_HPP
+#define spirv_HPP
 
 namespace spv {
 
@@ -874,5 +874,4 @@ inline KernelProfilingInfoMask operator|(KernelProfilingInfoMask a, KernelProfil
 
 }  // end namespace spv
 
-#endif  // #ifndef spirv_H
-
+#endif  // #ifndef spirv_HPP

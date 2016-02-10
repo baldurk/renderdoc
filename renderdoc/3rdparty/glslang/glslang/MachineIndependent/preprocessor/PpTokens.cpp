@@ -195,7 +195,7 @@ int TPpContext::ReadToken(TokenStream *pTok, TPpToken *ppToken)
     case PpAtomConstUint:
         len = 0;
         ch = lReadByte(pTok);
-        while (ch != 0) {
+        while (ch != 0 && ch != EndOfInput) {
             if (len < MaxTokenLength) {
                 tokenText[len] = (char)ch;
                 len++;
@@ -215,12 +215,10 @@ int TPpContext::ReadToken(TokenStream *pTok, TPpToken *ppToken)
             break;
         case PpAtomConstFloat:
         case PpAtomConstDouble:
-            strcpy(ppToken->name, tokenText);
             ppToken->dval = atof(ppToken->name);
             break;
         case PpAtomConstInt:
         case PpAtomConstUint:
-            strcpy(ppToken->name, tokenText);
             if (len > 0 && tokenText[0] == '0') {
                 if (len > 1 && (tokenText[1] == 'x' || tokenText[1] == 'X'))
                     ppToken->ival = strtol(ppToken->name, 0, 16);

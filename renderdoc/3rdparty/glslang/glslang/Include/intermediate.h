@@ -238,6 +238,8 @@ enum TOperator {
 
     EOpFtransform,
 
+    EOpNoise,
+
     EOpEmitVertex,           // geometry only
     EOpEndPrimitive,         // geometry only
     EOpEmitStreamVertex,     // geometry only
@@ -369,6 +371,8 @@ enum TOperator {
     EOpImageAtomicExchange,
     EOpImageAtomicCompSwap,
 
+    EOpSparseImageLoad,
+
     EOpImageGuardEnd,
 
     //
@@ -398,6 +402,31 @@ enum TOperator {
     EOpTextureGather,
     EOpTextureGatherOffset,
     EOpTextureGatherOffsets,
+    EOpTextureClamp,
+    EOpTextureOffsetClamp,
+    EOpTextureGradClamp,
+    EOpTextureGradOffsetClamp,
+
+    EOpSparseTextureGuardBegin,
+
+    EOpSparseTexture,
+    EOpSparseTextureLod,
+    EOpSparseTextureOffset,
+    EOpSparseTextureFetch,
+    EOpSparseTextureFetchOffset,
+    EOpSparseTextureLodOffset,
+    EOpSparseTextureGrad,
+    EOpSparseTextureGradOffset,
+    EOpSparseTextureGather,
+    EOpSparseTextureGatherOffset,
+    EOpSparseTextureGatherOffsets,
+    EOpSparseTexelsResident,
+    EOpSparseTextureClamp,
+    EOpSparseTextureOffsetClamp,
+    EOpSparseTextureGradClamp,
+    EOpSparseTextureGradOffsetClamp,
+
+    EOpSparseTextureGuardEnd,
 
     EOpTextureGuardEnd,
 
@@ -622,6 +651,7 @@ struct TCrackedTextureOp {
     bool offsets;
     bool gather;
     bool grad;
+    bool lodClamp;
 };
 
 //
@@ -637,6 +667,8 @@ public:
     bool isConstructor() const;
     bool isTexture() const { return op > EOpTextureGuardBegin && op < EOpTextureGuardEnd; }
     bool isImage()   const { return op > EOpImageGuardBegin   && op < EOpImageGuardEnd; }
+    bool isSparseTexture() const { return op > EOpSparseTextureGuardBegin && op < EOpSparseTextureGuardEnd; }
+    bool isSparseImage()   const { return op == EOpSparseImageLoad; }
 
     // Crack the op into the individual dimensions of texturing operation.
     void crackTexture(TSampler sampler, TCrackedTextureOp& cracked) const
@@ -649,6 +681,7 @@ public:
         cracked.offsets = false;
         cracked.gather = false;
         cracked.grad = false;
+        cracked.lodClamp = false;
 
         switch (op) {
         case EOpImageQuerySize:
@@ -657,25 +690,40 @@ public:
         case EOpTextureQueryLod:
         case EOpTextureQueryLevels:
         case EOpTextureQuerySamples:
+        case EOpSparseTexelsResident:
             cracked.query = true;
             break;
         case EOpTexture:
+        case EOpSparseTexture:
+            break;
+        case EOpTextureClamp:
+        case EOpSparseTextureClamp:
+            cracked.lodClamp = true;
             break;
         case EOpTextureProj:
             cracked.proj = true;
             break;
         case EOpTextureLod:
+        case EOpSparseTextureLod:
             cracked.lod = true;
             break;
         case EOpTextureOffset:
+        case EOpSparseTextureOffset:
             cracked.offset = true;
             break;
+        case EOpTextureOffsetClamp:
+        case EOpSparseTextureOffsetClamp:
+            cracked.offset = true;
+            cracked.lodClamp = true;
+            break;
         case EOpTextureFetch:
+        case EOpSparseTextureFetch:
             cracked.fetch = true;
             if (sampler.dim == Esd1D || (sampler.dim == Esd2D && ! sampler.ms) || sampler.dim == Esd3D)
                 cracked.lod = true;
             break;
         case EOpTextureFetchOffset:
+        case EOpSparseTextureFetchOffset:
             cracked.fetch = true;
             cracked.offset = true;
             if (sampler.dim == Esd1D || (sampler.dim == Esd2D && ! sampler.ms) || sampler.dim == Esd3D)
@@ -686,6 +734,7 @@ public:
             cracked.proj = true;
             break;
         case EOpTextureLodOffset:
+        case EOpSparseTextureLodOffset:
             cracked.offset = true;
             cracked.lod = true;
             break;
@@ -699,9 +748,16 @@ public:
             cracked.proj = true;
             break;
         case EOpTextureGrad:
+        case EOpSparseTextureGrad:
             cracked.grad = true;
             break;
+        case EOpTextureGradClamp:
+        case EOpSparseTextureGradClamp:
+            cracked.grad = true;
+            cracked.lodClamp = true;
+            break;
         case EOpTextureGradOffset:
+        case EOpSparseTextureGradOffset:
             cracked.grad = true;
             cracked.offset = true;
             break;
@@ -714,14 +770,23 @@ public:
             cracked.offset = true;
             cracked.proj = true;
             break;
+        case EOpTextureGradOffsetClamp:
+        case EOpSparseTextureGradOffsetClamp:
+            cracked.grad = true;
+            cracked.offset = true;
+            cracked.lodClamp = true;
+            break;
         case EOpTextureGather:
+        case EOpSparseTextureGather:
             cracked.gather = true;
             break;
         case EOpTextureGatherOffset:
+        case EOpSparseTextureGatherOffset:
             cracked.gather = true;
             cracked.offset = true;
             break;
         case EOpTextureGatherOffsets:
+        case EOpSparseTextureGatherOffsets:
             cracked.gather = true;
             cracked.offsets = true;
             break;

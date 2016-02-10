@@ -52,12 +52,16 @@
 
 #include "spirv.hpp"
 
-#include <vector>
+#include <algorithm>
+#include <cassert>
+#include <functional>
 #include <iostream>
-#include <assert.h>
+#include <memory>
+#include <vector>
 
 namespace spv {
 
+class Block;
 class Function;
 class Module;
 
@@ -66,7 +70,17 @@ const Id NoType = 0;
 
 const unsigned int BadValue = 0xFFFFFFFF;
 const Decoration NoPrecision = (Decoration)BadValue;
-const MemorySemanticsMask MemorySemanticsAllMemory = (MemorySemanticsMask)0x3FF;
+const MemorySemanticsMask MemorySemanticsAllMemory = 
+                (MemorySemanticsMask)(MemorySemanticsAcquireMask |
+                                      MemorySemanticsReleaseMask |
+                                      MemorySemanticsAcquireReleaseMask |
+                                      MemorySemanticsSequentiallyConsistentMask |
+                                      MemorySemanticsUniformMemoryMask |
+                                      MemorySemanticsSubgroupMemoryMask |
+                                      MemorySemanticsWorkgroupMemoryMask |
+                                      MemorySemanticsCrossWorkgroupMemoryMask |
+                                      MemorySemanticsAtomicCounterMemoryMask |
+                                      MemorySemanticsImageMemoryMask);
 
 //
 // SPIR-V IR instruction.
@@ -74,8 +88,8 @@ const MemorySemanticsMask MemorySemanticsAllMemory = (MemorySemanticsMask)0x3FF;
 
 class Instruction {
 public:
-    Instruction(Id resultId, Id typeId, Op opCode) : resultId(resultId), typeId(typeId), opCode(opCode) { }
-    explicit Instruction(Op opCode) : resultId(NoResult), typeId(NoType), opCode(opCode) { }
+    Instruction(Id resultId, Id typeId, Op opCode) : resultId(resultId), typeId(typeId), opCode(opCode), block(nullptr) { }
+    explicit Instruction(Op opCode) : resultId(NoResult), typeId(NoType), opCode(opCode), block(nullptr) { }
     virtual ~Instruction() {}
     void addIdOperand(Id id) { operands.push_back(id); }
     void addImmediateOperand(unsigned int immediate) { operands.push_back(immediate); }
@@ -106,6 +120,8 @@ public:
             addImmediateOperand(word);
         }
     }
+    void setBlock(Block* b) { block = b; }
+    Block* getBlock() const { return block; }
     Op getOpCode() const { return opCode; }
     int getNumOperands() const { return (int)operands.size(); }
     Id getResultId() const { return resultId; }
@@ -144,6 +160,7 @@ protected:
     Op opCode;
     std::vector<Id> operands;
     std::string originalString;        // could be optimized away; convenience for getting string operand
+    Block* block;
 };
 
 //
@@ -155,18 +172,31 @@ public:
     Block(Id id, Function& parent);
     virtual ~Block()
     {
-        // TODO: free instructions
     }
-    
+
     Id getId() { return instructions.front()->getResultId(); }
 
     Function& getParent() const { return parent; }
-    void addInstruction(Instruction* inst);
-    void addPredecessor(Block* pred) { predecessors.push_back(pred); }
-    void addLocalVariable(Instruction* inst) { localVariables.push_back(inst); }
-    int getNumPredecessors() const { return (int)predecessors.size(); }
+    void addInstruction(std::unique_ptr<Instruction> inst);
+    void addPredecessor(Block* pred) { predecessors.push_back(pred); pred->successors.push_back(this);}
+    void addLocalVariable(std::unique_ptr<Instruction> inst) { localVariables.push_back(std::move(inst)); }
+    const std::vector<Block*>& getPredecessors() const { return predecessors; }
+    const std::vector<Block*>& getSuccessors() const { return successors; }
     void setUnreachable() { unreachable = true; }
     bool isUnreachable() const { return unreachable; }
+    // Returns the block's merge instruction, if one exists (otherwise null).
+    const Instruction* getMergeInstruction() const {
+        if (instructions.size() < 2) return nullptr;
+        const Instruction* nextToLast = (instructions.cend() - 2)->get();
+        switch (nextToLast->getOpCode()) {
+            case OpSelectionMerge:
+            case OpLoopMerge:
+                return nextToLast;
+            default:
+                return nullptr;
+        }
+        return nullptr;
+    }
 
     bool isTerminated() const
     {
@@ -185,12 +215,6 @@ public:
 
     void dump(std::vector<unsigned int>& out) const
     {
-        // skip the degenerate unreachable blocks
-        // TODO: code gen: skip all unreachable blocks (transitive closure)
-        //                 (but, until that's done safer to keep non-degenerate unreachable blocks, in case others depend on something)
-        if (unreachable && instructions.size() <= 2)
-            return;
-
         instructions[0]->dump(out);
         for (int i = 0; i < (int)localVariables.size(); ++i)
             localVariables[i]->dump(out);
@@ -205,9 +229,9 @@ protected:
     // To enforce keeping parent and ownership in sync:
     friend Function;
 
-    std::vector<Instruction*> instructions;
-    std::vector<Block*> predecessors;
-    std::vector<Instruction*> localVariables;
+    std::vector<std::unique_ptr<Instruction> > instructions;
+    std::vector<Block*> predecessors, successors;
+    std::vector<std::unique_ptr<Instruction> > localVariables;
     Function& parent;
 
     // track whether this block is known to be uncreachable (not necessarily 
@@ -215,6 +239,11 @@ protected:
     // for the extraneous ones introduced by the builder).
     bool unreachable;
 };
+
+// Traverses the control-flow graph rooted at root in an order suited for
+// readable code generation.  Invokes callback at every node in the traversal
+// order.
+void inReadableOrder(Block* root, std::function<void(Block*)> callback);
 
 //
 // SPIR-V IR Function.
@@ -235,12 +264,18 @@ public:
     Id getParamId(int p) { return parameterInstructions[p]->getResultId(); }
 
     void addBlock(Block* block) { blocks.push_back(block); }
-    void popBlock(Block*) { blocks.pop_back(); }
+    void removeBlock(Block* block)
+    {
+        auto found = find(blocks.begin(), blocks.end(), block);
+        assert(found != blocks.end());
+        blocks.erase(found);
+        delete block;
+    }
 
     Module& getParent() const { return parent; }
     Block* getEntryBlock() const { return blocks.front(); }
     Block* getLastBlock() const { return blocks.back(); }
-    void addLocalVariable(Instruction* inst);
+    void addLocalVariable(std::unique_ptr<Instruction> inst);
     Id getReturnType() const { return functionInstruction.getTypeId(); }
     void dump(std::vector<unsigned int>& out) const
     {
@@ -252,8 +287,7 @@ public:
             parameterInstructions[p]->dump(out);
 
         // Blocks
-        for (int b = 0; b < (int)blocks.size(); ++b)
-            blocks[b]->dump(out);
+        inReadableOrder(blocks[0], [&out](const Block* b) { b->dump(out); });
         Instruction end(0, 0, OpFunctionEnd);
         end.dump(out);
     }
@@ -341,22 +375,27 @@ __inline Function::Function(Id id, Id resultType, Id functionType, Id firstParam
     }
 }
 
-__inline void Function::addLocalVariable(Instruction* inst)
+__inline void Function::addLocalVariable(std::unique_ptr<Instruction> inst)
 {
-    blocks[0]->addLocalVariable(inst);
-    parent.mapInstruction(inst);
+    Instruction* raw_instruction = inst.get();
+    blocks[0]->addLocalVariable(std::move(inst));
+    parent.mapInstruction(raw_instruction);
 }
 
 __inline Block::Block(Id id, Function& parent) : parent(parent), unreachable(false)
 {
-    instructions.push_back(new Instruction(id, NoType, OpLabel));
+    instructions.push_back(std::unique_ptr<Instruction>(new Instruction(id, NoType, OpLabel)));
+    instructions.back()->setBlock(this);
+    parent.getParent().mapInstruction(instructions.back().get());
 }
 
-__inline void Block::addInstruction(Instruction* inst)
+__inline void Block::addInstruction(std::unique_ptr<Instruction> inst)
 {
-    instructions.push_back(inst);
-    if (inst->getResultId())
-        parent.getParent().mapInstruction(inst);
+    Instruction* raw_instruction = inst.get();
+    instructions.push_back(std::move(inst));
+    raw_instruction->setBlock(this);
+    if (raw_instruction->getResultId())
+        parent.getParent().mapInstruction(raw_instruction);
 }
 
 };  // end spv namespace

@@ -111,7 +111,7 @@ enum EPrecisionClass {
 // A process-global symbol table per version per profile for built-ins common 
 // to multiple stages (languages), and a process-global symbol table per version 
 // per profile per stage for built-ins unique to each stage.  They will be sparsely
-// populated, so they will only only be generated as needed.
+// populated, so they will only be generated as needed.
 // 
 // Each has a different set of built-ins, and we want to preserve that from
 // compile to compile.
@@ -306,7 +306,7 @@ void SetupBuiltinSymbolTable(int version, EProfile profile, int spv)
     glslang::ReleaseGlobalLock();
 }
 
-bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNotFirst, int defaultVersion, int& version, EProfile& profile)
+bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNotFirst, int defaultVersion, int& version, EProfile& profile, int spv)
 {
     const int FirstProfileVersion = 150;
     bool correct = true;
@@ -397,7 +397,24 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
         infoSink.info.message(EPrefixError, "#version: statement must appear first in es-profile shader; before comments or newlines");
     }
 
-    // A metacheck on the condition of the compiler itself...
+    // Check for SPIR-V compatibility
+    if (spv > 0) {
+        if (profile == EEsProfile) {
+            if (version < 310) {
+                correct = false;
+                infoSink.info.message(EPrefixError, "#version: ES shaders for SPIR-V require version 310 or higher");
+                version = 310;
+            }
+        } else {
+            if (version < 140) {
+                correct = false;
+                infoSink.info.message(EPrefixError, "#version: Desktop shaders for SPIR-V require version 140 or higher");
+                version = 140;
+            }
+        }
+    }
+
+    // A meta check on the condition of the compiler itself...
     switch (version) {
 
     // ES versions
@@ -532,7 +549,9 @@ bool ProcessDeferred(
         version = defaultVersion;
         profile = defaultProfile;
     }
-    bool goodVersion = DeduceVersionProfile(compiler->infoSink, compiler->getLanguage(), versionNotFirst, defaultVersion, version, profile);
+
+    int spv = (messages & EShMsgSpvRules) ? 100 : 0;
+    bool goodVersion = DeduceVersionProfile(compiler->infoSink, compiler->getLanguage(), versionNotFirst, defaultVersion, version, profile, spv);
     bool versionWillBeError = (versionNotFound || (profile == EEsProfile && version >= 300 && versionNotFirst));
     bool warnVersionNotFirst = false;
     if (! versionWillBeError && versionNotFirstToken) {
@@ -542,7 +561,6 @@ bool ProcessDeferred(
             versionWillBeError = true;
     }
 
-    int spv = (messages & EShMsgSpvRules) ? 100 : 0;
     intermediate.setVersion(version);
     intermediate.setProfile(profile);
     intermediate.setSpv(spv);
