@@ -278,6 +278,8 @@ private:
 	{ return m_PhysicalDeviceData.features; }
 	const VkPhysicalDeviceProperties &GetDeviceProps()
 	{ return m_PhysicalDeviceData.props; }
+	const bool IsAMD()
+	{ return m_PhysicalDeviceData.props.vendorID == 0x1002; }
 	const VkFormatProperties &GetFormatProperties(VkFormat f)
 	{ return m_PhysicalDeviceData.fmtprops[f]; }
 
