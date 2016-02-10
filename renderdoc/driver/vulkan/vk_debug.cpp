@@ -720,9 +720,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCASSERT(err.empty() && m_FixedColSPIRV);
 
 	sources.resize(4);
-	sources[0] = "#version 430 core\n";
 	sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
-	sources[2] = ""; // #defines/#includes
 	
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
@@ -731,6 +729,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			continue;
 
 		sources[0] = "#version 430 core\n";
+		if(m_pDriver->IsAMD())
+			sources[0] += "#define NO_TEXEL_FETCH\n";
 		sources[2] = "";
 		sources[3] = shaderSources[i];
 
@@ -997,6 +997,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	sources.resize(5);
 	sources[0] = "#version 430 core\n";
+	if(m_pDriver->IsAMD())
+		sources[0] += "#define NO_TEXEL_FETCH\n";
 	sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
 	sources[2] = GetEmbeddedResource(spv_texsample_h);
 	

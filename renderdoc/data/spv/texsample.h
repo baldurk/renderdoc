@@ -48,6 +48,9 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 	}
 	else if (type == RESTYPE_TEX2DMS)
 	{
+		col = vec4(0, 0, 0, 0);
+
+#ifndef NO_TEXEL_FETCH
 		if(sampleIdx < 0)
 		{
 			int sampleCount = -sampleIdx;
@@ -64,6 +67,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 		{
 			col = texelFetch(tex2DMS, ivec2(pos), sampleIdx);
 		}
+#endif
 	}
 	
 	return col;
@@ -79,8 +83,9 @@ layout (binding = 14) uniform usampler2DMS texUInt2DMS;
 
 uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
-	uvec4 col;
+	uvec4 col = uvec4(0, 0, 0, 0);
 
+#ifndef NO_TEXEL_FETCH
 	if (type == RESTYPE_TEX1D)
 	{
 		col = texelFetch(texUInt1DArray, ivec2(pos.x, slice), mipLevel);
@@ -100,6 +105,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 		col = texelFetch(texUInt2DMS, ivec2(pos), sampleIdx);
 	}
+#endif
 	
 	return col;
 }
@@ -114,8 +120,9 @@ layout (binding = 19) uniform isampler2DMS texSInt2DMS;
 
 ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
-	ivec4 col;
+	ivec4 col = ivec4(0, 0, 0, 0);
 
+#ifndef NO_TEXEL_FETCH
 	if (type == RESTYPE_TEX1D)
 	{
 		col = texelFetch(texSInt1DArray, ivec2(pos.x, slice), mipLevel);
@@ -135,6 +142,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 		col = texelFetch(texSInt2DMS, ivec2(pos), sampleIdx);
 	}
+#endif
 	
 	return col;
 }
