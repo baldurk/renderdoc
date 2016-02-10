@@ -761,7 +761,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		};
 		
 		if(i == QUADWRITEFS)
+		{
 			m_QuadSPIRV = shaderSPIRV[i];
+			module[i] = VK_NULL_HANDLE;
+			continue;
+		}
 
 		vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &module[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -1109,7 +1113,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			// not compiled normally
 			continue;
 		}
-		else
+		else if(module[i] != VK_NULL_HANDLE)
 		{
 			vt->DestroyShaderModule(Unwrap(dev), Unwrap(module[i]), NULL);
 			GetResourceManager()->ReleaseWrappedResource(module[i]);
