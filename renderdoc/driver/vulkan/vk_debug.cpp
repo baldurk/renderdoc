@@ -36,6 +36,8 @@
 
 #include "data/spv/debuguniforms.h"
 
+#include <float.h>
+
 const VkDeviceSize STAGE_BUFFER_BYTE_SIZE = 16*1024*1024ULL;
 
 void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags)

@@ -1312,7 +1312,7 @@ struct SPVInstruction
 				// can't gracefully handle unknown arguments here
 				if(op->arguments[0]->opcode == spv::OpUnknown || op->arguments[0]->opcode == spv::OpUnknown || vec1type == NULL || vec2type == NULL)
 				{
-					ret += StringFormat::Fmt("VectorShuffle(%s, %s)", op->arguments[0]->Disassemble(ids, true), op->arguments[1]->Disassemble(ids, true));
+					ret += StringFormat::Fmt("VectorShuffle(%s, %s)", op->arguments[0]->Disassemble(ids, true).c_str(), op->arguments[1]->Disassemble(ids, true).c_str());
 					return ret;
 				}
 

@@ -1213,6 +1213,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
 			case eUsage_GS_Resource:
 			case eUsage_PS_Resource:
 			case eUsage_CS_Resource:
+			case eUsage_InputTarget:
 			case eUsage_CopySrc:
 			case eUsage_ResolveSrc:
 				// read-only, not a valid pixel history event

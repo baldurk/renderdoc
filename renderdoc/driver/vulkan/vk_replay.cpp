@@ -34,6 +34,8 @@
 
 #include "data/spv/debuguniforms.h"
 
+#include <float.h>
+
 VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), height(0),
 	dsimg(VK_NULL_HANDLE), dsmem(VK_NULL_HANDLE)
 {
@@ -2458,7 +2460,7 @@ bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
 	int32_t w, h;
 	GetOutputWindowDimensions(id, w, h);
 
-	if(w != outw.width || h != outw.height)
+	if((uint32_t)w != outw.width || (uint32_t)h != outw.height)
 	{
 		outw.width = w;
 		outw.height = h;
@@ -3467,7 +3469,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 	imdesc.imageView = Unwrap(liveImView);
 	imdesc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
 	
-	int descSetBinding = 0;
+	uint32_t descSetBinding = 0;
 	uint32_t intTypeIndex = 0;
 
 	if(IsUIntFormat(iminfo.format))
@@ -3703,7 +3705,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	
 	CreateTexImageView(aspectFlags, liveIm, iminfo);
 	
-	int descSetBinding = 0;
+	uint32_t descSetBinding = 0;
 	uint32_t intTypeIndex = 0;
 
 	if(IsUIntFormat(iminfo.format))

@@ -1509,8 +1509,7 @@ public:
 #if defined(VK_USE_PLATFORM_XCB_KHR)
 	VkResult vkCreateXcbSurfaceKHR(
 			VkInstance                                  instance,
-			xcb_connection_t*                           connection,
-			xcb_window_t                                window,
+			const VkXcbSurfaceCreateInfoKHR*            pCreateInfo,
 			const VkAllocationCallbacks*                pAllocator,
 			VkSurfaceKHR*                               pSurface);
 
@@ -1524,8 +1523,7 @@ public:
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
 	VkResult vkCreateXlibSurfaceKHR(
 			VkInstance                                  instance,
-			Display*                                    dpy,
-			Window                                      window,
+			const VkXlibSurfaceCreateInfoKHR*           pCreateInfo,
 			const VkAllocationCallbacks*                pAllocator,
 			VkSurfaceKHR*                               pSurface);
 

@@ -867,6 +867,10 @@ static VkResourceRecord *GetObjRecord(VkDebugReportObjectTypeEXT objType, uint64
 			return GetRecord((VkSwapchainKHR)object);
 		case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT:
 			return GetRecord((VkCommandPool)object);
+		case VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT:
+			return NULL;
+		case VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT:
+			return NULL;
 	}
 	return NULL;
 }
