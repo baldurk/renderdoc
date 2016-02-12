@@ -156,6 +156,14 @@ struct SIGNHeader
 	// for OSG5 you should use SIGNElement7
 };
 
+struct PRIVHeader
+{
+	uint32_t fourcc;					// "ISGN", "OSGN, "OSG5", "PCSG"
+	uint32_t chunkLength;				// length of this chunk
+	
+	void* data;
+};
+
 struct SIGNElement
 {
 	uint32_t nameOffset;				// relative to the same offset base position as others in similar chunks - after FourCC and chunk length.
@@ -192,6 +200,7 @@ static const uint32_t FOURCC_OSGN = MAKE_FOURCC('O', 'S', 'G', 'N');
 static const uint32_t FOURCC_OSG5 = MAKE_FOURCC('O', 'S', 'G', '5');
 static const uint32_t FOURCC_PCSG = MAKE_FOURCC('P', 'C', 'S', 'G');
 static const uint32_t FOURCC_Aon9 = MAKE_FOURCC('A', 'o', 'n', '9');
+static const uint32_t FOURCC_PRIV = MAKE_FOURCC('P', 'R', 'I', 'V');
 
 int TypeByteSize(VariableType t)
 {
@@ -453,6 +462,75 @@ CBufferVariableType DXBCFile::ParseRDEFType(RDEFHeader *h, char *chunkContents, 
 
 	m_Variables[typeOffset] = ret;
 	return ret;
+}
+
+bool DXBCFile::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength)
+{
+	FileHeader *header = (FileHeader *)ByteCode;
+
+	char *data = (char *)ByteCode; // just for convenience
+
+	if(header->fourcc != FOURCC_DXBC)
+		return false;
+
+	if(header->fileLength != (uint32_t)ByteCodeLength)
+		return false;
+
+	uint32_t *chunkOffsets = (uint32_t *)(header+1); // right after the header
+
+	for (uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+	{
+		uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
+
+		if(*fourcc == FOURCC_SDBG)
+		{
+			return true;
+		}
+		else if(*fourcc == FOURCC_SPDB)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+string DXBCFile::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
+{
+	string debugPath;
+	FileHeader *header = (FileHeader *)ByteCode;
+
+	char *data = (char *)ByteCode; // just for convenience
+
+	if(header->fourcc != FOURCC_DXBC)
+		return debugPath;
+
+	if(header->fileLength != (uint32_t)ByteCodeLength)
+		return debugPath;
+
+	uint32_t *chunkOffsets = (uint32_t *)(header+1); // right after the header
+
+	static char* dbgData = nullptr;
+	for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+	{
+		uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
+		dbgData = (char*)fourcc;
+
+		if(*fourcc == FOURCC_PRIV)
+		{
+			PRIVHeader *privHeader = (PRIVHeader *)fourcc;
+			const char* pathData = (char*)&privHeader->data;
+			size_t pathLength = strlen(pathData);
+
+			if(privHeader->chunkLength == (pathLength + 1))
+			{
+				debugPath.append(pathData, pathData + pathLength);
+				return debugPath;
+			}			
+		}
+	}
+
+	return debugPath;
 }
 
 DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
