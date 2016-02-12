@@ -1103,7 +1103,10 @@ public:
 			DXBC::DXBCFile *GetDXBC()
 			{
 				if(m_DXBCFile == NULL && !m_Bytecode.empty())
+				{
+					TryReplaceOriginalByteCode();
 					m_DXBCFile = new DXBC::DXBCFile((const void *)&m_Bytecode[0], m_Bytecode.size());
+				}
 				return m_DXBCFile;
 			}
 			ShaderReflection *GetDetails()
@@ -1114,6 +1117,7 @@ public:
 			}
 		private:
 			ShaderEntry(const ShaderEntry &e);
+			void TryReplaceOriginalByteCode();
 			ShaderEntry &operator =(const ShaderEntry &e);
 
 			vector<byte> m_Bytecode;

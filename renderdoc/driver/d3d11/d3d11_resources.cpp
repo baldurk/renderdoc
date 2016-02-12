@@ -63,6 +63,39 @@ map<ResourceId,WrappedID3D11Buffer::BufferEntry> WrappedID3D11Buffer::m_BufferLi
 map<ResourceId,WrappedShader::ShaderEntry*> WrappedShader::m_ShaderList;
 Threading::CriticalSection WrappedShader::m_ShaderListLock;
 
+void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
+{
+	if(!DXBC::DXBCFile::CheckForDebugInfo((const void *)&m_Bytecode[0], m_Bytecode.size()))
+	{
+		string originalPath = DXBC::DXBCFile::GetDebugBinaryPath((const void *)&m_Bytecode[0], m_Bytecode.size());
+		if(!originalPath.empty())
+		{
+			FILE* originalShaderFile = FileIO::fopen(originalPath.c_str(), "rb");
+			if(originalShaderFile != nullptr)
+			{
+				FileIO::fseek64(originalShaderFile, 0L, SEEK_END);
+				uint64_t originalShaderSize = FileIO::ftell64(originalShaderFile);
+				FileIO::fseek64(originalShaderFile, 0, SEEK_SET);
+
+				if(originalShaderSize >= m_Bytecode.size())
+				{
+					vector<byte> originalBytecode;
+
+					originalBytecode.resize(originalShaderSize);
+					FileIO::fread(&originalBytecode[0], sizeof(byte), originalShaderSize, originalShaderFile);
+
+					if(DXBC::DXBCFile::CheckForDebugInfo((const void *)&originalBytecode[0], originalBytecode.size()))
+					{
+						m_Bytecode.swap(originalBytecode);
+					}
+				}
+
+				FileIO::fclose(originalShaderFile);
+			}
+		}
+	}
+}
+
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)
 {
 	D3D11_RESOURCE_DIMENSION dim;

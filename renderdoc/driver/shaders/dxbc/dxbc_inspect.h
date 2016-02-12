@@ -360,6 +360,10 @@ class DXBCFile
 		const ASMOperation &GetInstruction(size_t i) { return m_Instructions[i]; }
 		
 		size_t NumOperands(OpcodeType op);
+
+		static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
+		static string GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
+
 	private:
 		DXBCFile(const DXBCFile &o);
 		DXBCFile &operator =(const DXBCFile &o);
