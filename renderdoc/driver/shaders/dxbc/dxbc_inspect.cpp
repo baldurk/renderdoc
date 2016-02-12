@@ -521,7 +521,7 @@ string DXBCFile::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
 		{
 			PRIVHeader *privHeader = (PRIVHeader *)fourcc;
 			const char* pathData = (char*)&privHeader->data;
-			size_t pathLength = strlen(pathData);
+			size_t pathLength = strnlen(pathData, privHeader->chunkLength);
 
 			if(privHeader->chunkLength == (pathLength + 1))
 			{
