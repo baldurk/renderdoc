@@ -511,11 +511,9 @@ string DXBCFile::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
 
 	uint32_t *chunkOffsets = (uint32_t *)(header+1); // right after the header
 
-	static char* dbgData = nullptr;
 	for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
 	{
 		uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
-		dbgData = (char*)fourcc;
 
 		if(*fourcc == FOURCC_PRIV)
 		{
