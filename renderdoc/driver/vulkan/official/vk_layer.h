@@ -1,3 +1,32 @@
+//
+// File: vk_layer.h
+//
+/*
+ * Copyright (c) 2015-2016 The Khronos Group Inc.
+ * Copyright (c) 2015-2016 Valve Corporation
+ * Copyright (c) 2015-2016 LunarG, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and/or associated documentation files (the "Materials"), to
+ * deal in the Materials without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Materials, and to permit persons to whom the Materials are
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice(s) and this permission notice shall be included in
+ * all copies or substantial portions of the Materials.
+ *
+ * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ *
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE MATERIALS OR THE
+ * USE OR OTHER DEALINGS IN THE MATERIALS.
+ *
+ */
+
 /* Need to define dispatch table
  * Core struct can then have ptr to dispatch table at the top
  * Along with object ptrs for current and next OBJ
@@ -5,20 +34,16 @@
 #pragma once
 
 #include "vulkan.h"
-#include "vk_ext_debug_report.h"
 #include "vk_lunarg_debug_marker.h"
 #if defined(__GNUC__) && __GNUC__ >= 4
-#  define VK_LAYER_EXPORT __attribute__((visibility("default")))
+#define VK_LAYER_EXPORT __attribute__((visibility("default")))
 #elif defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590)
-#  define VK_LAYER_EXPORT __attribute__((visibility("default")))
+#define VK_LAYER_EXPORT __attribute__((visibility("default")))
 #else
-#  define VK_LAYER_EXPORT
+#define VK_LAYER_EXPORT
 #endif
 
-
-
-typedef struct VkLayerDispatchTable_
-{
+typedef struct VkLayerDispatchTable_ {
     PFN_vkGetDeviceProcAddr GetDeviceProcAddr;
     PFN_vkDestroyDevice DestroyDevice;
     PFN_vkGetDeviceQueue GetDeviceQueue;
@@ -147,47 +172,56 @@ typedef struct VkLayerDispatchTable_
     PFN_vkQueuePresentKHR QueuePresentKHR;
 } VkLayerDispatchTable;
 
-typedef struct VkLayerInstanceDispatchTable_
-{
+typedef struct VkLayerInstanceDispatchTable_ {
     PFN_vkGetInstanceProcAddr GetInstanceProcAddr;
     PFN_vkDestroyInstance DestroyInstance;
     PFN_vkEnumeratePhysicalDevices EnumeratePhysicalDevices;
     PFN_vkGetPhysicalDeviceFeatures GetPhysicalDeviceFeatures;
-    PFN_vkGetPhysicalDeviceImageFormatProperties GetPhysicalDeviceImageFormatProperties;
+    PFN_vkGetPhysicalDeviceImageFormatProperties
+        GetPhysicalDeviceImageFormatProperties;
     PFN_vkGetPhysicalDeviceFormatProperties GetPhysicalDeviceFormatProperties;
-    PFN_vkGetPhysicalDeviceSparseImageFormatProperties GetPhysicalDeviceSparseImageFormatProperties;
+    PFN_vkGetPhysicalDeviceSparseImageFormatProperties
+        GetPhysicalDeviceSparseImageFormatProperties;
     PFN_vkGetPhysicalDeviceProperties GetPhysicalDeviceProperties;
-    PFN_vkGetPhysicalDeviceQueueFamilyProperties GetPhysicalDeviceQueueFamilyProperties;
+    PFN_vkGetPhysicalDeviceQueueFamilyProperties
+        GetPhysicalDeviceQueueFamilyProperties;
     PFN_vkGetPhysicalDeviceMemoryProperties GetPhysicalDeviceMemoryProperties;
     PFN_vkEnumerateDeviceExtensionProperties EnumerateDeviceExtensionProperties;
     PFN_vkEnumerateDeviceLayerProperties EnumerateDeviceLayerProperties;
     PFN_vkDestroySurfaceKHR DestroySurfaceKHR;
     PFN_vkGetPhysicalDeviceSurfaceSupportKHR GetPhysicalDeviceSurfaceSupportKHR;
-    PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR GetPhysicalDeviceSurfaceCapabilitiesKHR;
+    PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+        GetPhysicalDeviceSurfaceCapabilitiesKHR;
     PFN_vkGetPhysicalDeviceSurfaceFormatsKHR GetPhysicalDeviceSurfaceFormatsKHR;
-    PFN_vkGetPhysicalDeviceSurfacePresentModesKHR GetPhysicalDeviceSurfacePresentModesKHR;
+    PFN_vkGetPhysicalDeviceSurfacePresentModesKHR
+        GetPhysicalDeviceSurfacePresentModesKHR;
     PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallbackEXT;
     PFN_vkDestroyDebugReportCallbackEXT DestroyDebugReportCallbackEXT;
     PFN_vkDebugReportMessageEXT DebugReportMessageEXT;
 #ifdef VK_USE_PLATFORM_MIR_KHR
     PFN_vkCreateMirSurfaceKHR CreateMirSurfaceKHR;
-    PFN_vkGetPhysicalDeviceMirPresentationSupportKHR GetPhysicalDeviceMirPresentationSupportKHR;
+    PFN_vkGetPhysicalDeviceMirPresentationSupportKHR
+        GetPhysicalDeviceMirPresentationSupportKHR;
 #endif
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
     PFN_vkCreateWaylandSurfaceKHR CreateWaylandSurfaceKHR;
-    PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR GetPhysicalDeviceWaylandPresentationSupportKHR;
+    PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR
+        GetPhysicalDeviceWaylandPresentationSupportKHR;
 #endif
 #ifdef VK_USE_PLATFORM_WIN32_KHR
     PFN_vkCreateWin32SurfaceKHR CreateWin32SurfaceKHR;
-    PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR GetPhysicalDeviceWin32PresentationSupportKHR;
+    PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR
+        GetPhysicalDeviceWin32PresentationSupportKHR;
 #endif
 #ifdef VK_USE_PLATFORM_XCB_KHR
     PFN_vkCreateXcbSurfaceKHR CreateXcbSurfaceKHR;
-    PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR GetPhysicalDeviceXcbPresentationSupportKHR;
+    PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR
+        GetPhysicalDeviceXcbPresentationSupportKHR;
 #endif
 #ifdef VK_USE_PLATFORM_XLIB_KHR
     PFN_vkCreateXlibSurfaceKHR CreateXlibSurfaceKHR;
-    PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR GetPhysicalDeviceXlibPresentationSupportKHR;
+    PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR
+        GetPhysicalDeviceXlibPresentationSupportKHR;
 #endif
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
     PFN_vkCreateAndroidSurfaceKHR CreateAndroidSurfaceKHR;
@@ -195,8 +229,7 @@ typedef struct VkLayerInstanceDispatchTable_
 } VkLayerInstanceDispatchTable;
 
 // LL node for tree of dbg callback functions
-typedef struct VkLayerDbgFunctionNode_
-{
+typedef struct VkLayerDbgFunctionNode_ {
     VkDebugReportCallbackEXT msgCallback;
     PFN_vkDebugReportCallbackEXT pfnMsgCallback;
     VkFlags msgFlags;
@@ -204,8 +237,7 @@ typedef struct VkLayerDbgFunctionNode_
     struct VkLayerDbgFunctionNode_ *pNext;
 } VkLayerDbgFunctionNode;
 
-typedef enum VkLayerDbgAction_
-{
+typedef enum VkLayerDbgAction_ {
     VK_DBG_LAYER_ACTION_IGNORE = 0x0,
     VK_DBG_LAYER_ACTION_CALLBACK = 0x1,
     VK_DBG_LAYER_ACTION_LOG_MSG = 0x2,
@@ -216,8 +248,7 @@ typedef enum VkLayerDbgAction_
 // ------------------------------------------------------------------------------------------------
 // CreateInstance and CreateDevice support structures
 
-typedef enum VkLayerFunction_
-{
+typedef enum VkLayerFunction_ {
     VK_LAYER_LINK_INFO = 0,
     VK_LAYER_DEVICE_INFO = 1,
     VK_LAYER_INSTANCE_INFO = 2
@@ -236,7 +267,7 @@ typedef struct VkLayerInstanceInfo_ {
 } VkLayerInstanceInfo;
 
 typedef struct VkLayerInstanceLink_ {
-    struct VkLayerInstanceLink_* pNext;
+    struct VkLayerInstanceLink_ *pNext;
     PFN_vkGetInstanceProcAddr pfnNextGetInstanceProcAddr;
 } VkLayerInstanceLink;
 
@@ -254,26 +285,26 @@ typedef struct VkLayerDeviceInfo_ {
 
 typedef struct {
     VkStructureType sType; // VK_STRUCTURE_TYPE_LAYER_INSTANCE_CREATE_INFO
-    const void* pNext;
+    const void *pNext;
     VkLayerFunction function;
     union {
-        VkLayerInstanceLink* pLayerInfo;
+        VkLayerInstanceLink *pLayerInfo;
         VkLayerInstanceInfo instanceInfo;
     } u;
 } VkLayerInstanceCreateInfo;
 
 typedef struct VkLayerDeviceLink_ {
-    struct VkLayerDeviceLink_* pNext;
+    struct VkLayerDeviceLink_ *pNext;
     PFN_vkGetInstanceProcAddr pfnNextGetInstanceProcAddr;
     PFN_vkGetDeviceProcAddr pfnNextGetDeviceProcAddr;
 } VkLayerDeviceLink;
 
 typedef struct {
     VkStructureType sType; // VK_STRUCTURE_TYPE_LAYER_DEVICE_CREATE_INFO
-    const void* pNext;
+    const void *pNext;
     VkLayerFunction function;
     union {
-        VkLayerDeviceLink* pLayerInfo;
+        VkLayerDeviceLink *pLayerInfo;
         VkLayerDeviceInfo deviceInfo;
     } u;
 } VkLayerDeviceCreateInfo;

@@ -42,7 +42,6 @@
 
 #include "official/vulkan.h"
 #include "official/vk_lunarg_debug_marker.h"
-#include "official/vk_ext_debug_report.h"
 
 #include "api/replay/renderdoc_replay.h"
 

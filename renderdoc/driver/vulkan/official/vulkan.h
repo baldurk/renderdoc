@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 /*
-** Copyright (c) 2015 The Khronos Group Inc.
+** Copyright (c) 2015-2016 The Khronos Group Inc.
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a
 ** copy of this software and/or associated documentation files (the
@@ -38,11 +38,14 @@ extern "C" {
 #include "vk_platform.h"
 
 #define VK_MAKE_VERSION(major, minor, patch) \
-    ((major << 22) | (minor << 12) | patch)
+    (((major) << 22) | ((minor) << 12) | (patch))
 
 // Vulkan API version supported by this file
-#define VK_API_VERSION VK_MAKE_VERSION(1, 0, 2)
+#define VK_API_VERSION VK_MAKE_VERSION(1, 0, 3)
 
+#define VK_VERSION_MAJOR(version) ((uint32_t)(version) >> 22)
+#define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
+#define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 
 #define VK_NULL_HANDLE 0
         
@@ -3673,6 +3676,107 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vkGetPhysicalDeviceWin32PresentationSupportKHR(
     uint32_t                                    queueFamilyIndex);
 #endif
 #endif /* VK_USE_PLATFORM_WIN32_KHR */
+
+#define VK_EXT_debug_report 1
+VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDebugReportCallbackEXT)
+
+#define VK_EXT_DEBUG_REPORT_SPEC_VERSION  1
+#define VK_EXT_DEBUG_REPORT_EXTENSION_NAME "VK_EXT_debug_report"
+
+
+typedef enum VkDebugReportObjectTypeEXT {
+    VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT = 0,
+    VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT = 1,
+    VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT = 2,
+    VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT = 3,
+    VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT = 4,
+    VK_DEBUG_REPORT_OBJECT_TYPE_SEMAPHORE_EXT = 5,
+    VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT = 6,
+    VK_DEBUG_REPORT_OBJECT_TYPE_FENCE_EXT = 7,
+    VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT = 8,
+    VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT = 9,
+    VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT = 10,
+    VK_DEBUG_REPORT_OBJECT_TYPE_EVENT_EXT = 11,
+    VK_DEBUG_REPORT_OBJECT_TYPE_QUERY_POOL_EXT = 12,
+    VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_VIEW_EXT = 13,
+    VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT = 14,
+    VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT = 15,
+    VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_CACHE_EXT = 16,
+    VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT = 17,
+    VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT = 18,
+    VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT = 19,
+    VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT = 20,
+    VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT = 21,
+    VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_POOL_EXT = 22,
+    VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT = 23,
+    VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT = 24,
+    VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT = 25,
+    VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT = 26,
+    VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT = 27,
+    VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT = 28,
+} VkDebugReportObjectTypeEXT;
+
+typedef enum VkDebugReportErrorEXT {
+    VK_DEBUG_REPORT_ERROR_NONE_EXT = 0,
+    VK_DEBUG_REPORT_ERROR_CALLBACK_REF_EXT = 1,
+} VkDebugReportErrorEXT;
+
+
+typedef enum VkDebugReportFlagBitsEXT {
+    VK_DEBUG_REPORT_INFORMATION_BIT_EXT = 0x00000001,
+    VK_DEBUG_REPORT_WARNING_BIT_EXT = 0x00000002,
+    VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT = 0x00000004,
+    VK_DEBUG_REPORT_ERROR_BIT_EXT = 0x00000008,
+    VK_DEBUG_REPORT_DEBUG_BIT_EXT = 0x00000010,
+} VkDebugReportFlagBitsEXT;
+typedef VkFlags VkDebugReportFlagsEXT;
+
+typedef VkBool32 (VKAPI_PTR *PFN_vkDebugReportCallbackEXT)(
+    VkDebugReportFlagsEXT                       flags,
+    VkDebugReportObjectTypeEXT                  objectType,
+    uint64_t                                    object,
+    size_t                                      location,
+    int32_t                                     messageCode,
+    const char*                                 pLayerPrefix,
+    const char*                                 pMessage,
+    void*                                       pUserData);
+
+
+typedef struct VkDebugReportCallbackCreateInfoEXT {
+    VkStructureType                 sType;
+    const void*                     pNext;
+    VkDebugReportFlagsEXT           flags;
+    PFN_vkDebugReportCallbackEXT    pfnCallback;
+    void*                           pUserData;
+} VkDebugReportCallbackCreateInfoEXT;
+
+
+typedef VkResult (VKAPI_PTR *PFN_vkCreateDebugReportCallbackEXT)(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback);
+typedef void (VKAPI_PTR *PFN_vkDestroyDebugReportCallbackEXT)(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator);
+typedef void (VKAPI_PTR *PFN_vkDebugReportMessageEXT)(VkInstance instance, VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage);
+
+#ifndef VK_NO_PROTOTYPES
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugReportCallbackEXT(
+    VkInstance                                  instance,
+    const VkDebugReportCallbackCreateInfoEXT*   pCreateInfo,
+    const VkAllocationCallbacks*                pAllocator,
+    VkDebugReportCallbackEXT*                   pCallback);
+
+VKAPI_ATTR void VKAPI_CALL vkDestroyDebugReportCallbackEXT(
+    VkInstance                                  instance,
+    VkDebugReportCallbackEXT                    callback,
+    const VkAllocationCallbacks*                pAllocator);
+
+VKAPI_ATTR void VKAPI_CALL vkDebugReportMessageEXT(
+    VkInstance                                  instance,
+    VkDebugReportFlagsEXT                       flags,
+    VkDebugReportObjectTypeEXT                  objectType,
+    uint64_t                                    object,
+    size_t                                      location,
+    int32_t                                     messageCode,
+    const char*                                 pLayerPrefix,
+    const char*                                 pMessage);
+#endif
 
 #ifdef __cplusplus
 }
