@@ -126,9 +126,6 @@
     <ClInclude Include="official\vulkan.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="official\vk_ext_debug_report.h">
-      <Filter>official</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="OS">

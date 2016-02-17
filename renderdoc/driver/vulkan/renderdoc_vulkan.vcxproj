@@ -60,7 +60,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="official\vk_ext_debug_report.h" />
     <ClInclude Include="official\vk_layer.h" />
     <ClInclude Include="official\vk_lunarg_debug_marker.h" />
     <ClInclude Include="official\vk_platform.h" />
