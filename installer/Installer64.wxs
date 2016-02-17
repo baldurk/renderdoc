@@ -5,7 +5,7 @@
 
     <Package Id='*' Keywords='Installer' Description="Installer for RenderDoc"
       Comments='RenderDoc Homepage is http://renderdoc.org/' Platform="x64" Manufacturer='Baldur Karlsson'
-      InstallerVersion='200' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+      InstallerVersion='300' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 
     <InstallExecuteSequence>
       <RemoveExistingProducts After="InstallInitialize"/>
@@ -279,6 +279,11 @@
 
     </Directory>
 
+    <DirectoryRef Id="TARGETDIR">
+      <Merge Id="VCRedist32" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\Microsoft_VC100_CRT_x64.msm"/>
+      <Merge Id="VCRedist64" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\Microsoft_VC100_CRT_x86.msm"/>
+    </DirectoryRef>
+
     <Feature Id='Complete' Title='RenderDoc' Description='Everything included.' AllowAdvertise='no' Absent='disallow' Display='expand' Level='1' ConfigurableDirectory='INSTALLDIR'>
       <Feature Id='MainProgram' Title='Program' Description='The main executable with everything needed to capture and replay.' AllowAdvertise='no' Absent='disallow' Level='1'>
         <ComponentRef Id='RenderDocUI' />
@@ -304,6 +309,14 @@
 
         <ComponentRef Id='ImageOpenWith' />
 
+      </Feature>
+
+      <Feature Id="VCRedist32" Title="Visual C++ 2010 Runtime SP1 (x86)" AllowAdvertise="no" Display="hidden" Level="1">
+        <MergeRef Id="VCRedist32"/>
+      </Feature>
+
+      <Feature Id="VCRedist64" Title="Visual C++ 2010 Runtime SP1 (x64)" AllowAdvertise="no" Display="hidden" Level="1">
+        <MergeRef Id="VCRedist64"/>
       </Feature>
 
       <Feature Id='Docs' Title='Documentation' Description='CHM file with local help.' Level='1'>

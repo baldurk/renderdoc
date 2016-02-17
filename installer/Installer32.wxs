@@ -5,7 +5,7 @@
 
     <Package Id='*' Keywords='Installer' Description="Installer for RenderDoc"
       Comments='RenderDoc Homepage is http://renderdoc.org/' Manufacturer='Baldur Karlsson'
-      InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+      InstallerVersion='300' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 
     <UI> 
        <Error Id="25000">Please use the 64-bit installer</Error> 
@@ -246,6 +246,10 @@
 
     </Directory>
 
+    <DirectoryRef Id="TARGETDIR">
+      <Merge Id="VCRedist32" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\Microsoft_VC100_CRT_x86.msm"/>
+    </DirectoryRef>
+
     <Feature Id='Complete' Title='RenderDoc' Description='Everything included.' AllowAdvertise='no' Absent='disallow' Display='expand' Level='1' ConfigurableDirectory='INSTALLDIR'>
       <Feature Id='MainProgram' Title='Program' Description='The main executable with everything needed to capture and replay.' AllowAdvertise='no' Absent='disallow' Level='1'>
         <ComponentRef Id='RenderDocUI' />
@@ -265,6 +269,10 @@
         <ComponentRef Id='ProgramMenuDir' />
 
         <ComponentRef Id='ImageOpenWith' />
+      </Feature>
+
+      <Feature Id="VCRedist32" Title="Visual C++ 2010 Runtime SP1" AllowAdvertise="no" Display="hidden" Level="1">
+        <MergeRef Id="VCRedist32"/>
       </Feature>
 
       <Feature Id='Docs' Title='Documentation' Description='CHM file with local help.' Level='1'>
