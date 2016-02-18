@@ -296,6 +296,7 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 	// make sure we can readback to get the screenshot
 	createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	createInfo.surface = Unwrap(createInfo.surface);
+	createInfo.oldSwapchain = Unwrap(createInfo.oldSwapchain);
 
 	VkResult ret = ObjDisp(device)->CreateSwapchainKHR(Unwrap(device), &createInfo, pAllocator, pSwapChain);
 	
