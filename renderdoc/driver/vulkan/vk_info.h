@@ -39,7 +39,12 @@ struct DescSetLayout
 
 	struct Binding
 	{
-		Binding() : immutableSampler(NULL) {}
+		// set reasonable defaults in the constructor as with sparse descriptor set layouts
+		// some elements could be untouched. We set stageFlags to 0 so the UI ignores these
+		// elements
+		Binding()
+			: descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER), descriptorCount(1)
+			, stageFlags(0), immutableSampler(NULL) {}
 		~Binding() { SAFE_DELETE_ARRAY(immutableSampler); }
 
 		VkDescriptorType descriptorType;

@@ -29,29 +29,41 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
 {
 	dynamicCount = 0;
 
+	// descriptor set layouts can be sparse, such that only three bindings exist
+	// but they are at 0, 5 and 10.
+	// We assume here that while the layouts may be sparse that's mostly to allow
+	// multiple layouts to co-exist nicely, and that we can allocate our bindings
+	// array to cover the whole size, and leave some elements unused.
+
+	// will be at least this size.
 	bindings.resize(pCreateInfo->bindingCount);
 	for(uint32_t i=0; i < pCreateInfo->bindingCount; i++)
 	{
-		bindings[i].descriptorCount = pCreateInfo->pBindings[i].descriptorCount;
-		bindings[i].descriptorType = pCreateInfo->pBindings[i].descriptorType;
-		bindings[i].stageFlags = pCreateInfo->pBindings[i].stageFlags;
+		uint32_t b = pCreateInfo->pBindings[i].binding;
+		// expand to fit the binding
+		if(b >= bindings.size())
+			bindings.resize(b+1);
 
-		if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-			 bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+		bindings[b].descriptorCount = pCreateInfo->pBindings[i].descriptorCount;
+		bindings[b].descriptorType = pCreateInfo->pBindings[i].descriptorType;
+		bindings[b].stageFlags = pCreateInfo->pBindings[i].stageFlags;
+
+		if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
+			 bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
 			dynamicCount++;
 
 		if(pCreateInfo->pBindings[i].pImmutableSamplers)
 		{
-			bindings[i].immutableSampler = new ResourceId[bindings[i].descriptorCount];
+			bindings[b].immutableSampler = new ResourceId[bindings[i].descriptorCount];
 
-			for(uint32_t s=0; s < bindings[i].descriptorCount; s++)
+			for(uint32_t s=0; s < bindings[b].descriptorCount; s++)
 			{
 				// during writing, the create info contains the *wrapped* objects.
 				// on replay, we have the wrapper map so we can look it up
 				if(resourceMan->IsWriting())
-					bindings[i].immutableSampler[s] = GetResID(pCreateInfo->pBindings[i].pImmutableSamplers[s]);
+					bindings[b].immutableSampler[s] = GetResID(pCreateInfo->pBindings[i].pImmutableSamplers[s]);
 				else
-					bindings[i].immutableSampler[s] = resourceMan->GetNonDispWrapper(pCreateInfo->pBindings[i].pImmutableSamplers[s])->id;
+					bindings[b].immutableSampler[s] = resourceMan->GetNonDispWrapper(pCreateInfo->pBindings[i].pImmutableSamplers[s])->id;
 			}
 		}
 	}
