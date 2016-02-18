@@ -187,9 +187,9 @@ namespace renderdocui.Code
             RefreshAssociations();
         }
 
-        private static string GetVulkanJSONPath(bool wow6432)
+        public static string GetVulkanJSONPath(bool wow6432)
         {
-            string basepath = Path.GetDirectoryName(Application.ExecutablePath);
+            string basepath = Win32PInvoke.GetUniversalName(Path.GetDirectoryName(Application.ExecutablePath));
             if (wow6432)
                 basepath = Path.Combine(basepath, "x86");
 

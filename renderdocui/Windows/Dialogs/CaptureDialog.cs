@@ -904,7 +904,7 @@ namespace renderdocui.Windows.Dialogs
 
             Helpers.CheckVulkanLayerRegistration(out hasOtherJSON, out thisRegistered, out otherJSONs);
 
-            string myJSON = Path.GetDirectoryName(Application.ExecutablePath) + Path.DirectorySeparatorChar + "renderdoc.json";
+            string myJSON = Helpers.GetVulkanJSONPath(false);
 
             string msg = "Vulkan capture happens through the API's layer mechanism. RenderDoc has detected that ";
 
@@ -938,7 +938,7 @@ namespace renderdocui.Windows.Dialogs
             {
                 msg += "Register: " + myJSON + "\n";
                 if (Environment.Is64BitProcess)
-                    msg += "Register: " + myJSON.Replace("renderdoc.json", @"x86\renderdoc.json") + "\n";
+                    msg += "Register: " + Helpers.GetVulkanJSONPath(true) + "\n";
                 msg += "\n";
             }
 
