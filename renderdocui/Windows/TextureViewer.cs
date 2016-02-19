@@ -2547,7 +2547,7 @@ namespace renderdocui.Windows
                 m_Output.SetPixelContextLocation((UInt32)x, (UInt32)y);
 
             if (m_TexDisplay.FlipY)
-                y = (int)tex.height - y;
+                y = (int)(tex.height - 1) - y;
 
             var pickValue = m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)x, (UInt32)y,
                                                     m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx);
@@ -2713,7 +2713,7 @@ namespace renderdocui.Windows
                         {
                             UInt32 y = (UInt32)m_CurHoverPixel.Y;
                             if (m_TexDisplay.FlipY)
-                                y = tex.height - y;
+                                y = (uint)(tex.height - 1) - y;
                             RT_UpdateHoverColour(m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)m_CurHoverPixel.X, y,
                                                                       m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx));
                         }
