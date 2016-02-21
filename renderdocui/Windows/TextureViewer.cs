@@ -1893,7 +1893,7 @@ namespace renderdocui.Windows
 
             if (tex == null) return;
 
-            bool dsv = ((tex.creationFlags & TextureCreationFlags.DSV) != 0);
+            bool dsv = ((tex.creationFlags & TextureCreationFlags.DSV) != 0) || (tex.format.compType == FormatComponentType.Depth);
             bool uintTex = (tex.format.compType == FormatComponentType.UInt);
             bool sintTex = (tex.format.compType == FormatComponentType.SInt);
 
@@ -2073,7 +2073,11 @@ namespace renderdocui.Windows
                 m_TexDisplay.linearDisplayAsGamma = gammaDisplay.Checked;
             }
 
-            if (tex != null && (tex.creationFlags & TextureCreationFlags.DSV) > 0 &&
+            bool dsv = false;
+            if(tex != null)
+                dsv = ((tex.creationFlags & TextureCreationFlags.DSV) != 0) || (tex.format.compType == FormatComponentType.Depth);
+
+            if (dsv &&
                 (string)channels.SelectedItem != "Custom")
             {
                 customRed.Visible = false;

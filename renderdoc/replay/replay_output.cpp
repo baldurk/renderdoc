@@ -204,6 +204,7 @@ bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID)
 		if(m_pRenderer->m_Textures[t].ID == texID)
 		{
 			depthMode = (m_pRenderer->m_Textures[t].creationFlags & eTextureCreate_DSV) > 0;
+			depthMode |= (m_pRenderer->m_Textures[t].format.compType == eCompType_Depth);
 			break;
 		}
 	}
