@@ -43,7 +43,7 @@ void main(void)
 		vec2 uv;
 		uv.x = mix(IN.tex.x, IN.tex.z, IN.glyphuv.x);
 		uv.y = mix(IN.tex.y, IN.tex.w, IN.glyphuv.y);
-		text = texture2D(tex0, uv.xy).x;
+		text = texture(tex0, uv.xy).x;
 	}
 
 	color_out = vec4(text.xxx, clamp(text + 0.5f, 0.0f, 1.0f));
