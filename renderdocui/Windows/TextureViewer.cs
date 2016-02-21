@@ -1069,7 +1069,7 @@ namespace renderdocui.Windows
 
             m_TextureSettings.Clear();
 
-            m_PrevArea = 0.0f;
+            m_PrevSize = PointF.Empty;
             m_HighWaterStatusLength = 0;
 
             saveTex.Enabled = false;
@@ -1444,7 +1444,7 @@ namespace renderdocui.Windows
         private int prevFirstArraySlice = -1;
         private int prevHighestMip = -1;
 
-        private float m_PrevArea = 0.0f;
+        private PointF m_PrevSize = PointF.Empty;
 
         private void UI_OnTextureSelectionChanged()
         {
@@ -1484,29 +1484,42 @@ namespace renderdocui.Windows
             m_CurRealValue = null;
 
             // try to maintain the pan in the new texture. If the new texture
-            // is an integer multiple of the old texture, this will keep the
-            // top left pixel the same. Due to the difference in scale, the rest
-            // of the image will be out though. This is useful for downsample chains and
-            // things where you're flipping back and forth between overlapping
-            // textures, but really needs a mode where the zoom level is changed
-            // to compensate as well.
-            float curArea = (float)CurrentTexture.width * (float)CurrentTexture.height;
+            // is approx an integer multiple of the old texture, just changing
+            // the scale will keep everything the same. This is useful for
+            // downsample chains and things where you're flipping back and forth
+            // between overlapping textures, but even in the non-integer case
+            // pan will be kept approximately the same.
+            PointF curSize = new PointF((float)CurrentTexture.width, (float)CurrentTexture.height);
+            float curArea = curSize.Area();
+            float prevArea = m_PrevSize.Area();
 
-            if(m_PrevArea > 0.0f)
+            if (prevArea > 0.0f)
             {
                 float prevX = m_TexDisplay.offx;
                 float prevY = m_TexDisplay.offy;
+                float prevScale = m_TexDisplay.scale;
 
-                // this scale factor is arbitrary really, only intention is to have
-                // integer scales come out precisely, other 'similar' sizes will be
-                // similar ish
-                float scaleFactor = (float)(Math.Sqrt(curArea) / Math.Sqrt(m_PrevArea));
+                // allow slight difference in aspect ratio for rounding errors
+                // in downscales (e.g. 1680x1050 -> 840x525 -> 420x262 in the
+                // last downscale the ratios are 1.6 and 1.603053435).
+                if (Math.Abs(curSize.Aspect() - m_PrevSize.Aspect()) < 0.01f)
+                {
+                    m_TexDisplay.scale *= m_PrevSize.X / curSize.X;
+                    CurrentZoomValue = m_TexDisplay.scale;
+                }
+                else
+                {
+                    // this scale factor is arbitrary really, only intention is to have
+                    // integer scales come out precisely, other 'similar' sizes will be
+                    // similar ish
+                    float scaleFactor = (float)(Math.Sqrt(curArea) / Math.Sqrt(prevArea));
 
-                m_TexDisplay.offx = prevX * scaleFactor;
-                m_TexDisplay.offy = prevY * scaleFactor;
+                    m_TexDisplay.offx = prevX * scaleFactor;
+                    m_TexDisplay.offy = prevY * scaleFactor;
+                }
             }
 
-            m_PrevArea = curArea;
+            m_PrevSize = curSize;
 
             // refresh scroll position
             ScrollPosition = ScrollPosition;
@@ -2451,22 +2464,6 @@ namespace renderdocui.Windows
             float prevScale = m_TexDisplay.scale;
 
             m_TexDisplay.scale = Math.Max(0.1f, Math.Min(256.0f, s));
-
-            FetchTexture tex = CurrentTexture;
-
-            if (tex == null)
-            {
-                if(m_Core.LogLoaded)
-                    foreach (var t in m_Core.CurTextures)
-                        if (t.ID == m_TexDisplay.texid)
-                            tex = t;
-
-                if(tex == null)
-                    return;
-            }
-
-            //render.Width = Math.Min(500, (int)(tex.width * m_TexDisplay.scale));
-            //render.Height = Math.Min(500, (int)(tex.height * m_TexDisplay.scale));
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
 

@@ -76,6 +76,15 @@ namespace renderdocui.Code
             else return val;
         }
 
+        public static float Area(this System.Drawing.PointF val)
+        {
+            return val.X * val.Y;
+        }
+        public static float Aspect(this System.Drawing.PointF val)
+        {
+            return val.X / val.Y;
+        }
+
         public static uint AlignUp(this uint x, uint a)
         {
             return (x + (a - 1)) & (~(a - 1));
