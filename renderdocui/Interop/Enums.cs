@@ -45,6 +45,8 @@ namespace renderdoc
         SNorm,
         UInt,
         SInt,
+        UScaled,
+        SScaled,
         Depth,
         Double,
     };
