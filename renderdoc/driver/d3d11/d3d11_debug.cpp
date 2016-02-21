@@ -2856,6 +2856,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
 			if(mode == TEXDISPLAY_DEPTH_TARGET)
 			{
+				desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 				desc.Format = GetTypelessFormat(desc.Format);
 			}
 			else
