@@ -616,7 +616,7 @@ namespace renderdocui.Code
             m_Renderer.Invoke((ReplayRenderer r) =>
             {
                 r.FileChanged();
-                r.SetFrameEvent(m_FrameID, m_EventID > 0 ? m_EventID-1 : 1);
+                r.SetFrameEvent(m_FrameID, m_EventID > 0 ? m_EventID-1 : 1, true);
             });
 
             SetEventID(null, CurFrame, CurEvent);
@@ -846,7 +846,7 @@ namespace renderdocui.Code
 
             m_Renderer.Invoke((ReplayRenderer r) => { r.SetContextFilter(ctx, firstDeferred, lastDeferred); });
             m_Renderer.Invoke((ReplayRenderer r) => {
-                r.SetFrameEvent(m_FrameID, m_EventID);
+                r.SetFrameEvent(m_FrameID, m_EventID, true);
                 m_D3D11PipelineState = r.GetD3D11PipelineState();
                 m_GLPipelineState = r.GetGLPipelineState();
                 m_VulkanPipelineState = r.GetVulkanPipelineState();
@@ -866,7 +866,17 @@ namespace renderdocui.Code
             }
         }
 
+        public void RefreshStatus()
+        {
+            SetEventID(null, m_FrameID, m_EventID, true);
+        }
+
         public void SetEventID(ILogViewerForm exclude, UInt32 frameID, UInt32 eventID)
+        {
+            SetEventID(exclude, frameID, eventID, false);
+        }
+
+        private void SetEventID(ILogViewerForm exclude, UInt32 frameID, UInt32 eventID, bool force)
         {
             m_FrameID = frameID;
             m_EventID = eventID;
@@ -876,7 +886,7 @@ namespace renderdocui.Code
             m_Renderer.Invoke((ReplayRenderer r) => { r.SetContextFilter(ResourceId.Null, 0, 0); });
             m_Renderer.Invoke((ReplayRenderer r) =>
             {
-                r.SetFrameEvent(m_FrameID, m_EventID);
+                r.SetFrameEvent(m_FrameID, m_EventID, force);
                 m_D3D11PipelineState = r.GetD3D11PipelineState();
                 m_GLPipelineState = r.GetGLPipelineState();
                 m_VulkanPipelineState = r.GetVulkanPipelineState();

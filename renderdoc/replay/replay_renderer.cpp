@@ -186,11 +186,6 @@ bool ReplayRenderer::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32
 	return true;
 }
 
-bool ReplayRenderer::SetFrameEvent(uint32_t frameID, uint32_t eventID)
-{
-	return SetFrameEvent(frameID, eventID, false);
-}
-
 bool ReplayRenderer::SetFrameEvent(uint32_t frameID, uint32_t eventID, bool force)
 {
 	if(m_FrameID != frameID || eventID != m_EventID || force)
@@ -1565,8 +1560,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_InitResolver(ReplayR
  
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetContextFilter(ReplayRenderer *rend, ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
 { return rend->SetContextFilter(id, firstDefEv, lastDefEv); }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(ReplayRenderer *rend, uint32_t frameID, uint32_t eventID)
-{ return rend->SetFrameEvent(frameID, eventID); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(ReplayRenderer *rend, uint32_t frameID, uint32_t eventID, bool32 force)
+{ return rend->SetFrameEvent(frameID, eventID, force != 0); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetD3D11PipelineState(ReplayRenderer *rend, D3D11PipelineState *state)
 { return rend->GetD3D11PipelineState(state); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(ReplayRenderer *rend, GLPipelineState *state)

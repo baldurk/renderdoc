@@ -1884,6 +1884,8 @@ namespace renderdocui.Windows.PipelineState
             if (files.Count == 0)
                 return;
 
+            GLPipelineStateViewer pipeviewer = this;
+
             ShaderViewer sv = new ShaderViewer(m_Core, false, "main", files,
 
             // Save Callback
@@ -1906,10 +1908,12 @@ namespace renderdocui.Windows.PipelineState
                     if (to == ResourceId.Null)
                     {
                         r.RemoveReplacement(from);
+                        pipeviewer.BeginInvoke((MethodInvoker)delegate { m_Core.RefreshStatus(); });
                     }
                     else
                     {
                         r.ReplaceResource(from, to);
+                        pipeviewer.BeginInvoke((MethodInvoker)delegate { m_Core.RefreshStatus(); });
                     }
                 });
             },
@@ -1922,6 +1926,7 @@ namespace renderdocui.Windows.PipelineState
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {
                     r.RemoveReplacement(stage.Shader);
+                    pipeviewer.BeginInvoke((MethodInvoker)delegate { m_Core.RefreshStatus(); });
                 });
             });
 

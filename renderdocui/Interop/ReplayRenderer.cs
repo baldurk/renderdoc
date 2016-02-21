@@ -209,7 +209,7 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_SetContextFilter(IntPtr real, ResourceId id, UInt32 firstDefEv, UInt32 lastDefEv);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_SetFrameEvent(IntPtr real, UInt32 frameID, UInt32 eventID);
+        private static extern bool ReplayRenderer_SetFrameEvent(IntPtr real, UInt32 frameID, UInt32 eventID, bool force);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetD3D11PipelineState(IntPtr real, IntPtr mem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -328,8 +328,8 @@ namespace renderdoc
 
         public bool SetContextFilter(ResourceId id, UInt32 firstDefEv, UInt32 lastDefEv)
         { return ReplayRenderer_SetContextFilter(m_Real, id, firstDefEv, lastDefEv); }
-        public bool SetFrameEvent(UInt32 frameID, UInt32 eventID)
-        { return ReplayRenderer_SetFrameEvent(m_Real, frameID, eventID); }
+        public bool SetFrameEvent(UInt32 frameID, UInt32 eventID, bool force)
+        { return ReplayRenderer_SetFrameEvent(m_Real, frameID, eventID, force); }
 
         public GLPipelineState GetGLPipelineState()
         {

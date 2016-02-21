@@ -144,7 +144,6 @@ struct ReplayRenderer : public IReplayRenderer
 		bool InitResolver();
 		
 		bool SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
-		bool SetFrameEvent(uint32_t frameID, uint32_t eventID);
 		bool SetFrameEvent(uint32_t frameID, uint32_t eventID, bool force);
 
 		void FetchPipelineState();

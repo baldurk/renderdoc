@@ -241,7 +241,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 		if(msg.message == WM_QUIT) break;
 
 		// set to random event beyond the end of the frame to ensure output is marked as dirty
-		ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000);
+		ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000, true);
 		ReplayOutput_Display(out);
 
 		Sleep(40);
