@@ -55,6 +55,8 @@ VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo);
 // set conservative access bits for this image layout
 VkAccessFlags MakeAccessMask(VkImageLayout layout);
 
+void ReplacePresentableImageLayout(VkImageLayout &layout);
+
 void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkImageMemoryBarrier *barriers);
 void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkBufferMemoryBarrier *barriers);
 void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkMemoryBarrier *barriers);

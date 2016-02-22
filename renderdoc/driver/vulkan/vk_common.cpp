@@ -51,6 +51,12 @@ VkAccessFlags MakeAccessMask(VkImageLayout layout)
 	return VkAccessFlags(0);
 }
 
+void ReplacePresentableImageLayout(VkImageLayout &layout)
+{
+	if(layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+		layout = VK_IMAGE_LAYOUT_GENERAL;
+}
+
 int SampleCount(VkSampleCountFlagBits countFlag)
 {
 	switch(countFlag)

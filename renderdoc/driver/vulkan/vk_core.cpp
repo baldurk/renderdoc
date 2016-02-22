@@ -663,6 +663,8 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 		{
 			for(size_t i=0; i < imgBarriers.size(); i++)
 			{
+				ReplacePresentableImageLayout(imgBarriers[i].oldLayout);
+				ReplacePresentableImageLayout(imgBarriers[i].newLayout);
 				imgBarriers[i].srcAccessMask = MakeAccessMask(imgBarriers[i].oldLayout);
 				imgBarriers[i].dstAccessMask = MakeAccessMask(imgBarriers[i].newLayout);
 			}

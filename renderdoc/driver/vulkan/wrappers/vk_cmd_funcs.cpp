@@ -1665,8 +1665,14 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 				bufBarriers.push_back(bufMemBarriers[i]);
 		
 		for(uint32_t i=0; i < imgCount; i++)
+		{
 			if(imgMemBarriers[i].image != VK_NULL_HANDLE)
+			{
 				imgBarriers.push_back(imgMemBarriers[i]);
+				ReplacePresentableImageLayout(imgBarriers.back().oldLayout);
+				ReplacePresentableImageLayout(imgBarriers.back().newLayout);
+			}
+		}
 	}
 
 	SAFE_DELETE_ARRAY(bufMemBarriers);
