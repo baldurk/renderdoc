@@ -120,7 +120,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 			switch (event->response_type & 0x7f)
 			{
 				case XCB_EXPOSE:
-					ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000);
+					ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000, true);
 					ReplayOutput_Display(out);
 					break;
 				case XCB_CLIENT_MESSAGE:
@@ -147,7 +147,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 			free(event);
 		}
 
-		ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000);
+		ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000, true);
 		ReplayOutput_Display(out);
 
 		usleep(100000);

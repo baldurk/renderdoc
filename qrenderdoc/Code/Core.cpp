@@ -138,7 +138,7 @@ void Core::SetEventID(ILogViewerForm *exclude, uint32_t frameID, uint32_t eventI
 	m_EventID = eventID;
 
 	m_Renderer.BlockInvoke([frameID, eventID, this](IReplayRenderer *r) {
-		r->SetFrameEvent(frameID, eventID);
+		r->SetFrameEvent(frameID, eventID, false);
 		r->GetD3D11PipelineState(&CurD3D11PipelineState);
 		r->GetGLPipelineState(&CurGLPipelineState);
 		r->GetVulkanPipelineState(&CurVulkanPipelineState);
