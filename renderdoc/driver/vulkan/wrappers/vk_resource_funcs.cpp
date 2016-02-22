@@ -288,6 +288,18 @@ void WrappedVulkan::vkFreeMemory(
 
 	VkDeviceMemory unwrappedMem = wrapped->real.As<VkDeviceMemory>();
 
+	// there is an implicit unmap on free, so make sure to tidy up
+	if(wrapped->record->memMapState && wrapped->record->memMapState->refData)
+		Serialiser::FreeAlignedBuffer(wrapped->record->memMapState->refData);
+
+	{
+		SCOPED_LOCK(m_CoherentMapsLock);
+
+		auto it = std::find(m_CoherentMaps.begin(), m_CoherentMaps.end(), wrapped->record);
+		if(it != m_CoherentMaps.end())
+			m_CoherentMaps.erase(it);
+	}
+
 	GetResourceManager()->ReleaseWrappedResource(memory);
 
 	ObjDisp(device)->FreeMemory(Unwrap(device), unwrappedMem, pAllocator);
