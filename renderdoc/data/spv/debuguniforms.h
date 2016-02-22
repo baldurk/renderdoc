@@ -187,7 +187,7 @@ BINDING (0, 0) uniform TexDisplayUBOData
 //
 // these values are in each dimension
 #define HGRAM_PIXELS_PER_TILE  64u
-#define HGRAM_TILES_PER_BLOCK  32u
+#define HGRAM_TILES_PER_BLOCK  10u
 
 #define HGRAM_NUM_BUCKETS	   256u
 
