@@ -994,9 +994,9 @@ VkResult WrappedVulkan::vkCreateImage(
 			const VkAllocationCallbacks*                pAllocator,
 			VkImage*                                    pImage)
 {
-    VkImageCreateInfo createInfo_adjusted = *pCreateInfo;
+	VkImageCreateInfo createInfo_adjusted = *pCreateInfo;
 
-    createInfo_adjusted.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	createInfo_adjusted.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
 	VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &createInfo_adjusted, pAllocator, pImage);
 	
