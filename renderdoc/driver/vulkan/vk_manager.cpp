@@ -256,6 +256,7 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
 				t.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
 				t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				ReplacePresentableImageLayout(state.newLayout);
 				t.newLayout = state.newLayout;
 				t.subresourceRange = state.subresourceRange;
 				barriers.push_back(t);
