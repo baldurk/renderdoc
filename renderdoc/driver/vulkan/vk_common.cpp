@@ -109,6 +109,21 @@ int StageIndex(VkShaderStageFlagBits stageFlag)
 
 void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkImageMemoryBarrier *barriers)
 {
+	for (uint32_t n_barrier = 0;
+				  n_barrier < count;
+				++n_barrier)
+	{
+		if (barriers[n_barrier].newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+		{
+			barriers[n_barrier].newLayout = VK_IMAGE_LAYOUT_GENERAL;
+		}
+
+		if (barriers[n_barrier].oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+		{
+			barriers[n_barrier].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+		}
+	}
+
 	ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd),
 		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
 		0, NULL,          // global memory barriers
