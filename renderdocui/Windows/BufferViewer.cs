@@ -458,6 +458,8 @@ namespace renderdocui.Windows
 
             previewTab.SelectedIndex = 0;
 
+            uint byteoffs = ByteOffset;
+
             if (MeshView)
             {
                 if (draw == null)
@@ -484,9 +486,9 @@ namespace renderdocui.Windows
                     m_VSOut.m_Input = GetCurrentMeshInput(draw, MeshDataStage.VSOut);
                     m_GSOut.m_Input = GetCurrentMeshInput(draw, MeshDataStage.GSOut);
 
-                    var contentsVSIn = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input);
-                    var contentsVSOut = RT_FetchBufferContents(MeshDataStage.VSOut, r, m_VSOut.m_Input);
-                    var contentsGSOut = RT_FetchBufferContents(MeshDataStage.GSOut, r, m_GSOut.m_Input);
+                    var contentsVSIn = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input, byteoffs);
+                    var contentsVSOut = RT_FetchBufferContents(MeshDataStage.VSOut, r, m_VSOut.m_Input, byteoffs);
+                    var contentsGSOut = RT_FetchBufferContents(MeshDataStage.GSOut, r, m_GSOut.m_Input, byteoffs);
 
                     if (curReq != m_ReqID)
                         return;
@@ -556,6 +558,8 @@ namespace renderdocui.Windows
 
             int curReq = m_ReqID;
 
+            uint byteoffs = ByteOffset;
+
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 m_VSIn.AbortThread();
@@ -591,9 +595,9 @@ namespace renderdocui.Windows
                     }
                 }
 
-                var contentsVSIn = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input);
-                var contentsVSOut = RT_FetchBufferContents(MeshDataStage.VSOut, r, m_VSOut.m_Input);
-                var contentsGSOut = RT_FetchBufferContents(MeshDataStage.GSOut, r, m_GSOut.m_Input);
+                var contentsVSIn = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input, byteoffs);
+                var contentsVSOut = RT_FetchBufferContents(MeshDataStage.VSOut, r, m_VSOut.m_Input, byteoffs);
+                var contentsGSOut = RT_FetchBufferContents(MeshDataStage.GSOut, r, m_GSOut.m_Input, byteoffs);
 
                 if (curReq != m_ReqID)
                     return;
@@ -751,11 +755,13 @@ namespace renderdocui.Windows
 
             ClearStoredData();
 
+            uint byteoffset = ByteOffset;
+
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 if (IsDisposed) return;
 
-                var contents = RT_FetchBufferContents(MeshDataStage.VSIn, r, input);
+                var contents = RT_FetchBufferContents(MeshDataStage.VSIn, r, input, byteoffset);
 
                 this.BeginInvoke(new Action(() =>
                 {
@@ -932,7 +938,7 @@ namespace renderdocui.Windows
 
         #region Get Actual Bytes
 
-        private Dataset RT_FetchBufferContents(MeshDataStage type, ReplayRenderer r, Input input)
+        private Dataset RT_FetchBufferContents(MeshDataStage type, ReplayRenderer r, Input input, uint byteoffs)
         {
             Dataset ret = new Dataset();
 
@@ -948,9 +954,9 @@ namespace renderdocui.Windows
                     ret.Buffers = new byte[1][];
 
                     if(input.Buffers[0] != ResourceId.Null)
-                        ret.Buffers[0] = r.GetBufferData(input.Buffers[0], ByteOffset, 0);
+                        ret.Buffers[0] = r.GetBufferData(input.Buffers[0], byteoffs, 0);
                     else if (input.Buffers[1] != ResourceId.Null)
-                        ret.Buffers[0] = r.GetTextureData(input.Buffers[1], ByteOffset, 0);
+                        ret.Buffers[0] = r.GetTextureData(input.Buffers[1], byteoffs, 0);
 
                     ret.Indices = null;
                     ret.DataIndices = null;
@@ -3043,9 +3049,11 @@ namespace renderdocui.Windows
 
             byteOffset.Enabled = false;
 
+            uint byteoffset = ByteOffset;
+
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
-                var contents = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input);
+                var contents = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input, byteoffset);
 
                 this.BeginInvoke(new Action(() =>
                 {
