@@ -2759,7 +2759,9 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceLimits &el)
 	SerialisePODArray<2>("maxViewportDimensions", el.maxViewportDimensions);
 	SerialisePODArray<2>("viewportBoundsRange", el.viewportBoundsRange);
 	Serialise("viewportSubPixelBits", el.viewportSubPixelBits);
-	Serialise("minMemoryMapAlignment", el.minMemoryMapAlignment);
+	uint64_t minMemoryMapAlignment = (uint64_t)el.minMemoryMapAlignment;
+	Serialise("minMemoryMapAlignment", minMemoryMapAlignment);
+	el.minMemoryMapAlignment = (size_t)minMemoryMapAlignment;
 	Serialise("minTexelBufferOffsetAlignment", el.minTexelBufferOffsetAlignment);
 	Serialise("minUniformBufferOffsetAlignment", el.minUniformBufferOffsetAlignment);
 	Serialise("minStorageBufferOffsetAlignment", el.minStorageBufferOffsetAlignment);
