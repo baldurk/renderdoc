@@ -522,9 +522,7 @@ namespace renderdocui.Windows
                 {
                     if (IsDisposed) return;
 
-                    m_Output = r.CreateOutput(RenderHandle, OutputType.MeshDisplay);
-                    m_Output.SetOutputConfig(m_OutConfig);
-                    RT_UpdateRenderOutput(r);
+                    m_Output = null;
                 });
             }
         }
