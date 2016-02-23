@@ -1,6 +1,6 @@
 CC=gcc
 CPP=g++
-COMMIT=`git rev-parse HEAD`
+COMMIT=`sh ../calc_hash.sh`
 MACROS=-DLINUX \
 			 -DRENDERDOC_PLATFORM=linux \
 			 -DRENDERDOC_EXPORTS \
