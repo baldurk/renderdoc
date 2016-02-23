@@ -529,6 +529,7 @@
     <None Include="Resources\asterisk_orange.png" />
     <None Include="Resources\folder_page.png" />
     <EmbeddedResource Include="Resources\glsl.xml" />
+    <None Include="Resources\page_white_code.png" />
     <Content Include="Resources\RightArrow_Green_16x16.png" />
     <Content Include="Resources\icon.ico" />
     <None Include="Resources\page_white_delete.png" />

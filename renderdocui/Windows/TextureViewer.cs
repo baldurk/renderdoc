@@ -3382,6 +3382,13 @@ namespace renderdocui.Windows
             }));
         }
 
+        private void viewTexBuffer_Click(object sender, EventArgs e)
+        {
+            var viewer = new BufferViewer(m_Core, false);
+            viewer.ViewRawBuffer(false, CurrentTexture.ID);
+            viewer.Show(this.DockPanel);
+        }
+
         private TextureSaveDialog m_SaveDialog = null;
 
         private void saveTex_Click(object sender, EventArgs e)

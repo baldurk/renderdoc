@@ -147,6 +147,7 @@
             this.pixelContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.highlightedPixelHistoryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.highlightedPixelDebugToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.viewTexBuffer = new System.Windows.Forms.ToolStripButton();
             subSep = new System.Windows.Forms.ToolStripSeparator();
             toolStripLabel2 = new System.Windows.Forms.ToolStripLabel();
             toolStripLabel3 = new System.Windows.Forms.ToolStripLabel();
@@ -976,7 +977,8 @@
             this.actionsStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             toolStripLabel1,
             this.saveTex,
-            this.texListShow});
+            this.texListShow,
+            this.viewTexBuffer});
             this.actionsStrip.Location = new System.Drawing.Point(0, 25);
             this.actionsStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
             this.actionsStrip.Name = "actionsStrip";
@@ -1304,6 +1306,16 @@
             this.highlightedPixelDebugToolStripMenuItem.Text = "Highlighted Pixel &Debug";
             this.highlightedPixelDebugToolStripMenuItem.Click += new System.EventHandler(this.debugPixel_Click);
             // 
+            // viewTexBuffer
+            // 
+            this.viewTexBuffer.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.viewTexBuffer.Image = global::renderdocui.Properties.Resources.page_white_code;
+            this.viewTexBuffer.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.viewTexBuffer.Name = "viewTexBuffer";
+            this.viewTexBuffer.Size = new System.Drawing.Size(23, 22);
+            this.viewTexBuffer.Text = "Open Texture as Buffer";
+            this.viewTexBuffer.Click += new System.EventHandler(this.viewTexBuffer_Click);
+            // 
             // TextureViewer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1464,6 +1476,7 @@
         private System.Windows.Forms.ContextMenuStrip pixelContextMenu;
         private System.Windows.Forms.ToolStripMenuItem highlightedPixelHistoryToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem highlightedPixelDebugToolStripMenuItem;
+        private System.Windows.Forms.ToolStripButton viewTexBuffer;
 
     }
 }
