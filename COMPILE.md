@@ -41,6 +41,14 @@ This is the apt-get line you'd need to install the requirements on Ubuntu 15.04:
 sudo apt-get install libx11-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev
 ```
 
+For Archlinux (as of 2016.02.01) you'll need:
+
+```
+sudo pacman -S libx11 xcb-util-keysyms mesa mesa-libgl qt5-base qt5-x11extras
+```
+
+If you know the required packages for another distribution, please share (or pull request this file!)
+
 Builds
 --------------
 
