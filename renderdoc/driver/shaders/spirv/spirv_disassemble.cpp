@@ -3441,32 +3441,45 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 				else if(type->texdim == spv::DimBuffer)
 					res.resType = eResType_Buffer;
 
-				res.IsSampler = type->type == SPVTypeData::eSampledImage;
-				res.IsTexture = res.resType != eResType_Buffer;
+				res.IsSampler = type->type == SPVTypeData::eSampledImage || type->type == SPVTypeData::eSampler;
+				res.IsTexture = res.resType != eResType_Buffer && type->type != SPVTypeData::eSampler;
+
+				if(type->type == SPVTypeData::eSampler)
+				{
+					res.resType = eResType_None;
+					res.IsSRV = false;
+				}
 
 				bool isrw = false;
 
 				SPVTypeData *sampledType = type->baseType;
-				if(sampledType->type == SPVTypeData::eImage)
+				if(type->type == SPVTypeData::eSampler)
 				{
-					isrw = (sampledType->sampled == 2);
-					sampledType = sampledType->baseType;
+					res.resType = eResType_None;
 				}
-				if(type->type == SPVTypeData::eImage)
-				{
-					isrw = true;
-				}
-				
-				res.IsSRV = !isrw;
-
-				if(sampledType->type == SPVTypeData::eFloat)
-					res.variableType.descriptor.type = eVar_Float;
-				else if(sampledType->type == SPVTypeData::eUInt)
-					res.variableType.descriptor.type = eVar_UInt;
-				else if(sampledType->type == SPVTypeData::eSInt)
-					res.variableType.descriptor.type = eVar_Int;
 				else
-					RDCERR("Unexpected base type of resource %u", sampledType->type);
+				{
+					if(sampledType->type == SPVTypeData::eImage)
+					{
+						isrw = (sampledType->sampled == 2);
+						sampledType = sampledType->baseType;
+					}
+					if(type->type == SPVTypeData::eImage)
+					{
+						isrw = (type->sampled == 2);
+					}
+				
+					res.IsSRV = !isrw;
+
+					if(sampledType->type == SPVTypeData::eFloat)
+						res.variableType.descriptor.type = eVar_Float;
+					else if(sampledType->type == SPVTypeData::eUInt)
+						res.variableType.descriptor.type = eVar_UInt;
+					else if(sampledType->type == SPVTypeData::eSInt)
+						res.variableType.descriptor.type = eVar_Int;
+					else
+						RDCERR("Unexpected base type of resource %u", sampledType->type);
+				}
 
 				res.variableType.descriptor.rows = 1;
 				res.variableType.descriptor.cols = 1;
