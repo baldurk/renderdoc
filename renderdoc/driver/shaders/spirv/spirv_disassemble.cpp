@@ -154,6 +154,10 @@ const char *GLSL_STD_450_names[] = {
 	"InterpolateAtCentroid",
 	"InterpolateAtSample",
 	"InterpolateAtOffset",
+
+	"NMin",
+	"NMax",
+	"NClamp",
 };
 
 RDCCOMPILE_ASSERT( ARRAY_COUNT(GLSL_STD_450_names) == GLSLstd450Count, "Wrong number of GLSL extension function names" );
