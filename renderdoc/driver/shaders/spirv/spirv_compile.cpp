@@ -159,7 +159,7 @@ string CompileSPIRV(SPIRVShaderStage shadType, const std::vector<std::string> &s
 
 		shader->setStrings(strs, (int)sources.size());
 
-		bool success = shader->parse(&DefaultResources, 110, false, EShMsgDefault);
+		bool success = shader->parse(&DefaultResources, 110, false, EShMessages(EShMsgSpvRules|EShMsgVulkanRules));
 
 		if(!success)
 		{
