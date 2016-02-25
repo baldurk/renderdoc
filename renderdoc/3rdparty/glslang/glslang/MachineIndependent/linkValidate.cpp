@@ -71,6 +71,7 @@ void TIntermediate::merge(TInfoSink& infoSink, TIntermediate& unit)
 {
     numMains += unit.numMains;
     numErrors += unit.numErrors;
+    numPushConstants += unit.numPushConstants;
     callGraph.insert(callGraph.end(), unit.callGraph.begin(), unit.callGraph.end());
 
     if ((profile != EEsProfile && unit.profile == EEsProfile) ||
@@ -129,6 +130,11 @@ void TIntermediate::merge(TInfoSink& infoSink, TIntermediate& unit)
             localSize[i] = unit.localSize[i];
         else if (localSize[i] != unit.localSize[i])
             error(infoSink, "Contradictory local size");
+
+        if (localSizeSpecId[i] != TQualifier::layoutNotSet)
+            localSizeSpecId[i] = unit.localSizeSpecId[i];
+        else if (localSizeSpecId[i] != unit.localSizeSpecId[i])
+            error(infoSink, "Contradictory local size specialization ids");
     }
 
     if (unit.xfbMode)
@@ -352,6 +358,9 @@ void TIntermediate::finalCheck(TInfoSink& infoSink)
 {   
     if (numMains < 1)
         error(infoSink, "Missing entry point: Each stage requires one \"void main()\" entry point");
+
+    if (numPushConstants > 1)
+        error(infoSink, "Only one push_constant block is allowed per stage");
 
     // recursion checking
     checkCallGraphCycles(infoSink);
@@ -688,6 +697,19 @@ int TIntermediate::addUsedOffsets(int binding, int offset, int numOffsets)
     usedAtomics.push_back(range);
 
     return -1; // no collision
+}
+
+// Accumulate used constant_id values.
+//
+// Return false is one was already used.
+bool TIntermediate::addUsedConstantId(int id)
+{
+    if (usedConstantId.find(id) != usedConstantId.end())
+        return false;
+
+    usedConstantId.insert(id);
+
+    return true;
 }
 
 // Recursively figure out how many locations are used up by an input or output type.

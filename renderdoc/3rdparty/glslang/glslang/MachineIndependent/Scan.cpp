@@ -53,8 +53,11 @@
 #include "preprocessor/PpContext.h"
 #include "preprocessor/PpTokens.h"
 
-namespace glslang {
+// Required to avoid missing prototype warnings for some compilers
+int yylex(YYSTYPE*, glslang::TParseContext&);
     
+namespace glslang {
+
 // read past any white space
 void TInputScanner::consumeWhiteSpace(bool& foundNonSpaceTab)
 {
@@ -493,6 +496,50 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["sampler1DArray"] =          SAMPLER1DARRAY;
 
     (*KeywordMap)["samplerExternalOES"] =      SAMPLEREXTERNALOES; // GL_OES_EGL_image_external
+
+    (*KeywordMap)["sampler"] =                 SAMPLER;
+    (*KeywordMap)["samplerShadow"] =           SAMPLERSHADOW;
+
+    (*KeywordMap)["texture2D"] =               TEXTURE2D;
+    (*KeywordMap)["textureCube"] =             TEXTURECUBE;
+    (*KeywordMap)["textureCubeArray"] =        TEXTURECUBEARRAY;
+    (*KeywordMap)["itextureCubeArray"] =       ITEXTURECUBEARRAY;
+    (*KeywordMap)["utextureCubeArray"] =       UTEXTURECUBEARRAY;
+    (*KeywordMap)["itexture1DArray"] =         ITEXTURE1DARRAY;
+    (*KeywordMap)["utexture1D"] =              UTEXTURE1D;
+    (*KeywordMap)["itexture1D"] =              ITEXTURE1D;
+    (*KeywordMap)["utexture1DArray"] =         UTEXTURE1DARRAY;
+    (*KeywordMap)["textureBuffer"] =           TEXTUREBUFFER;
+    (*KeywordMap)["texture2DArray"] =          TEXTURE2DARRAY;
+    (*KeywordMap)["itexture2D"] =              ITEXTURE2D;
+    (*KeywordMap)["itexture3D"] =              ITEXTURE3D;
+    (*KeywordMap)["itextureCube"] =            ITEXTURECUBE;
+    (*KeywordMap)["itexture2DArray"] =         ITEXTURE2DARRAY;
+    (*KeywordMap)["utexture2D"] =              UTEXTURE2D;
+    (*KeywordMap)["utexture3D"] =              UTEXTURE3D;
+    (*KeywordMap)["utextureCube"] =            UTEXTURECUBE;
+    (*KeywordMap)["utexture2DArray"] =         UTEXTURE2DARRAY;
+    (*KeywordMap)["itexture2DRect"] =          ITEXTURE2DRECT;
+    (*KeywordMap)["utexture2DRect"] =          UTEXTURE2DRECT;
+    (*KeywordMap)["itextureBuffer"] =          ITEXTUREBUFFER;
+    (*KeywordMap)["utextureBuffer"] =          UTEXTUREBUFFER;
+    (*KeywordMap)["texture2DMS"] =             TEXTURE2DMS;
+    (*KeywordMap)["itexture2DMS"] =            ITEXTURE2DMS;
+    (*KeywordMap)["utexture2DMS"] =            UTEXTURE2DMS;
+    (*KeywordMap)["texture2DMSArray"] =        TEXTURE2DMSARRAY;
+    (*KeywordMap)["itexture2DMSArray"] =       ITEXTURE2DMSARRAY;
+    (*KeywordMap)["utexture2DMSArray"] =       UTEXTURE2DMSARRAY;
+    (*KeywordMap)["texture1D"] =               TEXTURE1D;
+    (*KeywordMap)["texture3D"] =               TEXTURE3D;
+    (*KeywordMap)["texture2DRect"] =           TEXTURE2DRECT;
+    (*KeywordMap)["texture1DArray"] =          TEXTURE1DARRAY;
+
+    (*KeywordMap)["subpassInput"] =            SUBPASSINPUT;
+    (*KeywordMap)["subpassInputMS"] =          SUBPASSINPUTMS;
+    (*KeywordMap)["isubpassInput"] =           ISUBPASSINPUT;
+    (*KeywordMap)["isubpassInputMS"] =         ISUBPASSINPUTMS;
+    (*KeywordMap)["usubpassInput"] =           USUBPASSINPUT;
+    (*KeywordMap)["usubpassInputMS"] =         USUBPASSINPUTMS;
 
     (*KeywordMap)["noperspective"] =           NOPERSPECTIVE;
     (*KeywordMap)["smooth"] =                  SMOOTH;
@@ -986,6 +1033,57 @@ int TScanContext::tokenizeIdentifier()
         if (parseContext.symbolTable.atBuiltInLevel() || parseContext.extensionTurnedOn(E_GL_OES_EGL_image_external))
             return keyword;
         return identifierOrType();
+
+    case TEXTURE2D:
+    case TEXTURECUBE:
+    case TEXTURECUBEARRAY:
+    case ITEXTURECUBEARRAY:
+    case UTEXTURECUBEARRAY:
+    case ITEXTURE1DARRAY:
+    case UTEXTURE1D:
+    case ITEXTURE1D:
+    case UTEXTURE1DARRAY:
+    case TEXTUREBUFFER:
+    case TEXTURE2DARRAY:
+    case ITEXTURE2D:
+    case ITEXTURE3D:
+    case ITEXTURECUBE:
+    case ITEXTURE2DARRAY:
+    case UTEXTURE2D:
+    case UTEXTURE3D:
+    case UTEXTURECUBE:
+    case UTEXTURE2DARRAY:
+    case ITEXTURE2DRECT:
+    case UTEXTURE2DRECT:
+    case ITEXTUREBUFFER:
+    case UTEXTUREBUFFER:
+    case TEXTURE2DMS:
+    case ITEXTURE2DMS:
+    case UTEXTURE2DMS:
+    case TEXTURE2DMSARRAY:
+    case ITEXTURE2DMSARRAY:
+    case UTEXTURE2DMSARRAY:
+    case TEXTURE1D:
+    case TEXTURE3D:
+    case TEXTURE2DRECT:
+    case TEXTURE1DARRAY:
+    case SAMPLER:
+    case SAMPLERSHADOW:
+        if (parseContext.spv > 0)
+            return keyword;
+        else
+            return identifierOrType();
+
+    case SUBPASSINPUT:
+    case SUBPASSINPUTMS:
+    case ISUBPASSINPUT:
+    case ISUBPASSINPUTMS:
+    case USUBPASSINPUT:
+    case USUBPASSINPUTMS:
+        if (parseContext.spv > 0)
+            return keyword;
+        else
+            return identifierOrType();
 
     case NOPERSPECTIVE:
         return es30ReservedFromGLSL(130);

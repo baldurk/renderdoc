@@ -65,7 +65,7 @@ typedef std::set<int> TIdSetType;
 //
 class TParseContext {
 public:
-    TParseContext(TSymbolTable&, TIntermediate&, bool parsingBuiltins, int version, EProfile, int spv, EShLanguage, TInfoSink&,
+    TParseContext(TSymbolTable&, TIntermediate&, bool parsingBuiltins, int version, EProfile, int spv, int vulkan, EShLanguage, TInfoSink&,
                   bool forwardCompatible = false, EShMessages messages = EShMsgDefault);
     virtual ~TParseContext();
 
@@ -98,6 +98,7 @@ public:
     void handleIndexLimits(const TSourceLoc&, TIntermTyped* base, TIntermTyped* index);
 
     void makeEditable(TSymbol*&);
+    TVariable* getEditableVariable(const char* name);
     bool isIoResizeArray(const TType&) const;
     void fixIoArraySize(const TSourceLoc&, TType&);
     void ioArrayCheck(const TSourceLoc&, const TType&, const TString& identifier);
@@ -132,7 +133,8 @@ public:
     void integerCheck(const TIntermTyped* node, const char* token);
     void globalCheck(const TSourceLoc&, const char* token);
     bool constructorError(const TSourceLoc&, TIntermNode*, TFunction&, TOperator, TType&);
-    void arraySizeCheck(const TSourceLoc&, TIntermTyped* expr, int& size);
+    bool constructorTextureSamplerError(const TSourceLoc&, const TFunction&);
+    void arraySizeCheck(const TSourceLoc&, TIntermTyped* expr, TArraySize&);
     bool arrayQualifierError(const TSourceLoc&, const TQualifier&);
     bool arrayError(const TSourceLoc&, const TType&);
     void arraySizeRequiredCheck(const TSourceLoc&, const TArraySizes&);
@@ -145,8 +147,9 @@ public:
     bool voidErrorCheck(const TSourceLoc&, const TString&, TBasicType);
     void boolCheck(const TSourceLoc&, const TIntermTyped*);
     void boolCheck(const TSourceLoc&, const TPublicType&);
-    void samplerCheck(const TSourceLoc&, const TType&, const TString& identifier);
+    void samplerCheck(const TSourceLoc&, const TType&, const TString& identifier, TIntermTyped* initializer);
     void atomicUintCheck(const TSourceLoc&, const TType&, const TString& identifier);
+    void transparentCheck(const TSourceLoc&, const TType&, const TString& identifier);
     void globalQualifierFixCheck(const TSourceLoc&, TQualifier&);
     void globalQualifierTypeCheck(const TSourceLoc&, const TQualifier&, const TPublicType&);
     bool structQualifierErrorCheck(const TSourceLoc&, const TPublicType& pType);
@@ -165,6 +168,7 @@ public:
     void nestedStructCheck(const TSourceLoc&);
     void arrayObjectCheck(const TSourceLoc&, const TType&, const char* op);
     void opaqueCheck(const TSourceLoc&, const TType&, const char* op);
+    void specializationCheck(const TSourceLoc&, const TType&, const char* op);
     void structTypeCheck(const TSourceLoc&, TPublicType&);
     void inductiveLoopCheck(const TSourceLoc&, TIntermNode* init, TIntermLoop* loop);
     void arrayLimitCheck(const TSourceLoc&, const TString&, int size);
@@ -193,7 +197,7 @@ public:
     TIntermTyped* constructBuiltIn(const TType&, TOperator, TIntermTyped*, const TSourceLoc&, bool subset);
     void declareBlock(const TSourceLoc&, TTypeList& typeList, const TString* instanceName = 0, TArraySizes* arraySizes = 0);
     void blockStageIoCheck(const TSourceLoc&, const TQualifier&);
-    void blockQualifierCheck(const TSourceLoc&, const TQualifier&);
+    void blockQualifierCheck(const TSourceLoc&, const TQualifier&, bool instanceName);
     void fixBlockLocations(const TSourceLoc&, TQualifier&, TTypeList&, bool memberWithLocation, bool memberWithoutLocation);
     void fixBlockXfbOffsets(TQualifier&, TTypeList&);
     void fixBlockUniformOffsets(TQualifier&, TTypeList&);
@@ -244,6 +248,10 @@ public:
     void updateExtensionBehavior(int line, const char* const extension, const char* behavior);
     void fullIntegerCheck(const TSourceLoc&, const char* op);
     void doubleCheck(const TSourceLoc&, const char* op);
+    void spvRemoved(const TSourceLoc&, const char* op);
+    void vulkanRemoved(const TSourceLoc&, const char* op);
+    void requireVulkan(const TSourceLoc&, const char* op);
+    void requireSpv(const TSourceLoc&, const char* op);
 
     void setVersionCallback(const std::function<void(int, int, const char*)>& func) { versionCallback = func; }
     void setPragmaCallback(const std::function<void(int, const TVector<TString>&)>& func) { pragmaCallback = func; }
@@ -281,6 +289,7 @@ public:
     int version;                 // version, updated by #version in the shader
     EProfile profile;            // the declared profile in the shader (core by default)
     int spv;                     // SPIR-V version; 0 means not SPIR-V
+    int vulkan;                  // Vulkan version; 0 means not vulkan
     bool forwardCompatible;      // true if errors are to be given for use of deprecated features
 
     // Current state of parsing

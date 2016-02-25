@@ -324,6 +324,7 @@ enum TOperator {
     EOpConstructDMat4x3,
     EOpConstructDMat4x4,
     EOpConstructStruct,
+    EOpConstructTextureSampler,
     EOpConstructGuardEnd,
 
     //
@@ -371,6 +372,8 @@ enum TOperator {
     EOpImageAtomicExchange,
     EOpImageAtomicCompSwap,
 
+    EOpSubpassLoad,
+    EOpSubpassLoadMS,
     EOpSparseImageLoad,
 
     EOpImageGuardEnd,
@@ -606,7 +609,7 @@ protected:
 //
 class TIntermSymbol : public TIntermTyped {
 public:
-    // if symbol is initialized as symbol(sym), the memory comes from the poolallocator of sym. If sym comes from
+    // if symbol is initialized as symbol(sym), the memory comes from the pool allocator of sym. If sym comes from
     // per process threadPoolAllocator, then it causes increased memory usage per compile
     // it is essential to use "symbol = sym" to assign to symbol
     TIntermSymbol(int i, const TString& n, const TType& t) : 
@@ -619,9 +622,9 @@ public:
     void setConstArray(const TConstUnionArray& c) { unionArray = c; }
     const TConstUnionArray& getConstArray() const { return unionArray; }
 protected:
-    int id;
-    TString name;
-    TConstUnionArray unionArray;
+    int id;                      // the unique id of the symbol this node represents
+    TString name;                // the name of the symbol this node represents
+    TConstUnionArray unionArray; // if the symbol is a front-end compile-time constant, this is its value
 };
 
 class TIntermConstantUnion : public TIntermTyped {
@@ -651,6 +654,7 @@ struct TCrackedTextureOp {
     bool offsets;
     bool gather;
     bool grad;
+    bool subpass;
     bool lodClamp;
 };
 
@@ -681,6 +685,7 @@ public:
         cracked.offsets = false;
         cracked.gather = false;
         cracked.grad = false;
+        cracked.subpass = false;
         cracked.lodClamp = false;
 
         switch (op) {
@@ -789,6 +794,10 @@ public:
         case EOpSparseTextureGatherOffsets:
             cracked.gather = true;
             cracked.offsets = true;
+            break;
+        case EOpSubpassLoad:
+        case EOpSubpassLoadMS:
+            cracked.subpass = true;
             break;
         default:
             break;
@@ -937,7 +946,7 @@ enum TVisit
 //
 // Explicitly set postVisit to true if you want post visiting, otherwise,
 // filled in methods will only be called at pre-visit time (before processing
-// the subtree).  Similary for inVisit for in-order visiting of nodes with
+// the subtree).  Similarly for inVisit for in-order visiting of nodes with
 // multiple children.
 //
 // If you only want post-visits, explicitly turn off preVisit (and inVisit) 
@@ -970,7 +979,7 @@ public:
     void incrementDepth(TIntermNode *current)
     {
         depth++;
-        maxDepth = std::max(maxDepth, depth);
+        maxDepth = (std::max)(maxDepth, depth);
         path.push_back(current);
     }
 
@@ -999,6 +1008,14 @@ protected:
     // All the nodes from root to the current node's parent during traversing.
     TVector<TIntermNode *> path;
 };
+
+// KHR_vulkan_glsl says "Two arrays sized with specialization constants are the same type only if
+// sized with the same symbol, involving no operations"
+inline bool SameSpecializationConstants(TIntermTyped* node1, TIntermTyped* node2)
+{
+    return node1->getAsSymbolNode() && node2->getAsSymbolNode() &&
+           node1->getAsSymbolNode()->getId() == node2->getAsSymbolNode()->getId();
+}
 
 } // end namespace glslang
 

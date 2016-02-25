@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2015 The Khronos Group Inc.
+// Copyright (c) 2014-2016 The Khronos Group Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and/or associated documentation files (the "Materials"),
@@ -46,12 +46,12 @@ namespace spv {
 
 typedef unsigned int Id;
 
-#define SPV_VERSION 10000
-#define SPV_REVISION 2
+#define SPV_VERSION 0x10000
+#define SPV_REVISION 3
 
 static const unsigned int MagicNumber = 0x07230203;
 static const unsigned int Version = 0x00010000;
-static const unsigned int Revision = 2;
+static const unsigned int Revision = 3;
 static const unsigned int OpCodeMask = 0xffff;
 static const unsigned int WordCountShift = 16;
 
@@ -563,6 +563,7 @@ enum Capability {
     CapabilityGeometryStreams = 54,
     CapabilityStorageImageReadWithoutFormat = 55,
     CapabilityStorageImageWriteWithoutFormat = 56,
+    CapabilityMultiViewport = 57,
 };
 
 enum Op {
@@ -859,6 +860,7 @@ enum Op {
     OpNoLine = 317,
     OpAtomicFlagTestAndSet = 318,
     OpAtomicFlagClear = 319,
+    OpImageSparseRead = 320,
 };
 
 // Overload operator| for mask bit combining

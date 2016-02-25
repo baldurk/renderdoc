@@ -162,7 +162,9 @@ protected:
 TCompiler* ConstructCompiler(EShLanguage, int);
 
 TShHandleBase* ConstructLinker(EShExecutable, int);
+TShHandleBase* ConstructBindings();
 void DeleteLinker(TShHandleBase*);
+void DeleteBindingList(TShHandleBase* bindingList);
     
 TUniformMap* ConstructUniformMap();
 void DeleteCompiler(TCompiler*);

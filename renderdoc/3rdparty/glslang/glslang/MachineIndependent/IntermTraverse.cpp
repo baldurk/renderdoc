@@ -54,7 +54,7 @@ namespace glslang {
 //
 
 //
-// Traversal functions for terminals are straighforward....
+// Traversal functions for terminals are straightforward....
 //
 void TIntermMethod::traverse(TIntermTraverser*)
 {

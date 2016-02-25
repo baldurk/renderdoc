@@ -111,6 +111,7 @@ const char* const E_GL_ARB_shader_draw_parameters       = "GL_ARB_shader_draw_pa
 const char* const E_GL_ARB_derivative_control           = "GL_ARB_derivative_control";
 const char* const E_GL_ARB_shader_texture_image_samples = "GL_ARB_shader_texture_image_samples";
 const char* const E_GL_ARB_viewport_array               = "GL_ARB_viewport_array";
+const char* const E_GL_ARB_gl_spirv                     = "GL_ARB_gl_spirv";
 const char* const E_GL_ARB_sparse_texture2              = "GL_ARB_sparse_texture2";
 const char* const E_GL_ARB_sparse_texture_clamp         = "GL_ARB_sparse_texture_clamp";
 //const char* const E_GL_ARB_cull_distance            = "GL_ARB_cull_distance";  // present for 4.5, but need extension control over block members

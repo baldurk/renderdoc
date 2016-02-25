@@ -48,7 +48,7 @@ namespace {
 bool is_positive_infinity(double x) {
 #ifdef _MSC_VER
   return _fpclass(x) == _FPCLASS_PINF;
-#elif defined __ANDROID__
+#elif defined __ANDROID__ || defined __linux__
   return std::isinf(x) && (x >= 0);
 #else
   return isinf(x) && (x >= 0);
@@ -96,7 +96,7 @@ protected:
 // Helper functions for printing, not part of traversing.
 //
 
-void OutputTreeText(TInfoSink& infoSink, const TIntermNode* node, const int depth)
+static void OutputTreeText(TInfoSink& infoSink, const TIntermNode* node, const int depth)
 {
     int i;
 
@@ -385,6 +385,7 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     case EOpConstructDMat4x3: out.debug << "Construct dmat4x3"; break;
     case EOpConstructDMat4x4: out.debug << "Construct dmat4";   break;
     case EOpConstructStruct:  out.debug << "Construct structure";  break;
+    case EOpConstructTextureSampler: out.debug << "Construct combined texture-sampler"; break;
 
     case EOpLessThan:         out.debug << "Compare Less Than";             break;
     case EOpGreaterThan:      out.debug << "Compare Greater Than";          break;
@@ -528,7 +529,7 @@ bool TOutputTraverser::visitSelection(TVisit /* visit */, TIntermSelection* node
     return false;
 }
 
-void OutputConstantUnion(TInfoSink& out, const TIntermTyped* node, const TConstUnionArray& constUnion, int depth)
+static void OutputConstantUnion(TInfoSink& out, const TIntermTyped* node, const TConstUnionArray& constUnion, int depth)
 {
     int size = node->getType().computeNumComponents();
 
@@ -755,6 +756,20 @@ void TIntermediate::output(TInfoSink& infoSink, bool tree)
 
     case EShLangCompute:
         infoSink.debug << "local_size = (" << localSize[0] << ", " << localSize[1] << ", " << localSize[2] << ")\n";
+        {
+            bool dumpSpecIds = false;
+            for (int i=0; i < 3; i++) {
+                if (localSizeSpecId[i] != TQualifier::layoutNotSet)
+                    dumpSpecIds = true;
+            }
+
+            if (dumpSpecIds) {
+                infoSink.debug << "local_size ids = (" <<
+                    localSizeSpecId[0] << ", " <<
+                    localSizeSpecId[1] << ", " <<
+                    localSizeSpecId[2] << ")\n";
+            }
+        }
         break;
 
     default:

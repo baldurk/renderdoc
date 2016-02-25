@@ -43,22 +43,31 @@ namespace {
 
 using namespace glslang;
 
+typedef union {
+    double d;
+    int i[2];
+} DoubleIntUnion;
+
 // Some helper functions
 
 bool isNan(double x)
 {
+    DoubleIntUnion u;
     // tough to find a platform independent library function, do it directly
-    int bitPatternL = *(int*)&x;
-    int bitPatternH = *((int*)&x + 1);
+    u.d = x;
+    int bitPatternL = u.i[0];
+    int bitPatternH = u.i[1];
     return (bitPatternH & 0x7ff80000) == 0x7ff80000 && 
            ((bitPatternH & 0xFFFFF) != 0 || bitPatternL != 0);
 }
 
 bool isInf(double x)
 {
+    DoubleIntUnion u;
     // tough to find a platform independent library function, do it directly
-    int bitPatternL = *(int*)&x;
-    int bitPatternH = *((int*)&x + 1);
+    u.d = x;
+    int bitPatternL = u.i[0];
+    int bitPatternH = u.i[1];
     return (bitPatternH & 0x7ff00000) == 0x7ff00000 && 
            (bitPatternH & 0xFFFFF) == 0 && bitPatternL == 0;
 }
@@ -173,7 +182,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TIntermTyped* right
             case EbtInt:
                 if (rightUnionArray[i] == 0)
                     newConstArray[i].setIConst(0x7FFFFFFF);
-                else if (rightUnionArray[i].getIConst() == -1 && leftUnionArray[i].getUConst() == 0x80000000)
+                else if (rightUnionArray[i].getIConst() == -1 && leftUnionArray[i].getIConst() == (int)0x80000000)
                     newConstArray[i].setIConst(0x80000000);
                 else
                     newConstArray[i].setIConst(leftUnionArray[i].getIConst() / rightUnionArray[i].getIConst());

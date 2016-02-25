@@ -1,6 +1,7 @@
 //
 //Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
-//Copyright (C) 2012-2013 LunarG, Inc.
+//Copyright (C) 2012-2015 LunarG, Inc.
+//Copyright (C) 2015-2016 Google, Inc.
 //
 //All rights reserved.
 //
@@ -59,6 +60,7 @@ namespace glslang {
 //
 // Returns the added node.
 //
+
 TIntermSymbol* TIntermediate::addSymbol(int id, const TString& name, const TType& type, const TSourceLoc& loc)
 {
     TIntermSymbol* node = new TIntermSymbol(id, name, type);
@@ -67,9 +69,17 @@ TIntermSymbol* TIntermediate::addSymbol(int id, const TString& name, const TType
     return node;
 }
 
+TIntermSymbol* TIntermediate::addSymbol(int id, const TString& name, const TType& type, const TConstUnionArray& constArray, const TSourceLoc& loc)
+{
+    TIntermSymbol* node = addSymbol(id, name, type, loc);
+    node->setConstArray(constArray);
+
+    return node;
+}
+
 TIntermSymbol* TIntermediate::addSymbol(const TVariable& variable, const TSourceLoc& loc)
 {
-    return addSymbol(variable.getUniqueId(), variable.getName(), variable.getType(), loc);
+    return addSymbol(variable.getUniqueId(), variable.getName(), variable.getType(), variable.getConstArray(), loc);
 }
 
 //
@@ -112,10 +122,9 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
     node->updatePrecision();
 
     //
-    // If they are both constants, they must be folded.
+    // If they are both (non-specialization) constants, they must be folded.
     // (Unless it's the sequence (comma) operator, but that's handled in addComma().)
     //
-
     TIntermConstantUnion *leftTempConstant = left->getAsConstantUnion();
     TIntermConstantUnion *rightTempConstant = right->getAsConstantUnion();
     if (leftTempConstant && rightTempConstant) {
@@ -123,6 +132,13 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
         if (folded)
             return folded;
     }
+
+    // If either is a specialization constant, while the other is 
+    // a constant (or specialization constant), the result is still
+    // a specialization constant.
+    if (( left->getType().getQualifier().isSpecConstant() && right->getType().getQualifier().isConstant()) ||
+        (right->getType().getQualifier().isSpecConstant() &&  left->getType().getQualifier().isConstant()))
+        node->getWritableType().getQualifier().makeSpecConstant();
 
     return node;
 }
@@ -261,8 +277,13 @@ TIntermTyped* TIntermediate::addUnaryMath(TOperator op, TIntermTyped* child, TSo
 
     node->updatePrecision();
 
+    // If it's a (non-specialization) constant, it must be folded.
     if (child->getAsConstantUnion())
         return child->getAsConstantUnion()->fold(op, node->getType());
+
+    // If it's a specialiation constant, the result is too.
+    if (child->getType().getQualifier().isSpecConstant())
+        node->getWritableType().getQualifier().makeSpecConstant();
 
     return node;
 }
@@ -379,35 +400,37 @@ TIntermTyped* TIntermediate::setAggregateOperator(TIntermNode* node, TOperator o
 TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TIntermTyped* node) const
 {
     //
-    // Does the base type allow operation?
+    // Does the base type even allow the operation?
     //
     switch (node->getBasicType()) {
     case EbtVoid:
         return 0;
     case EbtAtomicUint:
     case EbtSampler:
-        if (op != EOpFunctionCall)
-            return 0;
-        break;
+        // opaque types can be passed to functions
+        if (op == EOpFunction)
+            break;
+        // samplers can get assigned via a sampler constructor
+        // (well, not yet, but code in the rest of this function is ready for it)
+        if (node->getBasicType() == EbtSampler && op == EOpAssign && 
+            node->getAsOperator() != nullptr && node->getAsOperator()->getOp() == EOpConstructTextureSampler)
+            break;
+
+        // otherwise, opaque types can't even be operated on, let alone converted
+        return 0;
     default:
         break;
     }
 
-    //
     // Otherwise, if types are identical, no problem
-    //
     if (type == node->getType())
         return node;
 
-    //
     // If one's a structure, then no conversions.
-    //
     if (type.isStruct() || node->isStruct())
         return 0;
 
-    //
     // If one's an array, then no conversions.
-    //
     if (type.isArray() || node->getType().isArray())
         return 0;
 
@@ -1144,13 +1167,19 @@ bool TIntermBinary::promote()
     setType(left->getType());
     type.getQualifier().clear();
 
-    // Finish all array and structure operations.
-    if (left->isArray() || left->getBasicType() == EbtStruct) {
+    // Composite and opaque types don't having pending operator changes, e.g.,
+    // array, structure, and samplers.  Just establish final type and correctness.
+    if (left->isArray() || left->getBasicType() == EbtStruct || left->getBasicType() == EbtSampler) {
         switch (op) {
         case EOpEqual:
         case EOpNotEqual:
-            // Promote to conditional
-            setType(TType(EbtBool));
+            if (left->getBasicType() == EbtSampler) {
+                // can't compare samplers
+                return false;
+            } else {
+                // Promote to conditional
+                setType(TType(EbtBool));
+            }
 
             return true;
 

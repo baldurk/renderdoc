@@ -59,13 +59,14 @@ public:
     POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
     TBuiltIns();
     virtual ~TBuiltIns();
-    void initialize(int version, EProfile, int spv);
-	void initialize(const TBuiltInResource& resources, int version, EProfile, int spv, EShLanguage);
+    void initialize(int version, EProfile, int spv, int vulkan);
+    void initialize(const TBuiltInResource& resources, int version, EProfile, int spv, int vulkan, EShLanguage);
     const TString& getCommonString() const { return commonBuiltins; }
     const TString& getStageString(EShLanguage language) const { return stageBuiltins[language]; }
 
 protected:
-    void add2ndGenerationSamplingImaging(int version, EProfile profile, int spv);
+    void add2ndGenerationSamplingImaging(int version, EProfile profile, int spv, int vulkan);
+    void addSubpassSampling(TSampler, TString& typeName, int version, EProfile profile);
     void addQueryFunctions(TSampler, TString& typeName, int version, EProfile profile);
     void addImageFunctions(TSampler, TString& typeName, int version, EProfile profile);
     void addSamplingFunctions(TSampler, TString& typeName, int version, EProfile profile);
@@ -81,8 +82,8 @@ protected:
     int dimMap[EsdNumDims];
 };
 
-void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage, TSymbolTable&);
-void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage, TSymbolTable&, const TBuiltInResource &resources);
+void IdentifyBuiltIns(int version, EProfile profile, int spv, int vulkan, EShLanguage, TSymbolTable&);
+void IdentifyBuiltIns(int version, EProfile profile, int spv, int vulkan, EShLanguage, TSymbolTable&, const TBuiltInResource &resources);
 
 } // end namespace glslang
 

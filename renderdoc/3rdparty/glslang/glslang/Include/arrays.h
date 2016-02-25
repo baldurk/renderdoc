@@ -46,6 +46,26 @@ namespace glslang {
 // This is used to mean there is no size yet (unsized), it is waiting to get a size from somewhere else.
 const int UnsizedArraySize = 0;
 
+class TIntermTyped;
+extern bool SameSpecializationConstants(TIntermTyped*, TIntermTyped*);
+
+// Specialization constants need both a nominal size and a node that defines
+// the specialization constant being used.  Array types are the same when their
+// size and specialization constant nodes are the same.
+struct TArraySize {
+    unsigned int size;
+    TIntermTyped* node;  // nullptr means no specialization constant node
+    bool operator==(const TArraySize& rhs) const
+    {
+        if (size != rhs.size)
+            return false;
+        if (node == nullptr || rhs.node == nullptr)
+            return node == rhs.node;
+
+        return SameSpecializationConstants(node, rhs.node);
+    }
+};
+
 //
 // TSmallArrayVector is used as the container for the set of sizes in TArraySizes.
 // It has generic-container semantics, while TArraySizes has array-of-array semantics.
@@ -83,22 +103,31 @@ struct TSmallArrayVector {
         return (int)sizes->size();
     }
 
-    unsigned int front() const
+    unsigned int frontSize() const
     {
         assert(sizes != nullptr && sizes->size() > 0);
-        return sizes->front();
+        return sizes->front().size;
+    }
+
+    TIntermTyped* frontNode() const
+    {
+        assert(sizes != nullptr && sizes->size() > 0);
+        return sizes->front().node;
     }
 
     void changeFront(unsigned int s)
     {
         assert(sizes != nullptr);
-        sizes->front() = s;
+        // this should only happen for implicitly sized arrays, not specialization constants
+        assert(sizes->front().node == nullptr);
+        sizes->front().size = s;
     }
 
-    void push_back(unsigned int e)
+    void push_back(unsigned int e, TIntermTyped* n)
     {
         alloc();
-        sizes->push_back(e);
+        TArraySize pair = { e, n };
+        sizes->push_back(pair);
     }
 
     void push_front(const TSmallArrayVector& newDims)
@@ -129,16 +158,23 @@ struct TSmallArrayVector {
         }
     }
 
-    unsigned int operator[](int i) const
+    unsigned int getDimSize(int i) const
     {
-        assert(sizes != nullptr  && (int)sizes->size() > i);
-        return (*sizes)[i];
+        assert(sizes != nullptr && (int)sizes->size() > i);
+        return (*sizes)[i].size;
     }
 
-    unsigned int& operator[](int i)
+    void setDimSize(int i, unsigned int size) const
     {
-        assert(sizes != nullptr  && (int)sizes->size() > i);
-        return (*sizes)[i];
+        assert(sizes != nullptr && (int)sizes->size() > i);
+        assert((*sizes)[i].node == nullptr);
+        (*sizes)[i].size = size;
+    }
+
+    TIntermTyped* getDimNode(int i) const
+    {
+        assert(sizes != nullptr && (int)sizes->size() > i);
+        return (*sizes)[i].node;
     }
 
     bool operator==(const TSmallArrayVector& rhs) const
@@ -157,7 +193,7 @@ protected:
     void alloc()
     {
         if (sizes == nullptr)
-            sizes = new TVector<unsigned int>;
+            sizes = new TVector<TArraySize>;
     }
     void dealloc()
     {
@@ -165,7 +201,7 @@ protected:
         sizes = nullptr;
     }
 
-    TVector<unsigned int>* sizes; // will either hold such a pointer, or in the future, hold the two array sizes
+    TVector<TArraySize>* sizes; // will either hold such a pointer, or in the future, hold the two array sizes
 };
 
 //
@@ -197,28 +233,32 @@ struct TArraySizes {
 
     // translate from array-of-array semantics to container semantics
     int getNumDims() const { return sizes.size(); }
-    int getDimSize(int dim) const { return sizes[dim]; }
-    void setDimSize(int dim, int size) { sizes[dim] = size; }
-    int getOuterSize() const { return sizes.front(); }
+    int getDimSize(int dim) const { return sizes.getDimSize(dim); }
+    TIntermTyped* getDimNode(int dim) const { return sizes.getDimNode(dim); }
+    void setDimSize(int dim, int size) { sizes.setDimSize(dim, size); }
+    int getOuterSize() const { return sizes.frontSize(); }
+    TIntermTyped* getOuterNode() const { return sizes.frontNode(); }
     int getCumulativeSize() const
     {
         int size = 1;
         for (int d = 0; d < sizes.size(); ++d) {
             // this only makes sense in paths that have a known array size
-            assert(sizes[d] != UnsizedArraySize);
-            size *= sizes[d];
+            assert(sizes.getDimSize(d) != UnsizedArraySize);
+            size *= sizes.getDimSize(d);
         }
         return size;
     }
-    void addInnerSize() { sizes.push_back((unsigned)UnsizedArraySize); }
-    void addInnerSize(int s) { sizes.push_back((unsigned)s); }
+    void addInnerSize() { addInnerSize((unsigned)UnsizedArraySize); }
+    void addInnerSize(int s) { addInnerSize((unsigned)s, nullptr); }
+    void addInnerSize(int s, TIntermTyped* n) { sizes.push_back((unsigned)s, n); }
+    void addInnerSize(TArraySize pair) { sizes.push_back(pair.size, pair.node); }
     void changeOuterSize(int s) { sizes.changeFront((unsigned)s); }
     int getImplicitSize() const { return (int)implicitArraySize; }
     void setImplicitSize(int s) { implicitArraySize = s; }
     bool isInnerImplicit() const
     {
         for (int d = 1; d < sizes.size(); ++d) {
-            if (sizes[d] == (unsigned)UnsizedArraySize)
+            if (sizes.getDimSize(d) == (unsigned)UnsizedArraySize)
                 return true;
         }
 
@@ -240,11 +280,24 @@ struct TArraySizes {
             return false;
 
         for (int d = 1; d < sizes.size(); ++d) {
-            if (sizes[d] != rhs.sizes[d])
+            if (sizes.getDimSize(d) != rhs.sizes.getDimSize(d) ||
+                sizes.getDimNode(d) != rhs.sizes.getDimNode(d))
                 return false;
         }
 
         return true;
+    }
+
+    // Returns true if any of the dimensions of the array is sized with a node
+    // instead of a front-end compile-time constant.
+    bool containsNode()
+    {
+        for (int d = 0; d < sizes.size(); ++d) {
+            if (sizes.getDimNode(d) != nullptr)
+                return true;
+        }
+
+        return false;
     }
 
     bool operator==(const TArraySizes& rhs) { return sizes == rhs.sizes; }

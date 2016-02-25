@@ -1,6 +1,7 @@
 //
 //Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
-//Copyright (C) 2012-2013 LunarG, Inc.
+//Copyright (C) 2012-2015 LunarG, Inc.
+//Copyright (C) 2015-2016 Google, Inc.
 //
 //All rights reserved.
 //
@@ -47,10 +48,10 @@ extern int yyparse(glslang::TParseContext*);
 
 namespace glslang {
 
-TParseContext::TParseContext(TSymbolTable& symt, TIntermediate& interm, bool pb, int v, EProfile p, int spv, EShLanguage L, TInfoSink& is,
+TParseContext::TParseContext(TSymbolTable& symt, TIntermediate& interm, bool pb, int v, EProfile p, int spv, int vulkan, EShLanguage L, TInfoSink& is,
                              bool fc, EShMessages m) :
             intermediate(interm), symbolTable(symt), infoSink(is), language(L),
-            version(v), profile(p), spv(spv), forwardCompatible(fc), 
+            version(v), profile(p), spv(spv), vulkan(vulkan), forwardCompatible(fc), 
             contextPragma(true, false), loopNestingLevel(0), structNestingLevel(0), controlFlowNestingLevel(0), statementNestingLevel(0),
             postMainReturn(false),
             tokensBeforeEOF(false), limits(resources.limits), messages(m), currentScanner(nullptr),
@@ -97,11 +98,11 @@ TParseContext::TParseContext(TSymbolTable& symt, TIntermediate& interm, bool pb,
 
     globalUniformDefaults.clear();
     globalUniformDefaults.layoutMatrix = ElmColumnMajor;
-    globalUniformDefaults.layoutPacking = ElpShared;
+    globalUniformDefaults.layoutPacking = vulkan > 0 ? ElpStd140 : ElpShared;
 
     globalBufferDefaults.clear();
     globalBufferDefaults.layoutMatrix = ElmColumnMajor;
-    globalBufferDefaults.layoutPacking = ElpShared;
+    globalBufferDefaults.layoutPacking = vulkan > 0 ? ElpStd430 : ElpShared;
 
     globalInputDefaults.clear();
     globalOutputDefaults.clear();
@@ -463,7 +464,7 @@ TIntermTyped* TParseContext::handleVariable(const TSourceLoc& loc, TSymbol* symb
         if (! variable)
             variable = new TVariable(string, TType(EbtVoid));
 
-        if (variable->getType().getQualifier().storage == EvqConst)
+        if (variable->getType().getQualifier().isFrontEndConstant())
             node = intermediate.addConstantUnion(variable->getConstArray(), variable->getType(), loc);
         else
             node = intermediate.addSymbol(*variable, loc);
@@ -608,6 +609,16 @@ void TParseContext::makeEditable(TSymbol*& symbol)
 
     // Also, save it in the AST for linker use.
     intermediate.addSymbolLinkageNode(linkage, *symbol);
+}
+
+TVariable* TParseContext::getEditableVariable(const char* name)
+{
+    bool builtIn;
+    TSymbol* symbol = symbolTable.find(name, &builtIn);
+    if (builtIn)
+        makeEditable(symbol);
+
+    return symbol->getAsVariable();
 }
 
 // Return true if this is a geometry shader input array or tessellation control output array.
@@ -813,7 +824,7 @@ TIntermTyped* TParseContext::handleDotDereference(const TSourceLoc& loc, TInterm
             }
         }
 
-        if (base->getType().getQualifier().storage == EvqConst)
+        if (base->getType().getQualifier().isFrontEndConstant())
             result = intermediate.foldSwizzle(base, fields, loc);
         else {
             if (fields.num == 1) {
@@ -1682,6 +1693,8 @@ TOperator TParseContext::mapTypeToConstructorOp(const TType& type) const
         op = EOpConstructStruct;
         break;
     case EbtSampler:
+        if (type.getSampler().combined)
+            op = EOpConstructTextureSampler;
         break;
     case EbtFloat:
         if (type.isMatrix()) {
@@ -2154,6 +2167,8 @@ bool TParseContext::constructorError(const TSourceLoc& loc, TIntermNode* node, T
 
     bool constructingMatrix = false;
     switch(op) {
+    case EOpConstructTextureSampler:
+        return constructorTextureSamplerError(loc, function);
     case EOpConstructMat2x2:
     case EOpConstructMat2x3:
     case EOpConstructMat2x4:
@@ -2309,6 +2324,66 @@ bool TParseContext::constructorError(const TSourceLoc& loc, TIntermNode* node, T
     return false;
 }
 
+// Verify all the correct semantics for constructing a combined texture/sampler.
+// Return true if the semantics are incorrect.
+bool TParseContext::constructorTextureSamplerError(const TSourceLoc& loc, const TFunction& function)
+{
+    TString constructorName = function.getType().getBasicTypeString();  // TODO: performance: should not be making copy; interface needs to change
+    const char* token = constructorName.c_str();
+
+    // exactly two arguments needed
+    if (function.getParamCount() != 2) {
+        error(loc, "sampler-constructor requires two arguments", token, "");
+        return true;
+    }
+
+    // For now, not allowing arrayed constructors, the rest of this function
+    // is set up to allow them, if this test is removed:
+    if (function.getType().isArray()) {
+        error(loc, "sampler-constructor cannot make an array of samplers", token, "");
+        return true;
+    }
+
+    // first argument
+    //  * the constructor's first argument must be a texture type
+    //  * the dimensionality (1D, 2D, 3D, Cube, Rect, Buffer, MS, and Array)
+    //    of the texture type must match that of the constructed sampler type
+    //    (that is, the suffixes of the type of the first argument and the
+    //    type of the constructor will be spelled the same way)
+    if (function[0].type->getBasicType() != EbtSampler || 
+        ! function[0].type->getSampler().isTexture() || 
+        function[0].type->isArray()) {
+        error(loc, "sampler-constructor first argument must be a scalar textureXXX type", token, "");
+        return true;
+    }
+    // simulate the first argument's impact on the result type, so it can be compared with the encapsulated operator!=()
+    TSampler texture = function.getType().getSampler();
+    texture.combined = false;
+    texture.shadow = false;
+    if (texture != function[0].type->getSampler()) {
+        error(loc, "sampler-constructor first argument must match type and dimensionality of constructor type", token, "");
+        return true;
+    }
+
+    // second argument
+    //   * the constructor's second argument must be a scalar of type
+    //     *sampler* or *samplerShadow*
+    //   * the presence or absence of depth comparison (Shadow) must match
+    //     between the constructed sampler type and the type of the second argument
+    if (  function[1].type->getBasicType() != EbtSampler ||
+        ! function[1].type->getSampler().isPureSampler() ||
+          function[1].type->isArray()) {
+        error(loc, "sampler-constructor second argument must be a scalar type 'sampler'", token, "");
+        return true;
+    }
+    if (function.getType().getSampler().shadow != function[1].type->getSampler().shadow) {
+        error(loc, "sampler-constructor second argument presence of shadow must match constructor presence of shadow", token, "");
+        return true;
+    }
+
+    return false;
+}
+
 // Checks to see if a void variable has been declared and raise an error message for such a case
 //
 // returns true in case of an error
@@ -2337,7 +2412,7 @@ void TParseContext::boolCheck(const TSourceLoc& loc, const TPublicType& pType)
         error(loc, "boolean expression expected", "", "");
 }
 
-void TParseContext::samplerCheck(const TSourceLoc& loc, const TType& type, const TString& identifier)
+void TParseContext::samplerCheck(const TSourceLoc& loc, const TType& type, const TString& identifier, TIntermTyped* /*initializer*/)
 {
     if (type.getQualifier().storage == EvqUniform)
         return;
@@ -2345,6 +2420,9 @@ void TParseContext::samplerCheck(const TSourceLoc& loc, const TType& type, const
     if (type.getBasicType() == EbtStruct && containsFieldWithBasicType(type, EbtSampler))
         error(loc, "non-uniform struct contains a sampler or image:", type.getBasicTypeString().c_str(), identifier.c_str());
     else if (type.getBasicType() == EbtSampler && type.getQualifier().storage != EvqUniform) {
+        // non-uniform sampler
+        // not yet:  okay if it has an initializer
+        // if (! initializer)
         error(loc, "sampler/image types can only be used in uniform variables or function parameters:", type.getBasicTypeString().c_str(), identifier.c_str());
     }
 }
@@ -2358,6 +2436,19 @@ void TParseContext::atomicUintCheck(const TSourceLoc& loc, const TType& type, co
         error(loc, "non-uniform struct contains an atomic_uint:", type.getBasicTypeString().c_str(), identifier.c_str());
     else if (type.getBasicType() == EbtAtomicUint && type.getQualifier().storage != EvqUniform)
         error(loc, "atomic_uints can only be used in uniform variables or function parameters:", type.getBasicTypeString().c_str(), identifier.c_str());
+}
+
+void TParseContext::transparentCheck(const TSourceLoc& loc, const TType& type, const TString& /*identifier*/)
+{
+    // double standard due to gl_NumSamples
+    if (parsingBuiltins)
+        return;
+
+    // Vulkan doesn't allow transparent uniforms outside of blocks
+    if (vulkan == 0 || type.getQualifier().storage != EvqUniform)
+        return;
+    if (type.containsNonOpaque())
+        vulkanRemoved(loc, "non-opaque uniforms outside a block");
 }
 
 //
@@ -2605,6 +2696,7 @@ void TParseContext::mergeQualifiers(const TSourceLoc& loc, TQualifier& dst, cons
     MERGE_SINGLETON(restrict);
     MERGE_SINGLETON(readonly);
     MERGE_SINGLETON(writeonly);
+    MERGE_SINGLETON(specConstant);
 
     if (repeated)
         error(loc, "replicated qualifiers", "", "");
@@ -2707,22 +2799,35 @@ bool TParseContext::containsFieldWithBasicType(const TType& type, TBasicType bas
 //
 // Do size checking for an array type's size.
 //
-void TParseContext::arraySizeCheck(const TSourceLoc& loc, TIntermTyped* expr, int& size)
+void TParseContext::arraySizeCheck(const TSourceLoc& loc, TIntermTyped* expr, TArraySize& sizePair)
 {
-    TIntermConstantUnion* constant = expr->getAsConstantUnion();
-    if (constant == nullptr || (constant->getBasicType() != EbtInt && constant->getBasicType() != EbtUint)) {
-        error(loc, "array size must be a constant integer expression", "", "");
-        size = 1;
+    bool isConst = false;
+    sizePair.size = 1;
+    sizePair.node = nullptr;
 
+    TIntermConstantUnion* constant = expr->getAsConstantUnion();
+    if (constant) {
+        // handle true (non-specialization) constant
+        sizePair.size = constant->getConstArray()[0].getIConst();
+        isConst = true;
+    } else {
+        // see if it's a specialization constant instead
+        if (expr->getQualifier().isSpecConstant()) {
+            isConst = true;
+            sizePair.node = expr;
+            TIntermSymbol* symbol = expr->getAsSymbolNode();
+            if (symbol && symbol->getConstArray().size() > 0)
+                sizePair.size = symbol->getConstArray()[0].getIConst();
+        }
+    }
+
+    if (! isConst || (expr->getBasicType() != EbtInt && expr->getBasicType() != EbtUint)) {
+        error(loc, "array size must be a constant integer expression", "", "");
         return;
     }
 
-    size = constant->getConstArray()[0].getIConst();
-
-    if (size <= 0) {
+    if (sizePair.size <= 0) {
         error(loc, "array size must be a positive integer", "", "");
-        size = 1;
-
         return;
     }
 }
@@ -3390,6 +3495,12 @@ void TParseContext::opaqueCheck(const TSourceLoc& loc, const TType& type, const 
         error(loc, "can't use with samplers or structs containing samplers", op, "");
 }
 
+void TParseContext::specializationCheck(const TSourceLoc& loc, const TType& type, const char* op)
+{
+    if (type.containsSpecializationSize())
+        error(loc, "can't use with types containing arrays sized with a specialization constant", op, "");
+}
+
 void TParseContext::structTypeCheck(const TSourceLoc& /*loc*/, TPublicType& publicType)
 {
     const TTypeList& typeList = *publicType.userDef->getStruct();
@@ -3605,10 +3716,14 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
         return;
     }
     if (id == TQualifier::getLayoutPackingString(ElpPacked)) {
+        if (vulkan > 0)
+            vulkanRemoved(loc, "packed");
         publicType.qualifier.layoutPacking = ElpPacked;
         return;
     }
     if (id == TQualifier::getLayoutPackingString(ElpShared)) {
+        if (vulkan > 0)
+            vulkanRemoved(loc, "shared");
         publicType.qualifier.layoutPacking = ElpShared;
         return;
     }
@@ -3635,6 +3750,11 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
             publicType.qualifier.layoutFormat = format;
             return;
         }
+    }
+    if (id == "push_constant") {
+        requireVulkan(loc, "push_constant");
+        publicType.qualifier.layoutPushConstant = true;
+        return;
     }
     if (language == EShLangGeometry || language == EShLangTessEvaluation) {
         if (id == TQualifier::getGeometryString(ElgTriangles)) {
@@ -3874,6 +3994,27 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
         }
     }
 
+    if (id == "input_attachment_index") {
+        requireVulkan(loc, "input_attachment_index");
+        if (value >= (int)TQualifier::layoutAttachmentEnd)
+            error(loc, "attachment index is too large", id.c_str(), "");
+        else
+            publicType.qualifier.layoutAttachment = value;
+        return;
+    }
+    if (id == "constant_id") {
+        requireSpv(loc, "constant_id");
+        if (value >= (int)TQualifier::layoutSpecConstantIdEnd) {
+            error(loc, "specialization-constant id is too large", id.c_str(), "");
+        } else {
+            publicType.qualifier.layoutSpecConstantId = value;
+            publicType.qualifier.specConstant = true;
+            if (! intermediate.addUsedConstantId(value))
+                error(loc, "specialization-constant id already used", id.c_str(), "");
+        }
+        return;
+    }
+
     switch (language) {
     case EShLangVertex:
         break;
@@ -3924,17 +4065,33 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
         break;
 
     case EShLangCompute:
-        if (id == "local_size_x") {
-            publicType.shaderQualifiers.localSize[0] = value;
-            return;
-        }
-        if (id == "local_size_y") {
-            publicType.shaderQualifiers.localSize[1] = value;
-            return;
-        }
-        if (id == "local_size_z") {
-            publicType.shaderQualifiers.localSize[2] = value;
-            return;
+        if (id.compare(0, 11, "local_size_") == 0) {
+            if (id == "local_size_x") {
+                publicType.shaderQualifiers.localSize[0] = value;
+                return;
+            }
+            if (id == "local_size_y") {
+                publicType.shaderQualifiers.localSize[1] = value;
+                return;
+            }
+            if (id == "local_size_z") {
+                publicType.shaderQualifiers.localSize[2] = value;
+                return;
+            }
+            if (spv > 0) {
+                if (id == "local_size_x_id") {
+                    publicType.shaderQualifiers.localSizeSpecId[0] = value;
+                    return;
+                }
+                if (id == "local_size_y_id") {
+                    publicType.shaderQualifiers.localSizeSpecId[1] = value;
+                    return;
+                }
+                if (id == "local_size_z_id") {
+                    publicType.shaderQualifiers.localSizeSpecId[2] = value;
+                    return;
+                }
+            }
         }
         break;
 
@@ -3999,6 +4156,13 @@ void TParseContext::mergeObjectLayoutQualifiers(TQualifier& dst, const TQualifie
             dst.layoutXfbStride = src.layoutXfbStride;
         if (src.hasXfbOffset())
             dst.layoutXfbOffset = src.layoutXfbOffset;
+        if (src.hasAttachment())
+            dst.layoutAttachment = src.layoutAttachment;
+        if (src.hasSpecConstantId())
+            dst.layoutSpecConstantId = src.layoutSpecConstantId;
+
+        if (src.layoutPushConstant)
+            dst.layoutPushConstant = true;
     }
 }
 
@@ -4041,6 +4205,8 @@ void TParseContext::layoutObjectCheck(const TSourceLoc& loc, const TSymbol& symb
                 // "The align qualifier can only be used on blocks or block members..."
                 if (qualifier.hasAlign())
                     error(loc, "cannot specify on a variable declaration", "align", "");
+                if (qualifier.layoutPushConstant)
+                    error(loc, "can only specify on a uniform block", "push_constant", "");
             }
             break;
         default:
@@ -4055,7 +4221,7 @@ void TParseContext::layoutTypeCheck(const TSourceLoc& loc, const TType& type)
 {
     const TQualifier& qualifier = type.getQualifier();
 
-    // first, intra layout qualifier-only error checking
+    // first, intra-layout qualifier-only error checking
     layoutQualifierCheck(loc, qualifier);
 
     // now, error checking combining type and qualifier
@@ -4087,7 +4253,7 @@ void TParseContext::layoutTypeCheck(const TSourceLoc& loc, const TType& type)
         case EvqBuffer:
             break;
         default:
-            error(loc, "can only appy to uniform, buffer, in, or out storage qualifiers", "location", "");
+            error(loc, "can only apply to uniform, buffer, in, or out storage qualifiers", "location", "");
             break;
         }
 
@@ -4181,6 +4347,38 @@ void TParseContext::layoutTypeCheck(const TSourceLoc& loc, const TType& type)
         }
     } else if (type.isImage() && ! qualifier.writeonly)
         error(loc, "image variables not declared 'writeonly' must have a format layout qualifier", "", "");
+
+    if (qualifier.layoutPushConstant && type.getBasicType() != EbtBlock)
+        error(loc, "can only be used with a block", "push_constant", "");
+
+    // input attachment
+    if (type.isSubpass()) {
+        if (! qualifier.hasAttachment())
+            error(loc, "requires an input_attachment_index layout qualifier", "subpass", "");
+    } else {
+        if (qualifier.hasAttachment())
+            error(loc, "can only be used with a subpass", "input_attachment_index", "");
+    }
+
+    // specialization-constant id
+    if (qualifier.hasSpecConstantId()) {
+        if (type.getQualifier().storage != EvqConst)
+            error(loc, "can only be applied to 'const'-qualified scalar", "constant_id", "");
+        if (! type.isScalar())
+            error(loc, "can only be applied to a scalar", "constant_id", "");
+        switch (type.getBasicType())
+        {
+        case EbtInt:
+        case EbtUint:
+        case EbtBool:
+        case EbtFloat:
+        case EbtDouble:
+            break;
+        default:
+            error(loc, "cannot be applied to this type", "constant_id", "");
+            break;
+        }
+    }
 }
 
 // Do layout error checking that can be done within a layout qualifier proper, not needing to know
@@ -4275,6 +4473,10 @@ void TParseContext::layoutQualifierCheck(const TSourceLoc& loc, const TQualifier
                 error(loc, "offset/align can only be used on a uniform or buffer", "layout", "");
         }
     }
+    if (qualifier.layoutPushConstant) {
+        if (qualifier.storage != EvqUniform)
+            error(loc, "can only be used with a uniform", "push_constant", "");
+    }
 }
 
 // For places that can't have shader-level layout qualifiers
@@ -4297,6 +4499,8 @@ void TParseContext::checkNoShaderLayouts(const TSourceLoc& loc, const TShaderQua
     for (int i = 0; i < 3; ++i) {
         if (shaderQualifiers.localSize[i] > 1)
             error(loc, message, "local_size", "");
+        if (shaderQualifiers.localSizeSpecId[i] != TQualifier::layoutNotSet)
+            error(loc, message, "local_size id", "");
     }
     if (shaderQualifiers.blendEquation)
         error(loc, message, "blend equation", "");
@@ -4490,8 +4694,9 @@ TIntermNode* TParseContext::declareVariable(const TSourceLoc& loc, TString& iden
     else
         nonInitConstCheck(loc, identifier, type);
 
-    samplerCheck(loc, type, identifier);
+    samplerCheck(loc, type, identifier, initializer);
     atomicUintCheck(loc, type, identifier);
+    transparentCheck(loc, type, identifier);
 
     if (identifier != "gl_FragCoord" && (publicType.shaderQualifiers.originUpperLeft || publicType.shaderQualifiers.pixelCenterInteger))
         error(loc, "can only apply origin_upper_left and pixel_center_origin to gl_FragCoord", "layout qualifier", "");
@@ -4690,7 +4895,7 @@ TIntermNode* TParseContext::executeInitializer(const TSourceLoc& loc, TIntermTyp
     }
 
     if (qualifier == EvqConst || qualifier == EvqUniform) {
-        // Compile-time tagging of the variable with it's constant value...
+        // Compile-time tagging of the variable with its constant value...
 
         initializer = intermediate.addConversion(EOpAssign, variable->getType(), initializer);
         if (! initializer || ! initializer->getAsConstantUnion() || variable->getType() != initializer->getType()) {
@@ -4703,6 +4908,7 @@ TIntermNode* TParseContext::executeInitializer(const TSourceLoc& loc, TIntermTyp
         variable->setConstArray(initializer->getAsConstantUnion()->getConstArray());
     } else {
         // normal assigning of a value to a variable...
+        specializationCheck(loc, initializer->getType(), "initializer");
         TIntermSymbol* intermSymbol = intermediate.addSymbol(*variable, loc);
         TIntermNode* initNode = intermediate.addAssign(EOpAssign, intermSymbol, initializer, loc);
         if (! initNode)
@@ -4716,7 +4922,7 @@ TIntermNode* TParseContext::executeInitializer(const TSourceLoc& loc, TIntermTyp
 
 //
 // Reprocess any initializer-list { ... } parts of the initializer.
-// Need to heirarchically assign correct types and implicit
+// Need to hierarchically assign correct types and implicit
 // conversions. Will do this mimicking the same process used for
 // creating a constructor-style initializer, ensuring we get the
 // same form.
@@ -4810,6 +5016,11 @@ TIntermTyped* TParseContext::addConstructor(const TSourceLoc& loc, TIntermNode* 
     rValueErrorCheck(loc, "constructor", node->getAsTyped());
 
     TIntermAggregate* aggrNode = node->getAsAggregate();
+
+    // Combined texture-sampler constructors are completely semantic checked
+    // in constructorTextureSamplerError()
+    if (op == EOpConstructTextureSampler)
+        return intermediate.setAggregateOperator(aggrNode, op, type, loc);
 
     TTypeList::const_iterator memberTypes;
     if (op == EOpConstructStruct)
@@ -4997,7 +5208,7 @@ TIntermTyped* TParseContext::constructAggregate(TIntermNode* node, const TType& 
 void TParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, const TString* instanceName, TArraySizes* arraySizes)
 {
     blockStageIoCheck(loc, currentBlockQualifier);
-    blockQualifierCheck(loc, currentBlockQualifier);
+    blockQualifierCheck(loc, currentBlockQualifier, instanceName != nullptr);
     if (arraySizes) {
         arrayUnsizedCheck(loc, currentBlockQualifier, arraySizes, false, false);
         arrayDimCheck(loc, arraySizes, 0);
@@ -5051,6 +5262,11 @@ void TParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, con
     case EvqVaryingOut: defaultQualification = globalOutputDefaults;     break;
     default:            defaultQualification.clear();                    break;
     }
+
+    // Special case for "push_constant uniform", which has a default of std430,
+    // contrary to normal uniform defaults, and can't have a default tracked for it.
+    if (currentBlockQualifier.layoutPushConstant && !currentBlockQualifier.hasPacking())
+        currentBlockQualifier.layoutPacking = ElpStd430;
 
     // fix and check for member layout qualifiers
 
@@ -5197,7 +5413,7 @@ void TParseContext::blockStageIoCheck(const TSourceLoc& loc, const TQualifier& q
     case EvqUniform:
         profileRequires(loc, EEsProfile, 300, nullptr, "uniform block");
         profileRequires(loc, ENoProfile, 140, nullptr, "uniform block");
-        if (currentBlockQualifier.layoutPacking == ElpStd430)
+        if (currentBlockQualifier.layoutPacking == ElpStd430 && ! currentBlockQualifier.layoutPushConstant)
             error(loc, "requires the 'buffer' storage qualifier", "std430", "");
         break;
     case EvqBuffer:
@@ -5227,7 +5443,7 @@ void TParseContext::blockStageIoCheck(const TSourceLoc& loc, const TQualifier& q
 }
 
 // Do all block-declaration checking regarding its qualifers.
-void TParseContext::blockQualifierCheck(const TSourceLoc& loc, const TQualifier& qualifier)
+void TParseContext::blockQualifierCheck(const TSourceLoc& loc, const TQualifier& qualifier, bool instanceName)
 {
     // The 4.5 specification says:
     //
@@ -5254,6 +5470,11 @@ void TParseContext::blockQualifierCheck(const TSourceLoc& loc, const TQualifier&
         error(loc, "cannot use sample qualifier on an interface block", "sample", "");
     if (qualifier.invariant)
         error(loc, "cannot use invariant qualifier on an interface block", "invariant", "");
+    if (qualifier.layoutPushConstant) {
+        intermediate.addPushConstantCount();
+        if (! instanceName)
+            error(loc, "requires an instance name", "push_constant", "");
+    }
 }
 
 //
@@ -5541,15 +5762,21 @@ void TParseContext::updateStandaloneQualifierDefaults(const TSourceLoc& loc, con
                         error(loc, "too large; see gl_MaxComputeWorkGroupSize", "local_size", "");
 
                     // Fix the existing constant gl_WorkGroupSize with this new information.
-                    bool builtIn;
-                    TSymbol* symbol = symbolTable.find("gl_WorkGroupSize", &builtIn);
-                    if (builtIn)
-                        makeEditable(symbol);
-                    TVariable* workGroupSize = symbol->getAsVariable();
+                    TVariable* workGroupSize = getEditableVariable("gl_WorkGroupSize");
                     workGroupSize->getWritableConstArray()[i].setUConst(intermediate.getLocalSize(i));
                 }
             } else
                 error(loc, "can only apply to 'in'", "local_size", "");
+        }
+        if (publicType.shaderQualifiers.localSizeSpecId[i] != TQualifier::layoutNotSet) {
+            if (publicType.qualifier.storage == EvqVaryingIn) {
+                if (! intermediate.setLocalSizeSpecId(i, publicType.shaderQualifiers.localSizeSpecId[i]))
+                    error(loc, "cannot change previously set size", "local_size", "");
+            } else
+                error(loc, "can only apply to 'in'", "local_size id", "");
+            // Set the workgroup built-in variable as a specialization constant
+            TVariable* workGroupSize = getEditableVariable("gl_WorkGroupSize");
+            workGroupSize->getWritableType().getQualifier().specConstant = true;
         }
     }
     if (publicType.shaderQualifiers.earlyFragmentTests) {
@@ -5614,6 +5841,10 @@ void TParseContext::updateStandaloneQualifierDefaults(const TSourceLoc& loc, con
         error(loc, "cannot declare a default, use a full declaration", "location/component/index", "");
     if (qualifier.hasXfbOffset())
         error(loc, "cannot declare a default, use a full declaration", "xfb_offset", "");
+    if (qualifier.layoutPushConstant)
+        error(loc, "cannot declare a default, can only be used on a block", "push_constant", "");
+    if (qualifier.hasSpecConstantId())
+        error(loc, "cannot declare a default, can only be used on a scalar", "constant_id", "");
 }
 
 //

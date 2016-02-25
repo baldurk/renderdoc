@@ -1,6 +1,7 @@
 //
 //Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
-//Copyright (C) 2012-2013 LunarG, Inc.
+//Copyright (C) 2012-2015 LunarG, Inc.
+//Copyright (C) 2015-2016 Google, Inc.
 //
 //All rights reserved.
 //
@@ -63,6 +64,7 @@ enum TSamplerDim {
     EsdCube,
     EsdRect,
     EsdBuffer,
+    EsdSubpass,  // goes only with non-sampled image (image is true)
     EsdNumDims
 };
 
@@ -73,7 +75,15 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
     bool     shadow : 1;
     bool         ms : 1;
     bool      image : 1;  // image, combined should be false
+    bool   combined : 1;  // true means texture is combined with a sampler, false means texture with no sampler
+    bool    sampler : 1;  // true means a pure sampler, other fields should be clear()
     bool   external : 1;  // GL_OES_EGL_image_external
+
+    bool isImage()       const { return image && dim != EsdSubpass; }
+    bool isSubpass()     const { return dim == EsdSubpass; }
+    bool isCombined()    const { return combined; }
+    bool isPureSampler() const { return sampler; }
+    bool isTexture()     const { return !sampler && !image; }
 
     void clear()
     {
@@ -83,6 +93,8 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
         shadow = false;
         ms = false;
         image = false;
+        combined = false;
+        sampler = false;
         external = false;
     }
 
@@ -95,6 +107,7 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
         arrayed = a;
         shadow = s;
         ms = m;
+        combined = true;
     }
 
     // make an image
@@ -109,6 +122,35 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
         image = true;
     }
 
+    // make a texture with no sampler
+    void setTexture(TBasicType t, TSamplerDim d, bool a = false, bool s = false, bool m = false)
+    {
+        clear();
+        type = t;
+        dim = d;
+        arrayed = a;
+        shadow = s;
+        ms = m;
+    }
+
+    // make a subpass input attachment
+    void setSubpass(TBasicType t, bool m = false)
+    {
+        clear();
+        type = t;
+        image = true;
+        dim = EsdSubpass;
+        ms = m;
+    }
+
+    // make a pure sampler, no texture, no image, nothing combined, the 'sampler' keyword
+    void setPureSampler(bool s)
+    {
+        clear();
+        sampler = true;
+        shadow = s;
+    }
+
     bool operator==(const TSampler& right) const
     {
         return type == right.type &&
@@ -117,6 +159,8 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
              shadow == right.shadow &&
                  ms == right.ms &&
               image == right.image &&
+           combined == right.combined &&
+            sampler == right.sampler &&
            external == right.external;
     }
 
@@ -129,6 +173,11 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
     {
         TString s;
 
+        if (sampler) {
+            s.append("sampler");
+            return s;
+        }
+
         switch (type) {
         case EbtFloat:               break;
         case EbtInt:  s.append("i"); break;
@@ -136,9 +185,14 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
         default:  break;  // some compilers want this
         }
         if (image) {
-            s.append("image");
-        } else {
+            if (dim == EsdSubpass)
+                s.append("subpass");
+            else
+                s.append("image");
+        } else if (combined) {
             s.append("sampler");
+        } else {
+            s.append("texture");
         }
         if (external) {
             s.append("ExternalOES");
@@ -151,6 +205,7 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
         case EsdCube:    s.append("Cube");    break;
         case EsdRect:    s.append("2DRect");  break;
         case EsdBuffer:  s.append("Buffer");  break;
+        case EsdSubpass: s.append("Input"); break;
         default:  break;  // some compilers want this
         }
         if (ms)
@@ -352,6 +407,7 @@ public:
         restrict     = false;
         readonly     = false;
         writeonly    = false;
+        specConstant = false;
         clearLayout();
     }
 
@@ -370,6 +426,7 @@ public:
     bool restrict     : 1;
     bool readonly     : 1;
     bool writeonly    : 1;
+    bool specConstant : 1;  // having a constant_id is not sufficient: expressions have no id, but are still specConstant
 
     bool isMemory() const
     {
@@ -505,8 +562,12 @@ public:
         layoutXfbBuffer = layoutXfbBufferEnd;
         layoutXfbStride = layoutXfbStrideEnd;
         layoutXfbOffset = layoutXfbOffsetEnd;
+        layoutAttachment = layoutAttachmentEnd;
+        layoutSpecConstantId = layoutSpecConstantIdEnd;
 
         layoutFormat = ElfNone;
+
+        layoutPushConstant = false;
     }
     bool hasLayout() const
     {
@@ -515,7 +576,8 @@ public:
                hasBinding() ||
                hasStream() ||
                hasXfb() ||
-               hasFormat();
+               hasFormat() ||
+               layoutPushConstant;
     }
     TLayoutMatrix  layoutMatrix  : 3;
     TLayoutPacking layoutPacking : 4;
@@ -549,7 +611,15 @@ public:
                  unsigned int layoutXfbOffset          : 10;
     static const unsigned int layoutXfbOffsetEnd    = 0x3FF;
 
+                 unsigned int layoutAttachment          : 8;  // for input_attachment_index
+    static const unsigned int layoutAttachmentEnd    = 0XFF;
+
+                 unsigned int layoutSpecConstantId       : 11;
+    static const unsigned int layoutSpecConstantIdEnd = 0x7FF;
+
     TLayoutFormat layoutFormat                         :  8;
+
+    bool layoutPushConstant;
 
     bool hasUniformLayout() const
     {
@@ -626,6 +696,38 @@ public:
     bool hasXfbOffset() const
     {
         return layoutXfbOffset != layoutXfbOffsetEnd;
+    }
+    bool hasAttachment() const
+    {
+        return layoutAttachment != layoutAttachmentEnd;
+    }
+    bool hasSpecConstantId() const
+    {
+        // Not the same thing as being a specialization constant, this
+        // is just whether or not it was declared with an ID.
+        return layoutSpecConstantId != layoutSpecConstantIdEnd;
+    }
+    bool isSpecConstant() const
+    {
+        // True if type is a specialization constant, whether or not it
+        // had a specialization-constant ID, and false if it is not a
+        // true front-end constant.
+        return specConstant;
+    }
+    bool isFrontEndConstant() const
+    {
+        // True if the front-end knows the final constant value.
+        // This allows front-end constant folding.
+        return storage == EvqConst && ! specConstant;
+    }
+    bool isConstant() const
+    {
+        // True if is either kind of constant; specialization or regular.
+        return isFrontEndConstant() || isSpecConstant();
+    }
+    void makeSpecConstant()
+    {
+        specConstant = true;
     }
     static const char* getLayoutPackingString(TLayoutPacking packing)
     {
@@ -781,6 +883,7 @@ struct TShaderQualifiers {
     TVertexOrder order;
     bool pointMode;
     int localSize[3];         // compute shader
+    int localSizeSpecId[3];   // compute shader specialization id for gl_WorkGroupSize
     bool earlyFragmentTests;  // fragment input
     TLayoutDepth layoutDepth;
     bool blendEquation;       // true if any blend equation was specified
@@ -798,6 +901,9 @@ struct TShaderQualifiers {
         localSize[0] = 1;
         localSize[1] = 1;
         localSize[2] = 1;
+        localSizeSpecId[0] = TQualifier::layoutNotSet;
+        localSizeSpecId[1] = TQualifier::layoutNotSet;
+        localSizeSpecId[2] = TQualifier::layoutNotSet;
         earlyFragmentTests = false;
         layoutDepth = EldNone;
         blendEquation = false;
@@ -826,6 +932,10 @@ struct TShaderQualifiers {
         for (int i = 0; i < 3; ++i) {
             if (src.localSize[i] > 1)
                 localSize[i] = src.localSize[i];
+        }
+        for (int i = 0; i < 3; ++i) {
+            if (src.localSizeSpecId[i] != TQualifier::layoutNotSet)
+                localSizeSpecId[i] = src.localSizeSpecId[i];
         }
         if (src.earlyFragmentTests)
             earlyFragmentTests = true;
@@ -902,7 +1012,9 @@ public:
         return matrixCols == 0 && vectorSize == 1 && arraySizes == nullptr && userDef == nullptr;
     }
 
-    bool isImage() const { return basicType == EbtSampler && sampler.image; }
+    // "Image" is a superset of "Subpass"
+    bool isImage()   const { return basicType == EbtSampler && sampler.isImage(); }
+    bool isSubpass() const { return basicType == EbtSampler && sampler.isSubpass(); }
 };
 
 //
@@ -1112,7 +1224,9 @@ public:
     virtual bool isRuntimeSizedArray()    const { return isArray() && getOuterArraySize() == UnsizedArraySize && qualifier.storage == EvqBuffer; }
     virtual bool isStruct() const { return structure != nullptr; }
 
-    virtual bool isImage() const { return basicType == EbtSampler && getSampler().image; }
+    // "Image" is a superset of "Subpass"
+    virtual bool isImage() const   { return basicType == EbtSampler && getSampler().isImage(); }
+    virtual bool isSubpass() const { return basicType == EbtSampler && getSampler().isSubpass(); }
 
     // Recursively checks if the type contains the given basic type
     virtual bool containsBasicType(TBasicType checkType) const
@@ -1181,6 +1295,42 @@ public:
         return false;
     }
 
+    virtual bool containsNonOpaque() const
+    {
+        // list all non-opaque types
+        switch (basicType) {
+        case EbtVoid:
+        case EbtFloat:
+        case EbtDouble:
+        case EbtInt:
+        case EbtUint:
+        case EbtBool:
+            return true;
+        default:
+            break;
+        }
+        if (! structure)
+            return false;
+        for (unsigned int i = 0; i < structure->size(); ++i) {
+            if ((*structure)[i].type->containsNonOpaque())
+                return true;
+        }
+        return false;
+    }
+
+    virtual bool containsSpecializationSize() const
+    {
+        if (isArray() && arraySizes->containsNode())
+            return true;
+        if (! structure)
+            return false;
+        for (unsigned int i = 0; i < structure->size(); ++i) {
+            if ((*structure)[i].type->containsSpecializationSize())
+                return true;
+        }
+        return false;
+    }
+
     // Array editing methods.  Array descriptors can be shared across
     // type instances.  This allows all uses of the same array
     // to be updated at once.  E.g., all nodes can be explicitly sized
@@ -1218,7 +1368,7 @@ public:
             arraySizes->addOuterSizes(s);
     }
     void changeOuterArraySize(int s) { arraySizes->changeOuterSize(s); }
-    void setImplicitArraySize (int s) { arraySizes->setImplicitSize(s); }
+    void setImplicitArraySize(int s) { arraySizes->setImplicitSize(s); }
 
     // Recursively make the implicit array size the explicit array size, through the type tree.
     void adoptImplicitArraySizes()
@@ -1296,6 +1446,12 @@ public:
                     p += snprintf(p, end - p, "xfb_offset=%d ", qualifier.layoutXfbOffset);
                 if (qualifier.hasXfbStride())
                     p += snprintf(p, end - p, "xfb_stride=%d ", qualifier.layoutXfbStride);
+                if (qualifier.hasAttachment())
+                    p += snprintf(p, end - p, "input_attachment_index=%d ", qualifier.layoutAttachment);
+                if (qualifier.hasSpecConstantId())
+                    p += snprintf(p, end - p, "constant_id=%d ", qualifier.layoutSpecConstantId);
+                if (qualifier.layoutPushConstant)
+                    p += snprintf(p, end - p, "push_constant ");
                 p += snprintf(p, end - p, ") ");
             }
         }
@@ -1324,6 +1480,8 @@ public:
             p += snprintf(p, end - p, "readonly ");
         if (qualifier.writeonly)
             p += snprintf(p, end - p, "writeonly ");
+        if (qualifier.specConstant)
+            p += snprintf(p, end - p, "specialization-constant ");
         p += snprintf(p, end - p, "%s ", getStorageQualifierString());
         if (arraySizes) {
             for(int i = 0; i < (int)arraySizes->getNumDims(); ++i) {

@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2014-2015 The Khronos Group Inc.
+** Copyright (c) 2014-2016 The Khronos Group Inc.
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a copy
 ** of this software and/or associated documentation files (the "Materials"),
@@ -27,8 +27,8 @@
 #ifndef GLSLstd450_H
 #define GLSLstd450_H
 
-const int GLSLstd450Version = 99;
-const int GLSLstd450Revision = 3;
+static const int GLSLstd450Version = 100;
+static const int GLSLstd450Revision = 1;
 
 enum GLSLstd450 {
     GLSLstd450Bad = 0,              // Don't use
@@ -83,7 +83,7 @@ enum GLSLstd450 {
     GLSLstd450UClamp = 44,
     GLSLstd450SClamp = 45,
     GLSLstd450FMix = 46,
-    GLSLstd450IMix = 47,
+    GLSLstd450IMix = 47,            // Reserved
     GLSLstd450Step = 48,
     GLSLstd450SmoothStep = 49,
 
@@ -120,6 +120,10 @@ enum GLSLstd450 {
     GLSLstd450InterpolateAtCentroid = 76,
     GLSLstd450InterpolateAtSample = 77,
     GLSLstd450InterpolateAtOffset = 78,
+
+    GLSLstd450NMin = 79,
+    GLSLstd450NMax = 80,
+    GLSLstd450NClamp = 81,
 
     GLSLstd450Count
 };

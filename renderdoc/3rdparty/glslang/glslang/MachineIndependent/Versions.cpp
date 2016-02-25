@@ -173,6 +173,7 @@ void TParseContext::initializeExtensionBehavior()
     extensionBehavior[E_GL_ARB_derivative_control]           = EBhDisable;
     extensionBehavior[E_GL_ARB_shader_texture_image_samples] = EBhDisable;
     extensionBehavior[E_GL_ARB_viewport_array]               = EBhDisable;
+    extensionBehavior[E_GL_ARB_gl_spirv]                     = EBhDisable;
     extensionBehavior[E_GL_ARB_sparse_texture2]              = EBhDisable;
     extensionBehavior[E_GL_ARB_sparse_texture_clamp]         = EBhDisable;
 //    extensionBehavior[E_GL_ARB_cull_distance]                = EBhDisable;    // present for 4.5, but need extension control over block members
@@ -276,6 +277,7 @@ const char* TParseContext::getPreamble()
             "#define GL_ARB_derivative_control 1\n"
             "#define GL_ARB_shader_texture_image_samples 1\n"
             "#define GL_ARB_viewport_array 1\n"
+            "#define GL_ARB_gl_spirv 1\n"
             "#define GL_ARB_sparse_texture2 1\n"
             "#define GL_ARB_sparse_texture_clamp 1\n"
 
@@ -564,6 +566,9 @@ void TParseContext::updateExtensionBehavior(int line, const char* extension, con
         updateExtensionBehavior(line, "GL_OES_shader_io_blocks", behaviorString);
     else if (strcmp(extension, "GL_GOOGLE_include_directive") == 0)
         updateExtensionBehavior(line, "GL_GOOGLE_cpp_style_line_directive", behaviorString);
+    // SPIR-V
+    else if (strcmp(extension, "GL_ARB_gl_spirv") == 0)
+        spv = 100;
 }
 
 void TParseContext::updateExtensionBehavior(const char* extension, TExtensionBehavior behavior)
@@ -606,23 +611,47 @@ void TParseContext::updateExtensionBehavior(const char* extension, TExtensionBeh
     }
 }
 
-//
 // Call for any operation needing full GLSL integer data-type support.
-//
 void TParseContext::fullIntegerCheck(const TSourceLoc& loc, const char* op)
 {
     profileRequires(loc, ENoProfile, 130, nullptr, op); 
     profileRequires(loc, EEsProfile, 300, nullptr, op);
 }
 
-//
 // Call for any operation needing GLSL double data-type support.
-//
 void TParseContext::doubleCheck(const TSourceLoc& loc, const char* op)
 {
     requireProfile(loc, ECoreProfile | ECompatibilityProfile, op);
     profileRequires(loc, ECoreProfile, 400, nullptr, op);
     profileRequires(loc, ECompatibilityProfile, 400, nullptr, op);
+}
+
+// Call for any operation removed because SPIR-V is in use.
+void TParseContext::spvRemoved(const TSourceLoc& loc, const char* op)
+{
+    if (spv > 0)
+        error(loc, "not allowed when generating SPIR-V", op, "");
+}
+
+// Call for any operation removed because Vulkan SPIR-V is being generated.
+void TParseContext::vulkanRemoved(const TSourceLoc& loc, const char* op)
+{
+    if (vulkan > 0)
+        error(loc, "not allowed when using GLSL for Vulkan", op, "");
+}
+
+// Call for any operation that requires Vulkan.
+void TParseContext::requireVulkan(const TSourceLoc& loc, const char* op)
+{
+    if (vulkan == 0)
+        error(loc, "only allowed when using GLSL for Vulkan", op, "");
+}
+
+// Call for any operation that requires SPIR-V.
+void TParseContext::requireSpv(const TSourceLoc& loc, const char* op)
+{
+    if (spv == 0)
+        error(loc, "only allowed when generating SPIR-V", op, "");
 }
 
 } // end namespace glslang

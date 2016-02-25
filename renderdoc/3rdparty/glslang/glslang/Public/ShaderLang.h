@@ -303,7 +303,7 @@ public:
     // Returns an error message for any #include directive.
     class ForbidInclude : public Includer {
     public:
-        std::pair<std::string, std::string> include(const char* filename) const override
+        std::pair<std::string, std::string> include(const char* /*filename*/) const override
         {
             return std::make_pair<std::string, std::string>("", "unexpected include directive");
         }

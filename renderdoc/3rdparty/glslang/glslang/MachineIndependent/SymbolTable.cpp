@@ -87,6 +87,7 @@ void TType::buildMangledName(TString& mangledName)
         case EsdCube:     mangledName += "C";  break;
         case EsdRect:     mangledName += "R2"; break;
         case EsdBuffer:   mangledName += "B";  break;
+        case EsdSubpass:  mangledName += "P";  break;
         default: break; // some compilers want this
         }
         if (sampler.ms)
@@ -115,7 +116,13 @@ void TType::buildMangledName(TString& mangledName)
         const int maxSize = 11;
         char buf[maxSize];
         for (int i = 0; i < arraySizes->getNumDims(); ++i) {
-            snprintf(buf, maxSize, "%d", arraySizes->getDimSize(i));
+            if (arraySizes->getDimNode(i)) {
+                if (arraySizes->getDimNode(i)->getAsSymbolNode())
+                    snprintf(buf, maxSize, "s%d", arraySizes->getDimNode(i)->getAsSymbolNode()->getId());
+                else
+                    snprintf(buf, maxSize, "s%p", arraySizes->getDimNode(i));
+            } else
+                snprintf(buf, maxSize, "%d", arraySizes->getDimSize(i));
             mangledName += '[';
             mangledName += buf;
             mangledName += ']';

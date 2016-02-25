@@ -71,7 +71,7 @@ enum TStorageQualifier {
     EvqGlobal,        // For globals read/write
     EvqConst,         // User-defined constant values, will be semantically constant and constant folded
     EvqVaryingIn,     // pipeline input, read only, also supercategory for all built-ins not included in this enum (see TBuiltInVariable)
-    EvqVaryingOut,    // pipeline ouput, read/write, also supercategory for all built-ins not included in this enum (see TBuiltInVariable)
+    EvqVaryingOut,    // pipeline output, read/write, also supercategory for all built-ins not included in this enum (see TBuiltInVariable)
     EvqUniform,       // read only, shared with app
     EvqBuffer,        // read/write, shared with app
     EvqShared,        // compute shader's read/write 'shared' qualifier
@@ -130,6 +130,8 @@ enum TBuiltInVariable {
     EbvLocalInvocationIndex,
     EbvVertexId,
     EbvInstanceId,
+    EbvVertexIndex,
+    EbvInstanceIndex,
     EbvBaseVertex,
     EbvBaseInstance,
     EbvDrawId,
@@ -221,6 +223,8 @@ __inline const char* GetBuiltInVariableString(TBuiltInVariable v)
     case EbvLocalInvocationIndex: return "LocalInvocationIndex";
     case EbvVertexId:             return "VertexId";
     case EbvInstanceId:           return "InstanceId";
+    case EbvVertexIndex:          return "VertexIndex";
+    case EbvInstanceIndex:        return "InstanceIndex";
     case EbvBaseVertex:           return "BaseVertex";
     case EbvBaseInstance:         return "BaseInstance";
     case EbvDrawId:               return "DrawId";

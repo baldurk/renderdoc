@@ -1,6 +1,7 @@
 //
 //Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
-//Copyright (C) 2012-2013 LunarG, Inc.
+//Copyright (C) 2012-2015 LunarG, Inc.
+//Copyright (C) 2015-2016 Google, Inc.
 //
 //All rights reserved.
 //
@@ -85,6 +86,7 @@ TBuiltIns::TBuiltIns()
     dimMap[Esd3D] = 3;
     dimMap[EsdCube] = 3;
     dimMap[EsdBuffer] = 1;
+    dimMap[EsdSubpass] = 2;  // potientially unused for now
 }
 
 TBuiltIns::~TBuiltIns()
@@ -99,7 +101,7 @@ TBuiltIns::~TBuiltIns()
 // Most built-ins variables can be added as simple text strings.  Some need to
 // be added programmatically, which is done later in IdentifyBuiltIns() below.
 //
-void TBuiltIns::initialize(int version, EProfile profile, int spv)
+void TBuiltIns::initialize(int version, EProfile profile, int spv, int vulkan)
 {
     //============================================================================
     //
@@ -1080,17 +1082,19 @@ void TBuiltIns::initialize(int version, EProfile profile, int spv)
             "\n");
     }
 
-    //
-    // Atomic counter functions.
-    //
-    if ((profile != EEsProfile && version >= 300) ||
-        (profile == EEsProfile && version >= 310)) {
-        commonBuiltins.append(
-            "uint atomicCounterIncrement(atomic_uint x);"
-            "uint atomicCounterDecrement(atomic_uint x);"
-            "uint atomicCounter(atomic_uint x);"
+    if (vulkan == 0) {
+        //
+        // Atomic counter functions.
+        //
+        if ((profile != EEsProfile && version >= 300) ||
+            (profile == EEsProfile && version >= 310)) {
+            commonBuiltins.append(
+                "uint atomicCounterIncrement(atomic_uint x);"
+                "uint atomicCounterDecrement(atomic_uint x);"
+                "uint atomicCounter(atomic_uint x);"
 
-            "\n");
+                "\n");
+        }
     }
 
     // Bitfield
@@ -1434,28 +1438,31 @@ void TBuiltIns::initialize(int version, EProfile profile, int spv)
     //
     // Depth range in window coordinates, p. 33
     //
-    commonBuiltins.append(
-        "struct gl_DepthRangeParameters {"
-        );
-    if (profile == EEsProfile) {
+    if (vulkan == 0) {
         commonBuiltins.append(
-            "highp float near;"   // n
-            "highp float far;"    // f
-            "highp float diff;"   // f - n
+            "struct gl_DepthRangeParameters {"
             );
-    } else {
-        commonBuiltins.append(
-            "float near;"  // n
-            "float far;"   // f
-            "float diff;"  // f - n
-            );
-    }
-    commonBuiltins.append(
-        "};"
-        "uniform gl_DepthRangeParameters gl_DepthRange;"            
-        "\n");
+        if (profile == EEsProfile) {
+            commonBuiltins.append(
+                "highp float near;"   // n
+                "highp float far;"    // f
+                "highp float diff;"   // f - n
+                );
+        } else {
+            commonBuiltins.append(
+                "float near;"  // n
+                "float far;"   // f
+                "float diff;"  // f - n
+                );
+        }
 
-    if (IncludeLegacy(version, profile, spv)) {
+        commonBuiltins.append(
+            "};"
+            "uniform gl_DepthRangeParameters gl_DepthRange;"
+            "\n");
+    }
+
+    if (vulkan == 0 && IncludeLegacy(version, profile, spv)) {
         //
         // Matrix state. p. 31, 32, 37, 39, 40.
         //
@@ -1693,13 +1700,18 @@ void TBuiltIns::initialize(int version, EProfile profile, int spv)
                 "};"
                 "\n");
         }
-        if (version >= 130)
+        if (version >= 130 && vulkan == 0)
             stageBuiltins[EShLangVertex].append(
                 "int gl_VertexID;"            // needs qualifier fixed later
                 );
-        if (version >= 140)
+        if (version >= 140 && vulkan == 0)
             stageBuiltins[EShLangVertex].append(
                 "int gl_InstanceID;"          // needs qualifier fixed later
+                );
+        if (spv > 0 && version >= 140)
+            stageBuiltins[EShLangVertex].append(
+                "in int gl_VertexIndex;"
+                "in int gl_InstanceIndex;"
                 );
         if (version >= 440) {
             stageBuiltins[EShLangVertex].append(
@@ -1716,10 +1728,16 @@ void TBuiltIns::initialize(int version, EProfile profile, int spv)
                 "mediump float gl_PointSize;" // needs qualifier fixed later
                 );
         } else {
-            stageBuiltins[EShLangVertex].append(
-                "highp int gl_VertexID;"      // needs qualifier fixed later
-                "highp int gl_InstanceID;"    // needs qualifier fixed later
-                );
+            if (vulkan == 0)
+                stageBuiltins[EShLangVertex].append(
+                    "in highp int gl_VertexID;"      // needs qualifier fixed later
+                    "in highp int gl_InstanceID;"    // needs qualifier fixed later
+                    );
+            if (spv > 0)
+                stageBuiltins[EShLangVertex].append(
+                    "in highp int gl_VertexIndex;"
+                    "in highp int gl_InstanceIndex;"
+                    );
             if (version < 310)
                 stageBuiltins[EShLangVertex].append(
                     "highp vec4  gl_Position;"    // needs qualifier fixed later
@@ -2071,7 +2089,7 @@ void TBuiltIns::initialize(int version, EProfile profile, int spv)
     stageBuiltins[EShLangFragment].append("\n");
 
     if (version >= 130)
-        add2ndGenerationSamplingImaging(version, profile, spv);
+        add2ndGenerationSamplingImaging(version, profile, spv, vulkan);
 
     //printf("%s\n", commonBuiltins.c_str());
     //printf("%s\n", stageBuiltins[EShLangFragment].c_str());
@@ -2081,7 +2099,7 @@ void TBuiltIns::initialize(int version, EProfile profile, int spv)
 // Helper function for initialize(), to add the second set of names for texturing, 
 // when adding context-independent built-in functions.
 //
-void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, int spv)
+void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, int /*spv*/, int vulkan)
 {
     //
     // In this function proper, enumerate the types, then calls the next set of functions
@@ -2108,9 +2126,13 @@ void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, i
 
                 for (int arrayed = 0; arrayed <= 1; ++arrayed) { // loop over "bool" arrayed or not
                     for (int dim = Esd1D; dim < EsdNumDims; ++dim) { // 1D, 2D, ..., buffer
+                        if (dim == EsdSubpass && vulkan == 0)
+                            continue;
+                        if (dim == EsdSubpass && (image || shadow || arrayed))
+                            continue;
                         if ((dim == Esd1D || dim == EsdRect) && profile == EEsProfile)
                             continue;
-                        if (dim != Esd2D && ms)
+                        if (dim != Esd2D && dim != EsdSubpass && ms)
                             continue;
                         if ((dim == Esd3D || dim == EsdRect) && arrayed)
                             continue;
@@ -2138,7 +2160,9 @@ void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, i
                             //
 
                             TSampler sampler;
-                            if (image) {
+                            if (dim == EsdSubpass) {
+                                sampler.setSubpass(bTypes[bType], ms ? true : false);
+                            } else if (image) {
                                 sampler.setImage(bTypes[bType], (TSamplerDim)dim, arrayed ? true : false,
                                                                                   shadow  ? true : false,
                                                                                   ms      ? true : false);
@@ -2149,6 +2173,11 @@ void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, i
                             }
 
                             TString typeName = sampler.getString();
+
+                            if (dim == EsdSubpass) {
+                                addSubpassSampling(sampler, typeName, version, profile);
+                                continue;
+                            }
 
                             addQueryFunctions(sampler, typeName, version, profile);
 
@@ -2340,6 +2369,23 @@ void TBuiltIns::addImageFunctions(TSampler sampler, TString& typeName, int versi
             }
         }
     }
+}
+
+//
+// Helper function for initialize(),
+// when adding context-independent built-in functions.
+//
+// Add all the subpass access functions for the given type.
+//
+void TBuiltIns::addSubpassSampling(TSampler sampler, TString& typeName, int /*version*/, EProfile /*profile*/)
+{
+    stageBuiltins[EShLangFragment].append(prefixes[sampler.type]);
+    stageBuiltins[EShLangFragment].append("vec4 subpassLoad");
+    stageBuiltins[EShLangFragment].append("(");
+    stageBuiltins[EShLangFragment].append(typeName.c_str());
+    if (sampler.ms)
+        stageBuiltins[EShLangFragment].append(", int");
+    stageBuiltins[EShLangFragment].append(");\n");
 }
 
 //
@@ -2682,7 +2728,7 @@ void TBuiltIns::addGatherFunctions(TSampler sampler, TString& typeName, int vers
 // add stage-specific entries to the commonBuiltins, and only if that stage
 // was requested.
 //
-void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProfile profile, int spv, EShLanguage language)
+void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProfile profile, int spv, int vulkan, EShLanguage language)
 {
     //
     // Initialize the context-dependent (resource-dependent) built-in strings for parsing.
@@ -2845,7 +2891,7 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
         snprintf(builtInConstant, maxSize, "const int  gl_MaxFragmentUniformComponents = %d;", resources.maxFragmentUniformComponents);
         s.append(builtInConstant);
 
-        if (IncludeLegacy(version, profile, spv)) {
+        if (vulkan == 0 && IncludeLegacy(version, profile, spv)) {
             //
             // OpenGL'uniform' state.  Page numbers are in reference to version
             // 1.4 of the OpenGL specification.
@@ -3129,7 +3175,7 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
 // New built-in variables should use a generic (textually declarable) qualifier in
 // TStoraregQualifier and only call BuiltInVariable().
 //
-void SpecialQualifier(const char* name, TStorageQualifier qualifier, TBuiltInVariable builtIn, TSymbolTable& symbolTable)
+static void SpecialQualifier(const char* name, TStorageQualifier qualifier, TBuiltInVariable builtIn, TSymbolTable& symbolTable)
 {
     TSymbol* symbol = symbolTable.find(name);
     if (symbol) {
@@ -3149,7 +3195,7 @@ void SpecialQualifier(const char* name, TStorageQualifier qualifier, TBuiltInVar
 //
 // Safe to call even if name is not present.
 //
-void BuiltInVariable(const char* name, TBuiltInVariable builtIn, TSymbolTable& symbolTable)
+static void BuiltInVariable(const char* name, TBuiltInVariable builtIn, TSymbolTable& symbolTable)
 {
     TSymbol* symbol = symbolTable.find(name);
     if (! symbol)
@@ -3166,7 +3212,7 @@ void BuiltInVariable(const char* name, TBuiltInVariable builtIn, TSymbolTable& s
 //
 // See comments above for other detail.
 //
-void BuiltInVariable(const char* blockName, const char* name, TBuiltInVariable builtIn, TSymbolTable& symbolTable)
+static void BuiltInVariable(const char* blockName, const char* name, TBuiltInVariable builtIn, TSymbolTable& symbolTable)
 {
     TSymbol* symbol = symbolTable.find(blockName);
     if (! symbol)
@@ -3189,7 +3235,7 @@ void BuiltInVariable(const char* blockName, const char* name, TBuiltInVariable b
 // 3) Tag extension-related symbols added to their base version with their extensions, so
 //    that if an early version has the extension turned off, there is an error reported on use.
 //
-void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage language, TSymbolTable& symbolTable)
+void IdentifyBuiltIns(int version, EProfile profile, int spv, int vulkan, EShLanguage language, TSymbolTable& symbolTable)
 {
     //
     // Tag built-in variables and functions with additional qualifier and extension information
@@ -3254,6 +3300,14 @@ void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage langua
             symbolTable.setFunctionExtensions("imageAtomicCompSwap", 1, &E_GL_OES_shader_image_atomic);
         }
 
+        if (vulkan == 0) {
+            SpecialQualifier("gl_VertexID",   EvqVertexId,   EbvVertexId,   symbolTable);
+            SpecialQualifier("gl_InstanceID", EvqInstanceId, EbvInstanceId, symbolTable);
+        }
+
+        BuiltInVariable("gl_VertexIndex",   EbvVertexIndex,   symbolTable);
+        BuiltInVariable("gl_InstanceIndex", EbvInstanceIndex, symbolTable);
+
         // Fall through
 
     case EShLangTessControl:
@@ -3269,8 +3323,6 @@ void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage langua
         SpecialQualifier("gl_Position",   EvqPosition,   EbvPosition,   symbolTable);
         SpecialQualifier("gl_PointSize",  EvqPointSize,  EbvPointSize,  symbolTable);
         SpecialQualifier("gl_ClipVertex", EvqClipVertex, EbvClipVertex, symbolTable);
-        SpecialQualifier("gl_VertexID",   EvqVertexId,   EbvVertexId,   symbolTable);
-        SpecialQualifier("gl_InstanceID", EvqInstanceId, EbvInstanceId, symbolTable);
 
         BuiltInVariable("gl_in",  "gl_Position",     EbvPosition,     symbolTable);
         BuiltInVariable("gl_in",  "gl_PointSize",    EbvPointSize,    symbolTable);
@@ -3674,6 +3726,9 @@ void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage langua
         symbolTable.relateToOperator("imageAtomicExchange",     EOpImageAtomicExchange);
         symbolTable.relateToOperator("imageAtomicCompSwap",     EOpImageAtomicCompSwap);
 
+        symbolTable.relateToOperator("subpassLoad",             EOpSubpassLoad);
+        symbolTable.relateToOperator("subpassLoadMS",           EOpSubpassLoadMS);
+
         symbolTable.relateToOperator("textureSize",             EOpTextureQuerySize);
         symbolTable.relateToOperator("textureQueryLod",         EOpTextureQueryLod);
         symbolTable.relateToOperator("textureQueryLevels",      EOpTextureQueryLevels);
@@ -3834,7 +3889,7 @@ void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage langua
 // 2) Tag extension-related symbols added to their base version with their extensions, so
 //    that if an early version has the extension turned off, there is an error reported on use.
 //
-void IdentifyBuiltIns(int version, EProfile profile, int spv, EShLanguage language, TSymbolTable& symbolTable, const TBuiltInResource &resources)
+void IdentifyBuiltIns(int version, EProfile profile, int spv, int /*vulkan*/, EShLanguage language, TSymbolTable& symbolTable, const TBuiltInResource &resources)
 {
     if (profile != EEsProfile && version >= 430 && version < 440) {
         symbolTable.setVariableExtensions("gl_MaxTransformFeedbackBuffers", 1, &E_GL_ARB_enhanced_layouts);
