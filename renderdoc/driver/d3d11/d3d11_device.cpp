@@ -2239,7 +2239,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 	
 	D3D11ChunkType header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
-	RDCASSERT(header == CAPTURE_SCOPE);
+	RDCASSERTEQUAL(header, CAPTURE_SCOPE);
 
 	m_pSerialiser->SkipCurrentChunk();
 

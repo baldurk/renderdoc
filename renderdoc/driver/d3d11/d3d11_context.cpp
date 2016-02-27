@@ -1159,7 +1159,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 	m_DoStateVerify = true;
 
 	D3D11ChunkType header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
-	RDCASSERT(header == CONTEXT_CAPTURE_HEADER);
+	RDCASSERTEQUAL(header, CONTEXT_CAPTURE_HEADER);
 
 	ResourceId id;
 	m_pSerialiser->Serialise("context", id);

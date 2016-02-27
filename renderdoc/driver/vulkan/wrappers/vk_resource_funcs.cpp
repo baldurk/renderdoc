@@ -184,7 +184,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(
 			};
 
 			ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &buf);
-			RDCASSERT(ret == VK_SUCCESS);
+			RDCASSERTEQUAL(ret, VK_SUCCESS);
 
 			ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
 
@@ -262,7 +262,7 @@ VkResult WrappedVulkan::vkAllocateMemory(
 			};
 
 			ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &buf);
-			RDCASSERT(ret == VK_SUCCESS);
+			RDCASSERTEQUAL(ret, VK_SUCCESS);
 
 			ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
 

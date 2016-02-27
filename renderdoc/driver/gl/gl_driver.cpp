@@ -3891,7 +3891,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	m_DoStateVerify = true;
 
 	GLChunkType header = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
-	RDCASSERT(header == CONTEXT_CAPTURE_HEADER);
+	RDCASSERTEQUAL(header, CONTEXT_CAPTURE_HEADER);
 
 	WrappedOpenGL *context = this;
 	
@@ -4460,7 +4460,7 @@ void WrappedOpenGL::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 	
 	GLChunkType header = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
-	RDCASSERT(header == CAPTURE_SCOPE);
+	RDCASSERTEQUAL(header, CAPTURE_SCOPE);
 
 	m_pSerialiser->SkipCurrentChunk();
 

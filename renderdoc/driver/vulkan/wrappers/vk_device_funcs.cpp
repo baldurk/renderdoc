@@ -103,7 +103,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	m_Instance = VK_NULL_HANDLE;
 
 	VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
-	RDCASSERT(ret == VK_SUCCESS);
+	RDCASSERTEQUAL(ret, VK_SUCCESS);
 
 	InitInstanceReplayTables(m_Instance);
 
@@ -325,13 +325,13 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 
 		instance = GetResourceManager()->GetLiveHandle<VkInstance>(inst);
 		VkResult vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, NULL);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		RDCASSERT(count > physIndex);
 		devices = new VkPhysicalDevice[count];
 
 		vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		// PORTABILITY match up physical devices to those available on replay
 
@@ -373,7 +373,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 	VkPhysicalDevice *devices = new VkPhysicalDevice[count];
 
 	vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	m_PhysicalDevices.resize(count);
 	
@@ -596,12 +596,12 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		uint32_t numExts = 0;
 
 		VkResult vkr = ObjDisp(physicalDevice)->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), NULL, &numExts, NULL);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkExtensionProperties *exts = new VkExtensionProperties[numExts];
 
 		vkr = ObjDisp(physicalDevice)->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), NULL, &numExts, exts);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		for(uint32_t i=0; i < numExts; i++)
 			RDCLOG("Ext %u: %s (%u)", i, exts[i].extensionName, exts[i].specVersion);
@@ -628,7 +628,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		{
 			VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, NULL, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, qFamilyIdx };
 			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL, &m_InternalCmds.cmdpool);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.cmdpool);
 		}
@@ -848,7 +848,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 		{
 			VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, NULL, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, qFamilyIdx };
 			vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, NULL, &m_InternalCmds.cmdpool);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(device), m_InternalCmds.cmdpool);
 		}

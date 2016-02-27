@@ -57,7 +57,7 @@ void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 	createInfo.window = wnd;
 
 	VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)

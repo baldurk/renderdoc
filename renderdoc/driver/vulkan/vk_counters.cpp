@@ -132,19 +132,19 @@ vector<CounterResult> VulkanReplay::FetchCounters(uint32_t frameID, const vector
 
 	VkQueryPool pool;
 	VkResult vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &poolCreateInfo, NULL, &pool);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 	
 	vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), pool, 0, maxEID*2);
 	
 	vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	GPUTimerCallback cb(m_pDriver, this, pool);
 
@@ -157,7 +157,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(uint32_t frameID, const vector
 	vkr = ObjDisp(dev)->GetQueryPoolResults(Unwrap(dev), pool, 0, (uint32_t)m_Data.size(),
 	           sizeof(uint64_t)*m_Data.size(), &m_Data[0], sizeof(uint64_t),
 	           VK_QUERY_RESULT_64_BIT|VK_QUERY_RESULT_WAIT_BIT);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), pool, NULL);
 

@@ -4927,7 +4927,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		{
 			hr = m_pImmediateContext->GetData(occl[i], &occlData, sizeof(occlData), 0);
 		} while(hr == S_FALSE);
-		RDCASSERT(hr == S_OK);
+		RDCASSERTEQUAL(hr, S_OK);
 
 		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, events[i].eventID);
 
@@ -5415,7 +5415,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 						{
 							hr = m_pImmediateContext->GetData(testQueries[0], &occlData, sizeof(occlData), 0);
 						} while(hr == S_FALSE);
-						RDCASSERT(hr == S_OK);
+						RDCASSERTEQUAL(hr, S_OK);
 
 						mod.backfaceCulled = (occlData == 0);
 
@@ -5429,7 +5429,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 						{
 							hr = m_pImmediateContext->GetData(testQueries[1], &occlData, sizeof(occlData), 0);
 						} while(hr == S_FALSE);
-						RDCASSERT(hr == S_OK);
+						RDCASSERTEQUAL(hr, S_OK);
 
 						mod.depthClipped = (occlData == 0);
 
@@ -5443,7 +5443,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 						{
 							hr = m_pImmediateContext->GetData(testQueries[2], &occlData, sizeof(occlData), 0);
 						} while(hr == S_FALSE);
-						RDCASSERT(hr == S_OK);
+						RDCASSERTEQUAL(hr, S_OK);
 
 						mod.scissorClipped = (occlData == 0);
 
@@ -5456,7 +5456,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 						{
 							hr = m_pImmediateContext->GetData(testQueries[3], &occlData, sizeof(occlData), 0);
 						} while(hr == S_FALSE);
-						RDCASSERT(hr == S_OK);
+						RDCASSERTEQUAL(hr, S_OK);
 
 						mod.shaderDiscarded = (occlData == 0);
 
@@ -5470,7 +5470,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 						{
 							hr = m_pImmediateContext->GetData(testQueries[4], &occlData, sizeof(occlData), 0);
 						} while(hr == S_FALSE);
-						RDCASSERT(hr == S_OK);
+						RDCASSERTEQUAL(hr, S_OK);
 
 						mod.depthTestFailed = (occlData == 0);
 
@@ -5484,7 +5484,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 						{
 							hr = m_pImmediateContext->GetData(testQueries[5], &occlData, sizeof(occlData), 0);
 						} while(hr == S_FALSE);
-						RDCASSERT(hr == S_OK);
+						RDCASSERTEQUAL(hr, S_OK);
 
 						mod.stencilTestFailed = (occlData == 0);
 
@@ -6152,7 +6152,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				{
 					hr = m_pImmediateContext->GetData(testQueries[0], &occlData, sizeof(occlData), 0);
 				} while(hr == S_FALSE);
-				RDCASSERT(hr == S_OK);
+				RDCASSERTEQUAL(hr, S_OK);
 
 				if(occlData == 0)
 				{

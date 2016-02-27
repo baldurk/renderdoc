@@ -584,7 +584,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 				}
 
 				ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRP);
-				RDCASSERT(ret == VK_SUCCESS);
+				RDCASSERTEQUAL(ret, VK_SUCCESS);
 				
 				// handle the loadRP being a duplicate
 				if(GetResourceManager()->HasWrapper(ToTypedHandle(rpinfo.loadRP)))
@@ -667,7 +667,7 @@ VkResult WrappedVulkan::vkCreateRenderPass(
 			info.pAttachments = atts;
 
 			ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRP);
-			RDCASSERT(ret == VK_SUCCESS);
+			RDCASSERTEQUAL(ret, VK_SUCCESS);
 
 			ResourceId loadRPid = GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
 			

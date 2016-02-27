@@ -176,9 +176,9 @@ void D3D11DebugManager::FillTimers(CounterContext &ctx, const DrawcallTreeNode &
 				timer->before = timer->after = NULL;
 
 				hr = m_pDevice->CreateQuery(&qdesc, &timer->before);
-				RDCASSERT(SUCCEEDED(hr));
+				RDCASSERTEQUAL(hr, S_OK);
 				hr = m_pDevice->CreateQuery(&qdesc, &timer->after);
-				RDCASSERT(SUCCEEDED(hr));
+				RDCASSERTEQUAL(hr, S_OK);
 			}
 			else
 			{
@@ -266,7 +266,7 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(uint32_t frameID, const v
 			{
 				hr = m_pImmediateContext->GetData(disjoint, &disjointData, sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT), 0);
 			} while(hr == S_FALSE);
-			RDCASSERT(hr == S_OK);
+			RDCASSERTEQUAL(hr, S_OK);
 
 			RDCASSERT(!disjointData.Disjoint);
 
@@ -280,11 +280,11 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(uint32_t frameID, const v
 				if(ctx.timers[i].before && ctx.timers[i].after)
 				{
 					hr = m_pImmediateContext->GetData(ctx.timers[i].before, &a, sizeof(UINT64), 0);
-					RDCASSERT(hr == S_OK);
+					RDCASSERTEQUAL(hr, S_OK);
 
 					UINT64 b=0;
 					hr = m_pImmediateContext->GetData(ctx.timers[i].after, &b, sizeof(UINT64), 0);
-					RDCASSERT(hr == S_OK);
+					RDCASSERTEQUAL(hr, S_OK);
 
 					double duration = (double(b-a)/ticksToSecs);
 

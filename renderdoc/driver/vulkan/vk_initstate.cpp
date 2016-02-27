@@ -144,7 +144,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 	VkResult vkr = VK_SUCCESS;
 
 	vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 		
 	VkMemoryRequirements mrq = { 0 };
 
@@ -158,12 +158,12 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 	allocInfo.allocationSize = AlignUp(allocInfo.allocationSize, mrq.alignment);
 
 	vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &readbackmem);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	GetResourceManager()->WrapResource(Unwrap(d), readbackmem);
 
 	vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem), 0);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	vector<VkBuffer> bufdeletes;
 	bufdeletes.push_back(dstBuf);
@@ -171,7 +171,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	// copy all of the bound memory objects
 	for(auto it=boundMems.begin(); it != boundMems.end(); ++it)
@@ -180,10 +180,10 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 
 		bufInfo.size = GetRecord(it->first)->Length;
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &srcBuf);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), srcBuf, Unwrap(it->first), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		// copy srcbuf into its area in dstbuf
 		VkBufferCopy region = { 0, it->second, bufInfo.size };
@@ -194,7 +194,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 	}
 
 	vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
 	// INITSTATEBATCH
 	SubmitCmds();
@@ -313,7 +313,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 	VkResult vkr = VK_SUCCESS;
 
 	vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 		
 	VkMemoryRequirements mrq = { 0 };
 
@@ -327,12 +327,12 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 	allocInfo.allocationSize = AlignUp(allocInfo.allocationSize, mrq.alignment);
 
 	vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &readbackmem);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	GetResourceManager()->WrapResource(Unwrap(d), readbackmem);
 
 	vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem), 0);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	vector<VkBuffer> bufdeletes;
 	bufdeletes.push_back(dstBuf);
@@ -340,7 +340,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	// copy all of the bound memory objects
 	for(auto it=boundMems.begin(); it != boundMems.end(); ++it)
@@ -349,10 +349,10 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 
 		bufInfo.size = GetRecord(it->first)->Length;
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &srcBuf);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), srcBuf, Unwrap(it->first), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		// copy srcbuf into its area in dstbuf
 		VkBufferCopy region = { 0, it->second, bufInfo.size };
@@ -363,7 +363,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 	}
 
 	vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
 	// INITSTATEBATCH
 	SubmitCmds();
@@ -465,7 +465,7 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(ResourceId id, VulkanReso
 		VkBuffer buf;
 
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &buf);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(d), buf);
 		
@@ -479,12 +479,12 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(ResourceId id, VulkanReso
 		};
 
 		vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &mem);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(d), mem);
 
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(buf), Unwrap(mem), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		byte *ptr = NULL;
 		ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
@@ -668,7 +668,7 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(ResourceId id, VulkanResou
 		VkBuffer buf;
 
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &buf);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(d), buf);
 		
@@ -682,12 +682,12 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(ResourceId id, VulkanResou
 		};
 
 		vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &mem);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(d), mem);
 
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(buf), Unwrap(mem), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		byte *ptr = NULL;
 		ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
@@ -769,7 +769,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	VkBufferCreateInfo bufInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
@@ -791,7 +791,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 	}
 
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	FlushQ();
 
@@ -896,7 +896,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	VkBufferCreateInfo bufInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
@@ -919,7 +919,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 	}
 
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	return true;
 }
@@ -998,7 +998,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		VkBuffer dstBuf;
 
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 		
 		VkMemoryRequirements mrq = { 0 };
 
@@ -1010,17 +1010,17 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		};
 
 		vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &readbackmem);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(d), readbackmem);
 		
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 		vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
 		if (IsDepthStencilFormat(layout->format))
@@ -1099,7 +1099,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		}
 
 		vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		// INITSTATEBATCH
 		SubmitCmds();
@@ -1142,12 +1142,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		// dstBuf is just over the allocated memory, so only the image's size
 		bufInfo.size = datasize;
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		// srcBuf spans the entire memory, then we copy out the sub-region we're interested in
 		bufInfo.size = memsize;
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &srcBuf);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 		
 		VkMemoryRequirements mrq = { 0 };
 
@@ -1161,26 +1161,26 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		allocInfo.allocationSize = AlignUp(allocInfo.allocationSize, mrq.alignment);
 
 		vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &readbackmem);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(d), readbackmem);
 		
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), srcBuf, datamem, 0);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem), 0);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 		vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkBufferCopy region = { dataoffs, 0, datasize };
 
 		ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), srcBuf, dstBuf, 1, &region);
 
 		vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		// INITSTATEBATCH
 		SubmitCmds();
@@ -1458,7 +1458,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 			VkDeviceMemory uploadmem = VK_NULL_HANDLE;
 
 			vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &buf);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 			
 			VkMemoryRequirements mrq = { 0 };
 
@@ -1472,10 +1472,10 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 			// first we upload the data into a single buffer, then we do
 			// a copy per-mip from that buffer to a new image
 			vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &uploadmem);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), buf, uploadmem, 0);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			byte *ptr = NULL;
 			ObjDisp(d)->MapMemory(Unwrap(d), uploadmem, 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
@@ -1511,7 +1511,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 			VkImage im = VK_NULL_HANDLE;
 
 			vkr = ObjDisp(d)->CreateImage(Unwrap(d), &imInfo, NULL, &im);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(d), im);
 			
@@ -1523,12 +1523,12 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 			VkDeviceMemory mem = VK_NULL_HANDLE;
 
 			vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &mem);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(d), mem);
 
 			vkr = ObjDisp(d)->BindImageMemory(Unwrap(d), Unwrap(im), Unwrap(mem), 0);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 			
 			VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 			
@@ -1536,7 +1536,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 			VkCommandBuffer cmd = GetNextCmd();
 
 			vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
 
@@ -1610,7 +1610,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 			}
 
 			vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			// INITSTATEBATCH
 			SubmitCmds();
@@ -1651,7 +1651,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 			VkBuffer buf;
 
 			vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &buf);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(d), buf);
 			
@@ -1665,12 +1665,12 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 			};
 
 			vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &mem);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			GetResourceManager()->WrapResource(Unwrap(d), mem);
 
 			vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(buf), Unwrap(mem), 0);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			byte *ptr = NULL;
 			ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, VK_WHOLE_SIZE, 0, (void **)&ptr);
@@ -1815,7 +1815,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				VkCommandBuffer cmd = GetNextCmd();
 
 				vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-				RDCASSERT(vkr == VK_SUCCESS);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
 				
 				VkImageMemoryBarrier barrier = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -1858,14 +1858,14 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				}
 
 				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-				RDCASSERT(vkr == VK_SUCCESS);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
 			}
 			else if(initial.num == eInitialContents_ClearDepthStencilImage)
 			{
 				VkCommandBuffer cmd = GetNextCmd();
 
 				vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-				RDCASSERT(vkr == VK_SUCCESS);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
 				
 				VkImageMemoryBarrier barrier = {
 					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -1907,7 +1907,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 				}
 
 				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-				RDCASSERT(vkr == VK_SUCCESS);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
 			}
 			else
 			{
@@ -1922,7 +1922,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		VkCommandBuffer cmd = GetNextCmd();
 
 		vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkExtent3D extent = m_CreationInfo.m_Image[id].extent;
 		
@@ -1993,7 +1993,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		}
 
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
 	else if(type == eResDeviceMemory)
 	{
@@ -2012,7 +2012,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		VkCommandBuffer cmd = GetNextCmd();
 
 		vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
@@ -2026,7 +2026,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
 		
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
 	else
 	{

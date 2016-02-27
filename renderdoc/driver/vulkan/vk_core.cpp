@@ -375,7 +375,7 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
 
 		SetDispatchTableOverMagicNumber(m_Device, ret);
 
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
 	}
@@ -407,7 +407,7 @@ void WrappedVulkan::SubmitCmds()
 	if(m_Queue != VK_NULL_HANDLE)
 	{
 		VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, VK_NULL_HANDLE);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
 
 	m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(), m_InternalCmds.pendingcmds.begin(), m_InternalCmds.pendingcmds.end());
@@ -429,7 +429,7 @@ VkSemaphore WrappedVulkan::GetNextSemaphore()
 	{	
 		VkSemaphoreCreateInfo semInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 		VkResult vkr = ObjDisp(m_Device)->CreateSemaphore(Unwrap(m_Device), &semInfo, NULL, &ret);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
 	}
@@ -670,7 +670,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 		}
 
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		SubmitCmds();
 		// don't need to flush here
@@ -852,7 +852,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 		vt->CreateImage(Unwrap(dev), &imInfo, NULL, &readbackIm);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkMemoryRequirements mrq;
 		vt->GetImageMemoryRequirements(Unwrap(dev), readbackIm, &mrq);
@@ -868,15 +868,15 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		};
 
 		vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &readbackMem);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 		vkr = vt->BindImageMemory(Unwrap(dev), readbackIm, readbackMem, 0);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 		// do image copy
 		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkImageCopy cpy = {
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
@@ -922,7 +922,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		DoPipelineBarrier(cmd, 1, &readBarrier);
 
 		vkr = vt->EndCommandBuffer(Unwrap(cmd));
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		SubmitCmds();
 		FlushQ(); // need to wait so we can readback
@@ -930,7 +930,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		// map memory and readback
 		byte *pData = NULL;
 		vkr = vt->MapMemory(Unwrap(dev), readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&pData);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		RDCASSERT(pData != NULL);
 
@@ -1243,7 +1243,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	m_State = readType;
 
 	VulkanChunkType header = (VulkanChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
-	RDCASSERT(header == CONTEXT_CAPTURE_HEADER);
+	RDCASSERTEQUAL(header, CONTEXT_CAPTURE_HEADER);
 
 	WrappedVulkan *context = this;
 
@@ -1399,12 +1399,12 @@ void WrappedVulkan::ApplyInitialContents()
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 	vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	DoPipelineBarrier(cmd, 1, &memBarrier);
 	
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
 	// sync all GPU work so we can also apply descriptor set initial contents
 	SubmitCmds();
@@ -1417,12 +1417,12 @@ void WrappedVulkan::ApplyInitialContents()
 	cmd = GetNextCmd();
 	
 	vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
 	DoPipelineBarrier(cmd, 1, &memBarrier);
 	
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-	RDCASSERT(vkr == VK_SUCCESS);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 }
 
 void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, bool forceExecute)
@@ -1833,7 +1833,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 	
 	VulkanChunkType header = (VulkanChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
-	RDCASSERT(header == CAPTURE_SCOPE);
+	RDCASSERTEQUAL(header, CAPTURE_SCOPE);
 
 	m_pSerialiser->SkipCurrentChunk();
 
@@ -1875,7 +1875,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 			vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			rpWasActive = m_PartialReplayData.renderPassActive;
 

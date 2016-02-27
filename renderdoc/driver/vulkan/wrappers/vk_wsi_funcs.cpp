@@ -80,7 +80,7 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(
 		// use original ID because we don't create a live version of the swapchain
 		auto &swapInfo = m_CreationInfo.m_SwapChain[swapId];
 
-		RDCASSERT(idx < swapInfo.images.size());
+		RDCASSERT(idx < swapInfo.images.size(), idx, swapInfo.images.size());
 		GetResourceManager()->AddLiveResource(id, swapInfo.images[idx].im);
 
 		m_CreationInfo.m_Image[GetResID(swapInfo.images[idx].im)] = m_CreationInfo.m_Image[swapId];
@@ -186,7 +186,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 		VkResult vkr = VK_SUCCESS;
 
 		vkr = ObjDisp(device)->GetSwapchainImagesKHR(Unwrap(device), Unwrap(*pSwapChain), &numIms, NULL);
-		RDCASSERT(vkr == VK_SUCCESS);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
 
 	SERIALISE_ELEMENT(uint32_t, numSwapImages, numIms);
@@ -224,7 +224,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			VkImage im = VK_NULL_HANDLE;
 
 			VkResult vkr = ObjDisp(device)->CreateImage(Unwrap(device), &imInfo, NULL, &im);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			ResourceId liveId = GetResourceManager()->WrapResource(Unwrap(device), im);
 			
@@ -238,14 +238,14 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			};
 
 			vkr = ObjDisp(device)->AllocateMemory(Unwrap(device), &allocInfo, NULL, &mem);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 			
 			ResourceId memid = GetResourceManager()->WrapResource(Unwrap(device), mem);
 			// register as a live-only resource, so it is cleaned up properly
 			GetResourceManager()->AddLiveResource(memid, mem);
 
 			vkr = ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(im), Unwrap(mem), 0);
-			RDCASSERT(vkr == VK_SUCCESS);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			// image live ID will be assigned separately in Serialise_vkGetSwapChainInfoWSI
 			// memory doesn't have a live ID
@@ -368,7 +368,7 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 				};
 
 				vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, NULL, &swapInfo.rp);
-				RDCASSERT(vkr == VK_SUCCESS);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 				GetResourceManager()->WrapResource(Unwrap(device), swapInfo.rp);
 			}
@@ -377,7 +377,7 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 			{
 				uint32_t numSwapImages;
 				VkResult ret = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(*pSwapChain), &numSwapImages, NULL);
-				RDCASSERT(ret == VK_SUCCESS);
+				RDCASSERTEQUAL(ret, VK_SUCCESS);
 				
 				swapInfo.lastPresent = 0;
 				swapInfo.images.resize(numSwapImages);
@@ -392,7 +392,7 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 
 				// go through our own function so we assign these images IDs
 				ret = vkGetSwapchainImagesKHR(device, *pSwapChain, &numSwapImages, images);
-				RDCASSERT(ret == VK_SUCCESS);
+				RDCASSERTEQUAL(ret, VK_SUCCESS);
 
 				for(uint32_t i=0; i < numSwapImages; i++)
 				{
@@ -426,7 +426,7 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 						};
 
 						vkr = vt->CreateImageView(Unwrap(device), &info, NULL, &swapImInfo.view);
-						RDCASSERT(vkr == VK_SUCCESS);
+						RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 						GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.view);
 
@@ -438,7 +438,7 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 						};
 
 						vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, NULL, &swapImInfo.fb);
-						RDCASSERT(vkr == VK_SUCCESS);
+						RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 						GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.fb);
 					}
