@@ -676,9 +676,19 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 
 const char *WrappedID3D11Device::GetChunkName(uint32_t idx)
 {
+	if(idx == CREATE_PARAMS) return "Create Params";
+	if(idx == THUMBNAIL_DATA) return "Thumbnail Data";
+	if(idx == DRIVER_INIT_PARAMS) return "Driver Init Params";
+	if(idx == INITIAL_CONTENTS) return "Initial Contents";
 	if(idx < FIRST_CHUNK_ID || idx >= NUM_D3D11_CHUNKS)
 		return "<unknown>";
 	return D3D11ChunkNames[idx-FIRST_CHUNK_ID];
+}
+
+template<>
+string ToStrHelper<false, D3D11ChunkType>::Get(const D3D11ChunkType &el)
+{
+	return WrappedID3D11Device::GetChunkName(el);
 }
 
 void WrappedID3D11Device::LazyInit()

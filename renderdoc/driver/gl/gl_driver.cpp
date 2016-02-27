@@ -902,11 +902,21 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 	}
 }
 
-const char * WrappedOpenGL::GetChunkName(uint32_t idx)
+const char *WrappedOpenGL::GetChunkName(uint32_t idx)
 {
+	if(idx == CREATE_PARAMS) return "Create Params";
+	if(idx == THUMBNAIL_DATA) return "Thumbnail Data";
+	if(idx == DRIVER_INIT_PARAMS) return "Driver Init Params";
+	if(idx == INITIAL_CONTENTS) return "Initial Contents";
 	if(idx < FIRST_CHUNK_ID || idx >= NUM_OPENGL_CHUNKS)
 		return "<unknown>";
 	return GLChunkNames[idx-FIRST_CHUNK_ID];
+}
+
+template<>
+string ToStrHelper<false, GLChunkType>::Get(const GLChunkType &el)
+{
+	return WrappedOpenGL::GetChunkName(el);
 }
 
 WrappedOpenGL::~WrappedOpenGL()

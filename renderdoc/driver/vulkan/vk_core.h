@@ -437,8 +437,6 @@ private:
 	VulkanCreationInfo m_CreationInfo;
 
 	map<ResourceId, vector<EventUsage> > m_ResourceUses;
-		
-	static const char *GetChunkName(uint32_t idx);
 	
 	// returns thread-local temporary memory
 	byte *GetTempMemory(size_t s);
@@ -531,7 +529,8 @@ public:
 	virtual ~WrappedVulkan();
 
 	ResourceId GetContextResourceID() { return m_FrameCaptureRecord->GetResourceID(); }
-
+		
+	static const char *GetChunkName(uint32_t idx);
 	VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
 	VulkanDebugManager *GetDebugManager() { return m_DebugManager; }
 

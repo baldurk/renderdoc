@@ -499,11 +499,21 @@ uint32_t WrappedVulkan::HandlePreDraw(VkCommandBuffer commandBuffer)
 	return eventID;
 }
 
-const char * WrappedVulkan::GetChunkName(uint32_t idx)
+const char *WrappedVulkan::GetChunkName(uint32_t idx)
 {
+	if(idx == CREATE_PARAMS) return "Create Params";
+	if(idx == THUMBNAIL_DATA) return "Thumbnail Data";
+	if(idx == DRIVER_INIT_PARAMS) return "Driver Init Params";
+	if(idx == INITIAL_CONTENTS) return "Initial Contents";
 	if(idx < FIRST_CHUNK_ID || idx >= NUM_VULKAN_CHUNKS)
 		return "<unknown>";
 	return VkChunkNames[idx-FIRST_CHUNK_ID];
+}
+
+template<>
+string ToStrHelper<false, VulkanChunkType>::Get(const VulkanChunkType &el)
+{
+	return WrappedVulkan::GetChunkName(el);
 }
 
 byte *WrappedVulkan::GetTempMemory(size_t s)

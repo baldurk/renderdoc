@@ -192,8 +192,6 @@ class WrappedOpenGL : public IFrameCapturer
 		vector<FetchFrameRecord> m_FrameRecord;
 		vector<FetchDrawcall*> m_Drawcalls;
 		
-		static const char *GetChunkName(uint32_t idx);
-		
 		// replay
 		
 		vector<FetchAPIEvent> m_CurEvents, m_Events;
@@ -463,7 +461,8 @@ class WrappedOpenGL : public IFrameCapturer
 	public:
 		WrappedOpenGL(const char *logfile, const GLHookSet &funcs);
 		virtual ~WrappedOpenGL();
-
+		
+		static const char *GetChunkName(uint32_t idx);
 		GLResourceManager *GetResourceManager() { return m_ResourceManager; }
 
 		ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }

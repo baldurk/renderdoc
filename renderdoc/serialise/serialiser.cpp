@@ -1885,6 +1885,12 @@ string ToStrHelper<false, uint32_t>::Get(const uint32_t &el)
 }
 
 template<>
+string ToStrHelper<false, long>::Get(const long &el)
+{
+	return ToStr::Get((uint64_t)el);
+}
+
+template<>
 string ToStrHelper<false, char>::Get(const char &el)
 {
 	char tostrBuf[256] = {0};
