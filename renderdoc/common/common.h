@@ -175,12 +175,20 @@ void rdclog_filename(const char *filename);
 //
 
 #if !defined(RELEASE) || defined(FORCE_ASSERTS)
-void rdcassert(const char *condition, const char *file, unsigned int line, const char *func);
+void rdcassert(const char *msg, const char *file, unsigned int line, const char *func);
 
-#define RDCASSERT(cond) do { if(!(cond)) { rdcassert(#cond, __FILE__, __LINE__, __PRETTY_FUNCTION_SIGNATURE__); rdclog_flush(); RDCBREAK(); } } while(0)
+// this defines the root macro, RDCASSERTMSG(msg, cond, ...)
+// where it will check cond, then print msg (if it's not "") and the values of all values passed via varargs.
+// the other asserts are defined in terms of that
+#include "custom_assert.h"
+
 #else
-#define RDCASSERT(cond) do { } while(0)
+#define RDCASSERTMSG(cond) do { } while(0)
 #endif
+
+#define RDCASSERT(...) RDCASSERTMSG("", __VA_ARGS__)
+#define RDCASSERTEQUAL(a,b) RDCASSERTMSG("", a == b, a, b)
+#define RDCASSERTNOTEQUAL(a,b) RDCASSERTMSG("", a != b, a, b)
 
 //
 // Compile asserts

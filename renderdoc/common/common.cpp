@@ -82,9 +82,9 @@ float SRGB8_lookuptable[256] = {
 	0.938686f, 0.947307f, 0.955974f, 0.964686f, 0.973445f, 0.982251f, 0.991102f, 1.000000f,
 };
 
-void rdcassert(const char *condition, const char *file, unsigned int line, const char *func)
+void rdcassert(const char *msg, const char *file, unsigned int line, const char *func)
 {
-	rdclog_int(RDCLog_Error, file, line, "Assertion failed: '%s'", condition, file, line);
+	rdclog_int(RDCLog_Error, file, line, "Assertion failed: %s", msg);
 }
 
 #if 0
