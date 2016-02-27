@@ -4911,8 +4911,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpGroupDecorate:
 			case spv::OpGroupMemberDecorate:
 			case spv::OpDecorationGroup:
-				// TODO
-				RDCBREAK();
+				RDCUNIMPLEMENTED("SPIR-V Group decorations");
 				break;
 			default:
 				break;

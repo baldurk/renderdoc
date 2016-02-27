@@ -100,7 +100,7 @@ uint32_t CalcNumMips(int Width, int Height, int Depth);
 #define RDCDUMP() do { OSUtility::ForceCrash(); } while(0)
 
 #if !defined(RELEASE) || defined(FORCE_DEBUGBREAK)
-#define RDCBREAK() do { if(OSUtility::DebuggerPresent()) OS_DEBUG_BREAK(); else RDCDUMP(); } while(0)
+#define RDCBREAK() do { if(OSUtility::DebuggerPresent()) OS_DEBUG_BREAK(); } while(0)
 #else
 #define RDCBREAK() do { } while(0)
 #endif
