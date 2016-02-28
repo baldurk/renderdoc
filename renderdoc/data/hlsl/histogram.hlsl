@@ -177,8 +177,8 @@ void RENDERDOC_ResultMinMaxCS()
 		uint2 tileXY = uint2(tileIdx % HGRAM_TILES_PER_BLOCK, tileIdx / HGRAM_TILES_PER_BLOCK);
 
 		// if this is at least partially within the texture, include it.
-		if(blockXY.x*(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK) + tileXY.x*HGRAM_PIXELS_PER_TILE < texDim.x &&
-		   blockXY.y*(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK) + tileXY.y*HGRAM_PIXELS_PER_TILE < texDim.y)
+		if(blockXY.x*(HGRAM_TILES_PER_BLOCK*HGRAM_PIXELS_PER_TILE) + tileXY.x*HGRAM_PIXELS_PER_TILE < texDim.x &&
+		   blockXY.y*(HGRAM_TILES_PER_BLOCK*HGRAM_PIXELS_PER_TILE) + tileXY.y*HGRAM_PIXELS_PER_TILE < texDim.y)
 		{
 #if UINT_TEX
 			minvalU = min(minvalU, MinMaxResultSourceUInt[i*2 + 0]);
