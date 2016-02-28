@@ -36,5 +36,5 @@ void main(void)
                                   vec4(-1.0,  1.0, 0.5, 1.0),
                                   vec4( 1.0,  1.0, 0.5, 1.0));
 
-    gl_Position = verts[gl_VertexID];
+    gl_Position = verts[gl_VertexIndex];
 }

@@ -56,7 +56,7 @@ void main(void)
 		pos.y = -pos.y;
 
 	gl_Position = Mesh.mvp * pos;
-	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[gl_VertexID%4]*gl_Position.w;
+	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[gl_VertexIndex%4]*gl_Position.w;
 	OUT.secondary = secondary;
 	OUT.norm = vec4(0, 0, 1, 1);
 
