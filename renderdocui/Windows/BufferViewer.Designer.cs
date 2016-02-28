@@ -462,7 +462,7 @@
             this.drawRange.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.drawRange.Items.AddRange(new object[] {
             "Only this draw",
-            "Since last clear"});
+            "Show whole pass"});
             this.drawRange.Name = "drawRange";
             this.drawRange.Size = new System.Drawing.Size(121, 25);
             this.drawRange.SelectedIndexChanged += new System.EventHandler(this.drawRange_SelectedIndexChanged);
