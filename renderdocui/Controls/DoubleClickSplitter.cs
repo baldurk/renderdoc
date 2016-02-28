@@ -106,9 +106,9 @@ namespace renderdocui.Controls
                     SplitterDistance = Panel1MinSize;
                 else if (m_Collapsed && !Panel1Collapse)
                 {
-                    if(Orientation == Orientation.Vertical)
+                    if (Orientation == Orientation.Horizontal)
                         SplitterDistance = Height - Panel2MinSize;
-                    else if(Orientation == Orientation.Horizontal)
+                    else if(Orientation == Orientation.Vertical)
                         SplitterDistance = Width - Panel2MinSize;
                 }
             }
