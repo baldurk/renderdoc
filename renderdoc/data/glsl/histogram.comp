@@ -243,7 +243,7 @@ void main()
 
 layout(binding=0) writeonly buffer minmaxresultdest
 {
-	uint result[HGRAM_NUM_BUCKETS];
+	uvec4 result[HGRAM_NUM_BUCKETS];
 } dest;
 
 layout (local_size_x = HGRAM_TILES_PER_BLOCK, local_size_y = HGRAM_TILES_PER_BLOCK) in;
@@ -392,7 +392,7 @@ void main()
 #endif
 
 			if(bucketIdx >= 0 && bucketIdx < HGRAM_NUM_BUCKETS)
-				atomicAdd(dest.result[bucketIdx], 1U);
+				atomicAdd(dest.result[bucketIdx].x, 1U);
 		}
 	}
 }

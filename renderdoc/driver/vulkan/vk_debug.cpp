@@ -1468,8 +1468,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_MinMaxTileResult.Create(driver, dev, byteSize, 1, GPUBuffer::eGPUBufferSSBO);
 	m_MinMaxResult.Create(driver, dev, sizeof(Vec4f)*2, 1, GPUBuffer::eGPUBufferSSBO);
 	m_MinMaxReadback.Create(driver, dev, sizeof(Vec4f)*2, 1, GPUBuffer::eGPUBufferReadback);
-	m_HistogramBuf.Create(driver, dev, sizeof(uint32_t)*HGRAM_NUM_BUCKETS, 1, GPUBuffer::eGPUBufferSSBO);
-	m_HistogramReadback.Create(driver, dev, sizeof(uint32_t)*HGRAM_NUM_BUCKETS, 1, GPUBuffer::eGPUBufferReadback);
+	m_HistogramBuf.Create(driver, dev, sizeof(uint32_t)*4*HGRAM_NUM_BUCKETS, 1, GPUBuffer::eGPUBufferSSBO);
+	m_HistogramReadback.Create(driver, dev, sizeof(uint32_t)*4*HGRAM_NUM_BUCKETS, 1, GPUBuffer::eGPUBufferReadback);
 
 	// don't need to ring this, as we hard-sync for readback anyway
 	m_HistogramUBO.Create(driver, dev, sizeof(HistogramUBOData), 1, 0);
