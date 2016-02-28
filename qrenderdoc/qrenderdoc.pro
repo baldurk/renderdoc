@@ -32,11 +32,11 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/flowlayout
 win32 {
 
 	!contains(QMAKE_TARGET.arch, x86_64) {
-		Debug:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Profile
+		Debug:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Development
 		Release:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Release
 
 	} else {
-		Debug:DESTDIR = $$_PRO_FILE_PWD_/../x64/Profile
+		Debug:DESTDIR = $$_PRO_FILE_PWD_/../x64/Development
 		Release:DESTDIR = $$_PRO_FILE_PWD_/../x64/Release
 	}
 

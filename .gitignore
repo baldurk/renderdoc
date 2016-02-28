@@ -1,9 +1,9 @@
 Debug/
 Documentation/
 Release/
-Profile/
-Profile32/
-Profile64/
+Development/
+Development32/
+Development64/
 Release32/
 Release64/
 dist/

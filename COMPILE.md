@@ -13,7 +13,7 @@ The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. To build on later 
 
 There should be no external dependencies, all libraries/headers needed to build are included in the git checkout.
 
-Profile configuration is recommended for day-to-day dev. It's debuggable but not too slow. Release configuration is then obviously what you should build for any builds you'll send out to people or if you want to evaluate performance.
+Development configuration is recommended for day-to-day dev. It's debuggable but not too slow. Release configuration is then obviously what you should build for any builds you'll send out to people or if you want to evaluate performance.
 
 ### Visual Studio Visualisers ###
 

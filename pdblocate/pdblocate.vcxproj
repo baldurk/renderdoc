@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Profile32|Win32">
-      <Configuration>Profile32</Configuration>
+    <ProjectConfiguration Include="Development32|Win32">
+      <Configuration>Development32</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Profile64|Win32">
-      <Configuration>Profile64</Configuration>
+    <ProjectConfiguration Include="Development64|Win32">
+      <Configuration>Development64</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release32|Win32">
@@ -47,15 +47,15 @@
     <IncludePath>$(VSInstallDir)\DIA SDK\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)Win32\Release\pdblocate\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile64|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development64|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(VSInstallDir)\DIA SDK\include;$(IncludePath)</IncludePath>
-    <OutDir>$(SolutionDir)x64\Profile\pdblocate\</OutDir>
+    <OutDir>$(SolutionDir)x64\Development\pdblocate\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile32|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development32|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(VSInstallDir)\DIA SDK\include;$(IncludePath)</IncludePath>
-    <OutDir>$(SolutionDir)Win32\Profile\pdblocate\</OutDir>
+    <OutDir>$(SolutionDir)Win32\Development\pdblocate\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release64|Win32'">
     <ClCompile>
@@ -91,7 +91,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile64|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development64|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
@@ -108,7 +108,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile32|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development32|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
