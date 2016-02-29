@@ -395,6 +395,8 @@ namespace renderdocui.Windows
                 {
                     File.Copy(log.localpath, path, true);
                     log.saved = true;
+                    m_Core.Config.AddRecentFile(m_Core.Config.RecentLogFiles, path, 10);
+                    m_Main.PopulateRecentFiles();
                 }
                 catch (System.Exception ex)
                 {

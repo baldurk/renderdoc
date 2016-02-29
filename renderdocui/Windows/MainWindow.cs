@@ -788,7 +788,7 @@ namespace renderdocui.Windows
             statusText.Text = "Loading " + filename + "...";
         }
 
-        private void PopulateRecentFiles()
+        public void PopulateRecentFiles()
         {
             while (recentFilesToolStripMenuItem.DropDownItems.Count > 0)
             {
@@ -1247,6 +1247,8 @@ namespace renderdocui.Windows
                     // we copy the (possibly) temp log to the desired path, but the log item remains referring to the original path.
                     // This ensures that if the user deletes the saved path we can still open or re-save it.
                     File.Copy(m_Core.LogFileName, saveDialog.FileName, true);
+                    m_Core.Config.AddRecentFile(m_Core.Config.RecentLogFiles, saveDialog.FileName, 10);
+                    PopulateRecentFiles();
                     SetTitle(saveDialog.FileName);
                 }
                 catch (System.Exception ex)
