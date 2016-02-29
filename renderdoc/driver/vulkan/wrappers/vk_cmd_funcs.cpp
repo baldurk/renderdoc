@@ -514,7 +514,14 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 			bool recordAll = m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds();
 
 			if(!recordAll && m_PartialReplayData.renderPassActive)
+			{
+				uint32_t numSubpasses = (uint32_t)m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses.size();
+
+				for(uint32_t sub=m_RenderState.subpass; sub < numSubpasses-1; sub++)
+					ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), VK_SUBPASS_CONTENTS_INLINE);
+
 				ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
+			}
 
 			ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
