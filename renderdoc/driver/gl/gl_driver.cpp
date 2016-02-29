@@ -336,14 +336,34 @@ GLInitParams::GLInitParams()
 	height = 32;
 }
 
+// handling for these versions is scattered throughout the code (as relevant to enable/disable bits of serialisation
+// and set some defaults if necessary).
+// Here we list which non-current versions we support, and what changed
+const uint32_t GLInitParams::GL_OLD_VERSIONS[GLInitParams::GL_NUM_SUPPORTED_OLD_VERSIONS] = {
+	0x000010, // from 0x10 to 0x11, we added a dummy marker value used to identify serialised data in glUseProgramStages (hack :( )
+};
+
 ReplayCreateStatus GLInitParams::Serialise()
 {
 	SERIALISE_ELEMENT(uint32_t, ver, GL_SERIALISE_VERSION); SerialiseVersion = ver;
-
+	
 	if(ver != GL_SERIALISE_VERSION)
 	{
-		RDCERR("Incompatible OpenGL serialise version, expected %d got %d", GL_SERIALISE_VERSION, ver);
-		return eReplayCreate_APIIncompatibleVersion;
+		bool oldsupported = false;
+		for(uint32_t i=0; i < GL_NUM_SUPPORTED_OLD_VERSIONS; i++)
+		{
+			if(ver == GL_OLD_VERSIONS[i])
+			{
+				oldsupported = true;
+				RDCWARN("Old OpenGL serialise version %d, latest is %d. Loading with possibly degraded features/support.", ver, GL_SERIALISE_VERSION);
+			}
+		}
+
+		if(!oldsupported)
+		{
+			RDCERR("Incompatible OpenGL serialise version, expected %d got %d", GL_SERIALISE_VERSION, ver);
+			return eReplayCreate_APIIncompatibleVersion;
+		}
 	}
 	
 	m_pSerialiser->Serialise("Color bits", colorBits);
@@ -800,6 +820,8 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 {
 	// deliberately want to go through our own wrappers to set up e.g. m_Textures members
 	WrappedOpenGL &gl = *this;
+
+	m_InitParams = params;
 
 	// as a concession to compatibility, generate a 'fake' VBO to act as VBO 0.
 	// consider making it an error/warning for programs to use this?

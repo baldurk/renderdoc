@@ -934,8 +934,15 @@ void WrappedOpenGL::glProgramBinary(GLuint program, GLenum binaryFormat, const v
 
 #pragma region Program Pipelines
 
+static const uint64_t marker_glUseProgramStages_hack = 0xffbbcc0014151617ULL;
+
 bool WrappedOpenGL::Serialise_glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
 {
+	if(GetLogVersion() >= 0x000011)
+	{
+		// this marker value is used below to identify where the serialised data sits.
+		SERIALISE_ELEMENT(uint64_t, marker, marker_glUseProgramStages_hack);
+	}
 	SERIALISE_ELEMENT(ResourceId, pipe, GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline)));
 	SERIALISE_ELEMENT(uint32_t, Stages, stages);
 	SERIALISE_ELEMENT(ResourceId, prog, (program ? GetResourceManager()->GetID(ProgramRes(GetCtx(), program)) : ResourceId()));
@@ -1005,33 +1012,74 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramPipeRes(GetCtx(), pipeline));
 		RDCASSERT(record);
 
+		Chunk *chunk = scope.Get();
+
 		if(m_State == WRITING_CAPFRAME)
 		{
-			m_ContextRecord->AddChunk(scope.Get());
+			m_ContextRecord->AddChunk(chunk);
 		}
 		else
 		{
 			// USE_PROGRAMSTAGES is one of the few kinds of chunk that are
 			// recorded to pipeline records, so we can probably find previous
 			// uses (if it's been constantly rebound instead of once at init
-			// time) that can be popped as redundant
-			record->LockChunks();
-			while(true)
+			// time) that can be popped as redundant.
+			// We do have to be careful though to make sure we only remove
+			// redundant calls, not other different USE_PROGRAMSTAGES calls!
+			struct FilterChunkClass
 			{
-				Chunk *end = record->GetLastChunk();
+				FilterChunkClass(uint32_t s) : stages(s) {}
+				uint32_t stages;
 
-				if(end->GetChunkType() == USE_PROGRAMSTAGES)
+				// this is kind of a hack, but it would be really awkward
+				// to make a general solution just for this one case, and
+				// we also can't really afford to drop it entirely.
+				// we search for the marker serialised above, skip over the
+				// pipeline id (as it will be the same in all chunks in this
+				// record), and check if the Stages bitfield afterwards is
+				// the same - if so we remove that chunk as replaced by
+				// this one
+				bool operator () (Chunk *c)
 				{
-					SAFE_DELETE(end);
-					record->PopChunk();
-					continue;
+					if(c->GetChunkType() != USE_PROGRAMSTAGES)
+						return false;
+
+					byte *b = c->GetData();
+					byte *end = b + c->GetLength();
+
+					// 'fast' path, rather than searching byte-by-byte from
+					// the start to be safe, check the exact difference it should
+					// always be first.
+					if( *(uint64_t *)(b+6) == marker_glUseProgramStages_hack)
+						b += 6;
+
+					while(b + sizeof(uint64_t) < end)
+					{
+						uint64_t *marker = (uint64_t *)b;
+						if(*marker == marker_glUseProgramStages_hack)
+						{
+							// increment to point to pipeline id
+							marker++;
+							// increment to point to stages field
+							marker++;
+
+							// now compare
+							uint32_t *chunkStages = (uint32_t *)marker;
+
+							if(*chunkStages == stages)
+								return true;
+							return false;
+						}
+
+						b++;
+					}
+					RDCERR("Didn't find marker value! This should not happen, check Serialise_glUseProgramStages serialisation");
+					return false;
 				}
+			};
+			record->FilterChunks(FilterChunkClass(stages));
 
-				break;
-			}
-			record->UnlockChunks();
-
-			record->AddChunk(scope.Get());
+			record->AddChunk(chunk);
 		}
 
 		if(program)

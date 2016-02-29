@@ -238,12 +238,10 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	RDCDriver driverType = RDC_OpenGL;
 	string driverName = "OpenGL";
 	if(logfile)
-		RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, (RDCInitParams *)&initParams);
-
-	if(initParams.SerialiseVersion != GLInitParams::GL_SERIALISE_VERSION)
 	{
-		RDCERR("Incompatible OpenGL serialise version, expected %d got %d", GLInitParams::GL_SERIALISE_VERSION, initParams.SerialiseVersion);
-		return eReplayCreate_APIIncompatibleVersion;
+		auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, (RDCInitParams *)&initParams);
+		if(status != eReplayCreate_Success)
+			return status;
 	}
 
 	int attribs[64] = {0};

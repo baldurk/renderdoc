@@ -58,7 +58,11 @@ struct GLInitParams : public RDCInitParams
 	uint32_t width;
 	uint32_t height;
 	
-	static const uint32_t GL_SERIALISE_VERSION = 0x0000010;
+	static const uint32_t GL_SERIALISE_VERSION = 0x0000011;
+	
+	// backwards compatibility for old logs described at the declaration of this array
+	static const uint32_t GL_NUM_SUPPORTED_OLD_VERSIONS = 1;
+	static const uint32_t GL_OLD_VERSIONS[GL_NUM_SUPPORTED_OLD_VERSIONS];
 
 	// version number internal to opengl stream
 	uint32_t SerialiseVersion;
@@ -313,6 +317,7 @@ class WrappedOpenGL : public IFrameCapturer
 		//GLRenderState *m_CurrentPipelineState;
 		
 		Serialiser *GetSerialiser() { return m_pSerialiser; }
+		uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
 
 		void ProcessChunk(uint64_t offset, GLChunkType context);
 		void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
