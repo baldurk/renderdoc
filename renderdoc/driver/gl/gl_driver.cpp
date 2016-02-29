@@ -2915,63 +2915,65 @@ bool WrappedOpenGL::RecordUpdateCheck(GLResourceRecord *record)
 
 void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message)
 {
-	if(type != eGL_DEBUG_TYPE_PERFORMANCE && type != eGL_DEBUG_TYPE_OTHER)
+	if(type != eGL_DEBUG_TYPE_PUSH_GROUP && type != eGL_DEBUG_TYPE_POP_GROUP)
 	{
-		RDCLOG("Got a Debug message from %s, type %s, ID %d, severity %s:\n'%s'",
-					ToStr::Get(source).c_str(), ToStr::Get(type).c_str(), id, ToStr::Get(severity).c_str(), message);
-		if(m_DebugMsgContext != "")
-			RDCLOG("Debug Message context: \"%s\"", m_DebugMsgContext.c_str());
-	}
-
-	if(m_State == WRITING_CAPFRAME &&
-	   type != eGL_DEBUG_TYPE_PUSH_GROUP && type != eGL_DEBUG_TYPE_POP_GROUP)
-	{
-		DebugMessage msg;
-
-		msg.messageID = id;
-		msg.description = string(message, message+length);
-
-		switch(severity)
+		if(type != eGL_DEBUG_TYPE_PERFORMANCE && type != eGL_DEBUG_TYPE_OTHER)
 		{
-			case eGL_DEBUG_SEVERITY_HIGH:
-				msg.severity = eDbgSeverity_High; break;
-			case eGL_DEBUG_SEVERITY_MEDIUM:
-				msg.severity = eDbgSeverity_Medium; break;
-			case eGL_DEBUG_SEVERITY_LOW:
-				msg.severity = eDbgSeverity_Low; break;
-			case eGL_DEBUG_SEVERITY_NOTIFICATION:
-			default:
-				msg.severity = eDbgSeverity_Info; break;
+			RDCLOG("Got a Debug message from %s, type %s, ID %d, severity %s:\n'%s'",
+				ToStr::Get(source).c_str(), ToStr::Get(type).c_str(), id, ToStr::Get(severity).c_str(), message);
+			if(m_DebugMsgContext != "")
+				RDCLOG("Debug Message context: \"%s\"", m_DebugMsgContext.c_str());
 		}
 
-		if(source == eGL_DEBUG_SOURCE_APPLICATION || type == eGL_DEBUG_TYPE_MARKER)
+		if(m_State == WRITING_CAPFRAME)
 		{
-			msg.category = eDbgCategory_Application_Defined;
-		}
-		else if(source == eGL_DEBUG_SOURCE_SHADER_COMPILER)
-		{
-			msg.category = eDbgCategory_Shaders;
-		}
-		else
-		{
-			switch(type)
+			DebugMessage msg;
+
+			msg.messageID = id;
+			msg.description = string(message, message+length);
+
+			switch(severity)
 			{
-				case eGL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-					msg.category = eDbgCategory_Deprecated; break;
-				case eGL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-					msg.category = eDbgCategory_Undefined; break;
-				case eGL_DEBUG_TYPE_PORTABILITY:
-					msg.category = eDbgCategory_Portability; break;
-				case eGL_DEBUG_TYPE_PERFORMANCE:
-					msg.category = eDbgCategory_Performance; break;
-				case eGL_DEBUG_TYPE_ERROR:
-				case eGL_DEBUG_TYPE_OTHER:
+				case eGL_DEBUG_SEVERITY_HIGH:
+					msg.severity = eDbgSeverity_High; break;
+				case eGL_DEBUG_SEVERITY_MEDIUM:
+					msg.severity = eDbgSeverity_Medium; break;
+				case eGL_DEBUG_SEVERITY_LOW:
+					msg.severity = eDbgSeverity_Low; break;
+				case eGL_DEBUG_SEVERITY_NOTIFICATION:
 				default:
-					msg.category = eDbgCategory_Miscellaneous; break;
+					msg.severity = eDbgSeverity_Info; break;
 			}
-		}
 
-		m_DebugMessages.push_back(msg);
+			if(source == eGL_DEBUG_SOURCE_APPLICATION || type == eGL_DEBUG_TYPE_MARKER)
+			{
+				msg.category = eDbgCategory_Application_Defined;
+			}
+			else if(source == eGL_DEBUG_SOURCE_SHADER_COMPILER)
+			{
+				msg.category = eDbgCategory_Shaders;
+			}
+			else
+			{
+				switch(type)
+				{
+					case eGL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+						msg.category = eDbgCategory_Deprecated; break;
+					case eGL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+						msg.category = eDbgCategory_Undefined; break;
+					case eGL_DEBUG_TYPE_PORTABILITY:
+						msg.category = eDbgCategory_Portability; break;
+					case eGL_DEBUG_TYPE_PERFORMANCE:
+						msg.category = eDbgCategory_Performance; break;
+					case eGL_DEBUG_TYPE_ERROR:
+					case eGL_DEBUG_TYPE_OTHER:
+					default:
+						msg.category = eDbgCategory_Miscellaneous; break;
+				}
+			}
+
+			m_DebugMessages.push_back(msg);
+		}
 	}
 
 	if(m_RealDebugFunc)
