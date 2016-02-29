@@ -394,6 +394,7 @@ namespace renderdocui.Windows
                 try
                 {
                     File.Copy(log.localpath, path, true);
+                    log.saved = true;
                 }
                 catch (System.Exception ex)
                 {
