@@ -200,3 +200,13 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 		}
 	}
 }
+
+void VulkanRenderState::EndRenderPass(VkCommandBuffer cmd)
+{
+	uint32_t numSubpasses = (uint32_t)m_CreationInfo->m_RenderPass[renderPass].subpasses.size();
+
+	for(uint32_t sub=subpass; sub < numSubpasses-1; sub++)
+		ObjDisp(cmd)->CmdNextSubpass(Unwrap(cmd), VK_SUBPASS_CONTENTS_INLINE);
+
+	ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+}

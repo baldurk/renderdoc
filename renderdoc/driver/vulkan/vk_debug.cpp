@@ -3496,6 +3496,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 			vt->CmdClearAttachments(Unwrap(cmd), (uint32_t)atts.size(), &atts[0], 1, &rect);
 
+			m_pDriver->m_RenderState.EndRenderPass(cmd);
+
 			vkr = vt->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
@@ -5115,7 +5117,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// do single draw
 		modifiedstate.BeginRenderPassAndApplyState(cmd);
 		ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances, drawcall->vertexOffset, drawcall->instanceOffset);
-		ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+		modifiedstate.EndRenderPass(cmd);
 		
 		VkBufferMemoryBarrier meshbufbarrier = {
 				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
@@ -5249,7 +5251,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// do single draw
 		modifiedstate.BeginRenderPassAndApplyState(cmd);
 		ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), (uint32_t)indices.size(), drawcall->numInstances, 0, drawcall->vertexOffset, drawcall->instanceOffset);
-		ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+		modifiedstate.EndRenderPass(cmd);
 		
 		// rebase existing index buffer to point to the right elements in our stream-out'd
 		// vertex buffer

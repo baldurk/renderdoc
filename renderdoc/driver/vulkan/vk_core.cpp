@@ -1919,14 +1919,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			// check if the render pass is active - it could have become active
 			// even if it wasn't before (if the above event was a CmdBeginRenderPass)
 			if(m_PartialReplayData.renderPassActive)
-			{
-				uint32_t numSubpasses = (uint32_t)m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses.size();
-
-				for(uint32_t sub=m_RenderState.subpass; sub < numSubpasses-1; sub++)
-					ObjDisp(cmd)->CmdNextSubpass(Unwrap(cmd), VK_SUBPASS_CONTENTS_INLINE);
-
-				ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
-			}
+				m_RenderState.EndRenderPass(cmd);
 
 			// we might have replayed a CmdBeginRenderPass or CmdEndRenderPass,
 			// but we want to keep the partial replay data state intact, so restore

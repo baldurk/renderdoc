@@ -36,6 +36,7 @@ struct VulkanRenderState
 	VulkanRenderState(VulkanCreationInfo *createInfo);
 	VulkanRenderState &operator =(const VulkanRenderState &o);
 	void BeginRenderPassAndApplyState(VkCommandBuffer cmd);
+	void EndRenderPass(VkCommandBuffer cmd);
 	void BindPipeline(VkCommandBuffer cmd);
 
 	// dynamic state
@@ -78,7 +79,6 @@ struct VulkanRenderState
 	vector<VertBuffer> vbuffers;
 
 	VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
-
 	VulkanResourceManager *m_ResourceManager;
 	VulkanCreationInfo *m_CreationInfo;
 };
