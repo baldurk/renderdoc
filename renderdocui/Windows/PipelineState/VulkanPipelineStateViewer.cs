@@ -1220,7 +1220,16 @@ namespace renderdocui.Windows.PipelineState
                 int i = 0;
                 foreach (var p in state.Pass.framebuffer.attachments)
                 {
-                    if (p.img != ResourceId.Null || showEmpty.Checked)
+                    int colIdx = Array.IndexOf(state.Pass.renderpass.colorAttachments, (uint)i);
+
+                    bool filledSlot = (p.img != ResourceId.Null);
+                    bool usedSlot = (colIdx >= 0 || state.Pass.renderpass.depthstencilAttachment == i);
+
+                    // show if
+                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                        )
                     {
                         UInt32 w = 1, h = 1, d = 1;
                         UInt32 a = 1;
@@ -1253,7 +1262,7 @@ namespace renderdocui.Windows.PipelineState
                                 {
                                     for(int s=0; s < state.FS.ShaderDetails.OutputSig.Length; s++)
                                     {
-                                        if(state.FS.ShaderDetails.OutputSig[s].regIndex == i &&
+                                        if(state.FS.ShaderDetails.OutputSig[s].regIndex == colIdx &&
                                             (state.FS.ShaderDetails.OutputSig[s].systemValue == SystemAttribute.None ||
                                             state.FS.ShaderDetails.OutputSig[s].systemValue == SystemAttribute.ColourOutput))
                                         {
@@ -1273,13 +1282,11 @@ namespace renderdocui.Windows.PipelineState
                         node.Tag = tag;
 
                         if (p.img == ResourceId.Null)
-                        {
                             EmptyRow(node);
-                        }
+                        else if (!usedSlot)
+                            InactiveRow(node);
                         else
-                        {
                             targets[i] = true;
-                        }
                     }
 
                     i++;
