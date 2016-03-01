@@ -2190,6 +2190,13 @@ string ToStrHelper<false, D3D11_LOGIC_OP>::Get(const D3D11_LOGIC_OP &el)
 	return tostrBuf;
 }
 
+// for HRESULT
+template<>
+string ToStrHelper<false, long>::Get(const long &el)
+{
+	return ToStr::Get((uint64_t)el);
+}
+
 string ToStrHelper<false, DXGI_FORMAT>::Get(const DXGI_FORMAT &el)
 {
 	switch(el)
