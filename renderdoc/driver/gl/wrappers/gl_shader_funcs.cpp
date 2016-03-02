@@ -1039,7 +1039,7 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 				// record), and check if the Stages bitfield afterwards is
 				// the same - if so we remove that chunk as replaced by
 				// this one
-				bool operator () (Chunk *c)
+				bool operator () (Chunk *c) const
 				{
 					if(c->GetChunkType() != USE_PROGRAMSTAGES)
 						return false;

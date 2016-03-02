@@ -171,7 +171,7 @@ struct GLResourceRecord : public ResourceRecord
 	} Map;
 
 	template<typename ChunkFilter>
-	void FilterChunks(ChunkFilter& filter)
+	void FilterChunks(const ChunkFilter& filter)
 	{
 		LockChunks();
 		std::vector<std::map<int32_t, Chunk *>::iterator> deletions;
