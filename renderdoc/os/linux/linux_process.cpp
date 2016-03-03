@@ -297,12 +297,12 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 			case eEnvModification_Append:
 				value += m.value;
 				break;
+			case eEnvModification_AppendPlatform:
 			case eEnvModification_AppendColon:
 				if(!value.empty())
 					value += ":";
 				value += m.value;
 				break;
-			case eEnvModification_AppendPlatform:
 			case eEnvModification_AppendSemiColon:
 				if(!value.empty())
 					value += ";";
