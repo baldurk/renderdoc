@@ -158,7 +158,7 @@ struct SIGNHeader
 
 struct PRIVHeader
 {
-	uint32_t fourcc;					// "ISGN", "OSGN, "OSG5", "PCSG"
+	uint32_t fourcc;					// "PRIV"
 	uint32_t chunkLength;				// length of this chunk
 	
 	void* data;
