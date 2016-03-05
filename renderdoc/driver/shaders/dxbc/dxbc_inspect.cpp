@@ -27,6 +27,7 @@
 #include "common/common.h"
 #include "serialise/serialiser.h"
 #include "serialise/string_utils.h"
+#include "api/app/renderdoc_app.h"
 #include "dxbc_inspect.h"
 #include "dxbc_sdbg.h"
 #include "dxbc_spdb.h"
@@ -160,9 +161,18 @@ struct PRIVHeader
 {
 	uint32_t fourcc;					// "PRIV"
 	uint32_t chunkLength;				// length of this chunk
+
+	GUID debugInfoGUID;         // GUID/magic number, since PRIV data could be used for something else.
+	                            // Set to the value of RENDERDOC_ShaderDebugMagicValue from
+	                            // renderdoc_app.h which can also be used as a GUID to set the path
+	                            // at runtime via SetPrivateData (see documentation)
+	
+	static const GUID RENDERDOC_ShaderDebugMagicValue;
 	
 	void* data;
 };
+
+const GUID PRIVHeader::RENDERDOC_ShaderDebugMagicValue = RENDERDOC_ShaderDebugMagicValue_struct;
 
 struct SIGNElement
 {
@@ -517,14 +527,17 @@ string DXBCFile::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
 		if(*fourcc == FOURCC_PRIV)
 		{
 			PRIVHeader *privHeader = (PRIVHeader *)fourcc;
-			const char* pathData = (char*)&privHeader->data;
-			size_t pathLength = strnlen(pathData, privHeader->chunkLength);
-
-			if(privHeader->chunkLength == (pathLength + 1))
+			if(privHeader->debugInfoGUID == PRIVHeader::RENDERDOC_ShaderDebugMagicValue)
 			{
-				debugPath.append(pathData, pathData + pathLength);
-				return debugPath;
-			}			
+				const char* pathData = (char*)&privHeader->data;
+				size_t pathLength = strnlen(pathData, privHeader->chunkLength);
+
+				if(privHeader->chunkLength == (sizeof(GUID) + pathLength + 1))
+				{
+					debugPath.append(pathData, pathData + pathLength);
+					return debugPath;
+				}
+			}
 		}
 	}
 
