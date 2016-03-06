@@ -129,9 +129,9 @@ void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevic
 
 	// wrap around the ring, assuming the ring is large enough
 	// that this memory is now free
-	if(offset + size > totalsize)
+	if(offset + sz > totalsize)
 		offset = 0;
-	RDCASSERT(offset + size <= totalsize);
+	RDCASSERT(offset + sz <= totalsize);
 	
 	// offset must be aligned
 	curoffset = AlignUp(offset+size, align);
