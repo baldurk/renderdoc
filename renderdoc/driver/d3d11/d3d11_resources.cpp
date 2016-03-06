@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
+#include "api/app/renderdoc_app.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "driver/d3d11/d3d11_context.h"
 #include "driver/d3d11/d3d11_resources.h"
@@ -62,11 +62,17 @@ map<ResourceId,WrappedID3D11Buffer::BufferEntry> WrappedID3D11Buffer::m_BufferLi
 map<ResourceId,WrappedShader::ShaderEntry*> WrappedShader::m_ShaderList;
 Threading::CriticalSection WrappedShader::m_ShaderListLock;
 
+const GUID RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue = RENDERDOC_ShaderDebugMagicValue_struct;
+
 void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
 {
 	if(!DXBC::DXBCFile::CheckForDebugInfo((const void *)&m_Bytecode[0], m_Bytecode.size()))
 	{
-		string originalPath = DXBC::DXBCFile::GetDebugBinaryPath((const void *)&m_Bytecode[0], m_Bytecode.size());
+		string originalPath = m_DebugInfoPath;
+
+		if(originalPath.empty())
+			originalPath = DXBC::DXBCFile::GetDebugBinaryPath((const void *)&m_Bytecode[0], m_Bytecode.size());
+
 		if(!originalPath.empty())
 		{
 			FILE* originalShaderFile = FileIO::fopen(originalPath.c_str(), "rb");

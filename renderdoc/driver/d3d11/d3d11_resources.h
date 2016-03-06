@@ -450,6 +450,8 @@ public:
 	}
 };
 
+extern const GUID RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue;
+
 template<typename NestedType>
 class WrappedDeviceChild : public RefCounter, public NestedType, public TrackedResource
 {
@@ -603,8 +605,12 @@ public:
 		/* [annotation] */ 
 		__in_bcount_opt( DataSize )  const void *pData)
 	{
+		if(guid == RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue)
+			return m_pDevice->SetShaderDebugPath(this, (const char *)pData);
+
 		if(guid == WKPDID_D3DDebugObjectName)
 			m_pDevice->SetResourceName(this, (const char *)pData);
+
 		return m_pReal->SetPrivateData(guid, DataSize, pData);
 	}
 
@@ -1086,6 +1092,11 @@ public:
 				SAFE_DELETE(m_Details);
 			}
 
+			void SetDebugInfoPath(const std::string &path)
+			{
+				m_DebugInfoPath = path;
+			}
+
 			DXBC::DXBCFile *GetDXBC()
 			{
 				if(m_DXBCFile == NULL && !m_Bytecode.empty())
@@ -1105,6 +1116,8 @@ public:
 			ShaderEntry(const ShaderEntry &e);
 			void TryReplaceOriginalByteCode();
 			ShaderEntry &operator =(const ShaderEntry &e);
+
+			std::string m_DebugInfoPath;
 
 			vector<byte> m_Bytecode;
 

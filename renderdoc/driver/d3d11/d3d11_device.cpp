@@ -181,6 +181,8 @@ const char *D3D11ChunkNames[] =
 
 	"ContextBegin",
 	"ContextEnd",
+
+	"SetShaderDebugPath",
 };
 
 WRAPPED_POOL_INST(WrappedID3D11Device);
@@ -958,6 +960,9 @@ void WrappedID3D11Device::ProcessChunk(uint64_t offset, D3D11ChunkType context)
 	}
 	case CAPTURE_SCOPE:
 		Serialise_CaptureScope(offset);
+		break;
+	case SET_SHADER_DEBUG_PATH:
+		Serialise_SetShaderDebugPath(NULL, NULL);
 		break;
 	default:
 		// ignore system chunks
@@ -3197,6 +3202,50 @@ void WrappedID3D11Device::RemoveDeferredContext(WrappedID3D11DeviceContext *defc
 {
 	RDCASSERT(m_DeferredContexts.find(defctx) != m_DeferredContexts.end());
 	m_DeferredContexts.erase(defctx);
+}
+
+bool WrappedID3D11Device::Serialise_SetShaderDebugPath(ID3D11DeviceChild *res, const char *p)
+{
+	SERIALISE_ELEMENT(ResourceId, resource, GetIDForResource(res));
+	string debugPath = p ? p : "";
+	m_pSerialiser->Serialise("debugPath", debugPath);
+
+	if(m_State < WRITING && GetResourceManager()->HasLiveResource(resource))
+	{
+		auto it = WrappedShader::m_ShaderList.find(GetResourceManager()->GetLiveID(resource));
+
+		if(it != WrappedShader::m_ShaderList.end())
+			it->second->SetDebugInfoPath(debugPath);
+	}
+
+	return true;
+}
+
+HRESULT WrappedID3D11Device::SetShaderDebugPath(ID3D11DeviceChild *res, const char *path)
+{
+	if(m_State >= WRITING)
+	{
+		ResourceId idx = GetIDForResource(res);
+		D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(idx);
+
+		if(record == NULL)
+		{
+			RDCERR("Setting shader debug path on object %p of type %d that has no resource record.", res, IdentifyTypeByPtr(res));
+			return E_INVALIDARG;
+		}
+
+		RDCASSERT(idx != ResourceId());
+		
+		{
+			SCOPED_SERIALISE_CONTEXT(SET_SHADER_DEBUG_PATH);
+			Serialise_SetShaderDebugPath(res, path);
+			record->AddChunk(scope.Get());
+		}
+
+		return S_OK;
+	}
+
+	return S_OK;
 }
 
 bool WrappedID3D11Device::Serialise_SetResourceName(ID3D11DeviceChild *res, const char *nm)

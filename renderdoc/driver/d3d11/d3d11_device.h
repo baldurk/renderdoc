@@ -329,6 +329,7 @@ public:
 
 	// Resource
 	IMPLEMENT_FUNCTION_SERIALISED(void, SetResourceName(ID3D11DeviceChild *res, const char *name));
+	IMPLEMENT_FUNCTION_SERIALISED(HRESULT, SetShaderDebugPath(ID3D11DeviceChild *res, const char *name));
 	IMPLEMENT_FUNCTION_SERIALISED(void, ReleaseResource(ID3D11DeviceChild *res));
 
 	// Class Linkage

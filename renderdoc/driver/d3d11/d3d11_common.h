@@ -295,6 +295,8 @@ enum D3D11ChunkType
 	CONTEXT_CAPTURE_HEADER, // chunk at beginning of context's chunk stream
 	CONTEXT_CAPTURE_FOOTER, // chunk at end of context's chunk stream
 
+	SET_SHADER_DEBUG_PATH,
+
 	NUM_D3D11_CHUNKS,
 };
 
