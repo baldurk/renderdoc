@@ -88,6 +88,29 @@ glIsEnabled(GL_DEBUG_TOOL_EXT);
 #define GL_DEBUG_TOOL_NAME_EXT            0x678A
 #define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B
 </code></para></listItem>
+			  <listItem><para>RenderDoc can be informed about separated debug shader blobs through API specific ways:
+<code language="cpp">
+// For D3D11:
+GUID RENDERDOC_ShaderDebugMagicValue = RENDERDOC_ShaderDebugMagicValue_value; // GUID value in renderdoc_app.h
+
+ID3D11VertexShader *shader = ...;
+std::string pathName = ...; // path name is in UTF-8
+
+// string parameter must be NULL-terminated, and in UTF-8
+shader->SetPrivateData(RENDERDOC_ShaderDebugMagicValue, (UINT)pathName.length(), pathName.c_str());
+
+// Alternatively at build time:
+struct { GUID guid; char name[MAX_PATH]; } path;
+
+path.guid = RENDERDOC_ShaderDebugMagicValue;
+// must include NULL-terminator, and be in UTF-8
+memcpy(path.name, debugPath.c_str(), debugPath.length() + 1);
+
+size_t pathSize = sizeof(GUID) + debugPath.length() + 1;
+
+D3DSetBlobPart(strippedBlob->GetBufferPointer(), strippedBlob->GetBufferSize(), D3D_BLOB_PRIVATE_DATA, 0, &amp;path, pathSize, &amp;annotatedBlob);
+// use annotatedBlob instead of strippedBlob from here on
+</code></para></listItem>
 			  <listItem><para>More coming soon hopefully :).</para></listItem>
 			</list>
         </para>
