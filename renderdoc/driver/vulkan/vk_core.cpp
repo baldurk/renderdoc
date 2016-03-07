@@ -898,7 +898,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		VkImageMemoryBarrier bbBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			0, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			Unwrap(backbuffer),
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
@@ -906,7 +906,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		VkImageMemoryBarrier readBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			readbackIm, // was never wrapped
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
@@ -919,7 +919,10 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		// barrier to switch backbuffer back to present layout
 		std::swap(bbBarrier.oldLayout, bbBarrier.newLayout);
+		std::swap(bbBarrier.srcAccessMask, bbBarrier.dstAccessMask);
 
+		readBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		readBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
 		readBarrier.oldLayout = readBarrier.newLayout;
 		readBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
 		

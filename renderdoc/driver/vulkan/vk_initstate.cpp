@@ -1088,13 +1088,14 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		// transfer back to whatever it was
 		srcimBarrier.oldLayout = srcimBarrier.newLayout;
 
-		srcimBarrier.srcAccessMask = 0;
+		srcimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 		srcimBarrier.dstAccessMask = 0;
 		
 		for (size_t si = 0; si < layout->subresourceStates.size(); si++)
 		{
 			srcimBarrier.subresourceRange = layout->subresourceStates[si].subresourceRange;
 			srcimBarrier.newLayout = layout->subresourceStates[si].newLayout;
+			srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
 			DoPipelineBarrier(cmd, 1, &srcimBarrier);
 		}
 
