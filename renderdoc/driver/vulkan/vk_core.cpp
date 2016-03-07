@@ -912,11 +912,6 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 		};
 
-		VkImageMemoryBarrier *barriers[] = {
-			&bbBarrier,
-			&readBarrier,
-		};
-
 		DoPipelineBarrier(cmd, 1, &bbBarrier);
 		DoPipelineBarrier(cmd, 1, &readBarrier);
 

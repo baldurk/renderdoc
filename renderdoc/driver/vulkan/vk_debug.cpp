@@ -1880,11 +1880,6 @@ void VulkanDebugManager::BeginText(const TextPrintState &textstate)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(textstate.cmd);
 	
-	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
-	
-	VkResult vkr = vt->BeginCommandBuffer(Unwrap(textstate.cmd), &beginInfo);
-	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	
 	VkClearValue clearval = {0};
 	VkRenderPassBeginInfo rpbegin = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
@@ -1957,7 +1952,6 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 void VulkanDebugManager::EndText(const TextPrintState &textstate)
 {
 	ObjDisp(textstate.cmd)->CmdEndRenderPass(Unwrap(textstate.cmd));
-	ObjDisp(textstate.cmd)->EndCommandBuffer(Unwrap(textstate.cmd));
 }
 
 void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret)

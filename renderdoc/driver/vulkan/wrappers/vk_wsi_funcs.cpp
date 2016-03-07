@@ -538,11 +538,30 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 		if(overlay & eRENDERDOC_Overlay_Enabled)
 		{
 			VkRenderPass rp = swapInfo.rp;
+			VkImage im = swapInfo.images[pPresentInfo->pImageIndices[0]].im;
 			VkFramebuffer fb = swapInfo.images[pPresentInfo->pImageIndices[0]].fb;
 
 			VkLayerDispatchTable *vt = ObjDisp(GetDev());
 
 			TextPrintState textstate = { GetNextCmd(), rp, fb, swapInfo.extent.width, swapInfo.extent.height };
+			
+			VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
+
+			VkResult vkr = vt->BeginCommandBuffer(Unwrap(textstate.cmd), &beginInfo);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+			VkImageMemoryBarrier bbBarrier = {
+				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+				0, 0, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+				Unwrap(im),
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+			};
+
+			bbBarrier.srcAccessMask = VK_ACCESS_ALL_READ_BITS;
+			bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+			DoPipelineBarrier(textstate.cmd, 1, &bbBarrier);
 
 			GetDebugManager()->BeginText(textstate);
 
@@ -625,6 +644,14 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 			}
 			
 			GetDebugManager()->EndText(textstate);
+			
+			std::swap(bbBarrier.oldLayout, bbBarrier.newLayout);
+			bbBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			bbBarrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
+
+			DoPipelineBarrier(textstate.cmd, 1, &bbBarrier);
+
+			ObjDisp(textstate.cmd)->EndCommandBuffer(Unwrap(textstate.cmd));
 
 			SubmitCmds();
 
