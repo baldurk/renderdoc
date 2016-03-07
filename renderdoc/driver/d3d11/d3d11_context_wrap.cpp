@@ -361,6 +361,8 @@ void WrappedID3D11DeviceContext::IASetInputLayout(ID3D11InputLayout *pInputLayou
 		SCOPED_SERIALISE_CONTEXT(SET_INPUT_LAYOUT);
 		m_pSerialiser->Serialise("context", m_ResourceID);	
 		Serialise_IASetInputLayout(pInputLayout);
+
+		MarkResourceReferenced(GetIDForResource(pInputLayout), eFrameRef_Read);
 		
 		m_ContextRecord->AddChunk(scope.Get());
 	}

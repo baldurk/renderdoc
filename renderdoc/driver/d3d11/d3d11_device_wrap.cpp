@@ -1148,7 +1148,15 @@ HRESULT WrappedID3D11Device::CreateInputLayout(
 			SCOPED_SERIALISE_CONTEXT(CREATE_INPUT_LAYOUT);
 			Serialise_CreateInputLayout(pInputElementDescs, NumElements, pShaderBytecodeWithInputSignature, BytecodeLength, &wrapped);
 
-			m_DeviceRecord->AddChunk(scope.Get());
+			WrappedID3D11InputLayout *lay = (WrappedID3D11InputLayout *)wrapped;
+			ResourceId id = lay->GetResourceID();
+			
+			RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+			D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			record->Length = 0;
+
+			record->AddChunk(scope.Get());
 		}
 	}
 
