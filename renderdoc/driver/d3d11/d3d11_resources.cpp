@@ -86,8 +86,8 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
 				{
 					vector<byte> originalBytecode;
 
-					originalBytecode.resize(originalShaderSize);
-					FileIO::fread(&originalBytecode[0], sizeof(byte), originalShaderSize, originalShaderFile);
+					originalBytecode.resize((size_t)originalShaderSize);
+					FileIO::fread(&originalBytecode[0], sizeof(byte), (size_t)originalShaderSize, originalShaderFile);
 
 					if(DXBC::DXBCFile::CheckForDebugInfo((const void *)&originalBytecode[0], originalBytecode.size()))
 					{
