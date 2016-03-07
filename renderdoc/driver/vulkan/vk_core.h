@@ -47,7 +47,7 @@ struct VkInitParams : public RDCInitParams
 
 	void Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst);
 
-	static const uint32_t VK_SERIALISE_VERSION = 0x0000002;
+	static const uint32_t VK_SERIALISE_VERSION = 0x0000003;
 
 	// version number internal to vulkan stream
 	uint32_t SerialiseVersion;

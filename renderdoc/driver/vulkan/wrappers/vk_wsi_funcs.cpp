@@ -190,6 +190,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 	}
 
 	SERIALISE_ELEMENT(uint32_t, numSwapImages, numIms);
+	SERIALISE_ELEMENT(VkSharingMode, sharingMode, pCreateInfo->imageSharingMode);
 
 	if(m_State == READING)
 	{
@@ -214,7 +215,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT|
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|
 			VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_SHARING_MODE_CONCURRENT, 0, NULL,
+			sharingMode, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
