@@ -282,7 +282,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			0, Unwrap(surface),
 			2, imformat, imcolspace, { width, height }, 1,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_SHARING_MODE_CONCURRENT, 0, NULL,
 			VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR, VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 			presentmode, true,
 			Unwrap(old),
@@ -325,7 +325,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			1, 1, VULKAN_MESH_VIEW_SAMPLES,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_SHARING_MODE_CONCURRENT, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
@@ -429,7 +429,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			1, 1, depth ? VULKAN_MESH_VIEW_SAMPLES : VK_SAMPLE_COUNT_1_BIT,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_SHARING_MODE_CONCURRENT, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
@@ -4002,7 +4002,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 			(uint32_t)imInfo.mipLevels, (uint32_t)imInfo.arrayLayers, imInfo.samples,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			VK_SHARING_MODE_CONCURRENT, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 	};
 	
