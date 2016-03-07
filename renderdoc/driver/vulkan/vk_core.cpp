@@ -1942,33 +1942,11 @@ VkBool32 WrappedVulkan::DebugCallback(
 				const char*                                 pLayerPrefix,
 				const char*                                 pMessage)
 {
-	bool isSC = !strcmp(pLayerPrefix, "SC");
-
-	// Just way too spammy and inaccurate
-	if(isSC)
-		return false;
-	
 	bool isDS = !strcmp(pLayerPrefix, "DS");
 
 	// All access mask/barrier messages.
 	// These are just too spammy/false positive/unreliable to keep
 	if(isDS && messageCode == 11)
-		return false;
-
-	// Recommended to use LOAD_OP_CLEAR
-	// Optimisation that we don't really need to do and increases complexity
-	// a fair amount.
-	if(isDS && location == 5454)
-		return false;
-
-	// Can't vkUpdateDescriptorSets() on descriptor set that is in use
-	// unfortunately this fires erroneously on initial contents
-	if(isDS && location == 2290)
-		return false;
-
-	// Fence 0 is already in use by another submission.
-	// Invalid error, not accounting for VK_NULL_HANDLE as fence parameter
-	if(isDS && messageCode == 14 && object == 0)
 		return false;
 
 	bool isMEM = !strcmp(pLayerPrefix, "MEM");
@@ -1978,12 +1956,6 @@ VkBool32 WrappedVulkan::DebugCallback(
 	// and copy image data over separately, so our use is safe
 	// no location set for this one, so ignore by code (maybe too coarse)
 	if(isMEM && messageCode == 3)
-		return false;
-	
-	// cannot read invalid memory
-	// this message is a good one, but it can't detect storage writes from shader
-	// at the moment so memory is wrongly marked as invalid
-	if(isMEM && location == 488)
 		return false;
 
 	RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
