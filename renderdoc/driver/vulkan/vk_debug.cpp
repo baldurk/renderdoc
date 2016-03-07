@@ -830,6 +830,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT, VK_NULL_HANDLE, "main", NULL },
 	};
 
+	VkPipelineVertexInputStateCreateInfo vi = {
+		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, NULL, 0,
+		0, NULL, // vertex bindings
+		0, NULL, // vertex attributes
+	};
+
 	VkPipelineInputAssemblyStateCreateInfo ia = {
 		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL, 0,
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, false,
@@ -886,7 +892,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	VkGraphicsPipelineCreateInfo pipeInfo = {
 		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, NULL, 0,
 		2, stages,
-		NULL, // vertex input
+		&vi,
 		&ia,
 		NULL, // tess
 		&vp,
