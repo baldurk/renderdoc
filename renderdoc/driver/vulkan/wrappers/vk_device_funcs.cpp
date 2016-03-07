@@ -65,15 +65,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	}
 
 #if defined(FORCE_VALIDATION_LAYERS)
-	params.Layers.push_back("VK_LAYER_LUNARG_threading");
-	params.Layers.push_back("VK_LAYER_LUNARG_mem_tracker");
-	params.Layers.push_back("VK_LAYER_LUNARG_object_tracker");
-	params.Layers.push_back("VK_LAYER_LUNARG_draw_state");
-	params.Layers.push_back("VK_LAYER_LUNARG_param_checker");
-	params.Layers.push_back("VK_LAYER_LUNARG_swapchain");
-	params.Layers.push_back("VK_LAYER_LUNARG_device_limits");
-	params.Layers.push_back("VK_LAYER_LUNARG_image");
-	params.Layers.push_back("VK_LAYER_GOOGLE_unique_objects");
+	params.Layers.push_back("VK_LAYER_LUNARG_standard_validation");
 
 	params.Extensions.push_back("VK_EXT_debug_report");
 #endif
@@ -485,15 +477,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		for(uint32_t i=0; i < createInfo.enabledLayerCount; i++)
 			layers.push_back(createInfo.ppEnabledLayerNames[i]);
 
-		layers.push_back("VK_LAYER_LUNARG_threading");
-		layers.push_back("VK_LAYER_LUNARG_mem_tracker");
-		layers.push_back("VK_LAYER_LUNARG_object_tracker");
-		layers.push_back("VK_LAYER_LUNARG_draw_state");
-		layers.push_back("VK_LAYER_LUNARG_param_checker");
-		layers.push_back("VK_LAYER_LUNARG_swapchain");
-		layers.push_back("VK_LAYER_LUNARG_device_limits");
-		layers.push_back("VK_LAYER_LUNARG_image");
-		layers.push_back("VK_LAYER_GOOGLE_unique_objects");
+		layers.push_back("VK_LAYER_LUNARG_standard_validation");
 
 		createInfo.enabledLayerCount = (uint32_t)layers.size();
 		createInfo.ppEnabledLayerNames = &layers[0];
