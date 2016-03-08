@@ -165,6 +165,17 @@ VkResult getProps(uint32_t *dstCount, void *dstProps, uint32_t srcCount, void *s
 	return VK_SUCCESS;
 }
 
+#if defined(WIN32) && !defined(WIN64)
+
+// Win32 __stdcall will still mangle even with extern "C", set up aliases
+
+#pragma comment(linker, "/EXPORT:VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties=_VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties@12")
+#pragma comment(linker, "/EXPORT:VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties=_VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties@16")
+#pragma comment(linker, "/EXPORT:VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr=_VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr@8")
+#pragma comment(linker, "/EXPORT:VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr=_VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr@8")
+
+#endif
+
 extern "C" {
 
 VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties(
