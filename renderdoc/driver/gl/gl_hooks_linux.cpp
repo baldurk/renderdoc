@@ -50,6 +50,7 @@ typedef void (*PFNGLXSWAPBUFFERSPROC)(Display *dpy, GLXDrawable drawable);
 typedef XVisualInfo* (*PFNGLXGETVISUALFROMFBCONFIGPROC)(Display *dpy, GLXFBConfig config);
 typedef int (*PFNGLXGETCONFIGPROC)(Display *dpy, XVisualInfo *vis, int attrib, int * value);
 typedef Bool (*PFNGLXQUERYEXTENSIONPROC)(Display *dpy, int *errorBase, int *eventBase);
+typedef Bool (*PFNGLXISDIRECTPROC)(Display *dpy, GLXContext ctx);
 
 void *libGLdlsymHandle = RTLD_NEXT; // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
 
@@ -336,8 +337,13 @@ class OpenGLHook : LibraryHook
 					GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
 					0, 0,
 				};
+				bool is_direct = false;
 
+				PFNGLXISDIRECTPROC glXIsDirectProc = (PFNGLXISDIRECTPROC)dlsym(RTLD_NEXT, "glXIsDirect");
 				PFNGLXCHOOSEFBCONFIGPROC glXChooseFBConfigProc = (PFNGLXCHOOSEFBCONFIGPROC)dlsym(RTLD_NEXT, "glXChooseFBConfig");
+
+				if (glXIsDirectProc)
+					is_direct = glXIsDirectProc(share.dpy, share.ctx);
 
 				if(glXChooseFBConfigProc)
 				{
@@ -349,7 +355,7 @@ class OpenGLHook : LibraryHook
 					if(fbcfg)
 					{
 						ret.dpy = share.dpy;
-						ret.ctx = glXCreateContextAttribsARB_real(share.dpy, fbcfg[0], share.ctx, false, attribs);
+						ret.ctx = glXCreateContextAttribsARB_real(share.dpy, fbcfg[0], share.ctx, is_direct, attribs);
 					}
 				}
 			}
