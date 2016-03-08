@@ -83,8 +83,8 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 {
 	if(!app) return (pid_t)0;
 
-	int argc = 0;
-	char *emptyargv[] = { NULL };
+	// it is safe to use app directly as execve never modifies argv
+	char *emptyargv[] = { (char *) app, NULL };
 	char **argv = emptyargv;
 
 	const char *c = cmdLine;
@@ -92,7 +92,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 	// parse command line into argv[], similar to how bash would
 	if(cmdLine)
 	{
-		argc = 1;
+		int argc = 1;
 
 		// get a rough upper bound on the number of arguments
 		while(*c)
@@ -212,6 +212,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 		}
 
 		execve(app, argv, envp);
+		RDCERR("Failed to execute %s: %s", app, strerror(errno));
 		exit(0);
 	}
 	
@@ -261,6 +262,9 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 	map<string, string> env = EnvStringToEnvMap((const char **)environ);
 	vector<EnvironmentModification> &modifications = GetEnvModifications();
 	
+	if (logfile == NULL)
+		logfile = "";
+
 	string libpath;
 	{
 		FileIO::GetExecutableFilename(libpath);
@@ -287,7 +291,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 	{
 		EnvironmentModification &m = modifications[i];
 
-		string value = env[m.name];
+		string &value = env[m.name];
 
 		switch(m.type)
 		{

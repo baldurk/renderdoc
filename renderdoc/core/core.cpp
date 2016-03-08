@@ -773,9 +773,12 @@ void RenderDoc::SetCaptureOptions(const CaptureOptions &opts)
 
 void RenderDoc::SetLogFile(const char *logFile)
 {
+	if (logFile == NULL || logFile[0] == '\0')
+		return;
+
 	m_LogFile = logFile;
 
-	if(m_LogFile.substr(m_LogFile.length()-4) == ".rdc")
+	if(m_LogFile.length() > 4 && m_LogFile.substr(m_LogFile.length()-4) == ".rdc")
 		m_LogFile = m_LogFile.substr(0, m_LogFile.length()-4);
 
 	FileIO::CreateParentDirectory(m_LogFile);
