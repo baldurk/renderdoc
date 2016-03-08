@@ -6,7 +6,11 @@ Development32/
 Development64/
 Release32/
 Release64/
+build/
 dist/
+CMakeFiles/
+Makefile
+cmake_install.cmake
 Resources/*.png
 qrenderdoc/Makefile*
 *.exe
