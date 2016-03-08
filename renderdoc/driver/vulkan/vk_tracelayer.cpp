@@ -167,7 +167,7 @@ VkResult getProps(uint32_t *dstCount, void *dstProps, uint32_t srcCount, void *s
 
 extern "C" {
 
-VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDoc_EnumerateDeviceLayerProperties(
+VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties(
 	VkPhysicalDevice                            physicalDevice,
 	uint32_t*                                   pPropertyCount,
 	VkLayerProperties*                          pProperties)
@@ -175,7 +175,7 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDoc_EnumerateDeviceLayerProperties(
 	return getProps(pPropertyCount, pProperties, ARRAY_COUNT(physLayers), (void *)physLayers, sizeof(VkLayerProperties));
 }
 
-VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDoc_EnumerateDeviceExtensionProperties(
+VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties(
 	VkPhysicalDevice        physicalDevice,
 	const char             *pLayerName,
 	uint32_t               *pPropertyCount,
@@ -202,10 +202,10 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL RenderDoc_EnumerateDeviceExtensionProperties
 
 // proc addr routines
 
-VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetDeviceProcAddr(VkDevice device, const char* pName)
+VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char* pName)
 {
 	if(!strcmp("vkGetDeviceProcAddr", pName))
-		return (PFN_vkVoidFunction) &RenderDoc_GetDeviceProcAddr;
+		return (PFN_vkVoidFunction) &VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr;
 	if(!strcmp("vkCreateDevice", pName))
 		return (PFN_vkVoidFunction) &hooked_vkCreateDevice;
 	if(!strcmp("vkDestroyDevice", pName))
@@ -225,14 +225,14 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetDeviceProcAddr(VkDevi
 	return GetDeviceDispatchTable(device)->GetDeviceProcAddr(Unwrap(device), pName);
 }
 
-VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL RenderDoc_GetInstanceProcAddr(VkInstance instance, const char* pName)
+VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char* pName)
 {
 	if(!strcmp("vkGetInstanceProcAddr", pName))
-		return (PFN_vkVoidFunction) &RenderDoc_GetInstanceProcAddr;
+		return (PFN_vkVoidFunction) &VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr;
 	if(!strcmp("vkEnumerateDeviceLayerProperties", pName))
-		return (PFN_vkVoidFunction) &RenderDoc_EnumerateDeviceLayerProperties;
+		return (PFN_vkVoidFunction) &VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties;
 	if(!strcmp("vkEnumerateDeviceExtensionProperties", pName))
-		return (PFN_vkVoidFunction) &RenderDoc_EnumerateDeviceExtensionProperties;
+		return (PFN_vkVoidFunction) &VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties;
 
 	HookInitVulkanInstance();
 	

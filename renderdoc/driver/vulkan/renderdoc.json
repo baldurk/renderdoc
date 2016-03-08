@@ -8,8 +8,8 @@
     "implementation_version": "28",
     "description": "Debugging capture layer for RenderDoc",
     "functions": {
-      "vkGetInstanceProcAddr": "RenderDoc_GetInstanceProcAddr",
-      "vkGetDeviceProcAddr": "RenderDoc_GetDeviceProcAddr"
+      "vkGetInstanceProcAddr": "VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr",
+      "vkGetDeviceProcAddr": "VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr"
     },
     "device_extensions": [
       {
