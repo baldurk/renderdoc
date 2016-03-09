@@ -202,8 +202,13 @@ bool WrappedVulkan::Serialise_vkResetFences(
 
 	if(m_State < WRITING)
 	{
-		// we don't care about fence states as we cannot record them perfectly and just
-		// do full waitidle flushes.
+		// we don't care about fence states ourselves as we cannot record them perfectly and just
+		// do full waitidle flushes. However if the fence is passed to vkQueueSubmit we need to
+		// make sure it is correctly unsignalled.
+		
+		device = GetResourceManager()->GetLiveHandle<VkDevice>(id);
+
+		ObjDisp(device)->ResetFences(Unwrap(device), (uint32_t)fences.size(), &fences[0]);
 	}
 
 	return true;
