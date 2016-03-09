@@ -546,6 +546,10 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 		{
 			att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+			// renderpass can't start or end in presentable layout on replay
+			ReplacePresentableImageLayout(att[i].initialLayout);
+			ReplacePresentableImageLayout(att[i].finalLayout);
 		}
 
 		VkResult ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rp);
