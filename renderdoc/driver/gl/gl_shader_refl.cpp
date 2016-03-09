@@ -200,6 +200,21 @@ static GLuint CreateSepProgram(const GLHookSet &gl, GLenum type, GLsizei numSour
 	return 0;
 }
 
+static bool isspacetab(char c)
+{
+	return c == '\t' || c == ' ';
+}
+
+static bool isnewline(char c)
+{
+	return c == '\r' || c == '\n';
+}
+
+static bool iswhitespace(char c)
+{
+	return isspacetab(c) || isnewline(c);
+}
+
 GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<string> sources, vector<string> *includepaths)
 {
 	// in and out blocks are added separately, in case one is there already
@@ -302,7 +317,7 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 					++it;
 
 					// skip whitespace
-					while(it < len && (src[it] == ' ' || src[it] == '\t'))
+					while(it < len && isspacetab(src[it]))
 						++it;
 					
 					if(it+7 < len && !strncmp(&src[it], "version", 7))
@@ -319,7 +334,7 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 				// it now points after the #version
 
 				// skip whitespace
-				while(it < len && (src[it] == ' ' || src[it] == '\t'))
+				while(it < len && isspacetab(src[it]))
 					++it;
 
 				// skip number
@@ -327,7 +342,7 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 					++it;
 
 				// skip whitespace
-				while(it < len && (src[it] == ' ' || src[it] == '\t'))
+				while(it < len && isspacetab(src[it]))
 					++it;
 
 				if(!strncmp(&src[it], "core"         ,  4)) it += sizeof("core")-1;
@@ -338,14 +353,14 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 				while(it < len)
 				{
 					// skip whitespace
-					while(it < len && (src[it] == ' ' || src[it] == '\t' || src[it] == '\r' || src[it] == '\n'))
+					while(it < len && iswhitespace(src[it]))
 						++it;
 
 					// skip C++ style comments
 					if(it+1 < len && src[it] == '/' && src[it+1] == '/')
 					{
 						// keep going until the next newline
-						while(it < len && src[it] != '\r' && src[it] != '\n')
+						while(it < len && !isnewline(src[it]))
 							++it;
 
 						// skip more things
@@ -356,7 +371,7 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 					if(src[it] == '#')
 					{
 						// keep going until the next newline
-						while(it < len && src[it] != '\r' && src[it] != '\n')
+						while(it < len && !isnewline(src[it]))
 							++it;
 
 						// skip more things
@@ -372,6 +387,42 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 
 						// skip more things
 						continue;
+					}
+
+					// see if we have a precision statement, if so skip that
+					const char precision[] = "precision";
+					if(it+sizeof(precision) < len && !strncmp(&src[it], precision, sizeof(precision)-1))
+					{
+						// since we're speculating here (although what else could it be?) we don't modify
+						// it until we're sure.
+						size_t pit = it + sizeof(precision);
+						
+						// skip whitespace
+						while(pit < len && isspacetab(src[pit]))
+							++pit;
+
+						// if we now match any of the precisions, then continue consuming until the next ;
+						const char lowp[] = "lowp";
+						const char mediump[] = "mediump";
+						const char highp[] = "highp";
+
+						bool precisionMatch = (pit+sizeof(lowp) < len && !strncmp(&src[pit], lowp, sizeof(lowp)-1) && isspacetab(src[pit+sizeof(lowp)-1]));
+						precisionMatch |= (pit+sizeof(mediump) < len && !strncmp(&src[pit], mediump, sizeof(mediump)-1) && isspacetab(src[pit+sizeof(mediump)-1]));
+						precisionMatch |= (pit+sizeof(highp) < len && !strncmp(&src[pit], highp, sizeof(highp)-1) && isspacetab(src[pit+sizeof(highp)-1]));
+
+						if(precisionMatch)
+						{
+							it = pit;
+							while(it < len && src[it] != ';')
+								++it;
+
+							++it; // skip the ; itself
+
+							// skip more things
+							continue;
+						}
+
+						// otherwise just stop here, it's not a precision statement
 					}
 
 					// nothing more to skip
