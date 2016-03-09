@@ -459,7 +459,7 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(ResourceId id, VulkanReso
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
 			info->totalSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_SHARING_MODE_CONCURRENT, 0, NULL,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
 		VkBuffer buf;
@@ -1497,7 +1497,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 				m_CreationInfo.m_Image[liveim->id].samples,
 				VK_IMAGE_TILING_OPTIMAL, // make this optimal since the format/etc is more likely supported as optimal
 				VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-				VK_SHARING_MODE_CONCURRENT,
+				VK_SHARING_MODE_EXCLUSIVE,
 				0,
 				NULL,
 				VK_IMAGE_LAYOUT_UNDEFINED,
@@ -1548,7 +1548,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 			VkImageMemoryBarrier srcimBarrier = {
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 				0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+				0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
 				Unwrap(im),
 				{ aspectFlags, 0, 1, 0, 1 }
 			};

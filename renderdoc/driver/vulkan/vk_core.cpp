@@ -858,7 +858,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			{ swapInfo.extent.width, swapInfo.extent.height, 1 }, 1, 1,
 			VK_SAMPLE_COUNT_1_BIT,
 			VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-			VK_SHARING_MODE_CONCURRENT, 0, NULL,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 		vt->CreateImage(Unwrap(dev), &imInfo, NULL, &readbackIm);
@@ -899,7 +899,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 		VkImageMemoryBarrier bbBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 			0, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
 			Unwrap(backbuffer),
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 		};
