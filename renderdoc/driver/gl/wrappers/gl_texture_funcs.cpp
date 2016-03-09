@@ -219,7 +219,7 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 {
 	m_Real.glBindTexture(target, texture);
 
-	if(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
+	if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
 		return;
 	
 	if(m_State == WRITING_CAPFRAME)
@@ -377,7 +377,7 @@ void WrappedOpenGL::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint 
 {
 	m_Real.glBindMultiTextureEXT(texunit, target, texture);
 
-	if(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
+	if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
 		return;
 	
 	if(m_State == WRITING_CAPFRAME)
@@ -458,7 +458,7 @@ void WrappedOpenGL::glBindTextureUnit(GLuint unit, GLuint texture)
 {
 	m_Real.glBindTextureUnit(unit, texture);
 
-	if(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
+	if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
 		return;
 	
 	if(m_State == WRITING_CAPFRAME)
