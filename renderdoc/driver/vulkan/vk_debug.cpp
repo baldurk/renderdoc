@@ -4782,14 +4782,14 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	{
 		// empty vertex output signature
 		m_PostVSData[idx].vsin.topo = p.topology;
-		m_PostVSData[idx].vsout.buf = NULL;
+		m_PostVSData[idx].vsout.buf = VK_NULL_HANDLE;
 		m_PostVSData[idx].vsout.instStride = 0;
 		m_PostVSData[idx].vsout.vertStride = 0;
 		m_PostVSData[idx].vsout.nearPlane = 0.0f;
 		m_PostVSData[idx].vsout.farPlane = 0.0f;
 		m_PostVSData[idx].vsout.useIndices = false;
 		m_PostVSData[idx].vsout.hasPosOut = false;
-		m_PostVSData[idx].vsout.idxBuf = NULL;
+		m_PostVSData[idx].vsout.idxBuf = VK_NULL_HANDLE;
 
 		m_PostVSData[idx].vsout.topo = p.topology;
 

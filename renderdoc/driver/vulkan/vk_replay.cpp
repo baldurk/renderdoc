@@ -1633,7 +1633,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 	// solid render
 	if(cfg.solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList)
 	{
-		VkPipeline pipe = NULL;
+		VkPipeline pipe = VK_NULL_HANDLE;
 		switch(cfg.solidShadeMode)
 		{
 			case eShade_Solid:
