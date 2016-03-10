@@ -32,7 +32,6 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <string.h>
-#include <libgen.h>
 
 #include "serialise/string_utils.h"
 
@@ -208,7 +207,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 		else
 		{
 			string exedir = app;
-			chdir(dirname((char *)exedir.c_str()));
+			chdir(dirname(exedir).c_str());
 		}
 
 		execve(app, argv, envp);
