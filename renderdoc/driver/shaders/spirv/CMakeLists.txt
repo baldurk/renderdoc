@@ -64,10 +64,7 @@ set(glslang_sources
     ${glslang_dir}/glslang/OSDependent/osinclude.h
     ${glslang_dir}/glslang/Public/ShaderLang.h)
 
-if(WIN32)
-    list(APPEND glslang_sources
-        ${glslang_dir}/glslang/OSDependent/Windows/ossource.cpp)
-elseif(UNIX)
+if(UNIX)
     list(APPEND glslang_sources
         ${glslang_dir}/glslang/OSDependent/Unix/ossource.cpp)
 endif()

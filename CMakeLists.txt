@@ -1,10 +1,15 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-project(RenderDoc CXX C)
-
 if(WIN32)
-    message(FATAL_ERROR "No Win32 support")
+    message(FATAL_ERROR "CMake is not needed on Windows, just open and build renderdoc.sln")
 endif()
+
+# disallow in-source builds because we have a top-level wrapper Makefile
+if(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
+    message(FATAL_ERROR "In-source builds not allowed")
+endif()
+
+project(RenderDoc CXX C)
 
 option(ENABLE_GL "Enable GL driver" ON)
 option(ENABLE_VULKAN "Enable Vulkan driver" ON)
@@ -14,29 +19,16 @@ option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-if(${CMAKE_VERSION} VERSION_GREATER 3.0)
-    set(CMAKE_CXX_STANDARD 11)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-else()
-    if(CMAKE_COMPILER_IS_GNUCXX)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    endif()
-endif()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 
-if(CMAKE_COMPILER_IS_GNUCXX)
     set(warning_flags
         -Wall
-        -Wextra
+        -Werror
+        -Wno-unused
         -Wno-unknown-pragmas
-        -Wno-reorder
-        -Wno-ignored-qualifiers
-        -Wno-unused-parameter
-        -Wno-unused-variable
-        -Wno-missing-field-initializers
-        -Wunused-but-set-variable
-        -Wno-type-limits
-        -Wno-unused-but-set-variable
-        -Wno-unused-function)
+        -Wno-reorder)
     string(REPLACE ";" " " warning_flags "${warning_flags}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${warning_flags}")
 endif()

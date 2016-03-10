@@ -1,9 +1,5 @@
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
-endif()
-
 set(RDOC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(RDOC_DEFINITIONS PRIVATE -DRENDERDOC_EXPORTS)
 set(RDOC_INCLUDES
@@ -18,16 +14,12 @@ string(STRIP ${GIT_COMMIT_HASH} GIT_COMMIT_HASH)
 list(APPEND RDOC_DEFINITIONS
     PRIVATE -DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
-if(WIN32)
-    list(APPEND RDOC_DEFINITIONS
-        PUBLIC -DRENDERDOC_PLATFORM=win32
-        PRIVATE -DWIN32)
-elseif(UNIX)
+if(UNIX)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)
     find_package(X11 REQUIRED)
 
-    # This should be fixed and moved to FindXcb.cmake
+    # This should be fixed and moved to FindXCB.cmake
     pkg_check_modules(PC_XCB REQUIRED xcb xcb-keysyms)
     set(XCB_INCLUDE_DIRS)
     set(XCB_LIBRARIES xcb xcb-keysyms)
@@ -126,22 +118,7 @@ set(sources
     3rdparty/tinyexr/tinyexr.cpp
     3rdparty/tinyexr/tinyexr.h)
 
-if(WIN32)
-    list(APPEND sources
-        core/image_viewer.cpp
-        data/resource.h
-        os/win32_specific.h
-        os/win32/sys_win32_hooks.cpp
-        os/win32/win32_callstack.cpp
-        os/win32/win32_hook.cpp
-        os/win32/win32_hook.h
-        os/win32/win32_libentry.cpp
-        os/win32/win32_network.cpp
-        os/win32/win32_process.cpp
-        os/win32/win32_shellext.cpp
-        os/win32/win32_stringio.cpp
-        os/win32/win32_threading.cpp)
-elseif(UNIX)
+if(UNIX)
     list(APPEND sources
         data/embedded_files.h
         os/linux/linux_callstack.cpp
@@ -155,11 +132,6 @@ elseif(UNIX)
     # linux_libentry must be the last so that library_loaded is called after
     # static objects are constructed.
     list(APPEND sources os/linux/linux_libentry.cpp)
-endif()
-
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set_source_files_properties(3rdparty/tinyexr/tinyexr.cpp
-        PROPERTIES COMPILE_FLAGS "-Wno-extra")
 endif()
 
 add_library(rdoc OBJECT ${sources})
@@ -205,10 +177,8 @@ set(data
     data/sourcecodepro.ttf)
 
 set(data_objects)
-if(WIN32)
-    set_source_files_properties(${data} PROPERTIES LANGUAGE RC)
-    set(data_objects ${data})
-else(UNIX)
+
+if(UNIX)
     # this is fragile...
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
         set(bfdarch "i386")
@@ -235,6 +205,7 @@ else(UNIX)
             COMMAND ${data_command} ${in} ${out}
             WORKING_DIRECTORY ${working_dir}
             DEPENDS ${res})
+
         list(APPEND data_objects ${out})
     endforeach()
 endif()
@@ -256,7 +227,7 @@ if(ENABLE_GL OR ENABLE_VULKAN)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_spirv>)
 endif()
 
-# rdoc must be after its drivers
+# rdoc must be after its drivers because of linux_libentry.cpp
 list(APPEND renderdoc_objects
     $<TARGET_OBJECTS:rdoc>
     ${data_objects})

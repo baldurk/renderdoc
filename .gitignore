@@ -8,9 +8,6 @@ Release32/
 Release64/
 build/
 dist/
-CMakeFiles/
-Makefile
-cmake_install.cmake
 Resources/*.png
 qrenderdoc/Makefile*
 *.exe
@@ -18,7 +15,7 @@ qrenderdoc/Makefile*
 *.ilk
 *.manifest
 *.user
-bin/
+bin
 obj/
 .obj/
 *.opensdf

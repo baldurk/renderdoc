@@ -35,11 +35,7 @@ set(sources
     wrappers/gl_texture_funcs.cpp
     wrappers/gl_uniform_funcs.cpp)
 
-if(WIN32)
-    list(APPEND sources
-        gl_replay_win32.cpp
-        gl_hooks_win32.cpp)
-elseif(UNIX)
+if(UNIX)
     list(APPEND sources
         gl_replay_linux.cpp
         gl_hooks_linux.cpp)
