@@ -698,6 +698,38 @@ void Serialiser::Serialise(const char *name, GLPipelineState &el)
 #pragma region Vulkan pipeline state
 
 template<>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &el)
+{
+	Serialise("", el.view);
+	Serialise("", el.res);
+	Serialise("", el.sampler);
+
+	Serialise("", el.baseMip);
+	Serialise("", el.baseLayer);
+
+	Serialise("", el.offset);
+	Serialise("", el.size);
+
+	Serialise("", el.mag);
+	Serialise("", el.min); 
+	Serialise("", el.mip);
+	Serialise("", el.addrU);
+	Serialise("", el.addrV); 
+	Serialise("", el.addrW);
+	Serialise("", el.mipBias);
+	Serialise("", el.maxAniso);
+	Serialise("", el.compareEnable);
+	Serialise("", el.comparison);
+	Serialise("", el.minlod);
+	Serialise("", el.maxlod);
+	Serialise("", el.borderEnable);
+	Serialise("", el.border);
+	Serialise("", el.unnormalized);
+
+	SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement, 144);
+};
+
+template<>
 void Serialiser::Serialise(const char *name, VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding &el)
 {
 	Serialise("", el.descriptorCount);
