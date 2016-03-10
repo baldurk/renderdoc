@@ -294,7 +294,7 @@ namespace FileIO
 
 		if(res == 0)
 		{
-			return (uint64_t)st.st_mtim.tv_sec;
+			return (uint64_t)st.st_mtime;
 		}
 		
 		return 0;
