@@ -31,15 +31,6 @@
 
 #include "jpeg-compressor/jpge.h"
 
-static bool operator <(const VkExtensionProperties &a, const VkExtensionProperties &b)
-{
-	int cmp = strcmp(a.extensionName, b.extensionName);
-	if(cmp == 0)
-		return a.specVersion < b.specVersion;
-
-	return cmp < 0;
-}
-
 const char *VkChunkNames[] =
 {
 	"WrappedVulkan::Initialisation",
