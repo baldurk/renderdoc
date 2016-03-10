@@ -79,7 +79,7 @@ class Matrix4f
 
 		Vec3f Transform(const Vec3f &v, const float w=1.0f) const;
 
-		const float * const Data() const { return &f[0]; }
+		const float *Data() const { return &f[0]; }
 		
 		const Vec3f GetPosition() const;
 		const Vec3f GetForward() const;
