@@ -855,6 +855,21 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
 	}
 }
 
+bool WrappedOpenGL::Check_preElements()
+{
+	GLint idxbuf = 0;
+	m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
+
+	if(idxbuf == 0)
+	{
+		AddDebugMessage(eDbgCategory_Undefined, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+			"No index buffer bound at indexed draw!.");
+		return false;
+	}
+
+	return true;
+}
+
 byte *WrappedOpenGL::Common_preElements(GLsizei Count, GLenum Type, uint64_t &IdxOffset)
 {
 	GLint idxbuf = 0;
@@ -937,7 +952,8 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glDrawElements(Mode, Count, Type, (const void *)IdxOffset);
+		if(Check_preElements())
+			m_Real.glDrawElements(Mode, Count, Type, (const void *)IdxOffset);
 
 		Common_postElements(idxDelete);
 	}
@@ -1086,7 +1102,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glDrawRangeElements(Mode, Start, End, Count, Type, (const void *)IdxOffset);
+		if(Check_preElements())
+			m_Real.glDrawRangeElements(Mode, Start, End, Count, Type, (const void *)IdxOffset);
 		
 		Common_postElements(idxDelete);
 	}
@@ -1163,7 +1180,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glDrawRangeElementsBaseVertex(Mode, Start, End, Count, Type, (const void *)IdxOffset, BaseVtx);
+		if(Check_preElements())
+			m_Real.glDrawRangeElementsBaseVertex(Mode, Start, End, Count, Type, (const void *)IdxOffset, BaseVtx);
 
 		Common_postElements(idxDelete);
 	}
@@ -1238,7 +1256,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glDrawElementsBaseVertex(Mode, Count, Type, (const void *)IdxOffset, BaseVtx);
+		if(Check_preElements())
+			m_Real.glDrawElementsBaseVertex(Mode, Count, Type, (const void *)IdxOffset, BaseVtx);
 		
 		Common_postElements(idxDelete);
 	}
@@ -1313,7 +1332,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glDrawElementsInstanced(Mode, Count, Type, (const void *)IdxOffset, InstCount);
+		if(Check_preElements())
+			m_Real.glDrawElementsInstanced(Mode, Count, Type, (const void *)IdxOffset, InstCount);
 
 		Common_postElements(idxDelete);
 	}
@@ -1389,7 +1409,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glDrawElementsInstancedBaseInstance(Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseInstance);
+		if(Check_preElements())
+			m_Real.glDrawElementsInstancedBaseInstance(Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseInstance);
 		
 		Common_postElements(idxDelete);
 	}
@@ -1465,7 +1486,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glDrawElementsInstancedBaseVertex(Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseVertex);
+		if(Check_preElements())
+			m_Real.glDrawElementsInstancedBaseVertex(Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseVertex);
 
 		Common_postElements(idxDelete);
 	}
@@ -1543,7 +1565,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glDrawElementsInstancedBaseVertexBaseInstance(Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseVertex, BaseInstance);
+		if(Check_preElements())
+			m_Real.glDrawElementsInstancedBaseVertexBaseInstance(Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseVertex, BaseInstance);
 		
 		Common_postElements(idxDelete);
 	}

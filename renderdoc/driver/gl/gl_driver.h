@@ -1191,6 +1191,9 @@ class WrappedOpenGL : public IFrameCapturer
 		byte *Common_preElements(GLsizei Count, GLenum Type, uint64_t &IdxOffset);
 		void Common_postElements(byte *idxDelete);
 
+		// final check function to ensure we don't try and render with no index buffer bound
+		bool Check_preElements();
+
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArrays(GLenum mode, GLint first, GLsizei count));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance));
