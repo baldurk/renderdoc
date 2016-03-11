@@ -859,7 +859,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 	}
 
 	{
-		VkSparseImageMemoryBindInfo imgBinds[NUM_VK_IMAGE_ASPECTS] = { 0 };
+		VkSparseImageMemoryBindInfo imgBinds[NUM_VK_IMAGE_ASPECTS] = {};
 
 		VkBindSparseInfo bindsparse = {
 			VK_STRUCTURE_TYPE_BIND_SPARSE_INFO, NULL,
@@ -1839,7 +1839,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 					DoPipelineBarrier(cmd, 1, &barrier);
 				}
 				
-				VkClearColorValue clearval = { 0.0f, 0.0f, 0.0f, 0.0f };
+				VkClearColorValue clearval = {};
 				VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
 
 				ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), ToHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearval, 1, &range);

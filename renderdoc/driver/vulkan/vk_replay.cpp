@@ -853,7 +853,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 				texDisplay.Red = texDisplay.Blue = texDisplay.Alpha = false;
 			}
 
-			VkClearValue clearval = {0};
+			VkClearValue clearval = {};
 			VkRenderPassBeginInfo rpbegin = {
 				VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 				Unwrap(GetDebugManager()->m_PickPixelRP), Unwrap(GetDebugManager()->m_PickPixelFB),
@@ -959,7 +959,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 
 	OutputWindow &outw = it->second;
 	
-	VkClearValue clearval = {0};
+	VkClearValue clearval = {};
 	VkRenderPassBeginInfo rpbegin = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 		Unwrap(outw.rp), Unwrap(outw.fb),
@@ -1308,7 +1308,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	GetDebugManager()->m_CheckerboardUBO.Unmap(vt, dev);
 
 	{
-		VkClearValue clearval = {0};
+		VkClearValue clearval = {};
 		VkRenderPassBeginInfo rpbegin = {
 			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 			Unwrap(outw.rp), Unwrap(outw.fb),
@@ -1350,7 +1350,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	{
-		VkClearValue clearval = {0};
+		VkClearValue clearval = {};
 		VkRenderPassBeginInfo rpbegin = {
 			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 			Unwrap(outw.rp), Unwrap(outw.fb),
@@ -1362,12 +1362,12 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 		VkClearAttachment black = {
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			0,
-			{ 0.0f, 0.0f, 0.0f, 1.0f }
+			{{{ 0.0f, 0.0f, 0.0f, 1.0f }}}
 		};
 		VkClearAttachment white = {
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			0,
-			{ 1.0f, 1.0f, 1.0f, 1.0f }
+			{{{ 1.0f, 1.0f, 1.0f, 1.0f }}}
 		};
 
 		uint32_t sz = uint32_t(scale);
@@ -1517,7 +1517,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-	VkClearValue clearval = {0};
+	VkClearValue clearval = {};
 	VkRenderPassBeginInfo rpbegin = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 		Unwrap(outw.rpdepth), Unwrap(outw.fbdepth),
@@ -1633,7 +1633,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 	// solid render
 	if(cfg.solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList)
 	{
-		VkPipeline pipe = NULL;
+		VkPipeline pipe = VK_NULL_HANDLE;
 		switch(cfg.solidShadeMode)
 		{
 			case eShade_Solid:
@@ -4160,7 +4160,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 			vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &tmpFB[i]);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 			
-			VkClearValue clearval = {0};
+			VkClearValue clearval = {};
 			VkRenderPassBeginInfo rpbegin = {
 				VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 				tmpRP, tmpFB[i],

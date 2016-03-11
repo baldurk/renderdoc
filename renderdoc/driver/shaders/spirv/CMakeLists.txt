@@ -76,6 +76,11 @@ set(sources
     spirv_disassemble.cpp
     ${glslang_sources})
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_source_files_properties(${glslang_dir}/SPIRV/GlslangToSpv.cpp
+        PROPERTIES COMPILE_FLAGS "-Wno-tautological-constant-out-of-range-compare")
+endif()
+
 add_library(rdoc_spirv OBJECT ${sources})
 target_compile_definitions(rdoc_spirv ${RDOC_DEFINITIONS})
 target_include_directories(rdoc_spirv ${RDOC_INCLUDES})

@@ -135,7 +135,7 @@ bool WrappedOpenGL::Serialise_glShaderSource(GLuint shader, GLsizei count, const
 	{
 		string s;
 		if(source && source[i])
-			s = length > 0 ? string(source[i], source[i] + length[i]) : string(source[i]);
+			s = (length && length[i] > 0) ? string(source[i], source[i] + length[i]) : string(source[i]);
 		
 		m_pSerialiser->SerialiseString("source", s);
 
@@ -1331,7 +1331,7 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(GLuint shader, GLsizei c
 	{
 		string s;
 		if(path && path[i])
-			s = length > 0 ? string(path[i], path[i] + length[i]) : string(path[i]);
+			s = (length && length[i] > 0) ? string(path[i], path[i] + length[i]) : string(path[i]);
 		
 		m_pSerialiser->SerialiseString("path", s);
 

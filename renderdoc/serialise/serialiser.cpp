@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 
+#include <errno.h>
 #include "serialiser.h"
 
 #include "core/core.h"

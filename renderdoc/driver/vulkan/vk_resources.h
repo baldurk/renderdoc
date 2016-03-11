@@ -173,9 +173,20 @@ struct WrappedVkDispRes : public WrappedVkRes
 	WrappedVulkan *core;
 };
 
+struct WrappedVkDispResSizeCheck {
+    uintptr_t pad1[2];
+    uint64_t pad2[2];
+    void *pad3[2];
+};
+
+struct WrappedVkNonDispResSizeCheck {
+    uint64_t pad1[2];
+    void *pad2[1];
+};
+
 // ensure the structs don't accidentally get made larger
-RDCCOMPILE_ASSERT(sizeof(WrappedVkDispRes) == (sizeof(uint64_t)*2 + sizeof(uintptr_t)*4), "Wrapped resource struct has changed size! This is bad");
-RDCCOMPILE_ASSERT(sizeof(WrappedVkNonDispRes) == sizeof(uint64_t)*3, "Wrapped resource struct has changed size! This is bad");
+RDCCOMPILE_ASSERT(sizeof(WrappedVkDispRes) == sizeof(WrappedVkDispResSizeCheck), "Wrapped resource struct has changed size! This is bad");
+RDCCOMPILE_ASSERT(sizeof(WrappedVkNonDispRes) == sizeof(WrappedVkNonDispResSizeCheck), "Wrapped resource struct has changed size! This is bad");
 
 // these are expanded out so that IDE autocompletion etc works without having to process through macros
 struct WrappedVkInstance : WrappedVkDispRes
