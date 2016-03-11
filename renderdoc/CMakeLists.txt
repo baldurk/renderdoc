@@ -134,6 +134,11 @@ if(UNIX)
     list(APPEND sources os/linux/linux_libentry.cpp)
 endif()
 
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_source_files_properties(3rdparty/tinyexr/tinyexr.cpp
+        PROPERTIES COMPILE_FLAGS "-Wno-extra -Wno-unused-function")
+endif()
+
 add_library(rdoc OBJECT ${sources})
 target_compile_definitions(rdoc ${RDOC_DEFINITIONS})
 target_include_directories(rdoc ${RDOC_INCLUDES})

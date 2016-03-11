@@ -25,10 +25,18 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
     set(warning_flags
         -Wall
+        -Wextra
         -Werror
-        -Wno-unused
+        -Wno-unused-variable
+        -Wno-type-limits
+        -Wno-unused-parameter
+        -Wno-missing-field-initializers
         -Wno-unknown-pragmas
         -Wno-reorder)
+    if(CMAKE_COMPILER_IS_GNUCXX)
+        list(APPEND warning_flags -Wno-unused-but-set-variable)
+    endif()
+
     string(REPLACE ";" " " warning_flags "${warning_flags}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${warning_flags}")
 endif()
