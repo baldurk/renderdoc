@@ -1,13 +1,20 @@
-.PHONY: all
-all:
-	mkdir -p bin/
-	cd renderdoc && $(MAKE) librenderdoc.so
-	cd renderdoccmd && $(MAKE) bin/renderdoccmd
-	cd qrenderdoc && qmake "CONFIG+=debug" && $(MAKE)
-	cp renderdoc/librenderdoc.so renderdoc/driver/vulkan/renderdoc_capture.json renderdoccmd/bin/renderdoccmd bin/
+SRC_DIR := $(shell pwd)
+DST_DIR := $(SRC_DIR)/build
 
-.PHONY: clean
+.PHONY: all clean renderdoc qrenderdoc
+
+all: renderdoc qrenderdoc
+	@ln -sf "$(DST_DIR)/bin"
+
+renderdoc:
+	@mkdir -p "$(DST_DIR)" && cd "$(DST_DIR)" && \
+		cmake -DENABLE_QRENDERDOC=OFF "$(SRC_DIR)" && \
+		$(MAKE)
+
+qrenderdoc: renderdoc
+	@mkdir -p "$(DST_DIR)"/qrenderdoc && cd "$(DST_DIR)"/qrenderdoc && \
+		qmake "CONFIG+=debug" "DESTDIR=$(DST_DIR)/bin" "$(SRC_DIR)"/qrenderdoc && \
+		$(MAKE)
+
 clean:
-	cd renderdoc && $(MAKE) clean
-	cd renderdoccmd && $(MAKE) clean
-	cd qrenderdoc && rm -rf .obj Makefile*
+	@rm -rf "$(DST_DIR)" bin

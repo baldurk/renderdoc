@@ -46,11 +46,12 @@ win32 {
 	QMAKE_CXXFLAGS_WARN_ON -= -w34100 
 
 } else {
-
-	DESTDIR = $$_PRO_FILE_PWD_/../bin
+	isEmpty(DESTDIR) {
+		DESTDIR = $$_PRO_FILE_PWD_/../bin
+	}
 
 	# Link against the core library
-	LIBS += -L$$_PRO_FILE_PWD_/../renderdoc -lrenderdoc
+	LIBS += -L$$DESTDIR -lrenderdoc
 	QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\''
 
 	QMAKE_CXXFLAGS += -std=c++11 -Wno-unused-parameter -Wno-reorder

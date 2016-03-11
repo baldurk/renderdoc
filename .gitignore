@@ -6,6 +6,7 @@ Development32/
 Development64/
 Release32/
 Release64/
+build/
 dist/
 Resources/*.png
 qrenderdoc/Makefile*
@@ -14,7 +15,7 @@ qrenderdoc/Makefile*
 *.ilk
 *.manifest
 *.user
-bin/
+bin
 obj/
 .obj/
 *.opensdf
