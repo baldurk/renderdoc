@@ -93,7 +93,7 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
 	// has all load ops set to load (as we're doing a partial replay - can't
 	// just clear the targets that are partially written to).
 
-	VkClearValue empty[16] = {0};
+	VkClearValue empty[16] = {};
 
 	RDCASSERT(ARRAY_COUNT(empty) >= m_CreationInfo->m_RenderPass[renderPass].attachments.size());
 

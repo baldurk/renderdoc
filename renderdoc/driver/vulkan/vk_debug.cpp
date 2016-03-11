@@ -1880,7 +1880,7 @@ void VulkanDebugManager::BeginText(const TextPrintState &textstate)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(textstate.cmd);
 	
-	VkClearValue clearval = {0};
+	VkClearValue clearval = {};
 	VkRenderPassBeginInfo rpbegin = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 		Unwrap(textstate.rp), Unwrap(textstate.fb),
@@ -2111,8 +2111,8 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 
 	static VkPipelineVertexInputStateCreateInfo vi = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 
-	static VkVertexInputAttributeDescription viattr[128] = {0};
-	static VkVertexInputBindingDescription vibind[128] = {0};
+	static VkVertexInputAttributeDescription viattr[128] = {};
+	static VkVertexInputBindingDescription vibind[128] = {};
 
 	vi.pVertexAttributeDescriptions = viattr;
 	vi.pVertexBindingDescriptions = vibind;
@@ -2149,8 +2149,8 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 
 	static VkPipelineViewportStateCreateInfo vp = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
 
-	static VkViewport views[32] = {0};
-	static VkRect2D scissors[32] = {0};
+	static VkViewport views[32] = {};
+	static VkRect2D scissors[32] = {};
 
 	memcpy(views, &pipeInfo.viewports[0], pipeInfo.viewports.size()*sizeof(VkViewport));
 
@@ -2204,7 +2204,7 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
 	cb.logicOp = pipeInfo.logicOp;
 	memcpy(cb.blendConstants, pipeInfo.blendConst, sizeof(cb.blendConstants));
 
-	static VkPipelineColorBlendAttachmentState atts[32] = { 0 };
+	static VkPipelineColorBlendAttachmentState atts[32] = {};
 
 	cb.attachmentCount = (uint32_t)pipeInfo.attachments.size();
 	cb.pAttachments = atts;
@@ -2894,7 +2894,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		black[3] = 0.0f;
 
 		{
-			VkClearValue clearval = {0};
+			VkClearValue clearval = {};
 			VkRenderPassBeginInfo rpbegin = {
 				VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 				Unwrap(m_OverlayNoDepthRP), Unwrap(m_OverlayNoDepthFB),
@@ -2917,8 +2917,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 				0, 1,
 			};
 			VkClearAttachment blackclear = {
-				VK_IMAGE_ASPECT_COLOR_BIT, 0,
-				{ 0.0f, 0.0f, 0.0f, 0.0f }
+				VK_IMAGE_ASPECT_COLOR_BIT, 0, {}
 			};
 			vt->CmdClearAttachments(Unwrap(cmd), 1, &blackclear, 1, &rect);
 			
@@ -3472,8 +3471,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			m_pDriver->m_RenderState.BeginRenderPassAndApplyState(cmd);
 
 			VkClearAttachment blackclear = {
-				VK_IMAGE_ASPECT_COLOR_BIT, 0,
-				{ 0.0f, 0.0f, 0.0f, 0.0f }
+				VK_IMAGE_ASPECT_COLOR_BIT, 0, {}
 			};
 			vector<VkClearAttachment> atts;
 
@@ -3662,7 +3660,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 				// wait for writing to finish
 				DoPipelineBarrier(cmd, 1, &quadImBarrier);
 				
-				VkClearValue clearval = {0};
+				VkClearValue clearval = {};
 				VkRenderPassBeginInfo rpbegin = {
 					VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
 					Unwrap(m_OverlayNoDepthRP), Unwrap(m_OverlayNoDepthFB),
@@ -4063,7 +4061,7 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
 		uint32_t varID;        // we get this from the output signature, ID of actual variable
 		uint32_t childIdx;     // if the output variable is a struct, this is the member idx of this output
 	};
-	outputIDs outs[100] = {0};
+	outputIDs outs[100] = {};
 
 	RDCASSERT(numOutputs < 100);
 
