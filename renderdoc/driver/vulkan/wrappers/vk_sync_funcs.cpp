@@ -675,8 +675,8 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 			const VkImageMemoryBarrier*                 pImageMemoryBarriers)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
-	SERIALISE_ELEMENT(VkPipelineStageFlags, src, srcStageMask);
-	SERIALISE_ELEMENT(VkPipelineStageFlags, dest, dstStageMask);
+	SERIALISE_ELEMENT(VkPipelineStageFlagBits, srcStages, (VkPipelineStageFlagBits)srcStageMask);
+	SERIALISE_ELEMENT(VkPipelineStageFlagBits, destStages, (VkPipelineStageFlagBits)dstStageMask);
 	
 	// we don't serialise the original events as we are going to replace this
 	// with our own
@@ -736,7 +736,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 			ObjDisp(cmdBuffer)->ResetEvent(Unwrap(GetDev()), ev);
 			ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), ev, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-			ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, src, dest,
+			ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, (VkPipelineStageFlags)srcStages, (VkPipelineStageFlags)destStages,
 				memCount, memBarriers,
 				(uint32_t)bufBarriers.size(), &bufBarriers[0],
 				(uint32_t)imgBarriers.size(), &imgBarriers[0]);
@@ -763,7 +763,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 		ObjDisp(cmdBuffer)->ResetEvent(Unwrap(GetDev()), ev);
 		ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), ev, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-		ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, src, dest,
+		ObjDisp(cmdBuffer)->CmdWaitEvents(Unwrap(cmdBuffer), 1, &ev, (VkPipelineStageFlags)srcStages, (VkPipelineStageFlags)destStages,
 				memCount, memBarriers,
 				(uint32_t)bufBarriers.size(), &bufBarriers[0],
 				(uint32_t)imgBarriers.size(), &imgBarriers[0]);

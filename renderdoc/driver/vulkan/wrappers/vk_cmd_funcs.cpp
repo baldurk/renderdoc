@@ -1642,8 +1642,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 			const VkImageMemoryBarrier*                 pImageMemoryBarriers)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
-	SERIALISE_ELEMENT(VkPipelineStageFlags, src, srcStageMask);
-	SERIALISE_ELEMENT(VkPipelineStageFlags, dest, destStageMask);
+	SERIALISE_ELEMENT(VkPipelineStageFlagBits, srcStages, (VkPipelineStageFlagBits)srcStageMask);
+	SERIALISE_ELEMENT(VkPipelineStageFlagBits, destStages, (VkPipelineStageFlagBits)destStageMask);
 	
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -1690,7 +1690,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
 			commandBuffer = RerecordCmdBuf(cmdid);
-			ObjDisp(commandBuffer)->CmdPipelineBarrier(Unwrap(commandBuffer), src, dest, flags,
+			ObjDisp(commandBuffer)->CmdPipelineBarrier(Unwrap(commandBuffer), (VkPipelineStageFlags)srcStages, (VkPipelineStageFlags)destStages, flags,
 				memCount, memBarriers,
 				(uint32_t)bufBarriers.size(), &bufBarriers[0],
 				(uint32_t)imgBarriers.size(), &imgBarriers[0]);
@@ -1703,7 +1703,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 	{
 		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
 
-		ObjDisp(commandBuffer)->CmdPipelineBarrier(Unwrap(commandBuffer), src, dest, flags,
+		ObjDisp(commandBuffer)->CmdPipelineBarrier(Unwrap(commandBuffer), (VkPipelineStageFlags)srcStages, (VkPipelineStageFlags)destStages, flags,
 				memCount, memBarriers,
 				(uint32_t)bufBarriers.size(), &bufBarriers[0],
 				(uint32_t)imgBarriers.size(), &imgBarriers[0]);

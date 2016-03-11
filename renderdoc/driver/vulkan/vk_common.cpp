@@ -3231,10 +3231,10 @@ void Serialiser::Serialise(const char *name, VkSubpassDependency &el)
 	
 	Serialise("srcSubpass", el.srcSubpass);
 	Serialise("destSubpass", el.dstSubpass);
-	Serialise("srcStageMask", el.srcStageMask);
-	Serialise("destStageMask", el.dstStageMask);
-	Serialise("srcAccessMask", el.srcAccessMask);
-	Serialise("dstAccessMask", el.dstAccessMask);
+	Serialise("srcStageMask", (VkPipelineStageFlagBits &)el.srcStageMask);
+	Serialise("destStageMask", (VkPipelineStageFlagBits &)el.dstStageMask);
+	Serialise("srcAccessMask", (VkAccessFlagBits &)el.srcAccessMask);
+	Serialise("dstAccessMask", (VkAccessFlagBits &)el.dstAccessMask);
 	Serialise("dependencyFlags", (VkDependencyFlagBits &)el.dependencyFlags);
 }
 
@@ -3861,8 +3861,8 @@ void Serialiser::Serialise(const char *name, VkMemoryBarrier &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_MEMORY_BARRIER);
 	SerialiseNext(this, el.sType, el.pNext);
 
-	Serialise("srcAccessMask", el.srcAccessMask);
-	Serialise("dstAccessMask", el.dstAccessMask);
+	Serialise("srcAccessMask", (VkAccessFlagBits &)el.srcAccessMask);
+	Serialise("dstAccessMask", (VkAccessFlagBits &)el.dstAccessMask);
 }
 
 template<>
@@ -3873,10 +3873,12 @@ void Serialiser::Serialise(const char *name, VkBufferMemoryBarrier &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER);
 	SerialiseNext(this, el.sType, el.pNext);
 
-	Serialise("srcAccessMask", el.srcAccessMask);
-	Serialise("dstAccessMask", el.dstAccessMask);
-	Serialise("srcQueueFamilyIndex", el.srcQueueFamilyIndex);
-	Serialise("dstQueueFamilyIndex", el.dstQueueFamilyIndex);
+	Serialise("srcAccessMask", (VkAccessFlagBits &)el.srcAccessMask);
+	Serialise("dstAccessMask", (VkAccessFlagBits &)el.dstAccessMask);
+	// serialise as signed because then QUEUE_FAMILY_IGNORED is -1 and queue
+	// family index won't be legitimately larger than 2 billion
+	Serialise("srcQueueFamilyIndex", (int32_t &)el.srcQueueFamilyIndex);
+	Serialise("dstQueueFamilyIndex", (int32_t &)el.dstQueueFamilyIndex);
 	SerialiseObject(VkBuffer, "buffer", el.buffer);
 	Serialise("offset", el.offset);
 	Serialise("size", el.size);
@@ -3890,12 +3892,14 @@ void Serialiser::Serialise(const char *name, VkImageMemoryBarrier &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
 	SerialiseNext(this, el.sType, el.pNext);
 
-	Serialise("srcAccessMask", el.srcAccessMask);
-	Serialise("dstAccessMask", el.dstAccessMask);
+	Serialise("srcAccessMask", (VkAccessFlagBits &)el.srcAccessMask);
+	Serialise("dstAccessMask", (VkAccessFlagBits &)el.dstAccessMask);
 	Serialise("oldLayout", el.oldLayout);
 	Serialise("newLayout", el.newLayout);
-	Serialise("srcQueueFamilyIndex", el.srcQueueFamilyIndex);
-	Serialise("dstQueueFamilyIndex", el.dstQueueFamilyIndex);
+	// serialise as signed because then QUEUE_FAMILY_IGNORED is -1 and queue
+	// family index won't be legitimately larger than 2 billion
+	Serialise("srcQueueFamilyIndex", (int32_t &)el.srcQueueFamilyIndex);
+	Serialise("dstQueueFamilyIndex", (int32_t &)el.dstQueueFamilyIndex);
 	SerialiseObject(VkImage, "image", el.image);
 	Serialise("subresourceRange", el.subresourceRange);
 }
