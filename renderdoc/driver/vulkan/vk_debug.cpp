@@ -987,11 +987,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	stages[0].module = module[BLITVS];
 	stages[1].module = module[QUADRESOLVEFS];
 
-	pipeInfo.layout = m_QuadResolvePipeLayout;
-	pipeInfo.renderPass = wrappedRGBA8RP;
-	
 	if(m_State < WRITING)
 	{
+		pipeInfo.layout = m_QuadResolvePipeLayout;
+		pipeInfo.renderPass = wrappedRGBA8RP;
+
 		vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_QuadResolvePipeline);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
@@ -1078,10 +1078,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 			GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramPipe[t][f]);
 
-			compPipeInfo.stage.module = minmaxresult;
-
 			if(t == 1)
 			{
+				compPipeInfo.stage.module = minmaxresult;
+
 				vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxResultPipe[f]);
 				RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
