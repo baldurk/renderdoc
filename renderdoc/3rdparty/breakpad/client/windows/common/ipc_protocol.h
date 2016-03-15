@@ -31,7 +31,10 @@
 #define CLIENT_WINDOWS_COMMON_IPC_PROTOCOL_H__
 
 #include <Windows.h>
-#include <DbgHelp.h>
+#pragma warning (push)
+#pragma warning (disable:4091) // a microsoft header has warnings. Very nice.
+#include <dbghelp.h>
+#pragma warning (pop)
 #include <string>
 #include <utility>
 #include "breakpad/common/windows/string_utils-inl.h"

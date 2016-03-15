@@ -31,7 +31,10 @@
 #define CLIENT_WINDOWS_CRASH_GENERATION_CLIENT_INFO_H__
 
 #include <Windows.h>
-#include <DbgHelp.h>
+#pragma warning (push)
+#pragma warning (disable:4091) // a microsoft header has warnings. Very nice.
+#include <dbghelp.h>
+#pragma warning (pop)
 #include "breakpad/client/windows/common/ipc_protocol.h"
 #include "breakpad/common/scoped_ptr.h"
 #include "breakpad/google_breakpad/common/minidump_format.h"
