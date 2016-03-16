@@ -92,20 +92,23 @@ namespace Callstack
 		// look for our own line
 		FILE *f = FileIO::fopen("/proc/self/maps", "r");
 
-		while(!feof(f))
+		if (f)
 		{
-			char line[512] = {0};
-			if(fgets(line, 511, f))
+			while(!feof(f))
 			{
-				if(strstr(line, "librenderdoc") && strstr(line, "r-xp"))
+				char line[512] = {0};
+				if(fgets(line, 511, f))
 				{
-					sscanf(line, "%p-%p", &renderdocBase, &renderdocEnd);
-					break;
+					if(strstr(line, "librenderdoc") && strstr(line, "r-xp"))
+					{
+						sscanf(line, "%p-%p", &renderdocBase, &renderdocEnd);
+						break;
+					}
 				}
 			}
-		}
 
-		FileIO::fclose(f);
+			FileIO::fclose(f);
+		}
 	}
 
 	Stackwalk *Collect()
