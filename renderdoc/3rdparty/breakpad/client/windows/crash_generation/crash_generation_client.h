@@ -31,7 +31,10 @@
 #define CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H_
 
 #include <windows.h>
+#pragma warning (push)
+#pragma warning (disable:4091) // a microsoft header has warnings. Very nice.
 #include <dbghelp.h>
+#pragma warning (pop)
 #include <string>
 #include <vector>
 #include <utility>

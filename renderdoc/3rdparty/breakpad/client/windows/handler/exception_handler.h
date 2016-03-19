@@ -58,7 +58,10 @@
 
 #include <stdlib.h>
 #include <Windows.h>
-#include <DbgHelp.h>
+#pragma warning (push)
+#pragma warning (disable:4091) // a microsoft header has warnings. Very nice.
+#include <dbghelp.h>
+#pragma warning (pop)
 #include <rpc.h>
 
 #pragma warning(push)
