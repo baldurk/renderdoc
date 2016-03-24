@@ -6136,7 +6136,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_pImmediateContext->DrawIndexedInstanced(Topology_NumVerticesPerPrimitive(draw->topology),
 						RDCMAX(1U, draw->numInstances),
 						draw->indexOffset + Topology_VertexOffset(draw->topology, history[h].primitiveID),
-						draw->vertexOffset, draw->instanceOffset);
+						draw->baseVertex, draw->instanceOffset);
 				}
 				else
 				{

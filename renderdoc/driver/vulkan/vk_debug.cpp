@@ -4939,7 +4939,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		minIndex = indices[0];
 		maxIndex = indices[ indices.size()-1 ];
 
-		vertexIndexOffset = minIndex + drawcall->vertexOffset;
+		vertexIndexOffset = minIndex + drawcall->baseVertex;
 		
 		// set numVerts
 		numVerts = maxIndex - minIndex + 1;
@@ -5248,7 +5248,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		
 		// do single draw
 		modifiedstate.BeginRenderPassAndApplyState(cmd);
-		ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), (uint32_t)indices.size(), drawcall->numInstances, 0, drawcall->vertexOffset, drawcall->instanceOffset);
+		ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), (uint32_t)indices.size(), drawcall->numInstances, 0, drawcall->baseVertex, drawcall->instanceOffset);
 		modifiedstate.EndRenderPass(cmd);
 		
 		// rebase existing index buffer to point to the right elements in our stream-out'd
@@ -5463,6 +5463,7 @@ MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t event
 		ret.idxByteWidth = 0;
 	}
 	ret.idxoffs = 0;
+	ret.baseVertex = 0;
 
 	if(s.buf != VK_NULL_HANDLE)
 		ret.buf = GetResID(s.buf);

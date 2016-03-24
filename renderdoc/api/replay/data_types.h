@@ -184,6 +184,7 @@ struct FetchDrawcall
 		numIndices = 0;
 		numInstances = 0;
 		indexOffset = 0;
+		baseVertex = 0;
 		vertexOffset = 0;
 		instanceOffset = 0;
 
@@ -214,6 +215,7 @@ struct FetchDrawcall
 
 	uint32_t numIndices;
 	uint32_t numInstances;
+	int32_t baseVertex;
 	uint32_t indexOffset;
 	uint32_t vertexOffset;
 	uint32_t instanceOffset;

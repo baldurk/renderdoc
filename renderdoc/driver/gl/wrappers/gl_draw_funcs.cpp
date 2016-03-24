@@ -1051,7 +1051,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
 		draw.numIndices = params.count;
 		draw.numInstances = params.instanceCount;
 		draw.indexOffset = params.firstIndex;
-		draw.vertexOffset = params.baseVertex;
+		draw.baseVertex = params.baseVertex;
 		draw.instanceOffset = params.baseInstance;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
@@ -1206,7 +1206,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 		draw.numIndices = Count;
 		draw.numInstances = 1;
 		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
-		draw.vertexOffset = BaseVtx;
+		draw.baseVertex = BaseVtx;
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
@@ -1282,7 +1282,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 		draw.numIndices = Count;
 		draw.numInstances = 1;
 		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
-		draw.vertexOffset = BaseVtx;
+		draw.baseVertex = BaseVtx;
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
@@ -1513,7 +1513,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 		draw.numIndices = Count;
 		draw.numInstances = InstCount;
 		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
-		draw.vertexOffset = BaseVertex;
+		draw.baseVertex = BaseVertex;
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
@@ -1592,7 +1592,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 		draw.numIndices = Count;
 		draw.numInstances = InstCount;
 		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
-		draw.vertexOffset = BaseVertex;
+		draw.baseVertex = BaseVertex;
 		draw.instanceOffset = BaseInstance;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
@@ -2027,7 +2027,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 			FetchDrawcall multidraw;
 			multidraw.numIndices = countArray[i];
 			multidraw.indexOffset = (uint32_t) uint64_t(idxOffsArray[i])&0xFFFFFFFF;
-			multidraw.vertexOffset = baseArray[i];
+			multidraw.baseVertex = baseArray[i];
 		
 			multidraw.name = "glMultiDrawElementsBaseVertex[" + ToStr::Get(i) + "](" +
 						ToStr::Get(multidraw.numIndices) + ")";
@@ -2340,7 +2340,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 			multidraw.numIndices = params.count;
 			multidraw.numInstances = params.instanceCount;
 			multidraw.indexOffset = params.firstIndex;
-			multidraw.vertexOffset = params.baseVertex;
+			multidraw.baseVertex = params.baseVertex;
 			multidraw.instanceOffset = params.baseInstance;
 		
 			multidraw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](<" +
@@ -2672,7 +2672,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 			multidraw.numIndices = params.count;
 			multidraw.numInstances = params.instanceCount;
 			multidraw.indexOffset = params.firstIndex;
-			multidraw.vertexOffset = params.baseVertex;
+			multidraw.baseVertex = params.baseVertex;
 			multidraw.instanceOffset = params.baseInstance;
 		
 			multidraw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](" +

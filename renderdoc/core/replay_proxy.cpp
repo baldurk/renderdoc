@@ -1020,6 +1020,7 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	
 	Serialise("", el.numIndices);
 	Serialise("", el.numInstances);
+	Serialise("", el.baseVertex);
 	Serialise("", el.indexOffset);
 	Serialise("", el.vertexOffset);
 	Serialise("", el.instanceOffset);
@@ -1045,7 +1046,7 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	Serialise("", el.events);
 	Serialise("", el.children);
 
-	SIZE_CHECK(FetchDrawcall, 208);
+	SIZE_CHECK(FetchDrawcall, 216);
 }
 
 template<>
@@ -1076,6 +1077,7 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
 	Serialise("", el.idxbuf);
 	Serialise("", el.idxoffs);
 	Serialise("", el.idxByteWidth);
+	Serialise("", el.baseVertex);
 	Serialise("", el.buf);
 	Serialise("", el.offset);
 	Serialise("", el.stride);

@@ -2698,7 +2698,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		}
 		else
 		{
-			gl.glDrawElementsBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->vertexOffset);
+			gl.glDrawElementsBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->baseVertex);
 		}
 		
 		// delete the buffer, we don't need it anymore
@@ -3104,12 +3104,12 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				{
 					gl.glDrawElementsInstancedBaseVertexBaseInstance(drawtopo, drawcall->numIndices, idxType,
 						(const void *)uintptr_t(drawcall->indexOffset*drawcall->indexByteWidth), drawcall->numInstances,
-						drawcall->vertexOffset, drawcall->instanceOffset);
+						drawcall->baseVertex, drawcall->instanceOffset);
 				}
 				else
 				{
 					gl.glDrawElementsBaseVertex(drawtopo, drawcall->numIndices, idxType,
-						(const void *)uintptr_t(drawcall->indexOffset*drawcall->indexByteWidth), drawcall->vertexOffset);
+						(const void *)uintptr_t(drawcall->indexOffset*drawcall->indexByteWidth), drawcall->baseVertex);
 				}
 			}
 			gl.glEndTransformFeedback();
@@ -3334,6 +3334,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32
 		ret.idxbuf = ResourceId();
 	ret.idxoffs = 0;
 	ret.idxByteWidth = s.idxByteWidth;
+	ret.baseVertex = 0;
 
 	if(s.buf)
 		ret.buf = m_pDriver->GetResourceManager()->GetID(BufferRes(NULL, s.buf));
@@ -3532,7 +3533,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 					else if(fmt.idxByteWidth == 4)
 						idxtype = eGL_UNSIGNED_INT;
 
-					gl.glDrawElements(secondarytopo, fmt.numVerts, idxtype, (const void *)uintptr_t(fmt.idxoffs));
+					gl.glDrawElementsBaseVertex(secondarytopo, fmt.numVerts, idxtype, (const void *)uintptr_t(fmt.idxoffs), fmt.baseVertex);
 				}
 				else
 				{
@@ -3685,7 +3686,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 				GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name;
 				gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
 			}
-			gl.glDrawElements(topo, cfg.position.numVerts, idxtype, (const void *)uintptr_t(cfg.position.idxoffs));
+			gl.glDrawElementsBaseVertex(topo, cfg.position.numVerts, idxtype, (const void *)uintptr_t(cfg.position.idxoffs), cfg.position.baseVertex);
 		}
 		else
 		{
@@ -3728,7 +3729,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 				GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name;
 				gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
 			}
-			gl.glDrawElements(topo != eGL_PATCHES ? topo : eGL_POINTS, cfg.position.numVerts, idxtype, (const void *)uintptr_t(cfg.position.idxoffs));
+			gl.glDrawElementsBaseVertex(topo != eGL_PATCHES ? topo : eGL_POINTS, cfg.position.numVerts, idxtype, (const void *)uintptr_t(cfg.position.idxoffs), cfg.position.baseVertex);
 		}
 		else
 		{
@@ -3875,6 +3876,22 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 				{
 					for(uint32_t i=0; i < numIndices; i++)
 						m_HighlightCache.indices[i] = idx32[i];
+				}
+				
+				uint32_t sub = uint32_t(-cfg.position.baseVertex);
+				uint32_t add = uint32_t(cfg.position.baseVertex);
+
+				for(uint32_t i=0; cfg.position.baseVertex != 0 && i < numIndices; i++)
+				{
+					if(cfg.position.baseVertex < 0)
+					{
+						if(m_HighlightCache.indices[i] < sub)
+							m_HighlightCache.indices[i] = 0;
+						else
+							m_HighlightCache.indices[i] -= sub;
+					}
+					else
+						m_HighlightCache.indices[i] += add;
 				}
 			}
 		}

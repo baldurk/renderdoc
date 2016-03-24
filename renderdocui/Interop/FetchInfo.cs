@@ -336,6 +336,7 @@ namespace renderdoc
 
         public UInt32 numIndices;
         public UInt32 numInstances;
+        public Int32 baseVertex;
         public UInt32 indexOffset;
         public UInt32 vertexOffset;
         public UInt32 instanceOffset;
@@ -380,6 +381,7 @@ namespace renderdoc
         public ResourceId idxbuf;
         public UInt64 idxoffs;
         public UInt32 idxByteWidth;
+        public Int32 baseVertex;
 
         public ResourceId buf;
         public UInt64 offset;

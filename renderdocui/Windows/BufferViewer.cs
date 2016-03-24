@@ -1177,6 +1177,9 @@ namespace renderdocui.Windows
                         {
                             maxIdx = Math.Max(maxIndex, maxIdx);
                             offset = input.Drawcall.vertexOffset;
+
+                            if (input.Drawcall.baseVertex > 0)
+                                maxIdx += (uint)input.Drawcall.baseVertex;
                         }
 
                         System.Diagnostics.Debug.Assert(pi != pv || (pi == false && pv == false));
@@ -1497,6 +1500,21 @@ namespace renderdocui.Windows
                         else
                         {
                             index = data.Indices[rownum];
+
+                            // apply base vertex but clamp to 0 if subtracting
+                            if (input.Drawcall.baseVertex < 0)
+                            {
+                                uint subtract = (uint)(-input.Drawcall.baseVertex);
+
+                                if (index < subtract)
+                                    index = 0;
+                                else
+                                    index -= subtract;
+                            }
+                            else if (input.Drawcall.baseVertex > 0)
+                            {
+                                index += (uint)input.Drawcall.baseVertex;
+                            }
                         }
                     }
                     else if ((input.Drawcall.flags & DrawcallFlags.UseIBuffer) != 0 && state == m_VSIn)
@@ -1774,6 +1792,29 @@ namespace renderdocui.Windows
                         else
                         {
                             dataIndex = data.DataIndices[rowIdx];
+
+                            if (state == m_VSIn)
+                            {
+                                // apply base vertex but clamp to 0 if subtracting
+                                if (input.Drawcall.baseVertex < 0)
+                                {
+                                    uint subtract = (uint)(-input.Drawcall.baseVertex);
+
+                                    if (dataIndex < subtract)
+                                    {
+                                        dataIndex = 0;
+                                        outOfBoundsIdx = true;
+                                    }
+                                    else
+                                    {
+                                        dataIndex -= subtract;
+                                    }
+                                }
+                                else if (input.Drawcall.baseVertex > 0)
+                                {
+                                    dataIndex += (uint)input.Drawcall.baseVertex;
+                                }
+                            }
                         }
                     }
                     else if (input.Drawcall != null && (input.Drawcall.flags & DrawcallFlags.UseIBuffer) != 0 &&
@@ -1786,7 +1827,33 @@ namespace renderdocui.Windows
 
                     uint displayIndex = dataIndex;
                     if (data.Indices != null && rowIdx < data.Indices.Length)
+                    {
                         displayIndex = data.Indices[rowIdx];
+
+                        if (input.Drawcall != null && (input.Drawcall.flags & DrawcallFlags.UseIBuffer) != 0 &&
+                            (state == m_VSIn || state == m_VSOut))
+                        {
+                            // apply base vertex but clamp to 0 if subtracting
+                            if (input.Drawcall.baseVertex < 0)
+                            {
+                                uint subtract = (uint)(-input.Drawcall.baseVertex);
+
+                                if (displayIndex < subtract)
+                                {
+                                    displayIndex = 0;
+                                    outOfBoundsIdx = true;
+                                }
+                                else
+                                {
+                                    displayIndex -= subtract;
+                                }
+                            }
+                            else if (input.Drawcall.baseVertex > 0)
+                            {
+                                displayIndex += (uint)input.Drawcall.baseVertex;
+                            }
+                        }
+                    }
 
                     object[] rowdata = null;
 
@@ -2636,6 +2703,7 @@ namespace renderdocui.Windows
                 m_MeshDisplay.position.idxbuf = ResourceId.Null;
                 m_MeshDisplay.position.idxoffs = 0;
                 m_MeshDisplay.position.idxByteWidth = 0;
+                m_MeshDisplay.position.baseVertex = 0;
 
                 m_MeshDisplay.position.buf = ResourceId.Null;
                 m_MeshDisplay.position.offset = 0;
@@ -2661,6 +2729,7 @@ namespace renderdocui.Windows
                 m_MeshDisplay.position.idxbuf = ResourceId.Null;
                 m_MeshDisplay.position.idxoffs = 0;
                 m_MeshDisplay.position.idxByteWidth = 0;
+                m_MeshDisplay.position.baseVertex = 0;
 
                 m_MeshDisplay.position.buf = ResourceId.Null;
                 m_MeshDisplay.position.offset = 0;
@@ -2683,6 +2752,7 @@ namespace renderdocui.Windows
                     m_MeshDisplay.position.idxoffs = m_VSIn.m_Input.IndexOffset +
                         ui.m_Input.Drawcall.indexOffset * ui.m_Input.Drawcall.indexByteWidth;
                     m_MeshDisplay.position.idxByteWidth = ui.m_Input.Drawcall.indexByteWidth;
+                    m_MeshDisplay.position.baseVertex = ui.m_Input.Drawcall.baseVertex;
 
                     m_MeshDisplay.position.buf = m_VSIn.m_Input.Buffers[pos.buffer];
                     m_MeshDisplay.position.offset = pos.offset + ui.m_Input.Offsets[pos.buffer] +
@@ -2697,6 +2767,7 @@ namespace renderdocui.Windows
                     m_MeshDisplay.position.idxbuf = ui.m_Data.PostVS.idxbuf;
                     m_MeshDisplay.position.idxoffs = 0;
                     m_MeshDisplay.position.idxByteWidth = ui.m_Input.Drawcall.indexByteWidth;
+                    m_MeshDisplay.position.baseVertex = ui.m_Data.PostVS.baseVertex;
 
                     m_MeshDisplay.position.buf = ui.m_Data.PostVS.buf;
                     m_MeshDisplay.position.offset = ui.m_Data.PostVS.offset + pos.offset;
@@ -2711,6 +2782,7 @@ namespace renderdocui.Windows
                     m_MeshDisplay.position.idxbuf = ResourceId.Null;
                     m_MeshDisplay.position.idxoffs = 0;
                     m_MeshDisplay.position.idxByteWidth = 0;
+                    m_MeshDisplay.position.baseVertex = 0;
                 }
                 else
                 {
@@ -2734,6 +2806,7 @@ namespace renderdocui.Windows
                 m_MeshDisplay.secondary.idxbuf = ResourceId.Null;
                 m_MeshDisplay.secondary.idxoffs = 0;
                 m_MeshDisplay.secondary.idxByteWidth = 0;
+                m_MeshDisplay.secondary.baseVertex = 0;
 
                 m_MeshDisplay.secondary.buf = ResourceId.Null;
                 m_MeshDisplay.secondary.offset = 0;

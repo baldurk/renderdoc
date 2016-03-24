@@ -1108,7 +1108,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 			draw.numIndices = idxCount;
 			draw.numInstances = instCount;
 			draw.indexOffset = firstIdx;
-			draw.vertexOffset = vtxOffs;
+			draw.baseVertex = vtxOffs;
 			draw.instanceOffset = firstInst;
 
 			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced;
@@ -1310,7 +1310,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 			draw.numIndices = args->indexCount;
 			draw.numInstances = args->instanceCount;
 			draw.indexOffset = args->firstIndex;
-			draw.vertexOffset = args->vertexOffset;
+			draw.baseVertex = args->vertexOffset;
 			draw.instanceOffset = args->firstInstance;
 
 			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;

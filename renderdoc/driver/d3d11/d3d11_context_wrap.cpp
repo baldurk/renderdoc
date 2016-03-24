@@ -3447,7 +3447,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(UINT IndexCountP
 		draw.numIndices = IndexCountPerInstance;
 		draw.numInstances = InstanceCount;
 		draw.indexOffset = StartIndexLocation;
-		draw.vertexOffset = BaseVertexLocation;
+		draw.baseVertex = BaseVertexLocation;
 		draw.instanceOffset = StartInstanceLocation;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_UseIBuffer;
@@ -3567,7 +3567,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(UINT IndexCount_, UINT St
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.numIndices = IndexCount;
-		draw.vertexOffset = BaseVertexLocation;
+		draw.baseVertex = BaseVertexLocation;
 		draw.indexOffset = StartIndexLocation;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
@@ -3787,19 +3787,29 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
 		if(m_pDevice->GetResourceManager()->HasLiveResource(BufferForArgs))
 		{
 			ID3D11Buffer *argBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs);
+			
+			vector<byte> argarray;
+			m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 5*sizeof(uint32_t), argarray, true);
 
-			vector<byte> args;
-			m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 5*sizeof(uint32_t), args, true);
-			uint32_t *uargs = (uint32_t *)&args[0];
+			struct DrawArgs
+			{
+				uint32_t IndexCountPerInstance;
+				uint32_t InstanceCount;
+				uint32_t StartIndexLocation;
+				int32_t BaseVertexLocation;
+				uint32_t StartInstanceLocation;
+			};
 
-			name = "DrawIndexedInstancedIndirect(<" + ToStr::Get(uargs[0])
-			                   + ", " + ToStr::Get(uargs[1]) + ">)";
+			DrawArgs *args = (DrawArgs *)&argarray[0];
 
-			draw.numIndices = uargs[0];
-			draw.numInstances = uargs[1];
-			draw.indexOffset = uargs[2];
-			draw.vertexOffset = uargs[3];
-			draw.instanceOffset = uargs[4];
+			draw.numIndices = args->IndexCountPerInstance;
+			draw.numInstances = args->InstanceCount;
+			draw.indexOffset = args->StartIndexLocation;
+			draw.baseVertex = args->BaseVertexLocation;
+			draw.instanceOffset = args->StartInstanceLocation;
+
+			name = "DrawIndexedInstancedIndirect(<" + ToStr::Get(draw.numIndices)
+			                   + ", " + ToStr::Get(draw.numInstances) + ">)";
 		}
 
 		draw.name = name;

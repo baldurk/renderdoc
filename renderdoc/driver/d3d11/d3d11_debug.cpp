@@ -3654,6 +3654,7 @@ MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventI
 		ret.idxbuf = ResourceId();
 	ret.idxoffs = 0;
 	ret.idxByteWidth = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
+	ret.baseVertex = 0;
 
 	if(s.buf)
 		ret.buf = ((WrappedID3D11Buffer *)s.buf)->GetResourceID();
@@ -3868,10 +3869,22 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			// only read as many indices as were available in the buffer
 			uint32_t numIndices = RDCMIN(uint32_t(index16 ? idxdata.size()/2 : idxdata.size()/4), drawcall->numIndices);
 
+			uint32_t idxclamp = 0;
+			if(drawcall->baseVertex < 0)
+				idxclamp = uint32_t(-drawcall->baseVertex);
+
 			// grab all unique vertex indices referenced
 			for(uint32_t i=0; i < numIndices; i++)
 			{
 				uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
+
+				// apply baseVertex but clamp to 0 (don't allow index to become negative)
+				if(i32 < idxclamp)
+					i32 = 0;
+				else if(drawcall->baseVertex < 0)
+					i32 -= idxclamp;
+				else if(drawcall->baseVertex > 0)
+					i32 += drawcall->baseVertex;
 
 				auto it = std::lower_bound(indices.begin(), indices.end(), i32);
 
@@ -3919,24 +3932,31 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			SAFE_RELEASE(idxBuf);
 
 			if(drawcall->flags & eDraw_Instanced)
-				m_pImmediateContext->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0, drawcall->vertexOffset, drawcall->instanceOffset);
+				m_pImmediateContext->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0, 0, drawcall->instanceOffset);
 			else
-				m_pImmediateContext->DrawIndexed((UINT)indices.size(), 0, drawcall->vertexOffset);
+				m_pImmediateContext->DrawIndexed((UINT)indices.size(), 0, 0);
 
 			m_pImmediateContext->IASetPrimitiveTopology(topo);
 			m_pImmediateContext->IASetIndexBuffer(UNWRAP(WrappedID3D11Buffer, origBuf), idxFmt, idxOffs);
 			
 			// rebase existing index buffer to point to the right elements in our stream-out'd
 			// vertex buffer
-			if(index16)
+			for(uint32_t i=0; i < numIndices; i++)
 			{
-				for(uint32_t i=0; i < numIndices; i++)
-					idx16[i] = uint16_t(indexRemap[ idx16[i] ]);
-			}
-			else
-			{
-				for(uint32_t i=0; i < numIndices; i++)
-					idx32[i] = uint32_t(indexRemap[ idx32[i] ]);
+				uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
+
+				// apply baseVertex but clamp to 0 (don't allow index to become negative)
+				if(i32 < idxclamp)
+					i32 = 0;
+				else if(drawcall->baseVertex < 0)
+					i32 -= idxclamp;
+				else if(drawcall->baseVertex > 0)
+					i32 += drawcall->baseVertex;
+
+				if(index16)
+					idx16[i] = uint16_t(indexRemap[ i32 ]);
+				else
+					idx32[i] = uint32_t(indexRemap[ i32 ]);
 			}
 			
 			desc.ByteWidth = (UINT)idxdata.size();
@@ -4210,11 +4230,11 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				if(drawcall->flags & eDraw_Instanced)
 				{
 					m_pImmediateContext->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances, drawcall->indexOffset,
-						drawcall->vertexOffset, drawcall->instanceOffset);
+						drawcall->baseVertex, drawcall->instanceOffset);
 				}
 				else
 				{
-					m_pImmediateContext->DrawIndexed(drawcall->numIndices, drawcall->indexOffset,	drawcall->vertexOffset);
+					m_pImmediateContext->DrawIndexed(drawcall->numIndices, drawcall->indexOffset,	drawcall->baseVertex);
 				}
 			}
 			else
@@ -4692,7 +4712,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 						buf = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
 						m_pImmediateContext->IASetIndexBuffer(buf, fmt.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT, (UINT)fmt.idxoffs);
 
-						m_pImmediateContext->DrawIndexed(fmt.numVerts, 0, 0);
+						m_pImmediateContext->DrawIndexed(fmt.numVerts, 0, fmt.baseVertex);
 					}
 					else
 					{
@@ -4772,7 +4792,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 			}
 
 			if(cfg.position.idxByteWidth)
-				m_pImmediateContext->DrawIndexed(cfg.position.numVerts, 0, 0);
+				m_pImmediateContext->DrawIndexed(cfg.position.numVerts, 0, cfg.position.baseVertex);
 			else
 				m_pImmediateContext->Draw(cfg.position.numVerts, 0);
 			
@@ -4802,7 +4822,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 				m_pImmediateContext->IASetPrimitiveTopology(topo);
 			
 			if(cfg.position.idxByteWidth)
-				m_pImmediateContext->DrawIndexed(cfg.position.numVerts, 0, 0);
+				m_pImmediateContext->DrawIndexed(cfg.position.numVerts, 0, cfg.position.baseVertex);
 			else
 				m_pImmediateContext->Draw(cfg.position.numVerts, 0);
 		}
@@ -4888,9 +4908,24 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 				uint32_t numIndices = RDCMIN(cfg.position.numVerts, uint32_t(idxdata.size()/bytesize));
 
 				m_HighlightCache.indices.resize(numIndices);
+				
+				uint32_t sub = uint32_t(-cfg.position.baseVertex);
+				uint32_t add = uint32_t(cfg.position.baseVertex);
 
 				for(uint32_t i=0; i < numIndices; i++)
+				{
 					m_HighlightCache.indices[i] = index16 ? uint32_t(idx16[i]) : idx32[i];
+
+					if(cfg.position.baseVertex < 0)
+					{
+						if(m_HighlightCache.indices[i] < sub)
+							m_HighlightCache.indices[i] = 0;
+						else
+							m_HighlightCache.indices[i] -= sub;
+					}
+					else
+						m_HighlightCache.indices[i] += add;
+				}
 			}
 		}
 

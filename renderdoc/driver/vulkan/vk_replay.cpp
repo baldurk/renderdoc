@@ -1598,7 +1598,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 
 						vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), fmt.idxoffs, idxtype);
 					}
-					vt->CmdDrawIndexed(Unwrap(cmd), fmt.numVerts, 1, 0, 0, 0);
+					vt->CmdDrawIndexed(Unwrap(cmd), fmt.numVerts, 1, 0, fmt.baseVertex, 0);
 				}
 				else
 				{
@@ -1684,7 +1684,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 
 				vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), cfg.position.idxoffs, idxtype);
 			}
-			vt->CmdDrawIndexed(Unwrap(cmd), cfg.position.numVerts, 1, 0, 0, 0);
+			vt->CmdDrawIndexed(Unwrap(cmd), cfg.position.numVerts, 1, 0, cfg.position.baseVertex, 0);
 		}
 		else
 		{
@@ -1731,7 +1731,7 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 
 				vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), cfg.position.idxoffs, idxtype);
 			}
-			vt->CmdDrawIndexed(Unwrap(cmd), cfg.position.numVerts, 1, 0, 0, 0);
+			vt->CmdDrawIndexed(Unwrap(cmd), cfg.position.numVerts, 1, 0, cfg.position.baseVertex, 0);
 		}
 		else
 		{
@@ -1961,6 +1961,22 @@ void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<M
 						m_HighlightCache.indices[i] = idx32[i];
 						maxIndex = RDCMAX(maxIndex, (uint64_t)m_HighlightCache.indices[i]);
 					}
+				}
+				
+				uint32_t sub = uint32_t(-cfg.position.baseVertex);
+				uint32_t add = uint32_t(cfg.position.baseVertex);
+
+				for(uint32_t i=0; cfg.position.baseVertex != 0 && i < numIndices; i++)
+				{
+					if(cfg.position.baseVertex < 0)
+					{
+						if(m_HighlightCache.indices[i] < sub)
+							m_HighlightCache.indices[i] = 0;
+						else
+							m_HighlightCache.indices[i] -= sub;
+					}
+					else
+						m_HighlightCache.indices[i] += add;
 				}
 			}
 			

@@ -35,6 +35,7 @@ struct MeshFormat
 	ResourceId idxbuf;
 	uint64_t idxoffs;
 	uint32_t idxByteWidth;
+	int32_t baseVertex;
 
 	ResourceId buf;
 	uint64_t offset;
