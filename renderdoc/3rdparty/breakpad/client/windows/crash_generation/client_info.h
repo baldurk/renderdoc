@@ -31,7 +31,7 @@
 #define CLIENT_WINDOWS_CRASH_GENERATION_CLIENT_INFO_H__
 
 #include <Windows.h>
-#include <DbgHelp.h>
+#include "dbghelp/DbgHelp.h"
 #include "breakpad/client/windows/common/ipc_protocol.h"
 #include "breakpad/common/scoped_ptr.h"
 #include "breakpad/google_breakpad/common/minidump_format.h"

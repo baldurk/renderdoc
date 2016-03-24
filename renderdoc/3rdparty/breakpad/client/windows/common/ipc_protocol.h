@@ -31,7 +31,7 @@
 #define CLIENT_WINDOWS_COMMON_IPC_PROTOCOL_H__
 
 #include <Windows.h>
-#include <DbgHelp.h>
+#include "dbghelp/DbgHelp.h"
 #include <string>
 #include <utility>
 #include "breakpad/common/windows/string_utils-inl.h"

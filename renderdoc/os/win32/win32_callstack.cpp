@@ -37,10 +37,7 @@
 #include <shlobj.h>
 #include <tchar.h>
 
-#pragma warning (push)
-#pragma warning (disable:4091) // a microsoft header has warnings. Very nice.
-#include <dbghelp.h>
-#pragma warning (pop)
+#include "dbghelp/dbghelp.h"
 
 #include <Psapi.h>
 

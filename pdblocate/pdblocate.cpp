@@ -33,7 +33,7 @@
 
 #include <assert.h>
 
-#include <dbghelp.h>
+#include "dbghelp/dbghelp.h"
 #include <shlobj.h>
 
 #include <vector>

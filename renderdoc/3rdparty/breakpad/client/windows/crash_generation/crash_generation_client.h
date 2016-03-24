@@ -31,7 +31,7 @@
 #define CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H_
 
 #include <windows.h>
-#include <dbghelp.h>
+#include "dbghelp/dbghelp.h"
 #include <string>
 #include <vector>
 #include <utility>

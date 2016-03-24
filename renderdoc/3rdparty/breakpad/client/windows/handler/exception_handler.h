@@ -58,7 +58,7 @@
 
 #include <stdlib.h>
 #include <Windows.h>
-#include <DbgHelp.h>
+#include "dbghelp/DbgHelp.h"
 #include <rpc.h>
 
 #pragma warning(push)

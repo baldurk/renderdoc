@@ -31,7 +31,7 @@
 #define CLIENT_WINDOWS_CRASH_GENERATION_MINIDUMP_GENERATOR_H_
 
 #include <windows.h>
-#include <dbghelp.h>
+#include "dbghelp/dbghelp.h"
 #include <rpc.h>
 #include <list>
 #include "breakpad/google_breakpad/common/minidump_format.h"
