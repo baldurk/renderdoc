@@ -105,13 +105,13 @@ DefineHooks();
 // need to implement vkCreateInstance and vkDestroyInstance specially,
 // to create and destroy the core WrappedVulkan object
 
-VkResult hooked_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
+VkResult VKAPI_CALL hooked_vkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
 {
 	WrappedVulkan *core = new WrappedVulkan("");
 	return core->vkCreateInstance(pCreateInfo, pAllocator, pInstance);
 }
 
-void hooked_vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks* pAllocator)
+void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks* pAllocator)
 {
 	WrappedVulkan *core = CoreDisp(instance);
 	core->vkDestroyInstance(instance, pAllocator);
