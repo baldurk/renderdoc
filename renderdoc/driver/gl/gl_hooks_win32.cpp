@@ -452,14 +452,16 @@ class OpenGLHook : LibraryHook
 
 			glhooks.m_CreatingContext = true;
 
-			const int *attribs = attribList;
+			int defaultAttribList[] = { 0 };
+
+			const int *attribs = attribList ? attribList : defaultAttribList;
 			vector<int> attribVec;
 
 			// modify attribs to our liking
 			{
 				bool flagsNext = false;
 				bool flagsFound = false;
-				const int *a = attribList;
+				const int *a = attribs;
 				while(*a)
 				{
 					int val = *a;
