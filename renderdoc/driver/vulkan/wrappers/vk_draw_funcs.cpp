@@ -1369,7 +1369,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
 			commandBuffer = RerecordCmdBuf(cmdid);
-			ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
+			ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
 		}
 	}
 	else if(m_State == READING)
