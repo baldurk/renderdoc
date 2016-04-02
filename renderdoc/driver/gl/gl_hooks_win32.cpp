@@ -463,17 +463,15 @@ class OpenGLHook : LibraryHook
 
 			// modify attribs to our liking
 			{
-				bool flagsNext = false;
 				bool flagsFound = false;
 				const int *a = attribs;
 				while(*a)
 				{
-					int val = *a;
+					int name = *a++;
+					int val = *a++;
 
-					if(flagsNext)
+					if(name == WGL_CONTEXT_FLAGS_ARB)
 					{
-						flagsNext = false;
-
 						if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
 							val |= WGL_CONTEXT_DEBUG_BIT_ARB;
 						else
@@ -481,17 +479,12 @@ class OpenGLHook : LibraryHook
 
 						// remove NO_ERROR bit
 						val &= ~GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
-					}
 
-					if(val == WGL_CONTEXT_FLAGS_ARB)
-					{
-						flagsNext = true;
 						flagsFound = true;
 					}
 					
+					attribVec.push_back(name);
 					attribVec.push_back(val);
-
-					a++;
 				}
 
 				if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
