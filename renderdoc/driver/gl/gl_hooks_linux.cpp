@@ -586,6 +586,10 @@ __attribute__ ((visibility ("default")))
 GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList, Bool direct)
 {
 	GLXContext ret = OpenGLHook::glhooks.glXCreateContext_real(dpy, vis, shareList, direct);
+
+	// don't continue if context creation failed
+	if(!ret)
+		return ret;
 	
 	GLInitParams init;
 	
@@ -687,6 +691,10 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 	}
 
 	GLXContext ret = OpenGLHook::glhooks.glXCreateContextAttribsARB_real(dpy, config, shareList, direct, attribs);
+
+	// don't continue if context creation failed
+	if(!ret)
+		return ret;
 
 	XVisualInfo *vis = OpenGLHook::glhooks.glXGetVisualFromFBConfig_real(dpy, config);	
 	

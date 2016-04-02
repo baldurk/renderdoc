@@ -386,8 +386,8 @@ class OpenGLHook : LibraryHook
 		{
 			HGLRC ret = glhooks.wglCreateContext_hook()(dc);
 
-			// don't recurse
-			if(glhooks.m_CreatingContext)
+			// don't recurse and don't continue if creation failed
+			if(glhooks.m_CreatingContext || ret == NULL)
 				return ret;
 
 			glhooks.m_CreatingContext = true;
@@ -422,8 +422,8 @@ class OpenGLHook : LibraryHook
 		{
 			HGLRC ret = glhooks.wglCreateLayerContext_hook()(dc, iLayerPlane);
 
-			// don't recurse
-			if(glhooks.m_CreatingContext)
+			// don't recurse and don't continue if creation failed
+			if(glhooks.m_CreatingContext || ret == NULL)
 				return ret;
 
 			glhooks.m_CreatingContext = true;
@@ -514,6 +514,10 @@ class OpenGLHook : LibraryHook
 			}
 			
 			HGLRC ret = glhooks.wglCreateContextAttribsARB_realfunc(dc, hShareContext, attribs);
+
+			// don't continue if creation failed
+			if(ret == NULL)
+				return ret;
 
 			GLWindowingData data;
 			data.DC = dc;
