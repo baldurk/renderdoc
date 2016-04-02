@@ -1937,7 +1937,7 @@ VkBool32 WrappedVulkan::DebugCallback(
 
 	// All access mask/barrier messages.
 	// These are just too spammy/false positive/unreliable to keep
-	if(isDS && messageCode == 11)
+	if(isDS && messageCode == 12)
 		return false;
 
 	bool isMEM = !strcmp(pLayerPrefix, "MEM");
