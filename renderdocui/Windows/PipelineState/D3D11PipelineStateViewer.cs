@@ -48,6 +48,18 @@ namespace renderdocui.Windows.PipelineState
         // keep track of the VB nodes (we want to be able to highlight them easily on hover)
         private List<TreelistView.Node> m_VBNodes = new List<TreelistView.Node>();
 
+        private struct IABufferTag
+        {
+            public IABufferTag(ResourceId i, ulong offs)
+            {
+                id = i;
+                offset = offs;
+            }
+
+            public ResourceId id;
+            public ulong offset;
+        };
+
         public D3D11PipelineStateViewer(Core core, DockContent c)
         {
             InitializeComponent();
@@ -826,7 +838,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = state.m_IA.ibuffer.Buffer;
+                    node.Tag = new IABufferTag(state.m_IA.ibuffer.Buffer, draw.indexOffset);
 
                     if (!ibufferUsed)
                         InactiveRow(node);
@@ -843,7 +855,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = state.m_IA.ibuffer.Buffer;
+                    node.Tag = new IABufferTag(state.m_IA.ibuffer.Buffer, draw.indexOffset);
 
                     EmptyRow(node);
 
@@ -889,7 +901,7 @@ namespace renderdocui.Windows.PipelineState
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                        node.Tag = v.Buffer;
+                        node.Tag = new IABufferTag(v.Buffer, v.Offset);
 
                         if (!filledSlot)
                             EmptyRow(node);
@@ -1559,7 +1571,7 @@ namespace renderdocui.Windows.PipelineState
                 if (tex.resType == ShaderResourceType.Buffer)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(false, tex.ID);
+                    viewer.ViewRawBuffer(false, 0, ulong.MaxValue, tex.ID);
                     viewer.Show(m_DockContent.DockPanel);
                 }
                 else
@@ -1685,9 +1697,9 @@ namespace renderdocui.Windows.PipelineState
                 {
                     var viewer = new BufferViewer(m_Core, false);
                     if (format.Length == 0)
-                        viewer.ViewRawBuffer(true, buf.ID);
+                        viewer.ViewRawBuffer(true, 0, ulong.MaxValue, buf.ID);
                     else
-                        viewer.ViewRawBuffer(true, buf.ID, format);
+                        viewer.ViewRawBuffer(true, 0, ulong.MaxValue, buf.ID, format);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }
@@ -1775,14 +1787,14 @@ namespace renderdocui.Windows.PipelineState
 
         private void iabuffers_NodeDoubleClicked(TreelistView.Node node)
         {
-            if (node.Tag is ResourceId)
+            if (node.Tag is IABufferTag)
             {
-                ResourceId id = (ResourceId)node.Tag;
+                IABufferTag tag = (IABufferTag)node.Tag;
 
-                if (id != ResourceId.Null)
+                if (tag.id != ResourceId.Null)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(true, id);
+                    viewer.ViewRawBuffer(true, tag.offset, ulong.MaxValue, tag.id);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }
@@ -2141,8 +2153,8 @@ namespace renderdocui.Windows.PipelineState
                 if (stage.ConstantBuffers.Length < slot)
                     return;
 
-                var buf = stage.ConstantBuffers[slot].Buffer;
-                viewer.ViewRawBuffer(true, buf);
+                var buf = stage.ConstantBuffers[slot];
+                viewer.ViewRawBuffer(true, buf.VecOffset * 4 * sizeof(float), buf.VecCount * 4 * sizeof(float), buf.Buffer);
                 viewer.Show(m_DockContent.DockPanel);
 
                 return;

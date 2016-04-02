@@ -146,15 +146,6 @@ namespace renderdocui.Windows
             }
         }
 
-        private int MaxRowCount
-        {
-            get
-            {
-                // for now, don't clamp rows on mesh view
-                return MeshView ? int.MaxValue : 200000;
-            }
-        }
-
         // one UI state for each stage
         private UIState m_VSIn = new UIState(MeshDataStage.VSIn);
         private UIState m_VSOut = new UIState(MeshDataStage.VSOut);
@@ -279,14 +270,19 @@ namespace renderdocui.Windows
                 instLabel.Visible = instSep.Visible = instanceIdxToolitem.Visible = false;
                 syncViewsToolItem.Visible = false;
                 highlightVerts.Visible = false;
+                byteOffset.Visible = true; byteOffsLab.Visible = true;
+                rowRange.Visible = true; rowRangeLab.Visible = true;
                 byteOffset.Text = "0";
+                rowRange.Text = DefaultMaxRows.ToString();
 
                 Text = "Buffer Contents";
             }
             else
             {
                 byteOffset.Visible = false; byteOffsLab.Visible = false;
+                rowRange.Visible = false; rowRangeLab.Visible = false;
                 byteOffset.Text = "0";
+                rowRange.Text = DefaultMaxRows.ToString();
 
                 Text = "Mesh Output";
             }
@@ -458,7 +454,7 @@ namespace renderdocui.Windows
 
             previewTab.SelectedIndex = 0;
 
-            uint byteoffs = ByteOffset;
+            ulong byteoffs = ByteOffset;
 
             if (MeshView)
             {
@@ -558,7 +554,7 @@ namespace renderdocui.Windows
 
             int curReq = m_ReqID;
 
-            uint byteoffs = ByteOffset;
+            ulong byteoffs = ByteOffset;
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
@@ -695,25 +691,39 @@ namespace renderdocui.Windows
             }
         }
 
-        private uint ByteOffset
+        private uint DefaultMaxRows { get { return 200000; } }
+
+        private int MaxRowCount
+        {
+            get
+            {
+                // for now, don't clamp rows on mesh view
+                if (IsDisposed || MeshView) return int.MaxValue;
+                int maxrows = 0;
+                int.TryParse(rowRange.Text, out maxrows);
+                return maxrows;
+            }
+        }
+
+        private ulong ByteOffset
         {
             get
             {
                 if (IsDisposed) return 0;
-                uint offs = 0;
-                uint.TryParse(byteOffset.Text, out offs);
+                ulong offs = 0;
+                ulong.TryParse(byteOffset.Text, out offs);
                 return offs;
             }
         }
 
         #region Get Data Formats/Organisation
 
-        public void ViewRawBuffer(bool isBuffer, ResourceId id)
+        public void ViewRawBuffer(bool isBuffer, ulong offset, ulong size, ResourceId id)
         {
-            ViewRawBuffer(isBuffer, id, "");
+            ViewRawBuffer(isBuffer, offset, size, id, "");
         }
 
-        public void ViewRawBuffer(bool isBuffer, ResourceId id, string formatString)
+        public void ViewRawBuffer(bool isBuffer, ulong offset, ulong size, ResourceId id, string formatString)
         {
             if (m_Core.CurBuffers == null) return;
 
@@ -745,7 +755,21 @@ namespace renderdocui.Windows
             input.IndexOffset = 0;
 
             largeBufferWarning.Visible = false;
-            byteOffset.Enabled = false;
+            byteOffset.Text = offset.ToString();
+
+            if (size == ulong.MaxValue)
+            {
+                rowRange.Text = DefaultMaxRows.ToString();
+            }
+            else
+            {
+                uint rows = (uint)(size / input.Strides[0]);
+
+                if (rows * input.Strides[0] < size)
+                    rows++;
+
+                rowRange.Text = rows.ToString();
+            }
 
             m_VSIn.m_Input = input;
 
@@ -755,13 +779,11 @@ namespace renderdocui.Windows
 
             ClearStoredData();
 
-            uint byteoffset = ByteOffset;
-
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 if (IsDisposed) return;
 
-                var contents = RT_FetchBufferContents(MeshDataStage.VSIn, r, input, byteoffset);
+                var contents = RT_FetchBufferContents(MeshDataStage.VSIn, r, input, offset);
 
                 this.BeginInvoke(new Action(() =>
                 {
@@ -938,7 +960,7 @@ namespace renderdocui.Windows
 
         #region Get Actual Bytes
 
-        private Dataset RT_FetchBufferContents(MeshDataStage type, ReplayRenderer r, Input input, uint byteoffs)
+        private Dataset RT_FetchBufferContents(MeshDataStage type, ReplayRenderer r, Input input, ulong byteoffs)
         {
             Dataset ret = new Dataset();
 
@@ -956,7 +978,7 @@ namespace renderdocui.Windows
                     if(input.Buffers[0] != ResourceId.Null)
                         ret.Buffers[0] = r.GetBufferData(input.Buffers[0], byteoffs, 0);
                     else if (input.Buffers[1] != ResourceId.Null)
-                        ret.Buffers[0] = r.GetTextureData(input.Buffers[1], byteoffs, 0);
+                        ret.Buffers[0] = r.GetTextureData(input.Buffers[1], (uint)byteoffs, 0);
 
                     ret.Indices = null;
                     ret.DataIndices = null;
@@ -1688,7 +1710,7 @@ namespace renderdocui.Windows
             {
                 bufView.RowCount = Math.Min(state.m_Rows.Length, MaxRowCount);
 
-                if (state.m_Rows.Length > MaxRowCount)
+                if (state.m_Rows.Length > MaxRowCount && MaxRowCount >= DefaultMaxRows)
                     largeBufferWarning.Visible = true;
 
                 ScrollToRow(bufView, RowOffset);
@@ -3122,7 +3144,7 @@ namespace renderdocui.Windows
 
             byteOffset.Enabled = false;
 
-            uint byteoffset = ByteOffset;
+            ulong byteoffset = ByteOffset;
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
@@ -3140,7 +3162,7 @@ namespace renderdocui.Windows
 
         private void largeBufferWarning_Click(object sender, EventArgs e)
         {
-            byteOffset.Text = (ByteOffset + m_VSIn.m_Input.Strides[0]*MaxRowCount).ToString();
+            byteOffset.Text = (ByteOffset + (ulong)(m_VSIn.m_Input.Strides[0]*MaxRowCount)).ToString();
             SetByteOffset();
         }
 
@@ -3148,6 +3170,16 @@ namespace renderdocui.Windows
         {
             if (e.KeyChar == '\n' || e.KeyChar == '\r')
             {
+                SetByteOffset();
+            }
+        }
+
+        private void rowRange_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == '\n' || e.KeyChar == '\r')
+            {
+                if (MaxRowCount > DefaultMaxRows)
+                    rowRange.Text = DefaultMaxRows.ToString();
                 SetByteOffset();
             }
         }
@@ -3175,7 +3207,7 @@ namespace renderdocui.Windows
                 id = GetUIState(MeshDataStage.VSIn).m_Input.Buffers[1];
             }
 
-            ViewRawBuffer(isBuffer, id, formatText);
+            ViewRawBuffer(isBuffer, ByteOffset, ulong.MaxValue, id, formatText);
         }
 
         private void ShowFormatSpecifier()

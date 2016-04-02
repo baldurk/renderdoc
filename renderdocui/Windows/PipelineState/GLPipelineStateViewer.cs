@@ -53,11 +53,30 @@ namespace renderdocui.Windows.PipelineState
             public FetchBuffer buf;
         };
 
+        private struct IABufferTag
+        {
+            public IABufferTag(ResourceId i, ulong offs)
+            {
+                id = i;
+                offset = offs;
+            }
+
+            public ResourceId id;
+            public ulong offset;
+        };
+
         private Core m_Core;
         private DockContent m_DockContent;
 
         // keep track of the VB nodes (we want to be able to highlight them easily on hover)
         private List<TreelistView.Node> m_VBNodes = new List<TreelistView.Node>();
+
+        private enum GLReadWriteType
+        {
+            Atomic,
+            SSBO,
+            Image,
+        };
 
         public GLPipelineStateViewer(Core core, DockContent c)
         {
@@ -224,6 +243,31 @@ namespace renderdocui.Windows.PipelineState
             cbuffers.Nodes.Clear();
             subroutines.Nodes.Clear();
             readwrites.Nodes.Clear();
+        }
+
+        private GLReadWriteType GetGLReadWriteType(ShaderResource res)
+        {
+            GLReadWriteType ret = GLReadWriteType.Image;
+
+            if (res.IsTexture)
+            {
+                ret = GLReadWriteType.Image;
+            }
+            else
+            {
+                if (res.variableType.descriptor.rows == 1 &&
+                    res.variableType.descriptor.cols == 1 &&
+                    res.variableType.descriptor.type == VarType.UInt)
+                {
+                    ret = GLReadWriteType.Atomic;
+                }
+                else
+                {
+                    ret = GLReadWriteType.SSBO;
+                }
+            }
+
+            return ret;
         }
 
         // Set a shader stage's resources and values
@@ -562,45 +606,28 @@ namespace renderdocui.Windows.PipelineState
                 {
                     int bindPoint = stage.BindpointMapping.ReadWriteResources[i].bind;
 
-                    bool atomic = false;
-                    bool ssbo = false;
-                    bool image = false;
+                    GLReadWriteType readWriteType = GetGLReadWriteType(res);
 
                     GLPipelineState.Buffer bf = null;
                     GLPipelineState.ImageLoadStore im = null;
                     ResourceId id = ResourceId.Null;
 
-                    if (res.IsTexture)
+                    if (readWriteType == GLReadWriteType.Image && bindPoint >= 0 && bindPoint < state.Images.Length)
                     {
-                        image = true;
-                        if (bindPoint >= 0 && bindPoint < state.Images.Length)
-                        {
-                            im = state.Images[bindPoint];
-                            id = state.Images[bindPoint].Resource;
-                        }
+                        im = state.Images[bindPoint];
+                        id = state.Images[bindPoint].Resource;
                     }
-                    else
+
+                    if (readWriteType == GLReadWriteType.Atomic && bindPoint >= 0 && bindPoint < state.AtomicBuffers.Length)
                     {
-                        if (res.variableType.descriptor.rows == 1 &&
-                            res.variableType.descriptor.cols == 1 &&
-                            res.variableType.descriptor.type == VarType.UInt)
-                        {
-                            atomic = true;
-                            if (bindPoint >= 0 && bindPoint < state.AtomicBuffers.Length)
-                            {
-                                bf = state.AtomicBuffers[bindPoint];
-                                id = state.AtomicBuffers[bindPoint].Resource;
-                            }
-                        }
-                        else
-                        {
-                            ssbo = true;
-                            if (bindPoint >= 0 && bindPoint < state.ShaderStorageBuffers.Length)
-                            {
-                                bf = state.ShaderStorageBuffers[bindPoint];
-                                id = state.ShaderStorageBuffers[bindPoint].Resource;
-                            }
-                        }
+                        bf = state.AtomicBuffers[bindPoint];
+                        id = state.AtomicBuffers[bindPoint].Resource;
+                    }
+
+                    if (readWriteType == GLReadWriteType.SSBO && bindPoint >= 0 && bindPoint < state.ShaderStorageBuffers.Length)
+                    {
+                        bf = state.ShaderStorageBuffers[bindPoint];
+                        id = state.ShaderStorageBuffers[bindPoint].Resource;
                     }
 
                     bool filledSlot = id != ResourceId.Null;
@@ -612,9 +639,9 @@ namespace renderdocui.Windows.PipelineState
                         (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
                         )
                     {
-                        string binding = image ? "Image" :
-                            atomic ? "Atomic" :
-                            ssbo ? "SSBO" :
+                        string binding = readWriteType == GLReadWriteType.Image ? "Image" :
+                            readWriteType == GLReadWriteType.Atomic ? "Atomic" :
+                            readWriteType == GLReadWriteType.SSBO ? "SSBO" :
                             "Unknown";
 
                         string slotname = String.Format("{0}: {1}", bindPoint, res.name);
@@ -953,7 +980,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = state.m_VtxIn.ibuffer;
+                    node.Tag = new IABufferTag(state.m_VtxIn.ibuffer, draw.indexOffset);
 
                     if (!ibufferUsed)
                         InactiveRow(node);
@@ -970,7 +997,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = state.m_VtxIn.ibuffer;
+                    node.Tag = new IABufferTag(state.m_VtxIn.ibuffer, draw.indexOffset);
 
                     EmptyRow(node);
 
@@ -1017,7 +1044,7 @@ namespace renderdocui.Windows.PipelineState
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                        node.Tag = v.Buffer;
+                        node.Tag = new IABufferTag(v.Buffer, v.Offset);
 
                         if (!filledSlot)
                             EmptyRow(node);
@@ -1633,7 +1660,7 @@ namespace renderdocui.Windows.PipelineState
                 if (tex.resType == ShaderResourceType.Buffer)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(false, tex.ID);
+                    viewer.ViewRawBuffer(false, 0, ulong.MaxValue, tex.ID);
                     viewer.Show(m_DockContent.DockPanel);
                 }
                 else
@@ -1654,6 +1681,22 @@ namespace renderdocui.Windows.PipelineState
                 var deets = stage.ShaderDetails;
                 
                 ShaderResource r = deets.ReadWriteResources[rwtag.idx];
+                var bindpoint = stage.BindpointMapping.ReadWriteResources[rwtag.idx];
+
+                GLReadWriteType readWriteType = GetGLReadWriteType(r);
+
+                ulong offset = 0;
+                ulong size = ulong.MaxValue;
+                if (readWriteType == GLReadWriteType.SSBO)
+                {
+                    offset = m_Core.CurGLPipelineState.ShaderStorageBuffers[bindpoint.bind].Offset;
+                    size = m_Core.CurGLPipelineState.ShaderStorageBuffers[bindpoint.bind].Size;
+                }
+                if (readWriteType == GLReadWriteType.Atomic)
+                {
+                    offset = m_Core.CurGLPipelineState.AtomicBuffers[bindpoint.bind].Offset;
+                    size = m_Core.CurGLPipelineState.AtomicBuffers[bindpoint.bind].Size;
+                }
 
                 if (deets != null)
                 {
@@ -1672,9 +1715,9 @@ namespace renderdocui.Windows.PipelineState
                 {
                     var viewer = new BufferViewer(m_Core, false);
                     if (format.Length == 0)
-                        viewer.ViewRawBuffer(true, buf.ID);
+                        viewer.ViewRawBuffer(true, offset, size, buf.ID);
                     else
-                        viewer.ViewRawBuffer(true, buf.ID, format);
+                        viewer.ViewRawBuffer(true, offset, size, buf.ID, format);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }
@@ -1758,14 +1801,14 @@ namespace renderdocui.Windows.PipelineState
 
         private void iabuffers_NodeDoubleClicked(TreelistView.Node node)
         {
-            if (node.Tag is ResourceId)
+            if (node.Tag is IABufferTag)
             {
-                ResourceId id = (ResourceId)node.Tag;
+                IABufferTag tag = (IABufferTag)node.Tag;
 
-                if (id != ResourceId.Null)
+                if (tag.id != ResourceId.Null)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(true, id);
+                    viewer.ViewRawBuffer(true, tag.offset, ulong.MaxValue, tag.id);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }

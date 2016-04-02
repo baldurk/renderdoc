@@ -741,7 +741,7 @@ namespace renderdocui.Windows
                 if (m_Core.CurBuffers[i].ID == ID)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(true, ID);
+                    viewer.ViewRawBuffer(true, 0, ulong.MaxValue, ID);
                     viewer.Show(DockPanel);
                     return;
                 }
@@ -3385,7 +3385,7 @@ namespace renderdocui.Windows
         private void viewTexBuffer_Click(object sender, EventArgs e)
         {
             var viewer = new BufferViewer(m_Core, false);
-            viewer.ViewRawBuffer(false, CurrentTexture.ID);
+            viewer.ViewRawBuffer(false, 0, ulong.MaxValue, CurrentTexture.ID);
             viewer.Show(this.DockPanel);
         }
 

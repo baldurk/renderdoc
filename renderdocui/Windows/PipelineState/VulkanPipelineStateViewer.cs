@@ -49,6 +49,18 @@ namespace renderdocui.Windows.PipelineState
         private List<TreelistView.Node> m_VBNodes = new List<TreelistView.Node>();
         private List<TreelistView.Node> m_BindNodes = new List<TreelistView.Node>();
 
+        private struct IABufferTag
+        {
+            public IABufferTag(ResourceId i, ulong offs)
+            {
+                id = i;
+                offset = offs;
+            }
+
+            public ResourceId id;
+            public ulong offset;
+        };
+
         class SamplerData
         {
             public SamplerData(TreelistView.Node n) { node = n; }
@@ -65,10 +77,13 @@ namespace renderdocui.Windows.PipelineState
 
         class BufferResTag
         {
-            public BufferResTag(bool rw, UInt32 b, ResourceId i) { rwRes = rw; bindPoint = b; ID = i; }
+            public BufferResTag(bool rw, UInt32 b, ResourceId id, ulong offs, ulong sz)
+            { rwRes = rw; bindPoint = b; ID = id; offset = offs; size = sz; }
             public bool rwRes;
             public UInt32 bindPoint;
             public ResourceId ID;
+            public ulong offset;
+            public ulong size;
         };
 
         private Dictionary<TreelistView.Node, TreelistView.Node> m_CombinedImageSamplers = new Dictionary<TreelistView.Node, TreelistView.Node>();
@@ -494,7 +509,7 @@ namespace renderdocui.Windows.PipelineState
                                     name = bufs[t].name;
                                     restype = ShaderResourceType.Buffer;
 
-                                    tag = new BufferResTag(isrw, bindPoint, bufs[t].ID);
+                                    tag = new BufferResTag(isrw, bindPoint, bufs[t].ID, descriptorBind.offset, descriptorBind.size);
 
                                     isbuf = true;
                                 }
@@ -1030,7 +1045,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = state.IA.ibuffer.buf;
+                    node.Tag = new IABufferTag(state.IA.ibuffer.buf, draw.indexOffset);
 
                     if (!ibufferUsed)
                         InactiveRow(node);
@@ -1047,7 +1062,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = state.IA.ibuffer.buf;
+                    node.Tag = new IABufferTag(state.IA.ibuffer.buf, draw.indexOffset);
 
                     EmptyRow(node);
 
@@ -1120,7 +1135,7 @@ namespace renderdocui.Windows.PipelineState
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                        node.Tag = vbuff != null ? vbuff.buffer : ResourceId.Null;
+                        node.Tag = new IABufferTag(vbuff != null ? vbuff.buffer : ResourceId.Null, vbuff != null ? vbuff.offset : 0);
 
                         if (!filledSlot || bind == null || vbuff == null)
                             EmptyRow(node);
@@ -1464,7 +1479,7 @@ namespace renderdocui.Windows.PipelineState
                 if (tex.resType == ShaderResourceType.Buffer)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(false, tex.ID);
+                    viewer.ViewRawBuffer(false, 0, ulong.MaxValue, tex.ID);
                     viewer.Show(m_DockContent.DockPanel);
                 }
                 else
@@ -1499,7 +1514,7 @@ namespace renderdocui.Windows.PipelineState
                 if (buf.ID != ResourceId.Null)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(true, buf.ID, format);
+                    viewer.ViewRawBuffer(true, buf.offset, buf.size, buf.ID, format);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }
@@ -1587,14 +1602,14 @@ namespace renderdocui.Windows.PipelineState
 
         private void iabuffers_NodeDoubleClicked(TreelistView.Node node)
         {
-            if (node.Tag is ResourceId)
+            if (node.Tag is IABufferTag)
             {
-                ResourceId id = (ResourceId)node.Tag;
+                IABufferTag tag = (IABufferTag)node.Tag;
 
-                if (id != ResourceId.Null)
+                if (tag.id != ResourceId.Null)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(true, id);
+                    viewer.ViewRawBuffer(true, tag.offset, ulong.MaxValue, tag.id);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }

@@ -112,7 +112,8 @@
             this.rowOffset = new System.Windows.Forms.ToolStripTextBox();
             this.byteOffsLab = new System.Windows.Forms.ToolStripLabel();
             this.byteOffset = new System.Windows.Forms.ToolStripTextBox();
-            this.offsetCancel = new System.Windows.Forms.ToolStripButton();
+            this.rowRangeLab = new System.Windows.Forms.ToolStripLabel();
+            this.rowRange = new System.Windows.Forms.ToolStripTextBox();
             this.instSep = new System.Windows.Forms.ToolStripSeparator();
             this.instLabel = new System.Windows.Forms.ToolStripLabel();
             this.instanceIdxToolitem = new System.Windows.Forms.ToolStripTextBox();
@@ -786,7 +787,7 @@
             this.flowLayoutPanel2.Controls.Add(this.toolStrip1);
             this.flowLayoutPanel2.Location = new System.Drawing.Point(3, 3);
             this.flowLayoutPanel2.Name = "flowLayoutPanel2";
-            this.flowLayoutPanel2.Size = new System.Drawing.Size(728, 25);
+            this.flowLayoutPanel2.Size = new System.Drawing.Size(831, 25);
             this.flowLayoutPanel2.TabIndex = 0;
             // 
             // toolStrip1
@@ -805,13 +806,14 @@
             this.rowOffset,
             this.byteOffsLab,
             this.byteOffset,
-            this.offsetCancel,
+            this.rowRangeLab,
+            this.rowRange,
             this.instSep,
             this.instLabel,
             this.instanceIdxToolitem});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(728, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(831, 25);
             this.toolStrip1.TabIndex = 0;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -920,15 +922,17 @@
             this.byteOffset.Size = new System.Drawing.Size(60, 25);
             this.byteOffset.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.byteOffset_KeyPress);
             // 
-            // offsetCancel
+            // rowRangeLab
             // 
-            this.offsetCancel.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.offsetCancel.Image = global::renderdocui.Properties.Resources.red_x_16;
-            this.offsetCancel.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.offsetCancel.Name = "offsetCancel";
-            this.offsetCancel.Size = new System.Drawing.Size(23, 22);
-            this.offsetCancel.Text = "Reset";
-            this.offsetCancel.Click += new System.EventHandler(this.offsetCancel_Click);
+            this.rowRangeLab.Name = "rowRangeLab";
+            this.rowRangeLab.Size = new System.Drawing.Size(33, 22);
+            this.rowRangeLab.Text = "Rows";
+            // 
+            // rowRange
+            // 
+            this.rowRange.Name = "rowRange";
+            this.rowRange.Size = new System.Drawing.Size(60, 25);
+            this.rowRange.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.rowRange_KeyPress);
             // 
             // instSep
             // 
@@ -1118,7 +1122,6 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripLabel toolStripLabel2;
         private System.Windows.Forms.ToolStripTextBox rowOffset;
-        private System.Windows.Forms.ToolStripButton offsetCancel;
         private System.Windows.Forms.ToolStripSeparator instSep;
         private System.Windows.Forms.ToolStripLabel instLabel;
         private System.Windows.Forms.ToolStripTextBox instanceIdxToolitem;
@@ -1157,6 +1160,8 @@
         private System.Windows.Forms.ToolStripMenuItem selectColumnAsSecondaryToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectAlphaAsSecondaryToolStripMenuItem;
         private System.Windows.Forms.Label largeBufferWarning;
+        private System.Windows.Forms.ToolStripLabel rowRangeLab;
+        private System.Windows.Forms.ToolStripTextBox rowRange;
 
     }
 }
