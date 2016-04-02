@@ -512,6 +512,8 @@ class OpenGLHook : LibraryHook
 					core = (a[1] & WGL_CONTEXT_CORE_PROFILE_BIT_ARB);
 			}
 			
+			SetLastError(0);
+
 			HGLRC ret = glhooks.wglCreateContextAttribsARB_realfunc(dc, hShareContext, attribs);
 
 			DWORD err = GetLastError();
