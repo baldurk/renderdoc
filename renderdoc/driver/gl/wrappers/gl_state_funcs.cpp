@@ -1279,11 +1279,27 @@ void WrappedOpenGL::glPointSize(GLfloat size)
 bool WrappedOpenGL::Serialise_glPointParameteri(GLenum pname, GLint param)
 {
 	SERIALISE_ELEMENT(GLenum, PName, pname);
-	SERIALISE_ELEMENT(int32_t, Param, param);
+
+	int32_t ParamValue = 0;
+
+	RDCCOMPILE_ASSERT(sizeof(int32_t) == sizeof(GLenum), "int32_t isn't the same size as GLenum - aliased serialising will break");
+	// special case a few parameters to serialise their value as an enum, not an int
+	if(PName == GL_POINT_SPRITE_COORD_ORIGIN)
+	{
+		SERIALISE_ELEMENT(GLenum, Param, (GLenum)param);
+
+		ParamValue = (int32_t)Param;
+	}
+	else
+	{
+		SERIALISE_ELEMENT(int32_t, Param, param);
+
+		ParamValue = Param;
+	}
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glPointParameteri(PName, Param);
+		m_Real.glPointParameteri(PName, ParamValue);
 	}
 
 	return true;

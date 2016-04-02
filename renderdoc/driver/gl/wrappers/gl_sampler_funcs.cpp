@@ -214,12 +214,34 @@ bool WrappedOpenGL::Serialise_glSamplerParameteri(GLuint sampler, GLenum pname, 
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
 	SERIALISE_ELEMENT(GLenum, PName, pname);
-	SERIALISE_ELEMENT(int32_t, Param, param);
+
+	int32_t ParamValue = 0;
+
+	RDCCOMPILE_ASSERT(sizeof(int32_t) == sizeof(GLenum), "int32_t isn't the same size as GLenum - aliased serialising will break");
+	// special case a few parameters to serialise their value as an enum, not an int
+	if(PName == GL_TEXTURE_WRAP_S ||
+		PName == GL_TEXTURE_WRAP_T ||
+		PName == GL_TEXTURE_WRAP_R ||
+		PName == GL_TEXTURE_MIN_FILTER ||
+		PName == GL_TEXTURE_MAG_FILTER ||
+		PName == GL_TEXTURE_COMPARE_MODE ||
+		PName == GL_TEXTURE_COMPARE_FUNC)
+	{
+		SERIALISE_ELEMENT(GLenum, Param, (GLenum)param);
+
+		ParamValue = (int32_t)Param;
+	}
+	else
+	{
+		SERIALISE_ELEMENT(int32_t, Param, param);
+
+		ParamValue = Param;
+	}
 
 	if(m_State < WRITING)
 	{
 		GLResource res = GetResourceManager()->GetLiveResource(id);
-		m_Real.glSamplerParameteri(res.name, PName, Param);
+		m_Real.glSamplerParameteri(res.name, PName, ParamValue);
 	}
 
 	return true;

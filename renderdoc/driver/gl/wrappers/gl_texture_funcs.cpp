@@ -1075,15 +1075,43 @@ bool WrappedOpenGL::Serialise_glTextureParameteriEXT(GLuint texture, GLenum targ
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(GLenum, PName, pname);
-	SERIALISE_ELEMENT(int32_t, Param, param);
+
+	int32_t ParamValue = 0;
+
+	RDCCOMPILE_ASSERT(sizeof(int32_t) == sizeof(GLenum), "int32_t isn't the same size as GLenum - aliased serialising will break");
+	// special case a few parameters to serialise their value as an enum, not an int
+	if(PName == GL_DEPTH_STENCIL_TEXTURE_MODE ||
+		PName == GL_TEXTURE_COMPARE_FUNC ||
+		PName == GL_TEXTURE_COMPARE_MODE ||
+		PName == GL_TEXTURE_MIN_FILTER ||
+		PName == GL_TEXTURE_MAG_FILTER ||
+		PName == GL_TEXTURE_SWIZZLE_R ||
+		PName == GL_TEXTURE_SWIZZLE_G ||
+		PName == GL_TEXTURE_SWIZZLE_B ||
+		PName == GL_TEXTURE_SWIZZLE_A ||
+		PName == GL_TEXTURE_WRAP_S ||
+		PName == GL_TEXTURE_WRAP_T ||
+		PName == GL_TEXTURE_WRAP_R)
+	{
+		SERIALISE_ELEMENT(GLenum, Param, (GLenum)param);
+
+		ParamValue = (int32_t)Param;
+	}
+	else
+	{
+		SERIALISE_ELEMENT(int32_t, Param, param);
+
+		ParamValue = Param;
+	}
+
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
 	
 	if(m_State < WRITING)
 	{
 		if(Target != eGL_NONE)
-			m_Real.glTextureParameteriEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Param);
+			m_Real.glTextureParameteriEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, ParamValue);
 		else
-			m_Real.glTextureParameteri(GetResourceManager()->GetLiveResource(id).name, PName, Param);
+			m_Real.glTextureParameteri(GetResourceManager()->GetLiveResource(id).name, PName, ParamValue);
 	}
 
 	return true;
