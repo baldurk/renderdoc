@@ -386,6 +386,8 @@ class OpenGLHook : LibraryHook
 		{
 			HGLRC ret = glhooks.wglCreateContext_hook()(dc);
 
+			DWORD err = GetLastError();
+
 			// don't recurse and don't continue if creation failed
 			if(glhooks.m_CreatingContext || ret == NULL)
 				return ret;
@@ -401,7 +403,7 @@ class OpenGLHook : LibraryHook
 
 			glhooks.m_HaveContextCreation = true;
 
-			SetLastError(0);
+			SetLastError(err);
 
 			glhooks.m_CreatingContext = false;
 
@@ -422,6 +424,8 @@ class OpenGLHook : LibraryHook
 		{
 			HGLRC ret = glhooks.wglCreateLayerContext_hook()(dc, iLayerPlane);
 
+			DWORD err = GetLastError();
+
 			// don't recurse and don't continue if creation failed
 			if(glhooks.m_CreatingContext || ret == NULL)
 				return ret;
@@ -437,7 +441,7 @@ class OpenGLHook : LibraryHook
 
 			glhooks.m_HaveContextCreation = true;
 
-			SetLastError(0);
+			SetLastError(err);
 
 			glhooks.m_CreatingContext = false;
 
@@ -517,6 +521,8 @@ class OpenGLHook : LibraryHook
 			
 			HGLRC ret = glhooks.wglCreateContextAttribsARB_realfunc(dc, hShareContext, attribs);
 
+			DWORD err = GetLastError();
+
 			// don't continue if creation failed
 			if(ret == NULL)
 				return ret;
@@ -530,7 +536,7 @@ class OpenGLHook : LibraryHook
 
 			glhooks.m_HaveContextCreation = true;
 
-			SetLastError(0);
+			SetLastError(err);
 
 			glhooks.m_CreatingContext = false;
 
@@ -556,6 +562,8 @@ class OpenGLHook : LibraryHook
 		{
 			BOOL ret = glhooks.wglMakeCurrent_hook()(dc, rc);
 
+			DWORD err = GetLastError();
+
 			if(rc && glhooks.m_HaveContextCreation && glhooks.m_Contexts.find(rc) == glhooks.m_Contexts.end())
 			{
 				glhooks.m_Contexts.insert(rc);
@@ -571,7 +579,7 @@ class OpenGLHook : LibraryHook
 			if(glhooks.m_HaveContextCreation)
 				glhooks.GetDriver()->ActivateContext(data);
 
-			SetLastError(0);
+			SetLastError(err);
 
 			return ret;
 		}
