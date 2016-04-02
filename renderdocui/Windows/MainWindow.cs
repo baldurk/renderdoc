@@ -215,32 +215,7 @@ namespace renderdocui.Windows
 
             if (m_InitFilename.Length > 0)
             {
-                if (Path.GetExtension(m_InitFilename) == ".rdc")
-                {
-                    LoadLogAsync(m_InitFilename, false);
-                }
-                else if (Path.GetExtension(m_InitFilename) == ".cap")
-                {
-                    if (m_Core.CaptureDialog == null)
-                        m_Core.CaptureDialog = new Dialogs.CaptureDialog(m_Core, OnCaptureTrigger, OnInjectTrigger);
-
-                    m_Core.CaptureDialog.LoadSettings(m_InitFilename);
-                    m_Core.CaptureDialog.Show(dockPanel);
-
-                    // workaround for Show() not doing this
-                    if (m_Core.CaptureDialog.DockState == DockState.DockBottomAutoHide ||
-                        m_Core.CaptureDialog.DockState == DockState.DockLeftAutoHide ||
-                        m_Core.CaptureDialog.DockState == DockState.DockRightAutoHide ||
-                        m_Core.CaptureDialog.DockState == DockState.DockTopAutoHide)
-                    {
-                        dockPanel.ActiveAutoHideContent = m_Core.CaptureDialog;
-                    }
-                }
-                else
-                {
-                    // not a recognised filetype, see if we can load it anyway
-                    LoadLogAsync(m_InitFilename, false);
-                }
+                LoadFromFilename(m_InitFilename);
 
                 m_InitFilename = "";
             }
@@ -862,6 +837,41 @@ namespace renderdocui.Windows
                 LoadLogAsync(fn, temporary);
         }
 
+        private void OpenCaptureConfigFile(String filename)
+        {
+            if (m_Core.CaptureDialog == null)
+                m_Core.CaptureDialog = new Dialogs.CaptureDialog(m_Core, OnCaptureTrigger, OnInjectTrigger);
+
+            m_Core.CaptureDialog.LoadSettings(filename);
+            m_Core.CaptureDialog.Show(dockPanel);
+
+            // workaround for Show() not doing this
+            if (m_Core.CaptureDialog.DockState == DockState.DockBottomAutoHide ||
+                m_Core.CaptureDialog.DockState == DockState.DockLeftAutoHide ||
+                m_Core.CaptureDialog.DockState == DockState.DockRightAutoHide ||
+                m_Core.CaptureDialog.DockState == DockState.DockTopAutoHide)
+            {
+                dockPanel.ActiveAutoHideContent = m_Core.CaptureDialog;
+            }
+        }
+
+        private void LoadFromFilename(string filename)
+        {
+            if (Path.GetExtension(filename) == ".rdc")
+            {
+                LoadLogfile(filename, false);
+            }
+            else if (Path.GetExtension(filename) == ".cap")
+            {
+                OpenCaptureConfigFile(filename);
+            }
+            else
+            {
+                // not a recognised filetype, see if we can load it anyway
+                LoadLogfile(filename, false);
+            }
+        }
+
         public void CloseLogfile()
         {
             m_Core.CloseLogfile();
@@ -974,7 +984,7 @@ namespace renderdocui.Windows
 
             if (res == DialogResult.OK)
             {
-                LoadLogAsync(openDialog.FileName, false);
+                LoadFromFilename(openDialog.FileName);
             }
         }
 
@@ -1512,20 +1522,7 @@ namespace renderdocui.Windows
 
             if (File.Exists(filename))
             {
-                if (m_Core.CaptureDialog == null)
-                    m_Core.CaptureDialog = new Dialogs.CaptureDialog(m_Core, OnCaptureTrigger, OnInjectTrigger);
-
-                m_Core.CaptureDialog.LoadSettings(filename);
-                m_Core.CaptureDialog.Show(dockPanel);
-
-                // workaround for Show() not doing this
-                if (m_Core.CaptureDialog.DockState == DockState.DockBottomAutoHide ||
-                    m_Core.CaptureDialog.DockState == DockState.DockLeftAutoHide ||
-                    m_Core.CaptureDialog.DockState == DockState.DockRightAutoHide ||
-                    m_Core.CaptureDialog.DockState == DockState.DockTopAutoHide)
-                {
-                    dockPanel.ActiveAutoHideContent = m_Core.CaptureDialog;
-                }
+                OpenCaptureConfigFile(filename);
             }
             else
             {
@@ -1723,7 +1720,7 @@ namespace renderdocui.Windows
             string fn = ValidData(e.Data);
             if (fn.Length > 0)
             {
-                LoadLogfile(fn, false);
+                LoadFromFilename(fn);
             }
         }
 
