@@ -84,7 +84,7 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 	}
 	else if (type == RESTYPE_TEXRECT)
 	{
-		ivec2 size = textureSize(texUInt2DRect, mipLevel);
+		ivec2 size = textureSize(texUInt2DRect);
 
 		if (flipY)
 			pos.y = size.y - pos.y;
@@ -170,7 +170,7 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 	}
 	else if (type == RESTYPE_TEXRECT)
 	{
-		ivec2 size = textureSize(texSInt2DRect, mipLevel);
+		ivec2 size = textureSize(texSInt2DRect);
 
 		if (flipY)
 			pos.y = size.y - pos.y;
