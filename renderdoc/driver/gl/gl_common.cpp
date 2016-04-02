@@ -76,6 +76,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 			EXT_CHECK(KHR_blend_equation_advanced_coherent);
 			EXT_CHECK(EXT_raster_multisample);
 			EXT_CHECK(ARB_indirect_parameters);
+			EXT_CHECK(EXT_depth_bounds_test);
 
 #undef EXT_CHECK
 		}

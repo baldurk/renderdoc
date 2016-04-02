@@ -122,6 +122,7 @@ enum ExtensionCheckEnum
 	ExtensionSupported_KHR_blend_equation_advanced_coherent,
 	ExtensionSupported_EXT_raster_multisample,
 	ExtensionSupported_ARB_indirect_parameters,
+	ExtensionSupported_EXT_depth_bounds_test,
 	ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];

@@ -517,6 +517,12 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 				continue;
 			}
 
+			if(pnames[i] == eGL_DEPTH_BOUNDS_TEST_EXT && !ExtensionSupported[ExtensionSupported_EXT_depth_bounds_test])
+			{
+				Enabled[i] = false;
+				continue;
+			}
+
 			Enabled[i] = (m_Real->glIsEnabled(pnames[i]) == GL_TRUE);
 		}
 	}
@@ -713,7 +719,15 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
 		m_Real->glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
 	
-	m_Real->glGetDoublev(eGL_DEPTH_BOUNDS_TEST_EXT, &DepthBounds.nearZ);
+	if(ExtensionSupported[ExtensionSupported_EXT_depth_bounds_test])
+	{
+		m_Real->glGetDoublev(eGL_DEPTH_BOUNDS_TEST_EXT, &DepthBounds.nearZ);
+	}
+	else
+	{
+		DepthBounds.nearZ = 0.0f;
+		DepthBounds.farZ = 1.0f;
+	}
 
 	{
 		m_Real->glGetIntegerv(eGL_STENCIL_FUNC, (GLint *)&StencilFront.func);
@@ -849,6 +863,9 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 				continue;
 			
 			if(pnames[i] == eGL_RASTER_MULTISAMPLE_EXT && !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+				continue;
+
+			if(pnames[i] == eGL_DEPTH_BOUNDS_TEST_EXT && !ExtensionSupported[ExtensionSupported_EXT_depth_bounds_test])
 				continue;
 
 			if(Enabled[i]) m_Real->glEnable(pnames[i]); else m_Real->glDisable(pnames[i]);
