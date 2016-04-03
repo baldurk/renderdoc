@@ -70,6 +70,8 @@ namespace renderdocui.Windows.Dialogs
             mode_Changed(shellMode, null);
 
             clearCmd_Click(null, null);
+
+            EnableButtons(true);
         }
 
         void scriptEditor_KeyDown(object sender, KeyEventArgs e)
@@ -117,6 +119,8 @@ namespace renderdocui.Windows.Dialogs
 
             return scope;
         }
+
+        private Thread pythonThread = null;
 
         private MemoryStream stdout = null;
         private StreamWriter stdoutwriter = null;
@@ -333,6 +337,13 @@ namespace renderdocui.Windows.Dialogs
             shellMode.Enabled = scriptMode.Enabled =
                 newScript.Enabled = openButton.Enabled = saveAs.Enabled =
                 runButton.Enabled = enable;
+            abortButton.Enabled = !enable;
+        }
+
+        private void abortButton_Click(object sender, EventArgs e)
+        {
+            if (pythonThread != null)
+                pythonThread.Abort();
         }
 
         private void runButton_Click(object sender, EventArgs e)
@@ -351,18 +362,29 @@ namespace renderdocui.Windows.Dialogs
             linenumTimer.Enabled = true;
             linenumTimer.Start();
 
-            Thread th = Helpers.NewThread(new ThreadStart(() =>
+            pythonThread = Helpers.NewThread(new ThreadStart(() =>
             {
                 pythonengine.SetTrace(PythonTrace);
 
+                string output = "";
                 // ignore output, the trace handler above will print output
-                string output = Execute(pythonengine, scriptscope, script);
+                try
+                {
+                    output = Execute(pythonengine, scriptscope, script);
+                }
+                catch (ThreadAbortException)
+                {
+                    // python was interrupted
+                    Thread.ResetAbort();
+                }
 
                 linenumTimer.Stop();
                 pythonengine.SetTrace(null);
 
                 this.BeginInvoke(new Action(() =>
                 {
+                    pythonThread = null;
+
                     scriptOutput.Text += output;
 
                     SetLineNumber(linenum);
@@ -371,7 +393,7 @@ namespace renderdocui.Windows.Dialogs
                 }));
             }));
 
-            th.Start();
+            pythonThread.Start();
         }
 
         private string ValidData(IDataObject d)

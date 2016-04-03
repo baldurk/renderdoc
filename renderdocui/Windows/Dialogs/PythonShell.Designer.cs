@@ -52,6 +52,7 @@
             this.openDialog = new System.Windows.Forms.OpenFileDialog();
             this.newScript = new System.Windows.Forms.ToolStripButton();
             this.linenumTimer = new System.Windows.Forms.Timer(this.components);
+            this.abortButton = new System.Windows.Forms.ToolStripButton();
             toolStripContainer1 = new System.Windows.Forms.ToolStripContainer();
             toolStrip1 = new System.Windows.Forms.ToolStrip();
             toolStripContainer1.ContentPanel.SuspendLayout();
@@ -133,7 +134,8 @@
             this.openButton,
             this.saveAs,
             this.toolStripSeparator2,
-            this.runButton});
+            this.runButton,
+            this.abortButton});
             this.toolStrip2.Location = new System.Drawing.Point(0, 0);
             this.toolStrip2.Name = "toolStrip2";
             this.toolStrip2.Size = new System.Drawing.Size(306, 25);
@@ -308,6 +310,15 @@
             this.linenumTimer.Interval = 500;
             this.linenumTimer.Tick += new System.EventHandler(this.linenumTimer_Tick);
             // 
+            // abortButton
+            // 
+            this.abortButton.Image = global::renderdocui.Properties.Resources.delete;
+            this.abortButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.abortButton.Name = "abortButton";
+            this.abortButton.Size = new System.Drawing.Size(54, 22);
+            this.abortButton.Text = "Abort";
+            this.abortButton.Click += new System.EventHandler(this.abortButton_Click);
+            // 
             // PythonShell
             // 
             this.AllowDrop = true;
@@ -364,6 +375,7 @@
         private System.Windows.Forms.OpenFileDialog openDialog;
         private System.Windows.Forms.ToolStripButton newScript;
         private System.Windows.Forms.Timer linenumTimer;
+        private System.Windows.Forms.ToolStripButton abortButton;
 
 
     }
