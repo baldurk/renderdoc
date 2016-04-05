@@ -726,7 +726,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 	SAFE_DELETE_ARRAY(props);
 
 	m_QueueFamilies.resize(createInfo.queueCreateInfoCount);
-	for(size_t i=0; i < m_QueueFamilies.size(); i++)
+	for(size_t i=0; i < createInfo.queueCreateInfoCount; i++)
 	{
 		uint32_t family = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
 		uint32_t count = createInfo.pQueueCreateInfos[i].queueCount;
