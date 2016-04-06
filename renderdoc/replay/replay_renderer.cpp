@@ -1045,7 +1045,20 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 		}
 		else if(sd.destType == eFileType_HDR || sd.destType == eFileType_EXR)
 		{
-			float *fldata = new float[td.width*td.height*4];
+			float *fldata = NULL;
+			float *bgra[4] = { NULL, NULL, NULL, NULL };
+
+			if(sd.destType == eFileType_HDR)
+			{
+				fldata = new float[td.width*td.height*4];
+			}
+			else
+			{
+				bgra[0] = new float[td.width*td.height];
+				bgra[1] = new float[td.width*td.height];
+				bgra[2] = new float[td.width*td.height];
+				bgra[3] = new float[td.width*td.height];
+			}
 
 			byte *srcData = subdata[0];
 			
@@ -1124,10 +1137,20 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 						r = g = b = a; a = 1.0f;
 					}
 
-					fldata[(y*td.width + x) * 4 + 0] = r;
-					fldata[(y*td.width + x) * 4 + 1] = g;
-					fldata[(y*td.width + x) * 4 + 2] = b;
-					fldata[(y*td.width + x) * 4 + 3] = a;
+					if(fldata)
+					{
+						fldata[(y*td.width + x) * 4 + 0] = r;
+						fldata[(y*td.width + x) * 4 + 1] = g;
+						fldata[(y*td.width + x) * 4 + 2] = b;
+						fldata[(y*td.width + x) * 4 + 3] = a;
+					}
+					else
+					{
+						bgra[0][(y*td.width + x)] = b;
+						bgra[1][(y*td.width + x)] = g;
+						bgra[2][(y*td.width + x)] = r;
+						bgra[3][(y*td.width + x)] = a;
+					}
 				}
 			}
 
@@ -1139,13 +1162,46 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 			else if(sd.destType == eFileType_EXR)
 			{
 				const char *err = NULL;
-				int ret = SaveEXRFP(fldata, (int)td.width, (int)td.height, f, &err);
-				success = (ret == 0);
-				if(!success)
+
+				EXRImage exrImage;
+				InitEXRImage(&exrImage);
+
+				int pixTypes[4] = { TINYEXR_PIXELTYPE_FLOAT, TINYEXR_PIXELTYPE_FLOAT, TINYEXR_PIXELTYPE_FLOAT, TINYEXR_PIXELTYPE_FLOAT };
+				int reqTypes[4] = { TINYEXR_PIXELTYPE_HALF, TINYEXR_PIXELTYPE_HALF, TINYEXR_PIXELTYPE_HALF, TINYEXR_PIXELTYPE_HALF };
+				const char *bgraNames[4] = { "B", "G", "R", "A" };
+
+				exrImage.num_channels = 4;
+				exrImage.channel_names = bgraNames;
+				exrImage.images = (unsigned char**)bgra;
+				exrImage.width = td.width;
+				exrImage.height = td.height;
+				exrImage.pixel_types = pixTypes;
+				exrImage.requested_pixel_types = reqTypes;
+
+				unsigned char *mem = NULL;
+
+				size_t ret = SaveMultiChannelEXRToMemory(&exrImage, &mem, &err);
+
+				success = (ret > 0);
+				if(success)
+					FileIO::fwrite(mem, 1, ret, f);
+				else
 					RDCERR("Error saving EXR file %d: '%s'", ret, err);
+
+				free(mem);
 			}
 
-			delete[] fldata;
+			if(fldata)
+			{
+				delete[] fldata;
+			}
+			else
+			{
+				delete[] bgra[0];
+				delete[] bgra[1];
+				delete[] bgra[2];
+				delete[] bgra[3];
+			}
 		}
 
 		FileIO::fclose(f);

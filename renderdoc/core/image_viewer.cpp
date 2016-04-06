@@ -200,23 +200,30 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 	// make sure the file is a type we recognise before going further
 	if(is_exr_file(f))
 	{
-		FileIO::fseek64(f, 0, SEEK_SET);
-
 		const char *err = NULL;
 
-		float *data = NULL;
-		int dummy;
+		FileIO::fseek64(f, 0, SEEK_END);
+		uint64_t size = FileIO::ftell64(f);
+		FileIO::fseek64(f, 0, SEEK_SET);
 
-		int ret = LoadEXRFP(&data, &dummy, &dummy, f, &err);
+		std::vector<byte> buffer;
+		buffer.resize((size_t)size);
 
-		if(data) free(data);
+		FileIO::fread(&buffer[0], 1, buffer.size(), f);
+
+		EXRImage exrImage;
+		InitEXRImage(&exrImage);
+
+		int ret = ParseMultiChannelEXRHeaderFromMemory(&exrImage, &buffer[0], &err);
+
+		FreeEXRImage(&exrImage);
 
 		// could be an unsupported form of EXR, like deep image or other
 		if(ret != 0)
 		{
 			FileIO::fclose(f);
 
-			RDCERR("EXR file detected, but couldn't load with LoadEXR %d: '%s'", ret, err);
+			RDCERR("EXR file detected, but couldn't load with ParseMultiChannelEXRHeaderFromMemory %d: '%s'", ret, err);
 			return eReplayCreate_APIUnsupported;
 		}
 	}
@@ -355,20 +362,77 @@ void ImageViewer::RefreshFile()
 	if(is_exr_file(f))
 	{
 		texDetails.format = rgba32_float;
-		
+
+		FileIO::fseek64(f, 0, SEEK_END);
+		uint64_t size = FileIO::ftell64(f);
 		FileIO::fseek64(f, 0, SEEK_SET);
+
+		std::vector<byte> buffer;
+		buffer.resize((size_t)size);
+
+		FileIO::fread(&buffer[0], 1, buffer.size(), f);
+
+		FileIO::fclose(f);
+
+		EXRImage exrImage;
+		InitEXRImage(&exrImage);
 
 		const char *err = NULL;
 
-		int ret = LoadEXRFP((float **)&data, (int *)&texDetails.width, (int *)&texDetails.height, f, &err);
-		datasize = texDetails.width*texDetails.height*4*sizeof(float);
+		int ret = ParseMultiChannelEXRHeaderFromMemory(&exrImage, &buffer[0], &err);
 
-		// could be an unsupported form of EXR, like deep image or other
 		if(ret != 0)
 		{
-			if(data) free(data);
-			RDCERR("EXR file detected, but couldn't load with LoadEXR %d: '%s'", ret, err);
-			FileIO::fclose(f);
+			RDCERR("EXR file detected, but couldn't load with ParseMultiChannelEXRHeaderFromMemory %d: '%s'", ret, err);
+			return;
+		}
+
+		texDetails.width = exrImage.width;
+		texDetails.height = exrImage.height;
+
+		datasize = texDetails.width*texDetails.height*4*sizeof(float);
+		data = (byte *)malloc(datasize);
+
+		for(int i=0; i < exrImage.num_channels; i++)
+			exrImage.requested_pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
+
+		ret = LoadMultiChannelEXRFromMemory(&exrImage, &buffer[0], &err);
+
+		int channels[4] = { -1, -1, -1, -1 };
+		for(int i=0; i < exrImage.num_channels; i++)
+		{
+			switch(exrImage.channel_names[i][0])
+			{
+				case 'R': channels[0] = i; break;
+				case 'G': channels[1] = i; break;
+				case 'B': channels[2] = i; break;
+				case 'A': channels[3] = i; break;
+			}
+		}
+
+		float *rgba = (float *)data;
+		float **src = (float **)exrImage.images;
+
+		for(uint32_t i=0; i < texDetails.width*texDetails.height; i++)
+		{
+			for(int c=0; c < 4; c++)
+			{
+				if(channels[c] >= 0)
+					rgba[i*4 + c] = src[ channels[c] ][i];
+				else if(c < 3) // RGB channels default to 0
+					rgba[i*4 + c] = 0.0f;
+				else // alpha defaults to 1
+					rgba[i*4 + c] = 1.0f;
+			}
+		}
+
+		FreeEXRImage(&exrImage);
+
+		// shouldn't get here but let's be safe
+		if(ret != 0)
+		{
+			free(data);
+			RDCERR("EXR file detected, but couldn't load with LoadEXRFromMemory %d: '%s'", ret, err);
 			return;
 		}
 	}
