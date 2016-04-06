@@ -376,6 +376,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 		// return the wrapped object to the user and do nothing else
 		if(m_PhysicalDevices[i] != VK_NULL_HANDLE)
 		{
+			GetWrapped(m_PhysicalDevices[i])->RewrapObject(devices[i]);
 			devices[i] = m_PhysicalDevices[i];
 		}
 		else

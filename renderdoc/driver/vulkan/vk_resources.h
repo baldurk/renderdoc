@@ -162,6 +162,10 @@ struct WrappedVkDispRes : public WrappedVkRes
 	WrappedVkDispRes(VkCommandBuffer obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL), core(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 
+	template<typename realtype>
+	void RewrapObject(realtype obj)
+	{ real = (void *)obj; loaderTable = *(uintptr_t*)obj;	}
+
 	// preserve dispatch table pointer in dispatchable objects
 	uintptr_t loaderTable, table;
 	RealVkRes real;
