@@ -200,7 +200,7 @@ bool WrappedVulkan::Serialise_vkResetFences(
 			fences.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkFence>(id)));
 	}
 
-	if(m_State < WRITING)
+	if(m_State < WRITING && !fences.empty())
 	{
 		// we don't care about fence states ourselves as we cannot record them perfectly and just
 		// do full waitidle flushes. However if the fence is passed to vkQueueSubmit we need to
