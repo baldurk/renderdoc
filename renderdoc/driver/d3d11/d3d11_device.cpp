@@ -1389,20 +1389,23 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 			{
 				ID3D11Buffer *stage = (ID3D11Buffer *)m_ResourceManager->GetInitialContents(Id).resource;
 
-				D3D11_MAPPED_SUBRESOURCE mapped;
-				HRESULT hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
-
 				uint32_t countData = 0;
 
-				if(FAILED(hr))
+				if(stage != NULL)
 				{
-					RDCERR("Failed to map while getting initial states %08x", hr);
-				}
-				else
-				{
-					countData = *((uint32_t *)mapped.pData);
+					D3D11_MAPPED_SUBRESOURCE mapped;
+					HRESULT hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
 
-					m_pImmediateContext->GetReal()->Unmap(stage, 0);
+					if(FAILED(hr))
+					{
+						RDCERR("Failed to map while getting initial states %08x", hr);
+					}
+					else
+					{
+						countData = *((uint32_t *)mapped.pData);
+
+						m_pImmediateContext->GetReal()->Unmap(stage, 0);
+					}
 				}
 
 				SERIALISE_ELEMENT(uint32_t, count, countData);
