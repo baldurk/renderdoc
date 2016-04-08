@@ -768,10 +768,10 @@ VkResult WrappedVulkan::vkCreateDevice(
 	// (note that we asserted above that there was nothing else in the chain)
 	createInfo.pNext = NULL;
 
-	InitDeviceTable(*pDevice, gdpa);
-
 	if(ret == VK_SUCCESS)
 	{
+		InitDeviceTable(*pDevice, gdpa);
+
 		ResourceId id = GetResourceManager()->WrapResource(*pDevice, *pDevice);
 		
 		if(m_State >= WRITING)
