@@ -234,7 +234,6 @@ struct SPVDecoration
 				return ToStr::Get(decoration);
 			case spv::DecorationUniform:
 				return StringFormat::Fmt("DynamicallyUniform", val);
-				return StringFormat::Fmt("MatrixStride=%u", val);
 			case spv::DecorationLocation:
 				return StringFormat::Fmt("Location=%u", val);
 			case spv::DecorationComponent:
