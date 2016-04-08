@@ -224,12 +224,12 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 
 						// matrices always have 4 columns, for padding reasons (the same reason arrays
 						// put every element on a new vec4)
-						for(uint32_t r=0; r < rows; r++)
+						for(uint32_t c=0; c < cols; c++)
 						{
-							size_t srcoffs = 4*elemByteSize*r;
-							size_t dstoffs = cols*elemByteSize*r;
+							size_t srcoffs = 4*elemByteSize*c;
+							size_t dstoffs = rows*elemByteSize*c;
 							memcpy((byte *)(tmp) + dstoffs, d + srcoffs,
-											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*cols));
+											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*rows));
 						}
 
 						// transpose
@@ -288,6 +288,8 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 					}
 				}
 
+				size_t rowDataOffset = vec;
+
 				for(size_t r=0; r < registers*elems; r++)
 				{
 					if(isArray && registers > 1)
@@ -302,23 +304,60 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 					(*out)[outIdx+r].type = type;
 					(*out)[outIdx+r].isStruct = false;
 					(*out)[outIdx+r].columns = regLen;
+
+					size_t totalSize = 0;
 					
-					size_t rowDataOffset = (vec+r*rowCopy)*16;
+					if(flatten)
+					{
+						totalSize = elemByteSize*regLen;
+					}
+					else
+					{
+						// in a matrix, each major element before the last takes up a full
+						// vec4 at least
+						size_t vecSize = elemByteSize*4;
+
+						if(columnMajor)
+							totalSize = elemByteSize*4*(cols-1) + elemByteSize*rowCopy;
+						else
+							totalSize = elemByteSize*4*(rowCopy-1) + elemByteSize*cols;
+					}
+
+					if((rowDataOffset % sizeof(Vec4f) != 0) &&
+					  (rowDataOffset / sizeof(Vec4f) != (rowDataOffset + totalSize) / sizeof(Vec4f) ))
+					{
+						rowDataOffset = AlignUp(rowDataOffset, sizeof(Vec4f));
+					}
 
 					if(rowDataOffset < data.size())
 					{
 						const byte *d = &data[rowDataOffset];
 
-						memcpy(&((*out)[outIdx+r].value.uv[0]), d, RDCMIN(data.size()- rowDataOffset, elemByteSize*rowCopy*regLen));
+						memcpy(&((*out)[outIdx+r].value.uv[0]), d, RDCMIN(data.size()- rowDataOffset, totalSize));
 
 						if(!flatten && columnMajor)
 						{
-							ShaderVariable tmp = (*out)[outIdx];
+							ShaderVariable tmp = (*out)[outIdx+r];
+
+							size_t transposeRows = rowCopy > 1 ? 4 : 1;
+
 							// transpose
-							for(size_t ri=0; ri < rows; ri++)
+							for(size_t ri=0; ri < transposeRows; ri++)
 								for(size_t ci=0; ci < cols; ci++)
-									(*out)[outIdx].value.uv[ri*cols+ci] = tmp.value.uv[ci*rows+ri];
+									(*out)[outIdx+r].value.uv[ri*cols+ci] = tmp.value.uv[ci*transposeRows+ri];
 						}
+					}
+
+					if(flatten)
+					{
+						rowDataOffset += sizeof(Vec4f);
+					}
+					else
+					{
+						if(columnMajor)
+							rowDataOffset += sizeof(Vec4f)*(cols-1) + sizeof(float)*rowCopy;
+						else
+							rowDataOffset += sizeof(Vec4f)*(rowCopy-1) + sizeof(float)*cols;
 					}
 				}
 
