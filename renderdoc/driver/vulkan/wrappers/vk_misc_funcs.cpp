@@ -497,7 +497,7 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 			record->imageAttachments = new VkResourceRecord*[VkResourceRecord::MaxImageAttachments];
 			RDCASSERT(pCreateInfo->attachmentCount <= VkResourceRecord::MaxImageAttachments);
 
-			RDCEraseMem(record->imageAttachments, sizeof(ResourceId)*VkResourceRecord::MaxImageAttachments);
+			RDCEraseMem(record->imageAttachments, sizeof(VkResourceRecord*)*VkResourceRecord::MaxImageAttachments);
 
 			if(pCreateInfo->renderPass != VK_NULL_HANDLE)
 				record->AddParent(GetRecord(pCreateInfo->renderPass));
