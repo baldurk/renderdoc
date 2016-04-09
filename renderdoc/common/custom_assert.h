@@ -105,7 +105,7 @@
 #define RDCASSERTMSG(msg, ...) \
 	do { \
 		if(!(RDCASSERT_IFCOND(__VA_ARGS__))) { \
-			const char custommsg[] = msg; \
+			const char custommsg[] = msg; (void)custommsg; \
 			std::string assertmsg = "'" STRINGIZE(RDCASSERT_GETCOND(__VA_ARGS__)) "' "; \
 			if(sizeof(custommsg) > 1) assertmsg += msg " "; \
 			std::string failmsg; \

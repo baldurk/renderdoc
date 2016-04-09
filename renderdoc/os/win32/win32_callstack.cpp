@@ -262,6 +262,12 @@ BOOL CALLBACK EnumModule(PCWSTR ModuleName, DWORD64 BaseOfDll, PVOID UserContext
 	BOOL res = dynSymGetModuleInfo64W(GetCurrentProcess(), BaseOfDll, &ModInfo);
 	DWORD err = GetLastError();
 
+	if(!res)
+	{
+		RDCERR("Couldn't get module info for %ls: %d", ModuleName, err);
+		return FALSE;
+	}
+
 	EnumModChunk chunk;
 
 	chunk.base = BaseOfDll;
@@ -284,9 +290,6 @@ BOOL CALLBACK EnumModule(PCWSTR ModuleName, DWORD64 BaseOfDll, PVOID UserContext
 		PIMAGE_FILE_HEADER fileHeader = (PIMAGE_FILE_HEADER)(PE00+4);
 		PIMAGE_OPTIONAL_HEADER optHeader = (PIMAGE_OPTIONAL_HEADER)((BYTE *)fileHeader+sizeof(IMAGE_FILE_HEADER));
 
-		PIMAGE_SECTION_HEADER sections = (PIMAGE_SECTION_HEADER)((BYTE *)optHeader+sizeof(IMAGE_OPTIONAL_HEADER));
-
-		DWORD dbgSize = optHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size;
 		DWORD dbgOffset = optHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
 		PIMAGE_DEBUG_DIRECTORY debugDir = (PIMAGE_DEBUG_DIRECTORY)(addr32 + dbgOffset);
 
@@ -442,10 +445,7 @@ void *Win32CallstackResolver::SendRecvPipeMessage(wstring message)
 	BOOL success = WriteFile(pdblocatePipe, message.c_str(), msgLen, &written, NULL);
 
 	if(!success || written != msgLen)
-	{
-		DWORD err = GetLastError();
 		return NULL;
-	}
 
 	byte *bufPtr = (byte *)pipeMessageBuf;
 	DWORD bufSize = sizeof(pipeMessageBuf);
@@ -703,8 +703,6 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 	pdbIgnores.erase( unique( pdbIgnores.begin(), pdbIgnores.end() ), pdbIgnores.end() );
 	merge(pdbIgnores, ignores, L';');
 	WritePrivateProfileStringW(L"renderdoc", L"ignores", ignores.c_str(), configPath.c_str());
-
-	int a=0;
 }
 
 Win32CallstackResolver::~Win32CallstackResolver()
@@ -730,7 +728,7 @@ Callstack::AddressDetails Win32CallstackResolver::GetAddr(DWORD64 addr)
 	{
 		DWORD64 base = modules[i].base;
 		DWORD size = modules[i].size;
-		if(addr > modules[i].base && addr < modules[i].base + modules[i].size)
+		if(addr > base && addr < base + size)
 		{
 			if(modules[i].moduleId != 0)
 				info = GetAddrInfoForModule(modules[i].moduleId, addr);

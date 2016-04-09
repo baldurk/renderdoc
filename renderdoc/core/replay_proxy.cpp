@@ -1948,7 +1948,7 @@ byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_
 
 		byte *compressed = (byte *)m_FromReplaySerialiser->RawReadBytes(compressedSize);
 
-		size_t uncompSize = (size_t)LZ4_decompress_fast((const char *)compressed, (char *)ret, (int)dataSize);
+		LZ4_decompress_fast((const char *)compressed, (char *)ret, (int)dataSize);
 
 		return ret;
 	}

@@ -1220,8 +1220,6 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 
 bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx, rdctype::array<PixelModification> *history)
 {
-	bool outofbounds = false;
-	
 	for(size_t t=0; t < m_Textures.size(); t++)
 	{
 		if(m_Textures[t].ID == target)

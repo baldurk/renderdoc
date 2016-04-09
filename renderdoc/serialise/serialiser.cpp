@@ -273,7 +273,7 @@ Chunk::Chunk(Serialiser *ser, uint32_t chunkType, bool temporary)
 
 	if(newval > m_MaxChunks)
 	{
-		int breakpointme=0;
+		int breakpointme=0;(void)breakpointme;
 	}
 
 	m_MaxChunks = RDCMAX(newval, m_MaxChunks);
@@ -1737,7 +1737,6 @@ void Serialiser::AlignNextBuffer(const size_t alignment)
 	// avoid dynamically allocating
 	RDCASSERT(alignment <= 128);
 	byte padding[128] = {0};
-	byte *p = &padding[0];
 
 	if(m_Mode >= WRITING)
 	{

@@ -293,8 +293,6 @@ void PrintInteger(bool typeUnsigned, uint64_t argu, int base, uint64_t numbits,
 	}
 	else
 	{
-		bool left0s = true;
-
 		// buffer large enough for any int (up to 64bit unsigned)
 		char intbuf[32] = {0};
 

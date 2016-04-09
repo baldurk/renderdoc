@@ -177,7 +177,6 @@ struct CachedHookData
 		PIMAGE_FILE_HEADER fileHeader = (PIMAGE_FILE_HEADER)(PE00+4);
 		PIMAGE_OPTIONAL_HEADER optHeader = (PIMAGE_OPTIONAL_HEADER)((BYTE *)fileHeader+sizeof(IMAGE_FILE_HEADER));
 
-		DWORD iatSize = optHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
 		DWORD iatOffset = optHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 
 		IMAGE_IMPORT_DESCRIPTOR *importDesc = (IMAGE_IMPORT_DESCRIPTOR *)(baseAddress + iatOffset);
@@ -302,8 +301,6 @@ static void HookAllModules()
 
 	uintptr_t ret = 0;
 
-	int numModules = 0;
- 
   do
   {
 		s_HookData->ApplyHooks(me32.szModule, me32.hModule);
