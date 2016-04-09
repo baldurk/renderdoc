@@ -326,7 +326,7 @@ class OpenGLHook : LibraryHook
 		PFNWGLGETPIXELFORMATATTRIBFVARBPROC wglGetPixelFormatAttribfvARB_realfunc;
 		PFNWGLGETPIXELFORMATATTRIBIVARBPROC wglGetPixelFormatAttribivARB_realfunc;
 
-		static private GLInitParams GetInitParamsForDC(HDC dc)
+		static GLInitParams GetInitParamsForDC(HDC dc)
 		{
 			GLInitParams ret;
 

@@ -364,7 +364,7 @@ public:
 
 	virtual ~WrappedIDXGIDevice() { SAFE_RELEASE(m_pReal); SAFE_RELEASE(m_pD3DDevice); }
 	
-	static const public int AllocPoolCount = 4;
+	static const int AllocPoolCount = 4;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedIDXGIDevice, AllocPoolCount);
 
 	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
@@ -543,7 +543,7 @@ public:
 	  RefCountDXGIObject(real), m_pReal(real), m_pD3DDevice(d3d) { m_pD3DDevice->AddRef(); }
 	virtual ~WrappedIDXGIDevice1() { SAFE_RELEASE(m_pReal); SAFE_RELEASE(m_pD3DDevice); }
 	
-	static const public int AllocPoolCount = 4;
+	static const int AllocPoolCount = 4;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedIDXGIDevice1, AllocPoolCount);
 
 	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
@@ -702,7 +702,7 @@ public:
 	  RefCountDXGIObject(real), m_pReal(real), m_pD3DDevice(d3d) { m_pD3DDevice->AddRef(); }
 	virtual ~WrappedIDXGIDevice2() { SAFE_RELEASE(m_pReal); SAFE_RELEASE(m_pD3DDevice); }
 	
-	static const public int AllocPoolCount = 4;
+	static const int AllocPoolCount = 4;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedIDXGIDevice2, AllocPoolCount);
 
 	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
@@ -814,7 +814,7 @@ public:
 	  RefCountDXGIObject(real), m_pReal(real), m_pD3DDevice(d3d) { m_pD3DDevice->AddRef(); }
 	virtual ~WrappedIDXGIDevice3() { SAFE_RELEASE(m_pReal); SAFE_RELEASE(m_pD3DDevice); }
 	
-	static const public int AllocPoolCount = 4;
+	static const int AllocPoolCount = 4;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedIDXGIDevice3, AllocPoolCount);
 
 	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
