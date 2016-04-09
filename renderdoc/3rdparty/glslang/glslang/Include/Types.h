@@ -985,9 +985,9 @@ public:
             qualifier.storage = EvqGlobal;
     }
 
-    void init(const TSourceLoc& loc, bool global = false)
+    void init(const TSourceLoc& l, bool global = false)
     {
-        initType(loc);
+        initType(l);
         sampler.clear();
         initQualifiers(global);
         shaderQualifiers.init();
