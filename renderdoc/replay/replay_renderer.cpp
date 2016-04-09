@@ -133,6 +133,11 @@ float ConvertComponent(ResourceFormat fmt, byte *data)
 	return 0.0f;
 }
 
+static void fileWriteFunc(void *context, void *data, int size)
+{
+	FileIO::fwrite(data, 1, size, (FILE *)context);
+}
+
 ReplayRenderer::ReplayRenderer()
 {
 	m_pDevice = NULL;
@@ -1014,17 +1019,17 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 		}
 		else if(sd.destType == eFileType_BMP)
 		{
-			int ret = stbi_write_bmp_to_file(f, td.width, td.height, numComps, subdata[0]);
+			int ret = stbi_write_bmp_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps, subdata[0]);
 			success = (ret != 0);
 		}
 		else if(sd.destType == eFileType_PNG)
 		{
-			int ret = stbi_write_png_to_file(f, td.width, td.height, td.format.compCount, subdata[0], rowPitch);
+			int ret = stbi_write_png_to_func(fileWriteFunc, (void *)f, td.width, td.height, td.format.compCount, subdata[0], rowPitch);
 			success = (ret != 0);
 		}
 		else if(sd.destType == eFileType_TGA)
 		{
-			int ret = stbi_write_tga_to_file(f, td.width, td.height, td.format.compCount, subdata[0]);
+			int ret = stbi_write_tga_to_func(fileWriteFunc, (void *)f, td.width, td.height, td.format.compCount, subdata[0]);
 			success = (ret != 0);
 		}
 		else if(sd.destType == eFileType_JPG)
@@ -1156,7 +1161,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 
 			if(sd.destType == eFileType_HDR)
 			{
-				int ret = stbi_write_hdr_to_file(f, td.width, td.height, 4, fldata);
+				int ret = stbi_write_hdr_to_func(fileWriteFunc, (void *)f, td.width, td.height, 4, fldata);
 				success = (ret != 0);
 			}
 			else if(sd.destType == eFileType_EXR)
