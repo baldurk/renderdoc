@@ -1136,7 +1136,7 @@ int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args)
 		// now parsing an argument specifier
 
 		// parse out 0 or more flags
-		do
+		for(;;)
 		{
 			// if flag is found, continue looping to possibly find more flags
 			// otherwise break out of this loop
@@ -1157,7 +1157,7 @@ int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args)
 				formatter.Flags &= ~PrependSpace;
 
 			iter++;
-		} while(true);
+		}
 
 		// possibly parse a width. Note that width always started with 1-9 as it's decimal,
 		// and 0 or - would have been picked up as a flag above

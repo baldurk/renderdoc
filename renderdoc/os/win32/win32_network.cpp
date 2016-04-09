@@ -302,7 +302,12 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 		{
 			fd_set set;
 			FD_ZERO(&set);
+
+			// macro FD_SET contains the do { } while(0) idiom, which warns
+#pragma warning(push)
+#pragma warning(disable : 4127) // conditional expression is constant
 			FD_SET(s, &set);
+#pragma warning(pop)
 
 			int err = WSAGetLastError();
 

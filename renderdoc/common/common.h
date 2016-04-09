@@ -36,20 +36,20 @@
 // Utility macros
 
 #ifndef SAFE_DELETE
-#define SAFE_DELETE(p)      do { if (p) { delete (p);     (p)=NULL; } } while(0)
+#define SAFE_DELETE(p)      do { if (p) { delete (p);     (p)=NULL; } } while((void)0,0)
 #endif
 
 #ifndef SAFE_DELETE_ARRAY
-#define SAFE_DELETE_ARRAY(p) do { if (p) { delete[] (p);   (p)=NULL; } } while(0)
+#define SAFE_DELETE_ARRAY(p) do { if (p) { delete[] (p);   (p)=NULL; } } while((void)0,0)
 #endif
 
 #ifndef SAFE_ADDREF
-#define SAFE_ADDREF(p)      do { if (p) { (p)->AddRef(); } } while(0)
+#define SAFE_ADDREF(p)      do { if (p) { (p)->AddRef(); } } while((void)0,0)
 #endif
 
 #ifndef SAFE_RELEASE
-#define SAFE_RELEASE(p)      do { if (p) { (p)->Release(); (p)=NULL; } } while(0)
-#define SAFE_RELEASE_NOCLEAR(p) do { if (p) { (p)->Release(); } } while(0)
+#define SAFE_RELEASE(p)      do { if (p) { (p)->Release(); (p)=NULL; } } while((void)0,0)
+#define SAFE_RELEASE_NOCLEAR(p) do { if (p) { (p)->Release(); } } while((void)0,0)
 #endif
 
 #ifndef ARRAY_COUNT
@@ -98,15 +98,15 @@ uint32_t CalcNumMips(int Width, int Height, int Depth);
 /////////////////////////////////////////////////
 // Debugging features
 
-#define RDCDUMP() do { OSUtility::ForceCrash(); } while(0)
+#define RDCDUMP() do { OSUtility::ForceCrash(); } while((void)0,0)
 
 #if !defined(RELEASE) || defined(FORCE_DEBUGBREAK)
-#define RDCBREAK() do { if(OSUtility::DebuggerPresent()) OS_DEBUG_BREAK(); } while(0)
+#define RDCBREAK() do { if(OSUtility::DebuggerPresent()) OS_DEBUG_BREAK(); } while((void)0,0)
 #else
-#define RDCBREAK() do { } while(0)
+#define RDCBREAK() do { } while((void)0,0)
 #endif
 
-#define RDCUNIMPLEMENTED(...) do { rdclog(RDCLog_Warning, "Unimplemented: " __VA_ARGS__); RDCBREAK(); } while(0)
+#define RDCUNIMPLEMENTED(...) do { rdclog(RDCLog_Warning, "Unimplemented: " __VA_ARGS__); RDCBREAK(); } while((void)0,0)
 
 //
 // Logging
@@ -124,15 +124,15 @@ enum LogType
 };
 
 #if defined(STRIP_LOG)
-#define RDCLOGFILE(fn) do { } while(0)
-#define RDCLOGDELETE() do { } while(0)
+#define RDCLOGFILE(fn) do { } while((void)0,0)
+#define RDCLOGDELETE() do { } while((void)0,0)
 
-#define RDCDEBUG(...) do { } while(0)
-#define RDCLOG(...) do { } while(0)
-#define RDCWARN(...) do { } while(0)
-#define RDCERR(...) do { } while(0)
-#define RDCFATAL(...) do { RDCDUMP(); exit(0); } while(0)
-#define RDCDUMPMSG(message) do { RDCDUMP(); exit(0); } while(0)
+#define RDCDEBUG(...) do { } while((void)0,0)
+#define RDCLOG(...) do { } while((void)0,0)
+#define RDCWARN(...) do { } while((void)0,0)
+#define RDCERR(...) do { } while((void)0,0)
+#define RDCFATAL(...) do { RDCDUMP(); exit(0); } while((void)0,0)
+#define RDCDUMPMSG(message) do { RDCDUMP(); exit(0); } while((void)0,0)
 #else
 // perform any operations necessary to flush the log
 void rdclog_flush();
@@ -155,20 +155,20 @@ void rdclog_filename(const char *filename);
 #if ( !defined(RELEASE) || defined(FORCE_DEBUG_LOGS) ) && !defined(STRIP_DEBUG_LOGS)
 #define RDCDEBUG(...) rdclog(RDCLog_Debug, __VA_ARGS__)
 #else
-#define RDCDEBUG(...) do { } while(0)
+#define RDCDEBUG(...) do { } while((void)0,0)
 #endif
 
 #define RDCLOG(...) rdclog(RDCLog_Comment, __VA_ARGS__)
 #define RDCWARN(...) rdclog(RDCLog_Warning, __VA_ARGS__)
 
 #if defined(DEBUGBREAK_ON_ERROR_LOG)
-#define RDCERR(...) do { rdclog(RDCLog_Error, __VA_ARGS__); rdclog_flush(); RDCBREAK(); } while(0)
+#define RDCERR(...) do { rdclog(RDCLog_Error, __VA_ARGS__); rdclog_flush(); RDCBREAK(); } while((void)0,0)
 #else
 #define RDCERR(...) rdclog(RDCLog_Error, __VA_ARGS__)
 #endif
 
-#define RDCFATAL(...) do { rdclog(RDCLog_Fatal, __VA_ARGS__); rdclog_flush(); RDCDUMP(); exit(0); } while(0)
-#define RDCDUMPMSG(message) do { rdclogprint_int(message); rdclog_flush(); RDCDUMP(); exit(0); } while(0)
+#define RDCFATAL(...) do { rdclog(RDCLog_Fatal, __VA_ARGS__); rdclog_flush(); RDCDUMP(); exit(0); } while((void)0,0)
+#define RDCDUMPMSG(message) do { rdclogprint_int(message); rdclog_flush(); RDCDUMP(); exit(0); } while((void)0,0)
 #endif
 
 //
@@ -184,7 +184,7 @@ void rdcassert(const char *msg, const char *file, unsigned int line, const char 
 #include "custom_assert.h"
 
 #else
-#define RDCASSERTMSG(cond) do { } while(0)
+#define RDCASSERTMSG(cond) do { } while((void)0,0)
 #endif
 
 #define RDCASSERT(...) RDCASSERTMSG("", __VA_ARGS__)
@@ -196,7 +196,7 @@ void rdcassert(const char *msg, const char *file, unsigned int line, const char 
 //
 
 #if defined(STRIP_COMPILE_ASSERTS)
-#define RDCCOMPILE_ASSERT(condition, message) do { } while(0)
+#define RDCCOMPILE_ASSERT(condition, message) do { } while((void)0,0)
 #else
 #define RDCCOMPILE_ASSERT(condition, message) static_assert(condition, message)
 #endif

@@ -48,7 +48,7 @@
 using std::map;
 
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the debugbreak.
-#define VULKANNOTIMP(...) do { static bool msgprinted = false; if(!msgprinted) RDCDEBUG("Vulkan not implemented - " __VA_ARGS__); msgprinted = true; } while(0)
+#define VULKANNOTIMP(...) do { static bool msgprinted = false; if(!msgprinted) RDCDEBUG("Vulkan not implemented - " __VA_ARGS__); msgprinted = true; } while((void)0,0)
 
 // allows easy disabling of MSAA
 #define VULKAN_MESH_VIEW_SAMPLES VK_SAMPLE_COUNT_1_BIT

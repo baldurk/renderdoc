@@ -107,7 +107,7 @@
 		if(!(RDCASSERT_IFCOND(__VA_ARGS__))) { \
 			const char custommsg[] = msg; (void)custommsg; \
 			std::string assertmsg = "'" STRINGIZE(RDCASSERT_GETCOND(__VA_ARGS__)) "' "; \
-			if(sizeof(custommsg) > 1) assertmsg += msg " "; \
+			assertmsg += (sizeof(custommsg) > 1) ? msg " " : ""; \
 			std::string failmsg; \
 			RDCASSERT_FAILMSG(__VA_ARGS__); \
 			if(!failmsg.empty()) { failmsg.pop_back(); failmsg.pop_back(); } \
@@ -116,4 +116,4 @@
 			rdclog_flush(); \
 			RDCBREAK(); \
 		}\
-	} while(0)
+	} while((void)0,0)
