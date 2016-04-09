@@ -237,6 +237,9 @@
     <ClInclude Include="data\spv\texsample.h">
       <Filter>Resources\spv</Filter>
     </ClInclude>
+    <ClInclude Include="common\custom_assert.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

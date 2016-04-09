@@ -239,6 +239,7 @@
     <ClInclude Include="api\replay\shader_types.h" />
     <ClInclude Include="api\replay\vk_pipestate.h" />
     <ClInclude Include="common\common.h" />
+    <ClInclude Include="common\custom_assert.h" />
     <ClInclude Include="common\dds_readwrite.h" />
     <ClInclude Include="common\globalconfig.h" />
     <ClInclude Include="common\shader_cache.h" />
