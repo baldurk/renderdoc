@@ -39,8 +39,6 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 	
 	D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(idx);
 
-	D3D11ResourceRecord *parent = record;
-
 	if(record && record->NumSubResources > (int)DestSubresource)
 		record = (D3D11ResourceRecord *)record->SubResources[DestSubresource];
 

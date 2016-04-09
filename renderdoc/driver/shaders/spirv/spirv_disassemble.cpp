@@ -41,7 +41,17 @@ using std::make_pair;
 
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "3rdparty/glslang/SPIRV/GLSL.std.450.h"
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4481) // nonstandard extension used: override specifier 'override'
+#endif
+
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 // I'm not sure yet if this makes things clearer or worse. On the one hand
 // it is explicit about stores/loads through pointers, but on the other it
@@ -3646,9 +3656,9 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 	module.spirv.assign(spirv, spirv+spirvLength);
 
 	module.generator = spirv[2];
-	module.ids.resize(spirv[3]);
 
 	uint32_t idbound = spirv[3];
+	module.ids.resize(idbound);
 
 	RDCASSERT(spirv[4] == 0);
 
@@ -3718,6 +3728,10 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				// do we care about this?
 				spv::AddressingModel addr = spv::AddressingModel(spirv[it+1]);
 				spv::MemoryModel mem = spv::MemoryModel(spirv[it+2]);
+
+				(void)addr;
+				(void)mem;
+
 				break;
 			}
 			case spv::OpEntryPoint:

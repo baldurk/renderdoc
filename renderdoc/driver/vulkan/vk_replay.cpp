@@ -940,6 +940,8 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
 		vt->UnmapMemory(Unwrap(dev), Unwrap(GetDebugManager()->m_PickPixelReadbackBuffer.mem));
 	}
+
+	m_DebugWidth = oldW;m_DebugHeight = oldH;
 }
 
 uint32_t VulkanReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
@@ -2676,6 +2678,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 		{ outw.width, outw.height, 1 },
 	};
 
+#if MSAA_MESH_VIEW
 	VkImageResolve resolve = {
 		{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 		{ 0, 0, 0 },
@@ -2684,9 +2687,10 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 		{ outw.width, outw.height, 1 },
 	};
 
-	if(outw.dsimg != VK_NULL_HANDLE && VULKAN_MESH_VIEW_SAMPLES > VK_SAMPLE_COUNT_1_BIT)
+	if(outw.dsimg != VK_NULL_HANDLE)
 		vt->CmdResolveImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &resolve);
 	else
+#endif
 		vt->CmdCopyImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cpy);
 	
 	outw.bbBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
@@ -3353,8 +3357,6 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars, v
 			}
 			else
 			{
-				char buf[64] = {0};
-
 				var.name = outvars[outIdx].name;
 				var.rows = 0;
 				var.columns = 0;

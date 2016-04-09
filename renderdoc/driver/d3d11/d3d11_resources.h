@@ -666,7 +666,7 @@ public:
 
 	void ViewRelease()
 	{
-		unsigned int viewRefCount = InterlockedDecrement(&m_ViewRefcount);
+		InterlockedDecrement(&m_ViewRefcount);
 		unsigned int extRefCount = RefCounter::GetRefCount();
 
 		WrappedID3D11Device *dev = m_pDevice;

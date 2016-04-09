@@ -216,8 +216,7 @@ class WrappingPool
 				allocated[idx] = false;
 
 #if !defined(RELEASE)
-				if(DebugClear)
-					memset(p, 0xfe, AllocByteSize);
+				memset(p, 0xfe, DebugClear ? AllocByteSize : 0);
 #endif
 			}
 

@@ -1199,7 +1199,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 	uint64_t startOffset = m_pSerialiser->GetOffset();
 
-	while(1)
+	for(;;)
 	{
 		if(m_State == EXECUTING && m_CurEventID > endEventID)
 		{
@@ -1228,8 +1228,6 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 		m_pDevice->GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
 		m_pDevice->GetFrameRecord().back().frameInfo.debugMessages = m_pDevice->GetDebugMessages();
 
-		int initialSkips = 0;
-
 		for(auto it=WrappedID3D11Buffer::m_BufferList.begin(); it != WrappedID3D11Buffer::m_BufferList.end(); ++it)
 			m_ResourceUses[it->first];
 
@@ -1239,7 +1237,13 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 			m_ResourceUses[it->first];
 		for(auto it=WrappedID3D11Texture3D::m_TextureList.begin(); it != WrappedID3D11Texture3D::m_TextureList.end(); ++it)
 			m_ResourceUses[it->first];
+
+#define CHECK_UNUSED_INITIAL_STATES 0
 		
+#if CHECK_UNUSED_INITIAL_STATES
+		int initialSkips = 0;
+#endif
+
 		// it's easier to remove duplicate usages here than check it as we go.
 		// this means if textures are bound in multiple places in the same draw
 		// we don't have duplicate uses
@@ -1249,7 +1253,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 			std::sort(v.begin(), v.end());
 			v.erase( std::unique(v.begin(), v.end()), v.end() );
 			
-#if 0
+#if CHECK_UNUSED_INITIAL_STATES
 			ResourceId resid = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
 			
 			if(m_pDevice->GetResourceManager()->GetInitialContents(resid).resource == NULL)
@@ -1322,8 +1326,6 @@ void WrappedID3D11DeviceContext::ClearMaps()
 
 HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID riid, void **ppvObject )
 {
-	HRESULT hr = S_OK;
-
 	if(riid == __uuidof(ID3D11DeviceContext))
 	{
 		*ppvObject = (ID3D11DeviceContext *)this;

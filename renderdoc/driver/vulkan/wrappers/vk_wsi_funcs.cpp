@@ -503,8 +503,6 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 	swapInfo.lastPresent = pPresentInfo->pImageIndices[0];
 	m_LastSwap = swaprecord->GetResourceID();
 	
-	VkImage backbuffer = swapInfo.images[pPresentInfo->pImageIndices[0]].im;
-	
 	if(m_State == WRITING_IDLE)
 	{
 		m_FrameTimes.push_back(m_FrameTimer.GetMilliseconds());

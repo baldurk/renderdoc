@@ -1768,7 +1768,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 	SERIALISE_ELEMENT_ARR(int32_t, countArray, count, Count);
 
 	void **idxOffsArray = new void*[Count];
-	size_t len = Count;
 
 	// serialise pointer array as uint64s
 	if(m_State >= WRITING)
@@ -1929,7 +1928,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 	SERIALISE_ELEMENT_ARR(int32_t, baseArray, basevertex, Count);
 
 	void **idxOffsArray = new void*[Count];
-	size_t len = Count;
 
 	// serialise pointer array as uint64s
 	if(m_State >= WRITING)

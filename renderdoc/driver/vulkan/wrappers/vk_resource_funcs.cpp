@@ -371,7 +371,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(mem));
 
-	MemMapState *state;
+	MemMapState *state = NULL;
 	if(m_State >= WRITING)
 		state = GetRecord(mem)->memMapState;
 
@@ -489,7 +489,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(pMemRanges->memory));
 	
-	MemMapState *state;
+	MemMapState *state = NULL;
 	if(m_State >= WRITING)
 	{
 		state = GetRecord(pMemRanges->memory)->memMapState;

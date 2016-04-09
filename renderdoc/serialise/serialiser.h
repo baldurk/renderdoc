@@ -775,10 +775,10 @@ class ScopedContext
 template<class T>
 struct ScopedDeserialise
 {
-    ScopedDeserialise(const Serialiser* const ser, const T* const t) : m_ser(ser), m_t(t) {}
-    ~ScopedDeserialise() { m_ser->Deserialise(m_t); }
-    const Serialiser* const m_ser;
-    const T* const m_t;
+	ScopedDeserialise(const Serialiser* const ser, const T* const t) : m_ser(ser), m_t(t) {}
+	~ScopedDeserialise() { m_ser->Deserialise(m_t); }
+	const Serialiser* const m_ser;
+	const T* const m_t;
 };
 
 

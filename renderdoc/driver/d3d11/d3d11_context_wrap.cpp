@@ -5064,8 +5064,6 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource, ID3D
 			(WrappedID3D11Texture3D::IsAlloc(pDstResource) && WrappedID3D11Texture3D::IsAlloc(pSrcResource))
 		  )
 		{
-			bool copied = false;
-
 			// can't copy without data allocated
 			if(!record->DataInSerialiser || !srcRecord->DataInSerialiser)
 			{
@@ -5074,7 +5072,7 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource, ID3D
 				Serialise_CopyResource(pDstResource, pSrcResource);
 
 				record->LockChunks();
-				while(true)
+				for(;;)
 				{
 					Chunk *end = record->GetLastChunk();
 
@@ -5511,7 +5509,7 @@ void WrappedID3D11DeviceContext::ResolveSubresource(ID3D11Resource *pDstResource
 		if(record->NumSubResources == 1)
 		{
 			record->LockChunks();
-			while(true)
+			for(;;)
 			{
 				Chunk *end = record->GetLastChunk();
 
@@ -5745,7 +5743,7 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
 		RDCASSERT(record);
 
 		record->LockChunks();
-		while(true)
+		for(;;)
 		{
 			Chunk *end = record->GetLastChunk();
 
@@ -5859,7 +5857,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewUint(ID3D11UnorderedAcc
 		RDCASSERT(record);
 
 		record->LockChunks();
-		while(true)
+		for(;;)
 		{
 			Chunk *end = record->GetLastChunk();
 
@@ -5974,7 +5972,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewFloat(ID3D11UnorderedAc
 		RDCASSERT(record);
 
 		record->LockChunks();
-		while(true)
+		for(;;)
 		{
 			Chunk *end = record->GetLastChunk();
 
@@ -6091,7 +6089,7 @@ void WrappedID3D11DeviceContext::ClearDepthStencilView(ID3D11DepthStencilView *p
 		RDCASSERT(record);
 
 		record->LockChunks();
-		while(true)
+		for(;;)
 		{
 			Chunk *end = record->GetLastChunk();
 
@@ -6426,7 +6424,6 @@ void MapIntercept::Init(ID3D11Texture1D *tex, UINT sub, void *appMemory)
 
 	int width = desc.Width;
 	int height = 1;
-	int depth = 1;
 	DXGI_FORMAT fmt = desc.Format;
 
 	int mip = GetMipForSubresource(tex, sub);
@@ -6459,7 +6456,6 @@ void MapIntercept::Init(ID3D11Texture2D *tex, UINT sub, void *appMemory)
 
 	int width = desc.Width;
 	int height = numRows = desc.Height;
-	int depth = 1;
 	DXGI_FORMAT fmt = desc.Format;
 
 	int mip = GetMipForSubresource(tex, sub);
@@ -6490,7 +6486,7 @@ void MapIntercept::Init(ID3D11Texture3D *tex, UINT sub, void *appMemory)
 
 	int width = desc.Width;
 	int height = numRows = desc.Height;
-	int depth = numSlices = desc.Depth;
+	numSlices = desc.Depth;
 	DXGI_FORMAT fmt = desc.Format;
 
 	int mip = GetMipForSubresource(tex, sub);
@@ -6834,8 +6830,6 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
 			D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(Id);
 			RDCASSERT(record);
 
-			D3D11ResourceRecord *parent = record;
-
 			if(record->NumSubResources > (int)Subresource)
 				record = (D3D11ResourceRecord *)record->SubResources[Subresource];
 
@@ -7152,8 +7146,6 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
 				
 				D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
 				RDCASSERT(record);
-
-				D3D11ResourceRecord *parent = record;
 
 				if(record->NumSubResources > (int)Subresource)
 					record = (D3D11ResourceRecord *)record->SubResources[Subresource];

@@ -1299,7 +1299,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
 			// intersection of implExts and globalExts into ctx.glExts
 			{
-				size_t len = RDCMIN(implExts.size(), globalExts.size());
 				for(size_t i=0, j=0; i < implExts.size() && j < globalExts.size(); )
 				{
 					string &a = implExts[i];
@@ -1866,16 +1865,10 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 						ResourceId fs = progdata.stageShaders[4];
 
 						if(vs != ResourceId())
-						{
 							CopyProgramAttribBindings(m_Real, progsrc, progdst, &m_Shaders[vs].reflection);
-						}
 
 						if(fs != ResourceId())
-						{
-							ShaderReflection *refl = &m_Shaders[fs].reflection;
-							
 							CopyProgramFragDataBindings(m_Real, progsrc, progdst, &m_Shaders[fs].reflection);
-						}
 
 						// link new program
 						glLinkProgram(progdst);
@@ -2571,8 +2564,6 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
 WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
 {
-	const uint32_t maxSize = 1024;
-
 	byte *thpixels = NULL;
 	uint32_t thwidth = 0;
 	uint32_t thheight = 0;
@@ -3024,7 +3015,7 @@ void WrappedOpenGL::ReadLogInitialisation()
 
 	SCOPED_TIMER("chunk initialisation");
 
-	while(1)
+	for(;;)
 	{
 		PerformanceTimer timer;
 
@@ -3068,6 +3059,7 @@ void WrappedOpenGL::ReadLogInitialisation()
 			break;
 	}
 	
+#if !defined(RELEASE)
 	for(auto it=chunkInfos.begin(); it != chunkInfos.end(); ++it)
 	{
 		double dcount = double(it->second.count);
@@ -3080,6 +3072,7 @@ void WrappedOpenGL::ReadLogInitialisation()
 				GetChunkName(it->first), uint32_t(it->first)
 				);
 	}
+#endif
 
 	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - frameOffset);
 	
@@ -3926,8 +3919,6 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	GLChunkType header = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 	RDCASSERTEQUAL(header, CONTEXT_CAPTURE_HEADER);
-
-	WrappedOpenGL *context = this;
 	
 	if(m_State == EXECUTING && !partial)
 	{
@@ -3985,7 +3976,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	uint64_t startOffset = m_pSerialiser->GetOffset();
 
-	while(1)
+	for(;;)
 	{
 		if(m_State == EXECUTING && m_CurEventID > endEventID)
 		{
@@ -4036,29 +4027,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool forceExecute)
 {
-	/*
-	if(chunk < FIRST_CONTEXT_CHUNK && !forceExecute)
-	{
-		if(m_State == READING)
-		{
-			GetResourceManager()->MarkInFrame(false);
-
-			ProcessChunk(offset, chunk);
-			m_pSerialiser->PopContext(chunk);
-
-			GetResourceManager()->MarkInFrame(true);
-		}
-		else if(m_State == EXECUTING)
-		{
-			m_pSerialiser->SkipCurrentChunk();
-			m_pSerialiser->PopContext(chunk);
-		}
-		return;
-	}*/
-
 	m_CurChunkOffset = offset;
-
-	uint64_t cOffs = m_pSerialiser->GetOffset();
 
 	WrappedOpenGL *context = this;
 

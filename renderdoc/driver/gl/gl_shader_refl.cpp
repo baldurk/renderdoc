@@ -109,7 +109,7 @@ void CheckVertexOutputUses(const vector<string> &sources, bool &pointSizeUsed, b
 
 		size_t offs = 0;
 
-		while(true)
+		for(;;)
 		{
 			offs = s.find("gl_PointSize", offs);
 
@@ -135,7 +135,7 @@ void CheckVertexOutputUses(const vector<string> &sources, bool &pointSizeUsed, b
 
 		offs = 0;
 
-		while(true)
+		for(;;)
 		{
 			offs = s.find("gl_ClipDistance", offs);
 

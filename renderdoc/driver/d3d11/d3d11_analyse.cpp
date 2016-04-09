@@ -318,9 +318,9 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 						size_t vecSize = elemByteSize*4;
 
 						if(columnMajor)
-							totalSize = elemByteSize*4*(cols-1) + elemByteSize*rowCopy;
+							totalSize = vecSize*(cols-1) + elemByteSize*rowCopy;
 						else
-							totalSize = elemByteSize*4*(rowCopy-1) + elemByteSize*cols;
+							totalSize = vecSize*(rowCopy-1) + elemByteSize*cols;
 					}
 
 					if((rowDataOffset % sizeof(Vec4f) != 0) &&
@@ -1188,7 +1188,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 
 	states.push_back((State)initialState);
 	
-	while(true)
+	for(;;)
 	{
 		if(initialState.Finished())
 			break;
@@ -2026,7 +2026,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 
 	states.push_back((State)initialState);
 	
-	while(true)
+	for(;;)
 	{
 		if(initialState.Finished())
 			break;
@@ -2093,7 +2093,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t frameID, uint32_t eventID, MeshD
 		cbuf.PickMVP = projMat.Mul(camMat.Mul(guessProj.Inverse()));
 	}
 
-	ID3D11Buffer *vb, *ib;
+	ID3D11Buffer *vb = NULL, *ib = NULL;
 	DXGI_FORMAT ifmt = cfg.position.idxByteWidth == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 
 	{
@@ -4459,8 +4459,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	ID3D11DepthStencilState *curDS = NULL;
 	UINT stencilRef = 0;
 	
-	D3D11_BOX srcbox = { x, y, 0, x+1, y+1, 1 };
-
 	////////////////////////////////////////////////////////////////////////
 	// Main loop over each event to determine if it rasterized to this pixel
 
@@ -4986,8 +4984,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			PixelModification mod;
 			RDCEraseEl(mod);
 
-			uint32_t fragDupes = 1;
-
 			mod.eventID = events[i].eventID;
 
 			mod.uavWrite = uavWrite;
@@ -5445,9 +5441,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				// we check these in the order defined, as a positive from the backface cull test
 				// will invalidate tests later (as they will also be backface culled)
 
-				do 
 				{
-
 					if(flags[i] & TestEnabled_BackfaceCulling)
 					{
 						do
@@ -5530,14 +5524,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 						if(mod.stencilTestFailed)
 							break;
 					}
-				} while (0);
+				}
 			}
 			
 			history.push_back(mod);
 
-			RDCDEBUG("Event %u is visible", events[i].eventID);
-			if(sizeof(occlData) == sizeof(UINT64)) // if we've changed from OCCLUSION_PREDICATE to OCCLUSION for debugging
-				RDCDEBUG("   %llu samples visible", occlData);
+			RDCDEBUG("Event %u is visible, %llu samples visible", events[i].eventID, (UINT64)occlData);
 		}
 
 		SAFE_RELEASE(occl[i]);
@@ -6302,6 +6294,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		}
 	}
 
+#if !defined(RELEASE)
 	for(size_t h=0; h < history.size(); h++)
 	{
 		PixelModification &hs = history[h];
@@ -6320,6 +6313,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			hs.postMod.col.value_f[0], hs.postMod.col.value_f[1], hs.postMod.col.value_f[2], hs.postMod.col.value_f[3],
 			  hs.postMod.depth, hs.postMod.stencil);
 	}
+#endif
 	
 	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
 		SAFE_RELEASE(testQueries[i]);

@@ -2035,7 +2035,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				uint32_t *usrc1 = src1 ? src1->value.uv : NULL;
 				
 				int32_t *isrc0 = src0 ? src0->value.iv : NULL;
-				int32_t *isrc1 = src1 ? src1->value.iv : NULL;
 
 				switch(op.operation)
 				{

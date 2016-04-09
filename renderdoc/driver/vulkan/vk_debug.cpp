@@ -202,7 +202,7 @@ string VulkanDebugManager::GetSPIRVBlob(SPIRVShaderStage shadType, const std::ve
 		hash = strhash(sources[i].c_str(), hash);
 
 	char typestr[2] = { 'a', 0 };
-	typestr[0] += (int)shadType;
+	typestr[0] += (char)shadType;
 	hash = strhash(typestr, hash);
 
 	if(m_ShaderCache.find(hash) != m_ShaderCache.end())
@@ -1162,7 +1162,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		const float pixelHeight = 20.0f;
 
 		stbtt_bakedchar chardata[numChars];
-		int ret = stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
+		stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
 
 		m_FontCharSize = pixelHeight;
 		m_FontCharAspect = chardata->xadvance / pixelHeight;
@@ -1560,8 +1560,6 @@ VulkanDebugManager::~VulkanDebugManager()
 			ShaderCacheCallbacks.Destroy(it->second);
 	}
 
-	VkResult vkr = VK_SUCCESS;
-	
 	for(auto it=m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
 	{
 		if(it->second.vsout.buf != VK_NULL_HANDLE)
@@ -1909,8 +1907,6 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 {
 	const VkLayerDispatchTable *vt = ObjDisp(textstate.cmd);
 	
-	VkResult vkr = VK_SUCCESS;
-
 	uint32_t offsets[2] = { 0 };
 
 	FontUBOData *ubo = (FontUBOData *)m_TextGeneralUBO.Map(vt, m_Device, &offsets[0]);
@@ -4378,8 +4374,6 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
 	// now add the structure type etc for our output buffer
 	{
 		uint32_t vertStructID = idBound++;
-
-		uint32_t structSize = numOutputs;
 
 		uint32_t vertStructOp[2+100] = {
 			MakeSPIRVOp(spv::OpTypeStruct, 2+numOutputs),

@@ -586,8 +586,6 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
 			rdefFound = true;
 
-			char *basePtr = (char *)(h+1);
-
 			if(h->targetVersion >= 0x500)
 			{
 				RDCASSERT(h->unknown[0] == FOURCC_RD11);
@@ -840,7 +838,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 	for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
 	{
 		uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
-		uint32_t *chunkSize = (uint32_t *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t));
+		//uint32_t *chunkSize = (uint32_t *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t));
 
 		char *chunkContents = (char *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t)*2);
 
@@ -1517,13 +1515,11 @@ SPDBChunk::SPDBChunk(void *chunk)
 		PageMapping fileContents(pages, header->PageSize, &s.pageIndices[0], (uint32_t)s.pageIndices.size());
 
 		byte *bytes = (byte *)fileContents.Data();
-		byte *start = bytes;
 		byte *end = bytes + s.byteLength;
 
-		uint32_t *u32 = (uint32_t *)start;
-
 		// seems to be accurate, but we'll just iterate to end
-		uint32_t numFuncs = u32[6];
+		//uint32_t *u32 = (uint32_t *)bytes;
+		//uint32_t numFuncs = u32[6];
 
 		// skip header
 		bytes += 57;
@@ -1642,7 +1638,7 @@ SPDBChunk::SPDBChunk(void *chunk)
 			if(type == 0x1110)
 			{
 				ProcHeader *proc = (ProcHeader *)contents;
-				char *name = (char *)(proc + 1);
+				//char *name = (char *)(proc + 1);
 
 				firstInstructionOffset = proc->Offset;
 
@@ -1768,7 +1764,7 @@ SPDBChunk::SPDBChunk(void *chunk)
 				byte *iterator = (byte *)contents;
 				byte *callend = contents + len;
 
-				uint32_t *adsf = (uint32_t *)iterator;
+				//uint32_t *adsf = (uint32_t *)iterator;
 
 				//RDCDEBUG("funcdef for %s (%x) flags??=0x%x offset/length??=0x%x", functions[adsf[2]&0xfff].funcName.c_str(), adsf[2], adsf[0], adsf[1]);
 				iterator += 3*sizeof(uint32_t);
@@ -1787,7 +1783,7 @@ SPDBChunk::SPDBChunk(void *chunk)
 					if(opcode == PrologueEnd ||
 						 opcode == EpilogueBegin)
 					{
-						uint32_t value = ReadVarLenUInt(iterator);
+						//uint32_t value = ReadVarLenUInt(iterator);
 						//RDCDEBUG("type %02x: unk=%02x", opcode, value);
 
 						if(opcode == EpilogueBegin)
@@ -1836,8 +1832,6 @@ SPDBChunk::SPDBChunk(void *chunk)
 					else if(opcode == EndOfFunction)
 					{
 						//RDCDEBUG("type %02x:", opcode);
-
-						byte lenbyte = *iterator;
 
 						uint32_t retlen = ReadVarLenUInt(iterator);
 						uint32_t byteAdv = ReadVarLenUInt(iterator);
@@ -2138,7 +2132,7 @@ SPDBChunk::SPDBChunk(void *chunk)
 					{
 						uint32_t offs    = linedata[0];
 						uint32_t lineNum = linedata[1]&0x00fffff;
-						uint32_t unknown = linedata[1]>>24;
+						//uint32_t unknown = linedata[1]>>24;
 
 						linedata += 2;
 
@@ -2151,8 +2145,8 @@ SPDBChunk::SPDBChunk(void *chunk)
 					
 					for(uint32_t l=0; l < file->numLines; l++)
 					{
-						uint16_t unkA = extraData[0];
-						uint16_t unkB = extraData[1];
+						//uint16_t unkA = extraData[0];
+						//uint16_t unkB = extraData[1];
 
 						extraData += 2;
 					}

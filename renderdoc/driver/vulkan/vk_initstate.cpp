@@ -721,8 +721,6 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, VulkanResourc
 	VkSparseBufferMemoryBindInfo bufBind = {
 		buf->real.As<VkBuffer>(), 1, &unbind
 	};
-
-	VkDevice d = GetDev();
 	
 	// this semaphore separates the unbind and bind, as there isn't an ordering guarantee
 	// for two adjacent batches that bind the same resource.
@@ -888,8 +886,6 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 	VkResult vkr = VK_SUCCESS;
 
 	VkBuffer srcBuf = (VkBuffer)(uint64_t)contents.resource;
-
-	VkDevice d = GetDev();
 
 	VkCommandBuffer cmd = GetNextCmd();
 	
@@ -1796,8 +1792,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 	{
 		VkResult vkr = VK_SUCCESS;
 
-		VkDevice d = GetDev();
-		
 		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 		if(initial.blob != NULL)
@@ -2000,25 +1994,16 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 	{
 		VkResult vkr = VK_SUCCESS;
 
-		VkDevice d = GetDev();
-		
 		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
 
 		VkBuffer srcBuf = (VkBuffer)(uint64_t)initial.resource;
 		VkDeviceSize datasize = (VkDeviceSize)initial.num;
-		VkDeviceMemory dstMem = (VkDeviceMemory)(uint64_t)live; // maintain the wrapping, for consistency
 		VkDeviceSize dstMemOffs = 0;
-		VkDeviceSize memsize = datasize;
 
 		VkCommandBuffer cmd = GetNextCmd();
 
 		vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		VkBufferCreateInfo bufInfo = {
-			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
-			memsize, VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-		};
 
 		VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
 

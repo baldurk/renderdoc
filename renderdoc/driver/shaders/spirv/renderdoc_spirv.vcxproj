@@ -19,41 +19,106 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\GenericCodeGen\CodeGen.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\GenericCodeGen\Link.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Constant.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\glslang_tab.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\InfoSink.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Initialize.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Intermediate.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\intermOut.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\IntermTraverse.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\limits.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\linkValidate.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\parseConst.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ParseHelper.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\PoolAlloc.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\Pp.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpAtom.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpContext.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpMemory.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpScanner.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpSymbols.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpTokens.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\reflection.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\RemoveTree.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Scan.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ShaderLang.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\SymbolTable.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Versions.cpp" />
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\GenericCodeGen\CodeGen.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\GenericCodeGen\Link.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Constant.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\glslang_tab.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\InfoSink.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Initialize.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Intermediate.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\intermOut.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\IntermTraverse.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\limits.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\linkValidate.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\parseConst.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ParseHelper.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\PoolAlloc.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\Pp.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpAtom.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpContext.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpMemory.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpScanner.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpSymbols.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpTokens.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\reflection.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\RemoveTree.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Scan.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ShaderLang.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\SymbolTable.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Versions.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Unix\ossource.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
+      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\ossource.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\GlslangToSpv.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\InReadableOrder.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.cpp" />
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\ossource.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\GlslangToSpv.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\InReadableOrder.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="spirv_common.cpp" />
     <ClCompile Include="spirv_compile.cpp" />
     <ClCompile Include="spirv_disassemble.cpp" />
@@ -179,7 +244,7 @@
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM=win32;GLSLANG_OSINCLUDE_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
@@ -187,6 +252,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
+      <AdditionalOptions>/wd4100 /wd4512</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -196,7 +262,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM=win32;GLSLANG_OSINCLUDE_WIN32;WIN64;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
@@ -205,6 +271,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
+      <AdditionalOptions>/wd4100 /wd4512</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -213,7 +280,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -225,6 +292,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
+      <AdditionalOptions>/wd4100 /wd4512</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -235,7 +303,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -247,6 +315,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
+      <AdditionalOptions>/wd4100 /wd4512</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

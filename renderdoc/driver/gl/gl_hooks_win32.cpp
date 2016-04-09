@@ -742,8 +742,6 @@ class OpenGLHook : LibraryHook
 		
 		bool PopulateHooks()
 		{
-			bool success = true;
-
 			void *moduleHandle = Process::LoadModule(DLL_NAME);
 
 			if(wglGetProcAddress_hook() == NULL)

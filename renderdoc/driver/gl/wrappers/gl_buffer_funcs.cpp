@@ -238,7 +238,7 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 			Chunk *chunk = NULL;
 			
 			r->LockChunks();
-			while(true)
+			for(;;)
 			{
 				Chunk *end = r->GetLastChunk();
 
@@ -598,7 +598,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+		GLResourceRecord *record = GetCtxData().m_BufferRecord[idx];
 		RDCASSERT(record);
 
 		// detect buffer orphaning and just update backing store
@@ -1893,8 +1893,6 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(GLuint buffer)
 	SERIALISE_ELEMENT(uint64_t, offs, record->Map.offset);
 	SERIALISE_ELEMENT(uint64_t, len, record->Map.length);
 
-	uint64_t bufBindStart = 0;
-
 	size_t diffStart = 0;
 	size_t diffEnd = (size_t)len;
 
@@ -2691,7 +2689,6 @@ void WrappedOpenGL::glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, GLuint buff
 	
 	if(m_State >= WRITING)
 	{
-		ContextData &cd = GetCtxData();
 		GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 		GLResourceRecord *varecord = GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), vaobj));
 		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
@@ -2786,7 +2783,6 @@ void WrappedOpenGL::glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, GLuint buf
 	
 	if(m_State >= WRITING)
 	{
-		ContextData &cd = GetCtxData();
 		GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 		GLResourceRecord *varecord = GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), vaobj));
 		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
@@ -2881,7 +2877,6 @@ void WrappedOpenGL::glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, GLuint buf
 	
 	if(m_State >= WRITING)
 	{
-		ContextData &cd = GetCtxData();
 		GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 		GLResourceRecord *varecord = GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), vaobj));
 		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;

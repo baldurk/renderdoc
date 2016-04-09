@@ -275,7 +275,6 @@ void GLReplay::InitDebugData()
 	DebugData.meshProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str());
 	DebugData.meshgsProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str(), meshgs.c_str());
 	
-	void *ctx = gl.GetCtx();
 	gl.glGenProgramPipelines(1, &DebugData.texDisplayPipe);
 
 	{
@@ -1053,10 +1052,6 @@ uint32_t GLReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cf
 
 	loc = gl.glGetUniformLocation(DebugData.meshPickProgram, "PickMVP");
 	gl.glUniformMatrix4fv(loc, 1, GL_FALSE, PickMVP.Data());
-
-	GLenum ifmt = cfg.position.idxByteWidth == 4 ? eGL_UNSIGNED_INT
-	            : cfg.position.idxByteWidth == 2 ? eGL_UNSIGNED_SHORT
-							: eGL_UNSIGNED_BYTE;
 
 	GLuint ib = 0;
 
@@ -2520,7 +2515,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	
 	GLint status = 0;
 	bool finished = false;
-	while(true)
+	for(;;)
 	{
 		// specify current varyings & relink
 		gl.glTransformFeedbackVaryings(vsProg, (GLsizei)varyings.size(), &varyings[0], eGL_INTERLEAVED_ATTRIBS);
@@ -2949,7 +2944,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		status = 0;
 		finished = false;
-		while(true)
+		for(;;)
 		{
 			// specify current varyings & relink
 			gl.glTransformFeedbackVaryings(lastProg, (GLsizei)varyings.size(), &varyings[0], eGL_INTERLEAVED_ATTRIBS);

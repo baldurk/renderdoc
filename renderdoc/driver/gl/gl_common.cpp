@@ -1228,6 +1228,11 @@ PrimitiveTopology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo)
 	}
 }
 
+// bit of a hack, to work around C4127: conditional expression is constant
+// on template parameters
+template<typename T> T CheckConstParam(T t);
+template<> bool CheckConstParam(bool t) { return t; }
+
 template<const bool CopyUniforms, const bool SerialiseUniforms>
 static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint progSrc, GLuint progDst, map<GLint, GLint> *locTranslate, bool writing)
 {
@@ -1237,10 +1242,10 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 	RDCCOMPILE_ASSERT( (CopyUniforms && !SerialiseUniforms) || (!CopyUniforms && SerialiseUniforms), "Invalid call to ForAllProgramUniforms");
 
 	GLint numUniforms = 0;
-	if(ReadSourceProgram)
+	if(CheckConstParam(ReadSourceProgram))
 		gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
 
-	if(SerialiseUniforms)
+	if(CheckConstParam(SerialiseUniforms))
 	{
 		// get accurate count of uniforms not in UBOs
 		GLint numSerialisedUniforms = 0;
@@ -1273,7 +1278,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 		string basename;
 		bool isArray = false;
 
-		if(ReadSourceProgram)
+		if(CheckConstParam(ReadSourceProgram))
 		{
 			GLint values[numProps];
 			gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM, i, numProps, resProps, numProps, NULL, values);
@@ -1305,7 +1310,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 			basename = n;
 		}
 
-		if(SerialiseUniforms)
+		if(CheckConstParam(SerialiseUniforms))
 		{
 			ser->Serialise("type", type);
 			ser->Serialise("arraySize", arraySize);
@@ -1326,24 +1331,24 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 			{
 				name += StringFormat::Fmt("[%d]", arr);
 
-				if(ReadSourceProgram)
+				if(CheckConstParam(ReadSourceProgram))
 					srcLocation = gl.glGetUniformLocation(progSrc, name.c_str());
 			}
 			
-			if(SerialiseUniforms)
+			if(CheckConstParam(SerialiseUniforms))
 				ser->Serialise("srcLocation", srcLocation);
 
 			GLint newloc = 0;
-			if(WriteDestProgram)
+			if(CheckConstParam(WriteDestProgram))
 			{
 				newloc = gl.glGetUniformLocation(progDst, name.c_str());
 				if(locTranslate) (*locTranslate)[srcLocation] = newloc;
 			}
 
-			if(CopyUniforms && newloc == -1)
+			if(CheckConstParam(CopyUniforms) && newloc == -1)
 				continue;
 
-			if(ReadSourceProgram)
+			if(CheckConstParam(ReadSourceProgram))
 			{
 				switch(type)
 				{
@@ -1464,10 +1469,10 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 				}
 			}
 
-			if(SerialiseUniforms)
+			if(CheckConstParam(SerialiseUniforms))
 				ser->SerialisePODArray<16>("data", dv);
 
-			if(WriteDestProgram)
+			if(CheckConstParam(WriteDestProgram))
 			{
 				switch(type)
 				{
@@ -1591,10 +1596,10 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 	}
 
 	GLint numUBOs = 0;
-	if(ReadSourceProgram)
+	if(CheckConstParam(ReadSourceProgram))
 		gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
 
-	if(SerialiseUniforms)
+	if(CheckConstParam(SerialiseUniforms))
 		ser->Serialise("numUBOs", numUBOs);
 	
 	for(GLint i=0; i < numUBOs; i++)
@@ -1603,7 +1608,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 		uint32_t bind = 0;
 		string name;
 
-		if(ReadSourceProgram)
+		if(CheckConstParam(ReadSourceProgram))
 		{
 			gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM_BLOCK, i, 1, &prop, 1, NULL, (GLint *)&bind);
 
@@ -1613,13 +1618,13 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 			name = n;
 		}
 
-		if(SerialiseUniforms)
+		if(CheckConstParam(SerialiseUniforms))
 		{
 			ser->Serialise("bind", bind);
 			ser->Serialise("name", name);
 		}
 
-		if(WriteDestProgram)
+		if(CheckConstParam(WriteDestProgram))
 		{
 			GLuint idx = gl.glGetUniformBlockIndex(progDst, name.c_str());
 			if(idx != GL_INVALID_INDEX)
@@ -1628,10 +1633,10 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 	}
 
 	GLint numSSBOs = 0;
-	if(ReadSourceProgram)
+	if(CheckConstParam(ReadSourceProgram))
 		gl.glGetProgramInterfaceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
 	
-	if(SerialiseUniforms)
+	if(CheckConstParam(SerialiseUniforms))
 		ser->Serialise("numSSBOs", numSSBOs);
 	
 	for(GLint i=0; i < numSSBOs; i++)
@@ -1640,7 +1645,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 		uint32_t bind = 0;
 		string name;
 
-		if(ReadSourceProgram)
+		if(CheckConstParam(ReadSourceProgram))
 		{
 			gl.glGetProgramResourceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, i, 1, &prop, 1, NULL, (GLint *)&bind);
 
@@ -1650,13 +1655,13 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 			name = n;
 		}
 
-		if(SerialiseUniforms)
+		if(CheckConstParam(SerialiseUniforms))
 		{
 			ser->Serialise("bind", bind);
 			ser->Serialise("name", name);
 		}
 
-		if(WriteDestProgram)
+		if(CheckConstParam(WriteDestProgram))
 		{
 			GLuint idx = gl.glGetProgramResourceIndex(progDst, eGL_SHADER_STORAGE_BLOCK, name.c_str());
 			if(idx != GL_INVALID_INDEX)

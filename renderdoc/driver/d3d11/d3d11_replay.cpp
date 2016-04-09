@@ -1910,7 +1910,7 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver *
 	D3D11DebugManager::PreDeviceInitCounters();
 
 	hr = E_FAIL;
-	while(1)
+	for(;;)
 	{
 		hr = createDevice(
 			/*pAdapter=*/NULL, driverType, /*Software=*/NULL, flags,

@@ -1021,7 +1021,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 
 	SCOPED_TIMER("chunk initialisation");
 
-	while(1)
+	for(;;)
 	{
 		PerformanceTimer timer;
 
@@ -1067,6 +1067,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 
 	SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.back().frameInfo.immContextId, m_FrameRecord.back().drawcallList, NULL, NULL);
 
+#if !defined(RELEASE)
 	for(auto it=chunkInfos.begin(); it != chunkInfos.end(); ++it)
 	{
 		double dcount = double(it->second.count);
@@ -1079,6 +1080,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 				GetChunkName(it->first), uint32_t(it->first)
 				);
 	}
+#endif
 
 	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - frameOffset);
 	
@@ -1177,12 +1179,9 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 	else if(type == Resource_Texture1D)
 	{
 		WrappedID3D11Texture1D *tex1D = (WrappedID3D11Texture1D *)res;
-		D3D11ResourceRecord *record = m_ResourceManager->GetResourceRecord(Id);
 
 		D3D11_TEXTURE1D_DESC desc;
 		tex1D->GetDesc(&desc);
-
-		UINT numSubresources = desc.MipLevels*desc.ArraySize;
 
 		D3D11_TEXTURE1D_DESC stageDesc = desc;
 		ID3D11Texture1D *stage = NULL;
@@ -1208,12 +1207,9 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 	else if(type == Resource_Texture2D)
 	{
 		WrappedID3D11Texture2D *tex2D = (WrappedID3D11Texture2D *)res;
-		D3D11ResourceRecord *record = m_ResourceManager->GetResourceRecord(Id);
 
 		D3D11_TEXTURE2D_DESC desc;
 		tex2D->GetDesc(&desc);
-
-		UINT numSubresources = desc.MipLevels*desc.ArraySize;
 
 		bool multisampled = desc.SampleDesc.Count > 1 || desc.SampleDesc.Quality > 0;
 
@@ -1286,12 +1282,9 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 	else if(type == Resource_Texture3D)
 	{
 		WrappedID3D11Texture3D *tex3D = (WrappedID3D11Texture3D *)res;
-		D3D11ResourceRecord *record = m_ResourceManager->GetResourceRecord(Id);
 
 		D3D11_TEXTURE3D_DESC desc;
 		tex3D->GetDesc(&desc);
-
-		UINT numSubresources = desc.MipLevels;
 
 		D3D11_TEXTURE3D_DESC stageDesc = desc;
 		ID3D11Texture3D *stage = NULL;
@@ -1512,12 +1505,10 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 					}
 					else
 					{
-						uint32_t rowsPerLine = 1;
-
 						byte *dst = inmemBuffer;
 						byte *src = (byte *)mapped.pData;
 
-						memcpy(inmemBuffer, mapped.pData, dstPitch);
+						memcpy(dst, src, dstPitch);
 					}
 
 					size_t len = dstPitch;
@@ -2862,9 +2853,6 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 			{
 				m_pImmediateContext->GetReal()->OMSetRenderTargets(1, &rtv, NULL);
 
-				int w = GetDebugManager()->GetWidth();
-				int h = GetDebugManager()->GetHeight();
-
 				DXGI_SWAP_CHAIN_DESC swapDesc = {0};
 				swap->GetDesc(&swapDesc);
 				GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
@@ -3036,9 +3024,6 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 			ID3D11RenderTargetView *rtv = m_SwapChains[swap];
 
 			m_pImmediateContext->GetReal()->OMSetRenderTargets(1, &rtv, NULL);
-
-			int w = GetDebugManager()->GetWidth();
-			int h = GetDebugManager()->GetHeight();
 
 			DXGI_SWAP_CHAIN_DESC swapDesc = {0};
 			swap->GetDesc(&swapDesc);

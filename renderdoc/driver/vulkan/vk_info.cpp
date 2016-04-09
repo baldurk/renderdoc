@@ -261,7 +261,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 				attachments[i].alphaBlend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].dstAlphaBlendFactor;
 				attachments[i].alphaBlend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].alphaBlendOp;
 
-				attachments[i].channelWriteMask = pCreateInfo->pColorBlendState->pAttachments[i].colorWriteMask;
+				attachments[i].channelWriteMask = (uint8_t)pCreateInfo->pColorBlendState->pAttachments[i].colorWriteMask;
 			}
 		}
 		else

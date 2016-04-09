@@ -2177,8 +2177,8 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, 
 		gl.glClearBufferfv(eGL_COLOR, 0, col);
 
 		// render to the temp texture to do the downcast
-		float w = DebugData.outWidth;
-		float h = DebugData.outHeight;
+		float oldW = DebugData.outWidth;
+		float oldH = DebugData.outHeight;
 
 		DebugData.outWidth = float(width); DebugData.outHeight = float(height);
 		
@@ -2213,6 +2213,8 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, 
 
 			RenderTextureInternal(texDisplay, false);
 		}
+
+		DebugData.outWidth = oldW; DebugData.outHeight = oldH;
 		
 		// rewrite the variables to temporary texture
 		texType = newtarget;
@@ -2700,7 +2702,6 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
 	
 	GLenum fmt = texdetails.internalFormat;
 	GLenum target = texdetails.curType;
-	GLint dim = texdetails.dimension;
 
 	if(IsCompressedFormat(target))
 	{

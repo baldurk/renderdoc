@@ -433,9 +433,6 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 	}
 	else if(res.Namespace == eResFramebuffer)
 	{
-		// need to be on the right context, as feedback objects are never shared
-		void *oldctx = NULL;
-		
 		byte *data = Serialiser::AllocAlignedBuffer(sizeof(FramebufferInitialData));
 		RDCEraseMem(data, sizeof(FramebufferInitialData));
 		
@@ -1440,8 +1437,6 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
 void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool hasData)
 {
-	const GLHookSet &gl = m_GL->m_Real;
-
 	if(live.Namespace == eResTexture)
 	{
 		// we basically need to do exactly the same as Prepare_InitialState -

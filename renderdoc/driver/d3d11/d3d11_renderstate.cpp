@@ -1133,7 +1133,7 @@ void D3D11RenderState::UnbindIUnknownForRead(IUnknown *resource, bool allowDepth
 		IA.IndexBuffer = NULL;
 	}
 	
-	const char *names[] = { "VS", "DS", "HS", "GS", "PS", "CS" };
+	//const char *names[] = { "VS", "DS", "HS", "GS", "PS", "CS" };
 	shader *sh = &VS;
 	for(int s=0; s < 6; s++)
 	{

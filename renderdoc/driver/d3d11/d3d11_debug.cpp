@@ -339,9 +339,6 @@ string D3D11DebugManager::GetShaderBlob(const char *source, const char *entry, c
 			return errors;
 		}
 	}
-	
-	void *bytecode = byteBlob->GetBufferPointer();
-	size_t bytecodeLen = byteBlob->GetBufferSize();
 
 	if(m_CacheShaders)
 	{
@@ -1471,7 +1468,7 @@ bool D3D11DebugManager::InitFontRendering()
 	const float pixelHeight = 20.0f;
 
 	stbtt_bakedchar chardata[numChars];
-	int ret = stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
+	stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
 
 	m_Font.CharSize = pixelHeight;
 	m_Font.CharAspect = chardata->xadvance / pixelHeight;
@@ -3397,10 +3394,6 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 	vertexData.Scale *= 2.0f; // viewport is -1 -> 1
 
 	pixelData.MipLevel = (float)cfg.mip;
-
-	UINT stride = 3*sizeof(float);
-	UINT offset = 0;
-	
 	pixelData.OutputDisplayFormat = RESTYPE_TEX2D;
 	pixelData.Slice = float(RDCCLAMP(cfg.sliceFace, 0U, details.texArraySize-1));
 
@@ -3514,9 +3507,6 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
 void D3D11DebugManager::RenderHighlightBox(float w, float h, float scale)
 {
-	UINT stride = 3*sizeof(float);
-	UINT offs = 0;
-	
 	D3D11RenderStateTracker tracker(m_WrappedContext);
 
 	float overlayConsts[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -3606,9 +3596,6 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 	pixelData.WireframeColour = dark;
 	
 	FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
-
-	UINT stride = 3*sizeof(float);
-	UINT offset = 0;
 
 	// can't just clear state because we need to keep things like render targets.
 	{
@@ -4696,8 +4683,6 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 
 				if(fmt.buf != ResourceId())
 				{
-					D3D11_PRIMITIVE_TOPOLOGY d3d11topo = MakeD3D11PrimitiveTopology(fmt.topo);
-
 					m_pImmediateContext->IASetPrimitiveTopology(MakeD3D11PrimitiveTopology(fmt.topo));
 					
 					auto it = WrappedID3D11Buffer::m_BufferList.find(fmt.buf);
@@ -5372,6 +5357,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 		FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
 		
 		HRESULT hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+		RDCASSERTEQUAL(hr, S_OK);
 		
 		Vec4f a = Vec4f(cfg.minBounds.x, cfg.minBounds.y, cfg.minBounds.z, cfg.minBounds.w);
 		Vec4f b = Vec4f(cfg.maxBounds.x, cfg.maxBounds.y, cfg.maxBounds.z, cfg.maxBounds.w);

@@ -1173,7 +1173,7 @@ void WrappedVulkan::ReadLogInitialisation()
 
 	SCOPED_TIMER("chunk initialisation");
 
-	while(1)
+	for(;;)
 	{
 		PerformanceTimer timer;
 
@@ -1215,7 +1215,8 @@ void WrappedVulkan::ReadLogInitialisation()
 			break;
 		}
 	}
-
+	
+#if !defined(RELEASE)
 	for(auto it=chunkInfos.begin(); it != chunkInfos.end(); ++it)
 	{
 		double dcount = double(it->second.count);
@@ -1228,6 +1229,7 @@ void WrappedVulkan::ReadLogInitialisation()
 				GetChunkName(it->first), uint32_t(it->first)
 				);
 	}
+#endif
 
 	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - firstFrame);
 	
@@ -1243,8 +1245,6 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	VulkanChunkType header = (VulkanChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 	RDCASSERTEQUAL(header, CONTEXT_CAPTURE_HEADER);
-
-	WrappedVulkan *context = this;
 
 	Serialise_BeginCaptureFrame(!partial);
 	
@@ -1288,7 +1288,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		m_LastEventID = ~0U;
 	}
 
-	while(1)
+	for(;;)
 	{
 		if(m_State == EXECUTING && m_RootEventID > endEventID)
 		{
@@ -1427,8 +1427,6 @@ void WrappedVulkan::ApplyInitialContents()
 void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, bool forceExecute)
 {
 	m_CurChunkOffset = offset;
-
-	uint64_t cOffs = m_pSerialiser->GetOffset();
 
 	LogState state = m_State;
 

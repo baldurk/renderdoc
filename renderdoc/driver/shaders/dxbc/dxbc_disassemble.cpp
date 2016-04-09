@@ -775,7 +775,7 @@ bool DXBCFile::ExtractOperand(uint32_t *&tokenStream, ASMOperand &retOper)
 			retOper.indices[idx].index |= tokenStream[0];
 			tokenStream++;
 
-			RDCASSERT(sizeof(retOper.indices[idx].index) == 8);
+			RDCCOMPILE_ASSERT(sizeof(retOper.indices[idx].index) == 8, "Index is the wrong byte width");
 		}
 
 		if(rep[idx] == INDEX_IMMEDIATE64_PLUS_RELATIVE ||
@@ -974,8 +974,6 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 
 	OpcodeType op = Opcode::Type.Get(OpcodeToken0);
 	
-	bool extended = Opcode::Extended.Get(OpcodeToken0) == 1;
-	
 	RDCASSERT(op < NUM_OPCODES);
 
 	if(!IsDeclaration(op))
@@ -1040,8 +1038,10 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 
 				for(uint32_t i=0; i < dataLength; i++)
 				{
+#if !defined(RELEASE)
 					char *str = (char *)tokenStream;
 					RDCDEBUG("uint32 %d: 0x%08x   %c %c %c %c", i, tokenStream[0], str[0], str[1], str[2], str[3]);
+#endif
 					tokenStream++;
 				}
 				
@@ -1693,11 +1693,11 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 			{
 				uint32_t *end = tokenStream + customDataLength - 2;
 
-				uint32_t infoQueueMsgId = tokenStream[0];
+				//uint32_t infoQueueMsgId = tokenStream[0];
 				uint32_t messageFormat = tokenStream[1]; // enum. 0 == text only, 1 == printf
-				uint32_t formatStringLen = tokenStream[2]; // length NOT including null terminator
+				//uint32_t formatStringLen = tokenStream[2]; // length NOT including null terminator
 				retOp.operands.resize(tokenStream[3]);
-				uint32_t operandDwordLen = tokenStream[4];
+				//uint32_t operandDwordLen = tokenStream[4];
 
 				tokenStream += 5;
 				
@@ -1709,7 +1709,8 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 
 				string formatString = (char *)&tokenStream[0];
 				
-				retOp.str = "errorf \"" + formatString + "\"";
+				retOp.str = (messageFormat ? "errorf" : "error");
+				retOp.str += " \"" + formatString + "\"";
 
 				for(uint32_t i=0; i < retOp.operands.size(); i++)
 				{
@@ -2155,7 +2156,6 @@ string toString(const uint32_t values[], uint32_t numComps)
 
 	for(uint32_t i=0; i < numComps; i++)
 	{
-		float *vf = (float*)&values[i];
 		int32_t *vi = (int32_t*)&values[i];
 
 		uint32_t exponent = vi[0] & 0x7f800000;

@@ -43,8 +43,6 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(
 		VkQueue queue;
 		ObjDisp(device)->GetDeviceQueue(Unwrap(device), familyIdx, idx, &queue);
 
-		VkQueue real = queue;
-
 		GetResourceManager()->WrapResource(Unwrap(device), queue);
 		GetResourceManager()->AddLiveResource(queueId, queue);
 

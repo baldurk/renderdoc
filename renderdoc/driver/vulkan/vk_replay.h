@@ -51,7 +51,13 @@ using std::map;
 #define VULKANNOTIMP(...) do { static bool msgprinted = false; if(!msgprinted) RDCDEBUG("Vulkan not implemented - " __VA_ARGS__); msgprinted = true; } while((void)0,0)
 
 // allows easy disabling of MSAA
+#define MSAA_MESH_VIEW 0
+
+#if MSAA_MESH_VIEW
+#define VULKAN_MESH_VIEW_SAMPLES VK_SAMPLE_COUNT_4_BIT
+#else
 #define VULKAN_MESH_VIEW_SAMPLES VK_SAMPLE_COUNT_1_BIT
+#endif
 
 class WrappedVulkan;
 class VulkanDebugManager;
