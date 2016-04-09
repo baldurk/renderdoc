@@ -261,6 +261,6 @@ class WrappingPool
 #define WRAPPED_POOL_INST(a) \
 	a::PoolType a::m_Pool; \
 	template<> const size_t a::PoolType::AllocByteSize = sizeof(a); \
-	RDCCOMPILE_ASSERT(a::PoolType::AllocCount*a::PoolType::AllocByteSize <= a::PoolType::AllocMaxByteSize, "Pool is bigger than max pool size cap"); \
+	RDCCOMPILE_ASSERT(a::PoolType::AllocCount*sizeof(a) <= a::PoolType::AllocMaxByteSize, "Pool is bigger than max pool size cap"); \
 	RDCCOMPILE_ASSERT(a::PoolType::AllocCount > 2, "Pool isn't greater than 2 in size. Bad parameters?"); \
 	DECL_TYPENAME(a);
