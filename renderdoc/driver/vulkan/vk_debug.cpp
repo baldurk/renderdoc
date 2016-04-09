@@ -713,10 +713,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	m_CacheShaders = true;
 
-	sources.push_back(GetEmbeddedResource(spv_fixedcol_frag));
+	{
+		sources.push_back(GetEmbeddedResource(spv_fixedcol_frag));
 
-	string err = GetSPIRVBlob(eSPIRVFragment, sources, &m_FixedColSPIRV);
-	RDCASSERT(err.empty() && m_FixedColSPIRV);
+		string err = GetSPIRVBlob(eSPIRVFragment, sources, &m_FixedColSPIRV);
+		RDCASSERT(err.empty() && m_FixedColSPIRV);
+	}
 
 	sources.resize(4);
 	sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
@@ -774,8 +776,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	m_CacheShaders = false;
 
-	VkRenderPass RGBA32RP, RGBA8RP, RGBA16RP, RGBA8MSRP; // compatible render passes for creating pipelines
-	VkRenderPass wrappedRGBA8RP;
+	// compatible render passes for creating pipelines
+	VkRenderPass RGBA32RP = VK_NULL_HANDLE;
+	VkRenderPass RGBA8RP = VK_NULL_HANDLE;
+	VkRenderPass RGBA16RP = VK_NULL_HANDLE;
+	VkRenderPass RGBA8MSRP = VK_NULL_HANDLE;
+	VkRenderPass wrappedRGBA8RP = VK_NULL_HANDLE;
 
 	{
 		VkAttachmentDescription attDesc = {
@@ -1011,11 +1017,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	{
 		for(size_t f=0; f < 3; f++)
 		{
-			VkShaderModule minmaxtile;
-			VkShaderModule minmaxresult;
-			VkShaderModule histogram;
+			VkShaderModule minmaxtile = VK_NULL_HANDLE;
+			VkShaderModule minmaxresult = VK_NULL_HANDLE;
+			VkShaderModule histogram = VK_NULL_HANDLE;
 			string err;
-			vector<uint32_t> *blob;
+			vector<uint32_t> *blob = NULL;
 			VkShaderModuleCreateInfo modinfo = {
 				VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,
 				0, NULL,
@@ -1998,7 +2004,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 	{
 		VkDeviceSize chunkSize = RDCMIN(sizeRemaining, STAGE_BUFFER_BYTE_SIZE);
 		
-		VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkBufferCopy region = { srcoffset, 0, chunkSize };
@@ -2941,7 +2947,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 											(float)m_pDriver->m_RenderState.scissors[0].extent.width,
 											(float)m_pDriver->m_RenderState.scissors[0].extent.height);
 
-				OutlineUBOData *ubo = (OutlineUBOData *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
+				ubo = (OutlineUBOData *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
 
 				ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
 				ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
@@ -3556,7 +3562,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 				VK_IMAGE_LAYOUT_UNDEFINED,
 			};
 
-			VkResult vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &quadImg);
+			vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &quadImg);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			VkMemoryRequirements mrq = {0};
@@ -4751,26 +4757,26 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		return;
 
 	const VulkanRenderState &state = m_pDriver->m_RenderState;
-	VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
+	VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
 	if(state.graphics.pipeline == ResourceId())
 		return;
 
-	const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
+	const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
 
-	if(p.shaders[0].module == ResourceId())
+	if(pipeInfo.shaders[0].module == ResourceId())
 		return;
 
-	const VulkanCreationInfo::ShaderModule &m = c.m_ShaderModule[ p.shaders[0].module ];
+	const VulkanCreationInfo::ShaderModule &moduleInfo = creationInfo.m_ShaderModule[ pipeInfo.shaders[0].module ];
 
-	ShaderReflection *refl = p.shaders[0].refl;
+	ShaderReflection *refl = pipeInfo.shaders[0].refl;
 
 	// no outputs from this shader? unexpected but theoretically possible (dummy VS before
 	// tessellation maybe). Just fill out an empty data set
 	if(refl->OutputSig.count == 0)
 	{
 		// empty vertex output signature
-		m_PostVSData[idx].vsin.topo = p.topology;
+		m_PostVSData[idx].vsin.topo = pipeInfo.topology;
 		m_PostVSData[idx].vsout.buf = VK_NULL_HANDLE;
 		m_PostVSData[idx].vsout.instStride = 0;
 		m_PostVSData[idx].vsout.vertStride = 0;
@@ -4780,7 +4786,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].vsout.hasPosOut = false;
 		m_PostVSData[idx].vsout.idxBuf = VK_NULL_HANDLE;
 
-		m_PostVSData[idx].vsout.topo = p.topology;
+		m_PostVSData[idx].vsout.topo = pipeInfo.topology;
 
 		return;
 	}
@@ -4790,7 +4796,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	if(drawcall->numIndices == 0)
 		return;
 
-	uint32_t descSet = (uint32_t)c.m_PipelineLayout[p.layout].descSetLayouts.size();
+	uint32_t descSet = (uint32_t)creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts.size();
 	
 	// we go through the driver for all these creations since they need to be properly
 	// registered in order to be put in the partial replay state
@@ -4803,12 +4809,12 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	descSetLayouts = new VkDescriptorSetLayout[descSet+1];
 
 	for(uint32_t i=0; i < descSet; i++)
-		descSetLayouts[i] = GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(c.m_PipelineLayout[p.layout].descSetLayouts[i]);
+		descSetLayouts[i] = GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts[i]);
 
 	// this layout just says it has one storage buffer
 	descSetLayouts[descSet] = m_MeshFetchDescSetLayout;
 
-	const vector<VkPushConstantRange> &push = c.m_PipelineLayout[p.layout].pushRanges;
+	const vector<VkPushConstantRange> &push = creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
 
 	VkPipelineLayoutCreateInfo pipeLayoutInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, NULL, 0,
@@ -4886,7 +4892,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				ResourceId buf = state.vbuffers[b].buf;
 				VkDeviceSize offs = state.vbuffers[b].offs;
 
-				VkDeviceSize bufsize = c.m_Buffer[buf].size;
+				VkDeviceSize bufsize = creationInfo.m_Buffer[buf].size;
 
 				// the maximum valid index on this particular input is the one that reaches
 				// the end of the buffer. The maximum valid index at all is the one that reads
@@ -4990,18 +4996,18 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	}
 
 	uint32_t bufStride = 0;
-	vector<uint32_t> modSpirv = m.spirv.spirv;
+	vector<uint32_t> modSpirv = moduleInfo.spirv.spirv;
 
-	AddOutputDumping(*refl, p.shaders[0].entryPoint.c_str(), descSet, vertexIndexOffset, drawcall->instanceOffset, numVerts, modSpirv, bufStride);
+	AddOutputDumping(*refl, pipeInfo.shaders[0].entryPoint.c_str(), descSet, vertexIndexOffset, drawcall->instanceOffset, numVerts, modSpirv, bufStride);
 	
 	// create vertex shader with modified code
-	VkShaderModuleCreateInfo moduleInfo = {
+	VkShaderModuleCreateInfo moduleCreateInfo = {
 		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,
 		modSpirv.size()*sizeof(uint32_t), &modSpirv[0],
 	};
 
 	VkShaderModule module;
-	vkr = m_pDriver->vkCreateShaderModule(dev, &moduleInfo, NULL, &module);
+	vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &module);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	// change vertex shader to use our modified code

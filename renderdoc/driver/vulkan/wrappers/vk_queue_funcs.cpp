@@ -380,8 +380,8 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
 		DrawcallUse use(m_Events.back().fileOffset, n.draw.eventID);
 
 		// insert in sorted location
-		auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-		m_DrawcallUses.insert(it, use);
+		auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+		m_DrawcallUses.insert(drawit, use);
 
 		RDCASSERT(n.children.empty());
 
@@ -502,9 +502,9 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 						if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
 						{
-							VkResourceRecord *record = GetResourceManager()->GetResourceRecord(refit->first);
+							VkResourceRecord *sparserecord = GetResourceManager()->GetResourceRecord(refit->first);
 
-							GetResourceManager()->MarkSparseMapReferenced(record->sparseInfo);
+							GetResourceManager()->MarkSparseMapReferenced(sparserecord->sparseInfo);
 						}
 					}
 				}
@@ -519,13 +519,13 @@ VkResult WrappedVulkan::vkQueueSubmit(
 				// ref the parent command buffer by itself, this will pull in the cmd buffer pool
 				GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 
-				for(size_t i=0; i < record->bakedCommands->cmdInfo->subcmds.size(); i++)
+				for(size_t sub=0; sub < record->bakedCommands->cmdInfo->subcmds.size(); sub++)
 				{
-					record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands->AddResourceReferences(GetResourceManager());
-					record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands->AddReferencedIDs(refdIDs);
-					GetResourceManager()->MarkResourceFrameReferenced(record->bakedCommands->cmdInfo->subcmds[i]->GetResourceID(), eFrameRef_Read);
+					record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddResourceReferences(GetResourceManager());
+					record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddReferencedIDs(refdIDs);
+					GetResourceManager()->MarkResourceFrameReferenced(record->bakedCommands->cmdInfo->subcmds[sub]->GetResourceID(), eFrameRef_Read);
 
-					record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands->AddRef();
+					record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddRef();
 				}
 				
 				GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
@@ -536,8 +536,8 @@ VkResult WrappedVulkan::vkQueueSubmit(
 				{
 					SCOPED_LOCK(m_CmdBufferRecordsLock);
 					m_CmdBufferRecords.push_back(record->bakedCommands);
-					for(size_t i=0; i < record->bakedCommands->cmdInfo->subcmds.size(); i++)
-						m_CmdBufferRecords.push_back(record->bakedCommands->cmdInfo->subcmds[i]->bakedCommands);
+					for(size_t sub=0; sub < record->bakedCommands->cmdInfo->subcmds.size(); sub++)
+						m_CmdBufferRecords.push_back(record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands);
 				}
 
 				record->bakedCommands->AddRef();

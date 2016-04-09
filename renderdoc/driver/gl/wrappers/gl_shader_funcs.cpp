@@ -455,8 +455,6 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
 		
 		GLuint sepprog = MakeSeparableShaderProgram(m_Real, type, src, NULL);
 		
-		GLResource res = ProgramRes(GetCtx(), real);
-	
 		auto &progDetails = m_Programs[id];
 	
 		progDetails.linked = true;

@@ -190,14 +190,14 @@ bool WrappedVulkan::Serialise_vkResetFences(
 
 	for(uint32_t i=0; i < count; i++)
 	{
-		ResourceId id;
+		ResourceId fence;
 		if(m_State >= WRITING)
-			id = GetResID(pFences[i]);
+			fence = GetResID(pFences[i]);
 
-		localSerialiser->Serialise("pFences[]", id);
+		localSerialiser->Serialise("pFences[]", fence);
 		
-		if(m_State < WRITING && GetResourceManager()->HasLiveResource(id))
-			fences.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkFence>(id)));
+		if(m_State < WRITING && GetResourceManager()->HasLiveResource(fence))
+			fences.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkFence>(fence)));
 	}
 
 	if(m_State < WRITING && !fences.empty())
@@ -253,14 +253,14 @@ bool WrappedVulkan::Serialise_vkWaitForFences(
 
 	for(uint32_t i=0; i < count; i++)
 	{
-		ResourceId id;
+		ResourceId fence;
 		if(m_State >= WRITING)
-			id = GetResID(pFences[i]);
+			fence = GetResID(pFences[i]);
 
-		localSerialiser->Serialise("pFences[]", id);
+		localSerialiser->Serialise("pFences[]", fence);
 
-		if(m_State < WRITING && GetResourceManager()->HasLiveResource(id))
-			fences.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkFence>(id)));
+		if(m_State < WRITING && GetResourceManager()->HasLiveResource(fence))
+			fences.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkFence>(fence)));
 	}
 
 	if(m_State < WRITING)

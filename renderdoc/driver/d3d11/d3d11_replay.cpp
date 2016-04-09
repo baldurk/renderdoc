@@ -493,12 +493,12 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 		const char *stageNames[] = { "Vertex", "Hull", "Domain", "Geometry", "Pixel", "Compute" };
 
-		for(size_t i=0; i < 6; i++)
+		for(size_t stage=0; stage < 6; stage++)
 		{
-			D3D11PipelineState::ShaderStage &dst = dstArr[i];
-			const D3D11RenderState::shader &src = srcArr[i];
+			D3D11PipelineState::ShaderStage &dst = dstArr[stage];
+			const D3D11RenderState::shader &src = srcArr[stage];
 
-			dst.stage = (ShaderStageType)i;
+			dst.stage = (ShaderStageType)stage;
 			
 			ResourceId id = GetIDForResource(src.Shader);
 
@@ -518,7 +518,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			if(str == "" && dst.Shader != ResourceId())
 			{
 				dst.customName = false;
-				str = StringFormat::Fmt("%s Shader %llu", stageNames[i], dst.Shader);
+				str = StringFormat::Fmt("%s Shader %llu", stageNames[stage], dst.Shader);
 			}
 
 			dst.ShaderName = str;
@@ -539,7 +539,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				dst.BindpointMapping.ConstantBlocks[s].bindset = 0;
 				dst.BindpointMapping.ConstantBlocks[s].bind = s;
 				dst.BindpointMapping.ConstantBlocks[s].used = false;
-				dst.BindpointMapping.ConstantBlocks[i].arraySize = 1;
+				dst.BindpointMapping.ConstantBlocks[s].arraySize = 1;
 			}
 
 			create_array_uninit(dst.BindpointMapping.ReadOnlyResources, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
@@ -548,7 +548,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				dst.BindpointMapping.ReadOnlyResources[s].bindset = 0;
 				dst.BindpointMapping.ReadOnlyResources[s].bind = s;
 				dst.BindpointMapping.ReadOnlyResources[s].used = false;
-				dst.BindpointMapping.ReadOnlyResources[i].arraySize = 1;
+				dst.BindpointMapping.ReadOnlyResources[s].arraySize = 1;
 			}
 
 			create_array_uninit(dst.BindpointMapping.ReadWriteResources, D3D11_1_UAV_SLOT_COUNT);
@@ -557,7 +557,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				dst.BindpointMapping.ReadWriteResources[s].bindset = 0;
 				dst.BindpointMapping.ReadWriteResources[s].bind = s;
 				dst.BindpointMapping.ReadWriteResources[s].used = false;
-				dst.BindpointMapping.ReadWriteResources[i].arraySize = 1;
+				dst.BindpointMapping.ReadWriteResources[s].arraySize = 1;
 			}
 
 			// mark resources as used if they are referenced by the shader

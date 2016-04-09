@@ -826,12 +826,12 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 	if(swap != VK_NULL_HANDLE)
 	{
-		VkDevice dev = GetDev();
+		VkDevice device = GetDev();
 		VkCommandBuffer cmd = GetNextCmd();
 
-		const VkLayerDispatchTable *vt = ObjDisp(dev);
+		const VkLayerDispatchTable *vt = ObjDisp(device);
 
-		vt->DeviceWaitIdle(Unwrap(dev));
+		vt->DeviceWaitIdle(Unwrap(device));
 		
 		const SwapchainInfo &swapInfo = *swaprecord->swapInfo;
 
@@ -852,15 +852,15 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
-		vt->CreateImage(Unwrap(dev), &imInfo, NULL, &readbackIm);
+		vt->CreateImage(Unwrap(device), &imInfo, NULL, &readbackIm);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkMemoryRequirements mrq;
-		vt->GetImageMemoryRequirements(Unwrap(dev), readbackIm, &mrq);
+		vt->GetImageMemoryRequirements(Unwrap(device), readbackIm, &mrq);
 
 		VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
 		VkSubresourceLayout layout = { 0 };
-		vt->GetImageSubresourceLayout(Unwrap(dev), readbackIm, &subr, &layout);
+		vt->GetImageSubresourceLayout(Unwrap(device), readbackIm, &subr, &layout);
 
 		// allocate readback memory
 		VkMemoryAllocateInfo allocInfo = {
@@ -868,9 +868,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			mrq.size, GetReadbackMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &readbackMem);
+		vkr = vt->AllocateMemory(Unwrap(device), &allocInfo, NULL, &readbackMem);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-		vkr = vt->BindImageMemory(Unwrap(dev), readbackIm, readbackMem, 0);
+		vkr = vt->BindImageMemory(Unwrap(device), readbackIm, readbackMem, 0);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
@@ -928,7 +928,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
 		// map memory and readback
 		byte *pData = NULL;
-		vkr = vt->MapMemory(Unwrap(dev), readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&pData);
+		vkr = vt->MapMemory(Unwrap(device), readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&pData);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		RDCASSERT(pData != NULL);
@@ -1017,11 +1017,11 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 			}
 		}
 
-		vt->UnmapMemory(Unwrap(dev), readbackMem);
+		vt->UnmapMemory(Unwrap(device), readbackMem);
 
 		// delete all
-		vt->DestroyImage(Unwrap(dev), readbackIm, NULL);
-		vt->FreeMemory(Unwrap(dev), readbackMem, NULL);
+		vt->DestroyImage(Unwrap(device), readbackIm, NULL);
+		vt->FreeMemory(Unwrap(device), readbackMem, NULL);
 	}
 
 	byte *jpgbuf = NULL;

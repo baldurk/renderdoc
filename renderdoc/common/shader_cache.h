@@ -155,7 +155,6 @@ void SaveShaderCache(const char *filename,
 	uint32_t numentries = (uint32_t)cache.size();
 	FileIO::fwrite(&numentries, 1, sizeof(numentries), f);
 	
-	auto it = cache.begin();
 	for(auto it = cache.begin(); it != cache.end(); ++it)
 	{
 		uint32_t hash = it->first;

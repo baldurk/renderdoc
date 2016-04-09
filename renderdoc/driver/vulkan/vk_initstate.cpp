@@ -121,17 +121,18 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 		0, VK_BUFFER_USAGE_TRANSFER_SRC_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 	};
 
-	uint32_t i=0;
+	uint32_t memidx=0;
 	for(auto it=boundMems.begin(); it != boundMems.end(); ++it)
 	{
 		// store offset
 		it->second = bufInfo.size;
 
-		memDataOffs[i].memId = GetResID(it->first);
-		memDataOffs[i].memOffs = bufInfo.size;
+		memDataOffs[memidx].memId = GetResID(it->first);
+		memDataOffs[memidx].memOffs = bufInfo.size;
 
 		// increase size
 		bufInfo.size += GetRecord(it->first)->Length;
+		memidx++;
 	}
 
 	info->totalSize = bufInfo.size;
@@ -290,17 +291,18 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 		0, VK_BUFFER_USAGE_TRANSFER_SRC_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 	};
 
-	uint32_t i=0;
+	uint32_t memidx=0;
 	for(auto it=boundMems.begin(); it != boundMems.end(); ++it)
 	{
 		// store offset
 		it->second = bufInfo.size;
 
-		memDataOffs[i].memId = GetResID(it->first);
-		memDataOffs[i].memOffs = bufInfo.size;
+		memDataOffs[memidx].memId = GetResID(it->first);
+		memDataOffs[memidx].memOffs = bufInfo.size;
 
 		// increase size
 		bufInfo.size += GetRecord(it->first)->Length;
+		memidx++;
 	}
 
 	state->totalSize = bufInfo.size;

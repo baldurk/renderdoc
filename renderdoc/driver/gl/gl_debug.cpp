@@ -3188,7 +3188,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 			pos0 = (Vec4f *)byteData;
 
-			bool found = false;
+			found = false;
 
 			for(uint32_t i=1; posidx != -1 && i < m_PostVSData[idx].gsout.numVerts; i++)
 			{

@@ -357,20 +357,20 @@ struct SPVTypeData
 		return type < eBasicCount && type != eVoid;
 	}
 
-	string DeclareVariable(const vector<SPVDecoration> &decorations, const string &varName)
+	string DeclareVariable(const vector<SPVDecoration> &vardecorations, const string &varName)
 	{
 		string ret = "";
 
 		const SPVDecoration *builtin = NULL;
 
-		for(size_t d=0; d < decorations.size(); d++)
+		for(size_t d=0; d < vardecorations.size(); d++)
 		{
-			if(decorations[d].decoration == spv::DecorationBuiltIn)
+			if(vardecorations[d].decoration == spv::DecorationBuiltIn)
 			{
-				builtin = &decorations[d];
+				builtin = &vardecorations[d];
 				continue;
 			}
-			string decorationStr = decorations[d].Str();
+			string decorationStr = vardecorations[d].Str();
 			if(!decorationStr.empty())
 				ret += decorationStr + " ";
 		}
@@ -995,12 +995,12 @@ struct SPVInstruction
 					return ret;
 				}
 
-				SPVTypeData *type = op->arguments[0]->var ? op->arguments[0]->var->type : op->arguments[0]->op->type;
+				SPVTypeData *arg0type = op->arguments[0]->var ? op->arguments[0]->var->type : op->arguments[0]->op->type;
 
-				RDCASSERT(type);
+				RDCASSERT(arg0type);
 
-				if(type->type == SPVTypeData::ePointer)
-					type = type->baseType;
+				if(arg0type->type == SPVTypeData::ePointer)
+					arg0type = arg0type->baseType;
 
 				bool accessChain = (opcode == spv::OpAccessChain || opcode == spv::OpInBoundsAccessChain);
 
@@ -1011,38 +1011,38 @@ struct SPVInstruction
 
 				for(size_t i=start; i < count; i++)
 				{
-					bool constant = false;
+					bool isConstant = false;
 					int32_t idx = -1;
 					if(!accessChain)
 					{
 						idx = (int32_t)op->literals[i];
-						constant = true;
+						isConstant = true;
 					}
 					else if(op->arguments[i]->constant)
 					{
 						RDCASSERT(op->arguments[i]->constant && op->arguments[i]->constant->type->IsBasicInt());
 						idx = op->arguments[i]->constant->i32;
-						constant = true;
+						isConstant = true;
 					}
 
-					if(!type)
+					if(!arg0type)
 						break;
 
-					if(type->type == SPVTypeData::eStruct)
+					if(arg0type->type == SPVTypeData::eStruct)
 					{
 						// Assuming you can't dynamically index into a structure
-						RDCASSERT(constant);
-						const pair<SPVTypeData*,string> &child = type->children[idx];
+						RDCASSERT(isConstant);
+						const pair<SPVTypeData*,string> &child = arg0type->children[idx];
 						if(child.second.empty())
 							accessString += StringFormat::Fmt("._member%u", idx);
 						else
 							accessString += StringFormat::Fmt(".%s", child.second.c_str());
-						type = child.first;
+						arg0type = child.first;
 						continue;
 					}
-					else if(type->type == SPVTypeData::eArray)
+					else if(arg0type->type == SPVTypeData::eArray)
 					{
-						if(constant)
+						if(isConstant)
 						{
 							accessString += StringFormat::Fmt("[%u]", idx);
 						}
@@ -1053,12 +1053,12 @@ struct SPVInstruction
 							op->GetArg(ids, i, arg);
 							accessString += StringFormat::Fmt("[%s]", arg.c_str());
 						}
-						type = type->baseType;
+						arg0type = arg0type->baseType;
 						continue;
 					}
-					else if(type->type == SPVTypeData::eMatrix)
+					else if(arg0type->type == SPVTypeData::eMatrix)
 					{
-						if(constant)
+						if(isConstant)
 						{
 							accessString += StringFormat::Fmt("[%u]", idx);
 						}
@@ -1097,7 +1097,7 @@ struct SPVInstruction
 							accessString += StringFormat::Fmt("._%u", idx);
 
 						// must be the last index, we're down to scalar granularity
-						type = NULL;
+						arg0type = NULL;
 						RDCASSERT(i == count-1);
 					}
 				}

@@ -1206,10 +1206,10 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 
 		for(int i=0; i < count; i++)
 		{
-			GLResourceRecord *r = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
+			GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
 
 			// it's legal to re-type buffers, generate another BindBuffer chunk to rename
-			if(r->datatype != target)
+			if(bufrecord->datatype != target)
 			{
 				Chunk *chunk = NULL;
 
@@ -1220,7 +1220,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 					chunk = scope.Get();
 				}
 
-				r->AddChunk(chunk);
+				bufrecord->AddChunk(chunk);
 			}
 		}
 

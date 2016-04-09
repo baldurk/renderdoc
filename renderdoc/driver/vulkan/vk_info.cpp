@@ -95,9 +95,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 			ResourceId id = resourceMan->GetNonDispWrapper(pCreateInfo->pStages[i].module)->id;
 
 			// convert shader bit to shader index
-			int s = StageIndex(pCreateInfo->pStages[i].stage);
+			int stageIndex = StageIndex(pCreateInfo->pStages[i].stage);
 
-			Shader &shad = shaders[s];
+			Shader &shad = shaders[stageIndex];
 			
 			shad.module = id;
 			shad.entryPoint = pCreateInfo->pStages[i].pName;
@@ -385,21 +385,21 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan, Vu
 	}
 
 	subpasses.resize(pCreateInfo->subpassCount);
-	for(uint32_t i=0; i < pCreateInfo->subpassCount; i++)
+	for(uint32_t subp=0; subp < pCreateInfo->subpassCount; subp++)
 	{
-		const VkSubpassDescription &subp = pCreateInfo->pSubpasses[i];
-		Subpass &s = subpasses[i];
+		const VkSubpassDescription &src = pCreateInfo->pSubpasses[subp];
+		Subpass &dst = subpasses[subp];
 
-		s.inputAttachments.resize(subp.inputAttachmentCount);
-		for(uint32_t i=0; i < subp.inputAttachmentCount; i++)
-			s.inputAttachments[i] = subp.pInputAttachments[i].attachment;
+		dst.inputAttachments.resize(src.inputAttachmentCount);
+		for(uint32_t i=0; i < src.inputAttachmentCount; i++)
+			dst.inputAttachments[i] = src.pInputAttachments[i].attachment;
 
-		s.colorAttachments.resize(subp.colorAttachmentCount);
-		for(uint32_t i=0; i < subp.colorAttachmentCount; i++)
-			s.colorAttachments[i] = subp.pColorAttachments[i].attachment;
+		dst.colorAttachments.resize(src.colorAttachmentCount);
+		for(uint32_t i=0; i < src.colorAttachmentCount; i++)
+			dst.colorAttachments[i] = src.pColorAttachments[i].attachment;
 
-		s.depthstencilAttachment = (subp.pDepthStencilAttachment != NULL && subp.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
-			? (int32_t)subp.pDepthStencilAttachment->attachment : -1);
+		dst.depthstencilAttachment = (src.pDepthStencilAttachment != NULL && src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
+			? (int32_t)src.pDepthStencilAttachment->attachment : -1);
 	}
 }
 

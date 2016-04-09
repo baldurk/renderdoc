@@ -467,15 +467,15 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	size_t num = sizeof(real)/sizeof(PFNGLGETSTRINGPROC);
 
 	RDCLOG("Function pointers available:");
-	for(size_t i=0; i < num; )
+	for(size_t ptr=0; ptr < num; )
 	{
 		uint64_t ptrmask = 0;
 
 		for(size_t j=0; j < 64; j++)
-			if(i + j < num && ptrs[i+j])
+			if(ptr + j < num && ptrs[i+j])
 				ptrmask |= 1ULL<<(63-j);
 
-		i += 64;
+		ptr += 64;
 
 		RDCLOG("%64llb", ptrmask);
 	}

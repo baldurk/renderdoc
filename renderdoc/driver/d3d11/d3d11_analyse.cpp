@@ -3277,7 +3277,6 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		
 		if(origdesc.ScissorEnable)
 		{
-			UINT dummy = 1;
 			D3D11_RECT rects[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {0};
 			m_pImmediateContext->RSGetScissorRects(&dummy, rects);
 
@@ -5025,13 +5024,13 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					// release these now in case we skip this modification, but don't NULL them
 					// so we can still compare
 					{
-						for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-							if(curRTVs[i])
-								curRTVs[i]->Release();
+						for(int rtv=0; rtv < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; rtv++)
+							if(curRTVs[rtv])
+								curRTVs[rtv]->Release();
 
-						for(int i=0; i < D3D11_1_UAV_SLOT_COUNT; i++)
-							if(curUAVs[i])
-								curUAVs[i]->Release();
+						for(int uav=0; uav < D3D11_1_UAV_SLOT_COUNT; uav++)
+							if(curUAVs[uav])
+								curUAVs[uav]->Release();
 
 						if(curDSV)
 							curDSV->Release();
@@ -5041,12 +5040,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					if(events[i].usage == eUsage_ColourTarget)
 					{
 						bool used = false;
-						for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+						for(int rtv=0; rtv < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; rtv++)
 						{
-							if(curRTVs[i])
+							if(curRTVs[rtv])
 							{
 								ID3D11Resource *res = NULL;
-								curRTVs[i]->GetResource(&res);
+								curRTVs[rtv]->GetResource(&res);
 
 								if(res != targetres)
 									continue;
@@ -5054,7 +5053,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 								SAFE_RELEASE(res);
 
 								D3D11_RENDER_TARGET_VIEW_DESC desc;
-								curRTVs[i]->GetDesc(&desc);
+								curRTVs[rtv]->GetDesc(&desc);
 								if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1D &&
 								   desc.Texture1D.MipSlice == mip)
 								{
@@ -6160,7 +6159,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				m_pImmediateContext->Begin(testQueries[0]);
 
 				// do draw
-				const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, history[h].eventID);
 				if(draw->flags & eDraw_UseIBuffer)
 				{
 					// TODO once pixel history distinguishes between instances, draw only the instance for this fragment

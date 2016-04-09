@@ -676,9 +676,9 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
 					desc.bindCount = 1;
 
-					for(uint32_t i=0; i < arraySize; i++)
+					for(uint32_t a=0; a < arraySize; a++)
 					{
-						desc.name = StringFormat::Fmt("%s[%u]", rname.c_str(), i);
+						desc.name = StringFormat::Fmt("%s[%u]", rname.c_str(), a);
 						m_Resources.push_back(desc);
 						desc.bindPoint++;
 					}

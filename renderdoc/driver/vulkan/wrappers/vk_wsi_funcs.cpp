@@ -377,8 +377,8 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 			// serialise out the swap chain images
 			{
 				uint32_t numSwapImages;
-				VkResult ret = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(*pSwapChain), &numSwapImages, NULL);
-				RDCASSERTEQUAL(ret, VK_SUCCESS);
+				vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(*pSwapChain), &numSwapImages, NULL);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
 				
 				swapInfo.lastPresent = 0;
 				swapInfo.images.resize(numSwapImages);
@@ -392,8 +392,8 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(
 				VkImage* images = new VkImage[numSwapImages];
 
 				// go through our own function so we assign these images IDs
-				ret = vkGetSwapchainImagesKHR(device, *pSwapChain, &numSwapImages, images);
-				RDCASSERTEQUAL(ret, VK_SUCCESS);
+				vkr = vkGetSwapchainImagesKHR(device, *pSwapChain, &numSwapImages, images);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 				for(uint32_t i=0; i < numSwapImages; i++)
 				{
