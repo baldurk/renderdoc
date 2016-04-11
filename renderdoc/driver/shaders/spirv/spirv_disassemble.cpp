@@ -3038,8 +3038,6 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 			rowmajor = false;
 	}
 
-	RDCASSERT(sig.regIndex < 16);
-
 	if(type->type == SPVTypeData::ePointer)
 		type = type->baseType;
 
