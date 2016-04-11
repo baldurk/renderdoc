@@ -2275,7 +2275,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 		{
 			if(funcops[l]->opcode == spv::OpSwitch)
 			{
-				RDCASSERT(l > 1 && funcops[l-1]->opcode == spv::OpSelectionMerge);
+				RDCASSERT(l > 0 && funcops[l-1]->opcode == spv::OpSelectionMerge);
 				switchstack.push_back(std::make_pair(funcops[l-1]->flow->targets[0], funcops[l]->flow));
 			}
 
