@@ -445,7 +445,7 @@ void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanC
 	extent = pCreateInfo->extent;
 	arrayLayers = pCreateInfo->arrayLayers;
 	mipLevels = pCreateInfo->mipLevels;
-	samples = pCreateInfo->samples;
+	samples = RDCMAX(VK_SAMPLE_COUNT_1_BIT, pCreateInfo->samples);
 
 	creationFlags = 0;
 
