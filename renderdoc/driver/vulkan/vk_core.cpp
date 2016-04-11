@@ -2130,12 +2130,26 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
 				int32_t bindset = types[t].bindmap[i].bindset;
 				int32_t bind = types[t].bindmap[i].bind;
 
-				RDCASSERT(bindset < (int32_t)descSets.size());
+				if(bindset >= (int32_t)descSets.size())
+				{
+					RDCWARN("At draw %u, shader referenced a descriptor set %i that was not bound", drawNode.draw.eventID, bindset);
+					continue;
+				}
 				
 				DescriptorSetInfo &descset = m_DescriptorSetState[ descSets[bindset] ];
 				DescSetLayout &layout = c.m_DescSetLayout[ descset.layout ];
 
-				RDCASSERT(bind < (int32_t)layout.bindings.size());
+				if(layout.bindings.empty())
+				{
+					RDCWARN("At draw %u, shader referenced a descriptor set %i that was not bound", drawNode.draw.eventID, bindset);
+					continue;
+				}
+
+				if(bind >= (int32_t)layout.bindings.size())
+				{
+					RDCWARN("At draw %u, shader referenced a bind %i in descriptor set %i that does not exist. Mismatched descriptor set?", drawNode.draw.eventID, bind, bindset);
+					continue;
+				}
 				
 				// handled as part of the framebuffer attachments
 				if(layout.bindings[bind].descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
@@ -2147,7 +2161,11 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
 
 				ResourceUsage usage = ResourceUsage(types[t].usage + shad);
 
-				RDCASSERT(bind < (int32_t)descset.currentBindings.size());
+				if(bind >= (int32_t)descset.currentBindings.size())
+				{
+					RDCWARN("At draw %u, shader referenced a bind %i in descriptor set %i that does not exist. Mismatched descriptor set?", drawNode.draw.eventID, bind, bindset);
+					continue;
+				}
 
 				for(uint32_t a=0; a < layout.bindings[bind].descriptorCount; a++)
 				{
