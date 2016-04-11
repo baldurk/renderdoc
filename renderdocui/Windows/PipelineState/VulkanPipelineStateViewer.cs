@@ -315,6 +315,525 @@ namespace renderdocui.Windows.PipelineState
                                     };
         }
 
+        private void AddResourceRow(ShaderReflection shaderDetails, VulkanPipelineState.ShaderStage stage, int bindset, int bind, VulkanPipelineState.Pipeline pipe, TreelistView.TreeListView resources, FetchTexture[] texs, FetchBuffer[] bufs, ref Dictionary<ResourceId, SamplerData> samplers)
+        {
+            ShaderResource shaderRes = null;
+            BindpointMap bindMap = null;
+
+            bool isrw = false;
+            uint bindPoint = 0;
+
+            if (shaderDetails != null)
+            {
+                for (int i = 0; i < shaderDetails.ReadOnlyResources.Length; i++)
+                {
+                    var ro = shaderDetails.ReadOnlyResources[i];
+
+                    if (stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset == bindset &&
+                        stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind == bind)
+                    {
+                        bindPoint = (uint)i;
+                        shaderRes = ro;
+                        bindMap = stage.BindpointMapping.ReadOnlyResources[ro.bindPoint];
+                    }
+                }
+
+                for (int i = 0; i < shaderDetails.ReadWriteResources.Length; i++)
+                {
+                    var rw = shaderDetails.ReadWriteResources[i];
+
+                    if (stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset == bindset &&
+                        stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bind == bind)
+                    {
+                        bindPoint = (uint)i;
+                        isrw = true;
+                        shaderRes = rw;
+                        bindMap = stage.BindpointMapping.ReadWriteResources[rw.bindPoint];
+                    }
+                }
+            }
+
+            VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement[] slotBinds = null;
+            ShaderBindType bindType = ShaderBindType.Unknown;
+            ShaderStageBits stageBits = (ShaderStageBits)0;
+
+            if (bindset < pipe.DescSets.Length && bind < pipe.DescSets[bindset].bindings.Length)
+            {
+                slotBinds = pipe.DescSets[bindset].bindings[bind].binds;
+                bindType = pipe.DescSets[bindset].bindings[bind].type;
+                stageBits = pipe.DescSets[bindset].bindings[bind].stageFlags;
+            }
+            else
+            {
+                if (shaderRes.IsSampler)
+                    bindType = ShaderBindType.Sampler;
+                else if (shaderRes.IsSampler && shaderRes.IsTexture)
+                    bindType = ShaderBindType.ImageSampler;
+                else if (shaderRes.resType == ShaderResourceType.Buffer)
+                    bindType = ShaderBindType.ReadOnlyTBuffer;
+                else
+                    bindType = ShaderBindType.ReadOnlyImage;
+            }
+
+            bool usedSlot = bindMap != null && bindMap.used;
+            bool stageBitsIncluded = stageBits.HasFlag((ShaderStageBits)(1 << (int)stage.stage));
+
+            // skip descriptors that aren't for this shader stage
+            if (!usedSlot && !stageBitsIncluded)
+                return;
+
+            // these are treated as uniform buffers
+            if (bindType == ShaderBindType.ReadOnlyBuffer)
+                return;
+
+            // TODO - check compatibility between bindType and shaderRes.resType ?
+
+            // consider it filled if any array element is filled
+            bool filledSlot = false;
+            for (int idx = 0; slotBinds != null && idx < slotBinds.Length; idx++)
+            {
+                filledSlot |= slotBinds[idx].res != ResourceId.Null;
+                if (bindType == ShaderBindType.Sampler || bindType == ShaderBindType.ImageSampler)
+                    filledSlot |= slotBinds[idx].sampler != ResourceId.Null;
+            }
+
+            // if it's masked out by stage bits, act as if it's not filled, so it's marked in red
+            if (!stageBitsIncluded)
+                filledSlot = false;
+
+            // show if
+            if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                )
+            {
+                TreelistView.NodeCollection parentNodes = resources.Nodes;
+
+                string setname = bindset.ToString();
+
+                string slotname = bind.ToString();
+                if (shaderRes != null && shaderRes.name.Length > 0)
+                    slotname += ": " + shaderRes.name;
+
+                int arrayLength = 0;
+                if (slotBinds != null) arrayLength = slotBinds.Length;
+                else arrayLength = (int)bindMap.arraySize;
+
+                // for arrays, add a parent element that we add the real cbuffers below
+                if (arrayLength > 1)
+                {
+                    var node = parentNodes.Add(new object[] { "", setname, slotname, String.Format("Array[{0}]", arrayLength), "", "", "", "" });
+
+                    node.TreeColumn = 0;
+
+                    if (!filledSlot)
+                        EmptyRow(node);
+
+                    if (!usedSlot)
+                        InactiveRow(node);
+
+                    parentNodes = node.Nodes;
+                }
+
+                for (int idx = 0; idx < arrayLength; idx++)
+                {
+                    VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement descriptorBind = null;
+                    if (slotBinds != null) descriptorBind = slotBinds[idx];
+
+                    if (arrayLength > 1)
+                    {
+                        slotname = String.Format("{0}[{1}]", bind, idx);
+
+                        if (shaderRes != null && shaderRes.name.Length > 0)
+                            slotname += ": " + shaderRes.name;
+                    }
+
+                    bool isbuf = false;
+                    UInt32 w = 1, h = 1, d = 1;
+                    UInt32 a = 1;
+                    UInt32 samples = 1;
+                    UInt64 len = 0;
+                    string format = "Unknown";
+                    string name = "Empty";
+                    ShaderResourceType restype = ShaderResourceType.None;
+                    object tag = null;
+
+                    if (filledSlot && descriptorBind != null)
+                    {
+                        name = "Object " + descriptorBind.res.ToString();
+
+                        // check to see if it's a texture
+                        for (int t = 0; t < texs.Length; t++)
+                        {
+                            if (texs[t].ID == descriptorBind.res)
+                            {
+                                w = texs[t].width;
+                                h = texs[t].height;
+                                d = texs[t].depth;
+                                a = texs[t].arraysize;
+                                format = texs[t].format.ToString();
+                                name = texs[t].name;
+                                restype = texs[t].resType;
+                                samples = texs[t].msSamp;
+
+                                tag = texs[t];
+                            }
+                        }
+
+                        // if not a texture, it must be a buffer
+                        for (int t = 0; t < bufs.Length; t++)
+                        {
+                            if (bufs[t].ID == descriptorBind.res)
+                            {
+                                len = bufs[t].byteSize;
+                                w = bufs[t].length;
+                                h = 0;
+                                d = 0;
+                                a = 0;
+                                format = "";
+                                name = bufs[t].name;
+                                restype = ShaderResourceType.Buffer;
+
+                                tag = new BufferResTag(isrw, bindPoint, bufs[t].ID, descriptorBind.offset, descriptorBind.size);
+
+                                isbuf = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        name = "Empty";
+                        format = "-";
+                        w = h = d = a = 0;
+                    }
+
+                    TreelistView.Node node = null;
+
+                    if (bindType == ShaderBindType.ReadWriteBuffer ||
+                        bindType == ShaderBindType.ReadOnlyTBuffer ||
+                        bindType == ShaderBindType.ReadWriteTBuffer
+                        )
+                    {
+                        if (!isbuf)
+                        {
+                            node = parentNodes.Add(new object[] {
+                                "", bindset, slotname, bindType, "-", 
+                                "-",
+                                "",
+                                "",
+                            });
+
+                            EmptyRow(node);
+                        }
+                        else
+                        {
+                            string range = "-";
+                            if (descriptorBind != null)
+                                range = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.size);
+                            node = parentNodes.Add(new object[] {
+                                "", bindset, slotname, bindType, name, 
+                                String.Format("{0} bytes", len),
+                                range,
+                                "",
+                            });
+
+                            node.Image = global::renderdocui.Properties.Resources.action;
+                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                            node.Tag = tag;
+
+                            if (!filledSlot)
+                                EmptyRow(node);
+
+                            if (!usedSlot)
+                                InactiveRow(node);
+                        }
+                    }
+                    else if (bindType == ShaderBindType.Sampler)
+                    {
+                        if (descriptorBind == null || descriptorBind.sampler == ResourceId.Null)
+                        {
+                            node = parentNodes.Add(new object[] {
+                                "", bindset, slotname, bindType, "-", 
+                                "-",
+                                "",
+                                "",
+                            });
+
+                            EmptyRow(node);
+                        }
+                        else
+                        {
+                            node = parentNodes.Add(MakeSampler(bindset.ToString(), slotname, descriptorBind));
+
+                            if (!filledSlot)
+                                EmptyRow(node);
+
+                            if (!usedSlot)
+                                InactiveRow(node);
+
+                            var data = new SamplerData(node);
+                            node.Tag = data;
+
+                            if (!samplers.ContainsKey(descriptorBind.sampler))
+                                samplers.Add(descriptorBind.sampler, data);
+                        }
+                    }
+                    else
+                    {
+                        if (descriptorBind == null || descriptorBind.res == ResourceId.Null)
+                        {
+                            node = parentNodes.Add(new object[] {
+                                "", bindset, slotname, bindType, "-", 
+                                "-",
+                                "",
+                                "",
+                            });
+
+                            EmptyRow(node);
+                        }
+                        else
+                        {
+                            string typename = restype.Str() + " " + bindType.Str().Replace("&", "&&");
+
+                            string dim;
+
+                            if (restype == ShaderResourceType.Texture3D)
+                                dim = String.Format("{0}x{1}x{2}", w, h, d);
+                            else if (restype == ShaderResourceType.Texture1D || restype == ShaderResourceType.Texture1DArray)
+                                dim = w.ToString();
+                            else
+                                dim = String.Format("{0}x{1}", w, h);
+
+                            string arraydim = "-";
+
+                            if (restype == ShaderResourceType.Texture1DArray ||
+                               restype == ShaderResourceType.Texture2DArray ||
+                               restype == ShaderResourceType.Texture2DMSArray ||
+                               restype == ShaderResourceType.TextureCubeArray)
+                                arraydim = String.Format("{0}[{1}]", restype.Str(), a);
+
+                            if (restype == ShaderResourceType.Texture2DMS || restype == ShaderResourceType.Texture2DMSArray)
+                                dim += String.Format(", {0}x MSAA", samples);
+
+                            node = parentNodes.Add(new object[] {
+                                "", bindset, slotname, typename, name, 
+                                dim,
+                                format,
+                                arraydim,
+                            });
+
+                            node.Image = global::renderdocui.Properties.Resources.action;
+                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                            node.Tag = tag;
+
+                            if (!filledSlot)
+                                EmptyRow(node);
+
+                            if (!usedSlot)
+                                InactiveRow(node);
+                        }
+
+                        if (bindType == ShaderBindType.ImageSampler)
+                        {
+                            if (descriptorBind == null || descriptorBind.sampler == ResourceId.Null)
+                            {
+                                node = parentNodes.Add(new object[] {
+                                    "", bindset, slotname, bindType, "-", 
+                                    "-",
+                                    "",
+                                    "",
+                                });
+
+                                EmptyRow(node);
+                            }
+                            else
+                            {
+                                var texnode = node;
+
+                                if (!samplers.ContainsKey(descriptorBind.sampler))
+                                {
+                                    node = parentNodes.Add(MakeSampler("", "", descriptorBind));
+
+                                    if (!filledSlot)
+                                        EmptyRow(node);
+
+                                    if (!usedSlot)
+                                        InactiveRow(node);
+
+                                    var data = new SamplerData(node);
+                                    node.Tag = data;
+
+                                    samplers.Add(descriptorBind.sampler, data);
+                                }
+
+                                if (texnode != null)
+                                {
+                                    m_CombinedImageSamplers[texnode] = samplers[descriptorBind.sampler].node;
+                                    samplers[descriptorBind.sampler].images.Add(texnode);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void AddConstantBlockRow(ShaderReflection shaderDetails, VulkanPipelineState.ShaderStage stage,
+                                         int bindset, int bind,
+                                         VulkanPipelineState.Pipeline pipe, TreelistView.TreeListView cbuffers,
+                                         FetchBuffer[] bufs)
+        {
+            ConstantBlock cblock = null;
+            BindpointMap bindMap = null;
+
+            uint slot = uint.MaxValue;
+            if (shaderDetails != null)
+            {
+                for (slot = 0; slot < (uint)shaderDetails.ConstantBlocks.Length; slot++)
+                {
+                    ConstantBlock cb = shaderDetails.ConstantBlocks[slot];
+                    if (stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset == bindset &&
+                        stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bind == bind)
+                    {
+                        cblock = cb;
+                        bindMap = stage.BindpointMapping.ConstantBlocks[cb.bindPoint];
+                        break;
+                    }
+                }
+
+                if (slot >= (uint)shaderDetails.ConstantBlocks.Length)
+                    slot = uint.MaxValue;
+            }
+
+            VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement[] slotBinds = null;
+            ShaderBindType bindType = ShaderBindType.ReadOnlyBuffer;
+            ShaderStageBits stageBits = (ShaderStageBits)0;
+
+            if (bindset < pipe.DescSets.Length && bind < pipe.DescSets[bindset].bindings.Length)
+            {
+                slotBinds = pipe.DescSets[bindset].bindings[bind].binds;
+                bindType = pipe.DescSets[bindset].bindings[bind].type;
+                stageBits = pipe.DescSets[bindset].bindings[bind].stageFlags;
+            }
+
+            bool usedSlot = bindMap != null && bindMap.used;
+            bool stageBitsIncluded = stageBits.HasFlag((ShaderStageBits)(1 << (int)stage.stage));
+
+            // skip descriptors that aren't for this shader stage
+            if (!usedSlot && !stageBitsIncluded)
+                return;
+
+            // these are treated as uniform buffers
+            if (bindType != ShaderBindType.ReadOnlyBuffer)
+                return;
+
+            // consider it filled if any array element is filled (or it's push constants)
+            bool filledSlot = cblock != null && !cblock.bufferBacked;
+            for (int idx = 0; slotBinds != null && idx < slotBinds.Length; idx++)
+                filledSlot |= slotBinds[idx].res != ResourceId.Null;
+
+            // if it's masked out by stage bits, act as if it's not filled, so it's marked in red
+            if (!stageBitsIncluded)
+                filledSlot = false;
+
+            // show if
+            if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                )
+            {
+                TreelistView.NodeCollection parentNodes = cbuffers.Nodes;
+
+                string setname = bindset.ToString();
+
+                string slotname = bind.ToString();
+                if (cblock != null && cblock.name.Length > 0)
+                    slotname += ": " + cblock.name;
+
+                int arrayLength = 0;
+                if (slotBinds != null) arrayLength = slotBinds.Length;
+                else arrayLength = (int)bindMap.arraySize;
+
+                // for arrays, add a parent element that we add the real cbuffers below
+                if (arrayLength > 1)
+                {
+                    var node = parentNodes.Add(new object[] { "", setname, slotname, String.Format("Array[{0}]", arrayLength), "", "" });
+
+                    node.TreeColumn = 0;
+
+                    if (!filledSlot)
+                        EmptyRow(node);
+
+                    if (!usedSlot)
+                        InactiveRow(node);
+
+                    parentNodes = node.Nodes;
+                }
+
+                for (int idx = 0; idx < arrayLength; idx++)
+                {
+                    VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement descriptorBind = null;
+                    if(slotBinds != null) descriptorBind = slotBinds[idx];
+
+                    if (arrayLength > 1)
+                    {
+                        slotname = String.Format("{0}[{1}]", bind, idx);
+
+                        if (cblock != null && cblock.name.Length > 0)
+                            slotname += ": " + cblock.name;
+                    }
+
+                    string name = "Empty";
+                    UInt64 length = 0;
+                    int numvars = cblock != null ? cblock.variables.Length : 0;
+                    
+                    string vecrange = "-";
+
+                    if (filledSlot && descriptorBind != null)
+                    {
+                        name = "";
+                        length = descriptorBind.size;
+
+                        for (int t = 0; t < bufs.Length; t++)
+                            if (bufs[t].ID == descriptorBind.res)
+                                name = bufs[t].name;
+
+                        if (name == "")
+                            name = "UBO " + descriptorBind.res.ToString();
+
+                        vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+                    }
+
+                    string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+
+                    // push constants
+                    if (cblock != null && !cblock.bufferBacked)
+                    {
+                        setname = "";
+                        slotname = cblock.name;
+                        name = "Push constants";
+                        vecrange = "";
+                        sizestr = String.Format("{0} Variables", numvars);
+
+                        // could maybe get range from ShaderVariable.reg if it's filled out
+                        // from SPIR-V side.
+                    }
+
+                    var node = parentNodes.Add(new object[] { "", setname, slotname, name, vecrange, sizestr });
+
+                    node.Image = global::renderdocui.Properties.Resources.action;
+                    node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                    node.Tag = new CBufferTag(slot, (uint)idx);
+
+                    if (!filledSlot)
+                        EmptyRow(node);
+
+                    if (!usedSlot)
+                        InactiveRow(node);
+                }
+            }
+        }
+
         // Set a shader stage's resources and values
         private void SetShaderState(FetchTexture[] texs, FetchBuffer[] bufs,
                                     VulkanPipelineState.ShaderStage stage, VulkanPipelineState.Pipeline pipe,
@@ -359,327 +878,68 @@ namespace renderdocui.Windows.PipelineState
             {
                 for(int bind = 0; bind < pipe.DescSets[bindset].bindings.Length; bind++)
                 {
-                    ShaderResource shaderRes = null;
-                    BindpointMap bindMap = null;
+                    AddResourceRow(shaderDetails, stage, bindset, bind, pipe, resources, texs, bufs, ref samplers);
+                }
 
-                    bool isrw = false;
-                    uint bindPoint = 0;
-
-                    if (shaderDetails != null)
+                // if we have a shader bound, go through and add rows for any resources it wants for binds that aren't
+                // in this descriptor set (e.g. if layout mismatches)
+                if (shaderDetails != null)
+                {
+                    for (int i = 0; i < shaderDetails.ReadOnlyResources.Length; i++)
                     {
-                        for(int i=0; i < shaderDetails.ReadOnlyResources.Length; i++)
-                        {
-                            var ro = shaderDetails.ReadOnlyResources[i];
+                        var ro = shaderDetails.ReadOnlyResources[i];
 
-                            if (stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset == bindset &&
-                                stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind == bind)
-                            {
-                                bindPoint = (uint)i;
-                                shaderRes = ro;
-                                bindMap = stage.BindpointMapping.ReadOnlyResources[ro.bindPoint];
-                            }
-                        }
-                        
-                        for(int i=0; i < shaderDetails.ReadWriteResources.Length; i++)
+                        if (stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset == bindset &&
+                            stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind >= pipe.DescSets[bindset].bindings.Length)
                         {
-                            var rw = shaderDetails.ReadWriteResources[i];
-
-                            if (stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset == bindset &&
-                                stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bind == bind)
-                            {
-                                bindPoint = (uint)i;
-                                isrw = true;
-                                shaderRes = rw;
-                                bindMap = stage.BindpointMapping.ReadWriteResources[rw.bindPoint];
-                            }
+                            AddResourceRow(shaderDetails, stage, bindset,
+                                stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind,
+                                pipe, resources, texs, bufs, ref samplers);
                         }
                     }
 
-                    VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement[] slotBinds =
-                        pipe.DescSets[bindset].bindings[bind].binds;
-                    ShaderBindType bindType = pipe.DescSets[bindset].bindings[bind].type;
-                    ShaderStageBits stageBits = pipe.DescSets[bindset].bindings[bind].stageFlags;
-
-                    // skip descriptors that aren't for this shader stage
-                    if (!stageBits.HasFlag((ShaderStageBits)(1 << (int)stage.stage)))
-                        continue;
-
-                    // these are treated as uniform buffers
-                    if (bindType == ShaderBindType.ReadOnlyBuffer)
-                        continue;
-
-                    // consider it filled if any array element is filled
-                    bool filledSlot = false;
-                    for (int idx = 0; idx < slotBinds.Length; idx++)
+                    for (int i = 0; i < shaderDetails.ReadWriteResources.Length; i++)
                     {
-                        filledSlot |= slotBinds[idx].res != ResourceId.Null;
-                        if(bindType == ShaderBindType.Sampler || bindType == ShaderBindType.ImageSampler)
-                            filledSlot |= slotBinds[idx].sampler != ResourceId.Null;
+                        var rw = shaderDetails.ReadWriteResources[i];
+
+                        if (stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset == bindset &&
+                            stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bind >= pipe.DescSets[bindset].bindings.Length)
+                        {
+                            AddResourceRow(shaderDetails, stage, bindset,
+                                stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bind,
+                                pipe, resources, texs, bufs, ref samplers);
+                        }
                     }
-                    bool usedSlot = bindMap != null && bindMap.used;
+                }
+            }
 
-                    // show if
-                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
-                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
-                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
-                        )
+            // if we have a shader bound, go through and add rows for any resources it wants for descriptor sets that aren't
+            // bound at all
+            if (shaderDetails != null)
+            {
+                for (int i = 0; i < shaderDetails.ReadOnlyResources.Length; i++)
+                {
+                    var ro = shaderDetails.ReadOnlyResources[i];
+
+                    if (stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset >= pipe.DescSets.Length)
                     {
-                        TreelistView.NodeCollection parentNodes = resources.Nodes;
+                        AddResourceRow(shaderDetails, stage,
+                            stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset,
+                            stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind,
+                            pipe, resources, texs, bufs, ref samplers);
+                    }
+                }
 
-                        string setname = bindset.ToString();
+                for (int i = 0; i < shaderDetails.ReadWriteResources.Length; i++)
+                {
+                    var rw = shaderDetails.ReadWriteResources[i];
 
-                        string slotname = bind.ToString();
-                        if(shaderRes != null)
-                            slotname += ": " + shaderRes.name;
-
-                        // for arrays, add a parent element that we add the real cbuffers below
-                        if (slotBinds.Length > 1)
-                        {
-                            var node = parentNodes.Add(new object[] { "", setname, slotname, String.Format("Array[{0}]", slotBinds.Length), "", "", "", "" });
-
-                            node.TreeColumn = 0;
-
-                            if (!filledSlot)
-                                EmptyRow(node);
-
-                            if (!usedSlot)
-                                InactiveRow(node);
-
-                            parentNodes = node.Nodes;
-                        }
-
-                        for (int idx = 0; idx < slotBinds.Length; idx++)
-                        {
-                            var descriptorBind = slotBinds[idx];
-
-                            if (slotBinds.Length > 1)
-                            {
-                                slotname = String.Format("{0}[{1}]", bind, idx);
-
-                                if (shaderRes != null && shaderRes.name.Length > 0)
-                                    slotname += ": " + shaderRes.name;
-                            }
-
-                            bool isbuf = false;
-                            UInt32 w = 1, h = 1, d = 1;
-                            UInt32 a = 1;
-                            UInt32 samples = 1;
-                            UInt64 len = 0;
-                            string format = "Unknown";
-                            string name = "Object " + descriptorBind.res.ToString();
-                            ShaderResourceType restype = ShaderResourceType.None;
-                            object tag = null;
-
-                            if (!filledSlot)
-                            {
-                                name = "Empty";
-                                format = "-";
-                                w = h = d = a = 0;
-                            }
-
-                            // check to see if it's a texture
-                            for (int t = 0; t < texs.Length; t++)
-                            {
-                                if (texs[t].ID == descriptorBind.res)
-                                {
-                                    w = texs[t].width;
-                                    h = texs[t].height;
-                                    d = texs[t].depth;
-                                    a = texs[t].arraysize;
-                                    format = texs[t].format.ToString();
-                                    name = texs[t].name;
-                                    restype = texs[t].resType;
-                                    samples = texs[t].msSamp;
-
-                                    tag = texs[t];
-                                }
-                            }
-
-                            // if not a texture, it must be a buffer
-                            for (int t = 0; t < bufs.Length; t++)
-                            {
-                                if (bufs[t].ID == descriptorBind.res)
-                                {
-                                    len = bufs[t].byteSize;
-                                    w = bufs[t].length;
-                                    h = 0;
-                                    d = 0;
-                                    a = 0;
-                                    format = "";
-                                    name = bufs[t].name;
-                                    restype = ShaderResourceType.Buffer;
-
-                                    tag = new BufferResTag(isrw, bindPoint, bufs[t].ID, descriptorBind.offset, descriptorBind.size);
-
-                                    isbuf = true;
-                                }
-                            }
-
-                            TreelistView.Node node = null;
-
-                            if (bindType == ShaderBindType.ReadWriteBuffer ||
-                                bindType == ShaderBindType.ReadOnlyTBuffer ||
-                                bindType == ShaderBindType.ReadWriteTBuffer
-                                )
-                            {
-                                if (!isbuf)
-                                {
-                                    node = parentNodes.Add(new object[] {
-                                        "", bindset, slotname, bindType, "-", 
-                                        "-",
-                                        "",
-                                        "",
-                                    });
-
-                                    EmptyRow(node);
-                                }
-                                else
-                                {
-                                    node = parentNodes.Add(new object[] {
-                                        "", bindset, slotname, bindType, name, 
-                                        String.Format("{0} bytes", len),
-                                        String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.size),
-                                        "",
-                                    });
-
-                                    node.Image = global::renderdocui.Properties.Resources.action;
-                                    node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                                    node.Tag = tag;
-
-                                    if (!filledSlot)
-                                        EmptyRow(node);
-
-                                    if (!usedSlot)
-                                        InactiveRow(node);
-                                }
-                            }
-                            else if (bindType == ShaderBindType.Sampler)
-                            {
-                                if (descriptorBind.sampler == ResourceId.Null)
-                                {
-                                    node = parentNodes.Add(new object[] {
-                                        "", bindset, slotname, bindType, "-", 
-                                        "-",
-                                        "",
-                                        "",
-                                    });
-
-                                    EmptyRow(node);
-                                }
-                                else
-                                {
-                                    node = parentNodes.Add(MakeSampler(bindset.ToString(), slotname, descriptorBind));
-
-                                    if (!filledSlot)
-                                        EmptyRow(node);
-
-                                    if (!usedSlot)
-                                        InactiveRow(node);
-
-                                    var data = new SamplerData(node);
-                                    node.Tag = data;
-
-                                    if (!samplers.ContainsKey(descriptorBind.sampler))
-                                        samplers.Add(descriptorBind.sampler, data);
-                                }
-                            }
-                            else
-                            {
-                                if (descriptorBind.res == ResourceId.Null)
-                                {
-                                    node = parentNodes.Add(new object[] {
-                                        "", bindset, slotname, bindType, "-", 
-                                        "-",
-                                        "",
-                                        "",
-                                    });
-
-                                    EmptyRow(node);
-                                }
-                                else
-                                {
-                                    string typename = restype.Str() + " " + bindType.Str().Replace("&", "&&");
-
-                                    string dim;
-
-                                    if (restype == ShaderResourceType.Texture3D)
-                                        dim = String.Format("{0}x{1}x{2}", w, h, d);
-                                    else if (restype == ShaderResourceType.Texture1D || restype == ShaderResourceType.Texture1DArray)
-                                        dim = w.ToString();
-                                    else
-                                        dim = String.Format("{0}x{1}", w, h);
-
-                                    string arraydim = "-";
-                                    
-                                    if(restype == ShaderResourceType.Texture1DArray ||
-                                       restype == ShaderResourceType.Texture2DArray ||
-                                       restype == ShaderResourceType.Texture2DMSArray ||
-                                       restype == ShaderResourceType.TextureCubeArray)
-                                        arraydim = String.Format("{0}[{1}]", restype.Str(), a);
-
-                                    if (restype == ShaderResourceType.Texture2DMS || restype == ShaderResourceType.Texture2DMSArray)
-                                        dim += String.Format(", {0}x MSAA", samples);
-
-                                    node = parentNodes.Add(new object[] {
-                                        "", bindset, slotname, typename, name, 
-                                        dim,
-                                        format,
-                                        arraydim,
-                                    });
-
-                                    node.Image = global::renderdocui.Properties.Resources.action;
-                                    node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                                    node.Tag = tag;
-
-                                    if (!filledSlot)
-                                        EmptyRow(node);
-
-                                    if (!usedSlot)
-                                        InactiveRow(node);
-                                }
-
-                                if (bindType == ShaderBindType.ImageSampler)
-                                {
-                                    if (descriptorBind.sampler == ResourceId.Null)
-                                    {
-                                        node = parentNodes.Add(new object[] {
-                                            "", bindset, slotname, bindType, "-", 
-                                            "-",
-                                            "",
-                                            "",
-                                        });
-
-                                        EmptyRow(node);
-                                    }
-                                    else
-                                    {
-                                        var texnode = node;
-
-                                        if (!samplers.ContainsKey(descriptorBind.sampler))
-                                        {
-                                            node = parentNodes.Add(MakeSampler("", "", descriptorBind));
-
-                                            if (!filledSlot)
-                                                EmptyRow(node);
-
-                                            if (!usedSlot)
-                                                InactiveRow(node);
-
-                                            var data = new SamplerData(node);
-                                            node.Tag = data;
-
-                                            samplers.Add(descriptorBind.sampler, data);
-                                        }
-
-                                        if (texnode != null)
-                                        {
-                                            m_CombinedImageSamplers[texnode] = samplers[descriptorBind.sampler].node;
-                                            samplers[descriptorBind.sampler].images.Add(texnode);
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    if (stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset >= pipe.DescSets.Length)
+                    {
+                        AddResourceRow(shaderDetails, stage,
+                            stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset,
+                            stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bind,
+                            pipe, resources, texs, bufs, ref samplers);
                     }
                 }
             }
@@ -695,134 +955,42 @@ namespace renderdocui.Windows.PipelineState
             {
                 for(int bind = 0; bind < pipe.DescSets[bindset].bindings.Length; bind++)
                 {
-                    ConstantBlock cblock = null;
-                    BindpointMap bindMap = null;
+                    AddConstantBlockRow(shaderDetails, stage, bindset, bind, pipe, cbuffers, bufs);
+                }
 
-                    uint slot = uint.MaxValue;
-                    if (shaderDetails != null)
+                // if we have a shader bound, go through and add rows for any cblocks it wants for binds that aren't
+                // in this descriptor set (e.g. if layout mismatches)
+                if (shaderDetails != null)
+                {
+                    for (int i = 0; i < shaderDetails.ConstantBlocks.Length; i++)
                     {
-                        for (slot = 0; slot < (uint)shaderDetails.ConstantBlocks.Length; slot++)
-                        {
-                            ConstantBlock cb = shaderDetails.ConstantBlocks[slot];
-                            if (stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset == bindset &&
-                                stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bind == bind)
-                            {
-                                cblock = cb;
-                                bindMap = stage.BindpointMapping.ConstantBlocks[cb.bindPoint];
-                                break;
-                            }
-                        }
+                        var cb = shaderDetails.ConstantBlocks[i];
 
-                        if (slot >= (uint)shaderDetails.ConstantBlocks.Length)
-                            slot = uint.MaxValue;
+                        if (stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset == bindset &&
+                            stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bind >= pipe.DescSets[bindset].bindings.Length)
+                        {
+                            AddConstantBlockRow(shaderDetails, stage, bindset,
+                                stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bind,
+                                pipe, cbuffers, bufs);
+                        }
                     }
+                }
+            }
 
-                    var slotBinds = pipe.DescSets[bindset].bindings[bind].binds;
-                    ShaderBindType bindType = pipe.DescSets[bindset].bindings[bind].type;
-                    ShaderStageBits stageBits = pipe.DescSets[bindset].bindings[bind].stageFlags;
+            // if we have a shader bound, go through and add rows for any resources it wants for descriptor sets that aren't
+            // bound at all
+            if (shaderDetails != null)
+            {
+                for (int i = 0; i < shaderDetails.ConstantBlocks.Length; i++)
+                {
+                    var cb = shaderDetails.ConstantBlocks[i];
 
-                    // skip descriptors that aren't for this shader stage
-                    if (!stageBits.HasFlag((ShaderStageBits)(1 << (int)stage.stage)))
-                        continue;
-
-                    // these are treated as uniform buffers
-                    if (bindType != ShaderBindType.ReadOnlyBuffer)
-                        continue;
-
-                    bool usedSlot = bindMap != null && bindMap.used;
-
-                    // consider it filled if any array element is filled (or it's push constants)
-                    bool filledSlot = cblock != null && !cblock.bufferBacked;
-                    for (int idx = 0; idx < slotBinds.Length; idx++)
-                        filledSlot |= slotBinds[idx].res != ResourceId.Null;
-
-                    // show if
-                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
-                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
-                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
-                        )
+                    if (stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset >= pipe.DescSets.Length && cb.bufferBacked)
                     {
-                        TreelistView.NodeCollection parentNodes = cbuffers.Nodes;
-
-                        string setname = bindset.ToString();
-
-                        string slotname = bind.ToString();
-                        if (cblock != null && cblock.name.Length > 0)
-                            slotname += ": " + cblock.name;
-
-                        // for arrays, add a parent element that we add the real cbuffers below
-                        if (slotBinds.Length > 1)
-                        {
-                            var node = parentNodes.Add(new object[] { "", setname, slotname, String.Format("Array[{0}]", slotBinds.Length), "", "" });
-
-                            node.TreeColumn = 0;
-
-                            if (!filledSlot)
-                                EmptyRow(node);
-
-                            if (!usedSlot)
-                                InactiveRow(node);
-
-                            parentNodes = node.Nodes;
-                        }
-
-                        for (int idx = 0; idx < slotBinds.Length; idx++)
-                        {
-                            var descriptorBind = slotBinds[idx];
-
-                            if (slotBinds.Length > 1)
-                            {
-                                slotname = String.Format("{0}[{1}]", bind, idx);
-
-                                if (cblock != null && cblock.name.Length > 0)
-                                    slotname += ": " + cblock.name;
-                            }
-
-                            string name = "UBO " + descriptorBind.res.ToString();
-                            UInt64 length = descriptorBind.size;
-                            int numvars = cblock != null ? cblock.variables.Length : 0;
-
-                            if (!filledSlot)
-                            {
-                                name = "Empty";
-                                length = 0;
-                            }
-
-                            for (int t = 0; t < bufs.Length; t++)
-                                if (bufs[t].ID == descriptorBind.res)
-                                    name = bufs[t].name;
-
-                            if (name == "")
-                                name = "UBO " + descriptorBind.res.ToString();
-
-                            string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
-                            string vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
-
-                            // push constants
-                            if (cblock != null && !cblock.bufferBacked)
-                            {
-                                setname = "";
-                                slotname = cblock.name;
-                                name = "Push constants";
-                                vecrange = "";
-                                sizestr = String.Format("{0} Variables", numvars);
-
-                                // could maybe get range from ShaderVariable.reg if it's filled out
-                                // from SPIR-V side.
-                            }
-
-                            var node = parentNodes.Add(new object[] { "", setname, slotname, name, vecrange, sizestr });
-
-                            node.Image = global::renderdocui.Properties.Resources.action;
-                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                            node.Tag = new CBufferTag(slot, (uint)idx);
-
-                            if (!filledSlot)
-                                EmptyRow(node);
-
-                            if (!usedSlot)
-                                InactiveRow(node);
-                        }
+                        AddConstantBlockRow(shaderDetails, stage,
+                            stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset,
+                            stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bind,
+                            pipe, cbuffers, bufs);
                     }
                 }
             }
