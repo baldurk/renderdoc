@@ -161,9 +161,37 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 			if(i < graphics.descSets.size() && graphics.descSets[i] != ResourceId())
 			{
 				// if there are dynamic buffers, pass along the offsets
+
+				uint32_t *dynamicOffsets = NULL;
+
+				if(descLayout.dynamicCount > 0)
+				{
+					dynamicOffsets = &graphics.offsets[i][0];
+
+					if(graphics.offsets[i].size() < descLayout.dynamicCount)
+					{
+						dynamicOffsets = new uint32_t[descLayout.dynamicCount];
+						for(uint32_t o = 0; o < descLayout.dynamicCount; o++)
+						{
+							if(o < graphics.offsets[i].size())
+							{
+								dynamicOffsets[o] = graphics.offsets[i][o];
+							}
+							else
+							{
+								dynamicOffsets[o] = 0;
+								RDCWARN("Missing dynamic offset for set %u!", (uint32_t)i);
+							}
+						}
+					}
+				}
+
 				ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(layout), (uint32_t)i,
 					1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(graphics.descSets[i])),
-					descLayout.dynamicCount, descLayout.dynamicCount == 0 ? NULL : &graphics.offsets[i][0]);
+					descLayout.dynamicCount, dynamicOffsets);
+
+				if(graphics.offsets[i].size() < descLayout.dynamicCount)
+					SAFE_DELETE_ARRAY(dynamicOffsets);
 			}
 			else
 			{
