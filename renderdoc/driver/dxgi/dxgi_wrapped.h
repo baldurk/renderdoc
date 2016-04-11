@@ -49,7 +49,16 @@ public:
 		/* [in] */ REFIID riid,
 		/* [annotation][iid_is][out] */ 
 		__RPC__deref_out  void **ppvObject)
-	{ return WrapQueryInterface(m_pReal, riid, ppvObject); }
+	{
+		if(riid == __uuidof(IUnknown))
+		{
+			AddRef();
+			*ppvObject = (IUnknown *)(IDXGIObject *)this;
+			return S_OK;
+		}
+
+		return WrapQueryInterface(m_pReal, riid, ppvObject);
+	}
 
 	ULONG STDMETHODCALLTYPE AddRef() { return ++m_iRefcount; }
 	ULONG STDMETHODCALLTYPE Release() { ULONG ret = --m_iRefcount; if(m_iRefcount == 0) delete this; return ret; }

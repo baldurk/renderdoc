@@ -148,7 +148,13 @@ public:
 		{
 			return hr;
 		}
-
+		
+		if(riid == __uuidof(IUnknown))
+		{
+			*ppvObject = (IUnknown *)(IDXGIKeyedMutex *)this;
+			AddRef();
+			return S_OK;
+		}
 		if(riid == __uuidof(IDXGIObject))
 		{
 			*ppvObject = (IDXGIObject *)(IDXGIKeyedMutex *)this;
@@ -515,6 +521,12 @@ public:
 
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
 	{
+		if(riid == __uuidof(IUnknown))
+		{
+			*ppvObject = (IUnknown *)(NestedType *)this;
+			AddRef();
+			return S_OK;
+		}
 		if(riid == __uuidof(NestedType))
 		{
 			*ppvObject = (NestedType *)this;

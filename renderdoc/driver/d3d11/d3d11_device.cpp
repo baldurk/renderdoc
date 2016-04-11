@@ -490,6 +490,13 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11Debug::QueryInterface(REFIID riid, void *
 		 )
 		return m_pDevice->QueryInterface(riid, ppvObject);
 
+	if(riid == __uuidof(IUnknown))
+	{
+		*ppvObject = (IUnknown *)(ID3D11Debug *)this;
+		AddRef();
+		return S_OK;
+	}
+
 	string guid = ToStr::Get(riid);
 	RDCWARN("Querying ID3D11Debug for interface: %s", guid.c_str());
 
@@ -524,7 +531,13 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 
 	HRESULT hr = S_OK;
 
-	if(riid == __uuidof(IDXGIDevice))
+	if(riid == __uuidof(IUnknown))
+	{
+		*ppvObject = (IUnknown *)(ID3D11Device2 *)this;
+		AddRef();
+		return S_OK;
+	}
+	else if(riid == __uuidof(IDXGIDevice))
 	{
 		hr = m_pDevice->QueryInterface(riid, ppvObject);
 

@@ -1326,7 +1326,13 @@ void WrappedID3D11DeviceContext::ClearMaps()
 
 HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID riid, void **ppvObject )
 {
-	if(riid == __uuidof(ID3D11DeviceContext))
+	if(riid == __uuidof(IUnknown))
+	{
+		*ppvObject = (IUnknown *)(ID3D11DeviceContext *)this;
+		AddRef();
+		return S_OK;
+	}
+	else if(riid == __uuidof(ID3D11DeviceContext))
 	{
 		*ppvObject = (ID3D11DeviceContext *)this;
 		AddRef();
