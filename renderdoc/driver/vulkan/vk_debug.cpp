@@ -4888,7 +4888,9 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			// only vertex inputs (not instance inputs) count
 			if(input.inputRate == VK_VERTEX_INPUT_RATE_VERTEX)
 			{
-				RDCASSERT(b < state.vbuffers.size());
+				if(b >= state.vbuffers.size())
+					continue;
+
 				ResourceId buf = state.vbuffers[b].buf;
 				VkDeviceSize offs = state.vbuffers[b].offs;
 
