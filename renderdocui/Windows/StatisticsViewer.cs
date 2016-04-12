@@ -622,8 +622,6 @@ namespace renderdocui.Windows
                 }
             }
 
-            UInt64 persistentData = (UInt64)fileSize - firstDrawcall.events[0].fileOffset;
-
             var lastDraw = m_Core.CurDrawcalls[m_Core.CurDrawcalls.Length - 1];
             while (lastDraw.children != null && lastDraw.children.Length > 0)
                 lastDraw = lastDraw.children[lastDraw.children.Length - 1];
@@ -726,9 +724,16 @@ namespace renderdocui.Windows
             largeTexW /= largeTexCount;
             largeTexH /= largeTexCount;
 
-            string header = String.Format("Stats for {0}.\n\nFile size: {1:N2}MB\nPersistent Data (approx): {2:N2}MB\n",
-                              Path.GetFileName(m_Core.LogFileName),
-                              (float)fileSize / (1024.0f * 1024.0f), (float)persistentData / (1024.0f * 1024.0f));
+            UInt64 persistentData = frameInfo.persistentSize;
+
+            float compressedMB = (float)fileSize / (1024.0f * 1024.0f);
+            float uncompressedMB = (float)frameInfo.fileSize / (1024.0f * 1024.0f);
+            float compressRatio = uncompressedMB / compressedMB;
+            float persistentMB = (float)frameInfo.persistentSize / (1024.0f * 1024.0f);
+            float initDataMB = (float)frameInfo.initDataSize / (1024.0f * 1024.0f);
+
+            string header = String.Format("Stats for {0}.\n\nFile size: {1:N2}MB ({2:N2}MB uncompressed, compression ratio {3:N2}:1)\nPersistent Data (approx): {4:N2}MB, Frame-initial data (approx): {5:N2}MB\n",
+                              Path.GetFileName(m_Core.LogFileName), compressedMB, uncompressedMB, compressRatio, persistentMB, initDataMB);
             string draws = String.Format("Draw calls: {0}\nDispatch calls: {1}\n",
                               drawCount, dispatchCount);
             string calls = statsRecorded ? String.Format("API calls: {0}\n\tIndex/vertex bind calls: {1}\n\tConstant bind calls: {2}\n\tSampler bind calls: {3}\n\tResource bind calls: {4}\n\tResource update calls: {5}\n",

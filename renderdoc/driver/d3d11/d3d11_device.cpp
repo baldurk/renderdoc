@@ -1117,6 +1117,10 @@ void WrappedID3D11Device::ReadLogInitialisation()
 	}
 #endif
 
+	m_FrameRecord.frameInfo.fileSize = m_pSerialiser->GetSize();
+	m_FrameRecord.frameInfo.persistentSize = m_pSerialiser->GetSize() - frameOffset;
+	m_FrameRecord.frameInfo.initDataSize = chunkInfos[(D3D11ChunkType)INITIAL_CONTENTS].totalsize;
+
 	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - frameOffset);
 	
 	m_pSerialiser->SetDebugText(false);

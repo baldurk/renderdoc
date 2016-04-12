@@ -395,6 +395,9 @@ namespace renderdoc
         public UInt32 frameNumber;
         public UInt32 firstEvent;
         public UInt64 fileOffset;
+        public UInt64 fileSize;
+        public UInt64 persistentSize;
+        public UInt64 initDataSize;
         public UInt64 captureTime;
         public ResourceId immContextId;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]

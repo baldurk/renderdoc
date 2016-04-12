@@ -248,6 +248,9 @@ struct FetchFrameInfo
 	uint32_t frameNumber;
 	uint32_t firstEvent;
 	uint64_t fileOffset;
+	uint64_t fileSize;
+	uint64_t persistentSize;
+	uint64_t initDataSize;
 	uint64_t captureTime;
 	ResourceId immContextId;
 	FetchFrameStatistics stats;

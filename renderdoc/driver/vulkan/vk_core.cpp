@@ -1229,6 +1229,10 @@ void WrappedVulkan::ReadLogInitialisation()
 				);
 	}
 #endif
+	
+	m_FrameRecord.frameInfo.fileSize = m_pSerialiser->GetSize();
+	m_FrameRecord.frameInfo.persistentSize = m_pSerialiser->GetSize() - firstFrame;
+	m_FrameRecord.frameInfo.initDataSize = chunkInfos[(VulkanChunkType)INITIAL_CONTENTS].totalsize;
 
 	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - firstFrame);
 	
