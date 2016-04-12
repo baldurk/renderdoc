@@ -152,7 +152,7 @@ struct FetchFrameConstantBindStats
 	uint32_t calls;
 	uint32_t sets;
 	uint32_t nulls;
-	rdctype::array<uint32_t> slots;
+	rdctype::array<uint32_t> bindslots;
 	rdctype::array<uint32_t> sizes;
 };
 
@@ -161,7 +161,7 @@ struct FetchFrameSamplerBindStats
 	uint32_t calls;
 	uint32_t sets;
 	uint32_t nulls;
-	rdctype::array<uint32_t> slots;
+	rdctype::array<uint32_t> bindslots;
 };
 
 struct FetchFrameResourceBindStats
@@ -170,7 +170,7 @@ struct FetchFrameResourceBindStats
 	uint32_t sets;
 	uint32_t nulls;
 	rdctype::array<uint32_t> types;
-	rdctype::array<uint32_t> slots;
+	rdctype::array<uint32_t> bindslots;
 };
 
 struct FetchFrameUpdateStats
@@ -219,7 +219,7 @@ struct FetchFrameVertexBindStats
 	uint32_t calls;
 	uint32_t sets;
 	uint32_t nulls;
-	rdctype::array<uint32_t> slots;
+	rdctype::array<uint32_t> bindslots;
 };
 
 struct FetchFrameLayoutBindStats

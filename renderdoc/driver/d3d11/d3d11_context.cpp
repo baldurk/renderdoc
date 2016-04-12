@@ -1404,8 +1404,8 @@ void WrappedID3D11DeviceContext::RecordVertexBindStats(UINT NumBuffers, ID3D11Bu
 	FetchFrameStatistics& stats = record.frameInfo.stats;
 	FetchFrameVertexBindStats& vertices = stats.vertices;
 	vertices.calls += 1;
-	RDCASSERT(NumBuffers < vertices.slots.size());
-	vertices.slots[NumBuffers] += 1;
+	RDCASSERT(NumBuffers < vertices.bindslots.size());
+	vertices.bindslots[NumBuffers] += 1;
 
 	for (UINT i = 0; i < NumBuffers; i++)
 	{
@@ -1433,8 +1433,8 @@ void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStageType stage, UINT
 	RDCASSERT(stage < ARRAY_COUNT( stats.constants));
 	FetchFrameConstantBindStats& constants = stats.constants[stage];
 	constants.calls += 1;
-	RDCASSERT(NumBuffers < constants.slots.size());
-	constants.slots[NumBuffers] += 1;
+	RDCASSERT(NumBuffers < constants.bindslots.size());
+	constants.bindslots[NumBuffers] += 1;
 
 	for (UINT i = 0; i < NumBuffers; i++)
 	{
@@ -1463,8 +1463,8 @@ void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStageType stage, UINT
 	RDCASSERT(stage < ARRAY_COUNT(stats.resources));
 	FetchFrameResourceBindStats& resources = stats.resources[stage];
 	resources.calls += 1;
-	RDCASSERT(NumResources < resources.slots.size());
-	resources.slots[NumResources] += 1;
+	RDCASSERT(NumResources < resources.bindslots.size());
+	resources.bindslots[NumResources] += 1;
 
 	const ShaderResourceType mapping[] = {
 		eResType_None,
@@ -1511,8 +1511,8 @@ void WrappedID3D11DeviceContext::RecordSamplerStats(ShaderStageType stage, UINT 
 	RDCASSERT(stage < ARRAY_COUNT(stats.samplers));
 	FetchFrameSamplerBindStats& samplers = stats.samplers[stage];
 	samplers.calls += 1;
-	RDCASSERT(NumSamplers < samplers.slots.size());
-	samplers.slots[NumSamplers] += 1;
+	RDCASSERT(NumSamplers < samplers.bindslots.size());
+	samplers.bindslots[NumSamplers] += 1;
 
 	for (UINT i = 0; i < NumSamplers; i++)
 	{

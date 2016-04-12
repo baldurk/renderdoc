@@ -283,7 +283,7 @@ namespace renderdoc
         public UInt32 sets;
         public UInt32 nulls;
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public UInt32[] slots;
+        public UInt32[] bindslots;
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public UInt32[] sizes;
     };
@@ -295,7 +295,7 @@ namespace renderdoc
         public UInt32 sets;
         public UInt32 nulls;
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public UInt32[] slots;
+        public UInt32[] bindslots;
     };
 
     [StructLayout(LayoutKind.Sequential)]
@@ -307,7 +307,7 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public UInt32[] types;
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public UInt32[] slots;
+        public UInt32[] bindslots;
     };
 
     [StructLayout(LayoutKind.Sequential)]
@@ -354,7 +354,7 @@ namespace renderdoc
         public UInt32 sets;
         public UInt32 nulls;
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public UInt32[] slots;
+        public UInt32[] bindslots;
     };
 
     [StructLayout(LayoutKind.Sequential)]

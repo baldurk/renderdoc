@@ -166,7 +166,7 @@ namespace renderdocui.Windows
             // #mivance see AppendConstantBindStatistics
             FetchFrameVertexBindStats template = frameList[0].stats.vertices;
             FetchFrameVertexBindStats totalVertexStats = new FetchFrameVertexBindStats();
-            totalVertexStats.slots = new UInt32[template.slots.Length];
+            totalVertexStats.bindslots = new UInt32[template.bindslots.Length];
 
             foreach (var f in frameList)
             {
@@ -176,10 +176,10 @@ namespace renderdocui.Windows
                 totalVertexStats.sets += vertices.sets;
                 totalVertexStats.nulls += vertices.nulls;
 
-                System.Diagnostics.Debug.Assert(totalVertexStats.slots.Length == vertices.slots.Length);
-                for (var s = 0; s < vertices.slots.Length; s++)
+                System.Diagnostics.Debug.Assert(totalVertexStats.bindslots.Length == vertices.bindslots.Length);
+                for (var s = 0; s < vertices.bindslots.Length; s++)
                 {
-                    totalVertexStats.slots[s] += vertices.slots[s];
+                    totalVertexStats.bindslots[s] += vertices.bindslots[s];
                 }
             }
 
@@ -192,9 +192,9 @@ namespace renderdocui.Windows
             statisticsLog.AppendText("\nHistogram of aggregate vertex slot counts per invocation:\n");
             UInt32 maxCount = 0;
             int maxWithValue = 0;
-            for (var s = 1; s < totalVertexStats.slots.Length; s++)
+            for (var s = 1; s < totalVertexStats.bindslots.Length; s++)
             {
-                UInt32 value = totalVertexStats.slots[s];
+                UInt32 value = totalVertexStats.bindslots[s];
                 if (value > 0)
                     maxWithValue = s;
                 maxCount = Math.Max(maxCount, value);
@@ -202,7 +202,7 @@ namespace renderdocui.Windows
 
             for (var s = 1; s <= maxWithValue; s++)
             {
-                UInt32 count = totalVertexStats.slots[s];
+                UInt32 count = totalVertexStats.bindslots[s];
                 int slice = SliceForString(Stars, count, maxCount);
                 statisticsLog.AppendText(String.Format("{0,2}: {1} {2}\n", s, Stars.Substring(0, slice), CountOrEmpty(count)));
             }
@@ -225,7 +225,7 @@ namespace renderdocui.Windows
             for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
             {
                 totalConstantsPerStage[s] = new FetchFrameConstantBindStats();
-                totalConstantsPerStage[s].slots = new UInt32[template.slots.Length];
+                totalConstantsPerStage[s].bindslots = new UInt32[template.bindslots.Length];
                 totalConstantsPerStage[s].sizes = new UInt32[template.sizes.Length];
             }
 
@@ -238,10 +238,10 @@ namespace renderdocui.Windows
                     totalConstantsPerStage[s].sets += constants[s].sets;
                     totalConstantsPerStage[s].nulls += constants[s].nulls;
 
-                    System.Diagnostics.Debug.Assert(totalConstantsPerStage[s].slots.Length == constants[s].slots.Length);
-                    for (var l = 0; l < constants[s].slots.Length; l++)
+                    System.Diagnostics.Debug.Assert(totalConstantsPerStage[s].bindslots.Length == constants[s].bindslots.Length);
+                    for (var l = 0; l < constants[s].bindslots.Length; l++)
                     {
-                        totalConstantsPerStage[s].slots[l] += constants[s].slots[l];
+                        totalConstantsPerStage[s].bindslots[l] += constants[s].bindslots[l];
                     }
 
                     System.Diagnostics.Debug.Assert(totalConstantsPerStage[s].sizes.Length == constants[s].sizes.Length);
@@ -253,7 +253,7 @@ namespace renderdocui.Windows
             }
 
             FetchFrameConstantBindStats totalConstantsForAllStages = new FetchFrameConstantBindStats();
-            totalConstantsForAllStages.slots = new UInt32[totalConstantsPerStage[0].slots.Length];
+            totalConstantsForAllStages.bindslots = new UInt32[totalConstantsPerStage[0].bindslots.Length];
             totalConstantsForAllStages.sizes = new UInt32[totalConstantsPerStage[0].sizes.Length];
 
             for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
@@ -262,9 +262,9 @@ namespace renderdocui.Windows
                 totalConstantsForAllStages.calls += perStage.calls;
                 totalConstantsForAllStages.sets += perStage.sets;
                 totalConstantsForAllStages.nulls += perStage.nulls;
-                for (var l = 0; l < perStage.slots.Length; l++)
+                for (var l = 0; l < perStage.bindslots.Length; l++)
                 {
-                    totalConstantsForAllStages.slots[l] += perStage.slots[l];
+                    totalConstantsForAllStages.bindslots[l] += perStage.bindslots[l];
                 }
                 for (var z = 0; z < perStage.sizes.Length; z++)
                 {
@@ -287,9 +287,9 @@ namespace renderdocui.Windows
             statisticsLog.AppendText("\nHistogram of aggregate slot counts per invocation across all stages:\n");
             UInt32 maxCount = 0;
             int maxWithValue = 0;
-            for (var s = 1; s < totalConstantsForAllStages.slots.Length; s++)
+            for (var s = 1; s < totalConstantsForAllStages.bindslots.Length; s++)
             {
-                UInt32 value = totalConstantsForAllStages.slots[s];
+                UInt32 value = totalConstantsForAllStages.bindslots[s];
                 if (value > 0)
                     maxWithValue = s;
                 maxCount = Math.Max(maxCount, value);
@@ -297,7 +297,7 @@ namespace renderdocui.Windows
 
             for (var s = 1; s <= maxWithValue; s++)
             {
-                UInt32 count = totalConstantsForAllStages.slots[s];
+                UInt32 count = totalConstantsForAllStages.bindslots[s];
                 int slice = SliceForString(Stars, count, maxCount);
                 statisticsLog.AppendText(String.Format("{0,2}: {1} {2}\n", s, Stars.Substring(0, slice), CountOrEmpty(count)));
             }
@@ -330,7 +330,7 @@ namespace renderdocui.Windows
             for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
             {
                 totalSamplersPerStage[s] = new FetchFrameSamplerBindStats();
-                totalSamplersPerStage[s].slots = new UInt32[template.slots.Length];
+                totalSamplersPerStage[s].bindslots = new UInt32[template.bindslots.Length];
             }
 
             foreach (var f in frameList)
@@ -342,16 +342,16 @@ namespace renderdocui.Windows
                     totalSamplersPerStage[s].sets += resources[s].sets;
                     totalSamplersPerStage[s].nulls += resources[s].nulls;
 
-                    System.Diagnostics.Debug.Assert(totalSamplersPerStage[s].slots.Length == resources[s].slots.Length);
-                    for (var l = 0; l < resources[s].slots.Length; l++)
+                    System.Diagnostics.Debug.Assert(totalSamplersPerStage[s].bindslots.Length == resources[s].bindslots.Length);
+                    for (var l = 0; l < resources[s].bindslots.Length; l++)
                     {
-                        totalSamplersPerStage[s].slots[l] += resources[s].slots[l];
+                        totalSamplersPerStage[s].bindslots[l] += resources[s].bindslots[l];
                     }
                 }
             }
 
             FetchFrameSamplerBindStats totalSamplersForAllStages = new FetchFrameSamplerBindStats();
-            totalSamplersForAllStages.slots = new UInt32[totalSamplersPerStage[0].slots.Length];
+            totalSamplersForAllStages.bindslots = new UInt32[totalSamplersPerStage[0].bindslots.Length];
 
             for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
             {
@@ -359,9 +359,9 @@ namespace renderdocui.Windows
                 totalSamplersForAllStages.calls += perStage.calls;
                 totalSamplersForAllStages.sets += perStage.sets;
                 totalSamplersForAllStages.nulls += perStage.nulls;
-                for (var l = 0; l < perStage.slots.Length; l++)
+                for (var l = 0; l < perStage.bindslots.Length; l++)
                 {
-                    totalSamplersForAllStages.slots[l] += perStage.slots[l];
+                    totalSamplersForAllStages.bindslots[l] += perStage.bindslots[l];
                 }
             }
 
@@ -380,9 +380,9 @@ namespace renderdocui.Windows
             statisticsLog.AppendText("\nHistogram of aggregate slot counts per invocation across all stages:\n");
             UInt32 maxCount = 0;
             int maxWithValue = 0;
-            for (var s = 1; s < totalSamplersForAllStages.slots.Length; s++)
+            for (var s = 1; s < totalSamplersForAllStages.bindslots.Length; s++)
             {
-                UInt32 value = totalSamplersForAllStages.slots[s];
+                UInt32 value = totalSamplersForAllStages.bindslots[s];
                 if (value > 0)
                     maxWithValue = s;
                 maxCount = Math.Max(maxCount, value);
@@ -390,7 +390,7 @@ namespace renderdocui.Windows
 
             for (var s = 1; s <= maxWithValue; s++)
             {
-                UInt32 count = totalSamplersForAllStages.slots[s];
+                UInt32 count = totalSamplersForAllStages.bindslots[s];
                 int slice = SliceForString(Stars, count, maxCount);
                 statisticsLog.AppendText(String.Format("{0,2}: {1} {2}\n", s, Stars.Substring(0, slice), CountOrEmpty(count)));
             }
@@ -408,7 +408,7 @@ namespace renderdocui.Windows
             {
                 totalResourcesPerStage[s] = new FetchFrameResourceBindStats();
                 totalResourcesPerStage[s].types = new UInt32[template.types.Length];
-                totalResourcesPerStage[s].slots = new UInt32[template.slots.Length];
+                totalResourcesPerStage[s].bindslots = new UInt32[template.bindslots.Length];
             }
 
             foreach (var f in frameList)
@@ -426,17 +426,17 @@ namespace renderdocui.Windows
                         totalResourcesPerStage[s].types[z] += resources[s].types[z];
                     }
 
-                    System.Diagnostics.Debug.Assert(totalResourcesPerStage[s].slots.Length == resources[s].slots.Length);
-                    for (var l = 0; l < resources[s].slots.Length; l++)
+                    System.Diagnostics.Debug.Assert(totalResourcesPerStage[s].bindslots.Length == resources[s].bindslots.Length);
+                    for (var l = 0; l < resources[s].bindslots.Length; l++)
                     {
-                        totalResourcesPerStage[s].slots[l] += resources[s].slots[l];
+                        totalResourcesPerStage[s].bindslots[l] += resources[s].bindslots[l];
                     }
                 }
             }
 
             FetchFrameResourceBindStats totalResourcesForAllStages = new FetchFrameResourceBindStats();
             totalResourcesForAllStages.types = new UInt32[totalResourcesPerStage[0].types.Length];
-            totalResourcesForAllStages.slots = new UInt32[totalResourcesPerStage[0].slots.Length];
+            totalResourcesForAllStages.bindslots = new UInt32[totalResourcesPerStage[0].bindslots.Length];
 
             for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
             {
@@ -448,9 +448,9 @@ namespace renderdocui.Windows
                 {
                     totalResourcesForAllStages.types[t] += perStage.types[t];
                 }
-                for (var l = 0; l < perStage.slots.Length; l++)
+                for (var l = 0; l < perStage.bindslots.Length; l++)
                 {
-                    totalResourcesForAllStages.slots[l] += perStage.slots[l];
+                    totalResourcesForAllStages.bindslots[l] += perStage.bindslots[l];
                 }
             }
 
@@ -491,9 +491,9 @@ namespace renderdocui.Windows
             maxWithCount = 0;
 
             statisticsLog.AppendText("\nHistogram of aggregate slot counts per invocation across all stages:\n");
-            for (var s = 1; s < totalResourcesForAllStages.slots.Length; s++)
+            for (var s = 1; s < totalResourcesForAllStages.bindslots.Length; s++)
             {
-                UInt32 count = totalResourcesForAllStages.slots[s];
+                UInt32 count = totalResourcesForAllStages.bindslots[s];
                 if (count > 0)
                     maxWithCount = s;
                 maxCount = Math.Max(maxCount, count);
@@ -501,7 +501,7 @@ namespace renderdocui.Windows
 
             for (var s = 1; s <= maxWithCount; s++)
             {
-                UInt32 count = totalResourcesForAllStages.slots[s];
+                UInt32 count = totalResourcesForAllStages.bindslots[s];
                 int slice = SliceForString(Stars, count, maxCount);
                 statisticsLog.AppendText(String.Format("{0,3}: {1} {2}\n", s, Stars.Substring(0, slice), CountOrEmpty(count)));
             }

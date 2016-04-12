@@ -1055,7 +1055,7 @@ void Serialiser::Serialise(const char *name, FetchFrameConstantBindStats &el)
 	Serialise("", el.calls);
 	Serialise("", el.sets);
 	Serialise("", el.nulls);
-	Serialise("", el.slots);
+	Serialise("", el.bindslots);
 	Serialise("", el.sizes);
 
 	SIZE_CHECK(FetchFrameConstantBindStats, 28);
@@ -1067,7 +1067,7 @@ void Serialiser::Serialise(const char *name, FetchFrameSamplerBindStats &el)
 	Serialise("", el.calls);
 	Serialise("", el.sets);
 	Serialise("", el.nulls);
-	Serialise("", el.slots);
+	Serialise("", el.bindslots);
 
 	SIZE_CHECK(FetchFrameSamplerBindStats, 20);
 }
@@ -1079,7 +1079,7 @@ void Serialiser::Serialise(const char *name, FetchFrameResourceBindStats &el)
 	Serialise("", el.sets);
 	Serialise("", el.nulls);
 	Serialise("", el.types);
-	Serialise("", el.slots);
+	Serialise("", el.bindslots);
 
 	SIZE_CHECK(FetchFrameResourceBindStats, 28);
 }
@@ -1132,7 +1132,7 @@ void Serialiser::Serialise(const char *name, FetchFrameVertexBindStats &el)
 	Serialise("", el.calls);
 	Serialise("", el.sets);
 	Serialise("", el.nulls);
-	Serialise("", el.slots);
+	Serialise("", el.bindslots);
 
 	SIZE_CHECK(FetchFrameVertexBindStats, 20);
 }

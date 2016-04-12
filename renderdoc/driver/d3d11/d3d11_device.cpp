@@ -1013,13 +1013,13 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 
 		for(uint32_t stage = eShaderStage_First; stage < eShaderStage_Count; stage++)
 		{
-			create_array(stats.constants[stage].slots, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT + 1);
+			create_array(stats.constants[stage].bindslots, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT + 1);
 			create_array(stats.constants[stage].sizes, FetchFrameConstantBindStats::BUCKET_COUNT);
 
-			create_array(stats.samplers[stage].slots, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT + 1);
+			create_array(stats.samplers[stage].bindslots, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT + 1);
 
 			create_array(stats.resources[stage].types, eResType_Count);
-			create_array(stats.resources[stage].slots, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT + 1);
+			create_array(stats.resources[stage].bindslots, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT + 1);
 		}
 
 		create_array(stats.updates.types, eResType_Count);
@@ -1027,7 +1027,7 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 
 		create_array(stats.draws.counts, FetchFrameDrawStats::BUCKET_COUNT);
 
-		create_array(stats.vertices.slots, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT + 1);
+		create_array(stats.vertices.bindslots, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT + 1);
 
 		m_FrameRecord.push_back(record);
 
