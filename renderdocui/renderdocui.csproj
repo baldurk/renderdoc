@@ -325,6 +325,12 @@
     <Compile Include="Windows\ShaderViewer.Designer.cs">
       <DependentUpon>ShaderViewer.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\StatisticsViewer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\StatisticsViewer.Designer.cs">
+      <DependentUpon>StatisticsViewer.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\TextureViewer.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -432,6 +438,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\ShaderViewer.resx">
       <DependentUpon>ShaderViewer.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\StatisticsViewer.resx">
+      <DependentUpon>StatisticsViewer.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\TextureViewer.resx">
       <DependentUpon>TextureViewer.cs</DependentUpon>

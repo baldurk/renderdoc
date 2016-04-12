@@ -134,6 +134,115 @@ struct DebugMessage
 	rdctype::str description;
 };
 
+enum BucketRecordType
+{
+	BUCKET_RECORD_TYPE_LINEAR,
+	BUCKET_RECORD_TYPE_POW2,
+
+	BUCKET_RECORD_TYPE_COUNT,
+};
+
+struct FetchFrameConstantBindStats
+{
+	enum Constants
+	{
+		BUCKET_TYPE = BUCKET_RECORD_TYPE_POW2,
+		BUCKET_COUNT = 31,
+	};
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+	rdctype::array<uint32_t> slots;
+	rdctype::array<uint32_t> sizes;
+};
+
+struct FetchFrameSamplerBindStats
+{
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+	rdctype::array<uint32_t> slots;
+};
+
+struct FetchFrameResourceBindStats
+{
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+	rdctype::array<uint32_t> types;
+	rdctype::array<uint32_t> slots;
+};
+
+struct FetchFrameUpdateStats
+{
+	enum Constants
+	{
+		BUCKET_TYPE = BUCKET_RECORD_TYPE_POW2,
+		BUCKET_COUNT = 31,
+	};
+	uint32_t calls;
+	uint32_t clients;
+	uint32_t servers;
+	rdctype::array<uint32_t> types;
+	rdctype::array<uint32_t> sizes;
+};
+
+struct FetchFrameDrawStats
+{
+	enum Constants
+	{
+		BUCKET_TYPE = BUCKET_RECORD_TYPE_LINEAR,
+		BUCKET_SIZE = 1,
+		BUCKET_COUNT = 16,
+	};
+	uint32_t calls;
+	uint32_t instanced;
+	uint32_t indirect;
+	rdctype::array<uint32_t> counts;
+};
+
+struct FetchFrameDispatchStats
+{
+	uint32_t calls;
+	uint32_t indirect;
+};
+
+struct FetchFrameIndexBindStats
+{
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+};
+
+struct FetchFrameVertexBindStats
+{
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+	rdctype::array<uint32_t> slots;
+};
+
+struct FetchFrameLayoutBindStats
+{
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+};
+
+struct FetchFrameStatistics
+{
+	uint32_t recorded;
+	FetchFrameConstantBindStats constants[eShaderStage_Count];
+	FetchFrameSamplerBindStats samplers[eShaderStage_Count];
+	FetchFrameResourceBindStats resources[eShaderStage_Count];
+	FetchFrameUpdateStats updates;
+	FetchFrameDrawStats draws;
+	FetchFrameDispatchStats dispatches;
+	FetchFrameIndexBindStats indices;
+	FetchFrameVertexBindStats vertices;
+	FetchFrameLayoutBindStats layouts;
+};
+
 struct FetchFrameInfo
 {
 	uint32_t frameNumber;
@@ -141,6 +250,7 @@ struct FetchFrameInfo
 	uint64_t fileOffset;
 	uint64_t captureTime;
 	ResourceId immContextId;
+	FetchFrameStatistics stats;
 	rdctype::array<DebugMessage> debugMessages;
 };
 

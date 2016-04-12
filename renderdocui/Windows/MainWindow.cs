@@ -160,8 +160,6 @@ namespace renderdocui.Windows
             m_InitRemoteIdent = remoteIdent;
             OwnTemporaryLog = temp;
 
-            logStatisticsToolStripMenuItem.Enabled = false;
-
             resolveSymbolsToolStripMenuItem.Enabled = false;
             resolveSymbolsToolStripMenuItem.Text = "Resolve Symbols";
 
@@ -264,8 +262,6 @@ namespace renderdocui.Windows
             m_MessageTick.Dispose();
             m_MessageTick = null;
 
-            logStatisticsToolStripMenuItem.Enabled = false;
-
             resolveSymbolsToolStripMenuItem.Enabled = false;
             resolveSymbolsToolStripMenuItem.Text = "Resolve Symbols";
 
@@ -365,8 +361,6 @@ namespace renderdocui.Windows
                     resolveSymbolsToolStripMenuItem.Text = hasResolver ? "Resolve Symbols" : "Resolve Symbols - None in log";
                 }));
             });
-
-            logStatisticsToolStripMenuItem.Enabled = true;
 
             saveLogToolStripMenuItem.Enabled = true;
 
@@ -1356,139 +1350,6 @@ namespace renderdocui.Windows
             }
         }
 
-        private void CountDrawsDispatches(FetchDrawcall draw, ref int numDraws, ref int numDispatches)
-        {
-            if ((draw.flags & DrawcallFlags.Drawcall) != 0)
-            {
-                numDraws++;
-            }
-            if ((draw.flags & DrawcallFlags.Dispatch) != 0)
-            {
-                numDraws++;
-                numDispatches++;
-            }
-
-            if(draw.children != null)
-            {
-                foreach (var d in draw.children)
-                    CountDrawsDispatches(d, ref numDraws, ref numDispatches);
-            }
-        }
-
-        private void logStatisticsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            long fileSize = (new FileInfo(m_Core.LogFileName)).Length;
-
-            int firstIdx = 0;
-
-            var firstDrawcall = m_Core.CurDrawcalls[firstIdx];
-            while (firstDrawcall.children != null && firstDrawcall.children.Length > 0)
-                firstDrawcall = firstDrawcall.children[0];
-
-            while (firstDrawcall.events.Length == 0)
-            {
-                if (firstDrawcall.next != null)
-                {
-                    firstDrawcall = firstDrawcall.next;
-                    while (firstDrawcall.children != null && firstDrawcall.children.Length > 0)
-                        firstDrawcall = firstDrawcall.children[0];
-                }
-                else
-                {
-                    firstDrawcall = m_Core.CurDrawcalls[++firstIdx];
-                    while (firstDrawcall.children != null && firstDrawcall.children.Length > 0)
-                        firstDrawcall = firstDrawcall.children[0];
-                }
-            }
-
-            UInt64 persistantData = (UInt64)fileSize - firstDrawcall.events[0].fileOffset;
-
-            var lastDraw = m_Core.CurDrawcalls[m_Core.CurDrawcalls.Length - 1];
-            while (lastDraw.children != null && lastDraw.children.Length > 0)
-                lastDraw = lastDraw.children[lastDraw.children.Length - 1];
-
-            uint numAPIcalls = lastDraw.eventID;
-
-            int numDrawcalls = 0;
-            int numDispatches = 0;
-
-            foreach(var d in m_Core.CurDrawcalls)
-                CountDrawsDispatches(d, ref numDrawcalls, ref numDispatches);
-
-            int numTextures = m_Core.CurTextures.Length;
-            int numBuffers = m_Core.CurBuffers.Length;
-
-            ulong IBBytes = 0;
-            ulong VBBytes = 0;
-            ulong BufBytes = 0;
-            foreach(var b in m_Core.CurBuffers)
-            {
-                BufBytes += b.byteSize;
-
-                if((b.creationFlags & BufferCreationFlags.IB) != 0)
-                    IBBytes += b.byteSize;
-                if((b.creationFlags & BufferCreationFlags.VB) != 0)
-                    VBBytes += b.byteSize;
-            }
-
-            ulong RTBytes = 0;
-            ulong TexBytes = 0;
-            ulong LargeTexBytes = 0;
-
-            int numRTs = 0;
-            float texW = 0, texH = 0;
-            float largeTexW = 0, largeTexH = 0;
-            int texCount = 0, largeTexCount = 0;
-            foreach (var t in m_Core.CurTextures)
-            {
-                if ((t.creationFlags & (TextureCreationFlags.RTV|TextureCreationFlags.DSV)) != 0)
-                {
-                    numRTs++;
-
-                    RTBytes += t.byteSize;
-                }
-                else
-                {
-                    texW += (float)t.width;
-                    texH += (float)t.height;
-                    texCount++;
-
-                    TexBytes += t.byteSize;
-
-                    if (t.width > 32 && t.height > 32)
-                    {
-                        largeTexW += (float)t.width;
-                        largeTexH += (float)t.height;
-                        largeTexCount++;
-
-                        LargeTexBytes += t.byteSize;
-                    }
-                }
-            }
-
-            texW /= texCount;
-            texH /= texCount;
-
-            largeTexW /= largeTexCount;
-            largeTexH /= largeTexCount;
-
-            string msg =
-                String.Format("Stats for {0}.\n\nFile size: {1:N2}MB\nPersistant Data (approx): {2:N2}MB\n\n",
-                              Path.GetFileName(m_Core.LogFileName),
-                              (float)fileSize / (1024.0f * 1024.0f), (float)persistantData / (1024.0f * 1024.0f)) +
-                String.Format("Draw calls: {0} ({1} of them are dispatches)\nAPI calls: {2}\nAPI:Draw call ratio: {3}\n\n",
-                              numDrawcalls, numDispatches, numAPIcalls, (float)numAPIcalls / (float)numDrawcalls) +
-                String.Format("{0} Textures - {1:N2} MB ({2:N2} MB over 32x32), {3} RTs - {4:N2} MB.\nAvg. tex dimension: {5}x{6} ({7}x{8} over 32x32)\n",
-                              numTextures, (float)TexBytes / (1024.0f * 1024.0f), (float)LargeTexBytes / (1024.0f * 1024.0f),
-                              numRTs, (float)RTBytes / (1024.0f * 1024.0f),
-                              texW, texH, largeTexW, largeTexH) +
-                String.Format("{0} Buffers - {1:N2} MB total {2:N2} MB IBs {3:N2} MB VBs.\n",
-                             numBuffers, (float)BufBytes / (1024.0f * 1024.0f), (float)IBBytes / (1024.0f * 1024.0f), (float)VBBytes / (1024.0f * 1024.0f)) +
-                String.Format("{0} MB - Grand total GPU buffer + texture load", (float)(TexBytes + BufBytes + RTBytes) / (1024.0f * 1024.0f));
-
-            MessageBox.Show(msg);
-        }
-
         private void recentLogMenuItem_Click(object sender, EventArgs e)
         {
             ToolStripDropDownItem item = (ToolStripDropDownItem)sender;
@@ -1664,6 +1525,11 @@ namespace renderdocui.Windows
             m_Core.GetTimelineBar().Show(dockPanel);
         }
 
+        private void statisticsViewerToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            m_Core.GetStatisticsViewer().Show(dockPanel);
+        }
+
         #endregion
 
         #region Symbol resolving
@@ -1732,6 +1598,6 @@ namespace renderdocui.Windows
                 e.Effect = DragDropEffects.None;
         }
 
-        #endregion
+    #endregion
     }
 }

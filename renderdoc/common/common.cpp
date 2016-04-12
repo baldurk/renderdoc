@@ -239,6 +239,20 @@ uint32_t CalcNumMips(int w, int h, int d)
 	return mipLevels;
 }
 
+uint32_t Log2Floor(uint32_t value)
+{
+	RDCASSERT(value > 0);
+	return 31 - Bits::CountLeadingZeroes(value);
+}
+
+#if RDC64BIT
+uint64_t Log2Floor(uint64_t value)
+{
+	RDCASSERT(value > 0);
+	return 63 - Bits::CountLeadingZeroes(value);
+}
+#endif
+
 static string &logfile()
 {
 	static string fn;

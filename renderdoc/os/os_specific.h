@@ -40,6 +40,7 @@
 #include <string>
 #include <vector>
 #include <map>
+
 using std::string;
 using std::vector;
 using std::map;
@@ -312,6 +313,14 @@ namespace OSUtility
 	inline bool DebuggerPresent();
 	enum { Output_DebugMon, Output_StdOut, Output_StdErr };
 	void WriteOutput(int channel, const char *str);
+};
+
+namespace Bits
+{
+	inline uint32_t CountLeadingZeroes(uint32_t value);
+#if RDC64BIT
+	inline uint64_t CountLeadingZeroes(uint64_t value);
+#endif
 };
 
 // must #define:

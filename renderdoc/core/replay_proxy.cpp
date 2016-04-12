@@ -1050,6 +1050,128 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, FetchFrameConstantBindStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+	Serialise("", el.slots);
+	Serialise("", el.sizes);
+
+	SIZE_CHECK(FetchFrameConstantBindStats, 28);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameSamplerBindStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+	Serialise("", el.slots);
+
+	SIZE_CHECK(FetchFrameSamplerBindStats, 20);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameResourceBindStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+	Serialise("", el.types);
+	Serialise("", el.slots);
+
+	SIZE_CHECK(FetchFrameResourceBindStats, 28);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameUpdateStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.clients);
+	Serialise("", el.servers);
+	Serialise("", el.types);
+	Serialise("", el.sizes);
+
+	SIZE_CHECK(FetchFrameUpdateStats, 28);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameDrawStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.instanced);
+	Serialise("", el.indirect);
+	Serialise("", el.counts);
+
+	SIZE_CHECK(FetchFrameDrawStats, 20);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameDispatchStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.indirect);
+
+	SIZE_CHECK(FetchFrameDispatchStats, 8);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameIndexBindStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+
+	SIZE_CHECK(FetchFrameIndexBindStats, 12);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameVertexBindStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+	Serialise("", el.slots);
+
+	SIZE_CHECK(FetchFrameVertexBindStats, 20);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameLayoutBindStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+
+	SIZE_CHECK(FetchFrameLayoutBindStats, 12);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameStatistics &el)
+{
+	Serialise("", el.recorded);
+	// #mivance note this is technically error-prone from the perspective
+	// that we're passing references to pointers, but as we're really
+	// dealing with arrays,t hey'll never be NULL and need to be assigned
+	// to, so this is fine
+	FetchFrameConstantBindStats* constants = el.constants;
+	SerialiseComplexArray<eShaderStage_Count>("", constants);
+	FetchFrameSamplerBindStats* samplers = el.samplers;
+	SerialiseComplexArray<eShaderStage_Count>("", samplers);
+	FetchFrameResourceBindStats* resources = el.resources;
+	SerialiseComplexArray<eShaderStage_Count>("", resources);
+	Serialise("", el.updates);
+	Serialise("", el.draws);
+	Serialise("", el.dispatches);
+	Serialise("", el.indices);
+	Serialise("", el.vertices);
+	Serialise("", el.layouts);
+
+	SIZE_CHECK(FetchFrameStatistics, 560);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, FetchFrameInfo &el)
 {
 	Serialise("", el.frameNumber);
@@ -1057,9 +1179,10 @@ void Serialiser::Serialise(const char *name, FetchFrameInfo &el)
 	Serialise("", el.fileOffset);
 	Serialise("", el.captureTime);
 	Serialise("", el.immContextId);
+	Serialise("", el.stats);
 	Serialise("", el.debugMessages);
 
-	SIZE_CHECK(FetchFrameInfo, 40);
+	SIZE_CHECK(FetchFrameInfo, 600);
 }
 
 template<>
@@ -1068,7 +1191,7 @@ void Serialiser::Serialise(const char *name, FetchFrameRecord &el)
 	Serialise("", el.frameInfo);
 	Serialise("", el.drawcallList);
 
-	SIZE_CHECK(FetchFrameRecord, 56);
+	SIZE_CHECK(FetchFrameRecord, 616);
 }
 
 template<>

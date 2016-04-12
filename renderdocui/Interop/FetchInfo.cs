@@ -277,6 +277,119 @@ namespace renderdoc
     };
 
     [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameConstantBindStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] slots;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] sizes;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameSamplerBindStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] slots;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameResourceBindStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] types;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] slots;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameUpdateStats
+    {
+        public UInt32 calls;
+        public UInt32 clients;
+        public UInt32 servers;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] types;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] sizes;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameDrawStats
+    {
+        public UInt32 calls;
+        public UInt32 instanced;
+        public UInt32 indirect;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] counts;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameDispatchStats
+    {
+        public UInt32 calls;
+        public UInt32 indirect;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameIndexBindStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameVertexBindStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] slots;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameLayoutBindStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameStatistics
+    {
+        public UInt32 recorded;
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = (int)ShaderStageType.Count)]
+        public FetchFrameConstantBindStats[] constants;
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = (int)ShaderStageType.Count)]
+        public FetchFrameSamplerBindStats[] samplers;
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = (int)ShaderStageType.Count)]
+        public FetchFrameResourceBindStats[] resources;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameUpdateStats updates;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameDrawStats draws;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameDispatchStats dispatches;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameIndexBindStats indices;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameVertexBindStats vertices;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameLayoutBindStats layouts;
+    };
+
+[StructLayout(LayoutKind.Sequential)]
     public class FetchFrameInfo
     {
         public UInt32 frameNumber;
@@ -284,6 +397,8 @@ namespace renderdoc
         public UInt64 fileOffset;
         public UInt64 captureTime;
         public ResourceId immContextId;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameStatistics stats;
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public DebugMessage[] debugMessages;

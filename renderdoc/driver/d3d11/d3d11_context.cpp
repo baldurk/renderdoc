@@ -1385,3 +1385,205 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID rii
 
 	return RefCounter::QueryInterface(riid, ppvObject);
 }
+
+#pragma region Record Statistics
+
+void WrappedID3D11DeviceContext::RecordIndexBindStats(ID3D11Buffer* Buffer)
+{
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameIndexBindStats& indices = stats.indices;
+	indices.calls += 1;
+	indices.sets += (Buffer != NULL);
+	indices.nulls += (Buffer == NULL);
+}
+
+void WrappedID3D11DeviceContext::RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer* Buffers[])
+{
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameVertexBindStats& vertices = stats.vertices;
+	vertices.calls += 1;
+	RDCASSERT(NumBuffers < vertices.slots.size());
+	vertices.slots[NumBuffers] += 1;
+
+	for (UINT i = 0; i < NumBuffers; i++)
+	{
+		if (Buffers[i])
+			vertices.sets += 1;
+		else
+			vertices.nulls += 1;
+	}
+}
+
+void WrappedID3D11DeviceContext::RecordLayoutBindStats(ID3D11InputLayout* Layout)
+{
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameLayoutBindStats& layouts = stats.layouts;
+	layouts.calls += 1;
+	layouts.sets += (Layout != NULL);
+	layouts.nulls += (Layout == NULL);
+}
+
+void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStageType stage, UINT NumBuffers, ID3D11Buffer* Buffers[])
+{
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameStatistics& stats = record.frameInfo.stats;
+	RDCASSERT(stage < ARRAY_COUNT( stats.constants));
+	FetchFrameConstantBindStats& constants = stats.constants[stage];
+	constants.calls += 1;
+	RDCASSERT(NumBuffers < constants.slots.size());
+	constants.slots[NumBuffers] += 1;
+
+	for (UINT i = 0; i < NumBuffers; i++)
+	{
+		if (Buffers[i])
+		{
+			constants.sets += 1;
+
+			D3D11_BUFFER_DESC desc;
+			Buffers[i]->GetDesc(&desc);
+			uint32_t bufferSize = desc.ByteWidth;
+			size_t bucket = BucketForRecordPow2<FetchFrameConstantBindStats>(bufferSize);
+			RDCASSERT(bucket < constants.sizes.size());
+			constants.sizes[bucket] += 1;
+		}
+		else
+		{
+			constants.nulls += 1;
+		}
+	}
+}
+
+void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStageType stage, UINT NumResources, ID3D11ShaderResourceView* Resources[])
+{
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameStatistics& stats = record.frameInfo.stats;
+	RDCASSERT(stage < ARRAY_COUNT(stats.resources));
+	FetchFrameResourceBindStats& resources = stats.resources[stage];
+	resources.calls += 1;
+	RDCASSERT(NumResources < resources.slots.size());
+	resources.slots[NumResources] += 1;
+
+	const ShaderResourceType mapping[] = {
+		eResType_None,
+		eResType_Buffer,
+		eResType_Texture1D,
+		eResType_Texture1DArray,
+		eResType_Texture2D,
+		eResType_Texture2DArray,
+		eResType_Texture2DMS,
+		eResType_Texture2DMSArray,
+		eResType_Texture3D,
+		eResType_TextureCube,
+		eResType_TextureCubeArray,
+		eResType_Buffer,
+	};
+	RDCCOMPILE_ASSERT(ARRAY_COUNT(mapping) == D3D_SRV_DIMENSION_BUFFEREX + 1, "Update mapping table.");
+
+	for (UINT i = 0; i < NumResources; i++)
+	{
+		if (Resources[i])
+		{
+			resources.sets += 1;
+
+			D3D11_SHADER_RESOURCE_VIEW_DESC desc;
+			Resources[i]->GetDesc(&desc);
+			RDCASSERT(desc.ViewDimension < ARRAY_COUNT(mapping));
+			ShaderResourceType type = mapping[desc.ViewDimension];
+			// #mivance surprisingly this is not asserted in operator[] for
+			// rdctype::array so I'm being paranoid
+			RDCASSERT((int)type < (int)resources.types.size());
+			resources.types[type] += 1;
+		}
+		else
+		{
+			resources.nulls += 1;
+		}
+	}
+}
+
+void WrappedID3D11DeviceContext::RecordSamplerStats(ShaderStageType stage, UINT NumSamplers, ID3D11SamplerState* Samplers[])
+{
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameStatistics& stats = record.frameInfo.stats;
+	RDCASSERT(stage < ARRAY_COUNT(stats.samplers));
+	FetchFrameSamplerBindStats& samplers = stats.samplers[stage];
+	samplers.calls += 1;
+	RDCASSERT(NumSamplers < samplers.slots.size());
+	samplers.slots[NumSamplers] += 1;
+
+	for (UINT i = 0; i < NumSamplers; i++)
+	{
+		if (Samplers[i])
+			samplers.sets += 1;
+		else
+			samplers.nulls += 1;
+	}
+}
+
+void WrappedID3D11DeviceContext::RecordUpdateStats(ID3D11Resource* res, uint32_t Size, bool Server)
+{
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameUpdateStats& updates = stats.updates;
+
+	if (res == NULL)
+		return;
+
+	updates.calls += 1;
+	updates.clients += (Server == false);
+	updates.servers += (Server == true);
+
+	const ShaderResourceType mapping[] = {
+		eResType_None,			// D3D11_RESOURCE_DIMENSION_UNKNOWN	= 0,
+		eResType_Buffer,		// D3D11_RESOURCE_DIMENSION_BUFFER	= 1,
+		eResType_Texture1D,		// D3D11_RESOURCE_DIMENSION_TEXTURE1D	= 2,
+		eResType_Texture2D,		// D3D11_RESOURCE_DIMENSION_TEXTURE2D	= 3,
+		eResType_Texture3D,		// D3D11_RESOURCE_DIMENSION_TEXTURE3D	= 4
+	};
+
+	D3D11_RESOURCE_DIMENSION dim;
+	res->GetType(&dim);
+	RDCASSERT(dim < ARRAY_COUNT(mapping));
+	ShaderResourceType type = mapping[dim];
+	RDCASSERT((int)type < (int)updates.types.size());
+	updates.types[type] += 1;
+
+	// #mivance it might be nice to query the buffer to differentiate
+	// between bindings for constant buffers
+
+	size_t bucket = BucketForRecordPow2<FetchFrameUpdateStats>( Size );
+	updates.sizes[bucket] += 1;
+}
+
+void WrappedID3D11DeviceContext::RecordDrawStats(bool instanced, bool indirect, UINT InstanceCount)
+{
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameDrawStats& draws = stats.draws;
+
+	draws.calls += 1;
+	draws.instanced += (uint32_t)instanced;
+	draws.indirect += (uint32_t)indirect;
+
+	if (instanced)
+	{
+		size_t bucket = BucketForRecordLinear<FetchFrameDrawStats>(InstanceCount);
+		RDCASSERT(bucket < draws.counts.size());
+		draws.counts[bucket] += 1;
+	}
+}
+
+void WrappedID3D11DeviceContext::RecordDispatchStats(bool indirect)
+{
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameDispatchStats& dispatches = stats.dispatches;
+
+	dispatches.calls += 1;
+	dispatches.indirect += (uint32_t)indirect;
+}
+
+#pragma endregion
