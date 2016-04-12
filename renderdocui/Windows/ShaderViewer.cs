@@ -1685,7 +1685,7 @@ namespace renderdocui.Windows
             pointLinearSamplersToolStripMenuItem.Visible = (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11);
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
         }
 

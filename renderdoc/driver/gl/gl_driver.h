@@ -193,7 +193,8 @@ class WrappedOpenGL : public IFrameCapturer
 		inline void CoherentMapImplicitBarrier()
 		{ if(!m_CoherentMaps.empty()) PersistentMapMemoryBarrier(m_CoherentMaps); }
 
-		vector<FetchFrameRecord> m_FrameRecord;
+		vector<FetchFrameInfo> m_CapturedFrames;
+		FetchFrameRecord m_FrameRecord;
 		vector<FetchDrawcall*> m_Drawcalls;
 		
 		// replay
@@ -485,18 +486,18 @@ class WrappedOpenGL : public IFrameCapturer
 
 		// replay interface
 		void Initialise(GLInitParams &params);
-		void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
+		void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 		void ReadLogInitialisation();
 
 		GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
 		GLuint GetFakeVAO() { return m_FakeVAO; }
 
-		vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
+		FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
 		FetchAPIEvent GetEvent(uint32_t eventID);
 
 		const DrawcallTreeNode &GetRootDraw() { return m_ParentDrawcall; }
 
-		const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
+		const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
 		vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
 

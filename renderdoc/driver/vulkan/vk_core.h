@@ -195,7 +195,8 @@ private:
 	vector<double> m_FrameTimes;
 	double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
 
-	vector<FetchFrameRecord> m_FrameRecord;
+	vector<FetchFrameInfo> m_CapturedFrames;
+	FetchFrameRecord m_FrameRecord;
 	vector<FetchDrawcall *> m_Drawcalls;
 
 	struct PhysicalDeviceData
@@ -548,13 +549,13 @@ public:
 
 	void Initialise(VkInitParams &params);
 	void Shutdown();
-	void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
+	void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 	void ReadLogInitialisation();
 
-	vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
+	FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
 	FetchAPIEvent GetEvent(uint32_t eventID);
 	uint32_t GetMaxEID() { return m_Events.back().eventID; }
-	const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
+	const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
 	vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
 

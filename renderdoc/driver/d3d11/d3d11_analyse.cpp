@@ -862,14 +862,14 @@ struct DebugHit
 	uint32_t rawdata; // arbitrary, depending on shader
 };
 
-ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
 	using namespace DXBC;
 	using namespace ShaderDebug;
 
 	ShaderDebugTrace empty;
 
-	m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+	m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
 	
 	ID3D11VertexShader *stateVS = NULL;
 	m_WrappedContext->VSGetShader(&stateVS, NULL, NULL);
@@ -1147,7 +1147,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 		{
 			uint32_t sv_vertid = vertid;
 			
-			const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, eventID);
+			const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(eventID);
 
 			if(draw->flags & eDraw_UseIBuffer)
 				sv_vertid = idx;
@@ -1203,14 +1203,14 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 	return ret;
 }
 
-ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
+ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
 	using namespace DXBC;
 	using namespace ShaderDebug;
 
 	ShaderDebugTrace empty;
 	
-	m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+	m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
 
 	ID3D11PixelShader *statePS = NULL;
 	m_WrappedContext->PSGetShader(&statePS, NULL, NULL);
@@ -1596,7 +1596,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	SAFE_RELEASE(rtView);
 	SAFE_RELEASE(depthView);
 	
-	m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+	m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 	m_pImmediateContext->CopyResource(stageBuf, initialBuf);
 
@@ -1978,14 +1978,14 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	return traces[destIdx];
 }
 
-ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
 	using namespace DXBC;
 	using namespace ShaderDebug;
 
 	ShaderDebugTrace empty;
 	
-	m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+	m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
 	
 	ID3D11ComputeShader *stateCS = NULL;
 	m_WrappedContext->CSGetShader(&stateCS, NULL, NULL);
@@ -2041,7 +2041,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 	return ret;
 }
 
-uint32_t D3D11DebugManager::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
 {
 	if(cfg.position.numVerts == 0)
 		return ~0U;
@@ -2862,7 +2862,7 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
 
 #include "data/hlsl/debugcbuffers.h"
 
-ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	TextureShaderDetails details = GetShaderDetails(texid, false);
 
@@ -3071,7 +3071,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 		m_pImmediateContext->RSSetState(rs);
 
-		m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 		SAFE_RELEASE(os);
 		SAFE_RELEASE(rs);
@@ -3151,7 +3151,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 		m_pImmediateContext->RSSetState(rs);
 
-		m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 		overlayConsts[0] = 0.0f;
 		overlayConsts[1] = 1.0f;
@@ -3162,7 +3162,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 		m_pImmediateContext->RSSetState(rsCull);
 
-		m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 		SAFE_RELEASE(os);
 		SAFE_RELEASE(rs);
@@ -3372,7 +3372,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 		m_pImmediateContext->RSSetState(rs);
 
-		m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 		SAFE_RELEASE(os);
 		SAFE_RELEASE(rs);
@@ -3389,7 +3389,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		if(!events.empty())
 		{
 			if(overlay == eTexOverlay_ClearBeforePass)
-				m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+				m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
 			D3D11RenderState *state = m_WrappedContext->GetCurrentPipelineState();
 
@@ -3399,14 +3399,14 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 			for(size_t i=0; i < events.size(); i++)
 			{
-				m_WrappedDevice->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+				m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
 				if(overlay == eTexOverlay_ClearBeforePass)
 				{
-					m_WrappedDevice->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
 					if(i+1 < events.size())
-						m_WrappedDevice->ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+						m_WrappedDevice->ReplayLog(events[i], events[i+1], eReplay_WithoutDraw);
 				}
 			}
 		}
@@ -3425,7 +3425,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		if(!events.empty())
 		{
 			if(overlay == eTexOverlay_QuadOverdrawPass)
-				m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+				m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
 			D3D11RenderState *state = m_WrappedContext->GetCurrentPipelineState();
 
@@ -3561,16 +3561,16 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 				m_pImmediateContext->PSSetShader(m_DebugRender.QuadOverdrawPS, NULL, 0);
 				
-				m_WrappedDevice->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+				m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
 				oldstate.ApplyState(m_WrappedContext);
 
 				if(overlay == eTexOverlay_QuadOverdrawPass)
 				{
-					m_WrappedDevice->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
 					if(i+1 < events.size())
-						m_WrappedDevice->ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+						m_WrappedDevice->ReplayLog(events[i], events[i+1], eReplay_WithoutDraw);
 				}
 			}
 
@@ -3610,7 +3610,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 			SAFE_RELEASE(overdrawUAV);
 			
 			if(overlay == eTexOverlay_QuadOverdrawPass)
-				m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+				m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
 		}
 	}
 	else if(preDrawDepth)
@@ -3790,7 +3790,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 			m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 
-			m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 			SAFE_RELEASE(os);
 
@@ -3825,7 +3825,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 			m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 
-			m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 			SAFE_RELEASE(os);
 		}
@@ -3973,7 +3973,7 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 	for(size_t i=0; i < ARRAY_COUNT(curCSUAV); i++)  SAFE_RELEASE(curCSUAV[i]);
 }
 
-vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
+vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
 {
 	vector<PixelModification> history;
 
@@ -4439,7 +4439,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		return history;
 	}
 
-	m_WrappedDevice->ReplayLog(frameID, 0, events[0].eventID, eReplay_WithoutDraw);
+	m_WrappedDevice->ReplayLog(0, events[0].eventID, eReplay_WithoutDraw);
 
 	ID3D11RasterizerState *curRS = NULL;
 	ID3D11RasterizerState *newRS = NULL;
@@ -4845,7 +4845,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		// For UAV output we only want to replay once in pristine conditions (only fetching before/after values)
 		if(!uavOutput)
-			m_WrappedDevice->ReplayLog(frameID, 0, events[ev].eventID, eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(0, events[ev].eventID, eReplay_OnlyDraw);
 
 		m_pImmediateContext->End(occl[ev]);
 
@@ -4897,7 +4897,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_pImmediateContext->OMSetRenderTargets(0, NULL, shaddepthOutputDSV);
 
 			// replay first with overlay shader. This is guaranteed to count all fragments
-			m_WrappedDevice->ReplayLog(frameID, 0, events[ev].eventID, eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(0, events[ev].eventID, eReplay_OnlyDraw);
 			PixelHistoryCopyPixel(params, storex*pixstoreStride + 2, storey);
 
 			m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
@@ -4905,7 +4905,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_pImmediateContext->ClearDepthStencilView(shaddepthOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 			// now replay with original shader. Some fragments may discard and not be counted
-			m_WrappedDevice->ReplayLog(frameID, 0, events[ev].eventID, eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(0, events[ev].eventID, eReplay_OnlyDraw);
 			PixelHistoryCopyPixel(params, storex*pixstoreStride + 3, storey);
 
 			UINT initCounts[D3D11_1_UAV_SLOT_COUNT];
@@ -4939,7 +4939,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		SAFE_RELEASE(curDS);
 
 		// replay only draw to get immediately post-modification values
-		m_WrappedDevice->ReplayLog(frameID, events[ev].eventID, events[ev].eventID, eReplay_OnlyDraw);
+		m_WrappedDevice->ReplayLog(events[ev].eventID, events[ev].eventID, eReplay_OnlyDraw);
 		
 		PixelHistoryCopyPixel(colourCopyParams, storex*pixstoreStride + 1, storey);
 		PixelHistoryCopyPixel(depthCopyParams, storex*pixstoreStride + 1, storey);
@@ -4948,7 +4948,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		SAFE_RELEASE(releaseStencilSRV);
 
 		if(ev < events.size()-1)
-			m_WrappedDevice->ReplayLog(frameID, events[ev].eventID+1, events[ev+1].eventID, eReplay_WithoutDraw);
+			m_WrappedDevice->ReplayLog(events[ev].eventID+1, events[ev+1].eventID, eReplay_WithoutDraw);
 		
 		SAFE_RELEASE(depthRes);
 	}
@@ -4965,7 +4965,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		} while(hr == S_FALSE);
 		RDCASSERTEQUAL(hr, S_OK);
 
-		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, events[i].eventID);
+		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(events[i].eventID);
 
 		bool clear = (draw->flags & eDraw_Clear);
 
@@ -4998,7 +4998,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				if(flags[i] & TestMustFail_Scissor)
 					mod.scissorClipped = true;
 
-				m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
+				m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_WithoutDraw);
 
 				{
 					ID3D11RenderTargetView* tmpViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
@@ -5241,7 +5241,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, sampleMask);
 					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, stencilRef);
@@ -5250,7 +5250,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pImmediateContext->Begin(testQueries[3]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[3]);
 
@@ -5267,7 +5267,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, sampleMask);
@@ -5277,7 +5277,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pImmediateContext->Begin(testQueries[0]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[0]);
 
@@ -5294,7 +5294,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, sampleMask);
@@ -5304,7 +5304,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pImmediateContext->Begin(testQueries[1]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[1]);
 
@@ -5346,7 +5346,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, sampleMask);
@@ -5356,7 +5356,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pImmediateContext->Begin(testQueries[2]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[2]);
 
@@ -5386,7 +5386,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateDepthStencilState(&dsd, &newDS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, sampleMask);
@@ -5396,7 +5396,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pImmediateContext->Begin(testQueries[4]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[4]);
 
@@ -5418,7 +5418,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					// stencil isn't run
 					m_pDevice->CreateDepthStencilState(&dsdesc, &newDS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, sampleMask);
@@ -5428,7 +5428,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pImmediateContext->Begin(testQueries[5]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[5]);
 
@@ -5711,14 +5711,14 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	for(size_t h=0; h < history.size(); h++)
 	{
-		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, history[h].eventID);
+		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(history[h].eventID);
 
 		if(draw->flags & eDraw_Clear)
 			continue;
 		
 		if(prev != history[h].eventID)
 		{
-			m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_WithoutDraw);
+			m_WrappedDevice->ReplayLog(0, history[h].eventID, eReplay_WithoutDraw);
 			prev = history[h].eventID;
 
 			curNumScissors = curNumViews = 16;
@@ -5850,7 +5850,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		{
 			m_pImmediateContext->OMSetRenderTargets(rtIndex+1, RTVs, shaddepthOutputDSV);
 
-			m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(0, history[h].eventID, eReplay_OnlyDraw);
 
 			PixelHistoryCopyPixel(colourCopyParams, postColSlot%2048, postColSlot/2048);
 			postColSlot++;
@@ -5872,7 +5872,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				sparseRTVs[rtIndex] = shadOutputRTV;
 				m_pImmediateContext->OMSetRenderTargets(rtIndex+1, sparseRTVs, shaddepthOutputDSV);
 
-				m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
+				m_WrappedDevice->ReplayLog(0, history[h].eventID, eReplay_OnlyDraw);
 	
 				PixelHistoryCopyPixel(shadoutCopyParams, shadColSlot%2048, shadColSlot/2048);
 				shadColSlot++;
@@ -5892,7 +5892,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				m_pImmediateContext->PSGetShader(&curPS, curInst, &curNumInst);
 				m_pImmediateContext->PSSetShader(m_DebugRender.PrimitiveIDPS, NULL, 0);
 
-				m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
+				m_WrappedDevice->ReplayLog(0, history[h].eventID, eReplay_OnlyDraw);
 
 				m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
 
@@ -5945,7 +5945,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	for(size_t h=0; h < history.size(); h++)
 	{
-		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, history[h].eventID);
+		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(history[h].eventID);
 
 		if(draw->flags & eDraw_Clear)
 			continue;
@@ -6105,7 +6105,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				// don't need to worry about trashing state, since at this point we don't need to restore it anymore
 				if(prev != history[h].eventID)
 				{
-					m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(0, history[h].eventID, eReplay_WithoutDraw);
 
 					//////////////////////////////////////////////////////////////
 					// Set up an identical raster state, but with scissor enabled.

@@ -24,7 +24,7 @@ class EventBrowser : public QFrame, public ILogViewerForm
 
 		void OnLogfileLoaded();
 		void OnLogfileClosed();
-		void OnEventSelected(uint32_t frameID, uint32_t eventID);
+		void OnEventSelected(uint32_t eventID);
 
 		private slots:
 		void on_find_clicked();
@@ -57,8 +57,8 @@ class EventBrowser : public QFrame, public ILogViewerForm
 
 		void ExpandNode(QTreeWidgetItem *node);
 
-		bool FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *parent, uint32_t frameID, uint32_t eventID);
-		bool SelectEvent(uint32_t frameID, uint32_t eventID);
+		bool FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *parent, uint32_t eventID);
+		bool SelectEvent(uint32_t eventID);
 
 		void ClearFindIcons(QTreeWidgetItem *parent);
 		void ClearFindIcons();

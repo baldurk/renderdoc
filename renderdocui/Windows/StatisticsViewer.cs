@@ -74,17 +74,16 @@ namespace renderdocui.Windows
                 return String.Format("({0})", count);
         }
 
-        private void AppendDrawStatistics(FetchFrameInfo[] frameList)
+        private void AppendDrawStatistics(FetchFrameInfo frameInfo)
         {
             // #mivance see AppendConstantBindStatistics
-            FetchFrameDrawStats template = frameList[0].stats.draws;
+            FetchFrameDrawStats template = frameInfo.stats.draws;
 
             FetchFrameDrawStats totalUpdates = new FetchFrameDrawStats();
             totalUpdates.counts = new UInt32[template.counts.Length];
 
-            foreach (var f in frameList)
             {
-                FetchFrameDrawStats draws = f.stats.draws;
+                FetchFrameDrawStats draws = frameInfo.stats.draws;
 
                 totalUpdates.calls += draws.calls;
                 totalUpdates.instanced += draws.instanced;
@@ -99,7 +98,7 @@ namespace renderdocui.Windows
 
             statisticsLog.AppendText(String.Format("Total calls: {0}, instanced: {1}, indirect: {2}\n", totalUpdates.calls, totalUpdates.instanced, totalUpdates.indirect));
 
-            if ( totalUpdates.instanced > 0 )
+            if (totalUpdates.instanced > 0)
             {
                 statisticsLog.AppendText("\nHistogram of instance counts:\n");
                 UInt32 maxCount = 0;
@@ -122,13 +121,12 @@ namespace renderdocui.Windows
             }
         }
 
-        private void AppendDispatchStatistics(FetchFrameInfo[] frameList)
+        private void AppendDispatchStatistics(FetchFrameInfo frameInfo)
         {
             FetchFrameDispatchStats totalUpdates = new FetchFrameDispatchStats();
 
-            foreach (var f in frameList)
             {
-                FetchFrameDispatchStats dispatches = f.stats.dispatches;
+                FetchFrameDispatchStats dispatches = frameInfo.stats.dispatches;
 
                 totalUpdates.calls += dispatches.calls;
                 totalUpdates.indirect += dispatches.indirect;
@@ -139,13 +137,12 @@ namespace renderdocui.Windows
             statisticsLog.AppendText(String.Format("Total calls: {0}, indirect: {1}\n", totalUpdates.calls, totalUpdates.indirect));
         }
 
-        private void AppendInputAssemblerStatistics(FetchFrameInfo[] frameList)
+        private void AppendInputAssemblerStatistics(FetchFrameInfo frameInfo)
         {
             FetchFrameIndexBindStats totalIndexStats = new FetchFrameIndexBindStats();
 
-            foreach (var f in frameList)
             {
-                FetchFrameIndexBindStats indices = f.stats.indices;
+                FetchFrameIndexBindStats indices = frameInfo.stats.indices;
 
                 totalIndexStats.calls += indices.calls;
                 totalIndexStats.sets += indices.sets;
@@ -154,9 +151,8 @@ namespace renderdocui.Windows
 
             FetchFrameLayoutBindStats totalLayoutStats = new FetchFrameLayoutBindStats();
 
-            foreach (var f in frameList)
             {
-                FetchFrameLayoutBindStats layouts = f.stats.layouts;
+                FetchFrameLayoutBindStats layouts = frameInfo.stats.layouts;
 
                 totalLayoutStats.calls += layouts.calls;
                 totalLayoutStats.sets += layouts.sets;
@@ -164,13 +160,12 @@ namespace renderdocui.Windows
             }
 
             // #mivance see AppendConstantBindStatistics
-            FetchFrameVertexBindStats template = frameList[0].stats.vertices;
+            FetchFrameVertexBindStats template = frameInfo.stats.vertices;
             FetchFrameVertexBindStats totalVertexStats = new FetchFrameVertexBindStats();
             totalVertexStats.bindslots = new UInt32[template.bindslots.Length];
 
-            foreach (var f in frameList)
             {
-                FetchFrameVertexBindStats vertices = f.stats.vertices;
+                FetchFrameVertexBindStats vertices = frameInfo.stats.vertices;
 
                 totalVertexStats.calls += vertices.calls;
                 totalVertexStats.sets += vertices.sets;
@@ -208,13 +203,11 @@ namespace renderdocui.Windows
             }
         }
 
-        private void AppendConstantBindStatistics(FetchFrameInfo[] frameList)
+        private void AppendConstantBindStatistics(FetchFrameInfo frameInfo)
         {
-            System.Diagnostics.Debug.Assert(frameList.Length > 0);
-
             // #mivance C++-side we guarantee all stages will have the same slots
             // and sizes count, so pattern off of the first frame's first stage
-            FetchFrameConstantBindStats template = frameList[0].stats.constants[0];
+            FetchFrameConstantBindStats template = frameInfo.stats.constants[0];
 
             // #mivance there is probably a way to iterate the fields via
             // GetType()/GetField() and build a sort of dynamic min/max/average
@@ -229,9 +222,8 @@ namespace renderdocui.Windows
                 totalConstantsPerStage[s].sizes = new UInt32[template.sizes.Length];
             }
 
-            foreach (var f in frameList)
             {
-                FetchFrameConstantBindStats[] constants = f.stats.constants;
+                FetchFrameConstantBindStats[] constants = frameInfo.stats.constants;
                 for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
                 {
                     totalConstantsPerStage[s].calls += constants[s].calls;
@@ -321,10 +313,10 @@ namespace renderdocui.Windows
             }
         }
 
-        private void AppendSamplerBindStatistics(FetchFrameInfo[] frameList)
+        private void AppendSamplerBindStatistics(FetchFrameInfo frameInfo)
         {
             // #mivance see AppendConstantBindStatistics
-            FetchFrameSamplerBindStats template = frameList[0].stats.samplers[0];
+            FetchFrameSamplerBindStats template = frameInfo.stats.samplers[0];
 
             FetchFrameSamplerBindStats[] totalSamplersPerStage = new FetchFrameSamplerBindStats[(int)ShaderStageType.Count];
             for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
@@ -333,9 +325,8 @@ namespace renderdocui.Windows
                 totalSamplersPerStage[s].bindslots = new UInt32[template.bindslots.Length];
             }
 
-            foreach (var f in frameList)
             {
-                FetchFrameSamplerBindStats[] resources = f.stats.samplers;
+                FetchFrameSamplerBindStats[] resources = frameInfo.stats.samplers;
                 for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
                 {
                     totalSamplersPerStage[s].calls += resources[s].calls;
@@ -396,12 +387,10 @@ namespace renderdocui.Windows
             }
         }
 
-        private void AppendResourceBindStatistics(FetchFrameInfo[] frameList)
+        private void AppendResourceBindStatistics(FetchFrameInfo frameInfo)
         {
-            System.Diagnostics.Debug.Assert(frameList.Length > 0);
-
             // #mivance see AppendConstantBindStatistics
-            FetchFrameResourceBindStats template = frameList[0].stats.resources[0];
+            FetchFrameResourceBindStats template = frameInfo.stats.resources[0];
 
             FetchFrameResourceBindStats[] totalResourcesPerStage = new FetchFrameResourceBindStats[(int)ShaderStageType.Count];
             for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
@@ -411,9 +400,8 @@ namespace renderdocui.Windows
                 totalResourcesPerStage[s].bindslots = new UInt32[template.bindslots.Length];
             }
 
-            foreach (var f in frameList)
             {
-                FetchFrameResourceBindStats[] resources = f.stats.resources;
+                FetchFrameResourceBindStats[] resources = frameInfo.stats.resources;
                 for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
                 {
                     totalResourcesPerStage[s].calls += resources[s].calls;
@@ -507,18 +495,17 @@ namespace renderdocui.Windows
             }
         }
 
-        private void AppendUpdateStatistics(FetchFrameInfo[] frameList)
+        private void AppendUpdateStatistics(FetchFrameInfo frameInfo)
         {
             // #mivance see AppendConstantBindStatistics
-            FetchFrameUpdateStats template = frameList[0].stats.updates;
+            FetchFrameUpdateStats template = frameInfo.stats.updates;
 
             FetchFrameUpdateStats totalUpdates = new FetchFrameUpdateStats();
             totalUpdates.types = new UInt32[template.types.Length];
             totalUpdates.sizes = new UInt32[template.sizes.Length];
 
-            foreach (var f in frameList)
             {
-                FetchFrameUpdateStats updates = f.stats.updates;
+                FetchFrameUpdateStats updates = frameInfo.stats.updates;
 
                 totalUpdates.calls += updates.calls;
                 totalUpdates.clients += updates.clients;
@@ -575,15 +562,15 @@ namespace renderdocui.Windows
             }
         }
 
-        private void AppendDetailedInformation(FetchFrameInfo[] frameList)
+        private void AppendDetailedInformation(FetchFrameInfo frameInfo)
         {
-            AppendDrawStatistics(frameList);
-            AppendDispatchStatistics(frameList);
-            AppendInputAssemblerStatistics(frameList);
-            AppendConstantBindStatistics(frameList);
-            AppendSamplerBindStatistics(frameList);
-            AppendResourceBindStatistics(frameList);
-            AppendUpdateStatistics(frameList);
+            AppendDrawStatistics(frameInfo);
+            AppendDispatchStatistics(frameInfo);
+            AppendInputAssemblerStatistics(frameInfo);
+            AppendConstantBindStatistics(frameInfo);
+            AppendSamplerBindStatistics(frameInfo);
+            AppendResourceBindStatistics(frameInfo);
+            AppendUpdateStatistics(frameInfo);
         }
 
         private void CountContributingEvents(FetchDrawcall draw, ref uint drawCount, ref uint dispatchCount, ref uint diagnosticCount)
@@ -661,26 +648,25 @@ namespace renderdocui.Windows
             uint numResourceSets = 0;
             uint numResourceUpdates = 0;
 
-            FetchFrameInfo[] frameList = m_Core.FrameInfo;
+            FetchFrameInfo frameInfo = m_Core.FrameInfo;
 
-            foreach (var f in frameList)
             {
-                if (f.stats.recorded == 0)
-                    continue;
-
-                statsRecorded = true;
-
-                for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
+                if (frameInfo.stats.recorded != 0)
                 {
-                    numConstantSets += f.stats.constants[s].calls;
-                    numSamplerSets += f.stats.samplers[s].calls;
-                    numResourceSets += f.stats.resources[s].calls;
-                }
+                    statsRecorded = true;
 
-                numResourceUpdates += f.stats.updates.calls;
-                numIndexVertexSets += (f.stats.indices.calls + f.stats.vertices.calls + f.stats.layouts.calls);
-                numDraws += f.stats.draws.calls;
-                numDispatches += f.stats.dispatches.calls;
+                    for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
+                    {
+                        numConstantSets += frameInfo.stats.constants[s].calls;
+                        numSamplerSets += frameInfo.stats.samplers[s].calls;
+                        numResourceSets += frameInfo.stats.resources[s].calls;
+                    }
+
+                    numResourceUpdates += frameInfo.stats.updates.calls;
+                    numIndexVertexSets += (frameInfo.stats.indices.calls + frameInfo.stats.vertices.calls + frameInfo.stats.layouts.calls);
+                    numDraws += frameInfo.stats.draws.calls;
+                    numDispatches += frameInfo.stats.dispatches.calls;
+                }
             }
 
             int numTextures = m_Core.CurTextures.Length;
@@ -767,12 +753,12 @@ namespace renderdocui.Windows
             statisticsLog.AppendText(load);
 
             if (statsRecorded)
-                AppendDetailedInformation(frameList);
+                AppendDetailedInformation(frameInfo);
 
             statisticsLog.Select(0, 0);
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
 
         }

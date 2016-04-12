@@ -1296,7 +1296,7 @@ namespace renderdocui.Windows
             }
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
             if (IsDisposed) return;
 
@@ -1312,7 +1312,7 @@ namespace renderdocui.Windows
             int rwIndex = 0;
             int roIndex = 0;
 
-            var curDraw = m_Core.GetDrawcall(frameID, eventID);
+            var curDraw = m_Core.GetDrawcall(eventID);
             bool copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy|DrawcallFlags.Resolve)) != 0;
             bool compute = curDraw != null && (curDraw.flags & (DrawcallFlags.Dispatch)) != 0;
 
@@ -3559,7 +3559,7 @@ namespace renderdocui.Windows
                                 continue;
                             }
 
-                            var curDraw = m_Core.GetDrawcall(m_Core.CurFrame, u.eventID);
+                            var curDraw = m_Core.GetDrawcall(u.eventID);
 
                             bool distinct = false;
 
@@ -3695,7 +3695,7 @@ namespace renderdocui.Windows
                 var c = (ToolStripItem)sender;
 
                 if (c.Tag is uint)
-                    m_Core.SetEventID(null, m_Core.CurFrame, (uint)c.Tag);
+                    m_Core.SetEventID(null, (uint)c.Tag);
                 else if (c.Tag is ResourceId)
                     ViewTexture((ResourceId)c.Tag, false);
             }
@@ -3706,7 +3706,7 @@ namespace renderdocui.Windows
             showDisabled.Checked = !showDisabled.Checked;
 
             if (m_Core.LogLoaded)
-                OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
+                OnEventSelected(m_Core.CurEvent);
         }
 
         private void showEmpty_Click(object sender, EventArgs e)
@@ -3714,7 +3714,7 @@ namespace renderdocui.Windows
             showEmpty.Checked = !showEmpty.Checked;
 
             if (m_Core.LogLoaded)
-                OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
+                OnEventSelected(m_Core.CurEvent);
         }
 
         private void TextureViewer_FormClosed(object sender, FormClosedEventArgs e)

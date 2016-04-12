@@ -575,12 +575,10 @@ void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 	}
 	else
 	{
-		FetchFrameRecord record;
-		record.frameInfo.fileOffset = offset;
-		record.frameInfo.firstEvent = 1;//m_pImmediateContext->GetEventID();
-		record.frameInfo.frameNumber = FrameNumber;
-		record.frameInfo.immContextId = ResourceId();
-		m_FrameRecord.push_back(record);
+		m_FrameRecord.frameInfo.fileOffset = offset;
+		m_FrameRecord.frameInfo.firstEvent = 1;//m_pImmediateContext->GetEventID();
+		m_FrameRecord.frameInfo.frameNumber = FrameNumber;
+		m_FrameRecord.frameInfo.immContextId = ResourceId();
 
 		GetResourceManager()->CreateInitialContents();
 	}
@@ -721,11 +719,11 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 
 	m_AppControlledCapture = true;
 	
-	FetchFrameRecord record;
-	record.frameInfo.frameNumber = m_FrameCounter+1;
-	record.frameInfo.captureTime = Timing::GetUnixTimestamp();
-	RDCEraseEl(record.frameInfo.stats);
-	m_FrameRecord.push_back(record);
+	FetchFrameInfo frame;
+	frame.frameNumber = m_FrameCounter+1;
+	frame.captureTime = Timing::GetUnixTimestamp();
+	RDCEraseEl(frame.stats);
+	m_CapturedFrames.push_back(frame);
 
 	GetResourceManager()->ClearReferencedResources();
 
@@ -1339,9 +1337,9 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	if(m_State == READING)
 	{
-		GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
+		GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
 
-		SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().back().frameInfo.immContextId, GetFrameRecord().back().drawcallList, NULL, NULL);
+		SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().frameInfo.immContextId, GetFrameRecord().drawcallList, NULL, NULL);
 		
 		struct SortEID
 		{
@@ -1813,11 +1811,9 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	}
 }
 
-void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
+void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
 {
-	RDCASSERT(frameID < (uint32_t)m_FrameRecord.size());
-
-	uint64_t offs = m_FrameRecord[frameID].frameInfo.fileOffset;
+	uint64_t offs = m_FrameRecord.frameInfo.fileOffset;
 
 	m_pSerialiser->SetOffset(offs);
 
@@ -1825,7 +1821,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 
 	if(startEventID == 0 && (replayType == eReplay_WithoutDraw || replayType == eReplay_Full))
 	{
-		startEventID = m_FrameRecord[frameID].frameInfo.firstEvent;
+		startEventID = m_FrameRecord.frameInfo.firstEvent;
 		partial = false;
 	}
 	
@@ -2274,7 +2270,7 @@ FetchAPIEvent WrappedVulkan::GetEvent(uint32_t eventID)
 	return m_Events[0];
 }
 
-const FetchDrawcall *WrappedVulkan::GetDrawcall(uint32_t frameID, uint32_t eventID)
+const FetchDrawcall *WrappedVulkan::GetDrawcall(uint32_t eventID)
 {
 	if(eventID >= m_Drawcalls.size())
 		return NULL;

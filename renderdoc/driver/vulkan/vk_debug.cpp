@@ -2300,10 +2300,9 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
 
 struct QuadOverdrawCallback : public DrawcallCallback
 {
-	QuadOverdrawCallback(WrappedVulkan *vk, uint32_t frameID, const vector<uint32_t> &events)
+	QuadOverdrawCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
 		: m_pDriver(vk)
 		, m_pDebug(vk->GetDebugManager())
-		, m_FrameID(frameID)
 		, m_Events(events)
 		, m_PrevState(NULL)
 	{ m_pDriver->SetDrawcallCB(this); }
@@ -2501,7 +2500,6 @@ struct QuadOverdrawCallback : public DrawcallCallback
 		// don't care
 	}
 
-	uint32_t m_FrameID;
 	WrappedVulkan *m_pDriver;
 	VulkanDebugManager *m_pDebug;
 	const vector<uint32_t> &m_Events;
@@ -2511,7 +2509,7 @@ struct QuadOverdrawCallback : public DrawcallCallback
 	VulkanRenderState m_PrevState;
 };
 
-ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	const VkLayerDispatchTable *vt = ObjDisp(m_Device);
 
@@ -2848,7 +2846,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		if(overlay == eTexOverlay_Wireframe)
 			m_pDriver->m_RenderState.lineWidth = 1.0f;
 
-		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 		// submit & flush so that we don't have to keep pipeline around for a while
 		m_pDriver->SubmitCmds();
@@ -3113,11 +3111,11 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			m_pDriver->m_RenderState.scissors[i].extent.height = 4096;
 		}
 
-		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 		m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
 
-		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 		// submit & flush so that we don't have to keep pipeline around for a while
 		m_pDriver->SubmitCmds();
@@ -3363,7 +3361,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			m_pDriver->m_RenderState.scissors[i].extent.height = 4096;
 		}
 
-		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 		m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
 		if(depthRP != VK_NULL_HANDLE)
@@ -3372,7 +3370,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			m_pDriver->m_RenderState.framebuffer = GetResID(depthFB);
 		}
 
-		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+		m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
 		// submit & flush so that we don't have to keep pipeline around for a while
 		m_pDriver->SubmitCmds();
@@ -3443,23 +3441,23 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			// in the loop below
 			if(overlay == eTexOverlay_ClearBeforePass)
 			{
-				const FetchDrawcall *draw = m_pDriver->GetDrawcall(frameID, events[0]);
+				const FetchDrawcall *draw = m_pDriver->GetDrawcall(events[0]);
 				if(draw && draw->flags & eDraw_BeginPass)
 				{
 					if(events.size() == 1)
 					{
-						m_pDriver->ReplayLog(frameID, 0, events[0], eReplay_Full);
+						m_pDriver->ReplayLog(0, events[0], eReplay_Full);
 					}
 					else
 					{
 						startEvent = 1;
-						m_pDriver->ReplayLog(frameID, 0, events[1], eReplay_WithoutDraw);
+						m_pDriver->ReplayLog(0, events[1], eReplay_WithoutDraw);
 					}
 				}
 			}
 			else
 			{
-				m_pDriver->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+				m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
 			}
 
 			cmd = m_pDriver->GetNextCmd();
@@ -3500,10 +3498,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 			for(size_t i = startEvent; i < events.size(); i++)
 			{
-				m_pDriver->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+				m_pDriver->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
 				if(overlay == eTexOverlay_ClearBeforePass && i+1 < events.size())
-					m_pDriver->ReplayLog(frameID, events[i]+1, events[i+1], eReplay_WithoutDraw);
+					m_pDriver->ReplayLog(events[i]+1, events[i+1], eReplay_WithoutDraw);
 			}
 
 			cmd = m_pDriver->GetNextCmd();
@@ -3637,12 +3635,12 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			vkr = vt->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-			m_pDriver->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+			m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
 			// declare callback struct here
-			QuadOverdrawCallback cb(m_pDriver, frameID, events);
+			QuadOverdrawCallback cb(m_pDriver, events);
 
-			m_pDriver->ReplayLog(frameID, events.front(), events.back(), eReplay_Full);
+			m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
 
 			// resolve pass
 			{
@@ -3700,7 +3698,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 		}
 
 		// restore back to normal
-		m_pDriver->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+		m_pDriver->ReplayLog(0, eventID, eReplay_WithoutDraw);
 
 		cmd = m_pDriver->GetNextCmd();
 
@@ -4742,15 +4740,13 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
 	spirv[3] = idBound;
 }
 
-void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
+void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
 {
 	// go through any aliasing
 	if(m_PostVSAlias.find(eventID) != m_PostVSAlias.end())
 		eventID = m_PostVSAlias[eventID];
 
-	auto idx = std::make_pair(frameID, eventID);
-
-	if(m_PostVSData.find(idx) != m_PostVSData.end())
+	if(m_PostVSData.find(eventID) != m_PostVSData.end())
 		return;
 
 	if(!m_pDriver->GetDeviceFeatures().vertexPipelineStoresAndAtomics)
@@ -4776,22 +4772,22 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	if(refl->OutputSig.count == 0)
 	{
 		// empty vertex output signature
-		m_PostVSData[idx].vsin.topo = pipeInfo.topology;
-		m_PostVSData[idx].vsout.buf = VK_NULL_HANDLE;
-		m_PostVSData[idx].vsout.instStride = 0;
-		m_PostVSData[idx].vsout.vertStride = 0;
-		m_PostVSData[idx].vsout.nearPlane = 0.0f;
-		m_PostVSData[idx].vsout.farPlane = 0.0f;
-		m_PostVSData[idx].vsout.useIndices = false;
-		m_PostVSData[idx].vsout.hasPosOut = false;
-		m_PostVSData[idx].vsout.idxBuf = VK_NULL_HANDLE;
+		m_PostVSData[eventID].vsin.topo = pipeInfo.topology;
+		m_PostVSData[eventID].vsout.buf = VK_NULL_HANDLE;
+		m_PostVSData[eventID].vsout.instStride = 0;
+		m_PostVSData[eventID].vsout.vertStride = 0;
+		m_PostVSData[eventID].vsout.nearPlane = 0.0f;
+		m_PostVSData[eventID].vsout.farPlane = 0.0f;
+		m_PostVSData[eventID].vsout.useIndices = false;
+		m_PostVSData[eventID].vsout.hasPosOut = false;
+		m_PostVSData[eventID].vsout.idxBuf = VK_NULL_HANDLE;
 
-		m_PostVSData[idx].vsout.topo = pipeInfo.topology;
+		m_PostVSData[eventID].vsout.topo = pipeInfo.topology;
 
 		return;
 	}
 	
-	const FetchDrawcall *drawcall = m_pDriver->GetDrawcall(frameID, eventID);
+	const FetchDrawcall *drawcall = m_pDriver->GetDrawcall(eventID);
 	
 	if(drawcall->numIndices == 0)
 		return;
@@ -5398,31 +5394,31 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	}
 
 	// fill out m_PostVSData
-	m_PostVSData[idx].vsin.topo = topo;
-	m_PostVSData[idx].vsout.topo = topo;
-	m_PostVSData[idx].vsout.buf = meshBuffer;
-	m_PostVSData[idx].vsout.bufmem = meshMem;
+	m_PostVSData[eventID].vsin.topo = topo;
+	m_PostVSData[eventID].vsout.topo = topo;
+	m_PostVSData[eventID].vsout.buf = meshBuffer;
+	m_PostVSData[eventID].vsout.bufmem = meshMem;
 
-	m_PostVSData[idx].vsout.vertStride = bufStride;
-	m_PostVSData[idx].vsout.nearPlane = nearp;
-	m_PostVSData[idx].vsout.farPlane = farp;
+	m_PostVSData[eventID].vsout.vertStride = bufStride;
+	m_PostVSData[eventID].vsout.nearPlane = nearp;
+	m_PostVSData[eventID].vsout.farPlane = farp;
 
-	m_PostVSData[idx].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
-	m_PostVSData[idx].vsout.numVerts = drawcall->numIndices;
+	m_PostVSData[eventID].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
+	m_PostVSData[eventID].vsout.numVerts = drawcall->numIndices;
 		
-	m_PostVSData[idx].vsout.instStride = 0;
+	m_PostVSData[eventID].vsout.instStride = 0;
 	if(drawcall->flags & eDraw_Instanced)
-		m_PostVSData[idx].vsout.instStride = uint32_t(bufSize / RDCMAX(1U, drawcall->numInstances));
+		m_PostVSData[eventID].vsout.instStride = uint32_t(bufSize / RDCMAX(1U, drawcall->numInstances));
 
-	m_PostVSData[idx].vsout.idxBuf = VK_NULL_HANDLE;
-	if(m_PostVSData[idx].vsout.useIndices && idxBuf != VK_NULL_HANDLE)
+	m_PostVSData[eventID].vsout.idxBuf = VK_NULL_HANDLE;
+	if(m_PostVSData[eventID].vsout.useIndices && idxBuf != VK_NULL_HANDLE)
 	{
-		m_PostVSData[idx].vsout.idxBuf = idxBuf;
-		m_PostVSData[idx].vsout.idxBufMem = idxBufMem;
-		m_PostVSData[idx].vsout.idxFmt = state.ibuffer.bytewidth == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+		m_PostVSData[eventID].vsout.idxBuf = idxBuf;
+		m_PostVSData[eventID].vsout.idxBufMem = idxBufMem;
+		m_PostVSData[eventID].vsout.idxFmt = state.ibuffer.bytewidth == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 	}
 
-	m_PostVSData[idx].vsout.hasPosOut = refl->OutputSig[0].systemValue == eAttr_Position;
+	m_PostVSData[eventID].vsout.hasPosOut = refl->OutputSig[0].systemValue == eAttr_Position;
 
 	// delete pipeline layout
 	m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout, NULL);
@@ -5434,7 +5430,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	m_pDriver->vkDestroyShaderModule(dev, module, NULL);
 }
 
-MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
 	// go through any aliasing
 	if(m_PostVSAlias.find(eventID) != m_PostVSAlias.end())
@@ -5443,9 +5439,8 @@ MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t event
 	VulkanPostVSData postvs;
 	RDCEraseEl(postvs);
 
-	auto idx = std::make_pair(frameID, eventID);
-	if(m_PostVSData.find(idx) != m_PostVSData.end())
-		postvs = m_PostVSData[idx];
+	if(m_PostVSData.find(eventID) != m_PostVSData.end())
+		postvs = m_PostVSData[eventID];
 
 	VulkanPostVSData::StageData s = postvs.GetStage(stage);
 	

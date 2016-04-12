@@ -21,7 +21,7 @@ class TextureViewer : public QFrame, public ILogViewerForm
 
 		void OnLogfileLoaded();
 		void OnLogfileClosed();
-		void OnEventSelected(uint32_t frameID, uint32_t eventID);
+		void OnEventSelected(uint32_t eventID);
 
     private slots:
         void on_render_clicked(QMouseEvent *e);

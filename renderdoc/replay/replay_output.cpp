@@ -120,9 +120,8 @@ void ReplayOutput::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t
 	m_LastDeferredEvent = lastDefEv;
 }
 
-void ReplayOutput::SetFrameEvent(int frameID, int eventID)
+void ReplayOutput::SetFrameEvent(int eventID)
 {
-	m_FrameID = frameID;
 	m_EventID = eventID;
 
 	m_OverlayDirty = true;
@@ -138,7 +137,7 @@ void ReplayOutput::RefreshOverlay()
 {
 	FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
 	
-	passEvents = m_pDevice->GetPassEvents(m_FrameID, m_LastDeferredEvent > 0 ? m_LastDeferredEvent : m_EventID);
+	passEvents = m_pDevice->GetPassEvents(m_LastDeferredEvent > 0 ? m_LastDeferredEvent : m_EventID);
 		
 
 	if(m_Config.m_Type == eOutputType_TexDisplay && m_RenderData.texDisplay.overlay != eTexOverlay_None)
@@ -146,7 +145,7 @@ void ReplayOutput::RefreshOverlay()
 		if(draw && m_pDevice->IsRenderOutput(m_RenderData.texDisplay.texid))
 		{
 			m_OverlayResourceId = m_pDevice->RenderOverlay(m_pDevice->GetLiveID(m_RenderData.texDisplay.texid), m_RenderData.texDisplay.overlay,
-			                                               m_FrameID, m_EventID, passEvents);
+			                                               m_EventID, passEvents);
 			m_OverlayDirty = false;
 		}
 	}
@@ -158,13 +157,13 @@ void ReplayOutput::RefreshOverlay()
 		if(draw == NULL || (draw->flags & eDraw_Drawcall) == 0)
 			return;
 		
-		m_pDevice->InitPostVSBuffers(m_FrameID, draw->eventID);
+		m_pDevice->InitPostVSBuffers(draw->eventID);
 
 		if(!m_RenderData.meshDisplay.thisDrawOnly && !passEvents.empty())
 		{
-			m_pDevice->InitPostVSBuffers(m_FrameID, passEvents);
+			m_pDevice->InitPostVSBuffers(passEvents);
 
-			m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_WithoutDraw);
+			m_pDevice->ReplayLog(m_EventID, eReplay_WithoutDraw);
 		}
 	}
 }
@@ -278,7 +277,7 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
 	return true;
 }
 
-uint32_t ReplayOutput::PickVertex(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y)
 {
 	FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(eventID, 0);
 
@@ -292,7 +291,7 @@ uint32_t ReplayOutput::PickVertex(uint32_t frameID, uint32_t eventID, uint32_t x
 	cfg.second.buf = m_pDevice->GetLiveID(cfg.second.buf);
 	cfg.second.idxbuf = m_pDevice->GetLiveID(cfg.second.idxbuf);
 
-	return m_pDevice->PickVertex(m_FrameID, m_EventID, cfg, x, y);
+	return m_pDevice->PickVertex(m_EventID, cfg, x, y);
 }
 
 bool ReplayOutput::SetPixelContextLocation(uint32_t x, uint32_t y)
@@ -490,15 +489,15 @@ void ReplayOutput::DisplayTex()
 	{
 		if(m_OverlayDirty)
 		{
-			m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_WithoutDraw);
+			m_pDevice->ReplayLog(m_EventID, eReplay_WithoutDraw);
 			RefreshOverlay();
-			m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_OnlyDraw);
+			m_pDevice->ReplayLog(m_EventID, eReplay_OnlyDraw);
 		}
 	}
 	else if(m_ForceOverlayRefresh)
 	{
 		m_ForceOverlayRefresh = false;
-		m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_Full);
+		m_pDevice->ReplayLog(m_EventID, eReplay_Full);
 	}
 		
 	if(m_RenderData.texDisplay.CustomShader != ResourceId())
@@ -563,9 +562,9 @@ void ReplayOutput::DisplayMesh()
 
 	if(draw && m_OverlayDirty)
 	{
-		m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_WithoutDraw);
+		m_pDevice->ReplayLog(m_EventID, eReplay_WithoutDraw);
 		RefreshOverlay();
-		m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_OnlyDraw);
+		m_pDevice->ReplayLog(m_EventID, eReplay_OnlyDraw);
 	}
 	
 	m_pDevice->BindOutputWindow(m_MainOutput.outputID, true);
@@ -598,8 +597,8 @@ void ReplayOutput::DisplayMesh()
 				for(uint32_t inst=0; inst < RDCMAX(1U, draw->numInstances); inst++)
 				{
 					// get the 'most final' stage
-					MeshFormat fmt = m_pDevice->GetPostVSBuffers(m_FrameID, passEvents[i], inst, eMeshDataStage_GSOut);
-					if(fmt.buf == ResourceId()) fmt = m_pDevice->GetPostVSBuffers(m_FrameID, passEvents[i], inst, eMeshDataStage_VSOut);
+					MeshFormat fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, eMeshDataStage_GSOut);
+					if(fmt.buf == ResourceId()) fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, eMeshDataStage_VSOut);
 
 					// if unproject is marked, this output had a 'real' system position output
 					if(fmt.unproject)
@@ -614,8 +613,8 @@ void ReplayOutput::DisplayMesh()
 			for(uint32_t inst=0; inst < RDCMAX(1U, draw->numInstances) && inst < m_RenderData.meshDisplay.curInstance; inst++)
 			{
 				// get the 'most final' stage
-				MeshFormat fmt = m_pDevice->GetPostVSBuffers(m_FrameID, draw->eventID, inst, eMeshDataStage_GSOut);
-				if(fmt.buf == ResourceId()) fmt = m_pDevice->GetPostVSBuffers(m_FrameID, draw->eventID, inst, eMeshDataStage_VSOut);
+				MeshFormat fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, eMeshDataStage_GSOut);
+				if(fmt.buf == ResourceId()) fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, eMeshDataStage_VSOut);
 
 				// if unproject is marked, this output had a 'real' system position output
 				if(fmt.unproject)
@@ -624,7 +623,7 @@ void ReplayOutput::DisplayMesh()
 		}
 	}
 
-	m_pDevice->RenderMesh(m_FrameID, m_EventID, secondaryDraws, mesh);
+	m_pDevice->RenderMesh(m_EventID, secondaryDraws, mesh);
 }
 
 
@@ -657,5 +656,5 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(ReplayOutput
 														uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val)
 { return output->PickPixel(texID, customShader != 0, x, y, sliceFace, mip, sample, val); }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(ReplayOutput *output, uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
-{ return output->PickVertex(frameID, eventID, x, y); }
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(ReplayOutput *output, uint32_t eventID, uint32_t x, uint32_t y)
+{ return output->PickVertex(eventID, x, y); }

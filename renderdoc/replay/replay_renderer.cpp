@@ -142,7 +142,6 @@ ReplayRenderer::ReplayRenderer()
 {
 	m_pDevice = NULL;
 
-	m_FrameID = 0;
 	m_EventID = 100000;
 
 	m_DeferredCtx = ResourceId();
@@ -186,26 +185,25 @@ bool ReplayRenderer::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32
 	for(size_t i=0; i < m_Outputs.size(); i++)
 		m_Outputs[i]->SetContextFilter(id, firstDefEv, lastDefEv);
 	
-	SetFrameEvent(m_FrameID, m_EventID, true);
+	SetFrameEvent(m_EventID, true);
 
 	return true;
 }
 
-bool ReplayRenderer::SetFrameEvent(uint32_t frameID, uint32_t eventID, bool force)
+bool ReplayRenderer::SetFrameEvent(uint32_t eventID, bool force)
 {
-	if(m_FrameID != frameID || eventID != m_EventID || force)
+	if(eventID != m_EventID || force)
 	{
-		m_FrameID = frameID;
 		m_EventID = eventID;
 
-		m_pDevice->ReplayLog(frameID, eventID, eReplay_WithoutDraw);
+		m_pDevice->ReplayLog(eventID, eReplay_WithoutDraw);
 
 		FetchPipelineState();
 
 		for(size_t i=0; i < m_Outputs.size(); i++)
-			m_Outputs[i]->SetFrameEvent(frameID, eventID);
+			m_Outputs[i]->SetFrameEvent(eventID);
 		
-		m_pDevice->ReplayLog(frameID, eventID, eReplay_OnlyDraw);
+		m_pDevice->ReplayLog(eventID, eReplay_OnlyDraw);
 	}
 
 	return true;
@@ -244,13 +242,11 @@ bool ReplayRenderer::GetVulkanPipelineState(VulkanPipelineState *state)
 	return false;
 }
 
-bool ReplayRenderer::GetFrameInfo(rdctype::array<FetchFrameInfo> *arr)
+bool ReplayRenderer::GetFrameInfo(FetchFrameInfo *info)
 {
-	if(arr == NULL) return false;
+	if(info == NULL) return false;
 
-	create_array_uninit(*arr, m_FrameRecord.size());
-	for(size_t i=0; i < m_FrameRecord.size(); i++)
-		arr->elems[i] = m_FrameRecord[i].frameInfo;
+	*info = m_FrameRecord.frameInfo;
 
 	return true;
 }
@@ -265,18 +261,18 @@ FetchDrawcall *ReplayRenderer::GetDrawcallByEID(uint32_t eventID, uint32_t defEv
 	return m_Drawcalls[ev];
 }
 
-bool ReplayRenderer::GetDrawcalls(uint32_t frameID, rdctype::array<FetchDrawcall> *draws)
+bool ReplayRenderer::GetDrawcalls(rdctype::array<FetchDrawcall> *draws)
 {
-	if(frameID >= (uint32_t)m_FrameRecord.size() || draws == NULL)
+	if(draws == NULL)
 		return false;
 
-	*draws = m_FrameRecord[frameID].m_DrawCallList;
+	*draws = m_FrameRecord.m_DrawCallList;
 	return true;
 }
 
-bool ReplayRenderer::FetchCounters(uint32_t frameID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results)
+bool ReplayRenderer::FetchCounters(uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results)
 {
-	if(frameID >= (uint32_t)m_FrameRecord.size() || results == NULL)
+	if(results == NULL)
 		return false;
 
 	vector<uint32_t> counterArray;
@@ -284,7 +280,7 @@ bool ReplayRenderer::FetchCounters(uint32_t frameID, uint32_t *counters, uint32_
 	for(uint32_t i=0; i < numCounters; i++)
 		counterArray.push_back(counters[i]);
 
-	*results = m_pDevice->FetchCounters(frameID, counterArray);
+	*results = m_pDevice->FetchCounters(counterArray);
 	
 	return true;
 }
@@ -409,7 +405,7 @@ bool ReplayRenderer::GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFor
 
 	if(instID >= RDCMAX(1U, draw->numInstances)) return false;
 
-	*data = m_pDevice->GetPostVSBuffers(m_FrameID, draw->eventID, instID, stage);
+	*data = m_pDevice->GetPostVSBuffers(draw->eventID, instID, stage);
 
 	return true;
 }
@@ -1304,9 +1300,9 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
 		return false;
 	}
 
-	*history = m_pDevice->PixelHistory(m_FrameID, events, m_pDevice->GetLiveID(target), x, y, slice, mip, sampleIdx);
+	*history = m_pDevice->PixelHistory(events, m_pDevice->GetLiveID(target), x, y, slice, mip, sampleIdx);
 	
-	SetFrameEvent(m_FrameID, m_EventID, true);
+	SetFrameEvent(m_EventID, true);
 
 	return true;
 }
@@ -1315,9 +1311,9 @@ bool ReplayRenderer::DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx,
 {
 	if(trace == NULL) return false;
 
-	*trace = m_pDevice->DebugVertex(m_FrameID, m_EventID, vertid, instid, idx, instOffset, vertOffset);
+	*trace = m_pDevice->DebugVertex(m_EventID, vertid, instid, idx, instOffset, vertOffset);
 
-	SetFrameEvent(m_FrameID, m_EventID, true);
+	SetFrameEvent(m_EventID, true);
 
 	return true;
 }
@@ -1326,9 +1322,9 @@ bool ReplayRenderer::DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_
 {
 	if(trace == NULL) return false;
 
-	*trace = m_pDevice->DebugPixel(m_FrameID, m_EventID, x, y, sample, primitive);
+	*trace = m_pDevice->DebugPixel(m_EventID, x, y, sample, primitive);
 	
-	SetFrameEvent(m_FrameID, m_EventID, true);
+	SetFrameEvent(m_EventID, true);
 
 	return true;
 }
@@ -1337,9 +1333,9 @@ bool ReplayRenderer::DebugThread(uint32_t groupid[3], uint32_t threadid[3], Shad
 {
 	if(trace == NULL) return false;
 
-	*trace = m_pDevice->DebugThread(m_FrameID, m_EventID, groupid, threadid);
+	*trace = m_pDevice->DebugThread(m_EventID, groupid, threadid);
 	
-	SetFrameEvent(m_FrameID, m_EventID, true);
+	SetFrameEvent(m_EventID, true);
 
 	return true;
 }
@@ -1367,11 +1363,11 @@ ReplayOutput *ReplayRenderer::CreateOutput(void *wndhandle, OutputType type)
 
 	m_Outputs.push_back(out);
 
-	m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_WithoutDraw);
+	m_pDevice->ReplayLog(m_EventID, eReplay_WithoutDraw);
 	
-	out->SetFrameEvent(m_FrameID, m_EventID);
+	out->SetFrameEvent(m_EventID);
 
-	m_pDevice->ReplayLog(m_FrameID, m_EventID, eReplay_OnlyDraw);
+	m_pDevice->ReplayLog(m_EventID, eReplay_OnlyDraw);
 
 	return out;
 }
@@ -1464,7 +1460,7 @@ bool ReplayRenderer::ReplaceResource(ResourceId from, ResourceId to)
 {
 	m_pDevice->ReplaceResource(from, to);
 
-	SetFrameEvent(m_FrameID, m_EventID, true);
+	SetFrameEvent(m_EventID, true);
 	
 	for(size_t i=0; i < m_Outputs.size(); i++)
 		if(m_Outputs[i]->GetType() != eOutputType_None)
@@ -1477,7 +1473,7 @@ bool ReplayRenderer::RemoveReplacement(ResourceId id)
 {
 	m_pDevice->RemoveReplacement(id);
 
-	SetFrameEvent(m_FrameID, m_EventID, true);
+	SetFrameEvent(m_EventID, true);
 	
 	for(size_t i=0; i < m_Outputs.size(); i++)
 		if(m_Outputs[i]->GetType() != eOutputType_None)
@@ -1533,17 +1529,11 @@ ReplayCreateStatus ReplayRenderer::PostCreateInit(IReplayDriver *device)
 	
 	FetchPipelineState();
 
-	vector<FetchFrameRecord> fr = m_pDevice->GetFrameRecord();
+	FetchFrameRecord fr = m_pDevice->GetFrameRecord();
 
-	m_FrameRecord.reserve(fr.size());
-	for(size_t i=0; i < fr.size(); i++)
-	{
-		m_FrameRecord.push_back(FrameRecord());
-		m_FrameRecord.back().frameInfo = fr[i].frameInfo;
-		m_FrameRecord.back().m_DrawCallList = fr[i].drawcallList;
-		
-		SetupDrawcallPointers(&m_Drawcalls, fr[i].frameInfo.immContextId, m_FrameRecord.back().m_DrawCallList, NULL, NULL);
-	}
+	m_FrameRecord.frameInfo = fr.frameInfo;
+	m_FrameRecord.m_DrawCallList = fr.drawcallList;
+	SetupDrawcallPointers(&m_Drawcalls, fr.frameInfo.immContextId, m_FrameRecord.m_DrawCallList, NULL, NULL);
 
 	return eReplayCreate_Success;
 }
@@ -1619,8 +1609,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_InitResolver(ReplayR
  
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetContextFilter(ReplayRenderer *rend, ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
 { return rend->SetContextFilter(id, firstDefEv, lastDefEv); }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(ReplayRenderer *rend, uint32_t frameID, uint32_t eventID, bool32 force)
-{ return rend->SetFrameEvent(frameID, eventID, force != 0); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(ReplayRenderer *rend, uint32_t eventID, bool32 force)
+{ return rend->SetFrameEvent(eventID, force != 0); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetD3D11PipelineState(ReplayRenderer *rend, D3D11PipelineState *state)
 { return rend->GetD3D11PipelineState(state); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(ReplayRenderer *rend, GLPipelineState *state)
@@ -1650,12 +1640,12 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_RemoveReplacement(Re
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeTargetResource(ReplayRenderer *rend, ResourceId id)
 { return rend->FreeTargetResource(id); }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(ReplayRenderer *rend, rdctype::array<FetchFrameInfo> *frame)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(ReplayRenderer *rend, FetchFrameInfo *frame)
 { return rend->GetFrameInfo(frame); }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, uint32_t frameID, rdctype::array<FetchDrawcall> *draws)
-{ return rend->GetDrawcalls(frameID, draws); }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FetchCounters(ReplayRenderer *rend, uint32_t frameID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results)
-{ return rend->FetchCounters(frameID, counters, numCounters, results); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, rdctype::array<FetchDrawcall> *draws)
+{ return rend->GetDrawcalls(draws); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FetchCounters(ReplayRenderer *rend, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results)
+{ return rend->FetchCounters(counters, numCounters, results); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_EnumerateCounters(ReplayRenderer *rend, rdctype::array<uint32_t> *counters)
 { return rend->EnumerateCounters(counters); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DescribeCounter(ReplayRenderer *rend, uint32_t counterID, CounterDescription *desc)

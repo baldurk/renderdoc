@@ -601,15 +601,15 @@ VkResult WrappedVulkan::vkQueuePresentKHR(
 
 				if(overlay & eRENDERDOC_Overlay_CaptureList)
 				{
-					GetDebugManager()->RenderText(textstate, 0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
+					GetDebugManager()->RenderText(textstate, 0.0f, y, "%d Captures saved.\n", (uint32_t)m_CapturedFrames.size());
 					y += 1.0f;
 
 					uint64_t now = Timing::GetUnixTimestamp();
-					for(size_t i=0; i < m_FrameRecord.size(); i++)
+					for(size_t i=0; i < m_CapturedFrames.size(); i++)
 					{
-						if(now - m_FrameRecord[i].frameInfo.captureTime < 20)
+						if(now - m_CapturedFrames[i].captureTime < 20)
 						{
-							GetDebugManager()->RenderText(textstate, 0.0f, y, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
+							GetDebugManager()->RenderText(textstate, 0.0f, y, "Captured frame %d.\n", m_CapturedFrames[i].frameNumber);
 							y += 1.0f;
 						}
 					}

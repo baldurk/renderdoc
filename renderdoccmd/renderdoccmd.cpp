@@ -120,7 +120,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 	}
 
 	rdctype::array<FetchDrawcall> draws;
-	renderer->GetDrawcalls(0, &draws);
+	renderer->GetDrawcalls(&draws);
 
 	if(draws.count > 0 && draws[draws.count-1].flags & eDraw_Present)
 	{

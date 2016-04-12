@@ -35,7 +35,7 @@ namespace renderdocui.Code
     {
         void OnLogfileLoaded();
         void OnLogfileClosed();
-        void OnEventSelected(UInt32 frameID, UInt32 eventID);
+        void OnEventSelected(UInt32 eventID);
     }
 
     public interface ILogLoadProgressListener

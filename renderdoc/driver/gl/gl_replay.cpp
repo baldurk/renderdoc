@@ -66,22 +66,22 @@ void GLReplay::ReadLogInitialisation()
 	m_pDriver->ReadLogInitialisation();
 }
 
-void GLReplay::ReplayLog(uint32_t frameID, uint32_t endEventID, ReplayLogType replayType)
+void GLReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
 	MakeCurrentReplayContext(&m_ReplayCtx);
-	m_pDriver->ReplayLog(frameID, 0, endEventID, replayType);
+	m_pDriver->ReplayLog(0, endEventID, replayType);
 }
 
-vector<uint32_t> GLReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)
+vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventID)
 {
 	vector<uint32_t> passEvents;
 	
-	const FetchDrawcall *draw = m_pDriver->GetDrawcall(frameID, eventID);
+	const FetchDrawcall *draw = m_pDriver->GetDrawcall(eventID);
 
 	const FetchDrawcall *start = draw;
-	while(start && start->previous != 0 && (m_pDriver->GetDrawcall(frameID, (uint32_t)start->previous)->flags & eDraw_Clear) == 0)
+	while(start && start->previous != 0 && (m_pDriver->GetDrawcall((uint32_t)start->previous)->flags & eDraw_Clear) == 0)
 	{
-		const FetchDrawcall *prev = m_pDriver->GetDrawcall(frameID, (uint32_t)start->previous);
+		const FetchDrawcall *prev = m_pDriver->GetDrawcall((uint32_t)start->previous);
 
 		if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) || start->depthOut != prev->depthOut)
 			break;
@@ -97,13 +97,13 @@ vector<uint32_t> GLReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)
 		if(start->flags & eDraw_Drawcall)
 			passEvents.push_back(start->eventID);
 
-		start = m_pDriver->GetDrawcall(frameID, (uint32_t)start->next);
+		start = m_pDriver->GetDrawcall((uint32_t)start->next);
 	}
 
 	return passEvents;
 }
 
-vector<FetchFrameRecord> GLReplay::GetFrameRecord()
+FetchFrameRecord GLReplay::GetFrameRecord()
 {
 	return m_pDriver->GetFrameRecord();
 }
@@ -2866,7 +2866,7 @@ void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t las
 
 
 
-vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
+vector<PixelModification> GLReplay::PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
 {
 	GLNOTIMP("GLReplay::PixelHistory");
 	return vector<PixelModification>();
@@ -2875,19 +2875,19 @@ vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventU
 
 
 
-ShaderDebugTrace GLReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace GLReplay::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
 	GLNOTIMP("DebugVertex");
 	return ShaderDebugTrace();
 }
 
-ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
+ShaderDebugTrace GLReplay::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
 	GLNOTIMP("DebugPixel");
 	return ShaderDebugTrace();
 }
 
-ShaderDebugTrace GLReplay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+ShaderDebugTrace GLReplay::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
 	GLNOTIMP("DebugThread");
 	return ShaderDebugTrace();

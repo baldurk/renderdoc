@@ -1005,7 +1005,7 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 	return true;
 }
 
-uint32_t GLReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+uint32_t GLReplay::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
 {
 	WrappedOpenGL &gl = *m_pDriver;
 
@@ -1773,7 +1773,7 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
 	gl.glUseProgramStages(DebugData.overlayPipe, eGL_FRAGMENT_SHADER_BIT, fragProgram);
 }
 
-ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	WrappedOpenGL &gl = *m_pDriver;
 	
@@ -1857,7 +1857,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		float colVal[] = { 0.8f, 0.1f, 0.8f, 1.0f };
 		gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, colVal);
 
-		ReplayLog(frameID,  eventID, eReplay_OnlyDraw);
+		ReplayLog( eventID, eReplay_OnlyDraw);
 	}
 	else if(overlay == eTexOverlay_Wireframe)
 	{
@@ -1870,7 +1870,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
-		ReplayLog(frameID, eventID, eReplay_OnlyDraw);
+		ReplayLog(eventID, eReplay_OnlyDraw);
 	}
 	else if(overlay == eTexOverlay_ViewportScissor)
 	{
@@ -1924,7 +1924,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		float red[] = { 1.0f, 0.0f, 0.0f, 1.0f };
 		gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, red);
 
-		ReplayLog(frameID, eventID, eReplay_OnlyDraw);
+		ReplayLog(eventID, eReplay_OnlyDraw);
 
 		GLuint curDepth = 0, curStencil = 0;
 
@@ -2020,7 +2020,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		                     0, 0, DebugData.overlayTexWidth, DebugData.overlayTexHeight,
 												 GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 
-		ReplayLog(frameID, eventID, eReplay_OnlyDraw);
+		ReplayLog(eventID, eReplay_OnlyDraw);
 
 		// unset depth/stencil textures from overlay FBO and delete temp depth/stencil
 		if(curDepth != 0 && curDepth == curStencil)
@@ -2043,7 +2043,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		GLint colLoc = gl.glGetUniformLocation(DebugData.genericFSProg, "RENDERDOC_GenericFS_Color");
 		gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, col);
 		
-		ReplayLog(frameID, eventID, eReplay_OnlyDraw);
+		ReplayLog(eventID, eReplay_OnlyDraw);
 		
 		// only enable cull face if it was enabled originally (otherwise
 		// we just render green over the exact same area, so it shows up "passing")
@@ -2055,7 +2055,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 		gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, col);
 
-		ReplayLog(frameID, eventID, eReplay_OnlyDraw);
+		ReplayLog(eventID, eReplay_OnlyDraw);
 	}
 	else if(overlay == eTexOverlay_ClearBeforeDraw || overlay == eTexOverlay_ClearBeforePass)
 	{
@@ -2069,7 +2069,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		if(!events.empty())
 		{
 			if(overlay == eTexOverlay_ClearBeforePass)
-				m_pDriver->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+				m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
 			else
 				gl.glBindFramebuffer(eGL_FRAMEBUFFER, rs.DrawFBO); // if we don't replay the real state, restore drawFBO to clear it
 
@@ -2079,10 +2079,10 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 			for(size_t i=0; i < events.size(); i++)
 			{
-				m_pDriver->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+				m_pDriver->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
 				if(overlay == eTexOverlay_ClearBeforePass && i+1 < events.size())
-					m_pDriver->ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+					m_pDriver->ReplayLog(events[i], events[i+1], eReplay_WithoutDraw);
 			}
 		}
 	}
@@ -2149,7 +2149,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 				gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, quadtexs[1], 0);
 
 				if(overlay == eTexOverlay_QuadOverdrawPass)
-					ReplayLog(frameID, events[0], eReplay_WithoutDraw);
+					ReplayLog(events[0], eReplay_WithoutDraw);
 				else
 					rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
 				
@@ -2215,7 +2215,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 															 0, 0, texDetails.width, texDetails.height,
 															 GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 					
-					m_pDriver->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					m_pDriver->ReplayLog(0, events[i], eReplay_OnlyDraw);
 
 					// pop the state that we messed with
 					{
@@ -2237,10 +2237,10 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 					if(overlay == eTexOverlay_QuadOverdrawPass)
 					{
-						m_pDriver->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+						m_pDriver->ReplayLog(0, events[i], eReplay_OnlyDraw);
 
 						if(i+1 < events.size())
-							m_pDriver->ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+							m_pDriver->ReplayLog(events[i], events[i+1], eReplay_WithoutDraw);
 					}
 				}
 
@@ -2284,7 +2284,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 				gl.glDeleteTextures(3, quadtexs);
 
 				if(overlay == eTexOverlay_QuadOverdrawPass)
-					ReplayLog(frameID, eventID, eReplay_WithoutDraw);
+					ReplayLog(eventID, eReplay_WithoutDraw);
 			}
 		}
 	}
@@ -2298,10 +2298,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	return m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
 }
 
-void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
+void GLReplay::InitPostVSBuffers(uint32_t eventID)
 {
-	auto idx = std::make_pair(frameID, eventID);
-	if(m_PostVSData.find(idx) != m_PostVSData.end())
+	if(m_PostVSData.find(eventID) != m_PostVSData.end())
 		return;
 	
 	MakeCurrentReplayContext(&m_ReplayCtx);
@@ -2404,16 +2403,16 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	{
 		// no vertex shader bound (no vertex processing - compute only program
 		// or no program bound, for a clear etc)
-		m_PostVSData[idx] = GLPostVSData();
+		m_PostVSData[eventID] = GLPostVSData();
 		return;
 	}
 
-	const FetchDrawcall *drawcall = m_pDriver->GetDrawcall(frameID, eventID);
+	const FetchDrawcall *drawcall = m_pDriver->GetDrawcall(eventID);
 
 	if(drawcall->numIndices == 0)
 	{
 		// draw is 0 length, nothing to do
-		m_PostVSData[idx] = GLPostVSData();
+		m_PostVSData[eventID] = GLPostVSData();
 		return;
 	}
 	
@@ -2582,7 +2581,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		char buffer[1025] = {0};
 		gl.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
 		RDCERR("Failed to fix-up. Link error making xfb vs program: %s", buffer);
-		m_PostVSData[idx] = GLPostVSData();
+		m_PostVSData[eventID] = GLPostVSData();
 		return;
 	}
 
@@ -2777,7 +2776,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		else
 			gl.glEnable(eGL_RASTERIZER_DISCARD);
 		
-		m_PostVSData[idx] = GLPostVSData();
+		m_PostVSData[eventID] = GLPostVSData();
 		return;
 	}
 
@@ -2850,29 +2849,29 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	gl.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
 
 	// store everything out to the PostVS data cache
-	m_PostVSData[idx].vsin.topo = drawcall->topology;
-	m_PostVSData[idx].vsout.buf = vsoutBuffer;
-	m_PostVSData[idx].vsout.vertStride = stride;
-	m_PostVSData[idx].vsout.nearPlane = nearp;
-	m_PostVSData[idx].vsout.farPlane = farp;
+	m_PostVSData[eventID].vsin.topo = drawcall->topology;
+	m_PostVSData[eventID].vsout.buf = vsoutBuffer;
+	m_PostVSData[eventID].vsout.vertStride = stride;
+	m_PostVSData[eventID].vsout.nearPlane = nearp;
+	m_PostVSData[eventID].vsout.farPlane = farp;
 
-	m_PostVSData[idx].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
-	m_PostVSData[idx].vsout.numVerts = drawcall->numIndices;
+	m_PostVSData[eventID].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
+	m_PostVSData[eventID].vsout.numVerts = drawcall->numIndices;
 	
-	m_PostVSData[idx].vsout.instStride = 0;
+	m_PostVSData[eventID].vsout.instStride = 0;
 	if(drawcall->flags & eDraw_Instanced)
-		m_PostVSData[idx].vsout.instStride = (stride*primsWritten) / RDCMAX(1U, drawcall->numInstances);
+		m_PostVSData[eventID].vsout.instStride = (stride*primsWritten) / RDCMAX(1U, drawcall->numInstances);
 
-	m_PostVSData[idx].vsout.idxBuf = 0;
-	m_PostVSData[idx].vsout.idxByteWidth = drawcall->indexByteWidth;
-	if(m_PostVSData[idx].vsout.useIndices && idxBuf)
+	m_PostVSData[eventID].vsout.idxBuf = 0;
+	m_PostVSData[eventID].vsout.idxByteWidth = drawcall->indexByteWidth;
+	if(m_PostVSData[eventID].vsout.useIndices && idxBuf)
 	{
-		m_PostVSData[idx].vsout.idxBuf = idxBuf;
+		m_PostVSData[eventID].vsout.idxBuf = idxBuf;
 	}
 
-	m_PostVSData[idx].vsout.hasPosOut = posidx >= 0;
+	m_PostVSData[eventID].vsout.hasPosOut = posidx >= 0;
 
-	m_PostVSData[idx].vsout.topo = drawcall->topology;
+	m_PostVSData[eventID].vsout.topo = drawcall->topology;
 
 	// set vsProg back to no varyings, for future use
 	gl.glTransformFeedbackVaryings(vsProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
@@ -3159,19 +3158,19 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			{
 				// primitive counter is the number of primitives, not vertices
 				if(shaderOutMode == eGL_TRIANGLES || shaderOutMode == eGL_QUADS) // query for quads returns # triangles
-					m_PostVSData[idx].gsout.numVerts = primsWritten*3;
+					m_PostVSData[eventID].gsout.numVerts = primsWritten*3;
 				else if(shaderOutMode == eGL_ISOLINES)
-					m_PostVSData[idx].gsout.numVerts = primsWritten*2;
+					m_PostVSData[eventID].gsout.numVerts = primsWritten*2;
 			}
 			else if(lastProg == gsProg)
 			{
 				// primitive counter is the number of primitives, not vertices
 				if(shaderOutMode == eGL_POINTS)
-					m_PostVSData[idx].gsout.numVerts = primsWritten;
+					m_PostVSData[eventID].gsout.numVerts = primsWritten;
 				else if(shaderOutMode == eGL_LINE_STRIP)
-					m_PostVSData[idx].gsout.numVerts = primsWritten*2;
+					m_PostVSData[eventID].gsout.numVerts = primsWritten*2;
 				else if(shaderOutMode == eGL_TRIANGLE_STRIP)
-					m_PostVSData[idx].gsout.numVerts = primsWritten*3;
+					m_PostVSData[eventID].gsout.numVerts = primsWritten*3;
 			}
 
 			// create a buffer with this data, for future use (typed to ARRAY_BUFFER so we
@@ -3179,7 +3178,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			GLuint lastoutBuffer = 0;
 			gl.glGenBuffers(1, &lastoutBuffer);
 			gl.glBindBuffer(eGL_ARRAY_BUFFER, lastoutBuffer);
-			gl.glNamedBufferStorageEXT(lastoutBuffer, stride*m_PostVSData[idx].gsout.numVerts, data, 0);
+			gl.glNamedBufferStorageEXT(lastoutBuffer, stride*m_PostVSData[eventID].gsout.numVerts, data, 0);
 
 			byteData = (byte *)data;
 
@@ -3190,7 +3189,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 			found = false;
 
-			for(uint32_t i=1; posidx != -1 && i < m_PostVSData[idx].gsout.numVerts; i++)
+			for(uint32_t i=1; posidx != -1 && i < m_PostVSData[eventID].gsout.numVerts; i++)
 			{
 				//////////////////////////////////////////////////////////////////////////////////
 				// derive near/far, assuming a standard perspective matrix
@@ -3243,25 +3242,25 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			gl.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
 
 			// store everything out to the PostVS data cache
-			m_PostVSData[idx].gsout.buf = lastoutBuffer;
-			m_PostVSData[idx].gsout.instStride = 0;
+			m_PostVSData[eventID].gsout.buf = lastoutBuffer;
+			m_PostVSData[eventID].gsout.instStride = 0;
 			if(drawcall->flags & eDraw_Instanced)
 			{
-				m_PostVSData[idx].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
-				m_PostVSData[idx].gsout.instStride = stride*m_PostVSData[idx].gsout.numVerts;
+				m_PostVSData[eventID].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
+				m_PostVSData[eventID].gsout.instStride = stride*m_PostVSData[eventID].gsout.numVerts;
 			}
-			m_PostVSData[idx].gsout.vertStride = stride;
-			m_PostVSData[idx].gsout.nearPlane = nearp;
-			m_PostVSData[idx].gsout.farPlane = farp;
+			m_PostVSData[eventID].gsout.vertStride = stride;
+			m_PostVSData[eventID].gsout.nearPlane = nearp;
+			m_PostVSData[eventID].gsout.farPlane = farp;
 
-			m_PostVSData[idx].gsout.useIndices = false;
+			m_PostVSData[eventID].gsout.useIndices = false;
 
-			m_PostVSData[idx].gsout.hasPosOut = posidx >= 0;
+			m_PostVSData[eventID].gsout.hasPosOut = posidx >= 0;
 
-			m_PostVSData[idx].gsout.idxBuf = 0;
-			m_PostVSData[idx].gsout.idxByteWidth = 0;
+			m_PostVSData[eventID].gsout.idxBuf = 0;
+			m_PostVSData[eventID].gsout.idxByteWidth = 0;
 
-			m_PostVSData[idx].gsout.topo = MakePrimitiveTopology(gl.GetHookset(), lastOutTopo);
+			m_PostVSData[eventID].gsout.topo = MakePrimitiveTopology(gl.GetHookset(), lastOutTopo);
 		}
 
 		// set lastProg back to no varyings, for future use
@@ -3288,7 +3287,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		gl.glEnable(eGL_RASTERIZER_DISCARD);
 }
 
-void GLReplay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &passEvents)
+void GLReplay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
 {
 	uint32_t prev = 0;
 	
@@ -3298,26 +3297,25 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &passE
 	{
 		if(prev != passEvents[i])
 		{
-			m_pDriver->ReplayLog(frameID, prev, passEvents[i], eReplay_WithoutDraw);
+			m_pDriver->ReplayLog(prev, passEvents[i], eReplay_WithoutDraw);
 
 			prev = passEvents[i];
 		}
 
-		const FetchDrawcall *d = m_pDriver->GetDrawcall(frameID, passEvents[i]);
+		const FetchDrawcall *d = m_pDriver->GetDrawcall(passEvents[i]);
 
 		if(d)
-			InitPostVSBuffers(frameID, passEvents[i]);
+			InitPostVSBuffers(passEvents[i]);
 	}
 }
 
-MeshFormat GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
 	GLPostVSData postvs;
 	RDCEraseEl(postvs);
 
-	auto idx = std::make_pair(frameID, eventID);
-	if(m_PostVSData.find(idx) != m_PostVSData.end())
-		postvs = m_PostVSData[idx];
+	if(m_PostVSData.find(eventID) != m_PostVSData.end())
+		postvs = m_PostVSData[eventID];
 
 	GLPostVSData::StageData s = postvs.GetStage(stage);
 	
@@ -3437,7 +3435,7 @@ FloatVector GLReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg
 	return ret;
 }
 
-void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
+void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
 	WrappedOpenGL &gl = *m_pDriver;
 

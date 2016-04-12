@@ -327,7 +327,7 @@ void D3D11Replay::FreeCustomShader(ResourceId id)
 	}
 }
 
-vector<FetchFrameRecord> D3D11Replay::GetFrameRecord()
+FetchFrameRecord D3D11Replay::GetFrameRecord()
 {
 	return m_pDevice->GetFrameRecord();
 }
@@ -1236,21 +1236,21 @@ void D3D11Replay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t 
 	m_pDevice->SetContextFilter(id, firstDefEv, lastDefEv);
 }
 
-void D3D11Replay::ReplayLog(uint32_t frameID, uint32_t endEventID, ReplayLogType replayType)
+void D3D11Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
-	m_pDevice->ReplayLog(frameID, 0, endEventID, replayType);
+	m_pDevice->ReplayLog(0, endEventID, replayType);
 }
 
-vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t frameID, uint32_t eventID)
+vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventID)
 {
 	vector<uint32_t> passEvents;
 	
-	const FetchDrawcall *draw = m_pDevice->GetDrawcall(frameID, eventID);
+	const FetchDrawcall *draw = m_pDevice->GetDrawcall(eventID);
 
 	const FetchDrawcall *start = draw;
-	while(start && start->previous != 0 && (m_pDevice->GetDrawcall(frameID, (uint32_t)start->previous)->flags & eDraw_Clear) == 0)
+	while(start && start->previous != 0 && (m_pDevice->GetDrawcall((uint32_t)start->previous)->flags & eDraw_Clear) == 0)
 	{
-		const FetchDrawcall *prev = m_pDevice->GetDrawcall(frameID, (uint32_t)start->previous);
+		const FetchDrawcall *prev = m_pDevice->GetDrawcall((uint32_t)start->previous);
 
 		if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) || start->depthOut != prev->depthOut)
 			break;
@@ -1266,7 +1266,7 @@ vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t frameID, uint32_t eventID)
 		if(start->flags & eDraw_Drawcall)
 			passEvents.push_back(start->eventID);
 
-		start = m_pDevice->GetDrawcall(frameID, (uint32_t)start->next);
+		start = m_pDevice->GetDrawcall((uint32_t)start->next);
 	}
 
 	return passEvents;
@@ -1317,12 +1317,12 @@ void D3D11Replay::FlipOutputWindow(uint64_t id)
 	m_pDevice->GetDebugManager()->FlipOutputWindow(id);
 }
 
-void D3D11Replay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
+void D3D11Replay::InitPostVSBuffers(uint32_t eventID)
 {
-	m_pDevice->GetDebugManager()->InitPostVSBuffers(frameID, eventID);
+	m_pDevice->GetDebugManager()->InitPostVSBuffers(eventID);
 }
 
-void D3D11Replay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &passEvents)
+void D3D11Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
 {
 	uint32_t prev = 0;
 	
@@ -1332,15 +1332,15 @@ void D3D11Replay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &pa
 	{
 		if(prev != passEvents[i])
 		{
-			m_pDevice->ReplayLog(frameID, prev, passEvents[i], eReplay_WithoutDraw);
+			m_pDevice->ReplayLog(prev, passEvents[i], eReplay_WithoutDraw);
 
 			prev = passEvents[i];
 		}
 
-		const FetchDrawcall *d = m_pDevice->GetDrawcall(frameID, passEvents[i]);
+		const FetchDrawcall *d = m_pDevice->GetDrawcall(passEvents[i]);
 
 		if(d)
-			m_pDevice->GetDebugManager()->InitPostVSBuffers(frameID, passEvents[i]);
+			m_pDevice->GetDebugManager()->InitPostVSBuffers(passEvents[i]);
 	}
 }
 
@@ -1359,9 +1359,9 @@ bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
 	return m_pDevice->GetDebugManager()->GetHistogram(texid, sliceFace, mip, sample, minval, maxval, channels, histogram);
 }
 
-MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
-	return m_pDevice->GetDebugManager()->GetPostVSBuffers(frameID, eventID, instID, stage);
+	return m_pDevice->GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
 }
 
 void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
@@ -1394,14 +1394,14 @@ void D3D11Replay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
 	m_pDevice->GetDebugManager()->DescribeCounter(counterID, desc);
 }
 
-vector<CounterResult> D3D11Replay::FetchCounters(uint32_t frameID, const vector<uint32_t> &counters)
+vector<CounterResult> D3D11Replay::FetchCounters(const vector<uint32_t> &counters)
 {
-	return m_pDevice->GetDebugManager()->FetchCounters(frameID, counters);
+	return m_pDevice->GetDebugManager()->FetchCounters(counters);
 }
 
-void D3D11Replay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
+void D3D11Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
-	return m_pDevice->GetDebugManager()->RenderMesh(frameID, eventID, secondaryDraws, cfg);
+	return m_pDevice->GetDebugManager()->RenderMesh(eventID, secondaryDraws, cfg);
 }
 
 void D3D11Replay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
@@ -1445,29 +1445,29 @@ void D3D11Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
 	return;
 }
 
-vector<PixelModification> D3D11Replay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
+vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
 {
-	return m_pDevice->GetDebugManager()->PixelHistory(frameID, events, target, x, y, slice, mip, sampleIdx);
+	return m_pDevice->GetDebugManager()->PixelHistory(events, target, x, y, slice, mip, sampleIdx);
 }
 
-ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
-	return m_pDevice->GetDebugManager()->DebugVertex(frameID, eventID, vertid, instid, idx, instOffset, vertOffset);
+	return m_pDevice->GetDebugManager()->DebugVertex(eventID, vertid, instid, idx, instOffset, vertOffset);
 }
 
-ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
+ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
-	return m_pDevice->GetDebugManager()->DebugPixel(frameID, eventID, x, y, sample, primitive);
+	return m_pDevice->GetDebugManager()->DebugPixel(eventID, x, y, sample, primitive);
 }
 
-ShaderDebugTrace D3D11Replay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
-	return m_pDevice->GetDebugManager()->DebugThread(frameID, eventID, groupid, threadid);
+	return m_pDevice->GetDebugManager()->DebugThread(eventID, groupid, threadid);
 }
 
-uint32_t D3D11Replay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+uint32_t D3D11Replay::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
 {
-	return m_pDevice->GetDebugManager()->PickVertex(frameID, eventID, cfg, x, y);
+	return m_pDevice->GetDebugManager()->PickVertex(eventID, cfg, x, y);
 }
 
 void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
@@ -1475,9 +1475,9 @@ void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t
 	m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, sample, pixel);
 }
 
-ResourceId D3D11Replay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId D3D11Replay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
-	return m_pDevice->GetDebugManager()->RenderOverlay(texid, overlay, frameID, eventID, passEvents);
+	return m_pDevice->GetDebugManager()->RenderOverlay(texid, overlay, eventID, passEvents);
 }
 
 ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)

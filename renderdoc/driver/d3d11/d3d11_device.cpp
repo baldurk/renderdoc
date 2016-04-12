@@ -999,13 +999,12 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 	}
 	else
 	{
-		FetchFrameRecord record;
-		record.frameInfo.fileOffset = offset;
-		record.frameInfo.firstEvent = m_pImmediateContext->GetEventID();
-		record.frameInfo.frameNumber = FrameNumber;
-		record.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_pImmediateContext->GetResourceID());
+		m_FrameRecord.frameInfo.fileOffset = offset;
+		m_FrameRecord.frameInfo.firstEvent = m_pImmediateContext->GetEventID();
+		m_FrameRecord.frameInfo.frameNumber = FrameNumber;
+		m_FrameRecord.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_pImmediateContext->GetResourceID());
 
-		FetchFrameStatistics& stats = record.frameInfo.stats;
+		FetchFrameStatistics& stats = m_FrameRecord.frameInfo.stats;
 		RDCEraseEl(stats);
 
 		// #mivance GL/Vulkan don't set this so don't get stats in window
@@ -1028,8 +1027,6 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 		create_array(stats.draws.counts, FetchFrameDrawStats::BUCKET_COUNT);
 
 		create_array(stats.vertices.bindslots, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT + 1);
-
-		m_FrameRecord.push_back(record);
 
 		GetResourceManager()->CreateInitialContents();
 	}
@@ -1103,7 +1100,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 			break;
 	}
 
-	SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.back().frameInfo.immContextId, m_FrameRecord.back().drawcallList, NULL, NULL);
+	SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.frameInfo.immContextId, m_FrameRecord.drawcallList, NULL, NULL);
 
 #if !defined(RELEASE)
 	for(auto it=chunkInfos.begin(); it != chunkInfos.end(); ++it)
@@ -2268,11 +2265,9 @@ void WrappedID3D11Device::SetContextFilter(ResourceId id, uint32_t firstDefEv, u
 	m_LastDefEv = lastDefEv;
 }
 
-void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
+void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
 {
-	RDCASSERT(frameID < (uint32_t)m_FrameRecord.size());
-
-	uint64_t offs = m_FrameRecord[frameID].frameInfo.fileOffset;
+	uint64_t offs = m_FrameRecord.frameInfo.fileOffset;
 
 	m_pSerialiser->SetOffset(offs);
 
@@ -2280,7 +2275,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 
 	if(startEventID == 0 && (replayType == eReplay_WithoutDraw || replayType == eReplay_Full))
 	{
-		startEventID = m_FrameRecord[frameID].frameInfo.firstEvent;
+		startEventID = m_FrameRecord.frameInfo.firstEvent;
 		partial = false;
 	}
 	
@@ -2509,10 +2504,10 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
 	m_FailedFrame = 0;
 	m_FailedReason = CaptureSucceeded;
 
-	FetchFrameRecord record;
-	record.frameInfo.frameNumber = m_FrameCounter+1;
-	record.frameInfo.captureTime = Timing::GetUnixTimestamp();
-	m_FrameRecord.push_back(record);
+	FetchFrameInfo frame;
+	frame.frameNumber = m_FrameCounter+1;
+	frame.captureTime = Timing::GetUnixTimestamp();
+	m_CapturedFrames.push_back(frame);
 
 	m_DebugMessages.clear();
 
@@ -2902,7 +2897,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 			old.ApplyState(m_pImmediateContext);
 		}
 
-		m_FrameRecord.back().frameInfo.frameNumber = m_FrameCounter+1;
+		m_CapturedFrames.back().frameNumber = m_FrameCounter+1;
 
 		m_pImmediateContext->CleanupCapture();
 
@@ -2925,7 +2920,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 		{
 			m_pImmediateContext->FinishCapture();
 
-			m_FrameRecord.pop_back();
+			m_CapturedFrames.pop_back();
 
 			for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
 			{
@@ -3105,15 +3100,15 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 				if(overlay & eRENDERDOC_Overlay_CaptureList)
 				{
-					GetDebugManager()->RenderText(0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
+					GetDebugManager()->RenderText(0.0f, y, "%d Captures saved.\n", (uint32_t)m_CapturedFrames.size());
 					y += 1.0f;
 
 					uint64_t now = Timing::GetUnixTimestamp();
-					for(size_t i=0; i < m_FrameRecord.size(); i++)
+					for(size_t i=0; i < m_CapturedFrames.size(); i++)
 					{
-						if(now - m_FrameRecord[i].frameInfo.captureTime < 20)
+						if(now - m_CapturedFrames[i].captureTime < 20)
 						{
-							GetDebugManager()->RenderText(0.0f, y, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
+							GetDebugManager()->RenderText(0.0f, y, "Captured frame %d.\n", m_CapturedFrames[i].frameNumber);
 							y += 1.0f;
 						}
 					}
@@ -3480,7 +3475,7 @@ WrappedID3D11DeviceContext *WrappedID3D11Device::GetDeferredContext( size_t idx 
 	return *it;
 }
 
-const FetchDrawcall *WrappedID3D11Device::GetDrawcall(uint32_t frameID, uint32_t eventID)
+const FetchDrawcall *WrappedID3D11Device::GetDrawcall(uint32_t eventID)
 {
 	if(eventID >= m_Drawcalls.size())
 		return NULL;

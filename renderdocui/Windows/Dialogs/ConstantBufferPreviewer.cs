@@ -179,7 +179,7 @@ namespace renderdocui.Controls
             variables.Invalidate();
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
             ulong offs = 0;
             ulong size = 0;
@@ -423,7 +423,7 @@ namespace renderdocui.Controls
 					m_FormatSpecifier.SetErrors(errors);
 			}
 
-			OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
+			OnEventSelected(m_Core.CurEvent);
 		}
 
 		private void setFormat_CheckedChanged(object sender, EventArgs e)

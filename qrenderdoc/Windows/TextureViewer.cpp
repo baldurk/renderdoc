@@ -174,7 +174,7 @@ void TextureViewer::OnLogfileClosed()
 	ui->render->SetOutput(NULL);
 }
 
-void TextureViewer::OnEventSelected(uint32_t frameID, uint32_t eventID)
+void TextureViewer::OnEventSelected(uint32_t eventID)
 {
 	m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
 

@@ -552,16 +552,16 @@ void VulkanReplay::ReadLogInitialisation()
 	m_pDriver->ReadLogInitialisation();
 }
 
-void VulkanReplay::ReplayLog(uint32_t frameID, uint32_t endEventID, ReplayLogType replayType)
+void VulkanReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
-	m_pDriver->ReplayLog(frameID, 0, endEventID, replayType);
+	m_pDriver->ReplayLog(0, endEventID, replayType);
 }
 
-vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)
+vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventID)
 {
 	vector<uint32_t> passEvents;
 	
-	const FetchDrawcall *draw = m_pDriver->GetDrawcall(frameID, eventID);
+	const FetchDrawcall *draw = m_pDriver->GetDrawcall(eventID);
 
 	if(!draw)
 		return passEvents;
@@ -591,7 +591,7 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)
 			return passEvents;
 
 		// step back
-		start = m_pDriver->GetDrawcall(frameID, (uint32_t)start->previous);
+		start = m_pDriver->GetDrawcall((uint32_t)start->previous);
 
 		// something went wrong, start->previous was non-zero but we didn't
 		// get a draw. Abort
@@ -612,7 +612,7 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t frameID, uint32_t eventID)
 		if(start->flags & (eDraw_Drawcall|eDraw_PassBoundary))
 			passEvents.push_back(start->eventID);
 
-		start = m_pDriver->GetDrawcall(frameID, (uint32_t)start->next);
+		start = m_pDriver->GetDrawcall((uint32_t)start->next);
 	}
 
 	return passEvents;
@@ -638,7 +638,7 @@ Callstack::StackResolver *VulkanReplay::GetCallstackResolver()
 	return m_pDriver->GetMainSerialiser()->GetCallstackResolver();
 }
 
-vector<FetchFrameRecord> VulkanReplay::GetFrameRecord()
+FetchFrameRecord VulkanReplay::GetFrameRecord()
 {
 	return m_pDriver->GetFrameRecord();
 }
@@ -946,7 +946,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	m_DebugWidth = oldW;m_DebugHeight = oldH;
 }
 
-uint32_t VulkanReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+uint32_t VulkanReplay::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
 {
 	VULKANNOTIMP("PickVertex");
 	return ~0U;
@@ -1413,9 +1413,9 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 }
 
-ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
-	return GetDebugManager()->RenderOverlay(texid, overlay, frameID, eventID, passEvents);
+	return GetDebugManager()->RenderOverlay(texid, overlay, eventID, passEvents);
 }
 
 FloatVector VulkanReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool useidx, bool &valid)
@@ -1499,7 +1499,7 @@ FloatVector VulkanReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay
 	return ret;
 }
 
-void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
+void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
 	if(cfg.position.buf == ResourceId() || cfg.position.numVerts == 0)
 		return;
@@ -3921,16 +3921,15 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 	return true;
 }
 
-void VulkanReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
+void VulkanReplay::InitPostVSBuffers(uint32_t eventID)
 {
-	GetDebugManager()->InitPostVSBuffers(frameID, eventID);
+	GetDebugManager()->InitPostVSBuffers(eventID);
 }
 
 struct InitPostVSCallback : public DrawcallCallback
 {
-	InitPostVSCallback(WrappedVulkan *vk, uint32_t frameID, const vector<uint32_t> &events)
+	InitPostVSCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
 		: m_pDriver(vk)
-		, m_FrameID(frameID)
 	  , m_Events(events)
 	{ m_pDriver->SetDrawcallCB(this); }
 	~InitPostVSCallback()
@@ -3939,7 +3938,7 @@ struct InitPostVSCallback : public DrawcallCallback
 	void PreDraw(uint32_t eid, VkCommandBuffer cmd)
 	{
 		if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
-			m_pDriver->GetDebugManager()->InitPostVSBuffers(m_FrameID, eid);
+			m_pDriver->GetDebugManager()->InitPostVSBuffers(eid);
 	}
 
 	bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -3959,27 +3958,26 @@ struct InitPostVSCallback : public DrawcallCallback
 	void AliasEvent(uint32_t primary, uint32_t alias)
 	{
 		if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())
-			m_pDriver->GetDebugManager()->AliasPostVSBuffers(m_FrameID, primary, alias);
+			m_pDriver->GetDebugManager()->AliasPostVSBuffers(primary, alias);
 	}
 
-	uint32_t m_FrameID;
 	WrappedVulkan *m_pDriver;
 	const vector<uint32_t> &m_Events;
 };
 
-void VulkanReplay::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &events)
+void VulkanReplay::InitPostVSBuffers(const vector<uint32_t> &events)
 {
 	// first we must replay up to the first event without replaying it. This ensures any
 	// non-command buffer calls like memory unmaps etc all happen correctly before this
 	// command buffer
-	m_pDriver->ReplayLog(frameID, 0, events.front(), eReplay_WithoutDraw);
+	m_pDriver->ReplayLog(0, events.front(), eReplay_WithoutDraw);
 
-	InitPostVSCallback cb(m_pDriver, frameID, events);
+	InitPostVSCallback cb(m_pDriver, events);
 
 	// now we replay the events, which are guaranteed (because we generated them in
 	// GetPassEvents above) to come from the same command buffer, so the event IDs are
 	// still locally continuous, even if we jump into replaying.
-	m_pDriver->ReplayLog(frameID, events.front(), events.back(), eReplay_Full);
+	m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
 }
 
 vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)
@@ -4003,9 +4001,9 @@ void VulkanReplay::FreeCustomShader(ResourceId id)
 	VULKANNOTIMP("FreeCustomShader");
 }
 
-MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
-	return GetDebugManager()->GetPostVSBuffers(frameID, eventID, instID, stage);
+	return GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
 }
 
 byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
@@ -4473,25 +4471,25 @@ void VulkanReplay::BuildCustomShader(string source, string entry, const uint32_t
 	VULKANNOTIMP("BuildCustomShader");
 }
 
-vector<PixelModification> VulkanReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
+vector<PixelModification> VulkanReplay::PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
 {
 	VULKANNOTIMP("PixelHistory");
 	return vector<PixelModification>();
 }
 
-ShaderDebugTrace VulkanReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace VulkanReplay::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
 	VULKANNOTIMP("DebugVertex");
 	return ShaderDebugTrace();
 }
 
-ShaderDebugTrace VulkanReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
+ShaderDebugTrace VulkanReplay::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
 	VULKANNOTIMP("DebugPixel");
 	return ShaderDebugTrace();
 }
 
-ShaderDebugTrace VulkanReplay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+ShaderDebugTrace VulkanReplay::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
 	VULKANNOTIMP("DebugThread");
 	return ShaderDebugTrace();

@@ -109,14 +109,14 @@ class VulkanDebugManager
 		void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
 		void EndText(const TextPrintState &textstate);
 
-		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
+		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents);
 
-		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
+		void InitPostVSBuffers(uint32_t eventID);
 
-		// indicates that EID alias is the same as frameID/eventID
-		void AliasPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t alias) { m_PostVSAlias[alias] = eventID; }
+		// indicates that EID alias is the same as eventID
+		void AliasPostVSBuffers(uint32_t eventID, uint32_t alias) { m_PostVSAlias[alias] = eventID; }
 
-		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
+		MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 		void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret);
 
 		struct GPUBuffer
@@ -277,7 +277,7 @@ class VulkanDebugManager
 		
 		map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
 
-		map<pair<uint32_t,uint32_t>, VulkanPostVSData> m_PostVSData;
+		map<uint32_t, VulkanPostVSData> m_PostVSData;
 		map<uint32_t, uint32_t> m_PostVSAlias;
 		
 		WrappedVulkan *m_pDriver;

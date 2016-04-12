@@ -11,7 +11,7 @@ struct ILogViewerForm
 {
 	virtual void OnLogfileLoaded() = 0;
 	virtual void OnLogfileClosed() = 0;
-	virtual void OnEventSelected(uint32_t frameID, uint32_t eventID) = 0;
+	virtual void OnEventSelected(uint32_t eventID) = 0;
 };
 
 struct ILogLoadProgressListener
@@ -42,7 +42,7 @@ class Core
 
 		QString TempLogFilename(QString appname);
 
-		void SetEventID(ILogViewerForm *exclude, uint32_t frameID, uint32_t eventID);
+		void SetEventID(ILogViewerForm *exclude, uint32_t eventID);
 
 		void AddLogProgressListener(ILogLoadProgressListener *p);
 
@@ -53,7 +53,7 @@ class Core
 			if(LogLoaded())
 			{
 				f->OnLogfileLoaded();
-				f->OnEventSelected(CurFrame(), CurEvent());
+				f->OnEventSelected(CurEvent());
 			}
 		}
 
@@ -84,15 +84,13 @@ class Core
 		bool LogLoading() { return m_LoadInProgress; }
 		QString LogFilename() { return m_LogFile; }
 
-		const rdctype::array<FetchFrameInfo> &FrameInfo() { return m_FrameInfo; }
+		const FetchFrameInfo &FrameInfo() { return m_FrameInfo; }
 		const APIProperties &APIProps() { return m_APIProps; }
 
-		// TODO: support multiple frames
-		uint32_t CurFrame() { return m_FrameID; }
 		uint32_t CurEvent() { return m_EventID; }
 
-		const FetchDrawcall *CurDrawcall() { return GetDrawcall(CurFrame(), CurEvent()); }
-		const rdctype::array<FetchDrawcall> &CurDrawcalls(uint32_t frame) { return m_Drawcalls[frame]; }
+		const FetchDrawcall *CurDrawcall() { return GetDrawcall(CurEvent()); }
+		const rdctype::array<FetchDrawcall> &CurDrawcalls() { return m_Drawcalls; }
 
 		FetchTexture *GetTexture(ResourceId id) { return m_Textures[id]; }
 		const rdctype::array<FetchTexture> &GetTextures() { return m_TextureList; }
@@ -123,7 +121,7 @@ class Core
 		bool m_LogLoaded, m_LoadInProgress;
 		QString m_LogFile;
 
-		uint32_t m_FrameID, m_EventID;
+		uint32_t m_EventID;
 
 		const FetchDrawcall *GetDrawcall(const rdctype::array<FetchDrawcall> &draws, uint32_t eventID)
 		{
@@ -142,18 +140,15 @@ class Core
 			return NULL;
 		}
 
-		const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID)
+		const FetchDrawcall *GetDrawcall(uint32_t eventID)
 		{
-			if(m_Drawcalls == NULL || frameID >= (uint32_t)m_FrameInfo.count)
-				return NULL;
-
-			return GetDrawcall(m_Drawcalls[frameID], eventID);
+			return GetDrawcall(m_Drawcalls, eventID);
 		}
 
-		rdctype::array<FetchDrawcall> *m_Drawcalls;
+		rdctype::array<FetchDrawcall> m_Drawcalls;
 
 		APIProperties m_APIProps;
-		rdctype::array<FetchFrameInfo> m_FrameInfo;
+		FetchFrameInfo m_FrameInfo;
 
 		QMap<ResourceId, FetchTexture*> m_Textures;
 		rdctype::array<FetchTexture> m_TextureList;

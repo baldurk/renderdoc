@@ -91,7 +91,7 @@ namespace renderdocui.Windows
             UpdateScrollbar(1.0f, 0.0f);
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
             panel.Invalidate();
         }
@@ -755,7 +755,7 @@ namespace renderdocui.Windows
             rect.X -= (int)(rect.Width * ScrollPos);
 
             if (m_Core.LogLoaded)
-                Text = "Timeline - Frame #" + m_Core.FrameInfo[m_Core.CurFrame].frameNumber;
+                Text = "Timeline - Frame #" + m_Core.FrameInfo.frameNumber;
             else
                 Text = "Timeline";
 
@@ -1099,7 +1099,7 @@ namespace renderdocui.Windows
                 var draw = FindDraw(p);
 
                 if (draw != null)
-                    m_Core.SetEventID(null, m_Core.CurFrame, draw.eventID);
+                    m_Core.SetEventID(null, draw.eventID);
             }
         }
 

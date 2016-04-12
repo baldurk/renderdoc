@@ -157,10 +157,10 @@ namespace renderdocui.Windows.PipelineState
                 m_Current.OnLogfileClosed();
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
             if(m_Current != null)
-                m_Current.OnEventSelected(frameID, eventID);
+                m_Current.OnEventSelected(eventID);
         }
 
         private void PipelineStateViewer_FormClosed(object sender, FormClosedEventArgs e)

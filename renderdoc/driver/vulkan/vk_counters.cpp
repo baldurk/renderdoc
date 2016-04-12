@@ -119,7 +119,7 @@ struct GPUTimerCallback : public DrawcallCallback
 	vector< pair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
-vector<CounterResult> VulkanReplay::FetchCounters(uint32_t frameID, const vector<uint32_t> &counters)
+vector<CounterResult> VulkanReplay::FetchCounters(const vector<uint32_t> &counters)
 {
 	uint32_t maxEID = m_pDriver->GetMaxEID();
 
@@ -149,7 +149,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(uint32_t frameID, const vector
 	GPUTimerCallback cb(m_pDriver, this, pool);
 
 	// replay the events to perform all the queries
-	m_pDriver->ReplayLog(frameID, 0, maxEID, eReplay_Full);
+	m_pDriver->ReplayLog(0, maxEID, eReplay_Full);
 
 	vector<uint64_t> m_Data;
 	m_Data.resize(cb.m_Results.size()*2);

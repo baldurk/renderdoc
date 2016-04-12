@@ -1459,10 +1459,10 @@ bool ProxySerialiser::Tick()
 			SetContextFilter(ResourceId(), 0, 0);
 			break;
 		case eCommand_ReplayLog:
-			ReplayLog(0, 0, (ReplayLogType)0);
+			ReplayLog(0, (ReplayLogType)0);
 			break;
 		case eCommand_GetPassEvents:
-			GetPassEvents(0, 0);
+			GetPassEvents(0);
 			break;
 		case eCommand_GetAPIProperties:
 			GetAPIProperties();
@@ -1515,7 +1515,7 @@ bool ProxySerialiser::Tick()
 		case eCommand_FetchCounters:
 		{
 			vector<uint32_t> counters;
-			FetchCounters(0, counters);
+			FetchCounters(counters);
 			break;
 		}
 		case eCommand_EnumerateCounters:
@@ -1547,16 +1547,16 @@ bool ProxySerialiser::Tick()
 			break;
 		}
 		case eCommand_InitPostVS:
-			InitPostVSBuffers(0, 0);
+			InitPostVSBuffers(0);
 			break;
 		case eCommand_InitPostVSVec:
 		{
 			vector<uint32_t> dummy;
-			InitPostVSBuffers(0, dummy);
+			InitPostVSBuffers(dummy);
 			break;
 		}
 		case eCommand_GetPostVS:
-			GetPostVSBuffers(0, 0, 0, eMeshDataStage_Unknown);
+			GetPostVSBuffers(0, 0, eMeshDataStage_Unknown);
 			break;
 		case eCommand_BuildTargetShader:
 			BuildTargetShader("", "", 0, eShaderStage_Vertex, NULL, NULL);
@@ -1568,22 +1568,22 @@ bool ProxySerialiser::Tick()
 			RemoveReplacement(ResourceId());
 			break;
 		case eCommand_RenderOverlay:
-			RenderOverlay(ResourceId(), eTexOverlay_None, 0, 0, vector<uint32_t>());
+			RenderOverlay(ResourceId(), eTexOverlay_None, 0, vector<uint32_t>());
 			break;
 		case eCommand_PixelHistory:
-			PixelHistory(0, vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0);
+			PixelHistory(vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0);
 			break;
 		case eCommand_DebugVertex:
-			DebugVertex(0, 0, 0, 0, 0, 0, 0);
+			DebugVertex(0, 0, 0, 0, 0, 0);
 			break;
 		case eCommand_DebugPixel:
-			DebugPixel(0, 0, 0, 0, 0, 0);
+			DebugPixel(0, 0, 0, 0, 0);
 			break;
 		case eCommand_DebugThread:
 		{
 			uint32_t dummy1[3] = {0};
 			uint32_t dummy2[3] = {0};
-			DebugThread(0, 0, dummy1, dummy2);
+			DebugThread(0, dummy1, dummy2);
 			break;
 		}	
 		default:
@@ -1783,15 +1783,14 @@ void ProxySerialiser::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint3
 	}
 }
 
-void ProxySerialiser::ReplayLog(uint32_t frameID, uint32_t endEventID, ReplayLogType replayType)
+void ProxySerialiser::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", endEventID);
 	m_ToReplaySerialiser->Serialise("", replayType);
 	
 	if(m_ReplayHost)
 	{
-		m_Remote->ReplayLog(frameID, endEventID, replayType);
+		m_Remote->ReplayLog(endEventID, replayType);
 	}
 	else
 	{
@@ -1803,16 +1802,15 @@ void ProxySerialiser::ReplayLog(uint32_t frameID, uint32_t endEventID, ReplayLog
 	}
 }
 
-vector<uint32_t> ProxySerialiser::GetPassEvents(uint32_t frameID, uint32_t eventID)
+vector<uint32_t> ProxySerialiser::GetPassEvents(uint32_t eventID)
 {
 	vector<uint32_t> ret;
 	
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->GetPassEvents(frameID, eventID);
+		ret = m_Remote->GetPassEvents(eventID);
 	}
 	else
 	{
@@ -1846,9 +1844,9 @@ vector<EventUsage> ProxySerialiser::GetUsage(ResourceId id)
 	return ret;
 }
 
-vector<FetchFrameRecord> ProxySerialiser::GetFrameRecord()
+FetchFrameRecord ProxySerialiser::GetFrameRecord()
 {
-	vector<FetchFrameRecord> ret;
+	FetchFrameRecord ret;
 
 	if(m_ReplayHost)
 	{
@@ -1922,16 +1920,15 @@ ResourceId ProxySerialiser::GetLiveID(ResourceId id)
 	return ret;
 }
 
-vector<CounterResult> ProxySerialiser::FetchCounters(uint32_t frameID, const vector<uint32_t> &counters)
+vector<CounterResult> ProxySerialiser::FetchCounters(const vector<uint32_t> &counters)
 {
 	vector<CounterResult> ret;
 	
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", (vector<uint32_t> &)counters);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->FetchCounters(frameID, counters);
+		ret = m_Remote->FetchCounters(counters);
 	}
 	else
 	{
@@ -2079,14 +2076,13 @@ byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_
 	return NULL;
 }
 
-void ProxySerialiser::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
+void ProxySerialiser::InitPostVSBuffers(uint32_t eventID)
 {
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);
 	
 	if(m_ReplayHost)
 	{
-		m_Remote->InitPostVSBuffers(frameID, eventID);
+		m_Remote->InitPostVSBuffers(eventID);
 	}
 	else
 	{
@@ -2095,14 +2091,13 @@ void ProxySerialiser::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	}
 }
 
-void ProxySerialiser::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &events)
+void ProxySerialiser::InitPostVSBuffers(const vector<uint32_t> &events)
 {
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", (vector<uint32_t> &)events);
 	
 	if(m_ReplayHost)
 	{
-		m_Remote->InitPostVSBuffers(frameID, events);
+		m_Remote->InitPostVSBuffers(events);
 	}
 	else
 	{
@@ -2111,18 +2106,17 @@ void ProxySerialiser::InitPostVSBuffers(uint32_t frameID, const vector<uint32_t>
 	}
 }
 
-MeshFormat ProxySerialiser::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat ProxySerialiser::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
 	MeshFormat ret;
 	
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);
 	m_ToReplaySerialiser->Serialise("", instID);
 	m_ToReplaySerialiser->Serialise("", stage);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->GetPostVSBuffers(frameID, eventID, instID, stage);
+		ret = m_Remote->GetPostVSBuffers(eventID, instID, stage);
 	}
 	else
 	{
@@ -2135,7 +2129,7 @@ MeshFormat ProxySerialiser::GetPostVSBuffers(uint32_t frameID, uint32_t eventID,
 	return ret;
 }
 
-ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	ResourceId ret;
 
@@ -2143,13 +2137,12 @@ ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, TextureDisplayOverla
 
 	m_ToReplaySerialiser->Serialise("", texid);
 	m_ToReplaySerialiser->Serialise("", overlay);
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);
 	m_ToReplaySerialiser->Serialise("", events);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->RenderOverlay(texid, overlay, frameID, eventID, events);
+		ret = m_Remote->RenderOverlay(texid, overlay, eventID, events);
 	}
 	else
 	{
@@ -2349,11 +2342,10 @@ void ProxySerialiser::RemoveReplacement(ResourceId id)
 	}
 }
 
-vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
+vector<PixelModification> ProxySerialiser::PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
 {
 	vector<PixelModification> ret;
 	
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", events);
 	m_ToReplaySerialiser->Serialise("", target);
 	m_ToReplaySerialiser->Serialise("", x);
@@ -2364,7 +2356,7 @@ vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->PixelHistory(frameID, events, target, x, y, slice, mip, sampleIdx);
+		ret = m_Remote->PixelHistory(events, target, x, y, slice, mip, sampleIdx);
 	}
 	else
 	{
@@ -2377,11 +2369,10 @@ vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector
 	return ret;
 }
 
-ShaderDebugTrace ProxySerialiser::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace ProxySerialiser::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
 	ShaderDebugTrace ret;
 	
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);
 	m_ToReplaySerialiser->Serialise("", vertid);
 	m_ToReplaySerialiser->Serialise("", instid);
@@ -2391,7 +2382,7 @@ ShaderDebugTrace ProxySerialiser::DebugVertex(uint32_t frameID, uint32_t eventID
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->DebugVertex(frameID, eventID, vertid, instid, idx, instOffset, vertOffset);
+		ret = m_Remote->DebugVertex(eventID, vertid, instid, idx, instOffset, vertOffset);
 	}
 	else
 	{
@@ -2404,11 +2395,10 @@ ShaderDebugTrace ProxySerialiser::DebugVertex(uint32_t frameID, uint32_t eventID
 	return ret;
 }
 
-ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
+ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
 	ShaderDebugTrace ret;
 	
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);
 	m_ToReplaySerialiser->Serialise("", x);
 	m_ToReplaySerialiser->Serialise("", y);
@@ -2417,7 +2407,7 @@ ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t frameID, uint32_t eventID,
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->DebugPixel(frameID, eventID, x, y, sample, primitive);
+		ret = m_Remote->DebugPixel(eventID, x, y, sample, primitive);
 	}
 	else
 	{
@@ -2430,18 +2420,17 @@ ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t frameID, uint32_t eventID,
 	return ret;
 }
 
-ShaderDebugTrace ProxySerialiser::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+ShaderDebugTrace ProxySerialiser::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
 	ShaderDebugTrace ret;
 	
-	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);
 	m_ToReplaySerialiser->SerialisePODArray<3>("", groupid);
 	m_ToReplaySerialiser->SerialisePODArray<3>("", threadid);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->DebugThread(frameID, eventID, groupid, threadid);
+		ret = m_Remote->DebugThread(eventID, groupid, threadid);
 	}
 	else
 	{

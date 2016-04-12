@@ -259,7 +259,8 @@ private:
 
 	vector<DebugMessage> m_DebugMessages;
 
-	vector<FetchFrameRecord> m_FrameRecord;
+	vector<FetchFrameInfo> m_CapturedFrames;
+	FetchFrameRecord m_FrameRecord;
 	vector<FetchDrawcall*> m_Drawcalls;
 public:
 	static const int AllocPoolCount = 4;
@@ -293,9 +294,9 @@ public:
 
 	ResourceId GetResourceID() { return m_ResourceID; }
 
-	vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
+	FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
 
-	const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
+	const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
 	void FirstFrame(IDXGISwapChain *swap);
 
@@ -322,7 +323,7 @@ public:
 	void ReadLogInitialisation();
 	void ProcessChunk(uint64_t offset, D3D11ChunkType context);
 	void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
-	void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
+	void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 	
 	////////////////////////////////////////////////////////////////
 	// 'fake' interfaces

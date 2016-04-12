@@ -68,7 +68,7 @@ EventBrowser::~EventBrowser()
 
 void EventBrowser::OnLogfileLoaded()
 {
-	QTreeWidgetItem *frame = new QTreeWidgetItem((QTreeWidget *)NULL, QStringList{ QString("Frame #%1").arg(m_Core->FrameInfo()[0].frameNumber), "", "" });
+	QTreeWidgetItem *frame = new QTreeWidgetItem((QTreeWidget *)NULL, QStringList{ QString("Frame #%1").arg(m_Core->FrameInfo().frameNumber), "", "" });
 
 	QTreeWidgetItem *framestart = new QTreeWidgetItem(frame, QStringList{ "Frame Start", "0", "" });
 	framestart->setData(COL_EID, Qt::UserRole, QVariant(0));
@@ -76,7 +76,7 @@ void EventBrowser::OnLogfileLoaded()
 	framestart->setData(COL_FIND, Qt::UserRole, QVariant(false));
 	framestart->setData(COL_BOOKMARK, Qt::UserRole, QVariant(false));
 
-	uint lastEID = AddDrawcalls(frame, m_Core->CurDrawcalls(0));
+	uint lastEID = AddDrawcalls(frame, m_Core->CurDrawcalls());
 	frame->setData(COL_EID, Qt::UserRole, QVariant(lastEID));
 
 	ui->events->insertTopLevelItem(0, frame);
@@ -89,9 +89,9 @@ void EventBrowser::OnLogfileClosed()
 	ui->events->clear();
 }
 
-void EventBrowser::OnEventSelected(uint32_t frameID, uint32_t eventID)
+void EventBrowser::OnEventSelected(uint32_t eventID)
 {
-	SelectEvent(frameID, eventID);
+	SelectEvent(eventID);
 }
 
 uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<FetchDrawcall> &draws)
@@ -182,7 +182,7 @@ void EventBrowser::on_timeDraws_clicked()
 		uint32_t counters[] = { eCounter_EventGPUDuration };
 
 		rdctype::array<CounterResult> results;
-		r->FetchCounters(m_Core->CurFrame(), counters, 1, &results);
+		r->FetchCounters(counters, 1, &results);
 
 		GUIInvoke::blockcall([this, results]() {
 			SetDrawcallTimes(ui->events->topLevelItem(0), results);
@@ -205,7 +205,7 @@ void EventBrowser::on_events_currentItemChanged(QTreeWidgetItem *current, QTreeW
 
 	uint EID = current->data(COL_EID, Qt::UserRole).toUInt();
 
-	m_Core->SetEventID(this, 0, EID);
+	m_Core->SetEventID(this, EID);
 }
 
 void EventBrowser::on_HideFindJump()
@@ -226,7 +226,7 @@ void EventBrowser::on_jumpToEID_returnPressed()
 	uint eid = ui->jumpToEID->text().toUInt(&ok);
 	if(ok)
 	{
-		SelectEvent(m_Core->CurFrame(), eid);
+		SelectEvent(eid);
 	}
 }
 
@@ -295,7 +295,7 @@ void EventBrowser::RefreshIcon(QTreeWidgetItem *item)
 		item->setIcon(COL_NAME, QIcon());
 }
 
-bool EventBrowser::FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *parent, uint32_t frameID, uint32_t eventID)
+bool EventBrowser::FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *parent, uint32_t eventID)
 {
 	for(int i=0; i < parent->childCount(); i++)
 	{
@@ -312,7 +312,7 @@ bool EventBrowser::FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *paren
 
 		if(n->childCount() > 0)
 		{
-			bool exact = FindEventNode(found, n, frameID, eventID);
+			bool exact = FindEventNode(found, n, eventID);
 			if(exact) return true;
 		}
 	}
@@ -333,13 +333,13 @@ void EventBrowser::ExpandNode(QTreeWidgetItem *node)
 		ui->events->scrollToItem(n);
 }
 
-bool EventBrowser::SelectEvent(uint32_t frameID, uint32_t eventID)
+bool EventBrowser::SelectEvent(uint32_t eventID)
 {
 	if(!m_Core->LogLoaded())
 		return false;
 
 	QTreeWidgetItem *found = NULL;
-	FindEventNode(found, ui->events->topLevelItem(0), frameID, eventID);
+	FindEventNode(found, ui->events->topLevelItem(0), eventID);
 	if(found != NULL)
 	{
 		ui->events->clearSelection();
@@ -481,7 +481,7 @@ void EventBrowser::Find(bool forward)
 	int eid = FindEvent(ui->findEvent->text(), curEID, forward);
 	if(eid >= 0)
 	{
-		SelectEvent(0, (uint32_t)eid);
+		SelectEvent((uint32_t)eid);
 		ui->findEvent->setStyleSheet("");
 	}
 	else // if(WrapSearch)
@@ -489,7 +489,7 @@ void EventBrowser::Find(bool forward)
 		eid = FindEvent(ui->findEvent->text(), forward ? 0 : ~0U, forward);
 		if(eid >= 0)
 		{
-			SelectEvent(0, (uint32_t)eid);
+			SelectEvent((uint32_t)eid);
 			ui->findEvent->setStyleSheet("");
 		}
 		else

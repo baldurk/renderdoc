@@ -1225,8 +1225,8 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 	if(m_State == READING)
 	{
-		m_pDevice->GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
-		m_pDevice->GetFrameRecord().back().frameInfo.debugMessages = m_pDevice->GetDebugMessages();
+		m_pDevice->GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
+		m_pDevice->GetFrameRecord().frameInfo.debugMessages = m_pDevice->GetDebugMessages();
 
 		for(auto it=WrappedID3D11Buffer::m_BufferList.begin(); it != WrappedID3D11Buffer::m_BufferList.end(); ++it)
 			m_ResourceUses[it->first];
@@ -1390,7 +1390,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID rii
 
 void WrappedID3D11DeviceContext::RecordIndexBindStats(ID3D11Buffer* Buffer)
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
 	FetchFrameStatistics& stats = record.frameInfo.stats;
 	FetchFrameIndexBindStats& indices = stats.indices;
 	indices.calls += 1;
@@ -1400,7 +1400,7 @@ void WrappedID3D11DeviceContext::RecordIndexBindStats(ID3D11Buffer* Buffer)
 
 void WrappedID3D11DeviceContext::RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer* Buffers[])
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
 	FetchFrameStatistics& stats = record.frameInfo.stats;
 	FetchFrameVertexBindStats& vertices = stats.vertices;
 	vertices.calls += 1;
@@ -1418,7 +1418,7 @@ void WrappedID3D11DeviceContext::RecordVertexBindStats(UINT NumBuffers, ID3D11Bu
 
 void WrappedID3D11DeviceContext::RecordLayoutBindStats(ID3D11InputLayout* Layout)
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
 	FetchFrameStatistics& stats = record.frameInfo.stats;
 	FetchFrameLayoutBindStats& layouts = stats.layouts;
 	layouts.calls += 1;
@@ -1428,7 +1428,7 @@ void WrappedID3D11DeviceContext::RecordLayoutBindStats(ID3D11InputLayout* Layout
 
 void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStageType stage, UINT NumBuffers, ID3D11Buffer* Buffers[])
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
 	FetchFrameStatistics& stats = record.frameInfo.stats;
 	RDCASSERT(stage < ARRAY_COUNT( stats.constants));
 	FetchFrameConstantBindStats& constants = stats.constants[stage];
@@ -1458,7 +1458,7 @@ void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStageType stage, UINT
 
 void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStageType stage, UINT NumResources, ID3D11ShaderResourceView* Resources[])
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
 	FetchFrameStatistics& stats = record.frameInfo.stats;
 	RDCASSERT(stage < ARRAY_COUNT(stats.resources));
 	FetchFrameResourceBindStats& resources = stats.resources[stage];
@@ -1506,7 +1506,7 @@ void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStageType stage, UINT
 
 void WrappedID3D11DeviceContext::RecordSamplerStats(ShaderStageType stage, UINT NumSamplers, ID3D11SamplerState* Samplers[])
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
 	FetchFrameStatistics& stats = record.frameInfo.stats;
 	RDCASSERT(stage < ARRAY_COUNT(stats.samplers));
 	FetchFrameSamplerBindStats& samplers = stats.samplers[stage];
@@ -1525,7 +1525,7 @@ void WrappedID3D11DeviceContext::RecordSamplerStats(ShaderStageType stage, UINT 
 
 void WrappedID3D11DeviceContext::RecordUpdateStats(ID3D11Resource* res, uint32_t Size, bool Server)
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
 	FetchFrameStatistics& stats = record.frameInfo.stats;
 	FetchFrameUpdateStats& updates = stats.updates;
 
@@ -1560,7 +1560,7 @@ void WrappedID3D11DeviceContext::RecordUpdateStats(ID3D11Resource* res, uint32_t
 
 void WrappedID3D11DeviceContext::RecordDrawStats(bool instanced, bool indirect, UINT InstanceCount)
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
 	FetchFrameStatistics& stats = record.frameInfo.stats;
 	FetchFrameDrawStats& draws = stats.draws;
 
@@ -1578,7 +1578,7 @@ void WrappedID3D11DeviceContext::RecordDrawStats(bool instanced, bool indirect, 
 
 void WrappedID3D11DeviceContext::RecordDispatchStats(bool indirect)
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord().back();
+	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
 	FetchFrameStatistics& stats = record.frameInfo.stats;
 	FetchFrameDispatchStats& dispatches = stats.dispatches;
 

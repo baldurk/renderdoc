@@ -371,7 +371,7 @@ namespace renderdocui.Windows
             m_Core.GetEventBrowser().Focus();
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
         }
 
@@ -1287,7 +1287,7 @@ namespace renderdocui.Windows
 
                         if (eb.Visible && eb.HasBookmark(i))
                         {
-                            m_Core.SetEventID(null, m_Core.CurFrame, eb.GetBookmark(i));
+                            m_Core.SetEventID(null, eb.GetBookmark(i));
 
                             return true;
                         }

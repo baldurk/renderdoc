@@ -63,14 +63,13 @@ namespace renderdocui.Code
 
         private string m_LogFile = "";
 
-        private UInt32 m_FrameID = 0;
         private UInt32 m_EventID = 0;
         private UInt32 m_DeferredEvent = 0;
 
         private APIProperties m_APIProperties = null;
 
-        private FetchFrameInfo[] m_FrameInfo = null;
-        private FetchDrawcall[][] m_DrawCalls = null;
+        private FetchFrameInfo m_FrameInfo = null;
+        private FetchDrawcall[] m_DrawCalls = null;
         private FetchBuffer[] m_Buffers = null;
         private FetchTexture[] m_Textures = null;
 
@@ -117,17 +116,15 @@ namespace renderdocui.Code
         public bool LogLoading { get { return m_LogLoadingInProgress; } }
         public string LogFileName { get { return m_LogFile; } set { if (LogLoaded) m_LogFile = value; } }
 
-        public FetchFrameInfo[] FrameInfo { get { return m_FrameInfo; } }
+        public FetchFrameInfo FrameInfo { get { return m_FrameInfo; } }
 
         public APIProperties APIProps { get { return m_APIProperties; } }
 
-        // typically 0 right now as we haven't supported multiple frames in logs for a loooong time.
-        public UInt32 CurFrame { get { return m_FrameID; } }
         public UInt32 CurEvent { get { return m_DeferredEvent > 0 ? m_DeferredEvent : m_EventID; } }
 
-        public FetchDrawcall[] CurDrawcalls { get { return GetDrawcalls(CurFrame); } }
+        public FetchDrawcall[] CurDrawcalls { get { return GetDrawcalls(); } }
 
-        public FetchDrawcall CurDrawcall { get { return GetDrawcall(CurFrame, CurEvent); } }
+        public FetchDrawcall CurDrawcall { get { return GetDrawcall(CurEvent); } }
 
         public FetchTexture[] CurTextures { get { return m_Textures; } }
         public FetchBuffer[] CurBuffers { get { return m_Buffers; } }
@@ -305,7 +302,7 @@ namespace renderdocui.Code
         // if a log doesn't contain any markers specified at all by the user, then we can
         // fake some up by determining batches of draws that are similar and giving them a
         // pass number
-        private FetchDrawcall[] FakeProfileMarkers(int frameID, FetchDrawcall[] draws)
+        private FetchDrawcall[] FakeProfileMarkers(FetchDrawcall[] draws)
         {
             if (ContainsMarker(draws))
                 return draws;
@@ -337,8 +334,8 @@ namespace renderdocui.Code
 
                 if (end - start < 2 ||
                     draws[i].children.Length > 0 || draws[refdraw].children.Length > 0 ||
-                    draws[i].context != m_FrameInfo[frameID].immContextId ||
-                    draws[refdraw].context != m_FrameInfo[frameID].immContextId)
+                    draws[i].context != m_FrameInfo.immContextId ||
+                    draws[refdraw].context != m_FrameInfo.immContextId)
                 {
                     for (int j = start; j <= end; j++)
                         ret.Add(draws[j]);
@@ -506,7 +503,6 @@ namespace renderdocui.Code
                     m_Config.Serialize(Core.ConfigFilename);
             }
 
-            m_FrameID = 0;
             m_EventID = 0;
 
             m_FrameInfo = null;
@@ -521,18 +517,13 @@ namespace renderdocui.Code
 
                 postloadProgress = 0.2f;
 
-                m_DrawCalls = new FetchDrawcall[m_FrameInfo.Length][];
+                m_DrawCalls = FakeProfileMarkers(r.GetDrawcalls());
 
                 postloadProgress = 0.4f;
 
-                for (int i = 0; i < m_FrameInfo.Length; i++)
-                    m_DrawCalls[i] = FakeProfileMarkers(i, r.GetDrawcalls((UInt32)i));
-
-                postloadProgress = 0.7f;
-
                 m_Buffers = r.GetBuffers();
 
-                postloadProgress = 0.8f;
+                postloadProgress = 0.7f;
                 var texs = new List<FetchTexture>(r.GetTextures());
                 m_Textures = texs.OrderBy(o => o.name).ToArray();
 
@@ -544,7 +535,7 @@ namespace renderdocui.Code
                 m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_GLPipelineState, m_VulkanPipelineState);
 
                 UnreadMessageCount = 0;
-                AddMessages(m_FrameInfo[0].debugMessages);
+                AddMessages(m_FrameInfo.debugMessages);
 
                 postloadProgress = 1.0f;
             });
@@ -617,10 +608,10 @@ namespace renderdocui.Code
             m_Renderer.Invoke((ReplayRenderer r) =>
             {
                 r.FileChanged();
-                r.SetFrameEvent(m_FrameID, m_EventID > 0 ? m_EventID-1 : 1, true);
+                r.SetFrameEvent(m_EventID > 0 ? m_EventID-1 : 1, true);
             });
 
-            SetEventID(null, CurFrame, CurEvent);
+            SetEventID(null, CurEvent);
         }
 
         public void CloseLogfile()
@@ -682,10 +673,9 @@ namespace renderdocui.Code
 
         #region Log drawcalls
 
-        public FetchDrawcall[] GetDrawcalls(UInt32 frameIdx)
+        public FetchDrawcall[] GetDrawcalls()
         {
-            if (m_DrawCalls == null) return null;
-            return m_DrawCalls[frameIdx];
+            return m_DrawCalls;
         }
 
         private FetchDrawcall GetDrawcall(FetchDrawcall[] draws, UInt32 eventID)
@@ -705,12 +695,12 @@ namespace renderdocui.Code
             return null;
         }
 
-        public FetchDrawcall GetDrawcall(UInt32 frameID, UInt32 eventID)
+        public FetchDrawcall GetDrawcall(UInt32 eventID)
         {
-            if (frameID < 0 || m_DrawCalls == null || frameID >= m_DrawCalls.Length)
+            if (m_DrawCalls == null)
                 return null;
 
-            return GetDrawcall(m_DrawCalls[frameID], eventID);
+            return GetDrawcall(m_DrawCalls, eventID);
         }
 
         #endregion
@@ -833,7 +823,7 @@ namespace renderdocui.Code
             if (LogLoaded)
             {
                 f.OnLogfileLoaded();
-                f.OnEventSelected(CurFrame, CurEvent);
+                f.OnEventSelected(CurEvent);
             }
         }
 
@@ -848,17 +838,16 @@ namespace renderdocui.Code
 
         // setting a context filter allows replaying of deferred events. You can set the deferred
         // events to replay in a context, after replaying up to a given event on the main thread
-        public void SetContextFilter(ILogViewerForm exclude, UInt32 frameID, UInt32 eventID,
+        public void SetContextFilter(ILogViewerForm exclude, UInt32 eventID,
                                      ResourceId ctx, UInt32 firstDeferred, UInt32 lastDeferred)
         {
-            m_FrameID = frameID;
             m_EventID = eventID;
 
             m_DeferredEvent = lastDeferred;
 
             m_Renderer.Invoke((ReplayRenderer r) => { r.SetContextFilter(ctx, firstDeferred, lastDeferred); });
             m_Renderer.Invoke((ReplayRenderer r) => {
-                r.SetFrameEvent(m_FrameID, m_EventID, true);
+                r.SetFrameEvent(m_EventID, true);
                 m_D3D11PipelineState = r.GetD3D11PipelineState();
                 m_GLPipelineState = r.GetGLPipelineState();
                 m_VulkanPipelineState = r.GetVulkanPipelineState();
@@ -872,25 +861,24 @@ namespace renderdocui.Code
 
                 Control c = (Control)logviewer;
                 if (c.InvokeRequired)
-                    c.BeginInvoke(new Action(() => logviewer.OnEventSelected(frameID, eventID)));
+                    c.BeginInvoke(new Action(() => logviewer.OnEventSelected(eventID)));
                 else
-                    logviewer.OnEventSelected(frameID, eventID);
+                    logviewer.OnEventSelected(eventID);
             }
         }
 
         public void RefreshStatus()
         {
-            SetEventID(null, m_FrameID, m_EventID, true);
+            SetEventID(null, m_EventID, true);
         }
 
-        public void SetEventID(ILogViewerForm exclude, UInt32 frameID, UInt32 eventID)
+        public void SetEventID(ILogViewerForm exclude, UInt32 eventID)
         {
-            SetEventID(exclude, frameID, eventID, false);
+            SetEventID(exclude, eventID, false);
         }
 
-        private void SetEventID(ILogViewerForm exclude, UInt32 frameID, UInt32 eventID, bool force)
+        private void SetEventID(ILogViewerForm exclude, UInt32 eventID, bool force)
         {
-            m_FrameID = frameID;
             m_EventID = eventID;
 
             m_DeferredEvent = 0;
@@ -898,7 +886,7 @@ namespace renderdocui.Code
             m_Renderer.Invoke((ReplayRenderer r) => { r.SetContextFilter(ResourceId.Null, 0, 0); });
             m_Renderer.Invoke((ReplayRenderer r) =>
             {
-                r.SetFrameEvent(m_FrameID, m_EventID, force);
+                r.SetFrameEvent(m_EventID, force);
                 m_D3D11PipelineState = r.GetD3D11PipelineState();
                 m_GLPipelineState = r.GetGLPipelineState();
                 m_VulkanPipelineState = r.GetVulkanPipelineState();
@@ -912,9 +900,9 @@ namespace renderdocui.Code
 
                 Control c = (Control)logviewer;
                 if (c.InvokeRequired)
-                    c.Invoke(new Action(() => logviewer.OnEventSelected(frameID, eventID)));
+                    c.Invoke(new Action(() => logviewer.OnEventSelected(eventID)));
                 else
-                    logviewer.OnEventSelected(frameID, eventID);
+                    logviewer.OnEventSelected(eventID);
             }
         }
 

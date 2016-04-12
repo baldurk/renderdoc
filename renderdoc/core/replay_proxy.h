@@ -220,7 +220,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 			}
 		}
 			
-		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
+		void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 		{
 			if(m_Proxy && cfg.position.buf != ResourceId())
 			{
@@ -255,11 +255,11 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 					}
 				}
 
-				m_Proxy->RenderMesh(frameID, eventID, secDraws, cfg);
+				m_Proxy->RenderMesh(eventID, secDraws, cfg);
 			}
 		}
 
-		uint32_t PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+		uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
 		{
 			if(m_Proxy && cfg.position.buf != ResourceId())
 			{
@@ -278,7 +278,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 					cfg.position.idxbuf = m_ProxyBufferIds[cfg.position.idxbuf];
 				}
 
-				return m_Proxy->PickVertex(frameID, eventID, cfg, x, y);
+				return m_Proxy->PickVertex(eventID, cfg, x, y);
 			}
 
 			return ~0U;
@@ -336,12 +336,12 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
 		
 		void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
-		void ReplayLog(uint32_t frameID, uint32_t endEventID, ReplayLogType replayType);
+		void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
 		
-		vector<uint32_t> GetPassEvents(uint32_t frameID, uint32_t eventID);
+		vector<uint32_t> GetPassEvents(uint32_t eventID);
 
 		vector<EventUsage> GetUsage(ResourceId id);
-		vector<FetchFrameRecord> GetFrameRecord();
+		FetchFrameRecord GetFrameRecord();
 		
 		bool IsRenderOutput(ResourceId id);
 		
@@ -349,18 +349,18 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		
 		vector<uint32_t> EnumerateCounters();
 		void DescribeCounter(uint32_t counterID, CounterDescription &desc);
-		vector<CounterResult> FetchCounters(uint32_t frameID, const vector<uint32_t> &counterID);
+		vector<CounterResult> FetchCounters(const vector<uint32_t> &counterID);
 		
 		void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data);
 		
 		void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData);
 		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
 		
-		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
-		void InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &passEvents);
-		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
+		void InitPostVSBuffers(uint32_t eventID);
+		void InitPostVSBuffers(const vector<uint32_t> &passEvents);
+		MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 		
-		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
+		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents);
 
 		ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 		
@@ -372,10 +372,10 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		
 		void FreeTargetResource(ResourceId id);
 			
-		vector<PixelModification> PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx);
-		ShaderDebugTrace DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
-		ShaderDebugTrace DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);
-		ShaderDebugTrace DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]);
+		vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx);
+		ShaderDebugTrace DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
+		ShaderDebugTrace DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);
+		ShaderDebugTrace DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]);
 		
 		void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors);
 		void ReplaceResource(ResourceId from, ResourceId to);

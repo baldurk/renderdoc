@@ -158,7 +158,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetCustomShaderTexID(Rep
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(ReplayOutput *output, ResourceId texID, bool32 customShader,
 														uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val);
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(ReplayOutput *output, uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(ReplayOutput *output, uint32_t eventID, uint32_t x, uint32_t y);
 
 // for C++ expose the interface as a virtual interface
 #ifdef __cplusplus
@@ -177,7 +177,7 @@ struct IReplayRenderer
 	virtual bool InitResolver() = 0;
 
 	virtual bool SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv) = 0;
-	virtual bool SetFrameEvent(uint32_t frameID, uint32_t eventID, bool force) = 0;
+	virtual bool SetFrameEvent(uint32_t eventID, bool force) = 0;
 	virtual bool GetD3D11PipelineState(D3D11PipelineState *state) = 0;
 	virtual bool GetGLPipelineState(GLPipelineState *state) = 0;
 	virtual bool GetVulkanPipelineState(VulkanPipelineState *state) = 0;
@@ -190,9 +190,9 @@ struct IReplayRenderer
 	virtual bool RemoveReplacement(ResourceId id) = 0;
 	virtual bool FreeTargetResource(ResourceId id) = 0;
 
-	virtual bool GetFrameInfo(rdctype::array<FetchFrameInfo> *frame) = 0;
-	virtual bool GetDrawcalls(uint32_t frameID, rdctype::array<FetchDrawcall> *draws) = 0;
-	virtual bool FetchCounters(uint32_t frameID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results) = 0;
+	virtual bool GetFrameInfo(FetchFrameInfo *frame) = 0;
+	virtual bool GetDrawcalls(rdctype::array<FetchDrawcall> *draws) = 0;
+	virtual bool FetchCounters(uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results) = 0;
 	virtual bool EnumerateCounters(rdctype::array<uint32_t> *counters) = 0;
 	virtual bool DescribeCounter(uint32_t counterID, CounterDescription *desc) = 0;
 	virtual bool GetTextures(rdctype::array<FetchTexture> *texs) = 0;
@@ -244,7 +244,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_HasCallstacks(Replay
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_InitResolver(ReplayRenderer *rend);
  
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetContextFilter(ReplayRenderer *rend, ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(ReplayRenderer *rend, uint32_t frameID, uint32_t eventID, bool32 force);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(ReplayRenderer *rend, uint32_t eventID, bool32 force);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetD3D11PipelineState(ReplayRenderer *rend, D3D11PipelineState *state);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(ReplayRenderer *rend, GLPipelineState *state);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetVulkanPipelineState(ReplayRenderer *rend, VulkanPipelineState *state);
@@ -257,9 +257,9 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_ReplaceResource(Repl
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_RemoveReplacement(ReplayRenderer *rend, ResourceId id);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeTargetResource(ReplayRenderer *rend, ResourceId id);
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(ReplayRenderer *rend, rdctype::array<FetchFrameInfo> *frame);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, uint32_t frameID, rdctype::array<FetchDrawcall> *draws);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FetchCounters(ReplayRenderer *rend, uint32_t frameID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(ReplayRenderer *rend, FetchFrameInfo *frame);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, rdctype::array<FetchDrawcall> *draws);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FetchCounters(ReplayRenderer *rend, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_EnumerateCounters(ReplayRenderer *rend, rdctype::array<uint32_t> *counters);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DescribeCounter(ReplayRenderer *rend, uint32_t counterID, CounterDescription *desc);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetTextures(ReplayRenderer *rend, rdctype::array<FetchTexture> *texs);

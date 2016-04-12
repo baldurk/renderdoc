@@ -220,7 +220,7 @@ namespace renderdocui.Windows.PipelineState
         
         public void OnLogfileLoaded()
         {
-            OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
+            OnEventSelected(m_Core.CurEvent);
         }
 
         private void EmptyRow(TreelistView.Node node)
@@ -1617,7 +1617,7 @@ namespace renderdocui.Windows.PipelineState
             }
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
             UpdateState();
         }

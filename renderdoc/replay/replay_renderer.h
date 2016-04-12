@@ -61,12 +61,12 @@ public:
 	bool PickPixel(ResourceId texID, bool customShader, 
 					uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample,
 					PixelValue *val);
-	uint32_t PickVertex(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y);
+	uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y);
 private:
 	ReplayOutput(ReplayRenderer *parent, void *w, OutputType type);
 	virtual ~ReplayOutput();
 	
-	void SetFrameEvent(int frameID, int eventID);
+	void SetFrameEvent(int eventID);
 	void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
 	
 	void RefreshOverlay();
@@ -107,7 +107,6 @@ private:
 	float m_ContextY;
 	OutputPair m_PixelContext;
 
-	uint32_t m_FrameID;
 	uint32_t m_EventID;
 	uint32_t m_FirstDeferredEvent;
 	uint32_t m_LastDeferredEvent;
@@ -144,7 +143,7 @@ struct ReplayRenderer : public IReplayRenderer
 		bool InitResolver();
 		
 		bool SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
-		bool SetFrameEvent(uint32_t frameID, uint32_t eventID, bool force);
+		bool SetFrameEvent(uint32_t eventID, bool force);
 
 		void FetchPipelineState();
 
@@ -160,9 +159,9 @@ struct ReplayRenderer : public IReplayRenderer
 		bool RemoveReplacement(ResourceId id);
 		bool FreeTargetResource(ResourceId id);
 		
-		bool GetFrameInfo(rdctype::array<FetchFrameInfo> *frame);
-		bool GetDrawcalls(uint32_t frameID, rdctype::array<FetchDrawcall> *draws);
-		bool FetchCounters(uint32_t frameID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
+		bool GetFrameInfo(FetchFrameInfo *frame);
+		bool GetDrawcalls(rdctype::array<FetchDrawcall> *draws);
+		bool FetchCounters(uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
 		bool EnumerateCounters(rdctype::array<uint32_t> *counters);
 		bool DescribeCounter(uint32_t counterID, CounterDescription *desc);
 		bool GetTextures(rdctype::array<FetchTexture> *texs);
@@ -206,10 +205,9 @@ struct ReplayRenderer : public IReplayRenderer
 
 			rdctype::array<FetchDrawcall> m_DrawCallList;
 		};
-		vector<FrameRecord> m_FrameRecord;
+		FrameRecord m_FrameRecord;
 		vector<FetchDrawcall*> m_Drawcalls;
 
-		uint32_t m_FrameID;
 		uint32_t m_EventID;
 		ResourceId m_DeferredCtx;
 		uint32_t m_FirstDeferredEvent;

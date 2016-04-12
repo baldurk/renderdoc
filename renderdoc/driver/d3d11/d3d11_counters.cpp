@@ -143,7 +143,6 @@ struct GPUTimer
 
 struct CounterContext
 {
-	uint32_t frameID;
 	uint32_t eventStart;
 	vector<GPUTimer> timers;
 	int reuseIdx;
@@ -186,26 +185,26 @@ void D3D11DebugManager::FillTimers(CounterContext &ctx, const DrawcallTreeNode &
 			}
 		}
 
-		m_WrappedDevice->ReplayLog(ctx.frameID, ctx.eventStart, d.eventID, eReplay_WithoutDraw);
+		m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventID, eReplay_WithoutDraw);
 
 		m_pImmediateContext->Flush();
 		
 		if(timer->before && timer->after)
 		{
 			m_pImmediateContext->End(timer->before);
-			m_WrappedDevice->ReplayLog(ctx.frameID, ctx.eventStart, d.eventID, eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
 			m_pImmediateContext->End(timer->after);
 		}
 		else
 		{
-			m_WrappedDevice->ReplayLog(ctx.frameID, ctx.eventStart, d.eventID, eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
 		}
 		
 		ctx.eventStart = d.eventID+1;
 	}
 }
 
-vector<CounterResult> D3D11DebugManager::FetchCounters(uint32_t frameID, const vector<uint32_t> &counters)
+vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<uint32_t> &counters)
 {
 	vector<CounterResult> ret;
 
@@ -244,7 +243,6 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(uint32_t frameID, const v
 	}
 
 	CounterContext ctx;
-	ctx.frameID = frameID;
 
 	for(int loop=0; loop < 1; loop++)
 	{

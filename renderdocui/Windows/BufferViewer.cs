@@ -525,7 +525,7 @@ namespace renderdocui.Windows
             }
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
             ClearStoredData();
 
@@ -2197,7 +2197,7 @@ namespace renderdocui.Windows
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
-                UInt32 vertSelected = m_Output.PickVertex(m_Core.CurFrame, m_Core.CurEvent, (UInt32)p.X, (UInt32)p.Y);
+                UInt32 vertSelected = m_Output.PickVertex(m_Core.CurEvent, (UInt32)p.X, (UInt32)p.Y);
 
                 if (vertSelected != UInt32.MaxValue)
                 {
@@ -2992,7 +2992,7 @@ namespace renderdocui.Windows
                         m_MeshDisplay.curInstance = inst;
 
 
-                        OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
+                        OnEventSelected(m_Core.CurEvent);
                     }
                 }
             }
@@ -3100,7 +3100,7 @@ namespace renderdocui.Windows
                 {
                     m_MeshDisplay.curInstance = inst;
 
-                    OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
+                    OnEventSelected(m_Core.CurEvent);
                 }
             }
         }

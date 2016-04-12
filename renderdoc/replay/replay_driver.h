@@ -72,21 +72,21 @@ class IRemoteDriver
 		virtual GLPipelineState GetGLPipelineState() = 0;
 		virtual VulkanPipelineState GetVulkanPipelineState() = 0;
 
-		virtual vector<FetchFrameRecord> GetFrameRecord() = 0;
+		virtual FetchFrameRecord GetFrameRecord() = 0;
 
 
 		virtual void ReadLogInitialisation() = 0;
 		virtual void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv) = 0;
-		virtual void ReplayLog(uint32_t frameID, uint32_t endEventID, ReplayLogType replayType) = 0;
+		virtual void ReplayLog(uint32_t endEventID, ReplayLogType replayType) = 0;
 
-		virtual vector<uint32_t> GetPassEvents(uint32_t frameID, uint32_t eventID) = 0;
+		virtual vector<uint32_t> GetPassEvents(uint32_t eventID) = 0;
 
-		virtual void InitPostVSBuffers(uint32_t frameID, uint32_t eventID) = 0;
-		virtual void InitPostVSBuffers(uint32_t frameID, const vector<uint32_t> &passEvents) = 0;
+		virtual void InitPostVSBuffers(uint32_t eventID) = 0;
+		virtual void InitPostVSBuffers(const vector<uint32_t> &passEvents) = 0;
 
 		virtual ResourceId GetLiveID(ResourceId id) = 0;
 		
-		virtual MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage) = 0;
+		virtual MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage) = 0;
 		
 		virtual void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData) = 0;
 		virtual byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize) = 0;
@@ -98,16 +98,16 @@ class IRemoteDriver
 		
 		virtual vector<uint32_t> EnumerateCounters() = 0;
 		virtual void DescribeCounter(uint32_t counterID, CounterDescription &desc) = 0;
-		virtual vector<CounterResult> FetchCounters(uint32_t frameID, const vector<uint32_t> &counterID) = 0;
+		virtual vector<CounterResult> FetchCounters(const vector<uint32_t> &counterID) = 0;
 		
 		virtual void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data) = 0;
 
-		virtual vector<PixelModification> PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx) = 0;
-		virtual ShaderDebugTrace DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
-		virtual ShaderDebugTrace DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive) = 0;
-		virtual ShaderDebugTrace DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]) = 0;
+		virtual vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx) = 0;
+		virtual ShaderDebugTrace DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
+		virtual ShaderDebugTrace DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive) = 0;
+		virtual ShaderDebugTrace DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]) = 0;
 
-		virtual ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents) = 0;
+		virtual ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents) = 0;
 			
 		virtual bool IsRenderOutput(ResourceId id) = 0;
 
@@ -142,7 +142,7 @@ class IReplayDriver : public IRemoteDriver
 		virtual ResourceId CreateProxyBuffer(FetchBuffer templateBuf) = 0;
 		virtual void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize) = 0;
 
-		virtual void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg) = 0;
+		virtual void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg) = 0;
 		virtual bool RenderTexture(TextureDisplay cfg) = 0;
 
 		virtual void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors) = 0;
@@ -154,7 +154,7 @@ class IReplayDriver : public IRemoteDriver
 		virtual void RenderHighlightBox(float w, float h, float scale) = 0;
 		
 		virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4]) = 0;
-		virtual uint32_t PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y) = 0;
+		virtual uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y) = 0;
 };
 
 // utility function useful in any driver implementation

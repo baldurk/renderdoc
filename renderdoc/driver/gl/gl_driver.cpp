@@ -2193,15 +2193,15 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 
 				if(ctxdata.Modern() && (overlay & eRENDERDOC_Overlay_CaptureList))
 				{
-					RenderOverlayText(0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
+					RenderOverlayText(0.0f, y, "%d Captures saved.\n", (uint32_t)m_CapturedFrames.size());
 					y += 1.0f;
 
 					uint64_t now = Timing::GetUnixTimestamp();
-					for(size_t i=0; i < m_FrameRecord.size(); i++)
+					for(size_t i=0; i < m_CapturedFrames.size(); i++)
 					{
-						if(now - m_FrameRecord[i].frameInfo.captureTime < 20)
+						if(now - m_CapturedFrames[i].captureTime < 20)
 						{
-							RenderOverlayText(0.0f, y, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
+							RenderOverlayText(0.0f, y, "Captured frame %d.\n", m_CapturedFrames[i].frameNumber);
 							y += 1.0f;
 						}
 					}
@@ -2350,11 +2350,11 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 	GLWindowingData switchctx = prevctx;
 	MakeValidContextCurrent(switchctx, wnd);
 
-	FetchFrameRecord record;
-	record.frameInfo.frameNumber = m_FrameCounter+1;
-	record.frameInfo.captureTime = Timing::GetUnixTimestamp();
-	RDCEraseEl(record.frameInfo.stats);
-	m_FrameRecord.push_back(record);
+	FetchFrameInfo frame;
+	frame.frameNumber = m_FrameCounter+1;
+	frame.captureTime = Timing::GetUnixTimestamp();
+	RDCEraseEl(frame.stats);
+	m_CapturedFrames.push_back(frame);
 
 	GetResourceManager()->ClearReferencedResources();
 
@@ -2520,7 +2520,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 				ClearGLErrors(m_Real);
 		}
 
-		m_FrameRecord.back().frameInfo.frameNumber = m_FrameCounter+1;
+		m_CapturedFrames.back().frameNumber = m_FrameCounter+1;
 
 		CleanupCapture();
 
@@ -2533,7 +2533,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 		{
 			FinishCapture();
 
-			m_FrameRecord.pop_back();
+			m_CapturedFrames.pop_back();
 
 			FreeCaptureData();
 
@@ -2670,12 +2670,10 @@ void WrappedOpenGL::Serialise_CaptureScope(uint64_t offset)
 	}
 	else
 	{
-		FetchFrameRecord record;
-		record.frameInfo.fileOffset = offset;
-		record.frameInfo.firstEvent = 1;//m_pImmediateContext->GetEventID();
-		record.frameInfo.frameNumber = FrameNumber;
-		record.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_ContextResourceID);
-		m_FrameRecord.push_back(record);
+		m_FrameRecord.frameInfo.fileOffset = offset;
+		m_FrameRecord.frameInfo.firstEvent = 1;//m_pImmediateContext->GetEventID();
+		m_FrameRecord.frameInfo.frameNumber = FrameNumber;
+		m_FrameRecord.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_ContextResourceID);
 
 		GetResourceManager()->CreateInitialContents();
 	}
@@ -4003,10 +4001,10 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	if(m_State == READING)
 	{
-		GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
-		GetFrameRecord().back().frameInfo.debugMessages = GetDebugMessages();
+		GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
+		GetFrameRecord().frameInfo.debugMessages = GetDebugMessages();
 
-		SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().back().frameInfo.immContextId, GetFrameRecord().back().drawcallList, NULL, NULL);
+		SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().frameInfo.immContextId, GetFrameRecord().drawcallList, NULL, NULL);
 		
 		// it's easier to remove duplicate usages here than check it as we go.
 		// this means if textures are bound in multiple places in the same draw
@@ -4438,7 +4436,7 @@ FetchAPIEvent WrappedOpenGL::GetEvent(uint32_t eventID)
 	return m_Events[0];
 }
 
-const FetchDrawcall *WrappedOpenGL::GetDrawcall(uint32_t frameID, uint32_t eventID)
+const FetchDrawcall *WrappedOpenGL::GetDrawcall(uint32_t eventID)
 {
 	if(eventID >= m_Drawcalls.size())
 		return NULL;
@@ -4446,11 +4444,9 @@ const FetchDrawcall *WrappedOpenGL::GetDrawcall(uint32_t frameID, uint32_t event
 	return m_Drawcalls[eventID];
 }
 
-void WrappedOpenGL::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
+void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
 {
-	RDCASSERT(frameID < (uint32_t)m_FrameRecord.size());
-
-	uint64_t offs = m_FrameRecord[frameID].frameInfo.fileOffset;
+	uint64_t offs = m_FrameRecord.frameInfo.fileOffset;
 
 	m_pSerialiser->SetOffset(offs);
 
@@ -4458,7 +4454,7 @@ void WrappedOpenGL::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 
 	if(startEventID == 0 && (replayType == eReplay_WithoutDraw || replayType == eReplay_Full))
 	{
-		startEventID = m_FrameRecord[frameID].frameInfo.firstEvent;
+		startEventID = m_FrameRecord.frameInfo.firstEvent;
 		partial = false;
 	}
 	

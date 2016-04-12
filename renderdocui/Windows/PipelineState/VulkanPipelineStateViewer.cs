@@ -212,7 +212,7 @@ namespace renderdocui.Windows.PipelineState
         
         public void OnLogfileLoaded()
         {
-            OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
+            OnEventSelected(m_Core.CurEvent);
         }
 
         private void EmptyRow(TreelistView.Node node)
@@ -1604,7 +1604,7 @@ namespace renderdocui.Windows.PipelineState
             }
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
             UpdateState();
         }
@@ -2943,7 +2943,7 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
 
                         writer.WriteStartElement("h3");
                         {
-                            var context = String.Format("Frame {0}", m_Core.FrameInfo[m_Core.CurFrame].frameNumber);
+                            var context = String.Format("Frame {0}", m_Core.FrameInfo.frameNumber);
 
                             FetchDrawcall draw = m_Core.CurDrawcall;
 
@@ -2966,7 +2966,7 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
 
                             for (uint i = draw.events[0].eventID; i <= draw.events.Last().eventID; i++)
                             {
-                                prev = m_Core.GetDrawcall(m_Core.CurFrame, i);
+                                prev = m_Core.GetDrawcall(i);
                                 if (prev != null)
                                     break;
                             }

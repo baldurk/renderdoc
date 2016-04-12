@@ -3622,14 +3622,13 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 	}
 }
 
-MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
 	D3D11PostVSData postvs;
 	RDCEraseEl(postvs);
 
-	auto idx = std::make_pair(frameID, eventID);
-	if(m_PostVSData.find(idx) != m_PostVSData.end())
-		postvs = m_PostVSData[idx];
+	if(m_PostVSData.find(eventID) != m_PostVSData.end())
+		postvs = m_PostVSData[eventID];
 
 	D3D11PostVSData::StageData s = postvs.GetStage(stage);
 	
@@ -3668,10 +3667,9 @@ MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventI
 	return ret;
 }
 
-void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
+void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 {
-	auto idx = std::make_pair(frameID, eventID);
-	if(m_PostVSData.find(idx) != m_PostVSData.end())
+	if(m_PostVSData.find(eventID) != m_PostVSData.end())
 		return;
 
 	D3D11RenderStateTracker tracker(m_WrappedContext);
@@ -3707,7 +3705,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		return;
 	}
 
-	const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(frameID, eventID);
+	const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(eventID);
 
 	if(drawcall->numIndices == 0)
 		return;
@@ -3972,7 +3970,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		if(numPrims.NumPrimitivesWritten == 0)
 		{
-			m_PostVSData[idx] = D3D11PostVSData();
+			m_PostVSData[eventID] = D3D11PostVSData();
 			SAFE_RELEASE(idxBuf);
 			return;
 		}
@@ -4087,44 +4085,44 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		m_pImmediateContext->Unmap(m_SOStagingBuffer, 0);
 
-		m_PostVSData[idx].vsin.topo = topo;
-		m_PostVSData[idx].vsout.buf = vsoutBuffer;
-		m_PostVSData[idx].vsout.vertStride = stride;
-		m_PostVSData[idx].vsout.nearPlane = nearp;
-		m_PostVSData[idx].vsout.farPlane = farp;
+		m_PostVSData[eventID].vsin.topo = topo;
+		m_PostVSData[eventID].vsout.buf = vsoutBuffer;
+		m_PostVSData[eventID].vsout.vertStride = stride;
+		m_PostVSData[eventID].vsout.nearPlane = nearp;
+		m_PostVSData[eventID].vsout.farPlane = farp;
 
-		m_PostVSData[idx].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
-		m_PostVSData[idx].vsout.numVerts = drawcall->numIndices;
+		m_PostVSData[eventID].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
+		m_PostVSData[eventID].vsout.numVerts = drawcall->numIndices;
 		
-		m_PostVSData[idx].vsout.instStride = 0;
+		m_PostVSData[eventID].vsout.instStride = 0;
 		if(drawcall->flags & eDraw_Instanced)
-			m_PostVSData[idx].vsout.instStride = bufferDesc.ByteWidth / RDCMAX(1U, drawcall->numInstances);
+			m_PostVSData[eventID].vsout.instStride = bufferDesc.ByteWidth / RDCMAX(1U, drawcall->numInstances);
 
-		m_PostVSData[idx].vsout.idxBuf = NULL;
-		if(m_PostVSData[idx].vsout.useIndices && idxBuf)
+		m_PostVSData[eventID].vsout.idxBuf = NULL;
+		if(m_PostVSData[eventID].vsout.useIndices && idxBuf)
 		{
-			m_PostVSData[idx].vsout.idxBuf = idxBuf;
-			m_PostVSData[idx].vsout.idxFmt = idxFmt;
+			m_PostVSData[eventID].vsout.idxBuf = idxBuf;
+			m_PostVSData[eventID].vsout.idxFmt = idxFmt;
 		}
 
-		m_PostVSData[idx].vsout.hasPosOut = posidx >= 0;
+		m_PostVSData[eventID].vsout.hasPosOut = posidx >= 0;
 
-		m_PostVSData[idx].vsout.topo = topo;
+		m_PostVSData[eventID].vsout.topo = topo;
 	}
 	else
 	{
 		// empty vertex output signature
-		m_PostVSData[idx].vsin.topo = topo;
-		m_PostVSData[idx].vsout.buf = NULL;
-		m_PostVSData[idx].vsout.instStride = 0;
-		m_PostVSData[idx].vsout.vertStride = 0;
-		m_PostVSData[idx].vsout.nearPlane = 0.0f;
-		m_PostVSData[idx].vsout.farPlane = 0.0f;
-		m_PostVSData[idx].vsout.useIndices = false;
-		m_PostVSData[idx].vsout.hasPosOut = false;
-		m_PostVSData[idx].vsout.idxBuf = NULL;
+		m_PostVSData[eventID].vsin.topo = topo;
+		m_PostVSData[eventID].vsout.buf = NULL;
+		m_PostVSData[eventID].vsout.instStride = 0;
+		m_PostVSData[eventID].vsout.vertStride = 0;
+		m_PostVSData[eventID].vsout.nearPlane = 0.0f;
+		m_PostVSData[eventID].vsout.farPlane = 0.0f;
+		m_PostVSData[eventID].vsout.useIndices = false;
+		m_PostVSData[eventID].vsout.hasPosOut = false;
+		m_PostVSData[eventID].vsout.idxBuf = NULL;
 
-		m_PostVSData[idx].vsout.topo = topo;
+		m_PostVSData[eventID].vsout.topo = topo;
 	}
 
 	if(dxbcGS || dxbcDS)
@@ -4363,16 +4361,16 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		m_pImmediateContext->Unmap(m_SOStagingBuffer, 0);
 		
-		m_PostVSData[idx].gsout.buf = gsoutBuffer;
-		m_PostVSData[idx].gsout.instStride = 0;
+		m_PostVSData[eventID].gsout.buf = gsoutBuffer;
+		m_PostVSData[eventID].gsout.instStride = 0;
 		if(drawcall->flags & eDraw_Instanced)
-			m_PostVSData[idx].gsout.instStride = bufferDesc.ByteWidth / RDCMAX(1U, drawcall->numInstances);
-		m_PostVSData[idx].gsout.vertStride = stride;
-		m_PostVSData[idx].gsout.nearPlane = nearp;
-		m_PostVSData[idx].gsout.farPlane = farp;
-		m_PostVSData[idx].gsout.useIndices = false;
-		m_PostVSData[idx].gsout.hasPosOut = posidx >= 0;
-		m_PostVSData[idx].gsout.idxBuf = NULL;
+			m_PostVSData[eventID].gsout.instStride = bufferDesc.ByteWidth / RDCMAX(1U, drawcall->numInstances);
+		m_PostVSData[eventID].gsout.vertStride = stride;
+		m_PostVSData[eventID].gsout.nearPlane = nearp;
+		m_PostVSData[eventID].gsout.farPlane = farp;
+		m_PostVSData[eventID].gsout.useIndices = false;
+		m_PostVSData[eventID].gsout.hasPosOut = posidx >= 0;
+		m_PostVSData[eventID].gsout.idxBuf = NULL;
 
 		topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		
@@ -4406,33 +4404,33 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			}
 		}
 
-		m_PostVSData[idx].gsout.topo = topo;
+		m_PostVSData[eventID].gsout.topo = topo;
 
 		// streamout expands strips unfortunately
 		if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
-			m_PostVSData[idx].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP)
-			m_PostVSData[idx].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+			m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 		else if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
-			m_PostVSData[idx].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+			m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
 		else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
-			m_PostVSData[idx].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+			m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
 
-		switch(m_PostVSData[idx].gsout.topo)
+		switch(m_PostVSData[eventID].gsout.topo)
 		{
 			case D3D11_PRIMITIVE_TOPOLOGY_POINTLIST:
-				m_PostVSData[idx].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten; break;
+				m_PostVSData[eventID].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten; break;
 			case D3D11_PRIMITIVE_TOPOLOGY_LINELIST:
 			case D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
-				m_PostVSData[idx].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten*2; break;
+				m_PostVSData[eventID].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten*2; break;
 			default:
 			case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
 			case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
-				m_PostVSData[idx].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten*3; break;
+				m_PostVSData[eventID].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten*3; break;
 		}
 		
 		if(drawcall->flags & eDraw_Instanced)
-			m_PostVSData[idx].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
+			m_PostVSData[eventID].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
 	}
 }
 
@@ -4517,7 +4515,7 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDi
 	return ret;
 }
 
-void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
+void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
 	DebugVertexCBuffer vertexData;
 	

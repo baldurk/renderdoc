@@ -135,7 +135,7 @@ namespace renderdocui.Windows
             apiEvents.EndUpdate();
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
             FillAPIView();
 

@@ -78,7 +78,7 @@ namespace renderdocui.Windows
             RefreshMessageList();
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
         }
 
@@ -91,7 +91,7 @@ namespace renderdocui.Windows
         private void messages_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < m_VisibleMessages.Count)
-                m_Core.SetEventID(null, 0, m_Core.DebugMessages[m_VisibleMessages[e.RowIndex]].eventID);
+                m_Core.SetEventID(null, m_Core.DebugMessages[m_VisibleMessages[e.RowIndex]].eventID);
         }
 
         private bool m_SuppressRefresh = false;

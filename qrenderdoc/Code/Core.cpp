@@ -11,7 +11,7 @@ Core::Core(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool
 {
 	m_LogLoaded = false; m_LoadInProgress = false;
 
-	m_FrameID = 0; m_EventID = 0;
+	m_EventID = 0;
 
 	memset(&m_APIProps, 0, sizeof(m_APIProps));
 
@@ -72,7 +72,6 @@ void Core::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, b
 		return;
 	}
 
-	m_FrameID = 0;
 	m_EventID = 0;
 
 	// fetch initial data like drawcalls, textures and buffers
@@ -83,14 +82,9 @@ void Core::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, b
 
 		postloadProgress = 0.2f;
 
-		m_Drawcalls = new rdctype::array<FetchDrawcall>[m_FrameInfo.count];
+		r->GetDrawcalls(&m_Drawcalls);
 
 		postloadProgress = 0.4f;
-
-		for(int i = 0; i < m_FrameInfo.count; i++)
-			r->GetDrawcalls((uint32_t)i, &m_Drawcalls[i]);
-
-		postloadProgress = 0.7f;
 
 		r->GetBuffers(&m_BufferList);
 		for(int i = 0; i < m_BufferList.count; i++)
@@ -110,7 +104,7 @@ void Core::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, b
 		//CurPipelineState.SetStates(m_APIProps, CurD3D11PipelineState, CurGLPipelineState);
 
 		UnreadMessageCount = 0;
-		AddMessages(m_FrameInfo[0].debugMessages);
+		AddMessages(m_FrameInfo.debugMessages);
 
 		postloadProgress = 1.0f;
 	});
@@ -132,13 +126,12 @@ void Core::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, b
 	m_LoadInProgress = false;
 }
 
-void Core::SetEventID(ILogViewerForm *exclude, uint32_t frameID, uint32_t eventID)
+void Core::SetEventID(ILogViewerForm *exclude, uint32_t eventID)
 {
-	m_FrameID = frameID;
 	m_EventID = eventID;
 
-	m_Renderer.BlockInvoke([frameID, eventID, this](IReplayRenderer *r) {
-		r->SetFrameEvent(frameID, eventID, false);
+	m_Renderer.BlockInvoke([eventID, this](IReplayRenderer *r) {
+		r->SetFrameEvent(eventID, false);
 		r->GetD3D11PipelineState(&CurD3D11PipelineState);
 		r->GetGLPipelineState(&CurGLPipelineState);
 		r->GetVulkanPipelineState(&CurVulkanPipelineState);
@@ -150,7 +143,7 @@ void Core::SetEventID(ILogViewerForm *exclude, uint32_t frameID, uint32_t eventI
 		if(logviewer == exclude)
 			continue;
 
-		logviewer->OnEventSelected(frameID, eventID);
+		logviewer->OnEventSelected(eventID);
 	}
 }
 

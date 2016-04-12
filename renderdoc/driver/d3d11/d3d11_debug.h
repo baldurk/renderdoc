@@ -116,8 +116,8 @@ class D3D11DebugManager
 		int GetWidth() { return m_width; }
 		int GetHeight() { return m_height; }
 		
-		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
-		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
+		void InitPostVSBuffers(uint32_t eventID);
+		MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
 		uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
 		void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
@@ -142,10 +142,10 @@ class D3D11DebugManager
 
 		vector<uint32_t> EnumerateCounters();
 		void DescribeCounter(uint32_t counterID, CounterDescription &desc);
-		vector<CounterResult> FetchCounters(uint32_t frameID, const vector<uint32_t> &counters);
+		vector<CounterResult> FetchCounters(const vector<uint32_t> &counters);
 
 		void RenderText(float x, float y, const char *textfmt, ...);
-		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg);
+		void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg);
 
 		ID3D11Buffer *MakeCBuffer(float *data, size_t size);
 		
@@ -167,14 +167,14 @@ class D3D11DebugManager
 
 		void RenderHighlightBox(float w, float h, float scale);
 		
-		vector<PixelModification> PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx);
-		ShaderDebugTrace DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
-		ShaderDebugTrace DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);
-		ShaderDebugTrace DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]);
+		vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx);
+		ShaderDebugTrace DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
+		ShaderDebugTrace DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);
+		ShaderDebugTrace DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]);
 		void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4]);
-		uint32_t PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y);
+		uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y);
 			
-		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
+		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents);
 		ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip);
 			
 		// don't need to differentiate arrays as we treat everything
@@ -305,8 +305,8 @@ class D3D11DebugManager
 		ID3D11Buffer *m_SOBuffer;
 		ID3D11Buffer *m_SOStagingBuffer;
 		ID3D11Query *m_SOStatsQuery;
-		// <frame,event> -> data
-		map<pair<uint32_t,uint32_t>, D3D11PostVSData> m_PostVSData;
+		// event -> data
+		map<uint32_t, D3D11PostVSData> m_PostVSData;
 
 		// simple cache for when we need buffer data for highlighting
 		// vertices, typical use will be lots of vertices in the same
