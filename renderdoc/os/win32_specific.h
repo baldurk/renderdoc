@@ -27,6 +27,7 @@
 #pragma once
 
 #include <windows.h>
+#include <intrin.h>
 #include "data/resource.h"
 
 #define __PRETTY_FUNCTION_SIGNATURE__ __FUNCSIG__
@@ -53,4 +54,23 @@ namespace OSUtility
 namespace Threading
 {
 	typedef CriticalSectionTemplate<CRITICAL_SECTION> CriticalSection;
+};
+
+namespace Bits
+{
+	inline uint32_t CountLeadingZeroes(uint32_t value)
+	{
+		DWORD index;
+		BOOLEAN result = _BitScanReverse(&index, value);
+		return (result == TRUE) ? (index ^ 31) : 32;
+	}
+
+#if RDC64BIT
+	inline uint64_t CountLeadingZeroes(uint64_t value)
+	{
+		DWORD index;
+		BOOLEAN result = _BitScanReverse64(&index, value);
+		return (result == TRUE) ? (index ^ 63) : 64;
+	}
+#endif
 };

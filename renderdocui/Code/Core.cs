@@ -89,6 +89,7 @@ namespace renderdocui.Code
         private TimelineBar m_TimelineBar = null;
         private TextureViewer m_TextureViewer = null;
         private PipelineStateViewer m_PipelineStateViewer = null;
+        private StatisticsViewer m_StatisticsViewer = null;
 
         #endregion
 
@@ -809,7 +810,18 @@ namespace renderdocui.Code
             return m_TimelineBar;
         }
 
-        public void AddLogProgressListener(ILogLoadProgressListener p)
+        public StatisticsViewer GetStatisticsViewer()
+        {
+            if (m_StatisticsViewer == null || m_StatisticsViewer.IsDisposed)
+            {
+                m_StatisticsViewer = new StatisticsViewer(this);
+                AddLogViewer(m_StatisticsViewer);
+            }
+
+            return m_StatisticsViewer;
+        }
+
+		public void AddLogProgressListener(ILogLoadProgressListener p)
         {
             m_ProgressListeners.Add(p);
         }

@@ -73,6 +73,7 @@ enum ShaderResourceType
 	eResType_Texture3D,
 	eResType_TextureCube,
 	eResType_TextureCubeArray,
+	eResType_Count,
 };
 
 enum ShaderBindType
@@ -286,6 +287,7 @@ enum TextureCreationFlags
 enum ShaderStageType
 {
 	eShaderStage_Vertex = 0,
+	eShaderStage_First = eShaderStage_Vertex,
 	
 	eShaderStage_Hull,
 	eShaderStage_Tess_Control = eShaderStage_Hull,
@@ -299,6 +301,8 @@ enum ShaderStageType
 	eShaderStage_Fragment = eShaderStage_Pixel,
 
 	eShaderStage_Compute,
+
+	eShaderStage_Count,
 };
 
 enum ShaderStageBits

@@ -95,6 +95,11 @@ inline T AlignUpPtr(T x, A a) { return (T)AlignUp<uintptr_t>( (uintptr_t)x, (uin
 bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &diffEnd);
 uint32_t CalcNumMips(int Width, int Height, int Depth);
 
+uint32_t Log2Floor(uint32_t value);
+#if RDC64BIT
+uint64_t Log2Floor(uint64_t value);
+#endif
+
 /////////////////////////////////////////////////
 // Debugging features
 

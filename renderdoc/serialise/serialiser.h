@@ -388,6 +388,13 @@ class Serialiser
 		//
 		// If serialising in, el will either be set to NULL or allocated, the
 		// existing value will be overwritten.
+		template<int Num, class T>
+		void SerialiseComplexArray(const char* name, T *&el)
+		{
+			uint32_t n = (uint32_t)Num;
+			SerialiseComplexArray(name, el, n);
+		}
+
 		template<class T>
 		void SerialiseComplexArray(const char *name, T *&el, uint32_t &Num)
 		{

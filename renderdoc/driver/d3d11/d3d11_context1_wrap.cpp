@@ -137,6 +137,9 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 			if(HasDestBox)
 				pBox = &box;
 
+			if(m_State == READING)
+				RecordUpdateStats(DestResource, SourceDataLength, true);
+
 			if(flags == 0)
 			{
 				m_pRealContext->UpdateSubresource(m_pDevice->GetResourceManager()->UnwrapResource(DestResource), DestSubresource, pBox,
@@ -223,6 +226,9 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 			UINT SourceRowPitch = GetByteSize(subWidth, 1, 1, fmt, 0);
 			UINT SourceDepthPitch = GetByteSize(subWidth, subHeight, 1, fmt, 0);
 			
+			if(m_State == READING)
+				RecordUpdateStats(DestResource, SourceRowPitch * subHeight + SourceDepthPitch * subWidth * subHeight, true);
+
 			if(flags == 0)
 			{
 				m_pRealContext->UpdateSubresource(m_pDevice->GetResourceManager()->UnwrapResource(DestResource), DestSubresource, NULL,

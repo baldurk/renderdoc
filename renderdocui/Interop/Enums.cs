@@ -283,6 +283,7 @@ namespace renderdoc
     public enum ShaderStageType
     {
         Vertex = 0,
+        First = Vertex,
 
         Hull,
         Tess_Control = Hull,
@@ -296,6 +297,8 @@ namespace renderdoc
         Fragment = Pixel,
 
         Compute,
+
+        Count,
     };
 
     [Flags]

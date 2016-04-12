@@ -55,3 +55,17 @@ namespace Threading
 	typedef CriticalSectionTemplate<pthreadLockData> CriticalSection;
 };
 
+namespace Bits
+{
+	inline uint32_t CountLeadingZeroes(uint32_t value)
+	{
+		return __builtin_clz(value);
+	}
+
+#if RDC64BIT
+	inline uint64_t CountLeadingZeroes(uint64_t value)
+	{
+		return __builtin_clzl(value);
+	}
+#endif
+};

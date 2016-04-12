@@ -1004,6 +1004,31 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 		record.frameInfo.firstEvent = m_pImmediateContext->GetEventID();
 		record.frameInfo.frameNumber = FrameNumber;
 		record.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_pImmediateContext->GetResourceID());
+
+		FetchFrameStatistics& stats = record.frameInfo.stats;
+		RDCEraseEl(stats);
+
+		// #mivance GL/Vulkan don't set this so don't get stats in window
+		stats.recorded = 1;
+
+		for(uint32_t stage = eShaderStage_First; stage < eShaderStage_Count; stage++)
+		{
+			create_array(stats.constants[stage].slots, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT + 1);
+			create_array(stats.constants[stage].sizes, FetchFrameConstantBindStats::BUCKET_COUNT);
+
+			create_array(stats.samplers[stage].slots, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT + 1);
+
+			create_array(stats.resources[stage].types, eResType_Count);
+			create_array(stats.resources[stage].slots, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT + 1);
+		}
+
+		create_array(stats.updates.types, eResType_Count);
+		create_array(stats.updates.sizes, FetchFrameUpdateStats::BUCKET_COUNT);
+
+		create_array(stats.draws.counts, FetchFrameDrawStats::BUCKET_COUNT);
+
+		create_array(stats.vertices.slots, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT + 1);
+
 		m_FrameRecord.push_back(record);
 
 		GetResourceManager()->CreateInitialContents();
