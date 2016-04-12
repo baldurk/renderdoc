@@ -47,6 +47,8 @@ struct D3D11PipelineState
 		rdctype::array<LayoutInput> layouts;
 		ResourceId layout;
 		ShaderReflection *Bytecode;
+		bool32 customName;
+		rdctype::str LayoutName;
 
 		struct VertexBuffer
 		{

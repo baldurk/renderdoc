@@ -63,6 +63,9 @@ namespace renderdoc
             private IntPtr _ptr_Bytecode;
             [CustomMarshalAs(CustomUnmanagedType.Skip)]
             public ShaderReflection Bytecode;
+            public bool customName;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string LayoutName;
 
             [StructLayout(LayoutKind.Sequential)]
             public class VertexBuffer

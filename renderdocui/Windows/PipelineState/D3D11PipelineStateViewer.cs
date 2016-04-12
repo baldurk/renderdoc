@@ -629,10 +629,11 @@ namespace renderdocui.Windows.PipelineState
 
             if(state.m_IA.Bytecode == null)
                 iaBytecode.Text = "None";
-            else if (state.m_IA.Bytecode.DebugInfo == null || state.m_IA.Bytecode.DebugInfo.entryFunc.Length == 0)
-                iaBytecode.Text = "Layout " + state.m_IA.layout.ToString();
             else
-                iaBytecode.Text = state.m_IA.Bytecode.DebugInfo.entryFunc;
+                iaBytecode.Text = state.m_IA.LayoutName;
+
+            if (state.m_IA.Bytecode.DebugInfo != null && state.m_IA.Bytecode.DebugInfo.entryFunc.Length > 0)
+                iaBytecode.Text += " (" + state.m_IA.Bytecode.DebugInfo.entryFunc + ")";
 
             iaBytecodeMismatch.Text = "";
             iaBytecodeMismatch.Visible = false;

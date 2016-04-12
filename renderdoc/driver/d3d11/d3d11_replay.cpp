@@ -453,6 +453,17 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 		ret.m_IA.layout = rm->GetOriginalID(layoutId);
 		ret.m_IA.Bytecode = GetShader(layoutId, "");
 
+		string str = GetDebugName(rs->IA.Layout);
+		ret.m_IA.customName = true;
+
+		if(str == "" && ret.m_IA.layout != ResourceId())
+		{
+			ret.m_IA.customName = false;
+			str = StringFormat::Fmt("Input Layout %llu", ret.m_IA.layout);
+		}
+
+		ret.m_IA.LayoutName = str;
+
 		create_array_uninit(ret.m_IA.layouts, vec.size());
 
 		for(size_t i=0; i < vec.size(); i++)
