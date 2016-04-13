@@ -1219,6 +1219,9 @@ void GLReplay::SavePipelineState()
 						case eResType_TextureCubeArray:
 							target = eGL_TEXTURE_CUBE_MAP_ARRAY;
 							break;
+						case eResType_Count:
+							RDCASSERT(false);
+							break;
 					}
 					
 					if(target != eGL_NONE)
@@ -2682,6 +2685,11 @@ ResourceId GLReplay::CreateProxyTexture(FetchTexture templateTex)
 		{
 			gl.glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, tex);
 			gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_CUBE_MAP_ARRAY, templateTex.mips, intFormat, templateTex.width, templateTex.height, templateTex.arraysize);
+			break;
+		}
+		case eResType_Count:
+		{
+			RDCASSERT(false);
 			break;
 		}
 	}

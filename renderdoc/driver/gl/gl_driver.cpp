@@ -4264,6 +4264,9 @@ void WrappedOpenGL::AddUsage(FetchDrawcall d)
 							texList = rs.TexCubeArray;
 							listSize = sizeof(rs.TexCubeArray);
 							break;
+						case eResType_Count:
+							RDCASSERT(false);
+							break;
 					}
 					
 					if(texList != NULL && bind >= 0 && bind < listSize && texList[bind] != 0)
