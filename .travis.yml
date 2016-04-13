@@ -1,0 +1,8 @@
+language: cpp
+sudo: required
+dist: trusty
+install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq build-essential libx11-dev mesa-common-dev
+    libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev
+script: make
