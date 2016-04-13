@@ -1220,7 +1220,7 @@ void GLReplay::SavePipelineState()
 							target = eGL_TEXTURE_CUBE_MAP_ARRAY;
 							break;
 						case eResType_Count:
-							RDCASSERT(false);
+							RDCERR("Invalid shader resource type");
 							break;
 					}
 					
@@ -2689,7 +2689,7 @@ ResourceId GLReplay::CreateProxyTexture(FetchTexture templateTex)
 		}
 		case eResType_Count:
 		{
-			RDCASSERT(false);
+			RDCERR("Invalid shader resource type");
 			break;
 		}
 	}

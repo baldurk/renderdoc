@@ -4265,7 +4265,7 @@ void WrappedOpenGL::AddUsage(FetchDrawcall d)
 							listSize = sizeof(rs.TexCubeArray);
 							break;
 						case eResType_Count:
-							RDCASSERT(false);
+							RDCERR("Invalid shader resource type");
 							break;
 					}
 					
