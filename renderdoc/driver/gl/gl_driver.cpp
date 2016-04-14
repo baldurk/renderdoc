@@ -2674,6 +2674,7 @@ void WrappedOpenGL::Serialise_CaptureScope(uint64_t offset)
 		m_FrameRecord.frameInfo.firstEvent = 1;//m_pImmediateContext->GetEventID();
 		m_FrameRecord.frameInfo.frameNumber = FrameNumber;
 		m_FrameRecord.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_ContextResourceID);
+		RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
 		GetResourceManager()->CreateInitialContents();
 	}

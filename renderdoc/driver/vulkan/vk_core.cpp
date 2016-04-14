@@ -579,6 +579,7 @@ void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 		m_FrameRecord.frameInfo.firstEvent = 1;//m_pImmediateContext->GetEventID();
 		m_FrameRecord.frameInfo.frameNumber = FrameNumber;
 		m_FrameRecord.frameInfo.immContextId = ResourceId();
+		RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
 		GetResourceManager()->CreateInitialContents();
 	}
