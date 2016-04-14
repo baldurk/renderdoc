@@ -632,7 +632,7 @@ namespace renderdocui.Windows.PipelineState
             else
                 iaBytecode.Text = state.m_IA.LayoutName;
 
-            if (state.m_IA.Bytecode.DebugInfo != null && state.m_IA.Bytecode.DebugInfo.entryFunc.Length > 0)
+            if (state.m_IA.Bytecode != null && state.m_IA.Bytecode.DebugInfo != null && state.m_IA.Bytecode.DebugInfo.entryFunc.Length > 0)
                 iaBytecode.Text += " (" + state.m_IA.Bytecode.DebugInfo.entryFunc + ")";
 
             iaBytecodeMismatch.Text = "";

@@ -600,28 +600,6 @@ namespace renderdocui.Windows
 
             long fileSize = (new FileInfo(m_Core.LogFileName)).Length;
 
-            int firstIdx = 0;
-
-            var firstDrawcall = m_Core.CurDrawcalls[firstIdx];
-            while (firstDrawcall.children != null && firstDrawcall.children.Length > 0)
-                firstDrawcall = firstDrawcall.children[0];
-
-            while (firstDrawcall.events.Length == 0)
-            {
-                if (firstDrawcall.next != null)
-                {
-                    firstDrawcall = firstDrawcall.next;
-                    while (firstDrawcall.children != null && firstDrawcall.children.Length > 0)
-                        firstDrawcall = firstDrawcall.children[0];
-                }
-                else
-                {
-                    firstDrawcall = m_Core.CurDrawcalls[++firstIdx];
-                    while (firstDrawcall.children != null && firstDrawcall.children.Length > 0)
-                        firstDrawcall = firstDrawcall.children[0];
-                }
-            }
-
             var lastDraw = m_Core.CurDrawcalls[m_Core.CurDrawcalls.Length - 1];
             while (lastDraw.children != null && lastDraw.children.Length > 0)
                 lastDraw = lastDraw.children[lastDraw.children.Length - 1];

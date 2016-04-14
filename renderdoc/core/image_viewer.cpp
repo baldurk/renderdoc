@@ -47,6 +47,7 @@ class ImageViewer : public IReplayDriver
 			m_FrameRecord.frameInfo.firstEvent = 1;
 			m_FrameRecord.frameInfo.frameNumber = 1;
 			m_FrameRecord.frameInfo.immContextId = ResourceId();
+			RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
 			FetchDrawcall d;
 			d.context = ResourceId();
@@ -476,6 +477,10 @@ void ImageViewer::RefreshFile()
 		return;
 	}
 
+	m_FrameRecord.frameInfo.initDataSize = 0;
+	m_FrameRecord.frameInfo.persistentSize = 0;
+	m_FrameRecord.frameInfo.fileSize = datasize;
+
 	dds_data read_data = {0};
 
 	if(dds)
@@ -500,6 +505,10 @@ void ImageViewer::RefreshFile()
 		                         texDetails.dimension = 1;
 		if(texDetails.width > 1) texDetails.dimension = 2;
 		if(texDetails.depth > 1) texDetails.dimension = 3;
+		
+		m_FrameRecord.frameInfo.fileSize = 0;
+		for(uint32_t i=0; i < texDetails.numSubresources; i++)
+			m_FrameRecord.frameInfo.fileSize += read_data.subsizes[i];
 	}
 
 	// recreate proxy texture if necessary.
