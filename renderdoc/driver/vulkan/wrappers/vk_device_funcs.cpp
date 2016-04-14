@@ -345,6 +345,17 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 		uint32_t *storedMap = new uint32_t[32];
 		memcpy(storedMap, memIdxMap, sizeof(memIdxMap));
 		m_MemIdxMaps[physIndex] = storedMap;
+
+		RDCLOG("Captured log describes physical device %u:", physIndex);
+		RDCLOG("   - %s (ver %x) - %04x:%04x", physProps.deviceName, physProps.driverVersion, physProps.vendorID, physProps.deviceID);
+
+		ObjDisp(pd)->GetPhysicalDeviceProperties(Unwrap(pd), &physProps);
+		ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &memProps);
+		ObjDisp(pd)->GetPhysicalDeviceFeatures(Unwrap(pd), &physFeatures);
+		
+		RDCLOG("Replaying on physical device %u:", physIndex);
+		RDCLOG("   - %s (ver %x) - %04x:%04x", physProps.deviceName, physProps.driverVersion, physProps.vendorID, physProps.deviceID);
+
 	}
 
 	return true;
