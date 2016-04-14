@@ -304,6 +304,9 @@ void rdclogprint_int(const char *str)
 #endif
 }
 
+const size_t rdclog_outBufSize = 4*1024;
+static char rdclog_outputBuffer[rdclog_outBufSize+1];
+
 void rdclog_int(LogType type, const char *file, unsigned int line, const char *fmt, ...)
 {
 	if(type <= RDCLog_First || type >= RDCLog_NumTypes)
@@ -337,12 +340,14 @@ void rdclog_int(LogType type, const char *file, unsigned int line, const char *f
 		"Fatal  ",
 	};
 	
-	const size_t outBufSize = 4*1024;
-	char outputBuffer[outBufSize+1];
-	outputBuffer[outBufSize] = 0;
+	static Threading::CriticalSection lock;
 
-	char *output = outputBuffer;
-	size_t available = outBufSize;
+	SCOPED_LOCK(lock);
+
+	rdclog_outputBuffer[rdclog_outBufSize] = rdclog_outputBuffer[0] = 0;
+
+	char *output = rdclog_outputBuffer;
+	size_t available = rdclog_outBufSize;
 	
 	int numWritten = StringFormat::snprintf(output, available, "%s %s%s%s - ", name, timestamp, location, typestr[type]);
 
@@ -371,5 +376,5 @@ void rdclog_int(LogType type, const char *file, unsigned int line, const char *f
 	*output = '\n';
 	*(output+1) = 0;
 
-	rdclogprint_int(outputBuffer);
+	rdclogprint_int(rdclog_outputBuffer);
 }
