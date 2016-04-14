@@ -705,7 +705,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 		
 		for(uint32_t i=0; i < imgCount; i++)
 		{
-			if(imgBarriers[i].image != VK_NULL_HANDLE)
+			if(imgMemBarriers[i].image != VK_NULL_HANDLE)
 			{
 				imgBarriers.push_back(imgMemBarriers[i]);
 				ReplacePresentableImageLayout(imgBarriers.back().oldLayout);
