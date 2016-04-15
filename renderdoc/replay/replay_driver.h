@@ -35,7 +35,7 @@ struct FetchFrameRecord
 {
 	FetchFrameInfo frameInfo;
 
-	vector<FetchDrawcall> drawcallList;
+	rdctype::array<FetchDrawcall> drawcallList;
 };
 
 // these two interfaces define what an API driver implementation must provide

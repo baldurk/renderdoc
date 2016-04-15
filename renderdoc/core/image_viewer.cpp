@@ -48,14 +48,13 @@ class ImageViewer : public IReplayDriver
 			m_FrameRecord.frameInfo.frameNumber = 1;
 			m_FrameRecord.frameInfo.immContextId = ResourceId();
 			RDCEraseEl(m_FrameRecord.frameInfo.stats);
-
-			FetchDrawcall d;
+			
+			create_array_uninit(m_FrameRecord.drawcallList, 1);
+			FetchDrawcall &d = m_FrameRecord.drawcallList[0];
 			d.context = ResourceId();
 			d.drawcallID = 1;
 			d.eventID = 1;
 			d.name = filename;
-
-			m_FrameRecord.drawcallList.push_back(d);
 
 			RefreshFile();
 
