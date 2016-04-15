@@ -302,6 +302,9 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler 
 {
 	Serialise("", el.ibuffer.Buffer);
 	Serialise("", el.ibuffer.Offset);
+
+	Serialise("", el.customName);
+	Serialise("", el.LayoutName);
 	
 	Serialise("", el.vbuffers);
 	Serialise("", el.layouts);
@@ -1177,6 +1180,9 @@ void Serialiser::Serialise(const char *name, FetchFrameInfo &el)
 	Serialise("", el.frameNumber);
 	Serialise("", el.firstEvent);
 	Serialise("", el.fileOffset);
+	Serialise("", el.fileSize);
+	Serialise("", el.persistentSize);
+	Serialise("", el.initDataSize);
 	Serialise("", el.captureTime);
 	Serialise("", el.immContextId);
 	Serialise("", el.stats);
