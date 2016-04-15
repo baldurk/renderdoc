@@ -34,7 +34,7 @@
 #include "official/glcorearb.h"
 #include "official/glext.h"
 
-#if defined(WIN32)
+#if defined(RENDERDOC_PLATFORM_WIN32)
 #include "official/wglext.h"
 
 struct GLWindowingData
@@ -47,7 +47,7 @@ struct GLWindowingData
 	HWND wnd;
 };
 
-#elif defined(LINUX)
+#elif defined(RENDERDOC_PLATFORM_LINUX)
 // cheeky way to prevent GL/gl.h from being included, as we want to use
 // glcorearb.h from above
 #define __gl_h_

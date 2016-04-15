@@ -238,7 +238,7 @@ int renderdoccmd(int argc, char **argv)
 				fprintf(stderr, "Not enough parameters to --replay");
 			}
 		}
-#ifdef WIN32
+#if defined(RENDERDOC_PLATFORM_WIN32)
 		// if we were given an executable on windows, inject into it
 		// can't do this on other platforms as there's no nice extension
 		// and we don't want to just launch any single parameter in case it's
@@ -370,7 +370,7 @@ int renderdoccmd(int argc, char **argv)
 	fprintf(stderr, "renderdoccmd usage:\n\n");
 	fprintf(stderr, "  <file.rdc>                        Launch a preview window that replays this logfile and\n");
 	fprintf(stderr, "                                    displays the backbuffer.\n");
-#ifdef WIN32
+#if defined(RENDERDOC_PLATFORM_WIN32)
 	fprintf(stderr, "  <program.exe>                     Launch a capture of this program with default options.\n");
 #endif
 	fprintf(stderr, "\n");												      

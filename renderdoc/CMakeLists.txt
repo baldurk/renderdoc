@@ -25,7 +25,6 @@ if(UNIX)
     set(XCB_LIBRARIES xcb xcb-keysyms)
 
     list(APPEND RDOC_DEFINITIONS
-        PUBLIC -DRENDERDOC_PLATFORM=linux
         PRIVATE -DLINUX)
 
     list(APPEND RDOC_INCLUDES

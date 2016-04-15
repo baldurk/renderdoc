@@ -328,9 +328,10 @@ namespace Bits
 // GetEmbeddedResource(name_with_underscores_ext) - function/inline that returns the given file in a std::string
 // OS_DEBUG_BREAK() - instruction that debugbreaks the debugger - define instead of function to preserve callstacks
 
-#ifdef RENDERDOC_PLATFORM
-// "win32_specific.h" (in directory os/)
-#include STRINGIZE(CONCAT(RENDERDOC_PLATFORM,_specific.h))
+#if defined(RENDERDOC_PLATFORM_WIN32)
+#include "win32/win32_specific.h"
+#elif defined(RENDERDOC_PLATFORM_LINUX)
+#include "linux/linux_specific.h"
 #else
 #error Undefined Platform!
 #endif
