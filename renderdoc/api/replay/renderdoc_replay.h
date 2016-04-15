@@ -31,7 +31,7 @@
 typedef uint8_t byte;
 typedef uint32_t bool32;
 
-#ifdef WIN32
+#if defined(RENDERDOC_PLATFORM_WIN32)
 
 #ifdef RENDERDOC_EXPORTS
 #define RENDERDOC_API __declspec(dllexport)
@@ -40,7 +40,7 @@ typedef uint32_t bool32;
 #endif
 #define RENDERDOC_CC __cdecl
 
-#elif defined(__linux__)
+#elif defined(RENDERDOC_PLATFORM_LINUX)
 
 #ifdef RENDERDOC_EXPORTS
 #define RENDERDOC_API __attribute__ ((visibility ("default")))

@@ -30,13 +30,13 @@
 #include "replay/replay_driver.h"
 #include "core/core.h"
 
-#if defined(WIN32)
+#if defined(RENDERDOC_PLATFORM_WIN32)
 
 #include <windows.h>
 #define WINDOW_HANDLE_DECL HWND wnd;
 #define NULL_WND_HANDLE NULL
 
-#elif defined(__linux__)
+#elif defined(RENDERDOC_PLATFORM_LINUX)
 
 #include <xcb/xcb.h>
 #define WINDOW_HANDLE_DECL xcb_connection_t *connection; xcb_screen_t *screen; xcb_window_t wnd;

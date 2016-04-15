@@ -36,7 +36,7 @@
 // Win32 to try and hide less padding with the larger alignment requirement
 // of 8-byte pointers.
 
-#if defined(WIN32) && defined(RDC64BIT)
+#if defined(RENDERDOC_PLATFORM_WIN32) && defined(RDC64BIT)
 template<typename T, size_t actual, size_t expected> class oversized { int check[int(actual)-int(expected)+1]; };
 template<typename T, size_t actual, size_t expected> class undersized { int check[int(expected)-int(actual)+1]; };
 

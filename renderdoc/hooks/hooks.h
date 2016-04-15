@@ -34,7 +34,7 @@ using std::map;
 
 // include os-specific hooking mechanisms here
 
-#if defined(WIN32)
+#if defined(RENDERDOC_PLATFORM_WIN32)
 
 #include "os/win32/win32_hook.h"
 

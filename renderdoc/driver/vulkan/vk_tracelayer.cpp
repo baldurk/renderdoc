@@ -42,7 +42,7 @@
 #include "os/os_specific.h"
 
 // this should be in the vulkan definition header
-#ifdef WIN32
+#if defined(RENDERDOC_PLATFORM_WIN32)
 #undef VK_LAYER_EXPORT
 #define VK_LAYER_EXPORT extern "C" __declspec(dllexport)
 #endif
@@ -165,7 +165,7 @@ VkResult getProps(uint32_t *dstCount, void *dstProps, uint32_t srcCount, void *s
 	return VK_SUCCESS;
 }
 
-#if defined(WIN32) && !defined(WIN64)
+#if defined(RENDERDOC_PLATFORM_WIN32) && !defined(RDC64BIT)
 
 // Win32 __stdcall will still mangle even with extern "C", set up aliases
 

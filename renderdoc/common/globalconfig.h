@@ -69,7 +69,7 @@ enum
 // whether to include file and line on log lines
 #define INCLUDE_LOCATION_IN_LOG
 
-#if !defined(WIN32)
+#if !defined(RENDERDOC_PLATFORM_WIN32)
 // logs go to stdout/stderr
 #define OUTPUT_LOG_TO_STDOUT
 //#define OUTPUT_LOG_TO_STDERR

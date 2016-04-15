@@ -28,9 +28,9 @@
 #include <stdint.h>
 #endif
 
-#if defined(WIN32)
+#if defined(RENDERDOC_PLATFORM_WIN32)
 	#define RENDERDOC_CC __cdecl
-#elif defined(__linux__)
+#elif defined(RENDERDOC_PLATFORM_LINUX)
 	#define RENDERDOC_CC
 #else
 	#error "Unknown platform"
