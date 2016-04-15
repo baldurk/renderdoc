@@ -608,7 +608,7 @@
     <item>
      <widget class="QComboBox" name="comboBox_5">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
@@ -621,7 +621,7 @@
       </property>
       <property name="maximumSize">
        <size>
-        <width>50</width>
+        <width>16777215</width>
         <height>16777215</height>
        </size>
       </property>
