@@ -114,9 +114,6 @@
     <ClInclude Include="os\os_specific.h">
       <Filter>OS</Filter>
     </ClInclude>
-    <ClInclude Include="os\win32_specific.h">
-      <Filter>OS\Win32</Filter>
-    </ClInclude>
     <ClInclude Include="core\resource_manager.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -216,9 +213,6 @@
     <ClInclude Include="3rdparty\tinyexr\tinyexr.h">
       <Filter>3rdparty\tinyexr</Filter>
     </ClInclude>
-    <ClInclude Include="os\linux_specific.h">
-      <Filter>OS\Linux</Filter>
-    </ClInclude>
     <ClInclude Include="data\embedded_files.h">
       <Filter>Resources</Filter>
     </ClInclude>
@@ -239,6 +233,12 @@
     </ClInclude>
     <ClInclude Include="common\custom_assert.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="os\linux\linux_specific.h">
+      <Filter>OS\Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="os\win32\win32_specific.h">
+      <Filter>OS\Win32</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

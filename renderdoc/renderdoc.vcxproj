@@ -266,10 +266,10 @@
     <ClInclude Include="maths\matrix.h" />
     <ClInclude Include="maths\quat.h" />
     <ClInclude Include="maths\vec.h" />
-    <ClInclude Include="os\linux_specific.h" />
+    <ClInclude Include="os\linux\linux_specific.h" />
     <ClInclude Include="os\os_specific.h" />
     <ClInclude Include="os\win32\win32_hook.h" />
-    <ClInclude Include="os\win32_specific.h" />
+    <ClInclude Include="os\win32\win32_specific.h" />
     <ClInclude Include="replay\replay_driver.h" />
     <ClInclude Include="replay\replay_renderer.h" />
     <ClInclude Include="replay\type_helpers.h" />
