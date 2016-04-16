@@ -418,7 +418,7 @@ void GLReplay::CacheTexture(ResourceId id)
 			RDCERR("Details for invalid texture id %llu requested", id);
 
 		tex.name = "<Uninitialised Texture>";
-		tex.customName = false;
+		tex.customName = true;
 		tex.format = ResourceFormat();
 		tex.dimension = 1;
 		tex.resType = eResType_None;
@@ -744,7 +744,8 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 	{
 		ret.byteSize = 0;
 		ret.creationFlags = 0;
-		ret.customName = false;
+		ret.customName = true;
+		ret.name = "<Uninitialised Buffer>";
 		ret.length = 0;
 		ret.structureSize = 0;
 		return ret;
