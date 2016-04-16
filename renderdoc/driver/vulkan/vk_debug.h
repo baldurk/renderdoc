@@ -169,6 +169,12 @@ class VulkanDebugManager
 		VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline, m_TexDisplayF32Pipeline;
 		GPUBuffer m_TexDisplayUBO;
 
+		VkImage m_TexDisplayDummyImages[12];
+		VkImageView m_TexDisplayDummyImageViews[12];
+		VkWriteDescriptorSet m_TexDisplayDummyWrites[12];
+		VkDescriptorImageInfo m_TexDisplayDummyInfos[12];
+		VkDeviceMemory m_TexDisplayDummyMemory;
+
 		VkDescriptorSet GetTexDisplayDescSet()
 		{
 			m_TexDisplayNextSet = (m_TexDisplayNextSet+1)%ARRAY_COUNT(m_TexDisplayDescSet);

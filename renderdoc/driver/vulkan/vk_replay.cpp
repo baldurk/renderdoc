@@ -1159,7 +1159,23 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 		},
 	};
 
-	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+	vector<VkWriteDescriptorSet> writeSets;
+	for(size_t i=0; i < ARRAY_COUNT(writeSet); i++)
+		writeSets.push_back(writeSet[i]);
+	
+	for(size_t i=0; i < ARRAY_COUNT(GetDebugManager()->m_TexDisplayDummyWrites); i++)
+	{
+		VkWriteDescriptorSet &write = GetDebugManager()->m_TexDisplayDummyWrites[i];
+
+		// don't write dummy data in the actual slot
+		if(write.dstBinding == descSetBinding)
+			continue;
+
+		write.dstSet = Unwrap(descset);
+		writeSets.push_back(write);
+	}
+
+	vt->UpdateDescriptorSets(Unwrap(dev), (uint32_t)writeSets.size(), &writeSets[0], 0, NULL);
 
 	VkImageMemoryBarrier srcimBarrier = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,

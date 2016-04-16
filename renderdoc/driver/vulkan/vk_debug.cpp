@@ -266,7 +266,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_TexDisplayBlendPipeline = VK_NULL_HANDLE;
 	m_TexDisplayF32Pipeline = VK_NULL_HANDLE;
 	RDCEraseEl(m_TexDisplayUBO);
-			
+	
+	RDCEraseEl(m_TexDisplayDummyImages);
+	RDCEraseEl(m_TexDisplayDummyImageViews);
+	RDCEraseEl(m_TexDisplayDummyWrites);
+	RDCEraseEl(m_TexDisplayDummyInfos);
+	m_TexDisplayDummyMemory = VK_NULL_HANDLE;
+
 	m_TextDescSetLayout = VK_NULL_HANDLE;
 	m_TextPipeLayout = VK_NULL_HANDLE;
 	m_TextDescSet = VK_NULL_HANDLE;
@@ -1139,6 +1145,150 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
+	
+	if(m_State < WRITING)
+	{
+		int index = 0;
+
+		VkDeviceSize offsets[ARRAY_COUNT(m_TexDisplayDummyImages)];
+		VkDeviceSize curOffset = 0;
+
+		// we pick RGBA8 formats to be guaranteed they will be supported
+		VkFormat formats[] = { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UINT, VK_FORMAT_R8G8B8A8_SINT };
+		VkImageType types[] = { VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_2D };
+		VkSampleCountFlagBits msaa[] = { VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_2_BIT };
+
+		// type max is one higher than the last RESTYPE, and RESTYPES are 1-indexed
+		RDCCOMPILE_ASSERT(RESTYPE_TEXTYPEMAX-1 == ARRAY_COUNT(types), "RESTYPE values don't match formats for dummy images");
+		
+		RDCCOMPILE_ASSERT(ARRAY_COUNT(m_TexDisplayDummyImages) == ARRAY_COUNT(m_TexDisplayDummyImageViews), "dummy image arrays mismatched sizes");
+		RDCCOMPILE_ASSERT(ARRAY_COUNT(m_TexDisplayDummyImages) == ARRAY_COUNT(m_TexDisplayDummyWrites), "dummy image arrays mismatched sizes");
+		RDCCOMPILE_ASSERT(ARRAY_COUNT(m_TexDisplayDummyImages) == ARRAY_COUNT(m_TexDisplayDummyInfos), "dummy image arrays mismatched sizes");
+		
+		VkMemoryAllocateInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
+			0, ~0U,
+		};
+
+		for(int fmt=0; fmt < ARRAY_COUNT(formats); fmt++)
+		{
+			for(int type=0; type < ARRAY_COUNT(types); type++)
+			{
+				// create 1x1 image of the right size
+				VkImageCreateInfo imInfo = {
+					VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
+					types[type], formats[fmt],
+					{ 1, 1, 1 }, 1, 1, msaa[type],
+					VK_IMAGE_TILING_OPTIMAL,
+					VK_IMAGE_USAGE_SAMPLED_BIT,
+					VK_SHARING_MODE_EXCLUSIVE,
+					0, NULL,
+					VK_IMAGE_LAYOUT_UNDEFINED,
+				};
+
+				vkr = vt->CreateImage(Unwrap(dev), &imInfo, NULL, &m_TexDisplayDummyImages[index]);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+				GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayDummyImages[index]);
+
+				VkMemoryRequirements mrq;
+				vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_TexDisplayDummyImages[index]), &mrq);
+
+				uint32_t memIndex = driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits);
+
+				// make sure all images can use the same memory type
+				RDCASSERTMSG("memory type indices don't overlap!",
+					allocInfo.memoryTypeIndex == ~0U || allocInfo.memoryTypeIndex == memIndex,
+					allocInfo.memoryTypeIndex, memIndex, fmt, type);
+
+				allocInfo.memoryTypeIndex = memIndex;
+
+				// align to our alignment, then increment curOffset by our size
+				curOffset = AlignUp(curOffset, mrq.alignment);
+				offsets[index] = curOffset;
+				curOffset += mrq.size;
+				
+				// need to update image layout into valid state
+				VkImageMemoryBarrier barrier = {
+					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+					0, 0,
+					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+					0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
+					Unwrap(m_TexDisplayDummyImages[index]),
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+				};
+
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				DoPipelineBarrier(cmd, 1, &barrier);
+
+				// fill out the descriptor set write to the write binding - set will be filled out
+				// on demand when we're actulaly using these writes.
+				m_TexDisplayDummyWrites[index].descriptorCount = 1;
+				m_TexDisplayDummyWrites[index].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				m_TexDisplayDummyWrites[index].pNext = NULL;
+				m_TexDisplayDummyWrites[index].dstSet = VK_NULL_HANDLE;
+				m_TexDisplayDummyWrites[index].dstBinding = 5*(fmt+1) + type + 1; // 5 + RESTYPE_x
+				m_TexDisplayDummyWrites[index].dstArrayElement = 0;
+				m_TexDisplayDummyWrites[index].descriptorCount = 1;
+				m_TexDisplayDummyWrites[index].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				m_TexDisplayDummyWrites[index].pImageInfo = &m_TexDisplayDummyInfos[index];
+				m_TexDisplayDummyWrites[index].pBufferInfo = NULL;
+				m_TexDisplayDummyWrites[index].pTexelBufferView = NULL;
+				
+				m_TexDisplayDummyInfos[index].sampler = Unwrap(m_PointSampler);
+				m_TexDisplayDummyInfos[index].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+				index++;
+			}
+		}
+
+		// align up a bit just to be safe
+		allocInfo.allocationSize = AlignUp(curOffset, 1024ULL);
+
+		// allocate one big block
+		vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &m_TexDisplayDummyMemory);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayDummyMemory);
+
+		// bind all the image memory
+		for(index = 0; index < ARRAY_COUNT(m_TexDisplayDummyImages); index++)
+		{
+			vkr = vt->BindImageMemory(Unwrap(dev), Unwrap(m_TexDisplayDummyImages[index]), Unwrap(m_TexDisplayDummyMemory), offsets[index]);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
+		}
+
+		// now that the image memory is bound, we can create the image views and fill the descriptor set writes.
+		index = 0;
+		for(int fmt=0; fmt < ARRAY_COUNT(formats); fmt++)
+		{
+			for(int type=0; type < ARRAY_COUNT(types); type++)
+			{
+				VkImageViewCreateInfo viewInfo = {
+					VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL, 0,
+					Unwrap(m_TexDisplayDummyImages[index]), VkImageViewType(types[type]), // image/view type enums overlap for 1D/2D/3D
+					formats[fmt],
+					{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
+				};
+
+				RDCCOMPILE_ASSERT(VK_IMAGE_TYPE_1D == VK_IMAGE_VIEW_TYPE_1D, "Image/view type enums don't overlap!");
+				RDCCOMPILE_ASSERT(VK_IMAGE_TYPE_2D == VK_IMAGE_VIEW_TYPE_2D, "Image/view type enums don't overlap!");
+				RDCCOMPILE_ASSERT(VK_IMAGE_TYPE_3D == VK_IMAGE_VIEW_TYPE_3D, "Image/view type enums don't overlap!");
+
+				vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &m_TexDisplayDummyImageViews[index]);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+				GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayDummyImageViews[index]);
+				
+				m_TexDisplayDummyInfos[index].imageView = Unwrap(m_TexDisplayDummyImageViews[index]);
+
+				index++;
+			}
+		}
+	}
 
 	{
 		const uint32_t width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
@@ -1687,6 +1837,27 @@ VulkanDebugManager::~VulkanDebugManager()
 	{
 		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TexDisplayF32Pipeline), NULL);
 		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayF32Pipeline);
+	}
+
+	for(size_t i=0; i < ARRAY_COUNT(m_TexDisplayDummyImages); i++)
+	{
+		if(m_TexDisplayDummyImageViews[i] != VK_NULL_HANDLE)
+		{
+			vt->DestroyImageView(Unwrap(dev), Unwrap(m_TexDisplayDummyImageViews[i]), NULL);
+			GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDummyImageViews[i]);
+		}
+
+		if(m_TexDisplayDummyImages[i] != VK_NULL_HANDLE)
+		{
+			vt->DestroyImage(Unwrap(dev), Unwrap(m_TexDisplayDummyImages[i]), NULL);
+			GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDummyImages[i]);
+		}
+	}
+
+	if(m_TexDisplayDummyMemory != VK_NULL_HANDLE)
+	{
+		vt->FreeMemory(Unwrap(dev), Unwrap(m_TexDisplayDummyMemory), NULL);
+		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDummyMemory);
 	}
 
 	m_CheckerboardUBO.Destroy(vt, dev);
