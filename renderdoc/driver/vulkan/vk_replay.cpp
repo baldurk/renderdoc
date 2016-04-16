@@ -44,6 +44,8 @@ VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), hei
 	for(size_t i=0; i < ARRAY_COUNT(colimg); i++)
 		colimg[i] = VK_NULL_HANDLE;
 
+	fresh = true;
+
 	bb = VK_NULL_HANDLE;
 	bbview = VK_NULL_HANDLE;
 	fb = VK_NULL_HANDLE;
@@ -167,6 +169,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	Destroy(driver, device);
 
 	surface = oldsurf;
+
+	fresh = true;
 
 	if(surface == VK_NULL_HANDLE)
 	{
@@ -2564,6 +2568,23 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	outw.depthBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	
+	// first time rendering to the backbuffer, clear it, since our typical render pass
+	// is set to LOAD_OP_LOAD
+	if(outw.fresh)
+	{
+		outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		outw.bbBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
+		float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		vt->CmdClearColorImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1, &outw.bbBarrier.subresourceRange);
+
+		outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
+		outw.bbBarrier.srcAccessMask = outw.bbBarrier.dstAccessMask;
+
+		outw.fresh = false;
+	}
 	
 	outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	outw.bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;

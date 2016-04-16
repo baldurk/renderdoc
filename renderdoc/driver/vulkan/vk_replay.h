@@ -193,6 +193,8 @@ class VulkanReplay : public IReplayDriver
 
 			WINDOW_HANDLE_DECL
 
+			bool fresh;
+
 			uint32_t width, height;
 
 			VkSurfaceKHR surface;
