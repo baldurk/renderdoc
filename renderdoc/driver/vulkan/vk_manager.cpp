@@ -195,6 +195,12 @@ void VulkanResourceManager::RecordBarriers(vector< pair<ResourceId, ImageRegionS
 		const VkImageMemoryBarrier &t = barriers[ti];
 		
 		ResourceId id = m_State < WRITING ? GetNonDispWrapper(t.image)->id : GetResID(t.image);
+
+		if(id == ResourceId())
+		{
+			RDCERR("Couldn't get ID for image %p in barrier", t.image);
+			continue;
+		}
 		
 		uint32_t nummips = t.subresourceRange.levelCount;
 		uint32_t numslices = t.subresourceRange.layerCount;
