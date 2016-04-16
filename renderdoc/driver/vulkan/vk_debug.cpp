@@ -1170,9 +1170,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			0, ~0U,
 		};
 
-		for(int fmt=0; fmt < ARRAY_COUNT(formats); fmt++)
+		for(size_t fmt=0; fmt < ARRAY_COUNT(formats); fmt++)
 		{
-			for(int type=0; type < ARRAY_COUNT(types); type++)
+			for(size_t type=0; type < ARRAY_COUNT(types); type++)
 			{
 				// create 1x1 image of the right size
 				VkImageCreateInfo imInfo = {
@@ -1229,7 +1229,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				m_TexDisplayDummyWrites[index].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 				m_TexDisplayDummyWrites[index].pNext = NULL;
 				m_TexDisplayDummyWrites[index].dstSet = VK_NULL_HANDLE;
-				m_TexDisplayDummyWrites[index].dstBinding = 5*(fmt+1) + type + 1; // 5 + RESTYPE_x
+				m_TexDisplayDummyWrites[index].dstBinding = 5*uint32_t(fmt+1) + uint32_t(type) + 1; // 5 + RESTYPE_x
 				m_TexDisplayDummyWrites[index].dstArrayElement = 0;
 				m_TexDisplayDummyWrites[index].descriptorCount = 1;
 				m_TexDisplayDummyWrites[index].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1262,9 +1262,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 		// now that the image memory is bound, we can create the image views and fill the descriptor set writes.
 		index = 0;
-		for(int fmt=0; fmt < ARRAY_COUNT(formats); fmt++)
+		for(size_t fmt=0; fmt < ARRAY_COUNT(formats); fmt++)
 		{
-			for(int type=0; type < ARRAY_COUNT(types); type++)
+			for(size_t type=0; type < ARRAY_COUNT(types); type++)
 			{
 				VkImageViewCreateInfo viewInfo = {
 					VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL, 0,
@@ -1274,9 +1274,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
 				};
 
-				RDCCOMPILE_ASSERT(VK_IMAGE_TYPE_1D == VK_IMAGE_VIEW_TYPE_1D, "Image/view type enums don't overlap!");
-				RDCCOMPILE_ASSERT(VK_IMAGE_TYPE_2D == VK_IMAGE_VIEW_TYPE_2D, "Image/view type enums don't overlap!");
-				RDCCOMPILE_ASSERT(VK_IMAGE_TYPE_3D == VK_IMAGE_VIEW_TYPE_3D, "Image/view type enums don't overlap!");
+				RDCCOMPILE_ASSERT((uint32_t)VK_IMAGE_TYPE_1D == (uint32_t)VK_IMAGE_VIEW_TYPE_1D, "Image/view type enums don't overlap!");
+				RDCCOMPILE_ASSERT((uint32_t)VK_IMAGE_TYPE_2D == (uint32_t)VK_IMAGE_VIEW_TYPE_2D, "Image/view type enums don't overlap!");
+				RDCCOMPILE_ASSERT((uint32_t)VK_IMAGE_TYPE_3D == (uint32_t)VK_IMAGE_VIEW_TYPE_3D, "Image/view type enums don't overlap!");
 
 				vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &m_TexDisplayDummyImageViews[index]);
 				RDCASSERTEQUAL(vkr, VK_SUCCESS);
