@@ -2913,20 +2913,35 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.Tess.numControlPoints = p.patchControlPoints;
 
 			// Viewport/Scissors
-			create_array_uninit(m_VulkanPipelineState.VP.viewportScissors, RDCMIN(state.views.size(), state.scissors.size()));
-			for(size_t i=0; i < state.views.size(); i++)
+			size_t numViewScissors = p.viewportCount;
+			create_array_uninit(m_VulkanPipelineState.VP.viewportScissors, numViewScissors);
+			for(size_t i=0; i < numViewScissors; i++)
 			{
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.x = state.views[i].x;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.y = state.views[i].y;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.width = state.views[i].width;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.height = state.views[i].height;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.minDepth = state.views[i].minDepth;
-				m_VulkanPipelineState.VP.viewportScissors[i].vp.maxDepth = state.views[i].maxDepth;
+				if (i < state.views.size())
+				{
+					m_VulkanPipelineState.VP.viewportScissors[i].vp.x = state.views[i].x;
+					m_VulkanPipelineState.VP.viewportScissors[i].vp.y = state.views[i].y;
+					m_VulkanPipelineState.VP.viewportScissors[i].vp.width = state.views[i].width;
+					m_VulkanPipelineState.VP.viewportScissors[i].vp.height = state.views[i].height;
+					m_VulkanPipelineState.VP.viewportScissors[i].vp.minDepth = state.views[i].minDepth;
+					m_VulkanPipelineState.VP.viewportScissors[i].vp.maxDepth = state.views[i].maxDepth;
+				}
+				else
+				{
+					RDCEraseEl(m_VulkanPipelineState.VP.viewportScissors[i].vp);
+				}
 
-				m_VulkanPipelineState.VP.viewportScissors[i].scissor.x = state.scissors[i].offset.x;
-				m_VulkanPipelineState.VP.viewportScissors[i].scissor.y = state.scissors[i].offset.y;
-				m_VulkanPipelineState.VP.viewportScissors[i].scissor.width = state.scissors[i].extent.width;
-				m_VulkanPipelineState.VP.viewportScissors[i].scissor.height = state.scissors[i].extent.height;
+				if (i < state.scissors.size())
+				{
+					m_VulkanPipelineState.VP.viewportScissors[i].scissor.x = state.scissors[i].offset.x;
+					m_VulkanPipelineState.VP.viewportScissors[i].scissor.y = state.scissors[i].offset.y;
+					m_VulkanPipelineState.VP.viewportScissors[i].scissor.width = state.scissors[i].extent.width;
+					m_VulkanPipelineState.VP.viewportScissors[i].scissor.height = state.scissors[i].extent.height;
+				}
+				else
+				{
+					RDCEraseEl(m_VulkanPipelineState.VP.viewportScissors[i].scissor);
+				}
 			}
 
 			// Rasterizer
