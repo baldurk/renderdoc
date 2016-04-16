@@ -1245,7 +1245,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		}
 
 		// align up a bit just to be safe
-		allocInfo.allocationSize = AlignUp(curOffset, 1024ULL);
+		allocInfo.allocationSize = AlignUp(curOffset, (VkDeviceSize)1024ULL);
 
 		// allocate one big block
 		vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &m_TexDisplayDummyMemory);
@@ -1254,7 +1254,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayDummyMemory);
 
 		// bind all the image memory
-		for(index = 0; index < ARRAY_COUNT(m_TexDisplayDummyImages); index++)
+		for(index = 0; index < (int)ARRAY_COUNT(m_TexDisplayDummyImages); index++)
 		{
 			vkr = vt->BindImageMemory(Unwrap(dev), Unwrap(m_TexDisplayDummyImages[index]), Unwrap(m_TexDisplayDummyMemory), offsets[index]);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
