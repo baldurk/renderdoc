@@ -127,7 +127,7 @@ if(UNIX)
         os/linux/linux_process.cpp
         os/linux/linux_stringio.cpp
         os/linux/linux_threading.cpp
-        os/linux_specific.h)
+        os/linux/linux_specific.h)
     # linux_libentry must be the last so that library_loaded is called after
     # static objects are constructed.
     list(APPEND sources os/linux/linux_libentry.cpp)
