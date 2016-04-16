@@ -78,6 +78,7 @@ NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PPCONTEXT_H
 #define PPCONTEXT_H
 
+#include <stack>
 #include <unordered_map>
 
 #include "../ParseHelper.h"
@@ -121,7 +122,7 @@ class TInputScanner;
 // Don't expect too much in terms of OO design.
 class TPpContext {
 public:
-    TPpContext(TParseContext&, const TShader::Includer&);
+    TPpContext(TParseContextBase&, const std::string& rootFileName, TShader::Includer&);
     virtual ~TPpContext();
 
     void setPreamble(const char* preamble, size_t length);
@@ -213,7 +214,7 @@ protected:
 
     // Scanner data:
     int previous_token;
-    TParseContext& parseContext;
+    TParseContextBase& parseContext;
 
     // Get the next token from *stack* of input sources, popping input sources
     // that are out of tokens, down until an input sources is found that has a token.
@@ -290,7 +291,7 @@ protected:
     //
 
     // Used to obtain #include content.
-    const TShader::Includer& includer;
+    TShader::Includer& includer;
 
     int InitCPP();
     int CPPdefine(TPpToken * ppToken);
@@ -430,21 +431,40 @@ protected:
         TInputScanner* input;
     };
 
-    // Holds a string that can be tokenized via the tInput interface.
-    class TokenizableString : public tInput {
+    // Holds a reference to included file data, as well as a 
+    // prologue and an epilogue string. This can be scanned using the tInput
+    // interface and acts as a single source string.
+    class TokenizableIncludeFile : public tInput {
     public:
-        // Copies str, which must be non-empty.
-        TokenizableString(const TSourceLoc& startLoc, const std::string& str, TPpContext* pp)
+        // Copies prologue and epilogue. The includedFile must remain valid
+        // until this TokenizableIncludeFile is no longer used.
+        TokenizableIncludeFile(const TSourceLoc& startLoc,
+                          const std::string& prologue,
+                          TShader::Includer::IncludeResult* includedFile,
+                          const std::string& epilogue,
+                          TPpContext* pp)
             : tInput(pp),
-              str_(str),
-              strings(str_.data()),
-              length(str_.size()),
-              scanner(1, &strings, &length),
+              prologue_(prologue),
+              includedFile_(includedFile),
+              epilogue_(epilogue),
+              scanner(3, strings, lengths, names, 0, 0, true),
               prevScanner(nullptr),
-              stringInput(pp, scanner) {
-                  scanner.setLine(startLoc.line);
-                  scanner.setString(startLoc.string);
-                  scanner.setFile(startLoc.name);
+              stringInput(pp, scanner)
+        {
+              strings[0] = prologue_.data();
+              strings[1] = includedFile_->file_data;
+              strings[2] = epilogue_.data();
+
+              lengths[0] = prologue_.size();
+              lengths[1] = includedFile_->file_length;
+              lengths[2] = epilogue_.size();
+
+              scanner.setLine(startLoc.line);
+              scanner.setString(startLoc.string);
+
+              scanner.setFile(startLoc.name, 0);
+              scanner.setFile(startLoc.name, 1);
+              scanner.setFile(startLoc.name, 2);
         }
 
         // tInput methods:
@@ -456,16 +476,34 @@ protected:
         {
             prevScanner = pp->parseContext.getScanner();
             pp->parseContext.setScanner(&scanner);
+            pp->push_include(includedFile_);
         }
-        void notifyDeleted() override { pp->parseContext.setScanner(prevScanner); }
+
+        void notifyDeleted() override
+        {
+            pp->parseContext.setScanner(prevScanner);
+            pp->pop_include();
+        }
 
     private:
-        // Stores the titular string.
-        const std::string str_;
-        // Will point to str_[0] and be passed to scanner constructor.
-        const char* const strings;
+        // Stores the prologue for this string.
+        const std::string prologue_;
+
+        // Stores the epilogue for this string.
+        const std::string epilogue_;
+
+        // Points to the IncludeResult that this TokenizableIncludeFile represents.
+        TShader::Includer::IncludeResult* includedFile_;
+
+        // Will point to prologue_, includedFile_->file_data and epilogue_
+        // This is passed to scanner constructor.
+        // These do not own the storage and it must remain valid until this
+        // object has been destroyed.
+        const char* strings[3];
         // Length of str_, passed to scanner constructor.
-        size_t length;
+        size_t lengths[3];
+        // String names
+        const char* names[3];
         // Scans over str_.
         TInputScanner scanner;
         // The previous effective scanner before the scanner in this instance
@@ -480,6 +518,24 @@ protected:
     void missingEndifCheck();
     int lFloatConst(int len, int ch, TPpToken* ppToken);
 
+    void push_include(TShader::Includer::IncludeResult* result)
+    {
+        currentSourceFile = result->file_name;
+        includeStack.push(result);
+    }
+
+    void pop_include()
+    {
+        TShader::Includer::IncludeResult* include = includeStack.top();
+        includeStack.pop();
+        includer.releaseInclude(include);
+        if (includeStack.empty()) {
+            currentSourceFile = rootFileName;
+        } else {
+            currentSourceFile = includeStack.top()->file_name;
+        }
+    }
+
     bool inComment;
 
     //
@@ -487,8 +543,12 @@ protected:
     //
     typedef TUnorderedMap<TString, int> TAtomMap;
     typedef TVector<const TString*> TStringMap;
+
     TAtomMap atomMap;
     TStringMap stringMap;
+    std::stack<TShader::Includer::IncludeResult*> includeStack;
+    std::string currentSourceFile;
+    std::string rootFileName;
     int nextAtom;
     void InitAtomTable();
     void AddAtomFixed(const char* s, int atom);

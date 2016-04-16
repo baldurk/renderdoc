@@ -135,7 +135,7 @@ protected:
 //
 // Variable class, meaning a symbol that's not a function.
 //
-// There could be a separate class heirarchy for Constant variables;
+// There could be a separate class hierarchy for Constant variables;
 // Only one of int, bool, or float, (or none) is correct for
 // any particular use, but it's easy to do this way, and doesn't
 // seem worth having separate classes, and "getConst" can't simply return
@@ -144,7 +144,10 @@ protected:
 //
 class TVariable : public TSymbol {
 public:
-    TVariable(const TString *name, const TType& t, bool uT = false ) : TSymbol(name), userType(uT) { type.shallowCopy(t); }
+    TVariable(const TString *name, const TType& t, bool uT = false )
+        : TSymbol(name), 
+          userType(uT),
+          constSubtree(nullptr) { type.shallowCopy(t); }
     virtual TVariable* clone() const;
     virtual ~TVariable() { }
 
@@ -153,9 +156,11 @@ public:
     virtual const TType& getType() const { return type; }
     virtual TType& getWritableType() { assert(writable); return type; }
     virtual bool isUserType() const { return userType; }
-    virtual const TConstUnionArray& getConstArray() const { return unionArray; }
-    virtual TConstUnionArray& getWritableConstArray() { assert(writable); return unionArray; }
-    virtual void setConstArray(const TConstUnionArray& constArray) { unionArray = constArray; }
+    virtual const TConstUnionArray& getConstArray() const { return constArray; }
+    virtual TConstUnionArray& getWritableConstArray() { assert(writable); return constArray; }
+    virtual void setConstArray(const TConstUnionArray& array) { constArray = array; }
+    virtual void setConstSubtree(TIntermTyped* subtree) { constSubtree = subtree; }
+    virtual TIntermTyped* getConstSubtree() const { return constSubtree; }
 
     virtual void dump(TInfoSink &infoSink) const;
 
@@ -167,7 +172,12 @@ protected:
     bool userType;
     // we are assuming that Pool Allocator will free the memory allocated to unionArray
     // when this object is destroyed
-    TConstUnionArray unionArray;
+
+    // TODO: these two should be a union
+    // A variable could be a compile-time constant, or a specialization
+    // constant, or neither, but never both.
+    TConstUnionArray constArray;  // for compile-time constant value
+    TIntermTyped* constSubtree;   // for specialization constant computation
 };
 
 //

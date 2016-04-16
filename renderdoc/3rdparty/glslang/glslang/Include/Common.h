@@ -206,17 +206,7 @@ struct TSourceLoc {
     {
         if (name != nullptr)
             return quoteStringName ? ("\"" + std::string(name) + "\"") : name;
-
-        char text[16] = {0};
-
-    #if defined _MSC_VER || defined MINGW_HAS_SECURE_API
-        // we assume base 10 for all cases
-        _itoa_s(string, text, sizeof(text), 10);
-    #else
-        snprintf(text, sizeof(text), "%d", string);
-    #endif
-
-        return text;
+        return std::to_string((long long)string);
     }
     const char* name; // descriptive name for this string
     int string;

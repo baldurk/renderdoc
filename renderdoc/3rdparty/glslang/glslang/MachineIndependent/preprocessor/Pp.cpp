@@ -611,24 +611,28 @@ int TPpContext::CPPinclude(TPpToken* ppToken)
         if (token != '\n' && token != EndOfInput) {
             parseContext.ppError(ppToken->loc, "extra content after file designation", "#include", "");
         } else {
-            std::pair<std::string, std::string> inc = includer.include(filename.c_str());
-            const std::string &sourceName = inc.first;
-            const std::string &replacement = inc.second;
-            if (!sourceName.empty()) {
-                if (!replacement.empty()) {
+            TShader::Includer::IncludeResult* res = includer.include(filename.c_str(), TShader::Includer::EIncludeRelative, currentSourceFile.c_str(), includeStack.size() + 1);
+            if (res && !res->file_name.empty()) {
+                if (res->file_data && res->file_length) {
                     const bool forNextLine = parseContext.lineDirectiveShouldSetNextLine();
-                    std::ostringstream content;
-                    content << "#line " << forNextLine << " " << "\"" << sourceName << "\"\n";
-                    content << replacement << (replacement.back() == '\n' ? "" : "\n");
-                    content << "#line " << directiveLoc.line + forNextLine << " " << directiveLoc.getStringNameOrNum() << "\n";
-                    pushInput(new TokenizableString(directiveLoc, content.str(), this));
+                    std::ostringstream prologue;
+                    std::ostringstream epilogue;
+                    prologue << "#line " << forNextLine << " " << "\"" << res->file_name << "\"\n";
+                    epilogue << (res->file_data[res->file_length - 1] == '\n'? "" : "\n") << "#line " << directiveLoc.line + forNextLine << " " << directiveLoc.getStringNameOrNum() << "\n";
+                    pushInput(new TokenizableIncludeFile(directiveLoc, prologue.str(), res, epilogue.str(), this));
                 }
                 // At EOF, there's no "current" location anymore.
                 if (token != EndOfInput) parseContext.setCurrentColumn(0);
                 // Don't accidentally return EndOfInput, which will end all preprocessing.
                 return '\n';
             } else {
-                parseContext.ppError(directiveLoc, replacement.c_str(), "#include", "");
+                std::string message =
+                    res ? std::string(res->file_data, res->file_length)
+                        : std::string("Could not process include directive");
+                parseContext.ppError(directiveLoc, message.c_str(), "#include", "");
+                if (res) {
+                    includer.releaseInclude(res);
+                }
             }
         }
     }
@@ -867,12 +871,13 @@ int TPpContext::readCPPline(TPpToken* ppToken)
             token = CPPelse(0, ppToken);
             break;
         case PpAtomEndif:
-            elseSeen[elsetracker] = false;
-            --elsetracker;
             if (! ifdepth)
                 parseContext.ppError(ppToken->loc, "mismatched statements", "#endif", "");
-            else
+            else {
+                elseSeen[elsetracker] = false;
+                --elsetracker;
                 --ifdepth;
+            }
             token = extraTokenCheck(PpAtomEndif, ppToken, scanToken(ppToken));
             break;
         case PpAtomIf:

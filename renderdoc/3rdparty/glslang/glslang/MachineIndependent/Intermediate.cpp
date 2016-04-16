@@ -61,25 +61,35 @@ namespace glslang {
 // Returns the added node.
 //
 
-TIntermSymbol* TIntermediate::addSymbol(int id, const TString& name, const TType& type, const TSourceLoc& loc)
+TIntermSymbol* TIntermediate::addSymbol(int id, const TString& name, const TType& type, const TConstUnionArray& constArray,
+                                        TIntermTyped* constSubtree, const TSourceLoc& loc)
 {
     TIntermSymbol* node = new TIntermSymbol(id, name, type);
     node->setLoc(loc);
+    node->setConstArray(constArray);
+    node->setConstSubtree(constSubtree);
 
     return node;
 }
 
-TIntermSymbol* TIntermediate::addSymbol(int id, const TString& name, const TType& type, const TConstUnionArray& constArray, const TSourceLoc& loc)
+TIntermSymbol* TIntermediate::addSymbol(const TVariable& variable)
 {
-    TIntermSymbol* node = addSymbol(id, name, type, loc);
-    node->setConstArray(constArray);
+    glslang::TSourceLoc loc; // just a null location
+    loc.init();
 
-    return node;
+    return addSymbol(variable, loc);
 }
 
 TIntermSymbol* TIntermediate::addSymbol(const TVariable& variable, const TSourceLoc& loc)
 {
-    return addSymbol(variable.getUniqueId(), variable.getName(), variable.getType(), variable.getConstArray(), loc);
+    return addSymbol(variable.getUniqueId(), variable.getName(), variable.getType(), variable.getConstArray(), variable.getConstSubtree(), loc);
+}
+
+TIntermSymbol* TIntermediate::addSymbol(const TType& type, const TSourceLoc& loc)
+{
+    TConstUnionArray unionArray;  // just a null constant
+
+    return addSymbol(0, "", type, unionArray, nullptr, loc);
 }
 
 //
@@ -135,10 +145,12 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
 
     // If either is a specialization constant, while the other is 
     // a constant (or specialization constant), the result is still
-    // a specialization constant.
+    // a specialization constant, if the operation is an allowed
+    // specialization-constant operation.
     if (( left->getType().getQualifier().isSpecConstant() && right->getType().getQualifier().isConstant()) ||
         (right->getType().getQualifier().isSpecConstant() &&  left->getType().getQualifier().isConstant()))
-        node->getWritableType().getQualifier().makeSpecConstant();
+        if (isSpecializationOperation(*node))
+            node->getWritableType().getQualifier().makeSpecConstant();
 
     return node;
 }
@@ -252,6 +264,7 @@ TIntermTyped* TIntermediate::addUnaryMath(TOperator op, TIntermTyped* child, TSo
 
     //
     // For constructors, we are now done, it was all in the conversion.
+    // TODO: but, did this bypass constant folding?
     //
     switch (op) {
     case EOpConstructInt:
@@ -281,8 +294,9 @@ TIntermTyped* TIntermediate::addUnaryMath(TOperator op, TIntermTyped* child, TSo
     if (child->getAsConstantUnion())
         return child->getAsConstantUnion()->fold(op, node->getType());
 
-    // If it's a specialiation constant, the result is too.
-    if (child->getType().getQualifier().isSpecConstant())
+    // If it's a specialization constant, the result is too,
+    // if the operation is allowed for specialization constants.
+    if (child->getType().getQualifier().isSpecConstant() && isSpecializationOperation(*node))
         node->getWritableType().getQualifier().makeSpecConstant();
 
     return node;
@@ -474,6 +488,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
     case EOpSub:
     case EOpMul:
     case EOpDiv:
+    case EOpMod:
 
     case EOpVectorTimesScalar:
     case EOpVectorTimesMatrix:
@@ -604,6 +619,12 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
     newNode = new TIntermUnary(newOp, newType);
     newNode->setLoc(node->getLoc());
     newNode->setOperand(node);
+
+    // TODO: it seems that some unary folding operations should occur here, but are not
+
+    // Propagate specialization-constant-ness, if allowed
+    if (node->getType().getQualifier().isSpecConstant() && isSpecializationOperation(*newNode))
+        newNode->getWritableType().getQualifier().makeSpecConstant();
 
     return newNode;
 }
@@ -813,7 +834,7 @@ TIntermTyped* TIntermediate::addSelection(TIntermTyped* cond, TIntermTyped* true
     // Make a selection node.
     //
     TIntermSelection* node = new TIntermSelection(cond, trueBlock, falseBlock, trueBlock->getType());
-    node->getQualifier().storage = EvqTemporary;
+    node->getQualifier().makeTemporary();
     node->setLoc(loc);
     node->getQualifier().precision = std::max(trueBlock->getQualifier().precision, falseBlock->getQualifier().precision);
 
@@ -872,7 +893,6 @@ TIntermConstantUnion* TIntermediate::addConstantUnion(double d, TBasicType baseT
 
 TIntermTyped* TIntermediate::addSwizzle(TVectorFields& fields, const TSourceLoc& loc)
 {
-
     TIntermAggregate* node = new TIntermAggregate(EOpSequence);
 
     node->setLoc(loc);
@@ -1017,8 +1037,7 @@ void TIntermediate::addSymbolLinkageNode(TIntermAggregate*& linkage, const TSymb
         const TAnonMember* anon = symbol.getAsAnonMember();
         variable = &anon->getAnonContainer();
     }
-    TIntermSymbol* node = new TIntermSymbol(variable->getUniqueId(), variable->getName(), variable->getType());
-    node->setConstArray(variable->getConstArray());
+    TIntermSymbol* node = addSymbol(*variable);
     linkage = growAggregate(linkage, node);
 }
 
@@ -1047,6 +1066,87 @@ void TIntermediate::removeTree()
 {
     if (treeRoot)
         RemoveAllTreeNodes(treeRoot);
+}
+
+//
+// Implement the part of KHR_vulkan_glsl that lists the set of operations
+// that can result in a specialization constant operation.
+//
+// "5.x Specialization Constant Operations"
+//
+// ...
+//
+// It also needs to allow basic construction, swizzling, and indexing
+// operations.
+//
+bool TIntermediate::isSpecializationOperation(const TIntermOperator& node) const
+{
+    // allow construction
+    if (node.isConstructor())
+        return true;
+
+    // The set for floating point is quite limited
+    if (node.getBasicType() == EbtFloat ||
+        node.getBasicType() == EbtDouble) {
+        switch (node.getOp()) {
+        case EOpIndexDirect:
+        case EOpIndexIndirect:
+        case EOpIndexDirectStruct:
+        case EOpVectorSwizzle:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    // Floating-point is out of the way.
+    // Now check for integer/bool-based operations
+    switch (node.getOp()) {
+
+    // dereference/swizzle
+    case EOpIndexDirect:
+    case EOpIndexIndirect:
+    case EOpIndexDirectStruct:
+    case EOpVectorSwizzle:
+
+    // conversion constructors
+    case EOpConvIntToBool:
+    case EOpConvUintToBool:
+    case EOpConvUintToInt:
+    case EOpConvBoolToInt:
+    case EOpConvIntToUint:
+    case EOpConvBoolToUint:
+
+    // unary operations
+    case EOpNegative:
+    case EOpLogicalNot:
+    case EOpBitwiseNot:
+
+    // binary operations
+    case EOpAdd:
+    case EOpSub:
+    case EOpMul:
+    case EOpVectorTimesScalar:
+    case EOpDiv:
+    case EOpMod:
+    case EOpRightShift:
+    case EOpLeftShift:
+    case EOpAnd:
+    case EOpInclusiveOr:
+    case EOpExclusiveOr:
+    case EOpLogicalOr:
+    case EOpLogicalXor:
+    case EOpLogicalAnd:
+    case EOpEqual:
+    case EOpNotEqual:
+    case EOpLessThan:
+    case EOpGreaterThan:
+    case EOpLessThanEqual:
+    case EOpGreaterThanEqual:
+        return true;
+    default:
+        return false;
+    }
 }
 
 ////////////////////////////////////////////////////////////////

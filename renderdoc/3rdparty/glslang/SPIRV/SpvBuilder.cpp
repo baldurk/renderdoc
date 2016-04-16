@@ -64,7 +64,8 @@ Builder::Builder(unsigned int magicNumber) :
     builderNumber(magicNumber),
     buildPoint(0),
     uniqueId(0),
-    mainFunction(0)
+    mainFunction(0),
+    generatingOpCodeForSpecConst(false)
 {
     clearAccessChain();
 }
@@ -893,7 +894,7 @@ void Builder::addMemberDecoration(Id id, unsigned int member, Decoration decorat
 }
 
 // Comments in header
-Function* Builder::makeMain()
+Function* Builder::makeEntrypoint(const char* entryPoint)
 {
     assert(! mainFunction);
 
@@ -901,7 +902,7 @@ Function* Builder::makeMain()
     std::vector<Id> params;
     std::vector<Decoration> precisions;
 
-    mainFunction = makeFunctionEntry(NoPrecision, makeVoidType(), "main", params, precisions, &entry);
+    mainFunction = makeFunctionEntry(NoPrecision, makeVoidType(), entryPoint, params, precisions, &entry);
 
     return mainFunction;
 }
@@ -1063,6 +1064,11 @@ Id Builder::createArrayLength(Id base, unsigned int member)
 
 Id Builder::createCompositeExtract(Id composite, Id typeId, unsigned index)
 {
+    // Generate code for spec constants if in spec constant operation
+    // generation mode.
+    if (generatingOpCodeForSpecConst) {
+        return createSpecConstantOp(OpCompositeExtract, typeId, std::vector<Id>(1, composite), std::vector<Id>(1, index));
+    }
     Instruction* extract = new Instruction(getUniqueId(), typeId, OpCompositeExtract);
     extract->addIdOperand(composite);
     extract->addImmediateOperand(index);
@@ -1073,6 +1079,11 @@ Id Builder::createCompositeExtract(Id composite, Id typeId, unsigned index)
 
 Id Builder::createCompositeExtract(Id composite, Id typeId, std::vector<unsigned>& indexes)
 {
+    // Generate code for spec constants if in spec constant operation
+    // generation mode.
+    if (generatingOpCodeForSpecConst) {
+        return createSpecConstantOp(OpCompositeExtract, typeId, std::vector<Id>(1, composite), indexes);
+    }
     Instruction* extract = new Instruction(getUniqueId(), typeId, OpCompositeExtract);
     extract->addIdOperand(composite);
     for (int i = 0; i < (int)indexes.size(); ++i)
@@ -1145,7 +1156,7 @@ void Builder::createNoResultOp(Op opCode, Id operand)
 void Builder::createNoResultOp(Op opCode, const std::vector<Id>& operands)
 {
     Instruction* op = new Instruction(opCode);
-    for (auto it = operands.begin(); it != operands.end(); ++it)
+    for (auto it = operands.cbegin(); it != operands.cend(); ++it)
         op->addIdOperand(*it);
     buildPoint->addInstruction(std::unique_ptr<Instruction>(op));
 }
@@ -1170,6 +1181,11 @@ void Builder::createMemoryBarrier(unsigned executionScope, unsigned memorySemant
 // An opcode that has one operands, a result id, and a type
 Id Builder::createUnaryOp(Op opCode, Id typeId, Id operand)
 {
+    // Generate code for spec constants if in spec constant operation
+    // generation mode.
+    if (generatingOpCodeForSpecConst) {
+        return createSpecConstantOp(opCode, typeId, std::vector<Id>(1, operand), std::vector<Id>());
+    }
     Instruction* op = new Instruction(getUniqueId(), typeId, opCode);
     op->addIdOperand(operand);
     buildPoint->addInstruction(std::unique_ptr<Instruction>(op));
@@ -1179,6 +1195,13 @@ Id Builder::createUnaryOp(Op opCode, Id typeId, Id operand)
 
 Id Builder::createBinOp(Op opCode, Id typeId, Id left, Id right)
 {
+    // Generate code for spec constants if in spec constant operation
+    // generation mode.
+    if (generatingOpCodeForSpecConst) {
+        std::vector<Id> operands(2);
+        operands[0] = left; operands[1] = right;
+        return createSpecConstantOp(opCode, typeId, operands, std::vector<Id>());
+    }
     Instruction* op = new Instruction(getUniqueId(), typeId, opCode);
     op->addIdOperand(left);
     op->addIdOperand(right);
@@ -1189,6 +1212,16 @@ Id Builder::createBinOp(Op opCode, Id typeId, Id left, Id right)
 
 Id Builder::createTriOp(Op opCode, Id typeId, Id op1, Id op2, Id op3)
 {
+    // Generate code for spec constants if in spec constant operation
+    // generation mode.
+    if (generatingOpCodeForSpecConst) {
+        std::vector<Id> operands(3);
+        operands[0] = op1;
+        operands[1] = op2;
+        operands[2] = op3;
+        return createSpecConstantOp(
+            opCode, typeId, operands, std::vector<Id>());
+    }
     Instruction* op = new Instruction(getUniqueId(), typeId, opCode);
     op->addIdOperand(op1);
     op->addIdOperand(op2);
@@ -1201,9 +1234,23 @@ Id Builder::createTriOp(Op opCode, Id typeId, Id op1, Id op2, Id op3)
 Id Builder::createOp(Op opCode, Id typeId, const std::vector<Id>& operands)
 {
     Instruction* op = new Instruction(getUniqueId(), typeId, opCode);
-    for (auto it = operands.begin(); it != operands.end(); ++it)
+    for (auto it = operands.cbegin(); it != operands.cend(); ++it)
         op->addIdOperand(*it);
     buildPoint->addInstruction(std::unique_ptr<Instruction>(op));
+
+    return op->getResultId();
+}
+
+Id Builder::createSpecConstantOp(Op opCode, Id typeId, const std::vector<Id>& operands, const std::vector<unsigned>& literals)
+{
+    Instruction* op = new Instruction(getUniqueId(), typeId, OpSpecConstantOp);
+    op->addImmediateOperand((unsigned) opCode);
+    for (auto it = operands.cbegin(); it != operands.cend(); ++it)
+        op->addIdOperand(*it);
+    for (auto it = literals.cbegin(); it != literals.cend(); ++it)
+        op->addImmediateOperand(*it);
+    module.mapInstruction(op);
+    constantsTypesGlobals.push_back(std::unique_ptr<Instruction>(op));
 
     return op->getResultId();
 }
@@ -1225,6 +1272,11 @@ Id Builder::createRvalueSwizzle(Decoration precision, Id typeId, Id source, std:
     if (channels.size() == 1)
         return setPrecision(createCompositeExtract(source, typeId, channels.front()), precision);
 
+    if (generatingOpCodeForSpecConst) {
+        std::vector<Id> operands(2);
+        operands[0] = operands[1] = source;
+        return setPrecision(createSpecConstantOp(OpVectorShuffle, typeId, operands, channels), precision);
+    }
     Instruction* swizzle = new Instruction(getUniqueId(), typeId, OpVectorShuffle);
     assert(isVector(source));
     swizzle->addIdOperand(source);
@@ -1290,10 +1342,23 @@ Id Builder::smearScalar(Decoration precision, Id scalar, Id vectorType)
     if (numComponents == 1)
         return scalar;
 
-    Instruction* smear = new Instruction(getUniqueId(), vectorType, OpCompositeConstruct);
-    for (int c = 0; c < numComponents; ++c)
-        smear->addIdOperand(scalar);
-    buildPoint->addInstruction(std::unique_ptr<Instruction>(smear));
+    Instruction* smear = nullptr;
+    if (generatingOpCodeForSpecConst) {
+        auto members = std::vector<spv::Id>(numComponents, scalar);
+        // 'scalar' can not be spec constant here. All spec constant involved
+        // promotion is done in createSpvConstantFromConstUnionArray().  This
+        // 'if' branch is only accessed when 'scalar' is used in the def-chain
+        // of other vector type spec constants. In such cases, all the
+        // instructions needed to promote 'scalar' to a vector type constants
+        // should be added at module level.
+        auto result_id = makeCompositeConstant(vectorType, members, false);
+        smear = module.getInstruction(result_id);
+    } else {
+        smear = new Instruction(getUniqueId(), vectorType, OpCompositeConstruct);
+        for (int c = 0; c < numComponents; ++c)
+            smear->addIdOperand(scalar);
+        buildPoint->addInstruction(std::unique_ptr<Instruction>(smear));
+    }
 
     return setPrecision(smear->getResultId(), precision);
 }
@@ -2110,7 +2175,7 @@ Id Builder::accessChainGetInferredType()
         type = getContainedTypeId(type);
 
     // dereference each index
-    for (auto it = accessChain.indexChain.begin(); it != accessChain.indexChain.end(); ++it) {
+    for (auto it = accessChain.indexChain.cbegin(); it != accessChain.indexChain.cend(); ++it) {
         if (isStructType(type))
             type = getContainedTypeId(type, getConstantScalar(*it));
         else
@@ -2130,6 +2195,42 @@ Id Builder::accessChainGetInferredType()
     return type;
 }
 
+// comment in header
+void Builder::eliminateDeadDecorations() {
+    std::unordered_set<const Block*> reachable_blocks;
+    std::unordered_set<Id> unreachable_definitions;
+    // Collect IDs defined in unreachable blocks. For each function, label the
+    // reachable blocks first. Then for each unreachable block, collect the
+    // result IDs of the instructions in it.
+    for (std::vector<Function*>::const_iterator fi = module.getFunctions().cbegin();
+        fi != module.getFunctions().cend(); fi++) {
+        Function* f = *fi;
+        Block* entry = f->getEntryBlock();
+        inReadableOrder(entry, [&reachable_blocks](const Block* b) {
+            reachable_blocks.insert(b);
+        });
+        for (std::vector<Block*>::const_iterator bi = f->getBlocks().cbegin();
+            bi != f->getBlocks().cend(); bi++) {
+            Block* b = *bi;
+            if (!reachable_blocks.count(b)) {
+                for (std::vector<std::unique_ptr<Instruction> >::const_iterator
+                         ii = b->getInstructions().cbegin();
+                    ii != b->getInstructions().cend(); ii++) {
+                    Instruction* i = ii->get();
+                    unreachable_definitions.insert(i->getResultId());
+                }
+            }
+        }
+    }
+    decorations.erase(std::remove_if(decorations.begin(), decorations.end(),
+        [&unreachable_definitions](std::unique_ptr<Instruction>& I) -> bool {
+            Instruction* inst = I.get();
+            Id decoration_id = inst->getIdOperand(0);
+            return unreachable_definitions.count(decoration_id) != 0;
+        }),
+        decorations.end());
+}
+
 void Builder::dump(std::vector<unsigned int>& out) const
 {
     // Header, before first instructions:
@@ -2140,7 +2241,7 @@ void Builder::dump(std::vector<unsigned int>& out) const
     out.push_back(0);
 
     // Capabilities
-    for (auto it = capabilities.begin(); it != capabilities.end(); ++it) {
+    for (auto it = capabilities.cbegin(); it != capabilities.cend(); ++it) {
         Instruction capInst(0, 0, OpCapability);
         capInst.addImmediateOperand(*it);
         capInst.dump(out);
@@ -2232,7 +2333,7 @@ void Builder::simplifyAccessChainSwizzle()
 
 // To the extent any swizzling can become part of the chain
 // of accesses instead of a post operation, make it so.
-// If 'dynamic' is true, include transfering a non-static component index,
+// If 'dynamic' is true, include transferring a non-static component index,
 // otherwise, only transfer static indexes.
 //
 // Also, Boolean vectors are likely to be special.  While

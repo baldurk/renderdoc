@@ -48,14 +48,14 @@ extern int yyparse(glslang::TParseContext*);
 
 namespace glslang {
 
-TParseContext::TParseContext(TSymbolTable& symt, TIntermediate& interm, bool pb, int v, EProfile p, int spv, int vulkan, EShLanguage L, TInfoSink& is,
-                             bool fc, EShMessages m) :
-            intermediate(interm), symbolTable(symt), infoSink(is), language(L),
-            version(v), profile(p), spv(spv), vulkan(vulkan), forwardCompatible(fc), 
+TParseContext::TParseContext(TSymbolTable& symbolTable, TIntermediate& interm, bool parsingBuiltins,
+                             int version, EProfile profile, int spv, int vulkan, EShLanguage language,
+                             TInfoSink& infoSink, bool forwardCompatible, EShMessages messages) :
+            TParseContextBase(symbolTable, interm, version, profile, spv, vulkan, language, infoSink, forwardCompatible, messages), 
             contextPragma(true, false), loopNestingLevel(0), structNestingLevel(0), controlFlowNestingLevel(0), statementNestingLevel(0),
-            postMainReturn(false),
-            tokensBeforeEOF(false), limits(resources.limits), messages(m), currentScanner(nullptr),
-            numErrors(0), parsingBuiltins(pb), afterEOF(false),
+            inMain(false), postMainReturn(false), currentFunctionType(nullptr), blockName(nullptr),
+            limits(resources.limits), parsingBuiltins(parsingBuiltins),
+            afterEOF(false),
             atomicUintOffsets(nullptr), anyIndexLimits(false)
 {
     // ensure we always have a linkage node, even if empty, to simplify tree topology algorithms
@@ -484,7 +484,7 @@ TIntermTyped* TParseContext::handleBracketDereference(const TSourceLoc& loc, TIn
     TIntermTyped* result = nullptr;
 
     int indexValue = 0;
-    if (index->getQualifier().storage == EvqConst) {
+    if (index->getQualifier().isFrontEndConstant()) {
         indexValue = index->getAsConstantUnion()->getConstArray()[0].getIConst();
         checkIndex(loc, base->getType(), indexValue);
     }
@@ -495,7 +495,7 @@ TIntermTyped* TParseContext::handleBracketDereference(const TSourceLoc& loc, TIn
             error(loc, " left of '[' is not of type array, matrix, or vector ", base->getAsSymbolNode()->getName().c_str(), "");
         else
             error(loc, " left of '[' is not of type array, matrix, or vector ", "expression", "");
-    } else if (base->getType().getQualifier().storage == EvqConst && index->getQualifier().storage == EvqConst)
+    } else if (base->getType().getQualifier().isFrontEndConstant() && index->getQualifier().isFrontEndConstant())
         return intermediate.foldDereference(base, indexValue, loc);
     else {
         // at least one of base and index is variable...
@@ -503,7 +503,7 @@ TIntermTyped* TParseContext::handleBracketDereference(const TSourceLoc& loc, TIn
         if (base->getAsSymbolNode() && isIoResizeArray(base->getType()))
             handleIoResizeArrayAccess(loc, base);
 
-        if (index->getQualifier().storage == EvqConst) {
+        if (index->getQualifier().isFrontEndConstant()) {
             if (base->getType().isImplicitlySizedArray())
                 updateImplicitArraySize(loc, base, indexValue);
             result = intermediate.addIndex(EOpIndexDirect, base, index, loc);
@@ -541,10 +541,15 @@ TIntermTyped* TParseContext::handleBracketDereference(const TSourceLoc& loc, TIn
     } else {
         // Insert valid dereferenced result
         TType newType(base->getType(), 0);  // dereferenced type
-        if (base->getType().getQualifier().storage == EvqConst && index->getQualifier().storage == EvqConst)
+        if (base->getType().getQualifier().isConstant() && index->getQualifier().isConstant()) {
             newType.getQualifier().storage = EvqConst;
-        else
-            newType.getQualifier().storage = EvqTemporary;
+            // If base or index is a specialization constant, the result should also be a specialization constant.
+            if (base->getType().getQualifier().isSpecConstant() || index->getQualifier().isSpecConstant()) {
+                newType.getQualifier().makeSpecConstant();
+            }
+        } else {
+            newType.getQualifier().makePartialTemporary();
+        }
         result->setType(newType);
 
         if (anyIndexLimits)
@@ -587,7 +592,7 @@ void TParseContext::handleIndexLimits(const TSourceLoc& /*loc*/, TIntermTyped* b
         (! limits.generalVariableIndexing && ! base->getType().getQualifier().isUniformOrBuffer() &&
                                              ! base->getType().getQualifier().isPipeInput() &&
                                              ! base->getType().getQualifier().isPipeOutput() &&
-                                               base->getType().getQualifier().storage != EvqConst) ||
+                                             ! base->getType().getQualifier().isConstant()) ||
         (! limits.generalVaryingIndexing && (base->getType().getQualifier().isPipeInput() ||
                                                 base->getType().getQualifier().isPipeOutput()))) {
         // it's too early to know what the inductive variables are, save it for post processing
@@ -820,6 +825,9 @@ TIntermTyped* TParseContext::handleDotDereference(const TSourceLoc& loc, TInterm
                 return result;
             else {
                 TType type(base->getBasicType(), EvqTemporary, fields.num);
+                // Swizzle operations propagate specialization-constantness
+                if (base->getQualifier().isSpecConstant())
+                    type.getQualifier().makeSpecConstant();
                 return addConstructor(loc, base, type, mapTypeToConstructorOp(type));
             }
         }
@@ -837,6 +845,9 @@ TIntermTyped* TParseContext::handleDotDereference(const TSourceLoc& loc, TInterm
                 result = intermediate.addIndex(EOpVectorSwizzle, base, index, loc);
                 result->setType(TType(base->getBasicType(), EvqTemporary, base->getType().getQualifier().precision, (int) vectorString.size()));
             }
+            // Swizzle operations propagate specialization-constantness
+            if (base->getType().getQualifier().isSpecConstant())
+                result->getWritableType().getQualifier().makeSpecConstant();
         }
     } else if (base->getBasicType() == EbtStruct || base->getBasicType() == EbtBlock) {
         const TTypeList* fields = base->getType().getStruct();
@@ -849,7 +860,7 @@ TIntermTyped* TParseContext::handleDotDereference(const TSourceLoc& loc, TInterm
             }
         }
         if (fieldFound) {
-            if (base->getType().getQualifier().storage == EvqConst)
+            if (base->getType().getQualifier().isFrontEndConstant())
                 result = intermediate.foldDereference(base, member, loc);
             else {
                 blockMemberExtensionCheck(loc, base, field);
@@ -975,7 +986,7 @@ TIntermAggregate* TParseContext::handleFunctionDefinition(const TSourceLoc& loc,
     //
     // Raise error message if main function takes any parameters or returns anything other than void
     //
-    if (function.getName() == "main") {
+    if (function.getName() == intermediate.getEntryPoint().c_str()) {
         if (function.getParamCount() > 0)
             error(loc, "function cannot take any parameter(s)", function.getName().c_str(), "");
         if (function.getType().getBasicType() != EbtVoid)
@@ -1017,7 +1028,7 @@ TIntermAggregate* TParseContext::handleFunctionDefinition(const TSourceLoc& loc,
                                                         loc);
             }
         } else
-            paramNodes = intermediate.growAggregate(paramNodes, intermediate.addSymbol(0, "", *param.type, loc), loc);
+            paramNodes = intermediate.growAggregate(paramNodes, intermediate.addSymbol(*param.type, loc), loc);
     }
     intermediate.setAggregateOperator(paramNodes, EOpParameters, TType(EbtVoid), loc);
     loopNestingLevel = 0;
@@ -1220,6 +1231,11 @@ TIntermTyped* TParseContext::handleLengthMethod(const TSourceLoc& loc, TFunction
                     else
                         error(loc, "", function->getName().c_str(), "array must be declared with a size before using this method");
                 }
+            } else if (type.getOuterArrayNode()) {
+                // If the array's outer size is specified by an intermediate node, it means the array's length
+                // was specified by a specialization constant. In such a case, we should return the node of the
+                // specialization constants to represent the length.
+                return type.getOuterArrayNode();
             } else
                 length = type.getOuterArraySize();
         } else if (type.isMatrix())
@@ -1522,6 +1538,11 @@ void TParseContext::builtInOpCheck(const TSourceLoc& loc, const TFunction& fnCan
             if (base == nullptr || base->getType().getQualifier().storage != EvqVaryingIn)
                 error(loc, "first argument must be an interpolant, or interpolant-array element", fnCandidate.getName().c_str(), "");
         }
+        break;
+
+    case EOpEmitStreamVertex:
+    case EOpEndStreamPrimitive:
+        intermediate.setMultiStream();
         break;
 
     default:
@@ -2034,7 +2055,7 @@ void TParseContext::rValueErrorCheck(const TSourceLoc& loc, const char* op, TInt
 //
 void TParseContext::constantValueCheck(TIntermTyped* node, const char* token)
 {
-    if (node->getQualifier().storage != EvqConst)
+    if (! node->getQualifier().isConstant())
         error(node->getLoc(), "constant expression required", token, "");
 }
 
@@ -2199,6 +2220,7 @@ bool TParseContext::constructorError(const TSourceLoc& loc, TIntermNode* node, T
 
     int size = 0;
     bool constType = true;
+    bool specConstType = false;   // value is only valid if constType is true
     bool full = false;
     bool overFull = false;
     bool matrixInMatrix = false;
@@ -2227,12 +2249,18 @@ bool TParseContext::constructorError(const TSourceLoc& loc, TIntermNode* node, T
         if (op != EOpConstructStruct && ! type.isArray() && size >= type.computeNumComponents())
             full = true;
 
-        if (function[arg].type->getQualifier().storage != EvqConst)
+        if (! function[arg].type->getQualifier().isConstant())
             constType = false;
+        if (function[arg].type->getQualifier().isSpecConstant())
+            specConstType = true;
     }
 
-    if (constType)
-        type.getQualifier().storage = EvqConst;
+    if (constType) {
+        if (specConstType)
+            type.getQualifier().makeSpecConstant();
+        else
+            type.getQualifier().storage = EvqConst;
+    }
 
     if (type.isArray()) {
         if (function.getParamCount() == 0) {
@@ -3094,16 +3122,27 @@ void TParseContext::updateImplicitArraySize(const TSourceLoc& loc, TIntermNode *
         // This has to be the result of a block dereference, unless it's bad shader code
         // If it's a uniform block, then an error will be issued elsewhere, but
         // return early now to avoid crashing later in this function.
-        if (! deref->getLeft()->getAsSymbolNode() || deref->getLeft()->getBasicType() != EbtBlock ||
+        if (deref->getLeft()->getBasicType() != EbtBlock ||
             deref->getLeft()->getType().getQualifier().storage == EvqUniform ||
             deref->getRight()->getAsConstantUnion() == nullptr)
             return;
 
-        blockIndex = deref->getRight()->getAsConstantUnion()->getConstArray()[0].getIConst();
+        const TIntermTyped* left  = deref->getLeft();
+        const TIntermTyped* right = deref->getRight();
 
-        lookupName = &deref->getLeft()->getAsSymbolNode()->getName();
+        if (left->getAsBinaryNode()) {
+            left = left->getAsBinaryNode()->getLeft(); // Block array access
+            assert(left->isArray());
+        }
+
+        if (! left->getAsSymbolNode())
+            return;
+
+        blockIndex = right->getAsConstantUnion()->getConstArray()[0].getIConst();
+
+        lookupName = &left->getAsSymbolNode()->getName();
         if (IsAnonymous(*lookupName))
-            lookupName = &(*deref->getLeft()->getType().getStruct())[blockIndex].type->getFieldName();
+            lookupName = &(*left->getType().getStruct())[blockIndex].type->getFieldName();
     }
 
     // Lookup the symbol, should only fail if shader code is incorrect
@@ -3116,7 +3155,10 @@ void TParseContext::updateImplicitArraySize(const TSourceLoc& loc, TIntermNode *
         return;
     }
 
-    symbol->getWritableType().setImplicitArraySize(index + 1);
+    if (symbol->getType().isStruct() && blockIndex != -1)
+        (*symbol->getWritableType().getStruct())[blockIndex].type->setImplicitArraySize(index + 1);
+    else
+        symbol->getWritableType().setImplicitArraySize(index + 1);
 }
 
 // Returns true if the first argument to the #line directive is the line number for the next line.
@@ -3128,7 +3170,8 @@ void TParseContext::updateImplicitArraySize(const TSourceLoc& loc, TIntermNode *
 // Desktop, version 3.30 and later, and ES:  "After processing this directive
 // (including its new-line), the implementation will behave as if it is compiling at line number line and
 // source string number source-string-number.
-bool TParseContext::lineDirectiveShouldSetNextLine() const {
+bool TParseContext::lineDirectiveShouldSetNextLine() const
+{
     return profile == EEsProfile || version >= 330;
 }
 
@@ -3142,7 +3185,7 @@ void TParseContext::nonInitConstCheck(const TSourceLoc& loc, TString& identifier
     //
     if (type.getQualifier().storage == EvqConst ||
         type.getQualifier().storage == EvqConstReadOnly) {
-        type.getQualifier().storage = EvqTemporary;
+        type.getQualifier().makeTemporary();
         error(loc, "variables with qualifier 'const' must be initialized", identifier.c_str(), "");
     }
 }
@@ -4050,6 +4093,8 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
         if (id == "stream") {
             requireProfile(loc, ~EEsProfile, "selecting output stream");
             publicType.qualifier.layoutStream = value;
+            if (value > 0)
+                intermediate.setMultiStream();
             return;
         }
         break;
@@ -4476,6 +4521,8 @@ void TParseContext::layoutQualifierCheck(const TSourceLoc& loc, const TQualifier
     if (qualifier.layoutPushConstant) {
         if (qualifier.storage != EvqUniform)
             error(loc, "can only be used with a uniform", "push_constant", "");
+        if (qualifier.hasSet())
+            error(loc, "cannot be used with push_constant", "set", "");
     }
 }
 
@@ -4839,7 +4886,7 @@ TIntermNode* TParseContext::executeInitializer(const TSourceLoc& loc, TIntermTyp
     if (! initializer) {
         // error recovery; don't leave const without constant values
         if (qualifier == EvqConst)
-            variable->getWritableType().getQualifier().storage = EvqTemporary;
+            variable->getWritableType().getQualifier().makeTemporary();
         return nullptr;
     }
 
@@ -4859,21 +4906,22 @@ TIntermNode* TParseContext::executeInitializer(const TSourceLoc& loc, TIntermTyp
         }
     }
 
-    // Uniform and global consts require a constant initializer
-    if (qualifier == EvqUniform && initializer->getType().getQualifier().storage != EvqConst) {
+    // Uniforms require a compile-time constant initializer
+    if (qualifier == EvqUniform && ! initializer->getType().getQualifier().isFrontEndConstant()) {
         error(loc, "uniform initializers must be constant", "=", "'%s'", variable->getType().getCompleteString().c_str());
-        variable->getWritableType().getQualifier().storage = EvqTemporary;
+        variable->getWritableType().getQualifier().makeTemporary();
         return nullptr;
     }
-    if (qualifier == EvqConst && symbolTable.atGlobalLevel() && initializer->getType().getQualifier().storage != EvqConst) {
+    // Global consts require a constant initializer (specialization constant is okay)
+    if (qualifier == EvqConst && symbolTable.atGlobalLevel() && ! initializer->getType().getQualifier().isConstant()) {
         error(loc, "global const initializers must be constant", "=", "'%s'", variable->getType().getCompleteString().c_str());
-        variable->getWritableType().getQualifier().storage = EvqTemporary;
+        variable->getWritableType().getQualifier().makeTemporary();
         return nullptr;
     }
 
     // Const variables require a constant initializer, depending on version
     if (qualifier == EvqConst) {
-        if (initializer->getType().getQualifier().storage != EvqConst) {
+        if (! initializer->getType().getQualifier().isConstant()) {
             const char* initFeature = "non-constant initializer";
             requireProfile(loc, ~EEsProfile, initFeature);
             profileRequires(loc, ~EEsProfile, 420, E_GL_ARB_shading_language_420pack, initFeature);
@@ -4885,7 +4933,7 @@ TIntermNode* TParseContext::executeInitializer(const TSourceLoc& loc, TIntermTyp
         //
         // "In declarations of global variables with no storage qualifier or with a const
         // qualifier any initializer must be a constant expression."
-        if (symbolTable.atGlobalLevel() && initializer->getType().getQualifier().storage != EvqConst) {
+        if (symbolTable.atGlobalLevel() && ! initializer->getType().getQualifier().isConstant()) {
             const char* initFeature = "non-constant global initializer";
             if (relaxedErrors())
                 warn(loc, "not allowed in this version", initFeature, "");
@@ -4898,14 +4946,27 @@ TIntermNode* TParseContext::executeInitializer(const TSourceLoc& loc, TIntermTyp
         // Compile-time tagging of the variable with its constant value...
 
         initializer = intermediate.addConversion(EOpAssign, variable->getType(), initializer);
-        if (! initializer || ! initializer->getAsConstantUnion() || variable->getType() != initializer->getType()) {
+        if (! initializer || ! initializer->getType().getQualifier().isConstant() || variable->getType() != initializer->getType()) {
             error(loc, "non-matching or non-convertible constant type for const initializer",
                   variable->getType().getStorageQualifierString(), "");
-            variable->getWritableType().getQualifier().storage = EvqTemporary;
+            variable->getWritableType().getQualifier().makeTemporary();
             return nullptr;
         }
 
-        variable->setConstArray(initializer->getAsConstantUnion()->getConstArray());
+        // We either have a folded constant in getAsConstantUnion, or we have to use
+        // the initializer's subtree in the AST to represent the computation of a
+        // specialization constant.
+        assert(initializer->getAsConstantUnion() || initializer->getType().getQualifier().isSpecConstant());
+        if (initializer->getAsConstantUnion())
+            variable->setConstArray(initializer->getAsConstantUnion()->getConstArray());
+        else {
+            // It's a specialization constant.
+            variable->getWritableType().getQualifier().makeSpecConstant();
+
+            // Keep the subtree that computes the specialization constant with the variable.
+            // Later, a symbol node will adopt the subtree from the variable.
+            variable->setConstSubtree(initializer);
+        }
     } else {
         // normal assigning of a value to a variable...
         specializationCheck(loc, initializer->getType(), "initializer");
@@ -5066,11 +5127,16 @@ TIntermTyped* TParseContext::addConstructor(const TSourceLoc& loc, TIntermNode* 
     // if the structure constructor contains more than one parameter, then construct
     // each parameter
 
-    int paramCount = 0;  // keeps a track of the constructor parameter number being checked
+    int paramCount = 0;  // keeps track of the constructor parameter number being checked
 
     // for each parameter to the constructor call, check to see if the right type is passed or convert them
     // to the right type if possible (and allowed).
     // for structure constructors, just check if the right type is passed, no conversion is allowed.
+
+    // We don't know "top down" whether type is a specialization constant,
+    // but a const becomes a specialization constant if any of its children are.
+    bool hasSpecConst = false;
+    bool isConstConstrutor = true;
 
     for (TIntermSequence::iterator p = sequenceVector.begin();
                                    p != sequenceVector.end(); p++, paramCount++) {
@@ -5081,13 +5147,19 @@ TIntermTyped* TParseContext::addConstructor(const TSourceLoc& loc, TIntermNode* 
         else
             newNode = constructBuiltIn(type, op, (*p)->getAsTyped(), node->getLoc(), true);
 
-        if (newNode)
+        if (newNode) {
             *p = newNode;
-        else
+            if (! newNode->getType().getQualifier().isConstant())
+                isConstConstrutor = false;
+            if (newNode->getType().getQualifier().isSpecConstant())
+                hasSpecConst = true;
+        } else
             return nullptr;
     }
 
     TIntermTyped* constructor = intermediate.setAggregateOperator(aggrNode, op, type, loc);
+    if (isConstConstrutor && hasSpecConst)
+        constructor->getWritableType().getQualifier().makeSpecConstant();
 
     return constructor;
 }
@@ -5642,6 +5714,10 @@ void TParseContext::addQualifierToExisting(const TSourceLoc& loc, TQualifier qua
             error(loc, "cannot change qualification after use", "invariant", "");
         symbol->getWritableType().getQualifier().invariant = true;
         invariantCheck(loc, symbol->getType().getQualifier());
+    } else if (qualifier.specConstant) {
+        symbol->getWritableType().getQualifier().makeSpecConstant();
+        if (qualifier.hasSpecConstantId())
+            symbol->getWritableType().getQualifier().layoutSpecConstantId = qualifier.layoutSpecConstantId;
     } else
         warn(loc, "unknown requalification", "", "");
 }
@@ -5930,34 +6006,6 @@ TIntermNode* TParseContext::addSwitch(const TSourceLoc& loc, TIntermTyped* expre
     switchNode->setLoc(loc);
 
     return switchNode;
-}
-
-void TParseContext::notifyVersion(int line, int version, const char* type_string)
-{
-    if (versionCallback) {
-        versionCallback(line, version, type_string);
-    }
-}
-
-void TParseContext::notifyErrorDirective(int line, const char* error_message)
-{
-    if (errorCallback) {
-        errorCallback(line, error_message);
-    }
-}
-
-void TParseContext::notifyLineDirective(int curLineNo, int newLineNo, bool hasSource, int sourceNum, const char* sourceName)
-{
-    if (lineCallback) {
-        lineCallback(curLineNo, newLineNo, hasSource, sourceNum, sourceName);
-    }
-}
-
-void TParseContext::notifyExtensionDirective(int line, const char* extension, const char* behavior)
-{
-    if (extensionCallback) {
-        extensionCallback(line, extension, behavior);
-    }
 }
 
 } // end namespace glslang

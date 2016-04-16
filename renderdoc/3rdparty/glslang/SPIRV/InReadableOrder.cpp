@@ -91,8 +91,8 @@ public:
                 delayed_[continueBlock] = true;
             }
         }
-        const std::vector<Block*>& successors = block->getSuccessors();
-        for (auto it = successors.begin(); it != successors.end(); ++it)
+        const auto successors = block->getSuccessors();
+        for (auto it = successors.cbegin(); it != successors.cend(); ++it)
             visit(*it);
         if (continueBlock) {
             delayed_[continueBlock] = false;

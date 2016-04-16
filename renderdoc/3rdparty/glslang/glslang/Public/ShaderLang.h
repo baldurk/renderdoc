@@ -86,7 +86,7 @@ typedef enum {
     EShLangFragment,
     EShLangCompute,
     EShLangCount,
-} EShLanguage;
+} EShLanguage;         // would be better as stage, but this is ancient now
 
 typedef enum {
     EShLangVertexMask         = (1 << EShLangVertex),
@@ -98,6 +98,12 @@ typedef enum {
 } EShLanguageMask;
 
 namespace glslang {
+
+typedef enum {
+    EShSourceNone,
+    EShSourceGlsl,
+    EShSourceHlsl,
+} EShSource;          // if EShLanguage were EShStage, this could be EShLanguage instead
 
 const char* StageName(EShLanguage);
 
@@ -132,6 +138,7 @@ enum EShMessages {
     EShMsgSpvRules         = (1 << 3),  // issue messages for SPIR-V generation
     EShMsgVulkanRules      = (1 << 4),  // issue messages for Vulkan-requirements of GLSL for SPIR-V
     EShMsgOnlyPreprocessor = (1 << 5),  // only print out errors produced by the preprocessor
+    EShMsgReadHlsl         = (1 << 6),  // use HLSL parsing rules and semantics
 };
 
 //
@@ -290,27 +297,93 @@ public:
     void setStringsWithLengthsAndNames(
         const char* const* s, const int* l, const char* const* names, int n);
     void setPreamble(const char* s) { preamble = s; }
+    void setEntryPoint(const char* entryPoint);
 
     // Interface to #include handlers.
+    //
+    // To support #include, a client of Glslang does the following:
+    // 1. Call setStringsWithNames to set the source strings and associated
+    //    names.  For example, the names could be the names of the files
+    //    containing the shader sources.
+    // 2. Call parse with an Includer.
+    //
+    // When the Glslang parser encounters an #include directive, it calls
+    // the Includer's include method with the the requested include name
+    // together with the current string name.  The returned IncludeResult
+    // contains the fully resolved name of the included source, together
+    // with the source text that should replace the #include directive
+    // in the source stream.  After parsing that source, Glslang will
+    // release the IncludeResult object.
     class Includer {
     public:
-        // On success, returns the full path and content of the file with the given
-        // filename that replaces "#include filename". On failure, returns an empty
-        // string and an error message.
-        virtual std::pair<std::string, std::string> include(const char* filename) const = 0;
+        typedef enum {
+          EIncludeRelative, // For #include "something"
+          EIncludeStandard  // Reserved. For #include <something>
+        } IncludeType;
+
+        // An IncludeResult contains the resolved name and content of a source
+        // inclusion.
+        struct IncludeResult {
+            // For a successful inclusion, the fully resolved name of the requested
+            // include.  For example, in a filesystem-based includer, full resolution
+            // should convert a relative path name into an absolute path name.
+            // For a failed inclusion, this is an empty string.
+            std::string file_name;
+            // The content and byte length of the requested inclusion.  The
+            // Includer producing this IncludeResult retains ownership of the
+            // storage.
+            // For a failed inclusion, the file_data
+            // field points to a string containing error details.
+            const char* file_data;
+            const size_t file_length;
+            // Include resolver's context.
+            void* user_data;
+        };
+
+        // Resolves an inclusion request by name, type, current source name,
+        // and include depth.
+        // On success, returns an IncludeResult containing the resolved name
+        // and content of the include.  On failure, returns an IncludeResult
+        // with an empty string for the file_name and error details in the
+        // file_data field.  The Includer retains ownership of the contents
+        // of the returned IncludeResult value, and those contents must
+        // remain valid until the releaseInclude method is called on that
+        // IncludeResult object.
+        virtual IncludeResult* include(const char* requested_source,
+                                      IncludeType type,
+                                      const char* requesting_source,
+                                      size_t inclusion_depth) = 0;
+        // Signals that the parser will no longer use the contents of the
+        // specified IncludeResult.
+        virtual void releaseInclude(IncludeResult* result) = 0;
     };
 
     // Returns an error message for any #include directive.
     class ForbidInclude : public Includer {
     public:
-        std::pair<std::string, std::string> include(const char* /*filename*/) const override
+        IncludeResult* include(const char*, IncludeType, const char*, size_t) override
         {
-            return std::make_pair<std::string, std::string>("", "unexpected include directive");
+            static const char unexpected_include[] =
+                "unexpected include directive";
+            static const IncludeResult unexpectedIncludeResult =
+                {"", unexpected_include, sizeof(unexpected_include) - 1, nullptr};
+            return new IncludeResult(unexpectedIncludeResult);
+        }
+        virtual void releaseInclude(IncludeResult* result) override
+        {
+            delete result;
         }
     };
 
+    bool parse(const TBuiltInResource* res, int defaultVersion, EProfile defaultProfile, bool forceDefaultVersionAndProfile,
+               bool forwardCompatible, EShMessages messages)
+    {
+        TShader::ForbidInclude includer;
+        return parse(res, defaultVersion, defaultProfile, forceDefaultVersionAndProfile, forwardCompatible, messages, includer);
+    }
+
     bool parse(const TBuiltInResource*, int defaultVersion, EProfile defaultProfile, bool forceDefaultVersionAndProfile,
-               bool forwardCompatible, EShMessages, const Includer& = ForbidInclude());
+               bool forwardCompatible, EShMessages, Includer&);
 
     // Equivalent to parse() without a default profile and without forcing defaults.
     // Provided for backwards compatibility.
@@ -318,7 +391,7 @@ public:
     bool preprocess(const TBuiltInResource* builtInResources,
                     int defaultVersion, EProfile defaultProfile, bool forceDefaultVersionAndProfile,
                     bool forwardCompatible, EShMessages message, std::string* outputString,
-                    const TShader::Includer& includer);
+                    Includer& includer);
 
     const char* getInfoLog();
     const char* getInfoDebugLog();

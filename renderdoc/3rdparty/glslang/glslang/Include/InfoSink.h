@@ -92,7 +92,7 @@ public:
         case EPrefixInternalError: append("INTERNAL ERROR: "); break;
         case EPrefixUnimplemented: append("UNIMPLEMENTED: ");  break;
         case EPrefixNote:          append("NOTE: ");           break;
-        default:                   append("UNKOWN ERROR: ");   break;
+        default:                   append("UNKNOWN ERROR: ");   break;
         }
     }
     void location(const TSourceLoc& loc) {

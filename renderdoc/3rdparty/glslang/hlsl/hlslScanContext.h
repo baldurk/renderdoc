@@ -1,5 +1,5 @@
 //
-//Copyright (C) 2013 LunarG, Inc.
+//Copyright (C) 2016 Google, Inc.
 //
 //All rights reserved.
 //
@@ -15,7 +15,7 @@
 //    disclaimer in the documentation and/or other materials provided
 //    with the distribution.
 //
-//    Neither the name of 3Dlabs Inc. Ltd. nor the names of its
+//    Neither the name of Google, Inc., nor the names of its
 //    contributors may be used to endorse or promote products derived
 //    from this software without specific prior written permission.
 //
@@ -34,53 +34,79 @@
 //
 
 //
-// This holds context specific to the GLSL scanner, which
-// sits between the preprocessor scanner and parser.
+// This holds context specific to the HLSL scanner, which
+// sits between the preprocessor scanner and HLSL parser.
 //
 
-#include "ParseHelper.h"
+#ifndef HLSLSCANCONTEXT_H_
+#define HLSLSCANCONTEXT_H_
+
+#include "../glslang/MachineIndependent/ParseHelper.h"
+#include "hlslTokens.h"
 
 namespace glslang {
 
 class TPpContext;
 class TPpToken;
-class TParserToken;
 
-class TScanContext {
+
+//
+// Everything needed to fully describe a token.
+//
+struct HlslToken {
+    HlslToken() : isType(false), string(nullptr), symbol(nullptr) { loc.init(); }
+    TSourceLoc loc;                // location of token in the source
+    EHlslTokenClass tokenClass;    // what kind of token it is
+    bool isType;                   // true if the token represents a user type
+    union {                        // what data the token holds
+        glslang::TString *string;  // for identifiers
+        int i;                     // for literals
+        unsigned int u;
+        bool b;
+        double d;
+    };
+    glslang::TSymbol* symbol;      // if a symbol table lookup was done already, this is the result
+};
+
+//
+// The state of scanning and translating raw tokens to slightly richer
+// semantics, like knowing if an identifier is an existing symbol, or
+// user-defined type.
+//
+class HlslScanContext {
 public:
-    explicit TScanContext(TParseContextBase& pc) : parseContext(pc), afterType(false), field(false) { }
-    virtual ~TScanContext() { }
+    HlslScanContext(TParseContextBase& parseContext, TPpContext& ppContext)
+        : parseContext(parseContext), ppContext(ppContext), afterType(false), field(false) { }
+    virtual ~HlslScanContext() { }
 
     static void fillInKeywordMap();
     static void deleteKeywordMap();
 
-    int tokenize(TPpContext*, TParserToken&);
+    void tokenize(HlslToken&);
 
 protected:
-    TScanContext(TScanContext&);
-    TScanContext& operator=(TScanContext&);
+    HlslScanContext(HlslScanContext&);
+    HlslScanContext& operator=(HlslScanContext&);
 
-    int tokenizeIdentifier();
-    int identifierOrType();
-    int reservedWord();
-    int identifierOrReserved(bool reserved);
-    int es30ReservedFromGLSL(int version);
-    int nonreservedKeyword(int esVersion, int nonEsVersion);
-    int precisionKeyword();
-    int matNxM();
-    int dMat();
-    int firstGenerationImage(bool inEs310);
-    int secondGenerationImage();
+    EHlslTokenClass tokenizeClass(HlslToken&);
+    EHlslTokenClass tokenizeIdentifier();
+    EHlslTokenClass identifierOrType();
+    EHlslTokenClass reservedWord();
+    EHlslTokenClass identifierOrReserved(bool reserved);
+    EHlslTokenClass nonreservedKeyword(int version);
 
     TParseContextBase& parseContext;
+    TPpContext& ppContext;
     bool afterType;           // true if we've recognized a type, so can only be looking for an identifier
     bool field;               // true if we're on a field, right after a '.'
     TSourceLoc loc;
-    TParserToken* parserToken;
     TPpToken* ppToken;
+    HlslToken* parserToken;
 
     const char* tokenText;
-    int keyword;
+    EHlslTokenClass keyword;
 };
 
 } // end namespace glslang
+
+#endif // HLSLSCANCONTEXT_H_

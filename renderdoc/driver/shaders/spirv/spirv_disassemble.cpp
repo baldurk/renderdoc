@@ -45,6 +45,8 @@ using std::make_pair;
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable: 4481) // nonstandard extension used: override specifier 'override'
+#pragma warning(disable: 4510) // default constructor could not be generated
+#pragma warning(disable: 4610) // struct '' can never be instantiated - user defined constructor required
 #endif
 
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"

@@ -46,6 +46,7 @@
 #include <sstream>
 #include "SymbolTable.h"
 #include "ParseHelper.h"
+#include "../../hlsl/hlslParseHelper.h"
 #include "Scan.h"
 #include "ScanContext.h"
 
@@ -131,7 +132,8 @@ bool InitializeSymbolTable(const TString& builtIns, int version, EProfile profil
     TIntermediate intermediate(language, version, profile);
     
     TParseContext parseContext(symbolTable, intermediate, true, version, profile, spv, vulkan, language, infoSink);
-    TPpContext ppContext(parseContext, TShader::ForbidInclude());
+    TShader::ForbidInclude includer;
+    TPpContext ppContext(parseContext, "", includer);
     TScanContext scanContext(parseContext);
     parseContext.setScanContext(&scanContext);
     parseContext.setPpContext(&ppContext);
@@ -307,10 +309,18 @@ void SetupBuiltinSymbolTable(int version, EProfile profile, int spv, int vulkan)
     glslang::ReleaseGlobalLock();
 }
 
-bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNotFirst, int defaultVersion, int& version, EProfile& profile, int spv)
+// Return true if the shader was correctly specified for version/profile/stage.
+bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNotFirst, int defaultVersion,
+                          EShSource source, int& version, EProfile& profile, int spv)
 {
     const int FirstProfileVersion = 150;
     bool correct = true;
+
+    if (source == EShSourceHlsl) {
+        version = defaultVersion;
+        profile = ENoProfile;
+        return correct;
+    }
 
     // Get a good version...
     if (version == 0) {
@@ -456,7 +466,7 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
 // This is the common setup and cleanup code for PreprocessDeferred and
 // CompileDeferred.
 // It takes any callable with a signature of
-//  bool (TParseContext& parseContext, TPpContext& ppContext,
+//  bool (TParseContextBase& parseContext, TPpContext& ppContext,
 //                  TInputScanner& input, bool versionWillBeError,
 //                  TSymbolTable& , TIntermediate& ,
 //                  EShOptimizationLevel , EShMessages );
@@ -482,7 +492,7 @@ bool ProcessDeferred(
     TIntermediate& intermediate, // returned tree, etc.
     ProcessingContext& processingContext,
     bool requireNonempty,
-    const TShader::Includer& includer
+    TShader::Includer& includer
     )
 {
     if (! InitThread())
@@ -550,9 +560,9 @@ bool ProcessDeferred(
         version = defaultVersion;
         profile = defaultProfile;
     }
-
     int spv = (messages & EShMsgSpvRules) ? 100 : 0;         // TODO find path to get real version number here, for now non-0 is what matters
-    bool goodVersion = DeduceVersionProfile(compiler->infoSink, compiler->getLanguage(), versionNotFirst, defaultVersion, version, profile, spv);
+    EShSource source = (messages & EShMsgReadHlsl) ? EShSourceHlsl : EShSourceGlsl;
+    bool goodVersion = DeduceVersionProfile(compiler->infoSink, compiler->getLanguage(), versionNotFirst, defaultVersion, source, version, profile, spv);
     bool versionWillBeError = (versionNotFound || (profile == EEsProfile && version >= 300 && versionNotFirst));
     bool warnVersionNotFirst = false;
     if (! versionWillBeError && versionNotFirstToken) {
@@ -563,6 +573,7 @@ bool ProcessDeferred(
     }
 
     int vulkan = (messages & EShMsgVulkanRules) ? 100 : 0;     // TODO find path to get real version number here, for now non-0 is what matters
+    intermediate.setSource(source);
     intermediate.setVersion(version);
     intermediate.setProfile(profile);
     intermediate.setSpv(spv);
@@ -588,25 +599,37 @@ bool ProcessDeferred(
     // Now we can process the full shader under proper symbols and rules.
     //
 
-    TParseContext parseContext(symbolTable, intermediate, false, version, profile, spv, vulkan, compiler->getLanguage(), compiler->infoSink, forwardCompatible, messages);
-    glslang::TScanContext scanContext(parseContext);
-    TPpContext ppContext(parseContext, includer);
-    parseContext.setScanContext(&scanContext);
-    parseContext.setPpContext(&ppContext);
-    parseContext.setLimits(*resources);
+    TParseContextBase* parseContext;
+    if (source == EShSourceHlsl) {
+        parseContext = new HlslParseContext(symbolTable, intermediate, false, version, profile, spv, vulkan,
+                                             compiler->getLanguage(), compiler->infoSink, forwardCompatible, messages);
+    }
+    else {
+        intermediate.setEntryPoint("main");
+        parseContext = new TParseContext(symbolTable, intermediate, false, version, profile, spv, vulkan,
+                                         compiler->getLanguage(), compiler->infoSink, forwardCompatible, messages);
+    }
+    TPpContext ppContext(*parseContext, names[numPre]? names[numPre]: "", includer);
+
+    // only GLSL (bison triggered, really) needs an externally set scan context
+    glslang::TScanContext scanContext(*parseContext);
+    if ((messages & EShMsgReadHlsl) == 0)
+        parseContext->setScanContext(&scanContext);
+
+    parseContext->setPpContext(&ppContext);
+    parseContext->setLimits(*resources);
     if (! goodVersion)
-        parseContext.addError();
+        parseContext->addError();
     if (warnVersionNotFirst) {
         TSourceLoc loc;
         loc.init();
-        parseContext.warn(loc, "Illegal to have non-comment, non-whitespace tokens before #version", "#version", "");
+        parseContext->warn(loc, "Illegal to have non-comment, non-whitespace tokens before #version", "#version", "");
     }
 
-    parseContext.initializeExtensionBehavior();
-
+    parseContext->initializeExtensionBehavior();
     
     // Fill in the strings as outlined above.
-    strings[0] = parseContext.getPreamble();
+    strings[0] = parseContext->getPreamble();
     lengths[0] = strlen(strings[0]);
     names[0] = nullptr;
     strings[1] = customPreamble;
@@ -624,14 +647,14 @@ bool ProcessDeferred(
     // Push a new symbol allocation scope that will get used for the shader's globals.
     symbolTable.push();
 
-    bool success = processingContext(parseContext, ppContext, fullInput,
+    bool success = processingContext(*parseContext, ppContext, fullInput,
                                      versionWillBeError, symbolTable,
                                      intermediate, optLevel, messages);
 
     // Clean up the symbol table. The AST is self-sufficient now.
     delete symbolTableMemory;
 
-
+    delete parseContext;
     delete [] lengths;
     delete [] strings;
     delete [] names;
@@ -706,7 +729,7 @@ private:
 // It places the result in the "string" argument to its constructor.
 struct DoPreprocessing {
     explicit DoPreprocessing(std::string* string): outputString(string) {}
-    bool operator()(TParseContext& parseContext, TPpContext& ppContext,
+    bool operator()(TParseContextBase& parseContext, TPpContext& ppContext,
                     TInputScanner& input, bool versionWillBeError,
                     TSymbolTable& , TIntermediate& ,
                     EShOptimizationLevel , EShMessages )
@@ -817,7 +840,7 @@ struct DoPreprocessing {
 // DoFullParse is a valid ProcessingConext template argument for fully
 // parsing the shader.  It populates the "intermediate" with the AST.
 struct DoFullParse{
-  bool operator()(TParseContext& parseContext, TPpContext& ppContext,
+  bool operator()(TParseContextBase& parseContext, TPpContext& ppContext,
                   TInputScanner& fullInput, bool versionWillBeError,
                   TSymbolTable& symbolTable, TIntermediate& intermediate,
                   EShOptimizationLevel optLevel, EShMessages messages) 
@@ -826,13 +849,13 @@ struct DoFullParse{
         // Parse the full shader.
         if (! parseContext.parseShaderStrings(ppContext, fullInput, versionWillBeError))
             success = false;
-        intermediate.addSymbolLinkageNodes(parseContext.linkage, parseContext.language, symbolTable);
+        intermediate.addSymbolLinkageNodes(parseContext.getLinkage(), parseContext.getLanguage(), symbolTable);
 
         if (success && intermediate.getTreeRoot()) {
             if (optLevel == EShOptNoGeneration)
                 parseContext.infoSink.info.message(EPrefixNone, "No errors.  No code generation or linking was requested.");
             else
-                success = intermediate.postProcess(intermediate.getTreeRoot(), parseContext.language);
+                success = intermediate.postProcess(intermediate.getTreeRoot(), parseContext.getLanguage());
         } else if (! success) {
             parseContext.infoSink.info.prefix(EPrefixError);
             parseContext.infoSink.info << parseContext.getNumErrors() << " compilation errors.  No code generated.\n\n";
@@ -863,7 +886,7 @@ bool PreprocessDeferred(
     bool forceDefaultVersionAndProfile,
     bool forwardCompatible,     // give errors for use of deprecated features
     EShMessages messages,       // warnings/errors/AST; things to print out
-    const TShader::Includer& includer,
+    TShader::Includer& includer,
     TIntermediate& intermediate, // returned tree, etc.
     std::string* outputString)
 {
@@ -902,7 +925,7 @@ bool CompileDeferred(
     bool forwardCompatible,     // give errors for use of deprecated features
     EShMessages messages,       // warnings/errors/AST; things to print out
     TIntermediate& intermediate,// returned tree, etc.
-    const TShader::Includer& includer)
+    TShader::Includer& includer)
 {
     DoFullParse parser;
     return ProcessDeferred(compiler, shaderStrings, numStrings, inputLengths, stringNames,
@@ -1051,9 +1074,10 @@ int ShCompile(
     compiler->infoSink.debug.erase();
 
     TIntermediate intermediate(compiler->getLanguage());
+    TShader::ForbidInclude includer;
     bool success = CompileDeferred(compiler, shaderStrings, numStrings, inputLengths, nullptr,
                                    "", optLevel, resources, defaultVersion, ENoProfile, false,
-                                   forwardCompatible, messages, intermediate, TShader::ForbidInclude());
+                                   forwardCompatible, messages, intermediate, includer);
 
     //
     // Call the machine dependent compiler
@@ -1355,13 +1379,18 @@ void TShader::setStringsWithLengthsAndNames(
     stringNames = names;
 }
 
+void TShader::setEntryPoint(const char* entryPoint)
+{
+    intermediate->setEntryPoint(entryPoint);
+}
+
 //
 // Turn the shader strings into a parse tree in the TIntermediate.
 //
 // Returns true for success.
 //
 bool TShader::parse(const TBuiltInResource* builtInResources, int defaultVersion, EProfile defaultProfile, bool forceDefaultVersionAndProfile,
-                    bool forwardCompatible, EShMessages messages, const Includer& includer)
+                    bool forwardCompatible, EShMessages messages, Includer& includer)
 {
     if (! InitThread())
         return false;
@@ -1389,7 +1418,7 @@ bool TShader::preprocess(const TBuiltInResource* builtInResources,
                          bool forceDefaultVersionAndProfile,
                          bool forwardCompatible, EShMessages message,
                          std::string* output_string,
-                         const TShader::Includer& includer)
+                         Includer& includer)
 {
     if (! InitThread())
         return false;

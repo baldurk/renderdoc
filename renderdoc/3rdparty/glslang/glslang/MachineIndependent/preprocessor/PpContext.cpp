@@ -83,8 +83,10 @@ NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace glslang {
 
-TPpContext::TPpContext(TParseContext& pc, const TShader::Includer& inclr) : 
-    preamble(0), strings(0), parseContext(pc), includer(inclr), inComment(false)
+TPpContext::TPpContext(TParseContextBase& pc, const std::string& rootFileName, TShader::Includer& inclr) : 
+    preamble(0), strings(0), parseContext(pc), includer(inclr), inComment(false),
+    rootFileName(rootFileName),
+    currentSourceFile(rootFileName)
 {
     InitAtomTable();
     InitScanner();

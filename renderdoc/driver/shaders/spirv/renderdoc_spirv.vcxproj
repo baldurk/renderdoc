@@ -107,6 +107,15 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\ossource.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslGrammar.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslParseHelper.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslScanContext.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
@@ -151,6 +160,10 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Versions.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\osinclude.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Public\ShaderLang.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslGrammar.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslParseHelper.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslScanContext.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslTokens.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.std.450.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GlslangToSpv.h" />

@@ -252,11 +252,14 @@ TVariable::TVariable(const TVariable& copyOf) : TSymbol(copyOf)
     if (copyOf.numExtensions != 0)
         setExtensions(copyOf.numExtensions, copyOf.extensions);
 
-    if (! copyOf.unionArray.empty()) {
+    if (! copyOf.constArray.empty()) {
         assert(! copyOf.type.isStruct());
-        TConstUnionArray newArray(copyOf.unionArray, 0, copyOf.unionArray.size());
-        unionArray = newArray;
+        TConstUnionArray newArray(copyOf.constArray, 0, copyOf.constArray.size());
+        constArray = newArray;
     }
+
+    // don't support specialization-constant subtrees in cloned tables
+    constSubtree = nullptr;
 }
 
 TVariable* TVariable::clone() const

@@ -205,9 +205,9 @@ public:
     void setBuildPoint(Block* bp) { buildPoint = bp; }
     Block* getBuildPoint() const { return buildPoint; }
 
-    // Make the main function. The returned pointer is only valid
+    // Make the entry-point function. The returned pointer is only valid
     // for the lifetime of this builder.
-    Function* makeMain();
+    Function* makeEntrypoint(const char*);
 
     // Make a shader-style function, and create its entry block if entry is non-zero.
     // Return the function, pass back the entry.
@@ -262,6 +262,7 @@ public:
     Id createTriOp(Op, Id typeId, Id operand1, Id operand2, Id operand3);
     Id createOp(Op, Id typeId, const std::vector<Id>& operands);
     Id createFunctionCall(spv::Function*, std::vector<spv::Id>&);
+    Id createSpecConstantOp(Op, Id typeId, const std::vector<spv::Id>& operands, const std::vector<unsigned>& literals);
 
     // Take an rvalue (source) and a set of channels to extract from it to
     // make a new rvalue, which is returned.
@@ -512,11 +513,21 @@ public:
     // based on the type of the base and the chain of dereferences.
     Id accessChainGetInferredType();
 
+    // Remove OpDecorate instructions whose operands are defined in unreachable
+    // blocks.
+    void eliminateDeadDecorations();
     void dump(std::vector<unsigned int>&) const;
 
     void createBranch(Block* block);
     void createConditionalBranch(Id condition, Block* thenBlock, Block* elseBlock);
     void createLoopMerge(Block* mergeBlock, Block* continueBlock, unsigned int control);
+
+    // Sets to generate opcode for specialization constants.
+    void setToSpecConstCodeGenMode() { generatingOpCodeForSpecConst = true; }
+    // Sets to generate opcode for non-specialization constants (normal mode).
+    void setToNormalCodeGenMode() { generatingOpCodeForSpecConst = false; }
+    // Check if the builder is generating code for spec constants.
+    bool isInSpecConstCodeGenMode() { return generatingOpCodeForSpecConst; }
 
  protected:
     Id makeIntConstant(Id typeId, unsigned value, bool specConstant);
@@ -541,6 +552,7 @@ public:
     Block* buildPoint;
     Id uniqueId;
     Function* mainFunction;
+    bool generatingOpCodeForSpecConst;
     AccessChain accessChain;
 
     // special blocks of instructions for output

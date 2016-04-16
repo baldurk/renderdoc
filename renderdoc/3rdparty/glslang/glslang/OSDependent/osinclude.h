@@ -56,6 +56,7 @@ typedef unsigned int (*TThreadEntrypoint)(void*);
 void* OS_CreateThread(TThreadEntrypoint);
 void OS_WaitForAllThreads(void* threads, int numThreads);
 
+void OS_CleanupThreadData(void);
 void OS_Sleep(int milliseconds);
 
 void OS_DumpMemoryCounters();

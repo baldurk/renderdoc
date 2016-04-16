@@ -411,6 +411,19 @@ public:
         clearLayout();
     }
 
+    // Drop just the storage qualification, which perhaps should 
+    // never be done, as it is fundamentally inconsistent, but need to
+    // explore what downstream consumers need.
+    // E.g., in a deference, it is an inconsistency between:
+    // A) partially dereferenced resource is still in the storage class it started in
+    // B) partially dereferenced resource is a new temporary object
+    // If A, then nothing should change, if B, then everything should change, but this is half way.
+    void makePartialTemporary()
+    {
+        storage      = EvqTemporary;
+        specConstant = false;
+    }
+
     TStorageQualifier   storage   : 6;
     TBuiltInVariable    builtIn   : 8;
     TPrecisionQualifier precision : 3;
@@ -727,6 +740,7 @@ public:
     }
     void makeSpecConstant()
     {
+        storage = EvqConst;
         specConstant = true;
     }
     static const char* getLayoutPackingString(TLayoutPacking packing)
@@ -786,7 +800,7 @@ public:
         case ElfRgba8ui:      return "rgba8ui";
         case ElfRg32ui:       return "rg32ui";
         case ElfRg16ui:       return "rg16ui";
-        case ElfRgb10a2ui:    return "rgb10a2ui";
+        case ElfRgb10a2ui:    return "rgb10_a2ui";
         case ElfRg8ui:        return "rg8ui";
         case ElfR32ui:        return "r32ui";
         case ElfR16ui:        return "r16ui";
@@ -1209,6 +1223,7 @@ public:
     virtual int getMatrixCols() const { return matrixCols; }
     virtual int getMatrixRows() const { return matrixRows; }
     virtual int getOuterArraySize()  const { return arraySizes->getOuterSize(); }
+    virtual TIntermTyped*  getOuterArrayNode() const { return arraySizes->getOuterNode(); }
     virtual int getCumulativeArraySize()  const { return arraySizes->getCumulativeSize(); }
     virtual bool isArrayOfArrays() const { return arraySizes != nullptr && arraySizes->getNumDims() > 1; }
     virtual int getImplicitArraySize() const { return arraySizes->getImplicitSize(); }
