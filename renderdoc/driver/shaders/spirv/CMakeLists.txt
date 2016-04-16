@@ -9,6 +9,9 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/SpvBuilder.cpp
     ${glslang_dir}/SPIRV/SpvBuilder.h
     ${glslang_dir}/SPIRV/spvIR.h
+    ${glslang_dir}/hlsl/hlslParseHelper.cpp
+    ${glslang_dir}/hlsl/hlslScanContext.cpp
+    ${glslang_dir}/hlsl/hlslGrammar.cpp
     ${glslang_dir}/glslang/GenericCodeGen/CodeGen.cpp
     ${glslang_dir}/glslang/GenericCodeGen/Link.cpp
     ${glslang_dir}/glslang/Include/arrays.h
