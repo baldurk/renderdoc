@@ -44,6 +44,7 @@ win32 {
 	LIBS += $$DESTDIR/renderdoc.lib
 
 	QMAKE_CXXFLAGS_WARN_ON -= -w34100 
+	DEFINES += RENDERDOC_PLATFORM_WIN32
 
 } else {
 	isEmpty(DESTDIR) {
@@ -57,7 +58,7 @@ win32 {
 	QMAKE_CXXFLAGS += -std=c++11 -Wno-unused-parameter -Wno-reorder
 
 	QT += x11extras
-
+	DEFINES += RENDERDOC_PLATFORM_LINUX
 }
 
 SOURCES += Code/main.cpp \
