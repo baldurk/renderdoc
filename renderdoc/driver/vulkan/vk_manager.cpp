@@ -179,7 +179,10 @@ void VulkanResourceManager::RecordSingleBarrier(vector< pair<ResourceId, ImageRe
 
 	// we don't have an existing barrier for this memory region, insert into place. it points to
 	// where it should be inserted
-	dststates.insert(it, std::make_pair(id, ImageRegionState(t.subresourceRange, t.oldLayout, t.newLayout)));
+	VkImageSubresourceRange subRange = t.subresourceRange;
+	subRange.levelCount = nummips;
+	subRange.layerCount = numslices;
+	dststates.insert(it, std::make_pair(id, ImageRegionState(subRange, t.oldLayout, t.newLayout)));
 }
 
 void VulkanResourceManager::RecordBarriers(vector< pair<ResourceId, ImageRegionState> > &states, map<ResourceId, ImageLayouts> &layouts,
