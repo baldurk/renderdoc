@@ -2533,7 +2533,7 @@ void GLReplay::CreateCustomShaderTex(uint32_t w, uint32_t h)
 	
 	m_pDriver->glGenTextures(1, &DebugData.customTex);
 	m_pDriver->glBindTexture(eGL_TEXTURE_2D, DebugData.customTex);
-	m_pDriver->glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGBA16F, (GLsizei)w, (GLsizei)h);
+	m_pDriver->glTextureStorage2DEXT(DebugData.customTex, eGL_TEXTURE_2D, 1, eGL_RGBA16F, (GLsizei)w, (GLsizei)h);
 	m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 	m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 	m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_BASE_LEVEL, 0);
