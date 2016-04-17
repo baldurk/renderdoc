@@ -821,8 +821,20 @@ namespace renderdocui.Windows.Dialogs
                     MessageBox.Show("Aborting. Couldn't save backup .reg file to " + regfile + Environment.NewLine + ex.ToString(), "Cannot save registry backup",
                                                     MessageBoxButtons.OK, MessageBoxIcon.Error);
 
+                    exePath.Enabled = exeBrowse.Enabled =
+                        workDirPath.Enabled = workDirBrowse.Enabled =
+                        cmdline.Enabled =
+                        capture.Enabled = save.Enabled = load.Enabled = true;
+
+                    foreach (Control c in capOptsFlow.Controls)
+                        c.Enabled = true;
+
+                    foreach (Control c in actionsFlow.Controls)
+                        c.Enabled = true;
+
                     // won't recurse because it's not enabled yet
                     toggleGlobalHook.Checked = false;
+                    toggleGlobalHook.Text = "Enable Global Hook";
 
                     toggleGlobalHook.Enabled = true;
                     return;
@@ -832,8 +844,51 @@ namespace renderdocui.Windows.Dialogs
 
                 pipeExit = false;
 
-                pipe32 = new NamedPipeServerStream("RenderDoc.GlobalHookControl32");
-                pipe64 = new NamedPipeServerStream("RenderDoc.GlobalHookControl64");
+                try
+                {
+                    pipe32 = new NamedPipeServerStream("RenderDoc.GlobalHookControl32");
+                    pipe64 = new NamedPipeServerStream("RenderDoc.GlobalHookControl64");
+                }
+                catch (System.IO.IOException ex)
+                {
+                    // tidy up and exit
+                    MessageBox.Show("Aborting. Couldn't create named pipe:" + Environment.NewLine + ex.Message,
+                                    "Cannot create named pipe",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                    exePath.Enabled = exeBrowse.Enabled =
+                        workDirPath.Enabled = workDirBrowse.Enabled =
+                        cmdline.Enabled =
+                        capture.Enabled = save.Enabled = load.Enabled = true;
+
+                    foreach (Control c in capOptsFlow.Controls)
+                        c.Enabled = true;
+
+                    foreach (Control c in actionsFlow.Controls)
+                        c.Enabled = true;
+
+                    // need to revert registry entries too
+                    if (Environment.Is64BitProcess)
+                    {
+                        RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE").CreateSubKey("Wow6432Node"), prevAppInitWoW64Enabled, prevAppInitWoW64);
+                        RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), prevAppInitEnabled, prevAppInit);
+                    }
+                    else
+                    {
+                        // if this is a 64-bit OS, it will re-direct our request to Wow6432Node anyway, so we
+                        // don't need to handle that manually
+                        RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), prevAppInitEnabled, prevAppInit);
+                    }
+
+                    if (File.Exists(regfile)) File.Delete(regfile);
+
+                    // won't recurse because it's not enabled yet
+                    toggleGlobalHook.Checked = false;
+                    toggleGlobalHook.Text = "Enable Global Hook";
+
+                    toggleGlobalHook.Enabled = true;
+                    return;
+                }
 
                 pipeThread = Helpers.NewThread(new ThreadStart(PipeTick));
 
