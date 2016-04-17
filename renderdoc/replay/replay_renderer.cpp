@@ -1034,6 +1034,9 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 			p.m_quality = sd.jpegQuality;
 
 			int len = td.width*td.height*td.format.compCount;
+			// ensure buffer is at least 1024
+			if(len < 1024)
+				len = 1024;
 
 			char *jpgdst = new char[len];
 
