@@ -608,7 +608,7 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 		}
 	}
 	
-	RDCASSERT(WrappedID3D11DeviceContext::IsAlloc(context));
+	RDCASSERTMSG("Context is invalid", WrappedID3D11DeviceContext::IsAlloc(context), ctxId, context);
 	
 	LogState state = context->m_State;
 
