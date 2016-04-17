@@ -1430,7 +1430,7 @@ namespace renderdocui.Windows
 
                 foreach (var el in bufferFormats)
                 {
-                    if (state.m_Stream[el.buffer] == null)
+                    if (el.buffer < state.m_Stream.Length && state.m_Stream[el.buffer] == null)
                     {
                         if (d[el.buffer] == null)
                         {
@@ -1566,9 +1566,18 @@ namespace renderdocui.Windows
 
                         try
                         {
-                            byte[] bytedata = d[bufferFormats[el].buffer];
-                            Stream strm = state.m_Stream[bufferFormats[el].buffer];
-                            BinaryReader read = state.m_Reader[bufferFormats[el].buffer];
+                            byte[] bytedata = null;
+                            Stream strm = null;
+                            BinaryReader read = null;
+                            uint stride = 0;
+
+                            if (bufferFormats[el].buffer < d.Length)
+                            {
+                                bytedata = d[bufferFormats[el].buffer];
+                                strm = state.m_Stream[bufferFormats[el].buffer];
+                                read = state.m_Reader[bufferFormats[el].buffer];
+                                stride = input.Strides[bufferFormats[el].buffer];
+                            }
 
                             uint instIdx = 0;
                             // for instancing, need to handle instance rate being 0 (every instance takes index 0 in that case)
@@ -1577,7 +1586,6 @@ namespace renderdocui.Windows
                             else
                                 instIdx = index;
 
-                            uint stride = input.Strides[bufferFormats[el].buffer];
                             if (data.PostVS.stride != 0)
                                 stride = data.PostVS.stride;
 
@@ -1585,7 +1593,13 @@ namespace renderdocui.Windows
 
                             bool outofBounds = false;
 
-                            if (bytedata == null)
+                            if (bufferFormats[el].buffer >= d.Length)
+                            {
+                                outofBounds = true;
+                                strm = null;
+                                read = new BinaryReader(new MemoryStream(m_Zeroes));
+                            }
+                            else if (bytedata == null)
                             {
                                 strm.Seek(0, SeekOrigin.Begin);
                             }
@@ -1925,9 +1939,18 @@ namespace renderdocui.Windows
 
                         try
                         {
-                            byte[] bytedata = d[bufferFormats[el].buffer];
-                            Stream strm = state.m_Stream[bufferFormats[el].buffer];
-                            BinaryReader read = state.m_Reader[bufferFormats[el].buffer];
+                            byte[] bytedata = null;
+                            Stream strm = null;
+                            BinaryReader read = null;
+                            uint stride = 0;
+
+                            if (bufferFormats[el].buffer < d.Length)
+                            {
+                                bytedata = d[bufferFormats[el].buffer];
+                                strm = state.m_Stream[bufferFormats[el].buffer];
+                                read = state.m_Reader[bufferFormats[el].buffer];
+                                stride = input.Strides[bufferFormats[el].buffer];
+                            }
 
                             uint instIdx = 0;
                             // for instancing, need to handle instance rate being 0 (every instance takes index 0 in that case)
@@ -1936,13 +1959,20 @@ namespace renderdocui.Windows
                             else
                                 instIdx = dataIndex;
 
-                            uint stride = input.Strides[bufferFormats[el].buffer];
                             if (data.PostVS.stride != 0)
                                 stride = data.PostVS.stride;
 
                             uint offs = stride * instIdx + bufferFormats[el].offset;
 
-                            if (bytedata == null)
+                            if (bufferFormats[el].buffer >= d.Length)
+                            {
+                                for (int i = 0; i < bufferFormats[el].format.compCount; i++, x++)
+                                {
+                                    rowdata[x] = "-";
+                                }
+                                continue;
+                            }
+                            else if (bytedata == null)
                             {
                                 strm.Seek(0, SeekOrigin.Begin);
                             }
@@ -2776,10 +2806,19 @@ namespace renderdocui.Windows
                     m_MeshDisplay.position.idxByteWidth = ui.m_Input.Drawcall.indexByteWidth;
                     m_MeshDisplay.position.baseVertex = ui.m_Input.Drawcall.baseVertex;
 
-                    m_MeshDisplay.position.buf = m_VSIn.m_Input.Buffers[pos.buffer];
-                    m_MeshDisplay.position.offset = pos.offset + ui.m_Input.Offsets[pos.buffer] +
-                        ui.m_Input.Drawcall.vertexOffset * ui.m_Input.Strides[pos.buffer];
-                    m_MeshDisplay.position.stride = ui.m_Input.Strides[pos.buffer];
+                    if (pos.buffer < m_VSIn.m_Input.Buffers.Length)
+                    {
+                        m_MeshDisplay.position.buf = m_VSIn.m_Input.Buffers[pos.buffer];
+                        m_MeshDisplay.position.offset = pos.offset + ui.m_Input.Offsets[pos.buffer] +
+                            ui.m_Input.Drawcall.vertexOffset * ui.m_Input.Strides[pos.buffer];
+                        m_MeshDisplay.position.stride = ui.m_Input.Strides[pos.buffer];
+                    }
+                    else
+                    {
+                        m_MeshDisplay.position.buf = ResourceId.Null;
+                        m_MeshDisplay.position.offset = 0;
+                        m_MeshDisplay.position.stride = 0;
+                    }
 
                     m_MeshDisplay.position.topo = ui.m_Input.Drawcall.topology;
                     m_MeshDisplay.position.numVerts = ui.m_Input.Drawcall.numIndices;
@@ -2861,10 +2900,19 @@ namespace renderdocui.Windows
 
                 if (ui.m_Stage == MeshDataStage.VSIn && ui.m_Input.Drawcall != null)
                 {
-                    m_MeshDisplay.secondary.buf = m_VSIn.m_Input.Buffers[tex.buffer];
-                    m_MeshDisplay.secondary.offset = tex.offset + ui.m_Input.Offsets[tex.buffer] +
-                        ui.m_Input.Drawcall.vertexOffset * m_MeshDisplay.position.stride;
-                    m_MeshDisplay.secondary.stride = ui.m_Input.Strides[tex.buffer];
+                    if (tex.buffer < m_VSIn.m_Input.Buffers.Length)
+                    {
+                        m_MeshDisplay.secondary.buf = m_VSIn.m_Input.Buffers[tex.buffer];
+                        m_MeshDisplay.secondary.offset = tex.offset + ui.m_Input.Offsets[tex.buffer] +
+                            ui.m_Input.Drawcall.vertexOffset * m_MeshDisplay.position.stride;
+                        m_MeshDisplay.secondary.stride = ui.m_Input.Strides[tex.buffer];
+                    }
+                    else
+                    {
+                        m_MeshDisplay.secondary.buf = ResourceId.Null;
+                        m_MeshDisplay.secondary.offset = 0;
+                        m_MeshDisplay.secondary.stride = 0;
+                    }
                 }
                 else if (ui.m_Stage != MeshDataStage.VSIn && ui.m_Data != null && ui.m_Data.PostVS.buf != ResourceId.Null)
                 {

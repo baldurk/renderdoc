@@ -711,7 +711,10 @@ namespace renderdocui.Code
                     {
                         int attrib = -1;
                         if (m_Vulkan.VS.BindpointMapping != null && m_Vulkan.VS.ShaderDetails != null)
-                            attrib = m_Vulkan.VS.BindpointMapping.InputAttributes[attrs[i].location];
+                        {
+                            if(attrs[i].location < m_Vulkan.VS.BindpointMapping.InputAttributes.Length)
+                                attrib = m_Vulkan.VS.BindpointMapping.InputAttributes[attrs[i].location];
+                        }
                         else
                             attrib = i;
 
@@ -727,14 +730,19 @@ namespace renderdocui.Code
                         ret[a].GenericValue = null;
                         ret[a].VertexBuffer = (int)attrs[i].binding;
                         ret[a].RelativeByteOffset = attrs[i].byteoffset;
-                        ret[a].PerInstance = m_Vulkan.VI.binds[attrs[i].binding].perInstance;
+                        ret[a].PerInstance = false;
+                        if(attrs[i].binding < m_Vulkan.VI.binds.Length)
+                            ret[a].PerInstance = m_Vulkan.VI.binds[attrs[i].binding].perInstance;
                         ret[a].InstanceRate = 1;
                         ret[a].Format = attrs[i].format;
                         ret[a].Used = true;
 
                         if (m_Vulkan.VS.BindpointMapping != null && m_Vulkan.VS.ShaderDetails != null)
                         {
-                            int attrib = m_Vulkan.VS.BindpointMapping.InputAttributes[attrs[i].location];
+                            int attrib = -1;
+
+                            if (attrs[i].location < m_Vulkan.VS.BindpointMapping.InputAttributes.Length)
+                                attrib = m_Vulkan.VS.BindpointMapping.InputAttributes[attrs[i].location];
 
                             if (attrib >= 0 && attrib < m_Vulkan.VS.ShaderDetails.InputSig.Length)
                                 ret[a].Name = m_Vulkan.VS.ShaderDetails.InputSig[attrib].varName;

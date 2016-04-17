@@ -1099,7 +1099,9 @@ namespace renderdocui.Windows.PipelineState
 
                     if (state.VS.Shader != ResourceId.Null)
                     {
-                        int attrib = state.VS.BindpointMapping.InputAttributes[a.location];
+                        int attrib = -1;
+                        if(a.location < state.VS.BindpointMapping.InputAttributes.Length)
+                            attrib = state.VS.BindpointMapping.InputAttributes[a.location];
 
                         if (attrib >= 0 && attrib < state.VS.ShaderDetails.InputSig.Length)
                         {
@@ -1243,7 +1245,8 @@ namespace renderdocui.Windows.PipelineState
 
             if (state.VI.vbuffers != null)
             {
-                for(int i=0; i < Math.Max(state.VI.vbuffers.Length, state.VI.binds.Length); i++)
+                int i = 0;
+                for(; i < Math.Max(state.VI.vbuffers.Length, state.VI.binds.Length); i++)
                 {
                     var vbuff = (i < state.VI.vbuffers.Length ? state.VI.vbuffers[i] : null);
                     VulkanPipelineState.VertexInput.Binding bind = null;
@@ -1310,6 +1313,24 @@ namespace renderdocui.Windows.PipelineState
 
                         if (!usedSlot)
                             InactiveRow(node);
+
+                        m_VBNodes.Add(node);
+                    }
+                }
+
+                for (; i < usedBindings.Length; i++)
+                {
+                    if (usedBindings[i])
+                    {
+                        TreelistView.Node node = viBuffers.Nodes.Add(new object[] { i, "No Binding", "-", "-", "-", "-" });
+
+                        node.Image = global::renderdocui.Properties.Resources.action;
+                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                        node.Tag = new IABufferTag(ResourceId.Null, 0);
+
+                        EmptyRow(node);
+
+                        InactiveRow(node);
 
                         m_VBNodes.Add(node);
                     }
