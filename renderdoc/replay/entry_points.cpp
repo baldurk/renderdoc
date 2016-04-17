@@ -30,6 +30,7 @@
 #include "core/core.h"
 #include "replay/replay_renderer.h"
 #include "api/replay/renderdoc_replay.h"
+#include "data/version.h"
 
 // these entry points are for the replay/analysis side - not for the application.
 
@@ -233,6 +234,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Camera_GetBasis(Camera *c, FloatVecto
 	up->x = u.x;
 	up->y = u.y;
 	up->z = u.z;
+}
+
+extern "C" RENDERDOC_API
+const char* RENDERDOC_CC RENDERDOC_GetVersionString()
+{
+	return RENDERDOC_VERSION_STRING;
 }
 
 extern "C" RENDERDOC_API
