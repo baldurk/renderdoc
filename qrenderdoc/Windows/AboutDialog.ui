@@ -37,7 +37,7 @@
    <item>
     <widget class="QLabel" name="owner">
      <property name="text">
-      <string>Baldur Karsson</string>
+      <string>Baldur Karlsson</string>
      </property>
     </widget>
    </item>
