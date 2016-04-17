@@ -30,6 +30,7 @@
 #include "core/core.h"
 #include "replay/replay_renderer.h"
 #include "api/replay/renderdoc_replay.h"
+#include "data/version.h"
 
 // these entry points are for the replay/analysis side - not for the application.
 
@@ -236,6 +237,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Camera_GetBasis(Camera *c, FloatVecto
 }
 
 extern "C" RENDERDOC_API
+const char* RENDERDOC_CC RENDERDOC_GetVersionString()
+{
+	return RENDERDOC_VERSION_STRING;
+}
+
+extern "C" RENDERDOC_API
 void RENDERDOC_CC RENDERDOC_LogText(const char *text)
 {
 	RDCLOG("%s", text);
@@ -379,6 +386,7 @@ bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, byte *buf, uint
 	if(buf == NULL)
 	{
 		len = (uint32_t)thumblen;
+		delete[] jpgbuf;
 		return true;
 	}
 
