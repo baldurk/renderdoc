@@ -379,6 +379,7 @@ bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, byte *buf, uint
 	if(buf == NULL)
 	{
 		len = (uint32_t)thumblen;
+		delete[] jpgbuf;
 		return true;
 	}
 
