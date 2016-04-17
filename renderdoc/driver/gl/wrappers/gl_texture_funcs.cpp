@@ -191,7 +191,9 @@ bool WrappedOpenGL::Serialise_glBindTexture(GLenum target, GLuint texture)
 	
 	if(m_State == WRITING_IDLE)
 	{
-		GetCtxData().GetActiveTexRecord()->datatype = TextureBinding(Target);
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		RDCASSERT(record);
+		record->datatype = TextureBinding(Target);
 	}
 	else if(m_State < WRITING)
 	{
@@ -677,7 +679,11 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(GLuint texture, GLenum 
 
 void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, GLenum target)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 
 	CoherentMapImplicitBarrier();
 
@@ -866,7 +872,11 @@ bool WrappedOpenGL::Serialise_glCopyTextureSubImage1DEXT(GLuint texture, GLenum 
 
 void WrappedOpenGL::Common_glCopyTextureSubImage1DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint x, GLint y, GLsizei width)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	CoherentMapImplicitBarrier();
 
@@ -942,7 +952,11 @@ bool WrappedOpenGL::Serialise_glCopyTextureSubImage2DEXT(GLuint texture, GLenum 
 
 void WrappedOpenGL::Common_glCopyTextureSubImage2DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	CoherentMapImplicitBarrier();
 
@@ -1019,7 +1033,11 @@ bool WrappedOpenGL::Serialise_glCopyTextureSubImage3DEXT(GLuint texture, GLenum 
 
 void WrappedOpenGL::Common_glCopyTextureSubImage3DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	CoherentMapImplicitBarrier();
 
@@ -1119,7 +1137,11 @@ bool WrappedOpenGL::Serialise_glTextureParameteriEXT(GLuint texture, GLenum targ
 
 void WrappedOpenGL::Common_glTextureParameteriEXT(GLResourceRecord *record, GLenum target, GLenum pname, GLint param)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 
 	if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		return;
@@ -1203,7 +1225,11 @@ bool WrappedOpenGL::Serialise_glTextureParameterivEXT(GLuint texture, GLenum tar
 
 void WrappedOpenGL::Common_glTextureParameterivEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLint *params)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 
 	if(m_State != WRITING_CAPFRAME && m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end())
 		return;
@@ -1288,7 +1314,11 @@ bool WrappedOpenGL::Serialise_glTextureParameterIivEXT(GLuint texture, GLenum ta
 
 void WrappedOpenGL::Common_glTextureParameterIivEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLint *params)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		return;
@@ -1373,7 +1403,11 @@ bool WrappedOpenGL::Serialise_glTextureParameterIuivEXT(GLuint texture, GLenum t
 
 void WrappedOpenGL::Common_glTextureParameterIuivEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLuint *params)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		return;
@@ -1455,7 +1489,11 @@ bool WrappedOpenGL::Serialise_glTextureParameterfEXT(GLuint texture, GLenum targ
 
 void WrappedOpenGL::Common_glTextureParameterfEXT(GLResourceRecord *record, GLenum target, GLenum pname, GLfloat param)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		return;
@@ -1539,7 +1577,11 @@ bool WrappedOpenGL::Serialise_glTextureParameterfvEXT(GLuint texture, GLenum tar
 
 void WrappedOpenGL::Common_glTextureParameterfvEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLfloat *params)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 
 	if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		return;
@@ -1818,9 +1860,17 @@ void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalforma
 
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureImage1DEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, level, internalformat, width, border, format, type, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureImage1DEXT(record->GetResourceID(), target, level, internalformat, width, border, format, type, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 void WrappedOpenGL::glMultiTexImage1DEXT(GLenum texunit, GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
@@ -1829,9 +1879,17 @@ void WrappedOpenGL::glMultiTexImage1DEXT(GLenum texunit, GLenum target, GLint le
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureImage1DEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID(), target, level, internalformat, width, border, format, type, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0];
+		if(record != NULL)
+			Common_glTextureImage1DEXT(record->GetResourceID(), target, level, internalformat, width, border, format, type, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to slot %u", texunit-eGL_TEXTURE0);
+	}
 }
 
 bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels)
@@ -2002,9 +2060,17 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureImage2DEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, level, internalformat, width, height, border, format, type, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureImage2DEXT(record->GetResourceID(), target, level, internalformat, width, height, border, format, type, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 void WrappedOpenGL::glMultiTexImage2DEXT(GLenum texunit, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
@@ -2013,9 +2079,17 @@ void WrappedOpenGL::glMultiTexImage2DEXT(GLenum texunit, GLenum target, GLint le
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureImage2DEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID(), target, level, internalformat, width, height, border, format, type, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0];
+		if(record != NULL)
+			Common_glTextureImage2DEXT(record->GetResourceID(), target, level, internalformat, width, height, border, format, type, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to slot %u", texunit-eGL_TEXTURE0);
+	}
 }
 
 bool WrappedOpenGL::Serialise_glTextureImage3DEXT(GLuint texture, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels)
@@ -2166,9 +2240,17 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureImage3DEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, level, internalformat, width, height, depth, border, format, type, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureImage3DEXT(record->GetResourceID(), target, level, internalformat, width, height, depth, border, format, type, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 void WrappedOpenGL::glMultiTexImage3DEXT(GLenum texunit, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
@@ -2177,9 +2259,17 @@ void WrappedOpenGL::glMultiTexImage3DEXT(GLenum texunit, GLenum target, GLint le
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureImage3DEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID(), target, level, internalformat, width, height, depth, border, format, type, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0];
+		if(record != NULL)
+			Common_glTextureImage3DEXT(record->GetResourceID(), target, level, internalformat, width, height, depth, border, format, type, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to slot %u", texunit-eGL_TEXTURE0);
+	}
 }
 
 bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid *pixels)
@@ -2332,9 +2422,17 @@ void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum in
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glCompressedTextureImage1DEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, level, internalformat, width, border, imageSize, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glCompressedTextureImage1DEXT(record->GetResourceID(), target, level, internalformat, width, border, imageSize, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 void WrappedOpenGL::glCompressedMultiTexImage1DEXT(GLenum texunit, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid *pixels)
@@ -2343,9 +2441,17 @@ void WrappedOpenGL::glCompressedMultiTexImage1DEXT(GLenum texunit, GLenum target
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glCompressedTextureImage1DEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID(), target, level, internalformat, width, border, imageSize, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0];
+		if(record != NULL)
+			Common_glCompressedTextureImage1DEXT(record->GetResourceID(), target, level, internalformat, width, border, imageSize, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to slot %u", texunit-eGL_TEXTURE0);
+	}
 }
 
 bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid * pixels)
@@ -2522,9 +2628,17 @@ void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum in
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glCompressedTextureImage2DEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, level, internalformat, width, height, border, imageSize, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glCompressedTextureImage2DEXT(record->GetResourceID(), target, level, internalformat, width, height, border, imageSize, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 void WrappedOpenGL::glCompressedMultiTexImage2DEXT(GLenum texunit, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid * pixels)
@@ -2533,9 +2647,17 @@ void WrappedOpenGL::glCompressedMultiTexImage2DEXT(GLenum texunit, GLenum target
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glCompressedTextureImage2DEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID(), target, level, internalformat, width, height, border, imageSize, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0];
+		if(record != NULL)
+			Common_glCompressedTextureImage2DEXT(record->GetResourceID(), target, level, internalformat, width, height, border, imageSize, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to slot %u", texunit-eGL_TEXTURE0);
+	}
 }
 
 bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const GLvoid * pixels)
@@ -2692,9 +2814,17 @@ void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum in
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glCompressedTextureImage3DEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, level, internalformat, width, height, depth, border, imageSize, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glCompressedTextureImage3DEXT(record->GetResourceID(), target, level, internalformat, width, height, depth, border, imageSize, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 void WrappedOpenGL::glCompressedMultiTexImage3DEXT(GLenum texunit, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const GLvoid * pixels)
@@ -2703,9 +2833,17 @@ void WrappedOpenGL::glCompressedMultiTexImage3DEXT(GLenum texunit, GLenum target
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glCompressedTextureImage3DEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID(), target, level, internalformat, width, height, depth, border, imageSize, pixels);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0];
+		if(record != NULL)
+			Common_glCompressedTextureImage3DEXT(record->GetResourceID(), target, level, internalformat, width, height, depth, border, imageSize, pixels);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to slot %u", texunit-eGL_TEXTURE0);
+	}
 }
 
 #pragma endregion
@@ -2743,7 +2881,11 @@ bool WrappedOpenGL::Serialise_glCopyTextureImage1DEXT(GLuint texture, GLenum tar
 
 void WrappedOpenGL::Common_glCopyTextureImage1DEXT(GLResourceRecord *record, GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLint border)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	CoherentMapImplicitBarrier();
 
@@ -2806,8 +2948,8 @@ void WrappedOpenGL::glCopyMultiTexImage1DEXT(GLenum texunit, GLenum target, GLin
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glCopyTextureImage1DEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0], target, level, internalformat, x, y, width, border);
+	else
+		Common_glCopyTextureImage1DEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0], target, level, internalformat, x, y, width, border);
 }
 
 void WrappedOpenGL::glCopyTexImage1D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLint border)
@@ -2817,8 +2959,8 @@ void WrappedOpenGL::glCopyTexImage1D(GLenum target, GLint level, GLenum internal
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glCopyTextureImage1DEXT(GetCtxData().GetActiveTexRecord(), target, level, internalformat, x, y, width, border);
+	else
+		Common_glCopyTextureImage1DEXT(GetCtxData().GetActiveTexRecord(), target, level, internalformat, x, y, width, border);
 }
 
 bool WrappedOpenGL::Serialise_glCopyTextureImage2DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border)
@@ -2853,7 +2995,11 @@ bool WrappedOpenGL::Serialise_glCopyTextureImage2DEXT(GLuint texture, GLenum tar
 
 void WrappedOpenGL::Common_glCopyTextureImage2DEXT(GLResourceRecord *record, GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	CoherentMapImplicitBarrier();
 
@@ -2916,8 +3062,8 @@ void WrappedOpenGL::glCopyMultiTexImage2DEXT(GLenum texunit, GLenum target, GLin
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glCopyTextureImage2DEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0], target, level, internalformat, x, y, width, height, border);
+	else
+		Common_glCopyTextureImage2DEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0], target, level, internalformat, x, y, width, height, border);
 }
 
 void WrappedOpenGL::glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border)
@@ -2927,8 +3073,8 @@ void WrappedOpenGL::glCopyTexImage2D(GLenum target, GLint level, GLenum internal
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glCopyTextureImage2DEXT(GetCtxData().GetActiveTexRecord(), target, level, internalformat, x, y, width, height, border);
+	else
+		Common_glCopyTextureImage2DEXT(GetCtxData().GetActiveTexRecord(), target, level, internalformat, x, y, width, height, border);
 }
 
 #pragma endregion
@@ -3013,8 +3159,8 @@ void WrappedOpenGL::glTextureStorage1D(GLuint texture, GLsizei levels, GLenum in
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureStorage1DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, levels, internalformat, width);
+	else
+		Common_glTextureStorage1DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, levels, internalformat, width);
 }
 
 void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
@@ -3023,9 +3169,17 @@ void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum interna
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureStorage1DEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, levels, internalformat, width);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureStorage1DEXT(record->GetResourceID(), target, levels, internalformat, width);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 bool WrappedOpenGL::Serialise_glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
@@ -3107,8 +3261,8 @@ void WrappedOpenGL::glTextureStorage2D(GLuint texture, GLsizei levels, GLenum in
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureStorage2DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, levels, internalformat, width, height);
+	else
+		Common_glTextureStorage2DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, levels, internalformat, width, height);
 }
 
 void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
@@ -3117,9 +3271,17 @@ void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum interna
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureStorage2DEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, levels, internalformat, width, height);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureStorage2DEXT(record->GetResourceID(), target, levels, internalformat, width, height);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 bool WrappedOpenGL::Serialise_glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth)
@@ -3202,8 +3364,8 @@ void WrappedOpenGL::glTextureStorage3D(GLuint texture, GLsizei levels, GLenum in
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureStorage3DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, levels, internalformat, width, height, depth);
+	else
+		Common_glTextureStorage3DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, levels, internalformat, width, height, depth);
 }
 
 void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth)
@@ -3212,9 +3374,17 @@ void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum interna
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureStorage3DEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, levels, internalformat, width, height, depth);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureStorage3DEXT(record->GetResourceID(), target, levels, internalformat, width, height, depth);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 bool WrappedOpenGL::Serialise_glTextureStorage2DMultisampleEXT(GLuint texture, GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations)
@@ -3299,8 +3469,8 @@ void WrappedOpenGL::glTextureStorage2DMultisample(GLuint texture, GLsizei sample
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureStorage2DMultisampleEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, samples, internalformat, width, height, fixedsamplelocations);
+	else
+		Common_glTextureStorage2DMultisampleEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, samples, internalformat, width, height, fixedsamplelocations);
 }
 
 void WrappedOpenGL::glTexStorage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations)
@@ -3309,9 +3479,17 @@ void WrappedOpenGL::glTexStorage2DMultisample(GLenum target, GLsizei samples, GL
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureStorage2DMultisampleEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, samples, internalformat, width, height, fixedsamplelocations);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureStorage2DMultisampleEXT(record->GetResourceID(), target, samples, internalformat, width, height, fixedsamplelocations);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 void WrappedOpenGL::glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations)
@@ -3320,11 +3498,19 @@ void WrappedOpenGL::glTexImage2DMultisample(GLenum target, GLsizei samples, GLen
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	// assuming texstorage is equivalent to teximage (this is not true in the case where someone
-	// tries to re-size an image by re-calling teximage).
-	Common_glTextureStorage2DMultisampleEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, samples, internalformat, width, height, fixedsamplelocations);
+	}
+	else
+	{
+		// assuming texstorage is equivalent to teximage (this is not true in the case where someone
+		// tries to re-size an image by re-calling teximage).
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureStorage2DMultisampleEXT(record->GetResourceID(), target, samples, internalformat, width, height, fixedsamplelocations);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 bool WrappedOpenGL::Serialise_glTextureStorage3DMultisampleEXT(GLuint texture, GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations)
@@ -3410,8 +3596,8 @@ void WrappedOpenGL::glTextureStorage3DMultisample(GLuint texture, GLsizei sample
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureStorage3DMultisampleEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, samples, internalformat, width, height, depth, fixedsamplelocations);
+	else
+		Common_glTextureStorage3DMultisampleEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, samples, internalformat, width, height, depth, fixedsamplelocations);
 }
 
 void WrappedOpenGL::glTexStorage3DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations)
@@ -3420,9 +3606,17 @@ void WrappedOpenGL::glTexStorage3DMultisample(GLenum target, GLsizei samples, GL
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureStorage3DMultisampleEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, samples, internalformat, width, height, depth, fixedsamplelocations);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureStorage3DMultisampleEXT(record->GetResourceID(), target, samples, internalformat, width, height, depth, fixedsamplelocations);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 void WrappedOpenGL::glTexImage3DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations)
@@ -3431,11 +3625,19 @@ void WrappedOpenGL::glTexImage3DMultisample(GLenum target, GLsizei samples, GLen
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	// assuming texstorage is equivalent to teximage (this is not true in the case where someone
-	// tries to re-size an image by re-calling teximage).
-	Common_glTextureStorage3DMultisampleEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, samples, internalformat, width, height, depth, fixedsamplelocations);
+	}
+	else
+	{
+		// assuming texstorage is equivalent to teximage (this is not true in the case where someone
+		// tries to re-size an image by re-calling teximage).
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureStorage3DMultisampleEXT(record->GetResourceID(), target, samples, internalformat, width, height, depth, fixedsamplelocations);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 #pragma endregion
@@ -3522,7 +3724,11 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
 
 void WrappedOpenGL::Common_glTextureSubImage1DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void *pixels)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	CoherentMapImplicitBarrier();
 
@@ -3678,7 +3884,11 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
 
 void WrappedOpenGL::Common_glTextureSubImage2DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	CoherentMapImplicitBarrier();
 
@@ -3836,7 +4046,11 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
 
 void WrappedOpenGL::Common_glTextureSubImage3DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 	
 	CoherentMapImplicitBarrier();
 
@@ -3972,7 +4186,11 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, G
 
 void WrappedOpenGL::Common_glCompressedTextureSubImage1DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *pixels)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 			
 	CoherentMapImplicitBarrier();
 
@@ -4110,7 +4328,11 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
 
 void WrappedOpenGL::Common_glCompressedTextureSubImage2DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *pixels)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 			
 	CoherentMapImplicitBarrier();
 
@@ -4250,7 +4472,11 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
 
 void WrappedOpenGL::Common_glCompressedTextureSubImage3DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels)
 {
-	if(!record) return;
+	if(!record)	
+	{
+		RDCERR("Called texture function with invalid/unrecognised texture, or no texture bound to implicit slot");
+		return;
+	}
 
 	CoherentMapImplicitBarrier();
 
@@ -4436,9 +4662,17 @@ void WrappedOpenGL::glTexBufferRange(GLenum target, GLenum internalformat, GLuin
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureBufferRangeEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, internalformat, buffer, offset, size);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureBufferRangeEXT(record->GetResourceID(), target, internalformat, buffer, offset, size);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 bool WrappedOpenGL::Serialise_glTextureBufferEXT(GLuint texture, GLenum target, GLenum internalformat, GLuint buffer)
@@ -4549,9 +4783,17 @@ void WrappedOpenGL::glTexBuffer(GLenum target, GLenum internalformat, GLuint buf
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureBufferEXT(GetCtxData().GetActiveTexRecord()->GetResourceID(), target, internalformat, buffer);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
+		if(record != NULL)
+			Common_glTextureBufferEXT(record->GetResourceID(), target, internalformat, buffer);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 void WrappedOpenGL::glMultiTexBufferEXT(GLenum texunit, GLenum target, GLenum internalformat, GLuint buffer)
@@ -4560,9 +4802,17 @@ void WrappedOpenGL::glMultiTexBufferEXT(GLenum texunit, GLenum target, GLenum in
 	
 	// saves on queries of the currently bound texture to this target, as we don't have records on replay
 	if(m_State < WRITING)
+	{
 		RDCERR("Internal textures should be allocated via dsa interfaces");
-
-	Common_glTextureBufferEXT(GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID(), target, internalformat, buffer);
+	}
+	else
+	{
+		GLResourceRecord *record = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0];
+		if(record != NULL)
+			Common_glTextureBufferEXT(record->GetResourceID(), target, internalformat, buffer);
+		else
+			RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+	}
 }
 
 #pragma endregion
