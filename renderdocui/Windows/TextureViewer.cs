@@ -3384,9 +3384,12 @@ namespace renderdocui.Windows
 
         private void viewTexBuffer_Click(object sender, EventArgs e)
         {
-            var viewer = new BufferViewer(m_Core, false);
-            viewer.ViewRawBuffer(false, 0, ulong.MaxValue, CurrentTexture.ID);
-            viewer.Show(this.DockPanel);
+            if (CurrentTexture != null)
+            {
+                var viewer = new BufferViewer(m_Core, false);
+                viewer.ViewRawBuffer(false, 0, ulong.MaxValue, CurrentTexture.ID);
+                viewer.Show(this.DockPanel);
+            }
         }
 
         private TextureSaveDialog m_SaveDialog = null;
