@@ -896,17 +896,19 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 	// and set alpha to full
 	if(sd.channelExtract >= 0 && td.format.compByteWidth == 1 && (uint32_t)sd.channelExtract < td.format.compCount)
 	{
+		uint32_t cc = td.format.compCount;
+
 		for(uint32_t y=0; y < td.height; y++)
 		{
 			for(uint32_t x=0; x < td.width; x++)
 			{
-				subdata[0][ ( y * td.width + x ) * 4 + 0 ] = subdata[0][ ( y * td.width + x ) * 4 + sd.channelExtract ];
-				if(td.format.compCount >= 2)
-					subdata[0][ ( y * td.width + x ) * 4 + 1 ] = subdata[0][ ( y * td.width + x ) * 4 + sd.channelExtract ];
-				if(td.format.compCount >= 3)
-					subdata[0][ ( y * td.width + x ) * 4 + 2 ] = subdata[0][ ( y * td.width + x ) * 4 + sd.channelExtract ];
-				if(td.format.compCount >= 4)
-					subdata[0][ ( y * td.width + x ) * 4 + 3 ] = 255;
+				subdata[0][ ( y * td.width + x ) * cc + 0 ] = subdata[0][ ( y * td.width + x ) * cc + sd.channelExtract ];
+				if(cc >= 2)
+					subdata[0][ ( y * td.width + x ) * cc + 1 ] = subdata[0][ ( y * td.width + x ) * cc + sd.channelExtract ];
+				if(cc >= 3)
+					subdata[0][ ( y * td.width + x ) * cc + 2 ] = subdata[0][ ( y * td.width + x ) * cc + sd.channelExtract ];
+				if(cc >= 4)
+					subdata[0][ ( y * td.width + x ) * cc + 3 ] = 255;
 			}
 		}
 	}
@@ -979,6 +981,10 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 				rg0[ ( y * td.width + x ) * 3 + 0 ] = r;
 				rg0[ ( y * td.width + x ) * 3 + 1 ] = g;
 				rg0[ ( y * td.width + x ) * 3 + 2 ] = 0;
+
+				// if we're greyscaling the image, then keep the greyscale here.
+				if(sd.channelExtract >= 0)
+					rg0[ ( y * td.width + x ) * 3 + 2 ] = r;
 			}
 		}
 
@@ -987,7 +993,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 		subdata[0] = rg0;
 
 		numComps = 3;
-		rowPitch = td.width * 2;
+		rowPitch = td.width * 3;
 	}
 
 	FILE *f = FileIO::fopen(path, "wb");
@@ -1020,12 +1026,12 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 		}
 		else if(sd.destType == eFileType_PNG)
 		{
-			int ret = stbi_write_png_to_func(fileWriteFunc, (void *)f, td.width, td.height, td.format.compCount, subdata[0], rowPitch);
+			int ret = stbi_write_png_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps, subdata[0], rowPitch);
 			success = (ret != 0);
 		}
 		else if(sd.destType == eFileType_TGA)
 		{
-			int ret = stbi_write_tga_to_func(fileWriteFunc, (void *)f, td.width, td.height, td.format.compCount, subdata[0]);
+			int ret = stbi_write_tga_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps, subdata[0]);
 			success = (ret != 0);
 		}
 		else if(sd.destType == eFileType_JPG)
