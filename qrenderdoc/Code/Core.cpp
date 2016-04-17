@@ -15,6 +15,8 @@ Core::Core(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool
 
 	memset(&m_APIProps, 0, sizeof(m_APIProps));
 
+	qApp->setApplicationVersion(RENDERDOC_GetVersionString());
+
 	m_MainWindow = new MainWindow(this);
 	m_MainWindow->show();
 

@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "Windows/AboutDialog.h"
 #include "EventBrowser.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"
@@ -51,4 +52,10 @@ void MainWindow::on_action_Open_Log_triggered()
 		});
 		thread->start();
 	}
+}
+
+void MainWindow::on_action_About_triggered()
+{
+	AboutDialog about(this);
+	about.exec();
 }
