@@ -1739,9 +1739,12 @@ namespace renderdocui.Windows.PipelineState
                     else
                     {
                         TreelistView.Node n = ((TreelistView.TreeListView)sender).SelectedNode;
-                        for (int v = 0; v < n.Count; v++)
-                            text += n[v].ToString() + " ";
-                        text += Environment.NewLine;
+                        if (n != null)
+                        {
+                            for (int v = 0; v < n.Count; v++)
+                                text += n[v].ToString() + " ";
+                            text += Environment.NewLine;
+                        }
                     }
                 }
 
