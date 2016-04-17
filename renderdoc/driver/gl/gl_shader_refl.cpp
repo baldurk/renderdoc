@@ -1854,10 +1854,10 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 		eGL_REFERENCED_BY_COMPUTE_SHADER,
 	};
 
-	int32_t numResources = refl ? refl->ReadOnlyResources.count : 0;
+	int32_t numReadOnlyResources = refl ? refl->ReadOnlyResources.count : 0;
 	
-	create_array_uninit(mapping.ReadOnlyResources, numResources);
-	for(int32_t i=0; i < numResources; i++)
+	create_array_uninit(mapping.ReadOnlyResources, numReadOnlyResources);
+	for(int32_t i=0; i < numReadOnlyResources; i++)
 	{
 		if(refl->ReadOnlyResources.elems[i].IsTexture)
 		{
@@ -1906,8 +1906,10 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 		}
 	}
 	
-	create_array_uninit(mapping.ReadWriteResources, refl->ReadWriteResources.count);
-	for(int32_t i=0; i < refl->ReadWriteResources.count; i++)
+	int32_t numReadWriteResources = refl ? refl->ReadWriteResources.count : 0;
+	
+	create_array_uninit(mapping.ReadWriteResources, numReadWriteResources);
+	for(int32_t i=0; i < numReadWriteResources; i++)
 	{
 		if(refl->ReadWriteResources.elems[i].IsTexture)
 		{
