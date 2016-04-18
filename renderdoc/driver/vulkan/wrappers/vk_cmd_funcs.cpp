@@ -1109,22 +1109,14 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 
 			ObjDisp(commandBuffer)->CmdBindDescriptorSets(Unwrap(commandBuffer), bind, Unwrap(layout), first, numSets, sets, offsCount, offs);
 
-			vector<ResourceId> &descsets =
+			vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
 				(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
 				? m_RenderState.graphics.descSets
 				: m_RenderState.compute.descSets;
-			
-			vector< vector<uint32_t> > &offsets =
-				(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
-				? m_RenderState.graphics.offsets
-				: m_RenderState.compute.offsets;
 
 			// expand as necessary
 			if(descsets.size() < first + numSets)
-			{
 				descsets.resize(first + numSets);
-				offsets.resize(first + numSets);
-			}
 
 			const vector<ResourceId> &descSetLayouts = m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
 
@@ -1134,9 +1126,9 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 			// consume the offsets linearly along the descriptor set layouts
 			for(uint32_t i=0; i < numSets; i++)
 			{
-				descsets[first+i] = descriptorIDs[i];
+				descsets[first+i].descSet = descriptorIDs[i];
 				uint32_t dynCount = m_CreationInfo.m_DescSetLayout[ descSetLayouts[first+i] ].dynamicCount;
-				offsets[first+i].assign(offsIter, offsIter+dynCount);
+				descsets[first+i].offsets.assign(offsIter, offsIter+dynCount);
 				dynConsumed += dynCount;
 				RDCASSERT(dynConsumed <= offsCount);
 			}
@@ -1181,17 +1173,17 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 		layout = GetResourceManager()->GetLiveHandle<VkPipelineLayout>(layoutid);
 		
 		// track while reading, as we need to track resource usage
-		vector<ResourceId> &descsets =
+		vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
 			(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
-			? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphicsDescSets
-			: m_BakedCmdBufferInfo[m_LastCmdBufferID].state.computeDescSets;
+			? m_RenderState.graphics.descSets
+			: m_RenderState.compute.descSets;
 
 		// expand as necessary
 		if(descsets.size() < first + numSets)
 			descsets.resize(first + numSets);
 
 		for(uint32_t i=0; i < numSets; i++)
-			descsets[first+i] = descriptorIDs[i];
+			descsets[first+i].descSet = descriptorIDs[i];
 
 		ObjDisp(commandBuffer)->CmdBindDescriptorSets(Unwrap(commandBuffer), bind, Unwrap(layout), first, numSets, sets, offsCount, offs);
 	}

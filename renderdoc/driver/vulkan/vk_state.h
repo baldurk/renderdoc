@@ -60,8 +60,13 @@ struct VulkanRenderState
 	struct Pipeline
 	{
 		ResourceId pipeline;
-		vector<ResourceId> descSets;
-		vector< vector<uint32_t> > offsets;
+
+		struct DescriptorAndOffsets
+		{
+			ResourceId descSet;
+			vector<uint32_t> offsets;
+		};
+		vector<DescriptorAndOffsets> descSets;
 	} compute, graphics;
 
 	struct IdxBuffer

@@ -32,8 +32,6 @@ VulkanRenderState::VulkanRenderState(VulkanCreationInfo *createInfo)
 	compute.pipeline = graphics.pipeline = renderPass = framebuffer = ResourceId();
 	compute.descSets.clear();
 	graphics.descSets.clear();
-	compute.offsets.clear();
-	graphics.offsets.clear();
 
 	views.clear();
 	scissors.clear();
@@ -73,11 +71,9 @@ VulkanRenderState & VulkanRenderState::operator =(const VulkanRenderState &o)
 
 	compute.pipeline = o.compute.pipeline;
 	compute.descSets = o.compute.descSets;
-	compute.offsets = o.compute.offsets;
 
 	graphics.pipeline = o.graphics.pipeline;
 	graphics.descSets = o.graphics.descSets;
-	graphics.offsets = o.graphics.offsets;
 
 	ibuffer = o.ibuffer;
 	vbuffers = o.vbuffers;
@@ -158,7 +154,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 		{
 			const DescSetLayout &descLayout = m_CreationInfo->m_DescSetLayout[ descSetLayouts[i] ];
 
-			if(i < graphics.descSets.size() && graphics.descSets[i] != ResourceId())
+			if(i < graphics.descSets.size() && graphics.descSets[i].descSet != ResourceId())
 			{
 				// if there are dynamic buffers, pass along the offsets
 
@@ -166,16 +162,16 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 
 				if(descLayout.dynamicCount > 0)
 				{
-					dynamicOffsets = &graphics.offsets[i][0];
+					dynamicOffsets = &graphics.descSets[i].offsets[0];
 
-					if(graphics.offsets[i].size() < descLayout.dynamicCount)
+					if(graphics.descSets[i].offsets.size() < descLayout.dynamicCount)
 					{
 						dynamicOffsets = new uint32_t[descLayout.dynamicCount];
 						for(uint32_t o = 0; o < descLayout.dynamicCount; o++)
 						{
-							if(o < graphics.offsets[i].size())
+							if(o < graphics.descSets[i].offsets.size())
 							{
-								dynamicOffsets[o] = graphics.offsets[i][o];
+								dynamicOffsets[o] = graphics.descSets[i].offsets[o];
 							}
 							else
 							{
@@ -187,10 +183,10 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 				}
 
 				ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(layout), (uint32_t)i,
-					1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(graphics.descSets[i])),
+					1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(graphics.descSets[i].descSet)),
 					descLayout.dynamicCount, dynamicOffsets);
 
-				if(graphics.offsets[i].size() < descLayout.dynamicCount)
+				if(graphics.descSets[i].offsets.size() < descLayout.dynamicCount)
 					SAFE_DELETE_ARRAY(dynamicOffsets);
 			}
 			else
@@ -219,11 +215,40 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 		{
 			const DescSetLayout &descLayout = m_CreationInfo->m_DescSetLayout[ descSetLayouts[i] ];
 
-			if(compute.descSets[i] != ResourceId())
+			if(i < compute.descSets.size() && compute.descSets[i].descSet != ResourceId())
 			{
+				// if there are dynamic buffers, pass along the offsets
+
+				uint32_t *dynamicOffsets = NULL;
+
+				if(descLayout.dynamicCount > 0)
+				{
+					dynamicOffsets = &compute.descSets[i].offsets[0];
+
+					if(compute.descSets[i].offsets.size() < descLayout.dynamicCount)
+					{
+						dynamicOffsets = new uint32_t[descLayout.dynamicCount];
+						for(uint32_t o = 0; o < descLayout.dynamicCount; o++)
+						{
+							if(o < compute.descSets[i].offsets.size())
+							{
+								dynamicOffsets[o] = compute.descSets[i].offsets[o];
+							}
+							else
+							{
+								dynamicOffsets[o] = 0;
+								RDCWARN("Missing dynamic offset for set %u!", (uint32_t)i);
+							}
+						}
+					}
+				}
+
 				ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(layout), (uint32_t)i,
-					1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(compute.descSets[i])),
-					descLayout.dynamicCount, descLayout.dynamicCount == 0 ? NULL : &compute.offsets[i][0]);
+					1, UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(compute.descSets[i].descSet)),
+					descLayout.dynamicCount, dynamicOffsets);
+
+				if(compute.descSets[i].offsets.size() < descLayout.dynamicCount)
+					SAFE_DELETE_ARRAY(dynamicOffsets);
 			}
 		}
 	}

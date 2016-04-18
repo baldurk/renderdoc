@@ -2636,7 +2636,7 @@ struct QuadOverdrawCallback : public DrawcallCallback
 		pipestate.graphics.pipeline = GetResID(pipe.second);
 		RDCASSERT(pipestate.graphics.descSets.size() >= pipe.first);
 		pipestate.graphics.descSets.resize(pipe.first+1);
-		pipestate.graphics.descSets[pipe.first] = GetResID(m_pDebug->m_QuadDescSet);
+		pipestate.graphics.descSets[pipe.first].descSet = GetResID(m_pDebug->m_QuadDescSet);
 		
 		if(cmd)
 			pipestate.BindPipeline(cmd);
@@ -5208,7 +5208,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
 	// bind to the slot we're using
 	RDCASSERT(modifiedstate.graphics.descSets.size() >= descSet);
 	modifiedstate.graphics.descSets.resize(descSet+1);
-	modifiedstate.graphics.descSets[descSet] = GetResID(m_MeshFetchDescSet);
+	modifiedstate.graphics.descSets[descSet].descSet = GetResID(m_MeshFetchDescSet);
 
 	if((drawcall->flags & eDraw_UseIBuffer) == 0)
 	{

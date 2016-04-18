@@ -3135,7 +3135,7 @@ void VulkanReplay::SavePipelineState()
 				&m_VulkanPipelineState.compute.DescSets,
 			};
 			
-			const vector<ResourceId> *srcs[] = {
+			const vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> *srcs[] = {
 				&state.graphics.descSets,
 				&state.compute.descSets,
 			};
@@ -3144,7 +3144,7 @@ void VulkanReplay::SavePipelineState()
 			{
 				for(size_t i=0; i < srcs[p]->size(); i++)
 				{
-					ResourceId src = (*srcs[p])[i];
+					ResourceId src = (*srcs[p])[i].descSet;
 					VulkanPipelineState::Pipeline::DescriptorSet &dst = (*dsts[p])[i];
 
 					ResourceId layoutId = m_pDriver->m_DescriptorSetState[src].layout;
