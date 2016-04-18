@@ -85,9 +85,9 @@ bool WrappedVulkan::Serialise_vkCreateFence(
 	if(m_State == READING)
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-		VkFence sem = VK_NULL_HANDLE;
+		VkFence fence = VK_NULL_HANDLE;
 
-		VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), &info, NULL, &sem);
+		VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), &info, NULL, &fence);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -95,8 +95,8 @@ bool WrappedVulkan::Serialise_vkCreateFence(
 		}
 		else
 		{
-			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sem);
-			GetResourceManager()->AddLiveResource(id, sem);
+			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), fence);
+			GetResourceManager()->AddLiveResource(id, fence);
 		}
 	}
 
@@ -203,12 +203,12 @@ bool WrappedVulkan::Serialise_vkResetFences(
 	if(m_State < WRITING && !fences.empty())
 	{
 		// we don't care about fence states ourselves as we cannot record them perfectly and just
-		// do full waitidle flushes. However if the fence is passed to vkQueueSubmit we need to
-		// make sure it is correctly unsignalled.
-		
+		// do full waitidle flushes.
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(id);
 
-		ObjDisp(device)->ResetFences(Unwrap(device), (uint32_t)fences.size(), &fences[0]);
+		// since we don't have anything signalling or waiting on fences, don't bother to reset them
+		// either
+		//ObjDisp(device)->ResetFences(Unwrap(device), (uint32_t)fences.size(), &fences[0]);
 	}
 
 	return true;

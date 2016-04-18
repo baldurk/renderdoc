@@ -190,7 +190,9 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 	if(m_State == READING)
 	{
-		ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
+		// don't submit the fence, since we have nothing to wait on it being signalled, and we might
+		// not have it correctly in the unsignalled state.
+		ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
 
 		for(uint32_t i=0; i < numCmds; i++)
 		{
@@ -280,7 +282,9 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			
 			submitInfo.commandBufferCount = (uint32_t)rerecordedCmds.size();
 			submitInfo.pCommandBuffers = &rerecordedCmds[0];
-			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
+			// don't submit the fence, since we have nothing to wait on it being signalled, and we might
+			// not have it correctly in the unsignalled state.
+			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
 		}
 		else if(m_LastEventID > startEID && m_LastEventID < m_RootEventID)
 		{
@@ -325,7 +329,9 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			
 			submitInfo.commandBufferCount = (uint32_t)trimmedCmds.size();
 			submitInfo.pCommandBuffers = &trimmedCmds[0];
-			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
+			// don't submit the fence, since we have nothing to wait on it being signalled, and we might
+			// not have it correctly in the unsignalled state.
+			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
 
 			for(uint32_t i=0; i < trimmedCmdIds.size(); i++)
 			{
@@ -336,8 +342,10 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		else
 		{
 			RDCDEBUG("Queue Submit full replay %u >= %u", m_LastEventID, m_RootEventID);
-
-			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, Unwrap(fence));
+			
+			// don't submit the fence, since we have nothing to wait on it being signalled, and we might
+			// not have it correctly in the unsignalled state.
+			ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
 
 			for(uint32_t i=0; i < numCmds; i++)
 			{
@@ -714,8 +722,10 @@ bool WrappedVulkan::Serialise_vkQueueBindSparse(
 				std::swap(im[i], im[noSemBindInfo.imageBindCount]);
 			}
 		}
-
-		ObjDisp(queue)->QueueBindSparse(Unwrap(queue), 1, &noSemBindInfo, fence);
+		
+		// don't submit the fence, since we have nothing to wait on it being signalled, and we might
+		// not have it correctly in the unsignalled state.
+		ObjDisp(queue)->QueueBindSparse(Unwrap(queue), 1, &noSemBindInfo, VK_NULL_HANDLE);
 	}
 
 	return true;
