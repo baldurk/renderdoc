@@ -1156,7 +1156,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		// we pick RGBA8 formats to be guaranteed they will be supported
 		VkFormat formats[] = { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UINT, VK_FORMAT_R8G8B8A8_SINT };
 		VkImageType types[] = { VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_2D };
-		VkSampleCountFlagBits msaa[] = { VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_2_BIT };
+		VkSampleCountFlagBits sampleCounts[] = { VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_2_BIT };
 
 		// type max is one higher than the last RESTYPE, and RESTYPES are 1-indexed
 		RDCCOMPILE_ASSERT(RESTYPE_TEXTYPEMAX-1 == ARRAY_COUNT(types), "RESTYPE values don't match formats for dummy images");
@@ -1178,7 +1178,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				VkImageCreateInfo imInfo = {
 					VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
 					types[type], formats[fmt],
-					{ 1, 1, 1 }, 1, 1, msaa[type],
+					{ 1, 1, 1 }, 1, 1, sampleCounts[type],
 					VK_IMAGE_TILING_OPTIMAL,
 					VK_IMAGE_USAGE_SAMPLED_BIT,
 					VK_SHARING_MODE_EXCLUSIVE,
