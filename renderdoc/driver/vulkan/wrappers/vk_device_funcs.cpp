@@ -322,6 +322,12 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 		RDCASSERT(count > physIndex);
 		devices = new VkPhysicalDevice[count];
 
+		if(physIndex >= m_PhysicalDevices.size())
+		{
+			m_PhysicalDevices.resize(physIndex+1);
+			m_MemIdxMaps.resize(physIndex+1);
+		}
+
 		vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
@@ -329,16 +335,21 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 
 		pd = devices[physIndex];
 
+		for(size_t i=0; i < m_PhysicalDevices.size(); i++)
+		{
+			// physical devices might be re-created inside EnumeratePhysicalDevices every time, so
+			// we need to re-wrap any previously enumerated physical devices
+			if(m_PhysicalDevices[i] != VK_NULL_HANDLE)
+			{
+				RDCASSERTNOTEQUAL(i, physIndex);
+				GetWrapped(m_PhysicalDevices[i])->RewrapObject(devices[i]);
+			}
+		}
+
 		SAFE_DELETE_ARRAY(devices);
 
 		GetResourceManager()->WrapResource(instance, pd);
 		GetResourceManager()->AddLiveResource(physId, pd);
-		
-		if(physIndex >= m_PhysicalDevices.size())
-		{
-			m_PhysicalDevices.resize(physIndex+1);
-			m_MemIdxMaps.resize(physIndex+1);
-		}
 
 		m_PhysicalDevices[physIndex] = pd;
 
