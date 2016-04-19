@@ -177,7 +177,7 @@ void InjectDLL(HANDLE hProcess, wstring libName)
 			WaitForSingleObject(hThread, INFINITE);
 			CloseHandle(hThread);
 		}
-		VirtualFreeEx(hProcess, remoteMem, sizeof(dllPath), MEM_RELEASE); 
+		VirtualFreeEx(hProcess, remoteMem, 0, MEM_RELEASE); 
 	}
 	else
 	{
@@ -295,7 +295,7 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
 	ReadProcessMemory(hProcess, remoteMem, data, dataLen, &numWritten);
 
 	CloseHandle(hThread);
-	VirtualFreeEx(hProcess, remoteMem, dataLen, MEM_RELEASE);
+	VirtualFreeEx(hProcess, remoteMem, 0, MEM_RELEASE);
 }
 
 static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, const char *cmdLine)
