@@ -208,8 +208,52 @@ VkResult WrappedVulkan::vkAllocateMemory(
 {
 	VkMemoryAllocateInfo info = *pAllocateInfo;
 	if(m_State >= WRITING)
+	{
 		info.memoryTypeIndex = GetRecord(device)->memIdxMap[info.memoryTypeIndex];
+
+		// we need to be able to allocate a buffer that covers the whole memory range. However
+		// if the memory is e.g. 100 bytes (arbitrary example) and buffers have memory requirements
+		// such that it must be bound to a multiple of 128 bytes, then we can't create a buffer
+		// that entirely covers a 100 byte allocation.
+		// To get around this, we create a buffer of the allocation's size with the properties we
+		// want, check its required size, then bump up the allocation size to that as if the application
+		// had requested more. We're assuming here no system will require something like "buffer of
+		// size N must be bound to memory of size N+O for some value of O overhead bytes".
+		//
+		// this could be optimised as maybe we'll be creating buffers of multiple sizes, but allocation
+		// in vulkan is already expensive and making it a little more expensive isn't a big deal.
+	
+		VkBufferCreateInfo bufInfo = {
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+			info.allocationSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		};
+
+		// since this is very short lived, it's not wrapped
+		VkBuffer buf;
+
+		VkResult vkr = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &buf);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+		if(vkr == VK_SUCCESS && buf != VK_NULL_HANDLE)
+		{
+			VkMemoryRequirements mrq = { 0 };
+			ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), buf, &mrq);
+
+			RDCASSERTMSG("memory requirements less than desired size", mrq.size >= bufInfo.size, mrq.size, bufInfo.size);
+
+			// round up allocation size to allow creation of buffers
+			if(mrq.size >= bufInfo.size)
+				info.allocationSize = mrq.size;
+		}
+
+		ObjDisp(device)->DestroyBuffer(Unwrap(device), buf, NULL);
+	}
+
 	VkResult ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &info, pAllocator, pMemory);
+
+	// restore the memoryTypeIndex to the original, as that's what we want to serialise,
+	// but maintain any potential modifications we made to info.allocationSize
+	info.memoryTypeIndex = pAllocateInfo->memoryTypeIndex;
 	
 	if(ret == VK_SUCCESS)
 	{
@@ -223,7 +267,7 @@ VkResult WrappedVulkan::vkAllocateMemory(
 				CACHE_THREAD_SERIALISER();
 					
 				SCOPED_SERIALISE_CONTEXT(ALLOC_MEM);
-				Serialise_vkAllocateMemory(localSerialiser, device, pAllocateInfo, NULL, pMemory);
+				Serialise_vkAllocateMemory(localSerialiser, device, &info, NULL, pMemory);
 
 				chunk = scope.Get();
 			}
@@ -234,9 +278,9 @@ VkResult WrappedVulkan::vkAllocateMemory(
 
 			record->AddChunk(chunk);
 
-			record->Length = pAllocateInfo->allocationSize;
+			record->Length = info.allocationSize;
 
-			uint32_t memProps = m_PhysicalDeviceData.fakeMemProps->memoryTypes[pAllocateInfo->memoryTypeIndex].propertyFlags;
+			uint32_t memProps = m_PhysicalDeviceData.fakeMemProps->memoryTypes[info.memoryTypeIndex].propertyFlags;
 
 			// if memory is not host visible, so not mappable, don't create map state at all
 			if((memProps & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
@@ -250,7 +294,7 @@ VkResult WrappedVulkan::vkAllocateMemory(
 		{
 			GetResourceManager()->AddLiveResource(id, *pMemory);
 
-			m_CreationInfo.m_Memory[id].Init(GetResourceManager(), m_CreationInfo, pAllocateInfo);
+			m_CreationInfo.m_Memory[id].Init(GetResourceManager(), m_CreationInfo, &info);
 
 			// create a buffer with the whole memory range bound, for copying to and from
 			// conveniently (for initial state data)
