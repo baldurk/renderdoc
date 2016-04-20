@@ -1809,6 +1809,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			RDCASSERT(initial.num != eInitialContents_Sparse);
 			if(initial.num == eInitialContents_ClearColorImage)
 			{
+				if(IsBlockFormat(m_ImageLayouts[id].format))
+				{
+					RDCWARN("Trying to clear a compressed image %u - should have initial states or be stripped.", id);
+					return;
+				}
+
 				VkCommandBuffer cmd = GetNextCmd();
 
 				vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
