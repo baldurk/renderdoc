@@ -1180,7 +1180,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 					types[type], formats[fmt],
 					{ 1, 1, 1 }, 1, 1, sampleCounts[type],
 					VK_IMAGE_TILING_OPTIMAL,
-					VK_IMAGE_USAGE_SAMPLED_BIT,
+					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_SAMPLED_BIT,
 					VK_SHARING_MODE_EXCLUSIVE,
 					0, NULL,
 					VK_IMAGE_LAYOUT_UNDEFINED,
