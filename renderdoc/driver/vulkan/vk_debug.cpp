@@ -1208,21 +1208,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				offsets[index] = curOffset;
 				curOffset += mrq.size;
 				
-				// need to update image layout into valid state
-				VkImageMemoryBarrier barrier = {
-					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-					0, 0,
-					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-					0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
-					Unwrap(m_TexDisplayDummyImages[index]),
-					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-				};
-
-				barrier.srcAccessMask = 0;
-				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-				DoPipelineBarrier(cmd, 1, &barrier);
-
 				// fill out the descriptor set write to the write binding - set will be filled out
 				// on demand when we're actulaly using these writes.
 				m_TexDisplayDummyWrites[index].descriptorCount = 1;
@@ -1284,6 +1269,18 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayDummyImageViews[index]);
 				
 				m_TexDisplayDummyInfos[index].imageView = Unwrap(m_TexDisplayDummyImageViews[index]);
+
+				// need to update image layout into valid state
+				VkImageMemoryBarrier barrier = {
+					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+					0, VK_ACCESS_SHADER_READ_BIT,
+					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+					0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
+					Unwrap(m_TexDisplayDummyImages[index]),
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+				};
+
+				DoPipelineBarrier(cmd, 1, &barrier);
 
 				index++;
 			}
