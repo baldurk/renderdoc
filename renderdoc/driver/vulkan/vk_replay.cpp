@@ -2764,7 +2764,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 		&vkr
 	};
 
-	vt->QueuePresentKHR(Unwrap(m_pDriver->GetQ()), &presentInfo);
+	vkr = vt->QueuePresentKHR(Unwrap(m_pDriver->GetQ()), &presentInfo);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	m_pDriver->FlushQ();
