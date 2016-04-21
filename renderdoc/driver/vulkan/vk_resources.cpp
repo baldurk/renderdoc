@@ -365,7 +365,6 @@ uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat F
 		case VK_FORMAT_R32G32_SINT:
 		case VK_FORMAT_R32G32_SFLOAT:
 		case VK_FORMAT_R64_SFLOAT:
-		case VK_FORMAT_D32_SFLOAT_S8_UINT:
 			ret *= 8;
 			break;
 		case VK_FORMAT_R16G16B16_UNORM:
@@ -376,6 +375,9 @@ uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat F
 		case VK_FORMAT_R16G16B16_SINT:
 		case VK_FORMAT_R16G16B16_SFLOAT:
 			ret *= 6;
+			break;
+		case VK_FORMAT_D32_SFLOAT_S8_UINT:
+			ret *= 5;
 			break;
 		case VK_FORMAT_R8G8B8_UNORM:
 		case VK_FORMAT_R8G8B8_SNORM:
@@ -434,8 +436,10 @@ uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat F
 		case VK_FORMAT_D24_UNORM_S8_UINT:
 		case VK_FORMAT_D32_SFLOAT:
 		case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32:
-		case VK_FORMAT_D16_UNORM_S8_UINT:
 			ret *= 4;
+			break;
+		case VK_FORMAT_D16_UNORM_S8_UINT:
+			ret *= 3;
 			break;
 		case VK_FORMAT_R8G8_UNORM:
 		case VK_FORMAT_R8G8_SNORM:
