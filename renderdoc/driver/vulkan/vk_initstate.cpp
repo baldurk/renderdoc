@@ -1049,6 +1049,11 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		VkDeviceSize bufOffset = 0;
 
+		// must ensure offset remains valid. Must be multiple of block size, or 4, depending on format
+		VkDeviceSize bufAlignment = 4;
+		if(IsBlockFormat(layout->format))
+			bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, layout->format, 0);
+
 		// loop over every slice/mip, copying it to the appropriate point in the buffer
 		for(int a=0; a < layout->layerCount; a++)
 		{
@@ -1063,16 +1068,11 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 					extent,
 				};
 
-				VkImageSubresource sub = { aspectFlags, (uint32_t)m, (uint32_t)a };
-				VkSubresourceLayout sublayout;
+				bufOffset = AlignUp(bufOffset, bufAlignment);
 
-				ObjDisp(d)->GetImageSubresourceLayout(Unwrap(d), im->real.As<VkImage>(), &sub, &sublayout);
-				
 				region.bufferOffset = bufOffset;
 				
-				// PORTABILITY size might change to include padding etc, so cause different buffer
-				// layout between capture and replay
-				bufOffset += sublayout.size;
+				bufOffset += GetByteSize(layout->extent.width, layout->extent.height, layout->extent.depth, layout->format, m);
 			
 				ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), im->real.As<VkImage>(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstBuf, 1, &region);
 
@@ -1082,6 +1082,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 				extent.depth = RDCMAX(extent.depth>>1, 1U);
 			}
 		}
+
+		RDCASSERTMSG("buffer wasn't sized sufficiently!", bufOffset <= mrq.size, bufOffset, mrq.size, layout->extent, layout->format, layout->layerCount, layout->levelCount);
 
 		// transfer back to whatever it was
 		srcimBarrier.oldLayout = srcimBarrier.newLayout;
@@ -1556,6 +1558,11 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 
 			VkDeviceSize bufOffset = 0;
 
+			// must ensure offset remains valid. Must be multiple of block size, or 4, depending on format
+			VkDeviceSize bufAlignment = 4;
+			if(IsBlockFormat(imInfo.format))
+				bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, imInfo.format, 0);
+
 			// copy each slice/mip individually
 			for(uint32_t a=0; a < imInfo.arrayLayers; a++)
 			{
@@ -1570,16 +1577,11 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 						extent,
 					};
 					
-					VkImageSubresource sub = { aspectFlags, m, a };
-					VkSubresourceLayout sublayout;
+					bufOffset = AlignUp(bufOffset, bufAlignment);
 
 					region.bufferOffset = bufOffset;
 
-					ObjDisp(d)->GetImageSubresourceLayout(Unwrap(d), Unwrap(im), &sub, &sublayout);
-
-					// PORTABILITY size might change to include padding etc, so cause different buffer
-					// layout between capture and replay
-					bufOffset += sublayout.size;
+					bufOffset += GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth, imInfo.format, m);
 
 					srcimBarrier.subresourceRange.baseArrayLayer = a;
 					srcimBarrier.subresourceRange.baseMipLevel = m;
@@ -1607,6 +1609,8 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 					extent.depth = RDCMAX(extent.depth>>1, 1U);
 				}
 			}
+
+			RDCASSERTMSG("buffer wasn't sized sufficiently!", bufOffset <= mrq.size, bufOffset, mrq.size, imInfo.extent, imInfo.format, imInfo.arrayLayers, imInfo.mipLevels);
 
 			vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
