@@ -118,6 +118,15 @@ namespace TreelistView
 		{
 			Expanded = false;
 		}
+		public void CollapseAll()
+		{
+			Expanded = false;
+			if (HasChildren)
+			{
+				foreach (Node node in Nodes)
+					node.CollapseAll();
+			}
+		}
 		public void Expand()
 		{
 			Expanded = true;

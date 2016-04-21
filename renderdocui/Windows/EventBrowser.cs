@@ -1006,6 +1006,23 @@ namespace renderdocui.Windows
             SelectColumns();
         }
 
+        private void eventViewRightClick_Opening(object sender, CancelEventArgs e)
+        {
+            collapseAll.Enabled = expandAll.Enabled = (eventView.SelectedNode != null && eventView.SelectedNode.HasChildren);
+        }
+
+        private void expandAll_Click(object sender, EventArgs e)
+        {
+            if(eventView.SelectedNode != null)
+                eventView.SelectedNode.ExpandAll();
+        }
+
+        private void collapseAll_Click(object sender, EventArgs e)
+        {
+            if (eventView.SelectedNode != null)
+                eventView.SelectedNode.CollapseAll();
+        }
+
         private void EventBrowser_FormClosed(object sender, FormClosedEventArgs e)
         {
             m_Core.RemoveLogViewer(this);
