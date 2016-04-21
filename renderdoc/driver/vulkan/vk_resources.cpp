@@ -328,8 +328,8 @@ bool IsSIntFormat(VkFormat f)
 uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip)
 {
 	uint32_t w = RDCMAX(Width>>mip, 1U);
-	uint32_t d = RDCMAX(Height>>mip, 1U);
-	uint32_t h = RDCMAX(Depth>>mip, 1U);
+	uint32_t h = RDCMAX(Height>>mip, 1U);
+	uint32_t d = RDCMAX(Depth>>mip, 1U);
 
 	uint32_t ret = w*h*d;
 	
