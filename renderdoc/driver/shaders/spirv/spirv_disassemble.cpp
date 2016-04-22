@@ -67,6 +67,9 @@ using std::make_pair;
 // don't inline expressions of this complexity or higher
 #define NO_INLINE_COMPLEXITY 3
 
+// used for indicating that an operation must never be inlined
+#define NEVER_INLINE_COMPLEXITY 1000
+
 // declare function variables at the top of the scope, rather than at the
 // first use of that variable
 #define C_VARIABLE_DECLARATIONS 0
@@ -4673,7 +4676,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 					// never combine function calls. It can sometimes be nice, but since
 					// we can combine multiple times and function calls have side-effects,
 					// it can appear to change the meaning of the code.
-					op.op->complexity = 100;
+					op.op->complexity = NEVER_INLINE_COMPLEXITY;
 
 					op.op->funcCall = spirv[it+word];
 
@@ -4785,7 +4788,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				SPVInstruction *objInst = NULL;
 				if(op.opcode == spv::OpCompositeInsert)
 				{
-					op.op->complexity = 100; // never combine composite insert
+					op.op->complexity = NEVER_INLINE_COMPLEXITY; // never combine composite insert
 
 					objInst = module.GetByID(spirv[it+word]);
 					RDCASSERT(objInst);
