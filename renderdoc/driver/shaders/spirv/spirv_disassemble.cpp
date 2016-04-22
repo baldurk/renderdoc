@@ -1894,35 +1894,28 @@ SPVInstruction * SPVModule::GetByID(uint32_t id)
 	return &op;
 }
 
-void FindFirstInstructionUse(const vector<SPVInstruction *> &ops, SPVInstruction *search, SPVInstruction **result)
+void FindFirstInstructionUse(SPVInstruction *op, SPVInstruction *search, SPVInstruction **result)
 {
-	for(size_t o=0; o < ops.size(); o++)
+	if(op->op == NULL)
+		return;
+
+	for(size_t a=0; a < op->op->arguments.size(); a++)
 	{
-		bool uses = false;
-
-		if(ops[o]->op == NULL) continue;
-
-		for(size_t a=0; a < ops[o]->op->arguments.size(); a++)
+		if(op->op->arguments[a] == search)
 		{
-			if(ops[o]->op->arguments[a] == search)
-			{
-				uses = true;
-				break;
-			}
-
-			// recurse into the operation this argument might have inlined
-			if((ops[o]->op->inlineArgs & (1<<a)) && ops[o]->op->arguments[a]->op)
-			{
-				FindFirstInstructionUse(ops[o]->op->arguments[a]->op->arguments, search, result);
-
-				// if we found when recursing, exit
-				if(*result)
-					return;
-			}
+			*result = op;
+			return;
 		}
 
-		if(uses)
-			*result = ops[o];
+		// recurse into the operation this argument might have inlined
+		if(op->op->inlineArgs & (1<<a))
+		{
+			FindFirstInstructionUse(op->op->arguments[a], search, result);
+
+			// if we found when recursing, exit
+			if(*result)
+				return;
+		}
 	}
 }
 
@@ -2557,7 +2550,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 							SPVInstruction *instr = ids[ funcops[p]->flow->targets[0] ];
 
 							if(instr && instr->op)
-								FindFirstInstructionUse(instr->op->arguments, funcops[o], &useInstr);
+								FindFirstInstructionUse(instr, funcops[o], &useInstr);
 						}
 					}
 
@@ -2566,7 +2559,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 					{
 						if(!funcops[p]->op) continue;
 
-						FindFirstInstructionUse(funcops[p]->op->arguments, funcops[o], &useInstr);
+						FindFirstInstructionUse(funcops[p], funcops[o], &useInstr);
 					}
 
 					if(useInstr == NULL)
