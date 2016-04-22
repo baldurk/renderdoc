@@ -863,8 +863,6 @@ struct SPVInstruction
 			}
 			case spv::OpBranchConditional:
 			{
-				RDCASSERT(!inlineOp);
-
 				// we don't output the targets since that is handled specially
 
 				string conditionStr;
@@ -2524,15 +2522,6 @@ string SPVModule::Disassemble(const string &entryPoint)
 				}
 				else if(funcops[o]->block->mergeFlow && funcops[o]->block->mergeFlow->opcode == spv::OpLoopMerge)
 				{
-					// this block is a loop header
-					// TODO handle if the loop header condition expression isn't sufficiently in-lined.
-					// We need to force inline it.
-					funcDisassembly += string(indent, ' ');
-					if(funcops[o]->block->exitFlow->flow->condition)
-						funcDisassembly += "while(" + funcops[o]->block->exitFlow->flow->condition->Disassemble(ids, true) + ") {\n";
-					else
-						funcDisassembly += "while(true) {\n";
-
 					loopheadstack.push_back(funcops[o]->id);
 					loopstartstack.push_back(funcops[o]->block->exitFlow->flow->targets[0]);
 					loopmergestack.push_back(funcops[o]->block->mergeFlow->flow->targets[0]);
@@ -2540,6 +2529,52 @@ string SPVModule::Disassemble(const string &entryPoint)
 					// should be either unconditional, or false from the condition should jump straight to merge block
 					RDCASSERT(funcops[o]->block->exitFlow->flow->targets.size() == 1 ||
 						funcops[o]->block->exitFlow->flow->targets[1] == funcops[o]->block->mergeFlow->flow->targets[0]);
+
+					// this block is a loop header
+					// TODO handle if the loop header condition expression isn't sufficiently in-lined.
+					// We need to force inline it.
+					funcDisassembly += string(indent, ' ');
+					if(funcops[o]->block->exitFlow->flow->condition)
+					{
+						funcDisassembly += "while(" + funcops[o]->block->exitFlow->flow->condition->Disassemble(ids, true) + ") {\n";
+					}
+					else
+					{
+						bool foundCondition = false;
+
+						// check to see if we have a loopmerge and branchconditional right after this block
+						if(o+3 < funcops.size() &&
+							 funcops[o]->block->mergeFlow == funcops[o+1] &&
+							 funcops[o+2]->opcode == spv::OpBranchConditional &&
+							 funcops[o+3]->opcode == spv::OpLabel)
+						{
+							uint32_t nextLabel = funcops[o+3]->id;
+
+							// check if this branch conditional is jumping to a label immediately after or
+							// the exit point. The condition could be reversed to check either direction
+							if(funcops[o+2]->flow->targets[0] == nextLabel &&
+								funcops[o+2]->flow->targets[1] == funcops[o]->block->mergeFlow->flow->targets[0])
+							{
+								funcDisassembly += "while(" + funcops[o+2]->Disassemble(ids, true) + ") {\n";
+
+								// skip all of the above that we just used up
+								o += 3;
+								foundCondition = true;
+							}
+							else if(funcops[o+2]->flow->targets[1] == nextLabel &&
+								funcops[o+2]->flow->targets[0] == funcops[o]->block->mergeFlow->flow->targets[0])
+							{
+								funcDisassembly += "while(!(" + funcops[o+2]->Disassemble(ids, true) + ")) {\n";
+
+								// skip all of the above that we just used up
+								o += 3;
+								foundCondition = true;
+							}
+						}
+
+						if(!foundCondition)
+							funcDisassembly += "while(true) {\n";
+					}
 
 					indent += tabSize;
 				}
