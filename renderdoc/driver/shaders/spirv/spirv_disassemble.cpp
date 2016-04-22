@@ -1667,9 +1667,9 @@ struct SPVInstruction
 				op->GetArg(ids, 0, a);
 				op->GetArg(ids, 1, b);
 
-				if(op->arguments[0]->op && op->arguments[0]->op->mathop)
+				if((op->inlineArgs & 1) && op->arguments[0]->op && op->arguments[0]->op->mathop)
 					a = "(" + a + ")";
-				if(op->arguments[1]->op && op->arguments[1]->op->mathop)
+				if((op->inlineArgs & 2) && op->arguments[1]->op && op->arguments[1]->op->mathop)
 					b = "(" + b + ")";
 
 				if(inlineOp)
