@@ -1034,11 +1034,6 @@ namespace renderdocui.Windows
 
                 string pattern = "\\b" + word + "\\b";
 
-                // if a number is selected, highlight the matching ID
-                uint dummy = 0;
-                if (uint.TryParse(word, out dummy))
-                    pattern = "\\{" + word + "\\}";
-
                 var matches = Regex.Matches(scintilla1.Text, pattern);
 
                 foreach (Match m in matches)

@@ -299,7 +299,7 @@ static string OptionalFlagString(EnumType e)
 
 static string DefaultIDName(uint32_t ID)
 {
-	return StringFormat::Fmt("{%u}", ID);
+	return StringFormat::Fmt("_%u_", ID);
 }
 
 template<typename T>
