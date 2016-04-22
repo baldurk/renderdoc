@@ -1043,8 +1043,6 @@ struct SPVInstruction
 							
 							string base;
 							op->arguments[i]->op->GetArg(ids, 0, base);
-							if((op->arguments[i]->op->inlineArgs & 1) && op->arguments[i]->op->arguments[0]->op->mathop)
-								base = "(" + base + ")";
 
 							string swizzleString;
 							
@@ -1100,8 +1098,6 @@ struct SPVInstruction
 				
 				string composite;
 				op->GetArg(ids, 0, composite);
-				if((op->inlineArgs & 1) && op->arguments[0]->op && op->arguments[0]->op->mathop)
-					composite = "(" + composite + ")";
 
 				// unknown argument, we can't access chain it
 				if(op->arguments[0]->var == NULL && op->arguments[0]->op == NULL)
@@ -1500,8 +1496,6 @@ struct SPVInstruction
 							string arg;
 							op->GetArg(ids, vec, arg);
 
-							if((op->inlineArgs & (1<<vec)) && op->arguments[vec]->op && op->arguments[vec]->op->mathop)
-								arg = "(" + arg + ")";
 							ret += arg;
 							ret += ".";
 						}
@@ -1546,9 +1540,6 @@ struct SPVInstruction
 
 				string a;
 				op->GetArg(ids, 0, a);
-
-				if((op->inlineArgs & 1) && op->arguments[0]->op && op->arguments[0]->op->mathop)
-					a = "(" + a + ")";
 
 				if(inlineOp)
 					return StringFormat::Fmt("%c%s", c, a.c_str());
@@ -1715,11 +1706,6 @@ struct SPVInstruction
 				op->GetArg(ids, 0, a);
 				op->GetArg(ids, 1, b);
 
-				if((op->inlineArgs & 1) && op->arguments[0]->op && op->arguments[0]->op->mathop)
-					a = "(" + a + ")";
-				if((op->inlineArgs & 2) && op->arguments[1]->op && op->arguments[1]->op->mathop)
-					b = "(" + b + ")";
-
 				if(inlineOp)
 					return StringFormat::Fmt("%s %s %s", a.c_str(), opstr, b.c_str());
 
@@ -1798,9 +1784,26 @@ struct SPVInstruction
 void SPVOperation::GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg)
 {
 	if(inlineArgs & (1<<idx))
+	{
 		arg = arguments[idx]->Disassemble(ids, true);
+
+		// skip past any inlined load(store())
+		SPVInstruction *instr = arguments[idx];
+
+		if(instr->opcode == spv::OpLoad &&
+			instr->op->arguments[0]->opcode == spv::OpStore)
+		{
+			instr = instr->op->arguments[0]->op->arguments[1];
+		}
+
+		// add brackets if needed
+		if(instr->op && instr->op->mathop)
+			arg = "(" + arg + ")";
+	}
 	else
+	{
 		arg = arguments[idx]->GetIDName();
+	}
 }
 
 static bool IsUnmodified(SPVFunction *func, SPVInstruction *from, SPVInstruction *to)
