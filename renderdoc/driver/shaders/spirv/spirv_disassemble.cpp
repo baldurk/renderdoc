@@ -2106,7 +2106,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 							// allow less inlining in composite constructs
 							int maxAllowedComplexity = NO_INLINE_COMPLEXITY;
 							if(instr->opcode == spv::OpCompositeConstruct)
-								maxAllowedComplexity = RDCMIN(2, maxAllowedComplexity);
+								maxAllowedComplexity = RDCMIN(NO_INLINE_COMPLEXITY-1, maxAllowedComplexity);
 
 							// don't fold up too complex an operation
 							// allow some ops to have multiple arguments, others with many
