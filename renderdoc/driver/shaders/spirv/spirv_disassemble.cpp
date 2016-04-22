@@ -1197,6 +1197,7 @@ struct SPVInstruction
 			case spv::OpCompositeExtract:
 			case spv::OpCompositeInsert:
 			case spv::OpAccessChain:
+			case spv::OpArrayLength:
 			case spv::OpInBoundsAccessChain:
 			{
 				RDCASSERT(op);
@@ -1352,8 +1353,11 @@ struct SPVInstruction
 				{
 					if(!inlineOp)
 						ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
-
+					
 					ret += composite + accessString;
+
+					if(opcode == spv::OpArrayLength)
+						ret += ".length()";
 				}
 
 				return ret;
@@ -2245,6 +2249,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 							if(arg->op->complexity >= maxAllowedComplexity ||
 									(arg->op->arguments.size() > 2 &&
 									 arg->opcode != spv::OpAccessChain &&
+									 arg->opcode != spv::OpArrayLength &&
 									 arg->opcode != spv::OpInBoundsAccessChain &&
 									 arg->opcode != spv::OpSelect &&
 									 arg->opcode != spv::OpCompositeConstruct))
@@ -5256,6 +5261,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				curBlock->instructions.push_back(&op);
 				break;
 			}
+			case spv::OpArrayLength:
 			case spv::OpCompositeExtract:
 			case spv::OpCompositeInsert:
 			{
