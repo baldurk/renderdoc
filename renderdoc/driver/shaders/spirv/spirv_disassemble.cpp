@@ -1443,9 +1443,9 @@ struct SPVInstruction
 				for(size_t i=0; i < op->literals.size(); i++)
 				{
 					uint32_t s = op->literals[i];
-					if(s > vec1type->vectorSize)
+					if(s >= vec1type->vectorSize)
 						s -= vec1type->vectorSize;
-					maxShuffle = RDCMAX(maxShuffle, op->literals[i]);
+					maxShuffle = RDCMAX(maxShuffle, s);
 				}
 
 				ret += op->type->GetName() + "(";
@@ -1465,7 +1465,7 @@ struct SPVInstruction
 							// undefined component
 							s = 4;
 						}
-						else if(s > vec1type->vectorSize)
+						else if(s >= vec1type->vectorSize)
 						{
 							s -= vec1type->vectorSize;
 							vec = 1;
@@ -1477,13 +1477,17 @@ struct SPVInstruction
 							if(i > 0)
 								ret += ", ";
 							string arg;
-							op->GetArg(ids, 0, arg);
+							op->GetArg(ids, vec, arg);
 							ret += arg;
 							ret += ".";
 						}
 
 						ret += swizzle[s];
 					}
+				}
+				else
+				{
+					RDCERR("Not disassembling a shuffle of a vector larger than 4 wide!");
 				}
 
 				ret += ")";
