@@ -903,6 +903,22 @@ struct SPVInstruction
 			{
 				RDCASSERT(op);
 
+				// detect i++
+				if(!inlineOp)
+				{
+					SPVInstruction *dstvar = op->arguments[0];
+					if(op->arguments[1]->opcode == spv::OpIAdd)
+					{
+						SPVInstruction *srcvar = op->arguments[1]->op->arguments[0];
+						SPVInstruction *addval = op->arguments[1]->op->arguments[1];
+						if(srcvar->opcode == spv::OpLoad)
+							srcvar = srcvar->op->arguments[0];
+
+						if(dstvar == srcvar && addval->constant && addval->constant->type->IsBasicInt() && addval->constant->u32 == 1)
+							return dstvar->GetIDName() + "++";
+					}
+				}
+
 				string dest, src;
 				op->GetArg(ids, 0, dest);
 				op->GetArg(ids, 1, src);
