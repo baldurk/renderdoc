@@ -1499,6 +1499,9 @@ struct SPVInstruction
 								ret += ", ";
 							string arg;
 							op->GetArg(ids, vec, arg);
+
+							if((op->inlineArgs & (1<<vec)) && op->arguments[vec]->op && op->arguments[vec]->op->mathop)
+								arg = "(" + arg + ")";
 							ret += arg;
 							ret += ".";
 						}
@@ -1544,7 +1547,7 @@ struct SPVInstruction
 				string a;
 				op->GetArg(ids, 0, a);
 
-				if(op->arguments[0]->op && op->arguments[0]->op->mathop)
+				if((op->inlineArgs & 1) && op->arguments[0]->op && op->arguments[0]->op->mathop)
 					a = "(" + a + ")";
 
 				if(inlineOp)
