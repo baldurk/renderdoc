@@ -1440,6 +1440,7 @@ struct SPVInstruction
 			case spv::OpImageSparseFetch:
 			case spv::OpImageSparseGather:
 			case spv::OpImageSparseDrefGather:
+			case spv::OpImageSparseRead:
 			case spv::OpAtomicStore:
 			case spv::OpAtomicExchange:
 			case spv::OpAtomicCompareExchange:
@@ -4905,6 +4906,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			case spv::OpImageSparseFetch:
 			case spv::OpImageSparseGather:
 			case spv::OpImageSparseDrefGather:
+			case spv::OpImageSparseRead:
 			{
 				uint32_t idx = 1;
 
@@ -4943,6 +4945,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 					case spv::OpImageSparseFetch:
 					case spv::OpImageSparseGather:
 					case spv::OpImageSparseDrefGather:
+					case spv::OpImageSparseRead:
 						image = true;
 						break;
 					default:
@@ -5885,10 +5888,11 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		case spv::OpNoLine:                                   return "NoLine";
 		case spv::OpAtomicFlagTestAndSet:                     return "AtomicFlagTestAndSet";
 		case spv::OpAtomicFlagClear:                          return "AtomicFlagClear";
+		case spv::OpImageSparseRead:                          return "ImageSparseRead";
 		default: break;
 	}
 
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedOp{%u}", (uint32_t)el);
 }
 
 template<>
@@ -5896,15 +5900,16 @@ string ToStrHelper<false, spv::SourceLanguage>::Get(const spv::SourceLanguage &e
 {
 	switch(el)
 	{
-		case spv::SourceLanguageUnknown: return "Unknown";
-		case spv::SourceLanguageESSL:    return "ESSL";
-		case spv::SourceLanguageGLSL:    return "GLSL";
+		case spv::SourceLanguageUnknown:    return "Unknown";
+		case spv::SourceLanguageESSL:       return "ESSL";
+		case spv::SourceLanguageGLSL:       return "GLSL";
 		case spv::SourceLanguageOpenCL_C:   return "OpenCL C";
 		case spv::SourceLanguageOpenCL_CPP: return "OpenCL C++";
+		case spv::SourceLanguageHLSL:       return "HLSL";
 		default: break;
 	}
 	
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedLanguage{%u}", (uint32_t)el);
 }
 
 template<>
@@ -5964,10 +5969,14 @@ string ToStrHelper<false, spv::Capability>::Get(const spv::Capability &el)
 		case spv::CapabilityDerivativeControl:                         return "DerivativeControl";
 		case spv::CapabilityInterpolationFunction:                     return "InterpolationFunction";
 		case spv::CapabilityTransformFeedback:                         return "TransformFeedback";
+		case spv::CapabilityGeometryStreams:                           return "GeometryStreams";
+		case spv::CapabilityStorageImageReadWithoutFormat:             return "StorageImageReadWithoutFormat";
+		case spv::CapabilityStorageImageWriteWithoutFormat:            return "StorageImageWriteWithoutFormat";
+		case spv::CapabilityMultiViewport:                             return "MultiViewport";
 		default: break;
 	}
 	
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedCap{%u}", (uint32_t)el);
 }
 
 template<>
@@ -6009,7 +6018,7 @@ string ToStrHelper<false, spv::ExecutionMode>::Get(const spv::ExecutionMode &el)
 		default: break;
 	}
 	
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedMode{%u}", (uint32_t)el);
 }
 
 template<>
@@ -6023,7 +6032,7 @@ string ToStrHelper<false, spv::AddressingModel>::Get(const spv::AddressingModel 
 		default: break;
 	}
 	
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedModel{%u}", (uint32_t)el);
 }
 
 template<>
@@ -6037,7 +6046,7 @@ string ToStrHelper<false, spv::MemoryModel>::Get(const spv::MemoryModel &el)
 		default: break;
 	}
 	
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedModel{%u}", (uint32_t)el);
 }
 
 template<>
@@ -6055,7 +6064,7 @@ string ToStrHelper<false, spv::ExecutionModel>::Get(const spv::ExecutionModel &e
 		default: break;
 	}
 	
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedModel{%u}", (uint32_t)el);
 }
 
 template<>
@@ -6109,7 +6118,7 @@ string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
 		default: break;
 	}
 	
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedDecoration{%u}", (uint32_t)el);
 }
 
 template<>
@@ -6123,6 +6132,7 @@ string ToStrHelper<false, spv::Dim>::Get(const spv::Dim &el)
 		case spv::DimCube:   return "Cube";
 		case spv::DimRect:   return "Rect";
 		case spv::DimBuffer: return "Buffer";
+		case spv::DimSubpassData: return "Subpass Data";
 		default: break;
 	}
 	
@@ -6149,7 +6159,7 @@ string ToStrHelper<false, spv::StorageClass>::Get(const spv::StorageClass &el)
 		default: break;
 	}
 	
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedClass{%u}", (uint32_t)el);
 }
 
 template<>
@@ -6200,7 +6210,7 @@ string ToStrHelper<false, spv::ImageFormat>::Get(const spv::ImageFormat &el)
 		default: break;
 	}
 	
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedFormat{%u}", (uint32_t)el);
 }
 
 template<>
@@ -6252,7 +6262,8 @@ string ToStrHelper<false, spv::BuiltIn>::Get(const spv::BuiltIn &el)
 		default: break;
 	}
 	
-	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
+	return StringFormat::Fmt("UnrecognisedBuiltIn{%u}", (uint32_t)el);
+}
 
 template<>
 string ToStrHelper<false, spv::Scope>::Get(const spv::Scope &el)
@@ -6319,8 +6330,9 @@ string ToStrHelper<false, spv::MemoryAccessMask>::Get(const spv::MemoryAccessMas
 {
 	string ret;
 	
-	if(el & spv::MemoryAccessVolatileMask)     ret += ", Volatile";
+	if(el & spv::MemoryAccessVolatileMask) ret += ", Volatile";
 	if(el & spv::MemoryAccessAlignedMask) ret += ", Aligned";
+	if(el & spv::MemoryAccessNontemporalMask) ret += ", Nontemporal";
 	
 	if(!ret.empty())
 		ret = ret.substr(2);
