@@ -989,10 +989,70 @@ struct SPVInstruction
 				
 				for(size_t i=0; i < op->arguments.size(); i++)
 				{
-					string constituent;
-					op->GetArg(ids, i, constituent);
+					bool added = false;
 
-					ret += constituent;
+					// combine multiple vector compositeextract arguments together
+					if(opcode == spv::OpCompositeConstruct &&
+						 op->type->type == SPVTypeData::eVector &&
+						 op->arguments[i]->opcode == spv::OpCompositeExtract &&
+						 op->type->type == op->arguments[i]->op->arguments[0]->op->type->type)
+					{
+						// we only combine if there are more than one argument that extract
+						// from the same source, so begin==i, find out how many next arguments
+						// there are
+						size_t begin = i;
+						size_t end = i;
+
+						for(size_t j=i+1; j < op->arguments.size(); j++)
+						{
+							// if argument j is an extract from the same source as argument i
+							if(op->arguments[j]->opcode == spv::OpCompositeExtract &&
+								 op->arguments[j]->op->arguments[0] == op->arguments[i]->op->arguments[0])
+							{
+								end = j;
+							}
+							else
+							{
+								break;
+							}
+						}
+
+						// now combine them (this might be the trivial case of only 1 extraction
+						// but we still want to inline that to avoid unnecessary temporaries
+						{
+							char swizzle[] = "xyzw";
+							
+							string base;
+							op->arguments[i]->op->GetArg(ids, 0, base);
+							if(op->arguments[i]->op->arguments[0]->op->mathop)
+								base = "(" + base + ")";
+
+							string swizzleString;
+							
+							for(size_t j=begin; j <= end; j++)
+							{
+								RDCASSERTMSG("Swizzle index >= 4", op->arguments[j]->op->literals[0] < 4, op->arguments[j]->op->literals[0]);
+
+								if(op->arguments[j]->op->literals[0] < 4)
+									swizzleString += swizzle[ op->arguments[j]->op->literals[0] ];
+							}
+							
+							ret += StringFormat::Fmt("%s.%s", base.c_str(), swizzleString.c_str());
+
+							added = true;
+
+							// skip the arguments we combined together
+							i += end-begin;
+						}
+					}
+
+					if(!added)
+					{
+						string constituent;
+						op->GetArg(ids, i, constituent);
+						ret += constituent;
+					}
+
 					if(i+1 < op->arguments.size())
 						ret += ", ";
 				}
@@ -1786,6 +1846,38 @@ SPVInstruction * SPVModule::GetByID(uint32_t id)
 	return &op;
 }
 
+void FindFirstInstructionUse(const vector<SPVInstruction *> &ops, SPVInstruction *search, SPVInstruction **result)
+{
+	for(size_t o=0; o < ops.size(); o++)
+	{
+		bool uses = false;
+
+		if(ops[o]->op == NULL) continue;
+
+		for(size_t a=0; a < ops[o]->op->arguments.size(); a++)
+		{
+			if(ops[o]->op->arguments[a] == search)
+			{
+				uses = true;
+				break;
+			}
+
+			// recurse into the operation this argument might have inlined
+			if((ops[o]->op->inlineArgs & (1<<a)) && ops[o]->op->arguments[a]->op)
+			{
+				FindFirstInstructionUse(ops[o]->op->arguments[a]->op->arguments, search, result);
+
+				// if we found when recursing, exit
+				if(*result)
+					return;
+			}
+		}
+
+		if(uses)
+			*result = ops[o];
+	}
+}
+
 string SPVModule::Disassemble(const string &entryPoint)
 {
 	string retDisasm = "";
@@ -2388,6 +2480,62 @@ string SPVModule::Disassemble(const string &entryPoint)
 			}
 
 			l++;
+		}
+
+		// if we have a vector compositeextract that is only ever used in a
+		// subsequent compositeconstruct which will just be inlined directly src-to-dest
+		// then remove the extract. This assumes though there will be no other uses of
+		// the extract elsewhere
+		for(size_t o=0; o < funcops.size();)
+		{
+			if(funcops[o]->opcode == spv::OpCompositeExtract &&
+				funcops[o]->op->arguments[0]->op->type->type == SPVTypeData::eVector)
+			{
+				// count how many times this extract is used in constructing a vector
+				uint32_t constructUses = 0;
+
+				for(size_t p=o+1; p < funcops.size(); p++)
+				{
+					if(!funcops[p]->op) continue;
+
+					SPVInstruction *useInstr = NULL;
+
+					// find out if this instruction uses the extract somewhere
+					FindFirstInstructionUse(funcops[p]->op->arguments, funcops[o], &useInstr);
+
+					if(useInstr == NULL)
+						continue;
+
+					if(useInstr->opcode != spv::OpCompositeConstruct ||
+						 useInstr->op->type->type != SPVTypeData::eVector)
+					{
+						// extract is used in a non-construct, or not constructing a vector (e.g. a struct)
+						// so pretend the extract is used multiple times so that it can't be removed
+						constructUses = 10;
+						break;
+					}
+					else
+					{
+						// it was used in a construct of a vector, increment
+						constructUses++;
+
+						// if it's been used more than once, break
+						if(constructUses > 1)
+							break;
+					}
+				}
+
+				// if it's only been used once, then we can safely remove the extract
+				// as it will be in-lined at disassembly time. Otherwise just continue
+				if(constructUses == 1)
+					funcops.erase(funcops.begin()+o);
+				else
+					o++;
+
+				continue;
+			}
+
+			o++;
 		}
 
 		RDCASSERT(switchstack.empty());
