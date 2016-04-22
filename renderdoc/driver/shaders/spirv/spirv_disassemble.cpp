@@ -65,7 +65,7 @@ using std::make_pair;
 #define SCALAR_CONSTRUCTORS 0
 
 // don't inline expressions of this complexity or higher
-#define NO_INLINE_COMPLEXITY 3
+#define NO_INLINE_COMPLEXITY 5
 
 // used for indicating that an operation must never be inlined
 #define NEVER_INLINE_COMPLEXITY 1000
