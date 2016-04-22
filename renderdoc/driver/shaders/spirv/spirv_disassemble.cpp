@@ -2399,7 +2399,14 @@ string SPVModule::Disassemble(const string &entryPoint)
 			retDisasm += "\n";
 #endif
 
-		vector<uint32_t> selectionstack;
+		struct sel
+		{
+			sel(uint32_t i) : id(i), elseif(false) {}
+			uint32_t id;
+			bool elseif;
+		};
+
+		vector<sel> selectionstack;
 		vector<uint32_t> elsestack;
 
 		vector<uint32_t> loopheadstack;
@@ -2471,16 +2478,32 @@ string SPVModule::Disassemble(const string &entryPoint)
 				{
 					// handle meeting an else block
 					funcDisassembly += string(indent - tabSize, ' ');
-					funcDisassembly += "} else {\n";
+					funcDisassembly += "} else ";
+
+					if(o+2 < funcops.size() && funcops[o+1]->opcode == spv::OpSelectionMerge && funcops[o+2]->opcode == spv::OpBranchConditional)
+					{
+						// handle else if, remove the indent now as the else if will be on the same level
+						indent -= tabSize;
+						selectionstack.back().elseif = true;
+					}
+					else
+					{
+						funcDisassembly += "{\n";
+					}
 					elsestack.pop_back();
 				}
-				else if(!selectionstack.empty() && selectionstack.back() == funcops[o]->id)
+				else if(!selectionstack.empty() && selectionstack.back().id == funcops[o]->id)
 				{
 					// handle meeting a selection merge block
-					indent -= tabSize;
 
-					funcDisassembly += string(indent, ' ');
-					funcDisassembly += "}\n";
+					// if we have hit an else if, the indent has already been
+					// removed
+					if(!selectionstack.back().elseif)
+					{
+						indent -= tabSize;
+						funcDisassembly += string(indent, ' ');
+						funcDisassembly += "}\n";
+					}
 					selectionstack.pop_back();
 				}
 				else if(!loopmergestack.empty() && loopmergestack.back() == funcops[o]->id)
@@ -2563,7 +2586,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 				if(handled)
 				{
 				}
-				else if(!selectionstack.empty() && funcops[o]->flow->targets[0] == selectionstack.back())
+				else if(!selectionstack.empty() && funcops[o]->flow->targets[0] == selectionstack.back().id)
 				{
 					// if we're at the end of a true if path there will be a goto to
 					// the merge block before the false path label. Don't output it
@@ -2605,19 +2628,24 @@ string SPVModule::Disassemble(const string &entryPoint)
 			{
 				RDCASSERT(o+1 < funcops.size());
 				
-				selectionstack.push_back(funcops[o]->flow->targets[0]);
+				bool elseif = false;
+				if(!selectionstack.empty())
+					elseif = selectionstack.back().elseif;
+
+				selectionstack.push_back(sel(funcops[o]->flow->targets[0]));
 				
 				o++;
 
 				if(funcops[o]->opcode == spv::OpBranchConditional)
 				{
-					funcDisassembly += string(indent, ' ');
+					if(!elseif)
+						funcDisassembly += string(indent, ' ');
 					funcDisassembly += "if(" + funcops[o]->Disassemble(ids, false) + ") {\n";
 
 					indent += tabSize;
 
 					// does the branch have an else case
-					if(funcops[o]->flow->targets[1] != selectionstack.back())
+					if(funcops[o]->flow->targets[1] != selectionstack.back().id)
 						elsestack.push_back(funcops[o]->flow->targets[1]);
 
 					RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpLabel &&
@@ -2631,7 +2659,7 @@ string SPVModule::Disassemble(const string &entryPoint)
 
 					indent += tabSize;
 
-					switchstack.push_back(std::make_pair(selectionstack.back(), funcops[o]->flow));
+					switchstack.push_back(std::make_pair(selectionstack.back().id, funcops[o]->flow));
 				}
 				else
 				{
