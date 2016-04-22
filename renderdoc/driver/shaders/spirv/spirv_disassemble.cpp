@@ -986,6 +986,25 @@ struct SPVInstruction
 				else
 					ret += op->type->GetName();
 				ret += "(";
+
+				bool allEqual = true;
+				
+				for(size_t i=1; i < op->arguments.size(); i++)
+				{
+					if(op->arguments[i] != op->arguments[0])
+					{
+						allEqual = false;
+						break;
+					}
+				}
+
+				if(allEqual)
+				{
+					string arg0;
+					op->GetArg(ids, 0, arg0);
+					ret += arg0 + ")";
+					return ret;
+				}
 				
 				for(size_t i=0; i < op->arguments.size(); i++)
 				{
