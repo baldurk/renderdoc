@@ -1100,6 +1100,8 @@ struct SPVInstruction
 				
 				string composite;
 				op->GetArg(ids, 0, composite);
+				if((op->inlineArgs & 1) && op->arguments[0]->op && op->arguments[0]->op->mathop)
+					composite = "(" + composite + ")";
 
 				// unknown argument, we can't access chain it
 				if(op->arguments[0]->var == NULL && op->arguments[0]->op == NULL)
