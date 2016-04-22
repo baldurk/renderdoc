@@ -64,6 +64,10 @@ using std::make_pair;
 // for scalars it's potentially simpler just to drop it.
 #define SCALAR_CONSTRUCTORS 0
 
+// output extension instruction calls as 'GLSL.std.450::FAbs()' instead of
+// just 'abs()'
+#define USE_CANONICAL_EXT_INST_NAMES 0
+
 // don't inline expressions of this complexity or higher
 #define NO_INLINE_COMPLEXITY 5
 
@@ -175,7 +179,104 @@ const char *GLSL_STD_450_names[] = {
 	"NClamp",
 };
 
+const char *GLSL_STD_450_friendly_names[] = {
+	"-", // Bad
+
+	"round",
+	"roundEven",
+	"trunc",
+	"abs",
+	"abs",
+	"sign",
+	"sign",
+	"floor",
+	"ceil",
+	"fract",
+
+	"radians",
+	"degrees",
+	"sin",
+	"cos",
+	"tan",
+	"asin",
+	"acos",
+	"atan",
+	"sinh",
+	"cosh",
+	"tanh",
+	"asinh",
+	"acosh",
+	"atanh",
+	"atan2",
+
+	"pow",
+	"exp",
+	"log",
+	"exp2",
+	"log2",
+	"sqrt",
+	"inversesqrt",
+
+	"determinant",
+	"inverse",
+
+	"modf",
+	"modf",
+	"min",
+	"min",
+	"min",
+	"max",
+	"max",
+	"max",
+	"clamp",
+	"clamp",
+	"clamp",
+	"mix",
+	"mix",
+	"step",
+	"smoothstep",
+
+	"fma",
+	"frexp",
+	"frexp",
+	"ldexp",
+
+	"packSnorm4x8",
+	"packUnorm4x8",
+	"packSnorm2x16",
+	"packUnorm2x16",
+	"packHalf2x16",
+	"packDouble2x32",
+	"unpackSnorm2x16",
+	"unpackUnorm2x16",
+	"unpackHalf2x16",
+	"unpackSnorm4x8",
+	"unpackUnorm4x8",
+	"unpackDouble2x32",
+
+	"length",
+	"distance",
+	"cross",
+	"normalize",
+	"faceforward",
+	"reflect",
+	"refract",
+
+	"findLSB",
+	"findMSB",
+	"findMSB",
+
+	"interpolateAtCentroid",
+	"interpolateAtSample",
+	"interpolateAtOffset",
+
+	"min",
+	"max",
+	"clamp",
+};
+
 RDCCOMPILE_ASSERT( ARRAY_COUNT(GLSL_STD_450_names) == GLSLstd450Count, "Wrong number of GLSL extension function names" );
+RDCCOMPILE_ASSERT( ARRAY_COUNT(GLSL_STD_450_friendly_names) == GLSLstd450Count, "Wrong number of GLSL extension function names" );
 
 // https://www.khronos.org/registry/spir-v/api/spir-v.xml
 struct GeneratorID { uint32_t toolid; const char *vendor; const char *tool; const char *comment; } KnownGenerators[] = {
@@ -290,10 +391,11 @@ struct SPVDecoration
 
 struct SPVExtInstSet
 {
-	SPVExtInstSet() : instructions(NULL) {}
+	SPVExtInstSet() : canonicalNames(NULL) {}
 
 	string setname;
-	const char **instructions;
+	const char **canonicalNames;
+	const char **friendlyNames;
 };
 
 struct SPVExecutionMode
@@ -1265,8 +1367,13 @@ struct SPVInstruction
 				if(!inlineOp)
 					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
 
+#if USE_CANONICAL_EXT_INST_NAMES
 				ret += op->arguments[0]->ext->setname + "::";
-				ret += op->arguments[0]->ext->instructions[op->literals[0]];
+				ret += op->arguments[0]->ext->canonicalNames[op->literals[0]];
+#else
+				ret += op->arguments[0]->ext->friendlyNames[op->literals[0]];
+#endif
+
 				ret += "(";
 
 				for(size_t i=1; i < op->arguments.size(); i++)
@@ -4094,11 +4201,12 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 			{
 				op.ext = new SPVExtInstSet();
 				op.ext->setname = (const char *)&spirv[it+2];
-				op.ext->instructions = NULL;
+				op.ext->canonicalNames = NULL;
 
 				if(op.ext->setname == "GLSL.std.450")
 				{
-					op.ext->instructions = GLSL_STD_450_names;
+					op.ext->canonicalNames = GLSL_STD_450_names;
+					op.ext->friendlyNames = GLSL_STD_450_friendly_names;
 				}
 
 				op.id = spirv[it+1];
