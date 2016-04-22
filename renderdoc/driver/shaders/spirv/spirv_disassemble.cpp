@@ -1280,6 +1280,21 @@ struct SPVInstruction
 
 				return ret;
 			}
+			case spv::OpImageTexelPointer:
+			{
+				RDCASSERT(!inlineOp && op);
+
+				string image, coord, sample;
+				op->GetArg(ids, 0, image);
+				op->GetArg(ids, 1, coord);
+				op->GetArg(ids, 2, sample);
+				
+				string ret = StringFormat::Fmt("%s %s = ImageTexelPointer(%s, %s, %s)",
+					op->type->GetName().c_str(), GetIDName().c_str(),
+					image.c_str(), coord.c_str(), sample.c_str());
+
+				return ret;
+			}
 			// Most of the following are just of the form OpcodeName(arg1, arg2, arg3..)
 			// like a function call. Operations can very by return type (e.g. image
 			// vs imagesparse opcodes) without changing their disassembly
@@ -4666,6 +4681,36 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
 				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
+				
+				curBlock->instructions.push_back(&op);
+				break;
+			}
+			case spv::OpImageTexelPointer:
+			{
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.op = new SPVOperation();
+				op.op->type = typeInst->type;
+				
+				SPVInstruction *imageInst = module.GetByID(spirv[it+3]);
+				RDCASSERT(imageInst);
+
+				SPVInstruction *coordInst = module.GetByID(spirv[it+4]);
+				RDCASSERT(coordInst);
+
+				SPVInstruction *sampleInst = module.GetByID(spirv[it+5]);
+				RDCASSERT(sampleInst);
+
+				op.op->arguments.push_back(imageInst);
+				op.op->arguments.push_back(coordInst);
+				op.op->arguments.push_back(sampleInst);
+				
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+				
+				// never combine this as it's like a variable declaration
+				op.op->complexity = NEVER_INLINE_COMPLEXITY;
 				
 				curBlock->instructions.push_back(&op);
 				break;
