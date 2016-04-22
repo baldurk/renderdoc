@@ -1043,7 +1043,7 @@ struct SPVInstruction
 							
 							string base;
 							op->arguments[i]->op->GetArg(ids, 0, base);
-							if(op->arguments[i]->op->arguments[0]->op->mathop)
+							if((op->arguments[i]->op->inlineArgs & 1) && op->arguments[i]->op->arguments[0]->op->mathop)
 								base = "(" + base + ")";
 
 							string swizzleString;
