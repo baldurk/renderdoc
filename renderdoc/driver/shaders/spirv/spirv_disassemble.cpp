@@ -839,7 +839,7 @@ struct SPVInstruction
 			case spv::OpReturn:
 			{
 				RDCASSERT(!inlineOp);
-				return "Return";
+				return "return";
 			}
 			case spv::OpReturnValue:
 			{
@@ -854,7 +854,7 @@ struct SPVInstruction
 				else
 					arg = ids[retID]->Disassemble(ids, true);
 
-				return StringFormat::Fmt("Return %s", arg.c_str());
+				return StringFormat::Fmt("return %s", arg.c_str());
 			}
 			case spv::OpBranch:
 			{
