@@ -1055,8 +1055,19 @@ struct SPVInstruction
 								if(op->arguments[j]->op->literals[0] < 4)
 									swizzleString += swizzle[ op->arguments[j]->op->literals[0] ];
 							}
-							
-							ret += StringFormat::Fmt("%s.%s", base.c_str(), swizzleString.c_str());
+
+							// if it ends up being the identity swizzle of the same size as the base, just insert
+							// the base.
+							if(swizzleString.length() < 4 &&
+							   swizzleString.length() == op->arguments[i]->op->arguments[0]->op->type->vectorSize &&
+								 !strncmp(swizzleString.c_str(), swizzle, swizzleString.length()))
+							{
+								ret += base;
+							}
+							else
+							{
+								ret += StringFormat::Fmt("%s.%s", base.c_str(), swizzleString.c_str());
+							}
 
 							added = true;
 
