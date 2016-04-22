@@ -867,8 +867,14 @@ struct SPVInstruction
 
 				// we don't output the targets since that is handled specially
 
+				string conditionStr;
+				if(flow->condition->op == NULL || flow->condition->op->complexity < NEVER_INLINE_COMPLEXITY)
+					conditionStr = flow->condition->Disassemble(ids, true);
+				else
+					conditionStr = flow->condition->GetIDName();
+
 				if(flow->literals.empty())
-					return flow->condition->Disassemble(ids, true);
+					return conditionStr;
 
 				uint32_t weightA = flow->literals[0];
 				uint32_t weightB = flow->literals[1];
@@ -879,7 +885,7 @@ struct SPVInstruction
 				a *= 100.0f;
 				b *= 100.0f;
 
-				return StringFormat::Fmt("%s [true: %.2f%%, false: %.2f%%]", flow->condition->Disassemble(ids, true).c_str(), a, b);
+				return StringFormat::Fmt("%s [true: %.2f%%, false: %.2f%%]", conditionStr.c_str(), a, b);
 			}
 			case spv::OpSwitch:
 			{
@@ -951,6 +957,7 @@ struct SPVInstruction
 				return StringFormat::Fmt("%s %s = %s%s", op->type->GetName().c_str(), GetIDName().c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
 #endif
 			}
+			case spv::OpPhi:
 			case spv::OpCompositeConstruct:
 			{
 				RDCASSERT(op);
@@ -960,7 +967,10 @@ struct SPVInstruction
 				if(!inlineOp)
 					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
 
-				ret += op->type->GetName();
+				if(opcode == spv::OpPhi)
+					ret += "Phi";
+				else
+					ret += op->type->GetName();
 				ret += "(";
 				
 				for(size_t i=0; i < op->arguments.size(); i++)
@@ -1935,7 +1945,8 @@ string SPVModule::Disassemble(const string &entryPoint)
 				if(ignore_items.find(instr) == ignore_items.end())
 					funcops.push_back(instr);
 
-				if(instr->op)
+				// we can't inline the arguments to an OpPhi
+				if(instr->op && instr->opcode != spv::OpPhi)
 				{
 					int maxcomplex = instr->op->complexity;
 
@@ -2253,9 +2264,10 @@ string SPVModule::Disassemble(const string &entryPoint)
 				funcops.push_back(block->block->mergeFlow);
 			if(block->block->exitFlow)
 			{
-				// branch conditions are inlined
-				if(block->block->exitFlow->flow->condition)
-					erase_item(funcops, block->block->exitFlow->flow->condition);
+				// branch conditions are inlined unless otherwise required
+				SPVInstruction *cond = block->block->exitFlow->flow->condition;
+				if(cond && cond->op && cond->op->complexity < NEVER_INLINE_COMPLEXITY)
+					erase_item(funcops, cond);
 
 				// return values are inlined
 				if(block->block->exitFlow->opcode == spv::OpReturnValue)
@@ -4336,6 +4348,35 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				op.op->access = spv::MemoryAccessMaskNone;
 				if(WordCount > 3)
 					op.op->access = spv::MemoryAccessMask(spirv[it+3]);
+				
+				curBlock->instructions.push_back(&op);
+				break;
+			}
+			case spv::OpPhi:
+			{
+				SPVInstruction *typeInst = module.GetByID(spirv[it+1]);
+				RDCASSERT(typeInst && typeInst->type);
+				
+				op.op = new SPVOperation();
+				op.op->type = typeInst->type;
+				
+				for(int i=3; i < WordCount; i+=2)
+				{
+					SPVInstruction *varInst = module.GetByID(spirv[it+i+0]);
+					SPVInstruction *blockInst = module.GetByID(spirv[it+i+1]);
+					RDCASSERT(varInst);
+					op.op->arguments.push_back(varInst);
+
+					// need the arguments to the OpPhi non-inlined
+					if(varInst && varInst->op)
+						varInst->op->complexity = NEVER_INLINE_COMPLEXITY;
+
+					// could we use blockInst somehow?
+					(void)blockInst;
+				}
+
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
 				
 				curBlock->instructions.push_back(&op);
 				break;
