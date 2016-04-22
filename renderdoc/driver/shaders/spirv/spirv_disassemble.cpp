@@ -563,7 +563,7 @@ struct SPVOperation
 		SPVInstruction *minLod;
 	} im;
 
-	void GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg);
+	void GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg, bool bracketArgumentsIfNeeded = true);
 };
 
 struct SPVConstant
@@ -921,7 +921,7 @@ struct SPVInstruction
 
 				string dest, src;
 				op->GetArg(ids, 0, dest);
-				op->GetArg(ids, 1, src);
+				op->GetArg(ids, 1, src, false);
 
 				// inlined only in function parameters, just return argument
 				if(inlineOp)
@@ -944,7 +944,7 @@ struct SPVInstruction
 				
 				string dest, src;
 				op->GetArg(ids, 0, dest);
-				op->GetArg(ids, 1, src);
+				op->GetArg(ids, 1, src, false);
 
 #if LOAD_STORE_CONSTRUCTORS
 				return StringFormat::Fmt("Copy(%s%s) = Load(%s%s)", dest.c_str(), OptionalFlagString(op->access).c_str(), src.c_str(), OptionalFlagString(op->access).c_str());
@@ -957,7 +957,7 @@ struct SPVInstruction
 				RDCASSERT(op);
 
 				string arg;
-				op->GetArg(ids, 0, arg);
+				op->GetArg(ids, 0, arg, false);
 				
 #if LOAD_STORE_CONSTRUCTORS
 				if(inlineOp)
@@ -1001,7 +1001,7 @@ struct SPVInstruction
 				if(allEqual)
 				{
 					string arg0;
-					op->GetArg(ids, 0, arg0);
+					op->GetArg(ids, 0, arg0, false);
 					ret += arg0 + ")";
 					return ret;
 				}
@@ -1041,9 +1041,6 @@ struct SPVInstruction
 						{
 							char swizzle[] = "xyzw";
 							
-							string base;
-							op->arguments[i]->op->GetArg(ids, 0, base);
-
 							string swizzleString;
 							
 							for(size_t j=begin; j <= end; j++)
@@ -1060,10 +1057,16 @@ struct SPVInstruction
 							   swizzleString.length() == op->arguments[i]->op->arguments[0]->op->type->vectorSize &&
 								 !strncmp(swizzleString.c_str(), swizzle, swizzleString.length()))
 							{
+								string base;
+								op->arguments[i]->op->GetArg(ids, 0, base, false);
+
 								ret += base;
 							}
 							else
 							{
+								string base;
+								op->arguments[i]->op->GetArg(ids, 0, base);
+
 								ret += StringFormat::Fmt("%s.%s", base.c_str(), swizzleString.c_str());
 							}
 
@@ -1077,7 +1080,7 @@ struct SPVInstruction
 					if(!added)
 					{
 						string constituent;
-						op->GetArg(ids, i, constituent);
+						op->GetArg(ids, i, constituent, false);
 						ret += constituent;
 					}
 
@@ -1269,7 +1272,7 @@ struct SPVInstruction
 				for(size_t i=1; i < op->arguments.size(); i++)
 				{
 					string arg;
-					op->GetArg(ids, i, arg);
+					op->GetArg(ids, i, arg, false);
 
 					ret += arg;
 					if(i+1 < op->arguments.size())
@@ -1286,8 +1289,8 @@ struct SPVInstruction
 
 				string image, coord, sample;
 				op->GetArg(ids, 0, image);
-				op->GetArg(ids, 1, coord);
-				op->GetArg(ids, 2, sample);
+				op->GetArg(ids, 1, coord, false);
+				op->GetArg(ids, 2, sample, false);
 				
 				string ret = StringFormat::Fmt("%s %s = ImageTexelPointer(%s, %s, %s)",
 					op->type->GetName().c_str(), GetIDName().c_str(),
@@ -1395,7 +1398,7 @@ struct SPVInstruction
 				for(size_t i=0; i < numArgs; i++)
 				{
 					string arg;
-					op->GetArg(ids, i, arg);
+					op->GetArg(ids, i, arg, false);
 
 					if(op->im.bias == op->arguments[i])
 						ret += "Bias = ";
@@ -1732,8 +1735,8 @@ struct SPVInstruction
 				RDCASSERT(op);
 
 				string a, b;
-				op->GetArg(ids, 0, a);
-				op->GetArg(ids, 1, b);
+				op->GetArg(ids, 0, a, false);
+				op->GetArg(ids, 1, b, false);
 
 				if(inlineOp)
 					return StringFormat::Fmt("%s(%s, %s)", ToStr::Get(opcode).c_str(), a.c_str(), b.c_str());
@@ -1745,9 +1748,9 @@ struct SPVInstruction
 				RDCASSERT(op);
 
 				string a, b, c;
-				op->GetArg(ids, 0, a);
-				op->GetArg(ids, 1, b);
-				op->GetArg(ids, 2, c);
+				op->GetArg(ids, 0, a, false);
+				op->GetArg(ids, 1, b, false);
+				op->GetArg(ids, 2, c, false);
 
 				if(inlineOp)
 					return StringFormat::Fmt("(%s) ? (%s) : (%s)", a.c_str(), b.c_str(), c.c_str());
@@ -1796,24 +1799,27 @@ struct SPVInstruction
 	SPVVariable *var; // this ID is a variable
 };
 
-void SPVOperation::GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg)
+void SPVOperation::GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg, bool bracketArgumentsIfNeeded)
 {
 	if(inlineArgs & (1<<idx))
 	{
 		arg = arguments[idx]->Disassemble(ids, true);
 
-		// skip past any inlined load(store())
-		SPVInstruction *instr = arguments[idx];
-
-		if(instr->opcode == spv::OpLoad &&
-			instr->op->arguments[0]->opcode == spv::OpStore)
+		if(bracketArgumentsIfNeeded)
 		{
-			instr = instr->op->arguments[0]->op->arguments[1];
-		}
+			// skip past any inlined load(store())
+			SPVInstruction *instr = arguments[idx];
 
-		// add brackets if needed
-		if(instr->op && instr->op->mathop)
-			arg = "(" + arg + ")";
+			if(instr->opcode == spv::OpLoad &&
+				instr->op->arguments[0]->opcode == spv::OpStore)
+			{
+				instr = instr->op->arguments[0]->op->arguments[1];
+			}
+
+			// add brackets if needed
+			if(instr->op && instr->op->mathop)
+				arg = "(" + arg + ")";
+		}
 	}
 	else
 	{
