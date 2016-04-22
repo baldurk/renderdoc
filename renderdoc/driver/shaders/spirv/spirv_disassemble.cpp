@@ -1448,7 +1448,10 @@ struct SPVInstruction
 					maxShuffle = RDCMAX(maxShuffle, s);
 				}
 
-				ret += op->type->GetName() + "(";
+				// if the vectors are identical, we're just doing a swizzle on one vector
+				// so there's no need for a surrounding constructor syntax
+				if(op->arguments[0] != op->arguments[1])
+					ret += op->type->GetName() + "(";
 
 				// sane path for 4-vectors or less
 				if(maxShuffle < 4)
@@ -1469,6 +1472,11 @@ struct SPVInstruction
 						{
 							s -= vec1type->vectorSize;
 							vec = 1;
+
+							// just for sanity, pretend it indexed into the first vector
+							// when they're identical - as we don't have constructor text
+							if(op->arguments[0] == op->arguments[1])
+								vec = 0;
 						}
 
 						if(vec != lastvec)
@@ -1490,7 +1498,8 @@ struct SPVInstruction
 					RDCERR("Not disassembling a shuffle of a vector larger than 4 wide!");
 				}
 
-				ret += ")";
+				if(op->arguments[0] != op->arguments[1])
+					ret += ")";
 
 				return ret;
 			}
