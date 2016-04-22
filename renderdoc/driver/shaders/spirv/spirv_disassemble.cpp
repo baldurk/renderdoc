@@ -630,8 +630,8 @@ struct SPVOperation
 	// OpLoad/OpStore/OpCopyMemory
 	spv::MemoryAccessMask access;
 
-	// OpAtomic*
-	spv::Scope scope;
+	// OpAtomic*, Op*Barrier
+	spv::Scope scope, scopeMemory;
 	spv::MemorySemanticsMask semantics, semanticsUnequal;
 
 	// OpExtInst
@@ -1556,8 +1556,6 @@ struct SPVInstruction
 						ret += ", ";
 				}
 
-				ret += ")";
-
 				// for atomic operations, print the execution scope and memory semantics
 				switch(opcode)
 				{
@@ -1574,15 +1572,17 @@ struct SPVInstruction
 					case spv::OpAtomicAnd:
 					case spv::OpAtomicOr:
 					case spv::OpAtomicXor:
-						ret += StringFormat::Fmt(" Scope=%s Semantics=%s", ToStr::Get(op->scope).c_str(), ToStr::Get(op->semantics).c_str());
+						ret += StringFormat::Fmt(", Scope=%s, Semantics=%s", ToStr::Get(op->scope).c_str(), ToStr::Get(op->semantics).c_str());
 						break;
 					case spv::OpAtomicCompareExchange:
-						ret += StringFormat::Fmt(" Scope=%s Semantics=(equal: %s unequal: %s)",
+						ret += StringFormat::Fmt(", Scope=%s, Semantics=(equal: %s unequal: %s)",
 						                         ToStr::Get(op->scope).c_str(), ToStr::Get(op->semantics).c_str(), ToStr::Get(op->semanticsUnequal).c_str());
 						break;
 					default:
 						break;
 				}
+
+				ret += ")";
 
 				return ret;
 			}
@@ -1592,6 +1592,16 @@ struct SPVInstruction
 			case spv::OpEndStreamPrimitive:
 			{
 				return ToStr::Get(opcode) + "()";
+			}
+			case spv::OpControlBarrier:
+			{
+				return StringFormat::Fmt("%s(Execution Scope=%s, Memory Scope=%s, Semantics=%s)",
+										ToStr::Get(opcode).c_str(), ToStr::Get(op->scope).c_str(), ToStr::Get(op->scopeMemory).c_str(), ToStr::Get(op->semantics).c_str());
+			}
+			case spv::OpMemoryBarrier:
+			{
+				return StringFormat::Fmt("%s(Scope=%s, Semantics=%s)",
+										ToStr::Get(opcode).c_str(), ToStr::Get(op->scope).c_str(), ToStr::Get(op->semantics).c_str());
 			}
 			case spv::OpVectorShuffle:
 			{
@@ -5244,6 +5254,48 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 				// single operations
 				op.op = new SPVOperation();
 				op.op->type = NULL;
+
+				curBlock->instructions.push_back(&op);
+				break;
+			}
+			case spv::OpControlBarrier:
+			case spv::OpMemoryBarrier:
+			{
+				// these don't emit an ID, just have some properties
+				op.op = new SPVOperation();
+				op.op->type = NULL;
+
+				int word = 1;
+				
+				SPVInstruction *scopeInst = module.GetByID(spirv[it+word]);
+				RDCASSERT(scopeInst && scopeInst->constant); // shader capability requires this to be a constant
+
+				if(scopeInst && scopeInst->constant)
+					op.op->scope = (spv::Scope)scopeInst->constant->u32;
+				
+				word++;
+
+				// control barrier specifies two scopes, execution and memory
+				if(op.opcode == spv::OpControlBarrier)
+				{
+					scopeInst = module.GetByID(spirv[it+word]);
+					RDCASSERT(scopeInst && scopeInst->constant); // shader capability requires this to be a constant
+
+					if(scopeInst && scopeInst->constant)
+						op.op->scopeMemory = (spv::Scope)scopeInst->constant->u32;
+
+					word++;
+				}
+				
+				SPVInstruction *semanticsInst = module.GetByID(spirv[it+word]);
+				RDCASSERT(semanticsInst && semanticsInst->constant); // shader capability requires this to be a constant
+
+				if(semanticsInst && semanticsInst->constant)
+					op.op->semantics = (spv::MemorySemanticsMask)semanticsInst->constant->u32;
+				
+				word++;
+
+				curBlock->instructions.push_back(&op);
 				break;
 			}
 			case spv::OpVectorShuffle:
