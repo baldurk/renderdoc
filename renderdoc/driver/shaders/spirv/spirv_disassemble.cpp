@@ -2541,12 +2541,30 @@ string SPVModule::Disassemble(const string &entryPoint)
 
 				for(size_t p=o+1; p < funcops.size(); p++)
 				{
-					if(!funcops[p]->op) continue;
-
 					SPVInstruction *useInstr = NULL;
 
+					// return value is special because it doesn't hold a SPVInstruction* to its
+					// return value, so we check it manually
+					if(funcops[p]->opcode == spv::OpReturnValue)
+					{
+						if(funcops[o]->id == funcops[p]->flow->targets[0])
+							useInstr = funcops[p];
+						else
+						{
+							SPVInstruction *instr = ids[ funcops[p]->flow->targets[0] ];
+
+							if(instr && instr->op)
+								FindFirstInstructionUse(instr->op->arguments, funcops[o], &useInstr);
+						}
+					}
+
 					// find out if this instruction uses the extract somewhere
-					FindFirstInstructionUse(funcops[p]->op->arguments, funcops[o], &useInstr);
+					if(useInstr == NULL)
+					{
+						if(!funcops[p]->op) continue;
+
+						FindFirstInstructionUse(funcops[p]->op->arguments, funcops[o], &useInstr);
+					}
 
 					if(useInstr == NULL)
 						continue;
