@@ -184,6 +184,8 @@ VkResult WrappedVulkan::vkCreateInstance(
 	}
 
 	InitInstanceExtensionTables(m_Instance);
+
+	RenderDoc::Inst().AddDeviceFrameCapturer(LayerDisp(m_Instance), this);
 	
 	m_DbgMsgCallback = VK_NULL_HANDLE;
 	m_PhysicalDevice = VK_NULL_HANDLE;
@@ -267,6 +269,8 @@ void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCal
 
 	ObjDisp(m_Instance)->DestroyInstance(Unwrap(m_Instance), NULL);
 	GetResourceManager()->ReleaseWrappedResource(m_Instance);
+	
+	RenderDoc::Inst().RemoveDeviceFrameCapturer(LayerDisp(m_Instance));
 
 	m_Instance = VK_NULL_HANDLE;
 }
