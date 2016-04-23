@@ -1905,7 +1905,7 @@ SPDBChunk::SPDBChunk(void *chunk)
 					else if(opcode == EndStream)
 					{
 						while(*iterator == 0 && iterator < callend) iterator++;
-						RDCASSERT(iterator == callend);
+						//RDCASSERT(iterator == callend); // seems like this isn't always true
 					}
 					else
 					{
