@@ -280,7 +280,7 @@ public:
 	void CleanupCapture();
 	void FreeCaptureData();
 
-	bool HasSuccessfulCapture(CaptureFailReason &reason) { reason = m_FailureReason; return m_SuccessfulCapture && m_ContextRecord->NumChunks() > 3; }
+	bool HasSuccessfulCapture(CaptureFailReason &reason) { reason = m_FailureReason; return m_SuccessfulCapture && m_ContextRecord->NumChunks() > 0; }
 
 	void AttemptCapture();
 	void FinishCapture();
