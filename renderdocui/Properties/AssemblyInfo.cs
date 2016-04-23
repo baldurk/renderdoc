@@ -37,7 +37,7 @@ using System.Resources;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Baldur Karlsson")]
 [assembly: AssemblyProduct("RenderDoc UI")]
-[assembly: AssemblyCopyright("Copyright © 2015 Baldur Karlsson")]
+[assembly: AssemblyCopyright("Copyright © 2016 Baldur Karlsson")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
