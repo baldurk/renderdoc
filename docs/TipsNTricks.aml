@@ -46,7 +46,7 @@
 			  <listItem><para>You can double click on a thumbnail in the texture viewer to open a 
 			  <link xlink:href="32C47E20-0FA2-4F52-B33A-4440EBCCBCE4">locked texture</link> tab</para></listItem>
 			  <listItem><para>You can close tabs by middle clicking on them.</para></listItem>
-			  <listItem><para>You can trigger a capture from code. renderdoc.dll exports an API for this
+			  <listItem><para>You can trigger a capture from code. renderdoc.dll exports an <link xlink:href="b32454b2-9dff-41e3-8d56-a9607702e51c">in-application API</link> for this
 			  purpose, defined in renderdoc_app.h in the distributions:
 <code language="cpp">
 #include "renderdoc_app.h"
@@ -76,7 +76,7 @@ if(rdoc_api) rdoc_api->TriggerCapture();
 			  <listItem><para>To get API debug or error messages, enable "Create Debug Device" when capturing
 			  then check out the <link xlink:href="1f098896-0e60-485a-b879-900a4a320b80" /> window.</para></listItem>
 			  <listItem><para>Detecting RenderDoc from your code can either be done by trying to load and
-			  use the renderdoc in-program API, or through API specific ways:
+			  use the renderdoc <link xlink:href="b32454b2-9dff-41e3-8d56-a9607702e51c">in-application API</link>, or through API specific ways:
 <code language="cpp">
 // For D3D11:
 ID3D11Device *devicePointer = ...;

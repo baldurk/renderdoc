@@ -38,6 +38,14 @@
         <HelpKeyword index="K" term="Image Viewer" />
       </HelpKeywords>
     </Topic>
+    <Topic id="b32454b2-9dff-41e3-8d56-a9607702e51c" visible="True" isSelected="true" title="In-application API">
+      <HelpKeywords>
+        <HelpKeyword index="K" term="API" />
+        <HelpKeyword index="K" term="Manual Capturing" />
+        <HelpKeyword index="K" term="Manual Capture" />
+        <HelpKeyword index="K" term="Interface" />
+      </HelpKeywords>
+    </Topic>
   </Topic>
   <Topic id="5c7ad9b1-1fcb-4880-a7f2-5cf6e7b874c1" visible="True" noFile="true" isExpanded="true" title="Behind the Scenes">
     <Topic id="632271c3-3d72-4360-b4a0-dc570fcd541e" visible="True" title="Planned Future Features">
@@ -50,7 +58,7 @@
         <HelpKeyword index="K" term="RenderDoc Internals" />
       </HelpKeywords>
     </Topic>
-    <Topic id="11ea4311-b9ea-450a-8c80-b510ffc8b1a6" visible="True" isSelected="true" title="OpenGL Support">
+    <Topic id="11ea4311-b9ea-450a-8c80-b510ffc8b1a6" visible="True" title="OpenGL Support">
       <HelpKeywords>
         <HelpKeyword index="K" term="OpenGL" />
         <HelpKeyword index="K" term="OpenGL Support" />

@@ -84,6 +84,7 @@
     <ResourceItems Include="Resources.items" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="API.aml" />
     <None Include="Vulkan.aml" />
     <None Include="Windows\PythonShell.aml" />
     <None Include="OpenGL.aml" />
