@@ -648,6 +648,8 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 					view.Structured = false;
 					view.BufferStructCount = 0;
 
+					view.ElementSize = desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
+
 					view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
 					view.Type = ToStr::Get(desc.ViewDimension);
@@ -658,6 +660,14 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 						view.NumElements = desc.Buffer.NumElements;
 						view.ElementOffset = desc.Buffer.ElementOffset;
 						view.ElementWidth = desc.Buffer.ElementWidth;
+						
+						D3D11_BUFFER_DESC bufdesc;
+						((ID3D11Buffer *)res)->GetDesc(&bufdesc);
+
+						view.Structured = bufdesc.StructureByteStride > 0 && desc.Format == DXGI_FORMAT_UNKNOWN;
+
+						if(view.Structured)
+							view.ElementSize = bufdesc.StructureByteStride;
 					}
 					else if(desc.ViewDimension == D3D11_SRV_DIMENSION_BUFFEREX)
 					{
@@ -737,9 +747,15 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 					view.Structured = false;
 					view.BufferStructCount = 0;
 
+					view.ElementSize = GetByteSize(1, 1, 1, desc.Format, 0);
+
 					if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
 						(desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND|D3D11_BUFFER_UAV_FLAG_COUNTER)))
 					{
+						D3D11_BUFFER_DESC bufdesc;
+						((ID3D11Buffer *)res)->GetDesc(&bufdesc);
+
+						view.ElementSize = bufdesc.StructureByteStride;
 						view.Structured = true;
 						view.BufferStructCount = m_pDevice->GetDebugManager()->GetStructCount(rs->CSUAVs[s]);
 					}
@@ -919,6 +935,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 				view.Structured = false;
 				view.BufferStructCount = 0;
+				view.ElementSize = desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
 				view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
@@ -985,6 +1002,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 				view.Structured = false;
 				view.BufferStructCount = 0;
+				view.ElementSize = desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
 				if(desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND|D3D11_BUFFER_UAV_FLAG_COUNTER))
 				{
@@ -1056,6 +1074,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 				view.Structured = false;
 				view.BufferStructCount = 0;
+				view.ElementSize = desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 				
 				ret.m_OM.DepthReadOnly = false;
 				ret.m_OM.StencilReadOnly = false;

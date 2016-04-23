@@ -1698,9 +1698,9 @@ namespace renderdocui.Windows.PipelineState
                 {
                     var viewer = new BufferViewer(m_Core, false);
                     if (format.Length == 0)
-                        viewer.ViewRawBuffer(true, 0, ulong.MaxValue, buf.ID);
+                        viewer.ViewRawBuffer(true, view.FirstElement * view.ElementSize, view.NumElements * view.ElementSize, buf.ID);
                     else
-                        viewer.ViewRawBuffer(true, 0, ulong.MaxValue, buf.ID, format);
+                        viewer.ViewRawBuffer(true, view.FirstElement * view.ElementSize, view.NumElements * view.ElementSize, buf.ID, format);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }

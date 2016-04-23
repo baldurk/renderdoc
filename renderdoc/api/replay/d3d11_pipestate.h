@@ -82,7 +82,7 @@ struct D3D11PipelineState
 		{
 			ResourceView() : View(), Resource(),
 				Format(),
-				Structured(false), BufferStructCount(0),
+				Structured(false), BufferStructCount(0), ElementSize(0),
 				ElementOffset(0), ElementWidth(0),
 				FirstElement(0), NumElements(0),
 				Flags(0),
@@ -96,6 +96,7 @@ struct D3D11PipelineState
 
 			bool32 Structured;
 			uint32_t BufferStructCount;
+			uint32_t ElementSize;
 
 			// Buffer (SRV)
 			uint32_t ElementOffset;

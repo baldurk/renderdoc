@@ -126,6 +126,7 @@ namespace renderdoc
 
                 public bool Structured;
                 public UInt32 BufferStructCount;
+                public UInt32 ElementSize;
 
                 // Buffer (SRV)
                 public UInt32 ElementOffset;
