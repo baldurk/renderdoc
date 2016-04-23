@@ -522,7 +522,10 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
 
 			SAFE_RELEASE(blob);
 		
-			*id = ((WrappedID3D11Shader<ID3D11VertexShader> *)sh)->GetResourceID();
+			if(sh != NULL)
+				*id = ((WrappedID3D11Shader<ID3D11VertexShader> *)sh)->GetResourceID();
+			else
+				*id = ResourceId();
 			return;
 		}
 		case eShaderStage_Hull:
@@ -532,7 +535,10 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
 
 			SAFE_RELEASE(blob);
 		
-			*id = ((WrappedID3D11Shader<ID3D11HullShader> *)sh)->GetResourceID();
+			if(sh != NULL)
+				*id = ((WrappedID3D11Shader<ID3D11HullShader> *)sh)->GetResourceID();
+			else
+				*id = ResourceId();
 			return;
 		}
 		case eShaderStage_Domain:
@@ -542,7 +548,10 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
 
 			SAFE_RELEASE(blob);
 		
-			*id = ((WrappedID3D11Shader<ID3D11DomainShader> *)sh)->GetResourceID();
+			if(sh != NULL)
+				*id = ((WrappedID3D11Shader<ID3D11DomainShader> *)sh)->GetResourceID();
+			else
+				*id = ResourceId();
 			return;
 		}
 		case eShaderStage_Geometry:
@@ -552,7 +561,10 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
 
 			SAFE_RELEASE(blob);
 		
-			*id = ((WrappedID3D11Shader<ID3D11GeometryShader> *)sh)->GetResourceID();
+			if(sh != NULL)
+				*id = ((WrappedID3D11Shader<ID3D11GeometryShader> *)sh)->GetResourceID();
+			else
+				*id = ResourceId();
 			return;
 		}
 		case eShaderStage_Pixel:
@@ -562,7 +574,10 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
 
 			SAFE_RELEASE(blob);
 		
-			*id = ((WrappedID3D11Shader<ID3D11PixelShader> *)sh)->GetResourceID();
+			if(sh != NULL)
+				*id = ((WrappedID3D11Shader<ID3D11PixelShader> *)sh)->GetResourceID();
+			else
+				*id = ResourceId();
 			return;
 		}
 		case eShaderStage_Compute:
@@ -572,7 +587,10 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
 
 			SAFE_RELEASE(blob);
 		
-			*id = ((WrappedID3D11Shader<ID3D11ComputeShader> *)sh)->GetResourceID();
+			if(sh != NULL)
+				*id = ((WrappedID3D11Shader<ID3D11ComputeShader> *)sh)->GetResourceID();
+			else
+				*id = ResourceId();
 			return;
 		}
 		default:
