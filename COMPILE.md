@@ -9,7 +9,7 @@ Some shared code for handling shader formats used in multiple APIs such as DXBC 
 Windows
 --------------
 
-The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. To build on later VS versions, simply open & upgrade, I've tested building on VS2012, VS2013 and VS2015 without issues. It compiles fine in the [free VS2013 version](http://www.visualstudio.com/en-us/news/vs2013-community-vs.aspx), just select to update the compilers.
+The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. To build on later VS versions, simply open & upgrade, I've tested building on VS2012, VS2013 and VS2015 without issues. It compiles fine in the [free VS2015 version](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx), just select to update the compilers.
 
 There should be no external dependencies, all libraries/headers needed to build are included in the git checkout.
 
