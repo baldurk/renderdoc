@@ -46,18 +46,23 @@
 			  <listItem><para>You can double click on a thumbnail in the texture viewer to open a 
 			  <link xlink:href="32C47E20-0FA2-4F52-B33A-4440EBCCBCE4">locked texture</link> tab</para></listItem>
 			  <listItem><para>You can close tabs by middle clicking on them.</para></listItem>
-			  <listItem><para>You can trigger a capture from code. renderdoc.dll exports a function for this
-			  purpose:
+			  <listItem><para>You can trigger a capture from code. renderdoc.dll exports an API for this
+			  purpose, defined in renderdoc_app.h in the distributions:
 <code language="cpp">
-typedef void (__cdecl *pRENDERDOC_TriggerCapture)();
+#include "renderdoc_app.h"
+
+RENDERDOC_API_1_0_1 *rdoc_api = NULL;
 
 // At init
-HMODULE renderdoc = GetModuleHandle(_T("renderdoc.dll"));
-pRENDERDOC_TriggerCapture triggerFunc =
-	(pRENDERDOC_TriggerCapture)GetProcAddress(renderdoc, "RENDERDOC_TriggerCapture");
+if(HMODULE mod = GetModuleHandleA("renderdoc.dll"))
+{
+	pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+	int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_0_1, (void **)&amp;rdoc_api);
+	assert(ret == 1);
+}
 
 // When you wish to trigger the capture
-triggerFunc();
+if(rdoc_api) rdoc_api->TriggerCapture();
 </code>
 			  </para>
 			  <para>The next <codeInline>Swap()</codeInline> after this call will begin the captured frame,
