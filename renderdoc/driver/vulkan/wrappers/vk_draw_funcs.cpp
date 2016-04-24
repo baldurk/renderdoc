@@ -1168,7 +1168,16 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
 			commandBuffer = RerecordCmdBuf(cmdid);
+
+			uint32_t eventID = HandlePreDraw(commandBuffer);
+			
 			ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+
+			if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+			{
+				ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+				m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+			}
 		}
 	}
 	else if(m_State == READING)
@@ -1271,7 +1280,16 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
 			commandBuffer = RerecordCmdBuf(cmdid);
+
+			uint32_t eventID = HandlePreDraw(commandBuffer);
+			
 			ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+
+			if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+			{
+				ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+				m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+			}
 		}
 	}
 	else if(m_State == READING)
