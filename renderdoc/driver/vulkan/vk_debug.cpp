@@ -728,6 +728,50 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	sources.resize(4);
 	sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
+
+	// the newest AMD driver (at time of committing) has texelFetch fixed,
+	// but it came out recently so I want a short transition period with the
+	// workaround in place while people update. So we just check if we're
+	// on AMD and look at the modified date of amdvlk32/64.dll. Cheeky!
+	bool texelFetchBrokenAMDDriver = true;
+
+	if(m_pDriver->IsAMD())
+	{
+#if defined(RENDERDOC_PLATFORM_WIN32)
+
+#if defined(RDC64BIT)
+		const char *moduleName = "amdvlk64.dll";
+#else
+		const char *moduleName = "amdvlk32.dll";
+#endif
+
+		// can't check version number reported as it's fixed at 0.9.0, so
+		// we go by module modified timestamp
+		HMODULE mod = GetModuleHandleA(moduleName);
+		if(mod)
+		{
+			wchar_t curFile[512] = {};
+			GetModuleFileNameW(mod, curFile, 512);
+
+			string vlkPath = StringFormat::Wide2UTF8(wstring(curFile));
+
+			uint64_t timestamp = FileIO::GetModifiedTimestamp(vlkPath);
+
+			// Any driver with modified date after this time (2016-04-17)
+			// should be fine.
+			const uint64_t referenceTimestamp = 1460880000;
+
+			if(timestamp > referenceTimestamp)
+				texelFetchBrokenAMDDriver = false;
+			else
+				RDCWARN("Detected an older AMD driver, enabling workaround - try updating to the latest version");
+		}
+		else
+		{
+			RDCWARN("AMD device detected but can't find %s loaded", moduleName);
+		}
+#endif
+	}
 	
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
@@ -736,7 +780,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			continue;
 
 		sources[0] = "#version 430 core\n";
-		if(m_pDriver->IsAMD())
+		if(m_pDriver->IsAMD() && texelFetchBrokenAMDDriver)
 			sources[0] += "#define NO_TEXEL_FETCH\n";
 		sources[2] = "";
 		sources[3] = shaderSources[i];
@@ -1014,7 +1058,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	sources.resize(5);
 	sources[0] = "#version 430 core\n";
-	if(m_pDriver->IsAMD())
+	if(m_pDriver->IsAMD() && texelFetchBrokenAMDDriver)
 		sources[0] += "#define NO_TEXEL_FETCH\n";
 	sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
 	sources[2] = GetEmbeddedResource(spv_texsample_h);
