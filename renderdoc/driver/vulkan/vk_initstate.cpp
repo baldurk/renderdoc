@@ -1807,6 +1807,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 			return;
 		}
 
+		if(m_CreationInfo.m_Image[id].samples != VK_SAMPLE_COUNT_1_BIT)
+		{
+			initial.resource = NULL;
+			initial.num = eInitialContents_ClearColorImage;
+		}
+
 		// handle any 'created' initial states, without an actual image with contents
 		if(initial.resource == NULL)
 		{
