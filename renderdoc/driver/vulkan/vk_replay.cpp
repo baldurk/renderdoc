@@ -4001,6 +4001,11 @@ struct InitPostVSCallback : public DrawcallCallback
 	void PostRedraw(uint32_t eid, VkCommandBuffer cmd)
 	{
 	}
+	
+	// Dispatches don't rasterize, so do nothing
+	void PreDispatch(uint32_t eid, VkCommandBuffer cmd) { }
+	bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
+	void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) { }
 
 	bool RecordAllCmds()
 	{

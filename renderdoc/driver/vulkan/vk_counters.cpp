@@ -97,6 +97,11 @@ struct GPUTimerCallback : public DrawcallCallback
 	void PostRedraw(uint32_t eid, VkCommandBuffer cmd)
 	{
 	}
+	
+	// we don't need to distinguish, call the Draw functions
+	void PreDispatch(uint32_t eid, VkCommandBuffer cmd) { PreDraw(eid, cmd); }
+	bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return PostDraw(eid, cmd); }
+	void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) { PostRedraw(eid, cmd); }
 
 	bool RecordAllCmds()
 	{

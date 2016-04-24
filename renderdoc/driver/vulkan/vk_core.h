@@ -118,6 +118,11 @@ struct DrawcallCallback
 	virtual void PreDraw(uint32_t eid, VkCommandBuffer cmd) = 0;
 	virtual bool PostDraw(uint32_t eid, VkCommandBuffer cmd) = 0;
 	virtual void PostRedraw(uint32_t eid, VkCommandBuffer cmd) = 0;
+	
+	// same principle as above, but for dispatch calls
+	virtual void PreDispatch(uint32_t eid, VkCommandBuffer cmd) = 0;
+	virtual bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) = 0;
+	virtual void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) = 0;
 
 	// should we re-record all command buffers? this needs to be true if the range
 	// being replayed is larger than one command buffer (which usually means the
@@ -186,8 +191,8 @@ private:
 	DrawcallCallback *m_DrawcallCallback;
 
 	// util function to handle fetching the right eventID, calling any
-	// aliases then calling PreDraw.
-	uint32_t HandlePreDraw(VkCommandBuffer commandBuffer);
+	// aliases then calling PreDraw/PreDispatch.
+	uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, bool dispatch = false);
 	
 	uint32_t m_FrameCounter;
 

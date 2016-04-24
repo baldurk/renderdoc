@@ -464,7 +464,7 @@ void WrappedVulkan::FlushQ()
 	}
 }
 
-uint32_t WrappedVulkan::HandlePreDraw(VkCommandBuffer commandBuffer)
+uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, bool dispatch)
 {
 	if(!m_DrawcallCallback) return 0;
 
@@ -485,7 +485,10 @@ uint32_t WrappedVulkan::HandlePreDraw(VkCommandBuffer commandBuffer)
 		++it;
 	}
 
-	m_DrawcallCallback->PreDraw(eventID, commandBuffer);
+	if(dispatch)
+		m_DrawcallCallback->PreDispatch(eventID, commandBuffer);
+	else
+		m_DrawcallCallback->PreDraw(eventID, commandBuffer);
 
 	return eventID;
 }

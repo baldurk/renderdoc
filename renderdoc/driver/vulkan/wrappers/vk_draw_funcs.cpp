@@ -48,7 +48,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 		{
 			commandBuffer = RerecordCmdBuf(cmdid);
 
-			uint32_t eventID = HandlePreDraw(commandBuffer);
+			uint32_t eventID = HandlePreCallback(commandBuffer);
 
 			ObjDisp(commandBuffer)->CmdDraw(Unwrap(commandBuffer), vtxCount, instCount, firstVtx, firstInst);
 
@@ -1078,7 +1078,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 		{
 			commandBuffer = RerecordCmdBuf(cmdid);
 			
-			uint32_t eventID = HandlePreDraw(commandBuffer);
+			uint32_t eventID = HandlePreCallback(commandBuffer);
 
 			ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
 
@@ -1169,7 +1169,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 		{
 			commandBuffer = RerecordCmdBuf(cmdid);
 
-			uint32_t eventID = HandlePreDraw(commandBuffer);
+			uint32_t eventID = HandlePreCallback(commandBuffer);
 			
 			ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
 
@@ -1281,7 +1281,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 		{
 			commandBuffer = RerecordCmdBuf(cmdid);
 
-			uint32_t eventID = HandlePreDraw(commandBuffer);
+			uint32_t eventID = HandlePreCallback(commandBuffer);
 			
 			ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
 
@@ -1387,7 +1387,16 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
 			commandBuffer = RerecordCmdBuf(cmdid);
+
+			uint32_t eventID = HandlePreCallback(commandBuffer, true);
+			
 			ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
+
+			if(eventID && m_DrawcallCallback->PostDispatch(eventID, commandBuffer))
+			{
+				ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
+				m_DrawcallCallback->PostRedispatch(eventID, commandBuffer);
+			}
 		}
 	}
 	else if(m_State == READING)
@@ -1461,7 +1470,16 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
 		{
 			commandBuffer = RerecordCmdBuf(cmdid);
+
+			uint32_t eventID = HandlePreCallback(commandBuffer, true);
+			
 			ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
+
+			if(eventID && m_DrawcallCallback->PostDispatch(eventID, commandBuffer))
+			{
+				ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
+				m_DrawcallCallback->PostRedispatch(eventID, commandBuffer);
+			}
 		}
 	}
 	else if(m_State == READING)
