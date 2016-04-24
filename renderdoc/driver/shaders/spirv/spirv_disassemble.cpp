@@ -1120,6 +1120,7 @@ struct SPVInstruction
 					if(opcode == spv::OpCompositeConstruct &&
 						 op->type->type == SPVTypeData::eVector &&
 						 op->arguments[i]->opcode == spv::OpCompositeExtract &&
+						 op->arguments[i]->op->arguments[0]->op &&
 						 op->type->type == op->arguments[i]->op->arguments[0]->op->type->type)
 					{
 						// we only combine if there are more than one argument that extract
