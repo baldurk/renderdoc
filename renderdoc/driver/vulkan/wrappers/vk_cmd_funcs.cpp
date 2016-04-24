@@ -807,11 +807,17 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(
 	{
 		ResourceId id;
 		if(m_State >= WRITING)
-			id = GetRecord(pCmdBuffers[i])->bakedCommands->GetResourceID();
+		{
+			VkResourceRecord *bakedCommands = GetRecord(pCmdBuffers[i])->bakedCommands;
+			if(bakedCommands)
+				id = bakedCommands->GetResourceID();
+			else
+				RDCERR("Command Buffer %p was not recorded", pCmdBuffers[i]);
+		}
 
 		localSerialiser->Serialise("pCmdBuffers[]", id);
 
-		if(m_State < WRITING)
+		if(m_State < WRITING && id != ResourceId())
 		{
 			cmdids.push_back(id);
 			cmds.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(id)));
@@ -869,11 +875,14 @@ void WrappedVulkan::vkCmdExecuteCommands(
 		for(uint32_t i=0; i < commandBufferCount; i++)
 		{
 			VkResourceRecord *execRecord = GetRecord(pCmdBuffers[i]);
-			record->cmdInfo->dirtied.insert(execRecord->bakedCommands->cmdInfo->dirtied.begin(), execRecord->bakedCommands->cmdInfo->dirtied.end());
-			record->cmdInfo->boundDescSets.insert(execRecord->bakedCommands->cmdInfo->boundDescSets.begin(), execRecord->bakedCommands->cmdInfo->boundDescSets.end());
-			record->cmdInfo->subcmds.push_back(execRecord);
+			if(execRecord->bakedCommands)
+			{
+				record->cmdInfo->dirtied.insert(execRecord->bakedCommands->cmdInfo->dirtied.begin(), execRecord->bakedCommands->cmdInfo->dirtied.end());
+				record->cmdInfo->boundDescSets.insert(execRecord->bakedCommands->cmdInfo->boundDescSets.begin(), execRecord->bakedCommands->cmdInfo->boundDescSets.end());
+				record->cmdInfo->subcmds.push_back(execRecord);
 
-			GetResourceManager()->MergeBarriers(record->cmdInfo->imgbarriers, execRecord->bakedCommands->cmdInfo->imgbarriers);
+				GetResourceManager()->MergeBarriers(record->cmdInfo->imgbarriers, execRecord->bakedCommands->cmdInfo->imgbarriers);
+			}
 		}
 	}
 }
