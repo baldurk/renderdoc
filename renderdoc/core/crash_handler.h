@@ -70,8 +70,6 @@ class CrashHandler : public ICrashHandler
 				wchar_t radpath[MAX_PATH] = {0};
 				GetModuleFileNameW(GetModuleHandleA("renderdoc.dll"), radpath, MAX_PATH-1);
 
-				size_t len = wcslen(radpath);
-
 				wchar_t *slash = wcsrchr(radpath, L'\\');
 
 				if(slash)
@@ -101,7 +99,7 @@ class CrashHandler : public ICrashHandler
 
 				CreateProcessW(NULL, paramsAlloc, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
 
-				DWORD res = WaitForSingleObject(waitEvent, 2000);
+				WaitForSingleObject(waitEvent, 2000);
 
 				CloseHandle(waitEvent);
 			}
