@@ -366,6 +366,56 @@ namespace renderdoc
     };
 
     [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameShaderStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+        public UInt32 redundants;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameBlendStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+        public UInt32 redundants;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameDepthStencilStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+        public UInt32 redundants;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameRasterizationStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+        public UInt32 redundants;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] viewports;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] rects;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameOutputStats
+    {
+        public UInt32 calls;
+        public UInt32 sets;
+        public UInt32 nulls;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt32[] bindslots;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
     public class FetchFrameStatistics
     {
         public UInt32 recorded;
@@ -387,6 +437,16 @@ namespace renderdoc
         public FetchFrameVertexBindStats vertices;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public FetchFrameLayoutBindStats layouts;
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = (int)ShaderStageType.Count)]
+        public FetchFrameShaderStats[] shaders;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameBlendStats blends;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameDepthStencilStats depths;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameRasterizationStats rasters;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FetchFrameOutputStats outputs;
     };
 
 [StructLayout(LayoutKind.Sequential)]
