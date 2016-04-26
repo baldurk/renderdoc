@@ -567,6 +567,147 @@ Serialiser *WrappedVulkan::GetThreadSerialiser()
 	return ser;
 }
 
+static VkResult FillPropertyCountAndList(const VkExtensionProperties *src, uint32_t numExts, uint32_t *dstCount, VkExtensionProperties *dstProps)
+{
+	if(dstCount && !dstProps)
+	{
+		// just returning the number of extensions
+		*dstCount = numExts;
+		return VK_SUCCESS;
+	}
+	else if(dstCount && dstProps)
+	{
+		uint32_t dstSpace = *dstCount;
+
+		// copy as much as there's space for, up to how many there are
+		memcpy(dstProps, src, sizeof(VkExtensionProperties)*RDCMIN(numExts, dstSpace));
+
+		// if there was enough space, return success, else incomplete
+		if(dstSpace >= numExts)
+			return VK_SUCCESS;
+		else
+			return VK_INCOMPLETE;
+	}
+
+	// both parameters were NULL, return incomplete
+	return VK_INCOMPLETE;
+}
+
+bool operator <(const VkExtensionProperties &a, const VkExtensionProperties &b)
+{
+	// assume a given extension name is unique, ie. an implementation won't report the
+	// same extension with two different spec versions.
+	return strcmp(a.extensionName, b.extensionName) < 0;
+}
+
+VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev, uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
+{
+	VkResult vkr;
+
+	// first fetch the list of extensions ourselves
+	uint32_t numExts;
+	vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), NULL, &numExts, NULL);
+
+	if(vkr != VK_SUCCESS)
+		return vkr;
+
+	vector<VkExtensionProperties> exts(numExts);
+	vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), NULL, &numExts, &exts[0]);
+	
+	if(vkr != VK_SUCCESS)
+		return vkr;
+
+	// filter the list of extensions to only the ones we support. Note it's important that
+	// this list is kept sorted according to the above sort operator!
+	const VkExtensionProperties supportedExtensions[] = {
+		{
+			VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+			VK_EXT_DEBUG_REPORT_SPEC_VERSION,
+		},
+		{
+			VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
+			VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION,
+		},
+		{
+			VK_KHR_SURFACE_EXTENSION_NAME,
+			VK_KHR_SURFACE_SPEC_VERSION,
+		},
+		{
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+			VK_KHR_SWAPCHAIN_SPEC_VERSION,
+		},
+#ifdef VK_KHR_win32_surface
+		{
+			VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+			VK_KHR_WIN32_SURFACE_SPEC_VERSION,
+		},
+#endif
+#ifdef VK_KHR_xcb_surface
+		{
+			VK_KHR_XCB_SURFACE_EXTENSION_NAME,
+			VK_KHR_XCB_SURFACE_SPEC_VERSION,
+		},
+#endif
+#ifdef VK_KHR_xlib_surface
+		{
+			VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
+			VK_KHR_XLIB_SURFACE_SPEC_VERSION,
+		},
+#endif
+	};
+
+	// sort the reported extensions
+	std::sort(exts.begin(), exts.end());
+
+	std::vector<VkExtensionProperties> filtered;
+	filtered.reserve(exts.size());
+
+	// now we can step through both lists with two pointers,
+	// instead of doing an O(N*M) lookup searching through each
+	// supported extension for each reported extension.
+	size_t i = 0;
+	for(auto it=exts.begin(); it != exts.end() && i < ARRAY_COUNT(supportedExtensions); )
+	{
+		int nameCompare = strcmp(it->extensionName, supportedExtensions[i].extensionName);
+		// if neither is less than the other, the extensions are equal
+		if(nameCompare == 0)
+		{
+			// warn on spec version mismatch, but allow it.
+			if(supportedExtensions[i].specVersion != it->specVersion)
+				RDCWARN("Spec versions are different between supported extension (%d) and reported (%d)!", supportedExtensions[i].specVersion, it->specVersion);
+
+			filtered.push_back(*it);
+			++it;
+			++i;
+		}
+		else if(nameCompare < 0)
+		{
+			// reported extension was less. It's not supported - skip past it and continue
+			++it;
+		}
+		else if(nameCompare > 0)
+		{
+			// supported extension was less. Check the next supported extension
+			++i;
+		}
+	}
+
+	return FillPropertyCountAndList(&filtered[0], (uint32_t)filtered.size(), pPropertyCount, pProperties);
+}
+
+VkResult WrappedVulkan::GetProvidedExtensionProperties(uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
+{
+	// this is the list of extensions we provide - regardless of whether the ICD supports them
+	const VkExtensionProperties providedExtensions[] = {
+		{
+			DEBUG_MARKER_EXTENSION_NAME,
+			VK_DEBUG_MARKER_EXTENSION_REVISION
+		},
+	};
+
+	return FillPropertyCountAndList(providedExtensions, (uint32_t)ARRAY_COUNT(providedExtensions), pPropertyCount, pProperties);
+}
+
 void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 {
 	uint32_t FrameNumber = m_FrameCounter;

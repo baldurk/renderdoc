@@ -120,51 +120,6 @@ void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance, const VkAllocation
 
 // Layer Intercepts
 
-static const VkLayerProperties physLayers[] = {
-	{
-		RENDERDOC_LAYER_NAME,
-		VK_API_VERSION,
-		VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
-		"Debugging capture layer for RenderDoc",
-	}
-};
-
-static const VkExtensionProperties physExts[] = {
-	{
-		DEBUG_MARKER_EXTENSION_NAME,
-		VK_MAKE_VERSION(0, 1, 0),
-	}
-};
-
-static const VkLayerProperties globalLayers[] = {
-	{
-		RENDERDOC_LAYER_NAME,
-		VK_API_VERSION,
-		VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
-		"Debugging capture layer for RenderDoc",
-	}
-};
-
-VkResult getProps(uint32_t *dstCount, void *dstProps, uint32_t srcCount, void *srcProps, size_t elemSize)
-{
-	if(dstCount == NULL)
-		return VK_RESULT_MAX_ENUM;
-
-	if(dstProps == NULL)
-	{
-		*dstCount = srcCount;
-		return VK_SUCCESS;
-	}
-
-	memcpy(dstProps, srcProps, elemSize*RDCMIN(srcCount, *dstCount));
-	if(*dstCount < srcCount)
-		return VK_INCOMPLETE;
-
-	*dstCount = srcCount;
-
-	return VK_SUCCESS;
-}
-
 #if defined(RENDERDOC_PLATFORM_WIN32) && !defined(RDC64BIT)
 
 // Win32 __stdcall will still mangle even with extern "C", set up aliases
@@ -183,7 +138,34 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLay
 	uint32_t*                                   pPropertyCount,
 	VkLayerProperties*                          pProperties)
 {
-	return getProps(pPropertyCount, pProperties, ARRAY_COUNT(physLayers), (void *)physLayers, sizeof(VkLayerProperties));
+	// must have a property count, either to fill out or use as a size
+	if(pPropertyCount == NULL)
+		return VK_INCOMPLETE;
+
+	// if we're not writing the properties, just say we have one layer
+	if(pProperties == NULL)
+	{
+		*pPropertyCount = 1;
+		return VK_SUCCESS;
+	}
+	else
+	{
+		// if the property count is somehow zero, return incomplete
+		if(*pPropertyCount == 0)
+			return VK_INCOMPLETE;
+
+		const VkLayerProperties layerProperties = {
+			RENDERDOC_LAYER_NAME,
+			VK_API_VERSION_1_0,
+			VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
+			"Debugging capture layer for RenderDoc",
+		};
+
+		// set the one layer property
+		*pProperties = layerProperties;
+
+		return VK_SUCCESS;
+	}
 }
 
 VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties(
@@ -195,9 +177,9 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExt
 	// if pLayerName is NULL we're calling down through the layer chain to the ICD.
 	// This is our chance to filter out any reported extensions that we don't support
 	if(pLayerName == NULL)
-		return ObjDisp(physicalDevice)->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), pLayerName, pPropertyCount, pProperties);
+		return CoreDisp(physicalDevice)->FilterDeviceExtensionProperties(physicalDevice, pPropertyCount, pProperties);
 
-	return getProps(pPropertyCount, pProperties, ARRAY_COUNT(physExts), (void *)physExts, sizeof(VkExtensionProperties));
+	return CoreDisp(physicalDevice)->GetProvidedExtensionProperties(pPropertyCount, pProperties);
 }
 
 #undef HookInit
