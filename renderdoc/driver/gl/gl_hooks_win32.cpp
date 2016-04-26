@@ -520,7 +520,10 @@ class OpenGLHook : LibraryHook
 
 			// don't continue if creation failed
 			if(ret == NULL)
+			{
+				glhooks.m_CreatingContext = false;
 				return ret;
+			}
 
 			GLWindowingData data;
 			data.DC = dc;
