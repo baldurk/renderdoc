@@ -532,18 +532,25 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(pMemRanges->memory));
+
+	VkDeviceSize memRangeSize = 1;
 	
 	MemMapState *state = NULL;
 	if(m_State >= WRITING)
 	{
-		state = GetRecord(pMemRanges->memory)->memMapState;
+		VkResourceRecord *record = GetRecord(pMemRanges->memory);
+		state = record->memMapState;
+
+		memRangeSize = pMemRanges->size;
+		if(memRangeSize == VK_WHOLE_SIZE)
+			memRangeSize = record->Length - pMemRanges->offset;
 	
 		// don't support any extensions on VkMappedMemoryRange
 		RDCASSERT(pMemRanges->pNext == NULL);
 	}
 
 	SERIALISE_ELEMENT(uint64_t, memOffset, pMemRanges->offset);
-	SERIALISE_ELEMENT(uint64_t, memSize, pMemRanges->size);
+	SERIALISE_ELEMENT(uint64_t, memSize, memRangeSize);
 	SERIALISE_ELEMENT_BUF(byte*, data, state->mappedPtr + (size_t)memOffset, (size_t)memSize);
 
 	// if we need to save off this serialised buffer as reference for future comparison,
