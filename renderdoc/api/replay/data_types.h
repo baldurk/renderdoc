@@ -229,6 +229,48 @@ struct FetchFrameLayoutBindStats
 	uint32_t nulls;
 };
 
+struct FetchFrameShaderStats
+{
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+	uint32_t redundants;
+};
+
+struct FetchFrameBlendStats
+{
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+	uint32_t redundants;
+};
+
+struct FetchFrameDepthStencilStats
+{
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+	uint32_t redundants;
+};
+
+struct FetchFrameRasterizationStats
+{
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+	uint32_t redundants;
+	rdctype::array<uint32_t> viewports;
+	rdctype::array<uint32_t> rects;
+};
+
+struct FetchFrameOutputStats
+{
+	uint32_t calls;
+	uint32_t sets;
+	uint32_t nulls;
+	rdctype::array<uint32_t> bindslots;
+};
+
 struct FetchFrameStatistics
 {
 	uint32_t recorded;
@@ -241,6 +283,11 @@ struct FetchFrameStatistics
 	FetchFrameIndexBindStats indices;
 	FetchFrameVertexBindStats vertices;
 	FetchFrameLayoutBindStats layouts;
+	FetchFrameShaderStats shaders[eShaderStage_Count];
+	FetchFrameBlendStats blends;
+	FetchFrameDepthStencilStats depths;
+	FetchFrameRasterizationStats rasters;
+	FetchFrameOutputStats outputs;
 };
 
 struct FetchFrameInfo

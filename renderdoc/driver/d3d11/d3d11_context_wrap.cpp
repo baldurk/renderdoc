@@ -834,6 +834,10 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShader(ID3D11VertexShader *pShad
 		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
 			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+
+		if(m_State == READING)
+			RecordShaderStats(eShaderStage_Vertex, m_CurrentPipelineState->VS.Shader, pSH);
+
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->VS.Shader, pSH);
 		m_pRealContext->VSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11VertexShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
@@ -1205,6 +1209,10 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShader(ID3D11HullShader *pShader
 		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
 			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+
+		if(m_State == READING)
+			RecordShaderStats(eShaderStage_Hull, m_CurrentPipelineState->HS.Shader, pSH);
+
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->HS.Shader, pSH);
 		m_pRealContext->HSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11HullShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
@@ -1575,6 +1583,10 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShader(ID3D11DomainShader *pShad
 		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
 			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+
+		if(m_State == READING)
+			RecordShaderStats(eShaderStage_Domain, m_CurrentPipelineState->DS.Shader, pSH);
+
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->DS.Shader, pSH);
 		m_pRealContext->DSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11DomainShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
@@ -1945,6 +1957,10 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShader(ID3D11GeometryShader *pSh
 		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
 			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+
+		if(m_State == READING)
+			RecordShaderStats(eShaderStage_Geometry, m_CurrentPipelineState->GS.Shader, pSH);
+
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->GS.Shader, pSH);
 		m_pRealContext->GSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11GeometryShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
@@ -2268,6 +2284,9 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetViewports(UINT NumViewports_, co
 	
 	if(m_State <= EXECUTING)
 	{
+		if(m_State == READING)
+			RecordViewportStats(NumViewports, views);
+
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->RS.Viewports, views, 0, NumViewports);
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->RS.NumViews, NumViewports);
 		m_pRealContext->RSSetViewports(NumViewports, views);
@@ -2305,6 +2324,9 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetScissorRects(UINT NumRects_, con
 	
 	if(m_State <= EXECUTING)
 	{
+		if(m_State == READING)
+			RecordScissorStats(NumRects, Rects);
+
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->RS.Scissors, Rects, 0, NumRects);
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->RS.NumScissors, NumRects);
 		RSSetScissorRects(NumRects, Rects);
@@ -2346,6 +2368,9 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetState(ID3D11RasterizerState *pRa
 		ID3D11DeviceChild *live = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(id))
 			live = m_pDevice->GetResourceManager()->GetLiveResource(id);
+
+		if(m_State == READING)
+			RecordRasterizationStats((ID3D11RasterizerState*)live);
 
 		if(WrappedID3D11RasterizerState1::IsAlloc(live))
 		{
@@ -2713,6 +2738,10 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShader(ID3D11PixelShader *pShade
 		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
 			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+
+		if(m_State == READING)
+			RecordShaderStats(eShaderStage_Pixel, m_CurrentPipelineState->PS.Shader, pSH);
+
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->PS.Shader, pSH);
 		m_pRealContext->PSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
@@ -2941,6 +2970,9 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargets(UINT NumViews_, ID
 		for(UINT i=0; i < NumViews; i++)
 			RenderTargetViews[i] = UNWRAP(WrappedID3D11RenderTargetView, RenderTargetViews[i]);
 
+		if(m_State == READING)
+			RecordOutputMergerStats(NumViews, RenderTargetViews, pDepthStencilView, 0, 0, NULL);
+
 		m_pRealContext->OMSetRenderTargets(NumViews, RenderTargetViews,
 												UNWRAP(WrappedID3D11DepthStencilView, pDepthStencilView));
 		VerifyState();
@@ -3124,6 +3156,9 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargetsAndUnorderedAccessV
 		else
 			pDepthStencilView = NULL;
 
+		if(m_State == READING)
+			RecordOutputMergerStats(NumRTVs, RenderTargetViews, pDepthStencilView, UAVStartSlot, NumUAVs, UnorderedAccessViews);
+
 		m_pRealContext->OMSetRenderTargetsAndUnorderedAccessViews(NumRTVs, RenderTargetViews,
 												pDepthStencilView,
 												UAVStartSlot, NumUAVs, UnorderedAccessViews, UAVInitialCounts);
@@ -3299,6 +3334,9 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(ID3D11BlendState *pBl
 		if(m_pDevice->GetResourceManager()->HasLiveResource(State))
 			live = m_pDevice->GetResourceManager()->GetLiveResource(State);
 
+		if(m_State == READING)
+			RecordBlendStats((ID3D11BlendState*)live, BlendFactor, SampleMask);
+
 		if(WrappedID3D11BlendState1::IsAlloc(live))
 		{
 			ID3D11BlendState1 *state = (ID3D11BlendState1 *)live;
@@ -3361,6 +3399,10 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetDepthStencilState(ID3D11DepthSte
 		pDepthStencilState = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(State))
 			pDepthStencilState = (ID3D11DepthStencilState *)m_pDevice->GetResourceManager()->GetLiveResource(State);
+
+		if(m_State == READING)
+			RecordDepthStencilStats(pDepthStencilState, StencilRef);
+
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->OM.DepthStencilState, pDepthStencilState);
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.StencRef, StencilRef&0xff);
 		m_pRealContext->OMSetDepthStencilState(UNWRAP(WrappedID3D11DepthStencilState, pDepthStencilState), StencilRef);
@@ -4208,6 +4250,9 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShaderResources(UINT StartSlot_,
 		for(UINT i=0; i < NumViews; i++)
 			Views[i] = UNWRAP(WrappedID3D11ShaderResourceView, Views[i]);
 
+		if(m_State == READING)
+			RecordResourceStats(eShaderStage_Compute, NumViews, Views);
+
 		m_pRealContext->CSSetShaderResources(StartSlot, NumViews, Views);
 		VerifyState();
 	}
@@ -4278,6 +4323,10 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetUnorderedAccessViews(UINT StartS
 
 		for(UINT i=0; i < NumUAVs; i++)
 			UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView, UAVs[i]);
+
+		// #mivance this isn't strictly correct...
+		if(m_State == READING)
+			RecordOutputMergerStats(0, NULL, NULL, StartSlot, NumUAVs, UAVs);
 
 		m_pRealContext->CSSetUnorderedAccessViews(StartSlot, NumUAVs, UAVs, UAVInitialCounts);
 		VerifyState();
@@ -4413,6 +4462,10 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShader(ID3D11ComputeShader *pSha
 		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
 			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+
+		if(m_State == READING)
+			RecordShaderStats(eShaderStage_Compute, m_CurrentPipelineState->CS.Shader, pSH);
+
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->CS.Shader, pSH);
 		m_pRealContext->CSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11ComputeShader>, pSH), Instances, NumClassInstances);
 		VerifyState();

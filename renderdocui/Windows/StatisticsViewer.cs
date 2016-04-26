@@ -100,7 +100,7 @@ namespace renderdocui.Windows
 
             if (totalUpdates.instanced > 0)
             {
-                statisticsLog.AppendText("\nHistogram of instance counts:\n");
+                statisticsLog.AppendText("\nInstance counts:\n");
                 UInt32 maxCount = 0;
                 int maxWithValue = 0;
                 int maximum = totalUpdates.counts.Length;
@@ -135,6 +135,31 @@ namespace renderdocui.Windows
             statisticsLog.AppendText("\n*** Dispatch Statistics ***\n\n");
 
             statisticsLog.AppendText(String.Format("Total calls: {0}, indirect: {1}\n", totalUpdates.calls, totalUpdates.indirect));
+        }
+
+        private string CreateSimpleIntegerHistogram(string legend, UInt32[] array)
+        {
+            UInt32 maxCount = 0;
+            int maxWithValue = 0;
+
+            for (var o = 0; o < array.Length; o++)
+            {
+                UInt32 value = array[o];
+                if (value > 0)
+                    maxWithValue = o;
+                maxCount = Math.Max(maxCount, value);
+            }
+
+            string text = String.Format("\n{0}:\n", legend);
+
+            for (var o = 0; o <= maxWithValue; o++)
+            {
+                UInt32 count = array[o];
+                int slice = SliceForString(Stars, count, maxCount);
+                text += String.Format("{0,4}: {1} {2}\n", o, Stars.Substring(0, slice), CountOrEmpty(count));
+            }
+
+            return text;
         }
 
         private void AppendInputAssemblerStatistics(FetchFrameInfo frameInfo)
@@ -184,23 +209,32 @@ namespace renderdocui.Windows
             statisticsLog.AppendText(String.Format("Total layout calls: {0}, non-null layout sets: {1}, null layout sets: {2}\n", totalLayoutStats.calls, totalLayoutStats.sets, totalLayoutStats.nulls));
             statisticsLog.AppendText(String.Format("Total vertex calls: {0}, non-null vertex sets: {1}, null vertex sets: {2}\n", totalVertexStats.calls, totalVertexStats.sets, totalVertexStats.nulls));
 
-            statisticsLog.AppendText("\nHistogram of aggregate vertex slot counts per invocation:\n");
-            UInt32 maxCount = 0;
-            int maxWithValue = 0;
-            for (var s = 1; s < totalVertexStats.bindslots.Length; s++)
+            statisticsLog.AppendText(CreateSimpleIntegerHistogram("Aggregate vertex slot counts per invocation", totalVertexStats.bindslots));
+        }
+
+        private void AppendShaderStatistics(FetchFrameInfo frameInfo)
+        {
+            FetchFrameShaderStats[] shaders = frameInfo.stats.shaders;
+            FetchFrameShaderStats totalShadersPerStage = new FetchFrameShaderStats();
+            for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
             {
-                UInt32 value = totalVertexStats.bindslots[s];
-                if (value > 0)
-                    maxWithValue = s;
-                maxCount = Math.Max(maxCount, value);
+                totalShadersPerStage.calls += shaders[s].calls;
+                totalShadersPerStage.sets += shaders[s].sets;
+                totalShadersPerStage.nulls += shaders[s].nulls;
+                totalShadersPerStage.redundants += shaders[s].redundants;
             }
 
-            for (var s = 1; s <= maxWithValue; s++)
+            statisticsLog.AppendText("\n*** Shader Set Statistics ***\n\n");
+
+            for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
             {
-                UInt32 count = totalVertexStats.bindslots[s];
-                int slice = SliceForString(Stars, count, maxCount);
-                statisticsLog.AppendText(String.Format("{0,2}: {1} {2}\n", s, Stars.Substring(0, slice), CountOrEmpty(count)));
+                statisticsLog.AppendText(String.Format("{0} calls: {1}, non-null shader sets: {2}, null shader sets: {3}, redundant shader sets: {4}\n",
+                                         m_Core.CurPipelineState.Abbrev((ShaderStageType)s), shaders[s].calls,
+                                         shaders[s].sets, shaders[s].nulls, shaders[s].redundants));
             }
+
+            statisticsLog.AppendText(String.Format("Total calls: {0}, non-null shader sets: {1}, null shader sets: {2}, reundant shader sets: {3}\n",
+                                     totalShadersPerStage.calls, totalShadersPerStage.sets, totalShadersPerStage.nulls, totalShadersPerStage.redundants));
         }
 
         private void AppendConstantBindStatistics(FetchFrameInfo frameInfo)
@@ -276,27 +310,11 @@ namespace renderdocui.Windows
             statisticsLog.AppendText(String.Format("Total calls: {0}, non-null buffer sets: {1}, null buffer sets: {2}\n",
                                      totalConstantsForAllStages.calls, totalConstantsForAllStages.sets, totalConstantsForAllStages.nulls));
 
-            statisticsLog.AppendText("\nHistogram of aggregate slot counts per invocation across all stages:\n");
+            statisticsLog.AppendText(CreateSimpleIntegerHistogram("Aggregate slot counts per invocation across all stages", totalConstantsForAllStages.bindslots));
+
+            statisticsLog.AppendText("\nAggregate constant buffer sizes across all stages:\n");
             UInt32 maxCount = 0;
             int maxWithValue = 0;
-            for (var s = 1; s < totalConstantsForAllStages.bindslots.Length; s++)
-            {
-                UInt32 value = totalConstantsForAllStages.bindslots[s];
-                if (value > 0)
-                    maxWithValue = s;
-                maxCount = Math.Max(maxCount, value);
-            }
-
-            for (var s = 1; s <= maxWithValue; s++)
-            {
-                UInt32 count = totalConstantsForAllStages.bindslots[s];
-                int slice = SliceForString(Stars, count, maxCount);
-                statisticsLog.AppendText(String.Format("{0,2}: {1} {2}\n", s, Stars.Substring(0, slice), CountOrEmpty(count)));
-            }
-
-            statisticsLog.AppendText("\nHistogram of aggregate constant buffer sizes across all stages:\n");
-            maxCount = 0;
-            maxWithValue = 0;
             for (var s = 0; s < totalConstantsForAllStages.sizes.Length; s++)
             {
                 UInt32 value = totalConstantsForAllStages.sizes[s];
@@ -368,23 +386,7 @@ namespace renderdocui.Windows
             statisticsLog.AppendText(String.Format("Total calls: {0}, non-null sampler sets: {1}, null sampler sets: {2}\n",
                                      totalSamplersForAllStages.calls, totalSamplersForAllStages.sets, totalSamplersForAllStages.nulls));
 
-            statisticsLog.AppendText("\nHistogram of aggregate slot counts per invocation across all stages:\n");
-            UInt32 maxCount = 0;
-            int maxWithValue = 0;
-            for (var s = 1; s < totalSamplersForAllStages.bindslots.Length; s++)
-            {
-                UInt32 value = totalSamplersForAllStages.bindslots[s];
-                if (value > 0)
-                    maxWithValue = s;
-                maxCount = Math.Max(maxCount, value);
-            }
-
-            for (var s = 1; s <= maxWithValue; s++)
-            {
-                UInt32 count = totalSamplersForAllStages.bindslots[s];
-                int slice = SliceForString(Stars, count, maxCount);
-                statisticsLog.AppendText(String.Format("{0,2}: {1} {2}\n", s, Stars.Substring(0, slice), CountOrEmpty(count)));
-            }
+            statisticsLog.AppendText(CreateSimpleIntegerHistogram("Aggregate slot counts per invocation across all stages", totalSamplersForAllStages.bindslots));
         }
 
         private void AppendResourceBindStatistics(FetchFrameInfo frameInfo)
@@ -458,7 +460,7 @@ namespace renderdocui.Windows
             UInt32 maxCount = 0;
             int maxWithCount = 0;
 
-            statisticsLog.AppendText("\nHistogram of resource types across all stages:\n");
+            statisticsLog.AppendText("\nResource types across all stages:\n");
             for (var s = 0; s < totalResourcesForAllStages.types.Length; s++)
             {
                 UInt32 count = totalResourcesForAllStages.types[s];
@@ -475,24 +477,7 @@ namespace renderdocui.Windows
                 statisticsLog.AppendText(String.Format("{0,16}: {1} {2}\n", type.ToString(), Stars.Substring(0, slice), CountOrEmpty(count)));
             }
 
-            maxCount = 0;
-            maxWithCount = 0;
-
-            statisticsLog.AppendText("\nHistogram of aggregate slot counts per invocation across all stages:\n");
-            for (var s = 1; s < totalResourcesForAllStages.bindslots.Length; s++)
-            {
-                UInt32 count = totalResourcesForAllStages.bindslots[s];
-                if (count > 0)
-                    maxWithCount = s;
-                maxCount = Math.Max(maxCount, count);
-            }
-
-            for (var s = 1; s <= maxWithCount; s++)
-            {
-                UInt32 count = totalResourcesForAllStages.bindslots[s];
-                int slice = SliceForString(Stars, count, maxCount);
-                statisticsLog.AppendText(String.Format("{0,3}: {1} {2}\n", s, Stars.Substring(0, slice), CountOrEmpty(count)));
-            }
+            statisticsLog.AppendText(CreateSimpleIntegerHistogram("Aggregate slot counts per invocation across all stages", totalResourcesForAllStages.bindslots));
         }
 
         private void AppendUpdateStatistics(FetchFrameInfo frameInfo)
@@ -524,7 +509,7 @@ namespace renderdocui.Windows
 
             statisticsLog.AppendText(String.Format("Total calls: {0}, client-updated memory: {1}, server-updated memory: {2}\n", totalUpdates.calls, totalUpdates.clients, totalUpdates.servers));
 
-            statisticsLog.AppendText("\nHistogram of updated resource type:\n");
+            statisticsLog.AppendText("\nUpdated resource types:\n");
             UInt32 maxCount = 0;
             int maxWithValue = 0;
             for (var s = 1; s < totalUpdates.types.Length; s++)
@@ -543,7 +528,7 @@ namespace renderdocui.Windows
                 statisticsLog.AppendText(String.Format("{0,16}: {1} {2}\n", type.ToString(), Stars.Substring(0, slice), CountOrEmpty(count)));
             }
 
-            statisticsLog.AppendText("\nHistogram of updated resource size:\n");
+            statisticsLog.AppendText("\nUpdated resource sizes:\n");
             maxCount = 0;
             maxWithValue = 0;
             for (var s = 0; s < totalUpdates.sizes.Length; s++)
@@ -562,15 +547,54 @@ namespace renderdocui.Windows
             }
         }
 
+        private void AppendBlendStatistics(FetchFrameInfo frameInfo)
+        {
+            FetchFrameBlendStats blends = frameInfo.stats.blends;
+            statisticsLog.AppendText("\n*** Blend Statistics ***\n");
+            statisticsLog.AppendText(String.Format("Blend calls: {0} non-null sets: {1} null (default) sets: {2} redundant sets: {3}\n", blends.calls, blends.sets, blends.nulls, blends.redundants));
+        }
+
+        private void AppendDepthStencilStatistics(FetchFrameInfo frameInfo)
+        {
+            FetchFrameDepthStencilStats depths = frameInfo.stats.depths;
+            statisticsLog.AppendText("\n*** Depth Stencil Statistics ***\n");
+            statisticsLog.AppendText(String.Format("Depth/stencil calls: {0} non-null sets: {1}, null (default) sets: {2}, redundant sets: {3}\n", depths.calls, depths.sets, depths.nulls, depths.redundants));
+        }
+
+        private void AppendRasterizationStatistics(FetchFrameInfo frameInfo)
+        {
+            FetchFrameRasterizationStats rasters = frameInfo.stats.rasters;
+            statisticsLog.AppendText("\n*** Rasterization Statistics ***\n");
+            statisticsLog.AppendText(String.Format("Rasterization calls: {0} non-null sets: {1}, null (default) sets: {2}, redundant sets: {3}\n", rasters.calls, rasters.sets, rasters.nulls, rasters.redundants));
+            statisticsLog.AppendText(CreateSimpleIntegerHistogram("Viewports set", rasters.viewports));
+            statisticsLog.AppendText(CreateSimpleIntegerHistogram("Scissors set", rasters.rects));
+        }
+
+        private void AppendOutputStatistics(FetchFrameInfo frameInfo)
+        {
+            FetchFrameOutputStats outputs = frameInfo.stats.outputs;
+            statisticsLog.AppendText("\n*** Output Statistics ***\n");
+            statisticsLog.AppendText(String.Format("Output calls: {0} non-null sets: {1}, null sets: {2}\n", outputs.calls, outputs.sets, outputs.nulls));
+            statisticsLog.AppendText(CreateSimpleIntegerHistogram("Outputs set", outputs.bindslots));
+        }
+
         private void AppendDetailedInformation(FetchFrameInfo frameInfo)
         {
+            if (frameInfo.stats.recorded == 0)
+                return;
+
             AppendDrawStatistics(frameInfo);
             AppendDispatchStatistics(frameInfo);
             AppendInputAssemblerStatistics(frameInfo);
+            AppendShaderStatistics(frameInfo);
             AppendConstantBindStatistics(frameInfo);
             AppendSamplerBindStatistics(frameInfo);
             AppendResourceBindStatistics(frameInfo);
+            AppendBlendStatistics(frameInfo);
+            AppendDepthStencilStatistics(frameInfo);
+            AppendRasterizationStatistics(frameInfo);
             AppendUpdateStatistics(frameInfo);
+            AppendOutputStatistics(frameInfo);
         }
 
         private void CountContributingEvents(FetchDrawcall draw, ref uint drawCount, ref uint dispatchCount, ref uint diagnosticCount)
@@ -594,6 +618,48 @@ namespace renderdocui.Windows
             }
         }
 
+        public string AppendAPICallSummary(FetchFrameInfo frameInfo, uint numAPICalls)
+        {
+            if (frameInfo.stats.recorded == 0)
+                return "";
+
+            uint numConstantSets = 0;
+            uint numSamplerSets = 0;
+            uint numResourceSets = 0;
+            uint numShaderSets = 0;
+
+            for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
+            {
+                numConstantSets += frameInfo.stats.constants[s].calls;
+                numSamplerSets += frameInfo.stats.samplers[s].calls;
+                numResourceSets += frameInfo.stats.resources[s].calls;
+                numShaderSets += frameInfo.stats.shaders[s].calls;
+            }
+
+            uint numResourceUpdates = frameInfo.stats.updates.calls;
+            uint numIndexVertexSets = (frameInfo.stats.indices.calls + frameInfo.stats.vertices.calls + frameInfo.stats.layouts.calls);
+            uint numDraws = frameInfo.stats.draws.calls;
+            uint numDispatches = frameInfo.stats.dispatches.calls;
+            uint numBlendSets = frameInfo.stats.blends.calls;
+            uint numDepthStencilSets = frameInfo.stats.depths.calls;
+            uint numRasterizationSets = frameInfo.stats.rasters.calls;
+            uint numOutputSets = frameInfo.stats.outputs.calls;
+
+            string calls = "";
+            calls += String.Format("API calls: {0}\n", numAPICalls);
+            calls += String.Format("\tIndex/vertex bind calls: {0}\n", numIndexVertexSets);
+            calls += String.Format("\tConstant bind calls: {0}\n", numConstantSets);
+            calls += String.Format("\tSampler bind calls: {0}\n", numSamplerSets);
+            calls += String.Format("\tResource bind calls: {0}\n", numResourceSets);
+            calls += String.Format("\tShader set calls: {0}\n", numShaderSets);
+            calls += String.Format("\tBlend set calls: {0}\n", numBlendSets);
+            calls += String.Format("\tDepth/stencil set calls: {0}\n", numDepthStencilSets);
+            calls += String.Format("\tRasterization set calls: {0}\n", numRasterizationSets);
+            calls += String.Format("\tResource update calls: {0}\n", numResourceUpdates);
+            calls += String.Format("\tOutput set calls: {0}\n", numOutputSets);
+            return calls;
+        }
+
         public void OnLogfileLoaded()
         {
             statisticsLog.Clear();
@@ -610,40 +676,7 @@ namespace renderdocui.Windows
             foreach (var d in m_Core.CurDrawcalls)
                 CountContributingEvents(d, ref drawCount, ref dispatchCount, ref diagnosticCount);
 
-            uint numAPIcalls = lastDraw.eventID - diagnosticCount;
-
-            // #mivance only recording this for comparison vis a vis draw call
-            // iteration, we want to preserve the old stats data for the
-            // backends which aren't recording statistics
-            bool statsRecorded = false;
-            uint numDraws = 0;
-            uint numDispatches = 0;
-            uint numIndexVertexSets = 0;
-            uint numConstantSets = 0;
-            uint numSamplerSets = 0;
-            uint numResourceSets = 0;
-            uint numResourceUpdates = 0;
-
-            FetchFrameInfo frameInfo = m_Core.FrameInfo;
-
-            {
-                if (frameInfo.stats.recorded != 0)
-                {
-                    statsRecorded = true;
-
-                    for (var s = (int)ShaderStageType.First; s < (int)ShaderStageType.Count; s++)
-                    {
-                        numConstantSets += frameInfo.stats.constants[s].calls;
-                        numSamplerSets += frameInfo.stats.samplers[s].calls;
-                        numResourceSets += frameInfo.stats.resources[s].calls;
-                    }
-
-                    numResourceUpdates += frameInfo.stats.updates.calls;
-                    numIndexVertexSets += (frameInfo.stats.indices.calls + frameInfo.stats.vertices.calls + frameInfo.stats.layouts.calls);
-                    numDraws += frameInfo.stats.draws.calls;
-                    numDispatches += frameInfo.stats.dispatches.calls;
-                }
-            }
+            uint numAPIcalls = lastDraw.eventID - (drawCount + dispatchCount + diagnosticCount);
 
             int numTextures = m_Core.CurTextures.Length;
             int numBuffers = m_Core.CurBuffers.Length;
@@ -702,6 +735,8 @@ namespace renderdocui.Windows
             largeTexW /= largeTexCount;
             largeTexH /= largeTexCount;
 
+            FetchFrameInfo frameInfo = m_Core.FrameInfo;
+
             UInt64 persistentData = frameInfo.persistentSize;
 
             float compressedMB = (float)fileSize / (1024.0f * 1024.0f);
@@ -714,9 +749,8 @@ namespace renderdocui.Windows
                               Path.GetFileName(m_Core.LogFileName), compressedMB, uncompressedMB, compressRatio, persistentMB, initDataMB);
             string draws = String.Format("Draw calls: {0}\nDispatch calls: {1}\n",
                               drawCount, dispatchCount);
-            string calls = statsRecorded ? String.Format("API calls: {0}\n\tIndex/vertex bind calls: {1}\n\tConstant bind calls: {2}\n\tSampler bind calls: {3}\n\tResource bind calls: {4}\n\tResource update calls: {5}\n",
-                              numAPIcalls, numIndexVertexSets, numConstantSets, numSamplerSets, numResourceSets, numResourceUpdates) : "";
-            string ratio = String.Format("API:Draw call ratio: {0}\n\n", (float)numAPIcalls / (float)drawCount);
+            string calls = AppendAPICallSummary(frameInfo, numAPIcalls);
+            string ratio = String.Format("API:Draw/Dispatch call ratio: {0}\n\n", (float)numAPIcalls / (float)(drawCount + dispatchCount));
             string textures = String.Format("{0} Textures - {1:N2} MB ({2:N2} MB over 32x32), {3} RTs - {4:N2} MB.\nAvg. tex dimension: {5}x{6} ({7}x{8} over 32x32)\n",
                               numTextures, (float)TexBytes / (1024.0f * 1024.0f), (float)LargeTexBytes / (1024.0f * 1024.0f),
                               numRTs, (float)RTBytes / (1024.0f * 1024.0f),
@@ -735,8 +769,7 @@ namespace renderdocui.Windows
             statisticsLog.AppendText(buffers);
             statisticsLog.AppendText(load);
 
-            if (statsRecorded)
-                AppendDetailedInformation(frameInfo);
+            AppendDetailedInformation(frameInfo);
 
             statisticsLog.Select(0, 0);
         }

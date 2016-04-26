@@ -1390,8 +1390,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID rii
 
 void WrappedID3D11DeviceContext::RecordIndexBindStats(ID3D11Buffer* Buffer)
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
-	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
 	FetchFrameIndexBindStats& indices = stats.indices;
 	indices.calls += 1;
 	indices.sets += (Buffer != NULL);
@@ -1400,8 +1399,7 @@ void WrappedID3D11DeviceContext::RecordIndexBindStats(ID3D11Buffer* Buffer)
 
 void WrappedID3D11DeviceContext::RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer* Buffers[])
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
-	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
 	FetchFrameVertexBindStats& vertices = stats.vertices;
 	vertices.calls += 1;
 	RDCASSERT(NumBuffers < vertices.bindslots.size());
@@ -1418,8 +1416,7 @@ void WrappedID3D11DeviceContext::RecordVertexBindStats(UINT NumBuffers, ID3D11Bu
 
 void WrappedID3D11DeviceContext::RecordLayoutBindStats(ID3D11InputLayout* Layout)
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
-	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
 	FetchFrameLayoutBindStats& layouts = stats.layouts;
 	layouts.calls += 1;
 	layouts.sets += (Layout != NULL);
@@ -1428,8 +1425,7 @@ void WrappedID3D11DeviceContext::RecordLayoutBindStats(ID3D11InputLayout* Layout
 
 void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStageType stage, UINT NumBuffers, ID3D11Buffer* Buffers[])
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
-	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
 	RDCASSERT(stage < ARRAY_COUNT( stats.constants));
 	FetchFrameConstantBindStats& constants = stats.constants[stage];
 	constants.calls += 1;
@@ -1458,8 +1454,7 @@ void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStageType stage, UINT
 
 void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStageType stage, UINT NumResources, ID3D11ShaderResourceView* Resources[])
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
-	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
 	RDCASSERT(stage < ARRAY_COUNT(stats.resources));
 	FetchFrameResourceBindStats& resources = stats.resources[stage];
 	resources.calls += 1;
@@ -1506,8 +1501,7 @@ void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStageType stage, UINT
 
 void WrappedID3D11DeviceContext::RecordSamplerStats(ShaderStageType stage, UINT NumSamplers, ID3D11SamplerState* Samplers[])
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
-	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
 	RDCASSERT(stage < ARRAY_COUNT(stats.samplers));
 	FetchFrameSamplerBindStats& samplers = stats.samplers[stage];
 	samplers.calls += 1;
@@ -1525,8 +1519,7 @@ void WrappedID3D11DeviceContext::RecordSamplerStats(ShaderStageType stage, UINT 
 
 void WrappedID3D11DeviceContext::RecordUpdateStats(ID3D11Resource* res, uint32_t Size, bool Server)
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
-	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
 	FetchFrameUpdateStats& updates = stats.updates;
 
 	if (res == NULL)
@@ -1560,8 +1553,7 @@ void WrappedID3D11DeviceContext::RecordUpdateStats(ID3D11Resource* res, uint32_t
 
 void WrappedID3D11DeviceContext::RecordDrawStats(bool instanced, bool indirect, UINT InstanceCount)
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
-	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
 	FetchFrameDrawStats& draws = stats.draws;
 
 	draws.calls += 1;
@@ -1578,12 +1570,129 @@ void WrappedID3D11DeviceContext::RecordDrawStats(bool instanced, bool indirect, 
 
 void WrappedID3D11DeviceContext::RecordDispatchStats(bool indirect)
 {
-	FetchFrameRecord& record = m_pDevice->GetFrameRecord();
-	FetchFrameStatistics& stats = record.frameInfo.stats;
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
 	FetchFrameDispatchStats& dispatches = stats.dispatches;
 
 	dispatches.calls += 1;
 	dispatches.indirect += (uint32_t)indirect;
+}
+
+void WrappedID3D11DeviceContext::RecordShaderStats(ShaderStageType stage, ID3D11DeviceChild* Current, ID3D11DeviceChild* Shader)
+{
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
+	RDCASSERT(stage <= ARRAY_COUNT(stats.shaders));
+	FetchFrameShaderStats& shaders = stats.shaders[stage];
+
+	shaders.calls += 1;
+	shaders.sets += (Shader != NULL);
+	shaders.nulls += (Shader == NULL);
+	shaders.redundants += (Current == Shader);
+}
+
+void WrappedID3D11DeviceContext::RecordBlendStats(ID3D11BlendState* Blend, FLOAT BlendFactor[4], UINT SampleMask)
+{
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
+	FetchFrameBlendStats& blends = stats.blends;
+
+	blends.calls += 1;
+	blends.sets += (Blend != NULL);
+	blends.nulls += (Blend == NULL);
+	const D3D11RenderState::outmerger* Current = &m_CurrentPipelineState->OM;
+	bool same = (Current->BlendState == Blend) && (memcmp(Current->BlendFactor, BlendFactor, sizeof(BlendFactor)) == 0) && (Current->SampleMask == SampleMask);
+	blends.redundants += (uint32_t)same;
+}
+
+void WrappedID3D11DeviceContext::RecordDepthStencilStats(ID3D11DepthStencilState* DepthStencil, UINT StencilRef)
+{
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
+	FetchFrameDepthStencilStats& depths = stats.depths;
+
+	depths.calls += 1;
+	depths.sets += (DepthStencil != NULL);
+	depths.nulls += (DepthStencil == NULL);
+	const D3D11RenderState::outmerger* Current = &m_CurrentPipelineState->OM;
+	bool same = (Current->DepthStencilState == DepthStencil) && (Current->StencRef == StencilRef);
+	depths.redundants += (uint32_t)same;
+}
+
+void WrappedID3D11DeviceContext::RecordRasterizationStats(ID3D11RasterizerState* Rasterizer)
+{
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
+	FetchFrameRasterizationStats& rasters = stats.rasters;
+
+	rasters.calls += 1;
+	rasters.sets += (Rasterizer != NULL);
+	rasters.nulls += (Rasterizer == NULL);
+	const D3D11RenderState::rasterizer* Current = &m_CurrentPipelineState->RS;
+	bool same = (Current->State == Rasterizer);
+	rasters.redundants += (uint32_t)same;
+}
+
+void WrappedID3D11DeviceContext::RecordViewportStats(UINT NumViewports, const D3D11_VIEWPORT *viewports)
+{
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
+	FetchFrameRasterizationStats& rasters = stats.rasters;
+
+	rasters.calls += 1;
+	rasters.sets += 1;
+	// #mivance fairly sure setting 0 viewports/null viewports is illegal?
+	const D3D11RenderState::rasterizer* Current = &m_CurrentPipelineState->RS;
+	bool same = (Current->NumViews == NumViewports);
+	for (UINT index = 0; index < NumViewports; index++)
+	{
+		same = (same && (Current->Viewports[index] == viewports[index]));
+	}
+	rasters.redundants += (uint32_t)same;
+	RDCASSERT(NumViewports < rasters.viewports.size());
+	rasters.viewports[NumViewports] += 1;
+}
+
+void WrappedID3D11DeviceContext::RecordScissorStats(UINT NumRects, const D3D11_RECT *rects)
+{
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
+	FetchFrameRasterizationStats& rasters = stats.rasters;
+
+	rasters.calls += 1;
+	rasters.sets += 1;
+	// #mivance see above
+	const D3D11RenderState::rasterizer* Current = &m_CurrentPipelineState->RS;
+	bool same = (Current->NumScissors == NumRects);
+	for (UINT index = 0; index < NumRects; index++)
+	{
+		same = (same && (Current->Scissors[index] == rects[index]));
+	}
+	rasters.redundants += (uint32_t)same;
+	RDCASSERT(NumRects < rasters.rects.size());
+	rasters.rects[NumRects] += 1;
+}
+
+void WrappedID3D11DeviceContext::RecordOutputMergerStats(UINT NumRTVs, ID3D11RenderTargetView* RTVs[], ID3D11DepthStencilView* DSV, UINT UAVStartSlot, UINT NumUAVs, ID3D11UnorderedAccessView* UAVs[])
+{
+	FetchFrameStatistics& stats = m_pDevice->GetFrameStats();
+	FetchFrameOutputStats& outputs = stats.outputs;
+
+	outputs.calls += 1;
+	// #mivance is an elaborate redundancy here even useful?
+	//const D3D11RenderState::outmerger* Current = &m_CurrentPipelineState->OM;
+
+	for (UINT index = 0; index < NumRTVs; index++ )
+	{
+		outputs.sets += (RTVs[index] != NULL);
+		outputs.nulls += (RTVs[index] == NULL);
+	}
+
+	outputs.sets += (DSV != NULL);
+	outputs.nulls += (DSV == NULL);
+
+	for (UINT index = 0; index < NumUAVs; index++ )
+	{
+		outputs.sets += (UAVs[index] != NULL);
+		outputs.nulls += (UAVs[index] == NULL);
+	}
+
+	UINT NumSlots = NumRTVs + NumUAVs;
+	RDCASSERT(NumSlots < outputs.bindslots.size());
+	outputs.bindslots[NumSlots] += 1;
 }
 
 #pragma endregion

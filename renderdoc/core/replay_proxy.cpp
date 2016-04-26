@@ -1151,6 +1151,63 @@ void Serialiser::Serialise(const char *name, FetchFrameLayoutBindStats &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, FetchFrameShaderStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+	Serialise("", el.redundants);
+
+	SIZE_CHECK(FetchFrameShaderStats, 16);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameBlendStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+	Serialise("", el.redundants);
+
+	SIZE_CHECK(FetchFrameBlendStats, 16);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameDepthStencilStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+	Serialise("", el.redundants);
+
+	SIZE_CHECK(FetchFrameDepthStencilStats, 16);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameRasterizationStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+	Serialise("", el.redundants);
+	Serialise("", el.viewports);
+	Serialise("", el.rects);
+
+	SIZE_CHECK(FetchFrameRasterizationStats, 48);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FetchFrameOutputStats &el)
+{
+	Serialise("", el.calls);
+	Serialise("", el.sets);
+	Serialise("", el.nulls);
+	Serialise("", el.bindslots);
+
+	SIZE_CHECK(FetchFrameOutputStats, 32);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, FetchFrameStatistics &el)
 {
 	Serialise("", el.recorded);
@@ -1170,8 +1227,14 @@ void Serialiser::Serialise(const char *name, FetchFrameStatistics &el)
 	Serialise("", el.indices);
 	Serialise("", el.vertices);
 	Serialise("", el.layouts);
+	FetchFrameShaderStats* shaders = el.shaders;
+	SerialiseComplexArray<eShaderStage_Count>("", shaders);
+	Serialise("", el.blends);
+	Serialise("", el.depths);
+	Serialise("", el.rasters);
+	Serialise("", el.outputs);
 
-	SIZE_CHECK(FetchFrameStatistics, 928);
+	SIZE_CHECK(FetchFrameStatistics, 1136);
 }
 
 template<>
@@ -1188,7 +1251,7 @@ void Serialiser::Serialise(const char *name, FetchFrameInfo &el)
 	Serialise("", el.stats);
 	Serialise("", el.debugMessages);
 
-	SIZE_CHECK(FetchFrameInfo, 1000);
+	SIZE_CHECK(FetchFrameInfo, 1208);
 }
 
 template<>
@@ -1197,7 +1260,7 @@ void Serialiser::Serialise(const char *name, FetchFrameRecord &el)
 	Serialise("", el.frameInfo);
 	Serialise("", el.drawcallList);
 	
-	SIZE_CHECK(FetchFrameRecord, 1016);
+	SIZE_CHECK(FetchFrameRecord, 1224);
 }
 
 template<>

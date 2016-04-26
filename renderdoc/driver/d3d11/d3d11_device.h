@@ -295,6 +295,7 @@ public:
 	ResourceId GetResourceID() { return m_ResourceID; }
 
 	FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
+	FetchFrameStatistics &GetFrameStats() { return m_FrameRecord.frameInfo.stats; }
 
 	const FetchDrawcall *GetDrawcall(uint32_t eventID);
 

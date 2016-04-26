@@ -253,6 +253,13 @@ private:
 	void RecordUpdateStats(ID3D11Resource* res, uint32_t Size, bool Server);
 	void RecordDrawStats(bool instanced, bool indirect, UINT InstanceCount);
 	void RecordDispatchStats(bool indirect);
+	void RecordShaderStats(ShaderStageType stage, ID3D11DeviceChild* Current, ID3D11DeviceChild* Shader);
+	void RecordBlendStats(ID3D11BlendState* Blend, FLOAT BlendFactor[4], UINT SampleMask);
+	void RecordDepthStencilStats(ID3D11DepthStencilState* DepthStencil, UINT StencilRef);
+	void RecordRasterizationStats(ID3D11RasterizerState* Rasterizer);
+	void RecordViewportStats(UINT NumViewports, const D3D11_VIEWPORT *viewports);
+	void RecordScissorStats(UINT NumRects, const D3D11_RECT *rects);
+	void RecordOutputMergerStats(UINT NumRTVs, ID3D11RenderTargetView* RTVs[], ID3D11DepthStencilView* DSV, UINT UAVStartSlot, UINT NumUAVs, ID3D11UnorderedAccessView* UAVs[]);
 
 	////////////////////////////////////////////////////////////////
 	// implement InterceptorSystem privately, since it is not thread safe (like all other context functions)
