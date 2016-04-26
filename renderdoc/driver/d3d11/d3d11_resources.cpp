@@ -500,8 +500,12 @@ UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip)
 		case DXGI_FORMAT_B4G4R4A4_UNORM:
 			ret *= 2; // 4 channels, half a byte each
 			break;
+		case DXGI_FORMAT_UNKNOWN:
+			RDCERR("Getting byte size of unknown DXGI format");
+			ret = 0;
+			break;
 		default:
-			RDCFATAL("Unrecognised DXGI Format: %d", Format);
+			RDCERR("Unrecognised DXGI Format: %d", Format);
 			break;
 	}
 
