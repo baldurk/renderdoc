@@ -82,7 +82,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 			VK_STRUCTURE_TYPE_APPLICATION_INFO, NULL,
 			params.AppName.c_str(), params.AppVersion,
 			params.EngineName.c_str(), params.EngineVersion,
-			VK_API_VERSION,
+			VK_API_VERSION_1_0,
 	};
 
 	VkInstanceCreateInfo instinfo = {
