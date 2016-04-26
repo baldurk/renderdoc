@@ -630,7 +630,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
 		case TYPE_INPUT:
 		case TYPE_CONSTANT_BUFFER:
 		{
-			RDCFATAL("Attempt to write to read-only operand (input, cbuffer, etc).\n"
+			RDCERR("Attempt to write to read-only operand (input, cbuffer, etc).\n"
 					"This is likely a bug in the asm extraction as such code isn't likely to be produced by fxc.");
 			break;
 		}

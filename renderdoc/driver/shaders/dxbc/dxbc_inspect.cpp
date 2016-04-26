@@ -229,7 +229,8 @@ int TypeByteSize(VariableType t)
 		case VARTYPE_INTERFACE_POINTER:
 			return 1;
 		default:
-			RDCFATAL("Trying to take size of undefined type %d", t);
+			RDCERR("Trying to take size of undefined type %d", t);
+			return 1;
 	}
 }
 

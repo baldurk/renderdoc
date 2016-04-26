@@ -564,7 +564,8 @@ uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat F
 			astc[0] = 12; astc[1] = 12;
 			break;
 		default:
-			RDCFATAL("Unrecognised Vulkan Format: %d", Format);
+			ret = 1;
+			RDCERR("Unrecognised Vulkan Format: %d", Format);
 			break;
 	}
 	

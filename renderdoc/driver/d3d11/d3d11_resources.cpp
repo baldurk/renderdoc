@@ -339,8 +339,13 @@ UINT GetFormatBPP(DXGI_FORMAT f)
 			ret *= 2; // 4 channels, half a byte each
 			break;
 
+		case DXGI_FORMAT_UNKNOWN:
+			ret = 0;
+			RDCWARN("Getting BPP of DXGI_FORMAT_UNKNOWN");
+			break;
+
 		default:
-			RDCFATAL("Unrecognised DXGI Format: %d", f);
+			RDCERR("Unrecognised DXGI Format: %d", f);
 			break;
 	}
 
@@ -1395,8 +1400,13 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f)
 			RDCERR("No Typeless DXGI Format for %d", f);
 			return DXGI_FORMAT_UNKNOWN;
 
+		case DXGI_FORMAT_UNKNOWN:
+			RDCWARN("Getting Typeless format of DXGI_FORMAT_UNKNOWN");
+			return DXGI_FORMAT_UNKNOWN;
+
 		default:
-			RDCFATAL("Unrecognised DXGI Format: %d", f);
+			RDCERR("Unrecognised DXGI Format: %d", f);
+			return DXGI_FORMAT_UNKNOWN;
 	}
 }
 
