@@ -747,7 +747,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 					view.Structured = false;
 					view.BufferStructCount = 0;
 
-					view.ElementSize = GetByteSize(1, 1, 1, desc.Format, 0);
+					view.ElementSize = desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
 					if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
 						(desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND|D3D11_BUFFER_UAV_FLAG_COUNTER)))
