@@ -525,7 +525,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		Layers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
 
-		createInfo.enabledLayerCount = Layers.size();
+		createInfo.enabledLayerCount = (uint32_t)Layers.size();
 
 		const char **layerArray = NULL;
 		if(!Layers.empty())
