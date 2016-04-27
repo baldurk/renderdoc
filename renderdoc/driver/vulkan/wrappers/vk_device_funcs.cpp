@@ -45,6 +45,44 @@ void InitInstanceTable(VkInstance inst, PFN_vkGetInstanceProcAddr gpa);
 
 //#define FORCE_VALIDATION_LAYERS
 
+static void StripUnwantedLayers(vector<string> &Layers)
+{
+	for(auto it = Layers.begin(); it != Layers.end(); )
+	{
+		// don't try and create our own layer on replay!
+		if(*it == RENDERDOC_LAYER_NAME)
+		{
+			it = Layers.erase(it);
+			continue;
+		}
+
+		// don't enable tracing or dumping layers just in case they
+		// came along with the application
+		if(*it == "VK_LAYER_LUNARG_api_dump" || *it == "VK_LAYER_LUNARG_vktrace")
+		{
+			it = Layers.erase(it);
+			continue;
+		}
+
+		// filter out validation layers
+		if(*it == "VK_LAYER_LUNARG_standard_validation" ||
+			*it == "VK_LAYER_LUNARG_core_validation" ||
+			*it == "VK_LAYER_LUNARG_device_limits" ||
+			*it == "VK_LAYER_LUNARG_image" ||
+			*it == "VK_LAYER_LUNARG_object_tracker" ||
+			*it == "VK_LAYER_LUNARG_parameter_validation" ||
+			*it == "VK_LAYER_LUNARG_swapchain" ||
+			*it == "VK_LAYER_GOOGLE_threading"
+			)
+		{
+			it = Layers.erase(it);
+			continue;
+		}       
+
+		++it;
+	}
+}
+
 void WrappedVulkan::Initialise(VkInitParams &params)
 {
 	m_InitParams = params;
@@ -53,16 +91,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	params.EngineName = string("RenderDoc @ ") + params.EngineName;
 
 	// PORTABILITY verify that layers/extensions are available
-
-	// don't try and create our own layer on replay!
-	for(auto it = params.Layers.begin(); it != params.Layers.end(); ++it)
-	{
-		if(*it == RENDERDOC_LAYER_NAME)
-		{
-			params.Layers.erase(it);
-			break;
-		}
-	}
+	StripUnwantedLayers(params.Layers);
 
 #if defined(FORCE_VALIDATION_LAYERS)
 	params.Layers.push_back("VK_LAYER_LUNARG_standard_validation");
@@ -472,18 +501,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		// we must make any modifications locally, so the free of pointers
 		// in the serialised VkDeviceCreateInfo don't double-free
 		VkDeviceCreateInfo createInfo = serCreateInfo;
-		
-		// don't try and create our own layer on replay!
-		for(uint32_t i=0; i < createInfo.enabledLayerCount; i++)
-		{
-			const char **layerNames = (const char **)createInfo.ppEnabledLayerNames;
-			if(!strcmp(layerNames[i], RENDERDOC_LAYER_NAME))
-			{
-				for(uint32_t j=i; j < createInfo.enabledLayerCount-1; j++)
-					layerNames[j] = layerNames[j+1];
-				createInfo.enabledLayerCount--;
-			}
-		}
 
 		// disable this extension as we might have captured it but we don't need
 		// to replay it
@@ -497,18 +514,29 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				createInfo.enabledExtensionCount--;
 			}
 		}
+
+		std::vector<string> Layers;
+		for(uint32_t i=0; i < createInfo.enabledLayerCount; i++)
+			Layers.push_back(createInfo.ppEnabledLayerNames[i]);
+
+		StripUnwantedLayers(Layers);
 		
 #if defined(FORCE_VALIDATION_LAYERS)
-		vector<const char *> layers;
-
-		for(uint32_t i=0; i < createInfo.enabledLayerCount; i++)
-			layers.push_back(createInfo.ppEnabledLayerNames[i]);
-
-		layers.push_back("VK_LAYER_LUNARG_standard_validation");
-
-		createInfo.enabledLayerCount = (uint32_t)layers.size();
-		createInfo.ppEnabledLayerNames = &layers[0];
+		Layers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
+
+		createInfo.enabledLayerCount = Layers.size();
+
+		const char **layerArray = NULL;
+		if(!Layers.empty())
+		{
+			layerArray = new const char *[createInfo.enabledLayerCount];
+			
+			for(uint32_t i=0; i < createInfo.enabledLayerCount; i++)
+				layerArray[i] = Layers[i].c_str();
+
+			createInfo.ppEnabledLayerNames = layerArray;
+		}
 
 		physicalDevice = GetResourceManager()->GetLiveHandle<VkPhysicalDevice>(physId);
 
@@ -670,6 +698,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		m_DebugManager = new VulkanDebugManager(this, device);
 
 		SAFE_DELETE_ARRAY(modQueues);
+		SAFE_DELETE_ARRAY(layerArray);
 	}
 
 	return true;
