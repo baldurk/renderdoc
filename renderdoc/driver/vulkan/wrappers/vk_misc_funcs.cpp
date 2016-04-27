@@ -872,9 +872,10 @@ static VkResourceRecord *GetObjRecord(VkDebugReportObjectTypeEXT objType, uint64
 		case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT:
 			return GetRecord((VkCommandPool)object);
 		case VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT:
-			return NULL;
 		case VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT:
-			return NULL;
+		case VK_DEBUG_REPORT_OBJECT_TYPE_RANGE_SIZE_EXT:
+		case VK_DEBUG_REPORT_OBJECT_TYPE_MAX_ENUM_EXT:
+			break;
 	}
 	return NULL;
 }
