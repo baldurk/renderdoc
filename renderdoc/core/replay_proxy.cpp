@@ -506,6 +506,17 @@ template<>
 void Serialiser::Serialise(const char *name, GLPipelineState::ShaderStage &el)
 {
 	Serialise("", el.Shader);
+	
+	Serialise("", el.ShaderName);
+	Serialise("", el.customShaderName);
+	
+	Serialise("", el.ProgramName);
+	Serialise("", el.customProgramName);
+	
+	Serialise("", el.PipelineActive);
+	Serialise("", el.PipelineName);
+	Serialise("", el.customPipelineName);
+
 	Serialise("", el.stage);
 	Serialise("", el.BindpointMapping);
 	Serialise("", el.Subroutines);
@@ -513,7 +524,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::ShaderStage &el)
 	if(m_Mode == READING)
 		el.ShaderDetails = NULL;
 
-	SIZE_CHECK(GLPipelineState::ShaderStage, 104);
+	SIZE_CHECK(GLPipelineState::ShaderStage, 176);
 }
 
 template<>
@@ -693,7 +704,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState &el)
 
 	Serialise("", el.m_Hints);
 
-	SIZE_CHECK(GLPipelineState, 1520);
+	SIZE_CHECK(GLPipelineState, 1952);
 }
 
 #pragma endregion OpenGL pipeline state

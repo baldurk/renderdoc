@@ -72,8 +72,22 @@ struct GLPipelineState
 
 	struct ShaderStage
 	{
-		ShaderStage() : Shader(), ShaderDetails(NULL) {}
+		ShaderStage()
+			: Shader()
+			, customShaderName(false), customProgramName(false)
+			, customPipelineName(false), ShaderDetails(NULL) {}
 		ResourceId Shader;
+
+		rdctype::str ShaderName;
+		bool32 customShaderName;
+
+		rdctype::str ProgramName;
+		bool32 customProgramName;
+
+		bool32 PipelineActive;
+		rdctype::str PipelineName;
+		bool32 customPipelineName;
+
 		ShaderReflection *ShaderDetails;
 		ShaderBindpointMapping BindpointMapping;
 

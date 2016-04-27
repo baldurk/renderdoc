@@ -97,6 +97,20 @@ namespace renderdoc
             }
 
             public ResourceId Shader;
+
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string ShaderName;
+            public bool customShaderName;
+
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string ProgramName;
+            public bool customProgramName;
+
+            public bool PipelineActive;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string PipelineName;
+            public bool customPipelineName;
+
             private IntPtr _ptr_ShaderDetails;
             [CustomMarshalAs(CustomUnmanagedType.Skip)]
             public ShaderReflection ShaderDetails;

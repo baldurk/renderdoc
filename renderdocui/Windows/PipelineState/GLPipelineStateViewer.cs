@@ -282,9 +282,31 @@ namespace renderdocui.Windows.PipelineState
             var mapping = stage.BindpointMapping;
 
             if (stage.Shader == ResourceId.Null)
+            {
                 shader.Text = "Unbound";
+            }
             else
-                shader.Text = stage.stage.Str(APIPipelineStateType.OpenGL) + " Shader " + stage.Shader.ToString();
+            {
+                string shaderName = stage.stage.Str(APIPipelineStateType.OpenGL) + " Shader";
+
+                if (!stage.customShaderName && !stage.customProgramName && !stage.customPipelineName)
+                {
+                    shader.Text = shaderName + stage.Shader.ToString();
+                }
+                else
+                {
+                    if (stage.customShaderName)
+                        shaderName = stage.ShaderName;
+
+                    if (stage.customProgramName)
+                        shaderName = stage.ProgramName + " - " + shaderName;
+
+                    if (stage.customPipelineName && stage.PipelineActive)
+                        shaderName = stage.PipelineName + " - " + shaderName;
+
+                    shader.Text = shaderName;
+                }
+            }
 
             // disabled since entry function is always main, and filenames have no names, so this is useless.
             /*

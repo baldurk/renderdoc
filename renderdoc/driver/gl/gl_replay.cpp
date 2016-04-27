@@ -1070,9 +1070,20 @@ void GLReplay::SavePipelineState()
 		{
 			ResourceId id = rm->GetID(ProgramPipeRes(ctx, curProg));
 			auto &pipeDetails = m_pDriver->m_Pipelines[id];
+			
+			string pipelineName;
+			{
+				char name[128] = {0};
+				gl.glGetObjectLabel(eGL_PROGRAM_PIPELINE, curProg, 127, NULL, name);
+				pipelineName = name;
+			}
 
 			for(size_t i=0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
 			{
+				stages[i]->PipelineActive = true;
+				stages[i]->PipelineName = pipelineName;
+				stages[i]->customPipelineName = (pipelineName != "");
+
 				if(pipeDetails.stageShaders[i] != ResourceId())
 				{
 					curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
@@ -1080,6 +1091,20 @@ void GLReplay::SavePipelineState()
 					refls[i] = GetShader(pipeDetails.stageShaders[i], "");
 					GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
 					mappings[i] = &stages[i]->BindpointMapping;
+
+					{
+						char name[128] = {0};
+						gl.glGetObjectLabel(eGL_PROGRAM, curProg, 127, NULL, name);
+						stages[i]->ProgramName = name;
+						stages[i]->customProgramName = (name[0] != 0);
+					}
+
+					{
+						char name[128] = {0};
+						gl.glGetObjectLabel(eGL_SHADER, rm->GetCurrentResource(pipeDetails.stageShaders[i]).name, 127, NULL, name);
+						stages[i]->ShaderName = name;
+						stages[i]->customShaderName = (name[0] != 0);
+					}
 				}
 				else
 				{
@@ -1092,14 +1117,31 @@ void GLReplay::SavePipelineState()
 	{
 		auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(ctx, curProg))];
 		
+		string programName;
+		{
+			char name[128] = {0};
+			gl.glGetObjectLabel(eGL_PROGRAM, curProg, 127, NULL, name);
+			programName = name;
+		}
+
 		for(size_t i=0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
 		{
 			if(progDetails.stageShaders[i] != ResourceId())
 			{
+				stages[i]->ProgramName = programName;
+				stages[i]->customProgramName = (programName != "");
+
 				stages[i]->Shader = rm->GetOriginalID(progDetails.stageShaders[i]);
 				refls[i] = GetShader(progDetails.stageShaders[i], "");
 				GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
 				mappings[i] = &stages[i]->BindpointMapping;
+
+				{
+					char name[128] = {0};
+					gl.glGetObjectLabel(eGL_SHADER, rm->GetCurrentResource(progDetails.stageShaders[i]).name, 127, NULL, name);
+					stages[i]->ShaderName = name;
+					stages[i]->customShaderName = (name[0] != 0);
+				}
 			}
 		}
 	}
