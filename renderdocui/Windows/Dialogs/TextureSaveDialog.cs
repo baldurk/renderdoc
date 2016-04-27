@@ -184,6 +184,7 @@ namespace renderdocui.Windows.Dialogs
                 exportAllMips.Enabled = false;
                 oneMip.Checked = oneSlice.Checked = true;
             }
+            SetFilenameFromFiletype();
         }
 
         private void jpegCompression_ValueChanged(object sender, EventArgs e)
@@ -231,6 +232,49 @@ namespace renderdocui.Windows.Dialogs
             }
         }
 
+        private void SetFiletypeFromFilename()
+        {
+            try
+            {
+                string ext = Path.GetExtension(filename.Text).ToUpperInvariant().Substring(1); // trim . from extension
+
+                foreach (var ft in (FileType[])Enum.GetValues(typeof(FileType)))
+                {
+                    if (ft.ToString().ToUpperInvariant() == ext)
+                    {
+                        fileFormat.SelectedIndex = (int)ft;
+                        break;
+                    }
+                }
+            }
+            catch (ArgumentException)
+            {
+                // invalid path or similar
+            }
+        }
+
+        private void SetFilenameFromFiletype()
+        {
+            try
+            {
+                string filenameExt = Path.GetExtension(filename.Text).ToLowerInvariant().Substring(1); // trim . from extension
+
+                FileType[] types = (FileType[])Enum.GetValues(typeof(FileType));
+
+                string selectedExt = types[fileFormat.SelectedIndex].ToString().ToLowerInvariant();
+
+                if (selectedExt != filenameExt)
+                {
+                    filename.Text = filename.Text.Substring(0, filename.Text.Length - filenameExt.Length);
+                    filename.Text += selectedExt;
+                }
+            }
+            catch (ArgumentException)
+            {
+                // invalid path or similar
+            }
+        }
+
         private void browse_Click(object sender, EventArgs e)
         {
             saveTexDialog.FilterIndex = fileFormat.SelectedIndex + 1;
@@ -238,24 +282,7 @@ namespace renderdocui.Windows.Dialogs
             if (res == DialogResult.OK || res == DialogResult.Yes)
             {
                 filename.Text = saveTexDialog.FileName;
-
-                try
-                {
-                    string ext = Path.GetExtension(filename.Text).ToUpperInvariant().Substring(1); // trim . from extension
-
-                    foreach (var ft in (FileType[])Enum.GetValues(typeof(FileType)))
-                    {
-                        if (ft.ToString().ToUpperInvariant() == ext)
-                        {
-                            fileFormat.SelectedIndex = (int)ft;
-                            break;
-                        }
-                    }
-                }
-                catch (ArgumentException)
-                {
-                    // invalid path or similar
-                }
+                SetFiletypeFromFilename();
             }
         }
 
@@ -524,6 +551,19 @@ namespace renderdocui.Windows.Dialogs
             }
             sliceSelect.Enabled = oneSlice.Checked;
             recurse = false;
+        }
+
+        private void filename_KeyUp(object sender, KeyEventArgs e)
+        {
+            typingTimer.Enabled = true;
+            typingTimer.Stop();
+            typingTimer.Start();
+        }
+
+        private void typingTimer_Tick(object sender, EventArgs e)
+        {
+            SetFiletypeFromFilename();
+            typingTimer.Enabled = false;
         }
     }
 }

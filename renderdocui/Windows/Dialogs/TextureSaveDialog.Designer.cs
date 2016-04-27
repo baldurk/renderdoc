@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
             System.Windows.Forms.GroupBox groupBox1;
             System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
@@ -71,6 +72,7 @@
             this.filename = new System.Windows.Forms.TextBox();
             this.colorDialog = new System.Windows.Forms.ColorDialog();
             this.saveTexDialog = new System.Windows.Forms.SaveFileDialog();
+            this.typingTimer = new System.Windows.Forms.Timer(this.components);
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             groupBox1 = new System.Windows.Forms.GroupBox();
             flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
@@ -603,6 +605,7 @@
             this.filename.Name = "filename";
             this.filename.Size = new System.Drawing.Size(322, 20);
             this.filename.TabIndex = 1;
+            this.filename.KeyUp += new System.Windows.Forms.KeyEventHandler(this.filename_KeyUp);
             // 
             // browse
             // 
@@ -624,6 +627,11 @@
             this.saveTexDialog.DefaultExt = "dds";
             this.saveTexDialog.OverwritePrompt = false;
             this.saveTexDialog.Title = "Save Texture As";
+            // 
+            // typingTimer
+            // 
+            this.typingTimer.Interval = 200;
+            this.typingTimer.Tick += new System.EventHandler(this.typingTimer_Tick);
             // 
             // TextureSaveDialog
             // 
@@ -704,5 +712,6 @@
         private System.Windows.Forms.CheckBox resolveSamples;
         private System.Windows.Forms.TextBox filename;
         private System.Windows.Forms.SaveFileDialog saveTexDialog;
+        private System.Windows.Forms.Timer typingTimer;
     }
 }
