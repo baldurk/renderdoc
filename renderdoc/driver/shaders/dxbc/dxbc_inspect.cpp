@@ -1910,7 +1910,7 @@ SPDBChunk::SPDBChunk(void *chunk)
 					}
 					else
 					{
-						RDCLOG("Unrecognised: %02x", opcode);
+						RDCDEBUG("Unrecognised: %02x", opcode);
 						break;
 					}
 				}
