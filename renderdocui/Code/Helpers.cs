@@ -308,6 +308,47 @@ namespace renderdocui.Code
             return CheckVulkanLayerRegistration(out dummy1, out dummy2, out dummy3);
         }
 
+        public static void UpdateInstalledVersionNumber()
+        {
+            if (!IsElevated)
+                return;
+
+            try
+            {
+                string basepath = "SOFTWARE\\";
+
+                RegistryKey key = Registry.LocalMachine.CreateSubKey(basepath + "Microsoft\\Windows\\CurrentVersion\\Uninstall");
+
+                string[] subkeys = key.GetSubKeyNames();
+
+                foreach (var sub in subkeys)
+                {
+                    RegistryKey prog = key.CreateSubKey(sub);
+
+                    string[] values = prog.GetValueNames();
+
+                    if (Array.IndexOf(values, "DisplayName") >= 0 &&
+                        (string)prog.GetValue("DisplayName") == "RenderDoc" &&
+                        Array.IndexOf(values, "Publisher") >= 0 &&
+                        (string)prog.GetValue("Publisher") == "Baldur Karlsson")
+                    {
+                        var ver = System.Reflection.Assembly.GetEntryAssembly().GetName().Version;
+                        uint majorversion = (uint)ver.Major;
+                        uint minorversion = (uint)ver.Minor;
+                        uint packedversion = (majorversion << 24) | (minorversion << 16);
+
+                        prog.SetValue("Version", packedversion, RegistryValueKind.DWord);
+                        prog.SetValue("VersionMajor", majorversion, RegistryValueKind.DWord);
+                        prog.SetValue("VersionMinor", minorversion, RegistryValueKind.DWord);
+                        prog.SetValue("DisplayVersion", String.Format("{0}.{1}.0", majorversion, minorversion), RegistryValueKind.String);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
+
         public static void RegisterVulkanLayer()
         {
             if (!IsElevated)

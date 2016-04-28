@@ -175,6 +175,8 @@ namespace renderdocui.Code
                     {
                         Helpers.RegisterVulkanLayer();
                     }
+
+                    Helpers.UpdateInstalledVersionNumber();
                 }
             }
 
