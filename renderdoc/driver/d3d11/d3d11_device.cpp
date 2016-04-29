@@ -3096,7 +3096,9 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 				if(overlay & eRENDERDOC_Overlay_FrameRate)
 				{
 					overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
-																					m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
+																					m_AvgFrametime, m_MinFrametime, m_MaxFrametime,
+																					// max with 0.01ms so that we don't divide by zero
+																					1000.0f/RDCMAX(0.01, m_AvgFrametime) );
 				}
 
 				float y=0.0f;
