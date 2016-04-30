@@ -4581,14 +4581,11 @@ void VulkanReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataS
 	VULKANNOTIMP("SetProxyTextureData");
 }
 
-// in vk_<platform>.cpp
-void *LoadVulkanLibrary();
-
 ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
 	RDCDEBUG("Creating a VulkanReplay replay device");
 
-	void *module = LoadVulkanLibrary();
+	void *module = Process::LoadModule(VulkanLibraryName);
 	
 	if(module == NULL)
 	{

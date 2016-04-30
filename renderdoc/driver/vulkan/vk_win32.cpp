@@ -107,7 +107,4 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceWin32PresentationSupportKHR(
 	return ObjDisp(physicalDevice)->GetPhysicalDeviceWin32PresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex);
 }
 
-void *LoadVulkanLibrary()
-{
-	return Process::LoadModule("vulkan-1.dll");
-}
+const char *VulkanLibraryName = "vulkan-1.dll";

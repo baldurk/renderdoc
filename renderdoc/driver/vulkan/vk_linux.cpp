@@ -167,7 +167,4 @@ VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(
 
 #endif
 
-void *LoadVulkanLibrary()
-{
-	return Process::LoadModule("libvulkan.so");
-}
+const char *VulkanLibraryName = "libvulkan.so";

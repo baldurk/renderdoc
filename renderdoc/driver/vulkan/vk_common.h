@@ -64,6 +64,9 @@ void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkMemoryBarrier *bar
 int SampleCount(VkSampleCountFlagBits countFlag);
 int StageIndex(VkShaderStageFlagBits stageFlag);
 
+// in vk_<platform>.cpp
+extern const char *VulkanLibraryName;
+
 // structure for casting to easily iterate and template specialising Serialise
 struct VkGenericStruct
 {
