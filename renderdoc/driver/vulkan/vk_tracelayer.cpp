@@ -36,6 +36,7 @@
 #include "common/common.h"
 #include "common/threading.h"
 #include "serialise/string_utils.h"
+#include "hooks/hooks.h"
 
 #include "data/version.h"
 
@@ -47,19 +48,53 @@
 #define VK_LAYER_EXPORT extern "C" __declspec(dllexport)
 #endif
 
-// in vk_<platform>.cpp
-bool LayerRegistered();
-
-struct RegisterCallback
+// we don't actually hook any modules here. This is just used so that it's called
+// at the right time in initialisation (after capture options are available) to
+// set environment variables
+class VulkanHook : LibraryHook
 {
-	RegisterCallback()
+	VulkanHook()
+	{
+		LibraryHooks::GetInstance().RegisterHook(VulkanLibraryName, this);
+	}
+
+	bool CreateHooks(const char *libName)
 	{
 		// we assume the implicit layer is registered - the UI will prompt the user about installing it.
 		Process::RegisterEnvironmentModification(Process::EnvironmentModification(Process::eEnvModification_Replace, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "1"));
+
+		Process::ApplyEnvironmentModification();
+
+		return true;
 	}
+
+	void EnableHooks(const char *libName, bool enable)
+	{
+		// set the env var to 0 to disable the implicit layer
+		Process::RegisterEnvironmentModification(Process::EnvironmentModification(Process::eEnvModification_Replace, "ENABLE_VULKAN_RENDERDOC_CAPTURE", enable ? "1" : "0"));
+		
+		Process::ApplyEnvironmentModification();
+	}
+
+	void OptionsUpdated(const char *libName)
+	{
+		if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+		{
+			Process::RegisterEnvironmentModification(Process::EnvironmentModification(Process::eEnvModification_AppendPlatform, "VK_INSTANCE_LAYERS", "VK_LAYER_LUNARG_standard_validation"));
+			Process::RegisterEnvironmentModification(Process::EnvironmentModification(Process::eEnvModification_AppendPlatform, "VK_DEVICE_LAYERS", "VK_LAYER_LUNARG_standard_validation"));
+		}
+		else
+		{
+			// can't disable if DebugDeviceMode is not set
+		}
+		
+		Process::ApplyEnvironmentModification();
+	}
+
+	static VulkanHook vkhooks;
 };
 
-static RegisterCallback registercb;
+VulkanHook VulkanHook::vkhooks;
 
 // RenderDoc State
 
