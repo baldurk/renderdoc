@@ -223,6 +223,18 @@ VkResult WrappedVulkan::vkCreateInstance(
 	m_Queue = VK_NULL_HANDLE;
 	m_InternalCmds.Reset();
 
+	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && ObjDisp(m_Instance)->CreateDebugReportCallbackEXT)
+	{
+		VkDebugReportCallbackCreateInfoEXT debugInfo = {};
+		debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+		debugInfo.pNext = NULL;
+		debugInfo.pfnCallback = &DebugCallbackStatic;
+		debugInfo.pUserData = this;
+		debugInfo.flags = VK_DEBUG_REPORT_WARNING_BIT_EXT|VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT|VK_DEBUG_REPORT_ERROR_BIT_EXT;
+
+		ObjDisp(m_Instance)->CreateDebugReportCallbackEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgMsgCallback);
+	}
+
 	return ret;
 }
 
