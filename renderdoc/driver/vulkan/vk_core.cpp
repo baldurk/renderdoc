@@ -2077,23 +2077,26 @@ VkBool32 WrappedVulkan::DebugCallback(
 				const char*                                 pLayerPrefix,
 				const char*                                 pMessage)
 {
-	bool isDS = !strcmp(pLayerPrefix, "DS");
+	if(m_State < WRITING)
+	{
+		bool isDS = !strcmp(pLayerPrefix, "DS");
 
-	// All access mask/barrier messages.
-	// These are just too spammy/false positive/unreliable to keep
-	if(isDS && messageCode == 12)
-		return false;
+		// All access mask/barrier messages.
+		// These are just too spammy/false positive/unreliable to keep
+		if(isDS && messageCode == 12)
+			return false;
 
-	bool isMEM = !strcmp(pLayerPrefix, "MEM");
+		bool isMEM = !strcmp(pLayerPrefix, "MEM");
 
-	// Memory is aliased between image and buffer
-	// ignore memory aliasing warning - we make use of the memory in disjoint ways
-	// and copy image data over separately, so our use is safe
-	// no location set for this one, so ignore by code (maybe too coarse)
-	if(isMEM && messageCode == 3)
-		return false;
+		// Memory is aliased between image and buffer
+		// ignore memory aliasing warning - we make use of the memory in disjoint ways
+		// and copy image data over separately, so our use is safe
+		// no location set for this one, so ignore by code (maybe too coarse)
+		if(isMEM && messageCode == 3)
+			return false;
 
-	RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
+		RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
+	}
 	return false;
 }
 
