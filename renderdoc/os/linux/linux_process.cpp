@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "serialise/string_utils.h"
 
@@ -74,8 +75,65 @@ void Process::RegisterEnvironmentModification(Process::EnvironmentModification m
 // there is no support for injecting/loading renderdoc into a running program
 // in any way, and we also have some environment changes that we *have* to make
 // for correct hooking (LD_LIBRARY_PATH/LD_PRELOAD)
+//
+// However we still set environment variables so that we can modify variables while
+// in process (e.g. if we notice a setting and want to enable an env var as a result)
 void Process::ApplyEnvironmentModification()
 {
+	// turn environment string to a UTF-8 map
+	map<string, string> currentEnv = EnvStringToEnvMap((const char **)environ);
+	vector<EnvironmentModification> &modifications = GetEnvModifications();
+
+	for(size_t i=0; i < modifications.size(); i++)
+	{
+		EnvironmentModification &m = modifications[i];
+
+		string value = currentEnv[m.name];
+
+		switch(m.type)
+		{
+			case eEnvModification_Replace:
+				value = m.value;
+				break;
+			case eEnvModification_Append:
+				value += m.value;
+				break;
+			case eEnvModification_AppendPlatform:
+			case eEnvModification_AppendColon:
+				if(!value.empty())
+					value += ":";
+				value += m.value;
+				break;
+			case eEnvModification_AppendSemiColon:
+				if(!value.empty())
+					value += ";";
+				value += m.value;
+				break;
+			case eEnvModification_Prepend:
+				value = m.value + value;
+				break;
+			case eEnvModification_PrependColon:
+				if(!value.empty())
+					value = m.value + ":" + value;
+				else
+					value = m.value;
+				break;
+			case eEnvModification_PrependPlatform:
+			case eEnvModification_PrependSemiColon:
+				if(!value.empty())
+					value = m.value + ";" + value;
+				else
+					value = m.value;
+				break;
+			default:
+				RDCERR("Unexpected environment modification type");
+		}
+
+		setenv(m.name.c_str(), value.c_str(), true);
+	}
+
+	// these have been applied to the current process
+	modifications.clear();
 }
 
 static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char *const *envp)

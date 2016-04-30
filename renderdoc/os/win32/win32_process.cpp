@@ -133,6 +133,9 @@ void Process::ApplyEnvironmentModification()
 
 		SetEnvironmentVariableW(StringFormat::UTF82Wide(m.name).c_str(), StringFormat::UTF82Wide(value).c_str());
 	}
+	
+	// these have been applied to the current process
+	modifications.clear();
 }
 
 // helpers for various shims and dlls etc, not part of the public API
