@@ -60,6 +60,8 @@ public:
 		m_EnabledHooks = enable;
 	}
 
+	void OptionsUpdated(const char *libName) {}
+
 	bool UseHooks()
 	{
 		return (dxgihooks.m_HasHooks && dxgihooks.m_EnabledHooks);

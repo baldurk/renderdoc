@@ -243,6 +243,8 @@ class OpenGLHook : LibraryHook
 		{
 			m_EnabledHooks = enable;
 		}
+
+		void OptionsUpdated(const char *libName) {}
 		
 		static OpenGLHook glhooks;
 

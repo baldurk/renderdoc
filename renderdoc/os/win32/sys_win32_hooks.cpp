@@ -84,6 +84,8 @@ class SysHook : LibraryHook
 			m_EnabledHooks = enable;
 		}
 
+		void OptionsUpdated(const char *libName) {}
+
 	private:
 		static SysHook syshooks;
 

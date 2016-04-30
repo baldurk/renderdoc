@@ -63,6 +63,8 @@ public:
 		m_EnabledHooks = enable;
 	}
 
+	void OptionsUpdated(const char *libName) {}
+
 	bool UseHooks()
 	{
 		return (d3d11hooks.m_HasHooks && d3d11hooks.m_EnabledHooks);

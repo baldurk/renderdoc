@@ -98,6 +98,7 @@ struct LibraryHook
 {
 	virtual bool CreateHooks(const char *libName) = 0;
 	virtual void EnableHooks(const char *libName, bool enable) = 0;
+	virtual void OptionsUpdated(const char *libName) = 0;
 };
 
 // this singleton allows you to compile in code that defines a hook for a given library
@@ -110,6 +111,7 @@ class LibraryHooks
 		static LibraryHooks &GetInstance();
 		void RegisterHook(const char *libName, LibraryHook *hook);
 		void CreateHooks();
+		void OptionsUpdated();
 		void EnableHooks(bool enable);
 		void RemoveHooks();
 

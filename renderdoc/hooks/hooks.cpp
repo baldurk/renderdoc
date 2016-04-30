@@ -67,10 +67,13 @@ void LibraryHooks::RemoveHooks()
 void LibraryHooks::EnableHooks(bool enable)
 {
 	RDCDEBUG("%s hooks!", enable ? "Enabling" : "Disabling");
-
-	if(!enable)
-		return;
 	
 	for(auto it=m_Hooks.begin(); it!=m_Hooks.end(); ++it)
 		it->second->EnableHooks(it->first, enable);
+}
+
+void LibraryHooks::OptionsUpdated()
+{
+	for(auto it=m_Hooks.begin(); it!=m_Hooks.end(); ++it)
+		it->second->OptionsUpdated(it->first);
 }

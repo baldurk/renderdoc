@@ -35,6 +35,7 @@
 
 #include "data/version.h"
 #include "crash_handler.h"
+#include "hooks/hooks.h"
 
 #include "stb/stb_image.h"
 #include "common/dds_readwrite.h"
@@ -769,6 +770,8 @@ map<RDCDriver, string> RenderDoc::GetRemoteDrivers()
 void RenderDoc::SetCaptureOptions(const CaptureOptions &opts)
 {
 	m_Options = opts;
+
+	LibraryHooks::GetInstance().OptionsUpdated();
 }
 
 void RenderDoc::SetLogFile(const char *logFile)

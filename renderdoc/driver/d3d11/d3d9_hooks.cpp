@@ -69,6 +69,8 @@ class D3D9Hook : LibraryHook
 			m_EnabledHooks = enable;
 		}
 
+		void OptionsUpdated(const char *libName) {}
+
 	private:
 		static D3D9Hook d3d9hooks;
 
