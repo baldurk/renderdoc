@@ -674,7 +674,7 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
 		{
 			// warn on spec version mismatch, but allow it.
 			if(supportedExtensions[i].specVersion != it->specVersion)
-				RDCWARN("Spec versions are different between supported extension (%d) and reported (%d)!", supportedExtensions[i].specVersion, it->specVersion);
+				RDCWARN("Spec versions of %s are different between supported extension (%d) and reported (%d)!", it->extensionName, supportedExtensions[i].specVersion, it->specVersion);
 
 			filtered.push_back(*it);
 			++it;
