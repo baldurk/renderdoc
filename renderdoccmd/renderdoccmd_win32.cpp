@@ -311,6 +311,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 			MultiByteToWideChar(CP_UTF8, 0, originalpath.c_str(), -1, conv, int(originalpath.size()+1));
 
 			wide_path = conv;
+
+			delete[] conv;
 		}
 
 		// Wait for UI to exit
@@ -415,6 +417,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 			CloseHandle(pi.hProcess);
 			CloseHandle(pi.hThread);
 		}
+
+		delete[] paramsAlloc;
 
 		return 0;
 	}
