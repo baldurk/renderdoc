@@ -229,11 +229,14 @@ int renderdoccmd(int argc, char **argv)
 				float progress = 0.0f;
 				ReplayRenderer *renderer = NULL;
 				auto status = RENDERDOC_CreateReplayRenderer(argv[2], &progress, &renderer);
+				
+				if(renderer)
+				{
+					if(status == eReplayCreate_Success)
+						DisplayRendererPreview(renderer);
 
-				if(renderer && status == eReplayCreate_Success)
-					DisplayRendererPreview(renderer);
-
-				ReplayRenderer_Shutdown(renderer);
+					ReplayRenderer_Shutdown(renderer);
+				}
 				return 0;
 			}
 			else
@@ -333,11 +336,14 @@ int renderdoccmd(int argc, char **argv)
 
 				ReplayRenderer *renderer = NULL;
 				status = RemoteRenderer_CreateProxyRenderer(remote, 0, argv[3], &progress, &renderer);
+				
+				if(renderer)
+				{
+					if(status == eReplayCreate_Success)
+						DisplayRendererPreview(renderer);
 
-				if(renderer && status == eReplayCreate_Success)
-					DisplayRendererPreview(renderer);
-
-				RemoteRenderer_Shutdown(remote);
+					ReplayRenderer_Shutdown(renderer);
+				}
 				return 0;
 			}
 			else

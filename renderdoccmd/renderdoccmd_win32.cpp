@@ -385,7 +385,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 					fn = strchr(fn, '/');
 					if(fn) fn++;
 
-					if(*fn)
+					if(fn && *fn)
 					{
 						wchar_t conv[MAX_PATH] = {0};
 						wchar_t *wfn = conv;
