@@ -2512,7 +2512,9 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
 	m_Failures = 0;
 	m_FailedFrame = 0;
 	m_FailedReason = CaptureSucceeded;
-
+	
+	m_FrameCounter = RDCMAX(1+(uint32_t)m_CapturedFrames.size(), m_FrameCounter);
+	
 	FetchFrameInfo frame;
 	frame.frameNumber = m_FrameCounter+1;
 	frame.captureTime = Timing::GetUnixTimestamp();

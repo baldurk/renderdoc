@@ -863,6 +863,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 	RenderDoc::Inst().SetCurrentDriver(RDC_Vulkan);
 
 	m_AppControlledCapture = true;
+
+	m_FrameCounter = RDCMAX(1+(uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 	
 	FetchFrameInfo frame;
 	frame.frameNumber = m_FrameCounter+1;

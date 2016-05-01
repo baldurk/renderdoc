@@ -2349,7 +2349,9 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 	GLWindowingData prevctx = m_ActiveContexts[Threading::GetCurrentID()];
 	GLWindowingData switchctx = prevctx;
 	MakeValidContextCurrent(switchctx, wnd);
-
+	
+	m_FrameCounter = RDCMAX(1+(uint32_t)m_CapturedFrames.size(), m_FrameCounter);
+	
 	FetchFrameInfo frame;
 	frame.frameNumber = m_FrameCounter+1;
 	frame.captureTime = Timing::GetUnixTimestamp();
