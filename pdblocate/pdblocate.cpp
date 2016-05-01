@@ -533,6 +533,7 @@ AddrInfo GetAddr(wstring req)
 			if(hr != S_OK)
 			{
 				pFunc->Release();
+				SysFreeString(file);
 				return ret;
 			}
 
@@ -734,7 +735,10 @@ int WINAPI wWinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance,
 			DWORD err = GetLastError();
 			break;
 		}
-	}
+	}	
+
+	if(mod != NULL)
+		FreeLibrary(mod);
 
 	CloseHandle(pipe);
 	return 0;
