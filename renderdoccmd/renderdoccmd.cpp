@@ -156,10 +156,13 @@ int renderdoccmd(int argc, char **argv)
 			ReplayRenderer *renderer = NULL;
 			auto status = RENDERDOC_CreateReplayRenderer(argv[1], &progress, &renderer);
 
-			if(renderer && status == eReplayCreate_Success)
-				DisplayRendererPreview(renderer);
+			if(renderer)
+			{
+				if(status == eReplayCreate_Success)
+					DisplayRendererPreview(renderer);
 
-			ReplayRenderer_Shutdown(renderer);
+				ReplayRenderer_Shutdown(renderer);
+			}
 			return 0;
 		}
 		// dump the image from a logfile
