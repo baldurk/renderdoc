@@ -398,8 +398,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 		cmdline += L"/renderdocui.exe\" --updatedone";
 
 		wchar_t *paramsAlloc = new wchar_t[512];
+		
+		ZeroMemory(paramsAlloc, sizeof(wchar_t)*512);
 
-		wcscpy_s(paramsAlloc, 511, cmdline.c_str());
+		wcscpy_s(paramsAlloc, sizeof(wchar_t)*511, cmdline.c_str());
 
 		PROCESS_INFORMATION pi;
 		STARTUPINFOW si;
