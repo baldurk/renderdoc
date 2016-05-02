@@ -681,10 +681,11 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 	while(*a)
 	{
 		RDCDEBUG("%x: %d", a[0], a[1]);
-		a += 2;
 
 		if(a[0] == GLX_CONTEXT_PROFILE_MASK_ARB)
 			core = (a[1] & GLX_CONTEXT_CORE_PROFILE_BIT_ARB);
+		
+		a += 2;
 	}
 
 	GLXContext ret = OpenGLHook::glhooks.glXCreateContextAttribsARB_real(dpy, config, shareList, direct, attribs);
