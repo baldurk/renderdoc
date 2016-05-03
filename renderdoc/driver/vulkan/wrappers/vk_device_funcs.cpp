@@ -235,6 +235,11 @@ VkResult WrappedVulkan::vkCreateInstance(
 		ObjDisp(m_Instance)->CreateDebugReportCallbackEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgMsgCallback);
 	}
 
+	if(ret == VK_SUCCESS)
+	{
+		RDCLOG("Initialised capture layer in Vulkan instance.");
+	}
+
 	return ret;
 }
 

@@ -250,7 +250,7 @@ private:
 		}
 		else if(SUCCEEDED(ret))
 		{
-			RDCDEBUG("succeeded.");
+			RDCLOG("Created wrapped D3D11 device.");
 		}
 		else
 		{
