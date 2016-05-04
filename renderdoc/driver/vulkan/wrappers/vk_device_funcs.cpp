@@ -99,6 +99,8 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	params.Extensions.push_back("VK_EXT_debug_report");
 #endif
 
+	AddRequiredExtensions(true, params.Extensions);
+
 	const char **layerscstr = new const char *[params.Layers.size()];
 	for(size_t i=0; i < params.Layers.size(); i++)
 		layerscstr[i] = params.Layers[i].c_str();
@@ -518,18 +520,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		// we must make any modifications locally, so the free of pointers
 		// in the serialised VkDeviceCreateInfo don't double-free
 		VkDeviceCreateInfo createInfo = serCreateInfo;
-
-		// disable this extension as we might have captured it but we don't need
-		// to replay it
+		
+		std::vector<string> Extensions;
 		for(uint32_t i=0; i < createInfo.enabledExtensionCount; i++)
 		{
-			const char **extNames = (const char **)createInfo.ppEnabledExtensionNames;
-			if(!strcmp(extNames[i], DEBUG_MARKER_EXTENSION_NAME))
-			{
-				for(uint32_t j=i; j < createInfo.enabledExtensionCount-1; j++)
-					extNames[j] = extNames[j+1];
-				createInfo.enabledExtensionCount--;
-			}
+			// don't include the debug marker extension
+			if(strcmp(createInfo.ppEnabledExtensionNames[i], DEBUG_MARKER_EXTENSION_NAME))
+				Extensions.push_back(createInfo.ppEnabledExtensionNames[i]);
 		}
 
 		std::vector<string> Layers;
@@ -537,6 +534,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 			Layers.push_back(createInfo.ppEnabledLayerNames[i]);
 
 		StripUnwantedLayers(Layers);
+
+		AddRequiredExtensions(false, Extensions);
 		
 #if defined(FORCE_VALIDATION_LAYERS)
 		Layers.push_back("VK_LAYER_LUNARG_standard_validation");
@@ -553,6 +552,19 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				layerArray[i] = Layers[i].c_str();
 
 			createInfo.ppEnabledLayerNames = layerArray;
+		}
+
+		createInfo.enabledExtensionCount = (uint32_t)Extensions.size();
+
+		const char **extArray = NULL;
+		if(!Extensions.empty())
+		{
+			extArray = new const char *[createInfo.enabledExtensionCount];
+			
+			for(uint32_t i=0; i < createInfo.enabledExtensionCount; i++)
+				extArray[i] = Extensions[i].c_str();
+
+			createInfo.ppEnabledExtensionNames = extArray;
 		}
 
 		physicalDevice = GetResourceManager()->GetLiveHandle<VkPhysicalDevice>(physId);
@@ -716,6 +728,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 		SAFE_DELETE_ARRAY(modQueues);
 		SAFE_DELETE_ARRAY(layerArray);
+		SAFE_DELETE_ARRAY(extArray);
 	}
 
 	return true;

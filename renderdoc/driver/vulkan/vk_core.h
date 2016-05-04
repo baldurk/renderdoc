@@ -484,6 +484,9 @@ private:
 		
 	VulkanDrawcallTreeNode m_ParentDrawcall;
 
+	// in vk_<platform>.cpp
+	void AddRequiredExtensions(bool instance, vector<string> &extensionList);
+
 	void InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID, uint32_t baseDrawID);
 
 	list<VulkanDrawcallTreeNode *> m_DrawcallStack;

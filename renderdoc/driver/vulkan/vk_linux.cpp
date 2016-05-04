@@ -86,6 +86,30 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 	return true;
 }
 
+void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensionList)
+{
+	bool device = !instance;
+
+	// TODO should check if these are present..
+
+	if(instance)
+	{
+		extensionList.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+
+#if defined(VK_USE_PLATFORM_XCB_KHR)
+		extensionList.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+#endif
+
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+		extensionList.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+#endif
+	}
+	else if(device)
+	{
+		extensionList.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+	}
+}
+
 #if defined(VK_USE_PLATFORM_XCB_KHR)
 
 VkBool32 WrappedVulkan::vkGetPhysicalDeviceXcbPresentationSupportKHR(
