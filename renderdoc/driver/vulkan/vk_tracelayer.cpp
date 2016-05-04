@@ -62,8 +62,9 @@ class VulkanHook : LibraryHook
 	{
 		// we assume the implicit layer is registered - the UI will prompt the user about installing it.
 		Process::RegisterEnvironmentModification(Process::EnvironmentModification(Process::eEnvModification_Replace, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "1"));
-
-		Process::ApplyEnvironmentModification();
+		
+		// check options to set further variables, and apply
+		OptionsUpdated(libName);
 
 		return true;
 	}
