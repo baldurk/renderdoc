@@ -154,6 +154,8 @@ namespace renderdocui.Windows
         // this points to the 'highlighted'/current UI state.
         private UIState m_ContextUIState = null;
 
+        private bool m_Loaded = false;
+
         // this becomes a 'cancel' flag for any in-flight invokes
         // to set data. Since we can't cancel then wait on an invoke
         // from the UI thread synchronously, we can just increment this
@@ -511,11 +513,14 @@ namespace renderdocui.Windows
                             UI_SetRowsData(MeshDataStage.GSOut, contentsGSOut, 0);
 
                         camGuess_PropChanged();
+
+                        m_Loaded = true;
                     }));
                 });
             }
             else
             {
+                m_Loaded = true;
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {
                     if (IsDisposed) return;
@@ -527,6 +532,10 @@ namespace renderdocui.Windows
 
         public void OnEventSelected(UInt32 eventID)
         {
+            // ignore OnEventSelected until we've loaded
+            if (!m_Loaded)
+                return;
+
             ClearStoredData();
 
             var draw = m_Core.CurDrawcall;
@@ -2424,11 +2433,6 @@ namespace renderdocui.Windows
 
         private void BufferViewer_Load(object sender, EventArgs e)
         {
-            if (m_Output == null && m_Core.LogLoaded)
-            {
-                OnLogfileLoaded();
-            }
-
             matrixType.SelectedIndex = 0;
             configCamControls.Visible = false;
         }

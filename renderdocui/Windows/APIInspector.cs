@@ -228,9 +228,6 @@ namespace renderdocui.Windows
 
         private void APIEvents_Shown(object sender, EventArgs e)
         {
-            if (m_Core.LogLoaded)
-                OnLogfileLoaded();
-
             panelSplitter.Collapsed = true;
         }
 

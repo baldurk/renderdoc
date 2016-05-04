@@ -624,12 +624,6 @@ namespace renderdocui.Windows
             HighlightBookmarks();
         }
 
-        private void EventBrowser_Shown(object sender, EventArgs e)
-        {
-            if (m_Core.LogLoaded)
-                OnLogfileLoaded();
-        }
-
         private void ShowJump()
         {
             HideJumpAndFind();

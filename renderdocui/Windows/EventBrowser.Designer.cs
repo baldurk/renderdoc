@@ -381,7 +381,6 @@
             this.ShowHint = WeifenLuo.WinFormsUI.Docking.DockState.DockLeft;
             this.Text = "Event Browser";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.EventBrowser_FormClosed);
-            this.Shown += new System.EventHandler(this.EventBrowser_Shown);
             this.Leave += new System.EventHandler(this.EventBrowser_Leave);
             this.toolStripContainer1.ContentPanel.ResumeLayout(false);
             this.toolStripContainer1.TopToolStripPanel.ResumeLayout(false);

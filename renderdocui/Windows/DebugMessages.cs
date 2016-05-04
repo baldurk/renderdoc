@@ -82,12 +82,6 @@ namespace renderdocui.Windows
         {
         }
 
-        private void DebugMessages_Shown(object sender, EventArgs e)
-        {
-            if (m_Core.LogLoaded)
-                OnLogfileLoaded();
-        }
-
         private void messages_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < m_VisibleMessages.Count)

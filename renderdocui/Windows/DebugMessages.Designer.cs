@@ -219,7 +219,6 @@
             this.Controls.Add(this.toolStripContainer1);
             this.Name = "DebugMessages";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.DebugMessages_FormClosed);
-            this.Shown += new System.EventHandler(this.DebugMessages_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.messages)).EndInit();
             this.rightClickMenu.ResumeLayout(false);
             this.toolStripContainer1.ContentPanel.ResumeLayout(false);

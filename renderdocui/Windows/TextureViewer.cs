@@ -452,9 +452,6 @@ namespace renderdocui.Windows
             m_Following = Following.Default;
 
             texturefilter.SelectedIndex = 0;
-
-            if (m_Core.LogLoaded)
-                OnLogfileLoaded();
         }
 
         private void UI_SetupDocks()
