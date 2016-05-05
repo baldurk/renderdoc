@@ -733,7 +733,9 @@ Callstack::AddressDetails Win32CallstackResolver::GetAddr(DWORD64 addr)
 			if(modules[i].moduleId != 0)
 				info = GetAddrInfoForModule(modules[i].moduleId, addr);
 
-			wcsncpy_s(info.fileName, modules[i].name.c_str(), 126);
+			// if we didn't get a filename, default to the module name
+			if(info.fileName[0] == 0)
+				wcsncpy_s(info.fileName, modules[i].name.c_str(), 126);
 
 			break;
 		}
