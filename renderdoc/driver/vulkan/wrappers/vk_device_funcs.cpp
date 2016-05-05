@@ -187,8 +187,21 @@ VkResult WrappedVulkan::vkCreateInstance(
 	layerCreateInfo->u.pLayerInfo = layerCreateInfo->u.pLayerInfo->pNext;
 
 	PFN_vkCreateInstance createFunc = (PFN_vkCreateInstance)gpa(VK_NULL_HANDLE, "vkCreateInstance");
+
+	VkInstanceCreateInfo modifiedCreateInfo;
+	modifiedCreateInfo = *pCreateInfo;
+
+	const char **addedExts = new const char *[modifiedCreateInfo.enabledExtensionCount+1];
+
+	for(uint32_t i=0; i < modifiedCreateInfo.enabledExtensionCount; i++)
+		addedExts[i] = modifiedCreateInfo.ppEnabledExtensionNames[i];
+
+	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+		addedExts[modifiedCreateInfo.enabledExtensionCount++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
+
+	modifiedCreateInfo.ppEnabledExtensionNames = addedExts;
 	
-	VkResult ret = createFunc(pCreateInfo, pAllocator, pInstance);
+	VkResult ret = createFunc(&modifiedCreateInfo, pAllocator, pInstance);
 
 	m_Instance = *pInstance;
 
@@ -207,12 +220,14 @@ VkResult WrappedVulkan::vkCreateInstance(
 	record->instDevInfo = new InstanceDeviceInfo();
 	
 #undef CheckExt
-#define CheckExt(name) if(!strcmp(pCreateInfo->ppEnabledExtensionNames[i], STRINGIZE(name))) { record->instDevInfo->name = true; }
+#define CheckExt(name) if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], STRINGIZE(name))) { record->instDevInfo->name = true; }
 
-	for(uint32_t i=0; i < pCreateInfo->enabledExtensionCount; i++)
+	for(uint32_t i=0; i < modifiedCreateInfo.enabledExtensionCount; i++)
 	{
 		CheckInstanceExts();
 	}
+
+	delete[] addedExts;
 
 	InitInstanceExtensionTables(m_Instance);
 
@@ -311,6 +326,9 @@ void WrappedVulkan::Shutdown()
 void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks* pAllocator)
 {
 	RDCASSERT(m_Instance == instance);
+	
+	if(ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT && m_DbgMsgCallback != VK_NULL_HANDLE)
+		ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT(Unwrap(m_Instance), m_DbgMsgCallback, NULL);
 
 	// the device should already have been destroyed, assuming that the
 	// application is well behaved. If not, we just leak.
