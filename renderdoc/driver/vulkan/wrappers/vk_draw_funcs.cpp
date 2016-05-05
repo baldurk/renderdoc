@@ -112,6 +112,502 @@ void WrappedVulkan::vkCmdDraw(
 	}
 }
 
+bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
+	Serialiser*    localSerialiser,
+	VkCommandBuffer commandBuffer,
+	uint32_t       indexCount,
+	uint32_t       instanceCount,
+	uint32_t       firstIndex,
+	int32_t        vertexOffset,
+	uint32_t       firstInstance)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
+	SERIALISE_ELEMENT(uint32_t, idxCount, indexCount);
+	SERIALISE_ELEMENT(uint32_t, instCount, instanceCount);
+	SERIALISE_ELEMENT(uint32_t, firstIdx, firstIndex);
+	SERIALISE_ELEMENT(int32_t,  vtxOffs, vertexOffset);
+	SERIALISE_ELEMENT(uint32_t, firstInst, firstInstance);
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
+	if(m_State == EXECUTING)
+	{
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+		{
+			commandBuffer = RerecordCmdBuf(cmdid);
+			
+			uint32_t eventID = HandlePreCallback(commandBuffer);
+
+			ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
+
+			if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+			{
+				ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
+				m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+			}
+		}
+	}
+	else if(m_State == READING)
+	{
+		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
+
+		ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			AddEvent(DRAW_INDEXED, desc);
+			string name = "vkCmdDrawIndexed(" +
+				ToStr::Get(idxCount) + "," +
+				ToStr::Get(instCount) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.numIndices = idxCount;
+			draw.numInstances = instCount;
+			draw.indexOffset = firstIdx;
+			draw.baseVertex = vtxOffs;
+			draw.instanceOffset = firstInst;
+
+			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced;
+
+			AddDrawcall(draw, true);
+		}
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdDrawIndexed(
+	VkCommandBuffer commandBuffer,
+	uint32_t       indexCount,
+	uint32_t       instanceCount,
+	uint32_t       firstIndex,
+	int32_t        vertexOffset,
+	uint32_t       firstInstance)
+{
+	ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(commandBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(DRAW_INDEXED);
+		Serialise_vkCmdDrawIndexed(localSerialiser, commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+
+		record->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
+		Serialiser*                                 localSerialiser,
+		VkCommandBuffer                                 commandBuffer,
+		VkBuffer                                    buffer,
+		VkDeviceSize                                offset,
+		uint32_t                                    count,
+		uint32_t                                    stride)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
+	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(buffer));
+	SERIALISE_ELEMENT(uint64_t, offs, offset);
+
+	SERIALISE_ELEMENT(uint32_t, cnt, count);
+	SERIALISE_ELEMENT(uint32_t, strd, stride);
+	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
+	if(m_State == EXECUTING)
+	{
+		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+		{
+			commandBuffer = RerecordCmdBuf(cmdid);
+
+			uint32_t eventID = HandlePreCallback(commandBuffer);
+			
+			ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+
+			if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+			{
+				ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+				m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+			}
+		}
+	}
+	else if(m_State == READING)
+	{
+		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
+		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			VkDrawIndirectCommand unknown = {0};
+			vector<byte> argbuf;
+			GetDebugManager()->GetBufferData(GetResID(buffer), offs, sizeof(VkDrawIndirectCommand) + (cnt-1)*strd, argbuf);
+			VkDrawIndirectCommand *args = (VkDrawIndirectCommand *)&argbuf[0];
+
+			if(argbuf.size() < sizeof(VkDrawIndirectCommand))
+			{
+				RDCERR("Couldn't fetch arguments buffer for vkCmdDrawIndirect");
+				args = &unknown;
+			}
+
+			if(cnt > 1)
+			{
+				RDCWARN("Stepping inside multi indirect draws not yet supported");
+			}
+
+			AddEvent(DRAW_INDIRECT, desc);
+			string name = "vkCmdDrawIndirect(<" +
+				ToStr::Get(args->vertexCount) + "," +
+				ToStr::Get(args->instanceCount) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.numIndices = args->vertexCount;
+			draw.numInstances = args->instanceCount;
+			draw.indexOffset = 0;
+			draw.vertexOffset = args->firstVertex;
+			draw.instanceOffset = args->firstInstance;
+
+			draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
+
+			AddDrawcall(draw, true);
+		}
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdDrawIndirect(
+		VkCommandBuffer                                 commandBuffer,
+		VkBuffer                                    buffer,
+		VkDeviceSize                                offset,
+		uint32_t                                    count,
+		uint32_t                                    stride)
+{
+	ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(commandBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(DRAW_INDIRECT);
+		Serialise_vkCmdDrawIndirect(localSerialiser, commandBuffer, buffer, offset, count, stride);
+
+		record->AddChunk(scope.Get());
+
+		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
+		if(GetRecord(buffer)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(buffer)->sparseInfo);
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
+		Serialiser*                                 localSerialiser,
+		VkCommandBuffer                                 commandBuffer,
+		VkBuffer                                    buffer,
+		VkDeviceSize                                offset,
+		uint32_t                                    count,
+		uint32_t                                    stride)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
+	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(buffer));
+	SERIALISE_ELEMENT(uint64_t, offs, offset);
+
+	SERIALISE_ELEMENT(uint32_t, cnt, count);
+	SERIALISE_ELEMENT(uint32_t, strd, stride);
+	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
+	if(m_State == EXECUTING)
+	{
+		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+		{
+			commandBuffer = RerecordCmdBuf(cmdid);
+
+			uint32_t eventID = HandlePreCallback(commandBuffer);
+			
+			ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+
+			if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+			{
+				ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+				m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+			}
+		}
+	}
+	else if(m_State == READING)
+	{
+		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
+		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			VkDrawIndexedIndirectCommand unknown = {0};
+			vector<byte> argbuf;
+			GetDebugManager()->GetBufferData(GetResID(buffer), offs, sizeof(VkDrawIndexedIndirectCommand) + (cnt-1)*strd, argbuf);
+			VkDrawIndexedIndirectCommand *args = (VkDrawIndexedIndirectCommand *)&argbuf[0];
+
+			if(argbuf.size() < sizeof(VkDrawIndexedIndirectCommand))
+			{
+				RDCERR("Couldn't fetch arguments buffer for vkCmdDrawIndexedIndirect");
+				args = &unknown;
+			}
+
+			if(cnt > 1)
+			{
+				RDCWARN("Stepping inside multi indirect draws not yet supported");
+			}
+
+			AddEvent(DRAW_INDEXED_INDIRECT, desc);
+			string name = "vkCmdDrawIndexedIndirect(<" +
+				ToStr::Get(args->indexCount) + "," +
+				ToStr::Get(args->instanceCount) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.numIndices = args->indexCount;
+			draw.numInstances = args->instanceCount;
+			draw.indexOffset = args->firstIndex;
+			draw.baseVertex = args->vertexOffset;
+			draw.instanceOffset = args->firstInstance;
+
+			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
+
+			AddDrawcall(draw, true);
+		}
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdDrawIndexedIndirect(
+		VkCommandBuffer                                 commandBuffer,
+		VkBuffer                                    buffer,
+		VkDeviceSize                                offset,
+		uint32_t                                    count,
+		uint32_t                                    stride)
+{
+	ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(commandBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(DRAW_INDEXED_INDIRECT);
+		Serialise_vkCmdDrawIndexedIndirect(localSerialiser, commandBuffer, buffer, offset, count, stride);
+
+		record->AddChunk(scope.Get());
+
+		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
+		if(GetRecord(buffer)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(buffer)->sparseInfo);
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdDispatch(
+	Serialiser*    localSerialiser,
+	VkCommandBuffer commandBuffer,
+	uint32_t       x,
+	uint32_t       y,
+	uint32_t       z)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
+	SERIALISE_ELEMENT(uint32_t, X, x);
+	SERIALISE_ELEMENT(uint32_t, Y, y);
+	SERIALISE_ELEMENT(uint32_t, Z, z);
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
+	if(m_State == EXECUTING)
+	{
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+		{
+			commandBuffer = RerecordCmdBuf(cmdid);
+
+			uint32_t eventID = HandlePreCallback(commandBuffer, true);
+			
+			ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
+
+			if(eventID && m_DrawcallCallback->PostDispatch(eventID, commandBuffer))
+			{
+				ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
+				m_DrawcallCallback->PostRedispatch(eventID, commandBuffer);
+			}
+		}
+	}
+	else if(m_State == READING)
+	{
+		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
+
+		ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			AddEvent(DISPATCH, desc);
+			string name = "vkCmdDispatch(" +
+				ToStr::Get(X) + "," +
+				ToStr::Get(Y) + "," +
+				ToStr::Get(Z) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.dispatchDimension[0] = X;
+			draw.dispatchDimension[1] = Y;
+			draw.dispatchDimension[2] = Z;
+
+			draw.flags |= eDraw_Dispatch;
+
+			AddDrawcall(draw, true);
+		}
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdDispatch(
+	VkCommandBuffer commandBuffer,
+	uint32_t       x,
+	uint32_t       y,
+	uint32_t       z)
+{
+	ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(commandBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(DISPATCH);
+		Serialise_vkCmdDispatch(localSerialiser, commandBuffer, x, y, z);
+
+		record->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
+			Serialiser*                                 localSerialiser,
+			VkCommandBuffer                             commandBuffer,
+			VkBuffer                                    buffer,
+			VkDeviceSize                                offset)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
+	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(buffer));
+	SERIALISE_ELEMENT(uint64_t, offs, offset);
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
+	if(m_State == EXECUTING)
+	{
+		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+		{
+			commandBuffer = RerecordCmdBuf(cmdid);
+
+			uint32_t eventID = HandlePreCallback(commandBuffer, true);
+			
+			ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
+
+			if(eventID && m_DrawcallCallback->PostDispatch(eventID, commandBuffer))
+			{
+				ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
+				m_DrawcallCallback->PostRedispatch(eventID, commandBuffer);
+			}
+		}
+	}
+	else if(m_State == READING)
+	{
+		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
+		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+		ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
+
+		const string desc = localSerialiser->GetDebugStr();
+
+		{
+			VkDispatchIndirectCommand unknown = {0};
+			vector<byte> argbuf;
+			GetDebugManager()->GetBufferData(GetResID(buffer), offs, sizeof(VkDispatchIndirectCommand), argbuf);
+			VkDispatchIndirectCommand *args = (VkDispatchIndirectCommand *)&argbuf[0];
+
+			if(argbuf.size() < sizeof(VkDispatchIndirectCommand))
+			{
+				RDCERR("Couldn't fetch arguments buffer for vkCmdDispatchIndirect");
+				args = &unknown;
+			}
+
+			AddEvent(DISPATCH_INDIRECT, desc);
+			string name = "vkCmdDispatchIndirect(<" +
+				ToStr::Get(args->x) + "," +
+				ToStr::Get(args->y) + "," +
+				ToStr::Get(args->z) + ">)";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.dispatchDimension[0] = args->x;
+			draw.dispatchDimension[1] = args->y;
+			draw.dispatchDimension[2] = args->z;
+
+			draw.flags |= eDraw_Dispatch|eDraw_Indirect;
+
+			AddDrawcall(draw, true);
+		}
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdDispatchIndirect(
+			VkCommandBuffer                                 commandBuffer,
+			VkBuffer                                    buffer,
+			VkDeviceSize                                offset)
+{
+	ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(commandBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(DISPATCH_INDIRECT);
+		Serialise_vkCmdDispatchIndirect(localSerialiser, commandBuffer, buffer, offset);
+
+		record->AddChunk(scope.Get());
+
+		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
+		if(GetRecord(buffer)->sparseInfo)
+			record->cmdInfo->sparse.insert(GetRecord(buffer)->sparseInfo);
+	}
+}
+
 bool WrappedVulkan::Serialise_vkCmdBlitImage(
 			Serialiser*                                 localSerialiser,
 			VkCommandBuffer                                 commandBuffer,
@@ -1050,501 +1546,5 @@ void WrappedVulkan::vkCmdClearAttachments(
 		record->AddChunk(scope.Get());
 
 		// image/attachments are referenced when the render pass is started and the framebuffer is bound.
-	}
-}
-
-bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
-	Serialiser*    localSerialiser,
-	VkCommandBuffer commandBuffer,
-	uint32_t       indexCount,
-	uint32_t       instanceCount,
-	uint32_t       firstIndex,
-	int32_t        vertexOffset,
-	uint32_t       firstInstance)
-{
-	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
-	SERIALISE_ELEMENT(uint32_t, idxCount, indexCount);
-	SERIALISE_ELEMENT(uint32_t, instCount, instanceCount);
-	SERIALISE_ELEMENT(uint32_t, firstIdx, firstIndex);
-	SERIALISE_ELEMENT(int32_t,  vtxOffs, vertexOffset);
-	SERIALISE_ELEMENT(uint32_t, firstInst, firstInstance);
-
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
-	if(m_State == EXECUTING)
-	{
-		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
-		{
-			commandBuffer = RerecordCmdBuf(cmdid);
-			
-			uint32_t eventID = HandlePreCallback(commandBuffer);
-
-			ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
-
-			if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
-			{
-				ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
-				m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
-			}
-		}
-	}
-	else if(m_State == READING)
-	{
-		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
-
-		ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
-
-		const string desc = localSerialiser->GetDebugStr();
-
-		{
-			AddEvent(DRAW_INDEXED, desc);
-			string name = "vkCmdDrawIndexed(" +
-				ToStr::Get(idxCount) + "," +
-				ToStr::Get(instCount) + ")";
-
-			FetchDrawcall draw;
-			draw.name = name;
-			draw.numIndices = idxCount;
-			draw.numInstances = instCount;
-			draw.indexOffset = firstIdx;
-			draw.baseVertex = vtxOffs;
-			draw.instanceOffset = firstInst;
-
-			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced;
-
-			AddDrawcall(draw, true);
-		}
-	}
-
-	return true;
-}
-
-void WrappedVulkan::vkCmdDrawIndexed(
-	VkCommandBuffer commandBuffer,
-	uint32_t       indexCount,
-	uint32_t       instanceCount,
-	uint32_t       firstIndex,
-	int32_t        vertexOffset,
-	uint32_t       firstInstance)
-{
-	ObjDisp(commandBuffer)->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
-
-	if(m_State >= WRITING)
-	{
-		VkResourceRecord *record = GetRecord(commandBuffer);
-
-		CACHE_THREAD_SERIALISER();
-
-		SCOPED_SERIALISE_CONTEXT(DRAW_INDEXED);
-		Serialise_vkCmdDrawIndexed(localSerialiser, commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
-
-		record->AddChunk(scope.Get());
-	}
-}
-
-bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
-		Serialiser*                                 localSerialiser,
-		VkCommandBuffer                                 commandBuffer,
-		VkBuffer                                    buffer,
-		VkDeviceSize                                offset,
-		uint32_t                                    count,
-		uint32_t                                    stride)
-{
-	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
-	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(buffer));
-	SERIALISE_ELEMENT(uint64_t, offs, offset);
-
-	SERIALISE_ELEMENT(uint32_t, cnt, count);
-	SERIALISE_ELEMENT(uint32_t, strd, stride);
-	
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
-	if(m_State == EXECUTING)
-	{
-		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
-
-		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
-		{
-			commandBuffer = RerecordCmdBuf(cmdid);
-
-			uint32_t eventID = HandlePreCallback(commandBuffer);
-			
-			ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-
-			if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
-			{
-				ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-				m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
-			}
-		}
-	}
-	else if(m_State == READING)
-	{
-		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
-		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
-
-		ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-
-		const string desc = localSerialiser->GetDebugStr();
-
-		{
-			VkDrawIndirectCommand unknown = {0};
-			vector<byte> argbuf;
-			GetDebugManager()->GetBufferData(GetResID(buffer), offs, sizeof(VkDrawIndirectCommand) + (cnt-1)*strd, argbuf);
-			VkDrawIndirectCommand *args = (VkDrawIndirectCommand *)&argbuf[0];
-
-			if(argbuf.size() < sizeof(VkDrawIndirectCommand))
-			{
-				RDCERR("Couldn't fetch arguments buffer for vkCmdDrawIndirect");
-				args = &unknown;
-			}
-
-			if(cnt > 1)
-			{
-				RDCWARN("Stepping inside multi indirect draws not yet supported");
-			}
-
-			AddEvent(DRAW_INDIRECT, desc);
-			string name = "vkCmdDrawIndirect(<" +
-				ToStr::Get(args->vertexCount) + "," +
-				ToStr::Get(args->instanceCount) + ")";
-
-			FetchDrawcall draw;
-			draw.name = name;
-			draw.numIndices = args->vertexCount;
-			draw.numInstances = args->instanceCount;
-			draw.indexOffset = 0;
-			draw.vertexOffset = args->firstVertex;
-			draw.instanceOffset = args->firstInstance;
-
-			draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
-
-			AddDrawcall(draw, true);
-		}
-	}
-
-	return true;
-}
-
-void WrappedVulkan::vkCmdDrawIndirect(
-		VkCommandBuffer                                 commandBuffer,
-		VkBuffer                                    buffer,
-		VkDeviceSize                                offset,
-		uint32_t                                    count,
-		uint32_t                                    stride)
-{
-	ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-
-	if(m_State >= WRITING)
-	{
-		VkResourceRecord *record = GetRecord(commandBuffer);
-
-		CACHE_THREAD_SERIALISER();
-
-		SCOPED_SERIALISE_CONTEXT(DRAW_INDIRECT);
-		Serialise_vkCmdDrawIndirect(localSerialiser, commandBuffer, buffer, offset, count, stride);
-
-		record->AddChunk(scope.Get());
-
-		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
-		if(GetRecord(buffer)->sparseInfo)
-			record->cmdInfo->sparse.insert(GetRecord(buffer)->sparseInfo);
-	}
-}
-
-bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
-		Serialiser*                                 localSerialiser,
-		VkCommandBuffer                                 commandBuffer,
-		VkBuffer                                    buffer,
-		VkDeviceSize                                offset,
-		uint32_t                                    count,
-		uint32_t                                    stride)
-{
-	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
-	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(buffer));
-	SERIALISE_ELEMENT(uint64_t, offs, offset);
-
-	SERIALISE_ELEMENT(uint32_t, cnt, count);
-	SERIALISE_ELEMENT(uint32_t, strd, stride);
-	
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
-	if(m_State == EXECUTING)
-	{
-		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
-
-		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
-		{
-			commandBuffer = RerecordCmdBuf(cmdid);
-
-			uint32_t eventID = HandlePreCallback(commandBuffer);
-			
-			ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-
-			if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
-			{
-				ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-				m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
-			}
-		}
-	}
-	else if(m_State == READING)
-	{
-		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
-		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
-
-		ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-
-		const string desc = localSerialiser->GetDebugStr();
-
-		{
-			VkDrawIndexedIndirectCommand unknown = {0};
-			vector<byte> argbuf;
-			GetDebugManager()->GetBufferData(GetResID(buffer), offs, sizeof(VkDrawIndexedIndirectCommand) + (cnt-1)*strd, argbuf);
-			VkDrawIndexedIndirectCommand *args = (VkDrawIndexedIndirectCommand *)&argbuf[0];
-
-			if(argbuf.size() < sizeof(VkDrawIndexedIndirectCommand))
-			{
-				RDCERR("Couldn't fetch arguments buffer for vkCmdDrawIndexedIndirect");
-				args = &unknown;
-			}
-
-			if(cnt > 1)
-			{
-				RDCWARN("Stepping inside multi indirect draws not yet supported");
-			}
-
-			AddEvent(DRAW_INDEXED_INDIRECT, desc);
-			string name = "vkCmdDrawIndexedIndirect(<" +
-				ToStr::Get(args->indexCount) + "," +
-				ToStr::Get(args->instanceCount) + ")";
-
-			FetchDrawcall draw;
-			draw.name = name;
-			draw.numIndices = args->indexCount;
-			draw.numInstances = args->instanceCount;
-			draw.indexOffset = args->firstIndex;
-			draw.baseVertex = args->vertexOffset;
-			draw.instanceOffset = args->firstInstance;
-
-			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
-
-			AddDrawcall(draw, true);
-		}
-	}
-
-	return true;
-}
-
-void WrappedVulkan::vkCmdDrawIndexedIndirect(
-		VkCommandBuffer                                 commandBuffer,
-		VkBuffer                                    buffer,
-		VkDeviceSize                                offset,
-		uint32_t                                    count,
-		uint32_t                                    stride)
-{
-	ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-
-	if(m_State >= WRITING)
-	{
-		VkResourceRecord *record = GetRecord(commandBuffer);
-
-		CACHE_THREAD_SERIALISER();
-
-		SCOPED_SERIALISE_CONTEXT(DRAW_INDEXED_INDIRECT);
-		Serialise_vkCmdDrawIndexedIndirect(localSerialiser, commandBuffer, buffer, offset, count, stride);
-
-		record->AddChunk(scope.Get());
-
-		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
-		if(GetRecord(buffer)->sparseInfo)
-			record->cmdInfo->sparse.insert(GetRecord(buffer)->sparseInfo);
-	}
-}
-
-bool WrappedVulkan::Serialise_vkCmdDispatch(
-	Serialiser*    localSerialiser,
-	VkCommandBuffer commandBuffer,
-	uint32_t       x,
-	uint32_t       y,
-	uint32_t       z)
-{
-	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
-	SERIALISE_ELEMENT(uint32_t, X, x);
-	SERIALISE_ELEMENT(uint32_t, Y, y);
-	SERIALISE_ELEMENT(uint32_t, Z, z);
-
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
-	if(m_State == EXECUTING)
-	{
-		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
-		{
-			commandBuffer = RerecordCmdBuf(cmdid);
-
-			uint32_t eventID = HandlePreCallback(commandBuffer, true);
-			
-			ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
-
-			if(eventID && m_DrawcallCallback->PostDispatch(eventID, commandBuffer))
-			{
-				ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
-				m_DrawcallCallback->PostRedispatch(eventID, commandBuffer);
-			}
-		}
-	}
-	else if(m_State == READING)
-	{
-		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
-
-		ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
-
-		const string desc = localSerialiser->GetDebugStr();
-
-		{
-			AddEvent(DISPATCH, desc);
-			string name = "vkCmdDispatch(" +
-				ToStr::Get(X) + "," +
-				ToStr::Get(Y) + "," +
-				ToStr::Get(Z) + ")";
-
-			FetchDrawcall draw;
-			draw.name = name;
-			draw.dispatchDimension[0] = X;
-			draw.dispatchDimension[1] = Y;
-			draw.dispatchDimension[2] = Z;
-
-			draw.flags |= eDraw_Dispatch;
-
-			AddDrawcall(draw, true);
-		}
-	}
-
-	return true;
-}
-
-void WrappedVulkan::vkCmdDispatch(
-	VkCommandBuffer commandBuffer,
-	uint32_t       x,
-	uint32_t       y,
-	uint32_t       z)
-{
-	ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
-
-	if(m_State >= WRITING)
-	{
-		VkResourceRecord *record = GetRecord(commandBuffer);
-
-		CACHE_THREAD_SERIALISER();
-
-		SCOPED_SERIALISE_CONTEXT(DISPATCH);
-		Serialise_vkCmdDispatch(localSerialiser, commandBuffer, x, y, z);
-
-		record->AddChunk(scope.Get());
-	}
-}
-
-bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
-			Serialiser*                                 localSerialiser,
-			VkCommandBuffer                             commandBuffer,
-			VkBuffer                                    buffer,
-			VkDeviceSize                                offset)
-{
-	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
-	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(buffer));
-	SERIALISE_ELEMENT(uint64_t, offs, offset);
-
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
-	if(m_State == EXECUTING)
-	{
-		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
-
-		if(ShouldRerecordCmd(cmdid) && InRerecordRange())
-		{
-			commandBuffer = RerecordCmdBuf(cmdid);
-
-			uint32_t eventID = HandlePreCallback(commandBuffer, true);
-			
-			ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
-
-			if(eventID && m_DrawcallCallback->PostDispatch(eventID, commandBuffer))
-			{
-				ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
-				m_DrawcallCallback->PostRedispatch(eventID, commandBuffer);
-			}
-		}
-	}
-	else if(m_State == READING)
-	{
-		commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
-		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
-
-		ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
-
-		const string desc = localSerialiser->GetDebugStr();
-
-		{
-			VkDispatchIndirectCommand unknown = {0};
-			vector<byte> argbuf;
-			GetDebugManager()->GetBufferData(GetResID(buffer), offs, sizeof(VkDispatchIndirectCommand), argbuf);
-			VkDispatchIndirectCommand *args = (VkDispatchIndirectCommand *)&argbuf[0];
-
-			if(argbuf.size() < sizeof(VkDispatchIndirectCommand))
-			{
-				RDCERR("Couldn't fetch arguments buffer for vkCmdDispatchIndirect");
-				args = &unknown;
-			}
-
-			AddEvent(DISPATCH_INDIRECT, desc);
-			string name = "vkCmdDispatchIndirect(<" +
-				ToStr::Get(args->x) + "," +
-				ToStr::Get(args->y) + "," +
-				ToStr::Get(args->z) + ">)";
-
-			FetchDrawcall draw;
-			draw.name = name;
-			draw.dispatchDimension[0] = args->x;
-			draw.dispatchDimension[1] = args->y;
-			draw.dispatchDimension[2] = args->z;
-
-			draw.flags |= eDraw_Dispatch|eDraw_Indirect;
-
-			AddDrawcall(draw, true);
-		}
-	}
-
-	return true;
-}
-
-void WrappedVulkan::vkCmdDispatchIndirect(
-			VkCommandBuffer                                 commandBuffer,
-			VkBuffer                                    buffer,
-			VkDeviceSize                                offset)
-{
-	ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset);
-
-	if(m_State >= WRITING)
-	{
-		VkResourceRecord *record = GetRecord(commandBuffer);
-
-		CACHE_THREAD_SERIALISER();
-
-		SCOPED_SERIALISE_CONTEXT(DISPATCH_INDIRECT);
-		Serialise_vkCmdDispatchIndirect(localSerialiser, commandBuffer, buffer, offset);
-
-		record->AddChunk(scope.Get());
-
-		record->MarkResourceFrameReferenced(GetResID(buffer), eFrameRef_Read);
-		record->MarkResourceFrameReferenced(GetRecord(buffer)->baseResource, eFrameRef_Read);
-		if(GetRecord(buffer)->sparseInfo)
-			record->cmdInfo->sparse.insert(GetRecord(buffer)->sparseInfo);
 	}
 }
