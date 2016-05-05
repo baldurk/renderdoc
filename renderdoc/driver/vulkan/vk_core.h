@@ -47,7 +47,7 @@ struct VkInitParams : public RDCInitParams
 
 	void Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst);
 
-	static const uint32_t VK_SERIALISE_VERSION = 0x0000003;
+	static const uint32_t VK_SERIALISE_VERSION = 0x0000004;
 
 	// version number internal to vulkan stream
 	uint32_t SerialiseVersion;
@@ -142,6 +142,31 @@ private:
 	friend class VulkanReplay;
 	friend class VulkanDebugManager;
 	
+	struct ScopedDebugMessageSink
+	{
+		ScopedDebugMessageSink(WrappedVulkan *driver);
+		~ScopedDebugMessageSink();
+
+		vector<DebugMessage> msgs;
+		WrappedVulkan *m_pDriver;
+	};
+
+	friend struct ScopedDebugMessageSink;
+
+#define SCOPED_DBG_SINK() ScopedDebugMessageSink debug_message_sink(this);
+
+	uint64_t debugMessageSinkTLSSlot;
+	ScopedDebugMessageSink *GetDebugMessageSink();
+	void SetDebugMessageSink(ScopedDebugMessageSink *sink);
+	
+	// the messages retrieved for the current event (filled in Serialise_vk...() and read in AddEvent())
+	vector<DebugMessage> m_EventMessages;
+
+	// list of all debug messages by EID in the frame
+	vector<DebugMessage> m_DebugMessages;
+	void Serialise_DebugMessages(Serialiser *localSerialiser, bool isDrawcall);
+	vector<DebugMessage> GetDebugMessages();
+
 	enum {
 		eInitialContents_ClearColorImage = 1,
 		eInitialContents_ClearDepthStencilImage,
@@ -296,6 +321,7 @@ private:
 	struct BakedCmdBufferInfo
 	{
 		vector<FetchAPIEvent> curEvents;
+		vector<DebugMessage> debugMessages;
 		list<VulkanDrawcallTreeNode *> drawStack;
 
 		struct CmdBufferState

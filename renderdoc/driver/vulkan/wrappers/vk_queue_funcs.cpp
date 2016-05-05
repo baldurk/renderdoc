@@ -218,14 +218,22 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			AddEvent(SET_MARKER, name);
 			AddDrawcall(draw, true);
 			m_RootEventID++;
+
+			BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmdIds[c]];
 			
 			// insert the baked command buffer in-line into this list of notes, assigning new event and drawIDs
-			InsertDrawsAndRefreshIDs(m_BakedCmdBufferInfo[cmdIds[c]].draw->children, m_RootEventID, m_RootDrawcallID);
+			InsertDrawsAndRefreshIDs(cmdBufInfo.draw->children, m_RootEventID, m_RootDrawcallID);
+			
+			for(size_t i=0; i < cmdBufInfo.debugMessages.size(); i++)
+			{
+				m_DebugMessages.push_back(cmdBufInfo.debugMessages[i]);
+				m_DebugMessages.back().eventID += m_RootEventID;
+			}
 
 			m_PartialReplayData.cmdBufferSubmits[cmdIds[c]].push_back(m_RootEventID);
 
-			m_RootEventID += m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
-			m_RootDrawcallID += m_BakedCmdBufferInfo[cmdIds[c]].drawCount;
+			m_RootEventID += cmdBufInfo.eventCount;
+			m_RootDrawcallID += cmdBufInfo.drawCount;
 			
 			name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c, ToStr::Get(cmdIds[c]).c_str());
 			draw.name = name;

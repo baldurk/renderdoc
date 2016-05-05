@@ -153,6 +153,8 @@ const char *VkChunkNames[] =
 
 	"vkCreateSwapchainKHR",
 
+	"Debug Messages",
+
 	"Capture",
 	"BeginCapture",
 	"EndCapture",
@@ -268,6 +270,7 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 	threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
 	tempMemoryTLSSlot = Threading::AllocateTLSSlot();
+	debugMessageSinkTLSSlot = Threading::AllocateTLSSlot();
 
 	m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
 	
@@ -508,6 +511,27 @@ template<>
 string ToStrHelper<false, VulkanChunkType>::Get(const VulkanChunkType &el)
 {
 	return WrappedVulkan::GetChunkName(el);
+}
+
+WrappedVulkan::ScopedDebugMessageSink::ScopedDebugMessageSink(WrappedVulkan *driver)
+{
+	driver->SetDebugMessageSink(this);
+	m_pDriver = driver;
+}
+
+WrappedVulkan::ScopedDebugMessageSink::~ScopedDebugMessageSink()
+{
+	m_pDriver->SetDebugMessageSink(NULL);
+}
+
+WrappedVulkan::ScopedDebugMessageSink *WrappedVulkan::GetDebugMessageSink()
+{
+	return (WrappedVulkan::ScopedDebugMessageSink *)Threading::GetTLSValue(debugMessageSinkTLSSlot);
+}
+
+void WrappedVulkan::SetDebugMessageSink(WrappedVulkan::ScopedDebugMessageSink *sink)
+{
+	Threading::SetTLSValue(debugMessageSinkTLSSlot, (void *)sink);
 }
 
 byte *WrappedVulkan::GetTempMemory(size_t s)
@@ -2070,6 +2094,86 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 	}
 }
 
+void WrappedVulkan::Serialise_DebugMessages(Serialiser *localSerialiser, bool isDrawcall)
+{
+	SCOPED_SERIALISE_CONTEXT(DEBUG_MESSAGES);
+
+	vector<DebugMessage> debugMessages;
+
+	if(m_State >= WRITING)
+	{
+		ScopedDebugMessageSink *sink = GetDebugMessageSink();
+		if(sink)
+			debugMessages.swap(sink->msgs);
+	}
+
+	SERIALISE_ELEMENT(bool, HasCallstack, isDrawcall && RenderDoc::Inst().GetCaptureOptions().CaptureCallstacksOnlyDraws != 0);
+
+	if(HasCallstack)
+	{
+		if(m_State >= WRITING)
+		{
+			Callstack::Stackwalk *call = Callstack::Collect();
+
+			RDCASSERT(call->NumLevels() < 0xff);
+
+			size_t numLevels = call->NumLevels();
+			uint64_t *stack = (uint64_t *)call->GetAddrs();
+
+			localSerialiser->SerialisePODArray("callstack", stack, numLevels);
+
+			delete call;
+		}
+		else
+		{
+			size_t numLevels = 0;
+			uint64_t *stack = NULL;
+
+			localSerialiser->SerialisePODArray("callstack", stack, numLevels);
+
+			localSerialiser->SetCallstack(stack, numLevels);
+
+			SAFE_DELETE_ARRAY(stack);
+		}
+	}
+
+	SERIALISE_ELEMENT(uint32_t, NumMessages, (uint32_t)debugMessages.size());
+
+	for(uint32_t i=0; i < NumMessages; i++)
+	{
+		ScopedContext msgscope(m_pSerialiser, "DebugMessage", "DebugMessage", 0, false);
+
+		string desc;
+		if(m_State >= WRITING)
+			desc = debugMessages[i].description.elems;
+
+		SERIALISE_ELEMENT(uint32_t, Category, debugMessages[i].category);
+		SERIALISE_ELEMENT(uint32_t, Source, debugMessages[i].source);
+		SERIALISE_ELEMENT(uint32_t, Severity, debugMessages[i].severity);
+		SERIALISE_ELEMENT(uint32_t, ID, debugMessages[i].messageID);
+		SERIALISE_ELEMENT(string, Description, desc);
+
+		if(m_State == READING)
+		{
+			DebugMessage msg;
+			msg.source = (DebugMessageSource)Source;
+			msg.category = (DebugMessageCategory)Category;
+			msg.severity = (DebugMessageSeverity)Severity;
+			msg.messageID = ID;
+			msg.description = Description;
+
+			m_EventMessages.push_back(msg);
+		}
+	}
+}
+
+vector<DebugMessage> WrappedVulkan::GetDebugMessages()
+{
+	vector<DebugMessage> ret;
+	ret.swap(m_DebugMessages);
+	return ret;
+}
+
 VkBool32 WrappedVulkan::DebugCallback(
 				VkDebugReportFlagsEXT                       flags,
 				VkDebugReportObjectTypeEXT                  objectType,
@@ -2079,16 +2183,32 @@ VkBool32 WrappedVulkan::DebugCallback(
 				const char*                                 pLayerPrefix,
 				const char*                                 pMessage)
 {
+	bool isDS = false, isMEM = false, isSC = false, isOBJ = false,
+		isSWAP = false, isDL = false, isIMG = false, isPARAM = false;
+
+	if(!strcmp(pLayerPrefix, "DS"))
+		isDS = true;
+	else if(!strcmp(pLayerPrefix, "MEM"))
+		isMEM = true;
+	else if(!strcmp(pLayerPrefix, "SC"))
+		isSC = true;
+	else if(!strcmp(pLayerPrefix, "OBJTRACK"))
+		isOBJ = true;
+	else if(!strcmp(pLayerPrefix, "SWAP_CHAIN") || !strcmp(pLayerPrefix, "Swapchain"))
+		isSWAP = true;
+	else if(!strcmp(pLayerPrefix, "DL"))
+		isDL = true;
+	else if(!strcmp(pLayerPrefix, "Image"))
+		isIMG = true;
+	else if(!strcmp(pLayerPrefix, "PARAMCHECK"))
+		isPARAM = true;
+
 	if(m_State < WRITING)
 	{
-		bool isDS = !strcmp(pLayerPrefix, "DS");
-
 		// All access mask/barrier messages.
 		// These are just too spammy/false positive/unreliable to keep
 		if(isDS && messageCode == 12)
 			return false;
-
-		bool isMEM = !strcmp(pLayerPrefix, "MEM");
 
 		// Memory is aliased between image and buffer
 		// ignore memory aliasing warning - we make use of the memory in disjoint ways
@@ -2099,6 +2219,56 @@ VkBool32 WrappedVulkan::DebugCallback(
 
 		RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
 	}
+	else
+	{
+		ScopedDebugMessageSink *sink = GetDebugMessageSink();
+
+		if(sink)
+		{
+			DebugMessage msg;
+			
+			msg.eventID = 0;
+			msg.category = eDbgCategory_Miscellaneous;
+			msg.description = pMessage;
+			msg.severity = eDbgSeverity_Low;
+			msg.messageID = messageCode;
+			msg.source = eDbgSource_API;
+
+			if(flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+				msg.severity = eDbgSeverity_Info;
+			else if(flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+				msg.severity = eDbgSeverity_Low;
+			else if(flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+				msg.severity = eDbgSeverity_Medium;
+			else if(flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+				msg.severity = eDbgSeverity_High;
+			
+			if(flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+				msg.category = eDbgCategory_Performance;
+			else if(isDS)
+				msg.category = eDbgCategory_Execution;
+			else if(isMEM)
+				msg.category = eDbgCategory_Resource_Manipulation;
+			else if(isSC)
+				msg.category = eDbgCategory_Shaders;
+			else if(isOBJ)
+				msg.category = eDbgCategory_State_Setting;
+			else if(isSWAP)
+				msg.category = eDbgCategory_Miscellaneous;
+			else if(isDL)
+				msg.category = eDbgCategory_Portability;
+			else if(isIMG)
+				msg.category = eDbgCategory_State_Creation;
+			else if(isPARAM)
+				msg.category = eDbgCategory_Miscellaneous;
+
+			if(isIMG || isPARAM)
+				msg.source = eDbgSource_IncorrectAPIUse;
+
+			sink->msgs.push_back(msg);
+		}
+	}
+
 	return false;
 }
 
@@ -2401,16 +2571,27 @@ void WrappedVulkan::AddEvent(VulkanChunkType type, string description)
 		create_array(apievent.callstack, stack->NumLevels());
 		memcpy(apievent.callstack.elems, stack->GetAddrs(), sizeof(uint64_t)*stack->NumLevels());
 	}
+	
+	for(size_t i=0; i < m_EventMessages.size(); i++)
+		m_EventMessages[i].eventID = apievent.eventID;
 
 	if(m_LastCmdBufferID != ResourceId())
 	{
 		m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.push_back(apievent);
+
+		vector<DebugMessage> &msgs = m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages;
+		
+		msgs.insert(msgs.end(), m_EventMessages.begin(), m_EventMessages.end());
 	}
 	else
 	{
 		m_RootEvents.push_back(apievent);
 		m_Events.push_back(apievent);
+		
+		m_DebugMessages.insert(m_DebugMessages.end(), m_EventMessages.begin(), m_EventMessages.end());
 	}
+
+	m_EventMessages.clear();
 }
 
 FetchAPIEvent WrappedVulkan::GetEvent(uint32_t eventID)

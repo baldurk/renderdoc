@@ -649,8 +649,7 @@ FetchFrameRecord VulkanReplay::GetFrameRecord()
 
 vector<DebugMessage> VulkanReplay::GetDebugMessages()
 {
-	VULKANNOTIMP("GetDebugMessages");
-	return vector<DebugMessage>();
+	return m_pDriver->GetDebugMessages();
 }
 
 vector<ResourceId> VulkanReplay::GetTextures()

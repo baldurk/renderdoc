@@ -561,6 +561,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser* localSerialiser, Vk
 		{
 			m_BakedCmdBufferInfo[bakeId].draw = m_BakedCmdBufferInfo[m_LastCmdBufferID].draw;
 			m_BakedCmdBufferInfo[bakeId].curEvents = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents;
+			m_BakedCmdBufferInfo[bakeId].debugMessages = m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages;
 			m_BakedCmdBufferInfo[bakeId].curEventID = 0;
 			m_BakedCmdBufferInfo[bakeId].eventCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
 			m_BakedCmdBufferInfo[bakeId].drawCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount;
