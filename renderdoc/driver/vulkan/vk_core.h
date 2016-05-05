@@ -529,7 +529,7 @@ private:
 	void AddDrawcall(FetchDrawcall d, bool hasEvents);
 	void AddEvent(VulkanChunkType type, string description);
 
-	void AddUsage(VulkanDrawcallTreeNode &drawNode);
+	void AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessage> &debugMessages);
 		
 	// no copy semantics
 	WrappedVulkan(const WrappedVulkan &);

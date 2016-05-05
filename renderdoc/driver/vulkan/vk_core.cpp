@@ -2383,7 +2383,7 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 		VulkanDrawcallTreeNode node(draw);
 
 		if(m_LastCmdBufferID != ResourceId())
-			AddUsage(node);
+			AddUsage(node, m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages);
 
 		node.children.insert(node.children.begin(), draw.children.elems, draw.children.elems+draw.children.count);
 		GetDrawcallStack().back()->children.push_back(node);
@@ -2392,7 +2392,7 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 		RDCERR("Somehow lost drawcall stack!");
 }
 
-void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
+void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessage> &debugMessages)
 {
 	FetchDrawcall &d = drawNode.draw;
 
@@ -2440,6 +2440,13 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
 			ResUsageType(sh.mapping->ConstantBlocks, eUsage_VS_Constants),
 		};
 
+		DebugMessage msg;
+		msg.eventID = e;
+		msg.category = eDbgCategory_Execution;
+		msg.messageID = 0;
+		msg.source = eDbgSource_IncorrectAPIUse;
+		msg.severity = eDbgSeverity_High;
+
 		for(size_t t=0; t < ARRAY_COUNT(types); t++)
 		{
 			for(int32_t i=0; i < types[t].bindmap.count; i++)
@@ -2454,7 +2461,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
 
 				if(bindset >= (int32_t)descSets.size())
 				{
-					RDCWARN("At draw %u, shader referenced a descriptor set %i that was not bound", drawNode.draw.eventID, bindset);
+					msg.description = StringFormat::Fmt("Shader referenced a descriptor set %i that was not bound", bindset);
+					debugMessages.push_back(msg);
 					continue;
 				}
 				
@@ -2463,13 +2471,15 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
 
 				if(layout.bindings.empty())
 				{
-					RDCWARN("At draw %u, shader referenced a descriptor set %i that was not bound", drawNode.draw.eventID, bindset);
+					msg.description = StringFormat::Fmt("Shader referenced a descriptor set %i that was not bound", bindset);
+					debugMessages.push_back(msg);
 					continue;
 				}
 
 				if(bind >= (int32_t)layout.bindings.size())
 				{
-					RDCWARN("At draw %u, shader referenced a bind %i in descriptor set %i that does not exist. Mismatched descriptor set?", drawNode.draw.eventID, bind, bindset);
+					msg.description = StringFormat::Fmt("Shader referenced a bind %i in descriptor set %i that does not exist. Mismatched descriptor set?", bind, bindset);
+					debugMessages.push_back(msg);
 					continue;
 				}
 				
@@ -2485,7 +2495,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
 
 				if(bind >= (int32_t)descset.currentBindings.size())
 				{
-					RDCWARN("At draw %u, shader referenced a bind %i in descriptor set %i that does not exist. Mismatched descriptor set?", drawNode.draw.eventID, bind, bindset);
+					msg.description = StringFormat::Fmt("Shader referenced a bind %i in descriptor set %i that does not exist. Mismatched descriptor set?", bind, bindset);
+					debugMessages.push_back(msg);
 					continue;
 				}
 
