@@ -35,6 +35,8 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(
 	SERIALISE_ELEMENT(uint32_t, first, firstViewport);
 	SERIALISE_ELEMENT(uint32_t, count, viewportCount);
 	SERIALISE_ELEMENT_ARR(VkViewport, views, pViewports, count);
+	
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -71,6 +73,8 @@ void WrappedVulkan::vkCmdSetViewport(
 			uint32_t                                    viewportCount,
 			const VkViewport*                           pViewports)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdSetViewport(Unwrap(cmdBuffer), firstViewport, viewportCount, pViewports);
 
 	if(m_State >= WRITING)
@@ -97,6 +101,8 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(
 	SERIALISE_ELEMENT(uint32_t, first, firstScissor);
 	SERIALISE_ELEMENT(uint32_t, count, scissorCount);
 	SERIALISE_ELEMENT_ARR(VkRect2D, scissors, pScissors, count);
+	
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -133,6 +139,8 @@ void WrappedVulkan::vkCmdSetScissor(
 			uint32_t                                    scissorCount,
 			const VkRect2D*                             pScissors)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdSetScissor(Unwrap(cmdBuffer), firstScissor, scissorCount, pScissors);
 
 	if(m_State >= WRITING)
@@ -155,6 +163,8 @@ bool WrappedVulkan::Serialise_vkCmdSetLineWidth(
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(float, width, lineWidth);
+
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -182,6 +192,8 @@ void WrappedVulkan::vkCmdSetLineWidth(
 			VkCommandBuffer                                 cmdBuffer,
 			float                                       lineWidth)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdSetLineWidth(Unwrap(cmdBuffer), lineWidth);
 
 	if(m_State >= WRITING)
@@ -208,6 +220,8 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBias(
 	SERIALISE_ELEMENT(float, bias, depthBias);
 	SERIALISE_ELEMENT(float, biasclamp, depthBiasClamp);
 	SERIALISE_ELEMENT(float, slope, slopeScaledDepthBias);
+	
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -239,6 +253,8 @@ void WrappedVulkan::vkCmdSetDepthBias(
 			float                                       depthBiasClamp,
 			float                                       slopeScaledDepthBias)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdSetDepthBias(Unwrap(cmdBuffer), depthBias, depthBiasClamp, slopeScaledDepthBias);
 
 	if(m_State >= WRITING)
@@ -260,6 +276,7 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(
 			const float*                                blendConst)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+
 	float blendFactor[4];
 	if(m_State >= WRITING)
 	{
@@ -269,6 +286,8 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(
 		blendFactor[3] = blendConst[3];
 	}
 	localSerialiser->SerialisePODArray<4>("blendConst", blendFactor);
+	
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -296,6 +315,8 @@ void WrappedVulkan::vkCmdSetBlendConstants(
 			VkCommandBuffer                                 cmdBuffer,
 			const float*                                blendConst)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdSetBlendConstants(Unwrap(cmdBuffer), blendConst);
 
 	if(m_State >= WRITING)
@@ -320,6 +341,8 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(float, mind, minDepthBounds);
 	SERIALISE_ELEMENT(float, maxd, maxDepthBounds);
+	
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -349,6 +372,8 @@ void WrappedVulkan::vkCmdSetDepthBounds(
 			float                                       minDepthBounds,
 			float                                       maxDepthBounds)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdSetDepthBounds(Unwrap(cmdBuffer), minDepthBounds, maxDepthBounds);
 
 	if(m_State >= WRITING)
@@ -373,6 +398,8 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(VkStencilFaceFlagBits, face, (VkStencilFaceFlagBits)faceMask);
 	SERIALISE_ELEMENT(uint32_t, mask, compareMask);
+	
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -405,6 +432,8 @@ void WrappedVulkan::vkCmdSetStencilCompareMask(
 			VkStencilFaceFlags                          faceMask,
 			uint32_t                                    compareMask)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdSetStencilCompareMask(Unwrap(cmdBuffer), faceMask, compareMask);
 
 	if(m_State >= WRITING)
@@ -429,6 +458,8 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(VkStencilFaceFlagBits, face, (VkStencilFaceFlagBits)faceMask);
 	SERIALISE_ELEMENT(uint32_t, mask, writeMask);
+	
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -461,6 +492,8 @@ void WrappedVulkan::vkCmdSetStencilWriteMask(
 			VkStencilFaceFlags                          faceMask,
 			uint32_t                                    writeMask)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdSetStencilWriteMask(Unwrap(cmdBuffer), faceMask, writeMask);
 
 	if(m_State >= WRITING)
@@ -485,6 +518,8 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(VkStencilFaceFlagBits, face, (VkStencilFaceFlagBits)faceMask);
 	SERIALISE_ELEMENT(uint32_t, mask, reference);
+	
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -517,6 +552,8 @@ void WrappedVulkan::vkCmdSetStencilReference(
 			VkStencilFaceFlags                          faceMask,
 			uint32_t                                    reference)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdSetStencilReference(Unwrap(cmdBuffer), faceMask, reference);
 
 	if(m_State >= WRITING)

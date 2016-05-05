@@ -642,6 +642,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 	SERIALISE_ELEMENT(VkRenderPassBeginInfo, beginInfo, *pRenderPassBegin);
 	SERIALISE_ELEMENT(VkSubpassContents, cont, contents);
 
+	Serialise_DebugMessages(localSerialiser, false);
+
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
 	
@@ -692,6 +694,8 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 			const VkRenderPassBeginInfo*                pRenderPassBegin,
 			VkSubpassContents                           contents)
 {
+	SCOPED_DBG_SINK();
+
 	VkRenderPassBeginInfo unwrappedInfo = *pRenderPassBegin;
 	unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
 	unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
@@ -733,6 +737,8 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
 	SERIALISE_ELEMENT(VkSubpassContents, cont, contents);
+
+	Serialise_DebugMessages(localSerialiser, false);
 	
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -774,6 +780,8 @@ void WrappedVulkan::vkCmdNextSubpass(
 	VkCommandBuffer                          commandBuffer,
 	VkSubpassContents                        contents)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
 
 	if(m_State >= WRITING)
@@ -797,6 +805,8 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
 	SERIALISE_ELEMENT(uint32_t, count, commandBufferCount);
+
+	Serialise_DebugMessages(localSerialiser, false);
 	
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -858,6 +868,8 @@ void WrappedVulkan::vkCmdExecuteCommands(
 	uint32_t                                    commandBufferCount,
 	const VkCommandBuffer*                          pCmdBuffers)
 {
+	SCOPED_DBG_SINK();
+
 	VkCommandBuffer *unwrapped = GetTempArray<VkCommandBuffer>(commandBufferCount);
 	for(uint32_t i=0; i < commandBufferCount; i++) unwrapped[i] = Unwrap(pCmdBuffers[i]);
 	ObjDisp(commandBuffer)->CmdExecuteCommands(Unwrap(commandBuffer), commandBufferCount, unwrapped);
@@ -893,6 +905,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 			VkCommandBuffer                                 commandBuffer)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
+
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -936,6 +950,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 void WrappedVulkan::vkCmdEndRenderPass(
 			VkCommandBuffer                                 commandBuffer)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
 
 	if(m_State >= WRITING)
@@ -960,6 +976,8 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
 	SERIALISE_ELEMENT(VkPipelineBindPoint, bind, pipelineBindPoint);
 	SERIALISE_ELEMENT(ResourceId, pipeid, GetResID(pipeline));
+
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -1043,6 +1061,8 @@ void WrappedVulkan::vkCmdBindPipeline(
 			VkPipelineBindPoint                         pipelineBindPoint,
 			VkPipeline                                  pipeline)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdBindPipeline(Unwrap(commandBuffer), pipelineBindPoint, Unwrap(pipeline));
 
 	if(m_State >= WRITING)
@@ -1076,6 +1096,8 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 	SERIALISE_ELEMENT(uint32_t, first, firstSet);
 
 	SERIALISE_ELEMENT(uint32_t, numSets, setCount);
+
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -1219,6 +1241,8 @@ void WrappedVulkan::vkCmdBindDescriptorSets(
 			uint32_t                                    dynamicOffsetCount,
 			const uint32_t*                             pDynamicOffsets)
 {
+	SCOPED_DBG_SINK();
+
 	VkDescriptorSet *unwrapped = GetTempArray<VkDescriptorSet>(setCount);
 	for(uint32_t i=0; i < setCount; i++) unwrapped[i] = Unwrap(pDescriptorSets[i]);
 
@@ -1250,6 +1274,8 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
 	SERIALISE_ELEMENT(uint32_t, first, firstBinding);
 	SERIALISE_ELEMENT(uint32_t, count, bindingCount);
+
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -1321,6 +1347,8 @@ void WrappedVulkan::vkCmdBindVertexBuffers(
     const VkBuffer*                             pBuffers,
     const VkDeviceSize*                         pOffsets)
 {
+	SCOPED_DBG_SINK();
+
 	VkBuffer *unwrapped = GetTempArray<VkBuffer>(bindingCount);
 	for(uint32_t i=0; i < bindingCount; i++) unwrapped[i] = Unwrap(pBuffers[i]);
 
@@ -1358,6 +1386,8 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(buffer));
 	SERIALISE_ELEMENT(uint64_t, offs, offset);
 	SERIALISE_ELEMENT(VkIndexType, idxType, indexType);
+
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -1399,6 +1429,8 @@ void WrappedVulkan::vkCmdBindIndexBuffer(
     VkDeviceSize                                offset,
     VkIndexType                                 indexType)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offset, indexType);
 
 	if(m_State >= WRITING)
@@ -1431,6 +1463,8 @@ bool WrappedVulkan::Serialise_vkCmdUpdateBuffer(
 	SERIALISE_ELEMENT(VkDeviceSize, offs, destOffset);
 	SERIALISE_ELEMENT(VkDeviceSize, sz, dataSize);
 	SERIALISE_ELEMENT_BUF(byte *, bufdata, (byte *)pData, (size_t)dataSize);
+
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -1466,6 +1500,8 @@ void WrappedVulkan::vkCmdUpdateBuffer(
 	VkDeviceSize                                dataSize,
 	const uint32_t*                             pData)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdUpdateBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, dataSize, pData);
 
 	if(m_State >= WRITING)
@@ -1505,6 +1541,8 @@ bool WrappedVulkan::Serialise_vkCmdFillBuffer(
 	SERIALISE_ELEMENT(VkDeviceSize, sz, fillSize);
 	SERIALISE_ELEMENT(uint32_t, d, data);
 
+	Serialise_DebugMessages(localSerialiser, false);
+
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
 	
@@ -1536,6 +1574,8 @@ void WrappedVulkan::vkCmdFillBuffer(
 	VkDeviceSize                                fillSize,
 	uint32_t                                    data)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdFillBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, fillSize, data);
 
 	if(m_State >= WRITING)
@@ -1577,6 +1617,8 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(
 	SERIALISE_ELEMENT(uint32_t, len, length);
 	SERIALISE_ELEMENT_BUF(byte *, vals, (byte *)values, (size_t)len);
 
+	Serialise_DebugMessages(localSerialiser, false);
+
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
 	
@@ -1615,6 +1657,8 @@ void WrappedVulkan::vkCmdPushConstants(
 	uint32_t                                    length,
 	const void*                                 values)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdPushConstants(Unwrap(commandBuffer), Unwrap(layout), stageFlags, start, length, values);
 
 	if(m_State >= WRITING)
@@ -1659,6 +1703,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 	SERIALISE_ELEMENT_ARR(VkMemoryBarrier, memBarriers, pMemoryBarriers, memCount);
 	SERIALISE_ELEMENT_ARR(VkBufferMemoryBarrier, bufMemBarriers, pBufferMemoryBarriers, bufCount);
 	SERIALISE_ELEMENT_ARR(VkImageMemoryBarrier, imgMemBarriers, pImageMemoryBarriers, imgCount);
+
+	Serialise_DebugMessages(localSerialiser, false);
 
 	vector<VkImageMemoryBarrier> imgBarriers;
 	vector<VkBufferMemoryBarrier> bufBarriers;
@@ -1731,6 +1777,8 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 			uint32_t                                    imageMemoryBarrierCount,
 			const VkImageMemoryBarrier*                 pImageMemoryBarriers)
 {
+	SCOPED_DBG_SINK();
+
 
 	{
 		byte *memory = GetTempMemory(sizeof(VkBufferMemoryBarrier)*bufferMemoryBarrierCount + sizeof(VkImageMemoryBarrier)*imageMemoryBarrierCount);
@@ -1790,6 +1838,8 @@ bool WrappedVulkan::Serialise_vkCmdWriteTimestamp(
 	SERIALISE_ELEMENT(ResourceId, poolid, GetResID(queryPool));
 	SERIALISE_ELEMENT(uint32_t, q, query);
 
+	Serialise_DebugMessages(localSerialiser, false);
+
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
 
@@ -1820,6 +1870,8 @@ void WrappedVulkan::vkCmdWriteTimestamp(
 		VkQueryPool                                 queryPool,
     uint32_t                                    query)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdWriteTimestamp(Unwrap(commandBuffer), pipelineStage, Unwrap(queryPool), query);
 
 	if(m_State >= WRITING)
@@ -1857,6 +1909,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyQueryPoolResults(
 	SERIALISE_ELEMENT(VkDeviceSize, stride, destStride);
 	SERIALISE_ELEMENT(VkQueryResultFlagBits, f, (VkQueryResultFlagBits)flags);
 
+	Serialise_DebugMessages(localSerialiser, false);
+
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
 
@@ -1893,6 +1947,8 @@ void WrappedVulkan::vkCmdCopyQueryPoolResults(
 		VkDeviceSize                                destStride,
 		VkQueryResultFlags                          flags)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdCopyQueryPoolResults(Unwrap(commandBuffer), Unwrap(queryPool), firstQuery, queryCount, Unwrap(destBuffer), destOffset, destStride, flags);
 
 	if(m_State >= WRITING)
@@ -1931,6 +1987,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginQuery(
 	SERIALISE_ELEMENT(uint32_t, q, query);
 	SERIALISE_ELEMENT(VkQueryControlFlagBits, f, (VkQueryControlFlagBits)flags); // serialise as 'bits' type to get nice enum values
 
+	Serialise_DebugMessages(localSerialiser, false);
+
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
 	
@@ -1961,6 +2019,8 @@ void WrappedVulkan::vkCmdBeginQuery(
     uint32_t                                    query,
     VkQueryControlFlags                         flags)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdBeginQuery(Unwrap(commandBuffer), Unwrap(queryPool), query, flags);
 
 	if(m_State >= WRITING)
@@ -1986,6 +2046,8 @@ bool WrappedVulkan::Serialise_vkCmdEndQuery(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
 	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queryPool));
 	SERIALISE_ELEMENT(uint32_t, q, query);
+
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -2016,6 +2078,8 @@ void WrappedVulkan::vkCmdEndQuery(
     VkQueryPool                                 queryPool,
     uint32_t                                    query)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdEndQuery(Unwrap(commandBuffer), Unwrap(queryPool), query);
 
 	if(m_State >= WRITING)
@@ -2043,6 +2107,8 @@ bool WrappedVulkan::Serialise_vkCmdResetQueryPool(
 	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queryPool));
 	SERIALISE_ELEMENT(uint32_t, first, firstQuery);
 	SERIALISE_ELEMENT(uint32_t, count, queryCount);
+
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -2074,6 +2140,8 @@ void WrappedVulkan::vkCmdResetQueryPool(
     uint32_t                                    firstQuery,
     uint32_t                                    queryCount)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(commandBuffer)->CmdResetQueryPool(Unwrap(commandBuffer), Unwrap(queryPool), firstQuery, queryCount);
 
 	if(m_State >= WRITING)

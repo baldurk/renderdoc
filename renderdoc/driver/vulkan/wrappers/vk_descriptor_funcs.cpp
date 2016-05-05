@@ -402,6 +402,8 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 		SERIALISE_ELEMENT(VkCopyDescriptorSet, c, *pDescriptorCopies);
 		copyDesc = c;
 	}
+		
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 	{
@@ -541,6 +543,8 @@ void WrappedVulkan::vkUpdateDescriptorSets(
 		uint32_t                                    copyCount,
 		const VkCopyDescriptorSet*                  pDescriptorCopies)
 {
+	SCOPED_DBG_SINK();
+
 	{
 		// need to count up number of descriptor infos, to be able to alloc enough space
 		uint32_t numInfos = 0;

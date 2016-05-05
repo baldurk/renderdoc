@@ -187,6 +187,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 	};
 	
 	const string desc = localSerialiser->GetDebugStr();
+		
+	Serialise_DebugMessages(localSerialiser, true);
 
 	if(m_State == READING)
 	{
@@ -422,6 +424,8 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		const VkSubmitInfo*                         pSubmits,
 		VkFence                                     fence)
 {
+	SCOPED_DBG_SINK();
+
 	size_t tempmemSize = sizeof(VkSubmitInfo)*submitCount;
 	
 	// need to count how many semaphore and command buffer arrays to allocate for

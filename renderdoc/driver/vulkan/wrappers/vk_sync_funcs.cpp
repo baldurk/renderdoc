@@ -148,6 +148,8 @@ bool WrappedVulkan::Serialise_vkGetFenceStatus(
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, fid, GetResID(fence));
 	
+	Serialise_DebugMessages(localSerialiser, false);
+
 	if(m_State < WRITING)
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(id);
@@ -162,6 +164,8 @@ VkResult WrappedVulkan::vkGetFenceStatus(
 			VkDevice                                device,
 			VkFence                                 fence)
 {
+	SCOPED_DBG_SINK();
+
 	VkResult ret = ObjDisp(device)->GetFenceStatus(Unwrap(device), Unwrap(fence));
 	
 	if(m_State >= WRITING_CAPFRAME)
@@ -185,6 +189,8 @@ bool WrappedVulkan::Serialise_vkResetFences(
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(device));
 	SERIALISE_ELEMENT(uint32_t, count, fenceCount);
+	
+	Serialise_DebugMessages(localSerialiser, false);
 	
 	vector<VkFence> fences;
 
@@ -219,6 +225,8 @@ VkResult WrappedVulkan::vkResetFences(
 			uint32_t                                    fenceCount,
 			const VkFence*                              pFences)
 {
+	SCOPED_DBG_SINK();
+
 	VkFence *unwrapped = GetTempArray<VkFence>(fenceCount);
 	for(uint32_t i=0; i < fenceCount; i++) unwrapped[i] = Unwrap(pFences[i]);
 	VkResult ret = ObjDisp(device)->ResetFences(Unwrap(device), fenceCount, unwrapped);
@@ -248,6 +256,8 @@ bool WrappedVulkan::Serialise_vkWaitForFences(
 	SERIALISE_ELEMENT(VkBool32, wait, waitAll);
 	SERIALISE_ELEMENT(uint64_t, tmout, timeout);
 	SERIALISE_ELEMENT(uint32_t, count, fenceCount);
+		
+	Serialise_DebugMessages(localSerialiser, false);
 	
 	vector<VkFence> fences;
 
@@ -280,6 +290,8 @@ VkResult WrappedVulkan::vkWaitForFences(
 			VkBool32                                waitAll,
 			uint64_t                                timeout)
 {
+	SCOPED_DBG_SINK();
+
 	VkFence *unwrapped = GetTempArray<VkFence>(fenceCount);
 	for (uint32_t i = 0; i < fenceCount; i++) unwrapped[i] = Unwrap(pFences[i]);
 	VkResult ret = ObjDisp(device)->WaitForFences(Unwrap(device), fenceCount, unwrapped, waitAll, timeout);
@@ -376,6 +388,8 @@ bool WrappedVulkan::Serialise_vkSetEvent(
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, eid, GetResID(event));
+		
+	Serialise_DebugMessages(localSerialiser, false);
 	
 	if(m_State < WRITING)
 	{
@@ -389,6 +403,8 @@ VkResult WrappedVulkan::vkSetEvent(
 	VkDevice                                    device,
 	VkEvent                                     event)
 {
+	SCOPED_DBG_SINK();
+
 	VkResult ret = ObjDisp(device)->SetEvent(Unwrap(device), Unwrap(event));
 	
 	if(m_State >= WRITING_CAPFRAME)
@@ -411,6 +427,8 @@ bool WrappedVulkan::Serialise_vkResetEvent(
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, eid, GetResID(event));
+		
+	Serialise_DebugMessages(localSerialiser, false);
 	
 	if(m_State < WRITING)
 	{
@@ -424,6 +442,8 @@ VkResult WrappedVulkan::vkResetEvent(
 	VkDevice                                    device,
 	VkEvent                                     event)
 {
+	SCOPED_DBG_SINK();
+
 	VkResult ret = ObjDisp(device)->ResetEvent(Unwrap(device), Unwrap(event));
 	
 	if(m_State >= WRITING_CAPFRAME)
@@ -446,6 +466,8 @@ bool WrappedVulkan::Serialise_vkGetEventStatus(
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(device));
 	SERIALISE_ELEMENT(ResourceId, eid, GetResID(event));
+		
+	Serialise_DebugMessages(localSerialiser, false);
 	
 	if(m_State < WRITING)
 	{
@@ -461,6 +483,8 @@ VkResult WrappedVulkan::vkGetEventStatus(
 			VkDevice                                device,
 			VkEvent                                 event)
 {
+	SCOPED_DBG_SINK();
+
 	VkResult ret = ObjDisp(device)->GetEventStatus(Unwrap(device), Unwrap(event));
 	
 	if(m_State >= WRITING_CAPFRAME)
@@ -555,6 +579,8 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(ResourceId, eid, GetResID(event));
 	SERIALISE_ELEMENT(VkPipelineStageFlagBits, mask, (VkPipelineStageFlagBits)stageMask);
+		
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -587,6 +613,8 @@ void WrappedVulkan::vkCmdSetEvent(
     VkEvent                                     event,
 		VkPipelineStageFlags                        stageMask)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), Unwrap(event), stageMask);
 
 	if(m_State >= WRITING)
@@ -612,6 +640,8 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(ResourceId, eid, GetResID(event));
 	SERIALISE_ELEMENT(VkPipelineStageFlagBits, mask, (VkPipelineStageFlagBits)stageMask);
+	
+	Serialise_DebugMessages(localSerialiser, false);
 
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -644,6 +674,8 @@ void WrappedVulkan::vkCmdResetEvent(
     VkEvent                                     event,
 		VkPipelineStageFlags                        stageMask)
 {
+	SCOPED_DBG_SINK();
+
 	ObjDisp(cmdBuffer)->CmdResetEvent(Unwrap(cmdBuffer), Unwrap(event), stageMask);
 
 	if(m_State >= WRITING)
