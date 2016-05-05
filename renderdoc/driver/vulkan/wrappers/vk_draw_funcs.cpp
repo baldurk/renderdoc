@@ -129,13 +129,13 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 	SERIALISE_ELEMENT(ResourceId, dstid, GetResID(destImage));
 	SERIALISE_ELEMENT(VkImageLayout, dstlayout, destImageLayout);
 
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
 	SERIALISE_ELEMENT(VkFilter, f, filter);
 	
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkImageBlit, regions, pRegions, count);
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
 	
 	if(m_State == EXECUTING)
 	{
@@ -243,11 +243,11 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(
 	SERIALISE_ELEMENT(ResourceId, dstid, GetResID(destImage));
 	SERIALISE_ELEMENT(VkImageLayout, dstlayout, destImageLayout);
 
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-	
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkImageResolve, regions, pRegions, count);
+	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
 	
 	if(m_State == EXECUTING)
 	{
@@ -354,12 +354,12 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 	SERIALISE_ELEMENT(ResourceId, dstid, GetResID(destImage));
 	SERIALISE_ELEMENT(VkImageLayout, dstlayout, destImageLayout);
 	
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkImageCopy, regions, pRegions, count);
 	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
 	if(m_State == EXECUTING)
 	{
 		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
@@ -461,14 +461,14 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(srcBuffer));
 	SERIALISE_ELEMENT(ResourceId, imgid, GetResID(destImage));
 	
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
 	SERIALISE_ELEMENT(VkImageLayout, layout, destImageLayout);
 
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkBufferImageCopy, regions, pRegions, count);
 	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
 	if(m_State == EXECUTING)
 	{
 		srcBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
@@ -563,14 +563,14 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(destBuffer));
 	SERIALISE_ELEMENT(ResourceId, imgid, GetResID(srcImage));
 
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
 	SERIALISE_ELEMENT(VkImageLayout, layout, srcImageLayout);
 
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkBufferImageCopy, regions, pRegions, count);
 	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
 	if(m_State == EXECUTING)
 	{
 		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
@@ -668,12 +668,12 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 	SERIALISE_ELEMENT(ResourceId, srcid, GetResID(srcBuffer));
 	SERIALISE_ELEMENT(ResourceId, dstid, GetResID(destBuffer));
 	
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkBufferCopy, regions, pRegions, count);
 	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
 	if(m_State == EXECUTING)
 	{
 		srcBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(srcid);
@@ -779,12 +779,12 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 	SERIALISE_ELEMENT(VkImageLayout, layout, imageLayout);
 	SERIALISE_ELEMENT(VkClearColorValue, col, *pColor);
 
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
 	SERIALISE_ELEMENT(uint32_t, count, rangeCount);
 	SERIALISE_ELEMENT_ARR(VkImageSubresourceRange, ranges, pRanges, count);
 	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+
 	if(m_State == EXECUTING)
 	{
 		image = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
@@ -951,14 +951,14 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
 
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-	
 	SERIALISE_ELEMENT(uint32_t, acount, attachmentCount);
 	SERIALISE_ELEMENT_ARR(VkClearAttachment, atts, pAttachments, acount);
 
 	SERIALISE_ELEMENT(uint32_t, rcount, rectCount);
 	SERIALISE_ELEMENT_ARR(VkClearRect, rects, pRects, rcount);
+	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
 	
 	if(m_State == EXECUTING)
 	{
@@ -1155,11 +1155,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(buffer));
 	SERIALISE_ELEMENT(uint64_t, offs, offset);
 
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
 	SERIALISE_ELEMENT(uint32_t, cnt, count);
 	SERIALISE_ELEMENT(uint32_t, strd, stride);
+	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
 
 	if(m_State == EXECUTING)
 	{
@@ -1267,11 +1267,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 	SERIALISE_ELEMENT(ResourceId, bufid, GetResID(buffer));
 	SERIALISE_ELEMENT(uint64_t, offs, offset);
 
-	if(m_State < WRITING)
-		m_LastCmdBufferID = cmdid;
-
 	SERIALISE_ELEMENT(uint32_t, cnt, count);
 	SERIALISE_ELEMENT(uint32_t, strd, stride);
+	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
 
 	if(m_State == EXECUTING)
 	{
