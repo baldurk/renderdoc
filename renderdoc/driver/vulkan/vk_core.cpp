@@ -2421,7 +2421,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
 		if(sh.module == ResourceId()) continue;
 
 		// 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
-		const vector<ResourceId> &descSets = (shad == 5 ? state.computeDescSets : state.graphicsDescSets);
+		const vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descSets =
+			(shad == 5 ? m_RenderState.compute.descSets : m_RenderState.graphics.descSets);
 
 		RDCASSERT(sh.mapping);
 
@@ -2457,7 +2458,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode)
 					continue;
 				}
 				
-				DescriptorSetInfo &descset = m_DescriptorSetState[ descSets[bindset] ];
+				DescriptorSetInfo &descset = m_DescriptorSetState[ descSets[bindset].descSet ];
 				DescSetLayout &layout = c.m_DescSetLayout[ descset.layout ];
 
 				if(layout.bindings.empty())

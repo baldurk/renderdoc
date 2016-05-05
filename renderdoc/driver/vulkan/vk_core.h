@@ -327,8 +327,6 @@ private:
 		struct CmdBufferState
 		{
 			ResourceId pipeline;
-			vector<ResourceId> graphicsDescSets;
-			vector<ResourceId> computeDescSets;
 
 			uint32_t idxWidth;
 			ResourceId ibuffer;
