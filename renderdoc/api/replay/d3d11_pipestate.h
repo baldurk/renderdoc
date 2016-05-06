@@ -31,7 +31,7 @@ struct D3D11PipelineState
 	
 	struct InputAssembler
 	{
-		InputAssembler() : Bytecode(NULL) {}
+		InputAssembler() : Bytecode(NULL), customName(false) {}
 
 		struct LayoutInput
 		{
@@ -69,7 +69,7 @@ struct D3D11PipelineState
 
 	struct ShaderStage
 	{
-		ShaderStage() : Shader(), ShaderDetails(NULL) {}
+		ShaderStage() : Shader(), customName(false), ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
 		ResourceId Shader;
 		rdctype::str ShaderName;
 		bool32 customName;
@@ -220,7 +220,7 @@ struct D3D11PipelineState
 		struct DepthStencilState
 		{
 			DepthStencilState()
-				: State(), DepthEnable(false), StencilEnable(false),
+				: State(), DepthEnable(false), DepthWrites(false), StencilEnable(false),
 				  StencilReadMask(0), StencilWriteMask(0), StencilRef(0) {}
 			ResourceId State;
 			bool32 DepthEnable;

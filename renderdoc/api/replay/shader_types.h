@@ -35,12 +35,14 @@ struct ShaderVariable
 	ShaderVariable()
 	{
 		name = ""; rows = columns = 0;
+		isStruct = false;
 		type = eVar_Float;
 		for(int i=0; i < 16; i++) value.uv[i] = 0;
 	}
 	ShaderVariable(const char *n, float x, float y, float z, float w)
 	{
 		name = n; rows = 1; columns = 4;
+		isStruct = false;
 		for(int i=0; i < 16; i++) value.uv[i] = 0;
 		type = eVar_Float;
 		value.f.x = x; value.f.y = y; value.f.z = z; value.f.w = w;
@@ -48,6 +50,7 @@ struct ShaderVariable
 	ShaderVariable(const char *n, int x, int y, int z, int w)
 	{
 		name = n; rows = 1; columns = 4;
+		isStruct = false;
 		for(int i=0; i < 16; i++) value.uv[i] = 0;
 		type = eVar_Int;
 		value.i.x = x; value.i.y = y; value.i.z = z; value.i.w = w;
@@ -55,6 +58,7 @@ struct ShaderVariable
 	ShaderVariable(const char *n, uint32_t x, uint32_t y, uint32_t z, uint32_t w)
 	{
 		name = n; rows = 1; columns = 4;
+		isStruct = false;
 		for(int i=0; i < 16; i++) value.uv[i] = 0;
 		type = eVar_UInt;
 		value.u.x = x; value.u.y = y; value.u.z = z; value.u.w = w;

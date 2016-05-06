@@ -126,7 +126,7 @@ struct VulkanPipelineState
 
 	struct ShaderStage
 	{
-		ShaderStage() : Shader(), ShaderDetails(NULL), customName(false) {}
+		ShaderStage() : Shader(), ShaderDetails(NULL), customName(false), stage(eShaderStage_Vertex) {}
 		ResourceId Shader;
 		rdctype::str entryPoint;
 

@@ -27,7 +27,8 @@
 
 struct FloatVector
 {
-	FloatVector() {}
+	FloatVector()
+	  : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
 	FloatVector(float X, float Y, float Z, float W)
 		: x(X), y(Y), z(Z), w(W) {}
 	float x, y, z, w;
@@ -421,7 +422,7 @@ struct CounterDescription
 
 struct CounterResult
 {
-	CounterResult() : eventID(0) { value.u64 = 0; }
+	CounterResult() : eventID(0), counterID(0) { value.u64 = 0; }
 	CounterResult(uint32_t EID, uint32_t c, float    data) : eventID(EID), counterID(c) { value.f = data; }
 	CounterResult(uint32_t EID, uint32_t c, double   data) : eventID(EID), counterID(c) { value.d = data; }
 	CounterResult(uint32_t EID, uint32_t c, uint32_t data) : eventID(EID), counterID(c) { value.u32 = data; }

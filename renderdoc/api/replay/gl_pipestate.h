@@ -75,7 +75,8 @@ struct GLPipelineState
 		ShaderStage()
 			: Shader()
 			, customShaderName(false), customProgramName(false)
-			, customPipelineName(false), ShaderDetails(NULL) {}
+			, PipelineActive(false), customPipelineName(false)
+			, ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
 		ResourceId Shader;
 
 		rdctype::str ShaderName;
@@ -226,9 +227,14 @@ struct GLPipelineState
 		struct RasterizerState
 		{
 			RasterizerState()
-				: FillMode(eFill_Solid), CullMode(eCull_None), FrontCCW(false), DepthBias(0),
-				  SlopeScaledDepthBias(0.0f), OffsetClamp(0.0f), DepthClamp(false),
-				  MultisampleEnable(false) {}
+				: FillMode(eFill_Solid), CullMode(eCull_None), FrontCCW(false), DepthBias(0)
+				, SlopeScaledDepthBias(0.0f), OffsetClamp(0.0f), DepthClamp(false)
+				, MultisampleEnable(false), SampleShading(false), SampleMask(false)
+				, SampleMaskValue(~0U), SampleCoverage(false), SampleCoverageInvert(false)
+				, SampleCoverageValue(1.0f), SampleAlphaToCoverage(false), SampleAlphaToOne(false)
+				, MinSampleShadingRate(0.0f), ProgrammablePointSize(false), PointSize(1.0f)
+				, LineWidth(1.0f), PointFadeThreshold(0.0f), PointOriginUpperLeft(false)
+			{}
 			TriangleFillMode FillMode;
 			TriangleCullMode CullMode;
 			bool32 FrontCCW;
@@ -296,6 +302,7 @@ struct GLPipelineState
 
 		struct Attachment
 		{
+			Attachment() : Obj(), Layer(0), Mip(0) {}
 			ResourceId Obj;
 			uint32_t Layer;
 			uint32_t Mip;
@@ -303,7 +310,7 @@ struct GLPipelineState
 
 		struct FBO
 		{
-			FBO() : Obj(), Depth(), Stencil() {}
+			FBO() : Obj(), Depth(), Stencil(), ReadBuffer(0) {}
 			ResourceId Obj;
 			rdctype::array<Attachment> Color;
 			Attachment Depth;
