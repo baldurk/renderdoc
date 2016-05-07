@@ -163,7 +163,7 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 				outvars.resize(RDCMAX(outIdx+rows*elems, outvars.size()));
 		}
 		
-		size_t dataOffset = vec*16 + comp*4;
+		size_t dataOffset = vec*sizeof(Vec4f) + comp*sizeof(float);
 
 		if(outvars[outIdx].name.count > 0)
 		{
@@ -288,7 +288,7 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 					}
 				}
 
-				size_t rowDataOffset = vec;
+				size_t rowDataOffset = vec*sizeof(Vec4f);
 
 				for(size_t r=0; r < registers*elems; r++)
 				{
