@@ -13,10 +13,16 @@
     },
     "device_extensions": [
       {
-        "name": "VK_LUNARG_DEBUG_MARKER",
-        "spec_version": "1",
-        "entrypoints": ["vkCmdDbgMarkerBegin", "vkCmdDbgMarkerEnd", "vkDbgSetObjectTag", "vkDbgSetObjectName"]
+        "name": "VK_EXT_debug_marker",
+        "spec_version": "3",
+        "entrypoints": ["vkDebugMarkerSetObjectTagEXT",
+		                "vkDebugMarkerSetObjectNameEXT",
+		                "vkCmdDebugMarkerBeginEXT",
+		                "vkCmdDebugMarkerEndEXT",
+		                "vkCmdDebugMarkerInsertEXT"
+		               ]
       }
+
     ],
     "enable_environment": {
       "ENABLE_VULKAN_RENDERDOC_CAPTURE": "1"
