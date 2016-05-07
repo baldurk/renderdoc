@@ -174,13 +174,9 @@ VkResult WrappedVulkan::vkCreateInstance(
 				 layerCreateInfo->function != VK_LAYER_LINK_INFO)
 			)
 	{
-		// we don't handle any pNext elements other than this create info struct
-		RDCASSERT(layerCreateInfo->sType == VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO);
 		layerCreateInfo = (VkLayerInstanceCreateInfo *)layerCreateInfo->pNext;
 	}
 	RDCASSERT(layerCreateInfo);
-	// make sure there are no elements after this, that we don't handle
-	RDCASSERT(layerCreateInfo->pNext == NULL);
 
 	PFN_vkGetInstanceProcAddr gpa = layerCreateInfo->u.pLayerInfo->pfnNextGetInstanceProcAddr;
 	// move chain on for next layer
@@ -850,14 +846,9 @@ VkResult WrappedVulkan::vkCreateDevice(
 				 layerCreateInfo->function != VK_LAYER_LINK_INFO)
 			)
 	{
-		// we don't handle any pNext elements other than this create info struct
-		RDCASSERT(layerCreateInfo->sType == VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO);
 		layerCreateInfo = (VkLayerDeviceCreateInfo *)layerCreateInfo->pNext;
 	}
 	RDCASSERT(layerCreateInfo);
-
-	// make sure there are no elements after this, that we don't handle
-	RDCASSERT(layerCreateInfo->pNext == NULL);
 
 	PFN_vkGetDeviceProcAddr gdpa = layerCreateInfo->u.pLayerInfo->pfnNextGetDeviceProcAddr;
 	PFN_vkGetInstanceProcAddr gipa = layerCreateInfo->u.pLayerInfo->pfnNextGetInstanceProcAddr;
@@ -865,6 +856,27 @@ VkResult WrappedVulkan::vkCreateDevice(
 	layerCreateInfo->u.pLayerInfo = layerCreateInfo->u.pLayerInfo->pNext;
 
 	PFN_vkCreateDevice createFunc = (PFN_vkCreateDevice)gipa(VK_NULL_HANDLE, "vkCreateDevice");
+
+	// now search again through for the loader data callback (if it exists)
+	layerCreateInfo = (VkLayerDeviceCreateInfo *)pCreateInfo->pNext;
+
+	// step through the chain of pNext
+	while(layerCreateInfo &&
+				(layerCreateInfo->sType != VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO || 
+				 layerCreateInfo->function != VK_LOADER_DATA_CALLBACK)
+			)
+	{
+		layerCreateInfo = (VkLayerDeviceCreateInfo *)layerCreateInfo->pNext;
+	}
+
+	// if we found one (we might not - on old loaders), then store the func ptr for
+	// use instead of SetDispatchTableOverMagicNumber
+	if(layerCreateInfo)
+	{
+		RDCASSERT(m_SetDeviceLoaderData == layerCreateInfo->u.pfnSetDeviceLoaderData || m_SetDeviceLoaderData == NULL,
+		          m_SetDeviceLoaderData, layerCreateInfo->u.pfnSetDeviceLoaderData);
+		m_SetDeviceLoaderData = layerCreateInfo->u.pfnSetDeviceLoaderData;
+	}
 
 	VkResult ret = createFunc(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice);
 	

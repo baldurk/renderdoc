@@ -292,6 +292,8 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 	m_DrawcallStack.push_back(&m_ParentDrawcall);
 
+	m_SetDeviceLoaderData = NULL;
+
 	m_ResourceManager = new VulkanResourceManager(m_State, m_pSerialiser, this);
 
 	m_pSerialiser->SetUserData(m_ResourceManager);
@@ -368,7 +370,10 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
 		VkCommandBufferAllocateInfo cmdInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, NULL, Unwrap(m_InternalCmds.cmdpool), VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1 };
 		VkResult vkr = ObjDisp(m_Device)->AllocateCommandBuffers(Unwrap(m_Device), &cmdInfo, &ret);
 
-		SetDispatchTableOverMagicNumber(m_Device, ret);
+		if(m_SetDeviceLoaderData)
+			m_SetDeviceLoaderData(m_Device, ret);
+		else
+			SetDispatchTableOverMagicNumber(m_Device, ret);
 
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 

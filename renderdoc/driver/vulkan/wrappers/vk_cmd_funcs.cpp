@@ -231,12 +231,17 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(
 	{
 		for(uint32_t i=0; i < unwrappedInfo.commandBufferCount; i++)
 		{
-			SetDispatchTableOverMagicNumber(device, pCommandBuffers[i]);
+			VkCommandBuffer unwrappedReal = pCommandBuffers[i]; 
 
 			ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pCommandBuffers[i]);
-
-			// loader expects command buffers to have the magic number in them
-			SetMagicNumberOverDispatchTable(pCommandBuffers[i]);
+			
+			// we set this *after* wrapping, so that the wrapped resource copies the 'uninitialised'
+			// loader table, since the loader expects to set the dispatch table onto an existing magic
+			// number in the trampoline function at the start of the chain.
+			if(m_SetDeviceLoaderData)
+				m_SetDeviceLoaderData(device, unwrappedReal);
+			else
+				SetDispatchTableOverMagicNumber(device, unwrappedReal);
 
 			if(m_State >= WRITING)
 			{

@@ -256,6 +256,8 @@ private:
 		VkPhysicalDeviceMemoryProperties memProps;
 		VkFormatProperties fmtprops[VK_FORMAT_RANGE_SIZE];
 	};
+	
+	PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
 	VkInstance m_Instance; // the instance corresponding to this WrappedVulkan
 	VkDebugReportCallbackEXT m_DbgMsgCallback; // the instance's dbg msg callback handle
