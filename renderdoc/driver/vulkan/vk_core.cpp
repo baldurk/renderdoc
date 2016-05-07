@@ -630,6 +630,14 @@ bool operator <(const VkExtensionProperties &a, const VkExtensionProperties &b)
 	return strcmp(a.extensionName, b.extensionName) < 0;
 }
 
+// this is the list of extensions we provide - regardless of whether the ICD supports them
+static const VkExtensionProperties renderdocProvidedExtensions[] = {
+	{
+		VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
+		VK_EXT_DEBUG_MARKER_SPEC_VERSION
+	},
+};
+
 VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev, uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
 {
 	VkResult vkr;
@@ -722,20 +730,16 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
 		}
 	}
 
+	// now we can add extensions that we provide ourselves (note this isn't sorted, but we
+	// don't have to sort the results, the sorting was just so we could filter optimally).
+	filtered.insert(filtered.end(), &renderdocProvidedExtensions[0], &renderdocProvidedExtensions[0] + ARRAY_COUNT(renderdocProvidedExtensions));
+
 	return FillPropertyCountAndList(&filtered[0], (uint32_t)filtered.size(), pPropertyCount, pProperties);
 }
 
 VkResult WrappedVulkan::GetProvidedExtensionProperties(uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
 {
-	// this is the list of extensions we provide - regardless of whether the ICD supports them
-	const VkExtensionProperties providedExtensions[] = {
-		{
-			VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
-			VK_EXT_DEBUG_MARKER_SPEC_VERSION
-		},
-	};
-
-	return FillPropertyCountAndList(providedExtensions, (uint32_t)ARRAY_COUNT(providedExtensions), pPropertyCount, pProperties);
+	return FillPropertyCountAndList(renderdocProvidedExtensions, (uint32_t)ARRAY_COUNT(renderdocProvidedExtensions), pPropertyCount, pProperties);
 }
 
 void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
