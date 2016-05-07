@@ -145,11 +145,12 @@ const char *VkChunkNames[] =
 	"vkCmdDispatch",
 	"vkCmdDispatchIndirect",
 	
-	"vkCmdDbgMarkerBegin",
-	"vkCmdDbgMarker", // no equivalent function at the moment
-	"vkCmdDbgMarkerEnd",
+	"vkCmdDebugMarkerBeginEXT",
+	"vkCmdDebugMarkerInsertEXT",
+	"vkCmdDebugMarkerEndEXT",
 
-	"vkDbgSetObjectName",
+	"vkDebugMarkerSetObjectNameEXT",
+	"vkDebugMarkerSetObjectTagEXT",
 
 	"vkCreateSwapchainKHR",
 
@@ -724,8 +725,8 @@ VkResult WrappedVulkan::GetProvidedExtensionProperties(uint32_t *pPropertyCount,
 	// this is the list of extensions we provide - regardless of whether the ICD supports them
 	const VkExtensionProperties providedExtensions[] = {
 		{
-			DEBUG_MARKER_EXTENSION_NAME,
-			VK_DEBUG_MARKER_EXTENSION_REVISION
+			VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
+			VK_EXT_DEBUG_MARKER_SPEC_VERSION
 		},
 	};
 
@@ -1920,16 +1921,19 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 
 	case BEGIN_EVENT:
-		Serialise_vkCmdDbgMarkerBegin(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
+		Serialise_vkCmdDebugMarkerBeginEXT(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
 		break;
 	case SET_MARKER:
-		RDCFATAL("No such function vkCmdDbgMarker");
+		Serialise_vkCmdDebugMarkerInsertEXT(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
 		break;
 	case END_EVENT:
-		Serialise_vkCmdDbgMarkerEnd(GetMainSerialiser(), VK_NULL_HANDLE);
+		Serialise_vkCmdDebugMarkerEndEXT(GetMainSerialiser(), VK_NULL_HANDLE);
 		break;
 	case SET_NAME:
-		Serialise_vkDbgSetObjectName(GetMainSerialiser(), VK_NULL_HANDLE, VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT, 0, 0, NULL);
+		Serialise_vkDebugMarkerSetObjectNameEXT(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
+		break;
+	case SET_SHADER_DEBUG_PATH:
+		Serialise_SetShaderDebugPath(GetMainSerialiser(), VK_NULL_HANDLE, NULL);
 		break;
 
 	case CREATE_SWAP_BUFFER:

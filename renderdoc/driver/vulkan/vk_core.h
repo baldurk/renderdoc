@@ -487,6 +487,8 @@ private:
 
 	void StartFrameCapture(void *dev, void *wnd);
 	bool EndFrameCapture(void *dev, void *wnd);
+
+	bool Serialise_SetShaderDebugPath(Serialiser *localSerialiser, VkDevice device, VkDebugMarkerObjectTagInfoEXT* pTagInfo);
 	
 	// replay
 
@@ -1444,28 +1446,26 @@ public:
     const char*                                 pLayerPrefix,
     const char*                                 pMessage);
 
-	// VK_LUNARG_DEBUG_MARKER functions
+	// VK_EXT_debug_marker functions
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDbgMarkerBegin,
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDebugMarkerSetObjectTagEXT,
+		VkDevice device,
+		VkDebugMarkerObjectTagInfoEXT* pTagInfo);
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDebugMarkerSetObjectNameEXT,
+		VkDevice device,
+		VkDebugMarkerObjectNameInfoEXT* pNameInfo);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDebugMarkerBeginEXT,
 		VkCommandBuffer commandBuffer,
-		const char* pMarker);
+		VkDebugMarkerMarkerInfoEXT* pMarker);
 
-	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDbgMarkerEnd,
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDebugMarkerEndEXT,
 		VkCommandBuffer commandBuffer);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgSetObjectTag,
-		VkDevice device,
-		VkDebugReportObjectTypeEXT objType,
-		uint64_t object,
-		size_t tagSize,
-		const void* pTag);
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDbgSetObjectName,
-		VkDevice device,
-		VkDebugReportObjectTypeEXT objType,
-		uint64_t object,
-		size_t nameSize,
-		const char* pName);
+	
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDebugMarkerInsertEXT,
+		VkCommandBuffer commandBuffer,
+		VkDebugMarkerMarkerInfoEXT* pMarker);
 
 	// Windowing extension functions
 

@@ -61,7 +61,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="official\vk_layer.h" />
-    <ClInclude Include="official\vk_lunarg_debug_marker.h" />
     <ClInclude Include="official\vk_platform.h" />
     <ClInclude Include="official\vulkan.h" />
     <ClInclude Include="vk_common.h" />

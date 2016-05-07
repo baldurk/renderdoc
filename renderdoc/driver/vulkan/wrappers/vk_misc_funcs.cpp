@@ -798,21 +798,6 @@ void WrappedVulkan::vkDebugReportMessageEXT(
 	return ObjDisp(instance)->DebugReportMessageEXT(Unwrap(instance), flags, objectType, object, location, messageCode, pLayerPrefix, pMessage);
 }
 
-VkResult WrappedVulkan::vkDbgSetObjectTag(
-		VkDevice device,
-		VkDebugReportObjectTypeEXT objType,
-		uint64_t object,
-		size_t tagSize,
-		const void* pTag)
-{
-	if(ObjDisp(device)->DbgSetObjectTag)
-		ObjDisp(device)->DbgSetObjectTag(device, objType, object, tagSize, pTag);
-
-	// don't do anything with the tags
-
-	return VK_SUCCESS;
-}
-
 static VkResourceRecord *GetObjRecord(VkDebugReportObjectTypeEXT objType, uint64_t object)
 {
 	switch(objType)
@@ -880,19 +865,63 @@ static VkResourceRecord *GetObjRecord(VkDebugReportObjectTypeEXT objType, uint64
 	return NULL;
 }
 
-bool WrappedVulkan::Serialise_vkDbgSetObjectName(
+bool WrappedVulkan::Serialise_SetShaderDebugPath(
 		Serialiser *localSerialiser,
 		VkDevice device,
-		VkDebugReportObjectTypeEXT objType,
-		uint64_t object,
-		size_t nameSize,
-		const char* pName)
+		VkDebugMarkerObjectTagInfoEXT* pTagInfo)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetObjRecord(objType, object)->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetObjRecord(pTagInfo->objectType, pTagInfo->object)->GetResourceID());
+	
+	string path;
+	if(m_State >= WRITING)
+	{
+		char *tag = (char *)pTagInfo->pTag;
+		path = string(tag, tag + pTagInfo->tagSize);
+	}
+
+	localSerialiser->Serialise("path", path);
+
+	if(m_State == READING)
+	{
+		m_CreationInfo.m_ShaderModule[GetResourceManager()->GetLiveID(id)].unstrippedPath = path;
+	}
+
+	return true;
+}
+
+VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(
+		VkDevice device,
+		VkDebugMarkerObjectTagInfoEXT* pTagInfo)
+{
+	if(pTagInfo && pTagInfo->tagName == RENDERDOC_ShaderDebugMagicValue_truncated &&
+	   pTagInfo->objectType == VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT)
+	{
+		VkResourceRecord *record = GetObjRecord(pTagInfo->objectType, pTagInfo->object);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(SET_SHADER_DEBUG_PATH);
+		Serialise_SetShaderDebugPath(localSerialiser, device, pTagInfo);
+		record->AddChunk(scope.Get());
+	}
+	else if(ObjDisp(device)->DebugMarkerSetObjectTagEXT)
+	{
+		return ObjDisp(device)->DebugMarkerSetObjectTagEXT(device, pTagInfo);
+	}
+
+	return VK_SUCCESS;
+}
+
+bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
+		Serialiser *localSerialiser,
+		VkDevice device,
+		VkDebugMarkerObjectNameInfoEXT* pNameInfo)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetObjRecord(pNameInfo->objectType, pNameInfo->object)->GetResourceID());
 	
 	string name;
 	if(m_State >= WRITING)
-		name = string(pName, pName+nameSize);
+		name = pNameInfo->pObjectName;
 
 	localSerialiser->Serialise("name", name);
 
@@ -902,25 +931,22 @@ bool WrappedVulkan::Serialise_vkDbgSetObjectName(
 	return true;
 }
 
-VkResult WrappedVulkan::vkDbgSetObjectName(
+VkResult WrappedVulkan::vkDebugMarkerSetObjectNameEXT(
 		VkDevice device,
-		VkDebugReportObjectTypeEXT objType,
-		uint64_t object,
-		size_t nameSize,
-		const char* pName)
+		VkDebugMarkerObjectNameInfoEXT* pNameInfo)
 {
-	if(ObjDisp(device)->DbgSetObjectName)
-		ObjDisp(device)->DbgSetObjectName(device, objType, object, nameSize, pName);
+	if(ObjDisp(device)->DebugMarkerSetObjectNameEXT)
+		ObjDisp(device)->DebugMarkerSetObjectNameEXT(device, pNameInfo);
 	
 	if(m_State >= WRITING)
 	{
 		Chunk *chunk = NULL;
 		
-		VkResourceRecord *record = GetObjRecord(objType, object);
+		VkResourceRecord *record = GetObjRecord(pNameInfo->objectType, pNameInfo->object);
 
 		if(!record)
 		{
-			RDCERR("Unrecognised object %d %llu", objType, object);
+			RDCERR("Unrecognised object %d %llu", pNameInfo->objectType, pNameInfo->object);
 			return VK_SUCCESS;
 		}
 
@@ -928,7 +954,7 @@ VkResult WrappedVulkan::vkDbgSetObjectName(
 			CACHE_THREAD_SERIALISER();
 
 			SCOPED_SERIALISE_CONTEXT(SET_NAME);
-			Serialise_vkDbgSetObjectName(localSerialiser, device, objType, object, nameSize, pName);
+			Serialise_vkDebugMarkerSetObjectNameEXT(localSerialiser, device, pNameInfo);
 
 			chunk = scope.Get();
 		}

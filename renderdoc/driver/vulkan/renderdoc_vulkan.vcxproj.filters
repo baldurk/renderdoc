@@ -117,9 +117,6 @@
     <ClInclude Include="official\vk_layer.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="official\vk_lunarg_debug_marker.h">
-      <Filter>official</Filter>
-    </ClInclude>
     <ClInclude Include="official\vk_platform.h">
       <Filter>official</Filter>
     </ClInclude>

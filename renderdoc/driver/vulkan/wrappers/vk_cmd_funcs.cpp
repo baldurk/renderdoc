@@ -2158,13 +2158,19 @@ void WrappedVulkan::vkCmdResetQueryPool(
 	}
 }
 
-bool WrappedVulkan::Serialise_vkCmdDbgMarkerBegin(
+bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(
 			Serialiser*                                 localSerialiser,
 			VkCommandBuffer  commandBuffer,
-			const char*     pMarker)
+			VkDebugMarkerMarkerInfoEXT* pMarker)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
-	SERIALISE_ELEMENT(string, name, pMarker ? string(pMarker) : "");
+	SERIALISE_ELEMENT(string, name, pMarker && pMarker->pMarkerName ? string(pMarker->pMarkerName) : "");
+
+	float color[4] = {};
+	if(m_State >= WRITING && pMarker)
+		memcpy(color, pMarker->color, sizeof(color));
+
+	localSerialiser->SerialisePODArray<4>("color", color);
 	
 	if(m_State < WRITING)
 		m_LastCmdBufferID = cmdid;
@@ -2181,12 +2187,12 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerBegin(
 	return true;
 }
 
-void WrappedVulkan::vkCmdDbgMarkerBegin(
+void WrappedVulkan::vkCmdDebugMarkerBeginEXT(
 			VkCommandBuffer  commandBuffer,
-			const char*     pMarker)
+			VkDebugMarkerMarkerInfoEXT* pMarker)
 {
-	if(ObjDisp(commandBuffer)->CmdDbgMarkerBegin)
-		ObjDisp(commandBuffer)->CmdDbgMarkerBegin(Unwrap(commandBuffer), pMarker);
+	if(ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT)
+		ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT(Unwrap(commandBuffer), pMarker);
 	
 	if(m_State >= WRITING)
 	{
@@ -2195,13 +2201,13 @@ void WrappedVulkan::vkCmdDbgMarkerBegin(
 		CACHE_THREAD_SERIALISER();
 
 		SCOPED_SERIALISE_CONTEXT(BEGIN_EVENT);
-		Serialise_vkCmdDbgMarkerBegin(localSerialiser, commandBuffer, pMarker);
+		Serialise_vkCmdDebugMarkerBeginEXT(localSerialiser, commandBuffer, pMarker);
 
 		record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(Serialiser* localSerialiser, VkCommandBuffer commandBuffer)
+bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(Serialiser* localSerialiser, VkCommandBuffer commandBuffer)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
 	
@@ -2231,11 +2237,11 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(Serialiser* localSerialiser, VkC
 	return true;
 }
 
-void WrappedVulkan::vkCmdDbgMarkerEnd(
+void WrappedVulkan::vkCmdDebugMarkerEndEXT(
 	VkCommandBuffer  commandBuffer)
 {
-	if(ObjDisp(commandBuffer)->CmdDbgMarkerEnd)
-		ObjDisp(commandBuffer)->CmdDbgMarkerEnd(Unwrap(commandBuffer));
+	if(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT)
+		ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
 	
 	if(m_State >= WRITING)
 	{
@@ -2244,7 +2250,56 @@ void WrappedVulkan::vkCmdDbgMarkerEnd(
 		CACHE_THREAD_SERIALISER();
 
 		SCOPED_SERIALISE_CONTEXT(END_EVENT);
-		Serialise_vkCmdDbgMarkerEnd(localSerialiser, commandBuffer);
+		Serialise_vkCmdDebugMarkerEndEXT(localSerialiser, commandBuffer);
+
+		record->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(
+			Serialiser*                                 localSerialiser,
+			VkCommandBuffer  commandBuffer,
+			VkDebugMarkerMarkerInfoEXT* pMarker)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
+	SERIALISE_ELEMENT(string, name, pMarker && pMarker->pMarkerName ? string(pMarker->pMarkerName) : "");
+
+	float color[4] = {};
+	if(m_State >= WRITING && pMarker)
+		memcpy(color, pMarker->color, sizeof(color));
+
+	localSerialiser->SerialisePODArray<4>("color", color);
+	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
+	if(m_State == READING)
+	{
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_SetMarker;
+
+		AddDrawcall(draw, false);
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdDebugMarkerInsertEXT(
+			VkCommandBuffer  commandBuffer,
+			VkDebugMarkerMarkerInfoEXT* pMarker)
+{
+	if(ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT)
+		ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT(Unwrap(commandBuffer), pMarker);
+	
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(commandBuffer);
+
+		CACHE_THREAD_SERIALISER();
+
+		SCOPED_SERIALISE_CONTEXT(SET_MARKER);
+		Serialise_vkCmdDebugMarkerInsertEXT(localSerialiser, commandBuffer, pMarker);
 
 		record->AddChunk(scope.Get());
 	}

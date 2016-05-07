@@ -32,6 +32,7 @@
 #undef VK_KHR_surface
 #undef VK_KHR_swapchain
 #undef VK_EXT_debug_report
+#undef VK_EXT_debug_marker
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
@@ -229,7 +230,7 @@
 	CheckExt(VK_EXT_debug_report)
 
 #define CheckDeviceExts() \
-	CheckExt(VK_LUNARG_DEBUG_MARKER) \
+	CheckExt(VK_EXT_debug_marker) \
 	CheckExt(VK_KHR_swapchain)
 
 #define HookInitVulkanInstanceExts() \
@@ -244,10 +245,11 @@
 	HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts() \
-	HookInitExtension(VK_LUNARG_DEBUG_MARKER, CmdDbgMarkerBegin); \
-	HookInitExtension(VK_LUNARG_DEBUG_MARKER, CmdDbgMarkerEnd); \
-	HookInitExtension(VK_LUNARG_DEBUG_MARKER, DbgSetObjectTag); \
-	HookInitExtension(VK_LUNARG_DEBUG_MARKER, DbgSetObjectName); \
+	HookInitExtension(VK_EXT_debug_marker, DebugMarkerSetObjectTagEXT); \
+	HookInitExtension(VK_EXT_debug_marker, DebugMarkerSetObjectNameEXT); \
+	HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerBeginEXT); \
+	HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerEndEXT); \
+	HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerInsertEXT); \
 	HookInitExtension(VK_KHR_swapchain, CreateSwapchainKHR); \
 	HookInitExtension(VK_KHR_swapchain, DestroySwapchainKHR); \
 	HookInitExtension(VK_KHR_swapchain, GetSwapchainImagesKHR); \
@@ -387,10 +389,11 @@
 	HookDefine4(VkResult, vkCreateDebugReportCallbackEXT, VkInstance, instance, const VkDebugReportCallbackCreateInfoEXT*, pCreateInfo, const VkAllocationCallbacks*, pAllocator, VkDebugReportCallbackEXT*, pCallback); \
 	HookDefine3(void, vkDestroyDebugReportCallbackEXT, VkInstance, instance, VkDebugReportCallbackEXT, callback, const VkAllocationCallbacks*, pAllocator); \
 	HookDefine8(void, vkDebugReportMessageEXT, VkInstance, instance, VkDebugReportFlagsEXT, flags, VkDebugReportObjectTypeEXT, objectType, uint64_t, object, size_t, location, int32_t, messageCode, const char*, pLayerPrefix, const char*, pMessage); \
-	HookDefine2(void, vkCmdDbgMarkerBegin, VkCommandBuffer, commandBuffer, const char*, pMarker); \
-	HookDefine1(void, vkCmdDbgMarkerEnd, VkCommandBuffer, commandBuffer); \
-	HookDefine5(VkResult, vkDbgSetObjectTag, VkDevice, device, VkDebugReportObjectTypeEXT, objType, uint64_t, object, size_t, tagSize, const void*, pTag); \
-	HookDefine5(VkResult, vkDbgSetObjectName, VkDevice, device, VkDebugReportObjectTypeEXT, objType, uint64_t, object, size_t, nameSize, const char*, pName); \
+	HookDefine2(VkResult, vkDebugMarkerSetObjectTagEXT, VkDevice, device, VkDebugMarkerObjectTagInfoEXT*, pTagInfo); \
+	HookDefine2(VkResult, vkDebugMarkerSetObjectNameEXT, VkDevice, device, VkDebugMarkerObjectNameInfoEXT*, pNameInfo); \
+	HookDefine2(void, vkCmdDebugMarkerBeginEXT, VkCommandBuffer, commandBuffer, VkDebugMarkerMarkerInfoEXT*, pMarkerInfo); \
+	HookDefine1(void, vkCmdDebugMarkerEndEXT, VkCommandBuffer, commandBuffer); \
+	HookDefine2(void, vkCmdDebugMarkerInsertEXT, VkCommandBuffer, commandBuffer, VkDebugMarkerMarkerInfoEXT*, pMarkerInfo); \
 	HookDefine4(VkResult, vkGetPhysicalDeviceSurfaceSupportKHR, VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex, VkSurfaceKHR, surface, VkBool32*, pSupported); \
 	HookDefine3(VkResult, vkGetPhysicalDeviceSurfaceCapabilitiesKHR, VkPhysicalDevice, physicalDevice, VkSurfaceKHR, surface, VkSurfaceCapabilitiesKHR*, pSurfaceProperties); \
 	HookDefine4(VkResult, vkGetPhysicalDeviceSurfaceFormatsKHR, VkPhysicalDevice, physicalDevice, VkSurfaceKHR, surface, uint32_t*, pSurfaceFormatCount, VkSurfaceFormatKHR*, pSurfaceFormats); \
@@ -418,9 +421,10 @@ struct VkLayerDispatchTableExtended : VkLayerDispatchTable
 	// even though it won't actually ever get used
 	PFN_vkCreateDevice CreateDevice;
 
-	// VK_LUNARG_DEBUG_MARKER
-	PFN_vkCmdDbgMarkerBegin CmdDbgMarkerBegin;
-	PFN_vkCmdDbgMarkerEnd CmdDbgMarkerEnd;
-	PFN_vkDbgSetObjectTag DbgSetObjectTag;
-	PFN_vkDbgSetObjectName DbgSetObjectName;
+	// VK_EXT_debug_marker
+	PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTagEXT;
+	PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectNameEXT;
+	PFN_vkCmdDebugMarkerBeginEXT CmdDebugMarkerBeginEXT;
+	PFN_vkCmdDebugMarkerEndEXT CmdDebugMarkerEndEXT;
+	PFN_vkCmdDebugMarkerInsertEXT CmdDebugMarkerInsertEXT;
 };

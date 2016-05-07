@@ -41,7 +41,6 @@
 #define VK_NO_PROTOTYPES
 
 #include "official/vulkan.h"
-#include "official/vk_lunarg_debug_marker.h"
 
 #include "api/replay/renderdoc_replay.h"
 
@@ -301,6 +300,7 @@ enum VulkanChunkType
 	END_EVENT,
 
 	SET_NAME,
+	SET_SHADER_DEBUG_PATH,
 
 	CREATE_SWAP_BUFFER,
 

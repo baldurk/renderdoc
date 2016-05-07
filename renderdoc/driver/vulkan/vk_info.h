@@ -308,6 +308,8 @@ struct VulkanCreationInfo
 
 		SPVModule spirv;
 
+		string unstrippedPath;
+
 		struct Reflection
 		{
 			string entryPoint;
