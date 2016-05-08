@@ -23,7 +23,6 @@ set(sources
     vk_state.h
     vk_tracelayer.cpp
     official/vk_layer.h
-    official/vk_lunarg_debug_marker.h
     official/vk_platform.h
     official/vulkan.h
     wrappers/vk_cmd_funcs.cpp
