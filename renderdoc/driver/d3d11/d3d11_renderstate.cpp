@@ -208,6 +208,8 @@ void D3D11RenderState::MarkDirty(D3D11ResourceManager *manager) const
 
 void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool initial) const
 {
+	ctx->MarkResourceReferenced(GetIDForResource(IA.Layout), initial ? eFrameRef_Unknown : eFrameRef_Read);
+	
 	ctx->MarkResourceReferenced(GetIDForResource(IA.IndexBuffer), initial ? eFrameRef_Unknown : eFrameRef_Read);
 	
 	for(UINT i=0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
