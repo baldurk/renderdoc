@@ -1598,7 +1598,7 @@ void WrappedID3D11DeviceContext::RecordBlendStats(ID3D11BlendState* Blend, FLOAT
 	blends.sets += (Blend != NULL);
 	blends.nulls += (Blend == NULL);
 	const D3D11RenderState::outmerger* Current = &m_CurrentPipelineState->OM;
-	bool same = (Current->BlendState == Blend) && (memcmp(Current->BlendFactor, BlendFactor, sizeof(BlendFactor)) == 0) && (Current->SampleMask == SampleMask);
+	bool same = (Current->BlendState == Blend) && (memcmp(Current->BlendFactor, BlendFactor, sizeof(Current->BlendFactor)) == 0) && (Current->SampleMask == SampleMask);
 	blends.redundants += (uint32_t)same;
 }
 
@@ -1675,19 +1675,33 @@ void WrappedID3D11DeviceContext::RecordOutputMergerStats(UINT NumRTVs, ID3D11Ren
 	// #mivance is an elaborate redundancy here even useful?
 	//const D3D11RenderState::outmerger* Current = &m_CurrentPipelineState->OM;
 
-	for (UINT index = 0; index < NumRTVs; index++ )
+	if(RTVs != NULL)
 	{
-		outputs.sets += (RTVs[index] != NULL);
-		outputs.nulls += (RTVs[index] == NULL);
+		for (UINT index = 0; index < NumRTVs; index++ )
+		{
+			outputs.sets += (RTVs[index] != NULL);
+			outputs.nulls += (RTVs[index] == NULL);
+		}
+	}
+	else if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
+	{
+		outputs.nulls += NumRTVs;
 	}
 
 	outputs.sets += (DSV != NULL);
 	outputs.nulls += (DSV == NULL);
-
-	for (UINT index = 0; index < NumUAVs; index++ )
+	
+	if(UAVs != NULL)
 	{
-		outputs.sets += (UAVs[index] != NULL);
-		outputs.nulls += (UAVs[index] == NULL);
+		for (UINT index = 0; index < NumUAVs; index++ )
+		{
+			outputs.sets += (UAVs[index] != NULL);
+			outputs.nulls += (UAVs[index] == NULL);
+		}
+	}
+	else
+	{
+		outputs.nulls += NumUAVs;
 	}
 
 	UINT NumSlots = NumRTVs + NumUAVs;
