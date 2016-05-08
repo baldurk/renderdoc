@@ -16,11 +16,11 @@
         "name": "VK_EXT_debug_marker",
         "spec_version": "3",
         "entrypoints": ["vkDebugMarkerSetObjectTagEXT",
-		                "vkDebugMarkerSetObjectNameEXT",
-		                "vkCmdDebugMarkerBeginEXT",
-		                "vkCmdDebugMarkerEndEXT",
-		                "vkCmdDebugMarkerInsertEXT"
-		               ]
+                        "vkDebugMarkerSetObjectNameEXT",
+                        "vkCmdDebugMarkerBeginEXT",
+                        "vkCmdDebugMarkerEndEXT",
+                        "vkCmdDebugMarkerInsertEXT"
+                       ]
       }
 
     ],
