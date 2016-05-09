@@ -131,7 +131,7 @@ struct CachedHookData
 		// renderdoc.dll, or tries to load it.
 		if(strstr(lowername, "fraps") ||
 		   strstr(lowername, "gameoverlayrenderer") ||
-		   strstr(lowername, "renderdoc"))
+		   strstr(lowername, "renderdoc.dll"))
 				return;
 
 		// for safety (and because we don't need to), ignore these modules
