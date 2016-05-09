@@ -1173,6 +1173,23 @@ namespace renderdocui.Windows
             }
         }
 
+        private string GetShaderVariableAsText(ShaderVariable hoverVar)
+        {
+            var fmt =
+                @"{0}" + Environment.NewLine +
+                @"                 X          Y          Z          W" + Environment.NewLine +
+                @"----------------------------------------------------" + Environment.NewLine +
+                @"float | {1,10} {2,10} {3,10} {4,10}" + Environment.NewLine +
+                @"uint  | {5,10} {6,10} {7,10} {8,10}" + Environment.NewLine +
+                @"int   | {9,10} {10,10} {11,10} {12,10}" + Environment.NewLine +
+                @"hex   | {5,10:X} {6,10:X} {7,10:X} {8,10:X}";
+
+            return String.Format(fmt, hoverVar.name,
+                Formatter.Format(hoverVar.value.fv[0]), Formatter.Format(hoverVar.value.fv[1]), Formatter.Format(hoverVar.value.fv[2]), Formatter.Format(hoverVar.value.fv[3]),
+                hoverVar.value.uv[0], hoverVar.value.uv[1], hoverVar.value.uv[2], hoverVar.value.uv[3],
+                hoverVar.value.iv[0], hoverVar.value.iv[1], hoverVar.value.iv[2], hoverVar.value.iv[3]);
+        }
+
         private void hoverTimer_Tick(object sender, EventArgs e)
         {
             if (m_Trace == null || m_Trace.states.Length == 0) return;
@@ -1246,21 +1263,9 @@ namespace renderdocui.Windows
                 }
             }
 
-            if(hoverVar != null && hoverWin != null)
+            if (hoverVar != null && hoverWin != null)
             {
-                var fmt =
-                    @"{0}" + Environment.NewLine +
-                    @"                 X          Y          Z          W" + Environment.NewLine +
-                    @"----------------------------------------------------" + Environment.NewLine +
-                    @"float | {1,10} {2,10} {3,10} {4,10}" + Environment.NewLine +
-                    @"uint  | {5,10} {6,10} {7,10} {8,10}" + Environment.NewLine +
-                    @"int   | {9,10} {10,10} {11,10} {12,10}" + Environment.NewLine +
-                    @"hex   | {5,10:X} {6,10:X} {7,10:X} {8,10:X}";
-
-                m_HoverText = String.Format(fmt, hoverVar.name,
-                    Formatter.Format(hoverVar.value.fv[0]), Formatter.Format(hoverVar.value.fv[1]), Formatter.Format(hoverVar.value.fv[2]), Formatter.Format(hoverVar.value.fv[3]),
-                    hoverVar.value.uv[0], hoverVar.value.uv[1], hoverVar.value.uv[2], hoverVar.value.uv[3],
-                    hoverVar.value.iv[0], hoverVar.value.iv[1], hoverVar.value.iv[2], hoverVar.value.iv[3]);
+                m_HoverText = GetShaderVariableAsText(hoverVar);
 
                 variableHover.Show(m_HoverText, hoverWin, hoverPoint.X, hoverPoint.Y);
             }
@@ -1691,6 +1696,68 @@ namespace renderdocui.Windows
         {
             if (m_Trace == null || m_Trace.states == null)
                 return;
+
+            DebugKeys_KeyDown(sender, e);
+        }
+
+        private void regsList_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
+            if (e.KeyCode == Keys.C && e.Control)
+            {
+                ShaderVariable shaderVar = null;
+
+                ListView list = sender as ListView;
+
+                if (list != null)
+                {
+                    ListViewItem item = list.SelectedItems[0];
+
+                    if (item != null && item.Tag != null)
+                    {
+                        shaderVar = item.Tag as ShaderVariable;
+                    }
+                }
+
+                TreelistView.TreeListView treelist = sender as TreelistView.TreeListView;
+
+                if (treelist != null)
+                {
+                    TreelistView.Node node = treelist.SelectedNode;
+
+                    if (node != null && node.Tag != null)
+                    {
+                        shaderVar = node.Tag as ShaderVariable;
+                    }
+                }
+
+                if (shaderVar == null)
+                    return;
+
+                string text = GetShaderVariableAsText(shaderVar);
+
+                try
+                {
+                    if (text.Length > 0)
+                        Clipboard.SetText(text);
+                }
+                catch (System.Exception)
+                {
+                    try
+                    {
+                        if (text.Length > 0)
+                            Clipboard.SetDataObject(text);
+                    }
+                    catch (System.Exception)
+                    {
+                        // give up!
+                    }
+                }
+
+                return;
+            }
 
             DebugKeys_KeyDown(sender, e);
         }
