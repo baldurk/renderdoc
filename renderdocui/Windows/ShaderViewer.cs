@@ -791,6 +791,9 @@ namespace renderdocui.Windows
             const uint SCI_SETSCROLLWIDTHTRACKING = 2516;
             scintilla1.NativeInterface.SendMessageDirect(SCI_SETSCROLLWIDTHTRACKING, true);
 
+            // don't let the user undo the initial text insertion
+            scintilla1.UndoRedo.EmptyUndoBuffer();
+
             return scintilla1;
         }
 
