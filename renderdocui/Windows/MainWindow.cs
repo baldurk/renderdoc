@@ -1187,6 +1187,9 @@ namespace renderdocui.Windows
 
         private bool PromptCloseLog()
         {
+            if (!m_Core.LogLoaded)
+                return true;
+
             string deletepath = "";
 
             if (OwnTemporaryLog)
