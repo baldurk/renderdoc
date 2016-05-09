@@ -504,10 +504,12 @@
     <Content Include="3rdparty\ScintillaNET\SciLexer.dll">
       <Link>SciLexer.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
     </Content>
     <Content Include="3rdparty\ScintillaNET\SciLexer64.dll">
       <Link>SciLexer64.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
     </Content>
     <Content Include="Controls\TreeListView\README.txt" />
     <None Include="Resources\wireframe_mesh.png" />
