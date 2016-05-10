@@ -1501,8 +1501,11 @@ SPDBChunk::SPDBChunk(void *chunk)
 			PDBStream &s = streams[it->second];
 			PageMapping fileContents(pages, header->PageSize, &s.pageIndices[0], (uint32_t)s.pageIndices.size());
 
-			char *filename = (char *)it->first.c_str();
+			const char *filename = (const char *)it->first.c_str();
 			filename += sizeof("/src/files/")-1;
+
+			if(filename[0] == 0)
+				filename = "shader";
 
 			Files.push_back( make_pair(filename, (char *)fileContents.Data()) );
 		}
