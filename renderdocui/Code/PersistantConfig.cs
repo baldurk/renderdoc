@@ -62,6 +62,24 @@ namespace renderdocui.Code
 
         public List<SerializableKeyValuePair<string, string>> PreviouslyUsedHosts = new List<SerializableKeyValuePair<string, string>>();
 
+        [XmlIgnore] // not directly serializable
+        public Dictionary<string, string> ConfigSettings = new Dictionary<string, string>();
+        private List<SerializableKeyValuePair<string, string>> ConfigSettingsValues = new List<SerializableKeyValuePair<string, string>>();
+
+        public void SetConfigSetting(string name, string value)
+        {
+            ConfigSettings[name] = value;
+            StaticExports.SetConfigSetting(name, value);
+        }
+
+        public string GetConfigSetting(string name)
+        {
+            if(ConfigSettings.ContainsKey(name))
+                return ConfigSettings[name];
+
+            return "";
+        }
+
         public enum TimeUnit
         {
             Seconds = 0,
@@ -158,6 +176,10 @@ namespace renderdocui.Code
                 foreach (var kv in ReplayHosts)
                     ReplayHostKeyValues.Add(new SerializableKeyValuePair<string, string>(kv.Key, kv.Value));
 
+                ConfigSettingsValues.Clear();
+                foreach (var kv in ConfigSettings)
+                    ConfigSettingsValues.Add(new SerializableKeyValuePair<string, string>(kv.Key, kv.Value));
+
                 XmlSerializer xs = new XmlSerializer(this.GetType());
                 StreamWriter writer = File.CreateText(file);
                 xs.Serialize(writer, this);
@@ -182,7 +204,18 @@ namespace renderdocui.Code
             {
                 if (kv.Key != null && kv.Key.Length > 0 &&
                     kv.Value != null)
-                c.ReplayHosts.Add(kv.Key, kv.Value);
+                {
+                    c.ReplayHosts.Add(kv.Key, kv.Value);
+                }
+            }
+
+            foreach (var kv in c.ConfigSettingsValues)
+            {
+                if (kv.Key != null && kv.Key.Length > 0 &&
+                    kv.Value != null)
+                {
+                    c.SetConfigSetting(kv.Key, kv.Value);
+                }
             }
 
             return c;

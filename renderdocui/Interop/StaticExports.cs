@@ -72,6 +72,12 @@ namespace renderdoc
         private static extern IntPtr RENDERDOC_GetLogFile();
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr RENDERDOC_GetConfigSetting(IntPtr name);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_SetConfigSetting(IntPtr name, IntPtr value);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool RENDERDOC_GetThumbnail(IntPtr filename, byte[] outmem, ref UInt32 len);
 
         public static bool SupportLocalReplay(string logfile, out string driverName)
@@ -232,6 +238,28 @@ namespace renderdoc
         public static string GetLogFilename()
         {
             return CustomMarshal.PtrToStringUTF8(RENDERDOC_GetLogFile());
+        }
+
+        public static string GetConfigSetting(string name)
+        {
+            IntPtr name_mem = CustomMarshal.MakeUTF8String(name);
+
+            string ret = CustomMarshal.PtrToStringUTF8(RENDERDOC_GetConfigSetting(name_mem));
+
+            CustomMarshal.Free(name_mem);
+
+            return ret;
+        }
+
+        public static void SetConfigSetting(string name, string value)
+        {
+            IntPtr name_mem = CustomMarshal.MakeUTF8String(name);
+            IntPtr value_mem = CustomMarshal.MakeUTF8String(value);
+
+            RENDERDOC_SetConfigSetting(name_mem, value_mem);
+
+            CustomMarshal.Free(name_mem);
+            CustomMarshal.Free(value_mem);
         }
 
         public static byte[] GetThumbnail(string filename)

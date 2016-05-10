@@ -243,6 +243,18 @@ const char* RENDERDOC_CC RENDERDOC_GetVersionString()
 }
 
 extern "C" RENDERDOC_API
+const char* RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name)
+{
+	return RenderDoc::Inst().GetConfigSetting(name).c_str();
+}
+
+extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name, const char *value)
+{
+	RenderDoc::Inst().SetConfigSetting(name, value);
+}
+
+extern "C" RENDERDOC_API
 void RENDERDOC_CC RENDERDOC_LogText(const char *text)
 {
 	RDCLOG("%s", text);

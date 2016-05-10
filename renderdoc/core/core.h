@@ -187,6 +187,9 @@ class RenderDoc
 		void SetReplayApp(bool replay) { m_Replay = replay; }
 		bool IsReplayApp() const { return m_Replay; }
 
+		string GetConfigSetting(string name) { return m_ConfigSettings[name]; }
+		void SetConfigSetting(string name, string value) { m_ConfigSettings[name] = value; }
+
 		void BecomeReplayHost(volatile uint32_t &killReplay);
 
 		void SetCaptureOptions(const CaptureOptions &opts);
@@ -325,6 +328,8 @@ class RenderDoc
 		
 		Threading::CriticalSection m_ChildLock;
 		vector< pair<uint32_t, uint32_t> > m_Children;
+
+		map<string, string> m_ConfigSettings;
 
 		map<RDCDriver, string> m_DriverNames;
 		map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
