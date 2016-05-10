@@ -199,6 +199,8 @@ private:
 
 	D3D11DebugManager *m_DebugManager;
 	D3D11ResourceManager *m_ResourceManager;
+
+	vector<string> m_ShaderSearchPaths;
 	
 	D3D11InitParams m_InitParams;
 

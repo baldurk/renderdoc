@@ -43,6 +43,8 @@
             System.Windows.Forms.Label label3;
             System.Windows.Forms.Label label11;
             System.Windows.Forms.Label label15;
+            System.Windows.Forms.TableLayoutPanel tableLayoutPanel6;
+            System.Windows.Forms.Label label19;
             System.Windows.Forms.GroupBox groupBox2;
             System.Windows.Forms.Label label10;
             System.Windows.Forms.GroupBox groupBox3;
@@ -50,7 +52,7 @@
             System.Windows.Forms.GroupBox groupBox4;
             System.Windows.Forms.Label label8;
             System.Windows.Forms.Label label9;
-            TreelistView.TreeListColumn treeListColumn1 = new TreelistView.TreeListColumn("Section", "Section");
+            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Section", "Section")));
             this.settingsTabs = new renderdocui.Controls.TablessControl();
             this.generalTab = new System.Windows.Forms.TabPage();
             this.AllowGlobalHook = new System.Windows.Forms.CheckBox();
@@ -63,6 +65,9 @@
             this.CheckUpdate_AllowChecks = new System.Windows.Forms.CheckBox();
             this.browseCaptureDirectory = new System.Windows.Forms.Button();
             this.Font_PreferMonospaced = new System.Windows.Forms.CheckBox();
+            this.corePage = new System.Windows.Forms.TabPage();
+            this.groupBox5 = new System.Windows.Forms.GroupBox();
+            this.chooseSearchPaths = new System.Windows.Forms.Button();
             this.texViewTab = new System.Windows.Forms.TabPage();
             this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
             this.TextureViewer_ResetRange = new System.Windows.Forms.CheckBox();
@@ -92,6 +97,8 @@
             label3 = new System.Windows.Forms.Label();
             label11 = new System.Windows.Forms.Label();
             label15 = new System.Windows.Forms.Label();
+            tableLayoutPanel6 = new System.Windows.Forms.TableLayoutPanel();
+            label19 = new System.Windows.Forms.Label();
             groupBox2 = new System.Windows.Forms.GroupBox();
             label10 = new System.Windows.Forms.Label();
             groupBox3 = new System.Windows.Forms.GroupBox();
@@ -108,6 +115,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.Formatter_NegExp)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.Formatter_MaxFigures)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.Formatter_MinFigures)).BeginInit();
+            this.corePage.SuspendLayout();
+            this.groupBox5.SuspendLayout();
+            tableLayoutPanel6.SuspendLayout();
             this.texViewTab.SuspendLayout();
             groupBox2.SuspendLayout();
             this.tableLayoutPanel3.SuspendLayout();
@@ -141,6 +151,7 @@
             // 
             this.settingsTabs.Alignment = System.Windows.Forms.TabAlignment.Left;
             this.settingsTabs.Controls.Add(this.generalTab);
+            this.settingsTabs.Controls.Add(this.corePage);
             this.settingsTabs.Controls.Add(this.texViewTab);
             this.settingsTabs.Controls.Add(this.shadViewTab);
             this.settingsTabs.Controls.Add(this.eventTab);
@@ -155,10 +166,10 @@
             // generalTab
             // 
             this.generalTab.Controls.Add(groupBox1);
-            this.generalTab.Location = new System.Drawing.Point(23, 4);
+            this.generalTab.Location = new System.Drawing.Point(42, 4);
             this.generalTab.Name = "generalTab";
             this.generalTab.Padding = new System.Windows.Forms.Padding(3);
-            this.generalTab.Size = new System.Drawing.Size(373, 310);
+            this.generalTab.Size = new System.Drawing.Size(354, 310);
             this.generalTab.TabIndex = 0;
             this.generalTab.Text = "General";
             this.generalTab.UseVisualStyleBackColor = true;
@@ -169,7 +180,7 @@
             groupBox1.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox1.Location = new System.Drawing.Point(3, 3);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new System.Drawing.Size(367, 304);
+            groupBox1.Size = new System.Drawing.Size(348, 304);
             groupBox1.TabIndex = 0;
             groupBox1.TabStop = false;
             groupBox1.Text = "General";
@@ -214,7 +225,7 @@
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            tableLayoutPanel2.Size = new System.Drawing.Size(361, 285);
+            tableLayoutPanel2.Size = new System.Drawing.Size(342, 285);
             tableLayoutPanel2.TabIndex = 0;
             // 
             // AllowGlobalHook
@@ -222,7 +233,7 @@
             this.AllowGlobalHook.AutoSize = true;
             this.AllowGlobalHook.Checked = true;
             this.AllowGlobalHook.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.AllowGlobalHook.Location = new System.Drawing.Point(268, 194);
+            this.AllowGlobalHook.Location = new System.Drawing.Point(249, 194);
             this.AllowGlobalHook.Name = "AllowGlobalHook";
             this.AllowGlobalHook.Size = new System.Drawing.Size(15, 14);
             this.AllowGlobalHook.TabIndex = 16;
@@ -238,7 +249,7 @@
             label13.AutoSize = true;
             label13.Location = new System.Drawing.Point(3, 191);
             label13.Name = "label13";
-            label13.Size = new System.Drawing.Size(259, 20);
+            label13.Size = new System.Drawing.Size(240, 20);
             label13.TabIndex = 15;
             label13.Text = "Allow global process hooking - be careful!";
             label13.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -246,7 +257,7 @@
             // 
             // Formatter_PosExp
             // 
-            this.Formatter_PosExp.Location = new System.Drawing.Point(268, 139);
+            this.Formatter_PosExp.Location = new System.Drawing.Point(249, 139);
             this.Formatter_PosExp.Maximum = new decimal(new int[] {
             20,
             0,
@@ -266,7 +277,7 @@
             // 
             // Formatter_NegExp
             // 
-            this.Formatter_NegExp.Location = new System.Drawing.Point(268, 113);
+            this.Formatter_NegExp.Location = new System.Drawing.Point(249, 113);
             this.Formatter_NegExp.Maximum = new decimal(new int[] {
             20,
             0,
@@ -293,7 +304,7 @@
             label6.Location = new System.Drawing.Point(3, 87);
             label6.Margin = new System.Windows.Forms.Padding(3);
             label6.Name = "label6";
-            label6.Size = new System.Drawing.Size(259, 20);
+            label6.Size = new System.Drawing.Size(240, 20);
             label6.TabIndex = 6;
             label6.Text = "Maximum significant figures on decimals";
             label6.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -309,7 +320,7 @@
             label4.Location = new System.Drawing.Point(3, 61);
             label4.Margin = new System.Windows.Forms.Padding(3);
             label4.Name = "label4";
-            label4.Size = new System.Drawing.Size(259, 20);
+            label4.Size = new System.Drawing.Size(240, 20);
             label4.TabIndex = 4;
             label4.Text = "Minimum decimal places on float values";
             label4.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -319,7 +330,7 @@
             // rdcAssoc
             // 
             this.rdcAssoc.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            this.rdcAssoc.Location = new System.Drawing.Point(268, 3);
+            this.rdcAssoc.Location = new System.Drawing.Point(249, 3);
             this.rdcAssoc.Name = "rdcAssoc";
             this.rdcAssoc.Size = new System.Drawing.Size(90, 23);
             this.rdcAssoc.TabIndex = 1;
@@ -336,7 +347,7 @@
             label1.Location = new System.Drawing.Point(3, 3);
             label1.Margin = new System.Windows.Forms.Padding(3);
             label1.Name = "label1";
-            label1.Size = new System.Drawing.Size(259, 23);
+            label1.Size = new System.Drawing.Size(240, 23);
             label1.TabIndex = 0;
             label1.Text = "Associate .rdc with RenderDoc";
             label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -350,7 +361,7 @@
             label2.Location = new System.Drawing.Point(3, 32);
             label2.Margin = new System.Windows.Forms.Padding(3);
             label2.Name = "label2";
-            label2.Size = new System.Drawing.Size(259, 23);
+            label2.Size = new System.Drawing.Size(240, 23);
             label2.TabIndex = 2;
             label2.Text = "Associate .cap with RenderDoc";
             label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -358,7 +369,7 @@
             // capAssoc
             // 
             this.capAssoc.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            this.capAssoc.Location = new System.Drawing.Point(268, 32);
+            this.capAssoc.Location = new System.Drawing.Point(249, 32);
             this.capAssoc.Name = "capAssoc";
             this.capAssoc.Size = new System.Drawing.Size(90, 23);
             this.capAssoc.TabIndex = 2;
@@ -375,7 +386,7 @@
             label5.Location = new System.Drawing.Point(3, 113);
             label5.Margin = new System.Windows.Forms.Padding(3);
             label5.Name = "label5";
-            label5.Size = new System.Drawing.Size(259, 20);
+            label5.Size = new System.Drawing.Size(240, 20);
             label5.TabIndex = 5;
             label5.Text = "Negative exponential cutoff value";
             label5.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -391,7 +402,7 @@
             label7.Location = new System.Drawing.Point(3, 139);
             label7.Margin = new System.Windows.Forms.Padding(3);
             label7.Name = "label7";
-            label7.Size = new System.Drawing.Size(259, 20);
+            label7.Size = new System.Drawing.Size(240, 20);
             label7.TabIndex = 7;
             label7.Text = "Positive exponential cutoff value";
             label7.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -400,7 +411,7 @@
             // 
             // Formatter_MaxFigures
             // 
-            this.Formatter_MaxFigures.Location = new System.Drawing.Point(268, 87);
+            this.Formatter_MaxFigures.Location = new System.Drawing.Point(249, 87);
             this.Formatter_MaxFigures.Maximum = new decimal(new int[] {
             29,
             0,
@@ -426,7 +437,7 @@
             // Formatter_MinFigures
             // 
             this.Formatter_MinFigures.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            this.Formatter_MinFigures.Location = new System.Drawing.Point(268, 61);
+            this.Formatter_MinFigures.Location = new System.Drawing.Point(249, 61);
             this.Formatter_MinFigures.Maximum = new decimal(new int[] {
             29,
             0,
@@ -452,7 +463,7 @@
             label3.AutoSize = true;
             label3.Location = new System.Drawing.Point(3, 211);
             label3.Name = "label3";
-            label3.Size = new System.Drawing.Size(259, 20);
+            label3.Size = new System.Drawing.Size(240, 20);
             label3.TabIndex = 12;
             label3.Text = "Allow periodic anonymous update checks";
             label3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -464,7 +475,7 @@
             this.CheckUpdate_AllowChecks.AutoSize = true;
             this.CheckUpdate_AllowChecks.Checked = true;
             this.CheckUpdate_AllowChecks.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.CheckUpdate_AllowChecks.Location = new System.Drawing.Point(268, 214);
+            this.CheckUpdate_AllowChecks.Location = new System.Drawing.Point(249, 214);
             this.CheckUpdate_AllowChecks.Name = "CheckUpdate_AllowChecks";
             this.CheckUpdate_AllowChecks.Size = new System.Drawing.Size(15, 14);
             this.CheckUpdate_AllowChecks.TabIndex = 8;
@@ -481,7 +492,7 @@
             label11.AutoSize = true;
             label11.Location = new System.Drawing.Point(3, 162);
             label11.Name = "label11";
-            label11.Size = new System.Drawing.Size(259, 29);
+            label11.Size = new System.Drawing.Size(240, 29);
             label11.TabIndex = 14;
             label11.Text = "Directory for temporary capture files";
             label11.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -491,7 +502,7 @@
             // browseCaptureDirectory
             // 
             this.browseCaptureDirectory.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            this.browseCaptureDirectory.Location = new System.Drawing.Point(268, 165);
+            this.browseCaptureDirectory.Location = new System.Drawing.Point(249, 165);
             this.browseCaptureDirectory.Name = "browseCaptureDirectory";
             this.browseCaptureDirectory.Size = new System.Drawing.Size(90, 23);
             this.browseCaptureDirectory.TabIndex = 7;
@@ -509,7 +520,7 @@
             label15.AutoSize = true;
             label15.Location = new System.Drawing.Point(3, 231);
             label15.Name = "label15";
-            label15.Size = new System.Drawing.Size(259, 20);
+            label15.Size = new System.Drawing.Size(240, 20);
             label15.TabIndex = 17;
             label15.Text = "Prefer monospaced fonts in UI (restart required)";
             label15.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -520,7 +531,7 @@
             this.Font_PreferMonospaced.AutoSize = true;
             this.Font_PreferMonospaced.Checked = true;
             this.Font_PreferMonospaced.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.Font_PreferMonospaced.Location = new System.Drawing.Point(268, 234);
+            this.Font_PreferMonospaced.Location = new System.Drawing.Point(249, 234);
             this.Font_PreferMonospaced.Name = "Font_PreferMonospaced";
             this.Font_PreferMonospaced.Size = new System.Drawing.Size(15, 14);
             this.Font_PreferMonospaced.TabIndex = 18;
@@ -528,13 +539,85 @@
             this.Font_PreferMonospaced.UseVisualStyleBackColor = true;
             this.Font_PreferMonospaced.CheckedChanged += new System.EventHandler(this.Font_PreferMonospaced_CheckedChanged);
             // 
+            // corePage
+            // 
+            this.corePage.Controls.Add(this.groupBox5);
+            this.corePage.Location = new System.Drawing.Point(42, 4);
+            this.corePage.Name = "corePage";
+            this.corePage.Padding = new System.Windows.Forms.Padding(3);
+            this.corePage.Size = new System.Drawing.Size(354, 310);
+            this.corePage.TabIndex = 4;
+            this.corePage.Text = "Core";
+            this.corePage.UseVisualStyleBackColor = true;
+            // 
+            // groupBox5
+            // 
+            this.groupBox5.Controls.Add(tableLayoutPanel6);
+            this.groupBox5.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.groupBox5.Location = new System.Drawing.Point(3, 3);
+            this.groupBox5.Name = "groupBox5";
+            this.groupBox5.Size = new System.Drawing.Size(348, 304);
+            this.groupBox5.TabIndex = 0;
+            this.groupBox5.TabStop = false;
+            this.groupBox5.Text = "Core";
+            // 
+            // tableLayoutPanel6
+            // 
+            tableLayoutPanel6.ColumnCount = 2;
+            tableLayoutPanel6.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel6.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            tableLayoutPanel6.Controls.Add(this.chooseSearchPaths, 1, 0);
+            tableLayoutPanel6.Controls.Add(label19, 0, 0);
+            tableLayoutPanel6.Dock = System.Windows.Forms.DockStyle.Fill;
+            tableLayoutPanel6.Location = new System.Drawing.Point(3, 16);
+            tableLayoutPanel6.Name = "tableLayoutPanel6";
+            tableLayoutPanel6.RowCount = 2;
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            tableLayoutPanel6.Size = new System.Drawing.Size(342, 285);
+            tableLayoutPanel6.TabIndex = 1;
+            // 
+            // chooseSearchPaths
+            // 
+            this.chooseSearchPaths.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            this.chooseSearchPaths.Location = new System.Drawing.Point(249, 3);
+            this.chooseSearchPaths.Name = "chooseSearchPaths";
+            this.chooseSearchPaths.Size = new System.Drawing.Size(90, 23);
+            this.chooseSearchPaths.TabIndex = 1;
+            this.chooseSearchPaths.Text = "Choose paths";
+            this.chooseSearchPaths.UseVisualStyleBackColor = true;
+            this.chooseSearchPaths.Click += new System.EventHandler(this.chooseSearchPaths_Click);
+            // 
+            // label19
+            // 
+            label19.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label19.AutoSize = true;
+            label19.Location = new System.Drawing.Point(3, 3);
+            label19.Margin = new System.Windows.Forms.Padding(3);
+            label19.Name = "label19";
+            label19.Size = new System.Drawing.Size(240, 23);
+            label19.TabIndex = 0;
+            label19.Text = "Shader debug search paths";
+            label19.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
             // texViewTab
             // 
             this.texViewTab.Controls.Add(groupBox2);
-            this.texViewTab.Location = new System.Drawing.Point(23, 4);
+            this.texViewTab.Location = new System.Drawing.Point(42, 4);
             this.texViewTab.Name = "texViewTab";
             this.texViewTab.Padding = new System.Windows.Forms.Padding(3);
-            this.texViewTab.Size = new System.Drawing.Size(373, 310);
+            this.texViewTab.Size = new System.Drawing.Size(354, 310);
             this.texViewTab.TabIndex = 1;
             this.texViewTab.Text = "Texture Viewer";
             this.texViewTab.UseVisualStyleBackColor = true;
@@ -545,7 +628,7 @@
             groupBox2.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox2.Location = new System.Drawing.Point(3, 3);
             groupBox2.Name = "groupBox2";
-            groupBox2.Size = new System.Drawing.Size(367, 304);
+            groupBox2.Size = new System.Drawing.Size(348, 304);
             groupBox2.TabIndex = 0;
             groupBox2.TabStop = false;
             groupBox2.Text = "Texture Viewer";
@@ -566,16 +649,16 @@
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel3.Size = new System.Drawing.Size(361, 285);
+            this.tableLayoutPanel3.Size = new System.Drawing.Size(342, 285);
             this.tableLayoutPanel3.TabIndex = 0;
             // 
             // TextureViewer_ResetRange
             // 
             this.TextureViewer_ResetRange.AutoSize = true;
             this.TextureViewer_ResetRange.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.TextureViewer_ResetRange.Location = new System.Drawing.Point(291, 3);
+            this.TextureViewer_ResetRange.Location = new System.Drawing.Point(276, 3);
             this.TextureViewer_ResetRange.Name = "TextureViewer_ResetRange";
-            this.TextureViewer_ResetRange.Size = new System.Drawing.Size(67, 14);
+            this.TextureViewer_ResetRange.Size = new System.Drawing.Size(63, 14);
             this.TextureViewer_ResetRange.TabIndex = 20;
             this.toolTip.SetToolTip(this.TextureViewer_ResetRange, "Reset visible range when changing event or texture");
             this.TextureViewer_ResetRange.UseVisualStyleBackColor = true;
@@ -585,9 +668,9 @@
             // 
             this.TextureViewer_PerTexSettings.AutoSize = true;
             this.TextureViewer_PerTexSettings.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.TextureViewer_PerTexSettings.Location = new System.Drawing.Point(291, 23);
+            this.TextureViewer_PerTexSettings.Location = new System.Drawing.Point(276, 23);
             this.TextureViewer_PerTexSettings.Name = "TextureViewer_PerTexSettings";
-            this.TextureViewer_PerTexSettings.Size = new System.Drawing.Size(67, 14);
+            this.TextureViewer_PerTexSettings.Size = new System.Drawing.Size(63, 14);
             this.TextureViewer_PerTexSettings.TabIndex = 20;
             this.toolTip.SetToolTip(this.TextureViewer_PerTexSettings, "The visible channels (RGBA) and selected mip/slice are remembered and restored pe" +
         "r-texture.");
@@ -603,7 +686,7 @@
             label10.Location = new System.Drawing.Point(3, 3);
             label10.Margin = new System.Windows.Forms.Padding(3);
             label10.Name = "label10";
-            label10.Size = new System.Drawing.Size(282, 14);
+            label10.Size = new System.Drawing.Size(267, 14);
             label10.TabIndex = 4;
             label10.Text = "Reset Range on changing selection";
             label10.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -617,7 +700,7 @@
             this.label14.Location = new System.Drawing.Point(3, 23);
             this.label14.Margin = new System.Windows.Forms.Padding(3);
             this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(282, 14);
+            this.label14.Size = new System.Drawing.Size(267, 14);
             this.label14.TabIndex = 4;
             this.label14.Text = "Visible channels && mip/slice saved per-texture";
             this.label14.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -625,10 +708,10 @@
             // shadViewTab
             // 
             this.shadViewTab.Controls.Add(groupBox3);
-            this.shadViewTab.Location = new System.Drawing.Point(23, 4);
+            this.shadViewTab.Location = new System.Drawing.Point(42, 4);
             this.shadViewTab.Name = "shadViewTab";
             this.shadViewTab.Padding = new System.Windows.Forms.Padding(3);
-            this.shadViewTab.Size = new System.Drawing.Size(373, 310);
+            this.shadViewTab.Size = new System.Drawing.Size(354, 310);
             this.shadViewTab.TabIndex = 2;
             this.shadViewTab.Text = "Shader Viewer";
             this.shadViewTab.UseVisualStyleBackColor = true;
@@ -639,7 +722,7 @@
             groupBox3.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox3.Location = new System.Drawing.Point(3, 3);
             groupBox3.Name = "groupBox3";
-            groupBox3.Size = new System.Drawing.Size(367, 304);
+            groupBox3.Size = new System.Drawing.Size(348, 304);
             groupBox3.TabIndex = 0;
             groupBox3.TabStop = false;
             groupBox3.Text = "Shader Viewer";
@@ -657,13 +740,13 @@
             this.tableLayoutPanel4.RowCount = 2;
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel4.Size = new System.Drawing.Size(361, 285);
+            this.tableLayoutPanel4.Size = new System.Drawing.Size(342, 285);
             this.tableLayoutPanel4.TabIndex = 1;
             // 
             // ShaderViewer_FriendlyNaming
             // 
             this.ShaderViewer_FriendlyNaming.AutoSize = true;
-            this.ShaderViewer_FriendlyNaming.Location = new System.Drawing.Point(291, 3);
+            this.ShaderViewer_FriendlyNaming.Location = new System.Drawing.Point(276, 3);
             this.ShaderViewer_FriendlyNaming.Name = "ShaderViewer_FriendlyNaming";
             this.ShaderViewer_FriendlyNaming.Size = new System.Drawing.Size(15, 14);
             this.ShaderViewer_FriendlyNaming.TabIndex = 40;
@@ -681,7 +764,7 @@
             label12.Location = new System.Drawing.Point(3, 3);
             label12.Margin = new System.Windows.Forms.Padding(3);
             label12.Name = "label12";
-            label12.Size = new System.Drawing.Size(282, 14);
+            label12.Size = new System.Drawing.Size(267, 14);
             label12.TabIndex = 6;
             label12.Text = "Rename disassembly registers";
             label12.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -689,10 +772,10 @@
             // eventTab
             // 
             this.eventTab.Controls.Add(groupBox4);
-            this.eventTab.Location = new System.Drawing.Point(23, 4);
+            this.eventTab.Location = new System.Drawing.Point(42, 4);
             this.eventTab.Name = "eventTab";
             this.eventTab.Padding = new System.Windows.Forms.Padding(3);
-            this.eventTab.Size = new System.Drawing.Size(373, 310);
+            this.eventTab.Size = new System.Drawing.Size(354, 310);
             this.eventTab.TabIndex = 3;
             this.eventTab.Text = "Event Browser";
             this.eventTab.UseVisualStyleBackColor = true;
@@ -703,7 +786,7 @@
             groupBox4.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox4.Location = new System.Drawing.Point(3, 3);
             groupBox4.Name = "groupBox4";
-            groupBox4.Size = new System.Drawing.Size(367, 304);
+            groupBox4.Size = new System.Drawing.Size(348, 304);
             groupBox4.TabIndex = 1;
             groupBox4.TabStop = false;
             groupBox4.Text = "Event Browser";
@@ -724,7 +807,7 @@
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel5.Size = new System.Drawing.Size(361, 285);
+            this.tableLayoutPanel5.Size = new System.Drawing.Size(342, 285);
             this.tableLayoutPanel5.TabIndex = 0;
             // 
             // label8
@@ -736,7 +819,7 @@
             label8.Location = new System.Drawing.Point(3, 3);
             label8.Margin = new System.Windows.Forms.Padding(3);
             label8.Name = "label8";
-            label8.Size = new System.Drawing.Size(282, 21);
+            label8.Size = new System.Drawing.Size(267, 21);
             label8.TabIndex = 3;
             label8.Text = "Time unit used for event browser timings";
             label8.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -745,9 +828,9 @@
             // 
             this.EventBrowser_TimeUnit.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.EventBrowser_TimeUnit.FormattingEnabled = true;
-            this.EventBrowser_TimeUnit.Location = new System.Drawing.Point(291, 3);
+            this.EventBrowser_TimeUnit.Location = new System.Drawing.Point(276, 3);
             this.EventBrowser_TimeUnit.Name = "EventBrowser_TimeUnit";
-            this.EventBrowser_TimeUnit.Size = new System.Drawing.Size(67, 21);
+            this.EventBrowser_TimeUnit.Size = new System.Drawing.Size(63, 21);
             this.EventBrowser_TimeUnit.TabIndex = 50;
             this.toolTip.SetToolTip(this.EventBrowser_TimeUnit, "The time unit to use when displaying the duration column in the event browser");
             this.EventBrowser_TimeUnit.SelectionChangeCommitted += new System.EventHandler(this.EventBrowser_TimeUnit_SelectionChangeCommitted);
@@ -761,7 +844,7 @@
             label9.Location = new System.Drawing.Point(3, 30);
             label9.Margin = new System.Windows.Forms.Padding(3);
             label9.Name = "label9";
-            label9.Size = new System.Drawing.Size(282, 14);
+            label9.Size = new System.Drawing.Size(267, 14);
             label9.TabIndex = 7;
             label9.Text = "Hide empty marker sections (requires log reload)";
             label9.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -769,7 +852,7 @@
             // EventBrowser_HideEmpty
             // 
             this.EventBrowser_HideEmpty.AutoSize = true;
-            this.EventBrowser_HideEmpty.Location = new System.Drawing.Point(291, 30);
+            this.EventBrowser_HideEmpty.Location = new System.Drawing.Point(276, 30);
             this.EventBrowser_HideEmpty.Name = "EventBrowser_HideEmpty";
             this.EventBrowser_HideEmpty.Size = new System.Drawing.Size(15, 14);
             this.EventBrowser_HideEmpty.TabIndex = 51;
@@ -835,6 +918,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.Formatter_NegExp)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.Formatter_MaxFigures)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.Formatter_MinFigures)).EndInit();
+            this.corePage.ResumeLayout(false);
+            this.groupBox5.ResumeLayout(false);
+            tableLayoutPanel6.ResumeLayout(false);
+            tableLayoutPanel6.PerformLayout();
             this.texViewTab.ResumeLayout(false);
             groupBox2.ResumeLayout(false);
             this.tableLayoutPanel3.ResumeLayout(false);
@@ -882,5 +969,8 @@
         private System.Windows.Forms.CheckBox AllowGlobalHook;
         private System.Windows.Forms.CheckBox Font_PreferMonospaced;
         private System.Windows.Forms.Label label14;
+        private System.Windows.Forms.TabPage corePage;
+        private System.Windows.Forms.GroupBox groupBox5;
+        private System.Windows.Forms.Button chooseSearchPaths;
     }
 }

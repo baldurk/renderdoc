@@ -304,6 +304,9 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 		m_State = READING;
 		m_pSerialiser = NULL;
 
+		string shaderSearchPathString = RenderDoc::Inst().GetConfigSetting("shader.debug.searchPaths");
+		split(shaderSearchPathString, m_ShaderSearchPaths, ';');
+
 		ResourceIDGen::SetReplayResourceIDs();
 	}
 	else
@@ -3249,7 +3252,7 @@ bool WrappedID3D11Device::Serialise_SetShaderDebugPath(ID3D11DeviceChild *res, c
 		auto it = WrappedShader::m_ShaderList.find(GetResourceManager()->GetLiveID(resource));
 
 		if(it != WrappedShader::m_ShaderList.end())
-			it->second->SetDebugInfoPath(debugPath);
+			it->second->SetDebugInfoPath(&m_ShaderSearchPaths, debugPath);
 	}
 
 	return true;

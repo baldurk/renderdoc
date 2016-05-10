@@ -75,28 +75,47 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
 
 		if(!originalPath.empty())
 		{
-			FILE* originalShaderFile = FileIO::fopen(originalPath.c_str(), "rb");
-			if(originalShaderFile != nullptr)
+			FILE* originalShaderFile = NULL;
+			
+			size_t numSearchPaths = m_DebugInfoSearchPaths ? m_DebugInfoSearchPaths->size() : 0;
+
+			// while we haven't found a file, keep trying through the search paths. For i==0
+			// check the path on its own, in case it's an absolute path.
+			for(size_t i=0; originalShaderFile == NULL && i <= numSearchPaths; i++)
 			{
-				FileIO::fseek64(originalShaderFile, 0L, SEEK_END);
-				uint64_t originalShaderSize = FileIO::ftell64(originalShaderFile);
-				FileIO::fseek64(originalShaderFile, 0, SEEK_SET);
-
-				if(originalShaderSize >= m_Bytecode.size())
+				if(i == 0)
 				{
-					vector<byte> originalBytecode;
-
-					originalBytecode.resize((size_t)originalShaderSize);
-					FileIO::fread(&originalBytecode[0], sizeof(byte), (size_t)originalShaderSize, originalShaderFile);
-
-					if(DXBC::DXBCFile::CheckForDebugInfo((const void *)&originalBytecode[0], originalBytecode.size()))
-					{
-						m_Bytecode.swap(originalBytecode);
-					}
+					originalShaderFile = FileIO::fopen(originalPath.c_str(), "rb");
+					continue;
 				}
-
-				FileIO::fclose(originalShaderFile);
+				else
+				{
+					std::string &searchPath = (*m_DebugInfoSearchPaths)[i-1];
+					originalShaderFile = FileIO::fopen((searchPath + "/" + originalPath).c_str(), "rb");
+				}
 			}
+
+			if(originalShaderFile == NULL)
+				return;
+
+			FileIO::fseek64(originalShaderFile, 0L, SEEK_END);
+			uint64_t originalShaderSize = FileIO::ftell64(originalShaderFile);
+			FileIO::fseek64(originalShaderFile, 0, SEEK_SET);
+
+			if(originalShaderSize >= m_Bytecode.size())
+			{
+				vector<byte> originalBytecode;
+
+				originalBytecode.resize((size_t)originalShaderSize);
+				FileIO::fread(&originalBytecode[0], sizeof(byte), (size_t)originalShaderSize, originalShaderFile);
+
+				if(DXBC::DXBCFile::CheckForDebugInfo((const void *)&originalBytecode[0], originalBytecode.size()))
+				{
+					m_Bytecode.swap(originalBytecode);
+				}
+			}
+
+			FileIO::fclose(originalShaderFile);
 		}
 	}
 }

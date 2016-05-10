@@ -208,5 +208,19 @@ namespace renderdocui.Windows.Dialogs
                 m_Core.Config.CaptureSavePath = browserCaptureDialog.SelectedPath;
             }
         }
+
+        private void chooseSearchPaths_Click(object sender, EventArgs e)
+        {
+            var editor = new OrderedListEditor(m_Core, "Shader debug info search paths", "Search Path", OrderedListEditor.Browsing.Folder);
+
+            foreach (string path in m_Core.Config.GetConfigSetting("shader.debug.searchPaths").Split(';'))
+                if(path.Trim() != "")
+                    editor.AddItem(path);
+
+            DialogResult res = editor.ShowDialog();
+
+            if (res == DialogResult.OK)
+                m_Core.Config.SetConfigSetting("shader.debug.searchPaths", String.Join(";", editor.GetItems()));
+        }
     }
 }

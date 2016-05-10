@@ -1090,10 +1090,11 @@ public:
 	class ShaderEntry
 	{
 		public:
-			ShaderEntry() : m_DXBCFile(NULL), m_Details(NULL) {}
+			ShaderEntry() : m_DebugInfoSearchPaths(NULL), m_DXBCFile(NULL), m_Details(NULL) {}
 			ShaderEntry(const byte *code, size_t codeLen)
 			{
 				m_Bytecode.assign(code, code + codeLen);
+				m_DebugInfoSearchPaths = NULL;
 				m_DXBCFile = NULL;
 				m_Details = NULL;
 			}
@@ -1104,8 +1105,9 @@ public:
 				SAFE_DELETE(m_Details);
 			}
 
-			void SetDebugInfoPath(const std::string &path)
+			void SetDebugInfoPath(vector<std::string> *searchPaths, const std::string &path)
 			{
+				m_DebugInfoSearchPaths = searchPaths;
 				m_DebugInfoPath = path;
 			}
 
@@ -1130,6 +1132,7 @@ public:
 			ShaderEntry &operator =(const ShaderEntry &e);
 
 			std::string m_DebugInfoPath;
+			vector<std::string> *m_DebugInfoSearchPaths;
 
 			vector<byte> m_Bytecode;
 
