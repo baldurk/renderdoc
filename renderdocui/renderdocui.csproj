@@ -241,6 +241,12 @@
     <Compile Include="Windows\Dialogs\RemoteHostSelect.Designer.cs">
       <DependentUpon>RemoteHostSelect.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\Dialogs\OrderedListEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\OrderedListEditor.Designer.cs">
+      <DependentUpon>OrderedListEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\Dialogs\ReplayHostManager.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -394,6 +400,9 @@
     <EmbeddedResource Include="Windows\Dialogs\PythonShell.resx">
       <DependentUpon>PythonShell.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\OrderedListEditor.resx">
+      <DependentUpon>OrderedListEditor.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\RemoteHostSelect.resx">
       <DependentUpon>RemoteHostSelect.cs</DependentUpon>
     </EmbeddedResource>
@@ -512,6 +521,7 @@
       <Visible>false</Visible>
     </Content>
     <Content Include="Controls\TreeListView\README.txt" />
+    <None Include="Resources\up_arrow.png" />
     <None Include="Resources\wireframe_mesh.png" />
     <None Include="Resources\zoom.png" />
     <None Include="Resources\wand.png" />
@@ -541,6 +551,7 @@
     <None Include="Resources\folder_page.png" />
     <EmbeddedResource Include="Resources\glsl.xml" />
     <None Include="Resources\page_white_code.png" />
+    <None Include="Resources\down_arrow.png" />
     <Content Include="Resources\RightArrow_Green_16x16.png" />
     <Content Include="Resources\icon.ico" />
     <None Include="Resources\page_white_delete.png" />
