@@ -5113,9 +5113,14 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
 				// the end of the buffer. The maximum valid index at all is the one that reads
 				// off the end of ALL buffers (so we max it with any other maxindex value
 				// calculated).
-				maxIdx = RDCMAX(maxIdx, uint32_t( (bufsize - offs) / input.stride ));
+				if(input.stride > 0)
+					maxIdx = RDCMAX(maxIdx, uint32_t( (bufsize - offs) / input.stride ));
 			}
 		}
+
+		// in case the vertex buffers were set but had invalid stride (0), max with the number
+		// of vertices too. This is fine since the max here is just a conservative limit
+		maxIdx = RDCMAX(maxIdx, drawcall->numIndices);
 
 		// do ibuffer rebasing/remapping
 		
