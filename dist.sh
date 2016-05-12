@@ -4,14 +4,21 @@ AUTOBUILD=1
 
 if [ $# -ne 1 ] || [ $1 != "autobuild" ]; then
 	AUTOBUILD=0
-	echo "Have you rebuilt the documentation?"
+	echo "=== Building standalone folders. Hit enter when each prompt is satisfied"
 
+	echo "Have you rebuilt the documentation? (docs/renderdoc.shfbproj)"
 	read;
 
-	echo "Have you marked git commit hash in AssemblyInfo.cs and resource.h (run hash_version.sh)?"
-	echo "If this is an OFFICIAL build only, mark that in the assembly info and resource.h and bump their versions."
-
+	echo "Have you built the python libraries? (renderdocui/3rdparty/ironpython/compilelibs.sh)"
 	read;
+
+	echo "Have you marked the git commit hash in version info? (hash_version.sh)"
+	read;
+
+	echo "Now compile 32-bit and 64-bit Release builds."
+	read;
+
+	echo "=== Building folders"
 fi
 
 # clean any old files lying around and make new structure
@@ -59,8 +66,9 @@ mkdir -p dist/ReleasePDBs64/x86
 cp -R dist/ReleasePDBs32/{d3dcompiler_47.dll,renderdoc.dll,renderdoc.json,renderdoc.pdb,renderdocshim32.dll,renderdocshim32.pdb,renderdoccmd.exe,renderdoccmd.pdb,pdblocate} dist/ReleasePDBs64/x86/
 
 if [[ $AUTOBUILD -eq 0 ]]; then
-	echo "Ready to make installer MSIs - make sure to bump version numbers on package."
-
+	echo "=== Folders built. Ready to make installer MSIs."
+	echo
+	echo "Hit enter when ready"
 	read;
 fi
 
