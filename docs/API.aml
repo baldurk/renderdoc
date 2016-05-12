@@ -284,8 +284,6 @@
 							<listItem><para><codeInline>eRENDERDOC_Overlay_FrameNumber</codeInline> shows the current frame number, as counted by the number of presents.</para></listItem>
 							<listItem><para><codeInline>eRENDERDOC_Overlay_CaptureList</codeInline> shows how many total captures have been made, and a list of captured frames in the last few seconds.</para></listItem>
 
-							<listItem><para><codeInline>eRENDERDOC_Key_F1 .. eRENDERDOC_Key_F12</codeInline> are the function keys.</para></listItem>
-
 							<listItem><para><codeInline>eRENDERDOC_Overlay_Default</codeInline> is the default set of bits, which is the value of the mask at startup.</para></listItem>
 							<listItem><para><codeInline>eRENDERDOC_Overlay_All</codeInline> is equal to <codeInline>~0U</codeInline> so all bits are enabled.</para></listItem>
 							<listItem><para><codeInline>eRENDERDOC_Overlay_None</codeInline> is equal to <codeInline>0</codeInline> so all bits are disabled.</para></listItem>
