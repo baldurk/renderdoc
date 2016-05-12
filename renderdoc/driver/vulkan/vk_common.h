@@ -46,6 +46,11 @@
 
 #include "vk_dispatchtables.h"
 
+// uncomment this to cause every internal QueueSubmit to immediately call
+// DeviceWaitIdle(), and to only submit one command buffer at once to narrow
+// down the cause of device lost errors
+//#define SINGLE_FLUSH_VALIDATE
+
 ResourceFormat MakeResourceFormat(VkFormat fmt);
 VkFormat MakeVkFormat(ResourceFormat fmt);
 PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPoints);

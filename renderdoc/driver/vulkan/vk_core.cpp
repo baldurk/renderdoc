@@ -410,6 +410,10 @@ void WrappedVulkan::SubmitCmds()
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
 
+#if defined(SINGLE_FLUSH_VALIDATE)
+	FlushQ();
+#endif
+
 	m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(), m_InternalCmds.pendingcmds.begin(), m_InternalCmds.pendingcmds.end());
 	m_InternalCmds.pendingcmds.clear();
 }
@@ -465,6 +469,14 @@ void WrappedVulkan::FlushQ()
 	{
 		ObjDisp(m_Queue)->QueueWaitIdle(Unwrap(m_Queue));
 	}
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+	{
+		ObjDisp(m_Queue)->DeviceWaitIdle(Unwrap(m_Device));
+		VkResult vkr = ObjDisp(m_Queue)->DeviceWaitIdle(Unwrap(m_Device));
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
+	}
+#endif
 
 	if(!m_InternalCmds.submittedcmds.empty())
 	{
@@ -1606,6 +1618,10 @@ void WrappedVulkan::ApplyInitialContents()
 	
 	vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
+	
+#if defined(SINGLE_FLUSH_VALIDATE)
+	SubmitCmds();
+#endif
 }
 
 void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, bool forceExecute)
@@ -2104,6 +2120,10 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
 			m_PartialReplayData.outsideCmdBuffer = VK_NULL_HANDLE;
 		}
+	
+#if defined(SINGLE_FLUSH_VALIDATE)
+		SubmitCmds();
+#endif
 	}
 }
 

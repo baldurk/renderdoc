@@ -1241,6 +1241,10 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 
+#if defined(SINGLE_FLUSH_VALIDATE)
+	m_pDriver->SubmitCmds();
+#endif
+
 	return true;
 }
 	
@@ -1353,6 +1357,10 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+	m_pDriver->SubmitCmds();
+#endif
 }
 	
 void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
@@ -1430,6 +1438,10 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+	m_pDriver->SubmitCmds();
+#endif
 }
 
 ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID, const vector<uint32_t> &passEvents)
@@ -1937,6 +1949,10 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
 			vkr = vt->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+			m_pDriver->SubmitCmds();
+#endif
 
 			uint64_t maxIndex = cfg.position.numVerts;
 
@@ -2484,6 +2500,10 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+	m_pDriver->SubmitCmds();
+#endif
 }
 
 bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
@@ -2602,6 +2622,10 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	outw.colBarrier[outw.curidx].srcAccessMask = outw.colBarrier[outw.curidx].dstAccessMask;
 
 	vt->EndCommandBuffer(Unwrap(cmd));
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+	m_pDriver->SubmitCmds();
+#endif
 }
 
 void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
@@ -2641,6 +2665,10 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
 
 	vt->EndCommandBuffer(Unwrap(cmd));
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+	m_pDriver->SubmitCmds();
+#endif
 }
 
 void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
@@ -2679,6 +2707,10 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 	DoPipelineBarrier(cmd, 1, &outw.depthBarrier);
 
 	vt->EndCommandBuffer(Unwrap(cmd));
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+	m_pDriver->SubmitCmds();
+#endif
 }
 
 void VulkanReplay::FlipOutputWindow(uint64_t id)
@@ -4156,6 +4188,10 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
 		// end this command buffer, the rendertexture below will use its own and we want to ensure ordering
 		vt->EndCommandBuffer(Unwrap(cmd));
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+		m_pDriver->SubmitCmds();
+#endif
 
 		// create framebuffer/render pass to render to
 		VkAttachmentDescription attDesc = {

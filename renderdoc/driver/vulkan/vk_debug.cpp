@@ -2212,6 +2212,10 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
+#if defined(SINGLE_FLUSH_VALIDATE)
+	m_pDriver->SubmitCmds();
+#endif
+	
 	while(sizeRemaining > 0)
 	{
 		VkDeviceSize chunkSize = RDCMIN(sizeRemaining, STAGE_BUFFER_BYTE_SIZE);
@@ -3648,6 +3652,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			vkr = vt->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+#if defined(SINGLE_FLUSH_VALIDATE)
+			m_pDriver->SubmitCmds();
+#endif
+
 			size_t startEvent = 0;
 
 			// if we're ClearBeforePass the first event will be a vkBeginRenderPass.
@@ -3851,6 +3859,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 			// end this cmd buffer so the image is in the right state for the next part
 			vkr = vt->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
+	
+#if defined(SINGLE_FLUSH_VALIDATE)
+			m_pDriver->SubmitCmds();
+#endif
 
 			m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
@@ -3925,6 +3937,10 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
+	
+#if defined(SINGLE_FLUSH_VALIDATE)
+	m_pDriver->SubmitCmds();
+#endif
 
 	return GetResID(m_OverlayImage);
 }

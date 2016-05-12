@@ -1872,6 +1872,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 				RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+				SubmitCmds();
+#endif
 			}
 			else if(initial.num == eInitialContents_ClearDepthStencilImage)
 			{
@@ -1921,6 +1925,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 				vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 				RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+				SubmitCmds();
+#endif
 			}
 			else
 			{
@@ -2007,6 +2015,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+		SubmitCmds();
+#endif
 	}
 	else if(type == eResDeviceMemory)
 	{
@@ -2031,6 +2043,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+		SubmitCmds();
+#endif
 	}
 	else
 	{
