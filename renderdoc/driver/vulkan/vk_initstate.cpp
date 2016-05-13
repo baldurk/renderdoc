@@ -859,7 +859,8 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, VulkanResourceM
 	}
 
 	{
-		VkSparseImageMemoryBindInfo imgBinds[NUM_VK_IMAGE_ASPECTS] = {};
+		VkSparseImageMemoryBindInfo imgBinds[NUM_VK_IMAGE_ASPECTS];
+		RDCEraseEl(imgBinds);
 
 		VkBindSparseInfo bindsparse = {
 			VK_STRUCTURE_TYPE_BIND_SPARSE_INFO, NULL,
