@@ -126,20 +126,36 @@ set(sources
     3rdparty/tinyexr/tinyexr.cpp
     3rdparty/tinyexr/tinyexr.h)
 
-if(UNIX)
+if(ANDROID)
     list(APPEND sources
         data/embedded_files.h
-        os/linux/linux_callstack.cpp
-        os/linux/linux_hook.cpp
-        os/linux/linux_hook.h
-        os/linux/linux_network.cpp
-        os/linux/linux_process.cpp
-        os/linux/linux_stringio.cpp
-        os/linux/linux_threading.cpp
-        os/linux/linux_specific.h)
-    # linux_libentry must be the last so that library_loaded is called after
+        os/posix/android/android_stringio.cpp
+        os/posix/android/android_callstack.cpp
+        os/posix/posix_hook.cpp
+        os/posix/posix_hook.h
+        os/posix/posix_network.cpp
+        os/posix/posix_process.cpp
+        os/posix/posix_stringio.cpp
+        os/posix/posix_threading.cpp
+        os/posix/posix_specific.h)
+    # posix_libentry must be the last so that library_loaded is called after
     # static objects are constructed.
-    list(APPEND sources os/linux/linux_libentry.cpp)
+    list(APPEND sources os/posix/posix_libentry.cpp)
+elseif(UNIX)
+    list(APPEND sources
+        data/embedded_files.h
+        os/posix/linux/linux_stringio.cpp
+        os/posix/linux/linux_callstack.cpp
+        os/posix/posix_hook.cpp
+        os/posix/posix_hook.h
+        os/posix/posix_network.cpp
+        os/posix/posix_process.cpp
+        os/posix/posix_stringio.cpp
+        os/posix/posix_threading.cpp
+        os/posix/posix_specific.h)
+    # posix_libentry must be the last so that library_loaded is called after
+    # static objects are constructed.
+    list(APPEND sources os/posix/posix_libentry.cpp)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")

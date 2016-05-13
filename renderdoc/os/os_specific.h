@@ -330,8 +330,8 @@ namespace Bits
 
 #if defined(RENDERDOC_PLATFORM_WIN32)
 #include "win32/win32_specific.h"
-#elif defined(RENDERDOC_PLATFORM_LINUX)
-#include "linux/linux_specific.h"
+#elif defined(RENDERDOC_PLATFORM_POSIX)
+#include "posix/posix_specific.h"
 #else
 #error Undefined Platform!
 #endif

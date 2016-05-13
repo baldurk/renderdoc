@@ -1,8 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2015-2016 Baldur Karlsson
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2016 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,49 +22,27 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "vk_replay.h"
+#include "vk_core.h"
 
-#pragma once
-
-#include <pthread.h>
-#include <signal.h>
-
-#include "data/embedded_files.h"
-
-#define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
-
-#define OS_DEBUG_BREAK() raise(SIGTRAP)
-
-#define GetEmbeddedResource(filename) string( &CONCAT(CONCAT(_binary_, filename), _start) , &CONCAT(CONCAT(_binary_, filename), _end) )
-
-namespace OSUtility
+void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 {
-	inline void ForceCrash() { __builtin_trap(); }
-	inline void DebugBreak() { raise(SIGTRAP); }
-	inline bool DebuggerPresent() { return true; }
-	void WriteOutput(int channel, const char *str);
-};
+	wnd = (ANativeWindow*) wn;
+}
 
-namespace Threading
+void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 {
-	struct pthreadLockData
-	{
-		pthread_mutex_t lock;
-		pthread_mutexattr_t attr;
-	};
-	typedef CriticalSectionTemplate<pthreadLockData> CriticalSection;
-};
+	VkAndroidSurfaceCreateInfoKHR createInfo;
 
-namespace Bits
+	createInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+	createInfo.pNext = NULL;
+	createInfo.flags = 0;
+	createInfo.window = wnd;
+
+	VkResult vkr = ObjDisp(inst)->CreateAndroidSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
+}
+
+void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 {
-	inline uint32_t CountLeadingZeroes(uint32_t value)
-	{
-		return __builtin_clz(value);
-	}
-
-#if RDC64BIT
-	inline uint64_t CountLeadingZeroes(uint64_t value)
-	{
-		return __builtin_clzl(value);
-	}
-#endif
-};
+}

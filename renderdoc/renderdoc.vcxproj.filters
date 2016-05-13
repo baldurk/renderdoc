@@ -64,14 +64,20 @@
     <Filter Include="3rdparty\tinyexr">
       <UniqueIdentifier>{aadadb32-abbc-45b3-8f86-026eed994ba9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Linux">
-      <UniqueIdentifier>{5168e1dc-8d41-4aff-b99c-1ffa2af33f95}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Hooks">
       <UniqueIdentifier>{3e51a921-b167-4794-937d-e77573a928b8}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resources\spv">
       <UniqueIdentifier>{188ad934-e74f-4805-b74b-167f8760fab6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Posix">
+      <UniqueIdentifier>{410640a4-ebf0-479a-8d08-ae277e2ded84}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Posix\Linux">
+      <UniqueIdentifier>{5168e1dc-8d41-4aff-b99c-1ffa2af33f95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Posix\Android">
+      <UniqueIdentifier>{16bdcbe1-31de-4732-aaaf-8d77039a26ec}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -234,11 +240,14 @@
     <ClInclude Include="common\custom_assert.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="os\linux\linux_specific.h">
-      <Filter>OS\Linux</Filter>
-    </ClInclude>
     <ClInclude Include="os\win32\win32_specific.h">
       <Filter>OS\Win32</Filter>
+    </ClInclude>
+    <ClInclude Include="os\posix\posix_hook.h">
+      <Filter>OS\Posix</Filter>
+    </ClInclude>
+    <ClInclude Include="os\posix\posix_specific.h">
+      <Filter>OS\Posix</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -341,27 +350,6 @@
     <ClCompile Include="os\win32\win32_libentry.cpp">
       <Filter>OS\Win32</Filter>
     </ClCompile>
-    <ClCompile Include="os\linux\linux_callstack.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
-    <ClCompile Include="os\linux\linux_network.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
-    <ClCompile Include="os\linux\linux_hook.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
-    <ClCompile Include="os\linux\linux_process.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
-    <ClCompile Include="os\linux\linux_stringio.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
-    <ClCompile Include="os\linux\linux_threading.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
-    <ClCompile Include="os\linux\linux_libentry.cpp">
-      <Filter>OS\Linux</Filter>
-    </ClCompile>
     <ClCompile Include="os\win32\sys_win32_hooks.cpp">
       <Filter>OS\Win32</Filter>
     </ClCompile>
@@ -370,6 +358,36 @@
     </ClCompile>
     <ClCompile Include="replay\capture_options.cpp">
       <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_callstack.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_stringio.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_callstack.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_stringio.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_hook.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_libentry.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_network.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_process.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_stringio.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_threading.cpp">
+      <Filter>OS\Posix</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

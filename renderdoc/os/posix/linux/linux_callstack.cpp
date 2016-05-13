@@ -1,8 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2015-2016 Baldur Karlsson
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2016 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,10 +24,7 @@
 
 #include "os/os_specific.h"
 
-#ifdef ANDROID
-#else
 #include <execinfo.h>
-#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -69,11 +65,7 @@ class LinuxCallstack : public Callstack::Stackwalk
 		{
 			void *addrs_ptr[ARRAY_COUNT(addrs)];
 
-#ifdef ANDROID
-			numLevels = 0;
-#else
 			numLevels = backtrace(addrs_ptr, ARRAY_COUNT(addrs));
-#endif
 
 			int offs = 0;
 			// if we want to trim levels of the stack, we can do that here

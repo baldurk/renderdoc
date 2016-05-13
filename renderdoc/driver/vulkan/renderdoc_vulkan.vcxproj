@@ -32,7 +32,13 @@
     <ClCompile Include="vk_manager.cpp" />
     <ClCompile Include="vk_replay.cpp" />
     <ClCompile Include="vk_win32.cpp" />
+    <ClCompile Include="vk_posix.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="vk_linux.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="vk_android.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="vk_resources.cpp" />

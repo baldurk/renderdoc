@@ -36,7 +36,7 @@
 #define WINDOW_HANDLE_DECL HWND wnd;
 #define NULL_WND_HANDLE NULL
 
-#elif defined(ANDROID)
+#elif defined(RENDERDOC_PLATFORM_ANDROID)
 
 #define WINDOW_HANDLE_DECL ANativeWindow *wnd;
 #define NULL_WND_HANDLE NULL

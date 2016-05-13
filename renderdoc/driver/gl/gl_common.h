@@ -47,7 +47,7 @@ struct GLWindowingData
 	HWND wnd;
 };
 
-#elif defined(RENDERDOC_PLATFORM_LINUX)
+#elif defined(RENDERDOC_PLATFORM_POSIX)
 // cheeky way to prevent GL/gl.h from being included, as we want to use
 // glcorearb.h from above
 #define __gl_h_

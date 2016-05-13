@@ -41,10 +41,10 @@ set(sources
 set(definitions ${RDOC_DEFINITIONS})
 
 if(ANDROID)
-    list(APPEND sources vk_linux.cpp)
+    list(APPEND sources vk_posix.cpp vk_android.cpp)
     list(APPEND definitions PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
 elseif(UNIX)
-    list(APPEND sources vk_linux.cpp)
+    list(APPEND sources vk_posix.cpp vk_linux.cpp)
 
     list(APPEND definitions
         PRIVATE -DVK_USE_PLATFORM_XCB_KHR

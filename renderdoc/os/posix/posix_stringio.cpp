@@ -1,8 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2015-2016 Baldur Karlsson
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2016 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,22 +35,6 @@
 #include <unistd.h>
 #include <pwd.h>
 
-#ifdef ANDROID
-typedef int Display;
-typedef int xcb_connection_t;
-typedef int xcb_key_symbols_t;
-typedef int KeySym;
-typedef int xcb_keycode_t;
-typedef int *iconv_t;
-#else
-#include <X11/Xlib.h>
-#include <X11/keysym.h>
-
-#include <xcb/xcb_keysyms.h>
-
-#include <iconv.h>
-#endif
-
 // for dladdr
 #include <dlfcn.h>
 
@@ -62,111 +45,11 @@ using std::string;
 // gives us an address to identify this so with
 static int soLocator=0;
 
-namespace Keyboard
-{
-	void Init()
-	{
-	}
-	
-	xcb_connection_t *connection;
-	xcb_key_symbols_t *symbols;
-
-	void CloneDisplay(Display *dpy) {}
-
-	void UseConnection(xcb_connection_t *conn)
-	{
-		connection = conn;
-#ifdef ANDROID
-		symbols = NULL;
-#else
-		symbols = xcb_key_symbols_alloc(conn);
-#endif
-	}
-
-	void AddInputWindow(void *wnd)
-	{
-		// TODO check against this drawable & parent window being focused in GetKeyState
-	}
-
-	void RemoveInputWindow(void *wnd)
-	{
-	}
-
-	bool GetKeyState(int key)
-	{
-#ifdef ANDROID
-		return false;
-#else
-		KeySym ks = 0;
-		
-		if(symbols == NULL) return false;
-
-		if(key >= eRENDERDOC_Key_A && key <= eRENDERDOC_Key_Z) ks = key;
-		if(key >= eRENDERDOC_Key_0 && key <= eRENDERDOC_Key_9) ks = key;
-		
-		switch(key)
-		{
-			case eRENDERDOC_Key_Divide:    ks = XK_KP_Divide; break;
-			case eRENDERDOC_Key_Multiply:  ks = XK_KP_Multiply; break;
-			case eRENDERDOC_Key_Subtract:  ks = XK_KP_Subtract; break;
-			case eRENDERDOC_Key_Plus:      ks = XK_KP_Add; break;
-			case eRENDERDOC_Key_F1:        ks = XK_F1; break;
-			case eRENDERDOC_Key_F2:        ks = XK_F2; break;
-			case eRENDERDOC_Key_F3:        ks = XK_F3; break;
-			case eRENDERDOC_Key_F4:        ks = XK_F4; break;
-			case eRENDERDOC_Key_F5:        ks = XK_F5; break;
-			case eRENDERDOC_Key_F6:        ks = XK_F6; break;
-			case eRENDERDOC_Key_F7:        ks = XK_F7; break;
-			case eRENDERDOC_Key_F8:        ks = XK_F8; break;
-			case eRENDERDOC_Key_F9:        ks = XK_F9; break;
-			case eRENDERDOC_Key_F10:       ks = XK_F10; break;
-			case eRENDERDOC_Key_F11:       ks = XK_F11; break;
-			case eRENDERDOC_Key_F12:       ks = XK_F12; break;
-			case eRENDERDOC_Key_Home:      ks = XK_Home; break;
-			case eRENDERDOC_Key_End:       ks = XK_End; break;
-			case eRENDERDOC_Key_Insert:    ks = XK_Insert; break;
-			case eRENDERDOC_Key_Delete:    ks = XK_Delete; break;
-			case eRENDERDOC_Key_PageUp:    ks = XK_Prior; break;
-			case eRENDERDOC_Key_PageDn:    ks = XK_Next; break;
-			case eRENDERDOC_Key_Backspace: ks = XK_BackSpace; break;
-			case eRENDERDOC_Key_Tab:       ks = XK_Tab; break;
-			case eRENDERDOC_Key_PrtScrn:   ks = XK_Print; break;
-			case eRENDERDOC_Key_Pause:     ks = XK_Pause; break;
-			default:
-				break;
-		}
-
-		if(ks == 0)
-			return false;
-
-		xcb_keycode_t *keyCodes = xcb_key_symbols_get_keycode(symbols, ks);
-
-		if(!keyCodes)
-			return false;
-
-		xcb_query_keymap_cookie_t keymapcookie = xcb_query_keymap(connection);
-		xcb_query_keymap_reply_t *keys = xcb_query_keymap_reply(connection, keymapcookie, NULL);
-
-		bool ret = false;
-		
-		if(keys && keyCodes[0] != XCB_NO_SYMBOL)
-		{
-			int byteIdx = (keyCodes[0]/8);
-			int bitMask = 1 << (keyCodes[0]%8);
-
-			ret = (keys->keys[byteIdx] & bitMask) != 0;
-		}
-
-		free(keyCodes);
-		free(keys);
-
-		return ret;
-#endif
-	}
-}
-
 namespace FileIO
 {
+	// in posix/.../..._stringio.cpp
+	const char *GetTempRootPath();
+
 	string GetAppFolderFilename(const string &filename)
 	{
 		passwd *pw = getpwuid(getuid());
@@ -283,12 +166,9 @@ namespace FileIO
 		time_t t = time(NULL);
 		tm now = *localtime(&t);
 
-#ifdef ANDROID
-#define BASE_FOLDER "/sdcard"
-#else
-#define BASE_FOLDER "/tmp"
-#endif
-		char temp_folder[2048] = { BASE_FOLDER };
+		char temp_folder[2048] = { 0 };
+
+		strcpy(temp_folder, GetTempRootPath());
 
 		char *temp_override = getenv("RENDERDOC_TEMP");
 		if(temp_override && temp_override[0] == '/')
@@ -300,11 +180,11 @@ namespace FileIO
 
 		char temp_filename[2048] = {0};
 
-		snprintf(temp_filename, sizeof(temp_filename)-1, BASE_FOLDER "/%s_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min);
+		snprintf(temp_filename, sizeof(temp_filename)-1, "%s/%s_%04d.%02d.%02d_%02d.%02d.rdc", GetTempRootPath(), mod, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min);
 
 		capture_filename = string(temp_filename);
 
-		snprintf(temp_filename, sizeof(temp_filename)-1, BASE_FOLDER "/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", logBaseName, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+		snprintf(temp_filename, sizeof(temp_filename)-1, "%s/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", GetTempRootPath(), logBaseName, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 
 		logging_filename = string(temp_filename);
 	}
@@ -423,65 +303,6 @@ namespace StringFormat
 		delete[] buf;
 		
 		return ret;
-	}
-
-	// cache iconv_t descriptor to save on iconv_open/iconv_close each time
-	iconv_t iconvWide2UTF8 = (iconv_t)-1;
-
-	// iconv is not thread safe when sharing an iconv_t descriptor
-	// I don't expect much contention but if it happens we could TryLock
-	// before creating a temporary iconv_t, or hold two iconv_ts, or something.
-	Threading::CriticalSection lockWide2UTF8;
-
-	string Wide2UTF8(const std::wstring &s)
-	{
-		// include room for null terminator, assuming unicode input (not ucs)
-		// utf-8 characters can be max 4 bytes.
-		size_t len = (s.length()+1)*4;
-
-		vector<char> charBuffer;
-
-		if(charBuffer.size() < len)
-			charBuffer.resize(len);
-
-		size_t ret;
-
-		{
-			SCOPED_LOCK(lockWide2UTF8);
-
-#ifdef ANDROID
-			ret = -1;
-#else
-			if(iconvWide2UTF8 == (iconv_t)-1)
-				iconvWide2UTF8 = iconv_open("UTF-8", "WCHAR_T");
-
-			if(iconvWide2UTF8 == (iconv_t)-1)
-			{
-				RDCERR("Couldn't open iconv for WCHAR_T to UTF-8: %d", errno);
-				return "";
-			}
-
-			char *inbuf = (char *)s.c_str();
-			size_t insize = (s.length()+1)*sizeof(wchar_t); // include null terminator
-			char *outbuf = &charBuffer[0];
-			size_t outsize = len;
-
-			ret = iconv(iconvWide2UTF8, &inbuf, &insize, &outbuf, &outsize);
-#endif
-		}
-
-		if(ret == (size_t)-1)
-		{
-#if !defined(_RELEASE)
-			RDCWARN("Failed to convert wstring");
-#endif
-			return "";
-		}
-
-		// convert to string from null-terminated string - utf-8 never contains
-		// 0 bytes before the null terminator, and this way we don't care if
-		// charBuffer is larger than the string
-		return string(&charBuffer[0]);
 	}
 };
 

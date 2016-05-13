@@ -75,9 +75,9 @@ class Hook
 #define HOOKS_END() Win32_IAT_EndHooks()
 #define HOOKS_REMOVE() Win32_IAT_RemoveHooks()
 
-#elif defined(LINUX)
+#elif defined(RENDERDOC_PLATFORM_POSIX)
 
-#include "os/linux/linux_hook.h"
+#include "os/posix/posix_hook.h"
 
 // just need this for dlsym
 #include <dlfcn.h>
