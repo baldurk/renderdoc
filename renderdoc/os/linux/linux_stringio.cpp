@@ -36,12 +36,21 @@
 #include <unistd.h>
 #include <pwd.h>
 
+#ifdef ANDROID
+typedef int Display;
+typedef int xcb_connection_t;
+typedef int xcb_key_symbols_t;
+typedef int KeySym;
+typedef int xcb_keycode_t;
+typedef int *iconv_t;
+#else
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
 #include <xcb/xcb_keysyms.h>
 
 #include <iconv.h>
+#endif
 
 // for dladdr
 #include <dlfcn.h>
@@ -67,7 +76,11 @@ namespace Keyboard
 	void UseConnection(xcb_connection_t *conn)
 	{
 		connection = conn;
+#ifdef ANDROID
+		symbols = NULL;
+#else
 		symbols = xcb_key_symbols_alloc(conn);
+#endif
 	}
 
 	void AddInputWindow(void *wnd)
@@ -81,6 +94,9 @@ namespace Keyboard
 
 	bool GetKeyState(int key)
 	{
+#ifdef ANDROID
+		return false;
+#else
 		KeySym ks = 0;
 		
 		if(symbols == NULL) return false;
@@ -145,6 +161,7 @@ namespace Keyboard
 		free(keys);
 
 		return ret;
+#endif
 	}
 }
 
@@ -427,6 +444,9 @@ namespace StringFormat
 		{
 			SCOPED_LOCK(lockWide2UTF8);
 
+#ifdef ANDROID
+			ret = -1;
+#else
 			if(iconvWide2UTF8 == (iconv_t)-1)
 				iconvWide2UTF8 = iconv_open("UTF-8", "WCHAR_T");
 
@@ -442,6 +462,7 @@ namespace StringFormat
 			size_t outsize = len;
 
 			ret = iconv(iconvWide2UTF8, &inbuf, &insize, &outbuf, &outsize);
+#endif
 		}
 
 		if(ret == (size_t)-1)

@@ -84,6 +84,10 @@ void InitInstanceReplayTables(VkInstance instance)
 	InstanceGPA(CreateWin32SurfaceKHR)
 #endif
 
+#ifdef VK_USE_PLATFORM_ANDROID_KHR
+	InstanceGPA(CreateAndroidSurfaceKHR)
+#endif
+
 #ifdef VK_USE_PLATFORM_XCB_KHR
 	InstanceGPA(CreateXcbSurfaceKHR)
 #endif

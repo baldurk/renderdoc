@@ -36,6 +36,11 @@
 #define WINDOW_HANDLE_DECL HWND wnd;
 #define NULL_WND_HANDLE NULL
 
+#elif defined(ANDROID)
+
+#define WINDOW_HANDLE_DECL ANativeWindow *wnd;
+#define NULL_WND_HANDLE NULL
+
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 
 #include <xcb/xcb.h>

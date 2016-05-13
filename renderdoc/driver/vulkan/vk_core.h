@@ -1543,6 +1543,14 @@ public:
 			uint32_t                                    queueFamilyIndex);
 #endif
 
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+	VkResult vkCreateAndroidSurfaceKHR(
+			VkInstance                                  instance,
+			const VkAndroidSurfaceCreateInfoKHR*        pCreateInfo,
+			const VkAllocationCallbacks*                pAllocator,
+			VkSurfaceKHR*                               pSurface);
+#endif
+
 #if defined(VK_USE_PLATFORM_XCB_KHR)
 	VkResult vkCreateXcbSurfaceKHR(
 			VkInstance                                  instance,

@@ -33,6 +33,9 @@ namespace Keyboard
 
 void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 {
+#ifdef ANDROID
+	wnd = (ANativeWindow*) wn;
+#else
 	void **connectionScreenWindow = (void **)wn;
 
 	connection = (xcb_connection_t *)connectionScreenWindow[0];
@@ -44,10 +47,22 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 	while (scr-- > 0) xcb_screen_next(&iter);
 
 	screen = iter.data;
+#endif
 }
 
 void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 {
+#ifdef ANDROID
+	VkAndroidSurfaceCreateInfoKHR createInfo;
+
+	createInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+	createInfo.pNext = NULL;
+	createInfo.flags = 0;
+	createInfo.window = wnd;
+
+	VkResult vkr = ObjDisp(inst)->CreateAndroidSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
+#else
 	VkXcbSurfaceCreateInfoKHR createInfo;
 
 	createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
@@ -58,10 +73,13 @@ void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 
 	VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
+#endif
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 {
+#ifdef ANDROID
+#else
 	if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
 		return;
 	
@@ -74,6 +92,7 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 	h = (int32_t)geom->height;
 
 	free(geom);
+#endif
 }
 
 bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
@@ -189,6 +208,33 @@ VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(
 	return ret;
 }
 
+#endif
+
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(
+	VkInstance                                  instance,
+	const VkAndroidSurfaceCreateInfoKHR*        pCreateInfo,
+	const VkAllocationCallbacks*                pAllocator,
+	VkSurfaceKHR*                               pSurface)
+{
+	// should not come in here at all on replay
+	RDCASSERT(m_State >= WRITING);
+
+	VkResult ret = ObjDisp(instance)->CreateAndroidSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
+
+	if(ret == VK_SUCCESS)
+	{
+		GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+
+		WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
+
+		// since there's no point in allocating a full resource record and storing the window
+		// handle under there somewhere, we just cast. We won't use the resource record for anything
+		wrapped->record = (VkResourceRecord *)(uintptr_t)pCreateInfo->window;
+	}
+
+	return ret;
+}
 #endif
 
 const char *VulkanLibraryName = "libvulkan.so";

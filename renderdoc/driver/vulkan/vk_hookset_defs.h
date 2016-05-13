@@ -29,6 +29,7 @@
 #undef VK_KHR_xlib_surface
 #undef VK_KHR_xcb_surface
 #undef VK_KHR_win32_surface
+#undef VK_KHR_android_surface
 #undef VK_KHR_surface
 #undef VK_KHR_swapchain
 #undef VK_EXT_debug_report
@@ -43,6 +44,14 @@
 #define HookDefine_PlatformSpecific() \
 	HookDefine4(VkResult, vkCreateWin32SurfaceKHR, VkInstance, instance, const VkWin32SurfaceCreateInfoKHR*, pCreateInfo, const VkAllocationCallbacks*, pAllocator, VkSurfaceKHR*, pSurface); \
 	HookDefine2(VkBool32, vkGetPhysicalDeviceWin32PresentationSupportKHR, VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex); \
+
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+
+#define HookInitInstance_PlatformSpecific() \
+	HookInitExtension(VK_KHR_android_surface, CreateAndroidSurfaceKHR);
+
+#define HookDefine_PlatformSpecific() \
+	HookDefine4(VkResult, vkCreateAndroidSurfaceKHR, VkInstance, instance, const VkAndroidSurfaceCreateInfoKHR*, pCreateInfo, const VkAllocationCallbacks*, pAllocator, VkSurfaceKHR*, pSurface);
 
 #elif defined(VK_USE_PLATFORM_XCB_KHR) || defined(VK_USE_PLATFORM_XLIB_KHR)
 
@@ -226,6 +235,7 @@
 	CheckExt(VK_KHR_xlib_surface) \
 	CheckExt(VK_KHR_xcb_surface) \
 	CheckExt(VK_KHR_win32_surface) \
+	CheckExt(VK_KHR_android_surface) \
 	CheckExt(VK_KHR_surface) \
 	CheckExt(VK_EXT_debug_report)
 

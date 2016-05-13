@@ -14,7 +14,16 @@ string(STRIP ${GIT_COMMIT_HASH} GIT_COMMIT_HASH)
 list(APPEND RDOC_DEFINITIONS
     PRIVATE -DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
-if(UNIX)
+if(ANDROID)
+    list(APPEND RDOC_DEFINITIONS
+        PUBLIC -DRENDERDOC_PLATFORM=linux
+        PRIVATE -DLINUX)
+
+    list(APPEND RDOC_LIBRARIES
+        PRIVATE m
+        PRIVATE dl
+        PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)
     find_package(X11 REQUIRED)
@@ -190,6 +199,12 @@ if(UNIX)
     elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "i686")
         set(bfdarch "i386")
         set(bfdtarget "elf32-i386")
+    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+        set(bfdarch "aarch64")
+        set(bfdtarget "elf64-littleaarch64")
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+        set(bfdarch "arm")
+        set(bfdtarget "elf32-littlearm")
     else()
         message(FATAL_ERROR "Unknown target architecture")
     endif()
