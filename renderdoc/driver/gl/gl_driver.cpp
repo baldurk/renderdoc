@@ -2142,18 +2142,28 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 
 				if(ctxdata.Modern())
 				{
-					overlayText += " ";
-
-					for(size_t i=0; i < keys.size(); i++)
+					if(Keyboard::PlatformHasKeyInput())
 					{
-						if(i > 0)
-							overlayText += ", ";
+						overlayText += " ";
 
-						overlayText += ToStr::Get(keys[i]);
+						for(size_t i=0; i < keys.size(); i++)
+						{
+							if(i > 0)
+								overlayText += ", ";
+
+							overlayText += ToStr::Get(keys[i]);
+						}
+
+						if(!keys.empty())
+							overlayText += " to capture.";
 					}
-
-					if(!keys.empty())
-						overlayText += " to capture.";
+					else
+					{
+						if(RenderDoc::Inst().IsRemoteAccessConnected())
+							overlayText += "Connected by " + RenderDoc::Inst().GetRemoteAccessUsername() + ".";
+						else
+							overlayText += "No remote access connection.";
+					}
 				}
 
 				if(overlay & eRENDERDOC_Overlay_FrameNumber)

@@ -247,6 +247,7 @@ class RenderDoc
 
 		uint32_t GetRemoteAccessIdent() const { return m_RemoteIdent; }
 		bool IsRemoteAccessConnected();
+		string GetRemoteAccessUsername();
 
 		void Tick();
 

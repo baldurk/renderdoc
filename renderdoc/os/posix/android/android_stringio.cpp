@@ -31,6 +31,11 @@ namespace Keyboard
 	void Init()
 	{
 	}
+	
+	bool PlatformHasKeyInput()
+	{
+		return false;
+	}
 
 	void CloneDisplay(Display *dpy) {}
 

@@ -73,6 +73,11 @@ namespace Keyboard
 	void Init()
 	{
 	}
+	
+	bool PlatformHasKeyInput()
+	{
+		return true;
+	}
 
 	set<HWND> inputWindows;
 

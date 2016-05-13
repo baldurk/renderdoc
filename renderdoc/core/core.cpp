@@ -434,6 +434,12 @@ bool RenderDoc::IsRemoteAccessConnected()
 	return !RenderDoc::Inst().m_SingleClientName.empty();
 }
 
+string RenderDoc::GetRemoteAccessUsername()
+{
+	SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
+	return RenderDoc::Inst().m_SingleClientName;
+}
+
 void RenderDoc::Tick()
 {
 	static bool prev_focus = false;

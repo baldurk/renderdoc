@@ -283,6 +283,7 @@ namespace Keyboard
 	void AddInputWindow(void *wnd);
 	void RemoveInputWindow(void *wnd);
 	bool GetKeyState(int key);
+	bool PlatformHasKeyInput();
 };
 
 // implemented per-platform

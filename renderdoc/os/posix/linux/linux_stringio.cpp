@@ -52,6 +52,11 @@ namespace Keyboard
 	{
 	}
 	
+	bool PlatformHasKeyInput()
+	{
+		return true;
+	}
+	
 	xcb_connection_t *connection;
 	xcb_key_symbols_t *symbols;
 
