@@ -283,7 +283,12 @@ namespace FileIO
 		time_t t = time(NULL);
 		tm now = *localtime(&t);
 
-		char temp_folder[2048] = { "/tmp" };
+#ifdef ANDROID
+#define BASE_FOLDER "/sdcard"
+#else
+#define BASE_FOLDER "/tmp"
+#endif
+		char temp_folder[2048] = { BASE_FOLDER };
 
 		char *temp_override = getenv("RENDERDOC_TEMP");
 		if(temp_override && temp_override[0] == '/')
@@ -295,11 +300,11 @@ namespace FileIO
 
 		char temp_filename[2048] = {0};
 
-		snprintf(temp_filename, sizeof(temp_filename)-1, "/tmp/%s_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min);
+		snprintf(temp_filename, sizeof(temp_filename)-1, BASE_FOLDER "/%s_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min);
 
 		capture_filename = string(temp_filename);
 
-		snprintf(temp_filename, sizeof(temp_filename)-1, "/tmp/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", logBaseName, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+		snprintf(temp_filename, sizeof(temp_filename)-1, BASE_FOLDER "/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", logBaseName, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 
 		logging_filename = string(temp_filename);
 	}
