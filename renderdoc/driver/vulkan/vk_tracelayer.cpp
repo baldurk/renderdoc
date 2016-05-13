@@ -262,6 +262,12 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL VK_LAYER_RENDERDOC_CaptureGetInsta
 		return (PFN_vkVoidFunction) &VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties;
 	if(!strcmp("vkEnumerateDeviceExtensionProperties", pName))
 		return (PFN_vkVoidFunction) &VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties;
+	if(!strcmp("vkGetDeviceProcAddr", pName))
+		return (PFN_vkVoidFunction) &VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr;
+	if(!strcmp("vkCreateDevice", pName))
+		return (PFN_vkVoidFunction) &hooked_vkCreateDevice;
+	if(!strcmp("vkDestroyDevice", pName))
+		return (PFN_vkVoidFunction) &hooked_vkDestroyDevice;
 
 	HookInitVulkanInstance();
 	
