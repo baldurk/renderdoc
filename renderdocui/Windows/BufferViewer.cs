@@ -813,7 +813,7 @@ namespace renderdocui.Windows
 
             Input ret = new Input();
             ret.Drawcall = draw;
-            ret.Topology = draw.topology;
+            ret.Topology = draw != null ? draw.topology : PrimitiveTopology.Unknown;
 
             ResourceId ibuffer = ResourceId.Null;
             ulong ioffset = 0;
