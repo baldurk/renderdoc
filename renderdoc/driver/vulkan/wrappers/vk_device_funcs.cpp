@@ -99,6 +99,26 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 	params.Extensions.push_back("VK_EXT_debug_report");
 #endif
 
+	// strip out any WSI extensions. We'll add the ones we want for creating windows
+	// on the current platforms below, and we don't replay any of the WSI functionality
+	// directly so these extensions aren't needed
+	for(auto it = params.Extensions.begin(); it != params.Extensions.end();)
+	{
+		if(*it == "VK_KHR_xlib_surface" ||
+			*it == "VK_KHR_xcb_surface" ||
+			*it == "VK_KHR_wayland_surface" ||
+			*it == "VK_KHR_mir_surface" ||
+			*it == "VK_KHR_android_surface" ||
+			*it == "VK_KHR_win32_surface")
+		{
+			it = params.Extensions.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+
 	AddRequiredExtensions(true, params.Extensions);
 
 	const char **layerscstr = new const char *[params.Layers.size()];
