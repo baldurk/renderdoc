@@ -47,6 +47,10 @@
 #define WINDOW_HANDLE_DECL xcb_connection_t *connection; xcb_screen_t *screen; xcb_window_t wnd;
 #define NULL_WND_HANDLE xcb_window_t(0)
 
+#else
+
+#error "Unknown platform"
+
 #endif
 
 #include <map>
