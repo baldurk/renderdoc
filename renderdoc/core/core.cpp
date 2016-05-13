@@ -220,11 +220,7 @@ void RenderDoc::Initialise()
 			m_RemoteIdent = port;
 
 			m_RemoteServerThreadShutdown = false;
-#ifdef ANDROID
-			// TODO shutdown the thread on dlclose()
-#else
 			m_RemoteThread = Threading::CreateThread(RemoteAccessServerThread, (void *)sock);
-#endif
 		}
 	}
 
