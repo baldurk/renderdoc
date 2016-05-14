@@ -31,6 +31,7 @@
 #define DESTROY_IMPL(type, func) \
 	void WrappedVulkan::vk ## func(VkDevice device, type obj, const VkAllocationCallbacks* pAllocator) \
 	{ \
+		if(obj == VK_NULL_HANDLE) return; \
 		type unwrappedObj = Unwrap(obj); \
 		GetResourceManager()->ReleaseWrappedResource(obj, true); \
 		ObjDisp(device)->func(Unwrap(device), unwrappedObj, pAllocator); \
@@ -59,6 +60,9 @@ DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
 // needs to be separate because it releases internal resources
 void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj, const VkAllocationCallbacks* pAllocator)
 {
+	if(obj == VK_NULL_HANDLE)
+		return;
+
 	// release internal rendering objects we created for rendering the overlay
 	{
 		SwapchainInfo &info = *GetRecord(obj)->swapInfo;
@@ -90,6 +94,9 @@ void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj, c
 // needs to be separate so we don't erase from m_ImageLayouts in other destroy functions
 void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj, const VkAllocationCallbacks* pAllocator)
 {
+	if(obj == VK_NULL_HANDLE)
+		return;
+
 	{
 		SCOPED_LOCK(m_ImageLayoutsLock);
 		m_ImageLayouts.erase(GetResID(obj));
@@ -104,6 +111,9 @@ void WrappedVulkan::vkFreeCommandBuffers(VkDevice device, VkCommandPool commandP
 {
 	for(uint32_t c=0; c < commandBufferCount; c++)
 	{
+		if(pCommandBuffers[c] == VK_NULL_HANDLE)
+			continue;
+
 		WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(pCommandBuffers[c]);
 
 		VkCommandBuffer unwrapped = wrapped->real.As<VkCommandBuffer>();

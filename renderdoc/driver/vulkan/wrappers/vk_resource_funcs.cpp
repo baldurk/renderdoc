@@ -327,6 +327,9 @@ void WrappedVulkan::vkFreeMemory(
 		VkDeviceMemory                              memory,
     const VkAllocationCallbacks*                pAllocator)
 {
+	if(memory == VK_NULL_HANDLE)
+		return;
+
 	// we just need to clean up after ourselves on replay
 	WrappedVkNonDispRes *wrapped = (WrappedVkNonDispRes *)GetWrapped(memory);
 
