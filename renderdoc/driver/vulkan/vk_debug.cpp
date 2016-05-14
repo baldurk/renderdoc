@@ -247,6 +247,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	m_ResourceManager = m_pDriver->GetResourceManager();
 
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	// Zero initialise all of the members so that when deleting we can just destroy everything and let
+	// objects that weren't created just silently be skipped
+
 	m_DescriptorPool = VK_NULL_HANDLE;
 	m_LinearSampler = VK_NULL_HANDLE;
 	m_PointSampler = VK_NULL_HANDLE;
@@ -331,6 +335,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	m_Device = dev;
 	
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	// Do some work that's needed both during capture and during replay
+
+	// Load shader cache, if present
 	bool success = LoadShaderCache("vkshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache, ShaderCacheCallbacks);
 
 	// if we failed to load from the cache
@@ -340,6 +348,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VkResult vkr = VK_SUCCESS;
 
+	// create linear sampler
 	VkSamplerCreateInfo sampInfo = {
 		VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, NULL, 0,
 		VK_FILTER_LINEAR, VK_FILTER_LINEAR,
@@ -359,6 +368,476 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	vkr = m_pDriver->vkCreateSampler(dev, &sampInfo, NULL, &m_LinearSampler);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+	VkDescriptorPoolSize captureDescPoolTypes[] = {
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, },
+	};
+
+	VkDescriptorPoolSize replayDescPoolTypes[] = {
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 128, },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 128, },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 320, },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32, },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32, },
+	};
+
+	VkDescriptorPoolCreateInfo descpoolInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, NULL,
+		0, 9+ARRAY_COUNT(m_TexDisplayDescSet),
+		ARRAY_COUNT(replayDescPoolTypes), &replayDescPoolTypes[0],
+	};
+
+	// during capture we only need one text descriptor set, so rather than
+	// trying to wait and steal descriptors from a user-side pool, we just
+	// create our own very small pool.
+	if(m_State >= WRITING)
+	{
+		descpoolInfo.maxSets = 1;
+		descpoolInfo.poolSizeCount = ARRAY_COUNT(captureDescPoolTypes);
+		descpoolInfo.pPoolSizes = &captureDescPoolTypes[0];
+	}
+	
+	// create descriptor pool
+	vkr = m_pDriver->vkCreateDescriptorPool(dev, &descpoolInfo, NULL, &m_DescriptorPool);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
+	
+	// declare some common creation info structs
+	VkPipelineLayoutCreateInfo pipeLayoutInfo = {
+		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, NULL, 0,
+		1, NULL,
+		0, NULL, // push constant ranges
+	};
+
+	VkDescriptorSetAllocateInfo descSetAllocInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, NULL, m_DescriptorPool,
+		1, NULL
+	};
+
+	// compatible render passes for creating pipelines.
+	// Only one of these is needed during capture for the pipeline create, but
+	// they are short-lived so just create all of them and share creation code
+	VkRenderPass RGBA32RP = VK_NULL_HANDLE;
+	VkRenderPass RGBA8RP = VK_NULL_HANDLE;
+	VkRenderPass RGBA16RP = VK_NULL_HANDLE;
+	VkRenderPass RGBA8MSRP = VK_NULL_HANDLE;
+
+	{
+		VkAttachmentDescription attDesc = {
+			0, VK_FORMAT_R8G8B8A8_UNORM, VK_SAMPLE_COUNT_1_BIT,
+			VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		};
+
+		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+		VkSubpassDescription sub = {
+			0, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			0, NULL, // inputs
+			1, &attRef, // color
+			NULL, // resolve
+			NULL, // depth-stencil
+			0, NULL, // preserve
+		};
+
+		VkRenderPassCreateInfo rpinfo = {
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0,
+				1, &attDesc,
+				1, &sub,
+				0, NULL, // dependencies
+		};
+		
+		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8RP);
+
+		attDesc.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA32RP);
+
+		attDesc.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+
+		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA16RP);
+
+		attDesc.samples = VULKAN_MESH_VIEW_SAMPLES;
+		attDesc.format = VK_FORMAT_R8G8B8A8_SRGB;
+		
+		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8MSRP);
+	}
+
+	// declare the pipeline creation info and all of its sub-structures
+	// these are modified as appropriate for each pipeline we create
+	VkPipelineShaderStageCreateInfo stages[2] = {
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT, VK_NULL_HANDLE, "main", NULL },
+		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT, VK_NULL_HANDLE, "main", NULL },
+	};
+
+	VkPipelineVertexInputStateCreateInfo vi = {
+		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, NULL, 0,
+		0, NULL, // vertex bindings
+		0, NULL, // vertex attributes
+	};
+
+	VkPipelineInputAssemblyStateCreateInfo ia = {
+		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL, 0,
+		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, false,
+	};
+
+	VkRect2D scissor = { { 0, 0 }, { 4096, 4096 } };
+
+	VkPipelineViewportStateCreateInfo vp = {
+		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL, 0,
+		1, NULL,
+		1, &scissor
+	};
+
+	VkPipelineRasterizationStateCreateInfo rs = {
+		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO, NULL, 0,
+		true, false, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE,
+		false, 0.0f, 0.0f, 0.0f, 1.0f,
+	};
+
+	VkPipelineMultisampleStateCreateInfo msaa = {
+		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL, 0,
+		VK_SAMPLE_COUNT_1_BIT, false, 0.0f, NULL, false, false,
+	};
+
+	VkPipelineDepthStencilStateCreateInfo ds = {
+		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, NULL, 0,
+		false, false, VK_COMPARE_OP_ALWAYS, false, false,
+		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
+		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
+		0.0f, 1.0f,
+	};
+
+	VkPipelineColorBlendAttachmentState attState = {
+		false,
+		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD,
+		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD,
+		0xf,
+	};
+
+	VkPipelineColorBlendStateCreateInfo cb = {
+		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, NULL, 0,
+		false, VK_LOGIC_OP_NO_OP,
+		1, &attState,
+		{ 1.0f, 1.0f, 1.0f, 1.0f }
+	};
+
+	VkDynamicState dynstates[] = { VK_DYNAMIC_STATE_VIEWPORT };
+
+	VkPipelineDynamicStateCreateInfo dyn = {
+		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, NULL, 0,
+		ARRAY_COUNT(dynstates), dynstates,
+	};
+
+	VkGraphicsPipelineCreateInfo pipeInfo = {
+		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, NULL, 0,
+		2, stages,
+		&vi,
+		&ia,
+		NULL, // tess
+		&vp,
+		&rs,
+		&msaa,
+		&ds,
+		&cb,
+		&dyn,
+		VK_NULL_HANDLE,
+		RGBA8RP,
+		0, // sub pass
+		VK_NULL_HANDLE, // base pipeline handle
+		-1, // base pipeline index
+	};
+
+	// declare a few more misc things that are needed on both paths
+	VkDescriptorBufferInfo bufInfo[4];
+	RDCEraseEl(bufInfo);
+	
+	vector<string> sources;
+	
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
+	
+	//////////////////////////////////////////////////////////////////////////////////////
+	// if we're writing, only create text-rendering related resources,
+	// then tidy up early and return
+	if(m_State >= WRITING)
+	{
+		{
+			VkDescriptorSetLayoutBinding layoutBinding[] = {
+				{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL, },
+				{ 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
+				{ 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL, },
+				{ 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, }
+			};
+
+			VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
+				VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, NULL, 0,
+				ARRAY_COUNT(layoutBinding), &layoutBinding[0],
+			};
+
+			vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_TextDescSetLayout);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
+		}
+
+		pipeLayoutInfo.pSetLayouts = &m_TextDescSetLayout;
+		
+		vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_TextPipeLayout);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
+		
+		descSetAllocInfo.pSetLayouts = &m_TextDescSetLayout;
+		vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_TextDescSet);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
+		
+		m_TextGeneralUBO.Create(driver, dev, 128, 100, 0); // make the ring conservatively large to handle many lines of text * several frames
+		RDCCOMPILE_ASSERT(sizeof(FontUBOData) <= 128, "font uniforms size");
+
+		m_TextStringUBO.Create(driver, dev, 4096, 10, 0); // we only use a subset of the [MAX_SINGLE_LINE_LENGTH] array needed for each line, so this ring can be smaller
+		RDCCOMPILE_ASSERT(sizeof(StringUBOData) <= 4096, "font uniforms size");
+	
+		attState.blendEnable = true;
+		attState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		attState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		
+		for(size_t i=0; i < 2; i++)
+		{
+			sources.resize(4);
+			sources[0] = "#version 430 core\n";
+			sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
+
+			sources[2] = i == 0 ? GetEmbeddedResource(spv_text_vert) : GetEmbeddedResource(spv_text_frag);
+
+			vector<uint32_t> *spirv;
+
+			string err = GetSPIRVBlob(i == 0 ? eSPIRVVertex : eSPIRVFragment, sources, &spirv);
+			RDCASSERT(err.empty() && spirv);
+
+			VkShaderModuleCreateInfo modinfo = {
+				VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0,
+				spirv->size()*sizeof(uint32_t), &(*spirv)[0],
+			};
+			
+			vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &stages[i].module);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
+		}
+
+		pipeInfo.layout = m_TextPipeLayout;
+
+		vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TextPipeline);
+		RDCASSERTEQUAL(vkr, VK_SUCCESS);
+		
+		m_pDriver->vkDestroyShaderModule(dev, stages[0].module, NULL);
+		m_pDriver->vkDestroyShaderModule(dev, stages[1].module, NULL);
+
+		// create the actual font texture data and glyph data, for upload
+		{
+			const uint32_t width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
+
+			VkImageCreateInfo imInfo = {
+				VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
+				VK_IMAGE_TYPE_2D, VK_FORMAT_R8_UNORM,
+				{ width, height, 1 }, 1, 1, VK_SAMPLE_COUNT_1_BIT,
+				VK_IMAGE_TILING_OPTIMAL,
+				VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+				VK_SHARING_MODE_EXCLUSIVE,
+				0, NULL,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+			};
+
+			string font = GetEmbeddedResource(sourcecodepro_ttf);
+			byte *ttfdata = (byte *)font.c_str();
+
+			const int firstChar = FONT_FIRST_CHAR;
+			const int lastChar = FONT_LAST_CHAR;
+			const int numChars = lastChar-firstChar+1;
+
+			RDCCOMPILE_ASSERT(FONT_FIRST_CHAR == int(' '), "Font defines are messed up");
+
+			byte *buf = new byte[width*height];
+
+			const float pixelHeight = 20.0f;
+
+			stbtt_bakedchar chardata[numChars];
+			stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
+
+			m_FontCharSize = pixelHeight;
+			m_FontCharAspect = chardata->xadvance / pixelHeight;
+
+			stbtt_fontinfo f = {0};
+			stbtt_InitFont(&f, ttfdata, 0);
+
+			int ascent = 0;
+			stbtt_GetFontVMetrics(&f, &ascent, NULL, NULL);
+
+			float maxheight = float(ascent)*stbtt_ScaleForPixelHeight(&f, pixelHeight);
+
+			// create and fill image
+			{
+				vkr = m_pDriver->vkCreateImage(dev, &imInfo, NULL, &m_TextAtlas);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+				VkMemoryRequirements mrq;
+				m_pDriver->vkGetImageMemoryRequirements(dev, m_TextAtlas, &mrq);
+
+				VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
+				VkSubresourceLayout layout = { 0 };
+				m_pDriver->vkGetImageSubresourceLayout(dev, m_TextAtlas, &subr, &layout);
+
+				// allocate readback memory
+				VkMemoryAllocateInfo allocInfo = {
+					VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
+					mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+				};
+
+				vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &m_TextAtlasMem);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+				vkr = m_pDriver->vkBindImageMemory(dev, m_TextAtlas, m_TextAtlasMem, 0);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
+				
+				VkImageViewCreateInfo viewInfo = {
+					VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL, 0,
+					m_TextAtlas, VK_IMAGE_VIEW_TYPE_2D,
+					imInfo.format,
+					{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ONE },
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
+				};
+
+				vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &m_TextAtlasView);
+				RDCASSERTEQUAL(vkr, VK_SUCCESS);
+					
+				// create temporary memory and buffer to upload atlas
+				m_TextAtlasUpload.Create(driver, dev, 32768, 1, 0); // doesn't need to be ring'd, as it's static
+				RDCCOMPILE_ASSERT(width*height <= 32768, "font uniform size");
+				
+				byte *pData = (byte *)m_TextAtlasUpload.Map(vt, dev, (uint32_t *)NULL);
+				RDCASSERT(pData);
+
+				memcpy(pData, buf, width*height);
+				
+				m_TextAtlasUpload.Unmap(vt, dev);
+			}
+
+			m_TextGlyphUBO.Create(driver, dev, 4096, 1, 0); // doesn't need to be ring'd, as it's static
+			RDCCOMPILE_ASSERT(sizeof(Vec4f)*2*(numChars+1) < 4096, "font uniform size");
+
+			FontGlyphData *glyphData = (FontGlyphData *)m_TextGlyphUBO.Map(vt, dev, (uint32_t *)NULL);
+
+			for(int i=0; i < numChars; i++)
+			{
+				stbtt_bakedchar *b = chardata+i;
+
+				float x = b->xoff;
+				float y = b->yoff + maxheight;
+
+				glyphData[i].posdata = Vec4f(x/b->xadvance, y/pixelHeight, b->xadvance/float(b->x1 - b->x0), pixelHeight/float(b->y1 - b->y0));
+				glyphData[i].uvdata = Vec4f(b->x0, b->y0, b->x1, b->y1);
+			}
+
+			m_TextGlyphUBO.Unmap(vt, dev);
+		}
+		
+		// perform GPU copy from m_TextAtlasUpload to m_TextAtlas with appropriate barriers
+		{
+			VkCommandBuffer textAtlasUploadCmd = driver->GetNextCmd();
+
+			vkr = vt->BeginCommandBuffer(Unwrap(textAtlasUploadCmd), &beginInfo);
+			RDCASSERTEQUAL(vkr, VK_SUCCESS);
+			
+			// need to update image layout into valid state first
+			VkImageMemoryBarrier copysrcbarrier = {
+				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+				0, VK_ACCESS_HOST_WRITE_BIT|VK_ACCESS_TRANSFER_WRITE_BIT,
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
+				m_TextAtlas,
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+			};
+
+			DoPipelineBarrier(textAtlasUploadCmd, 1, &copysrcbarrier);
+
+			VkBufferMemoryBarrier uploadbarrier = {
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
+				VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+				m_TextAtlasUpload.buf,
+				0, m_TextAtlasUpload.totalsize,
+			};
+
+			// ensure host writes finish before copy
+			DoPipelineBarrier(textAtlasUploadCmd, 1, &uploadbarrier);
+
+			VkBufferImageCopy bufRegion = {
+				0, 0, 0,
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
+				{ 0, 0, 0, },
+				{ FONT_TEX_WIDTH, FONT_TEX_HEIGHT, 1 },
+			};
+
+			// copy to image
+			vt->CmdCopyBufferToImage(Unwrap(textAtlasUploadCmd), Unwrap(m_TextAtlasUpload.buf), Unwrap(m_TextAtlas), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufRegion);
+
+			VkImageMemoryBarrier copydonebarrier = {
+				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+				copysrcbarrier.dstAccessMask, VK_ACCESS_SHADER_READ_BIT,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
+				m_TextAtlas,
+				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+			};
+
+			// ensure atlas is filled before reading in shader
+			DoPipelineBarrier(textAtlasUploadCmd, 1, &copydonebarrier);
+
+			vt->EndCommandBuffer(Unwrap(textAtlasUploadCmd));
+		}
+
+		m_TextGeneralUBO.FillDescriptor(bufInfo[0]);
+		m_TextGlyphUBO.FillDescriptor(bufInfo[1]);
+		m_TextStringUBO.FillDescriptor(bufInfo[2]);
+		
+		VkDescriptorImageInfo atlasImInfo;
+		atlasImInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		atlasImInfo.imageView = Unwrap(m_TextAtlasView);
+		atlasImInfo.sampler = Unwrap(m_LinearSampler);	
+
+		VkWriteDescriptorSet textSetWrites[] = {
+			{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+				Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+				NULL, &bufInfo[0], NULL
+			},
+			{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+				Unwrap(m_TextDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				NULL, &bufInfo[1], NULL
+			},
+			{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+				Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+				NULL, &bufInfo[2], NULL
+			},
+			{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+				Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				&atlasImInfo, NULL, NULL
+			},
+		};
+
+		vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(textSetWrites), textSetWrites, 0, NULL);
+	
+		m_pDriver->vkDestroyRenderPass(dev, RGBA16RP, NULL);
+		m_pDriver->vkDestroyRenderPass(dev, RGBA32RP, NULL);
+		m_pDriver->vkDestroyRenderPass(dev, RGBA8RP, NULL);
+		m_pDriver->vkDestroyRenderPass(dev, RGBA8MSRP, NULL);
+		
+		return;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+	// everything created below this point is only needed during replay, and will be NULL
+	// while in the captured application
+	
+	// create point sampler
 	sampInfo.minFilter = VK_FILTER_NEAREST;
 	sampInfo.magFilter = VK_FILTER_NEAREST;
 
@@ -387,7 +866,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
 	
-	if(m_State < WRITING)
 	{
 		VkDescriptorSetLayoutBinding layoutBinding[] = {
 			{ 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, }
@@ -430,25 +908,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_TexDisplayDescSetLayout);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
-
-	{
-		VkDescriptorSetLayoutBinding layoutBinding[] = {
-			{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL, },
-			{ 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
-			{ 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL, },
-			{ 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, }
-		};
-
-		VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
-			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, NULL, 0,
-			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
-		};
-
-		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_TextDescSetLayout);
-		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	}
 	
-	if(m_State < WRITING)
 	{
 		VkDescriptorSetLayoutBinding layoutBinding[] = {
 			{ 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL, },
@@ -492,11 +952,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
 
-	VkPipelineLayoutCreateInfo pipeLayoutInfo = {
-		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, NULL, 0,
-		1, &m_TexDisplayDescSetLayout,
-		0, NULL, // push constant ranges
-	};
+	pipeLayoutInfo.pSetLayouts = &m_TexDisplayDescSetLayout;
 	
 	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_TexDisplayPipeLayout);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -506,18 +962,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_CheckerboardPipeLayout);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-	pipeLayoutInfo.pSetLayouts = &m_TextDescSetLayout;
-	
-	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_TextPipeLayout);
-	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
 	pipeLayoutInfo.pSetLayouts = &m_QuadDescSetLayout;
 	
-	if(m_State < WRITING)
-	{
-		vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_QuadResolvePipeLayout);
-		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	}
+	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_QuadResolvePipeLayout);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	pipeLayoutInfo.pSetLayouts = &m_OutlineDescSetLayout;
 	
@@ -533,72 +981,40 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_HistogramPipeLayout);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	VkDescriptorPoolSize descPoolTypes[] = {
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 128, },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 128, },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 320, },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32, },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32, },
-	};
 	
-	VkDescriptorPoolCreateInfo descpoolInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, NULL,
-		0, 9+ARRAY_COUNT(m_TexDisplayDescSet),
-		ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
-	};
-	
-	vkr = m_pDriver->vkCreateDescriptorPool(dev, &descpoolInfo, NULL, &m_DescriptorPool);
-	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	VkDescriptorSetAllocateInfo descAllocInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, NULL, m_DescriptorPool,
-		1, NULL
-	};
-	
-	descAllocInfo.pSetLayouts = &m_CheckerboardDescSetLayout;
-	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_CheckerboardDescSet);
+	descSetAllocInfo.pSetLayouts = &m_CheckerboardDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_CheckerboardDescSet);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
-	descAllocInfo.pSetLayouts = &m_TexDisplayDescSetLayout;
+	descSetAllocInfo.pSetLayouts = &m_TexDisplayDescSetLayout;
 	for(size_t i=0; i < ARRAY_COUNT(m_TexDisplayDescSet); i++)
 	{
-		vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_TexDisplayDescSet[i]);
+		vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_TexDisplayDescSet[i]);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
 	
-	descAllocInfo.pSetLayouts = &m_TextDescSetLayout;
-	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_TextDescSet);
+	descSetAllocInfo.pSetLayouts = &m_QuadDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_QuadDescSet);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
-	if(m_State < WRITING)
-	{
-		descAllocInfo.pSetLayouts = &m_QuadDescSetLayout;
-		vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_QuadDescSet);
-		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	}
-	
-	descAllocInfo.pSetLayouts = &m_OutlineDescSetLayout;
-	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_OutlineDescSet);
+	descSetAllocInfo.pSetLayouts = &m_OutlineDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_OutlineDescSet);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
-	descAllocInfo.pSetLayouts = &m_MeshDescSetLayout;
-	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_MeshDescSet);
+	descSetAllocInfo.pSetLayouts = &m_MeshDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_MeshDescSet);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
-	descAllocInfo.pSetLayouts = &m_HistogramDescSetLayout;
-	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_HistogramDescSet[0]);
+	descSetAllocInfo.pSetLayouts = &m_HistogramDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_HistogramDescSet[0]);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
-	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_HistogramDescSet[1]);
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_HistogramDescSet[1]);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
-	if(m_State < WRITING)
-	{
-		descAllocInfo.pSetLayouts = &m_MeshFetchDescSetLayout;
-		vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_MeshFetchDescSet);
-		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	}
+	descSetAllocInfo.pSetLayouts = &m_MeshFetchDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_MeshFetchDescSet);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	m_ReadbackWindow.Create(driver, dev, STAGE_BUFFER_BYTE_SIZE, 1, GPUBuffer::eGPUBufferReadback);
 
@@ -610,18 +1026,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	RDCCOMPILE_ASSERT(sizeof(TexDisplayUBOData) <= 128, "tex display size");
 		
-	m_TextGeneralUBO.Create(driver, dev, 128, 100, 0); // make the ring conservatively large to handle many lines of text * several frames
-	RDCCOMPILE_ASSERT(sizeof(FontUBOData) <= 128, "font uniforms size");
-
-	m_TextStringUBO.Create(driver, dev, 4096, 10, 0); // we only use a subset of the [MAX_SINGLE_LINE_LENGTH] array needed for each line, so this ring can be smaller
-	RDCCOMPILE_ASSERT(sizeof(StringUBOData) <= 4096, "font uniforms size");
-	
 	string shaderSources[] = {
 		GetEmbeddedResource(spv_blit_vert),
 		GetEmbeddedResource(spv_checkerboard_frag),
 		GetEmbeddedResource(spv_texdisplay_frag),
-		GetEmbeddedResource(spv_text_vert),
-		GetEmbeddedResource(spv_text_frag),
 		GetEmbeddedResource(spv_mesh_vert),
 		GetEmbeddedResource(spv_mesh_geom),
 		GetEmbeddedResource(spv_mesh_frag),
@@ -636,8 +1044,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	SPIRVShaderStage shaderStages[] = {
 		eSPIRVVertex,
 		eSPIRVFragment,
-		eSPIRVFragment,
-		eSPIRVVertex,
 		eSPIRVFragment,
 		eSPIRVVertex,
 		eSPIRVGeometry,
@@ -655,8 +1061,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		BLITVS,
 		CHECKERBOARDFS,
 		TEXDISPLAYFS,
-		TEXTVS,
-		TEXTFS,
 		MESHVS,
 		MESHGS,
 		MESHFS,
@@ -675,8 +1079,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCCOMPILE_ASSERT( ARRAY_COUNT(shaderSources) == ARRAY_COUNT(shaderStages), "Mismatched arrays!" );
 	RDCCOMPILE_ASSERT( ARRAY_COUNT(shaderSources) == NUM_SHADERS, "Mismatched arrays!" );
 
-	vector<string> sources;
-	
 	m_CacheShaders = true;
 
 	{
@@ -784,136 +1186,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	
 	m_CacheShaders = false;
 
-	// compatible render passes for creating pipelines
-	VkRenderPass RGBA32RP = VK_NULL_HANDLE;
-	VkRenderPass RGBA8RP = VK_NULL_HANDLE;
-	VkRenderPass RGBA16RP = VK_NULL_HANDLE;
-	VkRenderPass RGBA8MSRP = VK_NULL_HANDLE;
+	attState.blendEnable = false;
 
-	{
-		VkAttachmentDescription attDesc = {
-			0, VK_FORMAT_R8G8B8A8_UNORM, VK_SAMPLE_COUNT_1_BIT,
-			VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
-			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-		};
-
-		VkAttachmentReference attRef = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-
-		VkSubpassDescription sub = {
-			0, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			0, NULL, // inputs
-			1, &attRef, // color
-			NULL, // resolve
-			NULL, // depth-stencil
-			0, NULL, // preserve
-		};
-
-		VkRenderPassCreateInfo rpinfo = {
-				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0,
-				1, &attDesc,
-				1, &sub,
-				0, NULL, // dependencies
-		};
-		
-		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8RP);
-
-		attDesc.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-
-		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA32RP);
-
-		attDesc.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-
-		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA16RP);
-
-		attDesc.samples = VULKAN_MESH_VIEW_SAMPLES;
-		attDesc.format = VK_FORMAT_R8G8B8A8_SRGB;
-		
-		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8MSRP);
-	}
-
-	VkPipelineShaderStageCreateInfo stages[2] = {
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT, VK_NULL_HANDLE, "main", NULL },
-		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT, VK_NULL_HANDLE, "main", NULL },
-	};
-
-	VkPipelineVertexInputStateCreateInfo vi = {
-		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, NULL, 0,
-		0, NULL, // vertex bindings
-		0, NULL, // vertex attributes
-	};
-
-	VkPipelineInputAssemblyStateCreateInfo ia = {
-		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL, 0,
-		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, false,
-	};
-
-	VkRect2D scissor = { { 0, 0 }, { 4096, 4096 } };
-
-	VkPipelineViewportStateCreateInfo vp = {
-		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL, 0,
-		1, NULL,
-		1, &scissor
-	};
-
-	VkPipelineRasterizationStateCreateInfo rs = {
-		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO, NULL, 0,
-		true, false, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE,
-		false, 0.0f, 0.0f, 0.0f, 1.0f,
-	};
-
-	VkPipelineMultisampleStateCreateInfo msaa = {
-		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL, 0,
-		VK_SAMPLE_COUNT_1_BIT, false, 0.0f, NULL, false, false,
-	};
-
-	VkPipelineDepthStencilStateCreateInfo ds = {
-		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, NULL, 0,
-		false, false, VK_COMPARE_OP_ALWAYS, false, false,
-		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
-		{ VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS, 0, 0, 0 },
-		0.0f, 1.0f,
-	};
-
-	VkPipelineColorBlendAttachmentState attState = {
-		false,
-		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD,
-		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD,
-		0xf,
-	};
-
-	VkPipelineColorBlendStateCreateInfo cb = {
-		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, NULL, 0,
-		false, VK_LOGIC_OP_NO_OP,
-		1, &attState,
-		{ 1.0f, 1.0f, 1.0f, 1.0f }
-	};
-
-	VkDynamicState dynstates[] = { VK_DYNAMIC_STATE_VIEWPORT };
-
-	VkPipelineDynamicStateCreateInfo dyn = {
-		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, NULL, 0,
-		ARRAY_COUNT(dynstates), dynstates,
-	};
-
-	VkGraphicsPipelineCreateInfo pipeInfo = {
-		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, NULL, 0,
-		2, stages,
-		&vi,
-		&ia,
-		NULL, // tess
-		&vp,
-		&rs,
-		&msaa,
-		&ds,
-		&cb,
-		&dyn,
-		m_CheckerboardPipeLayout,
-		RGBA8RP,
-		0, // sub pass
-		VK_NULL_HANDLE, // base pipeline handle
-		-1, // base pipeline index
-	};
+	pipeInfo.layout = m_CheckerboardPipeLayout;
+	pipeInfo.renderPass = RGBA8RP;
 
 	stages[0].module = module[BLITVS];
 	stages[1].module = module[CHECKERBOARDFS];
@@ -951,16 +1227,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TexDisplayBlendPipeline);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-	
-	stages[0].module = module[TEXTVS];
-	stages[1].module = module[TEXTFS];
-
-	pipeInfo.layout = m_TextPipeLayout;
-
-	vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TextPipeline);
-	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
 	stages[0].module = module[BLITVS];
 	stages[1].module = module[OUTLINEFS];
@@ -980,14 +1246,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	stages[0].module = module[BLITVS];
 	stages[1].module = module[QUADRESOLVEFS];
 
-	if(m_State < WRITING)
-	{
-		pipeInfo.layout = m_QuadResolvePipeLayout;
-		pipeInfo.renderPass = RGBA8RP;
+	pipeInfo.layout = m_QuadResolvePipeLayout;
+	pipeInfo.renderPass = RGBA8RP;
 
-		vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_QuadResolvePipeline);
-		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	}
+	vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_QuadResolvePipeline);
+	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	VkComputePipelineCreateInfo compPipeInfo = {
 		VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, NULL, 0,
@@ -1114,14 +1377,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		}
 	}
 
-	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
-	
 	VkCommandBuffer replayDataCmd = driver->GetNextCmd();
 
 	vkr = vt->BeginCommandBuffer(Unwrap(replayDataCmd), &beginInfo);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
-	if(m_State < WRITING)
+	// create dummy images for filling out the texdisplay descriptors
+	// in slots that are skipped by dynamic branching (e.g. 3D texture
+	// when we're displaying a 2D, etc).
 	{
 		int index = 0;
 
@@ -1256,113 +1519,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		}
 	}
 
-	{
-		const uint32_t width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
-
-		VkImageCreateInfo imInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, 0,
-			VK_IMAGE_TYPE_2D, VK_FORMAT_R8_UNORM,
-			{ width, height, 1 }, 1, 1, VK_SAMPLE_COUNT_1_BIT,
-			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-			VK_SHARING_MODE_EXCLUSIVE,
-			0, NULL,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-		};
-
-		string font = GetEmbeddedResource(sourcecodepro_ttf);
-		byte *ttfdata = (byte *)font.c_str();
-
-		const int firstChar = FONT_FIRST_CHAR;
-		const int lastChar = FONT_LAST_CHAR;
-		const int numChars = lastChar-firstChar+1;
-
-		RDCCOMPILE_ASSERT(FONT_FIRST_CHAR == int(' '), "Font defines are messed up");
-
-		byte *buf = new byte[width*height];
-
-		const float pixelHeight = 20.0f;
-
-		stbtt_bakedchar chardata[numChars];
-		stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
-
-		m_FontCharSize = pixelHeight;
-		m_FontCharAspect = chardata->xadvance / pixelHeight;
-
-		stbtt_fontinfo f = {0};
-		stbtt_InitFont(&f, ttfdata, 0);
-
-		int ascent = 0;
-		stbtt_GetFontVMetrics(&f, &ascent, NULL, NULL);
-
-		float maxheight = float(ascent)*stbtt_ScaleForPixelHeight(&f, pixelHeight);
-
-		// create and fill image
-		{
-			vkr = m_pDriver->vkCreateImage(dev, &imInfo, NULL, &m_TextAtlas);
-			RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-			VkMemoryRequirements mrq;
-			m_pDriver->vkGetImageMemoryRequirements(dev, m_TextAtlas, &mrq);
-
-			VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
-			VkSubresourceLayout layout = { 0 };
-			m_pDriver->vkGetImageSubresourceLayout(dev, m_TextAtlas, &subr, &layout);
-
-			// allocate readback memory
-			VkMemoryAllocateInfo allocInfo = {
-				VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
-				mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
-			};
-
-			vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &m_TextAtlasMem);
-			RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-			vkr = m_pDriver->vkBindImageMemory(dev, m_TextAtlas, m_TextAtlasMem, 0);
-			RDCASSERTEQUAL(vkr, VK_SUCCESS);
-			
-			VkImageViewCreateInfo viewInfo = {
-				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL, 0,
-				m_TextAtlas, VK_IMAGE_VIEW_TYPE_2D,
-				imInfo.format,
-				{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ONE },
-				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
-			};
-
-			vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &m_TextAtlasView);
-			RDCASSERTEQUAL(vkr, VK_SUCCESS);
-				
-			// create temporary memory and buffer to upload atlas
-			m_TextAtlasUpload.Create(driver, dev, 32768, 1, 0); // doesn't need to be ring'd, as it's static
-			RDCCOMPILE_ASSERT(width*height <= 32768, "font uniform size");
-			
-			byte *pData = (byte *)m_TextAtlasUpload.Map(vt, dev, (uint32_t *)NULL);
-			RDCASSERT(pData);
-
-			memcpy(pData, buf, width*height);
-			
-			m_TextAtlasUpload.Unmap(vt, dev);
-		}
-
-		m_TextGlyphUBO.Create(driver, dev, 4096, 1, 0); // doesn't need to be ring'd, as it's static
-		RDCCOMPILE_ASSERT(sizeof(Vec4f)*2*(numChars+1) < 4096, "font uniform size");
-
-		FontGlyphData *glyphData = (FontGlyphData *)m_TextGlyphUBO.Map(vt, dev, (uint32_t *)NULL);
-
-		for(int i=0; i < numChars; i++)
-		{
-			stbtt_bakedchar *b = chardata+i;
-
-			float x = b->xoff;
-			float y = b->yoff + maxheight;
-
-			glyphData[i].posdata = Vec4f(x/b->xadvance, y/pixelHeight, b->xadvance/float(b->x1 - b->x0), pixelHeight/float(b->y1 - b->y0));
-			glyphData[i].uvdata = Vec4f(b->x0, b->y0, b->x1, b->y1);
-		}
-
-		m_TextGlyphUBO.Unmap(vt, dev);
-	}
-	
 	m_OverdrawRampUBO.Create(driver, dev, 2048, 1, 0); // no ring needed, fixed data
 	RDCCOMPILE_ASSERT(sizeof(overdrawRamp) <= 2048, "overdraw ramp uniforms size");
 
@@ -1540,132 +1696,38 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	vt->EndCommandBuffer(Unwrap(replayDataCmd));
 
-	VkDescriptorBufferInfo bufInfo[4];
-	RDCEraseEl(bufInfo);
-	
-	// tex display is updated right before rendering
-	
-	m_TextGeneralUBO.FillDescriptor(bufInfo[0]);
-	m_TextGlyphUBO.FillDescriptor(bufInfo[1]);
-	m_TextStringUBO.FillDescriptor(bufInfo[2]);
-	
-	VkDescriptorImageInfo atlasImInfo;
-	atlasImInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	atlasImInfo.imageView = Unwrap(m_TextAtlasView);
-	atlasImInfo.sampler = Unwrap(m_LinearSampler);	
+	// tex display descriptors are updated right before rendering,
+	// so we don't have to update them here
 
-	VkWriteDescriptorSet textSetWrites[] = {
+	m_CheckerboardUBO.FillDescriptor(bufInfo[0]);
+	m_MeshUBO.FillDescriptor(bufInfo[1]);
+	m_OutlineUBO.FillDescriptor(bufInfo[2]);
+	m_OverdrawRampUBO.FillDescriptor(bufInfo[3]);
+	
+	VkWriteDescriptorSet analysisSetWrites[] = {
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			Unwrap(m_CheckerboardDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			NULL, &bufInfo[0], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			Unwrap(m_MeshDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			NULL, &bufInfo[1], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			Unwrap(m_OutlineDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			NULL, &bufInfo[2], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			&atlasImInfo, NULL, NULL
+			Unwrap(m_QuadDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			NULL, &bufInfo[3], NULL
 		},
 	};
 
-	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(textSetWrites), textSetWrites, 0, NULL);
-	
-	if(m_State < WRITING)
-	{
-		m_CheckerboardUBO.FillDescriptor(bufInfo[0]);
-		m_MeshUBO.FillDescriptor(bufInfo[1]);
-		m_OutlineUBO.FillDescriptor(bufInfo[2]);
-		m_OverdrawRampUBO.FillDescriptor(bufInfo[3]);
-		
-		VkWriteDescriptorSet analysisSetWrites[] = {
-			{
-				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-				Unwrap(m_CheckerboardDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-				NULL, &bufInfo[0], NULL
-			},
-			{
-				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-				Unwrap(m_MeshDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-				NULL, &bufInfo[1], NULL
-			},
-			{
-				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-				Unwrap(m_OutlineDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-				NULL, &bufInfo[2], NULL
-			},
-			{
-				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-				Unwrap(m_QuadDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				NULL, &bufInfo[3], NULL
-			},
-		};
-
-		vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(analysisSetWrites), analysisSetWrites, 0, NULL);
-	}
-	
-	// perform GPU copy from m_TextAtlasUpload to m_TextAtlas with appropriate barriers
-	{
-		VkCommandBuffer textAtlasUploadCmd = driver->GetNextCmd();
-
-		vkr = vt->BeginCommandBuffer(Unwrap(textAtlasUploadCmd), &beginInfo);
-		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-		
-		// need to update image layout into valid state first
-		VkImageMemoryBarrier copysrcbarrier = {
-			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			0, VK_ACCESS_HOST_WRITE_BIT|VK_ACCESS_TRANSFER_WRITE_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
-			m_TextAtlas,
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-		};
-
-		DoPipelineBarrier(textAtlasUploadCmd, 1, &copysrcbarrier);
-
-		VkBufferMemoryBarrier uploadbarrier = {
-			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
-			VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-			m_TextAtlasUpload.buf,
-			0, m_TextAtlasUpload.totalsize,
-		};
-
-		// ensure host writes finish before copy
-		DoPipelineBarrier(textAtlasUploadCmd, 1, &uploadbarrier);
-
-		VkBufferImageCopy bufRegion = {
-			0, 0, 0,
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
-			{ 0, 0, 0, },
-			{ FONT_TEX_WIDTH, FONT_TEX_HEIGHT, 1 },
-		};
-
-		// copy to image
-		vt->CmdCopyBufferToImage(Unwrap(textAtlasUploadCmd), Unwrap(m_TextAtlasUpload.buf), Unwrap(m_TextAtlas), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufRegion);
-
-		VkImageMemoryBarrier copydonebarrier = {
-			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-			copysrcbarrier.dstAccessMask, VK_ACCESS_SHADER_READ_BIT,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
-			m_TextAtlas,
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-		};
-
-		// ensure atlas is filled before reading in shader
-		DoPipelineBarrier(textAtlasUploadCmd, 1, &copydonebarrier);
-
-		vt->EndCommandBuffer(Unwrap(textAtlasUploadCmd));
-	}
+	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(analysisSetWrites), analysisSetWrites, 0, NULL);
 }
 
 VulkanDebugManager::~VulkanDebugManager()
