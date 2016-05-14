@@ -342,11 +342,11 @@
       <ImageId>NamedTex</ImageId>
       <AlternateText>Showing an annotated texture</AlternateText>
     </Image>
-    <Image Include="imgs\Screenshots\Attaching.png">
+    <Image Include="imgs\Screenshots\Injecting.png">
       <ImageId>Attaching</ImageId>
       <AlternateText>Attaching</AlternateText>
       <AlternateText>Attaching to a process</AlternateText>
-      <ImageId>Attaching</ImageId>
+      <ImageId>Injecting</ImageId>
     </Image>
     <Image Include="imgs\Screenshots\PixelContext.png">
       <ImageId>PixelContext</ImageId>
