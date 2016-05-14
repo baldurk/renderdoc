@@ -52,7 +52,4 @@ Linux and other platform support follows naturally when thinking about Vulkan su
 See Also
 --------
 
-Other Resources
-```````````````
-
 * :doc:`../getting_started/features`

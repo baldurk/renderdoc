@@ -34,7 +34,4 @@ Linux and OS X support follows naturally when thinking about OpenGL support. Cur
 See Also
 --------
 
-Other Resources
-```````````````
-
 * :doc:`../getting_started/features`

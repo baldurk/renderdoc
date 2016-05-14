@@ -147,7 +147,4 @@ Capturing on Linux is possible, although there is no native UI. The renderdoccmd
 See Also
 --------
 
-Other Resources
-```````````````
-
 * :doc:`../behind_scenes/planned_features`

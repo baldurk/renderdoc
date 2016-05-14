@@ -54,8 +54,5 @@ The `builds page <https://renderdoc.org/builds>`_ always has the latest stable a
 See Also
 --------
 
-Other Resources
-```````````````
-
 * `RenderDoc Homepage <http://renderdoc.org/>`_
 * `Builds page <https://renderdoc.org/builds>`_

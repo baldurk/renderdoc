@@ -67,7 +67,4 @@ Opening a texture from the pipeline state viewer (:doc:`how_object_details`) wil
 See Also
 --------
 
-Other Resources
-```````````````
-
 * :doc:`../window/texture_viewer`

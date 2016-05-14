@@ -59,7 +59,4 @@ Right clicking will allow you to launch the shader debugger at the given event f
 See Also
 --------
 
-Other Resources
-```````````````
-
 * :doc:`../window/texture_viewer`

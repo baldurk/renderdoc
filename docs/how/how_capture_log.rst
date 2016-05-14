@@ -56,7 +56,4 @@ You can also use the "Auto start" option - when this option is enabled then a .c
 See Also
 --------
 
-Other Resources
-```````````````
-
 * :doc:`../window/capture_log`
