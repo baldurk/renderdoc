@@ -37,10 +37,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND warning_flags -Wno-unused-but-set-variable)
     endif()
 
-    if(CMAKE_CROSSCOMPILING)
-        list(APPEND warning_flags -Wno-error)
-    endif()
-
     string(REPLACE ";" " " warning_flags "${warning_flags}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${warning_flags}")
 endif()
