@@ -344,18 +344,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		false, // unnormalized
 	};
 
-	vkr = vt->CreateSampler(Unwrap(dev), &sampInfo, NULL, &m_LinearSampler);
+	vkr = m_pDriver->vkCreateSampler(dev, &sampInfo, NULL, &m_LinearSampler);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_LinearSampler);
 
 	sampInfo.minFilter = VK_FILTER_NEAREST;
 	sampInfo.magFilter = VK_FILTER_NEAREST;
 
-	vkr = vt->CreateSampler(Unwrap(dev), &sampInfo, NULL, &m_PointSampler);
+	vkr = m_pDriver->vkCreateSampler(dev, &sampInfo, NULL, &m_PointSampler);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_PointSampler);
 
 	{
 		VkDescriptorSetLayoutBinding layoutBinding[] = {
@@ -367,22 +363,16 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 
-		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, NULL, &m_CheckerboardDescSetLayout);
+		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_CheckerboardDescSetLayout);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardDescSetLayout);
 
 		// identical layout
-		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, NULL, &m_MeshDescSetLayout);
+		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_MeshDescSetLayout);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_MeshDescSetLayout);
 
 		// identical layout
-		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, NULL, &m_OutlineDescSetLayout);
+		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_OutlineDescSetLayout);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_OutlineDescSetLayout);
 	}
 	
 	if(m_State < WRITING)
@@ -396,8 +386,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 		
-		// because this will go through partial replay, needs proper creation info etc so we go through our wrapped
-		// function
 		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_MeshFetchDescSetLayout);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
@@ -427,10 +415,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 
-		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, NULL, &m_TexDisplayDescSetLayout);
+		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_TexDisplayDescSetLayout);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayDescSetLayout);
 	}
 
 	{
@@ -446,10 +432,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 
-		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, NULL, &m_TextDescSetLayout);
+		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_TextDescSetLayout);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_TextDescSetLayout);
 	}
 	
 	if(m_State < WRITING)
@@ -464,8 +448,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 		
-		// because this will go through partial replay, needs proper creation info etc so we go through our wrapped
-		// function
 		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_QuadDescSetLayout);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
@@ -494,36 +476,28 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 
-		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, NULL, &m_HistogramDescSetLayout);
+		vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &m_HistogramDescSetLayout);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramDescSetLayout);
 	}
 
 	VkPipelineLayoutCreateInfo pipeLayoutInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, NULL, 0,
-		1, UnwrapPtr(m_TexDisplayDescSetLayout),
+		1, &m_TexDisplayDescSetLayout,
 		0, NULL, // push constant ranges
 	};
 	
-	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, NULL, &m_TexDisplayPipeLayout);
+	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_TexDisplayPipeLayout);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-	GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayPipeLayout);
-
-	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_CheckerboardDescSetLayout);
+	pipeLayoutInfo.pSetLayouts = &m_CheckerboardDescSetLayout;
 	
-	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, NULL, &m_CheckerboardPipeLayout);
+	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_CheckerboardPipeLayout);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardPipeLayout);
-
-	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_TextDescSetLayout);
+	pipeLayoutInfo.pSetLayouts = &m_TextDescSetLayout;
 	
-	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, NULL, &m_TextPipeLayout);
+	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_TextPipeLayout);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_TextPipeLayout);
 
 	pipeLayoutInfo.pSetLayouts = &m_QuadDescSetLayout;
 	
@@ -533,26 +507,20 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	}
 
-	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_OutlineDescSetLayout);
+	pipeLayoutInfo.pSetLayouts = &m_OutlineDescSetLayout;
 	
-	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, NULL, &m_OutlinePipeLayout);
+	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_OutlinePipeLayout);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-	GetResourceManager()->WrapResource(Unwrap(dev), m_OutlinePipeLayout);
-
-	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_MeshDescSetLayout);
+	pipeLayoutInfo.pSetLayouts = &m_MeshDescSetLayout;
 	
-	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, NULL, &m_MeshPipeLayout);
+	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_MeshPipeLayout);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-	GetResourceManager()->WrapResource(Unwrap(dev), m_MeshPipeLayout);
-
-	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_HistogramDescSetLayout);
+	pipeLayoutInfo.pSetLayouts = &m_HistogramDescSetLayout;
 	
-	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, NULL, &m_HistogramPipeLayout);
+	vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_HistogramPipeLayout);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramPipeLayout);
 
 	VkDescriptorPoolSize descPoolTypes[] = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 128, },
@@ -568,76 +536,56 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
 	};
 	
-	vkr = vt->CreateDescriptorPool(Unwrap(dev), &descpoolInfo, NULL, &m_DescriptorPool);
+	vkr = m_pDriver->vkCreateDescriptorPool(dev, &descpoolInfo, NULL, &m_DescriptorPool);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-	GetResourceManager()->WrapResource(Unwrap(dev), m_DescriptorPool);
-
 	VkDescriptorSetAllocateInfo descAllocInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, NULL, Unwrap(m_DescriptorPool),
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, NULL, m_DescriptorPool,
 		1, NULL
 	};
 	
-	descAllocInfo.pSetLayouts = UnwrapPtr(m_CheckerboardDescSetLayout);
-	vkr = vt->AllocateDescriptorSets(Unwrap(dev), &descAllocInfo, &m_CheckerboardDescSet);
+	descAllocInfo.pSetLayouts = &m_CheckerboardDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_CheckerboardDescSet);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardDescSet);
 	
-	descAllocInfo.pSetLayouts = UnwrapPtr(m_TexDisplayDescSetLayout);
+	descAllocInfo.pSetLayouts = &m_TexDisplayDescSetLayout;
 	for(size_t i=0; i < ARRAY_COUNT(m_TexDisplayDescSet); i++)
 	{
-		vkr = vt->AllocateDescriptorSets(Unwrap(dev), &descAllocInfo, &m_TexDisplayDescSet[i]);
+		vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_TexDisplayDescSet[i]);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-		
-		GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayDescSet[i]);
 	}
 	
-	descAllocInfo.pSetLayouts = UnwrapPtr(m_TextDescSetLayout);
-	vkr = vt->AllocateDescriptorSets(Unwrap(dev), &descAllocInfo, &m_TextDescSet);
+	descAllocInfo.pSetLayouts = &m_TextDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_TextDescSet);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_TextDescSet);
 	
 	if(m_State < WRITING)
 	{
-		descAllocInfo.pSetLayouts = UnwrapPtr(m_QuadDescSetLayout);
-		vkr = vt->AllocateDescriptorSets(Unwrap(dev), &descAllocInfo, &m_QuadDescSet);
+		descAllocInfo.pSetLayouts = &m_QuadDescSetLayout;
+		vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_QuadDescSet);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_QuadDescSet);
 	}
 	
-	descAllocInfo.pSetLayouts = UnwrapPtr(m_OutlineDescSetLayout);
-	vkr = vt->AllocateDescriptorSets(Unwrap(dev), &descAllocInfo, &m_OutlineDescSet);
+	descAllocInfo.pSetLayouts = &m_OutlineDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_OutlineDescSet);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_OutlineDescSet);
 	
-	descAllocInfo.pSetLayouts = UnwrapPtr(m_MeshDescSetLayout);
-	vkr = vt->AllocateDescriptorSets(Unwrap(dev), &descAllocInfo, &m_MeshDescSet);
+	descAllocInfo.pSetLayouts = &m_MeshDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_MeshDescSet);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_MeshDescSet);
 	
-	descAllocInfo.pSetLayouts = UnwrapPtr(m_HistogramDescSetLayout);
-	vkr = vt->AllocateDescriptorSets(Unwrap(dev), &descAllocInfo, &m_HistogramDescSet[0]);
+	descAllocInfo.pSetLayouts = &m_HistogramDescSetLayout;
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_HistogramDescSet[0]);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramDescSet[0]);
 	
-	vkr = vt->AllocateDescriptorSets(Unwrap(dev), &descAllocInfo, &m_HistogramDescSet[1]);
+	vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_HistogramDescSet[1]);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-	GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramDescSet[1]);
 	
 	if(m_State < WRITING)
 	{
-		descAllocInfo.pSetLayouts = UnwrapPtr(m_MeshFetchDescSetLayout);
-		vkr = vt->AllocateDescriptorSets(Unwrap(dev), &descAllocInfo, &m_MeshFetchDescSet);
+		descAllocInfo.pSetLayouts = &m_MeshFetchDescSetLayout;
+		vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descAllocInfo, &m_MeshFetchDescSet);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-		
-		GetResourceManager()->WrapResource(Unwrap(dev), m_MeshFetchDescSet);
 	}
 
 	m_ReadbackWindow.Create(driver, dev, STAGE_BUFFER_BYTE_SIZE, 1, GPUBuffer::eGPUBufferReadback);
@@ -818,10 +766,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			continue;
 		}
 
-		vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &module[i]);
+		vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &module[i]);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), module[i]);
 	}
 	
 	m_CacheShaders = false;
@@ -831,7 +777,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	VkRenderPass RGBA8RP = VK_NULL_HANDLE;
 	VkRenderPass RGBA16RP = VK_NULL_HANDLE;
 	VkRenderPass RGBA8MSRP = VK_NULL_HANDLE;
-	VkRenderPass wrappedRGBA8RP = VK_NULL_HANDLE;
 
 	{
 		VkAttachmentDescription attDesc = {
@@ -859,23 +804,20 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				0, NULL, // dependencies
 		};
 		
-		vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &RGBA8RP);
-		
-		if(m_State < WRITING)
-			m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &wrappedRGBA8RP);
+		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8RP);
 
 		attDesc.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
-		vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &RGBA32RP);
+		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA32RP);
 
 		attDesc.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 
-		vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &RGBA16RP);
+		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA16RP);
 
 		attDesc.samples = VULKAN_MESH_VIEW_SAMPLES;
 		attDesc.format = VK_FORMAT_R8G8B8A8_SRGB;
 		
-		vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &RGBA8MSRP);
+		m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8MSRP);
 	}
 
 	VkPipelineShaderStageCreateInfo stages[2] = {
@@ -954,48 +896,40 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		&ds,
 		&cb,
 		&dyn,
-		Unwrap(m_CheckerboardPipeLayout),
+		m_CheckerboardPipeLayout,
 		RGBA8RP,
 		0, // sub pass
 		VK_NULL_HANDLE, // base pipeline handle
 		-1, // base pipeline index
 	};
 
-	stages[0].module = Unwrap(module[BLITVS]);
-	stages[1].module = Unwrap(module[CHECKERBOARDFS]);
+	stages[0].module = module[BLITVS];
+	stages[1].module = module[CHECKERBOARDFS];
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_CheckerboardPipeline);
+	vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_CheckerboardPipeline);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardPipeline);
 
 	msaa.rasterizationSamples = VULKAN_MESH_VIEW_SAMPLES;
 	pipeInfo.renderPass = RGBA8MSRP;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_CheckerboardMSAAPipeline);
+	vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_CheckerboardMSAAPipeline);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 	msaa.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 	pipeInfo.renderPass = RGBA8RP;
 	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_CheckerboardMSAAPipeline);
-	
-	stages[0].module = Unwrap(module[BLITVS]);
-	stages[1].module = Unwrap(module[TEXDISPLAYFS]);
+	stages[0].module = module[BLITVS];
+	stages[1].module = module[TEXDISPLAYFS];
 
-	pipeInfo.layout = Unwrap(m_TexDisplayPipeLayout);
+	pipeInfo.layout = m_TexDisplayPipeLayout;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TexDisplayPipeline);
+	vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TexDisplayPipeline);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayPipeline);
 
 	pipeInfo.renderPass = RGBA32RP;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TexDisplayF32Pipeline);
+	vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TexDisplayF32Pipeline);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayF32Pipeline);
 
 	pipeInfo.renderPass = RGBA8RP;
 
@@ -1003,37 +937,31 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	attState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 	attState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TexDisplayBlendPipeline);
+	vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TexDisplayBlendPipeline);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayBlendPipeline);
 
 	ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 	
-	stages[0].module = Unwrap(module[TEXTVS]);
-	stages[1].module = Unwrap(module[TEXTFS]);
+	stages[0].module = module[TEXTVS];
+	stages[1].module = module[TEXTFS];
 
-	pipeInfo.layout = Unwrap(m_TextPipeLayout);
+	pipeInfo.layout = m_TextPipeLayout;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TextPipeline);
+	vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_TextPipeline);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_TextPipeline);
-	
-	stages[0].module = Unwrap(module[BLITVS]);
-	stages[1].module = Unwrap(module[OUTLINEFS]);
+	stages[0].module = module[BLITVS];
+	stages[1].module = module[OUTLINEFS];
 
-	pipeInfo.layout = Unwrap(m_OutlinePipeLayout);
+	pipeInfo.layout = m_OutlinePipeLayout;
 
 	pipeInfo.renderPass = RGBA16RP;
 	
 	attState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 	attState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_OutlinePipeline);
+	vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_OutlinePipeline);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
-	
-	GetResourceManager()->WrapResource(Unwrap(dev), m_OutlinePipeline);
 
 	attState.blendEnable = false;
 	
@@ -1043,7 +971,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	if(m_State < WRITING)
 	{
 		pipeInfo.layout = m_QuadResolvePipeLayout;
-		pipeInfo.renderPass = wrappedRGBA8RP;
+		pipeInfo.renderPass = RGBA8RP;
 
 		vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL, &m_QuadResolvePipeline);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -1052,7 +980,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	VkComputePipelineCreateInfo compPipeInfo = {
 		VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, NULL, 0,
 		{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_COMPUTE_BIT, VK_NULL_HANDLE, "main", NULL },
-		Unwrap(m_HistogramPipeLayout),
+		m_HistogramPipeLayout,
 		VK_NULL_HANDLE, 0, // base pipeline VkPipeline
 	};
 	
@@ -1089,7 +1017,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			modinfo.codeSize = blob->size()*sizeof(uint32_t);
 			modinfo.pCode = &(*blob)[0];
 
-			vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &histogram);
+			vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &histogram);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 			
 			sources[4] = shaderSources[MINMAXTILECS];
@@ -1100,7 +1028,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			modinfo.codeSize = blob->size()*sizeof(uint32_t);
 			modinfo.pCode = &(*blob)[0];
 
-			vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &minmaxtile);
+			vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &minmaxtile);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 			if(t == 1)
@@ -1113,47 +1041,39 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				modinfo.codeSize = blob->size()*sizeof(uint32_t);
 				modinfo.pCode = &(*blob)[0];
 
-				vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, NULL, &minmaxresult);
+				vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &minmaxresult);
 				RDCASSERTEQUAL(vkr, VK_SUCCESS);
 			}
 
 			compPipeInfo.stage.module = minmaxtile;
 
-			vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxTilePipe[t][f]);
+			vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxTilePipe[t][f]);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-			GetResourceManager()->WrapResource(Unwrap(dev), m_MinMaxTilePipe[t][f]);
 
 			compPipeInfo.stage.module = histogram;
 
-			vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_HistogramPipe[t][f]);
+			vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_HistogramPipe[t][f]);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-			GetResourceManager()->WrapResource(Unwrap(dev), m_HistogramPipe[t][f]);
 
 			if(t == 1)
 			{
 				compPipeInfo.stage.module = minmaxresult;
 
-				vkr = vt->CreateComputePipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxResultPipe[f]);
+				vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &compPipeInfo, NULL, &m_MinMaxResultPipe[f]);
 				RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-				GetResourceManager()->WrapResource(Unwrap(dev), m_MinMaxResultPipe[f]);
 			}
 
-			vt->DestroyShaderModule(Unwrap(dev), histogram, NULL);
-			vt->DestroyShaderModule(Unwrap(dev), minmaxtile, NULL);
+			m_pDriver->vkDestroyShaderModule(dev, histogram, NULL);
+			m_pDriver->vkDestroyShaderModule(dev, minmaxtile, NULL);
 			if(t == 1)
-				vt->DestroyShaderModule(Unwrap(dev), minmaxresult, NULL);
+				m_pDriver->vkDestroyShaderModule(dev, minmaxresult, NULL);
 		}
 	}
 	
-	vt->DestroyRenderPass(Unwrap(dev), RGBA16RP, NULL);
-	vt->DestroyRenderPass(Unwrap(dev), RGBA32RP, NULL);
-	vt->DestroyRenderPass(Unwrap(dev), RGBA8RP, NULL);
-	vt->DestroyRenderPass(Unwrap(dev), RGBA8MSRP, NULL);
-	if(m_State < WRITING)
-		m_pDriver->vkDestroyRenderPass(dev, wrappedRGBA8RP, NULL);
+	m_pDriver->vkDestroyRenderPass(dev, RGBA16RP, NULL);
+	m_pDriver->vkDestroyRenderPass(dev, RGBA32RP, NULL);
+	m_pDriver->vkDestroyRenderPass(dev, RGBA8RP, NULL);
+	m_pDriver->vkDestroyRenderPass(dev, RGBA8MSRP, NULL);
 
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
@@ -1178,8 +1098,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		}
 		else if(module[i] != VK_NULL_HANDLE)
 		{
-			vt->DestroyShaderModule(Unwrap(dev), Unwrap(module[i]), NULL);
-			GetResourceManager()->ReleaseWrappedResource(module[i]);
+			m_pDriver->vkDestroyShaderModule(dev, module[i], NULL);
 		}
 	}
 
@@ -1230,13 +1149,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 					VK_IMAGE_LAYOUT_UNDEFINED,
 				};
 
-				vkr = vt->CreateImage(Unwrap(dev), &imInfo, NULL, &m_TexDisplayDummyImages[index]);
+				vkr = m_pDriver->vkCreateImage(dev, &imInfo, NULL, &m_TexDisplayDummyImages[index]);
 				RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-				GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayDummyImages[index]);
-
 				VkMemoryRequirements mrq;
-				vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_TexDisplayDummyImages[index]), &mrq);
+				m_pDriver->vkGetImageMemoryRequirements(dev, m_TexDisplayDummyImages[index], &mrq);
 
 				uint32_t memIndex = driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits);
 
@@ -1266,7 +1183,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				m_TexDisplayDummyWrites[index].pBufferInfo = NULL;
 				m_TexDisplayDummyWrites[index].pTexelBufferView = NULL;
 				
-				m_TexDisplayDummyInfos[index].sampler = Unwrap(m_PointSampler);
+				m_TexDisplayDummyInfos[index].sampler = m_PointSampler;
 				m_TexDisplayDummyInfos[index].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 				index++;
@@ -1277,15 +1194,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		allocInfo.allocationSize = AlignUp(curOffset, (VkDeviceSize)1024ULL);
 
 		// allocate one big block
-		vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &m_TexDisplayDummyMemory);
+		vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &m_TexDisplayDummyMemory);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayDummyMemory);
 
 		// bind all the image memory
 		for(index = 0; index < (int)ARRAY_COUNT(m_TexDisplayDummyImages); index++)
 		{
-			vkr = vt->BindImageMemory(Unwrap(dev), Unwrap(m_TexDisplayDummyImages[index]), Unwrap(m_TexDisplayDummyMemory), offsets[index]);
+			vkr = m_pDriver->vkBindImageMemory(dev, m_TexDisplayDummyImages[index], m_TexDisplayDummyMemory, offsets[index]);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 		}
 
@@ -1297,7 +1212,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			{
 				VkImageViewCreateInfo viewInfo = {
 					VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL, 0,
-					Unwrap(m_TexDisplayDummyImages[index]), VkImageViewType(types[type]), // image/view type enums overlap for 1D/2D/3D
+					m_TexDisplayDummyImages[index], VkImageViewType(types[type]), // image/view type enums overlap for 1D/2D/3D
 					formats[fmt],
 					{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
 					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
@@ -1307,12 +1222,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				RDCCOMPILE_ASSERT((uint32_t)VK_IMAGE_TYPE_2D == (uint32_t)VK_IMAGE_VIEW_TYPE_2D, "Image/view type enums don't overlap!");
 				RDCCOMPILE_ASSERT((uint32_t)VK_IMAGE_TYPE_3D == (uint32_t)VK_IMAGE_VIEW_TYPE_3D, "Image/view type enums don't overlap!");
 
-				vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &m_TexDisplayDummyImageViews[index]);
+				vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &m_TexDisplayDummyImageViews[index]);
 				RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-				GetResourceManager()->WrapResource(Unwrap(dev), m_TexDisplayDummyImageViews[index]);
 				
-				m_TexDisplayDummyInfos[index].imageView = Unwrap(m_TexDisplayDummyImageViews[index]);
+				m_TexDisplayDummyInfos[index].imageView = m_TexDisplayDummyImageViews[index];
 
 				// need to update image layout into valid state
 				VkImageMemoryBarrier barrier = {
@@ -1320,7 +1233,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 					0, VK_ACCESS_SHADER_READ_BIT,
 					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 					0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
-					Unwrap(m_TexDisplayDummyImages[index]),
+					m_TexDisplayDummyImages[index],
 					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 				};
 
@@ -1374,17 +1287,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 		// create and fill image
 		{
-			vkr = vt->CreateImage(Unwrap(dev), &imInfo, NULL, &m_TextAtlas);
+			vkr = m_pDriver->vkCreateImage(dev, &imInfo, NULL, &m_TextAtlas);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
-				
-			GetResourceManager()->WrapResource(Unwrap(dev), m_TextAtlas);
 
 			VkMemoryRequirements mrq;
-			vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_TextAtlas), &mrq);
+			m_pDriver->vkGetImageMemoryRequirements(dev, m_TextAtlas, &mrq);
 
 			VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
 			VkSubresourceLayout layout = { 0 };
-			vt->GetImageSubresourceLayout(Unwrap(dev), Unwrap(m_TextAtlas), &subr, &layout);
+			m_pDriver->vkGetImageSubresourceLayout(dev, m_TextAtlas, &subr, &layout);
 
 			// allocate readback memory
 			VkMemoryAllocateInfo allocInfo = {
@@ -1392,27 +1303,23 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 			};
 
-			vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &m_TextAtlasMem);
+			vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &m_TextAtlasMem);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
-				
-			GetResourceManager()->WrapResource(Unwrap(dev), m_TextAtlasMem);
 
-			vkr = vt->BindImageMemory(Unwrap(dev), Unwrap(m_TextAtlas), Unwrap(m_TextAtlasMem), 0);
+			vkr = m_pDriver->vkBindImageMemory(dev, m_TextAtlas, m_TextAtlasMem, 0);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 			
 			VkImageViewCreateInfo viewInfo = {
 				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL, 0,
-				Unwrap(m_TextAtlas), VK_IMAGE_VIEW_TYPE_2D,
+				m_TextAtlas, VK_IMAGE_VIEW_TYPE_2D,
 				imInfo.format,
 				{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ONE },
 				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
 			};
 
-			vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &m_TextAtlasView);
+			vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &m_TextAtlasView);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 				
-			GetResourceManager()->WrapResource(Unwrap(dev), m_TextAtlasView);
-
 			// need to update image layout into valid state, then upload
 			
 			VkImageMemoryBarrier barrier = {
@@ -1420,7 +1327,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				0, 0,
 				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
-				Unwrap(m_TextAtlas),
+				m_TextAtlas,
 				{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 			};
 
@@ -1444,7 +1351,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, NULL,
 				VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-				Unwrap(m_TextAtlasUpload.buf),
+				m_TextAtlasUpload.buf,
 				0, 32768,
 			};
 
@@ -1511,17 +1418,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 		
-		vkr = vt->CreateImage(Unwrap(dev), &imInfo, NULL, &m_PickPixelImage);
+		vkr = m_pDriver->vkCreateImage(dev, &imInfo, NULL, &m_PickPixelImage);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelImage);
-
 		VkMemoryRequirements mrq;
-		vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_PickPixelImage), &mrq);
+		m_pDriver->vkGetImageMemoryRequirements(dev, m_PickPixelImage, &mrq);
 
 		VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
 		VkSubresourceLayout layout = { 0 };
-		vt->GetImageSubresourceLayout(Unwrap(dev), Unwrap(m_PickPixelImage), &subr, &layout);
+		m_pDriver->vkGetImageSubresourceLayout(dev, m_PickPixelImage, &subr, &layout);
 
 		// allocate readback memory
 		VkMemoryAllocateInfo allocInfo = {
@@ -1529,26 +1434,22 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &m_PickPixelImageMem);
+		vkr = m_pDriver->vkAllocateMemory(dev, &allocInfo, NULL, &m_PickPixelImageMem);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelImageMem);
-
-		vkr = vt->BindImageMemory(Unwrap(dev), Unwrap(m_PickPixelImage), Unwrap(m_PickPixelImageMem), 0);
+		vkr = m_pDriver->vkBindImageMemory(dev, m_PickPixelImage, m_PickPixelImageMem, 0);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 		VkImageViewCreateInfo viewInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL, 0,
-			Unwrap(m_PickPixelImage), VK_IMAGE_VIEW_TYPE_2D,
+			m_PickPixelImage, VK_IMAGE_VIEW_TYPE_2D,
 			VK_FORMAT_R32G32B32A32_SFLOAT,
 			{ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1, },
 		};
 
-		vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, NULL, &m_PickPixelImageView);
+		vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &m_PickPixelImageView);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelImageView);
 
 		// need to update image layout into valid state
 
@@ -1557,7 +1458,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			0, 0, // MULTIDEVICE - need to actually pick the right queue family here maybe?
-			Unwrap(m_PickPixelImage),
+			m_PickPixelImage,
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 		};
 		
@@ -1589,23 +1490,19 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				0, NULL, // dependencies
 		};
 
-		vkr = vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &m_PickPixelRP);
+		vkr = m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &m_PickPixelRP);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelRP);
 
 		// create framebuffer
 		VkFramebufferCreateInfo fbinfo = {
 			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL, 0,
-			Unwrap(m_PickPixelRP),
-			1, UnwrapPtr(m_PickPixelImageView),
+			m_PickPixelRP,
+			1, &m_PickPixelImageView,
 			1, 1, 1,
 		};
 
-		vkr = vt->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &m_PickPixelFB);
+		vkr = m_pDriver->vkCreateFramebuffer(dev, &fbinfo, NULL, &m_PickPixelFB);
 		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(dev), m_PickPixelFB);
 
 		// since we always sync for readback, doesn't need to be ring'd
 		m_PickPixelReadbackBuffer.Create(driver, dev, sizeof(float)*4, 1, GPUBuffer::eGPUBufferReadback);
@@ -1759,14 +1656,10 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	for(auto it=m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
 	{
-		if(it->second.vsout.buf != VK_NULL_HANDLE)
-			m_pDriver->vkDestroyBuffer(dev, it->second.vsout.buf, NULL);
-		if(it->second.vsout.idxBuf != VK_NULL_HANDLE)
-			m_pDriver->vkDestroyBuffer(dev, it->second.vsout.idxBuf, NULL);
-		if(it->second.vsout.bufmem != VK_NULL_HANDLE)
-			m_pDriver->vkFreeMemory(dev, it->second.vsout.bufmem, NULL);
-		if(it->second.vsout.idxBufMem != VK_NULL_HANDLE)
-			m_pDriver->vkFreeMemory(dev, it->second.vsout.idxBufMem, NULL);
+		m_pDriver->vkDestroyBuffer(dev, it->second.vsout.buf, NULL);
+		m_pDriver->vkDestroyBuffer(dev, it->second.vsout.idxBuf, NULL);
+		m_pDriver->vkFreeMemory(dev, it->second.vsout.bufmem, NULL);
+		m_pDriver->vkFreeMemory(dev, it->second.vsout.idxBufMem, NULL);
 	}
 
 	m_PostVSData.clear();
@@ -1776,276 +1669,84 @@ VulkanDebugManager::~VulkanDebugManager()
 	// tracking data (not the API objects) for descriptor sets.
 
 	for(auto it=m_CachedMeshPipelines.begin(); it != m_CachedMeshPipelines.end(); ++it)
-	{
 		for(uint32_t i=0; i < MeshDisplayPipelines::ePipe_Count; i++)
-		{
-			if(it->second.pipes[i] == VK_NULL_HANDLE) continue;
-
-			vt->DestroyPipeline(Unwrap(dev), Unwrap(it->second.pipes[i]), NULL);
-			GetResourceManager()->ReleaseWrappedResource(it->second.pipes[i]);
-		}
-	}
+			m_pDriver->vkDestroyPipeline(dev, it->second.pipes[i], NULL);
 
 	for(size_t i=0; i < ARRAY_COUNT(m_MeshModules); i++)
-	{
-		vt->DestroyShaderModule(Unwrap(dev), Unwrap(m_MeshModules[i]), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_MeshModules[i]);
-	}
+		m_pDriver->vkDestroyShaderModule(dev, m_MeshModules[i], NULL);
 	
-	GetResourceManager()->ReleaseWrappedResource(m_CheckerboardDescSet);
-	GetResourceManager()->ReleaseWrappedResource(m_TextDescSet);
-	GetResourceManager()->ReleaseWrappedResource(m_MeshDescSet);
-	GetResourceManager()->ReleaseWrappedResource(m_OutlineDescSet);
-	if(m_QuadDescSet != VK_NULL_HANDLE)
-	{
-		GetResourceManager()->ReleaseWrappedResource(m_MeshFetchDescSet);
-		GetResourceManager()->ReleaseWrappedResource(m_QuadDescSet);
-	}
+	m_pDriver->vkDestroyDescriptorPool(dev, m_DescriptorPool, NULL);
 
-	for(size_t i=0; i < ARRAY_COUNT(m_HistogramDescSet); i++)
-		GetResourceManager()->ReleaseWrappedResource(m_HistogramDescSet[i]);
+	m_pDriver->vkDestroySampler(dev, m_LinearSampler, NULL);
+	m_pDriver->vkDestroySampler(dev, m_PointSampler, NULL);
 
-	for(size_t i=0; i < ARRAY_COUNT(m_TexDisplayDescSet); i++)
-		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDescSet[i]);
+	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_CheckerboardDescSetLayout, NULL);
+	m_pDriver->vkDestroyPipelineLayout(dev, m_CheckerboardPipeLayout, NULL);
+	m_pDriver->vkDestroyPipeline(dev, m_CheckerboardPipeline, NULL);
+	m_pDriver->vkDestroyPipeline(dev, m_CheckerboardMSAAPipeline, NULL);
 
-	if(m_DescriptorPool != VK_NULL_HANDLE)
-	{
-		vt->DestroyDescriptorPool(Unwrap(dev), Unwrap(m_DescriptorPool), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_DescriptorPool);
-	}
-
-	if(m_LinearSampler != VK_NULL_HANDLE)
-	{
-		vt->DestroySampler(Unwrap(dev), Unwrap(m_LinearSampler), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_LinearSampler);
-	}
-
-	if(m_PointSampler != VK_NULL_HANDLE)
-	{
-		vt->DestroySampler(Unwrap(dev), Unwrap(m_PointSampler), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_PointSampler);
-	}
-
-	if(m_CheckerboardDescSetLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_CheckerboardDescSetLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_CheckerboardDescSetLayout);
-	}
-
-	if(m_CheckerboardPipeLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_CheckerboardPipeLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_CheckerboardPipeLayout);
-	}
-
-	if(m_CheckerboardPipeline != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_CheckerboardPipeline), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_CheckerboardPipeline);
-	}
-
-	if(m_CheckerboardMSAAPipeline != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_CheckerboardMSAAPipeline), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_CheckerboardMSAAPipeline);
-	}
-
-	if(m_TexDisplayDescSetLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_TexDisplayDescSetLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDescSetLayout);
-	}
-
-	if(m_TexDisplayPipeLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_TexDisplayPipeLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayPipeLayout);
-	}
-
-	if(m_TexDisplayPipeline != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TexDisplayPipeline), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayPipeline);
-	}
-
-	if(m_TexDisplayBlendPipeline != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TexDisplayBlendPipeline), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayBlendPipeline);
-	}
-
-	if(m_TexDisplayF32Pipeline != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TexDisplayF32Pipeline), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayF32Pipeline);
-	}
+	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_TexDisplayDescSetLayout, NULL);
+	m_pDriver->vkDestroyPipelineLayout(dev, m_TexDisplayPipeLayout, NULL);
+	m_pDriver->vkDestroyPipeline(dev, m_TexDisplayPipeline, NULL);
+	m_pDriver->vkDestroyPipeline(dev, m_TexDisplayBlendPipeline, NULL);
+	m_pDriver->vkDestroyPipeline(dev, m_TexDisplayF32Pipeline, NULL);
 
 	for(size_t i=0; i < ARRAY_COUNT(m_TexDisplayDummyImages); i++)
 	{
-		if(m_TexDisplayDummyImageViews[i] != VK_NULL_HANDLE)
-		{
-			vt->DestroyImageView(Unwrap(dev), Unwrap(m_TexDisplayDummyImageViews[i]), NULL);
-			GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDummyImageViews[i]);
-		}
-
-		if(m_TexDisplayDummyImages[i] != VK_NULL_HANDLE)
-		{
-			vt->DestroyImage(Unwrap(dev), Unwrap(m_TexDisplayDummyImages[i]), NULL);
-			GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDummyImages[i]);
-		}
+		m_pDriver->vkDestroyImageView(dev, m_TexDisplayDummyImageViews[i], NULL);
+		m_pDriver->vkDestroyImage(dev, m_TexDisplayDummyImages[i], NULL);
 	}
 
-	if(m_TexDisplayDummyMemory != VK_NULL_HANDLE)
-	{
-		vt->FreeMemory(Unwrap(dev), Unwrap(m_TexDisplayDummyMemory), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TexDisplayDummyMemory);
-	}
+	m_pDriver->vkFreeMemory(dev, m_TexDisplayDummyMemory, NULL);
 
 	m_CheckerboardUBO.Destroy(vt, dev);
 	m_TexDisplayUBO.Destroy(vt, dev);
 
 	m_PickPixelReadbackBuffer.Destroy(vt, dev);
 
-	if(m_PickPixelFB != VK_NULL_HANDLE)
-	{
-		vt->DestroyFramebuffer(Unwrap(dev), Unwrap(m_PickPixelFB), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_PickPixelFB);
-	}
+	m_pDriver->vkDestroyFramebuffer(dev, m_PickPixelFB, NULL);
+	m_pDriver->vkDestroyRenderPass(dev, m_PickPixelRP, NULL);
+	m_pDriver->vkDestroyImageView(dev, m_PickPixelImageView, NULL);
+	m_pDriver->vkDestroyImage(dev, m_PickPixelImage, NULL);
+	m_pDriver->vkFreeMemory(dev, m_PickPixelImageMem, NULL);
 
-	if(m_PickPixelRP != VK_NULL_HANDLE)
-	{
-		vt->DestroyRenderPass(Unwrap(dev), Unwrap(m_PickPixelRP), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_PickPixelRP);
-	}
-
-	if(m_PickPixelImageView != VK_NULL_HANDLE)
-	{
-		vt->DestroyImageView(Unwrap(dev), Unwrap(m_PickPixelImageView), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_PickPixelImageView);
-	}
-
-	if(m_PickPixelImage != VK_NULL_HANDLE)
-	{
-		vt->DestroyImage(Unwrap(dev), Unwrap(m_PickPixelImage), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_PickPixelImage);
-	}
-
-	if(m_PickPixelImageMem != VK_NULL_HANDLE)
-	{
-		vt->FreeMemory(Unwrap(dev), Unwrap(m_PickPixelImageMem), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_PickPixelImageMem);
-	}
-
-	if(m_TextDescSetLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_TextDescSetLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TextDescSetLayout);
-	}
-
-	if(m_TextPipeLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_TextPipeLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TextPipeLayout);
-	}
-
-	if(m_TextPipeline != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_TextPipeline), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TextPipeline);
-	}
+	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_TextDescSetLayout, NULL);
+	m_pDriver->vkDestroyPipelineLayout(dev, m_TextPipeLayout, NULL);
+	m_pDriver->vkDestroyPipeline(dev, m_TextPipeline, NULL);
 
 	m_TextGeneralUBO.Destroy(vt, dev);
 	m_TextGlyphUBO.Destroy(vt, dev);
 	m_TextStringUBO.Destroy(vt, dev);
 	m_TextAtlasUpload.Destroy(vt, dev);
 
-	if(m_TextAtlasView != VK_NULL_HANDLE)
-	{
-		vt->DestroyImageView(Unwrap(dev), Unwrap(m_TextAtlasView), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TextAtlasView);
-	}
+	m_pDriver->vkDestroyImageView(dev, m_TextAtlasView, NULL);
+	m_pDriver->vkDestroyImage(dev, m_TextAtlas, NULL);
+	m_pDriver->vkFreeMemory(dev, m_TextAtlasMem, NULL);
 
-	if(m_TextAtlas != VK_NULL_HANDLE)
-	{
-		vt->DestroyImage(Unwrap(dev), Unwrap(m_TextAtlas), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TextAtlas);
-	}
-
-	if(m_TextAtlasMem != VK_NULL_HANDLE)
-	{
-		vt->FreeMemory(Unwrap(dev), Unwrap(m_TextAtlasMem), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_TextAtlasMem);
-	}
-
-	if(m_MeshDescSetLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_MeshDescSetLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_MeshDescSetLayout);
-	}
-
-	if(m_MeshPipeLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_MeshPipeLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_MeshPipeLayout);
-	}
+	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_MeshDescSetLayout, NULL);
+	m_pDriver->vkDestroyPipelineLayout(dev, m_MeshPipeLayout, NULL);
 
 	m_MeshUBO.Destroy(vt, dev);
 	m_MeshBBoxVB.Destroy(vt, dev);
 	m_MeshAxisFrustumVB.Destroy(vt, dev);
 
-	if(m_OutlineDescSetLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_OutlineDescSetLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_OutlineDescSetLayout);
-	}
-
-	if(m_OutlinePipeLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_OutlinePipeLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_OutlinePipeLayout);
-	}
-
-	if(m_OutlinePipeline != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipeline(Unwrap(dev), Unwrap(m_OutlinePipeline), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_OutlinePipeline);
-	}
+	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_OutlineDescSetLayout, NULL);
+	m_pDriver->vkDestroyPipelineLayout(dev, m_OutlinePipeLayout, NULL);
+	m_pDriver->vkDestroyPipeline(dev, m_OutlinePipeline, NULL);
 
 	m_OutlineUBO.Destroy(vt, dev);
-	
-	if(m_HistogramDescSetLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyDescriptorSetLayout(Unwrap(dev), Unwrap(m_HistogramDescSetLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_HistogramDescSetLayout);
-	}
 
-	if(m_HistogramPipeLayout != VK_NULL_HANDLE)
-	{
-		vt->DestroyPipelineLayout(Unwrap(dev), Unwrap(m_HistogramPipeLayout), NULL);
-		GetResourceManager()->ReleaseWrappedResource(m_HistogramPipeLayout);
-	}
+	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_HistogramDescSetLayout, NULL);
+	m_pDriver->vkDestroyPipelineLayout(dev, m_HistogramPipeLayout, NULL);
 
 	for(size_t t=1; t < eTexType_Max; t++)
 	{
 		for(size_t f=0; f < 3; f++)
 		{
-			if(m_MinMaxTilePipe[t][f] != VK_NULL_HANDLE)
-			{
-				vt->DestroyPipeline(Unwrap(dev), Unwrap(m_MinMaxTilePipe[t][f]), NULL);
-				GetResourceManager()->ReleaseWrappedResource(m_MinMaxTilePipe[t][f]);
-			}
-
-			if(m_HistogramPipe[t][f] != VK_NULL_HANDLE)
-			{
-				vt->DestroyPipeline(Unwrap(dev), Unwrap(m_HistogramPipe[t][f]), NULL);
-				GetResourceManager()->ReleaseWrappedResource(m_HistogramPipe[t][f]);
-			}
-
-			if(t == 1 && m_MinMaxResultPipe[f] != VK_NULL_HANDLE)
-			{
-				vt->DestroyPipeline(Unwrap(dev), Unwrap(m_MinMaxResultPipe[f]), NULL);
-				GetResourceManager()->ReleaseWrappedResource(m_MinMaxResultPipe[f]);
-			}
+			m_pDriver->vkDestroyPipeline(dev, m_MinMaxTilePipe[t][f], NULL);
+			m_pDriver->vkDestroyPipeline(dev, m_HistogramPipe[t][f], NULL);
+			if(t == 1)
+				m_pDriver->vkDestroyPipeline(dev, m_MinMaxResultPipe[f], NULL);
 		}
 	}
 
@@ -2060,33 +1761,16 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	m_OverdrawRampUBO.Destroy(vt, dev);
 
-	// overlay & postvs resources are allocated through driver
-	if(m_MeshFetchDescSetLayout != VK_NULL_HANDLE)
-		m_pDriver->vkDestroyDescriptorSetLayout(dev, m_MeshFetchDescSetLayout, NULL);
+	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_MeshFetchDescSetLayout, NULL);
+	m_pDriver->vkDestroyFramebuffer(dev, m_OverlayNoDepthFB, NULL);
+	m_pDriver->vkDestroyRenderPass(dev, m_OverlayNoDepthRP, NULL);
+	m_pDriver->vkDestroyImageView(dev, m_OverlayImageView, NULL);
+	m_pDriver->vkDestroyImage(dev, m_OverlayImage, NULL);
+	m_pDriver->vkFreeMemory(dev, m_OverlayImageMem, NULL);
 
-	if(m_OverlayNoDepthFB != VK_NULL_HANDLE)
-		m_pDriver->vkDestroyFramebuffer(dev, m_OverlayNoDepthFB, NULL);
-
-	if(m_OverlayNoDepthRP != VK_NULL_HANDLE)
-		m_pDriver->vkDestroyRenderPass(dev, m_OverlayNoDepthRP, NULL);
-	
-	if(m_OverlayImageView != VK_NULL_HANDLE)
-		m_pDriver->vkDestroyImageView(dev, m_OverlayImageView, NULL);
-
-	if(m_OverlayImage != VK_NULL_HANDLE)
-		m_pDriver->vkDestroyImage(dev, m_OverlayImage, NULL);
-
-	if(m_OverlayImageMem != VK_NULL_HANDLE)
-		m_pDriver->vkFreeMemory(dev, m_OverlayImageMem, NULL);
-	
-	if(m_QuadDescSetLayout != VK_NULL_HANDLE)
-		m_pDriver->vkDestroyDescriptorSetLayout(dev, m_QuadDescSetLayout, NULL);
-	
-	if(m_QuadResolvePipeLayout != VK_NULL_HANDLE)
-		m_pDriver->vkDestroyPipelineLayout(dev, m_QuadResolvePipeLayout, NULL);
-	
-	if(m_QuadResolvePipeline != VK_NULL_HANDLE)
-		m_pDriver->vkDestroyPipeline(dev, m_QuadResolvePipeline, NULL);
+	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_QuadDescSetLayout, NULL);
+	m_pDriver->vkDestroyPipelineLayout(dev, m_QuadResolvePipeLayout, NULL);
+	m_pDriver->vkDestroyPipeline(dev, m_QuadResolvePipeline, NULL);
 }
 
 void VulkanDebugManager::BeginText(const TextPrintState &textstate)
