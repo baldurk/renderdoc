@@ -47,7 +47,7 @@ struct GLWindowingData
 	HWND wnd;
 };
 
-#elif defined(RENDERDOC_PLATFORM_POSIX)
+#elif defined(RENDERDOC_PLATFORM_LINUX)
 // cheeky way to prevent GL/gl.h from being included, as we want to use
 // glcorearb.h from above
 #define __gl_h_
@@ -63,6 +63,20 @@ struct GLWindowingData
 	Display *dpy;
 	GLXContext ctx;
 	GLXDrawable wnd;
+};
+
+#elif defined(RENDERDOC_PLATFORM_ANDROID)
+
+#include "EGL/egl.h"
+#include "EGL/eglext.h"
+
+struct GLWindowingData
+{
+	GLWindowingData() { ctx = NULL; wnd = 0; }
+
+	void SetCtx(void *c) { ctx = (void*)c; }
+	EGLContext ctx;
+	ANativeWindow *wnd;
 };
 
 #else
