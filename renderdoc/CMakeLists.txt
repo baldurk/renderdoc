@@ -15,10 +15,6 @@ list(APPEND RDOC_DEFINITIONS
     PRIVATE -DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
 if(ANDROID)
-    list(APPEND RDOC_DEFINITIONS
-        PUBLIC -DRENDERDOC_PLATFORM=linux
-        PRIVATE -DLINUX)
-
     list(APPEND RDOC_LIBRARIES
         PRIVATE m
         PRIVATE dl
@@ -32,9 +28,6 @@ elseif(UNIX)
     pkg_check_modules(PC_XCB REQUIRED xcb xcb-keysyms)
     set(XCB_INCLUDE_DIRS)
     set(XCB_LIBRARIES xcb xcb-keysyms)
-
-    list(APPEND RDOC_DEFINITIONS
-        PRIVATE -DLINUX)
 
     list(APPEND RDOC_INCLUDES
         PRIVATE ${X11_X11_INCLUDE_PATH}
