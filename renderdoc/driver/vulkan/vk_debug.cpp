@@ -273,6 +273,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	RDCEraseEl(m_TexDisplayDummyInfos);
 	m_TexDisplayDummyMemory = VK_NULL_HANDLE;
 
+	m_PickPixelImageMem = VK_NULL_HANDLE;
+	m_PickPixelImage = VK_NULL_HANDLE;
+	m_PickPixelImageView = VK_NULL_HANDLE;
+	m_PickPixelFB = VK_NULL_HANDLE;
+	m_PickPixelRP = VK_NULL_HANDLE;
+
 	m_TextDescSetLayout = VK_NULL_HANDLE;
 	m_TextPipeLayout = VK_NULL_HANDLE;
 	m_TextDescSet = VK_NULL_HANDLE;
@@ -296,6 +302,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_QuadResolvePipeLayout = VK_NULL_HANDLE;
 	m_QuadDescSet = VK_NULL_HANDLE;
 	m_QuadResolvePipeline = VK_NULL_HANDLE;
+	m_QuadSPIRV = NULL;
 		
 	m_MeshDescSetLayout = VK_NULL_HANDLE;
 	m_MeshPipeLayout = VK_NULL_HANDLE;
@@ -316,6 +323,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	m_MeshFetchDescSetLayout = VK_NULL_HANDLE;
 	m_MeshFetchDescSet = VK_NULL_HANDLE;
+	
+	m_FontCharSize = 1.0f;
+	m_FontCharAspect = 1.0f;
+
+	m_FixedColSPIRV = NULL;
 
 	m_Device = dev;
 	

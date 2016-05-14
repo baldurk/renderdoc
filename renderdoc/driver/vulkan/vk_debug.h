@@ -127,7 +127,10 @@ class VulkanDebugManager
 				eGPUBufferVBuffer = 0x2,
 				eGPUBufferSSBO = 0x4,
 			};
-			GPUBuffer() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE) {}
+			GPUBuffer()
+				: sz(0), buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE)
+				, align(0), totalsize(0), curoffset(0)
+				, m_ResourceManager(NULL) {}
 			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags);
 			void Destroy(const VkLayerDispatchTable *vt, VkDevice dev);
 
