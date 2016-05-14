@@ -42,9 +42,8 @@ const VkDeviceSize STAGE_BUFFER_BYTE_SIZE = 16*1024*1024ULL;
 
 void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags)
 {
-	const VkLayerDispatchTable *vt = ObjDisp(dev);
-
-	m_ResourceManager = driver->GetResourceManager();
+	m_pDriver = driver;
+	device = dev;
 
 	align = (VkDeviceSize)driver->GetDeviceProps().limits.minUniformBufferOffsetAlignment;
 
@@ -69,13 +68,11 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 	if(flags & eGPUBufferSSBO)
 		bufInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
-	VkResult vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, NULL, &buf);
+	VkResult vkr = driver->vkCreateBuffer(dev, &bufInfo, NULL, &buf);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-	GetResourceManager()->WrapResource(Unwrap(dev), buf);
-
 	VkMemoryRequirements mrq;
-	vt->GetBufferMemoryRequirements(Unwrap(dev), Unwrap(buf), &mrq);
+	driver->vkGetBufferMemoryRequirements(dev, buf, &mrq);
 
 	VkMemoryAllocateInfo allocInfo = {
 		VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL,
@@ -85,12 +82,10 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
 		: driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
 	};
 
-	vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &mem);
+	vkr = driver->vkAllocateMemory(dev, &allocInfo, NULL, &mem);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-	GetResourceManager()->WrapResource(Unwrap(dev), mem);
-
-	vkr = vt->BindBufferMemory(Unwrap(dev), Unwrap(buf), Unwrap(mem), 0);
+	vkr = driver->vkBindBufferMemory(dev, buf, mem, 0);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 }
 
@@ -101,28 +96,13 @@ void VulkanDebugManager::GPUBuffer::FillDescriptor(VkDescriptorBufferInfo &desc)
 	desc.range = sz;
 }
 
-void VulkanDebugManager::GPUBuffer::Destroy(const VkLayerDispatchTable *vt, VkDevice dev)
+void VulkanDebugManager::GPUBuffer::Destroy()
 {
-	VkResult vkr = VK_SUCCESS;
-
-	if(buf != VK_NULL_HANDLE)
-	{
-		vt->DestroyBuffer(Unwrap(dev), Unwrap(buf), NULL);
-		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-		GetResourceManager()->ReleaseWrappedResource(buf);
-		buf = VK_NULL_HANDLE;
-	}
-
-	if(mem != VK_NULL_HANDLE)
-	{
-		vt->FreeMemory(Unwrap(dev), Unwrap(mem), NULL);
-		RDCASSERTEQUAL(vkr, VK_SUCCESS);
-		GetResourceManager()->ReleaseWrappedResource(mem);
-		mem = VK_NULL_HANDLE;
-	}
+	m_pDriver->vkDestroyBuffer(device, buf, NULL);
+	m_pDriver->vkFreeMemory(device, mem, NULL);
 }
 
-void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevice dev, uint32_t *bindoffset, VkDeviceSize usedsize)
+void *VulkanDebugManager::GPUBuffer::Map(uint32_t *bindoffset, VkDeviceSize usedsize)
 {
 	VkDeviceSize offset = bindoffset ? curoffset : 0;
 	VkDeviceSize size = usedsize > 0 ? usedsize : sz;
@@ -139,25 +119,25 @@ void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevic
 	if(bindoffset) *bindoffset = (uint32_t)offset;
 
 	void *ptr = NULL;
-	VkResult vkr = vt->MapMemory(Unwrap(dev), Unwrap(mem), offset, size, 0, (void **)&ptr);
+	VkResult vkr = m_pDriver->vkMapMemory(device, mem, offset, size, 0, (void **)&ptr);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	return ptr;
 }
 
-void *VulkanDebugManager::GPUBuffer::Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize &bindoffset, VkDeviceSize usedsize)
+void *VulkanDebugManager::GPUBuffer::Map(VkDeviceSize &bindoffset, VkDeviceSize usedsize)
 {
 	uint32_t offs = 0;
 
-	void *ret = Map(vt, dev, &offs, usedsize);
+	void *ret = Map(&offs, usedsize);
 
 	bindoffset = offs;
 
 	return ret;
 }
 
-void VulkanDebugManager::GPUBuffer::Unmap(const VkLayerDispatchTable *vt, VkDevice dev)
+void VulkanDebugManager::GPUBuffer::Unmap()
 {
-	vt->UnmapMemory(Unwrap(dev), Unwrap(mem));
+	m_pDriver->vkUnmapMemory(device, mem);
 }
 
 struct VulkanBlobShaderCallbacks
@@ -343,8 +323,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	// if we failed to load from the cache
 	m_ShaderCacheDirty = !success;
-
-	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkResult vkr = VK_SUCCESS;
 
@@ -709,18 +687,18 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				m_TextAtlasUpload.Create(driver, dev, 32768, 1, 0); // doesn't need to be ring'd, as it's static
 				RDCCOMPILE_ASSERT(width*height <= 32768, "font uniform size");
 				
-				byte *pData = (byte *)m_TextAtlasUpload.Map(vt, dev, (uint32_t *)NULL);
+				byte *pData = (byte *)m_TextAtlasUpload.Map();
 				RDCASSERT(pData);
 
 				memcpy(pData, buf, width*height);
 				
-				m_TextAtlasUpload.Unmap(vt, dev);
+				m_TextAtlasUpload.Unmap();
 			}
 
 			m_TextGlyphUBO.Create(driver, dev, 4096, 1, 0); // doesn't need to be ring'd, as it's static
 			RDCCOMPILE_ASSERT(sizeof(Vec4f)*2*(numChars+1) < 4096, "font uniform size");
 
-			FontGlyphData *glyphData = (FontGlyphData *)m_TextGlyphUBO.Map(vt, dev, (uint32_t *)NULL);
+			FontGlyphData *glyphData = (FontGlyphData *)m_TextGlyphUBO.Map();
 
 			for(int i=0; i < numChars; i++)
 			{
@@ -733,14 +711,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				glyphData[i].uvdata = Vec4f(b->x0, b->y0, b->x1, b->y1);
 			}
 
-			m_TextGlyphUBO.Unmap(vt, dev);
+			m_TextGlyphUBO.Unmap();
 		}
 		
 		// perform GPU copy from m_TextAtlasUpload to m_TextAtlas with appropriate barriers
 		{
 			VkCommandBuffer textAtlasUploadCmd = driver->GetNextCmd();
 
-			vkr = vt->BeginCommandBuffer(Unwrap(textAtlasUploadCmd), &beginInfo);
+			vkr = ObjDisp(textAtlasUploadCmd)->BeginCommandBuffer(Unwrap(textAtlasUploadCmd), &beginInfo);
 			RDCASSERTEQUAL(vkr, VK_SUCCESS);
 			
 			// need to update image layout into valid state first
@@ -774,7 +752,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			};
 
 			// copy to image
-			vt->CmdCopyBufferToImage(Unwrap(textAtlasUploadCmd), Unwrap(m_TextAtlasUpload.buf), Unwrap(m_TextAtlas), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufRegion);
+			ObjDisp(textAtlasUploadCmd)->CmdCopyBufferToImage(Unwrap(textAtlasUploadCmd), Unwrap(m_TextAtlasUpload.buf), Unwrap(m_TextAtlas), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufRegion);
 
 			VkImageMemoryBarrier copydonebarrier = {
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -788,7 +766,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			// ensure atlas is filled before reading in shader
 			DoPipelineBarrier(textAtlasUploadCmd, 1, &copydonebarrier);
 
-			vt->EndCommandBuffer(Unwrap(textAtlasUploadCmd));
+			ObjDisp(textAtlasUploadCmd)->EndCommandBuffer(Unwrap(textAtlasUploadCmd));
 		}
 
 		m_TextGeneralUBO.FillDescriptor(bufInfo[0]);
@@ -823,7 +801,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 			},
 		};
 
-		vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(textSetWrites), textSetWrites, 0, NULL);
+		ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(textSetWrites), textSetWrites, 0, NULL);
 	
 		m_pDriver->vkDestroyRenderPass(dev, RGBA16RP, NULL);
 		m_pDriver->vkDestroyRenderPass(dev, RGBA32RP, NULL);
@@ -1379,7 +1357,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
 	VkCommandBuffer replayDataCmd = driver->GetNextCmd();
 
-	vkr = vt->BeginCommandBuffer(Unwrap(replayDataCmd), &beginInfo);
+	vkr = ObjDisp(replayDataCmd)->BeginCommandBuffer(Unwrap(replayDataCmd), &beginInfo);
 	RDCASSERTEQUAL(vkr, VK_SUCCESS);
 	
 	// create dummy images for filling out the texdisplay descriptors
@@ -1522,9 +1500,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_OverdrawRampUBO.Create(driver, dev, 2048, 1, 0); // no ring needed, fixed data
 	RDCCOMPILE_ASSERT(sizeof(overdrawRamp) <= 2048, "overdraw ramp uniforms size");
 
-	void *ramp = m_OverdrawRampUBO.Map(vt, dev, (uint32_t *)NULL);
+	void *ramp = m_OverdrawRampUBO.Map();
 	memcpy(ramp, overdrawRamp, sizeof(overdrawRamp));
-	m_OverdrawRampUBO.Unmap(vt, dev);
+	m_OverdrawRampUBO.Unmap();
 
 	// pick pixel data
 	{
@@ -1673,11 +1651,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	// doesn't need to be ring'd as it's immutable
 	m_MeshAxisFrustumVB.Create(driver, dev, sizeof(axisFrustum), 1, GPUBuffer::eGPUBufferVBuffer);
 
-	Vec4f *axisData = (Vec4f *)m_MeshAxisFrustumVB.Map(vt, dev, (uint32_t *)NULL);
+	Vec4f *axisData = (Vec4f *)m_MeshAxisFrustumVB.Map();
 
 	memcpy(axisData, axisFrustum, sizeof(axisFrustum));
 
-	m_MeshAxisFrustumVB.Unmap(vt, dev);
+	m_MeshAxisFrustumVB.Unmap();
 	
 	const uint32_t maxTexDim = 16384;
 	const uint32_t blockPixSize = HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK;
@@ -1694,7 +1672,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	// don't need to ring this, as we hard-sync for readback anyway
 	m_HistogramUBO.Create(driver, dev, sizeof(HistogramUBOData), 1, 0);
 
-	vt->EndCommandBuffer(Unwrap(replayDataCmd));
+	ObjDisp(replayDataCmd)->EndCommandBuffer(Unwrap(replayDataCmd));
 
 	// tex display descriptors are updated right before rendering,
 	// so we don't have to update them here
@@ -1727,14 +1705,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 		},
 	};
 
-	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(analysisSetWrites), analysisSetWrites, 0, NULL);
+	ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(analysisSetWrites), analysisSetWrites, 0, NULL);
 }
 
 VulkanDebugManager::~VulkanDebugManager()
 {
 	VkDevice dev = m_Device;
-	const VkLayerDispatchTable *vt = ObjDisp(dev);
-	
+
 	if(m_ShaderCacheDirty)
 	{
 		SaveShaderCache("vkshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache, ShaderCacheCallbacks);
@@ -1790,10 +1767,10 @@ VulkanDebugManager::~VulkanDebugManager()
 
 	m_pDriver->vkFreeMemory(dev, m_TexDisplayDummyMemory, NULL);
 
-	m_CheckerboardUBO.Destroy(vt, dev);
-	m_TexDisplayUBO.Destroy(vt, dev);
+	m_CheckerboardUBO.Destroy();
+	m_TexDisplayUBO.Destroy();
 
-	m_PickPixelReadbackBuffer.Destroy(vt, dev);
+	m_PickPixelReadbackBuffer.Destroy();
 
 	m_pDriver->vkDestroyFramebuffer(dev, m_PickPixelFB, NULL);
 	m_pDriver->vkDestroyRenderPass(dev, m_PickPixelRP, NULL);
@@ -1805,10 +1782,10 @@ VulkanDebugManager::~VulkanDebugManager()
 	m_pDriver->vkDestroyPipelineLayout(dev, m_TextPipeLayout, NULL);
 	m_pDriver->vkDestroyPipeline(dev, m_TextPipeline, NULL);
 
-	m_TextGeneralUBO.Destroy(vt, dev);
-	m_TextGlyphUBO.Destroy(vt, dev);
-	m_TextStringUBO.Destroy(vt, dev);
-	m_TextAtlasUpload.Destroy(vt, dev);
+	m_TextGeneralUBO.Destroy();
+	m_TextGlyphUBO.Destroy();
+	m_TextStringUBO.Destroy();
+	m_TextAtlasUpload.Destroy();
 
 	m_pDriver->vkDestroyImageView(dev, m_TextAtlasView, NULL);
 	m_pDriver->vkDestroyImage(dev, m_TextAtlas, NULL);
@@ -1817,15 +1794,15 @@ VulkanDebugManager::~VulkanDebugManager()
 	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_MeshDescSetLayout, NULL);
 	m_pDriver->vkDestroyPipelineLayout(dev, m_MeshPipeLayout, NULL);
 
-	m_MeshUBO.Destroy(vt, dev);
-	m_MeshBBoxVB.Destroy(vt, dev);
-	m_MeshAxisFrustumVB.Destroy(vt, dev);
+	m_MeshUBO.Destroy();
+	m_MeshBBoxVB.Destroy();
+	m_MeshAxisFrustumVB.Destroy();
 
 	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_OutlineDescSetLayout, NULL);
 	m_pDriver->vkDestroyPipelineLayout(dev, m_OutlinePipeLayout, NULL);
 	m_pDriver->vkDestroyPipeline(dev, m_OutlinePipeline, NULL);
 
-	m_OutlineUBO.Destroy(vt, dev);
+	m_OutlineUBO.Destroy();
 
 	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_HistogramDescSetLayout, NULL);
 	m_pDriver->vkDestroyPipelineLayout(dev, m_HistogramPipeLayout, NULL);
@@ -1841,16 +1818,16 @@ VulkanDebugManager::~VulkanDebugManager()
 		}
 	}
 
-	m_ReadbackWindow.Destroy(vt, dev);
+	m_ReadbackWindow.Destroy();
 
-	m_MinMaxTileResult.Destroy(vt, dev);
-	m_MinMaxResult.Destroy(vt, dev);
-	m_MinMaxReadback.Destroy(vt, dev);
-	m_HistogramBuf.Destroy(vt, dev);
-	m_HistogramReadback.Destroy(vt, dev);
-	m_HistogramUBO.Destroy(vt, dev);
+	m_MinMaxTileResult.Destroy();
+	m_MinMaxResult.Destroy();
+	m_MinMaxReadback.Destroy();
+	m_HistogramBuf.Destroy();
+	m_HistogramReadback.Destroy();
+	m_HistogramUBO.Destroy();
 
-	m_OverdrawRampUBO.Destroy(vt, dev);
+	m_OverdrawRampUBO.Destroy();
 
 	m_pDriver->vkDestroyDescriptorSetLayout(dev, m_MeshFetchDescSetLayout, NULL);
 	m_pDriver->vkDestroyFramebuffer(dev, m_OverlayNoDepthFB, NULL);
@@ -1866,8 +1843,6 @@ VulkanDebugManager::~VulkanDebugManager()
 
 void VulkanDebugManager::BeginText(const TextPrintState &textstate)
 {
-	const VkLayerDispatchTable *vt = ObjDisp(textstate.cmd);
-	
 	VkClearValue clearval = {};
 	VkRenderPassBeginInfo rpbegin = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
@@ -1875,12 +1850,12 @@ void VulkanDebugManager::BeginText(const TextPrintState &textstate)
 		{ { 0, 0, }, { textstate.w, textstate.h} },
 		1, &clearval,
 	};
-	vt->CmdBeginRenderPass(Unwrap(textstate.cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+	ObjDisp(textstate.cmd)->CmdBeginRenderPass(Unwrap(textstate.cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-	vt->CmdBindPipeline(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeline));
+	ObjDisp(textstate.cmd)->CmdBindPipeline(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeline));
 
 	VkViewport viewport = { 0.0f, 0.0f, (float)textstate.w, (float)textstate.h, 0.0f, 1.0f };
-	vt->CmdSetViewport(Unwrap(textstate.cmd), 0, 1, &viewport);
+	ObjDisp(textstate.cmd)->CmdSetViewport(Unwrap(textstate.cmd), 0, 1, &viewport);
 }
 
 void VulkanDebugManager::RenderText(const TextPrintState &textstate, float x, float y, const char *textfmt, ...)
@@ -1898,11 +1873,9 @@ void VulkanDebugManager::RenderText(const TextPrintState &textstate, float x, fl
 
 void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text)
 {
-	const VkLayerDispatchTable *vt = ObjDisp(textstate.cmd);
-	
 	uint32_t offsets[2] = { 0 };
 
-	FontUBOData *ubo = (FontUBOData *)m_TextGeneralUBO.Map(vt, m_Device, &offsets[0]);
+	FontUBOData *ubo = (FontUBOData *)m_TextGeneralUBO.Map(&offsets[0]);
 
 	ubo->TextPosition.x = x;
 	ubo->TextPosition.y = y;
@@ -1916,23 +1889,23 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 	ubo->CharacterSize.x = 1.0f/float(FONT_TEX_WIDTH);
 	ubo->CharacterSize.y = 1.0f/float(FONT_TEX_HEIGHT);
 
-	m_TextGeneralUBO.Unmap(vt, m_Device);
+	m_TextGeneralUBO.Unmap();
 
 	size_t len = strlen(text);
 	
 	RDCASSERT(len <= MAX_SINGLE_LINE_LENGTH);
 
 	// only map enough for our string
-	StringUBOData *stringData = (StringUBOData *)m_TextStringUBO.Map(vt, m_Device, &offsets[1], len*sizeof(Vec4u));
+	StringUBOData *stringData = (StringUBOData *)m_TextStringUBO.Map(&offsets[1], len*sizeof(Vec4u));
 
 	for(size_t i=0; i < strlen(text); i++)
 		stringData->chars[i].x = uint32_t(text[i] - ' ');
 
-	m_TextStringUBO.Unmap(vt, m_Device);
+	m_TextStringUBO.Unmap();
 	
-	vt->CmdBindDescriptorSets(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 2, offsets);
+	ObjDisp(textstate.cmd)->CmdBindDescriptorSets(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 2, offsets);
 
-	vt->CmdDraw(Unwrap(textstate.cmd), 4, (uint32_t)strlen(text), 0, 0);
+	ObjDisp(textstate.cmd)->CmdDraw(Unwrap(textstate.cmd), 4, (uint32_t)strlen(text), 0, 0);
 }
 
 void VulkanDebugManager::EndText(const TextPrintState &textstate)
@@ -2919,14 +2892,14 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
 			uint32_t uboOffs = 0;
 
-			OutlineUBOData *ubo = (OutlineUBOData *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
+			OutlineUBOData *ubo = (OutlineUBOData *)m_OutlineUBO.Map(&uboOffs);
 
 			ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
 			ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
 			ubo->Scissor = 0;
 			ubo->ViewRect = (Vec4f &)viewport;
 			
-			m_OutlineUBO.Unmap(vt, m_Device);
+			m_OutlineUBO.Unmap();
 				
 			vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_OutlinePipeline));
 			vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_OutlinePipeLayout),
@@ -2941,14 +2914,14 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 											(float)m_pDriver->m_RenderState.scissors[0].extent.width,
 											(float)m_pDriver->m_RenderState.scissors[0].extent.height);
 
-				ubo = (OutlineUBOData *)m_OutlineUBO.Map(vt, m_Device, &uboOffs);
+				ubo = (OutlineUBOData *)m_OutlineUBO.Map(&uboOffs);
 
 				ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
 				ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
 				ubo->Scissor = 1;
 				ubo->ViewRect = scissor;
 
-				m_OutlineUBO.Unmap(vt, m_Device);
+				m_OutlineUBO.Unmap();
 
 				viewport.x       = scissor.x;
 				viewport.y       = scissor.y;

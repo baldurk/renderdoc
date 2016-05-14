@@ -130,15 +130,15 @@ class VulkanDebugManager
 			GPUBuffer()
 				: sz(0), buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE)
 				, align(0), totalsize(0), curoffset(0)
-				, m_ResourceManager(NULL) {}
+				, m_pDriver(NULL), device(VK_NULL_HANDLE) {}
 			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize, uint32_t flags);
-			void Destroy(const VkLayerDispatchTable *vt, VkDevice dev);
+			void Destroy();
 
 			void FillDescriptor(VkDescriptorBufferInfo &desc);
 
-			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize &bindoffset, VkDeviceSize usedsize = 0);
-			void *Map(const VkLayerDispatchTable *vt, VkDevice dev, uint32_t *bindoffset = NULL, VkDeviceSize usedsize = 0);
-			void Unmap(const VkLayerDispatchTable *vt, VkDevice dev);
+			void *Map(VkDeviceSize &bindoffset, VkDeviceSize usedsize = 0);
+			void *Map(uint32_t *bindoffset = NULL, VkDeviceSize usedsize = 0);
+			void Unmap();
 
 			VkDeviceSize sz;
 			VkBuffer buf;
@@ -151,8 +151,8 @@ class VulkanDebugManager
 			VkDeviceSize totalsize;
 			VkDeviceSize curoffset;
 			
-			VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
-			VulkanResourceManager *m_ResourceManager;
+			WrappedVulkan *m_pDriver;
+			VkDevice device;
 		};
 
 		VkDescriptorPool m_DescriptorPool;
