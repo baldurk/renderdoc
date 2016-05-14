@@ -124,7 +124,7 @@ The two primary causes of differences between the captured program and the repla
 
 #. RenderDoc as an optimisation will not save or restore the contents of render targets at the start of the frame if it believes they will be entirely overwritten in the frame. This detection is typically accurate but means targets are cleared to black or full depth rather than accumulating, even if that accumulation is not intentional it may be the cause of the bug.
 
-    This behaviour can be overridden by enabling 'Save all initials' in the :doc:`capture options <capture_options>`.
+    This behaviour can be overridden by enabling 'Save all initials' in the :doc:`capture options <../how/how_capture_log>`.
 
 I can't launch my program for capture directly. Can I capture it anyway?
 ------------------------------------------------------------------------
@@ -149,7 +149,7 @@ I think I might be overwriting Map() boundaries, can I check this?
 
 Yes RenderDoc can be configured to insert a boundary marker at the end of the memory returned from a Map() call. If this marker gets overwritten during a captured frame then a message box will pop up alerting you, and clicking Yes will break into the program in the debugger so that you can investigate the callstack.
 
-To enable this behaviour, select the 'Verify Map() Writes' option when :doc:`capturing <capture>`.
+To enable this behaviour, select the 'Verify Map() Writes' option when :doc:`capturing <../window/capture_log_attach>`.
 
 RenderDoc is complaining about my OpenGL app in the overlay - what gives?
 -------------------------------------------------------------------------

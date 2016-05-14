@@ -69,7 +69,7 @@ There are various visualisation controls that allow you to select different chan
 
   E.g. if you select render target 0 then the texture display will update to show the currently bound render target 0 regardless of which texture that is. If the slot you are following becomes unbound or unused, the previous texture will still be displayed up until you select a different pipeline slot, or the slot is bound again. Unbound texture slots show up with _Unbound_ listed under their thumbnail.
 
-  To open a specific texture and watch it even as it changes slots or becomes unbound, you can open it in a new locked tab. Right click on the thumbnail and 'open in new locked tab', or :doc:`open it by name <how_view_texture>`.
+  To open a specific texture and watch it even as it changes slots or becomes unbound, you can open it in a new locked tab. Right click on the thumbnail and 'open in new locked tab', or :doc:`open it by name <../how/how_view_texture>`.
 
 * The format and dimensions of the texture are displayed on the status bar just below the texture display itself.
   Also on this status bar you can see the current pixel co-ordinate that you are hovering over, as well as the 'picked' pixel value which can be inspected by right clicking anywhere on the texture display.
@@ -124,7 +124,7 @@ The API Calls window updates as a new event is selected. It shows the individual
 At the bottom of the window is an optional expandable section which shows the callstack (if available and recorded) from the application code into the API function.
 
 
-In order to view these callstacks you must first resolve the symbols recorded with the log. To do this click on :kbd:`Resolve Symbols` under the :kbd:`Tools` menu. More details on this process can be found in the guide: :doc:`how_capture_callstack`.
+In order to view these callstacks you must first resolve the symbols recorded with the log. To do this click on :kbd:`Resolve Symbols` under the :kbd:`Tools` menu. More details on this process can be found in the guide: :doc:`../how/how_capture_callstack`.
 
 Timeline Bar
 ````````````
@@ -161,7 +161,7 @@ By default the pipeline will not contain empty or unused entries - i.e. if a sha
 
 The most important thing to note is that most things in the sections for each pipeline stage can be expanded to view in more detail. Look for the Go Icon (|go_arrow|) to indicate that a more detailed view is available. Typically this will mean for shaders the shader source/disassembly will be opened, for texture-type resources the texture viewer will open a new tab for that resource, and for buffers it will open either the Mesh Output window, a raw view of that buffer, or a popup with the constant contents - depending on where the buffer is bound.
 
-For more details, check out the how-to: :doc:`how_view_object`.
+For more details, check out the how-to: :doc:`../how/how_object_details`.
 
 Mesh Output
 ```````````

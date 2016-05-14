@@ -20,7 +20,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
 #. If you'd like to see the geometry data with each component separated out and formatted, either open "Mesh Output" under the window menu, or click the Go Arrow |go_arrow| on the input layouts in the :doc:`pipeline_state`.
 #. Right clicking on one of the channel buttons in the texture viewer (R, G, B, A) will either select only that channel, or if it's already the only one selected it will select all of the others. This is useful e.g. to toggle between viewing RGB and alpha, or for looking at individual channels in a packed texture or render target.
 #. Similarly, right-clicking on the 'auto-fit' button |wand| will auto-fit whenever the texture or event changes, so that the visible range is maintained as you move through the frame. This can be useful if jumping between places where the visible range is very different.
-#. You can double click on a thumbnail in the texture viewer to open a :doc:`locked texture <how_view_texture>` tab
+#. You can double click on a thumbnail in the texture viewer to open a :doc:`locked texture <../how/how_view_texture>` tab
 #. You can close tabs by middle clicking on them.
 #. You can trigger a capture from code. renderdoc.dll exports an :doc:`in_application_api` for this purpose, defined in ``renderdoc_app.h`` in the distributions:
 
@@ -65,7 +65,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
        #define GL_DEBUG_TOOL_EXT                 0x6789
        #define GL_DEBUG_TOOL_NAME_EXT            0x678A
        #define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B
-       
+
 #. RenderDoc can be informed about separated debug shader blobs through API specific ways:
 
    .. code:: c++
