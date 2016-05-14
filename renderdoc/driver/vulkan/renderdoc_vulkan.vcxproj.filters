@@ -88,6 +88,9 @@
     <ClCompile Include="vk_linux.cpp">
       <Filter>OS\Posix</Filter>
     </ClCompile>
+    <ClCompile Include="vk_tracelayer_android.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">
