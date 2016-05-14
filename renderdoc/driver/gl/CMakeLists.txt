@@ -35,7 +35,11 @@ set(sources
     wrappers/gl_texture_funcs.cpp
     wrappers/gl_uniform_funcs.cpp)
 
-if(UNIX)
+if(ANDROID)
+    list(APPEND sources
+        gl_replay_android.cpp
+        gl_hooks_android.cpp)
+elseif(UNIX)
     list(APPEND sources
         gl_replay_linux.cpp
         gl_hooks_linux.cpp)
