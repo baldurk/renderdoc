@@ -1538,72 +1538,79 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	// don't need to ring this, as we hard-sync for readback anyway
 	m_HistogramUBO.Create(driver, dev, sizeof(HistogramUBOData), 1, 0);
 
-	VkDescriptorBufferInfo bufInfo[7];
+	vt->EndCommandBuffer(Unwrap(replayDataCmd));
+
+	VkDescriptorBufferInfo bufInfo[4];
 	RDCEraseEl(bufInfo);
 	
 	// tex display is updated right before rendering
 	
-	m_CheckerboardUBO.FillDescriptor(bufInfo[0]);
-	m_TextGeneralUBO.FillDescriptor(bufInfo[1]);
-	m_TextGlyphUBO.FillDescriptor(bufInfo[2]);
-	m_TextStringUBO.FillDescriptor(bufInfo[3]);
-	m_MeshUBO.FillDescriptor(bufInfo[4]);
-	m_OutlineUBO.FillDescriptor(bufInfo[5]);
-	m_OverdrawRampUBO.FillDescriptor(bufInfo[6]);
+	m_TextGeneralUBO.FillDescriptor(bufInfo[0]);
+	m_TextGlyphUBO.FillDescriptor(bufInfo[1]);
+	m_TextStringUBO.FillDescriptor(bufInfo[2]);
 	
 	VkDescriptorImageInfo atlasImInfo;
 	atlasImInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	atlasImInfo.imageView = Unwrap(m_TextAtlasView);
-	atlasImInfo.sampler = Unwrap(m_LinearSampler);
-	
-	VkWriteDescriptorSet writeSet[] = {
+	atlasImInfo.sampler = Unwrap(m_LinearSampler);	
+
+	VkWriteDescriptorSet textSetWrites[] = {
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_CheckerboardDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			NULL, &bufInfo[0], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			Unwrap(m_TextDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			NULL, &bufInfo[1], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			NULL, &bufInfo[2], NULL
-		},
-		{
-			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-			NULL, &bufInfo[3], NULL
+			NULL, &bufInfo[2], NULL
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			&atlasImInfo, NULL, NULL
 		},
-		{
-			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_MeshDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-			NULL, &bufInfo[4], NULL
-		},
-		{
-			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_OutlineDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-			NULL, &bufInfo[5], NULL
-		},
-		{
-			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_QuadDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			NULL, &bufInfo[6], NULL
-		},
 	};
 
-	uint32_t writeCount = ARRAY_COUNT(writeSet);
-	if(m_State >= WRITING) writeCount--; // don't write to m_QuadDescSet when it's not allocated
-	vt->UpdateDescriptorSets(Unwrap(dev), writeCount, writeSet, 0, NULL);
+	vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(textSetWrites), textSetWrites, 0, NULL);
+	
+	if(m_State < WRITING)
+	{
+		m_CheckerboardUBO.FillDescriptor(bufInfo[0]);
+		m_MeshUBO.FillDescriptor(bufInfo[1]);
+		m_OutlineUBO.FillDescriptor(bufInfo[2]);
+		m_OverdrawRampUBO.FillDescriptor(bufInfo[3]);
+		
+		VkWriteDescriptorSet analysisSetWrites[] = {
+			{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+				Unwrap(m_CheckerboardDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+				NULL, &bufInfo[0], NULL
+			},
+			{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+				Unwrap(m_MeshDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+				NULL, &bufInfo[1], NULL
+			},
+			{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+				Unwrap(m_OutlineDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+				NULL, &bufInfo[2], NULL
+			},
+			{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+				Unwrap(m_QuadDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				NULL, &bufInfo[3], NULL
+			},
+		};
 
-	vt->EndCommandBuffer(Unwrap(replayDataCmd));
+		vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(analysisSetWrites), analysisSetWrites, 0, NULL);
+	}
 	
 	// perform GPU copy from m_TextAtlasUpload to m_TextAtlas with appropriate barriers
 	{
