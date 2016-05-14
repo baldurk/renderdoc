@@ -1364,7 +1364,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 				VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 				m_TextAtlasUpload.buf,
-				0, 32768,
+				0, m_TextAtlasUpload.totalsize,
 			};
 
 			// ensure host writes finish before copy
