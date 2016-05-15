@@ -44,6 +44,8 @@ namespace renderdocui.Controls
         {
             if (MouseWheelHandler != null)
                 MouseWheelHandler(this, e);
+
+            base.OnMouseWheel(e);
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
