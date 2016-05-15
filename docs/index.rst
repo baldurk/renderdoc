@@ -15,6 +15,7 @@ Contents:
    credits_acknowledgements
    getting_started/index
    behind_scenes/index
+   how/index
 
 Indices and tables
 ==================
