@@ -26,7 +26,7 @@ Current Windows+D3D11 Feature set
 * Timeline bar of the scene hierarchy.
 
     * Displays scene left-to-right in time, event hierarchy top-to-bottom.
-    * _Not_ scaled based on time of each drawcall
+    * *Not* scaled based on time of each drawcall
     * Individual draw events are shown as dots when the tree is full expanded.
     * The currently selected resource in the texture viewer is highlighted below individual drawcalls visible that use it - e.g. purple for 'used for write', green for 'used for read'
 
@@ -73,7 +73,7 @@ Most features are present and supported for both D3D11 and OpenGL, but some are 
 * Timeline bar of the scene hierarchy.
 
     * Displays scene left-to-right in time, event hierarchy top-to-bottom.
-    * _Not_ scaled based on time of each drawcall
+    * *Not* scaled based on time of each drawcall
     * Individual draw events are shown as dots when the tree is full expanded.
     * The currently selected resource in the texture viewer is highlighted below individual drawcalls visible that use it - e.g. purple for 'used for write', green for 'used for read'
 
@@ -118,7 +118,7 @@ As Vulkan is still in early support, some features are not yet supported. Featur
 * Timeline bar of the scene hierarchy.
 
     * Displays scene left-to-right in time, event hierarchy top-to-bottom.
-    * _Not_ scaled based on time of each drawcall
+    * *Not* scaled based on time of each drawcall
     * Individual draw events are shown as dots when the tree is full expanded.
     * The currently selected resource in the texture viewer is highlighted below individual drawcalls visible that use it - e.g. purple for 'used for write', green for 'used for read'
 

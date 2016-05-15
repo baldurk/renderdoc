@@ -24,7 +24,7 @@ How to browse this documentation
 If you just want to dive straight in and learn how to get started using RenderDoc consider looking at the :doc:`getting_started/quick_start` section which gives a simple introduction on how to get started. Afterwards there are reference pages on each of the windows available in RenderDoc which can be referred to as you use the program, or skimmed to get a feel for the functionality available.
 
 
-Those of you familiar with other graphics debuggers will likely find much of RenderDoc recognisable, you might want to check out the :doc:`getting_started/faq`, :doc:`getting_started/features`, :doc:`getting_started/tips_tricks` or browse the How Do I... ? sections which detail how some common tasks are accomplished.
+Those of you familiar with other graphics debuggers will likely find much of RenderDoc recognisable, you might want to check out the :doc:`getting_started/faq`, :doc:`getting_started/features`, :doc:`getting_started/tips_tricks` or browse the :doc:`how/index` sections which detail how some common tasks are accomplished.
 
 Regardless of your experience or patience for documentation it's recommended that you read the :doc:`getting_started/gotchas_known_issues` as this details known bugs and current limitations of the program.
 

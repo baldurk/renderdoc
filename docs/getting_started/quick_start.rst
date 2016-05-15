@@ -67,7 +67,7 @@ There are various visualisation controls that allow you to select different chan
 
 * The thumbnail strip (by default to the right) lists either the output targets, or shader inputs bound and used at present. Selecting each of these (the red outline on the thumbnail indicating which is selected) will follow whatever resource is bound to that slot as you browse through the scene.
 
-  E.g. if you select render target 0 then the texture display will update to show the currently bound render target 0 regardless of which texture that is. If the slot you are following becomes unbound or unused, the previous texture will still be displayed up until you select a different pipeline slot, or the slot is bound again. Unbound texture slots show up with _Unbound_ listed under their thumbnail.
+  E.g. if you select render target 0 then the texture display will update to show the currently bound render target 0 regardless of which texture that is. If the slot you are following becomes unbound or unused, the previous texture will still be displayed up until you select a different pipeline slot, or the slot is bound again. Unbound texture slots show up with *Unbound* listed under their thumbnail.
 
   To open a specific texture and watch it even as it changes slots or becomes unbound, you can open it in a new locked tab. Right click on the thumbnail and 'open in new locked tab', or :doc:`open it by name <../how/how_view_texture>`.
 

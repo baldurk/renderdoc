@@ -6,7 +6,7 @@ Tips & Tricks
 
 This page is a random hodge-podge of different tips and tricks that might not be obvious and aren't practical to make clear in the UI - e.g. keyboard shortcuts, edge cases and suchlike.
 
-#. File associations for .rdc and .cap files can be set up in the installer or in the :doc:`../window/option_window`. These allow automatic opening of capture logs or capture settings files directly from files.
+#. File associations for .rdc and .cap files can be set up in the installer or in the :doc:`../window/options_window`. These allow automatic opening of capture logs or capture settings files directly from files.
 
    .. note::
 
