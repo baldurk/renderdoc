@@ -112,13 +112,13 @@ Overview
 
 .. cpp:enum:: RENDERDOC_InputButton
 
-.. cpp:enumerator:: RENDERDOC_InputButton::eRENDERDOC_Key_0..eRENDERDOC_Key_9
+.. cpp:enumerator:: RENDERDOC_InputButton::eRENDERDOC_Key_0
 
-    are the number keys. The values of these match ASCII for '0' .. '9'.
+    ``eRENDERDOC_Key_0`` to ``eRENDERDOC_Key_9`` are the number keys. The values of these match ASCII for '0' .. '9'.
 
-.. cpp:enumerator:: RENDERDOC_InputButton::eRENDERDOC_Key_A..eRENDERDOC_Key_Z
+.. cpp:enumerator:: RENDERDOC_InputButton::eRENDERDOC_Key_A
 
-    are the letter keys. The values of these match ASCII for 'A' .. 'Z'.
+    ``eRENDERDOC_Key_A`` to ``eRENDERDOC_Key_Z`` are the letter keys. The values of these match ASCII for 'A' .. 'Z'.
 
 
 .. cpp:enumerator:: RENDERDOC_InputButton::eRENDERDOC_Key_Divide
@@ -139,7 +139,7 @@ Overview
 
 .. cpp:enumerator:: RENDERDOC_InputButton::eRENDERDOC_Key_F1
 
-    . eRENDERDOC_Key_F12` are the function keys.
+    ``eRENDERDOC_Key_F1`` to ``eRENDERDOC_Key_F12`` are the function keys.
 
 .. cpp:enumerator:: RENDERDOC_InputButton::eRENDERDOC_Key_Home
 
