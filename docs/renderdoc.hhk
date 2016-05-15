@@ -1,0 +1,246 @@
+<UL>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="EndFrameCapture (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv215EndFrameCapture23RENDERDOC_DevicePointer22RENDERDOC_WindowHandle">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="GetAPIVersion (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv213GetAPIVersionPiPiPi">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="GetCapture (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv210GetCapture8uint32_tPcP8uint32_tP8uint64_t">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="GetCaptureOptionF32 (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv219GetCaptureOptionF3223RENDERDOC_CaptureOption">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="GetCaptureOptionU32 (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv219GetCaptureOptionU3223RENDERDOC_CaptureOption">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="GetLogFilePathTemplate (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv222GetLogFilePathTemplatev">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="GetNumCaptures (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv214GetNumCapturesv">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="GetOverlayBits (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv214GetOverlayBitsv">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="IsFrameCapturing (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv216IsFrameCapturingv">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="IsRemoteAccessConnected (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv223IsRemoteAccessConnectedv">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="LaunchReplayUI (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv214LaunchReplayUI8uint32_tPKc">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="MaskOverlayBits (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv215MaskOverlayBits8uint32_t8uint32_t">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption (C++ enum)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv223RENDERDOC_CaptureOption">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_AllowFullscreen (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption33eRENDERDOC_Option_AllowFullscreenE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_AllowVSync (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption28eRENDERDOC_Option_AllowVSyncE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_CaptureAllCmdLists (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption36eRENDERDOC_Option_CaptureAllCmdListsE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_CaptureCallstacks (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption35eRENDERDOC_Option_CaptureCallstacksE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_CaptureCallstacksOnlyDraws (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption44eRENDERDOC_Option_CaptureCallstacksOnlyDrawsE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_DebugDeviceMode (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption33eRENDERDOC_Option_DebugDeviceModeE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_DebugOutputMute (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption33eRENDERDOC_Option_DebugOutputMuteE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_DelayForDebugger (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption34eRENDERDOC_Option_DelayForDebuggerE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_HookIntoChildren (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption34eRENDERDOC_Option_HookIntoChildrenE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_RefAllResources (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption33eRENDERDOC_Option_RefAllResourcesE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_SaveAllInitials (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption33eRENDERDOC_Option_SaveAllInitialsE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_CaptureOption::eRENDERDOC_Option_VerifyMapWrites (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N23RENDERDOC_CaptureOption33eRENDERDOC_Option_VerifyMapWritesE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton (C++ enum)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv221RENDERDOC_InputButton">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_0 (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton16eRENDERDOC_Key_0E">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_A (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton16eRENDERDOC_Key_AE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_Backspace (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton24eRENDERDOC_Key_BackspaceE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_Delete (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton21eRENDERDOC_Key_DeleteE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_Divide (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton21eRENDERDOC_Key_DivideE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_End (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton18eRENDERDOC_Key_EndE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_F1 (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton17eRENDERDOC_Key_F1E">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_Home (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton19eRENDERDOC_Key_HomeE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_Insert (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton21eRENDERDOC_Key_InsertE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_Multiply (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton23eRENDERDOC_Key_MultiplyE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_PageDn (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton21eRENDERDOC_Key_PageDnE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_PageUp (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton21eRENDERDOC_Key_PageUpE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_Pause (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton20eRENDERDOC_Key_PauseE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_Plus (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton19eRENDERDOC_Key_PlusE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_PrtScrn (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton22eRENDERDOC_Key_PrtScrnE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_Subtract (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton23eRENDERDOC_Key_SubtractE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_InputButton::eRENDERDOC_Key_Tab (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_InputButton18eRENDERDOC_Key_TabE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_OverlayBits (C++ enum)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv221RENDERDOC_OverlayBits">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_OverlayBits::eRENDERDOC_Overlay_All (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_OverlayBits22eRENDERDOC_Overlay_AllE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_OverlayBits::eRENDERDOC_Overlay_CaptureList (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_OverlayBits30eRENDERDOC_Overlay_CaptureListE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_OverlayBits::eRENDERDOC_Overlay_Default (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_OverlayBits26eRENDERDOC_Overlay_DefaultE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_OverlayBits::eRENDERDOC_Overlay_Enabled (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_OverlayBits26eRENDERDOC_Overlay_EnabledE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_OverlayBits::eRENDERDOC_Overlay_FrameNumber (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_OverlayBits30eRENDERDOC_Overlay_FrameNumberE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_OverlayBits::eRENDERDOC_Overlay_FrameRate (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_OverlayBits28eRENDERDOC_Overlay_FrameRateE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="RENDERDOC_OverlayBits::eRENDERDOC_Overlay_None (C++ enumerator)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv2N21RENDERDOC_OverlayBits23eRENDERDOC_Overlay_NoneE">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="SetActiveWindow (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv215SetActiveWindow23RENDERDOC_DevicePointer22RENDERDOC_WindowHandle">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="SetCaptureKeys (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv214SetCaptureKeysP21RENDERDOC_InputButtoni">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="SetCaptureOptionF32 (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv219SetCaptureOptionF3223RENDERDOC_CaptureOptionf">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="SetCaptureOptionU32 (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv219SetCaptureOptionU3223RENDERDOC_CaptureOption8uint32_t">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="SetFocusToggleKeys (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv218SetFocusToggleKeysP21RENDERDOC_InputButtoni">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="SetLogFilePathTemplate (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv222SetLogFilePathTemplatePKc">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="Shutdown (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv28Shutdownv">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="StartFrameCapture (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv217StartFrameCapture23RENDERDOC_DevicePointer22RENDERDOC_WindowHandle">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="TriggerCapture (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv214TriggerCapturev">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+    <param name="Keyword" value="UnloadCrashHandler (C++ function)">
+    <param name="Local" value="getting_started/in_application_api.html#_CPPv218UnloadCrashHandlerv">
+</OBJECT>
+</UL>
