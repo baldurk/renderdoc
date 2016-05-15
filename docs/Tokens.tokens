@@ -1,8 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<content xml:space="preserve" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <item id="Baldur Contact"><ddue:externalLink xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5">
-   <ddue:linkText>Contact me</ddue:linkText>
-   <ddue:linkAlternateText>RenderDoc developer - Baldur Karlsson</ddue:linkAlternateText>
-   <ddue:linkUri>mailto:baldurk@baldurk.org?subject=RenderDoc%20feedback</ddue:linkUri>
-   </ddue:externalLink></item>
-</content>
