@@ -8,7 +8,7 @@ Mesh Viewer
 
 The Mesh Viewer shows both the mesh data as well as a visual representation of the mesh at different stages - pre VS, post VS, etc. For instanced drawcalls you can choose which instance to view in the toolbar at the top.
 
-.. |arrow_join| image:: ../images/arrow_join.png
+.. |arrow_join| image:: ../imgs/icons/arrow_join.png
 
 Each distinct point has a display that shows the mesh data, the format of which is pulled from the relevant stage of the pipeline - shader input or output, or input layout. You can choose to sync these views |arrow_join| as well as specify an offset which will stay consistent, so that you can see the same row as you move between different events.
 
@@ -18,11 +18,11 @@ Below this is a 3D view which will show one stage at any given time, and can be 
 
 	When tessellation is active, VS out behaves similarly to VS in as they are both considered input data (rather than post-transform data).
 
-.. |arrow_undo| image:: ../images/arrow_undo.png
+.. |arrow_undo| image:: ../imgs/icons/arrow_undo.png
 
 You can reset the camera to its default location with the reset button |arrow_undo|. For VS Input this resets to an arcball at some radius from the object. For VS Output this resets to a view from the projected eye.
 
-.. |wand| image:: ../images/wand.png
+.. |wand| image:: ../imgs/icons/wand.png
 
 You can also auto-fit the camera to the mesh for the VS Input mesh. The auto-fit button |wand| will fit the camera to the axis-aligned bounding box of the mesh.
 
@@ -30,11 +30,11 @@ To be able to view the post-transform mesh in view-space, RenderDoc attempts to 
 
 By default the projection matrix is guessed as a standard perspective matrix. Using the post-projection w and z values and the aspect ratio of the output targets a reasonable approximation can be estimated. The FOV must be specified though - the default is 90 but this can be refined by opening the options.
 
-.. |cog| image:: ../images/cog.png
+.. |cog| image:: ../imgs/icons/cog.png
 
 Opening the options |cog| you can specify the FOV used in the projection matrix. If you used an orthographic matrix instead you can specify this - although this requires manual tuning of the matrix parameters.
 
-.. figure:: ../images/BufferOptions.png
+.. figure:: ../imgs/Screenshots/BufferOptions.png
 
 	Options: The options pop-out of the buffer viewer.
 
@@ -55,7 +55,7 @@ The selection will be remembered as long as the mesh format stays consistent bet
 
 You can also use this if the position data isn't detected in your inputs and you'd like to choose which element contains the positions, or if you'd like to visualise some other data such as UV co-ordinates as positional (in effect rendering the mesh in uv-space).
 
-.. figure:: ../images/SolidPreview.png
+.. figure:: ../imgs/Screenshots/SolidPreview.png
 
 	Preview: Previewing the uv co-ordinates as colour on the mesh.
 
@@ -68,7 +68,7 @@ This format can be refined and customised by entering a structure-like definitio
 
 In addition to this, you can specify a row offset which is useful in remaining at the same row while watching the change in a buffer between different events, as well as a byte offset to shift the data along from the start of the buffer (e.g. if what you are interested in starts only part-way through the buffer but is not aligned along the data stride you enter).
 
-.. figure:: ../images/RawBuffer.png
+.. figure:: ../imgs/Screenshots/RawBuffer.png
 
 	Buffer specification: Specifying a custom buffer format.
 

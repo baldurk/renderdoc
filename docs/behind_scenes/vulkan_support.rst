@@ -18,7 +18,7 @@ The one requirement of this however is that the layer does need to be registered
 Usually this will happen for you if you install RenderDoc with a proper installer, or update from a previous version. However if you are compiling RenderDoc yourself or running a loose unzipped build, the capture panel will show a warning indicating that the layers need to be registered. Just click this and the registration will be applied.
 
 
-.. figure:: ../images/LayerRegistration.png
+.. figure:: ../imgs/Screenshots/LayerRegistration.png
 
     Vulkan Layer Registration
 

@@ -21,7 +21,7 @@ Launching Capture
 
 When launching a capture (as in :doc:`how_capture_log`) you should enable 'collect callstacks'. This will set RenderDoc to collect callstacks at every API entry point that will be serialised into the log.
 
-.. figure:: ../images/Callstacks.png
+.. figure:: ../imgs/Screenshots/Callstacks.png
 
 	Collect Callstacks: Option enabled on the capture dialog.
 
@@ -32,7 +32,7 @@ Replaying the capture
 
 When the capture is loaded in RenderDoc the callstacks will be available in the API inspector. The bottom section of the dialog is a panel that can be expanded to show the callstack. Initially this section will indicate that symbols need to be resolved.
 
-.. figure:: ../images/NeedResolve.png
+.. figure:: ../imgs/Screenshots/NeedResolve.png
 
 	Callstack section: The callstack section expanded in API inspector.
 
@@ -42,7 +42,7 @@ The resolving symbols process may take some time the first few instances you use
 
 By default a symbol server will be used, as well as a few default locations such as the location indicated in the PE metadata (i.e. the original build location). If a pdb cannot be found you will be prompted for the location of the pdb, and this new location will then be remembered for subsequent pdbs.
 
-.. figure:: ../images/NeedPDB.png
+.. figure:: ../imgs/Screenshots/NeedPDB.png
 
 	PDB locate prompt: Prompt to locate a PDB that cannot be found.
 

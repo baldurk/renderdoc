@@ -17,7 +17,7 @@ When a vertex is selected in the mesh data for the vertex input it will be highl
 
 Either right click and choose debug vertex from the context menu, or click on the debug icon in the toolbar.
 
-.. figure:: ../images/VertexDebug.png
+.. figure:: ../imgs/Screenshots/VertexDebug.png
 
 	Vertex Debugging: Launching vertex debugging from the mesh viewer.
 
@@ -55,12 +55,12 @@ Debugging Controls
 
 When debugging, at the moment the controls are fairly basic.
 
-.. figure:: ../images/ShaderControls.png
+.. figure:: ../imgs/Screenshots/ShaderControls.png
 
 	Shader controls: Controls for stepping through shaders.
 
-.. |runfwd| image:: ../images/runfwd.png
-.. |runback| image:: ../images/runback.png
+.. |runfwd| image:: ../imgs/icons/runfwd.png
+.. |runback| image:: ../imgs/icons/runback.png
 
 The toolbar at the top gives controls for the program flow through the shader. |runfwd| Run and |runback| Run Backward simply run from the current position all the way through to the end or start of the program respectively.
 
@@ -68,14 +68,14 @@ The keyboard shortcuts for these controls are :kbd:`F5` and :kbd:`Shift-F5` resp
 
 You can set a breakpoint by pressing F9 (this will also remove a breakpoint that is already there). When running in each direction or to cursor (see below) if execution hits a breakpoint it will stop.
 
-.. |stepnext| image:: ../images/stepnext.png
-.. |stepprev| image:: ../images/stepprev.png
+.. |stepnext| image:: ../imgs/icons/stepnext.png
+.. |stepprev| image:: ../imgs/icons/stepprev.png
 
 The other controls allow for single stepping and limited running. |stepnext| Step forward will execute the current instruction and continue to the next - this includes following any flow control statements such as jumps, loops, etc.
 
 |stepprev| Step backwards will jump back to whichever instruction lead to the current instruction. This does not necessarily mean the previous instruction in the program as it could be the destination of a jump. Stepping forwards and stepping backwards will always reverse each other. The shortcuts for these commands are :kbd:`F10` and :kbd:`Shift-F10`
 
-.. |runcursor| image:: ../images/runcursor.png
+.. |runcursor| image:: ../imgs/icons/runcursor.png
 
 The final control is to |runcursor| Run to the cursor. This will perform in a similar fashion to the "Run" command, but when it reaches the line that the cursor highlights it will stop and pause execution. It will also stop if it reaches the end of the shader.
 
@@ -96,13 +96,13 @@ Currently there is only a very basic display when debugging shaders.
 
 There are two windows that display different types of registers. The constants window will display input and constant buffer registers that are immutable throughout execution. This will also list registers for resources and samplers (with basic format information).
 
-.. figure:: ../images/ShaderConsts.png
+.. figure:: ../imgs/Screenshots/ShaderConsts.png
 
 	Constants window: Constant, input and resource registers.
 
 The other window will contain variable/mutable registers. These contain temporaries that are typically allocated up front and will update as you step through the execution of the shader. This window also contains the output registers.
 
-.. figure:: ../images/ShaderRegs.png
+.. figure:: ../imgs/Screenshots/ShaderRegs.png
 
 	Variable window: Variable registers - temporaries and outputs.
 
@@ -112,6 +112,6 @@ Swizzles follow the standard hlsl rules - .[xyzw] or .[rgba] in any permutation 
 
 The custom typecast can be any of ,x ,i ,d ,f ,u ,b to display the register as hex, signed integer, double, float, unsigned, or bitwise respectively.
 
-.. figure:: ../images/ShaderWatch.png
+.. figure:: ../imgs/Screenshots/ShaderWatch.png
 
 	Watch window: Watch window - custom register expressions evaluated.

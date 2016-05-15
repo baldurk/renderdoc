@@ -12,7 +12,7 @@ Capturing a log
 
 To capture a log, begin by opening the File menu and selecting Capture Log. By default this will open a new docked window where you can configure different settings that will be used when capturing.
 
-.. figure:: ../images/QuickStart1.png
+.. figure:: ../imgs/QuickStart/QuickStart1.png
 
     Capturing a Log
 
@@ -35,7 +35,7 @@ RenderDoc has a fairly minimal in-app overlay, just to indicate that RenderDoc h
 
 When ready, press the Capture Key (:kbd:`F12` or	:kbd:`Print Screen`) and the next frame after the keypress will be captured, and this will show up on the overlay to let you know that a frame has been successfully saved.
 
-.. figure:: ../images/QuickStart2.png
+.. figure:: ../imgs/QuickStart/QuickStart2.png
 
     The in-application RenderDoc Overlay
 
@@ -52,7 +52,7 @@ RenderDoc's layout can be customised fairly heavily so this section will only co
 
 Each of these windows has a section that is much more in depth and gives details about every function and feature, for the more complex windows such as the texture viewer you may well wish to skim these to get an idea of what is available and use them as reference in the future.
 
-.. figure:: ../images/QuickStart3.png
+.. figure:: ../imgs/QuickStart/QuickStart3.png
 
     The Texture Viewer
 
@@ -83,13 +83,13 @@ There are various visualisation controls that allow you to select different chan
 Event Browser
 `````````````
 
-.. figure:: ../images/QuickStart4.png
+.. figure:: ../imgs/QuickStart/QuickStart4.png
 
     The Event Browser
 
 More details can be found on the :doc:`../window/event_browser` page.
 
-.. |timeline_marker| image:: ../images/timeline_marker.png
+.. |timeline_marker| image:: ../imgs/icons/timeline_marker.png
 
 The Event Browser is the primary method of stepping through the frame and browsing the events that occurred within. The first column EID (Event ID) indicates which event or API call this was in the frame, chronologically. Events which are listed here are generally output/draw type events, including Clears. Copy and Map type calls are not included and are available in the API Calls view (see below).
 
@@ -97,9 +97,9 @@ The columns can be customised and reordered, the |timeline_marker| select column
 
 Standard performance markers are available and create the hierarchy/labels as you would expect. These can be expanded or collapsed and keyboard browsing is available through normal controls - left and right go higher or lower in the hierarchy, and up and down goes up and down through siblings.
 
-.. |flag_green| image:: ../images/flag_green.png
-.. |find| image:: ../images/find.png
-.. |asterisk_orange| image:: ../images/asterisk_orange.png
+.. |flag_green| image:: ../imgs/icons/flag_green.png
+.. |find| image:: ../imgs/icons/find.png
+.. |asterisk_orange| image:: ../imgs/icons/asterisk_orange.png
 
 The 'current' event - i.e. the event at which we are inspecting the graphics state - is highlighted with a green Flag |flag_green| and the row is highlighted. As any row is selected it immediately becomes the new current event.
 
@@ -113,7 +113,7 @@ A list of bookmarked events will show up on a toolbar at the top of the event br
 API Inspector
 `````````````
 
-.. figure:: ../images/QuickStart5.png
+.. figure:: ../imgs/QuickStart/QuickStart5.png
 
     The API Calls + Callstack Panel
 
@@ -129,7 +129,7 @@ In order to view these callstacks you must first resolve the symbols recorded wi
 Timeline Bar
 ````````````
 
-.. figure:: ../images/QuickStart6.png
+.. figure:: ../imgs/QuickStart/QuickStart6.png
 
     The Timeline Bar
 
@@ -146,7 +146,7 @@ This can be a very useful tool to trace data through a frame, as well as highlig
 Pipeline State
 ``````````````
 
-.. figure:: ../images/QuickStart7.png
+.. figure:: ../imgs/QuickStart/QuickStart7.png
 
     The Pipeline State Viewer
 
@@ -155,7 +155,7 @@ More details can be found on the :doc:`../window/pipeline_state` page.
 
 The Pipeline State window is perhaps the most detailed but also the simplest to understand. This window simply lists every stateful aspect of the graphics pipeline and what value or object is present at the current event.
 
-.. |go_arrow| image:: ../images/GoArrow.png
+.. |go_arrow| image:: ../imgs/icons/GoArrow.png
 
 By default the pipeline will not contain empty or unused entries - i.e. if a shader only reads from resources 0 and 1, even if something is bound to slot 2 it will not be displayed. Likewise say slots 3-128 are empty - they will also not be displayed. This behaviour can be modified by the :guilabel:`Show Disabled Items` and :guilabel:`Show Empty Items` toggles on the toolbar. Show Disabled will show slot 2 even if the shader does not read from it. Show Empty will show slots 3-128.
 
@@ -166,14 +166,14 @@ For more details, check out the how-to: :doc:`../how/how_object_details`.
 Mesh Output
 ```````````
 
-.. figure:: ../images/QuickStart8.png
+.. figure:: ../imgs/QuickStart/QuickStart8.png
 
     Mesh Output Viewer
 
 More details can be found on the :doc:`../window/buffer_viewer` page.
 
-.. |undo_arrow| image:: ../images/UndoArrow.png
-.. |cog| image:: ../images/cog.png
+.. |undo_arrow| image:: ../imgs/icons/UndoArrow.png
+.. |cog| image:: ../imgs/icons/cog.png
 
 Mesh Output allows you to inspect the geometry data as it passes through the pipeline. Both raw data in a grid view and 3D inspection is possible. The tabs in the preview window allow you to choose at which part of the pipeline you'd like to visualise the data.
 

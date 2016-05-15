@@ -17,6 +17,6 @@ This window is fairly simple. Each message retrieved from the api will be listed
 
 Double clicking on any row will take you to the corresponding event ID in the event browser.
 
-.. figure:: ../images/DebugMessages.png
+.. figure:: ../imgs/Screenshots/DebugMessages.png
 
 	Debug Messages: The Debug Messages window showing some API messages.

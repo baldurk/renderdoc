@@ -6,7 +6,7 @@
 RenderDoc
 =========
 
-.. |renderdoc_logo| image:: images/logo.png
+.. |renderdoc_logo| image:: imgs/logo.png
 
 |renderdoc_logo|
 

@@ -12,7 +12,7 @@ Opening the capture window from the menus via File -> Capture Log, the typical c
 
 By default the working directory remains empty and defaults to the directory that contains the executable location.
 
-.. figure:: ../images/CapturePathCmdline.png
+.. figure:: ../imgs/Screenshots/CapturePathCmdline.png
 
 	Capturing: Capturing a logfile specifying its executable path and command line.
 
@@ -29,7 +29,7 @@ It is possible to inject to an already running process. By selecting the "Inject
 
 This can be useful if launching your application from a single exe is non-trivial and it's easier to inject into the process after it has been launched.
 
-.. figure:: ../images/Injecting.png
+.. figure:: ../imgs/Screenshots/Injecting.png
 
 	Injecting to a selected existing process.
 

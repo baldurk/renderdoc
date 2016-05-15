@@ -29,7 +29,7 @@ Selecting available columns
 
 By default, the columns in the event browser are EID and Name. Name cannot be removed as it contains the tree, but otherwise the columns can be customised both to hide/display or reorder and resize.
 
-.. |timeline_marker| image:: ../images/timeline_marker.png
+.. |timeline_marker| image:: ../imgs/icons/timeline_marker.png
 
 To select which columns should be visible, right click the header or click the |timeline_marker| select columns button.
 
@@ -43,7 +43,7 @@ To rearrange the columns simply click and drag on the header.
 Timing drawcalls
 ----------------
 
-.. |time| image:: ../images/time.png
+.. |time| image:: ../imgs/icons/time.png
 
 To time the GPU duration of each drawcall, click the timer button |time|.
 
@@ -57,11 +57,11 @@ Browsing the frame
 
 The event browser is primarily intended as a tool to browse through the frame. Events are listed as entries in the browser and the hierarchical labels mentioned above become tree nodes.
 
-.. |flag_green| image:: ../images/flag_green.png
+.. |flag_green| image:: ../imgs/icons/flag_green.png
 
 The currently selected event is highlighted and indicated with a green flag |flag_green|. This is the event that RenderDoc is inspecting and is reflected in all the other windows of the UI.
 
-.. figure:: ../images/QuickStart4.png
+.. figure:: ../imgs/QuickStart/QuickStart4.png
 
 	Current Event: The Event browser showing several sections and the current event.
 
@@ -80,11 +80,11 @@ The left and right arrows go into and out of hierarchy levels. When within a lev
 Bookmarks
 ---------
 
-.. |asterisk_orange| image:: ../images/asterisk_orange.png
+.. |asterisk_orange| image:: ../imgs/icons/asterisk_orange.png
 
 The |asterisk_orange| bookmark button will allow you to bookmark an event, the shortcut key is :kbd:`CTRL-B`.
 
-.. figure:: ../images/BookmarksBar.png
+.. figure:: ../imgs/Screenshots/BookmarksBar.png
 
 	Bookmarks bar: The bookmarks bar with several EIDs bookmarks.
 
@@ -95,7 +95,7 @@ Searching and Jumping
 
 There are two other controls available in the Event Browser to aid in navigating the frame.
 
-.. |find| image:: ../images/find.png
+.. |find| image:: ../imgs/icons/find.png
 
 Pressing :kbd:`Ctrl-F` will open the find-event toolbar |find|. This toolbar allows you to type in a partial text filter that will be matched against both labels and drawcall events. The find will be executed when you press enter, although you can then adjust the text and re-search if you wish.
 
@@ -103,17 +103,17 @@ If the event found lies inside an unexpanded section, the sections will be expan
 
 Matching events will be highlighted with a find icon |find|, and pressing enter repeatedly will jump between matching events.
 
-.. |cross| image:: ../images/cross.png
+.. |cross| image:: ../imgs/icons/cross.png
 
 The find toolbar isn't dismissed until you press escape in the text box, or click the close button |cross|.
 
-.. |stepprev| image:: ../images/stepprev.png
-.. |stepnext| image:: ../images/stepnext.png
+.. |stepprev| image:: ../imgs/icons/stepprev.png
+.. |stepnext| image:: ../imgs/icons/stepnext.png
 
 
 You can also jump up and down between find results with the previous |stepprev| and next |stepnext| buttons.
 
-.. figure:: ../images/FindResults.png
+.. figure:: ../imgs/Screenshots/FindResults.png
 
 	Highlighted Results: The results of a find are highlighted with an icon.
 
@@ -121,6 +121,6 @@ Pressing :kbd:`Ctrl-G` will open the jump to EID toolbar. This allows you to typ
 
 When you hit enter to jump to an EID, the toolbar closes and if you wish to jump again you must press :kbd:`Ctrl-G` again
 
-.. figure:: ../images/JumpEID.png
+.. figure:: ../imgs/Screenshots/JumpEID.png
 
 	Jumping around: The jump-to-EID toolbar prompting for an event.

@@ -21,6 +21,6 @@ Examples are:
 
 So while not particularly friendly to discovery, you can use this to perform an automated iteration over e.g. all events or all textures for something of interest.
 
-.. figure:: ../images/pythonshell.png
+.. figure:: ../imgs/Screenshots/pythonshell.png
 
 	Python Shell: A simple script that looks at textures and their use in a log.

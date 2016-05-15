@@ -20,7 +20,7 @@ This section lists the series of API calls made between the preceding drawcall a
 
 Each API call can be expanded to see the parameters that were passed to it, in the form that they were serialised out to the log file.
 
-.. figure:: ../images/APIList.png
+.. figure:: ../imgs/Screenshots/APIList.png
 
 	API Calls: A list of API calls made up to the current draw.
 
@@ -35,6 +35,6 @@ The callstack follows the currently selected API call in the other section, and 
 
 For more information see :doc:`../how/how_capture_callstack`
 
-.. figure:: ../images/CallstackPanel.png
+.. figure:: ../imgs/Screenshots/CallstackPanel.png
 
 	Callstack: The callstack in user code where this API call was made.

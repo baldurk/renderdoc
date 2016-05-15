@@ -12,7 +12,7 @@ Each block is a separate page which contains the relevant state and contents for
 
 The currently selected block is outlined with red, and the page in view reflects the contents of that section of the pipeline. Light grey parts of the pipeline are those which are currently active and participating in this drawcall. Dark grey parts of the pipeline are not present and can be considered pass-through/do-nothing.
 
-.. figure:: ../images/PipelineBar.png
+.. figure:: ../imgs/Screenshots/PipelineBar.png
 
 	Pipeline: Pictured here, the high-level parts of the D3D11 Pipeline.
 
@@ -27,8 +27,8 @@ The pipeline state viewer always displays the state of the pipeline after the ex
 
 Any resources that are bound to the pipeline can be opened in more detailed viewers, such as vertex buffers, constant buffers and textures. More details of this process can be found in the page :doc:`../how/how_object_details`.
 
-.. |page_white_delete| image:: ../images/page_white_delete.png
-.. |page_white_database| image:: ../images/page_white_database.png
+.. |page_white_delete| image:: ../imgs/icons/page_white_delete.png
+.. |page_white_database| image:: ../imgs/icons/page_white_database.png
 
 The pipeline view attempts to only show what is relevant, and not all possible stateful data. To do this (when available) it uses shader reflection data to only display slots which are actually in use by the shaders, and omit any that are unused. This can be overridden with the Show Disabled Items |page_white_delete| button.
 
@@ -38,7 +38,7 @@ In some cases whole sections will be omitted unless there is anything set there 
 
 When showing disabled or empty entries, they will either be in *italics* or on a dark red background respectively.
 
-.. |save| image:: ../images/save.png
+.. |save| image:: ../imgs/icons/save.png
 
 You can also export the pipeline state by clicking on the |save| export button, this will export the entire pipeline state in detail to an HTML file, so you can more easily compare between different logs and different events.
 

@@ -1,8 +1,8 @@
 Tips & Tricks
 =============
 
-.. |go_arrow| image:: ../images/GoArrow.png
-.. |wand| image:: ../images/wand.png
+.. |go_arrow| image:: ../imgs/icons/GoArrow.png
+.. |wand| image:: ../imgs/icons/wand.png
 
 This page is a random hodge-podge of different tips and tricks that might not be obvious and aren't practical to make clear in the UI - e.g. keyboard shortcuts, edge cases and suchlike.
 

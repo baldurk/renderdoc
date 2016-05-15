@@ -5,7 +5,7 @@ How do I view details of an object?
 
 
 
-.. |goarrow| image:: ../images/GoArrow.png
+.. |goarrow| image:: ../imgs/icons/GoArrow.png
 
 The pipeline state viewer allows you to view more details of given resources that are bound to the pipeline. The go arrow |goarrow| is a sign that more details for this resource are available.
 
@@ -14,7 +14,7 @@ Viewing Shaders
 
 Each shader stage that is active on the pipeline can be expanded to see both the high-level shader language and the low-level disassembly. At the top of the pipeline stage there is a box showing the currently bound shader - by its entry point if known.
 
-.. figure:: ../images/CurrentShader.png
+.. figure:: ../imgs/Screenshots/CurrentShader.png
 
 	Bound Shader: Box showing the currently used shader.
 
@@ -26,7 +26,7 @@ If available, the reflection data from the shader debugging information will be 
 
 When this shader reflection information is available it will be integrated into the disassembly to make it easier to read.
 
-.. |page_white_edit| image:: ../images/page_white_edit.png
+.. |page_white_edit| image:: ../imgs/icons/page_white_edit.png
 
 Note from here you can also :doc:`live-edit a shader <how_edit_shader>` by clicking the edit button |page_white_edit|. If debug info isn't available to provide HLSL, a basic stub function with the input & output signatures but no body will be created.
 
@@ -54,7 +54,7 @@ By default if the buffer is bound to the pipeline with a pre-existing structure 
 
 This layout can be customised by entering a format in a simple style that mimics defining a structure that outlines a single element in the buffer.
 
-.. figure:: ../images/RawBuffer.png
+.. figure:: ../imgs/Screenshots/RawBuffer.png
 
 	Custom Buffer Layout: Customising the layout of the buffer by defining a structure.
 
@@ -69,7 +69,7 @@ Constant buffers can be viewed by clicking on their Go Arrow |goarrow|. This wil
 
 Whenever this shader slot has a constant buffer in it, both the constant names and types as well as values will be displayed.
 
-.. figure:: ../images/CBuffer.png
+.. figure:: ../imgs/Screenshots/CBuffer.png
 
 	Constant Buffer: An updating preview of the contents of this constant buffer.
 

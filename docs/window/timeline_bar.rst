@@ -16,7 +16,7 @@ This alternate view can be a useful way to get an overview of the whole frame, a
 
 Given that the timeline bar shows the whole frame it also provides a secondary function of showing dependencies in a global way. For whichever texture is currently selected in the texture viewer, the timeline bar shows reads and writes to that texture throughout the frame. This can be especially useful for render targets that are used in both ways, as well as simply to see where a given texture is used in a frame without laboriously searching.
 
-.. figure:: ../images/TimelineBar.png
+.. figure:: ../imgs/Screenshots/TimelineBar.png
 
 	Timeline Bar: The timeline bar showing a birds-eye view of a typical application.
 
@@ -52,7 +52,7 @@ Clear calls will be shown with a light grey.
 
 In cases where the arrows are too close together to show distinctly, they will not all draw. To see exactly what usage is happening you can zoom into the context around that area of the frame.
 
-.. figure:: ../images/ResourceUsage.png
+.. figure:: ../imgs/Screenshots/ResourceUsage.png
 
 	Resource Usage: The usage bar showing reads and writes to a texture.
 
@@ -61,6 +61,6 @@ Pixel history event Display
 
 When a pixel history window is focussed, the timeline bar will show the results over each EID with a red triangle to show rejected pixels and green triangles to show passed pixels.
 
-.. figure:: ../images/PixelHistoryTimeline.png
+.. figure:: ../imgs/Screenshots/PixelHistoryTimeline.png
 
 	Pixel History Results: The timeline bar shows the results of a pixel's history.

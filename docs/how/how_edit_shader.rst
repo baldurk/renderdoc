@@ -2,7 +2,7 @@ How do I edit a shader?
 =======================
 
 
-.. |page_white_edit| image:: ../images/page_white_edit.png
+.. |page_white_edit| image:: ../imgs/icons/page_white_edit.png
 
 This page details how to edit shaders. This applies both to :doc:`custom visualisation shaders <how_custom_visualisation>` for the :doc:`../window/texture_viewer`, but can also be used to temporarily replace or edit a shader used in the actual scene.
 

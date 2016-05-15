@@ -15,7 +15,7 @@ Picking a Pixel Value
 
 At any point while hovering over the texture the status bar contains the current pixel location that the cursor is hovering over, as well as a basic colour swatch to give some indication of where you are.
 
-.. figure:: ../images/HoverStatus.png
+.. figure:: ../imgs/Screenshots/HoverStatus.png
 
 	Hover Status Bar: The status bar showing position and colour
 
@@ -23,7 +23,7 @@ When the right mouse button is pressed, the currently hovered pixel value will b
 
 For depth textures the depth and stencil values will be displayed separately. The stencil value (as with any integer formatted texture) will be displayed as an integer.
 
-.. figure:: ../images/RMBStatus.png
+.. figure:: ../imgs/Screenshots/RMBStatus.png
 
 	Picked Pixel: The value of a pixel that has been picked
 
@@ -36,7 +36,7 @@ Pixel Context Display
 
 Whenever a pixel is picked, the pixel context display is updated to surround the currently selected pixel. This dialog is by default docked in the bottom right of the texture viewer, adjacent to the thumbnail strip.
 
-.. figure:: ../images/PixelContext.png
+.. figure:: ../imgs/Screenshots/PixelContext.png
 
 	Pixel Context: The zoomed in context around the pixel currently selected
 

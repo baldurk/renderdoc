@@ -24,7 +24,7 @@ In OpenGL this can be done with ``GL_KHR_debug`` - ``glObjectLabel``.
 
 When this texture is bound to the pipeline it will be listed like so:
 
-.. figure:: ../images/NamedTex.png
+.. figure:: ../imgs/Screenshots/NamedTex.png
 
 	Named Texture: The example texture bound with name displayed.
 
@@ -33,11 +33,11 @@ In a similar way any other resource can be named and this will be useful through
 Texture list in Texture Viewer
 ------------------------------
 
-.. |page_white_link| image:: ../images/page_white_link.png
+.. |page_white_link| image:: ../imgs/icons/page_white_link.png
 
 In the texture viewer you can open a filterable list of all textures in the capture. This can be opened with the texture list icon |page_white_link|. When clicked on this will open a sidebar on the texture viewer that lists all textures.
 
-.. figure:: ../images/TexList.png
+.. figure:: ../imgs/Screenshots/TexList.png
 
 	Texture list: The sidebar showing the list of textures
 
@@ -52,7 +52,7 @@ By default the tab open in the texture viewer follows whichever pipeline slot is
 
 If you want to follow a particular texture even as it becomes unbound or moves from output to input and vice versa, you can open a new locked tab that will stay consistently on this texture.
 
-.. figure:: ../images/CurrentVsLockedTab.png
+.. figure:: ../imgs/Screenshots/CurrentVsLockedTab.png
 
 	Texture Tabs: Default tab following pipeline slot vs Locked tab.
 
@@ -61,7 +61,7 @@ This can be done by locating the texture by name as above, then clicking on the 
 
 Opening a texture from the pipeline state viewer (:doc:`how_object_details`) will also open a new locked tab for the texture in question. You can also open a new locked tab by right clicking on the texture thumbnail while it is currently bound.
 
-.. figure:: ../images/OpenLockedTab.png
+.. figure:: ../imgs/Screenshots/OpenLockedTab.png
 
 	Opening new Tab: Opening a new locked tab for a texture.
 

@@ -17,7 +17,7 @@ To connect to an existing hooked program, select Attach to Running Instance from
 
 	Please note that none of the connections RenderDoc makes or uses are encrypted or protected, so if this is a concern you should look into securing the connections by hand.
 
-.. figure:: ../images/AttachInstance.png
+.. figure:: ../imgs/Screenshots/AttachInstance.png
 
 	Remote Hosts: Attaching to a running instance either locally or remotely.
 
@@ -39,7 +39,7 @@ When a capture is launched (or attached to) the connection window is opened in t
 
 In addition to managing captures that have been taken, you can also trigger a capture (optionally with a countdown timer).
 
-.. figure:: ../images/MultipleCaptures.png
+.. figure:: ../imgs/Screenshots/MultipleCaptures.png
 
 	Connection Window: Viewing multiple captures taken in a program.
 
@@ -53,7 +53,7 @@ From here you can save these captures out - as currently they are only temporary
 
 Double clicking on any capture will close any current open capture in the RenderDoc UI, and open up that capture for inspection. You may also right click or use the drop-down menu on the open button to launch a new instance of RenderDoc for viewing the log. This is mostly useful if you want to compare two captures side-by-side easily.
 
-.. figure:: ../images/OpenCapNewInstance.png
+.. figure:: ../imgs/Screenshots/OpenCapNewInstance.png
 
 	New instance: Launch new RenderDoc instance to open this capture.<br />
 
