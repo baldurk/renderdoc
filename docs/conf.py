@@ -203,7 +203,7 @@ html_title = 'RenderDoc documentation'
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'RenderDocdoc'
+htmlhelp_basename = 'renderdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
