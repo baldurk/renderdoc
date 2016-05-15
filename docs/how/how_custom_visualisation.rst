@@ -30,7 +30,8 @@ The shader editor when using the UI can be used to insert these snippets for you
 UV co-ordinates (D3D11 only)
 ````````````````````````````
 
-.. code:: c
+.. highlight:: c++
+.. code:: c++
 
 	float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0
 	{
@@ -46,7 +47,8 @@ This input is defined as two parameters to the shader entry point. The first def
 Texture dimensions
 ``````````````````
 
-.. code:: c
+.. highlight:: c++
+.. code:: c++
 
 	uint4 RENDERDOC_TexDim; // hlsl
 	uvec4 RENDERDOC_TexDim; // glsl
@@ -62,7 +64,8 @@ This variable will be filled out with the following values:
 Selected Mip level
 ``````````````````
 
-.. code:: c
+.. highlight:: c++
+.. code:: c++
 
 	uint RENDERDOC_SelectedMip;
 
@@ -71,7 +74,8 @@ This variable will be filled out with the selected mip level in the UI.
 Current texture type
 ````````````````````
 
-.. code:: c
+.. highlight:: c++
+.. code:: c++
 
 	uint RENDERDOC_TextureType;
 
@@ -112,7 +116,8 @@ OpenGL / GLSL
 Samplers (D3D11 only)
 `````````````````````
 
-.. code:: c
+.. highlight:: c++
+.. code:: c++
 
 	SamplerState pointSampler : register(s0);
 	SamplerState linearSampler : register(s1);
@@ -125,6 +130,7 @@ Resources
 D3D11 / HLSL
 ^^^^^^^^^^^^
 
+.. highlight:: c++
 .. code:: c++
 
 	Texture1DArray<float4> texDisplayTex1DArray : register(t1);
@@ -150,7 +156,8 @@ D3D11 / HLSL
 OpenGL / GLSL
 ^^^^^^^^^^^^^
 
-.. code:: c
+.. highlight:: c++
+.. code:: c++
 
 	// Unsigned int samplers
 	layout (binding = 1) uniform usampler1D texUInt1D;

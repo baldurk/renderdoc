@@ -24,6 +24,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
 #. You can close tabs by middle clicking on them.
 #. You can trigger a capture from code. renderdoc.dll exports an :doc:`in_application_api` for this purpose, defined in ``renderdoc_app.h`` in the distributions:
 
+   .. highlight:: c++
    .. code:: c++
 
        #include "renderdoc_app.h"
@@ -49,6 +50,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
 #. To get API debug or error messages, enable "Create Debug Device" when capturing then check out the :doc:`../window/debug_messages` window.
 #. Detecting RenderDoc from your code can either be done by trying to load and use the renderdoc :doc:`in_application_api`, or through API specific ways:
 
+   .. highlight:: c++
    .. code:: c++
 
        // For D3D11:
@@ -68,6 +70,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
 
 #. RenderDoc can be informed about separated debug shader blobs through API specific ways:
 
+   .. highlight:: c++
    .. code:: c++
 
        // For D3D11:

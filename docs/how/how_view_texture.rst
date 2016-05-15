@@ -10,6 +10,7 @@ It is much easier to browse and debug frames when the resources are given meanin
 
 The way this is done varies by API. In D3D11 the resource is named in this way:
 
+.. highlight:: c++
 .. code:: c++
 
 	// Creating an example resource - a 2D Texture.

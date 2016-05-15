@@ -175,6 +175,7 @@ Querying an ID3D11Device for UUID ``{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}`` wil
 
     It's unlikely the extension will ever be 'made official', so these enumerants can be used:
 
+.. highlight:: c++
 .. code:: c++
 
     #define GL_DEBUG_TOOL_EXT                 0x6789

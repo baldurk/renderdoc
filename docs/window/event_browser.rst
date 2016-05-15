@@ -10,6 +10,7 @@ The Event Browser becomes most useful when the application has user-defined anno
 
 Doing this is API and platform specific. Example code for D3D11 is included below, using the D3DPERF library that is defined in d3d9.lib, which can still be used in D3D11. (The newer ID3DUserDefinedAnnotation API is also supported).
 
+.. highlight:: c++
 .. code:: c++
 
 	D3DPERF_BeginEvent(0xffffffff, L"Start of example");
