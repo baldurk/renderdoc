@@ -25,7 +25,9 @@ Where did the name come from?
 -----------------------------
 
 All of the good names were taken :-(.
+
 Who can I contact about bugs, feature requests, other queries?
+--------------------------------------------------------------
 
 At the moment there's just me at the wheel - feel free to contact me at Contact me if you have anything you'd like to ask or suggest. I use a github repository for tracking bugs and feature requests so that's the best place to file an issue.
 
@@ -183,7 +185,9 @@ Querying an ID3D11Device for UUID ``{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}`` wil
     #define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B
 
 A similar extension for Vulkan will be proposed after release.
+
 My shaders have 'cbuffer0' and unnamed variables, how do I get proper debug info?
+---------------------------------------------------------------------------------
 
 If you get textures that are just named 'texture0' and 'texture1' or constant/uniform buffers named 'cbuffer2' then this indicates that you have stripped optional reflection/debug information out of your shaders.
 
