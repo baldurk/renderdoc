@@ -19,7 +19,7 @@ At any point while hovering over the texture the status bar contains the current
 
 	Hover Status Bar: The status bar showing position and colour
 
-When the right mouse button is pressed, the currently hovered pixel value will be displayed with the current float precision settings - for more information on how to tune these look at the window reference for the :doc:`../window/option`.
+When the right mouse button is pressed, the currently hovered pixel value will be displayed with the current float precision settings - for more information on how to tune these look at the window reference for the :doc:`../window/options_window`.
 
 For depth textures the depth and stencil values will be displayed separately. The stencil value (as with any integer formatted texture) will be displayed as an integer.
 

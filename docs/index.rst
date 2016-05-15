@@ -16,10 +16,10 @@ Contents:
    getting_started/index
    behind_scenes/index
    how/index
+   window/index
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`

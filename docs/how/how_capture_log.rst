@@ -1,7 +1,7 @@
 How do I capture a log?
 =======================
 
-Capturing logfiles is the starting point to using RenderDoc. Although the basic use is very simple, there are various customisations and more advanced uses. More information on these can be found in the details of the :doc:`../window/capture_log` window.
+Capturing logfiles is the starting point to using RenderDoc. Although the basic use is very simple, there are various customisations and more advanced uses. More information on these can be found in the details of the :doc:`../window/capture_log_attach` window.
 
 Capturing logs
 --------------
@@ -56,4 +56,4 @@ You can also use the "Auto start" option - when this option is enabled then a .c
 See Also
 --------
 
-* :doc:`../window/capture_log`
+* :doc:`../window/capture_log_attach`

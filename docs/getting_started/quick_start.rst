@@ -18,7 +18,7 @@ To capture a log, begin by opening the File menu and selecting Capture Log. By d
 
 The defaults work pretty well in most situations, so you can just either browse to or drag in your exe into the Executable box. If the working directory box is empty then the Executable's directory will be used. Enter any command line you may need and click 'Capture' to launch the application with RenderDoc.
 
-More details of the specific options and their functionality can be found in the details page for the :doc:`capture_window`.
+More details of the specific options and their functionality can be found in the details page for the :doc:`../window/capture_log_attach`.
 
 
 .. note::
@@ -42,7 +42,7 @@ When ready, press the Capture Key (:kbd:`F12` or	:kbd:`Print Screen`) and the ne
 When the application exits, if you captured a log it will automatically start to open in the RenderDoc UI. If you didn't capture a log then nothing will happen and the RenderDoc UI will be back as it was when you clicked Capture.
 
 
-If you made multiple captures you will see a thumbnail list that allows you to open (in the current instance or a new instance to compare side-by-side), save and delete them as you wish. You can also access this view while the program is still running, see :doc:`capture_connection` for more information on taking multiple frame captures. Note however that for the simple use-case, you don't need to worry about this!
+If you made multiple captures you will see a thumbnail list that allows you to open (in the current instance or a new instance to compare side-by-side), save and delete them as you wish. You can also access this view while the program is still running, see :doc:`../window/capture_connection` for more information on taking multiple frame captures. Note however that for the simple use-case, you don't need to worry about this!
 
 RenderDoc layout
 ----------------
@@ -59,7 +59,7 @@ Each of these windows has a section that is much more in depth and gives details
 Texture Viewer
 --------------
 
-More details can be found on the :doc:`texture_viewer` page.
+More details can be found on the :doc:`../window/texture_viewer` page.
 
 The texture viewer does pretty much what you'd expect - it allows you to inspect textures and render targets in your application.
 
@@ -74,11 +74,11 @@ There are various visualisation controls that allow you to select different chan
 * The format and dimensions of the texture are displayed on the status bar just below the texture display itself.
   Also on this status bar you can see the current pixel co-ordinate that you are hovering over, as well as the 'picked' pixel value which can be inspected by right clicking anywhere on the texture display.
 
-* Further to this, there is a small zoomed section of context around the last picked pixel available in the bottom right of the texture viewer window. From here you can also launch the pixel history or debugger, as detailed in :doc:`how_debug_shader`.
+* Further to this, there is a small zoomed section of context around the last picked pixel available in the bottom right of the texture viewer window. From here you can also launch the pixel history or debugger, as detailed in :doc:`../how/how_debug_shader`.
 
 * The last thing we will highlight is the range control. This is a fairly flexible tool that allows you to adjust the visible range in the image. This is particular useful when viewing HDR images with a range outside of *[0, 1]*.
 
-  To use the range control you can drag the white and black points to make fine adjustments or type values to change the values of the white and black points (by default 0 and 1 respectively). There are also some useful controls to the right of the range control itself, which are detailed again in the :doc:`texture_viewer` page.
+  To use the range control you can drag the white and black points to make fine adjustments or type values to change the values of the white and black points (by default 0 and 1 respectively). There are also some useful controls to the right of the range control itself, which are detailed again in the :doc:`../window/texture_viewer` page.
 
 Event Browser
 `````````````
@@ -87,7 +87,7 @@ Event Browser
 
     The Event Browser
 
-More details can be found on the :doc:`event_browser` page.
+More details can be found on the :doc:`../window/event_browser` page.
 
 .. |timeline_marker| image:: ../images/timeline_marker.png
 
@@ -117,7 +117,7 @@ API Inspector
 
     The API Calls + Callstack Panel
 
-More details can be found on the :doc:`api_inspector` page.
+More details can be found on the :doc:`../window/api_inspector` page.
 
 The API Calls window updates as a new event is selected. It shows the individual API calls and their parameters (in some fashion) between the previous and current event. The bottom entry in this list always corresponds to the event that is currently selected, and each row can be expanded to show the parameters that were passed to that API call.
 
@@ -133,7 +133,7 @@ Timeline Bar
 
     The Timeline Bar
 
-More details can be found on the :doc:`timeline_bar` page.
+More details can be found on the :doc:`../window/timeline_bar` page.
 
 The timeline bar is essentially an alternate view of the frame, with the horizontal axis being time in the frame. The scale however is non-linear and is weighted to try and show each section of the frame equally and visibly, rather than scaling by duration.
 
@@ -150,7 +150,7 @@ Pipeline State
 
     The Pipeline State Viewer
 
-More details can be found on the :doc:`pipeline_state` page.
+More details can be found on the :doc:`../window/pipeline_state` page.
 
 
 The Pipeline State window is perhaps the most detailed but also the simplest to understand. This window simply lists every stateful aspect of the graphics pipeline and what value or object is present at the current event.
@@ -170,7 +170,7 @@ Mesh Output
 
     Mesh Output Viewer
 
-More details can be found on the :doc:`mesh_view` page.
+More details can be found on the :doc:`../window/buffer_viewer` page.
 
 .. |undo_arrow| image:: ../images/UndoArrow.png
 .. |cog| image:: ../images/cog.png

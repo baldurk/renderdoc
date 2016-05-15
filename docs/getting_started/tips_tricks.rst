@@ -6,7 +6,7 @@ Tips & Tricks
 
 This page is a random hodge-podge of different tips and tricks that might not be obvious and aren't practical to make clear in the UI - e.g. keyboard shortcuts, edge cases and suchlike.
 
-#. File associations for .rdc and .cap files can be set up in the installer or in the :doc:`option_window`. These allow automatic opening of capture logs or capture settings files directly from files.
+#. File associations for .rdc and .cap files can be set up in the installer or in the :doc:`../window/option_window`. These allow automatic opening of capture logs or capture settings files directly from files.
 
    .. note::
 
@@ -15,9 +15,9 @@ This page is a random hodge-podge of different tips and tricks that might not be
 #. RenderDoc can be used as an image viewer! If you drag in or use file → open, you can open images in a variety of formats - .dds, .hdr, .exr, .bmp, .jpg, .png, .tga, .gif, .psd. The image will load up in RenderDoc's texture viewer and you can use the normal controls to view it as if it were a texture in a log. Note that dds files support all DXGI formats, compressed formats, arrays and mips - all of which will display as expected. If the file is modified, RenderDoc will reload it and display it. Note that changing the image's dimensions or format will likely cause problems.
 #. If a .cap file is saved with the "auto-start" option enabled, launching RenderDoc by opening this file will cause RenderDoc to automatically trigger a capture with the given options. This is useful for saving a common path & set of options that you regularly re-run.
 
-   For more information check out the :doc:`capture_attach` page.
+   For more information check out the :doc:`../window/capture_log_attach` page.
 
-#. If you'd like to see the geometry data with each component separated out and formatted, either open "Mesh Output" under the window menu, or click the Go Arrow |go_arrow| on the input layouts in the :doc:`pipeline_state`.
+#. If you'd like to see the geometry data with each component separated out and formatted, either open "Mesh Output" under the window menu, or click the Go Arrow |go_arrow| on the input layouts in the :doc:`../window/pipeline_state`.
 #. Right clicking on one of the channel buttons in the texture viewer (R, G, B, A) will either select only that channel, or if it's already the only one selected it will select all of the others. This is useful e.g. to toggle between viewing RGB and alpha, or for looking at individual channels in a packed texture or render target.
 #. Similarly, right-clicking on the 'auto-fit' button |wand| will auto-fit whenever the texture or event changes, so that the visible range is maintained as you move through the frame. This can be useful if jumping between places where the visible range is very different.
 #. You can double click on a thumbnail in the texture viewer to open a :doc:`locked texture <../how/how_view_texture>` tab
@@ -46,7 +46,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
    You can also use the RENDERDOC_StartFrameCapture and RENDERDOC_EndFrameCapture functions to precisely define the period to be  captured. For more information look at the renderdoc_app.h header in the source code.
 
 #. When you have right clicked to select a pixel in the texture viewer, you can perform precise refinements with the arrow keys to nudge the selection in each direction.
-#. To get API debug or error messages, enable "Create Debug Device" when capturing then check out the :doc:`debug_messages` window.
+#. To get API debug or error messages, enable "Create Debug Device" when capturing then check out the :doc:`../window/debug_messages` window.
 #. Detecting RenderDoc from your code can either be done by trying to load and use the renderdoc :doc:`in_application_api`, or through API specific ways:
 
    .. code:: c++
