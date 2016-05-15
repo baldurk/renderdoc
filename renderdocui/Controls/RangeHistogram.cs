@@ -452,6 +452,9 @@ namespace renderdocui.Controls
                     }
                 }
 
+                if (maxval == 0)
+                    maxval = 1;
+
                 for (int i = 0; i < HistogramData.Length; i++)
                 {
                     float x = (float)i / (float)HistogramData.Length;
