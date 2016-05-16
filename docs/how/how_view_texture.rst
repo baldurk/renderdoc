@@ -22,6 +22,8 @@ The way this is done varies by API. In D3D11 the resource is named in this way:
 
 In OpenGL this can be done with ``GL_KHR_debug`` - ``glObjectLabel``.
 
+In Vulkan you can enable the ``VK_EXT_debug_marker`` extension, which is provided by RenderDoc, and use the ``vkDebugMarkerSetObjectName`` function.
+
 When this texture is bound to the pipeline it will be listed like so:
 
 .. figure:: ../imgs/Screenshots/NamedTex.png

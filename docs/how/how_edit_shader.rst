@@ -11,9 +11,9 @@ How to edit a custom shader
 
 :doc:`Custom visualisation shaders <how_custom_visualisation>` allow you to define your own transformation on any texture you're viewing before it is displayed. Mostly this is useful for decoding packed or custom-format data, or displaying some data in a more visually intuitive fashion.
 
-These shaders live as .hlsl/.glsl files in ``%APPDATA%\RenderDoc\``, and can be edited in your editor of choice, any changes saved will be reloaded. Note however that there is currently no way to see the compile warnings or errors produced. This is probably best for when you have an existing shader to drop-in.
+These shaders live as ``.hlsl``/``.glsl`` files in ``%APPDATA%\RenderDoc\``, and can be edited in your editor of choice, any changes saved will be reloaded. Note however that there is currently no way to see the compile warnings or errors produced. This is probably best for when you have an existing shader to drop-in.
 
-To edit a shader inside RenderDoc simply click the edit button |page_white_edit| when you have selected your custom shader for use. This will launch a new window with the custom shader and any changes you make to this shader will be saved to the .hlsl/.glsl file and compiled and reflected in the texture viewer as long as you have that custom shader selected.
+To edit a shader inside RenderDoc simply click the edit button |page_white_edit| when you have selected your custom shader for use. This will launch a new window with the custom shader and any changes you make to this shader will be saved to the ``.hlsl``/``.glsl`` file and compiled and reflected in the texture viewer as long as you have that custom shader selected.
 
 How to edit a scene shader
 --------------------------
@@ -32,9 +32,6 @@ Any changes to the shader will affect any drawcall using this shader, not just t
 .. warning::
 
 	One unfortunate artifact of how the shader debug info works, not all #included hlsl files will come along with the debug info, only those files that contain compiled code. RenderDoc automatically replaces any #includes to missing files with just an empty comment, but unfortunately this can lead to compile errors in unused code.
-
-	This can also interact badly with another artifact - macro definitions passed directly to the compiler are not included in the debug info and so RenderDoc can't include them when recompiling. If you rely on any defines, you will need to add them manually to the top of your root hlsl file.
-
 
 Using the built-in shader editor
 --------------------------------

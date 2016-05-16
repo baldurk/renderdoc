@@ -8,7 +8,7 @@ Annotating your frame
 
 The Event Browser becomes most useful when the application has user-defined annotations of sections and subsections of the frames, to allow for a more logical and ordered browsing of the frame.
 
-Doing this is API and platform specific. Example code for D3D11 is included below, using the D3DPERF library that is defined in d3d9.lib, which can still be used in D3D11. (The newer ID3DUserDefinedAnnotation API is also supported).
+Doing this is API and platform specific. Example code for D3D11 is included below, using the ``D3DPERF`` library that is exported by ``d3d9.dll``, which can still be used in D3D11. (The newer ``ID3DUserDefinedAnnotation`` API is also supported).
 
 .. highlight:: c++
 .. code:: c++
@@ -23,6 +23,8 @@ Doing this is API and platform specific. Example code for D3D11 is included belo
 	D3DPERF_EndEvent();
 
 This will generate a section of the frame with a subsection that includes some events, and then some further events that are siblings of the subsection.
+
+OpenGL can make use of the ``KHR_debug`` extension, and Vulkan can use the ``VK_EXT_debug_marker`` extension.
 
 Selecting available columns
 ---------------------------

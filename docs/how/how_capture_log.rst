@@ -8,7 +8,7 @@ Capturing logs
 
 The basic process of capturing logs is fairly straightforward.
 
-Opening the capture window from the menus via File -> Capture Log, the typical capture setup simply requires you to enter the executable location.
+Opening the capture window from the menus via File → Capture Log, the typical capture setup simply requires you to enter the executable location.
 
 By default the working directory remains empty and defaults to the directory that contains the executable location.
 
@@ -16,27 +16,22 @@ By default the working directory remains empty and defaults to the directory tha
 
 	Capturing: Capturing a logfile specifying its executable path and command line.
 
-Likewise, the default options generally work well for most situations, however there are a few common options to customise:
-
-* Allow Fullscreen/Allow VSync aid in debugging by preventing the app from switching into fullscreen (or vsynced) display modes, which makes them easier to attach to from a debugger on the same computer.
-* Seconds attach delay causes RenderDoc to pause for a certain number of seconds after launching the process to allow you to attach in the debugger - so that the debugger can be present to catch any problems from the beginning of the application, in case there is an issue very early in initialisation.
-* Collect callstacks allows you to get callstacks at the site of each API. There are more details available in :doc:`how_capture_callstack`.
+Likewise, the default options generally work well for most situations, however you can look at the details of each option in :doc:`../window/capture_log_attach`.
 
 Injecting into a Process
 ------------------------
 
-It is possible to inject to an already running process. By selecting the "Inject to Process" entry in the File menu, the capture dialog will modify to list the running processes rather than asking for an executable and command line parameters.
+.. warning::
+
+	The important thing to note about injecting is that RenderDoc can only inject to processes that **have not initialised or used the target API**. If this is the case RenderDoc can insert its hooks before any use of the API and work as normal. If the API has already been used or initialised the results are undefined and likely RenderDoc will simply not function as it's too late to hook in.
+
+It is possible to inject to an already running process as long as it hasn't yet initialised a graphics API. By selecting the "Inject to Process" entry in the File menu, the capture dialog will modify to list the running processes rather than asking for an executable and command line parameters.
 
 This can be useful if launching your application from a single exe is non-trivial and it's easier to inject into the process after it has been launched.
 
 .. figure:: ../imgs/Screenshots/Injecting.png
 
 	Injecting to a selected existing process.
-
-.. warning::
-
-	The important thing to note about injecting is that RenderDoc can only inject to processes that **have not initialised or used the target API**. If this is the case RenderDoc can insert its hooks before any use of the API and work as normal. If the API has been used or initialised the results are undefined and likely RenderDoc will simply not function as it's too late to hook in.
-
 
 .. note::
 
@@ -47,11 +42,11 @@ Capture setting files
 
 Commonly in development, the capture parameters don't change. In fact most likely the same application or couple of applications are launched in exactly the same way repeatedly as development iterates.
 
-To make this process easier RenderDoc supports saving and loading configuration sets to a file. While on the capture dialog, click 'Save' to save to a .cap file which contains both the executable, working directory and command line - as well as the options that are selected.
+To make this process easier RenderDoc supports saving and loading configuration sets to a file. While on the capture dialog, click 'Save' to save to a ``.cap`` file which contains both the executable, working directory and command line - as well as the options that are selected.
 
-This .cap file can be executed when RenderDoc's file associations are set up, and RenderDoc will load this file and present you with the capture dialog on startup.
+This ``.cap`` file can be executed when RenderDoc's file associations are set up, and RenderDoc will load this file and present you with the capture dialog on startup.
 
-You can also use the "Auto start" option - when this option is enabled then a .cap file will immediately launch the program when it is loaded. This can allow you to configure a .cap which will open RenderDoc and launch the target application with the pre-configured settings in one click. If you wish to disable this, just uncheck the option and re-save to the same .cap file.
+You can also use the "Auto start" option - when this option is enabled then a .cap file will immediately launch the program when it is loaded. This can allow you to configure a .cap which will open RenderDoc and launch the target application with the pre-configured settings in one click. If you wish to disable this, just uncheck the option and re-save to the same ``.cap`` file.
 
 See Also
 --------

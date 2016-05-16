@@ -6,7 +6,7 @@ This page details how to set up a custom shader for visualisation. This can be u
 Introduction
 ------------
 
-The basic process of setting up the custom shader involves writing a .hlsl or .glsl file that will be compiled and used by RenderDoc. Note that the type used matches the API used, and RenderDoc will automatically list only the hlsl shaders you have if you load a log with D3D11, and vice-versa for OpenGL.
+The basic process of setting up the custom shader involves writing a ``.hlsl`` or ``.glsl`` file that will be compiled and used by RenderDoc. Note that the type used matches the API used, and RenderDoc will automatically list only the hlsl shaders you have if you load a log with D3D11, and vice-versa for OpenGL.
 
 There are several special global variables that can be specified and will be filled in with values by RenderDoc.
 
@@ -14,7 +14,7 @@ Your pixel shader defines an operation that transforms the raw value from the in
 
 Multisampled textures will be resolved before being passed to your function. Depth and stencil textures will be bound separately and passed as multisampled resources.
 
-To set up your shader, it's recommended that you use the UI defined in the documentation for the :doc:`../window/texture_viewer`, but you can manually create a .hlsl or .glsl file in ``%APPDATA%\RenderDoc\``. The file must contain an entry point main() that returns float4, and uses any of the below inputs. These shaders are loaded when RenderDoc loads a logfile, and RenderDoc watches for any changes to the files (either externally or in the shader editor in RenderDoc) and automatically reloads them.
+To set up your shader, it's recommended that you use the UI defined in the documentation for the :doc:`../window/texture_viewer`, but you can manually create a ``.hlsl`` or ``.glsl`` file in ``%APPDATA%\RenderDoc\``. The file must contain an entry point ``main()`` that returns float4, and uses any of the below inputs. These shaders are loaded when RenderDoc loads a logfile, and RenderDoc watches for any changes to the files (either externally or in the shader editor in RenderDoc) and automatically reloads them.
 
 Predefined inputs
 -----------------
@@ -25,7 +25,7 @@ There are several pre-defined inputs that can either be taken as parameters to t
 
 	Type and capitalisation is important for these variables, so ensure you use the right declaration!
 
-The shader editor when using the UI can be used to insert these snippets for you, with the right type and spelling. Be careful for GL though, as these snippets are inserted at the top of the file and so are inserted before the #version statement.
+The shader editor when using the UI can be used to insert these snippets for you, with the right type and spelling. Be careful for GL though, as these snippets are inserted at the top of the file and so are inserted before the ``#version`` statement.
 
 UV co-ordinates (D3D11 only)
 ````````````````````````````
@@ -56,10 +56,10 @@ Texture dimensions
 
 This variable will be filled out with the following values:
 
-* ``.x =``  Width
-* ``.y =``  Height (if 2D or 3D)
-* ``.z =``  Depth if 3D or array size if an array
-* ``.w =``  Number of mip levels
+* ``.x``  Width
+* ``.y``  Height (if 2D or 3D)
+* ``.z``  Depth if 3D or array size if an array
+* ``.w``  Number of mip levels
 
 Selected Mip level
 ``````````````````
@@ -200,7 +200,7 @@ These resources are bound sparsely with the appropriate type for the current tex
 
 When a cubemap texture is bound, it is bound both to the 2D Array as well as the Cube Array. If a depth-stencil texture has both components, the relevant depth and stencil resources will both be bound at once.
 
-To determine which resource to sample from you can use the RENDERDOC_TexType variable above.
+To determine which resource to sample from you can use the ``RENDERDOC_TexType`` variable above.
 
 Usually the float textures are used, but for unsigned and signed integer formats, the relevant integer resources are used.
 

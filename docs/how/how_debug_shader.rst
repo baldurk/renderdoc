@@ -34,17 +34,19 @@ Debugging a Pixel
 
 Pixel debugging is launched from the texture viewer. For more details on selecting the pixel to debug see :doc:`how_inspect_pixel`.
 
-When a given pixel is selected you can click the debug button underneath the pixel context. This will launch the shader viewer with the selected pixel and sample being debugged. The inputs to the pixel will be automatically filled in.
+When a given pixel is selected you can click the history button underneath the pixel context. This will launch the :ref:`pixel-history` window with the selected pixel showing every modification. You can then choose to debug any of the triangles that generated a change.
+
+If you already have the current drawcall selected that you want to debug, you can click the debug button to skip the pixel history and jump straight to the debugger. The inputs to the pixel will be automatically filled in.
 
 There are a couple of things to note while pixel debugging:
 
-* If the drawcall selected doesn't write to the pixel you have highligted, a pixel history window will open to let you choose which draw call to debug.
+* If the drawcall selected doesn't write to the pixel you have highlighted, the pixel history window will open to let you choose which draw call to debug.
 * If a drawcall overdraws the same pixel several times then the results of debugging will come from the last fragment that passed the depth test. If you wish to choose a particular fragment from the list then first launch the pixel history and choose which fragment to debug from the list there.
 
 Debugging a Compute thread
 --------------------------
 
-To debug a compute thread simply go to the compute shader section of the pipeline state viewer and enter the group and thread ID of the thread you would like to debug. This thread will be debugged in isolation as with any other shader invocation.
+To debug a compute thread simply go to the compute shader section of the pipeline state viewer and enter the group and thread ID of the thread you would like to debug. This thread will be debugged in isolation with no other threads in the group running.
 
 This means there can be no synchronisation with any other compute thread running and the debugging will run from start to finish as if no other thread had run.
 
@@ -68,7 +70,7 @@ The toolbar at the top gives controls for the program flow through the shader. |
 
 The keyboard shortcuts for these controls are :kbd:`F5` and :kbd:`Shift-F5` respectively.
 
-You can set a breakpoint by pressing F9 (this will also remove a breakpoint that is already there). When running in each direction or to cursor (see below) if execution hits a breakpoint it will stop.
+You can set a breakpoint by pressing :kbd:`F9` (this will also remove a breakpoint that is already there). When running in each direction or to cursor (see below) if execution hits a breakpoint it will stop.
 
 .. |stepnext| image:: ../imgs/icons/stepnext.png
 .. |stepprev| image:: ../imgs/icons/stepprev.png
@@ -110,9 +112,9 @@ The other window will contain variable/mutable registers. These contain temporar
 
 The final window is initially empty but can be filled out as needed. This shows custom watch expressions and their values. Here you can write any expression involving an input, temporary or output register along with a swizzle and typecast.
 
-Swizzles follow the standard hlsl rules - .[xyzw] or .[rgba] in any permutation or repetition will show those channels.
+Swizzles follow the standard hlsl rules - ``.[xyzw]`` or ``.[rgba]`` in any permutation or repetition will show those channels.
 
-The custom typecast can be any of ,x ,i ,d ,f ,u ,b to display the register as hex, signed integer, double, float, unsigned, or bitwise respectively.
+The custom typecast can be any of ``,x`` ``,i`` ``,d`` ``,f`` ``,u`` ``,b`` to display the register as hex, signed integer, double, float, unsigned, or bitwise respectively.
 
 .. figure:: ../imgs/Screenshots/ShaderWatch.png
 

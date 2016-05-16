@@ -10,7 +10,7 @@ It can be useful when tracking down problems to have an idea of where each API c
 
 .. warning::
 
-	The callstack gathering uses dbghelp.dll. If you're using this dll for some other debugging functionality in your app it is highly recommended that you disable it, otherwise it can conflict and break RenderDoc's callstack capture.
+	The callstack gathering uses ``dbghelp.dll``. If you're using this dll for some other debugging functionality in your app it is highly recommended that you disable it, otherwise it can conflict and break RenderDoc's callstack capture.
 
 .. note::
 
@@ -25,7 +25,7 @@ When launching a capture (as in :doc:`how_capture_log`) you should enable 'colle
 
 	Collect Callstacks: Option enabled on the capture dialog.
 
-If you wish to save some time &amp; overhead you can then enable 'Only drawcall stacks'. This will only collect callstacks when a drawcall-type API call is made. This can be a good-enough trade off that still gets you the information you need, at a lower cost. After this point you can run the program and capture as usual.
+If you wish to save some time & overhead you can then enable 'Only drawcall stacks'. This will only collect callstacks when a drawcall-type API call is made. This can be a good-enough trade off that still gets you the information you need, at a lower cost. After this point you can run the program and capture as usual.
 
 Replaying the capture
 ---------------------
@@ -36,7 +36,7 @@ When the capture is loaded in RenderDoc the callstacks will be available in the 
 
 	Callstack section: The callstack section expanded in API inspector.
 
-To resolve the symbols referenced in the capture, go to the **Tools** menu and select Resolve Symbols. If this menu option isn't available the callstacks did not successfully capture in the logfile.
+To resolve the symbols referenced in the capture, go to the Tools menu and select Resolve Symbols. If this menu option isn't available the callstacks did not successfully capture in the logfile.
 
 The resolving symbols process may take some time the first few instances you use it, as it may have to download symbols from the Microsoft symbol server. Each module that is loaded in the application at the time of capture will be saved and its symbols searched for.
 

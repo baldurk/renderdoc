@@ -72,7 +72,7 @@ In addition to this, you can specify a row offset which is useful in remaining a
 
 	Buffer specification: Specifying a custom buffer format.
 
-Below are listed the basic types. You can append a number to each of these to make an N-wide vector (e.g. ushort4 or float3, or uvec4/vec3). You can also specify matrices as float3x4 or mat3x4. By default matrices are column major, but you can change this by prepending row_major as you would in hlsl.
+Below are listed the basic types. You can append a number to each of these to make an N-wide vector (e.g. ``ushort4`` or ``float3``, or ``uvec4``/``vec3``). You can also specify matrices as ``float3x4`` or ``mat3x4``. By default matrices are column major, but you can change this by prepending ``row_major`` as you would in hlsl.
 
 * ``uint`` - unsigned 32bit integer
 * ``bool`` - unsigned 32bit integer (this is the format for hlsl bools)

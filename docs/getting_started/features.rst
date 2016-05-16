@@ -108,11 +108,11 @@ As Vulkan is still in early support, some features are not yet supported. Featur
 
 * Support for Vulkan 1.0 on Windows and Linux.
 * Optional network support. The main use case is capture &amp; replay on the same machine, but you can also attach over the network, and replay on a remote host.
-* Event browsing, with debug marker extension based tree.
+* Event browsing, with ``VK_EXT_debug_marker`` extension based tree.
 * Full Vulkan Pipeline display.
 
     * Resources are shown on the stage that references them, so each shader stage shows a list of the resources that it uses. Uniform buffers are separated out for clarity, but all other resources are listed together along with their descriptor set and binding point.
-    * Where available debug marker labelled names are displayed, along with reflection data from the SPIR-V to clarify usage.
+    * Where available ``VK_EXT_debug_marker`` labelled names are displayed, along with reflection data from the SPIR-V to clarify usage.
 
 * SPIR-V disassembly display.
 * Timeline bar of the scene hierarchy.
@@ -142,7 +142,7 @@ As Vulkan is still in early support, some features are not yet supported. Featur
 * Simple per-drawcall timings.
 * Python scripting console, giving access to some of the RenderDoc internals and core data structures.
 
-Capturing on Linux is possible, although there is no native UI. The renderdoccmd program allows capturing on the command line, as well as opening a 'preview' window of the final frame of the framebuffer.
+Capturing on Linux is possible, although there is no native UI. The ``renderdoccmd`` program allows capturing on the command line, as well as opening a 'preview' window of the final frame of the framebuffer.
 
 See Also
 --------

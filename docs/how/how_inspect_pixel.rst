@@ -45,6 +45,10 @@ This context display shows a zoomed in view of the texture around the area that 
 
 The pixel context viewer can also allow you to launch pixel debugging. Once a pixel is picked the button below the context is activated which will launch the shader debugger. More information about this is available: :doc:`how_debug_shader`.
 
+It also allows you to launch a pixel history view, showing every modification to this pixel in the frame up to the current point.
+
+.. _pixel-history:
+
 Pixel History
 -------------
 

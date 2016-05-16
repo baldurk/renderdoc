@@ -3,7 +3,7 @@ Quick Start
 
 This document serves as a brief introduction to how to use RenderDoc to capture and analyse your application. It doesn't go into much detail about exactly what functionality is available for digging into things, as this can be found elsewhere. Instead it focuses on just the workflow from start to finish and roughly where to look for different things.
 
-For this tutorial we will be using a slightly modified version of the CascadedShadowMaps sample from the Microsoft DirectX SDK (June 2010).
+For this tutorial we will be using a slightly modified version of the CascadedShadowMaps sample from the Microsoft DirectX SDK.
 
 Capturing a log
 ---------------
@@ -21,9 +21,9 @@ More details of the specific options and their functionality can be found in the
 
 .. note::
 
-    It's best to choose the edition of RenderDoc to match your OS - 64-bit for Windows x64 and vice-versa
+    You should choose the edition of RenderDoc to match your OS - 64-bit for Windows x64 and vice-versa
 
-    You can only capture a 64-bit process with a 64-bit build of RenderDoc. A 32-bit process can be captured by any build of RenderDoc.
+    You can only capture a 64-bit process with a 64-bit build of RenderDoc. A 32-bit process can be captured by either build of RenderDoc.
 
 RenderDoc in-app
 ----------------
@@ -67,7 +67,7 @@ There are various visualisation controls that allow you to select different chan
 
   E.g. if you select render target 0 then the texture display will update to show the currently bound render target 0 regardless of which texture that is. If the slot you are following becomes unbound or unused, the previous texture will still be displayed up until you select a different pipeline slot, or the slot is bound again. Unbound texture slots show up with *Unbound* listed under their thumbnail.
 
-  To open a specific texture and watch it even as it changes slots or becomes unbound, you can open it in a new locked tab. Right click on the thumbnail and 'open in new locked tab', or :doc:`open it by name <../how/how_view_texture>`.
+  To open a specific texture and watch it even as it changes slots or becomes unbound, you can open it in a new locked tab. Double click on it, right click on it and 'open in new locked tab', or :doc:`open it by name <../how/how_view_texture>`.
 
 * The format and dimensions of the texture are displayed on the status bar just below the texture display itself.
   Also on this status bar you can see the current pixel co-ordinate that you are hovering over, as well as the 'picked' pixel value which can be inspected by right clicking anywhere on the texture display.

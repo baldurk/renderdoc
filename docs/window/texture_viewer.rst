@@ -8,7 +8,7 @@ Overview
 
 The texture viewer consists of a couple of different sections, which will be outlined here.
 
-Several specific techniques or features used within the texture viewer have their own separate pages that go into more detail. You might find more useful information there if they cover what you are looking for: :doc:`../how/how_view_texture`, :doc:`../how/how_inspect_pixel`, :doc:`../how/how_custom_visualisation`.
+Several specific techniques or features used within the texture viewer have their own separate pages that go into more detail. You might find more useful information there if they cover what you are looking for: :doc:`../how/how_view_texture`, :doc:`../how/how_inspect_pixel`, :doc:`../how/how_custom_visualisation`
 
 .. figure:: ../imgs/Screenshots/LabelledTexViewer.png
 
@@ -30,7 +30,7 @@ Information Status Bar
 
 The status bar below the main texture display contains information on the currently visible texture.
 
-* The name (if available - if not a default name will be used).
+* The name (if available - if not an auto-generated name will be used).
 * Dimensions - Width, height, depth and array size as applicable.
 * Mip Count.
 * MSAA sample count and quality, if applicable.
@@ -70,7 +70,7 @@ Whenever a pixel is picked small area of the texture around it is rendered at ma
 
   Pixel context: Pixel context displaying the surrounds of the picked pixel.
 
-From here, once you have selected a pixel, you can also launch the :doc:`pixel debugger <../how/how_debug_shader>` if you have the drawcall that you want to debug selected. You can also launch the `pixel history <../how/how_inspect_pixel>` view which shows all modifications that have happened to the texture since the start of the frame to the currently selected event.
+From here, once you have selected a pixel, you can also launch the :doc:`pixel debugger <../how/how_debug_shader>` if you have the drawcall that you want to debug selected. You can also launch the :ref:`pixel-history` view which shows all modifications that have happened to the texture since the start of the frame to the currently selected event.
 
 Visible Range Control
 ---------------------
@@ -158,7 +158,7 @@ Note that these channel selections are by default saved as per-texture state, so
 
 When **RGBM** is selected, the RGB value will be multiplied by the specified multiplier and then by the alpha value. This is a common encoding used to pack a larger range into an 8-bit RGB image.
 
-With **Custom** selected a dropdown will be populated with any .hlsl or .glsl files as appropriate in the ``%APPDATA%\renderdoc`` folder. When choosing a custom shader the raw image will be passed through this shader before being displayed with the usual controls on the main display.
+With **Custom** selected a dropdown will be populated with any ``.hlsl`` or ``.glsl`` files as appropriate in the ``%APPDATA%\renderdoc`` folder. When choosing a custom shader the raw image will be passed through this shader before being displayed with the usual controls on the main display.
 
 You can create a new custom shader with the |add| button, edit a shader with the |page_white_edit| button, and delete an one with the |delete| button.
 
@@ -167,7 +167,7 @@ Gamma display of Linear Data
 
   | γ Gamma display
 
-A proper explanation of this is available in the :doc:`FAQ <../getting_started/faq>`. In short, linear data is 'overcorrected' to look as expected, but this behaviour can be overridden by toggling off this option.
+A proper explanation of this is available in the :ref:`FAQ <gamma-linear-display>`. In short, linear data is 'overcorrected' to look as expected, but this behaviour can be overridden by toggling off this option.
 
 Alpha background
 ~~~~~~~~~~~~~~~~
@@ -222,6 +222,21 @@ Open Texture List
   | |page_white_link| Open Texture List
 
 This button opens the texture list of all textures present in the capture. More details can be seen in :doc:`../how/how_view_texture`.
+
+View Texture as Buffer
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. |page_white_code| image:: ../imgs/icons/page_white_code.png
+
+..
+
+  | |page_white_code| Open Texture data in Buffer Viewer
+
+This button opens the texture in the :doc:`raw buffer viewer <buffer_viewer>`. This lets you see the raw data of the underlying texture and format it as you wish if the data represents more complex data than is easy to display in the texture viewer.
+
+.. warning::
+
+  The buffer viewer may not be able to handle the full number of columns that are appropriate for the full width of a texture, so it is better to limit the number of columns and manually calculate the offset into the table of data.
 
 Zoom Controls
 ~~~~~~~~~~~~~~~~~

@@ -10,7 +10,7 @@ Leaving aside the relatively uninteresting matter of injecting the RenderDoc DLL
 
 We will use D3D11 as an example of a driver for RenderDoc - the driver layer is responsible both for faithfully capturing the logfile's API usage, as well as then replaying and analysing it later. Essentially anything built on top of a driver layer can be used agnostically of the API the application in question is using.
 
-When the driver initialises it will hook into every entry point into the API such that when application uses the API it passes through the driver wrapper. In the case of D3D11 this is the D3D11CreateDevice and CreateDXGIFactory functions.
+When the driver initialises it will hook into every entry point into the API such that when application uses the API it passes through the driver wrapper. In the case of D3D11 this is the ``D3D11CreateDevice`` and ``CreateDXGIFactory`` functions.
 
 After this point all accesses to the API remain wrapped and the driver essentially "man-in-the-middle"s between the application and the real API.
 
@@ -31,7 +31,7 @@ When replaying, the initial section of the log (up to the beginning of the frame
 
 RenderDoc then does an initial pass over the captured frame. This allows us to build up a list of all the 'drawcall' events, analyse dependencies and check which resources are used at each drawcall for read, write, and so on. An internal tree is built up similar to what you see in the Event Browser &amp; API Viewer, as well as a linked list with the linear sequence of drawcalls, since both representations are useful for iterating over the frame.
 
-After this point most work is done in response to user actions. The basic building block is replaying a partial frame. Most analysis tools are built out of either replaying up to the current event, replaying up to the event - not including the current drawcall - and replaying _only_ the current drawcall.
+After this point most work is done in response to user actions. The basic building block is replaying a partial frame. Most analysis tools are built out of either replaying up to the current event, replaying up to the event - not including the current drawcall - and replaying *only* the current drawcall.
 
 Care is taken to minimise this as much as possible as this tends to be the slowest operation given the overheads of serialisation and decoding the command stream.
 

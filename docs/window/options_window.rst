@@ -17,13 +17,17 @@ General options
 
   | ``Associate .rdc with RenderDoc`` Default: ``N/A``
 
-This button will elevate RenderDoc to administrator privileges temporarily, and associate the .rdc file extension with RenderDoc. After doing this double clicking any .rdc file will open it in a new instance of RenderDoc.
-  
+This button will elevate RenderDoc to administrator privileges temporarily, and associate the ``.rdc`` file extension with RenderDoc. After doing this double clicking any ``.rdc`` file will open it in a new instance of RenderDoc.
+
+---------------
+
   | ``Associate .cap with RenderDoc`` Default: ``N/A``
 
-This button will elevate RenderDoc to administrator privileges temporarily, and associate the .cap file extension with RenderDoc. After doing this double clicking any .cap file will open a new instance of RenderDoc and show the capture dialog with the settings contained inside.
+This button will elevate RenderDoc to administrator privileges temporarily, and associate the ``.cap`` file extension with RenderDoc. After doing this double clicking any ``.cap`` file will open a new instance of RenderDoc and show the capture dialog with the settings contained inside.
 
 If the setting "Auto Start" is enabled, RenderDoc will then immediately trigger a capture of the target executable.
+
+---------------
 
   | ``Minimum decimal places on float values`` Default: ``2``
 
@@ -39,6 +43,8 @@ Examples:
 
 * With a value of 6, ``1.0f`` will be displayed as *1.000000*
 
+---------------
+
   | ``Maximum significant figures on decimals`` Default: ``5``
 
 Defines the smallest number of decimal places to display on a float, padding with 0s.
@@ -52,6 +58,8 @@ Examples:
 * With a value of 10, ``0.123456789f`` will be displayed as *0.123456789*
 
 * With a value of 10, ``1.0f`` will be displayed as *1.00*
+
+---------------
 
   | ``Negative exponential cutoff value`` Default: ``5``
 
@@ -67,6 +75,8 @@ Examples:
 
 * With a value of 10, ``0.000001f`` will be displayed as *0.000001*
 
+---------------
+
   | ``Positive exponential cutoff value`` Default: ``7``
 
 Any floating point numbers that are larger *E+v* for this value *v* will be displayed in scientific notation rather than as a fixed point decimal.
@@ -81,23 +91,31 @@ Examples:
 
 * With a value of 2, ``123456789.0f`` will be displayed as *1.2345E8*
 
+---------------
+
   | ``Directory for temporary capture files`` Default: ``%TEMP%``
 
 This allows you to choose where on disk temporary capture files are stored between when the capture is made, and when it is either discarded or saved to a permanent location on disk. 
 
 By default the system temporary directory is used, but if this lies on drive with limited space, large captures could become a problem so here you can redirect the storage elsewhere.
   
+---------------
+
   | ``Allow global process hooking`` Default: ``Disabled``
 
 This option enables the functionality allowing capturing of programs that aren't launched directly from RenderDoc, but are launched from somewhere else.
 
-This option **can be dangerous** which is why you have to deliberately enable it here. Be careful when using this and only do so when necessary - more details can be found in the :doc:`capture options <capture_log_attach>` page.
+This option **can be dangerous** which is why you have to deliberately enable it here. Be careful when using this and only do so when necessary - more details can be found in the :ref:`global process hook <global-process-hook>` details.
+
+---------------
 
   | ``Allow periodic anonymous update checks`` Default: ``Enabled``
 
 Every couple of days RenderDoc will send a single web request to a server to see if a new version is available and let you know about it. The only information transmitted is the version of RenderDoc that is running.
 
 If you would prefer RenderDoc does not ever contact an external server, disable this checkbox. If you do this it's recommended that you manually check for updates as new versions will be made available regularly with bugfixes.
+
+---------------
 
   | ``Prefer monospaced fonts in UI`` Default: ``Disabled``
 
@@ -121,6 +139,8 @@ Texture Viewer options
 
 When changing texture from one to another, when this option is enabled the range control will reset itself to [0, 1]. This will happen between any two textures, and going back and forth between two textures will also reset the range.
 
+---------------
+
   | ``Visible channels, mip/slice, and range saved per-texture`` Default: ``Enabled``
 
 Settings including which channels are displayed (red, green, blue, alpha or depth/stencil), the mip or slice/cubemap face to display, or the visible min/max range values are remembered with the texture you were looking at. In other words if you display a render target with only the alpha channel visible, then switching to view another texture will default back to RGB - and switching back to that render target will view alpha again.
@@ -140,6 +160,8 @@ Event Browser options
 This option allows you to select the unit that will be shown in the duration column in the event browser when you time individual drawcalls.
 
 Seconds through to nanoseconds are supported.
+
+---------------
 
   | ``Hide empty marker sections`` Default: ``Disabled``
 

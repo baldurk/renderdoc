@@ -17,7 +17,7 @@ Things to Note
   RenderDoc has no runtime dependencies on Visual Studio or the DirectX or Windows SDK, and should run anywhere that a normal DirectX application will run - i.e. on Artist or QA machines.
 
   Currently RenderDoc also assumes feature level 11+ hardware for the replay app. It can capture applications running at a lower feature level, but when replaying if 11+ hardware isn't available, RenderDoc will fall back to WARP software emulation and will run slowly.
-* If capturing callstacks from the app, ensure that dbghelp.dll is not loaded or used by the application as this can easily interfere with RenderDoc's use and cause undefined or empty results. More information on this can be found in :doc:`../how/how_capture_callstack`.
+* If capturing callstacks from the app, ensure that ``dbghelp.dll`` is not loaded or used by the application as this can easily interfere with RenderDoc's use and cause undefined or empty results. More information on this can be found in :doc:`../how/how_capture_callstack`.
 * RenderDoc can have a significant memory overhead, especially when a lot of resources are allocated as shadow copies in main memory are created.
 
   If running in 32bit, it's possible that an application can run out of memory - particularly when capturing, as this causes a significant spike in memory use. Improvements in memory management are planned but for now it's recommended to use 64bit, or to limit captures to simple scenes wherever possible.
