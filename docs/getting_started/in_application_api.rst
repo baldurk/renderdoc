@@ -6,11 +6,6 @@ Reference for RenderDoc in-application API
 
 This page describes the RenderDoc API exposed to applications being captured, both in overall organisation as well as a specific reference on each function.
 
-
-
-Overview
---------
-
 .. cpp:function:: void GetAPIVersion(int *major, int *minor, int *patch)
 
 
