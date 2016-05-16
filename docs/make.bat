@@ -119,6 +119,8 @@ if "%1" == "htmlhelp" (
 	if errorlevel 1 exit /b 1
 	REM Copy handwritten index file to output, overwriting auto-generated one
 	copy renderdoc.hhk %BUILDDIR%\htmlhelp\
+	REM Copy introduction page over index.html
+	copy %BUILDDIR%\htmlhelp\introduction.html %BUILDDIR%\htmlhelp\index.html
 	REM Filter out the auto-generated TOC to remove anchor links and root index.html
 	type %BUILDDIR%\htmlhelp\renderdoc.hhc | python remove_lines.py ".html#" | python remove_lines.py "\"index.html\"" > %BUILDDIR%\htmlhelp\tmp
 	move %BUILDDIR%\htmlhelp\tmp %BUILDDIR%\htmlhelp\renderdoc.hhc

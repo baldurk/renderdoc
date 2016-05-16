@@ -88,6 +88,8 @@ htmlhelp:
 	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) $(BUILDDIR)/htmlhelp
 	# Copy handwritten index file to output, overwriting auto-generated one
 	@cp renderdoc.hhk $(BUILDDIR)/htmlhelp
+	# Copy introduction page over index.html
+	@cp $(BUILDDIR)/htmlhelp/introduction.html $(BUILDDIR)/htmlhelp/index.html
 	# Filter out the auto-generated TOC to remove anchor links and root index.html
 	@cat $(BUILDDIR)/htmlhelp/renderdoc.hhc | python remove_lines.py ".html#" | python remove_lines.py "\"index.html\"" > $(BUILDDIR)/htmlhelp/tmp
 	@mv $(BUILDDIR)/htmlhelp/tmp $(BUILDDIR)/htmlhelp/renderdoc.hhc
