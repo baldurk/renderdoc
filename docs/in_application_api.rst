@@ -3,6 +3,9 @@ In-application API
 
 Reference for RenderDoc in-application API
 
+.. |semver_link| raw:: html
+
+   <a href="http://semver.org" target="_blank">semantic versioning</a>
 
 This page describes the RenderDoc API exposed to applications being captured, both in overall organisation as well as a specific reference on each function.
 
@@ -11,7 +14,7 @@ This page describes the RenderDoc API exposed to applications being captured, bo
 
     This function is the only entry point actually exported from the RenderDoc module. You call this function with the desired API version, and pass it the address of a pointer to the appropriate struct type. If successful, RenderDoc will set the pointer to point to a struct containing the function pointers for the API functions (detailed below) and return 1.
 
-    Note that version numbers follow `semantic versioning <http://semver.org/>`_ which means the implementation returned may have a higher minor and/or patch version than requested.
+    Note that version numbers follow |semver_link| which means the implementation returned may have a higher minor and/or patch version than requested.
     
     :param RENDERDOC_Version version: is the version number of the API for which you want the interface struct.
     :param void** outAPIPointers: will be filled with the address of the API's function pointer struct, if supported. E.g. if ``eRENDERDOC_API_Version_1_0_1`` is requested, outAPIPointers will be filled with ``RENDERDOC_API_1_0_1*``.
@@ -21,7 +24,7 @@ This page describes the RenderDoc API exposed to applications being captured, bo
 .. cpp:function:: void GetAPIVersion(int *major, int *minor, int *patch)
 
 
-    This function returns the actual API version of the implementation returned. Version numbers follow `semantic versioning <http://semver.org/>`_ which means the implementation returned may have a higher minor and/or patch version than requested: New patch versions are identical and backwards compatible in functionality. New minor versions add new functionality in a backwards compatible way.
+    This function returns the actual API version of the implementation returned. Version numbers follow |semver_link| which means the implementation returned may have a higher minor and/or patch version than requested: New patch versions are identical and backwards compatible in functionality. New minor versions add new functionality in a backwards compatible way.
 
     :param int* major: will be filled with the major version of the implementation's version.
     :param int* minor: will be filled with the minor version of the implementation's version.
