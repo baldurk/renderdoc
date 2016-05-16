@@ -186,6 +186,8 @@ Querying an ID3D11Device for UUID ``{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}`` wil
 
 A similar extension for Vulkan will be proposed after release.
 
+.. _unstripped-shader-info:
+
 My shaders have 'cbuffer0' and unnamed variables, how do I get proper debug info?
 ---------------------------------------------------------------------------------
 
