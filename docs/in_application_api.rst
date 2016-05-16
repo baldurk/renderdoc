@@ -6,6 +6,18 @@ Reference for RenderDoc in-application API
 
 This page describes the RenderDoc API exposed to applications being captured, both in overall organisation as well as a specific reference on each function.
 
+.. cpp:function:: int RENDERDOC_GetAPI(RENDERDOC_Version version, void **outAPIPointers)
+
+
+    This function is the only entry point actually exported from the RenderDoc module. You call this function with the desired API version, and pass it the address of a pointer to the appropriate struct type. If successful, RenderDoc will set the pointer to point to a struct containing the function pointers for the API functions (detailed below) and return 1.
+
+    Note that version numbers follow `semantic versioning <http://semver.org/>`_ which means the implementation returned may have a higher minor and/or patch version than requested.
+    
+    :param RENDERDOC_Version version: is the version number of the API for which you want the interface struct.
+    :param void** outAPIPointers: will be filled with the address of the API's function pointer struct, if supported. E.g. if ``eRENDERDOC_API_Version_1_0_1`` is requested, outAPIPointers will be filled with ``RENDERDOC_API_1_0_1*``.
+    :return: The function returns 1 if the API version is valid and available, and the struct pointer is filled. The function returns 0 if the API version is invalid or not supported, or the pointer parameter is invalid.
+
+
 .. cpp:function:: void GetAPIVersion(int *major, int *minor, int *patch)
 
 
