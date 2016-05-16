@@ -7,6 +7,9 @@
 if [ z$SPHINXBUILD == "z" ]; then
 	SPHINXBUILD=sphinx-build
 fi
+if [ z$HHCBUILD == "z" ]; then
+	HHCBUILD="C:\Program Files (x86)\HTML Help Workshop\hhc.exe"
+fi
 BUILDDIR="../Documentation"
 ALLSPHINXOPTS="-d $BUILDDIR/doctrees $SPHINXOPTS ."
 I18NSPHINXOPTS="$SPHINXOPTS ."
@@ -106,9 +109,17 @@ if [ $1 == "htmlhelp" ]; then
 	# Filter out the auto-generated TOC to remove anchor links and root index.html
 	cat $BUILDDIR/htmlhelp/renderdoc.hhc | python remove_lines.py ".html#" | python remove_lines.py "\"index.html\"" > $BUILDDIR/htmlhelp/tmp
 	mv $BUILDDIR/htmlhelp/tmp $BUILDDIR/htmlhelp/renderdoc.hhc
+	if [ -f "${HHCBUILD}" ]; then
+		"C:\Program Files (x86)\HTML Help Workshop\hhc.exe" $BUILDDIR/htmlhelp/renderdoc.hhp
+		echo "Build finished."
+		exit
+	fi
 	echo
 	echo "Build finished; now you can run HTML Help Workshop with the "
 	echo ".hhp project file in $BUILDDIR/htmlhelp."
+	echo "For future, you can either install HTML Help Workshop to the"
+	echo "default path [C:\Program Files (x86)\HTML Help Workshop] or "
+	echo "set the variable HHCBUILD to the path to hhc.exe."
 	exit
 fi
 
