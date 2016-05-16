@@ -226,9 +226,22 @@ namespace renderdocui.Windows
             return new TreelistView.Node(new object[] { "", "", text, -1.0 });
         }
 
+        private TreelistView.Node MakeNode(UInt32 minEID, UInt32 maxEID, UInt32 draw, string text, double duration)
+        {
+            return new TreelistView.Node(new object[] { String.Format("{0}-{1}", minEID, maxEID), draw, text, duration });
+        }
+
         private TreelistView.Node MakeNode(UInt32 EID, UInt32 draw, string text, double duration)
         {
             return new TreelistView.Node(new object[] { EID, draw, text, duration });
+        }
+
+        private uint GetEndEventID(FetchDrawcall drawcall)
+        {
+            if (drawcall.children.Length == 0)
+                return drawcall.eventID;
+
+            return GetEndEventID(drawcall.children.Last());
         }
 
         private TreelistView.Node AddDrawcall(FetchDrawcall drawcall, TreelistView.Node root)
@@ -240,7 +253,12 @@ namespace renderdocui.Windows
             }
 
             UInt32 eventNum = drawcall.eventID;
-            TreelistView.Node drawNode = MakeNode(eventNum, drawcall.drawcallID, drawcall.name, 0.0);
+            TreelistView.Node drawNode = null;
+            
+            if(drawcall.children.Length > 0)
+                drawNode = MakeNode(eventNum, GetEndEventID(drawcall), drawcall.drawcallID, drawcall.name, 0.0);
+            else
+                drawNode = MakeNode(eventNum, drawcall.drawcallID, drawcall.name, 0.0);
 
             DeferredEvent def = new DeferredEvent();
             def.eventID = eventNum;
@@ -302,6 +320,16 @@ namespace renderdocui.Windows
             return drawNode;
         }
 
+        private uint GetNodeEventID(TreelistView.Node n)
+        {
+            DeferredEvent def = n.Tag as DeferredEvent;
+
+            if (def != null)
+                return def.eventID;
+
+            return 0;
+        }
+
         private void SetDrawcallTimes(TreelistView.Node n, Dictionary<uint, List<CounterResult>> times)
         {
             if (n == null || times == null) return;
@@ -312,7 +340,7 @@ namespace renderdocui.Windows
             // look up leaf nodes in the dictionary
             if (n.Nodes.IsEmpty())
             {
-                uint eid = (uint)n["EID"];
+                uint eid = GetNodeEventID(n);
 
                 if (times.ContainsKey(eid))
                     duration = times[eid][0].value.d;
@@ -403,6 +431,8 @@ namespace renderdocui.Windows
 
                 m_Core.SetEventID(null, evt.eventID + 1);
 
+                m_FrameNode.Tag = evt;
+
                 eventView.NodesSelection.Clear();
                 eventView.NodesSelection.Add(eventView.Nodes[0]);
                 eventView.FocusedNode = eventView.Nodes[0];
@@ -485,7 +515,7 @@ namespace renderdocui.Windows
         {
             foreach (var n in nodes)
             {
-                if (!IsBookmarked((UInt32)n["EID"]))
+                if (!IsBookmarked(GetNodeEventID(n)))
                     n.Image = null;
 
                 if (n.Nodes.Count > 0)
@@ -515,7 +545,7 @@ namespace renderdocui.Windows
                 {
                     if (n["Name"].ToString().ToUpperInvariant().Contains(filter))
                     {
-                        if (!IsBookmarked((UInt32)n["EID"]))
+                        if (!IsBookmarked(GetNodeEventID(n)))
                             n.Image = global::renderdocui.Properties.Resources.find;
                         results++;
                     }
@@ -544,7 +574,7 @@ namespace renderdocui.Windows
             {
                 if (n.Tag is DeferredEvent)
                 {
-                    if ((UInt32)n["EID"] > after && n["Name"].ToString().ToUpperInvariant().Contains(filter))
+                    if (GetNodeEventID(n) > after && n["Name"].ToString().ToUpperInvariant().Contains(filter))
                         return n;
                 }
 

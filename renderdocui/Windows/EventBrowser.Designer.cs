@@ -121,7 +121,7 @@
             // 
             this.eventView.AlwaysDisplayVScroll = true;
             treeListColumn1.AutoSizeMinSize = 15;
-            treeListColumn1.Width = 48;
+            treeListColumn1.Width = 80;
             treeListColumn2.AutoSizeMinSize = 15;
             treeListColumn2.Width = 45;
             treeListColumn3.AutoSize = true;
