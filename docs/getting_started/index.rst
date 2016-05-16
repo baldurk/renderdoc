@@ -9,4 +9,3 @@ Getting started
     quick_start
     features
     tips_tricks
-    in_application_api

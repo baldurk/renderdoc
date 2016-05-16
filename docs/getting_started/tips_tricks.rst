@@ -22,7 +22,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
 #. Similarly, right-clicking on the 'auto-fit' button |wand| will auto-fit whenever the texture or event changes, so that the visible range is maintained as you move through the frame. This can be useful if jumping between places where the visible range is very different.
 #. You can double click on a thumbnail in the texture viewer to open a :doc:`locked texture <../how/how_view_texture>` tab
 #. You can close tabs by middle clicking on them.
-#. You can trigger a capture from code. renderdoc.dll exports an :doc:`in_application_api` for this purpose, defined in ``renderdoc_app.h`` in the distributions:
+#. You can trigger a capture from code. renderdoc.dll exports an :doc:`../in_application_api` for this purpose, defined in ``renderdoc_app.h`` in the distributions:
 
    .. highlight:: c++
    .. code:: c++
@@ -48,7 +48,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
 
 #. When you have right clicked to select a pixel in the texture viewer, you can perform precise refinements with the arrow keys to nudge the selection in each direction.
 #. To get API debug or error messages, enable "Create Debug Device" when capturing then check out the :doc:`../window/debug_messages` window.
-#. Detecting RenderDoc from your code can either be done by trying to load and use the renderdoc :doc:`in_application_api`, or through API specific ways:
+#. Detecting RenderDoc from your code can either be done by trying to load and use the renderdoc :doc:`../in_application_api`, or through API specific ways:
 
    .. highlight:: c++
    .. code:: c++

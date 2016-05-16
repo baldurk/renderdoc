@@ -23,6 +23,7 @@ Table of Contents
    :maxdepth: 2
 
    introduction
+   in_application_api
    credits_acknowledgements
    getting_started/index
    behind_scenes/index
