@@ -12,6 +12,8 @@ This page is a random hodge-podge of different tips and tricks that might not be
 
        These associations must be re-created if RenderDoc is moved to another folder.
 
+.. _view-image-files:
+
 #. RenderDoc can be used as an image viewer! If you drag in or use file → open, you can open images in a variety of formats - .dds, .hdr, .exr, .bmp, .jpg, .png, .tga, .gif, .psd. The image will load up in RenderDoc's texture viewer and you can use the normal controls to view it as if it were a texture in a log. Note that dds files support all DXGI formats, compressed formats, arrays and mips - all of which will display as expected. If the file is modified, RenderDoc will reload it and display it. Note that changing the image's dimensions or format will likely cause problems.
 #. If a .cap file is saved with the "auto-start" option enabled, launching RenderDoc by opening this file will cause RenderDoc to automatically trigger a capture with the given options. This is useful for saving a common path & set of options that you regularly re-run.
 
