@@ -1,8 +1,6 @@
 Credits & Acknowledgements
 ==========================
 
-.. toctree::
-
 RenderDoc wouldn't have been possible without both the tools and libraries that were used in its construction, as well as the many people who helped and contributed to make it the program it is today.
 
 3rd Party Credits

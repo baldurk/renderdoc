@@ -1,10 +1,6 @@
 How do I view details of an object?
 ===================================
 
-.. toctree::
-
-
-
 .. |goarrow| image:: ../imgs/icons/GoArrow.png
 
 The pipeline state viewer allows you to view more details of given resources that are bound to the pipeline. The go arrow |goarrow| is a sign that more details for this resource are available.

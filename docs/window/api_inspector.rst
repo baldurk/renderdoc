@@ -1,9 +1,6 @@
 API Inspector
 =============
 
-.. toctree::
-
-
 Although not the most complex part of the RenderDoc's UI, this page details the features and functionality of the API Inspector.
 
 UI Elements

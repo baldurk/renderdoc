@@ -1,9 +1,6 @@
 Capture Connection
 ==================
 
-.. toctree::
-
-
 The Live capture window opens up when you launch a capture of a program, as well as when you attach to an existing program.
 
 Attaching to an existing instance

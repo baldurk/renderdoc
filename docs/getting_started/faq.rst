@@ -1,8 +1,6 @@
 FAQ
 ===
 
-.. toctree::
-
 Here is a list of commonly asked questions about RenderDoc. Feel free to contact me if you have another question that isn't covered here or in this document.
 
 How do I do some particular task?

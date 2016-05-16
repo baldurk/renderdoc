@@ -1,8 +1,6 @@
 Gotchas & Known Issues
 ======================
 
-.. toctree::
-
 This page (hopefully) keeps up to date with any known issues, bugs, unimplemented or partially unimplemented features.
 
 Things to Note

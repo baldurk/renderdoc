@@ -1,8 +1,6 @@
 Quick Start
 ===========
 
-.. toctree::
-
 This document serves as a brief introduction to how to use RenderDoc to capture and analyse your application. It doesn't go into much detail about exactly what functionality is available for digging into things, as this can be found elsewhere. Instead it focuses on just the workflow from start to finish and roughly where to look for different things.
 
 For this tutorial we will be using a slightly modified version of the CascadedShadowMaps sample from the Microsoft DirectX SDK (June 2010).

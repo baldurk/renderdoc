@@ -1,10 +1,6 @@
 Timeline Bar
 ============
 
-.. toctree::
-
-
-
 The timeline bar shows an alternate view of the scene to the :doc:`event_browser`. Displaying the scene with time running as the horizontal axis, although it does not show each section in size relative to its timing.
 
 Introduction
