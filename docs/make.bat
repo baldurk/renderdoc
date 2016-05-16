@@ -5,7 +5,7 @@ REM Command file for Sphinx documentation
 if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )
-set BUILDDIR=../Documentation
+set BUILDDIR=..\Documentation
 set ALLSPHINXOPTS=-d %BUILDDIR%/doctrees %SPHINXOPTS% .
 set I18NSPHINXOPTS=%SPHINXOPTS% .
 if NOT "%PAPER%" == "" (
@@ -117,6 +117,11 @@ if "%1" == "json" (
 if "%1" == "htmlhelp" (
 	%SPHINXBUILD% -b htmlhelp %ALLSPHINXOPTS% %BUILDDIR%/htmlhelp
 	if errorlevel 1 exit /b 1
+	REM Copy handwritten index file to output, overwriting auto-generated one
+	copy renderdoc.hhk %BUILDDIR%\htmlhelp\
+	REM Filter out the auto-generated TOC to remove anchor links and root index.html
+	type %BUILDDIR%\htmlhelp\renderdoc.hhc | python remove_lines.py ".html#" | python remove_lines.py "\"index.html\"" > %BUILDDIR%\htmlhelp\tmp
+	move %BUILDDIR%\htmlhelp\tmp %BUILDDIR%\htmlhelp\renderdoc.hhc
 	echo.
 	echo.Build finished; now you can run HTML Help Workshop with the ^
 .hhp project file in %BUILDDIR%/htmlhelp.
