@@ -6,7 +6,9 @@ This page goes into detail about how to set up your captures for debugging shade
 Including debug info in shaders
 -------------------------------
 
-For the most part at least some debug information is included with shaders unless it is being explicitly stripped out at some point. There is usually an option to also include additional debug information - such as original source code in a high-level language. The exact process varies by API, but for D3D11 the flag ``/Zi`` to fxc or the equivalent flag to D3DCompile() will include additional debugging information, and ``/Qstrip_debug`` and ``/Qstrip_reflection`` will remove reflection information that can be useful - such as the names of variables in constant buffers.
+For the most part at least some debug information is included with shaders unless it is being explicitly stripped out at some point. There is usually an option to also include additional debug information - such as original source code in a high-level language. The exact process varies by API, but for D3D11 the flag ``/Zi`` to fxc or the equivalent flag to ``D3DCompile()`` will include additional debugging information, and ``/Qstrip_debug`` and ``/Qstrip_reflection`` will remove reflection information that can be useful - such as the names of variables in constant buffers.
+
+For more information on how to get this unstripped debug information to renderdoc, see :ref:`unstripped-shader-info`.
 
 Debugging a vertex
 ------------------
