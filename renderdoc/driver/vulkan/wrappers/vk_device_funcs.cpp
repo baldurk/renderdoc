@@ -212,7 +212,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 	for(uint32_t i=0; i < modifiedCreateInfo.enabledExtensionCount; i++)
 		addedExts[i] = modifiedCreateInfo.ppEnabledExtensionNames[i];
 
-	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+	if(RenderDoc::Inst().GetCaptureOptions().APIValidation)
 		addedExts[modifiedCreateInfo.enabledExtensionCount++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
 
 	modifiedCreateInfo.ppEnabledExtensionNames = addedExts;
@@ -256,7 +256,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 	m_Queue = VK_NULL_HANDLE;
 	m_InternalCmds.Reset();
 
-	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && ObjDisp(m_Instance)->CreateDebugReportCallbackEXT)
+	if(RenderDoc::Inst().GetCaptureOptions().APIValidation && ObjDisp(m_Instance)->CreateDebugReportCallbackEXT)
 	{
 		VkDebugReportCallbackCreateInfoEXT debugInfo = {};
 		debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;

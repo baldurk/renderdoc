@@ -48,7 +48,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
    You can also use the ``RENDERDOC_StartFrameCapture()`` and ``RENDERDOC_EndFrameCapture()`` functions to precisely define the period to be captured. For more information look at the :doc:`../in_application_api` documentation or the ``renderdoc_app.h`` header.
 
 #. When you have right clicked to select a pixel in the texture viewer, you can perform precise refinements with the arrow keys to nudge the selection in each direction.
-#. To get API debug or error messages, enable "Create Debug Device" when capturing then check out the :doc:`../window/debug_messages` window.
+#. To get API debug or error messages, enable "Enable API validation" when capturing then check out the :doc:`../window/debug_messages` window.
 #. Detecting RenderDoc from your code can either be done by trying to load and use the renderdoc :doc:`../in_application_api`, or through API specific ways:
 
    .. highlight:: c++

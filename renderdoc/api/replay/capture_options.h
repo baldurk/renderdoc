@@ -37,7 +37,7 @@ struct CaptureOptions
 
 	bool32 AllowVSync;
 	bool32 AllowFullscreen;
-	bool32 DebugDeviceMode;
+	bool32 APIValidation;
 	bool32 CaptureCallstacks;
 	bool32 CaptureCallstacksOnlyDraws;
 	uint32_t DelayForDebugger;

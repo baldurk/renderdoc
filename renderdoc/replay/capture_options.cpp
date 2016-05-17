@@ -41,8 +41,8 @@ int RENDERDOC_CC SetCaptureOptionU32(RENDERDOC_CaptureOption opt, uint32_t val)
 		case eRENDERDOC_Option_AllowFullscreen:
 			opts.AllowFullscreen = (val != 0);
 			break;
-		case eRENDERDOC_Option_DebugDeviceMode:
-			opts.DebugDeviceMode = (val != 0);
+		case eRENDERDOC_Option_APIValidation:
+			opts.APIValidation = (val != 0);
 			break;
 		case eRENDERDOC_Option_CaptureCallstacks:
 			opts.CaptureCallstacks = (val != 0);
@@ -92,8 +92,8 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val)
 		case eRENDERDOC_Option_AllowFullscreen:
 			opts.AllowFullscreen = (val != 0.0f);
 			break;
-		case eRENDERDOC_Option_DebugDeviceMode:
-			opts.DebugDeviceMode = (val != 0.0f);
+		case eRENDERDOC_Option_APIValidation:
+			opts.APIValidation = (val != 0.0f);
 			break;
 		case eRENDERDOC_Option_CaptureCallstacks:
 			opts.CaptureCallstacks = (val != 0.0f);
@@ -139,8 +139,8 @@ uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt)
 			return (RenderDoc::Inst().GetCaptureOptions().AllowVSync ? 1 : 0);
 		case eRENDERDOC_Option_AllowFullscreen:
 			return (RenderDoc::Inst().GetCaptureOptions().AllowFullscreen ? 1 : 0);
-		case eRENDERDOC_Option_DebugDeviceMode:
-			return (RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode ? 1 : 0);
+		case eRENDERDOC_Option_APIValidation:
+			return (RenderDoc::Inst().GetCaptureOptions().APIValidation ? 1 : 0);
 		case eRENDERDOC_Option_CaptureCallstacks:
 			return (RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks ? 1 : 0);
 		case eRENDERDOC_Option_CaptureCallstacksOnlyDraws:
@@ -174,8 +174,8 @@ float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt)
 			return (RenderDoc::Inst().GetCaptureOptions().AllowVSync ? 1.0f : 0.0f);
 		case eRENDERDOC_Option_AllowFullscreen:
 			return (RenderDoc::Inst().GetCaptureOptions().AllowFullscreen ? 1.0f : 0.0f);
-		case eRENDERDOC_Option_DebugDeviceMode:
-			return (RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode ? 1.0f : 0.0f);
+		case eRENDERDOC_Option_APIValidation:
+			return (RenderDoc::Inst().GetCaptureOptions().APIValidation ? 1.0f : 0.0f);
 		case eRENDERDOC_Option_CaptureCallstacks:
 			return (RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks ? 1.0f : 0.0f);
 		case eRENDERDOC_Option_CaptureCallstacksOnlyDraws:
@@ -205,7 +205,7 @@ CaptureOptions::CaptureOptions()
 {
 	AllowVSync = true;
 	AllowFullscreen = true;
-	DebugDeviceMode = false;
+	APIValidation = false;
 	CaptureCallstacks = false;
 	CaptureCallstacksOnlyDraws = false;
 	DelayForDebugger = 0;

@@ -80,9 +80,9 @@ This option modifies the above capturing of callstacks to only be saved for draw
 
 ----------
 
-  | ``Create Debug Device`` Default: ``Disabled``
+  | ``Enable API validation`` Default: ``Disabled``
 
-Create Debug Device causes RenderDoc to enable the API's built-in debugging, and where possible serialise this out and include it in the logfile for later inspection in the :doc:`debug_messages` window.
+Enable API validation causes RenderDoc to enable the API's built-in debugging, and where possible serialise this out and include it in the logfile for later inspection in the :doc:`debug_messages` window.
 
 * On D3D11 this will activate the D3D debug layer and save out any messages.
 * For OpenGL this means ``ARB_debug_output`` is automatically enabled.

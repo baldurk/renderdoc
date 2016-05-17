@@ -159,7 +159,7 @@ private:
 
 		if(m_EnabledHooks)
 		{
-			if(!reading && RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+			if(!reading && RenderDoc::Inst().GetCaptureOptions().APIValidation)
 			{
 				Flags |= D3D11_CREATE_DEVICE_DEBUG;
 			}

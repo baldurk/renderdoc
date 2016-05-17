@@ -79,14 +79,14 @@ class VulkanHook : LibraryHook
 
 	void OptionsUpdated(const char *libName)
 	{
-		if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+		if(RenderDoc::Inst().GetCaptureOptions().APIValidation)
 		{
 			Process::RegisterEnvironmentModification(Process::EnvironmentModification(Process::eEnvModification_AppendPlatform, "VK_INSTANCE_LAYERS", "VK_LAYER_LUNARG_standard_validation"));
 			Process::RegisterEnvironmentModification(Process::EnvironmentModification(Process::eEnvModification_AppendPlatform, "VK_DEVICE_LAYERS", "VK_LAYER_LUNARG_standard_validation"));
 		}
 		else
 		{
-			// can't disable if DebugDeviceMode is not set
+			// can't disable if APIValidation is not set
 		}
 		
 		Process::ApplyEnvironmentModification();

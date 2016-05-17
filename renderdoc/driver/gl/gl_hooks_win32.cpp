@@ -474,7 +474,7 @@ class OpenGLHook : LibraryHook
 
 					if(name == WGL_CONTEXT_FLAGS_ARB)
 					{
-						if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+						if(RenderDoc::Inst().GetCaptureOptions().APIValidation)
 							val |= WGL_CONTEXT_DEBUG_BIT_ARB;
 						else
 							val &= ~WGL_CONTEXT_DEBUG_BIT_ARB;
@@ -489,7 +489,7 @@ class OpenGLHook : LibraryHook
 					attribVec.push_back(val);
 				}
 
-				if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+				if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().APIValidation)
 				{
 					attribVec.push_back(WGL_CONTEXT_FLAGS_ARB);
 					attribVec.push_back(WGL_CONTEXT_DEBUG_BIT_ARB);

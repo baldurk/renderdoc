@@ -76,7 +76,7 @@ namespace renderdocui.Windows.Dialogs
             HookIntoChildren.Checked = settings.Options.HookIntoChildren;
             CaptureCallstacks.Checked = settings.Options.CaptureCallstacks;
             CaptureCallstacksOnlyDraws.Checked = settings.Options.CaptureCallstacksOnlyDraws;
-            DebugDeviceMode.Checked = settings.Options.DebugDeviceMode;
+            APIValidation.Checked = settings.Options.APIValidation;
             RefAllResources.Checked = settings.Options.RefAllResources;
             SaveAllInitials.Checked = settings.Options.SaveAllInitials;
             DelayForDebugger.Value = settings.Options.DelayForDebugger;
@@ -114,7 +114,7 @@ namespace renderdocui.Windows.Dialogs
             ret.Options.HookIntoChildren = HookIntoChildren.Checked;
             ret.Options.CaptureCallstacks = CaptureCallstacks.Checked;
             ret.Options.CaptureCallstacksOnlyDraws = CaptureCallstacksOnlyDraws.Checked;
-            ret.Options.DebugDeviceMode = DebugDeviceMode.Checked;
+            ret.Options.APIValidation = APIValidation.Checked;
             ret.Options.RefAllResources = RefAllResources.Checked;
             ret.Options.SaveAllInitials = SaveAllInitials.Checked;
             ret.Options.CaptureAllCmdLists = CaptureAllCmdLists.Checked;

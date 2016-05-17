@@ -70,7 +70,7 @@ namespace renderdoc
     {
         public bool AllowVSync;
         public bool AllowFullscreen;
-        public bool DebugDeviceMode;
+        public bool APIValidation;
         public bool CaptureCallstacks;
         public bool CaptureCallstacksOnlyDraws;
         public UInt32 DelayForDebugger;

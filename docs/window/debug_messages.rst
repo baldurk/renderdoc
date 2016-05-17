@@ -8,7 +8,7 @@ RenderDoc will alert you if there are any debug messages to show from the log, b
 Capturing with debug messages included
 --------------------------------------
 
-To include these debug messages in a log, check on the "Create Debug Device" option in the capture options. For more information see :doc:`capture_log_attach`
+To include these debug messages in a log, check on the "Enable API validation" option in the capture options. For more information see :doc:`capture_log_attach`
 
 Debug Messages
 --------------

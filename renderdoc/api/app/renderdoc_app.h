@@ -83,7 +83,8 @@ typedef enum
 	// 1 - Enable built-in API debugging features and records the results into
 	//     the capture logfile, which is matched up with events on replay
 	// 0 - no API debugging is forcibly enabled
-	eRENDERDOC_Option_DebugDeviceMode = 2,
+	eRENDERDOC_Option_APIValidation = 2,
+	eRENDERDOC_Option_DebugDeviceMode = 2, // deprecated name of this enum
 	
 	// Capture CPU callstacks for API events 
 	//
@@ -169,7 +170,7 @@ typedef enum
 	//     the period when a frame capture is in progress.
 	eRENDERDOC_Option_CaptureAllCmdLists = 10,
 
-	// Mute API debugging output when the debug device mode option is enabled 
+	// Mute API debugging output when the API validation mode option is enabled 
 	//
 	// Default - enabled
 	//
@@ -461,6 +462,7 @@ typedef enum
 {
 	eRENDERDOC_API_Version_1_0_0 = 10000, // RENDERDOC_API_1_0_0 = 1 00 00
 	eRENDERDOC_API_Version_1_0_1 = 10001, // RENDERDOC_API_1_0_1 = 1 00 01
+	eRENDERDOC_API_Version_1_0_2 = 10002, // RENDERDOC_API_1_0_2 = 1 00 02
 } RENDERDOC_Version;
 
 // API version changelog:
@@ -468,8 +470,9 @@ typedef enum
 // 1.0.0 - initial release
 // 1.0.1 - Bugfix: IsFrameCapturing() was returning false for captures that were triggered
 //         by keypress or TriggerCapture, instead of Start/EndFrameCapture.
+// 1.0.2 - Refactor: Renamed eRENDERDOC_Option_DebugDeviceMode to eRENDERDOC_Option_APIValidation
 
-// eRENDERDOC_API_Version_1_0_1
+// eRENDERDOC_API_Version_1_0_2
 typedef struct
 {
 	pRENDERDOC_GetAPIVersion              GetAPIVersion;
@@ -505,9 +508,10 @@ typedef struct
 	pRENDERDOC_StartFrameCapture          StartFrameCapture;
 	pRENDERDOC_IsFrameCapturing           IsFrameCapturing;
 	pRENDERDOC_EndFrameCapture            EndFrameCapture;
-} RENDERDOC_API_1_0_1;
+} RENDERDOC_API_1_0_2;
 
-typedef RENDERDOC_API_1_0_1 RENDERDOC_API_1_0_0;
+typedef RENDERDOC_API_1_0_2 RENDERDOC_API_1_0_0;
+typedef RENDERDOC_API_1_0_2 RENDERDOC_API_1_0_1;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API entry point

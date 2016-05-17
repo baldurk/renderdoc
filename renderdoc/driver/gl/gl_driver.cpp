@@ -1268,7 +1268,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
 			const GLHookSet &gl = m_Real;
 
-			if(gl.glDebugMessageCallback && RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+			if(gl.glDebugMessageCallback && RenderDoc::Inst().GetCaptureOptions().APIValidation)
 			{
 				gl.glDebugMessageCallback(&DebugSnoopStatic, this);
 				gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
