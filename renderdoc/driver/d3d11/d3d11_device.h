@@ -171,6 +171,36 @@ struct DummyID3D11InfoQueue : public ID3D11InfoQueue
 	virtual BOOL STDMETHODCALLTYPE GetMuteDebugOutput() { return TRUE; }
 };
 
+// give every impression of working but do nothing.
+// Same idea as DummyID3D11InfoQueue above, a dummy interface so that users
+// expecting a ID3D11Debug don't get confused if we have turned off the debug
+// layer and can't return the real one.
+struct DummyID3D11Debug : public ID3D11Debug
+{
+	WrappedID3D11Device *m_pDevice;
+
+	DummyID3D11Debug() {}
+
+	//////////////////////////////
+	// implement IUnknown
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOINTERFACE; }
+	ULONG STDMETHODCALLTYPE AddRef();
+	ULONG STDMETHODCALLTYPE Release();
+	
+	//////////////////////////////
+	// implement ID3D11Debug
+	virtual HRESULT STDMETHODCALLTYPE SetFeatureMask(UINT Mask) { return S_OK; }
+	virtual UINT STDMETHODCALLTYPE GetFeatureMask() { return 0; }
+	virtual HRESULT STDMETHODCALLTYPE SetPresentPerRenderOpDelay(UINT Milliseconds) { return S_OK; }
+	virtual UINT STDMETHODCALLTYPE GetPresentPerRenderOpDelay(void) { return 0; }
+	virtual HRESULT STDMETHODCALLTYPE SetSwapChain(IDXGISwapChain *pSwapChain) { return S_OK; }
+	virtual HRESULT STDMETHODCALLTYPE GetSwapChain(IDXGISwapChain **ppSwapChain)
+	{ if(ppSwapChain) *ppSwapChain = NULL; return S_OK; }
+	virtual HRESULT STDMETHODCALLTYPE ValidateContext(ID3D11DeviceContext *pContext) { return S_OK; }
+	virtual HRESULT STDMETHODCALLTYPE ReportLiveDeviceObjects(D3D11_RLDO_FLAGS Flags) { return S_OK; }
+	virtual HRESULT STDMETHODCALLTYPE ValidateContextForDispatch(ID3D11DeviceContext *pContext) { return S_OK; }
+};
+
 class WrappedID3D11ClassLinkage;
 enum CaptureFailReason;
 
@@ -190,6 +220,7 @@ private:
 	D3D11Replay m_Replay;
 
 	DummyID3D11InfoQueue m_DummyInfoQueue;
+	DummyID3D11Debug m_DummyDebug;
 	WrappedID3D11Debug m_WrappedDebug;
 
 	unsigned int m_InternalRefcount;

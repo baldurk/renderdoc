@@ -280,6 +280,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	m_Alive = true;
 
 	m_DummyInfoQueue.m_pDevice = this;
+	m_DummyDebug.m_pDevice = this;
 	m_WrappedDebug.m_pDevice = this;
 
 	m_FrameCounter = 0;
@@ -483,6 +484,18 @@ ULONG STDMETHODCALLTYPE DummyID3D11InfoQueue::Release()
 	return 1;
 }
 
+ULONG STDMETHODCALLTYPE DummyID3D11Debug::AddRef()
+{
+	m_pDevice->AddRef();
+	return 1;
+}
+
+ULONG STDMETHODCALLTYPE DummyID3D11Debug::Release()
+{
+	m_pDevice->Release();
+	return 1;
+}
+
 HRESULT STDMETHODCALLTYPE WrappedID3D11Debug::QueryInterface(REFIID riid, void **ppvObject)
 {
 	if(riid == __uuidof(ID3D11InfoQueue)
@@ -674,7 +687,10 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 		}
 		else
 		{
-			return E_NOINTERFACE;
+			RDCWARN("Returning a dummy ID3D11Debug that does nothing. This ID3D11Debug will not work!");
+			*ppvObject = (ID3D11Debug *)&m_DummyDebug;
+			m_DummyDebug.AddRef();
+			return S_OK;
 		}
 	}
 	else if(riid == IRenderDoc_uuid)
