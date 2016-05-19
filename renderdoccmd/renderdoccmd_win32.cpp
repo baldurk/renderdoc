@@ -333,6 +333,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 		mz_zip_archive zip;
 		ZeroMemory(&zip, sizeof(zip));
 
+		bool successful = false;
+		wstring failReason;
+
 		mz_bool b = mz_zip_reader_init_file(&zip, "./update.zip", 0);
 
 		if(b)
@@ -373,7 +376,53 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 				}
 			}
 
-			for(mz_uint i=0; i < numfiles; i++)
+			// next make sure we can get read+write access to every file. If not
+			// one might be in use, but we definitely can't update it
+			successful = true;
+
+			for(mz_uint i=0; successful && i < numfiles; i++)
+			{
+				if(!mz_zip_reader_is_file_a_directory(&zip, i))
+				{
+					mz_zip_archive_file_stat zstat;
+					mz_zip_reader_file_stat(&zip, i, &zstat);
+
+					const char *fn = zstat.m_filename;
+					// skip first directory because it's RenderDoc_Version_Bitness/
+					fn = strchr(fn, '/');
+					if(fn) fn++;
+
+					if(fn && *fn)
+					{
+						wchar_t conv[MAX_PATH] = {0};
+						wchar_t *wfn = conv;
+
+						// I know the zip only contains ASCII chars, just upcast
+						while(*fn) *(wfn++) = wchar_t(*(fn++));
+
+						wstring target = wide_path + conv;
+
+						wfn = &target[0];
+
+						// convert slashes just to be consistent
+						while(*(wfn++)) { if(*wfn == L'/') *wfn = L'\\'; }
+						
+						FILE *f = NULL;
+						_wfopen_s(&f, target.c_str(), L"a+");
+						if(!f)
+						{
+							failReason = L"\"Couldn't modify an install file - likely file is in use.\"";
+							successful = false;
+						}
+						else
+						{
+							fclose(f);
+						}
+					}
+				}
+			}
+			
+			for(mz_uint i=0; successful && i < numfiles; i++)
 			{
 				if(!mz_zip_reader_is_file_a_directory(&zip, i))
 				{
@@ -405,11 +454,19 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 				}
 			}
 		}
+		else
+		{
+			failReason = L"\"Failed to open update .zip file - possibly corrupted.\"";
+		}
 
 		// run original UI exe and tell it an update succeeded
 		wstring cmdline = L"\"";
 		cmdline += wide_path;
-		cmdline += L"/renderdocui.exe\" --updatedone";
+		cmdline += L"/renderdocui.exe\" ";
+		if(successful)
+			cmdline += L"--updatedone";
+		else
+			cmdline += L"--updatefailed " + failReason;
 
 		wchar_t *paramsAlloc = new wchar_t[512];
 		

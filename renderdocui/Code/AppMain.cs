@@ -156,8 +156,10 @@ namespace renderdocui.Code
 
             var core = new Core(filename, remoteHost, remoteIdent, temp, cfg);
 
-            foreach (var a in args)
+            for(int i=0; i < args.Length; i++)
             {
+                var a = args[i];
+
                 if (a.ToUpperInvariant() == "--UPDATEDONE")
                 {
                     cfg.CheckUpdate_UpdateAvailable = false;
@@ -177,6 +179,14 @@ namespace renderdocui.Code
                     }
 
                     Helpers.UpdateInstalledVersionNumber();
+                }
+
+                if (a.ToUpperInvariant() == "--UPDATEFAILED")
+                {
+                    if(i < args.Length-1)
+                        MessageBox.Show(String.Format("Error applying update: {0}", args[i+1]), "Error updating", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    else
+                        MessageBox.Show("Unknown error applying update", "Error updating", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
 
