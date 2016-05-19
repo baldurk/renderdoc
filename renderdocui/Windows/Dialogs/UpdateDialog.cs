@@ -62,13 +62,60 @@ namespace renderdocui.Windows.Dialogs
 
             if (result == DialogResult.Yes)
             {
-                progressText.Text = "Connecting";
+                progressText.Text = "Preparing";
 
                 close.Enabled = false;
                 doupdate.Enabled = false;
                 
                 var updateThread = Helpers.NewThread(new ThreadStart(() =>
                 {
+                    var idents = renderdoc.StaticExports.EnumerateRemoteConnections("localhost");
+
+                    string runningPrograms = "";
+                    int running = 0;
+                    foreach (var i in idents)
+                    {
+                        if (i != 0)
+                        {
+                            running++;
+
+                            var conn = renderdoc.StaticExports.CreateRemoteAccessConnection("localhost", i, "updater", false);
+
+                            if (runningPrograms != "")
+                                runningPrograms += "\n";
+
+                            if (conn.API != "")
+                                runningPrograms += String.Format("{0} running {1}", conn.Target, conn.API);
+                            else
+                                runningPrograms += conn.Target;
+
+                            conn.Shutdown();
+                        }
+                    }
+
+                    if (running > 0)
+                    {
+                        BeginInvoke((MethodInvoker)delegate
+                        {
+                            progressText.Text = "";
+
+                            close.Enabled = true;
+                            doupdate.Enabled = true;
+
+                            MessageBox.Show(
+                                String.Format("RenderDoc is currently capturing, cannot update " +
+                                              "until the program{0} closed:\n\n", running > 1 ? "s are" : " is") +
+                                runningPrograms,
+                                "RenderDoc in use", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        });
+                        return;
+                    }
+
+                    BeginInvoke((MethodInvoker)delegate
+                    {
+                        progressText.Text = "Connecting";
+                    });
+
                     HttpWebRequest g = (HttpWebRequest)HttpWebRequest.Create(m_URL);
                     g.Method = "GET";
 
