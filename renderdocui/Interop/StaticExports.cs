@@ -75,6 +75,9 @@ namespace renderdoc
         private static extern IntPtr RENDERDOC_GetConfigSetting(IntPtr name);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr RENDERDOC_GetVersionString();
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_SetConfigSetting(IntPtr name, IntPtr value);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -238,6 +241,11 @@ namespace renderdoc
         public static string GetLogFilename()
         {
             return CustomMarshal.PtrToStringUTF8(RENDERDOC_GetLogFile());
+        }
+
+        public static string GetVersionString()
+        {
+            return CustomMarshal.PtrToStringUTF8(RENDERDOC_GetVersionString());
         }
 
         public static string GetConfigSetting(string name)

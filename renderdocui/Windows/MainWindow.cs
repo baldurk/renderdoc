@@ -588,6 +588,9 @@ namespace renderdocui.Windows
                 Text += String.Format("{0}-beta - {1}", VersionString, GitCommitHash);
             else
                 Text += String.Format("Unofficial release ({0} - {1})", VersionString, GitCommitHash);
+
+            if (IsVersionMismatched())
+                Text += " - !! VERSION MISMATCH DETECTED !!";
         }
 
         private void SetTitle()
@@ -1018,8 +1021,47 @@ namespace renderdocui.Windows
 
         private delegate void UpdateResultMethod(UpdateResult res);
 
+        private bool IsVersionMismatched()
+        {
+            return "v" + StaticExports.GetVersionString() != VersionString;
+        }
+
+        private bool HandleMismatchedVersions()
+        {
+            if (IsVersionMismatched())
+            {
+                if (!OfficialVersion && !BetaVersion)
+                {
+                    MessageBox.Show("You are running an unofficial build with mismatched core and UI versions.\n" +
+                        "Double check where you got your build from and do a sanity check!",
+                        "Unofficial build - mismatched versions", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    DialogResult mb = MessageBox.Show("RenderDoc has detected mismatched versions between its internal module and UI.\n" +
+                        "This is likely caused by a buggy update in the past which partially updated your install. Likely because a " +
+                        "program was running with renderdoc while the update happened.\n" +
+                        "You should reinstall RenderDoc immediately as this configuration is almost guaranteed to crash.\n\n" +
+                        "Would you like to open the downloads page?",
+                        "Mismatched versions", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
+
+                    if (mb == DialogResult.Yes)
+                        Process.Start("https://renderdoc.org/builds");
+
+                    SetUpdateAvailable();
+                }
+                return true;
+            }
+
+            return false;
+        }
+
         private void CheckUpdates(bool forceCheck = false, UpdateResultMethod callback = null)
         {
+            bool mismatch = HandleMismatchedVersions();
+            if (mismatch)
+                return;
+
             if (!forceCheck && !m_Core.Config.CheckUpdate_AllowChecks)
             {
                 updateToolStripMenuItem.Text = "Update checks disabled";
@@ -1181,6 +1223,10 @@ namespace renderdocui.Windows
 
         private void updateToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            bool mismatch = HandleMismatchedVersions();
+            if (mismatch)
+                return;
+
             SetUpdateAvailable();
             UpdatePopup();
         }
