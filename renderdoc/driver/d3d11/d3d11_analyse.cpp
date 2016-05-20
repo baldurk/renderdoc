@@ -5440,6 +5440,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 				// we check these in the order defined, as a positive from the backface cull test
 				// will invalidate tests later (as they will also be backface culled)
 
+				do
 				{
 					if(flags[i] & TestEnabled_BackfaceCulling)
 					{
@@ -5523,7 +5524,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 						if(mod.stencilTestFailed)
 							break;
 					}
-				}
+				} while((void)0,0);
 			}
 			
 			history.push_back(mod);
