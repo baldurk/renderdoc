@@ -17,13 +17,12 @@ env:
     - RENDERDOC_TRAVIS_BUILD=1 RENDERDOC_CI_BUILD=1
   matrix:
     - CODE_BUILD=1 LINUX_BUILD=1 DOCS_BUILD=0
-    - CODE_BUILD=0 DOCS_BUILD=1
 
-# don't build docs twice on gcc/clang
+# only build docs once on linux
 matrix:
-  exclude:
-    - compiler: clang
-      env: CODE_BUILD=0 DOCS_BUILD=1
+  include:
+    - compiler: gcc
+      env: CODE_BUILD=0 LINUX_BUILD=0 DOCS_BUILD=1
 
 # install dependencies
 install:
