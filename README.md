@@ -1,6 +1,8 @@
 RenderDoc
 ==============
 
+[![Travis CI](https://travis-ci.org/baldurk/renderdoc.svg?branch=master)](https://travis-ci.org/baldurk/renderdoc)
+
 Welcome to RenderDoc - a graphics debugger, currently available for D3D11, Vulkan and OpenGL development on windows. 
 
 Quick Links:
