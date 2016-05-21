@@ -22,6 +22,10 @@ environment:
   coverity_email:
     secure: ndq7n9R6NhCV8mENhPAH4VTFNUeROGK/uFlqfUVwxAc=
 
+# Can't exclude things in the build matrix, just skip development win32
+init:
+  - if "%PLATFORM%" EQU "Win32" ( if "%CONFIGURATION%"=="Development" (echo "Skipping Win32 Development" && exit /b 1 ) )
+
 install:
 - ps: $env:PATH = 'C:\MinGW\bin;C:\MinGW\mingw32\bin;C:\MinGW\msys\1.0\bin;' + $env:PATH
 
