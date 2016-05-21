@@ -28,7 +28,7 @@ matrix:
 # install dependencies
 install:
   - sudo apt-get update -qq
-  - if [[ "$CODE_BUILD" == "1" ]]; then sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev ; fi
+  - if [[ "$CODE_BUILD" == "1" ]]; then sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev gdb ; fi
   - if [[ "$DOCS_BUILD" == "1" ]]; then pip install --upgrade pip setuptools ; pip install Sphinx sphinx-rtd-theme ; fi
 
 script:
