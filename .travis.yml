@@ -20,6 +20,7 @@ env:
 
 # only build docs once on linux
 matrix:
+  fast_finish: true
   include:
     - compiler: gcc
       env: CODE_BUILD=0 LINUX_BUILD=0 DOCS_BUILD=1
@@ -27,10 +28,10 @@ matrix:
 # install dependencies
 install:
   - sudo apt-get update -qq
-  - if [ $CODE_BUILD ]; then sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev ; fi
-  - if [ $DOCS_BUILD ]; then sudo apt-get install -y -qq python-sphinx python-sphinx-rtd-theme ; fi
+  - if [[ "$CODE_BUILD" == "1" ]]; then sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev ; fi
+  - if [[ "$DOCS_BUILD" == "1" ]]; then sudo apt-get install -y -qq python-sphinx python-sphinx-rtd-theme ; fi
 
 script:
   - sh ./hash_version.sh
-  - if [ $CODE_BUILD ]; then make ; fi
-  - if [ $DOCS_BUILD ]; then cd docs/ && make html ; fi
+  - if [[ "$CODE_BUILD" == "1" ]]; then make ; fi
+  - if [[ "$DOCS_BUILD" == "1" ]]; then cd docs/ && make html ; fi
