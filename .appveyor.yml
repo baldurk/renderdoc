@@ -51,6 +51,11 @@ build_script:
       return
     }
 
+    if ( $env:APPVEYOR_SCHEDULED_BUILD -eq "True" )
+    {
+      return
+    }
+
     sh -c ./hash_version.sh
 
     msbuild renderdoc.sln /v:m "/p:Configuration=$env:CONFIGURATION" "/p:Platform=$env:PLATFORM" /p:PlatformToolset=v140
