@@ -1,0 +1,37 @@
+language: cpp
+
+sudo: required
+
+dist: trusty
+
+compiler:
+  - gcc
+  - clang
+
+branches:
+  only:
+    - master
+
+env:
+  global:
+    - RENDERDOC_TRAVIS_BUILD=1 RENDERDOC_CI_BUILD=1
+  matrix:
+    - LINUX_BUILD=1 CODE_BUILD=1 DOCS_BUILD=0
+    - LINUX_BUILD=0 CODE_BUILD=0 DOCS_BUILD=1
+
+# don't build docs twice on gcc/clang
+matrix:
+  exclude:
+    - compiler: clang
+      env: DOCS_BUILD=1
+
+# install dependencies
+install:
+  - sudo apt-get update -qq
+  - if [ $CODE_BUILD ]; sudo apt-get install libx11-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev ; fi
+  - if [ $DOCS_BUILD ]; sudo apt-get install python-sphinx python-sphinx-rtd-theme ; fi
+
+script:
+  - sh ./hash_version.sh
+  - if [ $CODE_BUILD ]; then make ; fi
+  - if [ $DOCS_BUILD ]; cd docs/ && make html ; fi
