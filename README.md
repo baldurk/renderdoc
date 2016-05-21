@@ -3,6 +3,7 @@ RenderDoc
 
 [![Travis CI](https://travis-ci.org/baldurk/renderdoc.svg?branch=master)](https://travis-ci.org/baldurk/renderdoc)
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/x46lrnvdy29ysgqp?svg=true)](https://ci.appveyor.com/project/baldurk/renderdoc)
+[![Coverity Scan](https://scan.coverity.com/projects/8525/badge.svg)](https://scan.coverity.com/projects/baldurk-renderdoc)
 
 Welcome to RenderDoc - a graphics debugger, currently available for D3D11, Vulkan and OpenGL development on windows. 
 
