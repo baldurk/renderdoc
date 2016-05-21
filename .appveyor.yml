@@ -37,7 +37,9 @@ build_script:
       cov-build.exe --dir cov-int msbuild renderdoc.sln /p:Configuration=Development /p:Platform=x64 /p:PlatformToolset=v120
 
       nuget.exe install PublishCoverity -ExcludeVersion
+
       PublishCoverity\tools\PublishCoverity.exe compress -o coverity.zip -i cov-int
+
       PublishCoverity\tools\PublishCoverity.exe publish `
         -t "$env:coverity_token" `
         -e "$env:coverity_email" `
@@ -45,9 +47,10 @@ build_script:
         -z coverity.zip `
         -d "AppVeyor scheduled build ($env:APPVEYOR_REPO_COMMIT)." `
         --codeVersion "$env:APPVEYOR_REPO_COMMIT"
+
       return
     }
 
     sh -c ./hash_version.sh
 
-    msbuild renderdoc.sln "/p:Configuration=$env:CONFIGURATION" "/p:Platform=$env:PLATFORM" /p:PlatformToolset=v140
+    msbuild renderdoc.sln /v:m "/p:Configuration=$env:CONFIGURATION" "/p:Platform=$env:PLATFORM" /p:PlatformToolset=v140
