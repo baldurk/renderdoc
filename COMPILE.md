@@ -1,11 +1,3 @@
-Drivers
---------------
-
-Each RenderDoc back-end is called a 'driver' and is under the renderdoc/driver/ folder. If you don't have the SDK or don't care about a particular API you can remove a driver from building - in the Makefile by editing LIBS= in renderdoc/Makefile, in VS by removing the project and the reference on the renderdoc reference. Be aware of dependencies, such as D3D11 expecting DXGI to be loaded too.
-
-Some shared code for handling shader formats used in multiple APIs such as DXBC and SPIR-V are in renderdoc/driver/shaders/ folder.
-
-
 Windows
 --------------
 
@@ -48,11 +40,4 @@ sudo pacman -S libx11 xcb-util-keysyms mesa mesa-libgl qt5-base qt5-x11extras
 ```
 
 If you know the required packages for another distribution, please share (or pull request this file!)
-
-Builds
---------------
-
-Official releases will get a github release made for them, nightly builds and beta are just marked with the hash of the commit they were built from.
-
-Please don't distribute releases marked with a version number and commit hash as it will confuse me with auto-submitted crashes since I won't have the symbols for them. If you distribute releases leave the version information as is (master is always marked as an unofficial non-versioned build).
 
