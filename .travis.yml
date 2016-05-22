@@ -27,8 +27,8 @@ matrix:
 
 # install dependencies
 install:
-  - sudo add-apt-repository -y -qq 'ppa:ubuntu-toolchain-r/test'
-  - sudo add-apt-repository -y -qq 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.8 main'
+  - sudo add-apt-repository -y 'ppa:ubuntu-toolchain-r/test'
+  - sudo add-apt-repository -y 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.8 main'
   - curl http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
   - sudo apt-get update -qq
   - if [[ "$CODE_BUILD" == "1" ]]; then sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev gdb ; fi
