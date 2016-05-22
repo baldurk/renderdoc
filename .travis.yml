@@ -35,7 +35,7 @@ install:
   - if [[ "$DOCS_BUILD" == "1" ]]; then sudo pip install --upgrade pip setuptools ; sudo pip install Sphinx sphinx-rtd-theme ; fi
 
 script:
-  - clang-format-3.8 -i -style=file $(find pdblocate/ qrenderdoc/ renderdoc/ renderdoccmd/ renderdocshim/ -type f -regex '.*\(/3rdparty/\|/official/\|resource.h\).*' -prune -o -regex '.*\.\(c\|cpp\|h\)$' -print)
+  - if [[ "$CODE_BUILD" == "1" ]]; then clang-format-3.8 -i -style=file $(find pdblocate/ qrenderdoc/ renderdoc/ renderdoccmd/ renderdocshim/ -type f -regex '.*\(/3rdparty/\|/official/\|resource.h\).*' -prune -o -regex '.*\.\(c\|cpp\|h\)$' -print) ; fi
   - git clean -f
   - test $(git status --porcelain | wc -l) -eq 0 || { git diff; false; }
   - sh ./hash_version.sh
