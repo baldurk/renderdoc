@@ -23,6 +23,11 @@ environment:
     secure: ndq7n9R6NhCV8mENhPAH4VTFNUeROGK/uFlqfUVwxAc=
 
 # Can't exclude things in the build matrix, just skip development win32
+matrix:
+  allow_failures:
+    - configuration: Development
+      platform: Win32
+
 init:
   - if "%PLATFORM%" EQU "Win32" ( if "%CONFIGURATION%"=="Development" (echo "Skipping Win32 Development" && exit /b 1 ) )
 
