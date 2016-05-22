@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,9 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
-#include "gl_replay.h"
 #include "gl_driver.h"
+#include "gl_replay.h"
 #include "gl_resources.h"
 
 void GLReplay::PreContextInitCounters()
@@ -45,149 +44,152 @@ void GLReplay::PostContextShutdownCounters()
 
 vector<uint32_t> GLReplay::EnumerateCounters()
 {
-	vector<uint32_t> ret;
+  vector<uint32_t> ret;
 
-	ret.push_back(eCounter_EventGPUDuration);
+  ret.push_back(eCounter_EventGPUDuration);
 
-	return ret;
+  return ret;
 }
 
 void GLReplay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
 {
-	desc.counterID = counterID;
+  desc.counterID = counterID;
 
-	if(counterID == eCounter_EventGPUDuration)
-	{
-		desc.name = "GPU Duration";
-		desc.description = "Time taken for this event on the GPU, as measured by delta between two GPU timestamps.";
-		desc.resultByteWidth = 8;
-		desc.resultCompType = eCompType_Double;
-		desc.units = eUnits_Seconds;
-	}
-	else
-	{
-		desc.name = "Unknown";
-		desc.description = "Unknown counter ID";
-		desc.resultByteWidth = 0;
-		desc.resultCompType = eCompType_None;
-		desc.units = eUnits_Absolute;
-	}
+  if(counterID == eCounter_EventGPUDuration)
+  {
+    desc.name = "GPU Duration";
+    desc.description =
+        "Time taken for this event on the GPU, as measured by delta between two GPU timestamps.";
+    desc.resultByteWidth = 8;
+    desc.resultCompType = eCompType_Double;
+    desc.units = eUnits_Seconds;
+  }
+  else
+  {
+    desc.name = "Unknown";
+    desc.description = "Unknown counter ID";
+    desc.resultByteWidth = 0;
+    desc.resultCompType = eCompType_None;
+    desc.units = eUnits_Absolute;
+  }
 }
 
 struct GPUTimer
 {
-	GLuint obj;
-	uint32_t eventID;
+  GLuint obj;
+  uint32_t eventID;
 };
 
 struct CounterContext
 {
-	uint32_t eventStart;
-	vector<GPUTimer> timers;
-	int reuseIdx;
+  uint32_t eventStart;
+  vector<GPUTimer> timers;
+  int reuseIdx;
 };
 
 void GLReplay::FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode)
 {
-	if(drawnode.children.empty()) return;
+  if(drawnode.children.empty())
+    return;
 
-	for(size_t i=0; i < drawnode.children.size(); i++)
-	{
-		const FetchDrawcall &d = drawnode.children[i].draw;
-		FillTimers(ctx, drawnode.children[i]);
+  for(size_t i = 0; i < drawnode.children.size(); i++)
+  {
+    const FetchDrawcall &d = drawnode.children[i].draw;
+    FillTimers(ctx, drawnode.children[i]);
 
-		if(d.events.count == 0) continue;
+    if(d.events.count == 0)
+      continue;
 
-		GPUTimer *timer = NULL;
-		
-		{
-			if(ctx.reuseIdx == -1)
-			{
-				ctx.timers.push_back(GPUTimer());
+    GPUTimer *timer = NULL;
 
-				timer = &ctx.timers.back();
-				timer->eventID = d.eventID;
-				timer->obj = 0;
+    {
+      if(ctx.reuseIdx == -1)
+      {
+        ctx.timers.push_back(GPUTimer());
 
-				m_pDriver->glGenQueries(1, &timer->obj);
-			}
-			else
-			{
-				timer = &ctx.timers[ctx.reuseIdx++];
-			}
-		}
+        timer = &ctx.timers.back();
+        timer->eventID = d.eventID;
+        timer->obj = 0;
 
-		m_pDriver->ReplayLog(ctx.eventStart, d.eventID, eReplay_WithoutDraw);
-		
-		if(timer->obj)
-		{
-			m_pDriver->glBeginQuery(eGL_TIME_ELAPSED, timer->obj);
-			m_pDriver->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
-			m_pDriver->glEndQuery(eGL_TIME_ELAPSED);
-		}
-		else
-		{
-			m_pDriver->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
-		}
-		
-		ctx.eventStart = d.eventID+1;
-	}
+        m_pDriver->glGenQueries(1, &timer->obj);
+      }
+      else
+      {
+        timer = &ctx.timers[ctx.reuseIdx++];
+      }
+    }
+
+    m_pDriver->ReplayLog(ctx.eventStart, d.eventID, eReplay_WithoutDraw);
+
+    if(timer->obj)
+    {
+      m_pDriver->glBeginQuery(eGL_TIME_ELAPSED, timer->obj);
+      m_pDriver->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
+      m_pDriver->glEndQuery(eGL_TIME_ELAPSED);
+    }
+    else
+    {
+      m_pDriver->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
+    }
+
+    ctx.eventStart = d.eventID + 1;
+  }
 }
 
 vector<CounterResult> GLReplay::FetchCounters(const vector<uint32_t> &counters)
 {
-	vector<CounterResult> ret;
+  vector<CounterResult> ret;
 
-	if(counters.empty())
-	{
-		RDCERR("No counters specified to FetchCounters");
-		return ret;
-	}
-	
-	MakeCurrentReplayContext(&m_ReplayCtx);
-	
-	uint32_t counterID = counters[0];
-	RDCASSERT(counters.size() == 1);
-	RDCASSERT(counterID == eCounter_EventGPUDuration);
-	
-	SCOPED_TIMER("Fetch Counters for %u", counterID);
+  if(counters.empty())
+  {
+    RDCERR("No counters specified to FetchCounters");
+    return ret;
+  }
 
-	CounterContext ctx;
+  MakeCurrentReplayContext(&m_ReplayCtx);
 
-	for(int loop=0; loop < 1; loop++)
-	{
-		ctx.eventStart = 0;
-		ctx.reuseIdx = loop == 0 ? -1 : 0;
-		FillTimers(ctx, m_pDriver->GetRootDraw());
+  uint32_t counterID = counters[0];
+  RDCASSERT(counters.size() == 1);
+  RDCASSERT(counterID == eCounter_EventGPUDuration);
 
-		double nanosToSecs = 1.0/1000000000.0;
+  SCOPED_TIMER("Fetch Counters for %u", counterID);
 
-		GLuint prevbind = 0;
-		m_pDriver->glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&prevbind);
-		m_pDriver->glBindBuffer(eGL_QUERY_BUFFER, 0);
+  CounterContext ctx;
 
-		for(size_t i=0; i < ctx.timers.size(); i++)
-		{
-			if(ctx.timers[i].obj)
-			{
-				GLuint elapsed = 0;
-				m_pDriver->glGetQueryObjectuiv(ctx.timers[i].obj, eGL_QUERY_RESULT, &elapsed);
+  for(int loop = 0; loop < 1; loop++)
+  {
+    ctx.eventStart = 0;
+    ctx.reuseIdx = loop == 0 ? -1 : 0;
+    FillTimers(ctx, m_pDriver->GetRootDraw());
 
-				double duration = double(elapsed)*nanosToSecs;
+    double nanosToSecs = 1.0 / 1000000000.0;
 
-				ret.push_back(CounterResult(ctx.timers[i].eventID, counterID, duration));
-			}
-			else
-			{
-				ret.push_back(CounterResult(ctx.timers[i].eventID, counterID, 0.0));
-			}
-		}
+    GLuint prevbind = 0;
+    m_pDriver->glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&prevbind);
+    m_pDriver->glBindBuffer(eGL_QUERY_BUFFER, 0);
 
-		m_pDriver->glBindBuffer(eGL_QUERY_BUFFER, prevbind);
-	}
+    for(size_t i = 0; i < ctx.timers.size(); i++)
+    {
+      if(ctx.timers[i].obj)
+      {
+        GLuint elapsed = 0;
+        m_pDriver->glGetQueryObjectuiv(ctx.timers[i].obj, eGL_QUERY_RESULT, &elapsed);
 
-	for(size_t i=0; i < ctx.timers.size(); i++)
-		m_pDriver->glDeleteQueries(1, &ctx.timers[i].obj);
-	
-	return ret;
+        double duration = double(elapsed) * nanosToSecs;
+
+        ret.push_back(CounterResult(ctx.timers[i].eventID, counterID, duration));
+      }
+      else
+      {
+        ret.push_back(CounterResult(ctx.timers[i].eventID, counterID, 0.0));
+      }
+    }
+
+    m_pDriver->glBindBuffer(eGL_QUERY_BUFFER, prevbind);
+  }
+
+  for(size_t i = 0; i < ctx.timers.size(); i++)
+    m_pDriver->glDeleteQueries(1, &ctx.timers[i].obj);
+
+  return ret;
 }

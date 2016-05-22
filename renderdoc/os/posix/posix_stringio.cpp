@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,298 +22,313 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
-#include "os/os_specific.h"
-#include "api/app/renderdoc_app.h"
-
-#include <time.h>
+#include <dlfcn.h>    // for dladdr
+#include <errno.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
-#include <pwd.h>
-
-// for dladdr
-#include <dlfcn.h>
-
-#include "serialise/string_utils.h"
+#include "api/app/renderdoc_app.h"
 #include "common/threading.h"
+#include "os/os_specific.h"
+#include "serialise/string_utils.h"
+
 using std::string;
 
 // gives us an address to identify this so with
-static int soLocator=0;
+static int soLocator = 0;
 
 namespace FileIO
 {
-	// in posix/.../..._stringio.cpp
-	const char *GetTempRootPath();
+// in posix/.../..._stringio.cpp
+const char *GetTempRootPath();
 
-	string GetAppFolderFilename(const string &filename)
-	{
-		passwd *pw = getpwuid(getuid());
-		const char *homedir = pw->pw_dir;
+string GetAppFolderFilename(const string &filename)
+{
+  passwd *pw = getpwuid(getuid());
+  const char *homedir = pw->pw_dir;
 
-		string ret = string(homedir) + "/.renderdoc/";
+  string ret = string(homedir) + "/.renderdoc/";
 
-		mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-		return ret + filename;
-	}
+  return ret + filename;
+}
 
-	void CreateParentDirectory(const string &filename)
-	{
-		string fn = dirname(filename);
+void CreateParentDirectory(const string &filename)
+{
+  string fn = dirname(filename);
 
-		// want trailing slash so that we create all directories
-		fn.push_back('/');
+  // want trailing slash so that we create all directories
+  fn.push_back('/');
 
-		if(fn[0] != '/')
-			return;
+  if(fn[0] != '/')
+    return;
 
-		size_t offs = fn.find('/', 1);
+  size_t offs = fn.find('/', 1);
 
-		while(offs != string::npos)
-		{
-			// create directory path from 0 to offs by NULLing the
-			// / at offs, mkdir, then set it back
-			fn[offs] = 0;
-			mkdir(fn.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-			fn[offs] = '/';
+  while(offs != string::npos)
+  {
+    // create directory path from 0 to offs by NULLing the
+    // / at offs, mkdir, then set it back
+    fn[offs] = 0;
+    mkdir(fn.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    fn[offs] = '/';
 
-			offs = fn.find_first_of('/', offs+1);
-		}
-	}
+    offs = fn.find_first_of('/', offs + 1);
+  }
+}
 
-	string GetFullPathname(const string &filename)
-	{
-		char path[512] = {0};
-		readlink(filename.c_str(), path, 511);
+string GetFullPathname(const string &filename)
+{
+  char path[512] = {0};
+  readlink(filename.c_str(), path, 511);
 
-		return string(path);
-	}
+  return string(path);
+}
 
-	void GetExecutableFilename(string &selfName)
-	{
-		char path[512] = {0};
-		readlink("/proc/self/exe", path, 511);
+void GetExecutableFilename(string &selfName)
+{
+  char path[512] = {0};
+  readlink("/proc/self/exe", path, 511);
 
-		selfName = string(path);
-	}
+  selfName = string(path);
+}
 
-	string GetReplayAppFilename()
-	{
-		// look up the shared object's path via dladdr
-		Dl_info info;
-		dladdr((void *)&soLocator, &info);
-		string path = info.dli_fname ? info.dli_fname : "";
-		path = dirname(path);
-		string replay = path + "/qrenderdoc";
+string GetReplayAppFilename()
+{
+  // look up the shared object's path via dladdr
+  Dl_info info;
+  dladdr((void *)&soLocator, &info);
+  string path = info.dli_fname ? info.dli_fname : "";
+  path = dirname(path);
+  string replay = path + "/qrenderdoc";
 
-		FILE *f = FileIO::fopen(replay.c_str(), "r");
-		if(f)
-		{
-			FileIO::fclose(f);
-			return replay;
-		}
+  FILE *f = FileIO::fopen(replay.c_str(), "r");
+  if(f)
+  {
+    FileIO::fclose(f);
+    return replay;
+  }
 
-		// if it's not in the same directory, try in a sibling /bin
-		// e.g. /foo/bar/lib/librenderdoc.so -> /foo/bar/bin/qrenderdoc
-		replay = path + "/../bin/qrenderdoc";
+  // if it's not in the same directory, try in a sibling /bin
+  // e.g. /foo/bar/lib/librenderdoc.so -> /foo/bar/bin/qrenderdoc
+  replay = path + "/../bin/qrenderdoc";
 
-		f = FileIO::fopen(replay.c_str(), "r");
-		if(f)
-		{
-			FileIO::fclose(f);
-			return replay;
-		}
+  f = FileIO::fopen(replay.c_str(), "r");
+  if(f)
+  {
+    FileIO::fclose(f);
+    return replay;
+  }
 
-		// random guesses!
-		const char *guess[] = {
-			"/opt/renderdoc/qrenderdoc",
-			"/opt/renderdoc/bin/qrenderdoc",
-			"/usr/local/bin/qrenderdoc",
-			"/usr/bin/qrenderdoc"
-		};
+  // random guesses!
+  const char *guess[] = {"/opt/renderdoc/qrenderdoc", "/opt/renderdoc/bin/qrenderdoc",
+                         "/usr/local/bin/qrenderdoc", "/usr/bin/qrenderdoc"};
 
-		for(size_t i=0; i < ARRAY_COUNT(guess); i++)
-		{
-			f = FileIO::fopen(guess[i], "r");
-			if(f)
-			{
-				FileIO::fclose(f);
-				return guess[i];
-			}
-		}
+  for(size_t i = 0; i < ARRAY_COUNT(guess); i++)
+  {
+    f = FileIO::fopen(guess[i], "r");
+    if(f)
+    {
+      FileIO::fclose(f);
+      return guess[i];
+    }
+  }
 
-		// out of ideas
-		return "";
-	}
+  // out of ideas
+  return "";
+}
 
-	void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename, string &target)
-	{
-		char path[2048] = {0};
-		readlink("/proc/self/exe", path, 511);
-		const char *mod = strrchr(path, '/');
-		if(mod == NULL)
-			mod = "unknown";
-		else
-			mod++;
+void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename,
+                     string &target)
+{
+  char path[2048] = {0};
+  readlink("/proc/self/exe", path, 511);
+  const char *mod = strrchr(path, '/');
+  if(mod == NULL)
+    mod = "unknown";
+  else
+    mod++;
 
-		target = string(mod);
+  target = string(mod);
 
-		time_t t = time(NULL);
-		tm now = *localtime(&t);
+  time_t t = time(NULL);
+  tm now = *localtime(&t);
 
-		char temp_folder[2048] = { 0 };
+  char temp_folder[2048] = {0};
 
-		strcpy(temp_folder, GetTempRootPath());
+  strcpy(temp_folder, GetTempRootPath());
 
-		char *temp_override = getenv("RENDERDOC_TEMP");
-		if(temp_override && temp_override[0] == '/')
-		{
-			strncpy(temp_folder, temp_override, sizeof(temp_folder)-1);
-			size_t len = strlen(temp_folder);
-			while(temp_folder[len-1] == '/') temp_folder[--len] = 0;
-		}
+  char *temp_override = getenv("RENDERDOC_TEMP");
+  if(temp_override && temp_override[0] == '/')
+  {
+    strncpy(temp_folder, temp_override, sizeof(temp_folder) - 1);
+    size_t len = strlen(temp_folder);
+    while(temp_folder[len - 1] == '/')
+      temp_folder[--len] = 0;
+  }
 
-		char temp_filename[2048] = {0};
+  char temp_filename[2048] = {0};
 
-		snprintf(temp_filename, sizeof(temp_filename)-1, "%s/%s_%04d.%02d.%02d_%02d.%02d.rdc", GetTempRootPath(), mod, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min);
+  snprintf(temp_filename, sizeof(temp_filename) - 1, "%s/%s_%04d.%02d.%02d_%02d.%02d.rdc",
+           GetTempRootPath(), mod, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour,
+           now.tm_min);
 
-		capture_filename = string(temp_filename);
+  capture_filename = string(temp_filename);
 
-		snprintf(temp_filename, sizeof(temp_filename)-1, "%s/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", GetTempRootPath(), logBaseName, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+  snprintf(temp_filename, sizeof(temp_filename) - 1, "%s/%s_%04d.%02d.%02d_%02d.%02d.%02d.log",
+           GetTempRootPath(), logBaseName, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday,
+           now.tm_hour, now.tm_min, now.tm_sec);
 
-		logging_filename = string(temp_filename);
-	}
-	
-	uint64_t GetModifiedTimestamp(const string &filename)
-	{
-		struct ::stat st;
-		int res = stat(filename.c_str(), &st);
+  logging_filename = string(temp_filename);
+}
 
-		if(res == 0)
-		{
-			return (uint64_t)st.st_mtime;
-		}
-		
-		return 0;
-	}
+uint64_t GetModifiedTimestamp(const string &filename)
+{
+  struct ::stat st;
+  int res = stat(filename.c_str(), &st);
 
-	void Copy(const char *from, const char *to, bool allowOverwrite)
-	{
-		if(from[0] == 0 || to[0] == 0)
-			return;
+  if(res == 0)
+  {
+    return (uint64_t)st.st_mtime;
+  }
 
-		FILE *ff = ::fopen(from, "r");
+  return 0;
+}
 
-		if(!ff)
-		{
-			RDCERR("Can't open source file for copy '%s'", from);
-			return;
-		}
+void Copy(const char *from, const char *to, bool allowOverwrite)
+{
+  if(from[0] == 0 || to[0] == 0)
+    return;
 
-		FILE *tf = ::fopen(to, "r");
+  FILE *ff = ::fopen(from, "r");
 
-		if(tf && !allowOverwrite)
-		{
-			RDCERR("Destination file for non-overwriting copy '%s' already exists", from);
-			::fclose(ff);
-			::fclose(tf);
-			return;
-		}
+  if(!ff)
+  {
+    RDCERR("Can't open source file for copy '%s'", from);
+    return;
+  }
 
-		if(tf)
-			::fclose(tf);
+  FILE *tf = ::fopen(to, "r");
 
-		tf = ::fopen(to, "w");
+  if(tf && !allowOverwrite)
+  {
+    RDCERR("Destination file for non-overwriting copy '%s' already exists", from);
+    ::fclose(ff);
+    ::fclose(tf);
+    return;
+  }
 
-		if(!tf)
-		{
-			::fclose(ff);
-			RDCERR("Can't open destination file for copy '%s'", to);
-		}
+  if(tf)
+    ::fclose(tf);
 
-		char buffer[BUFSIZ];
+  tf = ::fopen(to, "w");
 
-		while(!::feof(ff))
-		{
-			size_t nread = ::fread(buffer, 1, BUFSIZ, ff);
-			::fwrite(buffer, 1, nread, tf);
-		}
+  if(!tf)
+  {
+    ::fclose(ff);
+    RDCERR("Can't open destination file for copy '%s'", to);
+  }
 
-		::fclose(ff);
-		::fclose(tf);
-	}
+  char buffer[BUFSIZ];
 
-	void Delete(const char *path)
-	{
-		unlink(path);
-	}
+  while(!::feof(ff))
+  {
+    size_t nread = ::fread(buffer, 1, BUFSIZ, ff);
+    ::fwrite(buffer, 1, nread, tf);
+  }
 
-	FILE *fopen(const char *filename, const char *mode)
-	{
-		return ::fopen(filename, mode);
-	}
+  ::fclose(ff);
+  ::fclose(tf);
+}
 
-	size_t fread(void *buf, size_t elementSize, size_t count, FILE *f) { return ::fread(buf, elementSize, count, f); }
-	size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f) { return ::fwrite(buf, elementSize, count, f); }
+void Delete(const char *path)
+{
+  unlink(path);
+}
 
-	uint64_t ftell64(FILE *f) { return (uint64_t)::ftell(f); }
-	void fseek64(FILE *f, uint64_t offset, int origin) { ::fseek(f, (long)offset, origin); }
+FILE *fopen(const char *filename, const char *mode)
+{
+  return ::fopen(filename, mode);
+}
 
-	bool feof(FILE *f) { return ::feof(f) != 0; }
+size_t fread(void *buf, size_t elementSize, size_t count, FILE *f)
+{
+  return ::fread(buf, elementSize, count, f);
+}
+size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f)
+{
+  return ::fwrite(buf, elementSize, count, f);
+}
 
-	int fclose(FILE *f) { return ::fclose(f); }
+uint64_t ftell64(FILE *f)
+{
+  return (uint64_t)::ftell(f);
+}
+void fseek64(FILE *f, uint64_t offset, int origin)
+{
+  ::fseek(f, (long)offset, origin);
+}
+
+bool feof(FILE *f)
+{
+  return ::feof(f) != 0;
+}
+
+int fclose(FILE *f)
+{
+  return ::fclose(f);
+}
 };
 
 namespace StringFormat
 {
-	void sntimef(char *str, size_t bufSize, const char *format)
-	{
-		time_t tim;
-		time(&tim);
+void sntimef(char *str, size_t bufSize, const char *format)
+{
+  time_t tim;
+  time(&tim);
 
-		tm *tmv = localtime(&tim);
+  tm *tmv = localtime(&tim);
 
-		strftime(str, bufSize, format, tmv);
-	}
+  strftime(str, bufSize, format, tmv);
+}
 
-	string Fmt(const char *format, ...)
-	{
-		va_list args;
-		va_start(args, format);
+string Fmt(const char *format, ...)
+{
+  va_list args;
+  va_start(args, format);
 
-		va_list args2;
-		va_copy(args2, args);
+  va_list args2;
+  va_copy(args2, args);
 
-		int size = StringFormat::vsnprintf(NULL, 0, format, args2);
+  int size = StringFormat::vsnprintf(NULL, 0, format, args2);
 
-		char *buf = new char[size+1];
-		StringFormat::vsnprintf(buf, size+1, format, args);
-		buf[size] = 0;
+  char *buf = new char[size + 1];
+  StringFormat::vsnprintf(buf, size + 1, format, args);
+  buf[size] = 0;
 
-		va_end(args);
-		va_end(args2);
+  va_end(args);
+  va_end(args2);
 
-		string ret = buf;
+  string ret = buf;
 
-		delete[] buf;
-		
-		return ret;
-	}
+  delete[] buf;
+
+  return ret;
+}
 };
 
 namespace OSUtility
 {
-	void WriteOutput(int channel, const char *str)
-	{
-		if(channel == OSUtility::Output_StdOut)
-			fprintf(stdout, "%s", str);
-		else if(channel == OSUtility::Output_StdErr)
-			fprintf(stderr, "%s", str);
-	}
+void WriteOutput(int channel, const char *str)
+{
+  if(channel == OSUtility::Output_StdOut)
+    fprintf(stdout, "%s", str);
+  else if(channel == OSUtility::Output_StdErr)
+    fprintf(stderr, "%s", str);
+}
 };
-

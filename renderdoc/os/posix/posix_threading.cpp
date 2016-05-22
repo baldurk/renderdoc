@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,217 +22,215 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
-#include "os/os_specific.h"
-
 #include <time.h>
 #include <unistd.h>
+#include "os/os_specific.h"
 
 double Timing::GetTickFrequency()
 {
-	return 1000000.0;
+  return 1000000.0;
 }
 
 uint64_t Timing::GetTick()
 {
-	timespec ts;
-	clock_gettime(CLOCK_MONOTONIC,&ts);
-	return uint64_t(ts.tv_sec)*1000000000ULL + uint32_t(ts.tv_nsec & 0xffffffff);
+  timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return uint64_t(ts.tv_sec) * 1000000000ULL + uint32_t(ts.tv_nsec & 0xffffffff);
 }
 
 uint64_t Timing::GetUnixTimestamp()
 {
-	return (uint64_t)time(NULL);
+  return (uint64_t)time(NULL);
 }
 
 namespace Atomic
 {
-	int32_t Inc32(volatile int32_t *i)
-	{
-		return __sync_add_and_fetch(i, int32_t(1));
-	}
-	
-	int32_t Dec32(volatile int32_t *i)
-	{
-		return __sync_add_and_fetch(i, int32_t(-1));
-	}
+int32_t Inc32(volatile int32_t *i)
+{
+  return __sync_add_and_fetch(i, int32_t(1));
+}
 
-	int64_t Inc64(volatile int64_t *i)
-	{
-		return __sync_add_and_fetch(i, int64_t(1));
-	}
+int32_t Dec32(volatile int32_t *i)
+{
+  return __sync_add_and_fetch(i, int32_t(-1));
+}
 
-	int64_t Dec64(volatile int64_t *i)
-	{
-		return __sync_add_and_fetch(i, int64_t(-1));
-	}
-	
-	int64_t ExchAdd64(volatile int64_t *i, int64_t a)
-	{
-		return __sync_add_and_fetch(i, int64_t(a));
-	}
+int64_t Inc64(volatile int64_t *i)
+{
+  return __sync_add_and_fetch(i, int64_t(1));
+}
+
+int64_t Dec64(volatile int64_t *i)
+{
+  return __sync_add_and_fetch(i, int64_t(-1));
+}
+
+int64_t ExchAdd64(volatile int64_t *i, int64_t a)
+{
+  return __sync_add_and_fetch(i, int64_t(a));
+}
 };
 
 namespace Threading
 {
-	template<>
-	CriticalSection::CriticalSectionTemplate()
-	{
-		pthread_mutexattr_init(&m_Data.attr);
-		pthread_mutexattr_settype(&m_Data.attr, PTHREAD_MUTEX_RECURSIVE);
-		pthread_mutex_init(&m_Data.lock, &m_Data.attr);
-	}
-	
-	template<>
-	CriticalSection::~CriticalSectionTemplate()
-	{
-		pthread_mutex_destroy(&m_Data.lock);
-		pthread_mutexattr_destroy(&m_Data.attr);
-	}
-	
-	template<>
-	void CriticalSection::Lock()
-	{
-		pthread_mutex_lock(&m_Data.lock);
-	}
-	
-	template<>
-	bool CriticalSection::Trylock()
-	{
-		return pthread_mutex_trylock(&m_Data.lock) == 0;
-	}
-	
-	template<>
-	void CriticalSection::Unlock()
-	{
-		pthread_mutex_unlock(&m_Data.lock);
-	}
+template <>
+CriticalSection::CriticalSectionTemplate()
+{
+  pthread_mutexattr_init(&m_Data.attr);
+  pthread_mutexattr_settype(&m_Data.attr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(&m_Data.lock, &m_Data.attr);
+}
 
-	struct ThreadInitData
-	{
-		ThreadEntry entryFunc;
-		void *userData;
-	};
+template <>
+CriticalSection::~CriticalSectionTemplate()
+{
+  pthread_mutex_destroy(&m_Data.lock);
+  pthread_mutexattr_destroy(&m_Data.attr);
+}
 
-	static void *sThreadInit(void *init)
-	{
-		ThreadInitData *data = (ThreadInitData *)init;
+template <>
+void CriticalSection::Lock()
+{
+  pthread_mutex_lock(&m_Data.lock);
+}
 
-		// delete before going into entry function so lifetime is limited.
-		ThreadInitData local = *data;
-		delete data;
+template <>
+bool CriticalSection::Trylock()
+{
+  return pthread_mutex_trylock(&m_Data.lock) == 0;
+}
 
-		local.entryFunc(local.userData);
+template <>
+void CriticalSection::Unlock()
+{
+  pthread_mutex_unlock(&m_Data.lock);
+}
 
-		return NULL;
-	}
-	
-	// to not exhaust OS slots, we only allocate one that points
-	// to our own array
-	pthread_key_t OSTLSHandle;
-	int64_t nextTLSSlot = 0;
+struct ThreadInitData
+{
+  ThreadEntry entryFunc;
+  void *userData;
+};
 
-	struct TLSData
-	{
-		vector<void *> data;
-	};
+static void *sThreadInit(void *init)
+{
+  ThreadInitData *data = (ThreadInitData *)init;
 
-	void Init()
-	{
-		int err = pthread_key_create(&OSTLSHandle, NULL);
-		if(err != 0)
-			RDCFATAL("Can't allocate OS TLS slot");
-	}
+  // delete before going into entry function so lifetime is limited.
+  ThreadInitData local = *data;
+  delete data;
 
-	void Shutdown()
-	{
-		// let the TLS data leak. It's not great, but it's only a few kb per thread
-		// that we actually use (ie. not short-lived threads that don't use our TLS).
-		// We don't have a realistic alternative as the threads aren't ours when in-app
-		// and there may not be a way to have something call on thread death.
-		pthread_key_delete(OSTLSHandle);
-	}
+  local.entryFunc(local.userData);
 
-	// allocate a TLS slot in our per-thread vectors with an atomic increment.
-	// Note this is going to be 1-indexed because Inc64 returns the post-increment
-	// value
-	uint64_t AllocateTLSSlot()
-	{
-		return Atomic::Inc64(&nextTLSSlot);
-	}
+  return NULL;
+}
 
-	// look up our per-thread vector.
-	void *GetTLSValue(uint64_t slot)
-	{
-		TLSData *slots = (TLSData *)pthread_getspecific(OSTLSHandle);
-		if(slots == NULL || slot-1 >= slots->data.size())
-			return NULL;
-		return slots->data[(size_t)slot-1];
-	}
+// to not exhaust OS slots, we only allocate one that points
+// to our own array
+pthread_key_t OSTLSHandle;
+int64_t nextTLSSlot = 0;
 
-	void SetTLSValue(uint64_t slot, void *value)
-	{
-		TLSData *slots = (TLSData *)pthread_getspecific(OSTLSHandle);
+struct TLSData
+{
+  vector<void *> data;
+};
 
-		// resize or allocate slot data if needed.
-		// We don't need to lock this, as it is by definition thread local so we are
-		// blocking on the only possible concurrent access.
-		if(slots == NULL || slot-1 >= slots->data.size())
-		{
-			if(slots == NULL)
-			{
-				slots = new TLSData;
-				pthread_setspecific(OSTLSHandle, slots);
-			}
+void Init()
+{
+  int err = pthread_key_create(&OSTLSHandle, NULL);
+  if(err != 0)
+    RDCFATAL("Can't allocate OS TLS slot");
+}
 
-			if(slot-1 >= slots->data.size())
-				slots->data.resize((size_t)slot);
-		}
+void Shutdown()
+{
+  // let the TLS data leak. It's not great, but it's only a few kb per thread
+  // that we actually use (ie. not short-lived threads that don't use our TLS).
+  // We don't have a realistic alternative as the threads aren't ours when in-app
+  // and there may not be a way to have something call on thread death.
+  pthread_key_delete(OSTLSHandle);
+}
 
-		slots->data[(size_t)slot-1] = value;
-	}
+// allocate a TLS slot in our per-thread vectors with an atomic increment.
+// Note this is going to be 1-indexed because Inc64 returns the post-increment
+// value
+uint64_t AllocateTLSSlot()
+{
+  return Atomic::Inc64(&nextTLSSlot);
+}
 
-	ThreadHandle CreateThread(ThreadEntry entryFunc, void *userData)
-	{
-		pthread_t thread;
+// look up our per-thread vector.
+void *GetTLSValue(uint64_t slot)
+{
+  TLSData *slots = (TLSData *)pthread_getspecific(OSTLSHandle);
+  if(slots == NULL || slot - 1 >= slots->data.size())
+    return NULL;
+  return slots->data[(size_t)slot - 1];
+}
 
-		ThreadInitData *initData = new ThreadInitData();
-		initData->entryFunc = entryFunc;
-		initData->userData = userData;
+void SetTLSValue(uint64_t slot, void *value)
+{
+  TLSData *slots = (TLSData *)pthread_getspecific(OSTLSHandle);
 
-		int res = pthread_create(&thread, NULL, sThreadInit, (void *)initData);
-		if(res != 0)
-		{
-			delete initData;
-			return (ThreadHandle)0;
-		}
+  // resize or allocate slot data if needed.
+  // We don't need to lock this, as it is by definition thread local so we are
+  // blocking on the only possible concurrent access.
+  if(slots == NULL || slot - 1 >= slots->data.size())
+  {
+    if(slots == NULL)
+    {
+      slots = new TLSData;
+      pthread_setspecific(OSTLSHandle, slots);
+    }
 
-		return (ThreadHandle)thread;
-	}
+    if(slot - 1 >= slots->data.size())
+    slots->data.resize((size_t)slot);
+  }
 
-	uint64_t GetCurrentID()
-	{
-		return (uint64_t)pthread_self();
-	}
+  slots->data[(size_t)slot - 1] = value;
+}
 
-	void JoinThread(ThreadHandle handle)
-	{
-		pthread_join((pthread_t)handle, NULL);
-	}
-	void CloseThread(ThreadHandle handle)
-	{
-	}
-	
-	void KeepModuleAlive()
-	{
-	}
+ThreadHandle CreateThread(ThreadEntry entryFunc, void *userData)
+{
+  pthread_t thread;
 
-	void ReleaseModuleExitThread()
-	{
-	}
-	
-	void Sleep(uint32_t milliseconds)
-	{
-		usleep(milliseconds*1000);
-	}
+  ThreadInitData *initData = new ThreadInitData();
+  initData->entryFunc = entryFunc;
+  initData->userData = userData;
+
+  int res = pthread_create(&thread, NULL, sThreadInit, (void *)initData);
+  if(res != 0)
+  {
+    delete initData;
+    return (ThreadHandle)0;
+  }
+
+  return (ThreadHandle)thread;
+}
+
+uint64_t GetCurrentID()
+{
+  return (uint64_t)pthread_self();
+}
+
+void JoinThread(ThreadHandle handle)
+{
+  pthread_join((pthread_t)handle, NULL);
+}
+void CloseThread(ThreadHandle handle)
+{
+}
+
+void KeepModuleAlive()
+{
+}
+
+void ReleaseModuleExitThread()
+{
+}
+
+void Sleep(uint32_t milliseconds)
+{
+  usleep(milliseconds * 1000);
+}
 };

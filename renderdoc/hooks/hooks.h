@@ -1,19 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,8 +22,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
-
-
 
 #pragma once
 
@@ -38,37 +36,23 @@ using std::map;
 
 #include "os/win32/win32_hook.h"
 
-template<typename FuncType>
+template <typename FuncType>
 class Hook
 {
-	public:
-		Hook()
-		{
-			orig_funcptr = NULL;
-		}
-		~Hook()
-		{
-		}
-		
-		FuncType operator()()
-		{
-			return (FuncType)orig_funcptr;
-		}
+public:
+  Hook() { orig_funcptr = NULL; }
+  ~Hook() {}
+  FuncType operator()() { return (FuncType)orig_funcptr; }
+  void SetFuncPtr(void *ptr) { orig_funcptr = ptr; }
+  bool Initialize(const char *function, const char *module_name, void *destination_function_ptr)
+  {
+    orig_funcptr = Process::GetFunctionAddress(Process::LoadModule(module_name), function);
 
-		void SetFuncPtr(void *ptr)
-		{
-			orig_funcptr = ptr;
-		}
+    return Win32_IAT_Hook(&orig_funcptr, module_name, function, destination_function_ptr);
+  }
 
-		bool Initialize(const char *function, const char *module_name, void *destination_function_ptr)
-		{
-			orig_funcptr = Process::GetFunctionAddress(Process::LoadModule(module_name), function);
-
-			return Win32_IAT_Hook(&orig_funcptr, module_name, function, destination_function_ptr);
-		}
-
-	private:
-		void *orig_funcptr;
+private:
+  void *orig_funcptr;
 };
 
 #define HOOKS_BEGIN() Win32_IAT_BeginHooks()
@@ -96,9 +80,9 @@ class Hook
 // the libName is the name they used when registering
 struct LibraryHook
 {
-	virtual bool CreateHooks(const char *libName) = 0;
-	virtual void EnableHooks(const char *libName, bool enable) = 0;
-	virtual void OptionsUpdated(const char *libName) = 0;
+  virtual bool CreateHooks(const char *libName) = 0;
+  virtual void EnableHooks(const char *libName, bool enable) = 0;
+  virtual void OptionsUpdated(const char *libName) = 0;
 };
 
 // this singleton allows you to compile in code that defines a hook for a given library
@@ -106,19 +90,19 @@ struct LibraryHook
 // program CreateHooks() will be called to set up the hooks.
 class LibraryHooks
 {
-	public:
-		LibraryHooks() : m_HooksRemoved(false) {}
-		static LibraryHooks &GetInstance();
-		void RegisterHook(const char *libName, LibraryHook *hook);
-		void CreateHooks();
-		void OptionsUpdated();
-		void EnableHooks(bool enable);
-		void RemoveHooks();
+public:
+  LibraryHooks() : m_HooksRemoved(false) {}
+  static LibraryHooks &GetInstance();
+  void RegisterHook(const char *libName, LibraryHook *hook);
+  void CreateHooks();
+  void OptionsUpdated();
+  void EnableHooks(bool enable);
+  void RemoveHooks();
 
-	private:
-		typedef map<const char *, LibraryHook *> HookMap;
+private:
+  typedef map<const char *, LibraryHook *> HookMap;
 
-		bool m_HooksRemoved;
+  bool m_HooksRemoved;
 
-		HookMap m_Hooks;
+  HookMap m_Hooks;
 };

@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,52 +22,50 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
-#include "os/os_specific.h"
-#include "api/app/renderdoc_app.h"
-#include "api/replay/capture_options.h"
+#include <dlfcn.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <dlfcn.h>
-#include <string.h>
-#include <stdlib.h>
-
+#include "api/app/renderdoc_app.h"
+#include "api/replay/capture_options.h"
+#include "os/os_specific.h"
 #include "serialise/string_utils.h"
 
 static vector<Process::EnvironmentModification> &GetEnvModifications()
 {
-	static vector<Process::EnvironmentModification> envCallbacks;
-	return envCallbacks;
+  static vector<Process::EnvironmentModification> envCallbacks;
+  return envCallbacks;
 }
 
 static map<string, string> EnvStringToEnvMap(const char **envstring)
 {
-	map<string, string> ret;
+  map<string, string> ret;
 
-	const char **e = envstring;
+  const char **e = envstring;
 
-	while(*e)
-	{
-		const char *equals = strchr(*e, '=');
+  while(*e)
+  {
+    const char *equals = strchr(*e, '=');
 
-		string name;
-		string value;
-		
-		name.assign(*e, equals);
-		value = equals+1;
+    string name;
+    string value;
 
-		ret[name] = value;
+    name.assign(*e, equals);
+    value = equals + 1;
 
-		e++;
-	}
+    ret[name] = value;
 
-	return ret;
+    e++;
+  }
+
+  return ret;
 }
 
 void Process::RegisterEnvironmentModification(Process::EnvironmentModification modif)
 {
-	GetEnvModifications().push_back(modif);
+  GetEnvModifications().push_back(modif);
 }
 
 // on linux we apply environment changes before launching the program, as
@@ -79,413 +77,409 @@ void Process::RegisterEnvironmentModification(Process::EnvironmentModification m
 // in process (e.g. if we notice a setting and want to enable an env var as a result)
 void Process::ApplyEnvironmentModification()
 {
-	// turn environment string to a UTF-8 map
-	map<string, string> currentEnv = EnvStringToEnvMap((const char **)environ);
-	vector<EnvironmentModification> &modifications = GetEnvModifications();
+  // turn environment string to a UTF-8 map
+  map<string, string> currentEnv = EnvStringToEnvMap((const char **)environ);
+  vector<EnvironmentModification> &modifications = GetEnvModifications();
 
-	for(size_t i=0; i < modifications.size(); i++)
-	{
-		EnvironmentModification &m = modifications[i];
+  for(size_t i = 0; i < modifications.size(); i++)
+  {
+    EnvironmentModification &m = modifications[i];
 
-		string value = currentEnv[m.name];
+    string value = currentEnv[m.name];
 
-		switch(m.type)
-		{
-			case eEnvModification_Replace:
-				value = m.value;
-				break;
-			case eEnvModification_Append:
-				value += m.value;
-				break;
-			case eEnvModification_AppendPlatform:
-			case eEnvModification_AppendColon:
-				if(!value.empty())
-					value += ":";
-				value += m.value;
-				break;
-			case eEnvModification_AppendSemiColon:
-				if(!value.empty())
-					value += ";";
-				value += m.value;
-				break;
-			case eEnvModification_Prepend:
-				value = m.value + value;
-				break;
-			case eEnvModification_PrependColon:
-				if(!value.empty())
-					value = m.value + ":" + value;
-				else
-					value = m.value;
-				break;
-			case eEnvModification_PrependPlatform:
-			case eEnvModification_PrependSemiColon:
-				if(!value.empty())
-					value = m.value + ";" + value;
-				else
-					value = m.value;
-				break;
-			default:
-				RDCERR("Unexpected environment modification type");
-		}
+    switch(m.type)
+    {
+      case eEnvModification_Replace: value = m.value; break;
+      case eEnvModification_Append: value += m.value; break;
+      case eEnvModification_AppendPlatform:
+      case eEnvModification_AppendColon:
+        if(!value.empty())
+          value += ":";
+        value += m.value;
+        break;
+      case eEnvModification_AppendSemiColon:
+        if(!value.empty())
+          value += ";";
+        value += m.value;
+        break;
+      case eEnvModification_Prepend: value = m.value + value; break;
+      case eEnvModification_PrependColon:
+        if(!value.empty())
+          value = m.value + ":" + value;
+        else
+          value = m.value;
+        break;
+      case eEnvModification_PrependPlatform:
+      case eEnvModification_PrependSemiColon:
+        if(!value.empty())
+          value = m.value + ";" + value;
+        else
+          value = m.value;
+        break;
+      default: RDCERR("Unexpected environment modification type");
+    }
 
-		setenv(m.name.c_str(), value.c_str(), true);
-	}
+    setenv(m.name.c_str(), value.c_str(), true);
+  }
 
-	// these have been applied to the current process
-	modifications.clear();
+  // these have been applied to the current process
+  modifications.clear();
 }
 
-static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char *const *envp)
+static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine,
+                        char *const *envp)
 {
-	if(!app) return (pid_t)0;
+  if(!app)
+    return (pid_t)0;
 
-	// it is safe to use app directly as execve never modifies argv
-	char *emptyargv[] = { (char *) app, NULL };
-	char **argv = emptyargv;
+  // it is safe to use app directly as execve never modifies argv
+  char *emptyargv[] = {(char *)app, NULL};
+  char **argv = emptyargv;
 
-	const char *c = cmdLine;
+  const char *c = cmdLine;
 
-	// parse command line into argv[], similar to how bash would
-	if(cmdLine)
-	{
-		int argc = 1;
+  // parse command line into argv[], similar to how bash would
+  if(cmdLine)
+  {
+    int argc = 1;
 
-		// get a rough upper bound on the number of arguments
-		while(*c)
-		{
-			if(*c == ' ' || *c == '\t') argc++;
-			c++;
-		}
+    // get a rough upper bound on the number of arguments
+    while(*c)
+    {
+      if(*c == ' ' || *c == '\t')
+        argc++;
+      c++;
+    }
 
-		argv = new char*[argc+2];
+    argv = new char *[argc + 2];
 
-		c = cmdLine;
+    c = cmdLine;
 
-		string a;
+    string a;
 
-		argc = 0; // current argument we're fetching
+    argc = 0;    // current argument we're fetching
 
-		// argv[0] is the application name, by convention
-		size_t len = strlen(app)+1;
-		argv[argc] = new char[len];
-		strcpy(argv[argc], app);
+    // argv[0] is the application name, by convention
+    size_t len = strlen(app) + 1;
+    argv[argc] = new char[len];
+    strcpy(argv[argc], app);
 
-		argc++;
+    argc++;
 
-		bool dquot = false, squot = false; // are we inside ''s or ""s
-		while(*c)
-		{
-			if(!dquot && !squot && (*c == ' ' || *c == '\t'))
-			{
-				if(!a.empty())
-				{
-					// if we've fetched some number of non-space characters
-					argv[argc] = new char[a.length()+1];
-					memcpy(argv[argc], a.c_str(), a.length()+1);
-					argc++;
-				}
+    bool dquot = false, squot = false;    // are we inside ''s or ""s
+    while(*c)
+    {
+      if(!dquot && !squot && (*c == ' ' || *c == '\t'))
+      {
+        if(!a.empty())
+        {
+          // if we've fetched some number of non-space characters
+          argv[argc] = new char[a.length() + 1];
+          memcpy(argv[argc], a.c_str(), a.length() + 1);
+          argc++;
+        }
 
-				a = "";
-			}
-			else if(!dquot && *c == '"')
-			{
-				dquot = true;
-			}
-			else if(!squot && *c == '\'')
-			{
-				squot = true;
-			}
-			else if(dquot && *c == '"')
-			{
-				dquot = false;
-			}
-			else if(squot && *c == '\'')
-			{
-				squot = false;
-			}
-			else if(squot)
-			{
-				// single quotes don't escape, just copy literally until we leave single quote mode
-				a.push_back(*c);
-			}
-			else if(dquot)
-			{
-				// handle escaping
-				if(*c == '\\')
-				{
-					c++;
-					if(*c)
-					{
-						a.push_back(*c);
-					}
-					else
-					{
-						RDCERR("Malformed command line:\n%s", cmdLine);
-						return 0;
-					}
-				}
-				else
-				{
-					a.push_back(*c);
-				}
-			}
-			else
-			{
-				a.push_back(*c);
-			}
+        a = "";
+      }
+      else if(!dquot && *c == '"')
+      {
+        dquot = true;
+      }
+      else if(!squot && *c == '\'')
+      {
+        squot = true;
+      }
+      else if(dquot && *c == '"')
+      {
+        dquot = false;
+      }
+      else if(squot && *c == '\'')
+      {
+        squot = false;
+      }
+      else if(squot)
+      {
+        // single quotes don't escape, just copy literally until we leave single quote mode
+        a.push_back(*c);
+      }
+      else if(dquot)
+      {
+        // handle escaping
+        if(*c == '\\')
+        {
+          c++;
+          if(*c)
+          {
+            a.push_back(*c);
+          }
+          else
+          {
+            RDCERR("Malformed command line:\n%s", cmdLine);
+            return 0;
+          }
+        }
+        else
+        {
+          a.push_back(*c);
+        }
+      }
+      else
+      {
+        a.push_back(*c);
+      }
 
-			c++;
-		}
+      c++;
+    }
 
-		if(!a.empty())
-		{
-			// if we've fetched some number of non-space characters
-			argv[argc] = new char[a.length()+1];
-			memcpy(argv[argc], a.c_str(), a.length()+1);
-			argc++;
-		}
+    if(!a.empty())
+    {
+      // if we've fetched some number of non-space characters
+      argv[argc] = new char[a.length() + 1];
+      memcpy(argv[argc], a.c_str(), a.length() + 1);
+      argc++;
+    }
 
-		argv[argc] = NULL;
+    argv[argc] = NULL;
 
-		if(squot || dquot)
-		{
-			RDCERR("Malformed command line\n%s", cmdLine);
-			return 0;
-		}
-	}
+    if(squot || dquot)
+    {
+      RDCERR("Malformed command line\n%s", cmdLine);
+      return 0;
+    }
+  }
 
-	pid_t childPid = fork();
-	if(childPid == 0)
-	{
-		if(workingDir)
-		{
-			chdir(workingDir);
-		}
-		else
-		{
-			string exedir = app;
-			chdir(dirname(exedir).c_str());
-		}
+  pid_t childPid = fork();
+  if(childPid == 0)
+  {
+    if(workingDir)
+    {
+      chdir(workingDir);
+    }
+    else
+    {
+      string exedir = app;
+      chdir(dirname(exedir).c_str());
+    }
 
-		execve(app, argv, envp);
-		RDCERR("Failed to execute %s: %s", app, strerror(errno));
-		exit(0);
-	}
-	
-	char **argv_delete = argv;
+    execve(app, argv, envp);
+    RDCERR("Failed to execute %s: %s", app, strerror(errno));
+    exit(0);
+  }
 
-	if(argv != emptyargv)
-	{
-		while(*argv)
-		{
-			delete[] *argv;
-			argv++;
-		}
+  char **argv_delete = argv;
 
-		delete[] argv_delete;
-	}
+  if(argv != emptyargv)
+  {
+    while(*argv)
+    {
+      delete[] * argv;
+      argv++;
+    }
 
-	return childPid;
+    delete[] argv_delete;
+  }
+
+  return childPid;
 }
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool waitForExit)
+uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts,
+                                    bool waitForExit)
 {
-	RDCUNIMPLEMENTED("Injecting into already running processes on linux");
-	return 0;
+  RDCUNIMPLEMENTED("Injecting into already running processes on linux");
+  return 0;
 }
 
 uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine)
 {
-	if(app == NULL || app[0] == 0)
-	{
-		RDCERR("Invalid empty 'app'");
-		return 0;
-	}
+  if(app == NULL || app[0] == 0)
+  {
+    RDCERR("Invalid empty 'app'");
+    return 0;
+  }
 
-	return (uint32_t)RunProcess(app, workingDir, cmdLine, environ);
+  return (uint32_t)RunProcess(app, workingDir, cmdLine, environ);
 }
 
-uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
-                                             const char *logfile, const CaptureOptions *opts, bool waitForExit)
+uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
+                                             const char *cmdLine, const char *logfile,
+                                             const CaptureOptions *opts, bool waitForExit)
 {
-	if(app == NULL || app[0] == 0)
-	{
-		RDCERR("Invalid empty 'app'");
-		return 0;
-	}
-	
-	// turn environment string to a UTF-8 map
-	map<string, string> env = EnvStringToEnvMap((const char **)environ);
-	vector<EnvironmentModification> &modifications = GetEnvModifications();
-	
-	if (logfile == NULL)
-		logfile = "";
+  if(app == NULL || app[0] == 0)
+  {
+    RDCERR("Invalid empty 'app'");
+    return 0;
+  }
 
-	string libpath;
-	{
-		FileIO::GetExecutableFilename(libpath);
-		libpath = dirname(libpath);
-	}
+  // turn environment string to a UTF-8 map
+  map<string, string> env = EnvStringToEnvMap((const char **)environ);
+  vector<EnvironmentModification> &modifications = GetEnvModifications();
 
-	string optstr;
-	{
-		optstr.reserve(sizeof(CaptureOptions)*2+1);
-		byte *b = (byte *)opts;
-		for(size_t i=0; i < sizeof(CaptureOptions); i++)
-		{
-			optstr.push_back(char( 'a' + ((b[i] >> 4)&0xf) ));
-			optstr.push_back(char( 'a' + ((b[i]     )&0xf) ));
-		}
-	}
+  if(logfile == NULL)
+    logfile = "";
 
-	modifications.push_back(EnvironmentModification(eEnvModification_AppendPlatform, "LD_LIBRARY_PATH", libpath.c_str()));
-	modifications.push_back(EnvironmentModification(eEnvModification_AppendPlatform, "LD_PRELOAD", "librenderdoc.so"));
-	modifications.push_back(EnvironmentModification(eEnvModification_Replace, "RENDERDOC_LOGFILE", logfile));
-	modifications.push_back(EnvironmentModification(eEnvModification_Replace, "RENDERDOC_CAPTUREOPTS", optstr.c_str()));
+  string libpath;
+  {
+    FileIO::GetExecutableFilename(libpath);
+    libpath = dirname(libpath);
+  }
 
-	for(size_t i=0; i < modifications.size(); i++)
-	{
-		EnvironmentModification &m = modifications[i];
+  string optstr;
+  {
+    optstr.reserve(sizeof(CaptureOptions) * 2 + 1);
+    byte *b = (byte *)opts;
+    for(size_t i = 0; i < sizeof(CaptureOptions); i++)
+    {
+      optstr.push_back(char('a' + ((b[i] >> 4) & 0xf)));
+      optstr.push_back(char('a' + ((b[i]) & 0xf)));
+    }
+  }
 
-		string &value = env[m.name];
+  modifications.push_back(
+      EnvironmentModification(eEnvModification_AppendPlatform, "LD_LIBRARY_PATH", libpath.c_str()));
+  modifications.push_back(
+      EnvironmentModification(eEnvModification_AppendPlatform, "LD_PRELOAD", "librenderdoc.so"));
+  modifications.push_back(
+      EnvironmentModification(eEnvModification_Replace, "RENDERDOC_LOGFILE", logfile));
+  modifications.push_back(
+      EnvironmentModification(eEnvModification_Replace, "RENDERDOC_CAPTUREOPTS", optstr.c_str()));
 
-		switch(m.type)
-		{
-			case eEnvModification_Replace:
-				value = m.value;
-				break;
-			case eEnvModification_Append:
-				value += m.value;
-				break;
-			case eEnvModification_AppendPlatform:
-			case eEnvModification_AppendColon:
-				if(!value.empty())
-					value += ":";
-				value += m.value;
-				break;
-			case eEnvModification_AppendSemiColon:
-				if(!value.empty())
-					value += ";";
-				value += m.value;
-				break;
-			case eEnvModification_Prepend:
-				value = m.value + value;
-				break;
-			case eEnvModification_PrependColon:
-				if(!value.empty())
-					value = m.value + ":" + value;
-				else
-					value = m.value;
-				break;
-			case eEnvModification_PrependPlatform:
-			case eEnvModification_PrependSemiColon:
-				if(!value.empty())
-					value = m.value + ";" + value;
-				else
-					value = m.value;
-				break;
-			default:
-				RDCERR("Unexpected environment modification type");
-		}
-	}
+  for(size_t i = 0; i < modifications.size(); i++)
+  {
+    EnvironmentModification &m = modifications[i];
 
-	char **envp = new char *[env.size()+1];
-	envp[env.size()] = NULL;
+    string &value = env[m.name];
 
-	int i=0;
-	for(auto it=env.begin(); it != env.end(); it++)
-	{
-		string envline = it->first + "=" + it->second;
-		envp[i] = new char[envline.size()+1];
-		memcpy(envp[i], envline.c_str(), envline.size()+1);
-		i++;
-	}
+    switch(m.type)
+    {
+      case eEnvModification_Replace: value = m.value; break;
+      case eEnvModification_Append: value += m.value; break;
+      case eEnvModification_AppendPlatform:
+      case eEnvModification_AppendColon:
+        if(!value.empty())
+          value += ":";
+        value += m.value;
+        break;
+      case eEnvModification_AppendSemiColon:
+        if(!value.empty())
+          value += ";";
+        value += m.value;
+        break;
+      case eEnvModification_Prepend: value = m.value + value; break;
+      case eEnvModification_PrependColon:
+        if(!value.empty())
+          value = m.value + ":" + value;
+        else
+          value = m.value;
+        break;
+      case eEnvModification_PrependPlatform:
+      case eEnvModification_PrependSemiColon:
+        if(!value.empty())
+          value = m.value + ";" + value;
+        else
+          value = m.value;
+        break;
+      default: RDCERR("Unexpected environment modification type");
+    }
+  }
 
-	pid_t childPid = RunProcess(app, workingDir, cmdLine, envp);
+  char **envp = new char *[env.size() + 1];
+  envp[env.size()] = NULL;
 
-	int ret = 0;
+  int i = 0;
+  for(auto it = env.begin(); it != env.end(); it++)
+  {
+    string envline = it->first + "=" + it->second;
+    envp[i] = new char[envline.size() + 1];
+    memcpy(envp[i], envline.c_str(), envline.size() + 1);
+    i++;
+  }
 
-	if(childPid != (pid_t)0)
-	{
-		// wait for child to have /proc/<pid> and read out tcp socket
-		usleep(1000);
+  pid_t childPid = RunProcess(app, workingDir, cmdLine, envp);
 
-		string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
+  int ret = 0;
 
-		// try for a little while for the /proc entry to appear
-		for(int retry=0; retry < 10; retry++)
-		{
-			// back-off for each retry
-			usleep(1000 + 500 * retry);
+  if(childPid != (pid_t)0)
+  {
+    // wait for child to have /proc/<pid> and read out tcp socket
+    usleep(1000);
 
-			FILE *f =	FileIO::fopen(procfile.c_str(), "r");
+    string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
 
-			if(f == NULL)
-			{
-				// try again in a bit
-				continue;
-			}
+    // try for a little while for the /proc entry to appear
+    for(int retry = 0; retry < 10; retry++)
+    {
+      // back-off for each retry
+      usleep(1000 + 500 * retry);
 
-			// read through the proc file to check for an open listen socket
-			while(ret == 0 && !feof(f))
-			{
-				const size_t sz = 512;
-				char line[sz];line[sz-1] = 0;
-				fgets(line, sz-1, f);
+      FILE *f = FileIO::fopen(procfile.c_str(), "r");
 
-				int socketnum = 0, hexip = 0, hexport = 0;
-				int num = sscanf(line, " %d: %x:%x", &socketnum, &hexip, &hexport);
+      if(f == NULL)
+      {
+        // try again in a bit
+        continue;
+      }
 
-				// find open listen socket on 0.0.0.0:port
-				if(num == 3 && hexip == 0 &&
-						hexport >= RenderDoc_FirstCaptureNetworkPort &&
-						hexport <= RenderDoc_LastCaptureNetworkPort)
-				{
-					ret = hexport;
-				}
-			}
+      // read through the proc file to check for an open listen socket
+      while(ret == 0 && !feof(f))
+      {
+        const size_t sz = 512;
+        char line[sz];
+        line[sz - 1] = 0;
+        fgets(line, sz - 1, f);
 
-			FileIO::fclose(f);
-		}
+        int socketnum = 0, hexip = 0, hexport = 0;
+        int num = sscanf(line, " %d: %x:%x", &socketnum, &hexip, &hexport);
 
-		if(waitForExit)
-		{
-			int dummy = 0;
-			waitpid(childPid, &dummy, 0);
-		}
-	}
+        // find open listen socket on 0.0.0.0:port
+        if(num == 3 && hexip == 0 && hexport >= RenderDoc_FirstCaptureNetworkPort &&
+           hexport <= RenderDoc_LastCaptureNetworkPort)
+        {
+          ret = hexport;
+        }
+      }
 
-	char **envp_delete = envp;
+      FileIO::fclose(f);
+    }
 
-	while(*envp)
-	{
-		delete[] *envp;
-		envp++;
-	}
+    if(waitForExit)
+    {
+      int dummy = 0;
+      waitpid(childPid, &dummy, 0);
+    }
+  }
 
-	delete[] envp_delete;
+  char **envp_delete = envp;
 
-	return ret;
+  while(*envp)
+  {
+    delete[] * envp;
+    envp++;
+  }
+
+  delete[] envp_delete;
+
+  return ret;
 }
 
 void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions *opts)
 {
-	RDCUNIMPLEMENTED("Global hooking of all processes on linux");
+  RDCUNIMPLEMENTED("Global hooking of all processes on linux");
 }
 
 void *Process::LoadModule(const char *module)
 {
-	return dlopen(module, RTLD_NOW);
+  return dlopen(module, RTLD_NOW);
 }
 
 void *Process::GetFunctionAddress(void *module, const char *function)
 {
-	if(module == NULL) return NULL;
+  if(module == NULL)
+    return NULL;
 
-	return dlsym(module, function);
+  return dlsym(module, function);
 }
 
 uint32_t Process::GetCurrentPID()
 {
-	return (uint32_t)getpid();
+  return (uint32_t)getpid();
 }

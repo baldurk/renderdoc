@@ -1,19 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,12 +23,12 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
 #pragma once
 
 /////////////////////////////////////////////////
 // Build/machine configuration
-#if defined(__LP64__) || defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) || defined(__ia64) || defined (_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
+#if defined(__LP64__) || defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(__ia64) || defined(_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
 #define RDC64BIT 1
 #endif
 
@@ -36,9 +36,9 @@
 // Global constants
 enum
 {
-	RenderDoc_FirstCaptureNetworkPort = 38920,
-	RenderDoc_LastCaptureNetworkPort = RenderDoc_FirstCaptureNetworkPort + 7,
-	RenderDoc_ReplayNetworkPort = 39920,
+  RenderDoc_FirstCaptureNetworkPort = 38920,
+  RenderDoc_LastCaptureNetworkPort = RenderDoc_FirstCaptureNetworkPort + 7,
+  RenderDoc_ReplayNetworkPort = 39920,
 };
 
 /////////////////////////////////////////////////
@@ -52,7 +52,7 @@ enum
 //#define STRIP_COMPILE_ASSERTS
 
 // force asserts regardless of debug/release mode
-#define FORCE_ASSERTS 
+#define FORCE_ASSERTS
 
 // force debugbreaks regardless of debug/release mode
 //#define FORCE_DEBUGBREAK

@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,303 +24,318 @@
 
 #pragma once
 
+#include "driver/shaders/spirv/spirv_common.h"
 #include "vk_common.h"
 #include "vk_manager.h"
-
-#include "driver/shaders/spirv/spirv_common.h"
 
 struct VulkanCreationInfo;
 
 struct DescSetLayout
 {
-	void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkDescriptorSetLayoutCreateInfo* pCreateInfo);
+  void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+            const VkDescriptorSetLayoutCreateInfo *pCreateInfo);
 
-	void CreateBindingsArray(vector<DescriptorSetSlot*> &descBindings);
+  void CreateBindingsArray(vector<DescriptorSetSlot *> &descBindings);
 
-	struct Binding
-	{
-		// set reasonable defaults in the constructor as with sparse descriptor set layouts
-		// some elements could be untouched. We set stageFlags to 0 so the UI ignores these
-		// elements
-		Binding()
-			: descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER), descriptorCount(1)
-			, stageFlags(0), immutableSampler(NULL) {}
-		~Binding() { SAFE_DELETE_ARRAY(immutableSampler); }
+  struct Binding
+  {
+    // set reasonable defaults in the constructor as with sparse descriptor set layouts
+    // some elements could be untouched. We set stageFlags to 0 so the UI ignores these
+    // elements
+    Binding()
+        : descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER),
+          descriptorCount(1),
+          stageFlags(0),
+          immutableSampler(NULL)
+    {
+    }
+    ~Binding() { SAFE_DELETE_ARRAY(immutableSampler); }
+    VkDescriptorType descriptorType;
+    uint32_t descriptorCount;
+    VkShaderStageFlags stageFlags;
+    ResourceId *immutableSampler;
+  };
+  vector<Binding> bindings;
 
-		VkDescriptorType descriptorType;
-		uint32_t descriptorCount;
-		VkShaderStageFlags stageFlags;
-		ResourceId *immutableSampler;
-	};
-	vector<Binding> bindings;
-
-	uint32_t dynamicCount;
+  uint32_t dynamicCount;
 };
 
 struct VulkanCreationInfo
 {
-	struct Pipeline
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkGraphicsPipelineCreateInfo* pCreateInfo);
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkComputePipelineCreateInfo* pCreateInfo);
+  struct Pipeline
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkGraphicsPipelineCreateInfo *pCreateInfo);
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkComputePipelineCreateInfo *pCreateInfo);
 
-		ResourceId layout;
-		ResourceId renderpass;
-		uint32_t subpass;
-		
-		// VkGraphicsPipelineCreateInfo
-		VkPipelineCreateFlags flags;
+    ResourceId layout;
+    ResourceId renderpass;
+    uint32_t subpass;
 
-		// VkPipelineShaderStageCreateInfo
-		struct Shader
-		{
-			Shader() : refl(NULL), mapping(NULL) {}
-			ResourceId module;
-			string entryPoint;
-			ShaderReflection *refl;
-			ShaderBindpointMapping *mapping;
+    // VkGraphicsPipelineCreateInfo
+    VkPipelineCreateFlags flags;
 
-			vector<byte> specdata;
-			struct SpecInfo
-			{
-				uint32_t specID;
-				byte *data;
-				size_t size;
-			};
-			vector<SpecInfo> specialization;
-		};
-		Shader shaders[6];
+    // VkPipelineShaderStageCreateInfo
+    struct Shader
+    {
+      Shader() : refl(NULL), mapping(NULL) {}
+      ResourceId module;
+      string entryPoint;
+      ShaderReflection *refl;
+      ShaderBindpointMapping *mapping;
 
-		// VkPipelineVertexInputStateCreateInfo
-		struct Binding
-		{
-			uint32_t vbufferBinding;
-			uint32_t bytestride;
-			bool perInstance;
-		};
-		vector<Binding> vertexBindings;
-		
-		struct Attribute
-		{
-			uint32_t location;
-			uint32_t binding;
-			VkFormat format;
-			uint32_t byteoffset;
-		};
-		vector<Attribute> vertexAttrs;
+      vector<byte> specdata;
+      struct SpecInfo
+      {
+        uint32_t specID;
+        byte *data;
+        size_t size;
+      };
+      vector<SpecInfo> specialization;
+    };
+    Shader shaders[6];
 
-		// VkPipelineInputAssemblyStateCreateInfo
-		VkPrimitiveTopology topology;
-		bool primitiveRestartEnable;
+    // VkPipelineVertexInputStateCreateInfo
+    struct Binding
+    {
+      uint32_t vbufferBinding;
+      uint32_t bytestride;
+      bool perInstance;
+    };
+    vector<Binding> vertexBindings;
 
-		// VkPipelineTessellationStateCreateInfo
-		uint32_t patchControlPoints;
+    struct Attribute
+    {
+      uint32_t location;
+      uint32_t binding;
+      VkFormat format;
+      uint32_t byteoffset;
+    };
+    vector<Attribute> vertexAttrs;
 
-		// VkPipelineViewportStateCreateInfo
-		uint32_t viewportCount;
-		vector<VkViewport> viewports;
-		vector<VkRect2D> scissors;
+    // VkPipelineInputAssemblyStateCreateInfo
+    VkPrimitiveTopology topology;
+    bool primitiveRestartEnable;
 
-		// VkPipelineRasterizationStateCreateInfo
-		bool depthClampEnable;
-		bool rasterizerDiscardEnable;
-		VkPolygonMode polygonMode;
-		VkCullModeFlags cullMode;
-		VkFrontFace frontFace;
-		bool depthBiasEnable;
-		float depthBiasConstantFactor;
-		float depthBiasClamp;
-		float depthBiasSlopeFactor;
-		float lineWidth;
+    // VkPipelineTessellationStateCreateInfo
+    uint32_t patchControlPoints;
 
-		// VkPipelineMultisampleStateCreateInfo
-		VkSampleCountFlagBits rasterizationSamples;
-		bool sampleShadingEnable;
-		float minSampleShading;
-		VkSampleMask sampleMask;
-		bool alphaToCoverageEnable;
-		bool alphaToOneEnable;
+    // VkPipelineViewportStateCreateInfo
+    uint32_t viewportCount;
+    vector<VkViewport> viewports;
+    vector<VkRect2D> scissors;
 
-		// VkPipelineDepthStencilStateCreateInfo
-		bool depthTestEnable;
-		bool depthWriteEnable;
-		VkCompareOp depthCompareOp;
-		bool depthBoundsEnable;
-		bool stencilTestEnable;
-		VkStencilOpState front;
-		VkStencilOpState back;
-		float minDepthBounds;
-		float maxDepthBounds;
+    // VkPipelineRasterizationStateCreateInfo
+    bool depthClampEnable;
+    bool rasterizerDiscardEnable;
+    VkPolygonMode polygonMode;
+    VkCullModeFlags cullMode;
+    VkFrontFace frontFace;
+    bool depthBiasEnable;
+    float depthBiasConstantFactor;
+    float depthBiasClamp;
+    float depthBiasSlopeFactor;
+    float lineWidth;
 
-		// VkPipelineColorBlendStateCreateInfo
-		bool logicOpEnable;
-		VkLogicOp logicOp;
-		float blendConst[4];
+    // VkPipelineMultisampleStateCreateInfo
+    VkSampleCountFlagBits rasterizationSamples;
+    bool sampleShadingEnable;
+    float minSampleShading;
+    VkSampleMask sampleMask;
+    bool alphaToCoverageEnable;
+    bool alphaToOneEnable;
 
-		struct Attachment
-		{
-			bool blendEnable;
+    // VkPipelineDepthStencilStateCreateInfo
+    bool depthTestEnable;
+    bool depthWriteEnable;
+    VkCompareOp depthCompareOp;
+    bool depthBoundsEnable;
+    bool stencilTestEnable;
+    VkStencilOpState front;
+    VkStencilOpState back;
+    float minDepthBounds;
+    float maxDepthBounds;
 
-			struct BlendOp
-			{
-				VkBlendFactor Source;
-				VkBlendFactor Destination;
-				VkBlendOp Operation;
-			} blend, alphaBlend;
+    // VkPipelineColorBlendStateCreateInfo
+    bool logicOpEnable;
+    VkLogicOp logicOp;
+    float blendConst[4];
 
-			uint8_t channelWriteMask;
-		};
-		vector<Attachment> attachments;
+    struct Attachment
+    {
+      bool blendEnable;
 
-		// VkPipelineDynamicStateCreateInfo
-		bool dynamicStates[VK_DYNAMIC_STATE_RANGE_SIZE];
-	};
-	map<ResourceId, Pipeline> m_Pipeline;
+      struct BlendOp
+      {
+        VkBlendFactor Source;
+        VkBlendFactor Destination;
+        VkBlendOp Operation;
+      } blend, alphaBlend;
 
-	struct PipelineLayout
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkPipelineLayoutCreateInfo* pCreateInfo);
+      uint8_t channelWriteMask;
+    };
+    vector<Attachment> attachments;
 
-		vector<VkPushConstantRange> pushRanges;
-		vector<ResourceId> descSetLayouts;
-	};
-	map<ResourceId, PipelineLayout> m_PipelineLayout;
+    // VkPipelineDynamicStateCreateInfo
+    bool dynamicStates[VK_DYNAMIC_STATE_RANGE_SIZE];
+  };
+  map<ResourceId, Pipeline> m_Pipeline;
 
-	struct RenderPass
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkRenderPassCreateInfo* pCreateInfo);
+  struct PipelineLayout
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkPipelineLayoutCreateInfo *pCreateInfo);
 
-		struct Attachment
-		{
-			VkAttachmentLoadOp loadOp;
-			VkAttachmentStoreOp storeOp;
-			VkAttachmentLoadOp stencilLoadOp;
-			VkAttachmentStoreOp stencilStoreOp;
-		};
-		vector<Attachment> attachments;
+    vector<VkPushConstantRange> pushRanges;
+    vector<ResourceId> descSetLayouts;
+  };
+  map<ResourceId, PipelineLayout> m_PipelineLayout;
 
-		struct Subpass
-		{
-			vector<uint32_t> inputAttachments;
-			vector<uint32_t> colorAttachments;
-			int32_t depthstencilAttachment;
-		};
-		vector<Subpass> subpasses;
+  struct RenderPass
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkRenderPassCreateInfo *pCreateInfo);
 
-		VkRenderPass loadRP;
-	};
-	map<ResourceId, RenderPass> m_RenderPass;
+    struct Attachment
+    {
+      VkAttachmentLoadOp loadOp;
+      VkAttachmentStoreOp storeOp;
+      VkAttachmentLoadOp stencilLoadOp;
+      VkAttachmentStoreOp stencilStoreOp;
+    };
+    vector<Attachment> attachments;
 
-	struct Framebuffer
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkFramebufferCreateInfo* pCreateInfo);
+    struct Subpass
+    {
+      vector<uint32_t> inputAttachments;
+      vector<uint32_t> colorAttachments;
+      int32_t depthstencilAttachment;
+    };
+    vector<Subpass> subpasses;
 
-		struct Attachment
-		{
-			ResourceId view;
-			VkFormat format;
-		};
-		vector<Attachment> attachments;
-		
-		uint32_t width, height, layers;
-	};
-	map<ResourceId, Framebuffer> m_Framebuffer;
-	
-	struct Memory
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkMemoryAllocateInfo* pAllocInfo);
+    VkRenderPass loadRP;
+  };
+  map<ResourceId, RenderPass> m_RenderPass;
 
-		uint64_t size;
+  struct Framebuffer
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkFramebufferCreateInfo *pCreateInfo);
 
-		VkBuffer wholeMemBuf;
-	};
-	map<ResourceId, Memory> m_Memory;
-	
-	struct Buffer
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkBufferCreateInfo* pCreateInfo);
+    struct Attachment
+    {
+      ResourceId view;
+      VkFormat format;
+    };
+    vector<Attachment> attachments;
 
-		VkBufferUsageFlags usage;
-		uint64_t size;
-	};
-	map<ResourceId, Buffer> m_Buffer;
+    uint32_t width, height, layers;
+  };
+  map<ResourceId, Framebuffer> m_Framebuffer;
 
-	struct BufferView
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkBufferViewCreateInfo* pCreateInfo);
+  struct Memory
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkMemoryAllocateInfo *pAllocInfo);
 
-		ResourceId buffer;
-		uint64_t offset;
-		uint64_t size;
-	};
-	map<ResourceId, BufferView> m_BufferView;
-	
-	struct Image
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkImageCreateInfo* pCreateInfo);
-	
-		VkImageView view;
-		VkImageView stencilView;
+    uint64_t size;
 
-		VkImageType type;
-		VkFormat format;
-		VkExtent3D extent;
-		int arrayLayers, mipLevels;
-		VkSampleCountFlagBits samples;
+    VkBuffer wholeMemBuf;
+  };
+  map<ResourceId, Memory> m_Memory;
 
-		bool cube;
-		uint32_t creationFlags;
-	};
-	map<ResourceId, Image> m_Image;
+  struct Buffer
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkBufferCreateInfo *pCreateInfo);
 
-	struct Sampler
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkSamplerCreateInfo* pCreateInfo);
-	
-		VkFilter magFilter;
-		VkFilter minFilter;
-		VkSamplerMipmapMode mipmapMode;
-		VkSamplerAddressMode address[3];
-		float mipLodBias;
-		float maxAnisotropy;
-		bool compareEnable;
-		VkCompareOp compareOp;
-		float minLod;
-		float maxLod;
-		VkBorderColor borderColor;
-		bool unnormalizedCoordinates;
-	};
-	map<ResourceId, Sampler> m_Sampler;
+    VkBufferUsageFlags usage;
+    uint64_t size;
+  };
+  map<ResourceId, Buffer> m_Buffer;
 
-	struct ImageView
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkImageViewCreateInfo* pCreateInfo);
+  struct BufferView
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkBufferViewCreateInfo *pCreateInfo);
 
-		ResourceId image;
-		VkFormat format;
-		VkImageSubresourceRange range;
-	};
-	map<ResourceId, ImageView> m_ImageView;
-	
-	struct ShaderModule
-	{
-		void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, const VkShaderModuleCreateInfo* pCreateInfo);
+    ResourceId buffer;
+    uint64_t offset;
+    uint64_t size;
+  };
+  map<ResourceId, BufferView> m_BufferView;
 
-		SPVModule spirv;
+  struct Image
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkImageCreateInfo *pCreateInfo);
 
-		string unstrippedPath;
+    VkImageView view;
+    VkImageView stencilView;
 
-		struct Reflection
-		{
-			string entryPoint;
-			ShaderReflection refl;
-			ShaderBindpointMapping mapping;
-		};
-		map<string, Reflection> m_Reflections;
-	};
-	map<ResourceId, ShaderModule> m_ShaderModule;
+    VkImageType type;
+    VkFormat format;
+    VkExtent3D extent;
+    int arrayLayers, mipLevels;
+    VkSampleCountFlagBits samples;
 
-	map<ResourceId, string> m_Names;
-	map<ResourceId, SwapchainInfo> m_SwapChain;
-	map<ResourceId, DescSetLayout> m_DescSetLayout;
+    bool cube;
+    uint32_t creationFlags;
+  };
+  map<ResourceId, Image> m_Image;
+
+  struct Sampler
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkSamplerCreateInfo *pCreateInfo);
+
+    VkFilter magFilter;
+    VkFilter minFilter;
+    VkSamplerMipmapMode mipmapMode;
+    VkSamplerAddressMode address[3];
+    float mipLodBias;
+    float maxAnisotropy;
+    bool compareEnable;
+    VkCompareOp compareOp;
+    float minLod;
+    float maxLod;
+    VkBorderColor borderColor;
+    bool unnormalizedCoordinates;
+  };
+  map<ResourceId, Sampler> m_Sampler;
+
+  struct ImageView
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkImageViewCreateInfo *pCreateInfo);
+
+    ResourceId image;
+    VkFormat format;
+    VkImageSubresourceRange range;
+  };
+  map<ResourceId, ImageView> m_ImageView;
+
+  struct ShaderModule
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkShaderModuleCreateInfo *pCreateInfo);
+
+    SPVModule spirv;
+
+    string unstrippedPath;
+
+    struct Reflection
+    {
+      string entryPoint;
+      ShaderReflection refl;
+      ShaderBindpointMapping mapping;
+    };
+    map<string, Reflection> m_Reflections;
+  };
+  map<ResourceId, ShaderModule> m_ShaderModule;
+
+  map<ResourceId, string> m_Names;
+  map<ResourceId, SwapchainInfo> m_SwapChain;
+  map<ResourceId, DescSetLayout> m_DescSetLayout;
 };

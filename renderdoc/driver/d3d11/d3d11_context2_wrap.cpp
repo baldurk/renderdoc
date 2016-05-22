@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2014-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,112 +22,116 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
 #include "d3d11_context.h"
 
-HRESULT WrappedID3D11DeviceContext::UpdateTileMappings( 
-		ID3D11Resource *pTiledResource,
-		UINT NumTiledResourceRegions,
-		const D3D11_TILED_RESOURCE_COORDINATE *pTiledResourceRegionStartCoordinates,
-		const D3D11_TILE_REGION_SIZE *pTiledResourceRegionSizes,
-		ID3D11Buffer *pTilePool,
-		UINT NumRanges,
-		const UINT *pRangeFlags,
-		const UINT *pTilePoolStartOffsets,
-		const UINT *pRangeTileCounts,
-		UINT Flags)
+HRESULT WrappedID3D11DeviceContext::UpdateTileMappings(
+    ID3D11Resource *pTiledResource, UINT NumTiledResourceRegions,
+    const D3D11_TILED_RESOURCE_COORDINATE *pTiledResourceRegionStartCoordinates,
+    const D3D11_TILE_REGION_SIZE *pTiledResourceRegionSizes, ID3D11Buffer *pTilePool,
+    UINT NumRanges, const UINT *pRangeFlags, const UINT *pTilePoolStartOffsets,
+    const UINT *pRangeTileCounts, UINT Flags)
 {
-	RDCUNIMPLEMENTED("Tiled resources are not yet supported. Please contact me if you have a working example!");
-	
-	if(m_pRealContext2 == NULL) return E_NOINTERFACE;
+  RDCUNIMPLEMENTED(
+      "Tiled resources are not yet supported. Please contact me if you have a working example!");
 
-	return m_pRealContext2->UpdateTileMappings(pTiledResource, NumTiledResourceRegions, pTiledResourceRegionStartCoordinates, pTiledResourceRegionSizes,
-	                          pTilePool, NumRanges, pRangeFlags, pTilePoolStartOffsets, pRangeTileCounts, Flags);
+  if(m_pRealContext2 == NULL)
+    return E_NOINTERFACE;
+
+  return m_pRealContext2->UpdateTileMappings(
+      pTiledResource, NumTiledResourceRegions, pTiledResourceRegionStartCoordinates,
+      pTiledResourceRegionSizes, pTilePool, NumRanges, pRangeFlags, pTilePoolStartOffsets,
+      pRangeTileCounts, Flags);
 }
 
-HRESULT WrappedID3D11DeviceContext::CopyTileMappings( 
-		ID3D11Resource *pDestTiledResource,
-		const D3D11_TILED_RESOURCE_COORDINATE *pDestRegionStartCoordinate,
-		ID3D11Resource *pSourceTiledResource,
-		const D3D11_TILED_RESOURCE_COORDINATE *pSourceRegionStartCoordinate,
-		const D3D11_TILE_REGION_SIZE *pTileRegionSize,
-		UINT Flags)
+HRESULT WrappedID3D11DeviceContext::CopyTileMappings(
+    ID3D11Resource *pDestTiledResource,
+    const D3D11_TILED_RESOURCE_COORDINATE *pDestRegionStartCoordinate,
+    ID3D11Resource *pSourceTiledResource,
+    const D3D11_TILED_RESOURCE_COORDINATE *pSourceRegionStartCoordinate,
+    const D3D11_TILE_REGION_SIZE *pTileRegionSize, UINT Flags)
 {
-	RDCUNIMPLEMENTED("Tiled resources are not yet supported. Please contact me if you have a working example!");
-	
-	if(m_pRealContext2 == NULL) return E_NOINTERFACE;
+  RDCUNIMPLEMENTED(
+      "Tiled resources are not yet supported. Please contact me if you have a working example!");
 
-	return m_pRealContext2->CopyTileMappings(pDestTiledResource, pDestRegionStartCoordinate, pSourceTiledResource,
-	                          pSourceRegionStartCoordinate, pTileRegionSize, Flags);
+  if(m_pRealContext2 == NULL)
+    return E_NOINTERFACE;
+
+  return m_pRealContext2->CopyTileMappings(pDestTiledResource, pDestRegionStartCoordinate,
+                                           pSourceTiledResource, pSourceRegionStartCoordinate,
+                                           pTileRegionSize, Flags);
 }
 
-void WrappedID3D11DeviceContext::CopyTiles( 
-		ID3D11Resource *pTiledResource,
-		const D3D11_TILED_RESOURCE_COORDINATE *pTileRegionStartCoordinate,
-		const D3D11_TILE_REGION_SIZE *pTileRegionSize,
-		ID3D11Buffer *pBuffer,
-		UINT64 BufferStartOffsetInBytes,
-		UINT Flags)
+void WrappedID3D11DeviceContext::CopyTiles(
+    ID3D11Resource *pTiledResource, const D3D11_TILED_RESOURCE_COORDINATE *pTileRegionStartCoordinate,
+    const D3D11_TILE_REGION_SIZE *pTileRegionSize, ID3D11Buffer *pBuffer,
+    UINT64 BufferStartOffsetInBytes, UINT Flags)
 {
-	RDCUNIMPLEMENTED("Tiled resources are not yet supported. Please contact me if you have a working example!");
-	
-	if(m_pRealContext2 == NULL) return;
+  RDCUNIMPLEMENTED(
+      "Tiled resources are not yet supported. Please contact me if you have a working example!");
 
-	return m_pRealContext2->CopyTiles(pTiledResource, pTileRegionStartCoordinate, pTileRegionSize, pBuffer, BufferStartOffsetInBytes, Flags);
+  if(m_pRealContext2 == NULL)
+    return;
+
+  return m_pRealContext2->CopyTiles(pTiledResource, pTileRegionStartCoordinate, pTileRegionSize,
+                                    pBuffer, BufferStartOffsetInBytes, Flags);
 }
 
-void WrappedID3D11DeviceContext::UpdateTiles( 
-		ID3D11Resource *pDestTiledResource,
-		const D3D11_TILED_RESOURCE_COORDINATE *pDestTileRegionStartCoordinate,
-		const D3D11_TILE_REGION_SIZE *pDestTileRegionSize,
-		const void *pSourceTileData,
-		UINT Flags)
+void WrappedID3D11DeviceContext::UpdateTiles(
+    ID3D11Resource *pDestTiledResource,
+    const D3D11_TILED_RESOURCE_COORDINATE *pDestTileRegionStartCoordinate,
+    const D3D11_TILE_REGION_SIZE *pDestTileRegionSize, const void *pSourceTileData, UINT Flags)
 {
-	RDCUNIMPLEMENTED("Tiled resources are not yet supported. Please contact me if you have a working example!");
-	
-	if(m_pRealContext2 == NULL) return;
+  RDCUNIMPLEMENTED(
+      "Tiled resources are not yet supported. Please contact me if you have a working example!");
 
-	return m_pRealContext2->UpdateTiles(pDestTiledResource, pDestTileRegionStartCoordinate, pDestTileRegionSize, pSourceTileData, Flags);
+  if(m_pRealContext2 == NULL)
+    return;
+
+  return m_pRealContext2->UpdateTiles(pDestTiledResource, pDestTileRegionStartCoordinate,
+                                      pDestTileRegionSize, pSourceTileData, Flags);
 }
 
-HRESULT WrappedID3D11DeviceContext::ResizeTilePool( 
-		ID3D11Buffer *pTilePool,
-		UINT64 NewSizeInBytes)
+HRESULT WrappedID3D11DeviceContext::ResizeTilePool(ID3D11Buffer *pTilePool, UINT64 NewSizeInBytes)
 {
-	RDCUNIMPLEMENTED("Tiled resources are not yet supported. Please contact me if you have a working example!");
-	
-	if(m_pRealContext2 == NULL) return E_NOINTERFACE;
+  RDCUNIMPLEMENTED(
+      "Tiled resources are not yet supported. Please contact me if you have a working example!");
 
-	return m_pRealContext2->ResizeTilePool(pTilePool, NewSizeInBytes);
+  if(m_pRealContext2 == NULL)
+    return E_NOINTERFACE;
+
+  return m_pRealContext2->ResizeTilePool(pTilePool, NewSizeInBytes);
 }
 
-void WrappedID3D11DeviceContext::TiledResourceBarrier( 
-		ID3D11DeviceChild *pTiledResourceOrViewAccessBeforeBarrier,
-		ID3D11DeviceChild *pTiledResourceOrViewAccessAfterBarrier)
+void WrappedID3D11DeviceContext::TiledResourceBarrier(
+    ID3D11DeviceChild *pTiledResourceOrViewAccessBeforeBarrier,
+    ID3D11DeviceChild *pTiledResourceOrViewAccessAfterBarrier)
 {
-	RDCUNIMPLEMENTED("Tiled resources are not yet supported. Please contact me if you have a working example!");
+  RDCUNIMPLEMENTED(
+      "Tiled resources are not yet supported. Please contact me if you have a working example!");
 
-	if(m_pRealContext2 == NULL) return;
+  if(m_pRealContext2 == NULL)
+    return;
 
-	return m_pRealContext2->TiledResourceBarrier(pTiledResourceOrViewAccessBeforeBarrier, pTiledResourceOrViewAccessAfterBarrier);
+  return m_pRealContext2->TiledResourceBarrier(pTiledResourceOrViewAccessBeforeBarrier,
+                                               pTiledResourceOrViewAccessAfterBarrier);
 }
 
 BOOL WrappedID3D11DeviceContext::IsAnnotationEnabled()
 {
-	return TRUE;
+  return TRUE;
 }
 
 void WrappedID3D11DeviceContext::SetMarkerInt(LPCWSTR pLabel, INT Data)
 {
-	SetMarker(0, pLabel);
+  SetMarker(0, pLabel);
 }
 
 void WrappedID3D11DeviceContext::BeginEventInt(LPCWSTR pLabel, INT Data)
 {
-	PushEvent(0, pLabel);
+  PushEvent(0, pLabel);
 }
 
 void WrappedID3D11DeviceContext::EndEvent()
 {
-	PopEvent();
+  PopEvent();
 }

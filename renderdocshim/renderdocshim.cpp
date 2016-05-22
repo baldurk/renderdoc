@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2014-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,139 +31,146 @@
 // The no-CRT restriction causes some awkward bits and pieces but the dll is simple
 // enough that it's not a big issue.
 
+#include "renderdocshim.h"
 #include <windows.h>
 
-#include "renderdocshim.h"
-
 struct CaptureOptions;
-typedef void (__cdecl *pRENDERDOC_SetCaptureOptions)(const CaptureOptions *opts);
-typedef void (__cdecl *pRENDERDOC_SetLogFile)(const char *logfile);
+typedef void(__cdecl *pRENDERDOC_SetCaptureOptions)(const CaptureOptions *opts);
+typedef void(__cdecl *pRENDERDOC_SetLogFile)(const char *logfile);
 
 #if defined(RELEASE)
-#define LOGPRINT(txt) do { } while (0)
+#define LOGPRINT(txt) \
+  do                  \
+  {                   \
+  } while(0)
 #else
 // define this to something to get logging
 //#define LOGPRINT(txt) OutputDebugStringW(txt)
-#define LOGPRINT(txt) do { } while (0)
+#define LOGPRINT(txt) \
+  do                  \
+  {                   \
+  } while(0)
 #endif
 
 void CheckHook()
 {
-	ShimData *data = NULL;
+  ShimData *data = NULL;
 
-	HANDLE datahandle = OpenFileMappingA(FILE_MAP_READ, FALSE, GLOBAL_HOOK_DATA_NAME);
+  HANDLE datahandle = OpenFileMappingA(FILE_MAP_READ, FALSE, GLOBAL_HOOK_DATA_NAME);
 
-	if(datahandle == NULL)
-	{
-		LOGPRINT(L"renderdocshim: can't open global data\n");
-		return;
-	}
+  if(datahandle == NULL)
+  {
+    LOGPRINT(L"renderdocshim: can't open global data\n");
+    return;
+  }
 
-	data = (ShimData *)MapViewOfFile(datahandle, FILE_MAP_READ, 0, 0, sizeof(ShimData));
+  data = (ShimData *)MapViewOfFile(datahandle, FILE_MAP_READ, 0, 0, sizeof(ShimData));
 
-	if(data == NULL)
-	{
-		CloseHandle(datahandle);
-		LOGPRINT(L"renderdocshim: can't map global data\n");
-		return;
-	}
+  if(data == NULL)
+  {
+    CloseHandle(datahandle);
+    LOGPRINT(L"renderdocshim: can't map global data\n");
+    return;
+  }
 
-	if(data->pathmatchstring[0] == 0 ||
-	   data->pathmatchstring[1] == 0 ||
-	   data->pathmatchstring[2] == 0 ||
-	   data->pathmatchstring[3] == 0)
-	{
-		LOGPRINT(L"renderdocshim: invalid pathmatchstring: '");
-		LOGPRINT(data->pathmatchstring);
-		LOGPRINT(L"'\n");
+  if(data->pathmatchstring[0] == 0 || data->pathmatchstring[1] == 0 ||
+     data->pathmatchstring[2] == 0 || data->pathmatchstring[3] == 0)
+  {
+    LOGPRINT(L"renderdocshim: invalid pathmatchstring: '");
+    LOGPRINT(data->pathmatchstring);
+    LOGPRINT(L"'\n");
 
-		UnmapViewOfFile(data);
-		CloseHandle(datahandle);
-		return;
-	}
+    UnmapViewOfFile(data);
+    CloseHandle(datahandle);
+    return;
+  }
 
-	// no new[], need to use VirtualAlloc
-	const int exepathLen = 1024;
-	wchar_t *exepath = (wchar_t *)VirtualAlloc(NULL, exepathLen*sizeof(wchar_t), MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+  // no new[], need to use VirtualAlloc
+  const int exepathLen = 1024;
+  wchar_t *exepath = (wchar_t *)VirtualAlloc(NULL, exepathLen * sizeof(wchar_t),
+                                             MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-	if(exepath)
-	{
-		// no memset :).
-		for(int i=0; i < exepathLen; i++) exepath[i] = 0;
+  if(exepath)
+  {
+    // no memset :).
+    for(int i = 0; i < exepathLen; i++)
+      exepath[i] = 0;
 
-		GetModuleFileNameW(NULL, exepath, exepathLen - 1);
+    GetModuleFileNameW(NULL, exepath, exepathLen - 1);
 
-		// no str*cmp functions
-		int find = FindStringOrdinal(FIND_FROMSTART, exepath, -1, data->pathmatchstring, -1, TRUE);
+    // no str*cmp functions
+    int find = FindStringOrdinal(FIND_FROMSTART, exepath, -1, data->pathmatchstring, -1, TRUE);
 
-		if(find >= 0)
-		{
-			LOGPRINT(L"renderdocshim: Hooking into '");
-			LOGPRINT(exepath);
-			LOGPRINT(L"', based on '");
-			LOGPRINT(data->pathmatchstring);
-			LOGPRINT(L"'\n");
+    if(find >= 0)
+    {
+      LOGPRINT(L"renderdocshim: Hooking into '");
+      LOGPRINT(exepath);
+      LOGPRINT(L"', based on '");
+      LOGPRINT(data->pathmatchstring);
+      LOGPRINT(L"'\n");
 
-			HMODULE mod = LoadLibraryW(data->rdocpath);
+      HMODULE mod = LoadLibraryW(data->rdocpath);
 
-			if(mod)
-			{
-				pRENDERDOC_SetCaptureOptions setopts = (pRENDERDOC_SetCaptureOptions)GetProcAddress(mod, "RENDERDOC_SetCaptureOptions");
-				pRENDERDOC_SetLogFile setlog = (pRENDERDOC_SetLogFile)GetProcAddress(mod, "RENDERDOC_SetLogFile");
+      if(mod)
+      {
+        pRENDERDOC_SetCaptureOptions setopts =
+            (pRENDERDOC_SetCaptureOptions)GetProcAddress(mod, "RENDERDOC_SetCaptureOptions");
+        pRENDERDOC_SetLogFile setlog =
+            (pRENDERDOC_SetLogFile)GetProcAddress(mod, "RENDERDOC_SetLogFile");
 
-				if(setopts)
-					setopts( (const CaptureOptions *)data->opts );
+        if(setopts)
+          setopts((const CaptureOptions *)data->opts);
 
-				if(setlog && data->log[0])
-					setlog( data->log );
-			}
-		}
-		else
-		{
-			LOGPRINT(L"renderdocshim: NOT Hooking into '");
-			LOGPRINT(data->exepath);
-			LOGPRINT(L"', based on '");
-			LOGPRINT(data->pathmatchstring);
-			LOGPRINT(L"'\n");
-		}
+        if(setlog && data->log[0])
+          setlog(data->log);
+      }
+    }
+    else
+    {
+      LOGPRINT(L"renderdocshim: NOT Hooking into '");
+      LOGPRINT(data->exepath);
+      LOGPRINT(L"', based on '");
+      LOGPRINT(data->pathmatchstring);
+      LOGPRINT(L"'\n");
+    }
 
-		VirtualFree(exepath, 0, MEM_RELEASE);
-	}
-	else
-	{
-		LOGPRINT(L"renderdocshim: Failed to allocate exepath\n");
-	}
-	
-	UnmapViewOfFile(data);
-	CloseHandle(datahandle);
+    VirtualFree(exepath, 0, MEM_RELEASE);
+  }
+  else
+  {
+    LOGPRINT(L"renderdocshim: Failed to allocate exepath\n");
+  }
+
+  UnmapViewOfFile(data);
+  CloseHandle(datahandle);
 }
 
 DWORD CheckHookThread(LPVOID param)
 {
-	CheckHook();
+  CheckHook();
 
-	// this makes sure that we remove the reference to the shim dll and unload from
-	// the target process. That minimises the impact of having the dll inserted into
-	// every process
-	FreeLibraryAndExitThread((HMODULE)param, 0);
-	return 0;
+  // this makes sure that we remove the reference to the shim dll and unload from
+  // the target process. That minimises the impact of having the dll inserted into
+  // every process
+  FreeLibraryAndExitThread((HMODULE)param, 0);
+  return 0;
 }
 
 BOOL APIENTRY dll_entry(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
-	if(ul_reason_for_call == DLL_PROCESS_ATTACH)
-	{
-		DisableThreadLibraryCalls(hModule);
+  if(ul_reason_for_call == DLL_PROCESS_ATTACH)
+  {
+    DisableThreadLibraryCalls(hModule);
 
-		// create a thread so that we can perform more complex actions (DllMain must be minimal
-		// in size, even this is a bit dodgy).
-		CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&CheckHookThread, (LPVOID)hModule, 0, NULL);
+    // create a thread so that we can perform more complex actions (DllMain must be minimal
+    // in size, even this is a bit dodgy).
+    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&CheckHookThread, (LPVOID)hModule, 0, NULL);
 
-		// Sleep on this thread a bit, as we want to call CheckHook() before any real work is done.
-		// Note it is important we don't try to *synchronise* on CheckHookThread, as that can easily
-		// cause deadlocks, crashes, etc.
-		Sleep(500);
-	}
+    // Sleep on this thread a bit, as we want to call CheckHook() before any real work is done.
+    // Note it is important we don't try to *synchronise* on CheckHookThread, as that can easily
+    // cause deadlocks, crashes, etc.
+    Sleep(500);
+  }
 
-	return TRUE;
+  return TRUE;
 }

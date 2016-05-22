@@ -1,19 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,415 +23,430 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
+#include <utility>
 #include "api/replay/renderdoc_replay.h"
-#include "replay/replay_renderer.h"
 #include "core/core.h"
 #include "os/os_specific.h"
+#include "replay/replay_renderer.h"
 #include "serialise/serialiser.h"
-#include "socket_helpers.h"
 #include "replay_proxy.h"
+#include "socket_helpers.h"
 
-#include <utility>
 using std::pair;
 
 enum PacketType
 {
-	ePacket_Noop,
-	ePacket_RemoteDriverList,
-	ePacket_CopyCapture,
-	ePacket_LogOpenProgress,
-	ePacket_LogReady,
+  ePacket_Noop,
+  ePacket_RemoteDriverList,
+  ePacket_CopyCapture,
+  ePacket_LogOpenProgress,
+  ePacket_LogReady,
 };
 
 struct ProgressLoopData
 {
-	Network::Socket *sock;
-	float progress;
-	bool killsignal;
+  Network::Socket *sock;
+  float progress;
+  bool killsignal;
 };
 
 static void ProgressTicker(void *d)
 {
-	ProgressLoopData *data = (ProgressLoopData *)d;
-	
-	Serialiser ser("", Serialiser::WRITING, false);
-		
-	while(!data->killsignal)
-	{
-		ser.Rewind();
-		ser.Serialise("", data->progress);
+  ProgressLoopData *data = (ProgressLoopData *)d;
 
-		if(!SendPacket(data->sock, ePacket_LogOpenProgress, ser))
-		{
-			SAFE_DELETE(data->sock);
-			break;
-		}
-		Threading::Sleep(100);
-	}
+  Serialiser ser("", Serialiser::WRITING, false);
+
+  while(!data->killsignal)
+  {
+    ser.Rewind();
+    ser.Serialise("", data->progress);
+
+    if(!SendPacket(data->sock, ePacket_LogOpenProgress, ser))
+    {
+      SAFE_DELETE(data->sock);
+      break;
+    }
+    Threading::Sleep(100);
+  }
 }
 
 void RenderDoc::BecomeReplayHost(volatile bool32 &killReplay)
 {
-	Network::Socket *sock = Network::CreateServerSocket("0.0.0.0", RenderDoc_ReplayNetworkPort, 1);
+  Network::Socket *sock = Network::CreateServerSocket("0.0.0.0", RenderDoc_ReplayNetworkPort, 1);
 
-	if(sock == NULL)
-		return;
-	
-	Serialiser ser("", Serialiser::WRITING, false);
+  if(sock == NULL)
+    return;
 
-	bool newlyReady = true;
-		
-	while(!killReplay)
-	{
-		if(newlyReady)
-		{
-			RDCLOG("Replay host ready for requests.");
-			newlyReady = false;
-		}
-		
-		Network::Socket *client = sock->AcceptClient(false);
+  Serialiser ser("", Serialiser::WRITING, false);
 
-		if(client == NULL)
-		{
-			if(!sock->Connected())
-			{
-				RDCERR("Error in accept - shutting down server");
+  bool newlyReady = true;
 
-				SAFE_DELETE(sock);
-				return;
-			}
+  while(!killReplay)
+  {
+    if(newlyReady)
+    {
+      RDCLOG("Replay host ready for requests.");
+      newlyReady = false;
+    }
 
-			Threading::Sleep(5);
+    Network::Socket *client = sock->AcceptClient(false);
 
-			continue;
-		}
+    if(client == NULL)
+    {
+      if(!sock->Connected())
+      {
+        RDCERR("Error in accept - shutting down server");
 
-		newlyReady = true;
+        SAFE_DELETE(sock);
+        return;
+      }
 
-		RDCLOG("Connection received.");
-		
-		map<RDCDriver,string> drivers = RenderDoc::Inst().GetRemoteDrivers();
+      Threading::Sleep(5);
 
-		uint32_t count = (uint32_t)drivers.size();
-		ser.Serialise("", count);
+      continue;
+    }
 
-		for(auto it=drivers.begin(); it != drivers.end(); ++it)
-		{
-			RDCDriver driver = it->first;
-			ser.Serialise("", driver);
-			ser.Serialise("", (*it).second);
-		}
+    newlyReady = true;
 
-		if(!SendPacket(client, ePacket_RemoteDriverList, ser))
-		{
-			RDCERR("Network error sending supported driver list");
-			SAFE_DELETE(client);
-			continue;
-		}
+    RDCLOG("Connection received.");
 
-		Threading::Sleep(4);
+    map<RDCDriver, string> drivers = RenderDoc::Inst().GetRemoteDrivers();
 
-		// don't care about the result, just want to check that the socket hasn't been gracefully shut down
-		client->IsRecvDataWaiting();
-		if(!client->Connected())
-		{
-			RDCLOG("Connection closed after sending remote driver list");
-			SAFE_DELETE(client);
-			continue;
-		}
+    uint32_t count = (uint32_t)drivers.size();
+    ser.Serialise("", count);
 
-		string cap_file;
-		string dummy, dummy2;
-		FileIO::GetDefaultFiles("remotecopy", cap_file, dummy, dummy2);
+    for(auto it = drivers.begin(); it != drivers.end(); ++it)
+    {
+      RDCDriver driver = it->first;
+      ser.Serialise("", driver);
+      ser.Serialise("", (*it).second);
+    }
 
-		Serialiser *fileRecv = NULL;
+    if(!SendPacket(client, ePacket_RemoteDriverList, ser))
+    {
+      RDCERR("Network error sending supported driver list");
+      SAFE_DELETE(client);
+      continue;
+    }
 
-		if(!RecvChunkedFile(client, ePacket_CopyCapture, cap_file.c_str(), fileRecv, NULL))
-		{
-			FileIO::Delete(cap_file.c_str());
-			
-			RDCERR("Network error receiving file");
+    Threading::Sleep(4);
 
-			SAFE_DELETE(fileRecv);
-			SAFE_DELETE(client);
-			continue;
-		}
-		
-		RDCLOG("File received.");
-		
-		SAFE_DELETE(fileRecv);
+    // don't care about the result, just want to check that the socket hasn't been gracefully shut
+    // down
+    client->IsRecvDataWaiting();
+    if(!client->Connected())
+    {
+      RDCLOG("Connection closed after sending remote driver list");
+      SAFE_DELETE(client);
+      continue;
+    }
 
-		RDCDriver driverType = RDC_Unknown;
-		string driverName = "";
-		RenderDoc::Inst().FillInitParams(cap_file.c_str(), driverType, driverName, NULL);
+    string cap_file;
+    string dummy, dummy2;
+    FileIO::GetDefaultFiles("remotecopy", cap_file, dummy, dummy2);
 
-		if(RenderDoc::Inst().HasRemoteDriver(driverType))
-		{
-			ProgressLoopData data;
+    Serialiser *fileRecv = NULL;
 
-			data.sock = client;
-			data.killsignal = false;
-			data.progress = 0.0f;
+    if(!RecvChunkedFile(client, ePacket_CopyCapture, cap_file.c_str(), fileRecv, NULL))
+    {
+      FileIO::Delete(cap_file.c_str());
 
-			RenderDoc::Inst().SetProgressPtr(&data.progress);
+      RDCERR("Network error receiving file");
 
-			Threading::ThreadHandle ticker = Threading::CreateThread(ProgressTicker, &data);
+      SAFE_DELETE(fileRecv);
+      SAFE_DELETE(client);
+      continue;
+    }
 
-			IRemoteDriver *driver = NULL;
-			auto status = RenderDoc::Inst().CreateRemoteDriver(driverType, cap_file.c_str(), &driver);
+    RDCLOG("File received.");
 
-			if(status != eReplayCreate_Success || driver == NULL)
-			{
-				RDCERR("Failed to create remote driver for driver type %d name %s", driverType, driverName.c_str());
-				SAFE_DELETE(client);
-				continue;
-			}
-		
-			driver->ReadLogInitialisation();
-	
-			RenderDoc::Inst().SetProgressPtr(NULL);
+    SAFE_DELETE(fileRecv);
 
-			data.killsignal = true;
-			Threading::JoinThread(ticker);
-			Threading::CloseThread(ticker);
+    RDCDriver driverType = RDC_Unknown;
+    string driverName = "";
+    RenderDoc::Inst().FillInitParams(cap_file.c_str(), driverType, driverName, NULL);
 
-			FileIO::Delete(cap_file.c_str());
+    if(RenderDoc::Inst().HasRemoteDriver(driverType))
+    {
+      ProgressLoopData data;
 
-			SendPacket(client, ePacket_LogReady);
+      data.sock = client;
+      data.killsignal = false;
+      data.progress = 0.0f;
 
-			ProxySerialiser *proxy = new ProxySerialiser(client, driver);
+      RenderDoc::Inst().SetProgressPtr(&data.progress);
 
-			while(client)
-			{
-				if(!proxy->Tick() || killReplay)
-				{
-					SAFE_DELETE(client);
-				}
-			}
-			
-			driver->Shutdown();
-			
-			RDCLOG("Closing replay connection");
+      Threading::ThreadHandle ticker = Threading::CreateThread(ProgressTicker, &data);
 
-			SAFE_DELETE(proxy);
-			SAFE_DELETE(client);
-		}
-		else
-		{
-			RDCERR("File needs driver for %s which isn't supported!", driverName.c_str());
-		
-			FileIO::Delete(cap_file.c_str());
-		}
+      IRemoteDriver *driver = NULL;
+      auto status = RenderDoc::Inst().CreateRemoteDriver(driverType, cap_file.c_str(), &driver);
 
-		SAFE_DELETE(client);
-	}
+      if(status != eReplayCreate_Success || driver == NULL)
+      {
+        RDCERR("Failed to create remote driver for driver type %d name %s", driverType,
+               driverName.c_str());
+        SAFE_DELETE(client);
+        continue;
+      }
+
+      driver->ReadLogInitialisation();
+
+      RenderDoc::Inst().SetProgressPtr(NULL);
+
+      data.killsignal = true;
+      Threading::JoinThread(ticker);
+      Threading::CloseThread(ticker);
+
+      FileIO::Delete(cap_file.c_str());
+
+      SendPacket(client, ePacket_LogReady);
+
+      ProxySerialiser *proxy = new ProxySerialiser(client, driver);
+
+      while(client)
+      {
+        if(!proxy->Tick() || killReplay)
+        {
+          SAFE_DELETE(client);
+        }
+      }
+
+      driver->Shutdown();
+
+      RDCLOG("Closing replay connection");
+
+      SAFE_DELETE(proxy);
+      SAFE_DELETE(client);
+    }
+    else
+    {
+      RDCERR("File needs driver for %s which isn't supported!", driverName.c_str());
+
+      FileIO::Delete(cap_file.c_str());
+    }
+
+    SAFE_DELETE(client);
+  }
 }
 
 struct RemoteRenderer : public IRemoteRenderer
 {
-	public:
-		RemoteRenderer(Network::Socket *sock)
-			: m_Socket(sock)
-		{
-			map<RDCDriver,string> m = RenderDoc::Inst().GetReplayDrivers();
+public:
+  RemoteRenderer(Network::Socket *sock) : m_Socket(sock)
+  {
+    map<RDCDriver, string> m = RenderDoc::Inst().GetReplayDrivers();
 
-			m_Proxies.reserve(m.size());
-			for(auto it=m.begin(); it != m.end(); ++it) m_Proxies.push_back(*it);
-			
-			{
-				PacketType type;
-				Serialiser *ser = NULL;
-				GetPacket(type, &ser);
+    m_Proxies.reserve(m.size());
+    for(auto it = m.begin(); it != m.end(); ++it)
+      m_Proxies.push_back(*it);
 
-				m.clear();
+    {
+      PacketType type;
+      Serialiser *ser = NULL;
+      GetPacket(type, &ser);
 
-				if(ser)
-				{
-					uint32_t count = 0;
-					ser->Serialise("", count);
+      m.clear();
 
-					for(uint32_t i=0; i < count; i++)
-					{
-						RDCDriver driver = RDC_Unknown;
-						string name = "";
-						ser->Serialise("", driver);
-						ser->Serialise("", name);
+      if(ser)
+      {
+        uint32_t count = 0;
+        ser->Serialise("", count);
 
-						m[driver] = name;
-					}
+        for(uint32_t i = 0; i < count; i++)
+        {
+          RDCDriver driver = RDC_Unknown;
+          string name = "";
+          ser->Serialise("", driver);
+          ser->Serialise("", name);
 
-					delete ser;
-				}
-			}
+          m[driver] = name;
+        }
 
-			m_RemoteDrivers.reserve(m.size());
-			for(auto it=m.begin(); it != m.end(); ++it) m_RemoteDrivers.push_back(*it);
-		}
-		virtual ~RemoteRenderer()
-		{
-			SAFE_DELETE(m_Socket);
-		}
+        delete ser;
+      }
+    }
 
-		void Shutdown()
-		{
-			delete this;
-		}
+    m_RemoteDrivers.reserve(m.size());
+    for(auto it = m.begin(); it != m.end(); ++it)
+      m_RemoteDrivers.push_back(*it);
+  }
+  virtual ~RemoteRenderer() { SAFE_DELETE(m_Socket); }
+  void Shutdown() { delete this; }
+  bool Connected() { return m_Socket != NULL && m_Socket->Connected(); }
+  bool LocalProxies(rdctype::array<rdctype::str> *out)
+  {
+    if(out == NULL)
+      return false;
 
-		bool Connected() { return m_Socket != NULL && m_Socket->Connected(); }
-		
-		bool LocalProxies(rdctype::array<rdctype::str> *out)
-		{
-			if(out == NULL) return false;
+    create_array_uninit(*out, m_Proxies.size());
 
-			create_array_uninit(*out, m_Proxies.size());
+    size_t i = 0;
+    for(auto it = m_Proxies.begin(); it != m_Proxies.end(); ++it, ++i)
+      out->elems[i] = it->second;
 
-			size_t i=0;
-			for(auto it=m_Proxies.begin(); it != m_Proxies.end(); ++it, ++i)
-				out->elems[i] = it->second;
+    return true;
+  }
 
-			return true;
-		}
-		
-		bool RemoteSupportedReplays(rdctype::array<rdctype::str> *out)
-		{
-			if(out == NULL) return false;
-			
-			create_array_uninit(*out, m_RemoteDrivers.size());
+  bool RemoteSupportedReplays(rdctype::array<rdctype::str> *out)
+  {
+    if(out == NULL)
+      return false;
 
-			size_t i=0;
-			for(auto it=m_RemoteDrivers.begin(); it != m_RemoteDrivers.end(); ++it, ++i)
-				out->elems[i] = it->second;
+    create_array_uninit(*out, m_RemoteDrivers.size());
 
-			return true;
-		}
+    size_t i = 0;
+    for(auto it = m_RemoteDrivers.begin(); it != m_RemoteDrivers.end(); ++it, ++i)
+      out->elems[i] = it->second;
 
-		ReplayCreateStatus CreateProxyRenderer(uint32_t proxyid, const char *logfile, float *progress, ReplayRenderer **rend)
-		{
-			if(rend == NULL) return eReplayCreate_InternalError;
+    return true;
+  }
 
-			if(proxyid >= m_Proxies.size())
-			{
-				RDCERR("Invalid proxy driver id %d specified for remote renderer", proxyid);
-				return eReplayCreate_InternalError;
-			}
-			
-			float dummy = 0.0f;
-			if(progress == NULL)
-				progress = &dummy;
+  ReplayCreateStatus CreateProxyRenderer(uint32_t proxyid, const char *logfile, float *progress,
+                                         ReplayRenderer **rend)
+  {
+    if(rend == NULL)
+      return eReplayCreate_InternalError;
 
-			RDCDriver proxydrivertype = m_Proxies[proxyid].first;
+    if(proxyid >= m_Proxies.size())
+    {
+      RDCERR("Invalid proxy driver id %d specified for remote renderer", proxyid);
+      return eReplayCreate_InternalError;
+    }
 
-			Serialiser ser("", Serialiser::WRITING, false);
-		
-			if(!SendChunkedFile(m_Socket, ePacket_CopyCapture, logfile, ser, progress))
-			{
-				SAFE_DELETE(m_Socket);
-				return eReplayCreate_NetworkIOFailed;
-			}
+    float dummy = 0.0f;
+    if(progress == NULL)
+      progress = &dummy;
 
-			RDCLOG("Sent file to replay host. Loading...");
-			
-			PacketType type = ePacket_Noop;
-			while(m_Socket)
-			{
-				Serialiser *progressSer;
-				GetPacket(type, &progressSer);
+    RDCDriver proxydrivertype = m_Proxies[proxyid].first;
 
-				if(!m_Socket || type != ePacket_LogOpenProgress) break;
+    Serialiser ser("", Serialiser::WRITING, false);
 
-				progressSer->Serialise("", *progress);
+    if(!SendChunkedFile(m_Socket, ePacket_CopyCapture, logfile, ser, progress))
+    {
+      SAFE_DELETE(m_Socket);
+      return eReplayCreate_NetworkIOFailed;
+    }
 
-				RDCLOG("% 3.0f%%...", (*progress)*100.0f);
-			}
+    RDCLOG("Sent file to replay host. Loading...");
 
-			if(!m_Socket || type != ePacket_LogReady)
-				return eReplayCreate_NetworkIOFailed;
+    PacketType type = ePacket_Noop;
+    while(m_Socket)
+    {
+      Serialiser *progressSer;
+      GetPacket(type, &progressSer);
 
-			*progress = 1.0f;
+      if(!m_Socket || type != ePacket_LogOpenProgress)
+        break;
 
-			RDCLOG("Log ready on replay host");
+      progressSer->Serialise("", *progress);
 
-			IReplayDriver *proxyDriver = NULL;
-			auto status = RenderDoc::Inst().CreateReplayDriver(proxydrivertype, NULL, &proxyDriver);
+      RDCLOG("% 3.0f%%...", (*progress) * 100.0f);
+    }
 
-			if(status != eReplayCreate_Success || !proxyDriver)
-			{
-				if(proxyDriver) proxyDriver->Shutdown();
-				return status;
-			}
+    if(!m_Socket || type != ePacket_LogReady)
+      return eReplayCreate_NetworkIOFailed;
 
-			ReplayRenderer *ret = new ReplayRenderer();
+    *progress = 1.0f;
 
-			ProxySerialiser *proxy = new ProxySerialiser(m_Socket, proxyDriver);
-			status = ret->SetDevice(proxy);
+    RDCLOG("Log ready on replay host");
 
-			if(status != eReplayCreate_Success)
-			{
-				SAFE_DELETE(ret);
-				return status;
-			}
-			
-			// ReplayRenderer takes ownership of the ProxySerialiser (as IReplayDriver)
-			// and it cleans itself up in Shutdown.
+    IReplayDriver *proxyDriver = NULL;
+    auto status = RenderDoc::Inst().CreateReplayDriver(proxydrivertype, NULL, &proxyDriver);
 
-			*rend = ret;
+    if(status != eReplayCreate_Success || !proxyDriver)
+    {
+      if(proxyDriver)
+        proxyDriver->Shutdown();
+      return status;
+    }
 
-			return eReplayCreate_Success;
-		}
-	private:
-		Network::Socket *m_Socket;
-		
-		void GetPacket(PacketType &type, Serialiser **ser)
-		{
-			vector<byte> payload;
+    ReplayRenderer *ret = new ReplayRenderer();
 
-			if(!RecvPacket(m_Socket, type, payload))
-			{
-				SAFE_DELETE(m_Socket);
-				if(ser) *ser = NULL;
-				return;
-			}
+    ProxySerialiser *proxy = new ProxySerialiser(m_Socket, proxyDriver);
+    status = ret->SetDevice(proxy);
 
-			if(ser)	*ser = new Serialiser(payload.size(), &payload[0], false);
-		}
+    if(status != eReplayCreate_Success)
+    {
+      SAFE_DELETE(ret);
+      return status;
+    }
 
-		vector< pair<RDCDriver, string> > m_Proxies;
-		vector< pair<RDCDriver, string> > m_RemoteDrivers;
+    // ReplayRenderer takes ownership of the ProxySerialiser (as IReplayDriver)
+    // and it cleans itself up in Shutdown.
+
+    *rend = ret;
+
+    return eReplayCreate_Success;
+  }
+
+private:
+  Network::Socket *m_Socket;
+
+  void GetPacket(PacketType &type, Serialiser **ser)
+  {
+    vector<byte> payload;
+
+    if(!RecvPacket(m_Socket, type, payload))
+    {
+      SAFE_DELETE(m_Socket);
+      if(ser)
+        *ser = NULL;
+      return;
+    }
+
+    if(ser)
+      *ser = new Serialiser(payload.size(), &payload[0], false);
+  }
+
+  vector<pair<RDCDriver, string> > m_Proxies;
+  vector<pair<RDCDriver, string> > m_RemoteDrivers;
 };
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteRenderer_Shutdown(RemoteRenderer *remote)
-{	remote->Shutdown(); }
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteRenderer_LocalProxies(RemoteRenderer *remote, rdctype::array<rdctype::str> *out)
-{ return remote->LocalProxies(out); }
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteRenderer_RemoteSupportedReplays(RemoteRenderer *remote, rdctype::array<rdctype::str> *out)
-{ return remote->RemoteSupportedReplays(out); }
-
-extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC RemoteRenderer_CreateProxyRenderer(RemoteRenderer *remote, uint32_t proxyid, const char *logfile, float *progress, ReplayRenderer **rend)
-{ return remote->CreateProxyRenderer(proxyid, logfile, progress, rend); }
-
-extern "C" RENDERDOC_API
-ReplayCreateStatus RENDERDOC_CC RENDERDOC_CreateRemoteReplayConnection(const char *host, RemoteRenderer **rend)
 {
-	if(rend == NULL) return eReplayCreate_InternalError;
+  remote->Shutdown();
+}
 
-	string s = "localhost";
-	if(host != NULL && host[0] != '\0')
-		s = host;
-	
-	Network::Socket *sock = NULL;
-	
-	if(s != "-")
-	{
-		sock = Network::CreateClientSocket(s.c_str(), RenderDoc_ReplayNetworkPort, 3000);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+RemoteRenderer_LocalProxies(RemoteRenderer *remote, rdctype::array<rdctype::str> *out)
+{
+  return remote->LocalProxies(out);
+}
 
-		if(sock == NULL)
-			return eReplayCreate_NetworkIOFailed;
-	}
-	
-	*rend = new RemoteRenderer(sock);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+RemoteRenderer_RemoteSupportedReplays(RemoteRenderer *remote, rdctype::array<rdctype::str> *out)
+{
+  return remote->RemoteSupportedReplays(out);
+}
 
-	return eReplayCreate_Success;
+extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
+RemoteRenderer_CreateProxyRenderer(RemoteRenderer *remote, uint32_t proxyid, const char *logfile,
+                                   float *progress, ReplayRenderer **rend)
+{
+  return remote->CreateProxyRenderer(proxyid, logfile, progress, rend);
+}
+
+extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
+RENDERDOC_CreateRemoteReplayConnection(const char *host, RemoteRenderer **rend)
+{
+  if(rend == NULL)
+    return eReplayCreate_InternalError;
+
+  string s = "localhost";
+  if(host != NULL && host[0] != '\0')
+    s = host;
+
+  Network::Socket *sock = NULL;
+
+  if(s != "-")
+  {
+    sock = Network::CreateClientSocket(s.c_str(), RenderDoc_ReplayNetworkPort, 3000);
+
+    if(sock == NULL)
+      return eReplayCreate_NetworkIOFailed;
+  }
+
+  *rend = new RemoteRenderer(sock);
+
+  return eReplayCreate_Success;
 }

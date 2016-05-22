@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,28 +22,25 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
 #include <errno.h>
-#include <string.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <string.h>
 #include <sys/socket.h>
-#include <netinet/tcp.h>
-#include <netinet/in.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <netdb.h>
-#include <fcntl.h>
-
 #include <string>
-using std::string;
-
-#include "serialise/string_utils.h"
 #include "os/os_specific.h"
+#include "serialise/string_utils.h"
+
+using std::string;
 
 namespace Network
 {
-
 void Init()
 {
 }
@@ -54,284 +51,285 @@ void Shutdown()
 
 Socket::~Socket()
 {
-	Shutdown();
+  Shutdown();
 }
 
 void Socket::Shutdown()
 {
-	if(Connected())
-	{
-		shutdown((int)socket, SHUT_RDWR);
-		close((int)socket);
-		socket = -1;
-	}
+  if(Connected())
+  {
+    shutdown((int)socket, SHUT_RDWR);
+    close((int)socket);
+    socket = -1;
+  }
 }
 
 bool Socket::Connected() const
 {
-	return (int)socket != -1;
+  return (int)socket != -1;
 }
 
 Socket *Socket::AcceptClient(bool wait)
 {
-	do
-	{
-		int s = accept(socket, NULL, NULL);
+  do
+  {
+    int s = accept(socket, NULL, NULL);
 
-		if(s != -1)
-		{
-			int flags = fcntl(s, F_GETFL, 0);
-			fcntl(s, F_SETFL, flags | O_NONBLOCK);
+    if(s != -1)
+    {
+      int flags = fcntl(s, F_GETFL, 0);
+      fcntl(s, F_SETFL, flags | O_NONBLOCK);
 
-			int nodelay = 1;
-			setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay, sizeof(nodelay));
+      int nodelay = 1;
+      setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay, sizeof(nodelay));
 
-			return new Socket((ptrdiff_t)s);
-		}
+      return new Socket((ptrdiff_t)s);
+    }
 
-		int err = errno;
+    int err = errno;
 
-		if(err != EWOULDBLOCK)
-		{
-			RDCWARN("accept: %d", err);
-			Shutdown();
-		}
+    if(err != EWOULDBLOCK)
+    {
+      RDCWARN("accept: %d", err);
+      Shutdown();
+    }
 
-		Threading::Sleep(4);
-	} while(wait);
+    Threading::Sleep(4);
+  } while(wait);
 
-	return NULL;
+  return NULL;
 }
 
 bool Socket::SendDataBlocking(const void *buf, uint32_t length)
 {
-	if(length == 0) return true;
+  if(length == 0)
+    return true;
 
-	uint32_t sent = 0;
+  uint32_t sent = 0;
 
-	char *src = (char *)buf;
+  char *src = (char *)buf;
 
-	int flags = fcntl(socket, F_GETFL, 0);
-	fcntl(socket, F_SETFL, flags & ~O_NONBLOCK);
+  int flags = fcntl(socket, F_GETFL, 0);
+  fcntl(socket, F_SETFL, flags & ~O_NONBLOCK);
 
-	while(sent < length)
-	{
-		int ret = send(socket, src, length-sent, 0);
+  while(sent < length)
+  {
+    int ret = send(socket, src, length - sent, 0);
 
-		if(ret <= 0)
-		{
-			int err = errno;
+    if(ret <= 0)
+    {
+      int err = errno;
 
-			if(err == EWOULDBLOCK)
-			{
-				ret = 0;
-			}
-			else
-			{
-				RDCWARN("send: %d", err);
-				Shutdown();
-				return false;
-			}
-		}
+      if(err == EWOULDBLOCK)
+      {
+        ret = 0;
+      }
+      else
+      {
+        RDCWARN("send: %d", err);
+        Shutdown();
+        return false;
+      }
+    }
 
-		sent += ret;
-		src += ret;
-	}
+    sent += ret;
+    src += ret;
+  }
 
-	flags = fcntl(socket, F_GETFL, 0);
-	fcntl(socket, F_SETFL, flags | O_NONBLOCK);
+  flags = fcntl(socket, F_GETFL, 0);
+  fcntl(socket, F_SETFL, flags | O_NONBLOCK);
 
-	RDCASSERT(sent == length);
+  RDCASSERT(sent == length);
 
-	return true;
+  return true;
 }
 
 bool Socket::IsRecvDataWaiting()
 {
-	char dummy;
-	int ret = recv(socket, &dummy, 1, MSG_PEEK);
+  char dummy;
+  int ret = recv(socket, &dummy, 1, MSG_PEEK);
 
-	if(ret == 0)
-	{
-		Shutdown();
-		return false;
-	}
-	else if(ret <= 0)
-	{
-		int err = errno;
+  if(ret == 0)
+  {
+    Shutdown();
+    return false;
+  }
+  else if(ret <= 0)
+  {
+    int err = errno;
 
-		if(err == EWOULDBLOCK)
-		{
-			ret = 0;
-		}
-		else
-		{
-			RDCWARN("recv: %d", err);
-			Shutdown();
-			return false;
-		}
-	}
+    if(err == EWOULDBLOCK)
+    {
+      ret = 0;
+    }
+    else
+    {
+      RDCWARN("recv: %d", err);
+      Shutdown();
+      return false;
+    }
+  }
 
-	return ret > 0;
+  return ret > 0;
 }
 
 bool Socket::RecvDataBlocking(void *buf, uint32_t length)
 {
-	if(length == 0) return true;
+  if(length == 0)
+    return true;
 
-	uint32_t received = 0;
+  uint32_t received = 0;
 
-	char *dst = (char *)buf;
-	
-	int flags = fcntl(socket, F_GETFL, 0);
-	fcntl(socket, F_SETFL, flags & ~O_NONBLOCK);
+  char *dst = (char *)buf;
 
-	while(received < length)
-	{
-		int ret = recv(socket, dst, length-received, 0);
+  int flags = fcntl(socket, F_GETFL, 0);
+  fcntl(socket, F_SETFL, flags & ~O_NONBLOCK);
 
-		if(ret == 0)
-		{
-			Shutdown();
-			return false;
-		}
-		else if(ret <= 0)
-		{
-			int err = errno;
+  while(received < length)
+  {
+    int ret = recv(socket, dst, length - received, 0);
 
-			if(err == EWOULDBLOCK)
-			{
-				ret = 0;
-			}
-			else
-			{
-				RDCWARN("recv: %d", err);
-				Shutdown();
-				return false;
-			}
-		}
+    if(ret == 0)
+    {
+      Shutdown();
+      return false;
+    }
+    else if(ret <= 0)
+    {
+      int err = errno;
 
-		received += ret;
-		dst += ret;
-	}
-	
-	flags = fcntl(socket, F_GETFL, 0);
-	fcntl(socket, F_SETFL, flags | O_NONBLOCK);
+      if(err == EWOULDBLOCK)
+      {
+        ret = 0;
+      }
+      else
+      {
+        RDCWARN("recv: %d", err);
+        Shutdown();
+        return false;
+      }
+    }
 
-	RDCASSERT(received == length);
+    received += ret;
+    dst += ret;
+  }
 
-	return true;
+  flags = fcntl(socket, F_GETFL, 0);
+  fcntl(socket, F_SETFL, flags | O_NONBLOCK);
+
+  RDCASSERT(received == length);
+
+  return true;
 }
 
 Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 {
-	int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-	if(s == -1)
-		return NULL;
+  if(s == -1)
+    return NULL;
 
-	sockaddr_in addr;
-	RDCEraseEl(addr);
+  sockaddr_in addr;
+  RDCEraseEl(addr);
 
-	hostent *hp = gethostbyname(bindaddr);
+  hostent *hp = gethostbyname(bindaddr);
 
-	addr.sin_family = AF_INET;
-	memcpy(&addr.sin_addr, hp->h_addr, hp->h_length);
-	addr.sin_port = htons(port);
+  addr.sin_family = AF_INET;
+  memcpy(&addr.sin_addr, hp->h_addr, hp->h_length);
+  addr.sin_port = htons(port);
 
-	int result = bind(s, (sockaddr *)&addr, sizeof(addr));
-	if(result == -1)
-	{
-		RDCWARN("Failed to bind to %s:%d - %d", bindaddr, port, errno);
-		close(s);
-		return NULL;
-	}
+  int result = bind(s, (sockaddr *)&addr, sizeof(addr));
+  if(result == -1)
+  {
+    RDCWARN("Failed to bind to %s:%d - %d", bindaddr, port, errno);
+    close(s);
+    return NULL;
+  }
 
-	result = listen(s, queuesize);
-	if(result == -1)
-	{
-		RDCWARN("Failed to listen on %s:%d - %d", bindaddr, port, errno);
-		close(s);
-		return NULL;
-	}
-	
-	int flags = fcntl(s, F_GETFL, 0);
-	fcntl(s, F_SETFL, flags | O_NONBLOCK);
+  result = listen(s, queuesize);
+  if(result == -1)
+  {
+    RDCWARN("Failed to listen on %s:%d - %d", bindaddr, port, errno);
+    close(s);
+    return NULL;
+  }
 
-	return new Socket((ptrdiff_t)s);
+  int flags = fcntl(s, F_GETFL, 0);
+  fcntl(s, F_SETFL, flags | O_NONBLOCK);
+
+  return new Socket((ptrdiff_t)s);
 }
 
 Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 {
-	char portstr[7] = {0};
-	StringFormat::snprintf(portstr, 6, "%d", port);
-	
-	addrinfo hints;
-	RDCEraseEl(hints);
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
+  char portstr[7] = {0};
+  StringFormat::snprintf(portstr, 6, "%d", port);
 
-	addrinfo *result = NULL;
-	getaddrinfo(host, portstr, &hints, &result);
-	
-	for(addrinfo *ptr = result; ptr != NULL; ptr = ptr->ai_next)
-	{
-		int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  addrinfo hints;
+  RDCEraseEl(hints);
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_protocol = IPPROTO_TCP;
 
-		if(s == -1)
-			return NULL;
-		
-		int flags = fcntl(s, F_GETFL, 0);
-		fcntl(s, F_SETFL, flags | O_NONBLOCK);
-		
-		int result = connect(s, ptr->ai_addr, (int)ptr->ai_addrlen);
-		if(result == -1)
-		{
-			fd_set set;
-			FD_ZERO(&set);
-			FD_SET(s, &set);
+  addrinfo *result = NULL;
+  getaddrinfo(host, portstr, &hints, &result);
 
-			int err = errno;
+  for(addrinfo *ptr = result; ptr != NULL; ptr = ptr->ai_next)
+  {
+    int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-			if(err == EWOULDBLOCK)
-			{
-				timeval timeout;
-				timeout.tv_sec = (timeoutMS/1000);
-				timeout.tv_usec = (timeoutMS%1000)*1000;
-				result = select(0, NULL, &set, NULL, &timeout);
+    if(s == -1)
+      return NULL;
 
-				if(result <= 0)
-				{
-					RDCDEBUG("connect timed out");
-					close(s);
-					continue;
-				}
-				else
-				{
-					RDCDEBUG("connect before timeout");
-				}
-			}
-			else
-			{
-				RDCDEBUG("problem other than blocking");
-				close(s);
-				continue;
-			}
-		}
-		else
-		{
-			RDCDEBUG("connected immediately");
-		}
+    int flags = fcntl(s, F_GETFL, 0);
+    fcntl(s, F_SETFL, flags | O_NONBLOCK);
 
-		int nodelay = 1;
-		setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay, sizeof(nodelay));
-		
-		return new Socket((ptrdiff_t)s);
-	}
+    int result = connect(s, ptr->ai_addr, (int)ptr->ai_addrlen);
+    if(result == -1)
+    {
+      fd_set set;
+      FD_ZERO(&set);
+      FD_SET(s, &set);
 
-	RDCWARN("Failed to connect to %S:%d", host, port);
-	return NULL;
+      int err = errno;
+
+      if(err == EWOULDBLOCK)
+      {
+        timeval timeout;
+        timeout.tv_sec = (timeoutMS / 1000);
+        timeout.tv_usec = (timeoutMS % 1000) * 1000;
+        result = select(0, NULL, &set, NULL, &timeout);
+
+        if(result <= 0)
+        {
+          RDCDEBUG("connect timed out");
+          close(s);
+          continue;
+        }
+        else
+        {
+          RDCDEBUG("connect before timeout");
+        }
+      }
+      else
+      {
+        RDCDEBUG("problem other than blocking");
+        close(s);
+        continue;
+      }
+    }
+    else
+    {
+      RDCDEBUG("connected immediately");
+    }
+
+    int nodelay = 1;
+    setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay, sizeof(nodelay));
+
+    return new Socket((ptrdiff_t)s);
+  }
+
+  RDCWARN("Failed to connect to %S:%d", host, port);
+  return NULL;
 }
-
 };

@@ -1,19 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,17 +23,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
 #pragma once
 
+#include <set>
+#include <vector>
+#include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "core/core.h"
-#include "api/replay/renderdoc_replay.h"
 #include "replay/replay_driver.h"
-
-#include <vector>
-#include <set>
-
 #include "type_helpers.h"
 
 struct ReplayRenderer;
@@ -41,191 +38,197 @@ struct ReplayRenderer;
 struct ReplayOutput : public IReplayOutput
 {
 public:
-	bool SetOutputConfig(const OutputConfig &o);
-	bool SetTextureDisplay(const TextureDisplay &o);
-	bool SetMeshDisplay(const MeshDisplay &o);
-	
-	bool ClearThumbnails();
-	bool AddThumbnail(void *wnd, ResourceId texID);
+  bool SetOutputConfig(const OutputConfig &o);
+  bool SetTextureDisplay(const TextureDisplay &o);
+  bool SetMeshDisplay(const MeshDisplay &o);
 
-	bool Display();
+  bool ClearThumbnails();
+  bool AddThumbnail(void *wnd, ResourceId texID);
 
-	OutputType GetType() { return m_Config.m_Type; }
-	
-	bool SetPixelContext(void *wnd);
-	bool SetPixelContextLocation(uint32_t x, uint32_t y);
-	void DisablePixelContext();
+  bool Display();
 
-	ResourceId GetCustomShaderTexID() { return m_CustomShaderResourceId; }
+  OutputType GetType() { return m_Config.m_Type; }
+  bool SetPixelContext(void *wnd);
+  bool SetPixelContextLocation(uint32_t x, uint32_t y);
+  void DisablePixelContext();
 
-	bool PickPixel(ResourceId texID, bool customShader, 
-					uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-					PixelValue *val);
-	uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y);
+  ResourceId GetCustomShaderTexID() { return m_CustomShaderResourceId; }
+  bool PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y, uint32_t sliceFace,
+                 uint32_t mip, uint32_t sample, PixelValue *val);
+  uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y);
+
 private:
-	ReplayOutput(ReplayRenderer *parent, void *w, OutputType type);
-	virtual ~ReplayOutput();
-	
-	void SetFrameEvent(int eventID);
-	void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
-	
-	void RefreshOverlay();
+  ReplayOutput(ReplayRenderer *parent, void *w, OutputType type);
+  virtual ~ReplayOutput();
 
+  void SetFrameEvent(int eventID);
+  void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
 
-	void DisplayContext();
-	void DisplayTex();
+  void RefreshOverlay();
 
+  void DisplayContext();
+  void DisplayTex();
 
-	void DisplayMesh();
+  void DisplayMesh();
 
-	ReplayRenderer *m_pRenderer;
-	size_t m_ID;
+  ReplayRenderer *m_pRenderer;
+  size_t m_ID;
 
-	bool m_OverlayDirty;
-	bool m_ForceOverlayRefresh;
+  bool m_OverlayDirty;
+  bool m_ForceOverlayRefresh;
 
-	IReplayDriver *m_pDevice;
+  IReplayDriver *m_pDevice;
 
-	uint32_t m_TexWidth, m_TexHeight;
+  uint32_t m_TexWidth, m_TexHeight;
 
-	struct OutputPair 
-	{
-		ResourceId texture;
-		bool depthMode;
-		void *wndHandle;
-		uint64_t outputID;
+  struct OutputPair
+  {
+    ResourceId texture;
+    bool depthMode;
+    void *wndHandle;
+    uint64_t outputID;
 
-		bool dirty;
-	} m_MainOutput;
+    bool dirty;
+  } m_MainOutput;
 
-	ResourceId m_OverlayResourceId;
-	ResourceId m_CustomShaderResourceId;
+  ResourceId m_OverlayResourceId;
+  ResourceId m_CustomShaderResourceId;
 
-	std::vector<OutputPair> m_Thumbnails;
+  std::vector<OutputPair> m_Thumbnails;
 
-	float m_ContextX;
-	float m_ContextY;
-	OutputPair m_PixelContext;
+  float m_ContextX;
+  float m_ContextY;
+  OutputPair m_PixelContext;
 
-	uint32_t m_EventID;
-	uint32_t m_FirstDeferredEvent;
-	uint32_t m_LastDeferredEvent;
-	OutputConfig m_Config;
-	
-	vector<uint32_t> passEvents;
+  uint32_t m_EventID;
+  uint32_t m_FirstDeferredEvent;
+  uint32_t m_LastDeferredEvent;
+  OutputConfig m_Config;
 
-	int32_t m_Width;
-	int32_t m_Height;
+  vector<uint32_t> passEvents;
 
-	struct
-	{
-		TextureDisplay texDisplay;
-		MeshDisplay meshDisplay;
-	} m_RenderData;
+  int32_t m_Width;
+  int32_t m_Height;
 
-	friend struct ReplayRenderer;
+  struct
+  {
+    TextureDisplay texDisplay;
+    MeshDisplay meshDisplay;
+  } m_RenderData;
+
+  friend struct ReplayRenderer;
 };
 
 struct ReplayRenderer : public IReplayRenderer
 {
-	public:
-		ReplayRenderer();
-		virtual ~ReplayRenderer();
+public:
+  ReplayRenderer();
+  virtual ~ReplayRenderer();
 
-		APIProperties GetAPIProperties();
+  APIProperties GetAPIProperties();
 
-		ReplayCreateStatus CreateDevice(const char *logfile);
-		ReplayCreateStatus SetDevice(IReplayDriver *device);
+  ReplayCreateStatus CreateDevice(const char *logfile);
+  ReplayCreateStatus SetDevice(IReplayDriver *device);
 
-		void FileChanged();
+  void FileChanged();
 
-		bool HasCallstacks();
-		bool InitResolver();
-		
-		bool SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
-		bool SetFrameEvent(uint32_t eventID, bool force);
+  bool HasCallstacks();
+  bool InitResolver();
 
-		void FetchPipelineState();
+  bool SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
+  bool SetFrameEvent(uint32_t eventID, bool force);
 
-		bool GetD3D11PipelineState(D3D11PipelineState *state);
-		bool GetGLPipelineState(GLPipelineState *state);
-		bool GetVulkanPipelineState(VulkanPipelineState *state);
-		
-		ResourceId BuildCustomShader(const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, rdctype::str *errors);
-		bool FreeCustomShader(ResourceId id);
-		
-		ResourceId BuildTargetShader(const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, rdctype::str *errors);
-		bool ReplaceResource(ResourceId from, ResourceId to);
-		bool RemoveReplacement(ResourceId id);
-		bool FreeTargetResource(ResourceId id);
-		
-		bool GetFrameInfo(FetchFrameInfo *frame);
-		bool GetDrawcalls(rdctype::array<FetchDrawcall> *draws);
-		bool FetchCounters(uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
-		bool EnumerateCounters(rdctype::array<uint32_t> *counters);
-		bool DescribeCounter(uint32_t counterID, CounterDescription *desc);
-		bool GetTextures(rdctype::array<FetchTexture> *texs);
-		bool GetBuffers(rdctype::array<FetchBuffer> *bufs);
-		bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);
-		bool GetDebugMessages(rdctype::array<DebugMessage> *msgs);
-		
-		bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx, rdctype::array<PixelModification> *history);
-		bool DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace);
-		bool DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive, ShaderDebugTrace *trace);
-		bool DebugThread(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace);
+  void FetchPipelineState();
 
-		bool GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFormat *data);
-		
-		bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval);
-		bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram);
-		
-		bool GetUsage(ResourceId id, rdctype::array<EventUsage> *usage);
-		
-		bool GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data);
-		bool GetTextureData(ResourceId buff, uint32_t arrayIdx, uint32_t mip, rdctype::array<byte> *data);
-		
-		bool SaveTexture(const TextureSave &saveData, const char *path);
+  bool GetD3D11PipelineState(D3D11PipelineState *state);
+  bool GetGLPipelineState(GLPipelineState *state);
+  bool GetVulkanPipelineState(VulkanPipelineState *state);
 
-		bool GetCBufferVariableContents(ResourceId shader, const char *entryPoint, uint32_t cbufslot, ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars);
-	
-		ReplayOutput *CreateOutput(void *handle, OutputType type);
+  ResourceId BuildCustomShader(const char *entry, const char *source, const uint32_t compileFlags,
+                               ShaderStageType type, rdctype::str *errors);
+  bool FreeCustomShader(ResourceId id);
 
-		void ShutdownOutput(ReplayOutput *output);
-		void Shutdown();
-	private:
-		ReplayCreateStatus PostCreateInit(IReplayDriver *device);
-		
-		FetchDrawcall *GetDrawcallByEID(uint32_t eventID, uint32_t defEventID);
-	
-		IReplayDriver *GetDevice() { return m_pDevice; }
-		
-		struct FrameRecord
-		{
-			FetchFrameInfo frameInfo;
+  ResourceId BuildTargetShader(const char *entry, const char *source, const uint32_t compileFlags,
+                               ShaderStageType type, rdctype::str *errors);
+  bool ReplaceResource(ResourceId from, ResourceId to);
+  bool RemoveReplacement(ResourceId id);
+  bool FreeTargetResource(ResourceId id);
 
-			rdctype::array<FetchDrawcall> m_DrawCallList;
-		};
-		FrameRecord m_FrameRecord;
-		vector<FetchDrawcall*> m_Drawcalls;
+  bool GetFrameInfo(FetchFrameInfo *frame);
+  bool GetDrawcalls(rdctype::array<FetchDrawcall> *draws);
+  bool FetchCounters(uint32_t *counters, uint32_t numCounters,
+                     rdctype::array<CounterResult> *results);
+  bool EnumerateCounters(rdctype::array<uint32_t> *counters);
+  bool DescribeCounter(uint32_t counterID, CounterDescription *desc);
+  bool GetTextures(rdctype::array<FetchTexture> *texs);
+  bool GetBuffers(rdctype::array<FetchBuffer> *bufs);
+  bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);
+  bool GetDebugMessages(rdctype::array<DebugMessage> *msgs);
 
-		uint32_t m_EventID;
-		ResourceId m_DeferredCtx;
-		uint32_t m_FirstDeferredEvent;
-		uint32_t m_LastDeferredEvent;
-		
-		D3D11PipelineState m_D3D11PipelineState;
-		GLPipelineState m_GLPipelineState;
-		VulkanPipelineState m_VulkanPipelineState;
+  bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
+                    uint32_t sampleIdx, rdctype::array<PixelModification> *history);
+  bool DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset,
+                   uint32_t vertOffset, ShaderDebugTrace *trace);
+  bool DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive,
+                  ShaderDebugTrace *trace);
+  bool DebugThread(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace);
 
-		std::vector<ReplayOutput *> m_Outputs;
+  bool GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFormat *data);
 
-		std::vector<FetchBuffer> m_Buffers;
-		std::vector<FetchTexture> m_Textures;
+  bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                 PixelValue *minval, PixelValue *maxval);
+  bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval,
+                    float maxval, bool channels[4], rdctype::array<uint32_t> *histogram);
 
-		IReplayDriver *m_pDevice;
+  bool GetUsage(ResourceId id, rdctype::array<EventUsage> *usage);
 
-		std::set<ResourceId> m_TargetResources;
-		std::set<ResourceId> m_CustomShaders;
+  bool GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data);
+  bool GetTextureData(ResourceId buff, uint32_t arrayIdx, uint32_t mip, rdctype::array<byte> *data);
 
-		friend struct ReplayOutput;
+  bool SaveTexture(const TextureSave &saveData, const char *path);
+
+  bool GetCBufferVariableContents(ResourceId shader, const char *entryPoint, uint32_t cbufslot,
+                                  ResourceId buffer, uint64_t offs,
+                                  rdctype::array<ShaderVariable> *vars);
+
+  ReplayOutput *CreateOutput(void *handle, OutputType type);
+
+  void ShutdownOutput(ReplayOutput *output);
+  void Shutdown();
+
+private:
+  ReplayCreateStatus PostCreateInit(IReplayDriver *device);
+
+  FetchDrawcall *GetDrawcallByEID(uint32_t eventID, uint32_t defEventID);
+
+  IReplayDriver *GetDevice() { return m_pDevice; }
+  struct FrameRecord
+  {
+    FetchFrameInfo frameInfo;
+
+    rdctype::array<FetchDrawcall> m_DrawCallList;
+  };
+  FrameRecord m_FrameRecord;
+  vector<FetchDrawcall *> m_Drawcalls;
+
+  uint32_t m_EventID;
+  ResourceId m_DeferredCtx;
+  uint32_t m_FirstDeferredEvent;
+  uint32_t m_LastDeferredEvent;
+
+  D3D11PipelineState m_D3D11PipelineState;
+  GLPipelineState m_GLPipelineState;
+  VulkanPipelineState m_VulkanPipelineState;
+
+  std::vector<ReplayOutput *> m_Outputs;
+
+  std::vector<FetchBuffer> m_Buffers;
+  std::vector<FetchTexture> m_Textures;
+
+  IReplayDriver *m_pDevice;
+
+  std::set<ResourceId> m_TargetResources;
+  std::set<ResourceId> m_CustomShaders;
+
+  friend struct ReplayOutput;
 };

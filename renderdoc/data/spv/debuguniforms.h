@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,6 +26,10 @@
 // classes that represent a whole cbuffer
 #if defined(__cplusplus)
 
+#include "common/common.h"
+#include "maths/matrix.h"
+#include "maths/vec.h"
+
 #define uniform struct
 #define vec2 Vec2f
 #define vec3 Vec3f
@@ -38,7 +42,7 @@
 
 struct Vec4u
 {
-	uint32_t x, y, z, w;
+  uint32_t x, y, z, w;
 };
 
 #define uvec4 Vec4u
@@ -49,101 +53,108 @@ struct Vec4u
 // so it's added in code
 //#version 430 core
 
-#define BINDING(s, b) layout (set = s, binding = b, std140) 
+#define BINDING(s, b) layout(set = s, binding = b, std140)
 #define INST_NAME(name) name
 
 #endif
 
-BINDING (0, 2) uniform HistogramUBOData
+BINDING(0, 2) uniform HistogramUBOData
 {
-	uint HistogramChannels;
-	float HistogramMin;
-	float HistogramMax;
-	uint HistogramFlags;
-	
-	float HistogramSlice;
-	int HistogramMip;
-	int HistogramSample;
-	int HistogramNumSamples;
+  uint HistogramChannels;
+  float HistogramMin;
+  float HistogramMax;
+  uint HistogramFlags;
 
-	vec3 HistogramTextureResolution;
-	float Padding3;
-} INST_NAME(histogram_minmax);
+  float HistogramSlice;
+  int HistogramMip;
+  int HistogramSample;
+  int HistogramNumSamples;
 
-BINDING (0, 0) uniform MeshUBOData
+  vec3 HistogramTextureResolution;
+  float Padding3;
+}
+INST_NAME(histogram_minmax);
+
+BINDING(0, 0) uniform MeshUBOData
 {
-	mat4 mvp;
-	mat4 invProj;
-	vec4 color;
-	uint displayFormat;
-	uint homogenousInput;
-	vec2 pointSpriteSize;
-} INST_NAME(Mesh);
+  mat4 mvp;
+  mat4 invProj;
+  vec4 color;
+  uint displayFormat;
+  uint homogenousInput;
+  vec2 pointSpriteSize;
+}
+INST_NAME(Mesh);
 
-BINDING (0, 0) uniform OutlineUBOData
+BINDING(0, 0) uniform OutlineUBOData
 {
-	vec4 Inner_Color;
-	vec4 Border_Color;
-	vec4 ViewRect;
-	uint Scissor;
-	vec3 padding;
-} INST_NAME(outline);
+  vec4 Inner_Color;
+  vec4 Border_Color;
+  vec4 ViewRect;
+  uint Scissor;
+  vec3 padding;
+}
+INST_NAME(outline);
 
-BINDING (0, 0) uniform FontUBOData
+BINDING(0, 0) uniform FontUBOData
 {
-	vec2  TextPosition;
-	float txtpadding;
-	float TextSize;
+  vec2 TextPosition;
+  float txtpadding;
+  float TextSize;
 
-	vec2  CharacterSize;
-	vec2  FontScreenAspect;
-} INST_NAME(general);
+  vec2 CharacterSize;
+  vec2 FontScreenAspect;
+}
+INST_NAME(general);
 
 struct FontGlyphData
 {
-	vec4 posdata;
-	vec4 uvdata;
+  vec4 posdata;
+  vec4 uvdata;
 };
 
 #define FONT_FIRST_CHAR 32
 #define FONT_LAST_CHAR 126
 
-BINDING (0, 1) uniform GlyphUBOData
+BINDING(0, 1) uniform GlyphUBOData
 {
-	FontGlyphData data[FONT_LAST_CHAR-FONT_FIRST_CHAR+1];
-} INST_NAME(glyphs);
+  FontGlyphData data[FONT_LAST_CHAR - FONT_FIRST_CHAR + 1];
+}
+INST_NAME(glyphs);
 
 #define MAX_SINGLE_LINE_LENGTH 256
 
-BINDING (0, 2) uniform StringUBOData
+BINDING(0, 2) uniform StringUBOData
 {
-	uvec4 chars[MAX_SINGLE_LINE_LENGTH];
-} INST_NAME(str);
+  uvec4 chars[MAX_SINGLE_LINE_LENGTH];
+}
+INST_NAME(str);
 
-BINDING (0, 0) uniform TexDisplayUBOData
+BINDING(0, 0) uniform TexDisplayUBOData
 {
-	vec2  Position;
-	float Scale;
-	float HDRMul;
+  vec2 Position;
+  float Scale;
+  float HDRMul;
 
-	vec4  Channels;
+  vec4 Channels;
 
-	float RangeMinimum;
-	float InverseRangeSize;
-	int   MipLevel;
-	int   FlipY;
+  float RangeMinimum;
+  float InverseRangeSize;
+  int MipLevel;
+  int FlipY;
 
-	vec3  TextureResolutionPS;
-	int   OutputDisplayFormat;
+  vec3 TextureResolutionPS;
+  int OutputDisplayFormat;
 
-	vec2  OutputRes;
-	int   RawOutput;
-	float Slice;
+  vec2 OutputRes;
+  int RawOutput;
+  float Slice;
 
-	int   SampleIdx;
-	int   NumSamples;
-	vec2  Padding;
-} INST_NAME(texdisplay);
+  int SampleIdx;
+  int NumSamples;
+  vec2 Padding;
+}
+INST_NAME(texdisplay);
 
 // some constants available to both C++ and GLSL for configuring display
 #define CUBEMAP_FACE_POS_X 0
@@ -156,22 +167,22 @@ BINDING (0, 0) uniform TexDisplayUBOData
 // we always upload an array (but it might have only one layer),
 // so 2D and 2D arrays are the same.
 // Cube and cube array textures are treated as 2D arrays.
-#define RESTYPE_TEX1D          0x1
-#define RESTYPE_TEX2D          0x2
-#define RESTYPE_TEX3D          0x3
-#define RESTYPE_TEX2DMS        0x4
-#define RESTYPE_TEXTYPEMAX     0x5
+#define RESTYPE_TEX1D 0x1
+#define RESTYPE_TEX2D 0x2
+#define RESTYPE_TEX3D 0x3
+#define RESTYPE_TEX2DMS 0x4
+#define RESTYPE_TEXTYPEMAX 0x5
 
-#define MESHDISPLAY_SOLID           0x1
-#define MESHDISPLAY_FACELIT         0x2
-#define MESHDISPLAY_SECONDARY       0x3
+#define MESHDISPLAY_SOLID 0x1
+#define MESHDISPLAY_FACELIT 0x2
+#define MESHDISPLAY_SECONDARY 0x3
 #define MESHDISPLAY_SECONDARY_ALPHA 0x4
 
-#define TEXDISPLAY_TYPEMASK    0xF
-#define TEXDISPLAY_UINT_TEX    0x10
-#define TEXDISPLAY_SINT_TEX    0x20
-#define TEXDISPLAY_NANS        0x80
-#define TEXDISPLAY_CLIPPING    0x100
+#define TEXDISPLAY_TYPEMASK 0xF
+#define TEXDISPLAY_UINT_TEX 0x10
+#define TEXDISPLAY_SINT_TEX 0x20
+#define TEXDISPLAY_NANS 0x80
+#define TEXDISPLAY_CLIPPING 0x100
 #define TEXDISPLAY_GAMMA_CURVE 0x200
 
 #ifndef FLT_EPSILON
@@ -186,8 +197,7 @@ BINDING (0, 0) uniform TexDisplayUBOData
 // texture covered by 2x1 blocks)
 //
 // these values are in each dimension
-#define HGRAM_PIXELS_PER_TILE  64u
-#define HGRAM_TILES_PER_BLOCK  10u
+#define HGRAM_PIXELS_PER_TILE 64u
+#define HGRAM_TILES_PER_BLOCK 10u
 
-#define HGRAM_NUM_BUCKETS	   256u
-
+#define HGRAM_NUM_BUCKETS 256u

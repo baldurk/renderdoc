@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,25 +24,24 @@
 
 #pragma once
 
-#include <vector>
+#include <stdint.h>
 #include <string>
+#include <vector>
+#include "3rdparty/glslang/SPIRV/spirv.hpp"
+
 using std::string;
 using std::vector;
 
-#include <stdint.h>
-
-#include "3rdparty/glslang/SPIRV/spirv.hpp"
-
 enum SPIRVShaderStage
 {
-	eSPIRVVertex,
-	eSPIRVTessControl,
-	eSPIRVTessEvaluation,
-	eSPIRVGeometry,
-	eSPIRVFragment,
-	eSPIRVCompute,
-	eSPIRVGeneric,
-	eSPIRVInvalid,
+  eSPIRVVertex,
+  eSPIRVTessControl,
+  eSPIRVTessEvaluation,
+  eSPIRVGeometry,
+  eSPIRVFragment,
+  eSPIRVCompute,
+  eSPIRVGeneric,
+  eSPIRVInvalid,
 };
 
 void InitSPIRVCompiler();
@@ -55,36 +54,42 @@ struct ShaderBindpointMapping;
 
 struct SPVModule
 {
-	SPVModule();
-	~SPVModule();
+  SPVModule();
+  ~SPVModule();
 
-	vector<uint32_t> spirv;
+  vector<uint32_t> spirv;
 
-	struct { uint8_t major, minor; } moduleVersion;
-	uint32_t generator;
+  struct
+  {
+    uint8_t major, minor;
+  } moduleVersion;
+  uint32_t generator;
 
-	spv::SourceLanguage sourceLang;
-	uint32_t sourceVer;
+  spv::SourceLanguage sourceLang;
+  uint32_t sourceVer;
 
-	vector<string> extensions;
+  vector<string> extensions;
 
-	vector<spv::Capability> capabilities;
+  vector<spv::Capability> capabilities;
 
-	vector<SPVInstruction*> operations; // all operations (including those that don't generate an ID)
+  vector<SPVInstruction *>
+      operations;    // all operations (including those that don't generate an ID)
 
-	vector<SPVInstruction*> ids; // pointers indexed by ID
+  vector<SPVInstruction *> ids;    // pointers indexed by ID
 
-	vector<SPVInstruction*> sourceexts; // source extensions
-	vector<SPVInstruction*> entries; // entry points
-	vector<SPVInstruction*> globals; // global variables
-	vector<SPVInstruction*> funcs; // functions
-	vector<SPVInstruction*> structs; // struct types
-	
-	SPVInstruction *GetByID(uint32_t id);
-	string Disassemble(const string &entryPoint);
+  vector<SPVInstruction *> sourceexts;    // source extensions
+  vector<SPVInstruction *> entries;       // entry points
+  vector<SPVInstruction *> globals;       // global variables
+  vector<SPVInstruction *> funcs;         // functions
+  vector<SPVInstruction *> structs;       // struct types
 
-	void MakeReflection(const string &entryPoint, ShaderReflection *reflection, ShaderBindpointMapping *mapping);
+  SPVInstruction *GetByID(uint32_t id);
+  string Disassemble(const string &entryPoint);
+
+  void MakeReflection(const string &entryPoint, ShaderReflection *reflection,
+                      ShaderBindpointMapping *mapping);
 };
 
-string CompileSPIRV(SPIRVShaderStage shadType, const vector<string> &sources, vector<uint32_t> &spirv);
+string CompileSPIRV(SPIRVShaderStage shadType, const vector<string> &sources,
+                    vector<uint32_t> &spirv);
 void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module);
