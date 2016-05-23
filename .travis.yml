@@ -34,10 +34,12 @@ install:
   - if [[ "$CODE_BUILD" == "1" ]]; then sudo apt-get install --allow-unauthenticated -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev gdb clang-format-3.8 ; fi
   - if [[ "$DOCS_BUILD" == "1" ]]; then sudo pip install --upgrade pip setuptools ; sudo pip install Sphinx sphinx-rtd-theme ; fi
 
-script:
+before_script:
   - if [[ "$CODE_BUILD" == "1" ]]; then clang-format-3.8 -i -style=file $(find pdblocate/ qrenderdoc/ renderdoc/ renderdoccmd/ renderdocshim/ -type f -regex '.*\(/3rdparty/\|/official/\|resource.h\).*' -prune -o -regex '.*\.\(c\|cpp\|h\)$' -print) ; fi
   - git clean -f
   - test $(git status --porcelain | wc -l) -eq 0 || { git diff; false; }
+
+script:
   - sh ./hash_version.sh
   - if [[ "$CODE_BUILD" == "1" ]]; then make ; fi
   - if [[ "$DOCS_BUILD" == "1" ]]; then cd docs/ && make html ; fi
