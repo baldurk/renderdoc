@@ -133,7 +133,7 @@ struct DummyID3D11InfoQueue : public ID3D11InfoQueue
 {
   WrappedID3D11Device *m_pDevice;
 
-  DummyID3D11InfoQueue() {}
+  DummyID3D11InfoQueue() : m_pDevice(NULL) {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOINTERFACE; }
@@ -232,7 +232,8 @@ struct DummyID3D11Debug : public ID3D11Debug
 {
   WrappedID3D11Device *m_pDevice;
 
-  DummyID3D11Debug() {}
+  DummyID3D11Debug() : m_pDevice(NULL) {}
+
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOINTERFACE; }

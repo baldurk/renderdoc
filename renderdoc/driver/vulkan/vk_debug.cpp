@@ -66,7 +66,7 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
   VkResult vkr = driver->vkCreateBuffer(dev, &bufInfo, NULL, &buf);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  VkMemoryRequirements mrq;
+  VkMemoryRequirements mrq = {};
   driver->vkGetBufferMemoryRequirements(dev, buf, &mrq);
 
   VkMemoryAllocateInfo allocInfo = {

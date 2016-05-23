@@ -189,7 +189,7 @@ public:
   void RegisterShutdownFunction(ShutdownFunction func) { m_ShutdownFunctions.insert(func); }
   void SetReplayApp(bool replay) { m_Replay = replay; }
   bool IsReplayApp() const { return m_Replay; }
-  string GetConfigSetting(string name) { return m_ConfigSettings[name]; }
+  const string &GetConfigSetting(string name) { return m_ConfigSettings[name]; }
   void SetConfigSetting(string name, string value) { m_ConfigSettings[name] = value; }
   void BecomeReplayHost(volatile uint32_t &killReplay);
 
