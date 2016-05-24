@@ -43,11 +43,11 @@ bool is_exr_file(FILE *f)
   const uint32_t openexr_magic = MAKE_FOURCC(0x76, 0x2f, 0x31, 0x01);
 
   uint32_t magic = 0;
-  FileIO::fread(&magic, sizeof(magic), 1, f);
+  size_t bytesRead = FileIO::fread(&magic, sizeof(magic), 1, f);
 
   FileIO::fseek64(f, 0, SEEK_SET);
 
-  return magic == openexr_magic;
+  return bytesRead == sizeof(magic) && magic == openexr_magic;
 }
 
 template <>
@@ -160,6 +160,9 @@ RenderDoc::RenderDoc()
 
   m_CapturesActive = 0;
 
+  m_RemoteIdent = 0;
+  m_RemoteThread = 0;
+
   m_Replay = false;
 
   m_Cap = false;
@@ -190,6 +193,7 @@ void RenderDoc::Initialise()
   Threading::Init();
 
   m_RemoteIdent = 0;
+  m_RemoteThread = 0;
 
   if(!IsReplayApp())
   {

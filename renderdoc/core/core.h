@@ -392,7 +392,6 @@ private:
   static void RemoteAccessClientThread(void *s);
 
   ICrashHandler *m_ExHandler;
-  bool m_GLSLang;
 };
 
 struct DriverRegistration
