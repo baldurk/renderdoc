@@ -837,7 +837,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
           0,
           0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
-          m_TextAtlas,
+          Unwrap(m_TextAtlas),
           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
       DoPipelineBarrier(textAtlasUploadCmd, 1, &copysrcbarrier);
@@ -849,7 +849,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
           VK_ACCESS_TRANSFER_READ_BIT,
           VK_QUEUE_FAMILY_IGNORED,
           VK_QUEUE_FAMILY_IGNORED,
-          m_TextAtlasUpload.buf,
+          Unwrap(m_TextAtlasUpload.buf),
           0,
           m_TextAtlasUpload.totalsize,
       };
@@ -883,7 +883,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           0,
           0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
-          m_TextAtlas,
+          Unwrap(m_TextAtlas),
           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
       // ensure atlas is filled before reading in shader
@@ -1714,7 +1714,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             0,
             0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
-            m_TexDisplayDummyImages[index],
+            Unwrap(m_TexDisplayDummyImages[index]),
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
         DoPipelineBarrier(replayDataCmd, 1, &barrier);
@@ -1803,7 +1803,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         0,
         0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
-        m_PickPixelImage,
+        Unwrap(m_PickPixelImage),
         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
     DoPipelineBarrier(replayDataCmd, 1, &barrier);
