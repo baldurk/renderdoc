@@ -409,6 +409,9 @@ namespace renderdocui.Windows.PipelineState
                         if (shaderInput != null && shaderInput.name.Length > 0)
                             slotname += ": " + shaderInput.name;
 
+                        if (s.customSamplerName)
+                            slotname += "(" + s.SamplerName + ")";
+
                         string borderColor = s.BorderColor[0].ToString() + ", " +
                                                 s.BorderColor[1].ToString() + ", " +
                                                 s.BorderColor[2].ToString() + ", " +

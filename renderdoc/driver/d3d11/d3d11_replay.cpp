@@ -609,6 +609,15 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
         if(samp.Samp != ResourceId())
         {
+          samp.SamplerName = GetDebugName(src.Samplers[s]);
+          samp.customSamplerName = true;
+
+          if(samp.SamplerName.count == 0)
+          {
+            samp.customSamplerName = false;
+            samp.SamplerName = StringFormat::Fmt("Sampler %llu", samp.Samp);
+          }
+
           D3D11_SAMPLER_DESC desc;
           src.Samplers[s]->GetDesc(&desc);
 

@@ -56,6 +56,10 @@ namespace renderdoc
                         public ResourceId res;
                         public ResourceId sampler;
 
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string SamplerName;
+                        public bool customSamplerName;
+
                         public UInt32 baseMip;
                         public UInt32 baseLayer;
 

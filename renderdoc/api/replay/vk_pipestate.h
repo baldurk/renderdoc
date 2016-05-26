@@ -45,9 +45,28 @@ struct VulkanPipelineState
 
         struct BindingElement
         {
+          BindingElement()
+              : customSamplerName(false),
+                baseMip(0),
+                baseLayer(0),
+                offset(0),
+                size(0),
+                mipBias(0.0f),
+                maxAniso(0.0f),
+                compareEnable(false),
+                minlod(0.0f),
+                maxlod(0.0f),
+                borderEnable(false),
+                unnormalized(false)
+          {
+          }
+
           ResourceId view;    // bufferview, imageview, attachmentview
           ResourceId res;     // buffer, image, attachment
           ResourceId sampler;
+
+          rdctype::str SamplerName;
+          bool32 customSamplerName;
 
           // image views
           uint32_t baseMip;

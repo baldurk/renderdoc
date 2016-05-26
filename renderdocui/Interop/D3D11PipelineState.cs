@@ -156,6 +156,11 @@ namespace renderdoc
             public class Sampler
             {
                 public ResourceId Samp;
+
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                public string SamplerName;
+                public bool customSamplerName;
+
                 [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string AddressU, AddressV, AddressW;
                 [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]

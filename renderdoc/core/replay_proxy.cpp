@@ -351,6 +351,8 @@ template <>
 void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Sampler &el)
 {
   Serialise("", el.Samp);
+  Serialise("", el.SamplerName);
+  Serialise("", el.customSamplerName);
   Serialise("", el.AddressU);
   Serialise("", el.AddressV);
   Serialise("", el.AddressW);
@@ -364,7 +366,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Sa
   Serialise("", el.MinLOD);
   Serialise("", el.MipLODBias);
 
-  SIZE_CHECK(D3D11PipelineState::ShaderStage::Sampler, 128);
+  SIZE_CHECK(D3D11PipelineState::ShaderStage::Sampler, 152);
 }
 
 template <>
@@ -731,6 +733,9 @@ void Serialiser::Serialise(
   Serialise("", el.res);
   Serialise("", el.sampler);
 
+  Serialise("", el.SamplerName);
+  Serialise("", el.customSamplerName);
+
   Serialise("", el.baseMip);
   Serialise("", el.baseLayer);
 
@@ -753,7 +758,7 @@ void Serialiser::Serialise(
   Serialise("", el.border);
   Serialise("", el.unnormalized);
 
-  SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement, 216);
+  SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement, 240);
 };
 
 template <>

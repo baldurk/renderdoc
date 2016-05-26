@@ -308,7 +308,7 @@ namespace renderdocui.Windows.PipelineState
                 lod += String.Format(" Bias {0}", descriptor.mipBias);
 
             return new object[] {
-                                        "", bindset, slotname, "Sampler", "Sampler " + descriptor.sampler.ToString(), 
+                                        "", bindset, slotname, "Sampler", descriptor.SamplerName, 
                                         addressing,
                                         filter,
                                         lod

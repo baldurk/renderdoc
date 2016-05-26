@@ -3426,7 +3426,17 @@ void VulkanReplay::SavePipelineState()
                       dst.bindings[b].binds[a];
                   const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[el.sampler];
 
+                  ResourceId liveId = el.sampler;
+
                   el.sampler = rm->GetOriginalID(el.sampler);
+
+                  el.customSamplerName = true;
+                  el.SamplerName = m_pDriver->m_CreationInfo.m_Names[liveId];
+                  if(el.SamplerName.count == 0)
+                  {
+                    el.customSamplerName = false;
+                    el.SamplerName = StringFormat::Fmt("Sampler %llu", el.sampler);
+                  }
 
                   // sampler info
                   el.mag = ToStr::Get(sampl.magFilter);

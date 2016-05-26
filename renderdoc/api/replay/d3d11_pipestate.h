@@ -137,6 +137,7 @@ struct D3D11PipelineState
     {
       Sampler()
           : Samp(),
+            customSamplerName(false),
             UseBorder(false),
             UseComparison(false),
             MaxAniso(0),
@@ -147,6 +148,8 @@ struct D3D11PipelineState
         BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f;
       }
       ResourceId Samp;
+      rdctype::str SamplerName;
+      bool32 customSamplerName;
       rdctype::str AddressU, AddressV, AddressW;
       float BorderColor[4];
       rdctype::str Comparison;
