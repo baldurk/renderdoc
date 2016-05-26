@@ -2883,6 +2883,12 @@ namespace renderdocui.Windows
             UI_UpdateFittedScale();
         }
 
+        private void zoomExactSize_Click(object sender, EventArgs e)
+        {
+            fitToWindow.Checked = false;
+            UI_SetScale(1.0f);
+        }
+
         private void backcolorPick_Click(object sender, EventArgs e)
         {
             var result = colorDialog.ShowDialog();

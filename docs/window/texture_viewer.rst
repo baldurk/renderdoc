@@ -248,7 +248,7 @@ Zoom Controls
 
   | |ZoomControls|
 
-The zoom controls are fairly self explanatory - a pre-existing zoom value can be chosen from the drop down or a custom value (clamped to the minimum and maximum zoom) can be entered as a percentage.
+The zoom controls are fairly self explanatory - a pre-existing zoom value can be chosen from the drop down or a custom value (clamped to the minimum and maximum zoom) can be entered as a percentage. Click the ``1:1`` button to zoom to the exact size.
 
 To automatically fit the texture to the space available in the window, regardless of its dimensions, you can click the |fit_window| Fit button.
 
