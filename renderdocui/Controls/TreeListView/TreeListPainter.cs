@@ -204,7 +204,7 @@ namespace TreelistView
                 node.DefaultBackColor != Color.Transparent)
                 c = node.DefaultBackColor;
 
-            if (node.BackColor != Color.Transparent)
+            if (node.BackColor != Color.Transparent && !m_owner.NodesSelection.Contains(node) && m_owner.SelectedNode != node)
                 c = node.BackColor;
 
             if (column.Index < node.IndexedBackColor.Length && node.IndexedBackColor[column.Index] != Color.Transparent)
@@ -233,7 +233,9 @@ namespace TreelistView
 				cellRect = AdjustRectangle(cellRect, format.Padding);
 				//dc.DrawRectangle(Pens.Black, cellRect);
 
-				Color color = format.ForeColor;
+                Color color = format.ForeColor;
+                if (node.ForeColor != Color.Transparent)
+                    color = node.ForeColor;
                 if (m_owner.FocusedNode == node && Application.RenderWithVisualStyles == false && m_owner.Focused)
 					color = SystemColors.HighlightText;
 				TextFormatFlags flags= TextFormatFlags.EndEllipsis | format.GetFormattingFlags();

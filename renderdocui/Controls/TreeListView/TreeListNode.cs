@@ -24,7 +24,10 @@ namespace TreelistView
 		object				m_tag = null;
         bool                m_bold = false;
         bool                m_italic = false;
+        float               m_treeLineWidth = 0.0f;
         Color               m_backCol = Color.Transparent;
+        Color               m_foreCol = Color.Transparent;
+        Color               m_treeLineCol = Color.Transparent;
         Color               m_defbackCol = Color.Transparent;
 
         Color[]             m_backCols = null;
@@ -156,10 +159,25 @@ namespace TreelistView
             get { return m_bold; }
             set { m_bold = value; }
         }
+        public float TreeLineWidth
+        {
+            get { return m_treeLineWidth; }
+            set { m_treeLineWidth = value; }
+        }
         public Color BackColor
         {
             get { return m_backCol; }
             set { m_backCol = value; }
+        }
+        public Color ForeColor
+        {
+            get { return m_foreCol; }
+            set { m_foreCol = value; }
+        }
+        public Color TreeLineColor
+        {
+            get { return m_treeLineCol; }
+            set { m_treeLineCol = value; }
         }
         public Color DefaultBackColor
         {
