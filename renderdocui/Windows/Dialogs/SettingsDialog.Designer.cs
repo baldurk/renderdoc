@@ -52,7 +52,9 @@
             System.Windows.Forms.GroupBox groupBox4;
             System.Windows.Forms.Label label8;
             System.Windows.Forms.Label label9;
-            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Section", "Section")));
+            TreelistView.TreeListColumn treeListColumn3 = new TreelistView.TreeListColumn("Section", "Section");
+            System.Windows.Forms.Label label16;
+            System.Windows.Forms.Label label17;
             this.settingsTabs = new renderdocui.Controls.TablessControl();
             this.generalTab = new System.Windows.Forms.TabPage();
             this.AllowGlobalHook = new System.Windows.Forms.CheckBox();
@@ -84,6 +86,8 @@
             this.ok = new System.Windows.Forms.Button();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
+            this.EventBrowser_ApplyColours = new System.Windows.Forms.CheckBox();
+            this.EventBrowser_ColourEventRow = new System.Windows.Forms.CheckBox();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             groupBox1 = new System.Windows.Forms.GroupBox();
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
@@ -106,6 +110,8 @@
             groupBox4 = new System.Windows.Forms.GroupBox();
             label8 = new System.Windows.Forms.Label();
             label9 = new System.Windows.Forms.Label();
+            label16 = new System.Windows.Forms.Label();
+            label17 = new System.Windows.Forms.Label();
             tableLayoutPanel1.SuspendLayout();
             this.settingsTabs.SuspendLayout();
             this.generalTab.SuspendLayout();
@@ -800,12 +806,18 @@
             this.tableLayoutPanel5.Controls.Add(this.EventBrowser_TimeUnit, 1, 0);
             this.tableLayoutPanel5.Controls.Add(label9, 0, 1);
             this.tableLayoutPanel5.Controls.Add(this.EventBrowser_HideEmpty, 1, 1);
+            this.tableLayoutPanel5.Controls.Add(label16, 0, 2);
+            this.tableLayoutPanel5.Controls.Add(label17, 0, 3);
+            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_ApplyColours, 1, 2);
+            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_ColourEventRow, 1, 3);
             this.tableLayoutPanel5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel5.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel5.Name = "tableLayoutPanel5";
-            this.tableLayoutPanel5.RowCount = 3;
+            this.tableLayoutPanel5.RowCount = 5;
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel5.Size = new System.Drawing.Size(342, 285);
             this.tableLayoutPanel5.TabIndex = 0;
@@ -864,11 +876,11 @@
             // pagesTree
             // 
             this.pagesTree.AlwaysDisplayVScroll = true;
-            treeListColumn1.AutoSize = true;
-            treeListColumn1.AutoSizeMinSize = 0;
-            treeListColumn1.Width = 50;
+            treeListColumn3.AutoSize = true;
+            treeListColumn3.AutoSizeMinSize = 0;
+            treeListColumn3.Width = 50;
             this.pagesTree.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn1});
+            treeListColumn3});
             this.pagesTree.ColumnsOptions.HeaderHeight = 1;
             this.pagesTree.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.pagesTree.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -897,6 +909,59 @@
             // browserCaptureDialog
             // 
             this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
+            // 
+            // label16
+            // 
+            label16.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label16.AutoSize = true;
+            label16.Location = new System.Drawing.Point(3, 50);
+            label16.Margin = new System.Windows.Forms.Padding(3);
+            label16.Name = "label16";
+            label16.Size = new System.Drawing.Size(267, 14);
+            label16.TabIndex = 52;
+            label16.Text = "Apply marker colours (requires log reload)";
+            label16.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // label17
+            // 
+            label17.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label17.AutoSize = true;
+            label17.Location = new System.Drawing.Point(3, 70);
+            label17.Margin = new System.Windows.Forms.Padding(3);
+            label17.Name = "label17";
+            label17.Padding = new System.Windows.Forms.Padding(15, 0, 0, 0);
+            label17.Size = new System.Drawing.Size(267, 14);
+            label17.TabIndex = 53;
+            label17.Text = "- Colourise whole row for marker regions";
+            label17.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // EventBrowser_ApplyColours
+            // 
+            this.EventBrowser_ApplyColours.AutoSize = true;
+            this.EventBrowser_ApplyColours.Location = new System.Drawing.Point(276, 50);
+            this.EventBrowser_ApplyColours.Name = "EventBrowser_ApplyColours";
+            this.EventBrowser_ApplyColours.Size = new System.Drawing.Size(15, 14);
+            this.EventBrowser_ApplyColours.TabIndex = 54;
+            this.toolTip.SetToolTip(this.EventBrowser_ApplyColours, "In the Event Browser and Timeline Bar, marker sections and marker labels will be " +
+        "coloured with an API-specified colour.\r\n");
+            this.EventBrowser_ApplyColours.UseVisualStyleBackColor = true;
+            this.EventBrowser_ApplyColours.CheckedChanged += new System.EventHandler(this.EventBrowser_ApplyColours_CheckedChanged);
+            // 
+            // EventBrowser_ColourEventRow
+            // 
+            this.EventBrowser_ColourEventRow.AutoSize = true;
+            this.EventBrowser_ColourEventRow.Location = new System.Drawing.Point(276, 70);
+            this.EventBrowser_ColourEventRow.Name = "EventBrowser_ColourEventRow";
+            this.EventBrowser_ColourEventRow.Size = new System.Drawing.Size(15, 14);
+            this.EventBrowser_ColourEventRow.TabIndex = 55;
+            this.toolTip.SetToolTip(this.EventBrowser_ColourEventRow, "When colouring marker sections in the Event Browser, the whole row of a marker re" +
+        "gion will be coloured, not just a bar to the left of its children.");
+            this.EventBrowser_ColourEventRow.UseVisualStyleBackColor = true;
+            this.EventBrowser_ColourEventRow.CheckedChanged += new System.EventHandler(this.EventBrowser_ColourEventRow_CheckedChanged);
             // 
             // SettingsDialog
             // 
@@ -972,5 +1037,7 @@
         private System.Windows.Forms.TabPage corePage;
         private System.Windows.Forms.GroupBox groupBox5;
         private System.Windows.Forms.Button chooseSearchPaths;
+        private System.Windows.Forms.CheckBox EventBrowser_ApplyColours;
+        private System.Windows.Forms.CheckBox EventBrowser_ColourEventRow;
     }
 }

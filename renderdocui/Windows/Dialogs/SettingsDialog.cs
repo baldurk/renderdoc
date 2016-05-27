@@ -79,6 +79,11 @@ namespace renderdocui.Windows.Dialogs
 
             EventBrowser_TimeUnit.SelectedIndex = (int)m_Core.Config.EventBrowser_TimeUnit;
             EventBrowser_HideEmpty.Checked = m_Core.Config.EventBrowser_HideEmpty;
+            EventBrowser_ApplyColours.Checked = m_Core.Config.EventBrowser_ApplyColours;
+            EventBrowser_ColourEventRow.Checked = m_Core.Config.EventBrowser_ColourEventRow;
+
+            // disable sub-checkbox
+            EventBrowser_ColourEventRow.Enabled = EventBrowser_ApplyColours.Checked;
 
             initialising = true;
 
@@ -183,6 +188,23 @@ namespace renderdocui.Windows.Dialogs
         private void EventBrowser_HideEmpty_CheckedChanged(object sender, EventArgs e)
         {
             m_Core.Config.EventBrowser_HideEmpty = EventBrowser_HideEmpty.Checked;
+
+            m_Core.Config.Serialize(Core.ConfigFilename);
+        }
+
+        private void EventBrowser_ApplyColours_CheckedChanged(object sender, EventArgs e)
+        {
+            m_Core.Config.EventBrowser_ApplyColours = EventBrowser_ApplyColours.Checked;
+
+            // disable sub-checkbox
+            EventBrowser_ColourEventRow.Enabled = EventBrowser_ApplyColours.Checked;
+
+            m_Core.Config.Serialize(Core.ConfigFilename);
+        }
+
+        private void EventBrowser_ColourEventRow_CheckedChanged(object sender, EventArgs e)
+        {
+            m_Core.Config.EventBrowser_ColourEventRow = EventBrowser_ColourEventRow.Checked;
 
             m_Core.Config.Serialize(Core.ConfigFilename);
         }

@@ -170,3 +170,20 @@ Marker sections that contain no API calls or drawcalls will be completely remove
 This option only applies itself the next time you load a log.
 
 
+---------------
+
+  | ``Apply marker colours`` Default: ``Enabled``
+
+Some APIs can provide an RGBA colour alongside the marker name when setting or pushing a marker region. This option enables applying those colours in the UI. Usually you'd leave it on unless your code is passing garbage for the colours or something instead of 0s (which will then be ignored rather than coming out black).
+
+This option only applies itself the next time you load a log.
+
+
+---------------
+
+  | ``Colourise whole row for marker regions`` Default: ``Enabled``
+
+If the above option to apply colours is enabled, this will colourise the whole row in the event browser for any marker regions with colours, rather than just applying a strip of colour along the side of their children.
+
+This option only applies itself the next time you load a log.
+
