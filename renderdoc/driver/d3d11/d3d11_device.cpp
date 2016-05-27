@@ -971,8 +971,8 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 
     create_array(stats.vertices.bindslots, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT + 1);
 
-    create_array(stats.rasters.viewports, D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 1);
-    create_array(stats.rasters.rects, D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 1);
+    create_array(stats.rasters.viewports, D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 2);
+    create_array(stats.rasters.rects, D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 2);
 
     create_array(stats.outputs.bindslots,
                  D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT + D3D11_1_UAV_SLOT_COUNT + 1);
