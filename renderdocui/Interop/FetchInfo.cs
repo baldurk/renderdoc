@@ -511,6 +511,36 @@ namespace renderdoc
         public string name;
 
         public DrawcallFlags flags;
+        
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+        public float[] markerColour;
+
+        public System.Drawing.Color GetColor()
+        {
+            float red = markerColour[0];
+            float green = markerColour[1];
+            float blue = markerColour[2];
+            float alpha = markerColour[3];
+
+            return System.Drawing.Color.FromArgb(
+                (int)(alpha * 255.0f),
+                (int)(red * 255.0f),
+                (int)(green * 255.0f),
+                (int)(blue * 255.0f)
+                );
+        }
+
+        public bool ShouldUseWhiteText()
+        {
+            float red = markerColour[0];
+            float green = markerColour[1];
+            float blue = markerColour[2];
+            float alpha = markerColour[3];
+
+            double luminance = 0.2126 * Math.Pow(red, 2.2) + 0.7152 * Math.Pow(green, 2.2) + 0.0722 * Math.Pow(blue, 2.2);
+
+            return luminance < 0.2;
+        }
 
         public UInt32 numIndices;
         public UInt32 numInstances;

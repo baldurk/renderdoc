@@ -325,6 +325,7 @@ struct FetchDrawcall
     eventID = 0;
     drawcallID = 0;
     flags = 0;
+    markerColour[0] = markerColour[1] = markerColour[2] = markerColour[3] = 0.0f;
     numIndices = 0;
     numInstances = 0;
     indexOffset = 0;
@@ -356,6 +357,8 @@ struct FetchDrawcall
   rdctype::str name;
 
   uint32_t flags;
+
+  float markerColour[4];
 
   uint32_t numIndices;
   uint32_t numInstances;

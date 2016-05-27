@@ -58,6 +58,16 @@ bool WrappedID3D11DeviceContext::Serialise_SetMarker(uint32_t col, const wchar_t
     draw.name = name;
     draw.flags |= eDraw_SetMarker;
 
+    byte alpha = (colour >> 24) & 0xff;
+    byte red = (colour >> 16) & 0xff;
+    byte green = (colour >> 8) & 0xff;
+    byte blue = (colour >> 0) & 0xff;
+
+    draw.markerColour[0] = float(red) / 255.0f;
+    draw.markerColour[1] = float(green) / 255.0f;
+    draw.markerColour[2] = float(blue) / 255.0f;
+    draw.markerColour[3] = float(alpha) / 255.0f;
+
     AddDrawcall(draw, false);
   }
 
@@ -83,6 +93,16 @@ bool WrappedID3D11DeviceContext::Serialise_PushEvent(uint32_t col, const wchar_t
     FetchDrawcall draw;
     draw.name = name;
     draw.flags |= eDraw_PushMarker;
+
+    byte alpha = (colour >> 24) & 0xff;
+    byte red = (colour >> 16) & 0xff;
+    byte green = (colour >> 8) & 0xff;
+    byte blue = (colour >> 0) & 0xff;
+
+    draw.markerColour[0] = float(red) / 255.0f;
+    draw.markerColour[1] = float(green) / 255.0f;
+    draw.markerColour[2] = float(blue) / 255.0f;
+    draw.markerColour[3] = float(alpha) / 255.0f;
 
     AddDrawcall(draw, false);
   }

@@ -1050,6 +1050,8 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 
   Serialise("", el.flags);
 
+  SerialisePODArray<4>("", el.markerColour);
+
   Serialise("", el.numIndices);
   Serialise("", el.numInstances);
   Serialise("", el.baseVertex);
@@ -1078,7 +1080,7 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
   Serialise("", el.events);
   Serialise("", el.children);
 
-  SIZE_CHECK(FetchDrawcall, 240);
+  SIZE_CHECK(FetchDrawcall, 256);
 }
 
 template <>

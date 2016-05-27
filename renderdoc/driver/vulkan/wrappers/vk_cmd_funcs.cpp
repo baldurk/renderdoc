@@ -2145,6 +2145,11 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(Serialiser *localSerialis
     draw.name = name;
     draw.flags |= eDraw_PushMarker;
 
+    draw.markerColour[0] = RDCCLAMP(color[0], 0.0f, 1.0f);
+    draw.markerColour[1] = RDCCLAMP(color[1], 0.0f, 1.0f);
+    draw.markerColour[2] = RDCCLAMP(color[2], 0.0f, 1.0f);
+    draw.markerColour[3] = RDCCLAMP(color[3], 0.0f, 1.0f);
+
     AddDrawcall(draw, false);
   }
 
@@ -2241,6 +2246,11 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(Serialiser *localSeriali
     FetchDrawcall draw;
     draw.name = name;
     draw.flags |= eDraw_SetMarker;
+
+    draw.markerColour[0] = RDCCLAMP(color[0], 0.0f, 1.0f);
+    draw.markerColour[1] = RDCCLAMP(color[1], 0.0f, 1.0f);
+    draw.markerColour[2] = RDCCLAMP(color[2], 0.0f, 1.0f);
+    draw.markerColour[3] = RDCCLAMP(color[3], 0.0f, 1.0f);
 
     AddDrawcall(draw, false);
   }
