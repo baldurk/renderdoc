@@ -105,6 +105,9 @@ namespace renderdocui.Code
         public TimeUnit EventBrowser_TimeUnit = TimeUnit.Microseconds;
         public bool EventBrowser_HideEmpty = false;
 
+        public bool EventBrowser_ApplyColours = true;
+        public bool EventBrowser_ColourEventRow = true;
+
         public int Formatter_MinFigures = 2;
         public int Formatter_MaxFigures = 5;
         public int Formatter_NegExp = 5;

@@ -242,7 +242,7 @@ namespace renderdocui.Windows
                 m_ranges[m_ranges.Count-1].last = eid;
         }
 
-        private RectangleF DrawBar(Graphics g, Color back, RectangleF rect, float startSeg, float segWidth, string text, bool visible)
+        private RectangleF DrawBar(Graphics g, Color back, Color fore, RectangleF rect, float startSeg, float segWidth, string text, bool visible)
         {
             var subRect = GetSubrect(rect, startSeg, segWidth);
             subRect.Height = barHeight;
@@ -250,6 +250,7 @@ namespace renderdocui.Windows
             if (subRect.Contains(markerPos) && visible && showMarker && markerPos.Y < ClientRectangle.Height - pipRadius*6)
             {
                 back = Color.LightYellow;
+                fore = Color.Black;
                 Cursor = Cursors.Hand;
             }
 
@@ -284,7 +285,8 @@ namespace renderdocui.Windows
             if (visible)
             {
                 g.Clip = new Region(textRect);
-                g.DrawString(text, barFont, Brushes.Black, textRect.X, textRect.Y);
+                using (var brush = new SolidBrush(fore))
+                    g.DrawString(text, barFont, brush, textRect.X, textRect.Y);
                 g.ResetClip();
             }
 
@@ -300,6 +302,10 @@ namespace renderdocui.Windows
         private class Section
         {
             public string Name = "";
+
+            public Color color;
+            public Color textcolor;
+
             public bool Expanded = false;
             public List<Section> subsections = null;
             public List<FetchDrawcall> draws = null;
@@ -352,6 +358,16 @@ namespace renderdocui.Windows
                 if (s.Count == 1 && (s[0].flags & (DrawcallFlags.PushMarker | DrawcallFlags.MultiDraw)) > 0)
                 {
                     sec = GatherEvents(s[0].children);
+                    if (m_Core.Config.EventBrowser_ApplyColours)
+                    {
+                        sec.color = s[0].GetColor();
+                        sec.textcolor = s[0].ShouldUseWhiteText() ? Color.White : Color.Black;
+                    }
+                    else
+                    {
+                        sec.color = Color.Transparent;
+                        sec.textcolor = Color.Black;
+                    }
                     sec.Name = s[0].name;
                 }
                 else
@@ -490,8 +506,6 @@ namespace renderdocui.Windows
             for (int i = 0; i < section.subsections.Count; i++)
                 widths[i] /= rect.Width;
 
-            var col = depth % 2 == 0 ? lightBack : darkBack;
-
             var clipRect = rect;
             clipRect.Height -= pipRadius * 6;
 
@@ -500,8 +514,13 @@ namespace renderdocui.Windows
                 var s = section.subsections[i];
                 if (s.Name.Length > 0)
                 {
+                    var col = depth % 2 == 0 ? lightBack : darkBack;
+
+                    if (s.color.A > 0)
+                        col = s.color;
+
                     g.Clip = new Region(clipRect);
-                    var childRect = DrawBar(g, col, rect, start, widths[i], (s.Expanded ? "- " : "+ ") + s.Name, visible);
+                    var childRect = DrawBar(g, col, s.textcolor, rect, start, widths[i], (s.Expanded ? "- " : "+ ") + s.Name, visible);
                     g.ResetClip();
 
                     RenderSection(depth + 1, g, childRect, s, visible && s.Expanded, visible ? childRect.Top : lastVisibleHeight);

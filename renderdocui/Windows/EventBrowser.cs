@@ -260,6 +260,28 @@ namespace renderdocui.Windows
             else
                 drawNode = MakeNode(eventNum, drawcall.drawcallID, drawcall.name, 0.0);
 
+            if (m_Core.Config.EventBrowser_ApplyColours)
+            {
+                // if alpha isn't 0, assume the colour is valid
+                if ((drawcall.flags & (DrawcallFlags.PushMarker | DrawcallFlags.SetMarker)) > 0 && drawcall.markerColour[3] > 0.0f)
+                {
+                    float red = drawcall.markerColour[0];
+                    float green = drawcall.markerColour[1];
+                    float blue = drawcall.markerColour[2];
+                    float alpha = drawcall.markerColour[3];
+
+                    drawNode.TreeLineColor = drawcall.GetColor();
+                    drawNode.TreeLineWidth = 3.0f;
+
+                    if (m_Core.Config.EventBrowser_ColourEventRow)
+                    {
+                        drawNode.BackColor = drawcall.GetColor();
+                        if (drawcall.ShouldUseWhiteText())
+                            drawNode.ForeColor = Color.White;
+                    }
+                }
+            }
+
             DeferredEvent def = new DeferredEvent();
             def.eventID = eventNum;
             def.marker = (drawcall.flags & DrawcallFlags.SetMarker) != 0;
