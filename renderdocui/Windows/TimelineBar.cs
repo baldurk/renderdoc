@@ -515,12 +515,16 @@ namespace renderdocui.Windows
                 if (s.Name.Length > 0)
                 {
                     var col = depth % 2 == 0 ? lightBack : darkBack;
+                    var textcol = Color.Black;
 
                     if (s.color.A > 0)
+                    {
                         col = s.color;
+                        textcol = s.textcolor;
+                    }
 
                     g.Clip = new Region(clipRect);
-                    var childRect = DrawBar(g, col, s.textcolor, rect, start, widths[i], (s.Expanded ? "- " : "+ ") + s.Name, visible);
+                    var childRect = DrawBar(g, col, textcol, rect, start, widths[i], (s.Expanded ? "- " : "+ ") + s.Name, visible);
                     g.ResetClip();
 
                     RenderSection(depth + 1, g, childRect, s, visible && s.Expanded, visible ? childRect.Top : lastVisibleHeight);

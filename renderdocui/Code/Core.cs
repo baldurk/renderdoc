@@ -404,6 +404,51 @@ namespace renderdocui.Code
             return ret.ToArray();
         }
 
+        // because some engines (*cough*unreal*cough*) provide a valid marker colour of
+        // opaque black for every marker, instead of transparent black (i.e. just 0) we
+        // want to check for that case and remove the colors, instead of displaying all
+        // the markers as black which is not what's intended.
+        //
+        // Valid marker colors = has at least one color somewhere that isn't (0.0, 0.0, 0.0, 1.0)
+        //                       or (0.0, 0.0, 0.0, 0.0)
+        //
+        // This will fail if no marker colors are set anyway, but then removing them is
+        // harmless.
+        private bool HasValidMarkerColors(FetchDrawcall[] draws)
+        {
+            if (draws.Length == 0)
+                return false;
+
+            foreach (var d in draws)
+            {
+                if (d.markerColour[0] != 0.0f ||
+                     d.markerColour[1] != 0.0f ||
+                     d.markerColour[2] != 0.0f ||
+                     (d.markerColour[3] != 1.0f && d.markerColour[3] != 0.0f))
+                {
+                    return true;
+                }
+
+                if (HasValidMarkerColors(d.children))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private void RemoveMarkerColors(FetchDrawcall[] draws)
+        {
+            for (int i = 0; i < draws.Length; i++)
+            {
+                draws[i].markerColour[0] = 0.0f;
+                draws[i].markerColour[1] = 0.0f;
+                draws[i].markerColour[2] = 0.0f;
+                draws[i].markerColour[3] = 0.0f;
+
+                RemoveMarkerColors(draws[i].children);
+            }
+        }
+
         // loading a local log, no remote replay
         public void LoadLogfile(string logFile, bool temporary)
         {
@@ -518,6 +563,11 @@ namespace renderdocui.Code
                 postloadProgress = 0.2f;
 
                 m_DrawCalls = FakeProfileMarkers(r.GetDrawcalls());
+
+                bool valid = HasValidMarkerColors(m_DrawCalls);
+
+                if (!valid)
+                    RemoveMarkerColors(m_DrawCalls);
 
                 postloadProgress = 0.4f;
 
