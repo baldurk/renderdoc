@@ -21,9 +21,9 @@ You might find these visualisers useful, going under your [Visualizer] section i
 Linux
 --------------
 
-Just 'make' in the root should do the trick. This build system is work in progress as the linux port is very early, so it may change!
+Just 'make' in the root should do the trick. This build system is work in progress as the linux port is very early, so it may change! Currently it uses cmake, running the default Makefile will run cmake inside a 'build' folder then build from there.
 
-There's no configuration or cmake setup, it assumes gcc/g++ (this can be overwridden via variables CC and CPP, or just in the makefiles).
+Configuration is as usual for cmake, you can override the compiler with environment variables CC and CXX, and there are some options you can toggle in the root CMakeLists files.
 
 Requirements are linking against -lX11 and -lGL. For qrenderdoc you need qt5 along with the 'x11extras' package.
 
