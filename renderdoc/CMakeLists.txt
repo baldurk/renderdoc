@@ -156,6 +156,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         PROPERTIES COMPILE_FLAGS "-Wno-extra -Wno-unused-function")
 endif()
 
+set_source_files_properties(3rdparty/jpeg-compressor/jpgd.cpp
+    PROPERTIES COMPILE_FLAGS "-Wno-shift-negative-value")
+
 add_library(rdoc OBJECT ${sources})
 target_compile_definitions(rdoc ${RDOC_DEFINITIONS})
 target_include_directories(rdoc ${RDOC_INCLUDES})
