@@ -117,15 +117,26 @@ void PrintInteger(bool typeUnsigned, uint64_t argu, int base, uint64_t numbits,
 {
   int64_t argi = 0;
 
+  union
+  {
+    uint64_t *u64;
+    signed int *i;
+    signed char *c;
+    signed short *s;
+    int64_t *i64;
+  } typepun;
+
+  typepun.u64 = &argu;
+
   // cast the appropriate size to signed version
   switch(formatter.Length)
   {
     default:
     case None:
-    case Long: argi = (int64_t) * (signed int *)&argu; break;
-    case HalfHalf: argi = (int64_t) * (signed char *)&argu; break;
-    case Half: argi = (int64_t) * (signed short *)&argu; break;
-    case LongLong: argi = (int64_t) * (int64_t *)&argu; break;
+    case Long: argi = (int64_t)*typepun.i; break;
+    case HalfHalf: argi = (int64_t)*typepun.c; break;
+    case Half: argi = (int64_t)*typepun.s; break;
+    case LongLong: argi = (int64_t)*typepun.i64; break;
   }
 
   bool negative = false;

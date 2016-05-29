@@ -1723,7 +1723,8 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     MeshUBOData *data = (MeshUBOData *)GetDebugManager()->m_MeshUBO.Map(&uboOffs);
 
     data->mvp = ModelViewProj;
-    data->color = (Vec4f &)cfg.prevMeshColour;
+    data->color = Vec4f(cfg.prevMeshColour.x, cfg.prevMeshColour.y, cfg.prevMeshColour.z,
+                        cfg.prevMeshColour.w);
     data->homogenousInput = cfg.position.unproject;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
     data->displayFormat = MESHDISPLAY_SOLID;
@@ -3498,7 +3499,20 @@ void VulkanReplay::SavePipelineState()
                   dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
                   dst.bindings[b].binds[a].offset = c.m_BufferView[viewid].offset;
                   if(dynamicOffset)
-                    dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageInfo.imageLayout;
+                  {
+                    union
+                    {
+                      VkImageLayout l;
+                      uint32_t u;
+                    } offs;
+
+                    RDCCOMPILE_ASSERT(sizeof(VkImageLayout) == sizeof(uint32_t),
+                                      "VkImageLayout isn't 32-bit sized");
+
+                    offs.l = info[a].imageInfo.imageLayout;
+
+                    dst.bindings[b].binds[a].offset += offs.u;
+                  }
                   dst.bindings[b].binds[a].size = c.m_BufferView[viewid].size;
                 }
                 else
@@ -3522,7 +3536,20 @@ void VulkanReplay::SavePipelineState()
 
                 dst.bindings[b].binds[a].offset = info[a].bufferInfo.offset;
                 if(dynamicOffset)
-                  dst.bindings[b].binds[a].offset += *(uint32_t *)&info[a].imageInfo.imageLayout;
+                {
+                  union
+                  {
+                    VkImageLayout l;
+                    uint32_t u;
+                  } offs;
+
+                  RDCCOMPILE_ASSERT(sizeof(VkImageLayout) == sizeof(uint32_t),
+                                    "VkImageLayout isn't 32-bit sized");
+
+                  offs.l = info[a].imageInfo.imageLayout;
+
+                  dst.bindings[b].binds[a].offset += offs.u;
+                }
 
                 dst.bindings[b].binds[a].size = info[a].bufferInfo.range;
               }
