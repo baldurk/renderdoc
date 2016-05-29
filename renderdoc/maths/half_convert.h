@@ -121,7 +121,12 @@ inline float ConvertFromHalf(uint16_t comp)
   }
   else    // if(exponent = 0x1f)
   {
-    int nan = 0x7F800001;
-    return *(float *)&nan;
+    union
+    {
+      int i;
+      float f;
+    } nan;
+    nan.i = 0x7F800001;
+    return nan.f;
   }
 }
