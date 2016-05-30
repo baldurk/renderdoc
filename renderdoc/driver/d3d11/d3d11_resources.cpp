@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "driver/d3d11/d3d11_resources.h"
+#include "3rdparty/lz4/lz4.h"
 #include "api/app/renderdoc_app.h"
 #include "driver/d3d11/d3d11_context.h"
 #include "driver/dxgi/dxgi_wrapped.h"
@@ -79,9 +80,20 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
 
     if(!originalPath.empty())
     {
+      bool lz4 = false;
+
+      if(!strncmp(originalPath.c_str(), "lz4#", 4))
+      {
+        originalPath = originalPath.substr(4);
+        lz4 = true;
+      }
+      // could support more if we're willing to compile in the decompressor
+
       FILE *originalShaderFile = NULL;
 
       size_t numSearchPaths = m_DebugInfoSearchPaths ? m_DebugInfoSearchPaths->size() : 0;
+
+      string foundPath;
 
       // while we haven't found a file, keep trying through the search paths. For i==0
       // check the path on its own, in case it's an absolute path.
@@ -90,12 +102,14 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
         if(i == 0)
         {
           originalShaderFile = FileIO::fopen(originalPath.c_str(), "rb");
+          foundPath = originalPath;
           continue;
         }
         else
         {
-          std::string &searchPath = (*m_DebugInfoSearchPaths)[i - 1];
-          originalShaderFile = FileIO::fopen((searchPath + "/" + originalPath).c_str(), "rb");
+          const std::string &searchPath = (*m_DebugInfoSearchPaths)[i - 1];
+          foundPath = searchPath + "/" + originalPath;
+          originalShaderFile = FileIO::fopen(foundPath.c_str(), "rb");
         }
       }
 
@@ -106,13 +120,47 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
       uint64_t originalShaderSize = FileIO::ftell64(originalShaderFile);
       FileIO::fseek64(originalShaderFile, 0, SEEK_SET);
 
-      if(originalShaderSize >= m_Bytecode.size())
+      if(lz4 || originalShaderSize >= m_Bytecode.size())
       {
         vector<byte> originalBytecode;
 
         originalBytecode.resize((size_t)originalShaderSize);
         FileIO::fread(&originalBytecode[0], sizeof(byte), (size_t)originalShaderSize,
                       originalShaderFile);
+
+        if(lz4)
+        {
+          vector<byte> decompressed;
+
+          // first try decompressing to 1MB flat
+          decompressed.resize(100 * 1024);
+
+          int ret = LZ4_decompress_safe((const char *)&originalBytecode[0], (char *)&decompressed[0],
+                                        (int)originalBytecode.size(), (int)decompressed.size());
+
+          if(ret < 0)
+          {
+            // if it failed, either source is corrupt or we didn't allocate enough space.
+            // Just allocate 255x compressed size since it can't need any more than that.
+            decompressed.resize(255 * originalBytecode.size());
+
+            ret = LZ4_decompress_safe((const char *)&originalBytecode[0], (char *)&decompressed[0],
+                                      (int)originalBytecode.size(), (int)decompressed.size());
+
+            if(ret < 0)
+            {
+              RDCERR("Failed to decompress LZ4 data from %s", foundPath.c_str());
+              return;
+            }
+          }
+
+          RDCASSERT(ret > 0, ret);
+
+          // we resize and memcpy instead of just doing .swap() because that would
+          // transfer over the over-large pessimistic capacity needed for decompression
+          originalBytecode.resize(ret);
+          memcpy(&originalBytecode[0], &decompressed[0], originalBytecode.size());
+        }
 
         if(DXBC::DXBCFile::CheckForDebugInfo((const void *)&originalBytecode[0],
                                              originalBytecode.size()))

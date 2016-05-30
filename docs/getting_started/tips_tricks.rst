@@ -78,7 +78,9 @@ This page is a random hodge-podge of different tips and tricks that might not be
        GUID RENDERDOC_ShaderDebugMagicValue = RENDERDOC_ShaderDebugMagicValue_value; // GUID value in renderdoc_app.h
 
        ID3D11VertexShader *shader = ...;
-       std::string pathName = ...; // path name is in UTF-8
+       std::string pathName = "/path/to/saved/blob"; // path name is in UTF-8
+       // path name can also be prefixed with lz4# to indicate the blob is compressed
+       pathName = "lz4#/path/to/saved/blob";
 
        // string parameter must be NULL-terminated, and in UTF-8
        shader->SetPrivateData(RENDERDOC_ShaderDebugMagicValue, (UINT)pathName.length(), pathName.c_str());
