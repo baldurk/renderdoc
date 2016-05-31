@@ -2790,9 +2790,7 @@ void WrappedOpenGL::ContextEndFrame()
   {
     Callstack::Stackwalk *call = Callstack::Collect();
 
-    RDCASSERT(call->NumLevels() < 0xff);
-
-    size_t numLevels = call->NumLevels();
+    uint32_t numLevels = (uint32_t)call->NumLevels();
     uint64_t *stack = (uint64_t *)call->GetAddrs();
 
     m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
@@ -2955,7 +2953,7 @@ void WrappedOpenGL::Serialise_DebugMessages()
 
       RDCASSERT(call->NumLevels() < 0xff);
 
-      size_t numLevels = call->NumLevels();
+      uint32_t numLevels = (uint32_t)call->NumLevels();
       uint64_t *stack = (uint64_t *)call->GetAddrs();
 
       m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
@@ -2964,7 +2962,7 @@ void WrappedOpenGL::Serialise_DebugMessages()
     }
     else
     {
-      size_t numLevels = 0;
+      uint32_t numLevels = 0;
       uint64_t *stack = NULL;
 
       m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
@@ -3590,7 +3588,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 
       if(HasCallstack)
       {
-        size_t numLevels = 0;
+        uint32_t numLevels = 0;
         uint64_t *stack = NULL;
 
         m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);

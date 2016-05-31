@@ -151,6 +151,14 @@ const char *GetTempRootPath()
 {
   return "/tmp";
 }
+
+void GetExecutableFilename(string &selfName)
+{
+  char path[512] = {0};
+  readlink("/proc/self/exe", path, 511);
+
+  selfName = string(path);
+}
 };
 
 namespace StringFormat

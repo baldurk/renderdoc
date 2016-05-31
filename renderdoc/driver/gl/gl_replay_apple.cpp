@@ -22,58 +22,49 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include "gl_replay.h"
+#include "gl_driver.h"
+#include "gl_resources.h"
 
-#include <pthread.h>
-#include <signal.h>
-#include "data/embedded_files.h"
-
-#define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
-
-#define OS_DEBUG_BREAK() raise(SIGTRAP)
-
-#define GetEmbeddedResource(filename) \
-  string(&CONCAT(data_, filename)[0], \
-         &CONCAT(data_, filename)[0] + CONCAT(CONCAT(data_, filename), _len))
-
-namespace OSUtility
+void GLReplay::MakeCurrentReplayContext(GLWindowingData *ctx)
 {
-inline void ForceCrash()
-{
-  __builtin_trap();
-}
-inline void DebugBreak()
-{
-  raise(SIGTRAP);
-}
-inline bool DebuggerPresent()
-{
-  return true;
-}
-void WriteOutput(int channel, const char *str);
-};
-
-namespace Threading
-{
-struct pthreadLockData
-{
-  pthread_mutex_t lock;
-  pthread_mutexattr_t attr;
-};
-typedef CriticalSectionTemplate<pthreadLockData> CriticalSection;
-};
-
-namespace Bits
-{
-inline uint32_t CountLeadingZeroes(uint32_t value)
-{
-  return __builtin_clz(value);
+  RDCUNIMPLEMENTED("GLReplay::MakeCurrentReplayContext");
 }
 
-#if RDC64BIT
-inline uint64_t CountLeadingZeroes(uint64_t value)
+void GLReplay::SwapBuffers(GLWindowingData *ctx)
 {
-  return __builtin_clzl(value);
+  RDCUNIMPLEMENTED("GLReplay::SwapBuffers");
 }
-#endif
-};
+
+void GLReplay::CloseReplayContext()
+{
+  RDCUNIMPLEMENTED("GLReplay::CloseReplayContext");
+}
+
+uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
+{
+  RDCUNIMPLEMENTED("GLReplay::MakeOutputWindow");
+  return 0;
+}
+
+void GLReplay::DestroyOutputWindow(uint64_t id)
+{
+  RDCUNIMPLEMENTED("GLReplay::DestroyOutputWindow");
+}
+
+void GLReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
+{
+  RDCUNIMPLEMENTED("GLReplay::GetOutputWindowDimensions");
+}
+
+bool GLReplay::IsOutputWindowVisible(uint64_t id)
+{
+  RDCUNIMPLEMENTED("GLReplay::IsOutputWindowVisible");
+  return false;
+}
+
+ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+{
+  RDCUNIMPLEMENTED("GL_CreateReplayDevice");
+  return eReplayCreate_APIHardwareUnsupported;
+}

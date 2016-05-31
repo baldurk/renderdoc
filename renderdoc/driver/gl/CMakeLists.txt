@@ -39,6 +39,10 @@ if(ANDROID)
     list(APPEND sources
         gl_replay_android.cpp
         gl_hooks_android.cpp)
+elseif(APPLE)
+    list(APPEND sources
+        gl_replay_apple.cpp
+        gl_hooks_apple.cpp)
 elseif(UNIX)
     list(APPEND sources
         gl_replay_linux.cpp

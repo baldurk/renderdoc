@@ -90,14 +90,6 @@ string GetFullPathname(const string &filename)
   return string(path);
 }
 
-void GetExecutableFilename(string &selfName)
-{
-  char path[512] = {0};
-  readlink("/proc/self/exe", path, 511);
-
-  selfName = string(path);
-}
-
 string GetReplayAppFilename()
 {
   // look up the shared object's path via dladdr
@@ -146,9 +138,10 @@ string GetReplayAppFilename()
 void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename,
                      string &target)
 {
-  char path[2048] = {0};
-  readlink("/proc/self/exe", path, 511);
-  const char *mod = strrchr(path, '/');
+  string path;
+  GetExecutableFilename(path);
+
+  const char *mod = strrchr(path.c_str(), '/');
   if(mod == NULL)
     mod = "unknown";
   else

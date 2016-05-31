@@ -1905,6 +1905,22 @@ string ToStrHelper<false, int64_t>::Get(const int64_t &el)
   return tostrBuf;
 }
 
+// this is super ugly, but I don't see a way around it - on other
+// platforms size_t is typedef'd in such a way that the uint32_t or
+// uint64_t specialisation will kick in. On apple, we need a
+// specific size_t overload
+#if defined(RENDERDOC_PLATFORM_APPLE)
+template <>
+string ToStrHelper<false, size_t>::Get(const size_t &el)
+{
+  char tostrBuf[256] = {0};
+
+  StringFormat::snprintf(tostrBuf, 255, "%llu", (uint64_t)el);
+
+  return tostrBuf;
+}
+#endif
+
 template <>
 string ToStrHelper<false, uint64_t>::Get(const uint64_t &el)
 {

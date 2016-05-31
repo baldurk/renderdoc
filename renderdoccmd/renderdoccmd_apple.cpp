@@ -22,58 +22,38 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include <string>
 
-#include <pthread.h>
-#include <signal.h>
-#include "data/embedded_files.h"
+#include <locale.h>
+#include <string.h>
 
-#define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
+#include <unistd.h>
 
-#define OS_DEBUG_BREAK() raise(SIGTRAP)
+#include <replay/renderdoc_replay.h>
 
-#define GetEmbeddedResource(filename) \
-  string(&CONCAT(data_, filename)[0], \
-         &CONCAT(data_, filename)[0] + CONCAT(CONCAT(data_, filename), _len))
+using std::string;
 
-namespace OSUtility
+string GetUsername()
 {
-inline void ForceCrash()
-{
-  __builtin_trap();
-}
-inline void DebugBreak()
-{
-  raise(SIGTRAP);
-}
-inline bool DebuggerPresent()
-{
-  return true;
-}
-void WriteOutput(int channel, const char *str);
-};
+  char buf[256] = {0};
+  getlogin_r(buf, 255);
 
-namespace Threading
-{
-struct pthreadLockData
-{
-  pthread_mutex_t lock;
-  pthread_mutexattr_t attr;
-};
-typedef CriticalSectionTemplate<pthreadLockData> CriticalSection;
-};
-
-namespace Bits
-{
-inline uint32_t CountLeadingZeroes(uint32_t value)
-{
-  return __builtin_clz(value);
+  return string(buf, buf + strlen(buf));
 }
 
-#if RDC64BIT
-inline uint64_t CountLeadingZeroes(uint64_t value)
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 {
-  return __builtin_clzl(value);
 }
-#endif
-};
+
+int renderdoccmd(int argc, char **argv);
+
+int main(int argc, char *argv[])
+{
+  setlocale(LC_CTYPE, "");
+
+  // do any apple-specific setup here
+
+  // process any apple-specific arguments here
+
+  return renderdoccmd(argc, argv);
+}

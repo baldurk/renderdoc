@@ -22,58 +22,19 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include "os/os_specific.h"
 
-#include <pthread.h>
-#include <signal.h>
-#include "data/embedded_files.h"
+#include <time.h>
+#include <unistd.h>
 
-#define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
-
-#define OS_DEBUG_BREAK() raise(SIGTRAP)
-
-#define GetEmbeddedResource(filename) \
-  string(&CONCAT(data_, filename)[0], \
-         &CONCAT(data_, filename)[0] + CONCAT(CONCAT(data_, filename), _len))
-
-namespace OSUtility
+double Timing::GetTickFrequency()
 {
-inline void ForceCrash()
-{
-  __builtin_trap();
-}
-inline void DebugBreak()
-{
-  raise(SIGTRAP);
-}
-inline bool DebuggerPresent()
-{
-  return true;
-}
-void WriteOutput(int channel, const char *str);
-};
-
-namespace Threading
-{
-struct pthreadLockData
-{
-  pthread_mutex_t lock;
-  pthread_mutexattr_t attr;
-};
-typedef CriticalSectionTemplate<pthreadLockData> CriticalSection;
-};
-
-namespace Bits
-{
-inline uint32_t CountLeadingZeroes(uint32_t value)
-{
-  return __builtin_clz(value);
+  return 1000000.0;
 }
 
-#if RDC64BIT
-inline uint64_t CountLeadingZeroes(uint64_t value)
+uint64_t Timing::GetTick()
 {
-  return __builtin_clzl(value);
+  timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return uint64_t(ts.tv_sec) * 1000000000ULL + uint32_t(ts.tv_nsec & 0xffffffff);
 }
-#endif
-};

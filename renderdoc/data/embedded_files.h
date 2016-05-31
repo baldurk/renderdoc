@@ -25,9 +25,9 @@
 
 #pragma once
 
-#define DECLARE_EMBED(filename)                           \
-  extern char CONCAT(CONCAT(_binary_, filename), _start); \
-  extern char CONCAT(CONCAT(_binary_, filename), _end);
+#define DECLARE_EMBED(filename)                   \
+  extern unsigned char CONCAT(data_, filename)[]; \
+  extern int CONCAT(CONCAT(data_, filename), _len);
 
 DECLARE_EMBED(glsl_debuguniforms_h);
 DECLARE_EMBED(glsl_texsample_h);

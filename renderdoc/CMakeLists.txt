@@ -19,6 +19,11 @@ if(ANDROID)
         PRIVATE m
         PRIVATE dl
         PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+elseif(APPLE)
+    list(APPEND RDOC_LIBRARIES
+        PRIVATE m
+        PRIVATE dl
+        PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)
@@ -124,6 +129,25 @@ if(ANDROID)
         data/embedded_files.h
         os/posix/android/android_stringio.cpp
         os/posix/android/android_callstack.cpp
+        os/posix/android/android_process.cpp
+        os/posix/android/android_threading.cpp
+        os/posix/posix_hook.cpp
+        os/posix/posix_hook.h
+        os/posix/posix_network.cpp
+        os/posix/posix_process.cpp
+        os/posix/posix_stringio.cpp
+        os/posix/posix_threading.cpp
+        os/posix/posix_specific.h)
+    # posix_libentry must be the last so that library_loaded is called after
+    # static objects are constructed.
+    list(APPEND sources os/posix/posix_libentry.cpp)
+elseif(APPLE)
+    list(APPEND sources
+        data/embedded_files.h
+        os/posix/apple/apple_stringio.cpp
+        os/posix/apple/apple_callstack.cpp
+        os/posix/apple/apple_process.cpp
+        os/posix/apple/apple_threading.cpp
         os/posix/posix_hook.cpp
         os/posix/posix_hook.h
         os/posix/posix_network.cpp
@@ -139,6 +163,8 @@ elseif(UNIX)
         data/embedded_files.h
         os/posix/linux/linux_stringio.cpp
         os/posix/linux/linux_callstack.cpp
+        os/posix/linux/linux_process.cpp
+        os/posix/linux/linux_threading.cpp
         os/posix/posix_hook.cpp
         os/posix/posix_hook.h
         os/posix/posix_network.cpp
@@ -156,7 +182,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         PROPERTIES COMPILE_FLAGS "-Wno-extra -Wno-unused-function")
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX)
+if(CMAKE_COMPILER_IS_GNUCXX OR APPLE)
     set_source_files_properties(3rdparty/jpeg-compressor/jpgd.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-shift-negative-value")
 endif()
@@ -206,40 +232,19 @@ set(data
 set(data_objects)
 
 if(UNIX)
-    # this is fragile...
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-        set(bfdarch "i386")
-        set(bfdtarget "elf64-x86-64")
-    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "i686")
-        set(bfdarch "i386")
-        set(bfdtarget "elf32-i386")
-    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
-        set(bfdarch "aarch64")
-        set(bfdtarget "elf64-littleaarch64")
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
-        set(bfdarch "arm")
-        set(bfdtarget "elf32-littlearm")
-    else()
-        message(FATAL_ERROR "Unknown target architecture")
-    endif()
-
-    set(data_command ${CMAKE_OBJCOPY} -I binary -O ${bfdtarget} -B ${bfdarch})
-
     foreach(res ${data})
-        # strip "data/"
-        string(SUBSTRING ${res} 5 -1 in)
-        set(working_dir ${CMAKE_CURRENT_SOURCE_DIR}/data)
+        set(in ${res})
+        set(working_dir ${CMAKE_CURRENT_SOURCE_DIR})
+        set(out_src ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/data.src/${in}.c)
+        get_filename_component(out_src_dir ${out_src} DIRECTORY)
 
-        set(out ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/data.obj/${in}.o)
-        get_filename_component(out_dir ${out} DIRECTORY)
-
-        add_custom_command(OUTPUT ${out}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${out_dir}
-            COMMAND ${data_command} ${in} ${out}
+        add_custom_command(OUTPUT ${out_src}
             WORKING_DIRECTORY ${working_dir}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${out_src_dir}
+            COMMAND xxd -i ${in} ${out_src}
             DEPENDS ${res})
 
-        list(APPEND data_objects ${out})
+        list(APPEND data_objects ${out_src})
     endforeach()
 endif()
 

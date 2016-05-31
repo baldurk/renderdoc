@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <dlfcn.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -32,6 +33,10 @@
 #include "api/replay/capture_options.h"
 #include "os/os_specific.h"
 #include "serialise/string_utils.h"
+
+// defined in foo/foo_process.cpp
+char **GetCurrentEnvironment();
+int GetIdentPort(pid_t childPid);
 
 static vector<Process::EnvironmentModification> &GetEnvModifications()
 {
@@ -78,7 +83,8 @@ void Process::RegisterEnvironmentModification(Process::EnvironmentModification m
 void Process::ApplyEnvironmentModification()
 {
   // turn environment string to a UTF-8 map
-  map<string, string> currentEnv = EnvStringToEnvMap((const char **)environ);
+  char **currentEnvironment = GetCurrentEnvironment();
+  map<string, string> currentEnv = EnvStringToEnvMap((const char **)currentEnvironment);
   vector<EnvironmentModification> &modifications = GetEnvModifications();
 
   for(size_t i = 0; i < modifications.size(); i++)
@@ -297,7 +303,8 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
     return 0;
   }
 
-  return (uint32_t)RunProcess(app, workingDir, cmdLine, environ);
+  char **currentEnvironment = GetCurrentEnvironment();
+  return (uint32_t)RunProcess(app, workingDir, cmdLine, currentEnvironment);
 }
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
@@ -311,7 +318,8 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   }
 
   // turn environment string to a UTF-8 map
-  map<string, string> env = EnvStringToEnvMap((const char **)environ);
+  char **currentEnvironment = GetCurrentEnvironment();
+  map<string, string> env = EnvStringToEnvMap((const char **)currentEnvironment);
   vector<EnvironmentModification> &modifications = GetEnvModifications();
 
   if(logfile == NULL)
@@ -400,46 +408,10 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 
   if(childPid != (pid_t)0)
   {
-    // wait for child to have /proc/<pid> and read out tcp socket
+    // wait for child to have opened its socket
     usleep(1000);
 
-    string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
-
-    // try for a little while for the /proc entry to appear
-    for(int retry = 0; retry < 10; retry++)
-    {
-      // back-off for each retry
-      usleep(1000 + 500 * retry);
-
-      FILE *f = FileIO::fopen(procfile.c_str(), "r");
-
-      if(f == NULL)
-      {
-        // try again in a bit
-        continue;
-      }
-
-      // read through the proc file to check for an open listen socket
-      while(ret == 0 && !feof(f))
-      {
-        const size_t sz = 512;
-        char line[sz];
-        line[sz - 1] = 0;
-        fgets(line, sz - 1, f);
-
-        int socketnum = 0, hexip = 0, hexport = 0;
-        int num = sscanf(line, " %d: %x:%x", &socketnum, &hexip, &hexport);
-
-        // find open listen socket on 0.0.0.0:port
-        if(num == 3 && hexip == 0 && hexport >= RenderDoc_FirstCaptureNetworkPort &&
-           hexport <= RenderDoc_LastCaptureNetworkPort)
-        {
-          ret = hexport;
-        }
-      }
-
-      FileIO::fclose(f);
-    }
+    ret = GetIdentPort(childPid);
 
     if(waitForExit)
     {

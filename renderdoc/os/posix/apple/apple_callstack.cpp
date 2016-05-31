@@ -24,58 +24,77 @@
 
 #include "os/os_specific.h"
 
-typedef int Display;
+class AndroidCallstack : public Callstack::Stackwalk
+{
+public:
+  AndroidCallstack()
+  {
+    RDCEraseEl(addrs);
+    numLevels = 0;
+  }
+  AndroidCallstack(uint64_t *calls, size_t num) { Set(calls, num); }
+  ~AndroidCallstack() {}
+  void Set(uint64_t *calls, size_t num)
+  {
+    numLevels = num;
+    for(int i = 0; i < numLevels; i++)
+      addrs[i] = calls[i];
+  }
 
-namespace Keyboard
+  size_t NumLevels() const { return 0; }
+  const uint64_t *GetAddrs() const { return addrs; }
+private:
+  AndroidCallstack(const Callstack::Stackwalk &other);
+
+  uint64_t addrs[128];
+  int numLevels;
+};
+
+namespace Callstack
 {
 void Init()
 {
 }
 
-bool PlatformHasKeyInput()
+Stackwalk *Collect()
 {
-  return false;
+  return new AndroidCallstack();
 }
 
-void CloneDisplay(Display *dpy)
+Stackwalk *Create()
 {
+  return new AndroidCallstack(NULL, 0);
 }
 
-void AddInputWindow(void *wnd)
+bool GetLoadedModules(char *&buf, size_t &size)
 {
+  if(buf)
+  {
+    buf[0] = 'A';
+    buf[1] = 'P';
+    buf[2] = 'P';
+    buf[3] = 'L';
+    buf[4] = 'C';
+    buf[5] = 'A';
+    buf[6] = 'L';
+    buf[7] = 'L';
+  }
+
+  size += 8;
+
+  return true;
 }
 
-void RemoveInputWindow(void *wnd)
+class AndroidResolver : public Callstack::StackResolver
 {
-}
-
-bool GetKeyState(int key)
-{
-  return false;
-}
-}
-
-namespace FileIO
-{
-const char *GetTempRootPath()
-{
-  return "/sdcard";
-}
-
-void GetExecutableFilename(string &selfName)
-{
-  char path[512] = {0};
-  readlink("/proc/self/exe", path, 511);
-
-  selfName = string(path);
-}
+public:
+  Callstack::AddressDetails GetAddr(uint64_t addr) { return Callstack::AddressDetails(); }
 };
 
-namespace StringFormat
+StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths,
+                            volatile bool *killSignal)
 {
-string Wide2UTF8(const std::wstring &s)
-{
-  RDCFATAL("Converting wide strings to UTF-8 is not supported on Android!");
-  return "";
+  RDCERR("Callstack resolving not supported on Apple.");
+  return new AndroidResolver();
 }
 };

@@ -22,58 +22,62 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include <dlfcn.h>
+#include <stdio.h>
 
-#include <pthread.h>
-#include <signal.h>
-#include "data/embedded_files.h"
+#include "hooks/hooks.h"
 
-#define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
+#include "driver/gl/gl_common.h"
+#include "driver/gl/gl_driver.h"
+#include "driver/gl/gl_hookset.h"
 
-#define OS_DEBUG_BREAK() raise(SIGTRAP)
+#include "driver/gl/gl_hookset_defs.h"
 
-#define GetEmbeddedResource(filename) \
-  string(&CONCAT(data_, filename)[0], \
-         &CONCAT(data_, filename)[0] + CONCAT(CONCAT(data_, filename), _len))
-
-namespace OSUtility
+class OpenGLHook : LibraryHook
 {
-inline void ForceCrash()
-{
-  __builtin_trap();
-}
-inline void DebugBreak()
-{
-  raise(SIGTRAP);
-}
-inline bool DebuggerPresent()
-{
-  return true;
-}
-void WriteOutput(int channel, const char *str);
+public:
+  OpenGLHook() {}
+  ~OpenGLHook() {}
+  bool CreateHooks(const char *libName) { return false; }
+  void EnableHooks(const char *libName, bool enable) {}
+  void OptionsUpdated(const char *libName) {}
 };
 
-namespace Threading
+const GLHookSet &GetRealGLFunctions()
 {
-struct pthreadLockData
-{
-  pthread_mutex_t lock;
-  pthread_mutexattr_t attr;
-};
-typedef CriticalSectionTemplate<pthreadLockData> CriticalSection;
-};
-
-namespace Bits
-{
-inline uint32_t CountLeadingZeroes(uint32_t value)
-{
-  return __builtin_clz(value);
+  static GLHookSet dummyHookset = {};
+  RDCUNIMPLEMENTED("GetRealGLFunctions");
+  return dummyHookset;
 }
 
-#if RDC64BIT
-inline uint64_t CountLeadingZeroes(uint64_t value)
+void MakeContextCurrent(GLWindowingData data)
 {
-  return __builtin_clzl(value);
+  RDCUNIMPLEMENTED("MakeContextCurrent");
 }
-#endif
-};
+
+GLWindowingData MakeContext(GLWindowingData share)
+{
+  RDCUNIMPLEMENTED("MakeContext");
+  return GLWindowingData();
+}
+
+void DeleteContext(GLWindowingData context)
+{
+  RDCUNIMPLEMENTED("DeleteContext");
+}
+
+bool immediateBegin(GLenum mode, float width, float height)
+{
+  RDCUNIMPLEMENTED("immediateBegin");
+  return false;
+}
+
+void immediateVert(float x, float y, float u, float v)
+{
+  RDCUNIMPLEMENTED("immediateVert");
+}
+
+void immediateEnd()
+{
+  RDCUNIMPLEMENTED("immediateEnd");
+}

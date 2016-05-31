@@ -22,58 +22,58 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include <unistd.h>
+#include "os/os_specific.h"
 
-#include <pthread.h>
-#include <signal.h>
-#include "data/embedded_files.h"
+extern char **environ;
 
-#define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
-
-#define OS_DEBUG_BREAK() raise(SIGTRAP)
-
-#define GetEmbeddedResource(filename) \
-  string(&CONCAT(data_, filename)[0], \
-         &CONCAT(data_, filename)[0] + CONCAT(CONCAT(data_, filename), _len))
-
-namespace OSUtility
+char **GetCurrentEnvironment()
 {
-inline void ForceCrash()
-{
-  __builtin_trap();
-}
-inline void DebugBreak()
-{
-  raise(SIGTRAP);
-}
-inline bool DebuggerPresent()
-{
-  return true;
-}
-void WriteOutput(int channel, const char *str);
-};
-
-namespace Threading
-{
-struct pthreadLockData
-{
-  pthread_mutex_t lock;
-  pthread_mutexattr_t attr;
-};
-typedef CriticalSectionTemplate<pthreadLockData> CriticalSection;
-};
-
-namespace Bits
-{
-inline uint32_t CountLeadingZeroes(uint32_t value)
-{
-  return __builtin_clz(value);
+  return environ;
 }
 
-#if RDC64BIT
-inline uint64_t CountLeadingZeroes(uint64_t value)
+int GetIdentPort(pid_t childPid)
 {
-  return __builtin_clzl(value);
+  int ret = 0;
+
+  string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
+
+  // try for a little while for the /proc entry to appear
+  for(int retry = 0; retry < 10; retry++)
+  {
+    // back-off for each retry
+    usleep(1000 + 500 * retry);
+
+    FILE *f = FileIO::fopen(procfile.c_str(), "r");
+
+    if(f == NULL)
+    {
+      // try again in a bit
+      continue;
+    }
+
+    // read through the proc file to check for an open listen socket
+    while(ret == 0 && !feof(f))
+    {
+      const size_t sz = 512;
+      char line[sz];
+      line[sz - 1] = 0;
+      fgets(line, sz - 1, f);
+
+      int socketnum = 0, hexip = 0, hexport = 0;
+      int num = sscanf(line, " %d: %x:%x", &socketnum, &hexip, &hexport);
+
+      // find open listen socket on 0.0.0.0:port
+      if(num == 3 && hexip == 0 && hexport >= RenderDoc_FirstCaptureNetworkPort &&
+         hexport <= RenderDoc_LastCaptureNetworkPort)
+      {
+        ret = hexport;
+        break;
+      }
+    }
+
+    FileIO::fclose(f);
+  }
+
+  return ret;
 }
-#endif
-};

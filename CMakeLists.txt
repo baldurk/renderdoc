@@ -45,6 +45,8 @@ add_definitions(-DRENDERDOC_PLATFORM_POSIX)
 
 if(ANDROID)
     add_definitions(-DRENDERDOC_PLATFORM_ANDROID)
+elseif(APPLE)
+    add_definitions(-DRENDERDOC_PLATFORM_APPLE)
 elseif(UNIX)
     add_definitions(-DRENDERDOC_PLATFORM_LINUX)
 endif()

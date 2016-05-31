@@ -22,58 +22,21 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include "os/os_specific.h"
 
-#include <pthread.h>
-#include <signal.h>
-#include "data/embedded_files.h"
+#include <mach/mach_time.h>
 
-#define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
+double Timing::GetTickFrequency()
+{
+  mach_timebase_info_data_t timeInfo;
+  mach_timebase_info(&timeInfo);
 
-#define OS_DEBUG_BREAK() raise(SIGTRAP)
-
-#define GetEmbeddedResource(filename) \
-  string(&CONCAT(data_, filename)[0], \
-         &CONCAT(data_, filename)[0] + CONCAT(CONCAT(data_, filename), _len))
-
-namespace OSUtility
-{
-inline void ForceCrash()
-{
-  __builtin_trap();
-}
-inline void DebugBreak()
-{
-  raise(SIGTRAP);
-}
-inline bool DebuggerPresent()
-{
-  return true;
-}
-void WriteOutput(int channel, const char *str);
-};
-
-namespace Threading
-{
-struct pthreadLockData
-{
-  pthread_mutex_t lock;
-  pthread_mutexattr_t attr;
-};
-typedef CriticalSectionTemplate<pthreadLockData> CriticalSection;
-};
-
-namespace Bits
-{
-inline uint32_t CountLeadingZeroes(uint32_t value)
-{
-  return __builtin_clz(value);
+  uint64_t numer = timeInfo.numer;
+  uint64_t denom = timeInfo.denom;
+  return (double)numer / (double)denom;
 }
 
-#if RDC64BIT
-inline uint64_t CountLeadingZeroes(uint64_t value)
+uint64_t Timing::GetTick()
 {
-  return __builtin_clzl(value);
+  return mach_absolute_time();
 }
-#endif
-};

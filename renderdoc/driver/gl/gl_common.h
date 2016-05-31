@@ -75,6 +75,21 @@ struct GLWindowingData
   GLXDrawable wnd;
 };
 
+#elif defined(RENDERDOC_PLATFORM_APPLE)
+
+struct GLWindowingData
+{
+  GLWindowingData()
+  {
+    ctx = NULL;
+    wnd = 0;
+  }
+
+  void SetCtx(void *c) { ctx = (void *)c; }
+  void *ctx;
+  void *wnd;
+};
+
 #elif defined(RENDERDOC_PLATFORM_ANDROID)
 
 #include "EGL/egl.h"

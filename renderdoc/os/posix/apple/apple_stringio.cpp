@@ -22,58 +22,89 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include <mach-o/dyld.h>
+#include <unistd.h>
+#include "os/os_specific.h"
 
-#include <pthread.h>
-#include <signal.h>
-#include "data/embedded_files.h"
+typedef int Display;
 
-#define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
-
-#define OS_DEBUG_BREAK() raise(SIGTRAP)
-
-#define GetEmbeddedResource(filename) \
-  string(&CONCAT(data_, filename)[0], \
-         &CONCAT(data_, filename)[0] + CONCAT(CONCAT(data_, filename), _len))
-
-namespace OSUtility
+namespace Keyboard
 {
-inline void ForceCrash()
+void Init()
 {
-  __builtin_trap();
 }
-inline void DebugBreak()
+
+bool PlatformHasKeyInput()
 {
-  raise(SIGTRAP);
+  return false;
 }
-inline bool DebuggerPresent()
+
+void CloneDisplay(Display *dpy)
 {
-  return true;
 }
-void WriteOutput(int channel, const char *str);
+
+void AddInputWindow(void *wnd)
+{
+}
+
+void RemoveInputWindow(void *wnd)
+{
+}
+
+bool GetKeyState(int key)
+{
+  return false;
+}
+}
+
+namespace FileIO
+{
+const char *GetTempRootPath()
+{
+  return "/tmp";
+}
+
+void GetExecutableFilename(string &selfName)
+{
+  char path[512] = {0};
+
+  uint32_t pathSize = (uint32_t)sizeof(path);
+  if(_NSGetExecutablePath(path, &pathSize) == 0)
+  {
+    selfName = string(path);
+  }
+  else
+  {
+    pathSize++;
+    char *allocPath = new char[pathSize];
+    memset(allocPath, 0, pathSize);
+    if(_NSGetExecutablePath(path, &pathSize) == 0)
+    {
+      selfName = string(path);
+    }
+    else
+    {
+      selfName = "/unknown/unknown";
+      RDCERR("Can't get executable name");
+      delete[] allocPath;
+      return;    // don't try and readlink this
+    }
+    delete[] allocPath;
+  }
+
+  memset(path, 0, sizeof(path));
+  readlink(selfName.c_str(), path, 511);
+
+  if(path[0] != 0)
+    selfName = string(path);
+}
 };
 
-namespace Threading
+namespace StringFormat
 {
-struct pthreadLockData
+string Wide2UTF8(const std::wstring &s)
 {
-  pthread_mutex_t lock;
-  pthread_mutexattr_t attr;
-};
-typedef CriticalSectionTemplate<pthreadLockData> CriticalSection;
-};
-
-namespace Bits
-{
-inline uint32_t CountLeadingZeroes(uint32_t value)
-{
-  return __builtin_clz(value);
+  RDCFATAL("Converting wide strings to UTF-8 is not supported on Apple!");
+  return "";
 }
-
-#if RDC64BIT
-inline uint64_t CountLeadingZeroes(uint64_t value)
-{
-  return __builtin_clzl(value);
-}
-#endif
 };
