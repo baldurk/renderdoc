@@ -21,6 +21,8 @@ You might find these visualisers useful, going under your [Visualizer] section i
 Linux
 --------------
 
+Currently linux supports gcc-4.8 and clang-3.5, as these are the compilers used in CI builds. Once the linux port is more mature, more compilers can be supported.
+
 Just 'make' in the root should do the trick. This build system is work in progress as the linux port is very early, so it may change! Currently it uses cmake, running the default Makefile will run cmake inside a 'build' folder then build from there.
 
 Configuration is as usual for cmake, you can override the compiler with environment variables CC and CXX, and there are some options you can toggle in the root CMakeLists files.
