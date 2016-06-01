@@ -732,6 +732,7 @@ void Serialiser::Serialise(
   Serialise("", el.view);
   Serialise("", el.res);
   Serialise("", el.sampler);
+  Serialise("", el.immutableSampler);
 
   Serialise("", el.SamplerName);
   Serialise("", el.customSamplerName);
@@ -758,7 +759,7 @@ void Serialiser::Serialise(
   Serialise("", el.border);
   Serialise("", el.unnormalized);
 
-  SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement, 240);
+  SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement, 248);
 };
 
 template <>

@@ -199,6 +199,19 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(VkDevice device,
       record->descInfo = new DescriptorSetData();
       record->descInfo->layout = new DescSetLayout();
       record->descInfo->layout->Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
+
+      for(uint32_t i = 0; i < pCreateInfo->bindingCount; i++)
+      {
+        bool usesSampler =
+            pCreateInfo->pBindings[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+            pCreateInfo->pBindings[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+        if(usesSampler && pCreateInfo->pBindings[i].pImmutableSamplers != NULL)
+        {
+          for(uint32_t d = 0; d < pCreateInfo->pBindings[i].descriptorCount; d++)
+            record->AddParent(GetRecord(pCreateInfo->pBindings[i].pImmutableSamplers[d]));
+        }
+      }
     }
     else
     {

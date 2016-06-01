@@ -3415,10 +3415,15 @@ void VulkanReplay::SavePipelineState()
                  layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
               {
                 if(layoutBind.immutableSampler)
+                {
                   dst.bindings[b].binds[a].sampler = layoutBind.immutableSampler[a];
+                  dst.bindings[b].binds[a].immutableSampler = true;
+                }
                 else if(info[a].imageInfo.sampler != VK_NULL_HANDLE)
+                {
                   dst.bindings[b].binds[a].sampler =
                       rm->GetNonDispWrapper(info[a].imageInfo.sampler)->id;
+                }
 
                 if(dst.bindings[b].binds[a].sampler != ResourceId())
                 {

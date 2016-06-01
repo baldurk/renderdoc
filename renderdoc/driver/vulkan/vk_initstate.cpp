@@ -1443,7 +1443,9 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
               for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
               {
                 dstImage[d] = src[d].imageInfo;
-                valid &= (src[d].imageInfo.sampler != VK_NULL_HANDLE);
+                valid &= (src[d].imageInfo.sampler != VK_NULL_HANDLE) ||
+                         (layout.bindings[j].immutableSampler &&
+                          layout.bindings[j].immutableSampler[d] != ResourceId());
                 valid &= (src[d].imageInfo.imageView != VK_NULL_HANDLE);
               }
               writes[i].pImageInfo = dstImage;

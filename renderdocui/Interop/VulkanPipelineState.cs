@@ -55,6 +55,7 @@ namespace renderdoc
                         public ResourceId view;
                         public ResourceId res;
                         public ResourceId sampler;
+                        public bool immutableSampler;
 
                         [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                         public string SamplerName;

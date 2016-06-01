@@ -46,7 +46,8 @@ struct VulkanPipelineState
         struct BindingElement
         {
           BindingElement()
-              : customSamplerName(false),
+              : immutableSampler(false),
+                customSamplerName(false),
                 baseMip(0),
                 baseLayer(0),
                 offset(0),
@@ -64,6 +65,7 @@ struct VulkanPipelineState
           ResourceId view;    // bufferview, imageview, attachmentview
           ResourceId res;     // buffer, image, attachment
           ResourceId sampler;
+          bool32 immutableSampler;
 
           rdctype::str SamplerName;
           bool32 customSamplerName;
