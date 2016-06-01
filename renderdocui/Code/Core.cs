@@ -362,6 +362,7 @@ namespace renderdocui.Code
                 
                 mark.eventID = draws[end].eventID;
                 mark.drawcallID = draws[end].drawcallID;
+                mark.markerColour = new float[] { 0.0f, 0.0f, 0.0f, 0.0f };
 
                 mark.context = draws[end].context;
                 mark.flags = DrawcallFlags.PushMarker;
