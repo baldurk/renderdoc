@@ -1700,7 +1700,30 @@ namespace renderdocui.Windows.PipelineState
                     }
                 }
 
-                format += "{" + Environment.NewLine + FormatMembers(1, "", shaderRes.variableType.members.Last().type.members) + "}";
+                if (shaderRes.variableType.members.Length > 0)
+                {
+                    format += "{" + Environment.NewLine + FormatMembers(1, "", shaderRes.variableType.members.Last().type.members) + "}";
+                }
+                else
+                {
+                    var desc = shaderRes.variableType.descriptor;
+
+                    format = "";
+                    if (desc.rowMajorStorage)
+                        format += "row_major ";
+
+                    format += desc.type.Str();
+                    if (desc.rows > 1 && desc.cols > 1)
+                        format += String.Format("{0}x{1}", desc.rows, desc.cols);
+                    else if (desc.cols > 1)
+                        format += desc.cols;
+
+                    if (desc.name.Length > 0)
+                        format += " " + desc.name;
+
+                    if (desc.elements > 1)
+                        format += String.Format("[{0}]", desc.elements);
+                }
 
                 if (buf.ID != ResourceId.Null)
                 {
