@@ -366,6 +366,20 @@ void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCal
   m_Instance = VK_NULL_HANDLE;
 }
 
+static void GetVulkanDriverVersion(const VkPhysicalDeviceProperties &physProps, uint32_t &major,
+                                   uint32_t &minor)
+{
+  major = VK_VERSION_MAJOR(physProps.driverVersion);
+  minor = VK_VERSION_MINOR(physProps.driverVersion);
+
+  // nvidia uses its own version packing
+  if(physProps.vendorID == 0x10DE)
+  {
+    major = ((uint32_t)(physProps.driverVersion) >> 22);
+    minor = ((uint32_t)(physProps.driverVersion) >> 14) & 0xff;
+  }
+}
+
 bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerialiser,
                                                          VkInstance instance,
                                                          uint32_t *pPhysicalDeviceCount,
@@ -451,16 +465,21 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
     memcpy(storedMap, memIdxMap, sizeof(memIdxMap));
     m_MemIdxMaps[physIndex] = storedMap;
 
+    uint32_t major = 0, minor = 0;
+    GetVulkanDriverVersion(physProps, major, minor);
+
     RDCLOG("Captured log describes physical device %u:", physIndex);
-    RDCLOG("   - %s (ver %x) - %04x:%04x", physProps.deviceName, physProps.driverVersion,
+    RDCLOG("   - %s (ver %u.%u) - %04x:%04x", physProps.deviceName, major, minor,
            physProps.vendorID, physProps.deviceID);
 
     ObjDisp(pd)->GetPhysicalDeviceProperties(Unwrap(pd), &physProps);
     ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &memProps);
     ObjDisp(pd)->GetPhysicalDeviceFeatures(Unwrap(pd), &physFeatures);
 
+    GetVulkanDriverVersion(physProps, major, minor);
+
     RDCLOG("Replaying on physical device %u:", physIndex);
-    RDCLOG("   - %s (ver %x) - %04x:%04x", physProps.deviceName, physProps.driverVersion,
+    RDCLOG("   - %s (ver %u.%u) - %04x:%04x", physProps.deviceName, major, minor,
            physProps.vendorID, physProps.deviceID);
   }
 
