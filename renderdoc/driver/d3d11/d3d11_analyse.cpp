@@ -2819,6 +2819,12 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
       m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture3D, d), wrapTex->GetReal());
     }
   }
+  else
+  {
+    RDCERR("Trying to get texture data for unknown ID %llu!", id);
+    dataSize = 0;
+    return new byte[0];
+  }
 
   MapIntercept intercept;
 

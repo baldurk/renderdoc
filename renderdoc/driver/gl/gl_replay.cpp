@@ -2211,6 +2211,13 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, 
   GLsizei arraysize = 1;
   GLint samples = texDetails.samples;
 
+  if(texType == eGL_NONE)
+  {
+    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
+    dataSize = 0;
+    return new byte[0];
+  }
+
   if(texType == eGL_TEXTURE_BUFFER)
   {
     GLuint bufName = 0;

@@ -4346,6 +4346,13 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 {
   bool wasms = false;
 
+  if(m_pDriver->m_CreationInfo.m_Image.find(tex) == m_pDriver->m_CreationInfo.m_Image.end())
+  {
+    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
+    dataSize = 0;
+    return new byte[0];
+  }
+
   VulkanCreationInfo::Image &imInfo = m_pDriver->m_CreationInfo.m_Image[tex];
 
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[tex];

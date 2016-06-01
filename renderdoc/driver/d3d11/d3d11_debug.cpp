@@ -2078,7 +2078,10 @@ void D3D11DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t
   auto it = WrappedID3D11Buffer::m_BufferList.find(buff);
 
   if(it == WrappedID3D11Buffer::m_BufferList.end())
+  {
+    RDCERR("Getting buffer data for unknown buffer %llu!", buff);
     return;
+  }
 
   ID3D11Buffer *buffer = it->second.m_Buffer;
 

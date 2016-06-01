@@ -2170,6 +2170,12 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 
   VkBuffer srcBuf = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff);
 
+  if(srcBuf == VK_NULL_HANDLE)
+  {
+    RDCERR("Getting buffer data for unknown buffer %llu!", buff);
+    return;
+  }
+
   if(len == 0)
   {
     len = m_pDriver->m_CreationInfo.m_Buffer[buff].size - offset;

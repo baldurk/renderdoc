@@ -453,8 +453,16 @@ bool ReplayRenderer::GetBufferData(ResourceId buff, uint64_t offset, uint64_t le
   if(data == NULL)
     return false;
 
+  ResourceId liveId = m_pDevice->GetLiveID(buff);
+
+  if(liveId == ResourceId())
+  {
+    RDCERR("Couldn't get Live ID for %llu getting buffer data", buff);
+    return false;
+  }
+
   vector<byte> retData;
-  m_pDevice->GetBufferData(m_pDevice->GetLiveID(buff), offset, len, retData);
+  m_pDevice->GetBufferData(liveId, offset, len, retData);
 
   create_array_init(*data, retData.size(), !retData.empty() ? &retData[0] : NULL);
 
@@ -467,9 +475,16 @@ bool ReplayRenderer::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t 
   if(data == NULL)
     return false;
 
+  ResourceId liveId = m_pDevice->GetLiveID(tex);
+
+  if(liveId == ResourceId())
+  {
+    RDCERR("Couldn't get Live ID for %llu getting texture data", tex);
+    return false;
+  }
+
   size_t sz;
-  byte *bytes = m_pDevice->GetTextureData(m_pDevice->GetLiveID(tex), arrayIdx, mip, false, false,
-                                          0.0f, 0.0f, sz);
+  byte *bytes = m_pDevice->GetTextureData(liveId, arrayIdx, mip, false, false, 0.0f, 0.0f, sz);
 
   create_array_init(*data, sz, bytes);
 

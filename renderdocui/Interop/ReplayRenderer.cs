@@ -811,7 +811,7 @@ namespace renderdoc
 
             bool success = ReplayRenderer_GetBufferData(m_Real, buff, offset, len, mem);
 
-            byte[] ret = null;
+            byte[] ret = new byte[] { };
 
             if (success)
                 ret = (byte[])CustomMarshal.GetTemplatedArray(mem, typeof(byte), true);
@@ -827,7 +827,7 @@ namespace renderdoc
 
             bool success = ReplayRenderer_GetTextureData(m_Real, tex, arrayIdx, mip, mem);
 
-            byte[] ret = null;
+            byte[] ret = new byte[] { };
 
             if (success)
                 ret = (byte[])CustomMarshal.GetTemplatedArray(mem, typeof(byte), true);
