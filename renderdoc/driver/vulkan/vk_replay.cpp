@@ -2705,8 +2705,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
   // then it should be wrapped
   VkSemaphore sem;
   VkPipelineStageFlags stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-  VkSemaphoreCreateInfo semInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, NULL,
-                                   VK_FENCE_CREATE_SIGNALED_BIT};
+  VkSemaphoreCreateInfo semInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, NULL, 0};
 
   VkResult vkr = vt->CreateSemaphore(Unwrap(dev), &semInfo, NULL, &sem);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
