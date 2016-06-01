@@ -69,29 +69,25 @@ namespace renderdocui.Windows.Dialogs
                 
                 var updateThread = Helpers.NewThread(new ThreadStart(() =>
                 {
-                    var idents = renderdoc.StaticExports.EnumerateRemoteConnections("localhost");
-
                     string runningPrograms = "";
                     int running = 0;
-                    foreach (var i in idents)
+
+                    renderdoc.StaticExports.EnumerateRemoteConnections("localhost", (UInt32 i) =>
                     {
-                        if (i != 0)
-                        {
-                            running++;
+                        running++;
 
-                            var conn = renderdoc.StaticExports.CreateRemoteAccessConnection("localhost", i, "updater", false);
+                        var conn = renderdoc.StaticExports.CreateRemoteAccessConnection("localhost", i, "updater", false);
 
-                            if (runningPrograms != "")
-                                runningPrograms += "\n";
+                        if (runningPrograms != "")
+                            runningPrograms += "\n";
 
-                            if (conn.API != "")
-                                runningPrograms += String.Format("{0} running {1}", conn.Target, conn.API);
-                            else
-                                runningPrograms += conn.Target;
+                        if (conn.API != "")
+                            runningPrograms += String.Format("{0} running {1}", conn.Target, conn.API);
+                        else
+                            runningPrograms += conn.Target;
 
-                            conn.Shutdown();
-                        }
-                    }
+                        conn.Shutdown();
+                    });
 
                     if (running > 0)
                     {

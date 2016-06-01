@@ -51,7 +51,7 @@ namespace renderdoc
         private static extern IntPtr RENDERDOC_CreateRemoteAccessConnection(IntPtr host, UInt32 ident, IntPtr clientName, bool forceConnection);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt32 RENDERDOC_EnumerateRemoteConnections(IntPtr host, UInt32[] idents);
+        private static extern UInt32 RENDERDOC_EnumerateRemoteConnections(IntPtr host, UInt32 nextIdent);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern ReplayCreateStatus RENDERDOC_CreateRemoteReplayConnection(IntPtr host, ref IntPtr outrend);
@@ -178,25 +178,28 @@ namespace renderdoc
             return new RemoteAccess(rendPtr);
         }
 
-        public static UInt32[] EnumerateRemoteConnections(string host)
+        public delegate void RemoteConnectionFound(UInt32 ident);
+
+        public static void EnumerateRemoteConnections(string host, RemoteConnectionFound callback)
         {
             IntPtr host_mem = CustomMarshal.MakeUTF8String(host);
 
-            UInt32 numIdents = RENDERDOC_EnumerateRemoteConnections(host_mem, null);
+            UInt32 nextIdent = 0;
 
-            if (numIdents == 0)
+            while (true)
             {
-                CustomMarshal.Free(host_mem);
-                return null;
+                // just a sanity check to make sure we don't hit some unexpected case
+                UInt32 prevIdent = nextIdent;
+
+                nextIdent = RENDERDOC_EnumerateRemoteConnections(host_mem, nextIdent);
+
+                if (nextIdent == UInt32.MaxValue || prevIdent >= nextIdent)
+                    break;
+
+                callback(nextIdent);
             }
 
-            UInt32[] ret = new UInt32[numIdents];
-
-            RENDERDOC_EnumerateRemoteConnections(host_mem, ret);
-
             CustomMarshal.Free(host_mem);
-
-            return ret;
         }
 
         public static RemoteRenderer CreateRemoteReplayConnection(string host)

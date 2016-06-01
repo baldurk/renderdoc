@@ -420,32 +420,33 @@ extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz)
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnections(const char *host,
-                                                                                    uint32_t *idents)
+                                                                                    uint32_t nextIdent)
 {
-  if(idents == NULL)
-    return RenderDoc_LastCaptureNetworkPort - RenderDoc_FirstCaptureNetworkPort + 1;
-
   string s = "localhost";
   if(host != NULL && host[0] != '\0')
     s = host;
 
-  uint32_t numIdents = 0;
+  // initial case is we're called with 0, start with the first port.
+  // otherwise we're called with the last successful ident, so increment
+  // before continuing to enumerate.
+  if(nextIdent == 0)
+    nextIdent = RenderDoc_FirstCaptureNetworkPort;
+  else
+    nextIdent++;
 
-  for(uint16_t ident = RenderDoc_FirstCaptureNetworkPort; ident <= RenderDoc_LastCaptureNetworkPort;
-      ident++)
+  for(; nextIdent <= RenderDoc_LastCaptureNetworkPort; nextIdent++)
   {
-    Network::Socket *sock = Network::CreateClientSocket(s.c_str(), ident, 250);
+    Network::Socket *sock = Network::CreateClientSocket(s.c_str(), (uint16_t)nextIdent, 250);
 
     if(sock)
     {
-      *idents = (uint32_t)ident;
-      idents++;
-      numIdents++;
       SAFE_DELETE(sock);
+      return nextIdent;
     }
   }
 
-  return numIdents;
+  // tried all idents remaining and found nothing
+  return ~0U;
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SpawnReplayHost(volatile bool32 *killReplay)

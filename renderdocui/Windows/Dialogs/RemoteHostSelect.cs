@@ -96,18 +96,6 @@ namespace renderdocui.Windows.Dialogs
             th.Start(node);
         }
 
-        private class AvailableRemote
-        {
-            public AvailableRemote(string t, string a, string b)
-            {
-                Target = t;
-                API = a;
-                Busy = b;
-            }
-
-            public string Target, API, Busy;
-        }
-
         private static int lookupsInProgress = 0;
         private static Mutex lookupMutex = new Mutex();
 
@@ -131,31 +119,34 @@ namespace renderdocui.Windows.Dialogs
 
             string hostname = node["Hostname"] as string;
 
-            var idents = StaticExports.EnumerateRemoteConnections(hostname);
-
-            var remotes = new Dictionary<UInt32, AvailableRemote>();
-
             string username = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
 
-            foreach (var i in idents)
-            {
-                if (i != 0)
+            StaticExports.EnumerateRemoteConnections(hostname, (UInt32 i) => {
+                try
                 {
-                    try
+                    var conn = StaticExports.CreateRemoteAccessConnection(hostname, i, username, false);
+
+                    if (node.OwnerView.Visible)
                     {
-                        var conn = StaticExports.CreateRemoteAccessConnection(hostname, i, username, false);
+                        string target = conn.Target;
+                        string api = conn.API;
+                        string busy = conn.BusyClient;
 
-                        var data = new AvailableRemote(conn.Target, conn.API, conn.BusyClient);
-
-                        conn.Shutdown();
-
-                        remotes.Add(i, data);
+                        node.OwnerView.BeginInvoke((MethodInvoker)delegate
+                        {
+                            node.OwnerView.BeginUpdate();
+                            node.Nodes.Add(new TreelistView.Node(new object[] { target, api, busy })).Tag = new RemoteConnect(hostname, i);
+                            node.OwnerView.EndUpdate();
+                            node.Expand();
+                        });
                     }
-                    catch (ApplicationException)
-                    {
-                    }
+
+                    conn.Shutdown();
                 }
-            }
+                catch (ApplicationException)
+                {
+                }
+            });
 
             if (node.OwnerView.Visible)
             {
@@ -164,11 +155,6 @@ namespace renderdocui.Windows.Dialogs
                     node.OwnerView.BeginUpdate();
                     node.Italic = false;
                     node.Image = null;
-                    foreach (var kv in remotes)
-                    {
-                        node.Nodes.Add(new TreelistView.Node(new object[] { kv.Value.Target, kv.Value.API, kv.Value.Busy })).Tag = new RemoteConnect(hostname, kv.Key);
-                        node.Bold = true;
-                    }
                     node.OwnerView.EndUpdate();
                 });
             }

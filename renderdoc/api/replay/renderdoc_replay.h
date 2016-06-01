@@ -507,8 +507,8 @@ RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, ReplayRende
 
 extern "C" RENDERDOC_API RemoteAccess *RENDERDOC_CC RENDERDOC_CreateRemoteAccessConnection(
     const char *host, uint32_t ident, const char *clientName, bool32 forceConnection);
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnections(const char *host,
-                                                                                    uint32_t *idents);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
+RENDERDOC_EnumerateRemoteConnections(const char *host, uint32_t nextIdent);
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
 RENDERDOC_CreateRemoteReplayConnection(const char *host, RemoteRenderer **rend);
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SpawnReplayHost(volatile bool32 *killReplay);
