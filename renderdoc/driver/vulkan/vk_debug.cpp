@@ -1649,7 +1649,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
         m_TexDisplayDummyWrites[index].pBufferInfo = NULL;
         m_TexDisplayDummyWrites[index].pTexelBufferView = NULL;
 
-        m_TexDisplayDummyInfos[index].sampler = m_PointSampler;
+        m_TexDisplayDummyInfos[index].sampler = Unwrap(m_PointSampler);
         m_TexDisplayDummyInfos[index].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         index++;
@@ -1702,7 +1702,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
         vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &m_TexDisplayDummyImageViews[index]);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        m_TexDisplayDummyInfos[index].imageView = m_TexDisplayDummyImageViews[index];
+        m_TexDisplayDummyInfos[index].imageView = Unwrap(m_TexDisplayDummyImageViews[index]);
 
         // need to update image layout into valid state
         VkImageMemoryBarrier barrier = {
