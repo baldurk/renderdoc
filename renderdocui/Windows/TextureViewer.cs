@@ -582,6 +582,12 @@ namespace renderdocui.Windows
                 if (persistString == p.Name && p.Parent is IDockContent && (p.Parent as DockContent).DockPanel == null)
                     return p.Parent as IDockContent;
 
+            // backwards compatibilty for rename
+            if(persistString == "texPanel")
+                return roPanel.Parent as IDockContent;
+            if(persistString == "rtPanel")
+                return rwPanel.Parent as IDockContent;
+
             return null;
         }
 
