@@ -378,6 +378,10 @@ public:
     Serialiser *ser = NULL;
     GetPacket(type, ser);
 
+    // failed handshaking
+    if(m_Socket == NULL || ser == NULL)
+      return;
+
     RDCASSERT(type == ePacket_Handshake || type == ePacket_Busy);
 
     if(type == ePacket_Handshake)
