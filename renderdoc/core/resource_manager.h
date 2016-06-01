@@ -1154,7 +1154,7 @@ RecordType *ResourceManager<WrappedResourceType, RealResourceType, RecordType>::
 {
   SCOPED_LOCK(m_Lock);
 
-  RDCASSERT(m_ResourceRecords.find(id) == m_ResourceRecords.end());
+  RDCASSERT(m_ResourceRecords.find(id) == m_ResourceRecords.end(), id);
 
   return (m_ResourceRecords[id] = new RecordType(id));
 }
@@ -1165,7 +1165,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::RemoveR
 {
   SCOPED_LOCK(m_Lock);
 
-  RDCASSERT(m_ResourceRecords.find(id) != m_ResourceRecords.end());
+  RDCASSERT(m_ResourceRecords.find(id) != m_ResourceRecords.end(), id);
 
   m_ResourceRecords.erase(id);
 }
@@ -1303,7 +1303,7 @@ WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType, Recor
   if(origid == ResourceId())
     return (WrappedResourceType)RecordType::NullResource;
 
-  RDCASSERT(HasLiveResource(origid));
+  RDCASSERT(HasLiveResource(origid), origid);
 
   if(m_Replacements.find(origid) != m_Replacements.end())
     return GetLiveResource(m_Replacements[origid]);
@@ -1323,7 +1323,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::EraseLi
 {
   SCOPED_LOCK(m_Lock);
 
-  RDCASSERT(HasLiveResource(origid));
+  RDCASSERT(HasLiveResource(origid), origid);
 
   if(m_InframeResourceMap.find(origid) != m_InframeResourceMap.end())
   {
@@ -1341,7 +1341,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::AddCurr
 {
   SCOPED_LOCK(m_Lock);
 
-  RDCASSERT(m_CurrentResourceMap.find(id) == m_CurrentResourceMap.end());
+  RDCASSERT(m_CurrentResourceMap.find(id) == m_CurrentResourceMap.end(), id);
   m_CurrentResourceMap[id] = res;
 }
 
@@ -1359,7 +1359,7 @@ WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType,
 {
   SCOPED_LOCK(m_Lock);
 
-  RDCASSERT(m_CurrentResourceMap.find(id) != m_CurrentResourceMap.end());
+  RDCASSERT(m_CurrentResourceMap.find(id) != m_CurrentResourceMap.end(), id);
   return m_CurrentResourceMap[id];
 }
 
@@ -1369,7 +1369,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Release
 {
   SCOPED_LOCK(m_Lock);
 
-  RDCASSERT(m_CurrentResourceMap.find(id) != m_CurrentResourceMap.end());
+  RDCASSERT(m_CurrentResourceMap.find(id) != m_CurrentResourceMap.end(), id);
   m_CurrentResourceMap.erase(id);
 }
 
@@ -1380,7 +1380,7 @@ ResourceId ResourceManager<WrappedResourceType, RealResourceType, RecordType>::G
   if(id == ResourceId())
     return id;
 
-  RDCASSERT(m_OriginalIDs.find(id) != m_OriginalIDs.end());
+  RDCASSERT(m_OriginalIDs.find(id) != m_OriginalIDs.end(), id);
   return m_OriginalIDs[id];
 }
 
@@ -1390,6 +1390,6 @@ ResourceId ResourceManager<WrappedResourceType, RealResourceType, RecordType>::G
   if(id == ResourceId())
     return id;
 
-  RDCASSERT(m_LiveIDs.find(id) != m_LiveIDs.end());
+  RDCASSERT(m_LiveIDs.find(id) != m_LiveIDs.end(), id);
   return m_LiveIDs[id];
 }
