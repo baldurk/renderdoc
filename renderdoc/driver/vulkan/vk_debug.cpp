@@ -4473,6 +4473,9 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
 
   RDCASSERT(numOutputs < 100);
 
+  size_t entryInterfaceOffset = 0;
+  size_t entryWordCountOffset = 0;
+  uint16_t entryWordCount = 0;
   size_t decorateOffset = 0;
   size_t typeVarOffset = 0;
 
@@ -4555,6 +4558,13 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
           RDCERR("Same entry point declared twice! %s", entryName);
         entryID = spirv[it + 2];
       }
+
+      // need to update the WordCount when we add IDs, so store this
+      entryWordCountOffset = it;
+      entryWordCount = WordCount;
+
+      // where to insert new interface IDs if we add them
+      entryInterfaceOffset = it + WordCount;
     }
 
     // when we reach the types, decorations are over
@@ -4665,6 +4675,16 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
     // update offsets to account for inserted op
     typeVarOffset += ARRAY_COUNT(decorateOp);
     decorateOffset += ARRAY_COUNT(decorateOp);
+
+    modSpirv[entryWordCountOffset] = MakeSPIRVOp(spv::OpEntryPoint, ++entryWordCount);
+
+    // need to add this input to the declared interface on OpEntryPoint
+    modSpirv.insert(modSpirv.begin() + entryInterfaceOffset, vertidxID);
+
+    // update offsets to account for inserted ID
+    entryInterfaceOffset++;
+    typeVarOffset++;
+    decorateOffset++;
   }
 
   if(instidxID == 0)
@@ -4700,6 +4720,16 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
     // update offsets to account for inserted op
     typeVarOffset += ARRAY_COUNT(decorateOp);
     decorateOffset += ARRAY_COUNT(decorateOp);
+
+    modSpirv[entryWordCountOffset] = MakeSPIRVOp(spv::OpEntryPoint, ++entryWordCount);
+
+    // need to add this input to the declared interface on OpEntryPoint
+    modSpirv.insert(modSpirv.begin() + entryInterfaceOffset, instidxID);
+
+    // update offsets to account for inserted ID
+    entryInterfaceOffset++;
+    typeVarOffset++;
+    decorateOffset++;
   }
 
   // if needed add new ID for uint32 type
