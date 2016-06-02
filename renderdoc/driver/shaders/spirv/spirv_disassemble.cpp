@@ -3575,6 +3575,15 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
   if(type->type == SPVTypeData::ePointer)
     type = type->baseType;
 
+  bool isArray = false;
+  uint32_t arraySize = 1;
+  if(type->type == SPVTypeData::eArray)
+  {
+    arraySize = type->arraySize;
+    isArray = true;
+    type = type->baseType;
+  }
+
   if(type->type == SPVTypeData::eStruct)
   {
     // we don't support nested structs yet
@@ -3599,41 +3608,37 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
       }
     }
 
-    for(size_t c = 0; c < type->children.size(); c++)
+    for(uint32_t a = 0; a < arraySize; a++)
     {
-      // if this struct has builtins, see if this child is a builtin
-      if(hasBuiltins)
+      for(size_t c = 0; c < type->children.size(); c++)
       {
-        bool isBuiltin = false;
-
-        for(size_t d = 0; d < type->childDecorations[c].size(); d++)
+        // if this struct has builtins, see if this child is a builtin
+        if(hasBuiltins)
         {
-          if(type->childDecorations[c][d].decoration == spv::DecorationBuiltIn)
+          bool isBuiltin = false;
+
+          for(size_t d = 0; d < type->childDecorations[c].size(); d++)
           {
-            isBuiltin = true;
-            break;
+            if(type->childDecorations[c][d].decoration == spv::DecorationBuiltIn)
+            {
+              isBuiltin = true;
+              break;
+            }
           }
+
+          // if it's not a builtin, then skip it
+          if(!isBuiltin)
+            continue;
         }
 
-        // if it's not a builtin, then skip it
-        if(!isBuiltin)
-          continue;
-      }
+        string baseName = isArray ? StringFormat::Fmt("%s[%u]", varName.c_str(), a) : varName;
 
-      AddSignatureParameter(id, (uint32_t)c, varName + "." + type->children[c].second,
-                            type->children[c].first, type->childDecorations[c], sigarray);
+        AddSignatureParameter(id, (uint32_t)c, baseName + "." + type->children[c].second,
+                              type->children[c].first, type->childDecorations[c], sigarray);
+      }
     }
 
     return;
-  }
-
-  bool isArray = false;
-  uint32_t arraySize = 1;
-  if(type->type == SPVTypeData::eArray)
-  {
-    arraySize = type->arraySize;
-    isArray = true;
-    type = type->baseType;
   }
 
   switch(type->baseType ? type->baseType->type : type->type)
@@ -4087,7 +4092,12 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
     bool operator()(const SigParameter &a, const SigParameter &b)
     {
       if(a.systemValue == b.systemValue)
-        return a.regIndex < b.regIndex;
+      {
+        if(a.regIndex != b.regIndex)
+          return a.regIndex < b.regIndex;
+
+        return strcmp(a.varName.elems, b.varName.elems) < 0;
+      }
       if(a.systemValue == eAttr_None)
         return false;
       if(b.systemValue == eAttr_None)
