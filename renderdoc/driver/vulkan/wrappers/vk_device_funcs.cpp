@@ -427,7 +427,14 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
     VkResult vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, NULL);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    RDCASSERT(count > physIndex);
+    if(count <= physIndex)
+    {
+      RDCERR(
+          "Capture had more physical devices than available on replay! This will lead to a crash "
+          "if they are used.");
+      return true;
+    }
+
     devices = new VkPhysicalDevice[count];
 
     if(physIndex >= m_PhysicalDevices.size())
