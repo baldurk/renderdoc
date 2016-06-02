@@ -866,15 +866,8 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
   if(applyInitialState && !imgBarriers.empty())
   {
-    VkCommandBuffer cmd = GetNextCmd();
-
-    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
-    VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-
-    VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 
     if(!imgBarriers.empty())
     {
@@ -883,14 +876,39 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
         imgBarriers[i].srcAccessMask = MakeAccessMask(imgBarriers[i].oldLayout);
         imgBarriers[i].dstAccessMask = MakeAccessMask(imgBarriers[i].newLayout);
       }
+
+      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+      for(size_t i = 0; i < imgBarriers.size(); i++)
+      {
+        VkCommandBuffer cmd = GetNextCmd();
+
+        VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+        ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, 0, NULL, 0,
+                                         NULL, 1, &imgBarriers[i]);
+
+        vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        SubmitCmds();
+      }
+#else
+      VkCommandBuffer cmd = GetNextCmd();
+
+      VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
       ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, 0, NULL, 0,
                                        NULL, (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+
+      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      SubmitCmds();
+#endif
     }
-
-    vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    SubmitCmds();
     // don't need to flush here
   }
 
