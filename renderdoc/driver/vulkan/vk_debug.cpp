@@ -2389,7 +2389,7 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
   vp.pViewports = &views[0];
   vp.viewportCount = (uint32_t)pipeInfo.viewports.size();
 
-  memcpy(views, &pipeInfo.scissors[0], pipeInfo.scissors.size() * sizeof(VkRect2D));
+  memcpy(scissors, &pipeInfo.scissors[0], pipeInfo.scissors.size() * sizeof(VkRect2D));
 
   vp.pScissors = &scissors[0];
   vp.scissorCount = (uint32_t)pipeInfo.scissors.size();
