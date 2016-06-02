@@ -5269,6 +5269,26 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
 
   ia->topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
+  // remove all stages but the vertex shader, we just want to run it and write the data,
+  // we don't want to tessellate/geometry shade, nor rasterize (which we disable below)
+  uint32_t vertIdx = pipeCreateInfo.stageCount;
+
+  for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+  {
+    if(pipeCreateInfo.pStages[i].stage & VK_SHADER_STAGE_VERTEX_BIT)
+    {
+      vertIdx = i;
+      break;
+    }
+  }
+
+  RDCASSERT(vertIdx < pipeCreateInfo.stageCount);
+
+  if(vertIdx != 0)
+    (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[0] = pipeCreateInfo.pStages[vertIdx];
+
+  pipeCreateInfo.stageCount = 1;
+
   // enable rasterizer discard
   VkPipelineRasterizationStateCreateInfo *rs =
       (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
