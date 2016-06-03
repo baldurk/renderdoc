@@ -404,8 +404,7 @@ bool ReplayRenderer::GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFor
   if(draw == NULL || (draw->flags & eDraw_Drawcall) == 0)
     return false;
 
-  if(instID >= RDCMAX(1U, draw->numInstances))
-    return false;
+  instID = RDCMIN(instID, draw->numInstances - 1);
 
   *data = m_pDevice->GetPostVSBuffers(draw->eventID, instID, stage);
 
