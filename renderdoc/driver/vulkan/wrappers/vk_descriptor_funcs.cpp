@@ -426,6 +426,10 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(Serialiser *localSerialiser
       if(!valid)
         return true;
 
+      const DescSetLayout &layout =
+          m_CreationInfo.m_DescSetLayout
+              [m_DescriptorSetState[GetResourceManager()->GetNonDispWrapper(writeDesc.dstSet)->id].layout];
+
       switch(writeDesc.descriptorType)
       {
         case VK_DESCRIPTOR_TYPE_SAMPLER:
@@ -438,7 +442,9 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(Serialiser *localSerialiser
         {
           for(uint32_t i = 0; i < writeDesc.descriptorCount; i++)
           {
-            valid &= (writeDesc.pImageInfo[i].sampler != VK_NULL_HANDLE);
+            valid &= (writeDesc.pImageInfo[i].sampler != VK_NULL_HANDLE) ||
+                     (layout.bindings[writeDesc.dstBinding].immutableSampler &&
+                      layout.bindings[writeDesc.dstBinding].immutableSampler[i] != ResourceId());
             valid &= (writeDesc.pImageInfo[i].imageView != VK_NULL_HANDLE);
           }
           break;
