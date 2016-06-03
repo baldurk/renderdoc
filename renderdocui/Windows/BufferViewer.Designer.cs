@@ -463,9 +463,11 @@
             this.drawRange.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.drawRange.Items.AddRange(new object[] {
             "Only this draw",
+            "Show previous instances",
+            "Show all instances",
             "Show whole pass"});
             this.drawRange.Name = "drawRange";
-            this.drawRange.Size = new System.Drawing.Size(121, 25);
+            this.drawRange.Size = new System.Drawing.Size(140, 25);
             this.drawRange.SelectedIndexChanged += new System.EventHandler(this.drawRange_SelectedIndexChanged);
             // 
             // toolStripSeparator4

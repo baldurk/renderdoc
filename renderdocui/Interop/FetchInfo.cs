@@ -601,6 +601,8 @@ namespace renderdoc
         public bool bgraOrder;
         public SpecialFormat specialFormat;
 
+        public FloatVector meshColour;
+
         public bool showAlpha;
 
         public PrimitiveTopology topo;
@@ -622,15 +624,14 @@ namespace renderdoc
         public float fov = 90.0f;
         public float aspect = 0.0f;
 
-        public bool thisDrawOnly = true;
+        public bool showPrevInstances = false;
+        public bool showAllInstances = false;
+        public bool showWholePass = false;
         public UInt32 curInstance = 0;
 
         public UInt32 highlightVert;
         public MeshFormat position;
         public MeshFormat secondary;
-
-        public FloatVector prevMeshColour = new FloatVector();
-        public FloatVector currentMeshColour = new FloatVector();
 
         public FloatVector minBounds = new FloatVector();
         public FloatVector maxBounds = new FloatVector();

@@ -59,6 +59,14 @@ You can also use this if the position data isn't detected in your inputs and you
 
 	Preview: Previewing the uv co-ordinates as colour on the mesh.
 
+When displaying the post-projection output - typically the VS output, but possibly tessellation/geometry output - you can select how much data to display.
+
+The dropdown above the mesh view will let you choose ``Only this draw``, ``Show previous instances``, ``Show all instances``, or ``Show whole pass``.
+
+These let you narrow or expand the mesh outputs displayed. At minimum you will see the current draw - a specific instance, if the drawcall is an instanced draw. You can also display other instances in the same drawcall (either up to the selected instance, or all instances before or after the selected instance). Finally you can opt to display all other meshes up to the current draw in the same notional render pass.
+
+The current draw is always dark tinted, instances within the same draw have a lighter red colour, and other drawcalls in the pass will be light grey.
+
 Raw Buffer Viewer
 -----------------
 

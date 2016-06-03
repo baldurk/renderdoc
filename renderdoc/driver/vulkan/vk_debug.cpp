@@ -49,6 +49,8 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
   totalsize = ringSize == 1 ? size : AlignUp(size, align) * ringSize;
   curoffset = 0;
 
+  ringCount = ringSize;
+
   VkBufferCreateInfo bufInfo = {
       VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0, totalsize, 0,
   };

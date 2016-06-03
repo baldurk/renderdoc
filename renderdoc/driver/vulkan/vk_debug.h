@@ -144,6 +144,7 @@ public:
 
     void FillDescriptor(VkDescriptorBufferInfo &desc);
 
+    size_t GetRingCount() { return size_t(ringCount); }
     void *Map(VkDeviceSize &bindoffset, VkDeviceSize usedsize = 0);
     void *Map(uint32_t *bindoffset = NULL, VkDeviceSize usedsize = 0);
     void Unmap();
@@ -158,6 +159,8 @@ public:
     // for handling ring allocations
     VkDeviceSize totalsize;
     VkDeviceSize curoffset;
+
+    uint32_t ringCount;
 
     WrappedVulkan *m_pDriver;
     VkDevice device;

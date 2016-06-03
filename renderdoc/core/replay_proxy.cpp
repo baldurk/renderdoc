@@ -1310,6 +1310,7 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
   Serialise("", el.compType);
   Serialise("", el.bgraOrder);
   Serialise("", el.specialFormat);
+  Serialise("", el.meshColour);
   Serialise("", el.showAlpha);
   Serialise("", el.topo);
   Serialise("", el.numVerts);
@@ -1317,7 +1318,7 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
   Serialise("", el.nearPlane);
   Serialise("", el.farPlane);
 
-  SIZE_CHECK(MeshFormat, 88);
+  SIZE_CHECK(MeshFormat, 104);
 }
 
 template <>
@@ -1606,6 +1607,11 @@ string ToStrHelper<false, CounterResult>::Get(const CounterResult &el)
 }
 template <>
 string ToStrHelper<false, ReplayLogType>::Get(const ReplayLogType &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, FloatVector>::Get(const FloatVector &el)
 {
   return "<...>";
 }

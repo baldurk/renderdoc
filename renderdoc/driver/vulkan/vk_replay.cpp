@@ -1719,17 +1719,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
   if(!secondaryDraws.empty())
   {
-    uint32_t uboOffs = 0;
-    MeshUBOData *data = (MeshUBOData *)GetDebugManager()->m_MeshUBO.Map(&uboOffs);
-
-    data->mvp = ModelViewProj;
-    data->color = Vec4f(cfg.prevMeshColour.x, cfg.prevMeshColour.y, cfg.prevMeshColour.z,
-                        cfg.prevMeshColour.w);
-    data->homogenousInput = cfg.position.unproject;
-    data->pointSpriteSize = Vec2f(0.0f, 0.0f);
-    data->displayFormat = MESHDISPLAY_SOLID;
-
-    GetDebugManager()->m_MeshUBO.Unmap();
+    size_t mapsUsed = 0;
 
     for(size_t i = 0; i < secondaryDraws.size(); i++)
     {
@@ -1737,6 +1727,42 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
       if(fmt.buf != ResourceId())
       {
+        // TODO should move the color to a push constant so we don't have to map all the time
+        uint32_t uboOffs = 0;
+        MeshUBOData *data = (MeshUBOData *)GetDebugManager()->m_MeshUBO.Map(&uboOffs);
+
+        data->mvp = ModelViewProj;
+        data->color = Vec4f(fmt.meshColour.x, fmt.meshColour.y, fmt.meshColour.z, fmt.meshColour.w);
+        data->homogenousInput = cfg.position.unproject;
+        data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+        data->displayFormat = MESHDISPLAY_SOLID;
+
+        GetDebugManager()->m_MeshUBO.Unmap();
+
+        mapsUsed++;
+
+        if(mapsUsed + 1 >= GetDebugManager()->m_MeshUBO.GetRingCount())
+        {
+          // flush and sync so we can use more maps
+          vt->CmdEndRenderPass(Unwrap(cmd));
+
+          vkr = vt->EndCommandBuffer(Unwrap(cmd));
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          m_pDriver->SubmitCmds();
+          m_pDriver->FlushQ();
+
+          mapsUsed = 0;
+
+          cmd = m_pDriver->GetNextCmd();
+
+          vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
+          vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+        }
+
         MeshDisplayPipelines secondaryCache =
             GetDebugManager()->CacheMeshDisplayPipelines(secondaryDraws[i], secondaryDraws[i]);
 
@@ -1771,6 +1797,25 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
           vt->CmdDraw(Unwrap(cmd), fmt.numVerts, 1, 0, 0);
         }
       }
+    }
+
+    {
+      // flush and sync so we can use more maps
+      vt->CmdEndRenderPass(Unwrap(cmd));
+
+      vkr = vt->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitCmds();
+      m_pDriver->FlushQ();
+
+      cmd = m_pDriver->GetNextCmd();
+
+      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
+      vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
     }
   }
 
@@ -1857,13 +1902,8 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
   if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw ||
      cfg.position.topo >= eTopology_PatchList)
   {
-    Vec4f wireCol = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
-    if(!secondaryDraws.empty())
-    {
-      wireCol.x = cfg.currentMeshColour.x;
-      wireCol.y = cfg.currentMeshColour.y;
-      wireCol.z = cfg.currentMeshColour.z;
-    }
+    Vec4f wireCol =
+        Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y, cfg.position.meshColour.z, 1.0f);
 
     uint32_t uboOffs = 0;
     MeshUBOData *data = (MeshUBOData *)GetDebugManager()->m_MeshUBO.Map(&uboOffs);

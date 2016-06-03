@@ -3541,8 +3541,6 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
   if(!secondaryDraws.empty())
   {
-    gl.glUniform4fv(colLoc, 1, &cfg.prevMeshColour.x);
-
     gl.glUniform1ui(fmtLoc, MESHDISPLAY_SOLID);
 
     gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
@@ -3558,6 +3556,8 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
       if(fmt.buf != ResourceId())
       {
+        gl.glUniform4fv(colLoc, 1, &fmt.meshColour.x);
+
         GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.buf).name;
         gl.glBindVertexBuffer(0, vb, (GLintptr)fmt.offset, fmt.stride);
 
@@ -3761,14 +3761,7 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
   // wireframe render
   if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || topo == eGL_PATCHES)
   {
-    float wireCol[] = {0.0f, 0.0f, 0.0f, 1.0f};
-    if(!secondaryDraws.empty())
-    {
-      wireCol[0] = cfg.currentMeshColour.x;
-      wireCol[1] = cfg.currentMeshColour.y;
-      wireCol[2] = cfg.currentMeshColour.z;
-    }
-    gl.glUniform4fv(colLoc, 1, wireCol);
+    gl.glUniform4fv(colLoc, 1, &cfg.position.meshColour.x);
 
     gl.glUniform1ui(fmtLoc, MESHDISPLAY_SOLID);
 

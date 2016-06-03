@@ -50,6 +50,8 @@ struct MeshFormat
   bool32 bgraOrder;
   SpecialFormat specialFormat;
 
+  FloatVector meshColour;
+
   bool showAlpha;
 
   PrimitiveTopology topo;
@@ -71,15 +73,14 @@ struct MeshDisplay
   bool32 ortho;
   float fov, aspect;
 
-  bool32 thisDrawOnly;
+  bool32 showPrevInstances;
+  bool32 showAllInstances;
+  bool32 showWholePass;
   uint32_t curInstance;
 
   uint32_t highlightVert;
   MeshFormat position;
   MeshFormat second;
-
-  FloatVector prevMeshColour;
-  FloatVector currentMeshColour;
 
   FloatVector minBounds;
   FloatVector maxBounds;

@@ -4773,9 +4773,6 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
 
       pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-      pixelData.WireframeColour =
-          Vec3f(cfg.prevMeshColour.x, cfg.prevMeshColour.y, cfg.prevMeshColour.z);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 
       for(size_t i = 0; i < secondaryDraws.size(); i++)
       {
@@ -4783,6 +4780,10 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
         if(fmt.buf != ResourceId())
         {
+          pixelData.WireframeColour = Vec3f(fmt.meshColour.x, fmt.meshColour.y, fmt.meshColour.z);
+          FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData,
+                      sizeof(DebugPixelCBufferData));
+
           m_pImmediateContext->IASetPrimitiveTopology(MakeD3D11PrimitiveTopology(fmt.topo));
 
           auto it = WrappedID3D11Buffer::m_BufferList.find(fmt.buf);
@@ -4898,11 +4899,8 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.LEqualDepthState, 0);
 
       pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-      if(secondaryDraws.size() > 0 && cfg.solidShadeMode == eShade_None)
-        pixelData.WireframeColour =
-            Vec3f(cfg.currentMeshColour.x, cfg.currentMeshColour.y, cfg.currentMeshColour.z);
-      else
-        pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
+      pixelData.WireframeColour =
+          Vec3f(cfg.position.meshColour.x, cfg.position.meshColour.y, cfg.position.meshColour.z);
       FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);

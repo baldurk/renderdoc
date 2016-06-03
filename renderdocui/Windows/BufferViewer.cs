@@ -303,11 +303,10 @@ namespace renderdocui.Windows
             m_MeshDisplay.solidShadeMode = SolidShadeMode.None;
             solidShading.SelectedIndex = 0;
 
-            m_MeshDisplay.thisDrawOnly = true;
+            m_MeshDisplay.showPrevInstances = false;
+            m_MeshDisplay.showAllInstances = false;
+            m_MeshDisplay.showWholePass = false;
             drawRange.SelectedIndex = 0;
-
-            m_MeshDisplay.currentMeshColour = new FloatVector(1, 0, 0, 1);
-            m_MeshDisplay.prevMeshColour = new FloatVector(0, 0, 0, 1);
 
             if (m_Arcball != null)
                 m_Arcball.Camera.Shutdown();
@@ -2990,7 +2989,16 @@ namespace renderdocui.Windows
 
         private void drawRange_SelectedIndexChanged(object sender, EventArgs e)
         {
-            m_MeshDisplay.thisDrawOnly = (drawRange.SelectedIndex == 0);
+            /*
+            "Only this draw",
+            "Show previous instances",
+            "Show all instances",
+            "Show whole pass"
+             */
+
+            m_MeshDisplay.showPrevInstances = (drawRange.SelectedIndex >= 1);
+            m_MeshDisplay.showAllInstances = (drawRange.SelectedIndex >= 2);
+            m_MeshDisplay.showWholePass = (drawRange.SelectedIndex >= 3);
 
             render.Invalidate();
         }

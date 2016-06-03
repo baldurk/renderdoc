@@ -106,7 +106,7 @@ bool ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
 
 bool ReplayOutput::SetMeshDisplay(const MeshDisplay &o)
 {
-  if(o.thisDrawOnly != m_RenderData.meshDisplay.thisDrawOnly)
+  if(o.showWholePass != m_RenderData.meshDisplay.showWholePass)
     m_OverlayDirty = true;
   m_RenderData.meshDisplay = o;
   m_MainOutput.dirty = true;
@@ -158,7 +158,7 @@ void ReplayOutput::RefreshOverlay()
 
     m_pDevice->InitPostVSBuffers(draw->eventID);
 
-    if(!m_RenderData.meshDisplay.thisDrawOnly && !passEvents.empty())
+    if(!m_RenderData.meshDisplay.showWholePass && !passEvents.empty())
     {
       m_pDevice->InitPostVSBuffers(passEvents);
 
@@ -583,12 +583,23 @@ void ReplayOutput::DisplayMesh()
 
   vector<MeshFormat> secondaryDraws;
 
-  if(m_RenderData.meshDisplay.type != eMeshDataStage_VSIn && !m_RenderData.meshDisplay.thisDrawOnly)
-  {
-    mesh.position.unproject = true;
-    mesh.second.unproject = true;
+  // we choose a pallette here so that the colours stay consistent (i.e the
+  // current draw is always the same colour), but also to indicate somewhat
+  // the relationship - ie. instances are closer in colour than other draws
+  // in the pass
 
-    for(size_t i = 0; i < passEvents.size(); i++)
+  // very slightly dark red
+  const FloatVector drawItself(0.06f, 0.0f, 0.0f, 1.0f);
+
+  // more desaturated/lighter, but still reddish
+  const FloatVector otherInstances(0.18f, 0.1f, 0.1f, 1.0f);
+
+  // lighter grey with blue tinge to contrast from main/instance draws
+  const FloatVector passDraws(0.2f, 0.2f, 0.25f, 1.0f);
+
+  if(m_RenderData.meshDisplay.type != eMeshDataStage_VSIn)
+  {
+    for(size_t i = 0; m_RenderData.meshDisplay.showWholePass && i < passEvents.size(); i++)
     {
       FetchDrawcall *d = m_pRenderer->GetDrawcallByEID(passEvents[i], m_LastDeferredEvent);
 
@@ -601,6 +612,8 @@ void ReplayOutput::DisplayMesh()
           if(fmt.buf == ResourceId())
             fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, eMeshDataStage_VSOut);
 
+          fmt.meshColour = passDraws;
+
           // if unproject is marked, this output had a 'real' system position output
           if(fmt.unproject)
             secondaryDraws.push_back(fmt);
@@ -611,14 +624,20 @@ void ReplayOutput::DisplayMesh()
     // draw previous instances in the current drawcall
     if(draw->flags & eDraw_Instanced)
     {
-      for(uint32_t inst = 0;
-          inst < RDCMAX(1U, draw->numInstances) && inst < m_RenderData.meshDisplay.curInstance;
-          inst++)
+      uint32_t maxInst = 0;
+      if(m_RenderData.meshDisplay.showPrevInstances)
+        maxInst = RDCMAX(1U, m_RenderData.meshDisplay.curInstance);
+      if(m_RenderData.meshDisplay.showAllInstances)
+        maxInst = RDCMAX(1U, draw->numInstances);
+
+      for(uint32_t inst = 0; inst < maxInst; inst++)
       {
         // get the 'most final' stage
         MeshFormat fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, eMeshDataStage_GSOut);
         if(fmt.buf == ResourceId())
           fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, eMeshDataStage_VSOut);
+
+        fmt.meshColour = otherInstances;
 
         // if unproject is marked, this output had a 'real' system position output
         if(fmt.unproject)
@@ -626,6 +645,8 @@ void ReplayOutput::DisplayMesh()
       }
     }
   }
+
+  mesh.position.meshColour = drawItself;
 
   m_pDevice->RenderMesh(m_EventID, secondaryDraws, mesh);
 }
