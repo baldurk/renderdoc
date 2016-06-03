@@ -224,7 +224,7 @@ public:
   VkDescriptorSetLayout m_QuadDescSetLayout;
   VkDescriptorSet m_QuadDescSet;
   VkPipelineLayout m_QuadResolvePipeLayout;
-  VkPipeline m_QuadResolvePipeline;
+  VkPipeline m_QuadResolvePipeline[8];
   vector<uint32_t> *m_QuadSPIRV;
 
   VkDescriptorSetLayout m_MeshDescSetLayout;
@@ -256,7 +256,7 @@ public:
   VkDescriptorSetLayout m_OutlineDescSetLayout;
   VkPipelineLayout m_OutlinePipeLayout;
   VkDescriptorSet m_OutlineDescSet;
-  VkPipeline m_OutlinePipeline;
+  VkPipeline m_OutlinePipeline[8];
   GPUBuffer m_OutlineUBO;
 
   GPUBuffer m_ReadbackWindow;

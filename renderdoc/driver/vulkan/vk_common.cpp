@@ -71,6 +71,23 @@ int SampleCount(VkSampleCountFlagBits countFlag)
   return 1;
 }
 
+int SampleIndex(VkSampleCountFlagBits countFlag)
+{
+  switch(countFlag)
+  {
+    case VK_SAMPLE_COUNT_1_BIT: return 0;
+    case VK_SAMPLE_COUNT_2_BIT: return 1;
+    case VK_SAMPLE_COUNT_4_BIT: return 2;
+    case VK_SAMPLE_COUNT_8_BIT: return 3;
+    case VK_SAMPLE_COUNT_16_BIT: return 4;
+    case VK_SAMPLE_COUNT_32_BIT: return 5;
+    case VK_SAMPLE_COUNT_64_BIT: return 6;
+    default: RDCERR("Unrecognised/not single flag %x", countFlag); break;
+  }
+
+  return 0;
+}
+
 int StageIndex(VkShaderStageFlagBits stageFlag)
 {
   switch(stageFlag)

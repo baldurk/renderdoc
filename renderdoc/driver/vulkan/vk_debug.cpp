@@ -274,7 +274,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_QuadDescSetLayout = VK_NULL_HANDLE;
   m_QuadResolvePipeLayout = VK_NULL_HANDLE;
   m_QuadDescSet = VK_NULL_HANDLE;
-  m_QuadResolvePipeline = VK_NULL_HANDLE;
+  RDCEraseEl(m_QuadResolvePipeline);
   m_QuadSPIRV = NULL;
 
   m_MeshDescSetLayout = VK_NULL_HANDLE;
@@ -292,7 +292,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_OutlineDescSetLayout = VK_NULL_HANDLE;
   m_OutlinePipeLayout = VK_NULL_HANDLE;
   m_OutlineDescSet = VK_NULL_HANDLE;
-  m_OutlinePipeline = VK_NULL_HANDLE;
+  RDCEraseEl(m_OutlinePipeline);
 
   m_MeshFetchDescSetLayout = VK_NULL_HANDLE;
   m_MeshFetchDescSet = VK_NULL_HANDLE;
@@ -415,6 +415,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   VkRenderPass RGBA8RP = VK_NULL_HANDLE;
   VkRenderPass RGBA16RP = VK_NULL_HANDLE;
   VkRenderPass RGBA8MSRP = VK_NULL_HANDLE;
+  VkRenderPass RGBA16MSRP[8] = {0};
+
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(RGBA16MSRP) == ARRAY_COUNT(m_OutlinePipeline),
+                    "Arrays are mismatched in size!");
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(RGBA16MSRP) == ARRAY_COUNT(m_QuadResolvePipeline),
+                    "Arrays are mismatched in size!");
 
   {
     VkAttachmentDescription attDesc = {0,
@@ -464,6 +470,26 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     attDesc.format = VK_FORMAT_R8G8B8A8_SRGB;
 
     m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8MSRP);
+
+    attDesc.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+
+    uint32_t samplesHandled = 0;
+
+    // create a 16F multisampled renderpass for each possible multisample size
+    for(size_t i = 0; i < ARRAY_COUNT(RGBA16MSRP); i++)
+    {
+      attDesc.samples = VkSampleCountFlagBits(1 << i);
+
+      if(m_pDriver->GetDeviceProps().limits.framebufferColorSampleCounts & (uint32_t)attDesc.samples)
+      {
+        m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA16MSRP[i]);
+
+        samplesHandled |= (uint32_t)attDesc.samples;
+      }
+    }
+
+    RDCASSERTEQUAL((uint32_t)m_pDriver->GetDeviceProps().limits.framebufferColorSampleCounts,
+                   samplesHandled);
   }
 
   // declare the pipeline creation info and all of its sub-structures
@@ -1403,14 +1429,23 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   pipeInfo.layout = m_OutlinePipeLayout;
 
-  pipeInfo.renderPass = RGBA16RP;
-
   attState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
   attState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
-  vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
-                                             &m_OutlinePipeline);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  for(size_t i = 0; i < ARRAY_COUNT(m_OutlinePipeline); i++)
+  {
+    if(RGBA16MSRP[i] == VK_NULL_HANDLE)
+      continue;
+
+    // if we have a 16F renderpass for this sample count then create a pipeline
+    pipeInfo.renderPass = RGBA16MSRP[i];
+
+    msaa.rasterizationSamples = VkSampleCountFlagBits(1 << i);
+
+    vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
+                                               &m_OutlinePipeline[i]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
 
   attState.blendEnable = false;
 
@@ -1418,11 +1453,22 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   stages[1].module = module[QUADRESOLVEFS];
 
   pipeInfo.layout = m_QuadResolvePipeLayout;
-  pipeInfo.renderPass = RGBA8RP;
 
-  vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
-                                             &m_QuadResolvePipeline);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  for(size_t i = 0; i < ARRAY_COUNT(m_QuadResolvePipeline); i++)
+  {
+    if(RGBA16MSRP[i] == VK_NULL_HANDLE)
+      continue;
+
+    pipeInfo.renderPass = RGBA16MSRP[i];
+
+    msaa.rasterizationSamples = VkSampleCountFlagBits(1 << i);
+
+    vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
+                                               &m_QuadResolvePipeline[i]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  msaa.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
   VkComputePipelineCreateInfo compPipeInfo = {
       VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
@@ -1527,6 +1573,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_pDriver->vkDestroyRenderPass(dev, RGBA32RP, NULL);
   m_pDriver->vkDestroyRenderPass(dev, RGBA8RP, NULL);
   m_pDriver->vkDestroyRenderPass(dev, RGBA8MSRP, NULL);
+  for(size_t i = 0; i < ARRAY_COUNT(RGBA16MSRP); i++)
+    m_pDriver->vkDestroyRenderPass(dev, RGBA16MSRP[i], NULL);
 
   for(size_t i = 0; i < ARRAY_COUNT(module); i++)
   {
@@ -2037,7 +2085,8 @@ VulkanDebugManager::~VulkanDebugManager()
 
   m_pDriver->vkDestroyDescriptorSetLayout(dev, m_OutlineDescSetLayout, NULL);
   m_pDriver->vkDestroyPipelineLayout(dev, m_OutlinePipeLayout, NULL);
-  m_pDriver->vkDestroyPipeline(dev, m_OutlinePipeline, NULL);
+  for(size_t i = 0; i < ARRAY_COUNT(m_OutlinePipeline); i++)
+    m_pDriver->vkDestroyPipeline(dev, m_OutlinePipeline[i], NULL);
 
   m_OutlineUBO.Destroy();
 
@@ -2075,7 +2124,8 @@ VulkanDebugManager::~VulkanDebugManager()
 
   m_pDriver->vkDestroyDescriptorSetLayout(dev, m_QuadDescSetLayout, NULL);
   m_pDriver->vkDestroyPipelineLayout(dev, m_QuadResolvePipeLayout, NULL);
-  m_pDriver->vkDestroyPipeline(dev, m_QuadResolvePipeline, NULL);
+  for(size_t i = 0; i < ARRAY_COUNT(m_QuadResolvePipeline); i++)
+    m_pDriver->vkDestroyPipeline(dev, m_QuadResolvePipeline[i], NULL);
 }
 
 void VulkanDebugManager::BeginText(const TextPrintState &textstate)
@@ -2818,7 +2868,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
         {m_OverlayDim.width, m_OverlayDim.height, 1},
         1,
         1,
-        VK_SAMPLE_COUNT_1_BIT,
+        iminfo.samples,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
@@ -2895,7 +2945,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
     VkAttachmentDescription colDesc = {0,
                                        imInfo.format,
-                                       VK_SAMPLE_COUNT_1_BIT,
+                                       imInfo.samples,
                                        VK_ATTACHMENT_LOAD_OP_LOAD,
                                        VK_ATTACHMENT_STORE_OP_STORE,
                                        VK_ATTACHMENT_LOAD_OP_DONT_CARE,
@@ -3243,7 +3293,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
       m_OutlineUBO.Unmap();
 
-      vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_OutlinePipeline));
+      vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          Unwrap(m_OutlinePipeline[SampleIndex(iminfo.samples)]));
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 Unwrap(m_OutlinePipeLayout), 0, 1, UnwrapPtr(m_OutlineDescSet), 1,
                                 &uboOffs);
@@ -3513,6 +3564,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
       ResourceId depthIm = createinfo.m_ImageView[depthView].image;
 
       attDescs[1].format = createinfo.m_Image[depthIm].format;
+      attDescs[0].samples = attDescs[1].samples = iminfo.samples;
 
       VkAttachmentReference colRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
       VkAttachmentReference dsRef = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
@@ -4044,7 +4096,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
         vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
         vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            Unwrap(m_QuadResolvePipeline));
+                            Unwrap(m_QuadResolvePipeline[SampleIndex(iminfo.samples)]));
         vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                   Unwrap(m_QuadResolvePipeLayout), 0, 1, UnwrapPtr(m_QuadDescSet),
                                   0, NULL);
