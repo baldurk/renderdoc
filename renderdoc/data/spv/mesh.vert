@@ -52,7 +52,7 @@ void main(void)
 	if(Mesh.homogenousInput == 0)
 		pos = vec4(position.xyz, 1);
 	else
-		pos.y = -pos.y;
+		pos = vec4(position.x, -position.y, position.z, position.w);
 
 	gl_Position = Mesh.mvp * pos;
 	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[gl_VertexIndex%4]*gl_Position.w;
