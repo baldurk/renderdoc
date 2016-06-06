@@ -743,6 +743,9 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
     return ret;
   }
 
+  GLint prevBind = 0;
+  gl.glGetIntegerv(BufferBinding(res.curType), &prevBind);
+
   gl.glBindBuffer(res.curType, res.resource.name);
 
   ret.structureSize = 0;
@@ -792,6 +795,8 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
   }
 
   ret.name = str;
+
+  gl.glBindBuffer(res.curType, prevBind);
 
   return ret;
 }
