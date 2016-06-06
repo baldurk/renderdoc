@@ -3885,7 +3885,11 @@ bool WrappedOpenGL::Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint bu
     // referenced
     // at all in the actual frame
     if(bid != ResourceId() && GetResourceManager()->HasLiveResource(bid))
+    {
       buffer = GetResourceManager()->GetLiveResource(bid).name;
+
+      m_Buffers[GetResourceManager()->GetLiveID(bid)].curType = eGL_ELEMENT_ARRAY_BUFFER;
+    }
 
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
@@ -3950,7 +3954,10 @@ bool WrappedOpenGL::Serialise_glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLu
 
     GLuint live = 0;
     if(id != ResourceId() && GetResourceManager()->HasLiveResource(id))
+    {
       live = GetResourceManager()->GetLiveResource(id).name;
+      m_Buffers[GetResourceManager()->GetLiveID(id)].curType = eGL_ARRAY_BUFFER;
+    }
 
     m_Real.glVertexArrayBindVertexBufferEXT(vaobj, idx, live, (GLintptr)offs, (GLsizei)str);
   }
@@ -4055,9 +4062,14 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(GLuint vaobj, GLuint fi
     if(m_State <= EXECUTING)
     {
       if(id != ResourceId() && GetResourceManager()->HasLiveResource(id))
+      {
         bufs[i] = GetResourceManager()->GetLiveResource(id).name;
+        m_Buffers[GetResourceManager()->GetLiveID(id)].curType = eGL_ARRAY_BUFFER;
+      }
       else
+      {
         bufs[i] = 0;
+      }
       offs[i] = (GLintptr)offset;
       str[i] = (GLsizei)stride;
     }

@@ -732,21 +732,13 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 
   ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 
-  if(res.curType == eGL_NONE)
-  {
-    ret.byteSize = 0;
-    ret.creationFlags = 0;
-    ret.customName = true;
-    ret.name = "<Uninitialised Buffer>";
-    ret.length = 0;
-    ret.structureSize = 0;
-    return ret;
-  }
-
   GLint prevBind = 0;
-  gl.glGetIntegerv(BufferBinding(res.curType), &prevBind);
+  if(res.curType != eGL_NONE)
+  {
+    gl.glGetIntegerv(BufferBinding(res.curType), &prevBind);
 
-  gl.glBindBuffer(res.curType, res.resource.name);
+    gl.glBindBuffer(res.curType, res.resource.name);
+  }
 
   ret.structureSize = 0;
 
@@ -768,11 +760,24 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
     case eGL_TEXTURE_BUFFER:
     case eGL_TRANSFORM_FEEDBACK_BUFFER:
     case eGL_ATOMIC_COUNTER_BUFFER: break;
+    case eGL_NONE:
+      break;    // could be from a 'create' DSA call which didn't ever bind the buffer to an
+                // explicit type
     default: RDCERR("Unexpected buffer type %s", ToStr::Get(res.curType).c_str());
   }
 
-  GLint size;
-  gl.glGetBufferParameteriv(res.curType, eGL_BUFFER_SIZE, &size);
+  GLint size = 0;
+  // if the type is NONE it's probably a DSA created buffer
+  if(res.curType == eGL_NONE)
+  {
+    // if we have the DSA entry point
+    if(gl.GetHookset().glGetNamedBufferParameterivEXT)
+      gl.glGetNamedBufferParameterivEXT(res.resource.name, eGL_BUFFER_SIZE, &size);
+  }
+  else
+  {
+    gl.glGetBufferParameteriv(res.curType, eGL_BUFFER_SIZE, &size);
+  }
 
   ret.byteSize = ret.length = (uint32_t)size;
 
@@ -796,7 +801,8 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 
   ret.name = str;
 
-  gl.glBindBuffer(res.curType, prevBind);
+  if(res.curType != eGL_NONE)
+    gl.glBindBuffer(res.curType, prevBind);
 
   return ret;
 }
