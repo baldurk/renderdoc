@@ -179,9 +179,10 @@ void Serialiser::Serialise(const char *name, ShaderConstant &el)
   Serialise("", el.name);
   Serialise("", el.reg.vec);
   Serialise("", el.reg.comp);
+  Serialise("", el.defaultValue);
   Serialise("", el.type);
 
-  SIZE_CHECK(ShaderConstant, 80);
+  SIZE_CHECK(ShaderConstant, 88);
 }
 
 template <>

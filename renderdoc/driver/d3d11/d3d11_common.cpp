@@ -789,6 +789,7 @@ ShaderConstant MakeConstantBufferVariable(DXBC::CBufferVariable var, uint32_t &o
   ret.name = var.name;
   ret.reg.vec = offset + var.descriptor.offset / 16;
   ret.reg.comp = (var.descriptor.offset - (var.descriptor.offset & ~0xf)) / 4;
+  ret.defaultValue = 0;
 
   offset = ret.reg.vec;
 

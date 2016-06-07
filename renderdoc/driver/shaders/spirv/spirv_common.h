@@ -77,11 +77,12 @@ struct SPVModule
 
   vector<SPVInstruction *> ids;    // pointers indexed by ID
 
-  vector<SPVInstruction *> sourceexts;    // source extensions
-  vector<SPVInstruction *> entries;       // entry points
-  vector<SPVInstruction *> globals;       // global variables
-  vector<SPVInstruction *> funcs;         // functions
-  vector<SPVInstruction *> structs;       // struct types
+  vector<SPVInstruction *> sourceexts;       // source extensions
+  vector<SPVInstruction *> entries;          // entry points
+  vector<SPVInstruction *> globals;          // global variables
+  vector<SPVInstruction *> specConstants;    // specialization constants
+  vector<SPVInstruction *> funcs;            // functions
+  vector<SPVInstruction *> structs;          // struct types
 
   SPVInstruction *GetByID(uint32_t id);
   string Disassemble(const string &entryPoint);

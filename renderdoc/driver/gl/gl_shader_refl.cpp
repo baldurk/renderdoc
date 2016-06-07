@@ -92,6 +92,7 @@ void copy(rdctype::array<ShaderConstant> &outvars, const vector<DynShaderConstan
     outvars[i].name = invars[i].name;
     outvars[i].reg.vec = invars[i].reg.vec;
     outvars[i].reg.comp = invars[i].reg.comp;
+    outvars[i].defaultValue = 0;
     outvars[i].type.descriptor.type = invars[i].type.descriptor.type;
     outvars[i].type.descriptor.rows = invars[i].type.descriptor.rows;
     outvars[i].type.descriptor.cols = invars[i].type.descriptor.cols;

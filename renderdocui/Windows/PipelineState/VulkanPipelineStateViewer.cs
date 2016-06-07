@@ -808,7 +808,7 @@ namespace renderdocui.Windows.PipelineState
 
                     string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
 
-                    // push constants
+                    // push constants or specialization constants
                     if (cblock != null && !cblock.bufferBacked)
                     {
                         setname = "";

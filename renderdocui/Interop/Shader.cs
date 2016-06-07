@@ -325,6 +325,8 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public RegSpan reg;
 
+        public UInt64 defaultValue;
+
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderVariableType type;
     };

@@ -110,6 +110,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     if(reflData.entryPoint.empty())
     {
       reflData.entryPoint = shad.entryPoint;
+      reflData.stage = stageIndex;
       info.m_ShaderModule[id].spirv.MakeReflection(reflData.entryPoint, &reflData.refl,
                                                    &reflData.mapping);
     }

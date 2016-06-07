@@ -327,6 +327,7 @@ struct VulkanCreationInfo
 
     struct Reflection
     {
+      uint32_t stage;
       string entryPoint;
       ShaderReflection refl;
       ShaderBindpointMapping mapping;

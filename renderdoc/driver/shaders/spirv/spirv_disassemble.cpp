@@ -365,7 +365,7 @@ struct SPVDecoration
       case spv::DecorationBuiltIn:
         return StringFormat::Fmt("Builtin %s", ToStr::Get((spv::BuiltIn)val).c_str());
       case spv::DecorationSpecId:
-        return StringFormat::Fmt("Specialize[%u]", ToStr::Get(decoration).c_str(), val);
+        return "";    // handled elsewhere
 
 #if SHOW_STRUCT_PACKING
       case spv::DecorationOffset: return StringFormat::Fmt("Offset=%u", val);
@@ -669,7 +669,7 @@ struct SPVOperation
 
 struct SPVConstant
 {
-  SPVConstant() : type(NULL), u64(0) {}
+  SPVConstant() : type(NULL), specialized(false), specOp(spv::OpNop), u64(0) {}
   struct SamplerData
   {
     spv::SamplerAddressingMode addressing;
@@ -678,6 +678,8 @@ struct SPVConstant
   };
 
   SPVTypeData *type;
+  bool specialized;
+  spv::Op specOp;
   union
   {
     uint64_t u64;
@@ -921,12 +923,31 @@ struct SPVInstruction
   {
     switch(opcode)
     {
-      case spv::OpUndef: { return "UNDEFINED_VALUE";
-      }
+      case spv::OpUndef: return "UNDEFINED_VALUE";
       case spv::OpConstant:
+      case spv::OpConstantTrue:
+      case spv::OpConstantFalse:
       case spv::OpConstantComposite:
       case spv::OpVariable:
-      case spv::OpFunctionParameter: { return GetIDName();
+      case spv::OpFunctionParameter:
+      case spv::OpSpecConstant:
+      case spv::OpSpecConstantTrue:
+      case spv::OpSpecConstantFalse:
+      case spv::OpSpecConstantComposite: return GetIDName();
+      case spv::OpSpecConstantOp:
+      {
+        string ret = StringFormat::Fmt("SpecOp%s(", ToStr::Get(constant->specOp).c_str());
+
+        for(size_t i = 0; i < constant->children.size(); i++)
+        {
+          if(i != 0)
+            ret += ", ";
+
+          ret += constant->children[i]->GetIDName();
+        }
+
+        ret += ")";
+        return ret;
       }
       case spv::OpLabel:
       {
@@ -2249,6 +2270,34 @@ string SPVModule::Disassemble(const string &entryPoint)
         globals[i]->var->type->DeclareVariable(globals[i]->decorations, varName).c_str());
   }
 
+  for(size_t i = 0; i < specConstants.size(); i++)
+  {
+    RDCASSERT(specConstants[i]->constant && specConstants[i]->constant->type);
+
+    uint32_t specId = 0;
+
+    for(size_t d = 0; d < specConstants[i]->decorations.size(); d++)
+    {
+      if(specConstants[i]->decorations[d].decoration == spv::DecorationSpecId)
+      {
+        specId = specConstants[i]->decorations[d].val;
+        break;
+      }
+    }
+
+    if(specId == 0)
+    {
+      RDCERR("Couldn't find specialisation index for spec constant");
+      continue;
+    }
+
+    string varName = specConstants[i]->str;
+    retDisasm += StringFormat::Fmt(
+        "%s = Specialize<ID %u>(%s);\n",
+        specConstants[i]->constant->type->DeclareVariable(specConstants[i]->decorations, varName).c_str(),
+        specId, specConstants[i]->constant->GetIDName().c_str());
+  }
+
   retDisasm += "\n";
 
   for(size_t f = 0; f < funcs.size(); f++)
@@ -3353,135 +3402,143 @@ string SPVModule::Disassemble(const string &entryPoint)
   return retDisasm;
 }
 
-void MakeConstantBlockVariables(SPVTypeData *type, rdctype::array<ShaderConstant> &cblock)
+void MakeConstantBlockVariables(SPVTypeData *structType, rdctype::array<ShaderConstant> &cblock);
+
+void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, const std::string &name,
+                               const std::vector<SPVDecoration> &decorations)
 {
-  RDCASSERT(!type->children.empty());
+  outConst.name = name;
 
-  create_array_uninit(cblock, type->children.size());
-  for(size_t i = 0; i < type->children.size(); i++)
+  outConst.defaultValue = 0;
+
+  for(size_t d = 0; d < decorations.size(); d++)
   {
-    SPVTypeData *t = type->children[i].first;
-    cblock[i].name = type->children[i].second;
-
-    for(size_t d = 0; d < type->childDecorations[i].size(); d++)
+    if(decorations[d].decoration == spv::DecorationOffset)
     {
-      if(type->childDecorations[i][d].decoration == spv::DecorationOffset)
+      uint32_t byteOffset = decorations[d].val;
+      RDCASSERT(byteOffset % 4 == 0);    // assume uint32_t aligned
+      byteOffset /= 4;
+      outConst.reg.vec = byteOffset / 4;
+      outConst.reg.comp = byteOffset % 4;
+      break;
+    }
+  }
+
+  string suffix = "";
+
+  outConst.type.descriptor.elements = 1;
+  outConst.type.descriptor.arrayStride = 0;
+
+  if(type->type == SPVTypeData::eArray)
+  {
+    if(type->arraySize == ~0U)
+    {
+      suffix += "[]";
+      outConst.type.descriptor.elements = 1;    // TODO need to handle 'array of undefined size'
+    }
+    else
+    {
+      suffix += StringFormat::Fmt("[%u]", type->arraySize);
+      outConst.type.descriptor.elements = type->arraySize;
+    }
+
+    bool foundArrayStride = false;
+
+    for(size_t d = 0; d < decorations.size(); d++)
+    {
+      if(decorations[d].decoration == spv::DecorationArrayStride)
       {
-        uint32_t byteOffset = type->childDecorations[i][d].val;
-        RDCASSERT(byteOffset % 4 == 0);    // assume uint32_t aligned
-        byteOffset /= 4;
-        cblock[i].reg.vec = byteOffset / 4;
-        cblock[i].reg.comp = byteOffset % 4;
+        outConst.type.descriptor.arrayStride = decorations[d].val;
+        foundArrayStride = true;
         break;
       }
     }
 
-    string suffix = "";
-
-    cblock[i].type.descriptor.elements = 1;
-    cblock[i].type.descriptor.arrayStride = 0;
-
-    if(t->type == SPVTypeData::eArray)
+    for(size_t d = 0; !foundArrayStride && type->decorations && d < type->decorations->size(); d++)
     {
-      if(t->arraySize == ~0U)
+      if((*type->decorations)[d].decoration == spv::DecorationArrayStride)
       {
-        suffix += "[]";
-        cblock[i].type.descriptor.elements = 1;    // TODO need to handle 'array of undefined size'
+        outConst.type.descriptor.arrayStride = (*type->decorations)[d].val;
+        break;
       }
-      else
-      {
-        suffix += StringFormat::Fmt("[%u]", t->arraySize);
-        cblock[i].type.descriptor.elements = t->arraySize;
-      }
-
-      bool foundArrayStride = false;
-
-      for(size_t d = 0; d < type->childDecorations[i].size(); d++)
-      {
-        if(type->childDecorations[i][d].decoration == spv::DecorationArrayStride)
-        {
-          cblock[i].type.descriptor.arrayStride = type->childDecorations[i][d].val;
-          foundArrayStride = true;
-          break;
-        }
-      }
-
-      for(size_t d = 0; !foundArrayStride && t->decorations && d < t->decorations->size(); d++)
-      {
-        if((*t->decorations)[d].decoration == spv::DecorationArrayStride)
-        {
-          cblock[i].type.descriptor.arrayStride = (*t->decorations)[d].val;
-          break;
-        }
-      }
-
-      t = t->baseType;
     }
 
-    if(t->type == SPVTypeData::eVector || t->type == SPVTypeData::eMatrix)
+    type = type->baseType;
+  }
+
+  if(type->type == SPVTypeData::eVector || type->type == SPVTypeData::eMatrix)
+  {
+    if(type->baseType->type == SPVTypeData::eFloat)
+      outConst.type.descriptor.type = eVar_Float;
+    else if(type->baseType->type == SPVTypeData::eUInt || type->baseType->type == SPVTypeData::eBool)
+      outConst.type.descriptor.type = eVar_UInt;
+    else if(type->baseType->type == SPVTypeData::eSInt)
+      outConst.type.descriptor.type = eVar_Int;
+    else
+      RDCERR("Unexpected base type of constant variable %u", type->baseType->type);
+
+    outConst.type.descriptor.rowMajorStorage = false;
+
+    for(size_t d = 0; d < decorations.size(); d++)
     {
-      if(t->baseType->type == SPVTypeData::eFloat)
-        cblock[i].type.descriptor.type = eVar_Float;
-      else if(t->baseType->type == SPVTypeData::eUInt)
-        cblock[i].type.descriptor.type = eVar_UInt;
-      else if(t->baseType->type == SPVTypeData::eSInt)
-        cblock[i].type.descriptor.type = eVar_Int;
-      else
-        RDCERR("Unexpected base type of constant variable %u", t->baseType->type);
-
-      cblock[i].type.descriptor.rowMajorStorage = false;
-
-      for(size_t d = 0; d < type->childDecorations[i].size(); d++)
+      if(decorations[d].decoration == spv::DecorationRowMajor)
       {
-        if(type->childDecorations[i][d].decoration == spv::DecorationRowMajor)
-        {
-          cblock[i].type.descriptor.rowMajorStorage = true;
-          break;
-        }
+        outConst.type.descriptor.rowMajorStorage = true;
+        break;
       }
-
-      if(t->type == SPVTypeData::eMatrix)
-      {
-        cblock[i].type.descriptor.rows = t->vectorSize;
-        cblock[i].type.descriptor.cols = t->matrixSize;
-      }
-      else
-      {
-        cblock[i].type.descriptor.rows = 1;
-        cblock[i].type.descriptor.cols = t->vectorSize;
-      }
-
-      cblock[i].type.descriptor.name = t->GetName() + suffix;
     }
-    else if(t->IsScalar())
+
+    if(type->type == SPVTypeData::eMatrix)
     {
-      if(t->type == SPVTypeData::eFloat)
-        cblock[i].type.descriptor.type = eVar_Float;
-      else if(t->type == SPVTypeData::eUInt)
-        cblock[i].type.descriptor.type = eVar_UInt;
-      else if(t->type == SPVTypeData::eSInt)
-        cblock[i].type.descriptor.type = eVar_Int;
-      else
-        RDCERR("Unexpected base type of constant variable %u", t->type);
-
-      cblock[i].type.descriptor.rowMajorStorage = false;
-      cblock[i].type.descriptor.rows = 1;
-      cblock[i].type.descriptor.cols = 1;
-
-      cblock[i].type.descriptor.name = t->GetName() + suffix;
+      outConst.type.descriptor.rows = type->vectorSize;
+      outConst.type.descriptor.cols = type->matrixSize;
     }
     else
     {
-      cblock[i].type.descriptor.type = eVar_Float;
-      cblock[i].type.descriptor.rowMajorStorage = false;
-      cblock[i].type.descriptor.rows = 0;
-      cblock[i].type.descriptor.cols = 0;
-
-      cblock[i].type.descriptor.name = t->GetName() + suffix;
-
-      MakeConstantBlockVariables(t, cblock[i].type.members);
+      outConst.type.descriptor.rows = 1;
+      outConst.type.descriptor.cols = type->vectorSize;
     }
+
+    outConst.type.descriptor.name = type->GetName() + suffix;
   }
+  else if(type->IsScalar())
+  {
+    if(type->type == SPVTypeData::eFloat)
+      outConst.type.descriptor.type = eVar_Float;
+    else if(type->type == SPVTypeData::eUInt || type->type == SPVTypeData::eBool)
+      outConst.type.descriptor.type = eVar_UInt;
+    else if(type->type == SPVTypeData::eSInt)
+      outConst.type.descriptor.type = eVar_Int;
+    else
+      RDCERR("Unexpected base type of constant variable %u", type->type);
+
+    outConst.type.descriptor.rowMajorStorage = false;
+    outConst.type.descriptor.rows = 1;
+    outConst.type.descriptor.cols = 1;
+
+    outConst.type.descriptor.name = type->GetName() + suffix;
+  }
+  else
+  {
+    outConst.type.descriptor.type = eVar_Float;
+    outConst.type.descriptor.rowMajorStorage = false;
+    outConst.type.descriptor.rows = 0;
+    outConst.type.descriptor.cols = 0;
+
+    outConst.type.descriptor.name = type->GetName() + suffix;
+
+    MakeConstantBlockVariables(type, outConst.type.members);
+  }
+}
+
+void MakeConstantBlockVariables(SPVTypeData *structType, rdctype::array<ShaderConstant> &cblock)
+{
+  RDCASSERT(!structType->children.empty());
+
+  create_array_uninit(cblock, structType->children.size());
+  for(size_t i = 0; i < structType->children.size(); i++)
+    MakeConstantBlockVariable(cblock[i], structType->children[i].first,
+                              structType->children[i].second, structType->childDecorations[i]);
 }
 
 SystemAttribute BuiltInToSystemAttribute(const spv::BuiltIn el)
@@ -4086,6 +4143,60 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
     }
   }
 
+  if(!specConstants.empty())
+  {
+    ConstantBlock cblock;
+
+    cblock.name = StringFormat::Fmt("Specialization Constants");
+    cblock.bufferBacked = false;
+
+    BindpointMap bindmap = {0};
+
+    // set something crazy so this doesn't overlap with a real buffer binding
+    // also identify this as specialization constant data
+    bindmap.bindset = 123456;    // magic constants :(
+    bindmap.bind = -1;
+    bindmap.arraySize = 1;
+    bindmap.used = true;
+
+    create_array_uninit(cblock.variables, specConstants.size());
+    for(size_t i = 0; i < specConstants.size(); i++)
+    {
+      cblock.variables[i].name = specConstants[i]->str;
+
+      MakeConstantBlockVariable(cblock.variables[i], specConstants[i]->constant->type,
+                                specConstants[i]->str, specConstants[i]->decorations);
+
+      uint32_t specId = 0;
+
+      for(size_t d = 0; d < specConstants[i]->decorations.size(); d++)
+      {
+        if(specConstants[i]->decorations[d].decoration == spv::DecorationSpecId)
+        {
+          specId = specConstants[i]->decorations[d].val;
+          break;
+        }
+      }
+
+      if(specId == 0)
+        RDCERR("Couldn't find specialisation index for spec constant");
+
+      // put the specId in here since we don't have an actual offset for specialization constants.
+      cblock.variables[i].reg.vec = specId;
+      cblock.variables[i].defaultValue = specConstants[i]->constant->u64;
+
+      RDCASSERTEQUAL(cblock.variables[i].type.members.size(),
+                     specConstants[i]->constant->children.size());
+      for(size_t c = 0; c < specConstants[i]->constant->children.size(); c++)
+      {
+        cblock.variables[i].type.members[c].defaultValue =
+            specConstants[i]->constant->children[c]->u64;
+      }
+    }
+
+    cblocks.push_back(cblockpair(bindmap, cblock));
+  }
+
   // sort system value semantics to the start of the list
   struct sig_param_sort
   {
@@ -4552,6 +4663,8 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
       }
       //////////////////////////////////////////////////////////////////////
       // Constants
+      case spv::OpSpecConstantTrue:
+      case spv::OpSpecConstantFalse:
       case spv::OpConstantTrue:
       case spv::OpConstantFalse:
       {
@@ -4559,9 +4672,12 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
         RDCASSERT(typeInst && typeInst->type);
 
         op.constant = new SPVConstant();
+        op.constant->specialized =
+            (op.opcode == spv::OpSpecConstantTrue || op.opcode == spv::OpSpecConstantFalse);
         op.constant->type = typeInst->type;
 
-        op.constant->u32 = op.opcode == spv::OpConstantTrue ? 1 : 0;
+        op.constant->u32 =
+            (op.opcode == spv::OpConstantTrue || op.opcode == spv::OpSpecConstantTrue) ? 1 : 0;
 
         op.id = spirv[it + 2];
         module.ids[spirv[it + 2]] = &op;
@@ -4581,12 +4697,14 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
         module.ids[spirv[it + 2]] = &op;
         break;
       }
+      case spv::OpSpecConstant:
       case spv::OpConstant:
       {
         SPVInstruction *typeInst = module.GetByID(spirv[it + 1]);
         RDCASSERT(typeInst && typeInst->type);
 
         op.constant = new SPVConstant();
+        op.constant->specialized = op.opcode == spv::OpSpecConstant;
         op.constant->type = typeInst->type;
 
         op.constant->u32 = spirv[it + 3];
@@ -4606,12 +4724,14 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
         module.ids[spirv[it + 2]] = &op;
         break;
       }
+      case spv::OpSpecConstantComposite:
       case spv::OpConstantComposite:
       {
         SPVInstruction *typeInst = module.GetByID(spirv[it + 1]);
         RDCASSERT(typeInst && typeInst->type);
 
         op.constant = new SPVConstant();
+        op.constant->specialized = op.opcode == spv::OpSpecConstantComposite;
         op.constant->type = typeInst->type;
 
         for(int i = 3; i < WordCount; i++)
@@ -4638,6 +4758,30 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
         op.constant->sampler.addressing = spv::SamplerAddressingMode(spirv[it + 3]);
         op.constant->sampler.normalised = (spirv[it + 4] != 0);
         op.constant->sampler.filter = spv::SamplerFilterMode(spirv[it + 5]);
+
+        op.id = spirv[it + 2];
+        module.ids[spirv[it + 2]] = &op;
+
+        break;
+      }
+      case spv::OpSpecConstantOp:
+      {
+        SPVInstruction *typeInst = module.GetByID(spirv[it + 1]);
+        RDCASSERT(typeInst && typeInst->type);
+
+        op.constant = new SPVConstant();
+        op.constant->specialized = true;
+        op.constant->type = typeInst->type;
+
+        op.constant->specOp = (spv::Op)spirv[it + 3];
+
+        for(int i = 4; i < WordCount; i++)
+        {
+          SPVInstruction *constInst = module.GetByID(spirv[it + i]);
+          RDCASSERT(constInst && constInst->constant);
+
+          op.constant->children.push_back(constInst->constant);
+        }
 
         op.id = spirv[it + 2];
         module.ids[spirv[it + 2]] = &op;
@@ -5661,6 +5805,15 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
 
         if(inst->type)
           inst->type->decorations = &inst->decorations;
+
+        if(d.decoration == spv::DecorationSpecId && inst->opcode != spv::OpSpecConstantOp)
+        {
+          if(inst->str.empty())
+            inst->str = StringFormat::Fmt("specConstant%u", d.val);
+
+          module.specConstants.push_back(inst);
+        }
+
         break;
       }
       case spv::OpMemberDecorate:

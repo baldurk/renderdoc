@@ -3812,6 +3812,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
   }
 
   ShaderReflection &refl = it->second.m_Reflections[entryPoint].refl;
+  ShaderBindpointMapping &mapping = it->second.m_Reflections[entryPoint].mapping;
 
   if(cbufSlot >= (uint32_t)refl.ConstantBlocks.count)
   {
@@ -3827,10 +3828,57 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
   }
   else
   {
-    vector<byte> pushdata;
-    pushdata.resize(sizeof(m_pDriver->m_RenderState.pushconsts));
-    memcpy(&pushdata[0], m_pDriver->m_RenderState.pushconsts, pushdata.size());
-    FillCBufferVariables(c.variables, outvars, pushdata, 0);
+    // very specialised (and rather ugly) path to display specialization constants
+    // magic constant here matches the one generated in SPVModule::MakeReflection(
+    if(mapping.ConstantBlocks[c.bindPoint].bindset == 123456)
+    {
+      outvars.resize(c.variables.count);
+      for(int32_t v = 0; v < c.variables.count; v++)
+      {
+        outvars[v].rows = c.variables[v].type.descriptor.rows;
+        outvars[v].columns = c.variables[v].type.descriptor.cols;
+        outvars[v].isStruct = c.variables[v].type.members.count > 0;
+        RDCASSERT(!outvars[v].isStruct);
+        outvars[v].name = c.variables[v].name;
+        outvars[v].type = c.variables[v].type.descriptor.type;
+
+        outvars[v].value.uv[0] = (c.variables[v].defaultValue & 0xFFFFFFFF);
+        outvars[v].value.uv[1] = ((c.variables[v].defaultValue >> 32) & 0xFFFFFFFF);
+      }
+
+      ResourceId pipeline = m_pDriver->m_RenderState.graphics.pipeline;
+      if(pipeline != ResourceId())
+      {
+        auto pipeIt = m_pDriver->m_CreationInfo.m_Pipeline.find(pipeline);
+
+        if(pipeIt != m_pDriver->m_CreationInfo.m_Pipeline.end())
+        {
+          auto specInfo =
+              pipeIt->second.shaders[it->second.m_Reflections[entryPoint].stage].specialization;
+
+          // find any actual values specified
+          for(size_t i = 0; i < specInfo.size(); i++)
+          {
+            for(int32_t v = 0; v < c.variables.count; v++)
+            {
+              if(specInfo[i].specID == c.variables[v].reg.vec)
+              {
+                memcpy(outvars[v].value.uv, specInfo[i].data,
+                       RDCMIN(specInfo[i].size, sizeof(outvars[v].value.uv)));
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    else
+    {
+      vector<byte> pushdata;
+      pushdata.resize(sizeof(m_pDriver->m_RenderState.pushconsts));
+      memcpy(&pushdata[0], m_pDriver->m_RenderState.pushconsts, pushdata.size());
+      FillCBufferVariables(c.variables, outvars, pushdata, 0);
+    }
   }
 }
 

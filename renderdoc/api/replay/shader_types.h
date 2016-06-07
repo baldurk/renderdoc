@@ -203,6 +203,7 @@ struct ShaderConstant
     uint32_t vec;
     uint32_t comp;
   } reg;
+  uint64_t defaultValue;
   ShaderVariableType type;
 };
 
