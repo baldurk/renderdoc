@@ -645,7 +645,7 @@ static VkResult FillPropertyCountAndList(const VkExtensionProperties *src, uint3
     uint32_t dstSpace = *dstCount;
 
     // return the number of extensions.
-    *dstCount = numExts;
+    *dstCount = RDCMIN(numExts, dstSpace);
 
     // copy as much as there's space for, up to how many there are
     memcpy(dstProps, src, sizeof(VkExtensionProperties) * RDCMIN(numExts, dstSpace));
