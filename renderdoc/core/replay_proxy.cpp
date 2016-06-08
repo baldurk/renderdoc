@@ -1729,6 +1729,7 @@ bool ProxySerialiser::Tick()
     case eCommand_GetUsage: GetUsage(ResourceId()); break;
     case eCommand_GetLiveID: GetLiveID(ResourceId()); break;
     case eCommand_GetFrameRecord: GetFrameRecord(); break;
+    case eCommand_IsRenderOutput: IsRenderOutput(ResourceId()); break;
     case eCommand_HasResolver: HasCallstacks(); break;
     case eCommand_InitStackResolver: InitCallstackResolver(); break;
     case eCommand_HasStackResolver: GetCallstackResolver(); break;
@@ -1807,20 +1808,23 @@ bool ProxySerialiser::Tick()
 
 bool ProxySerialiser::IsRenderOutput(ResourceId id)
 {
-  // TODO this should go remote
+  bool ret = false;
 
-  for(int32_t i = 0; i < m_D3D11PipelineState.m_OM.RenderTargets.count; i++)
+  m_ToReplaySerialiser->Serialise("", id);
+
+  if(m_ReplayHost)
   {
-    if(m_D3D11PipelineState.m_OM.RenderTargets[i].View == id ||
-       m_D3D11PipelineState.m_OM.RenderTargets[i].Resource == id)
-      return true;
+    ret = m_Remote->IsRenderOutput(id);
+  }
+  else
+  {
+    if(!SendReplayCommand(eCommand_IsRenderOutput))
+      return ret;
   }
 
-  if(m_D3D11PipelineState.m_OM.DepthTarget.View == id ||
-     m_D3D11PipelineState.m_OM.DepthTarget.Resource == id)
-    return true;
+  m_FromReplaySerialiser->Serialise("", ret);
 
-  return false;
+  return ret;
 }
 
 APIProperties ProxySerialiser::GetAPIProperties()

@@ -51,6 +51,7 @@ enum CommandPacketType
   eCommand_GetUsage,
   eCommand_GetLiveID,
   eCommand_GetFrameRecord,
+  eCommand_IsRenderOutput,
 
   eCommand_FreeResource,
   eCommand_HasResolver,
