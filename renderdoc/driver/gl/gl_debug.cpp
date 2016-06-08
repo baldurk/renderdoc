@@ -1097,7 +1097,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uin
     SAFE_DELETE_ARRAY(outidxs);
   }
 
-  if(DebugData.pickVBBuf == 0 || DebugData.pickVBSize < cfg.position.numVerts * sizeof(uint32_t))
+  if(DebugData.pickVBBuf == 0 || DebugData.pickVBSize < cfg.position.numVerts * sizeof(Vec4f))
   {
     gl.glDeleteBuffers(1, &DebugData.pickVBBuf);
 
