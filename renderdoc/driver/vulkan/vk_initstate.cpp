@@ -1074,7 +1074,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-    if(IsDepthStencilFormat(layout->format))
+    if(IsStencilOnlyFormat(layout->format))
+      aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+    else if(IsDepthStencilFormat(layout->format))
       aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
     VkImageMemoryBarrier srcimBarrier = {
@@ -1088,6 +1090,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         VK_QUEUE_FAMILY_IGNORED,
         im->real.As<VkImage>(),
         {aspectFlags, 0, (uint32_t)layout->levelCount, 0, (uint32_t)layout->layerCount}};
+
+    if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(layout->format))
+      srcimBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
     // update the real image layout into transfer-source
     srcimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -1619,7 +1624,9 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
       VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
 
       VkFormat fmt = m_CreationInfo.m_Image[liveim->id].format;
-      if(IsDepthStencilFormat(fmt))
+      if(IsStencilOnlyFormat(fmt))
+        aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+      else if(IsDepthStencilFormat(fmt))
         aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
       VkImageMemoryBarrier srcimBarrier = {
@@ -2069,7 +2076,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
     VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
 
     VkFormat fmt = m_CreationInfo.m_Image[id].format;
-    if(IsDepthStencilFormat(fmt))
+    if(IsStencilOnlyFormat(fmt))
+      aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+    else if(IsDepthStencilFormat(fmt))
       aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
     VkImageMemoryBarrier dstimBarrier = {
@@ -2083,6 +2092,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
         VK_QUEUE_FAMILY_IGNORED,
         ToHandle<VkImage>(live),
         {aspectFlags, 0, 1, 0, (uint32_t)m_CreationInfo.m_Image[id].arrayLayers}};
+
+    if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(fmt))
+      dstimBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
     // loop over every mip
     for(int m = 0; m < m_CreationInfo.m_Image[id].mipLevels; m++)

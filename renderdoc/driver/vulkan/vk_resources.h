@@ -1064,6 +1064,7 @@ bool IsBlockFormat(VkFormat f);
 bool IsDepthStencilFormat(VkFormat f);
 bool IsDepthOnlyFormat(VkFormat f);
 bool IsStencilFormat(VkFormat f);
+bool IsStencilOnlyFormat(VkFormat f);
 bool IsSRGBFormat(VkFormat f);
 bool IsUIntFormat(VkFormat f);
 bool IsSIntFormat(VkFormat f);

@@ -235,6 +235,17 @@ bool IsDepthOnlyFormat(VkFormat f)
   return false;
 }
 
+bool IsStencilOnlyFormat(VkFormat f)
+{
+  switch(f)
+  {
+    case VK_FORMAT_S8_UINT: return true;
+    default: break;
+  }
+
+  return false;
+}
+
 bool IsSRGBFormat(VkFormat f)
 {
   switch(f)
