@@ -158,7 +158,7 @@ void ReplayOutput::RefreshOverlay()
 
     m_pDevice->InitPostVSBuffers(draw->eventID);
 
-    if(!m_RenderData.meshDisplay.showWholePass && !passEvents.empty())
+    if(m_RenderData.meshDisplay.showWholePass && !passEvents.empty())
     {
       m_pDevice->InitPostVSBuffers(passEvents);
 
