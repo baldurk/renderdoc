@@ -291,6 +291,10 @@ uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y)
     return ~0U;
 
   MeshDisplay cfg = m_RenderData.meshDisplay;
+
+  if(cfg.position.buf == ResourceId())
+    return ~0U;
+
   cfg.position.buf = m_pDevice->GetLiveID(cfg.position.buf);
   cfg.position.idxbuf = m_pDevice->GetLiveID(cfg.position.idxbuf);
   cfg.second.buf = m_pDevice->GetLiveID(cfg.second.buf);
