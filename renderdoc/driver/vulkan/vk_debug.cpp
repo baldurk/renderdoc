@@ -29,6 +29,8 @@
 #include "common/shader_cache.h"
 #include "data/spv/debuguniforms.h"
 #include "driver/shaders/spirv/spirv_common.h"
+#include "maths/camera.h"
+#include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "serialise/string_utils.h"
 #include "vk_core.h"
@@ -71,11 +73,14 @@ void VulkanDebugManager::GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, 
   VkMemoryRequirements mrq = {};
   driver->vkGetBufferMemoryRequirements(dev, buf, &mrq);
 
-  VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
-      (flags & eGPUBufferReadback) ? driver->GetReadbackMemoryIndex(mrq.memoryTypeBits)
-                                   : driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
-  };
+  VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size, 0};
+
+  if(flags & eGPUBufferReadback)
+    allocInfo.memoryTypeIndex = driver->GetReadbackMemoryIndex(mrq.memoryTypeBits);
+  else if(flags & eGPUBufferGPULocal)
+    allocInfo.memoryTypeIndex = driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits);
+  else
+    allocInfo.memoryTypeIndex = driver->GetUploadMemoryIndex(mrq.memoryTypeBits);
 
   vkr = driver->vkAllocateMemory(dev, &allocInfo, NULL, &mem);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -298,6 +303,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   m_MeshFetchDescSetLayout = VK_NULL_HANDLE;
   m_MeshFetchDescSet = VK_NULL_HANDLE;
+
+  m_MeshPickDescSetLayout = VK_NULL_HANDLE;
+  m_MeshPickDescSet = VK_NULL_HANDLE;
+  m_MeshPickLayout = VK_NULL_HANDLE;
+  m_MeshPickPipeline = VK_NULL_HANDLE;
 
   m_FontCharSize = 1.0f;
   m_FontCharAspect = 1.0f;
@@ -623,7 +633,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   };
 
   // declare a few more misc things that are needed on both paths
-  VkDescriptorBufferInfo bufInfo[4];
+  VkDescriptorBufferInfo bufInfo[6];
   RDCEraseEl(bufInfo);
 
   vector<string> sources;
@@ -1010,6 +1020,35 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   {
     VkDescriptorSetLayoutBinding layoutBinding[] = {
         {
+            0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL,
+        },
+        {
+            1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL,
+        },
+        {
+            2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL,
+        },
+        {
+            3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL,
+        },
+    };
+
+    VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        NULL,
+        0,
+        ARRAY_COUNT(layoutBinding),
+        &layoutBinding[0],
+    };
+
+    vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL,
+                                                 &m_MeshPickDescSetLayout);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  {
+    VkDescriptorSetLayoutBinding layoutBinding[] = {
+        {
             0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL,
         },
         {
@@ -1186,6 +1225,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_HistogramPipeLayout);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  pipeLayoutInfo.pSetLayouts = &m_MeshPickDescSetLayout;
+
+  vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_MeshPickLayout);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
   descSetAllocInfo.pSetLayouts = &m_CheckerboardDescSetLayout;
   vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_CheckerboardDescSet);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -1220,6 +1264,23 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_MeshFetchDescSet);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  descSetAllocInfo.pSetLayouts = &m_MeshPickDescSetLayout;
+  vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_MeshPickDescSet);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  // sizes are always 0 so that these buffers are created on demand
+  m_MeshPickIBSize = 0;
+  m_MeshPickVBSize = 0;
+
+  m_MeshPickUBO.Create(driver, dev, 128, 1, 0);
+  RDCCOMPILE_ASSERT(sizeof(MeshPickUBOData) <= 128, "mesh pick UBO size");
+
+  const size_t meshPickResultSize = maxMeshPicks * sizeof(FloatVector) + sizeof(uint32_t);
+
+  m_MeshPickResult.Create(driver, dev, meshPickResultSize, 1,
+                          GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
+  m_MeshPickResultReadback.Create(driver, dev, meshPickResultSize, 1, GPUBuffer::eGPUBufferReadback);
+
   m_ReadbackWindow.Create(driver, dev, STAGE_BUFFER_BYTE_SIZE, 1, GPUBuffer::eGPUBufferReadback);
 
   m_OutlineUBO.Create(driver, dev, 128, 10, 0);
@@ -1237,11 +1298,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       GetEmbeddedResource(spv_minmaxtile_comp),  GetEmbeddedResource(spv_minmaxresult_comp),
       GetEmbeddedResource(spv_histogram_comp),   GetEmbeddedResource(spv_outline_frag),
       GetEmbeddedResource(spv_quadresolve_frag), GetEmbeddedResource(spv_quadwrite_frag),
+      GetEmbeddedResource(spv_mesh_comp),
   };
 
   SPIRVShaderStage shaderStages[] = {
-      eSPIRVVertex,  eSPIRVFragment, eSPIRVFragment, eSPIRVVertex,   eSPIRVGeometry, eSPIRVFragment,
-      eSPIRVCompute, eSPIRVCompute,  eSPIRVCompute,  eSPIRVFragment, eSPIRVFragment, eSPIRVFragment,
+      eSPIRVVertex,   eSPIRVFragment, eSPIRVFragment, eSPIRVVertex,  eSPIRVGeometry,
+      eSPIRVFragment, eSPIRVCompute,  eSPIRVCompute,  eSPIRVCompute, eSPIRVFragment,
+      eSPIRVFragment, eSPIRVFragment, eSPIRVCompute,
   };
 
   enum shaderIdx
@@ -1258,6 +1321,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     OUTLINEFS,
     QUADRESOLVEFS,
     QUADWRITEFS,
+    MESHCS,
     NUM_SHADERS,
   };
 
@@ -1569,6 +1633,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       if(t == 1)
         m_pDriver->vkDestroyShaderModule(dev, minmaxresult, NULL);
     }
+  }
+
+  {
+    compPipeInfo.stage.module = module[MESHCS];
+    compPipeInfo.layout = m_MeshPickLayout;
+
+    vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &compPipeInfo, NULL,
+                                              &m_MeshPickPipeline);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
   m_pDriver->vkDestroyRenderPass(dev, RGBA16RP, NULL);
@@ -1978,6 +2051,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_MeshUBO.FillDescriptor(bufInfo[1]);
   m_OutlineUBO.FillDescriptor(bufInfo[2]);
   m_OverdrawRampUBO.FillDescriptor(bufInfo[3]);
+  m_MeshPickUBO.FillDescriptor(bufInfo[4]);
+  m_MeshPickResult.FillDescriptor(bufInfo[5]);
 
   VkWriteDescriptorSet analysisSetWrites[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_CheckerboardDescSet), 0, 0, 1,
@@ -1988,6 +2063,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &bufInfo[2], NULL},
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_QuadDescSet), 1, 0, 1,
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufInfo[3], NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_MeshPickDescSet), 0, 0, 1,
+       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufInfo[4], NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_MeshPickDescSet), 3, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufInfo[5], NULL},
   };
 
   ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(analysisSetWrites), analysisSetWrites,
@@ -2117,6 +2196,18 @@ VulkanDebugManager::~VulkanDebugManager()
 
   m_OverdrawRampUBO.Destroy();
 
+  m_MeshPickUBO.Destroy();
+  m_MeshPickIB.Destroy();
+  m_MeshPickIBUpload.Destroy();
+  m_MeshPickVB.Destroy();
+  m_MeshPickVBUpload.Destroy();
+  m_MeshPickResult.Destroy();
+  m_MeshPickResultReadback.Destroy();
+
+  m_pDriver->vkDestroyDescriptorSetLayout(dev, m_MeshPickDescSetLayout, NULL);
+  m_pDriver->vkDestroyPipelineLayout(dev, m_MeshPickLayout, NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_MeshPickPipeline, NULL);
+
   m_pDriver->vkDestroyDescriptorSetLayout(dev, m_MeshFetchDescSetLayout, NULL);
   m_pDriver->vkDestroyFramebuffer(dev, m_OverlayNoDepthFB, NULL);
   m_pDriver->vkDestroyRenderPass(dev, m_OverlayNoDepthRP, NULL);
@@ -2207,6 +2298,361 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
                               Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 2, offsets);
 
   ObjDisp(textstate.cmd)->CmdDraw(Unwrap(textstate.cmd), 4, (uint32_t)strlen(text), 0, 0);
+}
+
+FloatVector VulkanDebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg,
+                                                byte *end, bool &valid)
+{
+  FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
+
+  data += vert * cfg.position.stride;
+
+  float *out = &ret.x;
+
+  ResourceFormat fmt;
+  fmt.compByteWidth = cfg.position.compByteWidth;
+  fmt.compCount = cfg.position.compCount;
+  fmt.compType = cfg.position.compType;
+
+  if(cfg.position.specialFormat == eSpecial_R10G10B10A2)
+  {
+    if(data + 4 >= end)
+    {
+      valid = false;
+      return ret;
+    }
+
+    Vec4f v = ConvertFromR10G10B10A2(*(uint32_t *)data);
+    ret.x = v.x;
+    ret.y = v.y;
+    ret.z = v.z;
+    ret.w = v.w;
+    return ret;
+  }
+  else if(cfg.position.specialFormat == eSpecial_R11G11B10)
+  {
+    if(data + 4 >= end)
+    {
+      valid = false;
+      return ret;
+    }
+
+    Vec3f v = ConvertFromR11G11B10(*(uint32_t *)data);
+    ret.x = v.x;
+    ret.y = v.y;
+    ret.z = v.z;
+    return ret;
+  }
+
+  if(data + cfg.position.compCount * cfg.position.compByteWidth > end)
+  {
+    valid = false;
+    return ret;
+  }
+
+  for(uint32_t i = 0; i < cfg.position.compCount; i++)
+  {
+    *out = ConvertComponent(fmt, data);
+
+    data += cfg.position.compByteWidth;
+    out++;
+  }
+
+  if(cfg.position.bgraOrder)
+  {
+    FloatVector reversed;
+    reversed.x = ret.z;
+    reversed.y = ret.y;
+    reversed.z = ret.x;
+    reversed.w = ret.w;
+    return reversed;
+  }
+
+  return ret;
+}
+
+uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y,
+                                        uint32_t w, uint32_t h)
+{
+  VkDevice dev = m_pDriver->GetDev();
+  const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+  Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(w) / float(h));
+
+  Matrix4f camMat = cfg.cam ? cfg.cam->GetMatrix() : Matrix4f::Identity();
+  Matrix4f PickMVP = projMat.Mul(camMat);
+
+  ResourceFormat resFmt;
+  resFmt.compByteWidth = cfg.position.compByteWidth;
+  resFmt.compCount = cfg.position.compCount;
+  resFmt.compType = cfg.position.compType;
+  resFmt.special = false;
+  if(cfg.position.specialFormat != eSpecial_Unknown)
+  {
+    resFmt.special = true;
+    resFmt.specialFormat = cfg.position.specialFormat;
+  }
+
+  if(cfg.position.unproject)
+  {
+    // the derivation of the projection matrix might not be right (hell, it could be an
+    // orthographic projection). But it'll be close enough likely.
+    Matrix4f guessProj =
+        Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect);
+
+    if(cfg.ortho)
+      guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
+
+    PickMVP = projMat.Mul(camMat.Mul(guessProj.Inverse()));
+  }
+
+  MeshPickUBOData *ubo = (MeshPickUBOData *)m_MeshPickUBO.Map();
+
+  ubo->coords.x = (float)x;
+  ubo->coords.y = (float)y;
+  ubo->viewport.x = (float)w;
+  ubo->viewport.y = (float)h;
+  ubo->mvp = PickMVP;
+  ubo->use_indices = cfg.position.idxByteWidth ? 1U : 0U;
+  ubo->numVerts = cfg.position.numVerts;
+  ubo->unproject = cfg.position.unproject;
+
+  m_MeshPickUBO.Unmap();
+
+  vector<byte> idxs;
+
+  if(cfg.position.idxByteWidth && cfg.position.idxbuf != ResourceId())
+    GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, 0, idxs);
+
+  // We copy into our own buffers to promote to the target type (uint32) that the
+  // shader expects. Most IBs will be 16-bit indices, most VBs will not be float4.
+
+  if(!idxs.empty())
+  {
+    // resize up on demand
+    if(m_MeshPickIBSize < cfg.position.numVerts * sizeof(uint32_t))
+    {
+      if(m_MeshPickIBSize > 0)
+      {
+        m_MeshPickIB.Destroy();
+        m_MeshPickIBUpload.Destroy();
+      }
+
+      m_MeshPickIBSize = cfg.position.numVerts * sizeof(uint32_t);
+
+      m_MeshPickIB.Create(m_pDriver, dev, m_MeshPickIBSize, 1,
+                          GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
+      m_MeshPickIBUpload.Create(m_pDriver, dev, m_MeshPickIBSize, 1, 0);
+    }
+
+    uint32_t *outidxs = (uint32_t *)m_MeshPickIBUpload.Map();
+
+    uint16_t *idxs16 = (uint16_t *)&idxs[0];
+    uint32_t *idxs32 = (uint32_t *)&idxs[0];
+
+    // if indices are 16-bit, manually upcast them so the shader only
+    // has to deal with one type
+    if(cfg.position.idxByteWidth == 2)
+    {
+      for(uint32_t i = 0; i < cfg.position.numVerts; i++)
+        outidxs[i] = idxs16[i];
+    }
+    else
+    {
+      memcpy(outidxs, idxs32, cfg.position.numVerts * sizeof(uint32_t));
+    }
+
+    m_MeshPickIBUpload.Unmap();
+  }
+
+  if(m_MeshPickVBSize < cfg.position.numVerts * sizeof(FloatVector))
+  {
+    if(m_MeshPickVBSize > 0)
+    {
+      m_MeshPickVB.Destroy();
+      m_MeshPickVBUpload.Destroy();
+    }
+
+    m_MeshPickVBSize = cfg.position.numVerts * sizeof(FloatVector);
+
+    m_MeshPickVB.Create(m_pDriver, dev, m_MeshPickVBSize, 1,
+                        GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
+    m_MeshPickVBUpload.Create(m_pDriver, dev, m_MeshPickVBSize, 1, 0);
+  }
+
+  // unpack and linearise the data
+  {
+    vector<byte> oldData;
+    GetBufferData(cfg.position.buf, cfg.position.offset, 0, oldData);
+
+    byte *data = &oldData[0];
+    byte *dataEnd = data + oldData.size();
+
+    bool valid = true;
+
+    FloatVector *vbData = (FloatVector *)m_MeshPickVBUpload.Map();
+
+    for(uint32_t i = 0; i < cfg.position.numVerts; i++)
+      vbData[i] = InterpretVertex(data, i, cfg, dataEnd, valid);
+
+    m_MeshPickVBUpload.Unmap();
+  }
+
+  VkDescriptorBufferInfo ibInfo = {};
+  VkDescriptorBufferInfo vbInfo = {};
+
+  m_MeshPickVB.FillDescriptor(vbInfo);
+  m_MeshPickIB.FillDescriptor(ibInfo);
+
+  VkWriteDescriptorSet writes[] = {
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_MeshPickDescSet), 1, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &vbInfo, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_MeshPickDescSet), 2, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &ibInfo, NULL},
+  };
+
+  if(!idxs.empty())
+    vt->UpdateDescriptorSets(Unwrap(m_Device), 2, writes, 0, NULL);
+  else
+    vt->UpdateDescriptorSets(Unwrap(m_Device), 1, writes, 0, NULL);
+
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  VkBufferCopy bufCopy = {0, 0, 0};
+
+  vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+  // reset first uint (used as atomic counter) to 0
+  vt->CmdFillBuffer(Unwrap(cmd), Unwrap(m_MeshPickResult.buf), 0, sizeof(uint32_t) * 4, 0);
+
+  VkBufferMemoryBarrier bufBarrier = {
+      VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+      NULL,
+      VK_ACCESS_TRANSFER_WRITE_BIT,
+      VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
+      VK_QUEUE_FAMILY_IGNORED,
+      VK_QUEUE_FAMILY_IGNORED,
+      Unwrap(m_MeshPickResult.buf),
+      0,
+      VK_WHOLE_SIZE,
+  };
+
+  // wait for zero to be written to atomic counter before using in shader
+  DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+  // copy uploaded VB and if needed IB
+  if(!idxs.empty())
+  {
+    // wait for writes
+    bufBarrier.buffer = Unwrap(m_MeshPickIBUpload.buf);
+    bufBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+    bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+    // do copy
+    bufCopy.size = m_MeshPickIBSize;
+    vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(m_MeshPickIBUpload.buf), Unwrap(m_MeshPickIB.buf), 1,
+                      &bufCopy);
+
+    // wait for copy
+    bufBarrier.buffer = Unwrap(m_MeshPickIB.buf);
+    bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    bufBarrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
+    DoPipelineBarrier(cmd, 1, &bufBarrier);
+  }
+
+  // wait for writes
+  bufBarrier.buffer = Unwrap(m_MeshPickVBUpload.buf);
+  bufBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+  bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+  DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+  // do copy
+  bufCopy.size = m_MeshPickVBSize;
+  vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(m_MeshPickVBUpload.buf), Unwrap(m_MeshPickVB.buf), 1,
+                    &bufCopy);
+
+  // wait for copy
+  bufBarrier.buffer = Unwrap(m_MeshPickVB.buf);
+  bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+  bufBarrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
+  DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+  vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(m_MeshPickPipeline));
+  vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(m_MeshPickLayout),
+                            0, 1, UnwrapPtr(m_MeshPickDescSet), 0, NULL);
+
+  uint32_t workgroupx = uint32_t(cfg.position.numVerts / 128 + 1);
+  vt->CmdDispatch(Unwrap(cmd), workgroupx, 1, 1);
+
+  // wait for shader to finish writing before transferring to readback buffer
+  bufBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+  bufBarrier.buffer = Unwrap(m_MeshPickResult.buf);
+  DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+  bufCopy.size = m_MeshPickResult.totalsize;
+
+  // copy to readback buffer
+  vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(m_MeshPickResult.buf), Unwrap(m_MeshPickResultReadback.buf),
+                    1, &bufCopy);
+
+  // wait for transfer to finish before reading on CPU
+  bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+  bufBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+  bufBarrier.buffer = Unwrap(m_MeshPickResultReadback.buf);
+  DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+  vt->EndCommandBuffer(Unwrap(cmd));
+
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();
+
+  uint32_t *pickResultData = (uint32_t *)m_MeshPickResultReadback.Map();
+  uint32_t numResults = *pickResultData;
+
+  uint32_t ret = ~0U;
+
+  struct PickResult
+  {
+    uint32_t vertid;
+    uint32_t idx;
+    float len;
+    float depth;
+  };
+
+  PickResult *pickResults = (PickResult *)(pickResultData + 4);
+
+  if(numResults > 0)
+  {
+    PickResult *closest = pickResults;
+
+    // min with size of results buffer to protect against overflows
+    for(uint32_t i = 1; i < RDCMIN((uint32_t)maxMeshPicks, numResults); i++)
+    {
+      // We need to keep the picking order consistent in the face
+      // of random buffer appends, when multiple vertices have the
+      // identical position (e.g. if UVs or normals are different).
+      //
+      // We could do something to try and disambiguate, but it's
+      // never going to be intuitive, it's just going to flicker
+      // confusingly.
+      if(pickResults[i].len < closest->len ||
+         (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
+         (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
+          pickResults[i].vertid < closest->vertid))
+        closest = pickResults + i;
+    }
+
+    ret = closest->vertid;
+  }
+
+  m_MeshPickResultReadback.Unmap();
+
+  return ret;
 }
 
 void VulkanDebugManager::EndText(const TextPrintState &textstate)

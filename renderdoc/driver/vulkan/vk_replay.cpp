@@ -26,7 +26,6 @@
 #include <float.h>
 #include "data/spv/debuguniforms.h"
 #include "maths/camera.h"
-#include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "serialise/string_utils.h"
 #include "vk_core.h"
@@ -1020,8 +1019,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
 uint32_t VulkanReplay::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
 {
-  VULKANNOTIMP("PickVertex");
-  return ~0U;
+  return GetDebugManager()->PickVertex(eventID, cfg, x, y, m_DebugWidth, m_DebugHeight);
 }
 
 bool VulkanReplay::RenderTexture(TextureDisplay cfg)
@@ -1581,70 +1579,7 @@ FloatVector VulkanReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay
     vert = m_HighlightCache.indices[vert];
   }
 
-  data += vert * cfg.position.stride;
-
-  float *out = &ret.x;
-
-  ResourceFormat fmt;
-  fmt.compByteWidth = cfg.position.compByteWidth;
-  fmt.compCount = cfg.position.compCount;
-  fmt.compType = cfg.position.compType;
-
-  if(cfg.position.specialFormat == eSpecial_R10G10B10A2)
-  {
-    if(data + 4 >= end)
-    {
-      valid = false;
-      return ret;
-    }
-
-    Vec4f v = ConvertFromR10G10B10A2(*(uint32_t *)data);
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
-    ret.w = v.w;
-    return ret;
-  }
-  else if(cfg.position.specialFormat == eSpecial_R11G11B10)
-  {
-    if(data + 4 >= end)
-    {
-      valid = false;
-      return ret;
-    }
-
-    Vec3f v = ConvertFromR11G11B10(*(uint32_t *)data);
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
-    return ret;
-  }
-
-  if(data + cfg.position.compCount * cfg.position.compByteWidth > end)
-  {
-    valid = false;
-    return ret;
-  }
-
-  for(uint32_t i = 0; i < cfg.position.compCount; i++)
-  {
-    *out = ConvertComponent(fmt, data);
-
-    data += cfg.position.compByteWidth;
-    out++;
-  }
-
-  if(cfg.position.bgraOrder)
-  {
-    FloatVector reversed;
-    reversed.x = ret.z;
-    reversed.y = ret.y;
-    reversed.z = ret.x;
-    reversed.w = ret.w;
-    return reversed;
-  }
-
-  return ret;
+  return GetDebugManager()->InterpretVertex(data, vert, cfg, end, valid);
 }
 
 void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,

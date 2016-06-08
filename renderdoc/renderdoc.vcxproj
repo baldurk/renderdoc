@@ -379,6 +379,7 @@
     <None Include="data\spv\checkerboard.frag" />
     <None Include="data\spv\fixedcol.frag" />
     <None Include="data\spv\histogram.comp" />
+    <None Include="data\spv\mesh.comp" />
     <None Include="data\spv\mesh.frag" />
     <None Include="data\spv\mesh.geom" />
     <None Include="data\spv\mesh.vert" />

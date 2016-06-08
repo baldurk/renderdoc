@@ -107,6 +107,20 @@ BINDING(0, 0) uniform FontUBOData
 }
 INST_NAME(general);
 
+BINDING(0, 0) uniform MeshPickUBOData
+{
+  vec2 coords;
+  vec2 viewport;
+
+  mat4 mvp;
+
+  uint use_indices;
+  uint numVerts;
+  uint unproject;
+  uint padding;
+}
+INST_NAME(meshpick);
+
 struct FontGlyphData
 {
   vec4 posdata;

@@ -148,6 +148,7 @@ RESOURCE_spv_debuguniforms_h   TYPE_EMBED   "spv/debuguniforms.h"
 RESOURCE_spv_texsample_h       TYPE_EMBED   "spv/texsample.h"
 RESOURCE_spv_quadresolve_frag  TYPE_EMBED   "spv/quadresolve.frag"
 RESOURCE_spv_quadwrite_frag    TYPE_EMBED   "spv/quadwrite.frag"
+RESOURCE_spv_mesh_comp         TYPE_EMBED   "spv/mesh.comp"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

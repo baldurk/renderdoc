@@ -119,6 +119,11 @@ public:
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret);
 
+  FloatVector InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool &valid);
+
+  uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y, uint32_t w,
+                      uint32_t h);
+
   struct GPUBuffer
   {
     enum CreateFlags
@@ -126,6 +131,7 @@ public:
       eGPUBufferReadback = 0x1,
       eGPUBufferVBuffer = 0x2,
       eGPUBufferSSBO = 0x4,
+      eGPUBufferGPULocal = 0x8,
     };
     GPUBuffer()
         : sz(0),
@@ -255,6 +261,18 @@ public:
   VkPipeline m_HistogramPipe[eTexType_Max][3];     // float, uint, sint
   VkPipeline m_MinMaxTilePipe[eTexType_Max][3];    // float, uint, sint
   VkPipeline m_MinMaxResultPipe[3];                // float, uint, sint
+
+  static const int maxMeshPicks = 500;
+
+  GPUBuffer m_MeshPickUBO;
+  GPUBuffer m_MeshPickIB, m_MeshPickIBUpload;
+  GPUBuffer m_MeshPickVB, m_MeshPickVBUpload;
+  uint32_t m_MeshPickIBSize, m_MeshPickVBSize;
+  GPUBuffer m_MeshPickResult, m_MeshPickResultReadback;
+  VkDescriptorSetLayout m_MeshPickDescSetLayout;
+  VkDescriptorSet m_MeshPickDescSet;
+  VkPipelineLayout m_MeshPickLayout;
+  VkPipeline m_MeshPickPipeline;
 
   VkDescriptorSetLayout m_OutlineDescSetLayout;
   VkPipelineLayout m_OutlinePipeLayout;

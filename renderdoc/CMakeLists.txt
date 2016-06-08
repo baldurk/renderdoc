@@ -215,6 +215,7 @@ set(data
     data/spv/debuguniforms.h
     data/spv/fixedcol.frag
     data/spv/histogram.comp
+    data/spv/mesh.comp
     data/spv/mesh.frag
     data/spv/mesh.geom
     data/spv/mesh.vert

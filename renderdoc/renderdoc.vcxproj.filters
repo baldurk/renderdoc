@@ -478,6 +478,9 @@
     <None Include="data\spv\fixedcol.frag">
       <Filter>Resources\spv</Filter>
     </None>
+    <None Include="data\spv\mesh.comp">
+      <Filter>Resources\spv</Filter>
+    </None>
     <None Include="data\spv\mesh.frag">
       <Filter>Resources\spv</Filter>
     </None>
