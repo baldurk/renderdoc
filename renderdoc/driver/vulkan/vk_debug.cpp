@@ -2606,7 +2606,12 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, MeshDisplay cfg, uint3
   bufBarrier.buffer = Unwrap(m_MeshPickResultReadback.buf);
   DoPipelineBarrier(cmd, 1, &bufBarrier);
 
-  vt->EndCommandBuffer(Unwrap(cmd));
+  VkResult vkr = vt->EndCommandBuffer(Unwrap(cmd));
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+  m_pDriver->SubmitCmds();
+#endif
 
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
