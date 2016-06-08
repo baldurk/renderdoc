@@ -2906,6 +2906,8 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 
   DoPipelineBarrier(cmd, 1, &outw.depthBarrier);
 
+  outw.depthBarrier.oldLayout = outw.depthBarrier.newLayout;
+
   vt->EndCommandBuffer(Unwrap(cmd));
 
 #if defined(SINGLE_FLUSH_VALIDATE)
