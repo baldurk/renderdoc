@@ -360,8 +360,8 @@ namespace renderdocui.Code
 
                 FetchDrawcall mark = new FetchDrawcall();
                 
-                mark.eventID = draws[end].eventID;
-                mark.drawcallID = draws[end].drawcallID;
+                mark.eventID = draws[start].eventID;
+                mark.drawcallID = draws[start].drawcallID;
                 mark.markerColour = new float[] { 0.0f, 0.0f, 0.0f, 0.0f };
 
                 mark.context = draws[end].context;
