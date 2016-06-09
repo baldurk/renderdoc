@@ -81,7 +81,9 @@ void Process::RegisterEnvironmentModification(Process::EnvironmentModification m
 void Process::ApplyEnvironmentModification()
 {
   // turn environment string to a UTF-8 map
-  map<string, string> currentEnv = EnvStringToEnvMap(GetEnvironmentStringsW());
+  LPWCH envStrings = GetEnvironmentStringsW();
+  map<string, string> currentEnv = EnvStringToEnvMap(envStrings);
+  FreeEnvironmentStringsW(envStrings);
   vector<EnvironmentModification> &modifications = GetEnvModifications();
 
   for(size_t i = 0; i < modifications.size(); i++)
