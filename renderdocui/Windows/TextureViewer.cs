@@ -814,7 +814,7 @@ namespace renderdocui.Windows
                 var fn = Path.GetFileNameWithoutExtension(f);
                 var key = fn.ToUpperInvariant();
 
-                if (!m_CustomShaders.ContainsKey(key))
+                if (!m_CustomShaders.ContainsKey(key) && !m_CustomShadersBusy.Contains(key))
                 {
                     try
                     {
