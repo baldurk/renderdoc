@@ -6794,6 +6794,7 @@ MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instI
   ret.specialFormat = eSpecial_Unknown;
 
   ret.showAlpha = false;
+  ret.bgraOrder = false;
 
   ret.topo = MakePrimitiveTopology(s.topo, 1);
   ret.numVerts = s.numVerts;

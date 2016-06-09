@@ -3388,6 +3388,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDat
   ret.specialFormat = eSpecial_Unknown;
 
   ret.showAlpha = false;
+  ret.bgraOrder = false;
 
   ret.topo = s.topo;
   ret.numVerts = s.numVerts;
