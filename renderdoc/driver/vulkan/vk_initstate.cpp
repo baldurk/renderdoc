@@ -845,7 +845,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im,
     // sparse image? how is that determined?
     VkSparseMemoryBind unbind = {0, 0, VK_NULL_HANDLE, 0, 0};
 
-    VkMemoryRequirements mrq;
+    VkMemoryRequirements mrq = {0};
     ObjDisp(q)->GetImageMemoryRequirements(Unwrap(GetDev()), im->real.As<VkImage>(), &mrq);
     unbind.size = mrq.size;
 

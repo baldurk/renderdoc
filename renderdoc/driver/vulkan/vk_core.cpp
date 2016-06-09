@@ -1108,7 +1108,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     vt->CreateImage(Unwrap(device), &imInfo, NULL, &readbackIm);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    VkMemoryRequirements mrq;
+    VkMemoryRequirements mrq = {0};
     vt->GetImageMemoryRequirements(Unwrap(device), readbackIm, &mrq);
 
     VkImageSubresource subr = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};

@@ -796,7 +796,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
         vkr = m_pDriver->vkCreateImage(dev, &imInfo, NULL, &m_TextAtlas);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        VkMemoryRequirements mrq;
+        VkMemoryRequirements mrq = {0};
         m_pDriver->vkGetImageMemoryRequirements(dev, m_TextAtlas, &mrq);
 
         VkImageSubresource subr = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
@@ -1752,7 +1752,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
         vkr = m_pDriver->vkCreateImage(dev, &imInfo, NULL, &m_TexDisplayDummyImages[index]);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        VkMemoryRequirements mrq;
+        VkMemoryRequirements mrq = {0};
         m_pDriver->vkGetImageMemoryRequirements(dev, m_TexDisplayDummyImages[index], &mrq);
 
         uint32_t memIndex = driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits);
@@ -1891,7 +1891,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     vkr = m_pDriver->vkCreateImage(dev, &imInfo, NULL, &m_PickPixelImage);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    VkMemoryRequirements mrq;
+    VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetImageMemoryRequirements(dev, m_PickPixelImage, &mrq);
 
     VkImageSubresource subr = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
@@ -2361,7 +2361,7 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height)
   vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &m_CustomTexImg);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  VkMemoryRequirements mrq;
+  VkMemoryRequirements mrq = {0};
   m_pDriver->vkGetImageMemoryRequirements(m_Device, m_CustomTexImg, &mrq);
 
   // if no memory is allocated, or it's not enough,
@@ -3672,7 +3672,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
     vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &m_OverlayImage);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    VkMemoryRequirements mrq;
+    VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetImageMemoryRequirements(m_Device, m_OverlayImage, &mrq);
 
     // if no memory is allocated, or it's not enough,
@@ -6253,7 +6253,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &uniqIdxBuf);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    VkMemoryRequirements mrq;
+    VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetBufferMemoryRequirements(dev, uniqIdxBuf, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
@@ -6371,7 +6371,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &readbackBuffer);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    VkMemoryRequirements mrq;
+    VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
@@ -6484,7 +6484,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &readbackBuffer);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    VkMemoryRequirements mrq;
+    VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
 
     VkMemoryAllocateInfo allocInfo = {
