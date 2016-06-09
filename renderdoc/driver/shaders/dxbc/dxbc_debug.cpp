@@ -305,8 +305,8 @@ ShaderVariable abs(const ShaderVariable &v, const VarType type)
       DoubleGet(v, src);
 
       double dst[2];
-      dst[0] = src[0] > 0 ? src[0] : src[0];
-      dst[1] = src[1] > 0 ? src[1] : src[1];
+      dst[0] = src[0] > 0 ? src[0] : -src[0];
+      dst[1] = src[1] > 0 ? src[1] : -src[1];
 
       DoubleSet(r, dst);
       break;

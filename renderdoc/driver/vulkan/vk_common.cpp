@@ -836,7 +836,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       case eSpecial_R11G11B10: ret = VK_FORMAT_B10G11R11_UFLOAT_PACK32; break;
       case eSpecial_R5G6B5: ret = VK_FORMAT_B5G6R5_UNORM_PACK16; break;
       case eSpecial_R5G5B5A1:
-        ret = fmt.bgraOrder ? VK_FORMAT_B5G5R5A1_UNORM_PACK16 : VK_FORMAT_B5G5R5A1_UNORM_PACK16;
+        ret = fmt.bgraOrder ? VK_FORMAT_B5G5R5A1_UNORM_PACK16 : VK_FORMAT_R5G5B5A1_UNORM_PACK16;
         break;
       case eSpecial_R9G9B9E5: ret = VK_FORMAT_E5B9G9R9_UFLOAT_PACK32; break;
       case eSpecial_R4G4B4A4:
