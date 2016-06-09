@@ -5549,7 +5549,7 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target,
     {
       ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
 
-      m_ContextRecord->AddChunk(scope.Get());
+      m_ContextRecord->AddChunk(chunk);
       m_MissingTracks.insert(record->GetResourceID());
       m_MissingTracks.insert(bufid);
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
