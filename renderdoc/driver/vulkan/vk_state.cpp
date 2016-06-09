@@ -109,24 +109,6 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
 
   BindPipeline(cmd);
 
-  if(!views.empty())
-    ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)views.size(), &views[0]);
-  if(!scissors.empty())
-    ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)scissors.size(), &scissors[0]);
-
-  ObjDisp(cmd)->CmdSetBlendConstants(Unwrap(cmd), blendConst);
-  ObjDisp(cmd)->CmdSetDepthBounds(Unwrap(cmd), mindepth, maxdepth);
-  ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), lineWidth);
-  ObjDisp(cmd)->CmdSetDepthBias(Unwrap(cmd), bias.depth, bias.biasclamp, bias.slope);
-
-  ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.ref);
-  ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.compare);
-  ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.write);
-
-  ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.ref);
-  ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.compare);
-  ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.write);
-
   if(ibuffer.buf != ResourceId())
     ObjDisp(cmd)->CmdBindIndexBuffer(
         Unwrap(cmd), Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf)),
@@ -152,6 +134,49 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 
     const vector<VkPushConstantRange> &pushRanges =
         m_CreationInfo->m_PipelineLayout[pipeLayoutId].pushRanges;
+
+    bool dynamicStates[VK_DYNAMIC_STATE_RANGE_SIZE] = {0};
+    memcpy(dynamicStates, m_CreationInfo->m_Pipeline[graphics.pipeline].dynamicStates,
+           sizeof(dynamicStates));
+
+    RDCCOMPILE_ASSERT(sizeof(dynamicStates) ==
+                          sizeof(m_CreationInfo->m_Pipeline[graphics.pipeline].dynamicStates),
+                      "Dynamic states array size is out of sync");
+
+    if(!views.empty() && dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
+      ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)views.size(), &views[0]);
+    if(!scissors.empty() && dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
+      ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)scissors.size(), &scissors[0]);
+
+    if(dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
+      ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), lineWidth);
+
+    if(dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
+      ObjDisp(cmd)->CmdSetDepthBias(Unwrap(cmd), bias.depth, bias.biasclamp, bias.slope);
+
+    if(dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
+      ObjDisp(cmd)->CmdSetBlendConstants(Unwrap(cmd), blendConst);
+
+    if(dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
+      ObjDisp(cmd)->CmdSetDepthBounds(Unwrap(cmd), mindepth, maxdepth);
+
+    if(dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
+    {
+      ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.compare);
+      ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.compare);
+    }
+
+    if(dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
+    {
+      ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.write);
+      ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.write);
+    }
+
+    if(dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
+    {
+      ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.ref);
+      ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.ref);
+    }
 
     // only set push constant ranges that the layout uses
     for(size_t i = 0; i < pushRanges.size(); i++)
