@@ -23,6 +23,7 @@ elseif(APPLE)
     list(APPEND RDOC_LIBRARIES
         PRIVATE m
         PRIVATE dl
+        PRIVATE log
         PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)

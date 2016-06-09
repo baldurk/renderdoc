@@ -45,4 +45,7 @@ void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 {
+  w = 500;
+  h = 500;    // FIXME
+  RDCLOG("VulkanReplay::GetOutputWindowDimensions: %i, %i", w, h);
 }
