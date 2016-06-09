@@ -1656,6 +1656,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
   if(buf[0].numHits == 0)
   {
     RDCLOG("No hit for this event");
+    SAFE_DELETE_ARRAY(initialData);
     return empty;
   }
 
@@ -1732,6 +1733,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
       }
     }
   }
+
+  SAFE_DELETE_ARRAY(initialData);
 
   if(winner == NULL)
   {
