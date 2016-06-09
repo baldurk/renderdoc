@@ -180,7 +180,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   viewports.resize(viewportCount);
   scissors.resize(viewportCount);
 
-  for(size_t i = 0; i < viewports.size(); i++)
+  for(uint32_t i = 0; i < viewportCount; i++)
   {
     if(pCreateInfo->pViewportState->pViewports)
       viewports[i] = pCreateInfo->pViewportState->pViewports[i];
