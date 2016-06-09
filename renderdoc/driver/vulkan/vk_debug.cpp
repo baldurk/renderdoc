@@ -4948,7 +4948,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
   bit++;
 
   RDCASSERT((uint32_t)primary.topo < 64);
-  key |= ((uint32_t)primary.topo & 0x3f) << bit;
+  key |= uint64_t((uint32_t)primary.topo & 0x3f) << bit;
   bit += 6;
 
   ResourceFormat fmt;
@@ -4971,20 +4971,20 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
   RDCCOMPILE_ASSERT(VK_FORMAT_RANGE_SIZE <= 255,
                     "Mesh pipeline cache key needs an extra bit for format");
 
-  key |= ((uint32_t)primaryFmt & 0xff) << bit;
+  key |= uint64_t((uint32_t)primaryFmt & 0xff) << bit;
   bit += 8;
 
-  key |= ((uint32_t)secondaryFmt & 0xff) << bit;
+  key |= uint64_t((uint32_t)secondaryFmt & 0xff) << bit;
   bit += 8;
 
   RDCASSERT(primary.stride <= 0xffff);
-  key |= ((uint32_t)primary.stride & 0xffff) << bit;
+  key |= uint64_t((uint32_t)primary.stride & 0xffff) << bit;
   bit += 16;
 
   if(secondary.buf != ResourceId())
   {
     RDCASSERT(secondary.stride <= 0xffff);
-    key |= ((uint32_t)secondary.stride & 0xffff) << bit;
+    key |= uint64_t((uint32_t)secondary.stride & 0xffff) << bit;
   }
   bit += 16;
 
