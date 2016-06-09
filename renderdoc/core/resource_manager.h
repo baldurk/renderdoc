@@ -557,9 +557,7 @@ bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkRef
     }
     else if(refs[id] == eFrameRef_Unknown)
     {
-      if(refType == eFrameRef_ReadBeforeWrite)
-        refs[id] = eFrameRef_ReadBeforeWrite;
-      else if(refType == eFrameRef_Read || refType == eFrameRef_ReadOnly)
+      if(refType == eFrameRef_Read || refType == eFrameRef_ReadOnly)
         refs[id] = eFrameRef_ReadOnly;
       else
         refs[id] = eFrameRef_ReadAndWrite;

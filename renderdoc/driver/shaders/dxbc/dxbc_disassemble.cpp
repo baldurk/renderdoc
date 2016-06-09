@@ -1107,8 +1107,6 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 
     if(retDecl.refactoringAllowed)
     {
-      if(added)
-        retDecl.str += ", ";
       retDecl.str += "refactoringAllowed";
       added = true;
     }
