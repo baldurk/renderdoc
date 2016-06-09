@@ -503,7 +503,20 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
   m_pSerialiser->Serialise("IA.indexFormat", IA.IndexFormat);
   m_pSerialiser->Serialise("IA.indexOffset", IA.IndexOffset);
 
-  const char *names[] = {"VS", "HS", "DS", "GS", "PS", "CS"};
+#define MAKE_NAMES(suffix)                                                                  \
+  const char *CONCAT(suffix, _names)[] = {"VS." STRINGIZE(suffix), "HS." STRINGIZE(suffix), \
+                                          "DS." STRINGIZE(suffix), "GS." STRINGIZE(suffix), \
+                                          "PS." STRINGIZE(suffix), "CS." STRINGIZE(suffix)};
+
+  MAKE_NAMES(ConstantBuffers);
+  MAKE_NAMES(CBOffsets);
+  MAKE_NAMES(CBCounts);
+  MAKE_NAMES(Samplers);
+  MAKE_NAMES(SRVs);
+  MAKE_NAMES(Instances);
+
+#undef MAKE_NAMES
+
   shader *sh = &VS;
   for(int s = 0; s < 6; s++)
   {
@@ -521,7 +534,7 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
       ResourceId id;
       if(m_State >= WRITING)
         id = GetIDForResource(sh->ConstantBuffers[i]);
-      m_pSerialiser->Serialise((string(names[s]) + ".ConstantBuffers").c_str(), id);
+      m_pSerialiser->Serialise(ConstantBuffers_names[s], id);
       if(m_State < WRITING)
       {
         if(device->GetResourceManager()->HasLiveResource(id))
@@ -530,8 +543,8 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
           sh->ConstantBuffers[i] = NULL;
       }
 
-      m_pSerialiser->Serialise((string(names[s]) + ".CBOffsets").c_str(), sh->CBOffsets[i]);
-      m_pSerialiser->Serialise((string(names[s]) + ".CBCounts").c_str(), sh->CBCounts[i]);
+      m_pSerialiser->Serialise(CBOffsets_names[s], sh->CBOffsets[i]);
+      m_pSerialiser->Serialise(CBCounts_names[s], sh->CBCounts[i]);
     }
 
     for(int i = 0; i < D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT; i++)
@@ -539,7 +552,7 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
       ResourceId id;
       if(m_State >= WRITING)
         id = GetIDForResource(sh->Samplers[i]);
-      m_pSerialiser->Serialise((string(names[s]) + ".Samplers").c_str(), id);
+      m_pSerialiser->Serialise(Samplers_names[s], id);
       if(m_State < WRITING)
       {
         if(device->GetResourceManager()->HasLiveResource(id))
@@ -554,7 +567,7 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
       ResourceId id;
       if(m_State >= WRITING)
         id = GetIDForResource(sh->SRVs[i]);
-      m_pSerialiser->Serialise((string(names[s]) + ".SRVs").c_str(), id);
+      m_pSerialiser->Serialise(SRVs_names[s], id);
       if(m_State < WRITING)
       {
         if(device->GetResourceManager()->HasLiveResource(id))
@@ -589,7 +602,7 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
       ResourceId id;
       if(m_State >= WRITING)
         id = GetIDForResource(sh->Instances[i]);
-      m_pSerialiser->Serialise((string(names[s]) + ".Instances").c_str(), id);
+      m_pSerialiser->Serialise(Instances_names[s], id);
       if(m_State < WRITING)
       {
         if(device->GetResourceManager()->HasLiveResource(id))
