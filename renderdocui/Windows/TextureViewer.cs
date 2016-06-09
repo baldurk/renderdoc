@@ -2387,6 +2387,8 @@ namespace renderdocui.Windows
 
         private float GetFitScale()
         {
+            if (CurrentTexture == null)
+                return 1.0f;
             float xscale = (float)render.Width / (float)CurrentTexDisplayWidth;
             float yscale = (float)render.Height / (float)CurrentTexDisplayHeight;
             return Math.Min(xscale, yscale);
