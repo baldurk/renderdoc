@@ -564,6 +564,8 @@ Serialiser::Serialiser(size_t length, const byte *memoryBuf, bool fileheader)
 
       m_ErrorCode = eSerError_Corrupt;
       m_HasError = true;
+
+      SAFE_DELETE(frameCap);
       return;
     }
 
