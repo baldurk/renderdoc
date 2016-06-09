@@ -5036,29 +5036,66 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
 void VulkanReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
                                      ShaderStageType type, ResourceId *id, string *errors)
 {
-  VULKANNOTIMP("BuildTargetShader");
-  if(errors)
-    *errors = "Shader edit & replace is not yet supported on Vulkan";
-  if(id)
+  SPIRVShaderStage stage = eSPIRVInvalid;
+
+  switch(type)
+  {
+    case eShaderStage_Vertex: stage = eSPIRVVertex; break;
+    case eShaderStage_Hull: stage = eSPIRVTessControl; break;
+    case eShaderStage_Domain: stage = eSPIRVTessEvaluation; break;
+    case eShaderStage_Geometry: stage = eSPIRVGeometry; break;
+    case eShaderStage_Pixel: stage = eSPIRVFragment; break;
+    case eShaderStage_Compute: stage = eSPIRVCompute; break;
+    default:
+      RDCERR("Unexpected type in BuildShader!");
+      *id = ResourceId();
+      return;
+  }
+
+  vector<string> sources;
+  sources.push_back(source);
+  vector<uint32_t> spirv;
+
+  string output = CompileSPIRV(stage, sources, spirv);
+
+  if(spirv.empty())
+  {
     *id = ResourceId();
+    *errors = output;
+    return;
+  }
+
+  VkShaderModuleCreateInfo modinfo = {
+      VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+      NULL,
+      0,
+      spirv.size() * sizeof(uint32_t),
+      &spirv[0],
+  };
+
+  VkShaderModule module;
+  VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &modinfo, NULL, &module);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  *id = GetResID(module);
 }
 
 void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
-  // won't get hit until BuildTargetShader is implemented
-  VULKANNOTIMP("ReplaceResource");
+  GetDebugManager()->ReplaceResource(from, to);
 }
 
 void VulkanReplay::RemoveReplacement(ResourceId id)
 {
-  // won't get hit until BuildTargetShader is implemented
-  VULKANNOTIMP("RemoveReplacement");
+  GetDebugManager()->RemoveReplacement(id);
 }
 
 void VulkanReplay::FreeTargetResource(ResourceId id)
 {
-  // won't get hit until BuildTargetShader is implemented
-  VULKANNOTIMP("FreeTargetResource");
+  if(id == ResourceId())
+    return;
+
+  m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(id));
 }
 
 vector<PixelModification> VulkanReplay::PixelHistory(vector<EventUsage> events, ResourceId target,

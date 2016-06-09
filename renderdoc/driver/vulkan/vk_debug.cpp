@@ -2319,6 +2319,102 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
   ObjDisp(textstate.cmd)->CmdDraw(Unwrap(textstate.cmd), 4, (uint32_t)strlen(text), 0, 0);
 }
 
+void VulkanDebugManager::ReplaceResource(ResourceId from, ResourceId to)
+{
+  VkDevice dev = m_pDriver->GetDev();
+
+  // we're passed in the original ID but we want the live ID for comparison
+  ResourceId liveid = GetResourceManager()->GetLiveID(from);
+
+  VkShaderModule srcShaderModule = GetResourceManager()->GetCurrentHandle<VkShaderModule>(liveid);
+  VkShaderModule dstShaderModule = GetResourceManager()->GetCurrentHandle<VkShaderModule>(to);
+
+  // remake and replace any pipelines that referenced this shader
+  for(auto it = m_pDriver->m_CreationInfo.m_Pipeline.begin();
+      it != m_pDriver->m_CreationInfo.m_Pipeline.end(); ++it)
+  {
+    bool refdShader = false;
+    for(size_t i = 0; i < ARRAY_COUNT(it->second.shaders); i++)
+    {
+      if(it->second.shaders[i].module == liveid)
+      {
+        refdShader = true;
+        break;
+      }
+    }
+
+    if(refdShader)
+    {
+      VkGraphicsPipelineCreateInfo pipeCreateInfo;
+      MakeGraphicsPipelineInfo(pipeCreateInfo, it->first);
+
+      // replace the relevant module
+      for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+      {
+        VkPipelineShaderStageCreateInfo &sh =
+            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
+
+        if(sh.module == srcShaderModule)
+          sh.module = dstShaderModule;
+      }
+
+      // create the new pipeline
+      VkPipeline pipe = VK_NULL_HANDLE;
+      VkResult vkr =
+          m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL, &pipe);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      // remove the replacements
+      GetResourceManager()->ReplaceResource(it->first, GetResID(pipe));
+      GetResourceManager()->ReplaceResource(GetResourceManager()->GetOriginalID(it->first),
+                                            GetResID(pipe));
+    }
+  }
+
+  // make the actual shader module replacements
+  GetResourceManager()->ReplaceResource(from, to);
+  GetResourceManager()->ReplaceResource(liveid, to);
+}
+
+void VulkanDebugManager::RemoveReplacement(ResourceId id)
+{
+  VkDevice dev = m_pDriver->GetDev();
+
+  // we're passed in the original ID but we want the live ID for comparison
+  ResourceId liveid = GetResourceManager()->GetLiveID(id);
+
+  // remove the actual shader module replacements
+  GetResourceManager()->RemoveReplacement(id);
+  GetResourceManager()->RemoveReplacement(liveid);
+
+  // remove any replacements on pipelines that referenced this shader
+  for(auto it = m_pDriver->m_CreationInfo.m_Pipeline.begin();
+      it != m_pDriver->m_CreationInfo.m_Pipeline.end(); ++it)
+  {
+    bool refdShader = false;
+    for(size_t i = 0; i < ARRAY_COUNT(it->second.shaders); i++)
+    {
+      if(it->second.shaders[i].module == liveid)
+      {
+        refdShader = true;
+        break;
+      }
+    }
+
+    if(refdShader)
+    {
+      VkPipeline pipe = GetResourceManager()->GetCurrentHandle<VkPipeline>(it->first);
+
+      // delete the replacement pipeline
+      m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
+
+      // remove both live and original replacements, since we will have made these above
+      GetResourceManager()->RemoveReplacement(it->first);
+      GetResourceManager()->RemoveReplacement(GetResourceManager()->GetOriginalID(it->first));
+    }
+  }
+}
+
 void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height)
 {
   VkDevice dev = m_Device;

@@ -1925,10 +1925,71 @@ namespace renderdocui.Windows.PipelineState
             }
         }
 
-        // start a shaderviewer to edit this shader, optionally generating stub HLSL if there isn't
-        // HLSL source available for this shader.
+        // start a shaderviewer to edit this shader, optionally generating stub GLSL if there isn't
+        // GLSL source available for this shader.
         private void shaderedit_Click(object sender, EventArgs e)
         {
+            VulkanPipelineState.ShaderStage stage = GetStageForSender(sender);
+
+            if (stage == null) return;
+
+            ShaderReflection shaderDetails = stage.ShaderDetails;
+
+            if (stage.Shader == ResourceId.Null || shaderDetails == null) return;
+
+            var files = new Dictionary<string, string>();
+
+            // use disassembly for now. It's not compilable GLSL but it's better than
+            // starting with a blank canvas
+            files.Add("Disassembly", shaderDetails.Disassembly);
+
+            VulkanPipelineStateViewer pipeviewer = this;
+
+            ShaderViewer sv = new ShaderViewer(m_Core, false, "main", files,
+
+            // Save Callback
+            (ShaderViewer viewer, Dictionary<string, string> updatedfiles) =>
+            {
+                string compileSource = "";
+                foreach (var kv in updatedfiles)
+                    compileSource += kv.Value;
+
+                // invoke off to the ReplayRenderer to replace the log's shader
+                // with our edited one
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    string errs = "";
+
+                    ResourceId from = stage.Shader;
+                    ResourceId to = r.BuildTargetShader("main", compileSource, shaderDetails.DebugInfo.compileFlags, stage.stage, out errs);
+
+                    viewer.BeginInvoke((MethodInvoker)delegate { viewer.ShowErrors(errs); });
+                    if (to == ResourceId.Null)
+                    {
+                        r.RemoveReplacement(from);
+                        pipeviewer.BeginInvoke((MethodInvoker)delegate { m_Core.RefreshStatus(); });
+                    }
+                    else
+                    {
+                        r.ReplaceResource(from, to);
+                        pipeviewer.BeginInvoke((MethodInvoker)delegate { m_Core.RefreshStatus(); });
+                    }
+                });
+            },
+
+            // Close Callback
+            () =>
+            {
+                // remove the replacement on close (we could make this more sophisticated if there
+                // was a place to control replaced resources/shaders).
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    r.RemoveReplacement(stage.Shader);
+                    pipeviewer.BeginInvoke((MethodInvoker)delegate { m_Core.RefreshStatus(); });
+                });
+            });
+
+            sv.Show(m_DockContent.DockPanel);
         }
 
         private void ShowCBuffer(VulkanPipelineState.ShaderStage stage, CBufferTag tag)

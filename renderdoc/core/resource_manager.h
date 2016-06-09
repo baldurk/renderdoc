@@ -1357,6 +1357,9 @@ WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType,
 {
   SCOPED_LOCK(m_Lock);
 
+  if(m_Replacements.find(id) != m_Replacements.end())
+    return GetCurrentResource(m_Replacements[id]);
+
   RDCASSERT(m_CurrentResourceMap.find(id) != m_CurrentResourceMap.end(), id);
   return m_CurrentResourceMap[id];
 }

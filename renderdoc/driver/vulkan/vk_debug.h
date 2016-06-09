@@ -128,6 +128,9 @@ public:
   void CreateCustomShaderTex(uint32_t width, uint32_t height);
   void CreateCustomShaderPipeline(ResourceId shader);
 
+  void ReplaceResource(ResourceId from, ResourceId to);
+  void RemoveReplacement(ResourceId id);
+
   struct GPUBuffer
   {
     enum CreateFlags
