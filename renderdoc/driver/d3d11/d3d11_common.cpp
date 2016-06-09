@@ -726,9 +726,9 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
   return ret;
 }
 
-ShaderConstant MakeConstantBufferVariable(DXBC::CBufferVariable var, uint32_t &offset);
+static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var, uint32_t &offset);
 
-ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32_t &offset)
+static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32_t &offset)
 {
   ShaderVariableType ret;
 
@@ -782,7 +782,7 @@ ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32
   return ret;
 }
 
-ShaderConstant MakeConstantBufferVariable(DXBC::CBufferVariable var, uint32_t &offset)
+static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var, uint32_t &offset)
 {
   ShaderConstant ret;
 

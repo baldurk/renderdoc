@@ -119,9 +119,10 @@ public:
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret);
 
-  FloatVector InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool &valid);
+  FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
+                              bool &valid);
 
-  uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y, uint32_t w,
+  uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y, uint32_t w,
                       uint32_t h);
 
   void CreateCustomShaderTex(uint32_t width, uint32_t height);

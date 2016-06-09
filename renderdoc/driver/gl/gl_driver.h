@@ -72,11 +72,11 @@ enum CaptureFailReason
 struct DrawcallTreeNode
 {
   DrawcallTreeNode() {}
-  explicit DrawcallTreeNode(FetchDrawcall d) : draw(d) {}
+  explicit DrawcallTreeNode(const FetchDrawcall &d) : draw(d) {}
   FetchDrawcall draw;
   vector<DrawcallTreeNode> children;
 
-  DrawcallTreeNode &operator=(FetchDrawcall d)
+  DrawcallTreeNode &operator=(const FetchDrawcall &d)
   {
     *this = DrawcallTreeNode(d);
     return *this;
@@ -331,8 +331,8 @@ private:
   void ProcessChunk(uint64_t offset, GLChunkType context);
   void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
   void ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool forceExecute);
-  void AddUsage(FetchDrawcall draw);
-  void AddDrawcall(FetchDrawcall d, bool hasEvents);
+  void AddUsage(const FetchDrawcall &d);
+  void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
   void AddEvent(GLChunkType type, string description, ResourceId ctx = ResourceId());
 
   void Serialise_CaptureScope(uint64_t offset);

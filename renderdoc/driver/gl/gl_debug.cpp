@@ -984,7 +984,7 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   return true;
 }
 
-uint32_t GLReplay::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
   WrappedOpenGL &gl = *m_pDriver;
 
@@ -3400,7 +3400,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDat
   return ret;
 }
 
-FloatVector GLReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end,
+FloatVector GLReplay::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
                                       bool useidx, bool &valid)
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
@@ -3482,7 +3482,8 @@ FloatVector GLReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg
   return ret;
 }
 
-void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
+void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
+                          const MeshDisplay &cfg)
 {
   WrappedOpenGL &gl = *m_pDriver;
 

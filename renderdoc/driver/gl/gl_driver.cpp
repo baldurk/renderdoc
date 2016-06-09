@@ -3789,7 +3789,7 @@ void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool
     context->m_State = state;
 }
 
-void WrappedOpenGL::AddUsage(FetchDrawcall d)
+void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
 {
   if((d.flags & (eDraw_Drawcall | eDraw_Dispatch)) == 0)
     return;
@@ -4066,11 +4066,8 @@ void WrappedOpenGL::AddUsage(FetchDrawcall d)
   }
 }
 
-void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
+void WrappedOpenGL::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 {
-  if(d.context == ResourceId())
-    d.context = GetResourceManager()->GetOriginalID(m_ContextResourceID);
-
   m_AddedDrawcall = true;
 
   WrappedOpenGL *context = this;
@@ -4078,6 +4075,9 @@ void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
   FetchDrawcall draw = d;
   draw.eventID = m_CurEventID;
   draw.drawcallID = m_CurDrawcallID;
+
+  if(draw.context == ResourceId())
+    draw.context = GetResourceManager()->GetOriginalID(m_ContextResourceID);
 
   GLuint curCol[8] = {0};
   GLuint curDepth = 0;

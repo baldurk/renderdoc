@@ -1453,7 +1453,7 @@ vector<CounterResult> D3D11Replay::FetchCounters(const vector<uint32_t> &counter
 }
 
 void D3D11Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
-                             MeshDisplay cfg)
+                             const MeshDisplay &cfg)
 {
   return m_pDevice->GetDebugManager()->RenderMesh(eventID, secondaryDraws, cfg);
 }
@@ -1529,7 +1529,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventID, uint32_t groupid[3],
   return m_pDevice->GetDebugManager()->DebugThread(eventID, groupid, threadid);
 }
 
-uint32_t D3D11Replay::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+uint32_t D3D11Replay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
   return m_pDevice->GetDebugManager()->PickVertex(eventID, cfg, x, y);
 }
@@ -1582,7 +1582,7 @@ Callstack::StackResolver *D3D11Replay::GetCallstackResolver()
   return m_pDevice->GetSerialiser()->GetCallstackResolver();
 }
 
-ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
+ResourceId D3D11Replay::CreateProxyTexture(const FetchTexture &templateTex)
 {
   ResourceId ret;
 
@@ -1808,7 +1808,7 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
   }
 }
 
-ResourceId D3D11Replay::CreateProxyBuffer(FetchBuffer templateBuf)
+ResourceId D3D11Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
 {
   ResourceId ret;
 

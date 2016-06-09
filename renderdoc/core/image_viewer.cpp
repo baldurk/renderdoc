@@ -113,7 +113,7 @@ public:
   {
     m_Proxy->PickPixel(m_TextureID, x, y, sliceFace, mip, sample, pixel);
   }
-  uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+  uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
   {
     return m_Proxy->PickVertex(eventID, cfg, x, y);
   }
@@ -142,7 +142,9 @@ public:
   D3D11PipelineState GetD3D11PipelineState() { return m_PipelineState; }
   // other operations are dropped/ignored, to avoid confusion
   void ReadLogInitialisation() {}
-  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg) {}
+  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
+  {
+  }
   vector<ResourceId> GetBuffers() { return vector<ResourceId>(); }
   vector<DebugMessage> GetDebugMessages() { return vector<DebugMessage>(); }
   FetchBuffer GetBuffer(ResourceId id)
@@ -225,7 +227,7 @@ public:
   void ReplaceResource(ResourceId from, ResourceId to) {}
   void RemoveReplacement(ResourceId id) {}
   // these are proxy functions, and will never be used
-  ResourceId CreateProxyTexture(FetchTexture templateTex)
+  ResourceId CreateProxyTexture(const FetchTexture &templateTex)
   {
     RDCERR("Calling proxy-render functions on an image viewer");
     return ResourceId();
@@ -237,7 +239,7 @@ public:
     RDCERR("Calling proxy-render functions on an image viewer");
   }
 
-  ResourceId CreateProxyBuffer(FetchBuffer templateBuf)
+  ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf)
   {
     RDCERR("Calling proxy-render functions on an image viewer");
     return ResourceId();

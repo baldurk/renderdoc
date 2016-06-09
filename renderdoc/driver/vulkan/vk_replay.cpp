@@ -1017,7 +1017,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
   m_DebugHeight = oldH;
 }
 
-uint32_t VulkanReplay::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+uint32_t VulkanReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
   return GetDebugManager()->PickVertex(eventID, cfg, x, y, m_DebugWidth, m_DebugHeight);
 }
@@ -1596,8 +1596,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay o
   return GetDebugManager()->RenderOverlay(texid, overlay, eventID, passEvents);
 }
 
-FloatVector VulkanReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end,
-                                          bool useidx, bool &valid)
+FloatVector VulkanReplay::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg,
+                                          byte *end, bool useidx, bool &valid)
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -1616,7 +1616,7 @@ FloatVector VulkanReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay
 }
 
 void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
-                              MeshDisplay cfg)
+                              const MeshDisplay &cfg)
 {
   if(cfg.position.buf == ResourceId() || cfg.position.numVerts == 0)
     return;
@@ -1797,11 +1797,13 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
   }
 
-  // can't support secondary shading without a buffer - no pipeline will have been created
-  if(cfg.solidShadeMode == eShade_Secondary && cfg.second.buf == ResourceId())
-    cfg.solidShadeMode = eShade_None;
+  SolidShadeMode solidShadeMode = cfg.solidShadeMode;
 
-  if(cfg.solidShadeMode == eShade_Secondary)
+  // can't support secondary shading without a buffer - no pipeline will have been created
+  if(solidShadeMode == eShade_Secondary && cfg.second.buf == ResourceId())
+    solidShadeMode = eShade_None;
+
+  if(solidShadeMode == eShade_Secondary)
   {
     VkBuffer vb = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(cfg.second.buf);
 
@@ -1810,10 +1812,10 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
   }
 
   // solid render
-  if(cfg.solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList)
+  if(solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList)
   {
     VkPipeline pipe = VK_NULL_HANDLE;
-    switch(cfg.solidShadeMode)
+    switch(solidShadeMode)
     {
       case eShade_Solid: pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]; break;
       case eShade_Lit: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit]; break;
@@ -1825,16 +1827,16 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     uint32_t uboOffs = 0;
     MeshUBOData *data = (MeshUBOData *)GetDebugManager()->m_MeshUBO.Map(&uboOffs);
 
-    if(cfg.solidShadeMode == eShade_Lit)
+    if(solidShadeMode == eShade_Lit)
       data->invProj = projMat.Inverse();
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(0.8f, 0.8f, 0.0f, 1.0f);
     data->homogenousInput = cfg.position.unproject;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
-    data->displayFormat = (uint32_t)cfg.solidShadeMode;
+    data->displayFormat = (uint32_t)solidShadeMode;
 
-    if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
+    if(solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
       data->displayFormat = MESHDISPLAY_SECONDARY_ALPHA;
 
     GetDebugManager()->m_MeshUBO.Unmap();
@@ -1867,8 +1869,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
   }
 
   // wireframe render
-  if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw ||
-     cfg.position.topo >= eTopology_PatchList)
+  if(solidShadeMode == eShade_None || cfg.wireframeDraw || cfg.position.topo >= eTopology_PatchList)
   {
     Vec4f wireCol =
         Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y, cfg.position.meshColour.z, 1.0f);
@@ -5085,7 +5086,7 @@ ShaderDebugTrace VulkanReplay::DebugThread(uint32_t eventID, uint32_t groupid[3]
   return ShaderDebugTrace();
 }
 
-ResourceId VulkanReplay::CreateProxyTexture(FetchTexture templateTex)
+ResourceId VulkanReplay::CreateProxyTexture(const FetchTexture &templateTex)
 {
   VULKANNOTIMP("CreateProxyTexture");
   return ResourceId();
@@ -5097,7 +5098,7 @@ void VulkanReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint
   VULKANNOTIMP("SetProxyTextureData");
 }
 
-ResourceId VulkanReplay::CreateProxyBuffer(FetchBuffer templateBuf)
+ResourceId VulkanReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
 {
   VULKANNOTIMP("CreateProxyBuffer");
   return ResourceId();

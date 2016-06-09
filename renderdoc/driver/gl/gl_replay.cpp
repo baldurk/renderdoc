@@ -2746,7 +2746,7 @@ void GLReplay::FreeTargetResource(ResourceId id)
   m_pDriver->FreeTargetResource(id);
 }
 
-ResourceId GLReplay::CreateProxyTexture(FetchTexture templateTex)
+ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
 {
   WrappedOpenGL &gl = *m_pDriver;
 
@@ -2967,7 +2967,7 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
   }
 }
 
-ResourceId GLReplay::CreateProxyBuffer(FetchBuffer templateBuf)
+ResourceId GLReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
 {
   WrappedOpenGL &gl = *m_pDriver;
 

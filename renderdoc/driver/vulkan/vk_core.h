@@ -60,13 +60,13 @@ struct VkInitParams : public RDCInitParams
 struct VulkanDrawcallTreeNode
 {
   VulkanDrawcallTreeNode() {}
-  explicit VulkanDrawcallTreeNode(FetchDrawcall d) : draw(d) {}
+  explicit VulkanDrawcallTreeNode(const FetchDrawcall &d) : draw(d) {}
   FetchDrawcall draw;
   vector<VulkanDrawcallTreeNode> children;
 
   vector<pair<ResourceId, EventUsage> > resourceUsage;
 
-  VulkanDrawcallTreeNode &operator=(FetchDrawcall d)
+  VulkanDrawcallTreeNode &operator=(const FetchDrawcall &d)
   {
     *this = VulkanDrawcallTreeNode(d);
     return *this;
@@ -545,7 +545,7 @@ private:
   void ProcessChunk(uint64_t offset, VulkanChunkType context);
   void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
   void ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, bool forceExecute);
-  void AddDrawcall(FetchDrawcall d, bool hasEvents);
+  void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
   void AddEvent(VulkanChunkType type, string description);
 
   void AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessage> &debugMessages);

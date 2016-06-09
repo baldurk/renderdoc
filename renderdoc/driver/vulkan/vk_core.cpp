@@ -2436,7 +2436,7 @@ VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid)
   return m_PartialReplayData.resultPartialCmdBuffer;
 }
 
-void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
+void WrappedVulkan::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 {
   m_AddedDrawcall = true;
 

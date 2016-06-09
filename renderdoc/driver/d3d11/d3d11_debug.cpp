@@ -4531,7 +4531,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
   }
 }
 
-FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg,
+FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg,
                                                byte *end, bool useidx, bool &valid)
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
@@ -4614,7 +4614,7 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDi
 }
 
 void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
-                                   MeshDisplay cfg)
+                                   const MeshDisplay &cfg)
 {
   DebugVertexCBuffer vertexData;
 

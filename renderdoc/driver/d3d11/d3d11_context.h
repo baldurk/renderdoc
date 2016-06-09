@@ -98,7 +98,7 @@ enum CaptureFailReason
 struct DrawcallTreeNode
 {
   DrawcallTreeNode() {}
-  explicit DrawcallTreeNode(FetchDrawcall d) : draw(d) {}
+  explicit DrawcallTreeNode(const FetchDrawcall &d) : draw(d) {}
   FetchDrawcall draw;
   vector<DrawcallTreeNode> children;
 
@@ -241,10 +241,10 @@ private:
 
   void DrainAnnotationQueue();
 
-  void AddUsage(FetchDrawcall draw);
+  void AddUsage(const FetchDrawcall &d);
 
   void AddEvent(D3D11ChunkType type, string description, ResourceId ctx = ResourceId());
-  void AddDrawcall(FetchDrawcall draw, bool hasEvents);
+  void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
   void RefreshDrawcallIDs(DrawcallTreeNode &node);
 
   void RecordIndexBindStats(ID3D11Buffer *Buffer);

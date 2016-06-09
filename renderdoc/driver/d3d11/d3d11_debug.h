@@ -153,7 +153,7 @@ public:
   vector<CounterResult> FetchCounters(const vector<uint32_t> &counters);
 
   void RenderText(float x, float y, const char *textfmt, ...);
-  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg);
+  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
   ID3D11Buffer *MakeCBuffer(float *data, size_t size);
 
@@ -187,7 +187,7 @@ public:
   ShaderDebugTrace DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]);
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, float pixel[4]);
-  uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y);
+  uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y);
 
   ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID,
                            const vector<uint32_t> &passEvents);
@@ -364,8 +364,8 @@ private:
   ID3D11Buffer *m_FrustumHelper;
   ID3D11Buffer *m_TriHighlightHelper;
 
-  FloatVector InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool useidx,
-                              bool &valid);
+  FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
+                              bool useidx, bool &valid);
 
   bool InitStreamOut();
   void ShutdownStreamOut();

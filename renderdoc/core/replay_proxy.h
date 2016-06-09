@@ -222,23 +222,25 @@ public:
     }
   }
 
-  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
+  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
   {
     if(m_Proxy && cfg.position.buf != ResourceId())
     {
-      EnsureBufCached(cfg.position.buf);
-      cfg.position.buf = m_ProxyBufferIds[cfg.position.buf];
+      MeshDisplay proxiedCfg = cfg;
 
-      if(cfg.second.buf != ResourceId())
+      EnsureBufCached(proxiedCfg.position.buf);
+      proxiedCfg.position.buf = m_ProxyBufferIds[proxiedCfg.position.buf];
+
+      if(proxiedCfg.second.buf != ResourceId())
       {
-        EnsureBufCached(cfg.second.buf);
-        cfg.second.buf = m_ProxyBufferIds[cfg.second.buf];
+        EnsureBufCached(proxiedCfg.second.buf);
+        proxiedCfg.second.buf = m_ProxyBufferIds[proxiedCfg.second.buf];
       }
 
-      if(cfg.position.idxbuf != ResourceId())
+      if(proxiedCfg.position.idxbuf != ResourceId())
       {
-        EnsureBufCached(cfg.position.idxbuf);
-        cfg.position.idxbuf = m_ProxyBufferIds[cfg.position.idxbuf];
+        EnsureBufCached(proxiedCfg.position.idxbuf);
+        proxiedCfg.position.idxbuf = m_ProxyBufferIds[proxiedCfg.position.idxbuf];
       }
 
       vector<MeshFormat> secDraws = secondaryDraws;
@@ -257,30 +259,32 @@ public:
         }
       }
 
-      m_Proxy->RenderMesh(eventID, secDraws, cfg);
+      m_Proxy->RenderMesh(eventID, secDraws, proxiedCfg);
     }
   }
 
-  uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+  uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
   {
     if(m_Proxy && cfg.position.buf != ResourceId())
     {
-      EnsureBufCached(cfg.position.buf);
-      cfg.position.buf = m_ProxyBufferIds[cfg.position.buf];
+      MeshDisplay proxiedCfg = cfg;
 
-      if(cfg.second.buf != ResourceId())
+      EnsureBufCached(proxiedCfg.position.buf);
+      proxiedCfg.position.buf = m_ProxyBufferIds[proxiedCfg.position.buf];
+
+      if(proxiedCfg.second.buf != ResourceId())
       {
-        EnsureBufCached(cfg.second.buf);
-        cfg.second.buf = m_ProxyBufferIds[cfg.second.buf];
+        EnsureBufCached(proxiedCfg.second.buf);
+        proxiedCfg.second.buf = m_ProxyBufferIds[proxiedCfg.second.buf];
       }
 
-      if(cfg.position.idxbuf != ResourceId())
+      if(proxiedCfg.position.idxbuf != ResourceId())
       {
-        EnsureBufCached(cfg.position.idxbuf);
-        cfg.position.idxbuf = m_ProxyBufferIds[cfg.position.idxbuf];
+        EnsureBufCached(proxiedCfg.position.idxbuf);
+        proxiedCfg.position.idxbuf = m_ProxyBufferIds[proxiedCfg.position.idxbuf];
       }
 
-      return m_Proxy->PickVertex(eventID, cfg, x, y);
+      return m_Proxy->PickVertex(eventID, proxiedCfg, x, y);
     }
 
     return ~0U;
@@ -395,7 +399,7 @@ public:
 
   void FileChanged() {}
   // will never be used
-  ResourceId CreateProxyTexture(FetchTexture templateTex)
+  ResourceId CreateProxyTexture(const FetchTexture &templateTex)
   {
     RDCERR("Calling proxy-render functions on a proxy serialiser");
     return ResourceId();
@@ -407,7 +411,7 @@ public:
     RDCERR("Calling proxy-render functions on a proxy serialiser");
   }
 
-  ResourceId CreateProxyBuffer(FetchBuffer templateBuf)
+  ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf)
   {
     RDCERR("Calling proxy-render functions on a proxy serialiser");
     return ResourceId();

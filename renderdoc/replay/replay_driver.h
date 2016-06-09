@@ -148,15 +148,15 @@ public:
                             float minval, float maxval, bool channels[4],
                             vector<uint32_t> &histogram) = 0;
 
-  virtual ResourceId CreateProxyTexture(FetchTexture templateTex) = 0;
+  virtual ResourceId CreateProxyTexture(const FetchTexture &templateTex) = 0;
   virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
                                    size_t dataSize) = 0;
 
-  virtual ResourceId CreateProxyBuffer(FetchBuffer templateBuf) = 0;
+  virtual ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf) = 0;
   virtual void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize) = 0;
 
   virtual void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
-                          MeshDisplay cfg) = 0;
+                          const MeshDisplay &cfg) = 0;
   virtual bool RenderTexture(TextureDisplay cfg) = 0;
 
   virtual void BuildCustomShader(string source, string entry, const uint32_t compileFlags,
@@ -170,7 +170,7 @@ public:
 
   virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
                          uint32_t mip, uint32_t sample, float pixel[4]) = 0;
-  virtual uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y) = 0;
+  virtual uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y) = 0;
 };
 
 // utility function useful in any driver implementation

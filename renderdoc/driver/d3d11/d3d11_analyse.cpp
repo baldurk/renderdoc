@@ -2077,7 +2077,8 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventID, uint32_t group
   return ret;
 }
 
-uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x,
+                                       uint32_t y)
 {
   if(cfg.position.numVerts == 0)
     return ~0U;

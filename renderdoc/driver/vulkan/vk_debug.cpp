@@ -2638,7 +2638,7 @@ void VulkanDebugManager::CreateCustomShaderPipeline(ResourceId shader)
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 }
 
-FloatVector VulkanDebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg,
+FloatVector VulkanDebugManager::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg,
                                                 byte *end, bool &valid)
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
@@ -2709,8 +2709,8 @@ FloatVector VulkanDebugManager::InterpretVertex(byte *data, uint32_t vert, MeshD
   return ret;
 }
 
-uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y,
-                                        uint32_t w, uint32_t h)
+uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x,
+                                        uint32_t y, uint32_t w, uint32_t h)
 {
   VkDevice dev = m_pDriver->GetDev();
   const VkLayerDispatchTable *vt = ObjDisp(dev);

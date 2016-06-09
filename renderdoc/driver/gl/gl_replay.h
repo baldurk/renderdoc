@@ -148,7 +148,7 @@ public:
   void DescribeCounter(uint32_t counterID, CounterDescription &desc);
   vector<CounterResult> FetchCounters(const vector<uint32_t> &counters);
 
-  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg);
+  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
   void BuildTargetShader(string source, string entry, const uint32_t compileFlags,
                          ShaderStageType type, ResourceId *id, string *errors);
@@ -176,17 +176,17 @@ public:
   ShaderDebugTrace DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]);
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, float pixel[4]);
-  uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y);
+  uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y);
 
   ResourceId RenderOverlay(ResourceId cfg, TextureDisplayOverlay overlay, uint32_t eventID,
                            const vector<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip);
 
-  ResourceId CreateProxyTexture(FetchTexture templateTex);
+  ResourceId CreateProxyTexture(const FetchTexture &templateTex);
   void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
                            size_t dataSize);
 
-  ResourceId CreateProxyBuffer(FetchBuffer templateBuf);
+  ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf);
   void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
 
   bool IsRenderOutput(ResourceId id);
@@ -332,8 +332,8 @@ private:
     GLuint emptyVAO;
   } DebugData;
 
-  FloatVector InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool useidx,
-                              bool &valid);
+  FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
+                              bool useidx, bool &valid);
 
   // simple cache for when we need buffer data for highlighting
   // vertices, typical use will be lots of vertices in the same
