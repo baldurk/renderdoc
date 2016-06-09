@@ -25,7 +25,7 @@ There are several pre-defined inputs that can either be taken as parameters to t
 
 	Type and capitalisation is important for these variables, so ensure you use the right declaration!
 
-The shader editor when using the UI can be used to insert these snippets for you, with the right type and spelling. Be careful for GL though, as these snippets are inserted at the top of the file and so are inserted before the ``#version`` statement.
+The shader editor when using the UI can be used to insert these snippets for you, with the right type and spelling. For GLSL these snippets are inserted at the top of the file just after any ``#version`` statement.
 
 UV co-ordinates (D3D11 only)
 ````````````````````````````

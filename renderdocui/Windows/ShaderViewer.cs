@@ -2041,9 +2041,24 @@ namespace renderdocui.Windows
             }
         }
 
+        private int GetPostVersionInsertPosition()
+        {
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+                return 0;
+
+            int ver = CurrentScintilla.Text.IndexOf("#version");
+
+            if(ver < 0)
+                return 0;
+
+            ver = CurrentScintilla.Text.IndexOf('\n', ver + 1);
+
+            return ver + 1;
+        }
+
         private void InsertVulkanUBO()
         {
-            CurrentScintilla.InsertText(0, String.Format("layout(binding = 0, std140) uniform RENDERDOC_Uniforms{0}" +
+            CurrentScintilla.InsertText(GetPostVersionInsertPosition(), String.Format("layout(binding = 0, std140) uniform RENDERDOC_Uniforms{0}" +
                                         "{{{0}" +
                                         "    uvec4 TexDim;{0}" +
                                         "    uint SelectedMip;{0}" +
@@ -2058,9 +2073,9 @@ namespace renderdocui.Windows
                 return;
 
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
-                CurrentScintilla.InsertText(0, "uint4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
-                CurrentScintilla.InsertText(0, "uvec4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uvec4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
                 InsertVulkanUBO();
             CurrentScintilla.CurrentPos = 0;
@@ -2074,7 +2089,7 @@ namespace renderdocui.Windows
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
                 InsertVulkanUBO();
             else
-                CurrentScintilla.InsertText(0, "uint RENDERDOC_SelectedMip; // selected mip in UI" + Environment.NewLine + Environment.NewLine);
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_SelectedMip; // selected mip in UI" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
 
@@ -2084,9 +2099,9 @@ namespace renderdocui.Windows
                 return;
 
             if(m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
-                CurrentScintilla.InsertText(0, "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil, 6 = Depth (MS), 7 = Depth + Stencil (MS)" + Environment.NewLine + Environment.NewLine);
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil, 6 = Depth (MS), 7 = Depth + Stencil (MS)" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
-                CurrentScintilla.InsertText(0, "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube, 5 = 1DArray, 6 = 2DArray, 7 = CubeArray, 8 = Rect, 9 = Buffer, 10 = 2DMS" + Environment.NewLine + Environment.NewLine);
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube, 5 = 1DArray, 6 = 2DArray, 7 = CubeArray, 8 = Rect, 9 = Buffer, 10 = 2DMS" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
                 InsertVulkanUBO();
             CurrentScintilla.CurrentPos = 0;
@@ -2099,7 +2114,7 @@ namespace renderdocui.Windows
 
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
             {
-                CurrentScintilla.InsertText(0, "// Samplers" + Environment.NewLine +
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "// Samplers" + Environment.NewLine +
                                                 "SamplerState pointSampler : register(s0);" + Environment.NewLine +
                                                 "SamplerState linearSampler : register(s1);" + Environment.NewLine +
                                                 "// End Samplers" + Environment.NewLine + Environment.NewLine);
@@ -2114,7 +2129,7 @@ namespace renderdocui.Windows
 
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
             {
-                CurrentScintilla.InsertText(0, "// Textures" + Environment.NewLine +
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "// Textures" + Environment.NewLine +
                                                 "Texture1DArray<float4> texDisplayTex1DArray : register(t1);" + Environment.NewLine +
                                                 "Texture2DArray<float4> texDisplayTex2DArray : register(t2);" + Environment.NewLine +
                                                 "Texture3D<float4> texDisplayTex3D : register(t3);" + Environment.NewLine +
@@ -2138,7 +2153,7 @@ namespace renderdocui.Windows
             }
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
             {
-                CurrentScintilla.InsertText(0, "// Textures" + Environment.NewLine +
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "// Textures" + Environment.NewLine +
                                                 "// Unsigned int samplers" + Environment.NewLine +
                                                 "layout (binding = 1) uniform usampler1D texUInt1D;" + Environment.NewLine +
                                                 "layout (binding = 2) uniform usampler2D texUInt2D;" + Environment.NewLine +
@@ -2177,7 +2192,7 @@ namespace renderdocui.Windows
             }
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
             {
-                CurrentScintilla.InsertText(0, "// Textures" + Environment.NewLine +
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "// Textures" + Environment.NewLine +
                                                 "// Floating point samplers" + Environment.NewLine +
                                                 "layout(binding = 6) uniform sampler1DArray tex1DArray;" + Environment.NewLine +
                                                 "layout(binding = 7) uniform sampler2DArray tex2DArray;" + Environment.NewLine +
