@@ -3469,6 +3469,8 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
             }
 
             customBuff = MakeCBuffer(cbufData, cbuf.descriptor.byteSize);
+
+            SAFE_DELETE_ARRAY(cbufData);
           }
         }
       }
