@@ -78,7 +78,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState1(const D3D11_BLEND_DESC1 *p
     HRESULT hr = E_NOINTERFACE;
 
     if(m_pDevice1)
-      m_pDevice1->CreateBlendState1(&Descriptor, &ret);
+      hr = m_pDevice1->CreateBlendState1(&Descriptor, &ret);
     else
       RDCERR("Replaying a D3D11.1 device without D3D11.1 available");
 
@@ -158,7 +158,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
     HRESULT hr = E_NOINTERFACE;
 
     if(m_pDevice1)
-      m_pDevice1->CreateRasterizerState1(&Descriptor, &ret);
+      hr = m_pDevice1->CreateRasterizerState1(&Descriptor, &ret);
     else
       RDCERR("Replaying a D3D11.1 device without D3D11.1 available");
 
