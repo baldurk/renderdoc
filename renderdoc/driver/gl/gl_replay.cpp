@@ -2001,17 +2001,18 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
 
       for(uint32_t c = 0; c < majorsize; c++)
       {
-        if(datasize > 0)
+        if(bufdata != 0 && datasize > 0)
           memcpy((byte *)dest, bufdata, RDCMIN(rangelen, minorsize * sizeof(float)));
 
         datasize -= RDCMIN(datasize, (size_t)matStride);
-        bufdata += matStride;
+        if(bufdata != 0)
+          bufdata += matStride;
         dest += minorsize;
       }
     }
     else
     {
-      if(datasize > 0)
+      if(bufdata != 0 && datasize > 0)
         memcpy(&outVar.value.uv[0], bufdata, RDCMIN(rangelen, datasize));
     }
   }
