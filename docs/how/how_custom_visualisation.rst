@@ -44,6 +44,24 @@ This input is defined as two parameters to the shader entry point. The first def
 
 	You must bind these parameters like this in this order to ensure the linkage with the vertex shader matches.
 
+Constant Parameters
+```````````````````
+
+There are several constant parameters available, each detailed below with the values they contain. Where possible these are bound by name as globals for convenience, but in Vulkan all variables must be contained within a single uniform buffer. The parameters correspond with the GLSL documentation but are contained within a uniform buffer at binding 0, with a structure given as so:
+
+
+.. highlight:: c++
+.. code:: c++
+
+	layout(binding = 0, std140) uniform RENDERDOC_Uniforms
+	{
+		uvec4 TexDim;
+		uint SelectedMip;
+		uint TextureType;
+	} RENDERDOC;
+
+In this way you can access the properties as ``RENDERDOC.TexDim`` insetad of ``RENDERDOC_TexDim``.
+
 Texture dimensions
 ``````````````````
 
@@ -84,7 +102,7 @@ This variable will be set to a given integer value, depending on the type of the
 
 .. note::
 
-	The value varies depending on whether this is an HLSL shader or GLSL, as they have different resource types.
+	The value varies depending on the API this shader will be used for, as each has different resource bindings.
 
 D3D11 / HLSL
 ^^^^^^^^^^^^
@@ -111,6 +129,14 @@ OpenGL / GLSL
 #. Cubemap array
 #. Rectangle
 #. Buffer texture
+#. 2D texture (Multisampled)
+
+Vulkan / GLSL
+^^^^^^^^^^^^^
+
+#. 1D texture
+#. 2D texture
+#. 3D texture
 #. 2D texture (Multisampled)
 
 Samplers (D3D11 only)
@@ -194,6 +220,36 @@ OpenGL / GLSL
 	layout (binding = 8) uniform sampler2DRect tex2DRect;
 	layout (binding = 9) uniform samplerBuffer texBuffer;
 	layout (binding = 10) uniform sampler2DMS tex2DMS;
+
+Vulkan / GLSL
+^^^^^^^^^^^^^
+
+.. highlight:: c++
+.. code:: c++
+
+	// Floating point samplers
+
+	// binding = 5 + RENDERDOC_TextureType
+	layout(binding = 6) uniform sampler1DArray tex1DArray;
+	layout(binding = 7) uniform sampler2DArray tex2DArray;
+	layout(binding = 8) uniform sampler3D tex3D;
+	layout(binding = 9) uniform sampler2DMS tex2DMS;
+
+	// Unsigned int samplers
+
+	// binding = 10 + RENDERDOC_TextureType
+	layout(binding = 11) uniform usampler1DArray texUInt1DArray;
+	layout(binding = 12) uniform usampler2DArray texUInt2DArray;
+	layout(binding = 13) uniform usampler3D texUInt3D;
+	layout(binding = 14) uniform usampler2DMS texUInt2DMS;
+
+	// Int samplers
+
+	// binding = 15 + RENDERDOC_TextureType
+	layout(binding = 16) uniform isampler1DArray texSInt1DArray;
+	layout(binding = 17) uniform isampler2DArray texSInt2DArray;
+	layout(binding = 18) uniform isampler3D texSInt3D;
+	layout(binding = 19) uniform isampler2DMS texSInt2DMS;
 
 
 These resources are bound sparsely with the appropriate type for the current texture. With a couple of exceptions there will only be one texture bound at any one time.

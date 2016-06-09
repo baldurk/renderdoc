@@ -1211,6 +1211,29 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   data->RawOutput = cfg.rawoutput ? 1 : 0;
 
+  if(cfg.CustomShader != ResourceId())
+  {
+    // must match struct declared in user shader (see documentation / Shader Viewer window helper
+    // menus)
+    struct CustomTexDisplayUBOData
+    {
+      Vec4u texDim;
+      uint32_t selectedMip;
+      uint32_t texType;
+      uint32_t padding[2];
+    };
+
+    CustomTexDisplayUBOData *customData = (CustomTexDisplayUBOData *)data;
+
+    customData->texDim.x = iminfo.extent.width;
+    customData->texDim.y = iminfo.extent.height;
+    customData->texDim.z = iminfo.extent.depth;
+    customData->texDim.w = iminfo.mipLevels;
+    customData->selectedMip = cfg.mip;
+    customData->padding[0] = customData->padding[1] = 0;
+    customData->texType = (uint32_t)textype;
+  }
+
   GetDebugManager()->m_TexDisplayUBO.Unmap();
 
   VkDescriptorImageInfo imdesc = {0};
@@ -1288,10 +1311,20 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
     VkPipeline pipe = GetDebugManager()->m_TexDisplayPipeline;
-    if(f32render)
+
+    if(cfg.CustomShader != ResourceId())
+    {
+      GetDebugManager()->CreateCustomShaderPipeline(cfg.CustomShader);
+      pipe = GetDebugManager()->m_CustomTexPipeline;
+    }
+    else if(f32render)
+    {
       pipe = GetDebugManager()->m_TexDisplayF32Pipeline;
+    }
     else if(!cfg.rawoutput && cfg.CustomShader == ResourceId())
+    {
       pipe = GetDebugManager()->m_TexDisplayBlendPipeline;
+    }
 
     vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
     vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -4353,17 +4386,6 @@ void VulkanReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t
   RDCERR("Should never hit SetContextFilter");
 }
 
-void VulkanReplay::FreeTargetResource(ResourceId id)
-{
-  // won't get hit until BuildTargetShader is implemented
-  VULKANNOTIMP("FreeTargetResource");
-}
-
-void VulkanReplay::FreeCustomShader(ResourceId id)
-{
-  VULKANNOTIMP("FreeCustomShader");
-}
-
 MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
   return GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
@@ -4896,16 +4918,114 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
   return ret;
 }
 
-void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
+void VulkanReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
+                                     ShaderStageType type, ResourceId *id, string *errors)
 {
-  // won't get hit until BuildTargetShader is implemented
-  VULKANNOTIMP("ReplaceResource");
+  SPIRVShaderStage stage = eSPIRVInvalid;
+
+  switch(type)
+  {
+    case eShaderStage_Vertex: stage = eSPIRVVertex; break;
+    case eShaderStage_Hull: stage = eSPIRVTessControl; break;
+    case eShaderStage_Domain: stage = eSPIRVTessEvaluation; break;
+    case eShaderStage_Geometry: stage = eSPIRVGeometry; break;
+    case eShaderStage_Pixel: stage = eSPIRVFragment; break;
+    case eShaderStage_Compute: stage = eSPIRVCompute; break;
+    default:
+      RDCERR("Unexpected type in BuildShader!");
+      *id = ResourceId();
+      return;
+  }
+
+  vector<string> sources;
+  sources.push_back(source);
+  vector<uint32_t> spirv;
+
+  string output = CompileSPIRV(stage, sources, spirv);
+
+  if(spirv.empty())
+  {
+    *id = ResourceId();
+    *errors = output;
+    return;
+  }
+
+  VkShaderModuleCreateInfo modinfo = {
+      VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+      NULL,
+      0,
+      spirv.size() * sizeof(uint32_t),
+      &spirv[0],
+  };
+
+  VkShaderModule module;
+  VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &modinfo, NULL, &module);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  *id = GetResID(module);
 }
 
-void VulkanReplay::RemoveReplacement(ResourceId id)
+void VulkanReplay::FreeCustomShader(ResourceId id)
 {
-  // won't get hit until BuildTargetShader is implemented
-  VULKANNOTIMP("RemoveReplacement");
+  if(id == ResourceId())
+    return;
+
+  m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(id));
+}
+
+ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
+{
+  if(shader == ResourceId() || texid == ResourceId())
+    return ResourceId();
+
+  VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
+
+  GetDebugManager()->CreateCustomShaderTex(iminfo.extent.width, iminfo.extent.height);
+
+  int oldW = m_DebugWidth, oldH = m_DebugHeight;
+
+  m_DebugWidth = iminfo.extent.width;
+  m_DebugHeight = iminfo.extent.height;
+
+  TextureDisplay disp;
+  disp.Red = disp.Green = disp.Blue = disp.Alpha = true;
+  disp.FlipY = false;
+  disp.offx = 0.0f;
+  disp.offy = 0.0f;
+  disp.CustomShader = shader;
+  disp.texid = texid;
+  disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
+  disp.HDRMul = -1.0f;
+  disp.linearDisplayAsGamma = true;
+  disp.mip = mip;
+  disp.sampleIdx = 0;
+  disp.overlay = eTexOverlay_None;
+  disp.rangemin = 0.0f;
+  disp.rangemax = 1.0f;
+  disp.rawoutput = false;
+  disp.scale = 1.0f;
+  disp.sliceFace = 0;
+
+  VkClearValue clearval = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+  VkRenderPassBeginInfo rpbegin = {
+      VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+      NULL,
+      Unwrap(GetDebugManager()->m_CustomTexRP),
+      Unwrap(GetDebugManager()->m_CustomTexFB),
+      {{
+           0, 0,
+       },
+       {iminfo.extent.width, iminfo.extent.height}},
+      1,
+      &clearval,
+  };
+
+  RenderTextureInternal(disp, rpbegin, false);
+
+  m_DebugWidth = oldW;
+  m_DebugHeight = oldH;
+
+  return GetResID(GetDebugManager()->m_CustomTexImg);
 }
 
 void VulkanReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
@@ -4918,10 +5038,22 @@ void VulkanReplay::BuildTargetShader(string source, string entry, const uint32_t
     *id = ResourceId();
 }
 
-void VulkanReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
-                                     ShaderStageType type, ResourceId *id, string *errors)
+void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
-  VULKANNOTIMP("BuildCustomShader");
+  // won't get hit until BuildTargetShader is implemented
+  VULKANNOTIMP("ReplaceResource");
+}
+
+void VulkanReplay::RemoveReplacement(ResourceId id)
+{
+  // won't get hit until BuildTargetShader is implemented
+  VULKANNOTIMP("RemoveReplacement");
+}
+
+void VulkanReplay::FreeTargetResource(ResourceId id)
+{
+  // won't get hit until BuildTargetShader is implemented
+  VULKANNOTIMP("FreeTargetResource");
 }
 
 vector<PixelModification> VulkanReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
@@ -4951,12 +5083,6 @@ ShaderDebugTrace VulkanReplay::DebugThread(uint32_t eventID, uint32_t groupid[3]
 {
   VULKANNOTIMP("DebugThread");
   return ShaderDebugTrace();
-}
-
-ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
-{
-  VULKANNOTIMP("ApplyCustomShader");
-  return ResourceId();
 }
 
 ResourceId VulkanReplay::CreateProxyTexture(FetchTexture templateTex)

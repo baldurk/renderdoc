@@ -124,6 +124,9 @@ public:
   uint32_t PickVertex(uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y, uint32_t w,
                       uint32_t h);
 
+  void CreateCustomShaderTex(uint32_t width, uint32_t height);
+  void CreateCustomShaderPipeline(ResourceId shader);
+
   struct GPUBuffer
   {
     enum CreateFlags
@@ -195,12 +198,23 @@ public:
   VkWriteDescriptorSet m_TexDisplayDummyWrites[12];
   VkDescriptorImageInfo m_TexDisplayDummyInfos[12];
   VkDeviceMemory m_TexDisplayDummyMemory;
+  VkShaderModule m_BlitVSModule;
 
   VkDescriptorSet GetTexDisplayDescSet()
   {
     m_TexDisplayNextSet = (m_TexDisplayNextSet + 1) % ARRAY_COUNT(m_TexDisplayDescSet);
     return m_TexDisplayDescSet[m_TexDisplayNextSet];
   }
+
+  uint32_t m_CustomTexWidth, m_CustomTexHeight;
+  VkDeviceSize m_CustomTexMemSize;
+  VkImage m_CustomTexImg;
+  VkImageView m_CustomTexImgView;
+  VkDeviceMemory m_CustomTexMem;
+  VkFramebuffer m_CustomTexFB;
+  VkRenderPass m_CustomTexRP;
+  ResourceId m_CustomTexShader;
+  VkPipeline m_CustomTexPipeline;
 
   VkDeviceMemory m_PickPixelImageMem;
   VkImage m_PickPixelImage;

@@ -2041,6 +2041,17 @@ namespace renderdocui.Windows
             }
         }
 
+        private void InsertVulkanUBO()
+        {
+            CurrentScintilla.InsertText(0, String.Format("layout(binding = 0, std140) uniform RENDERDOC_Uniforms{0}" +
+                                        "{{{0}" +
+                                        "    uvec4 TexDim;{0}" +
+                                        "    uint SelectedMip;{0}" +
+                                        "    int TextureType;{0}" +
+                                        "}} RENDERDOC;{0}{0}", Environment.NewLine));
+        }
+
+
         private void textureDimensionsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (CurrentScintilla == null)
@@ -2050,6 +2061,8 @@ namespace renderdocui.Windows
                 CurrentScintilla.InsertText(0, "uint4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
                 CurrentScintilla.InsertText(0, "uvec4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+                InsertVulkanUBO();
             CurrentScintilla.CurrentPos = 0;
         }
 
@@ -2058,7 +2071,10 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            CurrentScintilla.InsertText(0, "uint RENDERDOC_SelectedMip; // selected mip in UI" + Environment.NewLine + Environment.NewLine);
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+                InsertVulkanUBO();
+            else
+                CurrentScintilla.InsertText(0, "uint RENDERDOC_SelectedMip; // selected mip in UI" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
 
@@ -2071,6 +2087,8 @@ namespace renderdocui.Windows
                 CurrentScintilla.InsertText(0, "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil, 6 = Depth (MS), 7 = Depth + Stencil (MS)" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
                 CurrentScintilla.InsertText(0, "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube, 5 = 1DArray, 6 = 2DArray, 7 = CubeArray, 8 = Rect, 9 = Buffer, 10 = 2DMS" + Environment.NewLine + Environment.NewLine);
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+                InsertVulkanUBO();
             CurrentScintilla.CurrentPos = 0;
         }
 
@@ -2156,6 +2174,27 @@ namespace renderdocui.Windows
                                                 "layout (binding = 8) uniform sampler2DRect tex2DRect;" + Environment.NewLine +
                                                 "layout (binding = 9) uniform samplerBuffer texBuffer;" + Environment.NewLine +
                                                 "layout (binding = 10) uniform sampler2DMS tex2DMS;" + Environment.NewLine + Environment.NewLine);
+            }
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            {
+                CurrentScintilla.InsertText(0, "// Textures" + Environment.NewLine +
+                                                "// Floating point samplers" + Environment.NewLine +
+                                                "layout(binding = 6) uniform sampler1DArray tex1DArray;" + Environment.NewLine +
+                                                "layout(binding = 7) uniform sampler2DArray tex2DArray;" + Environment.NewLine +
+                                                "layout(binding = 8) uniform sampler3D tex3D;" + Environment.NewLine +
+                                                "layout(binding = 9) uniform sampler2DMS tex2DMS;" + Environment.NewLine +
+                                                "" + Environment.NewLine +
+                                                "// Unsigned int samplers" + Environment.NewLine +
+                                                "layout(binding = 11) uniform usampler1DArray texUInt1DArray;" + Environment.NewLine +
+                                                "layout(binding = 12) uniform usampler2DArray texUInt2DArray;" + Environment.NewLine +
+                                                "layout(binding = 13) uniform usampler3D texUInt3D;" + Environment.NewLine +
+                                                "layout(binding = 14) uniform usampler2DMS texUInt2DMS;" + Environment.NewLine +
+                                                "" + Environment.NewLine +
+                                                "// Int samplers" + Environment.NewLine +
+                                                "layout(binding = 16) uniform isampler1DArray texSInt1DArray;" + Environment.NewLine +
+                                                "layout(binding = 17) uniform isampler2DArray texSInt2DArray;" + Environment.NewLine +
+                                                "layout(binding = 18) uniform isampler3D texSInt3D;" + Environment.NewLine +
+                                                "layout(binding = 19) uniform isampler2DMS texSInt2DMS;" + Environment.NewLine + Environment.NewLine);
             }
             CurrentScintilla.CurrentPos = 0;
         }
