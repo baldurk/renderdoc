@@ -227,6 +227,8 @@ void RenderDoc::BecomeReplayHost(volatile bool32 &killReplay)
 
     SAFE_DELETE(client);
   }
+
+  SAFE_DELETE(sock);
 }
 
 struct RemoteRenderer : public IRemoteRenderer
