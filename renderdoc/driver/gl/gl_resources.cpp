@@ -214,7 +214,7 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
 
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
 {
-  size_t elemSize = 0;
+  size_t elemSize = 1;
 
   switch(type)
   {
@@ -283,7 +283,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
 
   RDCERR("Unhandled Byte Size case!");
 
-  return 0;
+  return 1;
 }
 
 GLenum GetBaseFormat(GLenum internalFormat)
