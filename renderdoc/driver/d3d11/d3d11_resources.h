@@ -558,21 +558,42 @@ public:
       m_pDevice->GetResourceManager()->MarkDirtyResource(GetResourceID());
 
       if(riid == __uuidof(IDXGIObject))
+      {
         *ppvObject = (IDXGIObject *)(IDXGIKeyedMutex *)dxgiWrapper;
+      }
       else if(riid == __uuidof(IDXGIDeviceSubObject))
+      {
         *ppvObject = (IDXGIDeviceSubObject *)(IDXGIKeyedMutex *)dxgiWrapper;
+      }
       else if(riid == __uuidof(IDXGIResource))
+      {
         *ppvObject = (IDXGIResource *)dxgiWrapper;
+      }
       else if(riid == __uuidof(IDXGIKeyedMutex))
+      {
         *ppvObject = (IDXGIKeyedMutex *)dxgiWrapper;
+      }
       else if(riid == __uuidof(IDXGISurface))
+      {
         *ppvObject = (IDXGISurface *)dxgiWrapper;
+      }
       else if(riid == __uuidof(IDXGISurface1))
+      {
         *ppvObject = (IDXGISurface1 *)dxgiWrapper;
+      }
       else if(riid == __uuidof(IDXGIResource1))
+      {
         *ppvObject = (IDXGIResource1 *)dxgiWrapper;
+      }
       else if(riid == __uuidof(IDXGISurface2))
+      {
         *ppvObject = (IDXGISurface2 *)dxgiWrapper;
+      }
+      else
+      {
+        RDCWARN("Unexpected guid %s", ToStr::Get(riid).c_str());
+        SAFE_DELETE(dxgiWrapper);
+      }
 
       return S_OK;
     }
