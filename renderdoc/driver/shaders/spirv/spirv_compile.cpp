@@ -162,7 +162,8 @@ string CompileSPIRV(SPIRVShaderStage shadType, const std::vector<std::string> &s
       "Shader language enums don't match");
 
   {
-    EShLanguage lang = EShLanguage(shadType);
+    // these enums are matched
+    EShLanguage lang = EShLanguage((int)shadType);
 
     glslang::TShader *shader = new glslang::TShader(lang);
 

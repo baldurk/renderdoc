@@ -40,7 +40,6 @@ enum SPIRVShaderStage
   eSPIRVGeometry,
   eSPIRVFragment,
   eSPIRVCompute,
-  eSPIRVGeneric,
   eSPIRVInvalid,
 };
 

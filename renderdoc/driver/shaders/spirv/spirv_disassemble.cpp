@@ -386,7 +386,7 @@ struct SPVDecoration
 
 struct SPVExtInstSet
 {
-  SPVExtInstSet() : canonicalNames(NULL) {}
+  SPVExtInstSet() : canonicalNames(NULL), friendlyNames(NULL) {}
   string setname;
   const char **canonicalNames;
   const char **friendlyNames;
@@ -413,7 +413,8 @@ struct SPVEntryPoint
 struct SPVTypeData
 {
   SPVTypeData()
-      : baseType(NULL),
+      : type(eVoid),
+        baseType(NULL),
         storage(spv::StorageClassUniformConstant),
         decorations(NULL),
         texdim(spv::Dim2D),
@@ -611,6 +612,10 @@ struct SPVOperation
   SPVOperation()
       : type(NULL),
         access(spv::MemoryAccessMaskNone),
+        scope(spv::ScopeDevice),
+        scopeMemory(spv::ScopeDevice),
+        semantics(spv::MemorySemanticsMaskNone),
+        semanticsUnequal(spv::MemorySemanticsMaskNone),
         funcCall(0),
         complexity(0),
         mathop(false),
@@ -1264,16 +1269,16 @@ struct SPVInstruction
         for(size_t i = start; i < count; i++)
         {
           bool isConstant = false;
-          int32_t idx = -1;
+          uint32_t idx = 0;
           if(!accessChain)
           {
-            idx = (int32_t)op->literals[i];
+            idx = op->literals[i];
             isConstant = true;
           }
           else if(op->arguments[i]->constant)
           {
             RDCASSERT(op->arguments[i]->constant && op->arguments[i]->constant->type->IsBasicInt());
-            idx = op->arguments[i]->constant->i32;
+            idx = op->arguments[i]->constant->u32;
             isConstant = true;
           }
 
@@ -1284,12 +1289,20 @@ struct SPVInstruction
           {
             // Assuming you can't dynamically index into a structure
             RDCASSERT(isConstant);
-            const pair<SPVTypeData *, string> &child = arg0type->children[idx];
-            if(child.second.empty())
-              accessString += StringFormat::Fmt("._member%u", idx);
+            if(idx >= arg0type->children.size())
+            {
+              accessString += StringFormat::Fmt("._invalid_member%u", idx);
+              break;
+            }
             else
-              accessString += StringFormat::Fmt(".%s", child.second.c_str());
-            arg0type = child.first;
+            {
+              const pair<SPVTypeData *, string> &child = arg0type->children[idx];
+              if(child.second.empty())
+                accessString += StringFormat::Fmt("._member%u", idx);
+              else
+                accessString += StringFormat::Fmt(".%s", child.second.c_str());
+              arg0type = child.first;
+            }
             continue;
           }
           else if(arg0type->type == SPVTypeData::eArray)
@@ -1330,13 +1343,13 @@ struct SPVInstruction
 
             if(!accessChain)
             {
-              idx = (int32_t)op->literals[i];
+              idx = op->literals[i];
             }
             else
             {
               // assuming can't dynamically index into a vector (would be a OpVectorShuffle)
               RDCASSERT(op->arguments[i]->constant && op->arguments[i]->constant->type->IsBasicInt());
-              idx = op->arguments[i]->constant->i32;
+              idx = op->arguments[i]->constant->u32;
             }
           }
 
@@ -2069,6 +2082,7 @@ SPVModule::SPVModule()
   moduleVersion.major = moduleVersion.minor = 0;
   generator = 0;
   sourceVer = 0;
+  sourceLang = spv::SourceLanguageUnknown;
 }
 
 SPVModule::~SPVModule()
@@ -2937,8 +2951,7 @@ string SPVModule::Disassemble(const string &entryPoint)
                   RDCASSERT(t < values.size());
                   funcDisassembly += string(indent - tabSize, ' ');
 
-                  if((cond->op && cond->op->type->type == SPVTypeData::eSInt) ||
-                     (cond->op && cond->op->type->type == SPVTypeData::eSInt))
+                  if(cond->op && cond->op->type->type == SPVTypeData::eSInt)
                   {
                     funcDisassembly += StringFormat::Fmt("case %d:\n", values[t]);
                   }
