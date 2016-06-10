@@ -204,6 +204,13 @@ namespace renderdoc
         YUV,
     };
 
+    public enum QualityHint
+    {
+      DontCare,
+      Nicest,
+      Fastest,
+    };
+
     public enum APIPipelineStateType
     {
         D3D11,

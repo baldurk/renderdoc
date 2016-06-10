@@ -31,6 +31,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Xml;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 using renderdocui.Code;
@@ -291,7 +292,7 @@ namespace renderdocui.Windows.PipelineState
 
                 if (!stage.customShaderName && !stage.customProgramName && !stage.customPipelineName)
                 {
-                    shader.Text = shaderName + stage.Shader.ToString();
+                    shader.Text = shaderName + " " + stage.Shader.ToString();
                 }
                 else
                 {
@@ -811,6 +812,22 @@ namespace renderdocui.Windows.PipelineState
             return Color.FromArgb(255, (int)(r * 255), (int)(g * 255), (int)(b * 255));
         }
 
+        private string MakeGenericValueString(uint compCount, FormatComponentType compType, GLPipelineState.VertexInputs.VertexAttribute.GenericValueUnion val)
+        {
+            string fmtstr = "";
+            if (compCount == 1) fmtstr = "<{0}>";
+            else if (compCount == 2) fmtstr = "<{0}, {1}>";
+            else if (compCount == 3) fmtstr = "<{0}, {1}, {2}>";
+            else if (compCount == 4) fmtstr = "<{0}, {1}, {2}, {3}>";
+
+            if (compType == FormatComponentType.UInt)
+                return String.Format(fmtstr, val.u[0], val.u[1], val.u[2], val.u[3]);
+            else if (compType == FormatComponentType.SInt)
+                return String.Format(fmtstr, val.i[0], val.i[1], val.i[2], val.i[3]);
+            else
+                return String.Format(fmtstr, val.f[0], val.f[1], val.f[2], val.f[3]);
+        }
+
         private void UpdateState()
         {
             if (!m_Core.LogLoaded)
@@ -874,20 +891,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         string byteOffs = l.RelativeOffset.ToString();
 
-                        string genericVal = "Generic";
-
-                        string fmtstr = "";
-                             if (compCount == 1) fmtstr = "=<{0}>";
-                        else if (compCount == 2) fmtstr = "=<{0}, {1}>";
-                        else if (compCount == 3) fmtstr = "=<{0}, {1}, {2}>";
-                        else if (compCount == 4) fmtstr = "=<{0}, {1}, {2}, {3}>";
-
-                        if (compType == FormatComponentType.Float)
-                            genericVal += String.Format(fmtstr, l.GenericValue.f[0], l.GenericValue.f[1], l.GenericValue.f[2], l.GenericValue.f[3]);
-                        else if (compType == FormatComponentType.UInt)
-                            genericVal += String.Format(fmtstr, l.GenericValue.u[0], l.GenericValue.u[1], l.GenericValue.u[2], l.GenericValue.u[3]);
-                        else if (compType == FormatComponentType.SInt)
-                            genericVal += String.Format(fmtstr, l.GenericValue.i[0], l.GenericValue.i[1], l.GenericValue.i[2], l.GenericValue.i[3]);
+                        string genericVal = "Generic=" + MakeGenericValueString(compCount, compType, l.GenericValue);
 
                         var node = inputLayouts.Nodes.Add(new object[] {
                             i,
@@ -2214,5 +2218,1253 @@ namespace renderdocui.Windows.PipelineState
                     hoverNode.DefaultBackColor = SystemColors.ControlLight;
             }
         }
-   }
+
+
+        private void ExportHTMLTable(XmlTextWriter writer, string[] cols, object[][] rows)
+        {
+            writer.WriteStartElement("table");
+
+            {
+                writer.WriteStartElement("thead");
+                writer.WriteStartElement("tr");
+
+                foreach (var col in cols)
+                {
+                    writer.WriteStartElement("th");
+                    writer.WriteString(col);
+                    writer.WriteEndElement();
+                }
+
+                writer.WriteEndElement();
+                writer.WriteEndElement();
+            }
+
+            {
+                writer.WriteStartElement("tbody");
+
+                if (rows.Length == 0)
+                {
+                    writer.WriteStartElement("tr");
+
+                    for (int i = 0; i < cols.Length; i++)
+                    {
+                        writer.WriteStartElement("td");
+                        writer.WriteString("-");
+                        writer.WriteEndElement();
+                    }
+
+                    writer.WriteEndElement();
+                }
+                else
+                {
+                    foreach (var row in rows)
+                    {
+                        writer.WriteStartElement("tr");
+
+                        foreach (var el in row)
+                        {
+                            writer.WriteStartElement("td");
+                            writer.WriteString(el.ToString());
+                            writer.WriteEndElement();
+                        }
+
+                        writer.WriteEndElement();
+                    }
+                }
+
+                writer.WriteEndElement();
+            }
+
+            writer.WriteEndElement();
+        }
+
+        private void ExportHTMLTable(XmlTextWriter writer, string[] cols, object[] rows)
+        {
+            ExportHTMLTable(writer, cols, new object[][] { rows });
+        }
+
+        private void ExportHTML(XmlTextWriter writer, GLPipelineState pipe, GLPipelineState.VertexInputs vtx)
+        {
+            FetchBuffer[] bufs = m_Core.CurBuffers;
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Vertex Attributes");
+                writer.WriteEndElement();
+
+                List<object[]> rows = new List<object[]>();
+
+                int i = 0;
+                foreach (var a in vtx.attributes)
+                {
+                    string generic = "";
+                    if (!a.Enabled)
+                        generic = MakeGenericValueString(a.Format.compCount, a.Format.compType, a.GenericValue);
+                    rows.Add(new object[] { i, a.Enabled, a.BufferSlot, a.Format, a.RelativeOffset, generic });
+
+                    i++;
+                }
+
+                ExportHTMLTable(writer, new string[] { "Slot", "Enabled", "Vertex Buffer Slot", "Format", "Relative Offset", "Generic Value" }, rows.ToArray());
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Vertex Buffers");
+                writer.WriteEndElement();
+
+                List<object[]> rows = new List<object[]>();
+
+                int i = 0;
+                foreach (var vb in vtx.vbuffers)
+                {
+                    string name = "Buffer " + vb.Buffer.ToString();
+                    UInt32 length = 0;
+
+                    if (vb.Buffer == ResourceId.Null)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        for (int t = 0; t < bufs.Length; t++)
+                        {
+                            if (bufs[t].ID == vb.Buffer)
+                            {
+                                name = bufs[t].name;
+                                length = bufs[t].length;
+                            }
+                        }
+                    }
+
+                    rows.Add(new object[] { i, name, vb.Stride, vb.Offset, vb.Divisor, length });
+
+                    i++;
+                }
+
+                ExportHTMLTable(writer, new string[] { "Slot", "Buffer", "Stride", "Offset", "Instance Divisor", "Byte Length" }, rows.ToArray());
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Index Buffer");
+                writer.WriteEndElement();
+
+                string name = "Buffer " + vtx.ibuffer.ToString();
+                UInt32 length = 0;
+
+                if (vtx.ibuffer == ResourceId.Null)
+                {
+                    name = "Empty";
+                }
+                else
+                {
+                    for (int t = 0; t < bufs.Length; t++)
+                    {
+                        if (bufs[t].ID == vtx.ibuffer)
+                        {
+                            name = bufs[t].name;
+                            length = bufs[t].length;
+                        }
+                    }
+                }
+
+                string ifmt = "UNKNOWN";
+                if (m_Core.CurDrawcall.indexByteWidth == 2)
+                    ifmt = "R16_UINT";
+                if (m_Core.CurDrawcall.indexByteWidth == 4)
+                    ifmt = "R32_UINT";
+
+                ExportHTMLTable(writer, new string[] { "Buffer", "Format", "Byte Length" },
+                    new object[] { name, ifmt, length.ToString() });
+            }
+
+            writer.WriteStartElement("p");
+            writer.WriteEndElement();
+
+            ExportHTMLTable(writer, new string[] { "Primitive Topology" }, new object[] { m_Core.CurDrawcall.topology.Str() });
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("States");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Primitive Restart", "Restart Index", "Provoking Vertex Last" },
+                    new object[] { vtx.primitiveRestart, vtx.restartIndex, vtx.provokingVertexLast ? "Yes" : "No" });
+
+                writer.WriteStartElement("p");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] {
+                        "Rasterizer Discard",
+                        "Clip Origin Lower Left",
+                        "Clip Space Z" },
+                    new object[] {
+                        pipe.m_VtxProcess.discard ? "Yes" : "No",
+                        pipe.m_VtxProcess.clipOriginLowerLeft ? "Yes" : "No",
+                        pipe.m_VtxProcess.clipNegativeOneToOne ? "-1 to 1" : "0 to 1" });
+
+                writer.WriteStartElement("p");
+                writer.WriteEndElement();
+
+                object[][] clipPlaneRows = new object[8][];
+
+                for (int i = 0; i < 8; i++)
+                    clipPlaneRows[i] = new object[] { i.ToString(), pipe.m_VtxProcess.clipPlanes[i] ? "Yes" : "No" };
+
+                ExportHTMLTable(writer, new string[] { "User Clip Plane", "Enabled", }, clipPlaneRows);
+
+                writer.WriteStartElement("p");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Default Inner Tessellation Level", "Default Outer Tessellation level", },
+                    new object[] {
+                        String.Format("{0}, {1}", pipe.m_VtxProcess.defaultInnerLevel[0], pipe.m_VtxProcess.defaultInnerLevel[1]),
+
+                        String.Format("{0}, {1}, {2}, {3}",
+                        pipe.m_VtxProcess.defaultOuterLevel[0], pipe.m_VtxProcess.defaultOuterLevel[1],
+                        pipe.m_VtxProcess.defaultOuterLevel[2], pipe.m_VtxProcess.defaultOuterLevel[3]),
+                    });
+            }
+        }
+
+        private void ExportHTML(XmlTextWriter writer, GLPipelineState state, GLPipelineState.ShaderStage sh)
+        {
+            FetchTexture[] texs = m_Core.CurTextures;
+            FetchBuffer[] bufs = m_Core.CurBuffers;
+
+            ShaderReflection shaderDetails = sh.ShaderDetails;
+            ShaderBindpointMapping mapping = sh.BindpointMapping;
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Shader");
+                writer.WriteEndElement();
+
+                string shadername = "Unknown";
+
+                if (sh.Shader == ResourceId.Null)
+                    shadername = "Unbound";
+                else
+                    shadername = sh.ShaderName;
+
+                if (sh.Shader == ResourceId.Null)
+                {
+                    shadername = "Unbound";
+                }
+                else
+                {
+                    string shname = sh.stage.Str(APIPipelineStateType.OpenGL) + " Shader";
+
+                    if (!sh.customShaderName && !sh.customProgramName && !sh.customPipelineName)
+                    {
+                        shadername = shname + " " + sh.Shader.ToString();
+                    }
+                    else
+                    {
+                        if (sh.customShaderName)
+                            shname = sh.ShaderName;
+
+                        if (sh.customProgramName)
+                            shname = sh.ProgramName + " - " + shname;
+
+                        if (sh.customPipelineName && sh.PipelineActive)
+                            shname = sh.PipelineName + " - " + shname;
+
+                        shadername = shname;
+                    }
+                }
+
+                writer.WriteStartElement("p");
+                writer.WriteString(shadername);
+                writer.WriteEndElement();
+
+                if (sh.Shader == ResourceId.Null)
+                    return;
+            }
+
+            List<object[]> textureRows = new List<object[]>();
+            List<object[]> samplerRows = new List<object[]>();
+            List<object[]> cbufferRows = new List<object[]>();
+            List<object[]> readwriteRows = new List<object[]>();
+            List<object[]> subRows = new List<object[]>();
+
+            if (state.Textures != null)
+            {
+                for (int i = 0; i < state.Textures.Length; i++)
+                {
+                    var r = state.Textures[i];
+                    var s = state.Samplers[i];
+
+                    ShaderResource shaderInput = null;
+                    BindpointMap map = null;
+
+                    if (shaderDetails != null)
+                    {
+                        foreach (var bind in shaderDetails.ReadOnlyResources)
+                        {
+                            if (bind.IsSRV && mapping.ReadOnlyResources[bind.bindPoint].bind == i)
+                            {
+                                shaderInput = bind;
+                                map = mapping.ReadOnlyResources[bind.bindPoint];
+                            }
+                        }
+                    }
+
+                    bool filledSlot = (r.Resource != ResourceId.Null);
+                    bool usedSlot = (shaderInput != null && map.used);
+
+                    if (shaderInput != null)
+                    {
+                        // do texture
+                        {
+                            string slotname = i.ToString();
+
+                            if (shaderInput != null && shaderInput.name != "")
+                                slotname += ": " + shaderInput.name;
+
+                            UInt32 w = 1, h = 1, d = 1;
+                            UInt32 a = 1;
+                            string format = "Unknown";
+                            string name = "Shader Resource " + r.Resource.ToString();
+                            string typename = "Unknown";
+                            object tag = null;
+
+                            if (!filledSlot)
+                            {
+                                name = "Empty";
+                                format = "-";
+                                typename = "-";
+                                w = h = d = a = 0;
+                            }
+
+                            // check to see if it's a texture
+                            for (int t = 0; t < texs.Length; t++)
+                            {
+                                if (texs[t].ID == r.Resource)
+                                {
+                                    w = texs[t].width;
+                                    h = texs[t].height;
+                                    d = texs[t].depth;
+                                    a = texs[t].arraysize;
+                                    format = texs[t].format.ToString();
+                                    name = texs[t].name;
+                                    typename = texs[t].resType.Str();
+
+                                    if (texs[t].format.special &&
+                                        (texs[t].format.specialFormat == SpecialFormat.D16S8 ||
+                                         texs[t].format.specialFormat == SpecialFormat.D24S8 ||
+                                         texs[t].format.specialFormat == SpecialFormat.D32S8)
+                                        )
+                                    {
+                                        if (r.DepthReadChannel == 0)
+                                            format += " Depth-Repipead";
+                                        else if (r.DepthReadChannel == 1)
+                                            format += " Stencil-Read";
+                                    }
+                                    else if (
+                                        r.Swizzle[0] != TextureSwizzle.Red ||
+                                        r.Swizzle[1] != TextureSwizzle.Green ||
+                                        r.Swizzle[2] != TextureSwizzle.Blue ||
+                                        r.Swizzle[3] != TextureSwizzle.Alpha)
+                                    {
+                                        format += String.Format(" swizzle[{0}{1}{2}{3}]",
+                                            r.Swizzle[0].Str(),
+                                            r.Swizzle[1].Str(),
+                                            r.Swizzle[2].Str(),
+                                            r.Swizzle[3].Str());
+                                    }
+
+                                    tag = texs[t];
+                                }
+                            }
+
+                            textureRows.Add(new object[] { slotname, name, typename, w, h, d, a, format });
+                        }
+
+                        // do sampler
+                        {
+                            string slotname = i.ToString();
+
+                            if (shaderInput != null && shaderInput.name.Length > 0)
+                                slotname += ": " + shaderInput.name;
+
+                            string borderColor = s.BorderColor[0].ToString() + ", " +
+                                                    s.BorderColor[1].ToString() + ", " +
+                                                    s.BorderColor[2].ToString() + ", " +
+                                                    s.BorderColor[3].ToString();
+
+                            string addressing = "";
+
+                            string addPrefix = "";
+                            string addVal = "";
+
+                            string[] addr = { s.AddressS, s.AddressT, s.AddressR };
+
+                            // arrange like either STR: WRAP or ST: WRAP, R: CLAMP
+                            for (int a = 0; a < 3; a++)
+                            {
+                                string prefix = "" + "STR"[a];
+
+                                if (a == 0 || addr[a] == addr[a - 1])
+                                {
+                                    addPrefix += prefix;
+                                }
+                                else
+                                {
+                                    addressing += addPrefix + ": " + addVal + ", ";
+
+                                    addPrefix = prefix;
+                                }
+                                addVal = addr[a];
+                            }
+
+                            addressing += addPrefix + ": " + addVal;
+
+                            if (s.UseBorder)
+                                addressing += String.Format("<{0}>", borderColor);
+
+                            if (r.ResType == ShaderResourceType.TextureCube ||
+                                r.ResType == ShaderResourceType.TextureCubeArray)
+                            {
+                                addressing += s.SeamlessCube ? " Seamless" : " Non-Seamless";
+                            }
+
+                            string minfilter = s.MinFilter;
+
+                            if (s.MaxAniso > 1)
+                                minfilter += String.Format(" Aniso{0}x", s.MaxAniso);
+
+                            if (s.UseComparison)
+                                minfilter = String.Format("{0}", s.Comparison);
+
+                            samplerRows.Add(new object[] { slotname, addressing,
+                                                            minfilter, s.MagFilter,
+                                                            (s.MinLOD == -float.MaxValue ? "0" : s.MinLOD.ToString()) + " - " +
+                                                            (s.MaxLOD == float.MaxValue ? "FLT_MAX" : s.MaxLOD.ToString()),
+                                                            s.MipLODBias.ToString() });
+                        }
+                    }
+                }
+            }
+
+            if (shaderDetails != null)
+            {
+                UInt32 i = 0;
+                foreach (var shaderCBuf in shaderDetails.ConstantBlocks)
+                {
+                    int bindPoint = mapping.ConstantBlocks[i].bind;
+
+                    GLPipelineState.Buffer b = null;
+
+                    if (bindPoint >= 0 && bindPoint < state.UniformBuffers.Length)
+                        b = state.UniformBuffers[bindPoint];
+
+                    bool filledSlot = !shaderCBuf.bufferBacked ||
+                        (b != null && b.Resource != ResourceId.Null);
+                    bool usedSlot = mapping.ConstantBlocks[i].used;
+
+                    // show if
+                    {
+                        ulong offset = 0;
+                        ulong length = 0;
+                        int numvars = shaderCBuf.variables.Length;
+
+                        string slotname = "Uniforms";
+                        string name = "";
+                        string sizestr = String.Format("{0} Variables", numvars);
+                        string byterange = "";
+
+                        if (!filledSlot)
+                        {
+                            name = "Empty";
+                            length = 0;
+                        }
+
+                        if (b != null)
+                        {
+                            slotname = String.Format("{0}: {1}", bindPoint, shaderCBuf.name);
+                            name = "UBO " + b.Resource.ToString();
+                            offset = b.Offset;
+                            length = b.Size;
+
+                            for (int t = 0; t < bufs.Length; t++)
+                            {
+                                if (bufs[t].ID == b.Resource)
+                                {
+                                    name = bufs[t].name;
+                                    if (length == 0)
+                                        length = bufs[t].length;
+                                }
+                            }
+
+                            sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                            byterange = String.Format("{0} - {1}", offset, offset + length);
+                        }
+
+                        cbufferRows.Add(new object[] { slotname, name, byterange, sizestr });
+                    }
+                    i++;
+                }
+            }
+
+            {
+                UInt32 i = 0;
+                foreach (var subval in sh.Subroutines)
+                {
+                    subRows.Add(new object[] { i.ToString(), subval.ToString() });
+
+                    i++;
+                }
+            }
+
+            if (shaderDetails != null)
+            {
+                UInt32 i = 0;
+                foreach (var res in shaderDetails.ReadWriteResources)
+                {
+                    int bindPoint = mapping.ReadWriteResources[i].bind;
+
+                    GLReadWriteType readWriteType = GetGLReadWriteType(res);
+
+                    GLPipelineState.Buffer bf = null;
+                    GLPipelineState.ImageLoadStore im = null;
+                    ResourceId id = ResourceId.Null;
+
+                    if (readWriteType == GLReadWriteType.Image && bindPoint >= 0 && bindPoint < state.Images.Length)
+                    {
+                        im = state.Images[bindPoint];
+                        id = state.Images[bindPoint].Resource;
+                    }
+
+                    if (readWriteType == GLReadWriteType.Atomic && bindPoint >= 0 && bindPoint < state.AtomicBuffers.Length)
+                    {
+                        bf = state.AtomicBuffers[bindPoint];
+                        id = state.AtomicBuffers[bindPoint].Resource;
+                    }
+
+                    if (readWriteType == GLReadWriteType.SSBO && bindPoint >= 0 && bindPoint < state.ShaderStorageBuffers.Length)
+                    {
+                        bf = state.ShaderStorageBuffers[bindPoint];
+                        id = state.ShaderStorageBuffers[bindPoint].Resource;
+                    }
+
+                    bool filledSlot = id != ResourceId.Null;
+                    bool usedSlot = mapping.ReadWriteResources[i].used;
+
+                    // show if
+                    {
+                        string binding = readWriteType == GLReadWriteType.Image ? "Image" :
+                            readWriteType == GLReadWriteType.Atomic ? "Atomic" :
+                            readWriteType == GLReadWriteType.SSBO ? "SSBO" :
+                            "Unknown";
+
+                        string slotname = String.Format("{0}: {1}", bindPoint, res.name);
+                        string name = "";
+                        string dimensions = "";
+                        string format = "-";
+                        string access = "Read/Write";
+                        if (im != null)
+                        {
+                            if (im.readAllowed && !im.writeAllowed) access = "Read-Only";
+                            if (!im.readAllowed && im.writeAllowed) access = "Write-Only";
+                            format = im.Format.ToString();
+                        }
+
+                        object tag = null;
+
+                        // check to see if it's a texture
+                        for (int t = 0; t < texs.Length; t++)
+                        {
+                            if (texs[t].ID == id)
+                            {
+                                if (texs[t].dimension == 1)
+                                {
+                                    if (texs[t].arraysize > 1)
+                                        dimensions = String.Format("{0}[{1}]", texs[t].width, texs[t].arraysize);
+                                    else
+                                        dimensions = String.Format("{0}", texs[t].width);
+                                }
+                                else if (texs[t].dimension == 2)
+                                {
+                                    if (texs[t].arraysize > 1)
+                                        dimensions = String.Format("{0}x{1}[{2}]", texs[t].width, texs[t].height, texs[t].arraysize);
+                                    else
+                                        dimensions = String.Format("{0}x{1}", texs[t].width, texs[t].height);
+                                }
+                                else if (texs[t].dimension == 3)
+                                {
+                                    dimensions = String.Format("{0}x{1}x{2}", texs[t].width, texs[t].height, texs[t].depth);
+                                }
+
+                                name = texs[t].name;
+
+                                tag = texs[t];
+                            }
+                        }
+
+                        // if not a texture, it must be a buffer
+                        for (int t = 0; t < bufs.Length; t++)
+                        {
+                            if (bufs[t].ID == id)
+                            {
+                                ulong offset = 0;
+                                ulong length = bufs[t].length;
+                                if (bf != null && bf.Size > 0)
+                                {
+                                    offset = bf.Offset;
+                                    length = bf.Size;
+                                }
+
+                                if (offset > 0)
+                                    dimensions = String.Format("{0} bytes at offset {1} bytes", length, offset);
+                                else
+                                    dimensions = String.Format("{0} bytes", length);
+
+                                name = bufs[t].name;
+
+                                tag = new ReadWriteTag(i, bufs[t]);
+                            }
+                        }
+
+                        if (!filledSlot)
+                        {
+                            name = "Empty";
+                            dimensions = "-";
+                            access = "-";
+                        }
+
+                        readwriteRows.Add(new object[] { binding, slotname, name, dimensions, format, access });
+                    }
+                    i++;
+                }
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Textures");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Slot", "Name", "Type", "Width", "Height", "Depth", "Array Size", "Format" },
+                    textureRows.ToArray()
+                );
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Samplers");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Slot", "Addressing", "Min Filter", "Mag Filter", "LOD Clamping", "LOD Bias" },
+                    samplerRows.ToArray()
+                );
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Uniform Buffers");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Slot", "Name", "Byte Range", "Size" },
+                    cbufferRows.ToArray()
+                );
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Subroutines");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Index", "Value" },
+                    subRows.ToArray()
+                );
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Read-write resources");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Binding", "Resource", "Name", "Dimensions", "Format", "Access", },
+                    readwriteRows.ToArray()
+                );
+            }
+        }
+
+        private void ExportHTML(XmlTextWriter writer, GLPipelineState pipe, GLPipelineState.Feedback xfb)
+        {
+            FetchBuffer[] bufs = m_Core.CurBuffers;
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("States");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Active", "Paused" },
+                    new object[] { xfb.Active ? "Yes" : "No", xfb.Paused ? "Yes" : "No" });
+
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Transform Feedback Targets");
+                writer.WriteEndElement();
+
+                List<object[]> rows = new List<object[]>();
+
+                for(int i=0; i < xfb.BufferBinding.Length; i++)
+                {
+                    string name = "Buffer " + xfb.BufferBinding[i].ToString();
+                    UInt32 length = 0;
+
+                    if (xfb.BufferBinding[i] == ResourceId.Null)
+                    {
+                        name = "Empty";
+                    }
+                    else
+                    {
+                        for (int t = 0; t < bufs.Length; t++)
+                        {
+                            if (bufs[t].ID == xfb.BufferBinding[i])
+                            {
+                                name = bufs[t].name;
+                                length = bufs[t].length;
+                            }
+                        }
+                    }
+
+                    rows.Add(new object[] { i, name, xfb.Offset[i], xfb.Size[i], length });
+                }
+
+                ExportHTMLTable(writer, new string[] { "Slot", "Buffer", "Offset", "Binding size", "Buffer byte Length" }, rows.ToArray());
+            }
+        }
+
+        private void ExportHTML(XmlTextWriter writer, GLPipelineState pipe, GLPipelineState.Rasterizer rs)
+        {
+            writer.WriteStartElement("h3");
+            writer.WriteString("Rasterizer");
+            writer.WriteEndElement();
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("States");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Fill Mode", "Cull Mode", "Front CCW" },
+                    new object[] { rs.m_State.FillMode, rs.m_State.CullMode, rs.m_State.FrontCCW ? "Yes" : "No" });
+
+                writer.WriteStartElement("p");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] {
+                        "Multisample Enable",
+                        "Sample Shading",
+                        "Sample Mask",
+                        "Sample Coverage",
+                        "Sample Coverage Invert",
+                        "Alpha to Coverage",
+                        "Alpha to One",
+                        "Min Sample Shading Rate"
+                    },
+                    new object[] {
+                        rs.m_State.MultisampleEnable ? "Yes" : "No",
+                        rs.m_State.SampleShading ? "Yes" : "No",
+                        rs.m_State.SampleMask ? rs.m_State.SampleMaskValue.ToString("X8") : "No",
+                        rs.m_State.SampleCoverage ? rs.m_State.SampleCoverageValue.ToString("X8") : "No",
+                        rs.m_State.SampleCoverageInvert ? "Yes" : "No",
+                        rs.m_State.SampleAlphaToCoverage ? "Yes" : "No",
+                        rs.m_State.SampleAlphaToOne ? "Yes" : "No",
+                        Formatter.Format(rs.m_State.MinSampleShadingRate),
+                    });
+
+                writer.WriteStartElement("p");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] {
+                        "Programmable Point Size",
+                        "Fixed Point Size",
+                        "Line Width",
+                        "Point Fade Threshold",
+                        "Point Origin Upper Left",
+                    },
+                    new object[] {
+                        rs.m_State.ProgrammablePointSize ? "Yes" : "No",
+                        Formatter.Format(rs.m_State.PointSize),
+                        Formatter.Format(rs.m_State.LineWidth),
+                        Formatter.Format(rs.m_State.PointFadeThreshold),
+                        rs.m_State.PointOriginUpperLeft ? "Yes" : "No",
+                    });
+
+                writer.WriteStartElement("p");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Depth Clamp", "Depth Bias", "Offset Clamp", "Slope Scaled Bias" },
+                    new object[] { rs.m_State.DepthClamp ? "Yes" : "No", rs.m_State.DepthBias,
+                                   Formatter.Format(rs.m_State.OffsetClamp), Formatter.Format(rs.m_State.SlopeScaledDepthBias)});
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Hints");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] {
+                        "Derivatives",
+                        "Line Smooth",
+                        "Poly Smooth",
+                        "Tex Compression",
+                    },
+                    new object[] {
+                        pipe.m_Hints.Derivatives.ToString(),
+                        pipe.m_Hints.LineSmoothEnabled ? pipe.m_Hints.LineSmooth.ToString() : "Disabled",
+                        pipe.m_Hints.PolySmoothEnabled ? pipe.m_Hints.PolySmooth.ToString() : "Disabled",
+                        pipe.m_Hints.TexCompression.ToString(),
+                    });
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Viewports");
+                writer.WriteEndElement();
+
+                List<object[]> rows = new List<object[]>();
+
+                int i = 0;
+                foreach (var v in rs.Viewports)
+                {
+                    rows.Add(new object[] { i, v.Enabled, v.Left, v.Bottom, v.Width, v.Height, v.MinDepth, v.MaxDepth });
+
+                    i++;
+                }
+
+                ExportHTMLTable(writer, new string[] { "Slot", "Enabled", "Left", "Bottom", "Width", "Height", "Min Depth", "Max Depth" }, rows.ToArray());
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Scissors");
+                writer.WriteEndElement();
+
+                List<object[]> rows = new List<object[]>();
+
+                int i = 0;
+                foreach (var s in rs.Scissors)
+                {
+                    rows.Add(new object[] { i, s.Enabled, s.Left, s.Bottom, s.Width, s.Height });
+
+                    i++;
+                }
+
+                ExportHTMLTable(writer, new string[] { "Slot", "Enabled", "Left", "Bottom", "Width", "Height" }, rows.ToArray());
+            }
+        }
+
+        private void ExportHTML(XmlTextWriter writer, GLPipelineState pipe, GLPipelineState.FrameBuffer fb)
+        {
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Blend State");
+                writer.WriteEndElement();
+
+                var blendFactor = fb.m_BlendState.BlendFactor[0].ToString("F2") + ", " +
+                                    fb.m_BlendState.BlendFactor[1].ToString("F2") + ", " +
+                                    fb.m_BlendState.BlendFactor[2].ToString("F2") + ", " +
+                                    fb.m_BlendState.BlendFactor[3].ToString("F2");
+
+                ExportHTMLTable(writer,
+                    new string[] { "Framebuffer SRGB", "Blend Factor" },
+                    new object[] { fb.FramebufferSRGB ? "Yes" : "No", blendFactor, });
+
+                writer.WriteStartElement("h3");
+                writer.WriteString("Target Blends");
+                writer.WriteEndElement();
+
+                List<object[]> rows = new List<object[]>();
+
+                int i = 0;
+                foreach (var b in fb.m_BlendState.Blends)
+                {
+                    if (!b.Enabled) continue;
+
+                    rows.Add(new object[] {
+                        i,
+                        b.Enabled ? "Yes" : "No",
+                        b.m_Blend.Source, b.m_Blend.Destination, b.m_Blend.Operation,
+                        b.m_AlphaBlend.Source, b.m_AlphaBlend.Destination, b.m_AlphaBlend.Operation,
+                        b.LogicOp,
+                        ((b.WriteMask & 0x1) == 0 ? "_" : "R") +
+                        ((b.WriteMask & 0x2) == 0 ? "_" : "G") +
+                        ((b.WriteMask & 0x4) == 0 ? "_" : "B") +
+                        ((b.WriteMask & 0x8) == 0 ? "_" : "A")  });
+
+                    i++;
+                }
+
+                ExportHTMLTable(writer,
+                    new string[] {
+                        "Slot",
+                        "Blend Enable",
+                        "Blend Source", "Blend Destination", "Blend Operation",
+                        "Alpha Blend Source", "Alpha Blend Destination", "Alpha Blend Operation",
+                        "Logic Operation", "Write Mask",
+                    },
+                    rows.ToArray());
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Depth State");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Depth Test Enable", "Depth Writes Enable", "Depth Function", "Depth Bounds" },
+                    new object[] {
+                        pipe.m_DepthState.DepthEnable ? "Yes" : "No", pipe.m_DepthState.DepthWrites ? "Yes" : "No", pipe.m_DepthState.DepthFunc,
+                        pipe.m_DepthState.DepthEnable
+                                 ? String.Format("{0} - {1}", Formatter.Format(pipe.m_DepthState.NearBound), Formatter.Format(pipe.m_DepthState.FarBound))
+                                 : "Disabled",
+                    });
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Stencil State");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Stencil Test Enable" },
+                    new object[] { pipe.m_StencilState.StencilEnable ? "Yes" : "No" }
+                    );
+
+                writer.WriteStartElement("p");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Face", "Reference", "Value Mask", "Write Mask", "Function", "Pass Operation", "Fail Operation", "Depth Fail Operation" },
+                    new object[][] {
+                        new object[] { "Front",
+                            pipe.m_StencilState.m_FrontFace.Ref.ToString("X2"),
+                            pipe.m_StencilState.m_FrontFace.ValueMask.ToString("X2"),
+                            pipe.m_StencilState.m_FrontFace.WriteMask.ToString("X2"),
+                            pipe.m_StencilState.m_FrontFace.Func,
+                            pipe.m_StencilState.m_FrontFace.PassOp,
+                            pipe.m_StencilState.m_FrontFace.FailOp,
+                            pipe.m_StencilState.m_FrontFace.DepthFailOp
+                        },
+
+                        new object[] { "Back",
+                            pipe.m_StencilState.m_BackFace.Ref.ToString("X2"),
+                            pipe.m_StencilState.m_BackFace.ValueMask.ToString("X2"),
+                            pipe.m_StencilState.m_BackFace.WriteMask.ToString("X2"),
+                            pipe.m_StencilState.m_BackFace.Func,
+                            pipe.m_StencilState.m_BackFace.PassOp,
+                            pipe.m_StencilState.m_BackFace.FailOp,
+                            pipe.m_StencilState.m_BackFace.DepthFailOp
+                        },
+                    });
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Draw FBO Attachments");
+                writer.WriteEndElement();
+
+                List<object[]> rows = new List<object[]>();
+
+                List<GLPipelineState.FrameBuffer.Attachment> atts = new List<GLPipelineState.FrameBuffer.Attachment>();
+                atts.AddRange(fb.m_DrawFBO.Color);
+                atts.Add(fb.m_DrawFBO.Depth);
+                atts.Add(fb.m_DrawFBO.Stencil);
+
+                int i = 0;
+                foreach (var a in atts)
+                {
+                    FetchTexture tex = m_Core.GetTexture(a.Obj);
+
+                    string name = "Image " + a.Obj;
+
+                    if (tex != null) name = tex.name;
+                    if (a.Obj == ResourceId.Null)
+                        name = "Empty";
+
+                    string slotname = i.ToString();
+
+                    if (i == atts.Count - 2)
+                        slotname = "Depth";
+                    else if (i == atts.Count - 1)
+                        slotname = "Stencil";
+
+                    rows.Add(new object[] {
+                        slotname,
+                        name, a.Mip, a.Layer });
+
+                    i++;
+                }
+
+                ExportHTMLTable(writer,
+                    new string[] {
+                        "Slot",
+                        "Image", "First mip", "First array slice",
+                    },
+                    rows.ToArray());
+
+                object[][] drawbuffers = new object[fb.m_DrawFBO.DrawBuffers.Length][];
+
+                for (i = 0; i < fb.m_DrawFBO.DrawBuffers.Length; i++)
+                    drawbuffers[i] = new object[] { fb.m_DrawFBO.DrawBuffers[i] };
+
+                writer.WriteStartElement("p");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer, new string[] { "Draw Buffers", }, drawbuffers);
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Read FBO Attachments");
+                writer.WriteEndElement();
+
+                List<object[]> rows = new List<object[]>();
+
+                List<GLPipelineState.FrameBuffer.Attachment> atts = new List<GLPipelineState.FrameBuffer.Attachment>();
+                atts.AddRange(fb.m_ReadFBO.Color);
+                atts.Add(fb.m_ReadFBO.Depth);
+                atts.Add(fb.m_ReadFBO.Stencil);
+
+                int i = 0;
+                foreach (var a in atts)
+                {
+                    FetchTexture tex = m_Core.GetTexture(a.Obj);
+
+                    string name = "Image " + a.Obj;
+
+                    if (tex != null) name = tex.name;
+                    if (a.Obj == ResourceId.Null)
+                        name = "Empty";
+
+                    string slotname = i.ToString();
+
+                    if (i == atts.Count - 2)
+                        slotname = "Depth";
+                    else if (i == atts.Count - 1)
+                        slotname = "Stencil";
+
+                    rows.Add(new object[] {
+                        slotname,
+                        name, a.Mip, a.Layer });
+
+                    i++;
+                }
+
+                ExportHTMLTable(writer,
+                    new string[] {
+                        "Slot",
+                        "Image", "First mip", "First array slice",
+                    },
+                    rows.ToArray());
+
+                writer.WriteStartElement("p");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer, new string[] { "Read Buffer", }, new object[] { fb.m_ReadFBO.ReadBuffer });
+            }
+        }
+
+        private void ExportHTML(string filename)
+        {
+            using (Stream s = new FileStream(filename, FileMode.Create))
+            {
+                StreamWriter sw = new StreamWriter(s);
+
+                sw.WriteLine("<!DOCTYPE html>");
+
+                using (XmlTextWriter writer = new XmlTextWriter(sw))
+                {
+                    writer.Formatting = Formatting.Indented;
+                    writer.Indentation = 4;
+
+                    writer.WriteStartElement("html");
+                    writer.WriteAttributeString("lang", "en");
+
+                    var title = String.Format("{0} EID {1} - D3D11 Pipeline export", Path.GetFileName(m_Core.LogFileName), m_Core.CurEvent);
+
+                    var css = @"
+/* If you think this css is ugly/bad, open a pull request! */
+body { margin: 20px; }
+div.stage { border: 1px solid #BBBBBB; border-radius: 5px; padding: 16px; margin-bottom: 32px; }
+div.stage h1 { text-decoration: underline; margin-top: 0px; }
+div.stage table { border: 1px solid #AAAAAA; border-collapse: collapse; }
+div.stage table thead tr { border-bottom: 1px solid #AAAAAA; background-color: #EEEEFF; }
+div.stage table tr th { border-right: 1px solid #AAAAAA; padding: 6px; }
+div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEEEE; padding: 3px; }
+";
+
+                    {
+                        writer.WriteStartElement("head");
+
+                        writer.WriteStartElement("meta");
+                        writer.WriteAttributeString("charset", "utf-8");
+                        writer.WriteEndElement();
+
+                        writer.WriteStartElement("meta");
+                        writer.WriteAttributeString("http-equiv", "X-UA-Compatible");
+                        writer.WriteAttributeString("content", "IE=edge");
+                        writer.WriteEndElement();
+
+                        writer.WriteStartElement("meta");
+                        writer.WriteAttributeString("name", "viewport");
+                        writer.WriteAttributeString("content", "width=device-width, initial-scale=1");
+                        writer.WriteEndElement();
+
+                        writer.WriteStartElement("meta");
+                        writer.WriteAttributeString("name", "description");
+                        writer.WriteAttributeString("content", "");
+                        writer.WriteEndElement();
+
+                        writer.WriteStartElement("meta");
+                        writer.WriteAttributeString("name", "author");
+                        writer.WriteAttributeString("content", "");
+                        writer.WriteEndElement();
+
+                        writer.WriteStartElement("meta");
+                        writer.WriteAttributeString("http-equiv", "Content-Type");
+                        writer.WriteAttributeString("content", "text/html;charset=utf-8");
+                        writer.WriteEndElement();
+
+                        writer.WriteStartElement("title");
+                        writer.WriteString(title);
+                        writer.WriteEndElement();
+
+                        writer.WriteStartElement("style");
+                        writer.WriteComment(css);
+                        writer.WriteEndElement();
+
+                        writer.WriteEndElement(); // head
+                    }
+
+                    {
+                        writer.WriteStartElement("body");
+
+                        writer.WriteStartElement("h1");
+                        writer.WriteString(title);
+                        writer.WriteEndElement();
+
+                        writer.WriteStartElement("h3");
+                        {
+                            var context = String.Format("Frame {0}", m_Core.FrameInfo.frameNumber);
+
+                            FetchDrawcall draw = m_Core.CurDrawcall;
+
+                            var drawstack = new List<FetchDrawcall>();
+                            var parent = draw.parent;
+                            while (parent != null)
+                            {
+                                drawstack.Add(parent);
+                                parent = parent.parent;
+                            }
+
+                            drawstack.Reverse();
+
+                            foreach (var d in drawstack)
+                            {
+                                context += String.Format(" > {0}", d.name);
+                            }
+
+                            context += String.Format(" => {0}", draw.name);
+
+                            writer.WriteString(context);
+                        }
+                        writer.WriteEndElement(); // h2 context
+
+                        string[] stageNames = new string[]{
+                            "Vertex Input",
+                            "Vertex Shader",
+                            "Tessellation Control Shader",
+                            "Tessellation Evaluation Shader",
+                            "Geometry Shader",
+                            "Transform Feedback",
+                            "Rasterizer",
+                            "Fragment Shader",
+                            "Framebuffer Output",
+                            "Compute Shader",
+                        };
+
+                        string[] stageAbbrevs = new string[]{
+                            "VTX", "VS", "TCS", "TES", "GS", "XF", "RS", "FS", "FB", "CS"
+                        };
+
+                        int stage = 0;
+                        foreach (var sn in stageNames)
+                        {
+                            writer.WriteStartElement("div");
+                            writer.WriteStartElement("a");
+                            writer.WriteAttributeString("name", stageAbbrevs[stage]);
+                            writer.WriteEndElement();
+                            writer.WriteEndElement();
+
+                            writer.WriteStartElement("div");
+                            writer.WriteAttributeString("class", "stage");
+
+                            writer.WriteStartElement("h1");
+                            writer.WriteString(sn);
+                            writer.WriteEndElement();
+
+                            switch (stage)
+                            {
+                                case 0: ExportHTML(writer, m_Core.CurGLPipelineState, m_Core.CurGLPipelineState.m_VtxIn); break;
+                                case 1: ExportHTML(writer, m_Core.CurGLPipelineState, m_Core.CurGLPipelineState.m_VS); break;
+                                case 2: ExportHTML(writer, m_Core.CurGLPipelineState, m_Core.CurGLPipelineState.m_TCS); break;
+                                case 3: ExportHTML(writer, m_Core.CurGLPipelineState, m_Core.CurGLPipelineState.m_TES); break;
+                                case 4: ExportHTML(writer, m_Core.CurGLPipelineState, m_Core.CurGLPipelineState.m_GS); break;
+                                case 5: ExportHTML(writer, m_Core.CurGLPipelineState, m_Core.CurGLPipelineState.m_Feedback); break;
+                                case 6: ExportHTML(writer, m_Core.CurGLPipelineState, m_Core.CurGLPipelineState.m_RS); break;
+                                case 7: ExportHTML(writer, m_Core.CurGLPipelineState, m_Core.CurGLPipelineState.m_FS); break;
+                                case 8: ExportHTML(writer, m_Core.CurGLPipelineState, m_Core.CurGLPipelineState.m_FB); break;
+                                case 9: ExportHTML(writer, m_Core.CurGLPipelineState, m_Core.CurGLPipelineState.m_CS); break;
+                            }
+
+                            writer.WriteEndElement();
+
+                            stage++;
+                        }
+
+                        writer.WriteEndElement(); // body
+                    }
+
+                    writer.WriteEndElement(); // html
+
+                    writer.Close();
+                }
+
+                sw.Dispose();
+            }
+        }
+
+        private void export_Click(object sender, EventArgs e)
+        {
+            if (!m_Core.LogLoaded) return;
+
+            DialogResult res = exportDialog.ShowDialog();
+
+            if (res == DialogResult.OK)
+            {
+                ExportHTML(exportDialog.FileName);
+            }
+        }
+    }
 }

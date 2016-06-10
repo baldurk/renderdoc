@@ -2856,10 +2856,6 @@ namespace renderdocui.Windows.PipelineState
                 {
                     List<object[]> rows = new List<object[]>();
 
-                    ExportHTMLTable(writer,
-                        new string[] { "Face", "Ref", "Compare Mask", "Write Mask", "Function", "Pass Op", "Fail Op", "Depth Fail Op" },
-                        rows.ToArray());
-
                     rows.Add(new object[] {
                         "Front",
                         ds.front.stencilref.ToString("X2"), ds.front.compareMask.ToString("X2"), ds.front.writeMask.ToString("X2"),
@@ -2871,6 +2867,10 @@ namespace renderdocui.Windows.PipelineState
                         ds.back.stencilref.ToString("X2"), ds.back.compareMask.ToString("X2"), ds.back.writeMask.ToString("X2"),
                         ds.back.func, ds.back.passOp, ds.back.failOp, ds.back.depthFailOp
                     });
+
+                    ExportHTMLTable(writer,
+                        new string[] { "Face", "Ref", "Compare Mask", "Write Mask", "Function", "Pass Op", "Fail Op", "Depth Fail Op" },
+                        rows.ToArray());
                 }
                 else
                 {
@@ -3069,19 +3069,7 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
                                 context += String.Format(" > {0}", d.name);
                             }
 
-                            FetchDrawcall prev = null;
-
-                            for (uint i = draw.events[0].eventID; i <= draw.events.Last().eventID; i++)
-                            {
-                                prev = m_Core.GetDrawcall(i);
-                                if (prev != null)
-                                    break;
-                            }
-
-                            if (prev != null)
-                                context += String.Format(" => {0}, {1}", prev.name, draw.name);
-                            else
-                                context += String.Format(" => {0}", draw.name);
+                            context += String.Format(" => {0}", draw.name);
 
                             writer.WriteString(context);
                         }

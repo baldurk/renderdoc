@@ -3103,7 +3103,11 @@ namespace renderdocui.Windows.PipelineState
                         b.Enabled ? "Yes" : "No", b.LogicEnabled ? "Yes" : "No",
                         b.m_Blend.Source, b.m_Blend.Destination, b.m_Blend.Operation,
                         b.m_AlphaBlend.Source, b.m_AlphaBlend.Destination, b.m_AlphaBlend.Operation,
-                        b.LogicOp, b.WriteMask });
+                        b.LogicOp,
+                        ((b.WriteMask & 0x1) == 0 ? "_" : "R") +
+                        ((b.WriteMask & 0x2) == 0 ? "_" : "G") +
+                        ((b.WriteMask & 0x4) == 0 ? "_" : "B") +
+                        ((b.WriteMask & 0x8) == 0 ? "_" : "A")  });
 
                     i++;
                 }
@@ -3127,6 +3131,26 @@ namespace renderdocui.Windows.PipelineState
                 ExportHTMLTable(writer,
                     new string[] { "Depth Test Enable", "Depth Writes Enable", "Depth Function" },
                     new object[] { om.m_State.DepthEnable ? "Yes" : "No", om.m_State.DepthWrites ? "Yes" : "No", om.m_State.DepthFunc });
+            }
+
+            {
+                writer.WriteStartElement("h3");
+                writer.WriteString("Stencil State");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Stencil Test Enable", "Stencil Read Mask", "Stencil Write Mask" },
+                    new object[] { om.m_State.StencilEnable ? "Yes" : "No", om.m_State.StencilReadMask.ToString("X2"), om.m_State.StencilWriteMask.ToString("X2") });
+
+                writer.WriteStartElement("p");
+                writer.WriteEndElement();
+
+                ExportHTMLTable(writer,
+                    new string[] { "Face", "Function", "Pass Operation", "Fail Operation", "Depth Fail Operation" },
+                    new object[][] {
+                        new object[] { "Front", om.m_State.m_FrontFace.Func, om.m_State.m_FrontFace.PassOp, om.m_State.m_FrontFace.FailOp, om.m_State.m_FrontFace.DepthFailOp },
+                        new object[] { "Back", om.m_State.m_BackFace.Func, om.m_State.m_BackFace.PassOp, om.m_State.m_BackFace.FailOp, om.m_State.m_BackFace.DepthFailOp },
+                    });
             }
 
             {
@@ -3315,19 +3339,7 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
                                 context += String.Format(" > {0}", d.name);
                             }
 
-                            FetchDrawcall prev = null;
-
-                            for (uint i = draw.events[0].eventID; i <= draw.events.Last().eventID; i++)
-                            {
-                                prev = m_Core.GetDrawcall(i);
-                                if (prev != null)
-                                    break;
-                            }
-
-                            if (prev != null)
-                                context += String.Format(" => {0}, {1}", prev.name, draw.name);
-                            else
-                                context += String.Format(" => {0}", draw.name);
+                            context += String.Format(" => {0}", draw.name);
 
                             writer.WriteString(context);
                         }

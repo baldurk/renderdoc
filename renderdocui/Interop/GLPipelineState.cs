@@ -395,10 +395,10 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class Hints
         {
-            public Int32 Derivatives;
-            public Int32 LineSmooth;
-            public Int32 PolySmooth;
-            public Int32 TexCompression;
+            public QualityHint Derivatives;
+            public QualityHint LineSmooth;
+            public QualityHint PolySmooth;
+            public QualityHint TexCompression;
             public bool LineSmoothEnabled;
             public bool PolySmoothEnabled;
         };
