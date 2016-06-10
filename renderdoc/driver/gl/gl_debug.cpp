@@ -182,6 +182,8 @@ void GLReplay::InitDebugData()
   if(m_pDriver == NULL)
     return;
 
+  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.0f);
+
   {
     uint64_t id = MakeOutputWindow(NULL, true);
 
@@ -221,6 +223,8 @@ void GLReplay::InitDebugData()
 
   GLint numsl = 0;
   gl.glGetIntegerv(eGL_NUM_SHADING_LANGUAGE_VERSIONS, &numsl);
+
+  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
 
   bool support450 = false;
   for(GLint i = 0; i < numsl; i++)
@@ -287,6 +291,8 @@ void GLReplay::InitDebugData()
   DebugData.meshgsProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str(), meshgs.c_str());
 
   gl.glGenProgramPipelines(1, &DebugData.texDisplayPipe);
+
+  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.4f);
 
   {
     float data[] = {
@@ -355,6 +361,8 @@ void GLReplay::InitDebugData()
 
   gl.glGenVertexArrays(1, &DebugData.emptyVAO);
   gl.glBindVertexArray(DebugData.emptyVAO);
+
+  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.6f);
 
   // histogram/minmax data
   {
@@ -451,6 +459,8 @@ void GLReplay::InitDebugData()
     DebugData.meshPickProgram = CreateCShaderProgram(glsl.c_str());
   }
 
+  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
+
   {
     gl.glGenBuffers(1, &DebugData.pickResultBuf);
     gl.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickResultBuf);
@@ -542,6 +552,8 @@ void GLReplay::InitDebugData()
   gl.glNamedBufferStorageEXT(DebugData.feedbackBuffer, 32 * 1024 * 1024, NULL, GL_MAP_READ_BIT);
   gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
+
+  RenderDoc::Inst().SetProgress(DebugManagerInit, 1.0f);
 }
 
 void GLReplay::DeleteDebugData()
