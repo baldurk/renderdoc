@@ -28,11 +28,8 @@ out gl_PerVertex
 	float gl_PointSize;
 };
 
-out v2f
-{
-	vec4 tex;
-	vec2 glyphuv;
-} OUT;
+layout (location = 0) out vec4 tex;
+layout (location = 1) out vec2 glyphuv;
 
 void main(void)
 {
@@ -50,6 +47,6 @@ void main(void)
 	FontGlyphData G = glyphs.data[ str.chars[strindex].x ];
 	
 	gl_Position = vec4(charPos.xy*2.0f*general.TextSize*general.FontScreenAspect.xy + vec2(-1, -1), 1, 1);
-	OUT.glyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
-	OUT.tex = G.uvdata * general.CharacterSize.xyxy;
+	glyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
+	tex = G.uvdata * general.CharacterSize.xyxy;
 }
