@@ -10,7 +10,7 @@ Welcome to RenderDoc - a graphics debugger, currently available for D3D11, Vulka
 Quick Links:
 
 * **Downloads**: https://renderdoc.org/builds
-* **Documentation**: renderdoc.chm in the build, or http://docs.renderdoc.org/
+* **Documentation**: renderdoc.chm in the build, or https://renderdoc.org/docs
 * **Tutorials**: There are some video tutorials on Youtube: http://www.youtube.com/user/baldurkarlsson/
 * **Email contact**: [baldurk@baldurk.org](mailto:baldurk@baldurk.org)
 * **IRC channel**: #renderdoc on freenode
