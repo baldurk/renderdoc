@@ -253,6 +253,17 @@ namespace TreelistView
 			m_hScrollPanel.Controls.Add(m_hScroll);
 			m_hScrollPanel.Controls.Add(m_hScrollFiller);
 			Controls.Add(m_hScrollPanel);
+
+			// try and force handle creation here, as it can fail randomly
+			// at runtime with weird side-effects (See github #202).
+			bool handlesCreated = false;
+			handlesCreated |= m_hScroll.Handle.ToInt64() > 0;
+			handlesCreated |= m_vScroll.Handle.ToInt64() > 0;
+			handlesCreated |= m_hScrollFiller.Handle.ToInt64() > 0;
+			handlesCreated |= m_hScrollPanel.Handle.ToInt64() > 0;
+
+			if (!handlesCreated)
+				renderdoc.StaticExports.LogText("Couldn't create any handles!");
 		}
 		
 		VScrollBar	m_vScroll;
