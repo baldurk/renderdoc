@@ -2834,6 +2834,13 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, G
                  ? GetResourceManager()->GetLiveResource(bid).name
                  : 0;
 
+    // some intel drivers don't properly update query states (like GL_VERTEX_ATTRIB_ARRAY_SIZE)
+    // unless the VAO is also bound when performing EXT_dsa functions :(
+    GLuint prevVAO = 0;
+    m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
+
+    m_Real.glBindVertexArray(vaobj);
+
     // seems buggy when mixed and matched with new style vertex attrib binding, which we use for VAO
     // initial states.
     // Since the spec defines how this function should work in terms of new style bindings, just do
@@ -2848,6 +2855,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, G
       Stride = (uint32_t)GetByteSize(1, 1, 1, SizeEnum, Type);
     }
     m_Real.glVertexArrayBindVertexBufferEXT(vaobj, Index, buffer, (GLintptr)Offset, Stride);
+
+    m_Real.glBindVertexArray(prevVAO);
   }
 
   return true;
