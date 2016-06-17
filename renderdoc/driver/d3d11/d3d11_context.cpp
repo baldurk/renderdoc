@@ -743,6 +743,10 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
     case SET_MARKER: context->Serialise_SetMarker(0, L""); break;
     case POP_EVENT: context->Serialise_PopEvent(); break;
 
+    case DISCARD_RESOURCE: context->Serialise_DiscardResource(NULL); break;
+    case DISCARD_VIEW: context->Serialise_DiscardView(NULL); break;
+    case DISCARD_VIEW1: context->Serialise_DiscardView1(NULL, NULL, 0); break;
+
     case CONTEXT_CAPTURE_FOOTER:
     {
       bool HasCallstack = false;

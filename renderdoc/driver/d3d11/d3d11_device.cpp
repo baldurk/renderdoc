@@ -177,6 +177,10 @@ const char *D3D11ChunkNames[] = {
     "ContextEnd",
 
     "SetShaderDebugPath",
+
+    "ID3D11DeviceContext1::DiscardResource",
+    "ID3D11DeviceContext1::DiscardView",
+    "ID3D11DeviceContext1::DiscardView1",
 };
 
 WRAPPED_POOL_INST(WrappedID3D11Device);

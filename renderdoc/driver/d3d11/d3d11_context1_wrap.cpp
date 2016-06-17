@@ -493,6 +493,7 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
     pView->GetResource(&viewRes);
 
     m_MissingTracks.insert(GetIDForResource(viewRes));
+    MarkResourceReferenced(GetIDForResource(viewRes), eFrameRef_Write);
 
     SAFE_RELEASE(viewRes);
 
@@ -500,26 +501,12 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
   }
   else if(m_State >= WRITING)
   {
-    SCOPED_SERIALISE_CONTEXT(CLEAR_VIEW);
-    m_pSerialiser->Serialise("context", m_ResourceID);
-    Serialise_ClearView(pView, Color, pRect, NumRects);
+    ID3D11Resource *viewRes = NULL;
+    pView->GetResource(&viewRes);
 
-    D3D11ResourceRecord *record =
-        m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pView));
-    RDCASSERT(record);
+    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(viewRes));
 
-    record->AddChunk(scope.Get());
-  }
-
-  if(pView && m_State >= WRITING)
-  {
-    ID3D11Resource *res = NULL;
-    pView->GetResource(&res);
-
-    if(m_State == WRITING_CAPFRAME)
-      MarkResourceReferenced(GetIDForResource(res), eFrameRef_Write);
-
-    SAFE_RELEASE(res);
+    SAFE_RELEASE(viewRes);
   }
 }
 
@@ -1489,13 +1476,139 @@ void WrappedID3D11DeviceContext::CSGetConstantBuffers1(UINT StartSlot, UINT NumB
   }
 }
 
+bool WrappedID3D11DeviceContext::Serialise_DiscardResource(ID3D11Resource *pResource)
+{
+  SERIALISE_ELEMENT(ResourceId, res, GetIDForResource(pResource));
+
+  if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(res))
+  {
+    // don't replay the discard, as it effectively does nothing meaningful but hint
+    // to the driver that the contents can be discarded.
+    // Instead we should overwrite the contents with something (during capture too)
+    // to indicate that the discard has happened visually like a clear.
+    // This also means we don't have to require/diverge if a 11.1 context is not
+    // available on replay.
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(DISCARD_RESOURCE, desc);
+
+    FetchDrawcall draw;
+
+    draw.name = "DiscardResource()";
+
+    draw.flags |= eDraw_Clear;
+
+    AddDrawcall(draw, true);
+
+    if(m_pDevice->GetResourceManager()->HasLiveResource(res))
+      m_ResourceUses[res].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+  }
+
+  return true;
+}
+
 void WrappedID3D11DeviceContext::DiscardResource(ID3D11Resource *pResource)
 {
   if(m_pRealContext1 == NULL)
     return;
 
-  // no need to serialise
-  m_pRealContext1->DiscardResource(pResource);
+  DrainAnnotationQueue();
+
+  if(pResource == NULL)
+    return;
+
+  m_EmptyCommandList = false;
+
+  {
+    ID3D11Resource *real = NULL;
+
+    if(WrappedID3D11Buffer::IsAlloc(pResource))
+      real = UNWRAP(WrappedID3D11Buffer, pResource);
+    else if(WrappedID3D11Texture1D::IsAlloc(pResource))
+      real = UNWRAP(WrappedID3D11Texture1D, pResource);
+    else if(WrappedID3D11Texture2D::IsAlloc(pResource))
+      real = UNWRAP(WrappedID3D11Texture2D, pResource);
+    else if(WrappedID3D11Texture3D::IsAlloc(pResource))
+      real = UNWRAP(WrappedID3D11Texture3D, pResource);
+
+    RDCASSERT(real);
+
+    m_pRealContext1->DiscardResource(real);
+  }
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DISCARD_RESOURCE);
+    m_pSerialiser->Serialise("context", m_ResourceID);
+    Serialise_DiscardResource(pResource);
+
+    m_MissingTracks.insert(GetIDForResource(pResource));
+    MarkResourceReferenced(GetIDForResource(pResource), eFrameRef_Write);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+  else if(m_State >= WRITING)
+  {
+    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pResource));
+  }
+}
+
+bool WrappedID3D11DeviceContext::Serialise_DiscardView(ID3D11View *pResourceView)
+{
+  SERIALISE_ELEMENT(ResourceId, View, GetIDForResource(pResourceView));
+
+  if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
+  {
+    // don't replay the discard, as it effectively does nothing meaningful but hint
+    // to the driver that the contents can be discarded.
+    // Instead we should overwrite the contents with something (during capture too)
+    // to indicate that the discard has happened visually like a clear.
+    // This also means we don't have to require/diverge if a 11.1 context is not
+    // available on replay.
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(DISCARD_VIEW, desc);
+
+    FetchDrawcall draw;
+
+    draw.name = "DiscardView()";
+
+    draw.flags |= eDraw_Clear;
+
+    AddDrawcall(draw, true);
+
+    if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+    {
+      ID3D11DeviceChild *pLiveView = m_pDevice->GetResourceManager()->GetLiveResource(View);
+
+      if(WrappedID3D11RenderTargetView::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11RenderTargetView *)pLiveView)->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else if(WrappedID3D11DepthStencilView::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11DepthStencilView *)pLiveView)->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else if(WrappedID3D11ShaderResourceView::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11ShaderResourceView *)pLiveView)->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else if(WrappedID3D11UnorderedAccessView::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pLiveView)->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+    }
+  }
+
+  return true;
 }
 
 void WrappedID3D11DeviceContext::DiscardView(ID3D11View *pResourceView)
@@ -1503,8 +1616,172 @@ void WrappedID3D11DeviceContext::DiscardView(ID3D11View *pResourceView)
   if(m_pRealContext1 == NULL)
     return;
 
-  // no need to serialise
-  m_pRealContext1->DiscardView(pResourceView);
+  DrainAnnotationQueue();
+
+  if(pResourceView == NULL)
+    return;
+
+  m_EmptyCommandList = false;
+
+  {
+    ID3D11View *real = NULL;
+
+    if(WrappedID3D11RenderTargetView::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11RenderTargetView, pResourceView);
+    else if(WrappedID3D11DepthStencilView::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11DepthStencilView, pResourceView);
+    else if(WrappedID3D11ShaderResourceView::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11ShaderResourceView, pResourceView);
+    else if(WrappedID3D11UnorderedAccessView::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11UnorderedAccessView, pResourceView);
+
+    RDCASSERT(real);
+
+    // no need to serialise
+    m_pRealContext1->DiscardView(real);
+  }
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DISCARD_VIEW);
+    m_pSerialiser->Serialise("context", m_ResourceID);
+    Serialise_DiscardView(pResourceView);
+
+    ID3D11Resource *viewRes = NULL;
+    pResourceView->GetResource(&viewRes);
+
+    m_MissingTracks.insert(GetIDForResource(viewRes));
+    MarkResourceReferenced(GetIDForResource(viewRes), eFrameRef_Write);
+
+    SAFE_RELEASE(viewRes);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+  else if(m_State >= WRITING)
+  {
+    ID3D11Resource *viewRes = NULL;
+    pResourceView->GetResource(&viewRes);
+
+    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(viewRes));
+
+    SAFE_RELEASE(viewRes);
+  }
+}
+
+bool WrappedID3D11DeviceContext::Serialise_DiscardView1(ID3D11View *pResourceView,
+                                                        const D3D11_RECT *pRect, UINT NumRects)
+{
+  SERIALISE_ELEMENT(ResourceId, View, GetIDForResource(pResourceView));
+  SERIALISE_ELEMENT(uint32_t, numRects, NumRects);
+  SERIALISE_ELEMENT_ARR(D3D11_RECT, rects, pRect, NumRects);
+
+  if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
+  {
+    // don't replay the discard, as it effectively does nothing meaningful but hint
+    // to the driver that the contents can be discarded.
+    // Instead we should overwrite the contents with something (during capture too)
+    // to indicate that the discard has happened visually like a clear.
+    // This also means we don't have to require/diverge if a 11.1 context is not
+    // available on replay.
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(DISCARD_VIEW1, desc);
+    string name = "DiscardView1(" + ToStr::Get(numRects) + " rects)";
+
+    FetchDrawcall draw;
+
+    draw.name = name;
+
+    draw.flags |= eDraw_Clear;
+
+    AddDrawcall(draw, true);
+
+    if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+    {
+      ID3D11DeviceChild *pLiveView = m_pDevice->GetResourceManager()->GetLiveResource(View);
+
+      if(WrappedID3D11RenderTargetView::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11RenderTargetView *)pLiveView)->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else if(WrappedID3D11DepthStencilView::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11DepthStencilView *)pLiveView)->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else if(WrappedID3D11ShaderResourceView::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11ShaderResourceView *)pLiveView)->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else if(WrappedID3D11UnorderedAccessView::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pLiveView)->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+    }
+  }
+
+  SAFE_DELETE_ARRAY(rects);
+
+  return true;
+}
+
+void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D3D11_RECT *pRects,
+                                              UINT NumRects)
+{
+  if(m_pRealContext1 == NULL)
+    return;
+
+  DrainAnnotationQueue();
+
+  if(pResourceView == NULL)
+    return;
+
+  m_EmptyCommandList = false;
+
+  {
+    ID3D11View *real = NULL;
+
+    if(WrappedID3D11RenderTargetView::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11RenderTargetView, pResourceView);
+    else if(WrappedID3D11DepthStencilView::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11DepthStencilView, pResourceView);
+    else if(WrappedID3D11ShaderResourceView::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11ShaderResourceView, pResourceView);
+    else if(WrappedID3D11UnorderedAccessView::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11UnorderedAccessView, pResourceView);
+
+    RDCASSERT(real);
+
+    // no need to serialise
+    m_pRealContext1->DiscardView1(real, pRects, NumRects);
+  }
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DISCARD_VIEW1);
+    m_pSerialiser->Serialise("context", m_ResourceID);
+    Serialise_DiscardView1(pResourceView, pRects, NumRects);
+
+    ID3D11Resource *viewRes = NULL;
+    pResourceView->GetResource(&viewRes);
+
+    m_MissingTracks.insert(GetIDForResource(viewRes));
+    MarkResourceReferenced(GetIDForResource(viewRes), eFrameRef_Write);
+
+    SAFE_RELEASE(viewRes);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+  else if(m_State >= WRITING)
+  {
+    ID3D11Resource *viewRes = NULL;
+    pResourceView->GetResource(&viewRes);
+
+    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(viewRes));
+
+    SAFE_RELEASE(viewRes);
+  }
 }
 
 void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *pState,
@@ -1514,12 +1791,4 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
     return;
   RDCUNIMPLEMENTED("Not wrapping SwapDeviceContextState");
   m_pRealContext1->SwapDeviceContextState(pState, ppPreviousState);
-}
-
-void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D3D11_RECT *pRects,
-                                              UINT NumRects)
-{
-  if(m_pRealContext1 == NULL)
-    return;
-  m_pRealContext1->DiscardView1(pResourceView, pRects, NumRects);
 }
