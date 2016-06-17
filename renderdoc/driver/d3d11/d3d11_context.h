@@ -188,6 +188,8 @@ private:
 
   ID3D11DeviceContext2 *m_pRealContext2;
 
+  bool m_NeedUpdateSubWorkaround;
+
   set<D3D11ResourceRecord *> m_DeferredRecords;
   map<ResourceId, int> m_MapResourceRecordAllocs;
 

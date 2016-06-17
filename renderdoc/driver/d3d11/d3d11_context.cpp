@@ -111,6 +111,15 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   const bool debugSerialiser = true;
 #endif
 
+  m_NeedUpdateSubWorkaround = false;
+  {
+    D3D11_FEATURE_DATA_THREADING caps = {FALSE, FALSE};
+
+    hr = m_pDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &caps, sizeof(caps));
+    if(SUCCEEDED(hr) && !caps.DriverCommandLists)
+      m_NeedUpdateSubWorkaround = true;
+  }
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_State = READING;

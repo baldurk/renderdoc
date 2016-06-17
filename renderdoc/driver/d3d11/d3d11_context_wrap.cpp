@@ -5628,8 +5628,10 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource(ID3D11Resource *pDs
                                                              const void *pSrcData, UINT SrcRowPitch,
                                                              UINT SrcDepthPitch)
 {
+  // pass ~0U as the flags to indicate this came for UpdateSubresource, so we know to apply
+  // deferred context workarounds or not
   return Serialise_UpdateSubresource1(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch,
-                                      SrcDepthPitch, 0);
+                                      SrcDepthPitch, ~0U);
 }
 
 void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource, UINT DstSubresource,
@@ -5639,6 +5641,57 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
   DrainAnnotationQueue();
 
   m_EmptyCommandList = false;
+
+  const void *pOrigSrcData = pSrcData;
+
+  if(pDstBox && m_NeedUpdateSubWorkaround && GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
+  {
+    // we need to apply the *inverse* of the workaround, which matches the broken D3D behaviour
+    // so that we end up pointing at the expected data.
+
+    D3D11_BOX alignedBox = *pDstBox;
+
+    DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
+
+    if(WrappedID3D11Texture1D::IsAlloc(pDstResource))
+    {
+      D3D11_TEXTURE1D_DESC desc;
+      ((WrappedID3D11Texture1D *)pDstResource)->GetDesc(&desc);
+      fmt = desc.Format;
+    }
+    else if(WrappedID3D11Texture2D::IsAlloc(pDstResource))
+    {
+      D3D11_TEXTURE2D_DESC desc;
+      ((WrappedID3D11Texture2D *)pDstResource)->GetDesc(&desc);
+      fmt = desc.Format;
+    }
+    else if(WrappedID3D11Texture3D::IsAlloc(pDstResource))
+    {
+      D3D11_TEXTURE3D_DESC desc;
+      ((WrappedID3D11Texture3D *)pDstResource)->GetDesc(&desc);
+      fmt = desc.Format;
+    }
+    else
+    {
+      RDCASSERT(WrappedID3D11Buffer::IsAlloc(pDstResource));
+    }
+
+    // convert from pixels to blocks
+    if(IsBlockFormat(fmt))
+    {
+      alignedBox.left /= 4;
+      alignedBox.right /= 4;
+      alignedBox.top /= 4;
+      alignedBox.bottom /= 4;
+    }
+
+    // if we couldn't get a format it's a buffer, so work in bytes
+    if(fmt != DXGI_FORMAT_UNKNOWN)
+      pSrcData = ((const BYTE *)pSrcData) + (alignedBox.front * SrcDepthPitch) +
+                 (alignedBox.top * SrcRowPitch) + (alignedBox.left * GetByteSize(1, 1, 1, fmt, 0));
+    else
+      pSrcData = ((const BYTE *)pSrcData) + (alignedBox.left);
+  }
 
   if(m_State == WRITING_CAPFRAME)
   {
@@ -5842,8 +5895,11 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
     }
   }
 
+  // pass pOrigSrcData here because any workarounds etc need to be preserved as if we were never
+  // in the way intercepting things.
   m_pRealContext->UpdateSubresource(m_pDevice->GetResourceManager()->UnwrapResource(pDstResource),
-                                    DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch);
+                                    DstSubresource, pDstBox, pOrigSrcData, SrcRowPitch,
+                                    SrcDepthPitch);
 }
 
 bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(ID3D11Buffer *pDstBuffer,
