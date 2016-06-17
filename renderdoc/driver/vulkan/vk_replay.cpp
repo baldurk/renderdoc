@@ -194,8 +194,9 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
                                                          &capabilities);
 
   RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-  // AMD currently doesn't report this capability but I believe it's safe.
-  RDCASSERT(driver->IsAMD() || capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  // AMD didn't report this capability for a while. If the assert fires for you, update
+  // your drivers!
+  RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   RDCASSERT(capabilities.minImageCount <= 2 &&
             (2 <= capabilities.maxImageCount || capabilities.maxImageCount == 0));
