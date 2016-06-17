@@ -685,7 +685,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
 
         std::map<wstring, wstring> params;
 
-        google_breakpad::HTTPUpload::SendRequest(L"http://renderdoc.org/bugsubmit", params,
+        google_breakpad::HTTPUpload::SendRequest(L"https://renderdoc.org/bugsubmit", params,
                                                  dumpFolder + L"\\report.zip", L"report", &timeout,
                                                  &body, &code);
 
