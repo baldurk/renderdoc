@@ -6,10 +6,10 @@ if [ $# -ne 1 ] || [ $1 != "autobuild" ]; then
 	AUTOBUILD=0
 	echo "=== Building standalone folders. Hit enter when each prompt is satisfied"
 
-	echo "Have you rebuilt the documentation? (docs/renderdoc.shfbproj)"
+	echo "Have you rebuilt the documentation? (cd docs/ && ./make.sh htmlhelp)"
 	read;
 
-	echo "Have you built the python libraries? (renderdocui/3rdparty/ironpython/compilelibs.sh)"
+	echo "Have you built the python libraries? (cd renderdocui/3rdparty/ironpython/ && ./compilelibs.sh /path/to/IronPython)"
 	read;
 
 	echo "Have you marked the git commit hash in version info? (hash_version.sh)"
