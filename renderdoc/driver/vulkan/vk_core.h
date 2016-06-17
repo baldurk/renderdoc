@@ -494,6 +494,8 @@ private:
   void FinishCapture();
   void EndCaptureFrame(VkImage presentImage);
 
+  void FirstFrame(VkSwapchainKHR swap);
+
   string MakeRenderPassOpString(bool store);
 
   void StartFrameCapture(void *dev, void *wnd);

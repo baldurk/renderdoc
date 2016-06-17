@@ -852,6 +852,19 @@ void WrappedVulkan::AttemptCapture()
   }
 }
 
+void WrappedVulkan::FirstFrame(VkSwapchainKHR swap)
+{
+  SwapchainInfo *swapdesc = GetRecord(swap)->swapInfo;
+
+  // if we have to capture the first frame, begin capturing immediately
+  if(m_State == WRITING_IDLE && RenderDoc::Inst().ShouldTriggerCapture(0))
+  {
+    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), swapdesc ? swapdesc->wndHandle : NULL);
+
+    m_AppControlledCapture = false;
+  }
+}
+
 bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 {
   if(m_State < WRITING && !applyInitialState)
