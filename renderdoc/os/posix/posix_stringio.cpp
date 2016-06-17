@@ -314,14 +314,3 @@ string Fmt(const char *format, ...)
   return ret;
 }
 };
-
-namespace OSUtility
-{
-void WriteOutput(int channel, const char *str)
-{
-  if(channel == OSUtility::Output_StdOut)
-    fprintf(stdout, "%s", str);
-  else if(channel == OSUtility::Output_StdErr)
-    fprintf(stderr, "%s", str);
-}
-};

@@ -218,3 +218,14 @@ string Wide2UTF8(const std::wstring &s)
   return string(&charBuffer[0]);
 }
 };
+
+namespace OSUtility
+{
+void WriteOutput(int channel, const char *str)
+{
+  if(channel == OSUtility::Output_StdOut)
+    fprintf(stdout, "%s", str);
+  else if(channel == OSUtility::Output_StdErr)
+    fprintf(stderr, "%s", str);
+}
+};

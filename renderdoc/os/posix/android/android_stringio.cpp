@@ -22,7 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <android/log.h>
 #include "os/os_specific.h"
+
+#define LOGCAT_TAG "renderdoc"
 
 typedef int Display;
 
@@ -77,5 +80,18 @@ string Wide2UTF8(const std::wstring &s)
 {
   RDCFATAL("Converting wide strings to UTF-8 is not supported on Android!");
   return "";
+}
+};
+
+namespace OSUtility
+{
+void WriteOutput(int channel, const char *str)
+{
+  if(channel == OSUtility::Output_StdOut)
+    fprintf(stdout, "%s", str);
+  else if(channel == OSUtility::Output_StdErr)
+    fprintf(stderr, "%s", str);
+  else if(channel == OSUtility::Output_DebugMon)
+    __android_log_print(ANDROID_LOG_INFO, LOGCAT_TAG, "%s", str);
 }
 };
