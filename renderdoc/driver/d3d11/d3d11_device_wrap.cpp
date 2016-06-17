@@ -2737,13 +2737,14 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
   if(m_State < WRITING || ppResource == NULL)
     return E_INVALIDARG;
 
+  bool isDXGIRes = (ReturnedInterface == __uuidof(IDXGIResource) ? true : false);
   bool isRes = (ReturnedInterface == __uuidof(ID3D11Resource) ? true : false);
   bool isBuf = (ReturnedInterface == __uuidof(ID3D11Buffer) ? true : false);
   bool isTex1D = (ReturnedInterface == __uuidof(ID3D11Texture1D) ? true : false);
   bool isTex2D = (ReturnedInterface == __uuidof(ID3D11Texture2D) ? true : false);
   bool isTex3D = (ReturnedInterface == __uuidof(ID3D11Texture3D) ? true : false);
 
-  if(isRes || isBuf || isTex1D || isTex2D || isTex3D)
+  if(isDXGIRes || isRes || isBuf || isTex1D || isTex2D || isTex3D)
   {
     void *res = NULL;
     HRESULT hr = m_pDevice->OpenSharedResource(hResource, ReturnedInterface, &res);
@@ -2756,6 +2757,30 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
     }
     else
     {
+      if(isDXGIRes)
+      {
+        IDXGIResource *dxgiRes = (IDXGIResource *)res;
+
+        ID3D11Resource *d3d11Res = NULL;
+        hr = dxgiRes->QueryInterface(__uuidof(ID3D11Resource), (void **)&d3d11Res);
+
+        // if we can't get a d3d11Res then we can't properly wrap this resource,
+        // whatever it is.
+        if(FAILED(hr) || d3d11Res == NULL)
+        {
+          SAFE_RELEASE(d3d11Res);
+          SAFE_RELEASE(dxgiRes);
+          return E_NOINTERFACE;
+        }
+
+        // release this interface
+        SAFE_RELEASE(dxgiRes);
+
+        // and use this one, so it'll be casted back below
+        res = (void *)d3d11Res;
+        isRes = true;
+      }
+
       SCOPED_LOCK(m_D3DLock);
 
       ResourceId wrappedID;
