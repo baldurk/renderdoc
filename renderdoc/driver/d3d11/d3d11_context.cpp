@@ -291,7 +291,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(bool applyInitialSt
       if(hr != S_OK)
       {
         numPrims.NumPrimitivesWritten = 0;
-        RDCERR("Couldn't retrieve hidden buffer counter for streamout on buffer %llx", id);
+        RDCERR("Couldn't retrieve hidden buffer counter for streamout on buffer %llu", id);
       }
 
       SERIALISE_ELEMENT(uint64_t, hiddenCounter, (uint64_t)numPrims.NumPrimitivesWritten);

@@ -1267,7 +1267,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
     {
       if(x >= m_Textures[t].width || y >= m_Textures[t].height)
       {
-        RDCDEBUG("PixelHistory out of bounds on %llx (%u,%u) vs (%u,%u)", target, x, y,
+        RDCDEBUG("PixelHistory out of bounds on %llu (%u,%u) vs (%u,%u)", target, x, y,
                  m_Textures[t].width, m_Textures[t].height);
         history->count = 0;
         history->elems = NULL;
@@ -1340,7 +1340,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
 
   if(events.empty())
   {
-    RDCDEBUG("Target %llx not written to before %u", target, m_EventID);
+    RDCDEBUG("Target %llu not written to before %u", target, m_EventID);
     history->count = 0;
     history->elems = NULL;
     return false;

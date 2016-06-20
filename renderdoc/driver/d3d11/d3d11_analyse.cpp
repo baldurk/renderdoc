@@ -4182,7 +4182,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
   float xf = (float)x;
   float yf = (float)y;
 
-  RDCDEBUG("Checking Pixel History on %llx (%u, %u) with %u possible events", target, x, y,
+  RDCDEBUG("Checking Pixel History on %llu (%u, %u) with %u possible events", target, x, y,
            (uint32_t)events.size());
 
   // these occlusion queries are run with every test possible disabled
