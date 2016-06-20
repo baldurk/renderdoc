@@ -4189,7 +4189,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     case OPCODE_DEFAULT:
     case OPCODE_LOOP:
     case OPCODE_ENDSWITCH:
-      // do nothing. Basically just an anonymous label that is used elsewhere (SWITCH/ENDLOOP/BREAK)
+    case OPCODE_ENDIF:
+      // do nothing. Basically just an anonymous label that is used elsewhere
+      // (IF/ELSE/SWITCH/ENDLOOP/BREAK)
       break;
     case OPCODE_CONTINUE:
     case OPCODE_CONTINUEC:
@@ -4322,11 +4324,12 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       RDCASSERT(s.dxbc->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF);
 
+      // step to next instruction after the else/endif (for consistency with handling in the if
+      // block)
+      s.nextInstruction++;
+
       break;
     }
-    case OPCODE_ENDIF:
-      // do nothing. Basically just an anonymous label that is used in the IF/ELSE code.
-      break;
     case OPCODE_DISCARD:
     {
       int32_t test = GetSrc(op.operands[0], op).value.i.x;

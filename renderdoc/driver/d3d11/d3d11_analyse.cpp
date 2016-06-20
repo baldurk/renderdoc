@@ -1994,18 +1994,105 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
   State *curquad = quad;
   State *newquad = quad2;
 
+  // marks any threads stalled waiting for others to catch up
+  bool activeMask[4] = {true, true, true, true};
+
   // simulate lockstep until all threads are finished
   bool finished = true;
   do
   {
     for(size_t i = 0; i < 4; i++)
-      newquad[i] = curquad[i].GetNext(global, curquad);
+    {
+      if(activeMask[i])
+        newquad[i] = curquad[i].GetNext(global, curquad);
+      else
+        newquad[i] = curquad[i];
+    }
 
     State *a = curquad;
     curquad = newquad;
     newquad = a;
 
-    states.push_back((State)curquad[destIdx]);
+    // if our destination quad is paused don't record multiple identical states.
+    if(activeMask[destIdx])
+      states.push_back((State)curquad[destIdx]);
+
+    // we need to make sure that control flow which converges stays in lockstep so that
+    // derivatives are still valid. While diverged, we don't have to keep threads in lockstep
+    // since using derivatives is invalid.
+
+    // Threads diverge either in ifs, loops, or switches. Due to the nature of the bytecode,
+    // all threads *must* pass through the same exit instruction for each, there's no jumping
+    // around with gotos. Note also for the same reason, the only time threads are on earlier
+    // instructions is if they are still catching up to a thread that has exited the control
+    // flow.
+
+    // So the scheme is as follows:
+    // * If all threads have the same nextInstruction, just continue we are still in lockstep.
+    // * If threads are out of lockstep, find any thread which has nextInstruction pointing
+    //   immediately *after* an ENDIF, ENDLOOP or ENDSWITCH. Pointing directly at one is not
+    //   an indication the thread is done, as the next step for an ENDLOOP will jump back to
+    //   the matching LOOP and continue iterating.
+    // * Pause any thread matching the above until all threads are pointing to the same
+    //   instruction. By the assumption above, all threads will eventually pass through this
+    //   terminating instruction so we just pause any other threads and don't do anything
+    //   until the control flow has converged and we can continue stepping in lockstep.
+
+    // mark all threads as active again.
+    // if we've converged, or we were never diverged, this keeps everything ticking
+    activeMask[0] = activeMask[1] = activeMask[2] = activeMask[3] = true;
+
+    if(curquad[0].nextInstruction != curquad[1].nextInstruction ||
+       curquad[0].nextInstruction != curquad[2].nextInstruction ||
+       curquad[0].nextInstruction != curquad[3].nextInstruction)
+    {
+      // this isn't *perfect* but it will still eventually continue. We look for the most
+      // advanced thread, and check to see if it's just finished a control flow. If it has
+      // then we assume it's at the convergence point and wait for every other thread to
+      // catch up, pausing any threads that reach the convergence point before others.
+
+      // Note this might mean we don't have any threads paused even within divergent flow.
+      // This is fine and all we care about is pausing to make sure threads don't run ahead
+      // into code that should be lockstep. We don't care at all about what they do within
+      // the code that is divergent.
+
+      // The reason this isn't perfect is that the most advanced thread could be on an
+      // inner loop or inner if, not the convergence point, and we could be pausing it
+      // fruitlessly. Worse still - it could be on a branch none of the other threads will
+      // take so they will never reach that exact instruction.
+      // But we know that all threads will eventually go through the convergence point, so
+      // even in that worst case if we didn't pick the right waiting point, another thread
+      // will overtake and become the new most advanced thread and the previous waiting
+      // thread will resume. So in this case we caused a thread to wait more than it should
+      // have but that's not a big deal as it's within divergent flow so they don't have to
+      // stay in lockstep. Also if all threads will eventually pass that point we picked,
+      // we just waited to converge even in technically divergent code which is also
+      // harmless.
+
+      // Phew!
+
+      uint32_t convergencePoint = 0;
+
+      // find which thread is most advanced
+      for(size_t i = 0; i < 4; i++)
+        if(curquad[i].nextInstruction > convergencePoint)
+          convergencePoint = curquad[i].nextInstruction;
+
+      if(convergencePoint > 0)
+      {
+        OpcodeType op = dxbc->GetInstruction(convergencePoint - 1).operation;
+
+        // if the most advnaced thread hasn't just finished control flow, then all
+        // threads are still running, so don't converge
+        if(op != OPCODE_ENDIF && op != OPCODE_ENDLOOP && op != OPCODE_ENDSWITCH)
+          convergencePoint = 0;
+      }
+
+      // pause any threads at that instruction (could be none)
+      for(size_t i = 0; i < 4; i++)
+        if(curquad[i].nextInstruction == convergencePoint)
+          activeMask[i] = false;
+    }
 
     finished = curquad[destIdx].Finished();
   } while(!finished);
