@@ -2659,6 +2659,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
 WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
 {
+  const uint32_t maxSize = 1024;
+
   byte *thpixels = NULL;
   uint32_t thwidth = 0;
   uint32_t thheight = 0;
@@ -2696,8 +2698,11 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
 
     m_Real.glReadPixels(0, 0, thwidth, thheight, eGL_RGB, eGL_UNSIGNED_BYTE, thpixels);
 
+    // flip the image in-place
     for(uint32_t y = 0; y <= thheight / 2; y++)
     {
+      uint32_t flipY = (thheight - 1 - y);
+
       for(uint32_t x = 0; x < thwidth; x++)
       {
         byte save[3];
@@ -2705,16 +2710,13 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
         save[1] = thpixels[y * (thwidth * 3) + x * 3 + 1];
         save[2] = thpixels[y * (thwidth * 3) + x * 3 + 2];
 
-        thpixels[y * (thwidth * 3) + x * 3 + 0] =
-            thpixels[(thheight - 1 - y) * (thwidth * 3) + x * 3 + 0];
-        thpixels[y * (thwidth * 3) + x * 3 + 1] =
-            thpixels[(thheight - 1 - y) * (thwidth * 3) + x * 3 + 1];
-        thpixels[y * (thwidth * 3) + x * 3 + 2] =
-            thpixels[(thheight - 1 - y) * (thwidth * 3) + x * 3 + 2];
+        thpixels[y * (thwidth * 3) + x * 3 + 0] = thpixels[flipY * (thwidth * 3) + x * 3 + 0];
+        thpixels[y * (thwidth * 3) + x * 3 + 1] = thpixels[flipY * (thwidth * 3) + x * 3 + 1];
+        thpixels[y * (thwidth * 3) + x * 3 + 2] = thpixels[flipY * (thwidth * 3) + x * 3 + 2];
 
-        thpixels[(thheight - 1 - y) * (thwidth * 3) + x * 3 + 0] = save[0];
-        thpixels[(thheight - 1 - y) * (thwidth * 3) + x * 3 + 1] = save[1];
-        thpixels[(thheight - 1 - y) * (thwidth * 3) + x * 3 + 2] = save[2];
+        thpixels[flipY * (thwidth * 3) + x * 3 + 0] = save[0];
+        thpixels[flipY * (thwidth * 3) + x * 3 + 1] = save[1];
+        thpixels[flipY * (thwidth * 3) + x * 3 + 2] = save[2];
       }
     }
 
@@ -2725,6 +2727,41 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, prevPackSkipRows);
     m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, prevPackSkipPixels);
     m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
+
+    // scale down if necessary using simple point sampling
+    if(thwidth > maxSize)
+    {
+      float widthf = float(thwidth);
+      float heightf = float(thheight);
+
+      float aspect = widthf / heightf;
+
+      // clamp dimensions to a width of maxSize
+      thwidth = maxSize;
+      thheight = uint32_t(float(thwidth) / aspect);
+
+      byte *src = thpixels;
+      byte *dst = thpixels = new byte[3 * thwidth * thheight];
+
+      for(uint32_t y = 0; y < thheight; y++)
+      {
+        for(uint32_t x = 0; x < thwidth; x++)
+        {
+          float xf = float(x) / float(thwidth);
+          float yf = float(y) / float(thheight);
+
+          byte *pixelsrc =
+              &src[3 * uint32_t(xf * widthf) + m_InitParams.width * 3 * uint32_t(yf * heightf)];
+
+          memcpy(dst, pixelsrc, 3);
+
+          dst += 3;
+        }
+      }
+
+      // src is the raw unscaled pixels, which is no longer needed
+      SAFE_DELETE_ARRAY(src);
+    }
   }
 
   byte *jpgbuf = NULL;
