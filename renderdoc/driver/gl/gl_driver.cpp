@@ -3704,7 +3704,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
     GLChunkType chunktype = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
-    ContextProcessChunk(offset, chunktype, false);
+    ContextProcessChunk(offset, chunktype);
 
     RenderDoc::Inst().SetProgress(FrameEventsRead,
                                   float(offset - startOffset) / float(m_pSerialiser->GetSize()));
@@ -3743,18 +3743,9 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
   m_DoStateVerify = false;
 }
 
-void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool forceExecute)
+void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk)
 {
   m_CurChunkOffset = offset;
-
-  WrappedOpenGL *context = this;
-
-  LogState state = context->m_State;
-
-  if(forceExecute)
-    context->m_State = EXECUTING;
-  else
-    context->m_State = m_State;
 
   m_AddedDrawcall = false;
 
@@ -3762,31 +3753,28 @@ void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool
 
   m_pSerialiser->PopContext(chunk);
 
-  if(context->m_State == READING && chunk == SET_MARKER)
+  if(m_State == READING && chunk == SET_MARKER)
   {
     // no push/pop necessary
   }
-  else if(context->m_State == READING && chunk == BEGIN_EVENT)
+  else if(m_State == READING && chunk == BEGIN_EVENT)
   {
     // push down the drawcallstack to the latest drawcall
-    context->m_DrawcallStack.push_back(&context->m_DrawcallStack.back()->children.back());
+    m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
   }
-  else if(context->m_State == READING && chunk == END_EVENT)
+  else if(m_State == READING && chunk == END_EVENT)
   {
     // refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
-    if(context->m_DrawcallStack.size() > 1)
-      context->m_DrawcallStack.pop_back();
+    if(m_DrawcallStack.size() > 1)
+      m_DrawcallStack.pop_back();
   }
-  else if(context->m_State == READING)
+  else if(m_State == READING)
   {
     if(!m_AddedDrawcall)
-      context->AddEvent(chunk, m_pSerialiser->GetDebugStr());
+      AddEvent(chunk, m_pSerialiser->GetDebugStr());
   }
 
   m_AddedDrawcall = false;
-
-  if(forceExecute)
-    context->m_State = state;
 }
 
 void WrappedOpenGL::AddUsage(const FetchDrawcall &d)

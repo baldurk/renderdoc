@@ -1595,7 +1595,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
     m_LastCmdBufferID = ResourceId();
 
-    ContextProcessChunk(offset, context, false);
+    ContextProcessChunk(offset, context);
 
     RenderDoc::Inst().SetProgress(FileInitialRead, float(offset) / float(m_pSerialiser->GetSize()));
 
@@ -1724,14 +1724,9 @@ void WrappedVulkan::ApplyInitialContents()
 #endif
 }
 
-void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, bool forceExecute)
+void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk)
 {
   m_CurChunkOffset = offset;
-
-  LogState state = m_State;
-
-  if(forceExecute)
-    m_State = EXECUTING;
 
   m_AddedDrawcall = false;
 
@@ -1755,9 +1750,6 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
   }
 
   m_AddedDrawcall = false;
-
-  if(forceExecute)
-    m_State = state;
 }
 
 void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)

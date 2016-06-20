@@ -330,7 +330,7 @@ private:
   uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
   void ProcessChunk(uint64_t offset, GLChunkType context);
   void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
-  void ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool forceExecute);
+  void ContextProcessChunk(uint64_t offset, GLChunkType chunk);
   void AddUsage(const FetchDrawcall &d);
   void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
   void AddEvent(GLChunkType type, string description, ResourceId ctx = ResourceId());
