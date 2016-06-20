@@ -583,25 +583,6 @@ bool WrappedID3D11DeviceContext::IsFL11_1()
 
 void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType chunk, bool forceExecute)
 {
-  if(chunk < FIRST_CONTEXT_CHUNK && !forceExecute)
-  {
-    if(m_State == READING)
-    {
-      m_pDevice->GetResourceManager()->MarkInFrame(false);
-
-      m_pDevice->ProcessChunk(offset, chunk);
-      m_pSerialiser->PopContext(chunk);
-
-      m_pDevice->GetResourceManager()->MarkInFrame(true);
-    }
-    else if(m_State == EXECUTING)
-    {
-      m_pSerialiser->SkipCurrentChunk();
-      m_pSerialiser->PopContext(chunk);
-    }
-    return;
-  }
-
   m_CurChunkOffset = offset;
 
   RDCASSERT(GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE);

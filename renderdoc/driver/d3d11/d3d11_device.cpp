@@ -3312,7 +3312,10 @@ bool WrappedID3D11Device::Serialise_SetResourceName(ID3D11DeviceChild *res, cons
 
 void WrappedID3D11Device::SetResourceName(ID3D11DeviceChild *res, const char *name)
 {
-  if(m_State >= WRITING)
+  // don't allow naming device contexts or command lists so we know this chunk
+  // is always on a pre-capture chunk.
+  if(m_State >= WRITING && !WrappedID3D11DeviceContext::IsAlloc(res) &&
+     !WrappedID3D11CommandList::IsAlloc(res))
   {
     ResourceId idx = GetIDForResource(res);
     D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(idx);
