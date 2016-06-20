@@ -368,12 +368,7 @@ namespace renderdocui.Windows.Dialogs
 
         private void exeBrowser_FileOk(object sender, CancelEventArgs e)
         {
-            exePath.Text = exeBrowser.FileName;
-
-            UpdateWorkDirHint();
-
-            m_Core.Config.LastCapturePath = Path.GetDirectoryName(exeBrowser.FileName);
-            m_Core.Config.LastCaptureExe = Path.GetFileName(exeBrowser.FileName);
+            SetExecutableFilename(exeBrowser.FileName);
         }
 
         private void exePath_DragEnter(object sender, DragEventArgs e)
@@ -389,12 +384,7 @@ namespace renderdocui.Windows.Dialogs
             string fn = ValidData(e.Data);
             if (fn.Length > 0)
             {
-                exePath.Text = fn;
-
-                UpdateWorkDirHint();
-
-                m_Core.Config.LastCapturePath = Path.GetDirectoryName(exeBrowser.FileName);
-                m_Core.Config.LastCaptureExe = Path.GetFileName(exeBrowser.FileName);
+                SetExecutableFilename(fn);
             }
         }
 
@@ -568,6 +558,18 @@ namespace renderdocui.Windows.Dialogs
                 toggleGlobalHook.Enabled = false;
                 globalLabel.Text = "Global hooking requires an executable path, or filename";
             }
+        }
+
+        public void SetExecutableFilename(string filename)
+        {
+            filename = Path.GetFullPath(filename);
+
+            exePath.Text = filename;
+
+            UpdateWorkDirHint();
+
+            m_Core.Config.LastCapturePath = Path.GetDirectoryName(filename);
+            m_Core.Config.LastCaptureExe = Path.GetFileName(filename);
         }
 
         private string prevAppInit = "";

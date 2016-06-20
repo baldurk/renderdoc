@@ -836,12 +836,15 @@ namespace renderdocui.Windows
                 LoadLogAsync(fn, temporary);
         }
 
-        private void OpenCaptureConfigFile(String filename)
+        private void OpenCaptureConfigFile(String filename, bool exe)
         {
             if (m_Core.CaptureDialog == null)
                 m_Core.CaptureDialog = new Dialogs.CaptureDialog(m_Core, OnCaptureTrigger, OnInjectTrigger);
 
-            m_Core.CaptureDialog.LoadSettings(filename);
+            if(exe)
+                m_Core.CaptureDialog.SetExecutableFilename(filename);
+            else
+                m_Core.CaptureDialog.LoadSettings(filename);
             m_Core.CaptureDialog.Show(dockPanel);
 
             // workaround for Show() not doing this
@@ -862,7 +865,11 @@ namespace renderdocui.Windows
             }
             else if (Path.GetExtension(filename) == ".cap")
             {
-                OpenCaptureConfigFile(filename);
+                OpenCaptureConfigFile(filename, false);
+            }
+            else if (Path.GetExtension(filename) == ".exe")
+            {
+                OpenCaptureConfigFile(filename, true);
             }
             else
             {
@@ -1434,7 +1441,7 @@ namespace renderdocui.Windows
 
             if (File.Exists(filename))
             {
-                OpenCaptureConfigFile(filename);
+                OpenCaptureConfigFile(filename, false);
             }
             else
             {
