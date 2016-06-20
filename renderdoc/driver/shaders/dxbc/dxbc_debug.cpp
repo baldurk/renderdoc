@@ -3655,38 +3655,35 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       for(uint32_t i = 0; i < ddxCalc.columns; i++)
       {
-        if(_isnan(ddxCalc.value.fv[i]) || !_finite(ddxCalc.value.fv[i]))
+        if(ddxType == 0 && (_isnan(ddxCalc.value.fv[i]) || !_finite(ddxCalc.value.fv[i])))
         {
           RDCWARN("NaN or Inf in texlookup");
           ddxCalc.value.fv[i] = 0.0f;
 
-          device->AddDebugMessage(
-              eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
-              StringFormat::Fmt(
-                  "Shader debugging %d: %s\nNaN or Inf found in texture lookup - using 0.0 instead",
-                  s.nextInstruction - 1, op.str));
+          device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
+                                  StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
+                                                    "texture lookup ddx - using 0.0 instead",
+                                                    s.nextInstruction - 1, op.str.c_str()));
         }
-        if(_isnan(ddyCalc.value.fv[i]) || !_finite(ddyCalc.value.fv[i]))
+        if(ddyType == 0 && (_isnan(ddyCalc.value.fv[i]) || !_finite(ddyCalc.value.fv[i])))
         {
           RDCWARN("NaN or Inf in texlookup");
           ddyCalc.value.fv[i] = 0.0f;
 
-          device->AddDebugMessage(
-              eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
-              StringFormat::Fmt(
-                  "Shader debugging %d: %s\nNaN or Inf found in texture lookup - using 0.0 instead",
-                  s.nextInstruction - 1, op.str));
+          device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
+                                  StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
+                                                    "texture lookup ddy - using 0.0 instead",
+                                                    s.nextInstruction - 1, op.str.c_str()));
         }
-        if(_isnan(uv.value.fv[i]) || !_finite(uv.value.fv[i]))
+        if(texcoordType == 0 && (_isnan(uv.value.fv[i]) || !_finite(uv.value.fv[i])))
         {
           RDCWARN("NaN or Inf in texlookup");
           uv.value.fv[i] = 0.0f;
 
-          device->AddDebugMessage(
-              eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
-              StringFormat::Fmt(
-                  "Shader debugging %d: %s\nNaN or Inf found in texture lookup - using 0.0 instead",
-                  s.nextInstruction - 1, op.str));
+          device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
+                                  StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
+                                                    "texture lookup uv - using 0.0 instead",
+                                                    s.nextInstruction - 1, op.str.c_str()));
         }
       }
 
