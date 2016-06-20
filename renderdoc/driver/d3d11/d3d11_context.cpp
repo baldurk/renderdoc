@@ -1079,6 +1079,8 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
   {
     if(m_State == EXECUTING && m_CurEventID > endEventID)
     {
+      // set event ID correctly as we haven't actually replayed the next one.
+      m_CurEventID = endEventID;
       // we can just break out if we've done all the events desired.
       break;
     }
