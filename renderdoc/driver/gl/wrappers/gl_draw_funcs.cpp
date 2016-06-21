@@ -3305,13 +3305,22 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(GLuint buffer, GLenum in
     {
       default: RDCWARN("Unexpected format %x, defaulting to single component", Format);
       case eGL_RED:
-      case eGL_DEPTH_COMPONENT: s = 1; break;
+      case eGL_RED_INTEGER:
+      case eGL_GREEN_INTEGER:
+      case eGL_BLUE_INTEGER:
+      case eGL_DEPTH_COMPONENT:
+      case eGL_STENCIL_INDEX: s = 1; break;
       case eGL_RG:
+      case eGL_RG_INTEGER:
       case eGL_DEPTH_STENCIL: s = 2; break;
       case eGL_RGB:
-      case eGL_BGR: s = 3; break;
+      case eGL_BGR:
+      case eGL_RGB_INTEGER:
+      case eGL_BGR_INTEGER: s = 3; break;
       case eGL_RGBA:
-      case eGL_BGRA: s = 4; break;
+      case eGL_BGRA:
+      case eGL_RGBA_INTEGER:
+      case eGL_BGRA_INTEGER: s = 4; break;
     }
     switch(Type)
     {
@@ -3406,13 +3415,22 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(GLuint buffer, GLenum
     {
       default: RDCWARN("Unexpected format %x, defaulting to single component", Format);
       case eGL_RED:
-      case eGL_DEPTH_COMPONENT: s = 1; break;
+      case eGL_RED_INTEGER:
+      case eGL_GREEN_INTEGER:
+      case eGL_BLUE_INTEGER:
+      case eGL_DEPTH_COMPONENT:
+      case eGL_STENCIL_INDEX: s = 1; break;
       case eGL_RG:
+      case eGL_RG_INTEGER:
       case eGL_DEPTH_STENCIL: s = 2; break;
       case eGL_RGB:
-      case eGL_BGR: s = 3; break;
+      case eGL_BGR:
+      case eGL_RGB_INTEGER:
+      case eGL_BGR_INTEGER: s = 3; break;
       case eGL_RGBA:
-      case eGL_BGRA: s = 4; break;
+      case eGL_BGRA:
+      case eGL_RGBA_INTEGER:
+      case eGL_BGRA_INTEGER: s = 4; break;
     }
     switch(Type)
     {
@@ -3661,13 +3679,22 @@ bool WrappedOpenGL::Serialise_glClearTexImage(GLuint texture, GLint level, GLenu
     {
       default: RDCWARN("Unexpected format %x, defaulting to single component", Format);
       case eGL_RED:
-      case eGL_DEPTH_COMPONENT: s = 1; break;
+      case eGL_RED_INTEGER:
+      case eGL_GREEN_INTEGER:
+      case eGL_BLUE_INTEGER:
+      case eGL_DEPTH_COMPONENT:
+      case eGL_STENCIL_INDEX: s = 1; break;
       case eGL_RG:
+      case eGL_RG_INTEGER:
       case eGL_DEPTH_STENCIL: s = 2; break;
       case eGL_RGB:
-      case eGL_BGR: s = 3; break;
+      case eGL_BGR:
+      case eGL_RGB_INTEGER:
+      case eGL_BGR_INTEGER: s = 3; break;
       case eGL_RGBA:
-      case eGL_BGRA: s = 4; break;
+      case eGL_BGRA:
+      case eGL_RGBA_INTEGER:
+      case eGL_BGRA_INTEGER: s = 4; break;
     }
     switch(Type)
     {
@@ -3752,13 +3779,22 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(GLuint texture, GLint level, GL
     {
       default: RDCWARN("Unexpected format %x, defaulting to single component", Format);
       case eGL_RED:
-      case eGL_DEPTH_COMPONENT: s = 1; break;
+      case eGL_RED_INTEGER:
+      case eGL_GREEN_INTEGER:
+      case eGL_BLUE_INTEGER:
+      case eGL_DEPTH_COMPONENT:
+      case eGL_STENCIL_INDEX: s = 1; break;
       case eGL_RG:
+      case eGL_RG_INTEGER:
       case eGL_DEPTH_STENCIL: s = 2; break;
       case eGL_RGB:
-      case eGL_BGR: s = 3; break;
+      case eGL_BGR:
+      case eGL_RGB_INTEGER:
+      case eGL_BGR_INTEGER: s = 3; break;
       case eGL_RGBA:
-      case eGL_BGRA: s = 4; break;
+      case eGL_BGRA:
+      case eGL_RGBA_INTEGER:
+      case eGL_BGRA_INTEGER: s = 4; break;
     }
     switch(Type)
     {
