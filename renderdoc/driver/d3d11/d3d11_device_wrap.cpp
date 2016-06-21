@@ -2487,6 +2487,9 @@ HRESULT WrappedID3D11Device::CreateDeferredContext(UINT ContextFlags,
 
     wrapped = w;
 
+    if(m_State == WRITING_CAPFRAME)
+      w->AttemptCapture();
+
     if(m_State >= WRITING)
     {
       AddDeferredContext(w);
