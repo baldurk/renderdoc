@@ -1020,6 +1020,8 @@ bool WrappedVulkan::Serialise_vkCreateImage(Serialiser *localSerialiser, VkDevic
       range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
       if(IsDepthOnlyFormat(info.format))
         range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+      else if(IsStencilOnlyFormat(fmt))
+        range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
       else if(IsDepthStencilFormat(info.format))
         range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 
@@ -1150,6 +1152,8 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     if(IsDepthOnlyFormat(pCreateInfo->format))
       range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    else if(IsStencilOnlyFormat(fmt))
+      range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     else if(IsDepthStencilFormat(pCreateInfo->format))
       range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 
