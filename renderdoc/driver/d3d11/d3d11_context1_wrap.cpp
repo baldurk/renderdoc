@@ -43,7 +43,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
   if(record && record->NumSubResources > (int)DestSubresource)
     record = (D3D11ResourceRecord *)record->SubResources[DestSubresource];
 
-  SERIALISE_ELEMENT(uint8_t, isUpdate, record->DataInSerialiser);
+  SERIALISE_ELEMENT(uint8_t, isUpdate, record->DataInSerialiser || m_State == WRITING_CAPFRAME);
 
   ID3D11Resource *DestResource = pDstResource;
   if(m_State < WRITING)
