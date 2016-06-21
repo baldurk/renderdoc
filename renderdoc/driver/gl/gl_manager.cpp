@@ -986,8 +986,11 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         gl.glPixelStorei(eGL_PACK_SKIP_IMAGES, 0);
         gl.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
 
-        int imgmips =
-            GetNumMips(gl, details.curType, tex, details.width, details.height, details.depth);
+        int imgmips = 1;
+
+        if(details.curType != eGL_TEXTURE_BUFFER)
+          imgmips =
+              GetNumMips(gl, details.curType, tex, details.width, details.height, details.depth);
 
         TextureStateInitialData *state = (TextureStateInitialData *)GetInitialContents(Id).blob;
 
