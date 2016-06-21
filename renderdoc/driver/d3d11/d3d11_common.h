@@ -146,9 +146,13 @@ void Serialiser::Serialise(const char *name, D3D11_SHADER_RESOURCE_VIEW_DESC &el
 template <>
 void Serialiser::Serialise(const char *name, D3D11_RENDER_TARGET_VIEW_DESC &el);
 template <>
+void Serialiser::Serialise(const char *name, D3D11_RENDER_TARGET_VIEW_DESC1 &el);
+template <>
 void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_VIEW_DESC &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC1 &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC &el);
 template <>

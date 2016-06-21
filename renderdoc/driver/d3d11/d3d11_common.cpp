@@ -1158,6 +1158,53 @@ void Serialiser::Serialise(const char *name, D3D11_RENDER_TARGET_VIEW_DESC &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D11_RENDER_TARGET_VIEW_DESC1 &el)
+{
+  ScopedContext scope(this, name, "D3D11_RENDER_TARGET_VIEW_DESC1", 0, true);
+  Serialise("Format", el.Format);
+  Serialise("ViewDimension", el.ViewDimension);
+
+  switch(el.ViewDimension)
+  {
+    case D3D11_RTV_DIMENSION_BUFFER:
+      Serialise("Buffer.FirstElement", el.Buffer.FirstElement);
+      Serialise("Buffer.NumElements", el.Buffer.NumElements);
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE1D:
+      Serialise("Texture1D.MipSlice", el.Texture1D.MipSlice);
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE1DARRAY:
+      Serialise("Texture1DArray.MipSlice", el.Texture1DArray.MipSlice);
+      Serialise("Texture1DArray.ArraySize", el.Texture1DArray.ArraySize);
+      Serialise("Texture1DArray.FirstArraySlice", el.Texture1DArray.FirstArraySlice);
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE2D:
+      Serialise("Texture2D.MipSlice", el.Texture2D.MipSlice);
+      Serialise("Texture2D.PlaneSlice", el.Texture2D.PlaneSlice);
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE2DARRAY:
+      Serialise("Texture2DArray.MipSlice", el.Texture2DArray.MipSlice);
+      Serialise("Texture2DArray.ArraySize", el.Texture2DArray.ArraySize);
+      Serialise("Texture2DArray.FirstArraySlice", el.Texture2DArray.FirstArraySlice);
+      Serialise("Texture2DArray.PlaneSlice", el.Texture2DArray.PlaneSlice);
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE2DMS:
+      // el.Texture2DMS.UnusedField_NothingToDefine
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY:
+      Serialise("Texture2DMSArray.ArraySize", el.Texture2DMSArray.ArraySize);
+      Serialise("Texture2DMSArray.FirstArraySlice", el.Texture2DMSArray.FirstArraySlice);
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE3D:
+      Serialise("Texture3D.MipSlice", el.Texture3D.MipSlice);
+      Serialise("Texture3D.FirstWSlice", el.Texture3D.FirstWSlice);
+      Serialise("Texture3D.WSize", el.Texture3D.WSize);
+      break;
+    default: RDCERR("Unrecognised RTV Dimension %d", el.ViewDimension); break;
+  }
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC &el)
 {
   ScopedContext scope(this, name, "D3D11_UNORDERED_ACCESS_VIEW_DESC", 0, true);
@@ -1186,6 +1233,47 @@ void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC &e
       Serialise("Texture2DArray.MipSlice", el.Texture2DArray.MipSlice);
       Serialise("Texture2DArray.ArraySize", el.Texture2DArray.ArraySize);
       Serialise("Texture2DArray.FirstArraySlice", el.Texture2DArray.FirstArraySlice);
+      break;
+    case D3D11_UAV_DIMENSION_TEXTURE3D:
+      Serialise("Texture3D.MipSlice", el.Texture3D.MipSlice);
+      Serialise("Texture3D.FirstWSlice", el.Texture3D.FirstWSlice);
+      Serialise("Texture3D.WSize", el.Texture3D.WSize);
+      break;
+    default: RDCERR("Unrecognised RTV Dimension %d", el.ViewDimension); break;
+  }
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC1 &el)
+{
+  ScopedContext scope(this, name, "D3D11_UNORDERED_ACCESS_VIEW_DESC1", 0, true);
+  Serialise("Format", el.Format);
+  Serialise("ViewDimension", el.ViewDimension);
+
+  switch(el.ViewDimension)
+  {
+    case D3D11_UAV_DIMENSION_BUFFER:
+      Serialise("Buffer.FirstElement", el.Buffer.FirstElement);
+      Serialise("Buffer.NumElements", el.Buffer.NumElements);
+      Serialise("Buffer.Flags", el.Buffer.Flags);
+      break;
+    case D3D11_UAV_DIMENSION_TEXTURE1D:
+      Serialise("Texture1D.MipSlice", el.Texture1D.MipSlice);
+      break;
+    case D3D11_UAV_DIMENSION_TEXTURE1DARRAY:
+      Serialise("Texture1DArray.MipSlice", el.Texture1DArray.MipSlice);
+      Serialise("Texture1DArray.ArraySize", el.Texture1DArray.ArraySize);
+      Serialise("Texture1DArray.FirstArraySlice", el.Texture1DArray.FirstArraySlice);
+      break;
+    case D3D11_UAV_DIMENSION_TEXTURE2D:
+      Serialise("Texture2D.MipSlice", el.Texture2D.MipSlice);
+      Serialise("Texture2D.PlaneSlice", el.Texture2D.PlaneSlice);
+      break;
+    case D3D11_UAV_DIMENSION_TEXTURE2DARRAY:
+      Serialise("Texture2DArray.MipSlice", el.Texture2DArray.MipSlice);
+      Serialise("Texture2DArray.ArraySize", el.Texture2DArray.ArraySize);
+      Serialise("Texture2DArray.FirstArraySlice", el.Texture2DArray.FirstArraySlice);
+      Serialise("Texture2DArray.PlaneSlice", el.Texture2DArray.PlaneSlice);
       break;
     case D3D11_UAV_DIMENSION_TEXTURE3D:
       Serialise("Texture3D.MipSlice", el.Texture3D.MipSlice);
