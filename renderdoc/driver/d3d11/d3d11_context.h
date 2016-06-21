@@ -187,6 +187,7 @@ private:
   bool m_SetCBuffer1;
 
   ID3D11DeviceContext2 *m_pRealContext2;
+  ID3D11DeviceContext3 *m_pRealContext3;
 
   bool m_NeedUpdateSubWorkaround;
 
@@ -312,8 +313,6 @@ public:
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   ResourceId GetResourceID() { return m_ResourceID; }
   ID3D11DeviceContext *GetReal() { return m_pRealContext; }
-  ID3D11DeviceContext1 *GetReal1() { return m_pRealContext1; }
-  ID3D11DeviceContext2 *GetReal2() { return m_pRealContext2; }
   bool IsFL11_1();
 
   void ProcessChunk(uint64_t offset, D3D11ChunkType chunk, bool forceExecute);
@@ -955,4 +954,13 @@ public:
   virtual void STDMETHODCALLTYPE BeginEventInt(LPCWSTR pLabel, INT Data);
 
   virtual void STDMETHODCALLTYPE EndEvent();
+
+  //////////////////////////////
+  // implement ID3D11DeviceContext3
+
+  virtual void STDMETHODCALLTYPE Flush1(D3D11_CONTEXT_TYPE ContextType, HANDLE hEvent);
+
+  virtual void STDMETHODCALLTYPE SetHardwareProtectionState(BOOL HwProtectionEnable);
+
+  virtual void STDMETHODCALLTYPE GetHardwareProtectionState(BOOL *pHwProtectionEnable);
 };

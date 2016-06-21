@@ -732,7 +732,7 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShaderResources(
                                           NumViews);
 
     for(UINT i = 0; i < NumViews; i++)
-      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView, Views[i]);
+      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView1, Views[i]);
 
     if(m_State == READING)
       RecordResourceStats(eShaderStage_Vertex, NumViews, Views);
@@ -777,7 +777,7 @@ void WrappedID3D11DeviceContext::VSSetShaderResources(
       SAFE_RELEASE(res);
     }
 
-    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView, ppShaderResourceViews[i]);
+    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
   }
 
   m_pRealContext->VSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -1137,7 +1137,7 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShaderResources(
                                           NumViews);
 
     for(UINT i = 0; i < NumViews; i++)
-      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView, Views[i]);
+      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView1, Views[i]);
 
     if(m_State == READING)
       RecordResourceStats(eShaderStage_Hull, NumViews, Views);
@@ -1182,7 +1182,7 @@ void WrappedID3D11DeviceContext::HSSetShaderResources(
       SAFE_RELEASE(res);
     }
 
-    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView, ppShaderResourceViews[i]);
+    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
   }
 
   m_pRealContext->HSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -1541,7 +1541,7 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShaderResources(
                                           NumViews);
 
     for(UINT i = 0; i < NumViews; i++)
-      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView, Views[i]);
+      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView1, Views[i]);
 
     if(m_State == READING)
       RecordResourceStats(eShaderStage_Domain, NumViews, Views);
@@ -1586,7 +1586,7 @@ void WrappedID3D11DeviceContext::DSSetShaderResources(
       SAFE_RELEASE(res);
     }
 
-    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView, ppShaderResourceViews[i]);
+    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
   }
 
   m_pRealContext->DSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -1946,7 +1946,7 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShaderResources(
                                           NumViews);
 
     for(UINT i = 0; i < NumViews; i++)
-      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView, Views[i]);
+      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView1, Views[i]);
 
     if(m_State == READING)
       RecordResourceStats(eShaderStage_Geometry, NumViews, Views);
@@ -1991,7 +1991,7 @@ void WrappedID3D11DeviceContext::GSSetShaderResources(
       SAFE_RELEASE(res);
     }
 
-    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView, ppShaderResourceViews[i]);
+    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
   }
 
   m_pRealContext->GSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -2389,16 +2389,8 @@ void WrappedID3D11DeviceContext::RSGetState(ID3D11RasterizerState **ppRasterizer
     {
       real->Release();
       ID3D11DeviceChild *state = m_pDevice->GetResourceManager()->GetWrapper(real);
-      if(WrappedID3D11RasterizerState1::IsAlloc(state))
-      {
-        *ppRasterizerState = (ID3D11RasterizerState *)(ID3D11RasterizerState1 *)state;
-        (*ppRasterizerState)->AddRef();
-      }
-      else
-      {
-        *ppRasterizerState = (ID3D11RasterizerState *)state;
-        (*ppRasterizerState)->AddRef();
-      }
+      *ppRasterizerState = (ID3D11RasterizerState *)state;
+      (*ppRasterizerState)->AddRef();
     }
     else
     {
@@ -2519,19 +2511,10 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetState(ID3D11RasterizerState *pRa
     if(m_State == READING)
       RecordRasterizationStats((ID3D11RasterizerState *)live);
 
-    if(WrappedID3D11RasterizerState1::IsAlloc(live))
-    {
-      ID3D11RasterizerState1 *state = (ID3D11RasterizerState1 *)live;
-      m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->RS.State,
-                                            (ID3D11RasterizerState *)state);
-      m_pRealContext->RSSetState(
-          (ID3D11RasterizerState *)UNWRAP(WrappedID3D11RasterizerState1, state));
-    }
-    else
     {
       ID3D11RasterizerState *state = (ID3D11RasterizerState *)live;
       m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->RS.State, state);
-      m_pRealContext->RSSetState(UNWRAP(WrappedID3D11RasterizerState, state));
+      m_pRealContext->RSSetState(UNWRAP(WrappedID3D11RasterizerState2, state));
     }
     VerifyState();
   }
@@ -2554,15 +2537,9 @@ void WrappedID3D11DeviceContext::RSSetState(ID3D11RasterizerState *pRasterizerSt
     m_ContextRecord->AddChunk(scope.Get());
   }
 
-  RDCASSERT(!pRasterizerState || WrappedID3D11RasterizerState::IsAlloc(pRasterizerState) ||
-            WrappedID3D11RasterizerState1::IsAlloc(pRasterizerState));
-
   m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->RS.State, pRasterizerState);
-  if(!pRasterizerState || WrappedID3D11RasterizerState::IsAlloc(pRasterizerState))
-    m_pRealContext->RSSetState(UNWRAP(WrappedID3D11RasterizerState, pRasterizerState));
-  else
-    m_pRealContext->RSSetState(
-        (ID3D11RasterizerState *)UNWRAP(WrappedID3D11RasterizerState1, pRasterizerState));
+  m_pRealContext->RSSetState(
+      (ID3D11RasterizerState *)UNWRAP(WrappedID3D11RasterizerState2, pRasterizerState));
 
   VerifyState();
 }
@@ -2771,7 +2748,7 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShaderResources(
                                           NumViews);
 
     for(UINT i = 0; i < NumViews; i++)
-      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView, Views[i]);
+      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView1, Views[i]);
 
     if(m_State == READING)
       RecordResourceStats(eShaderStage_Pixel, NumViews, Views);
@@ -2814,7 +2791,7 @@ void WrappedID3D11DeviceContext::PSSetShaderResources(
       SAFE_RELEASE(res);
     }
 
-    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView, ppShaderResourceViews[i]);
+    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
   }
 
   m_pRealContext->PSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -3074,16 +3051,8 @@ void WrappedID3D11DeviceContext::OMGetBlendState(ID3D11BlendState **ppBlendState
     if(real != NULL)
     {
       ID3D11DeviceChild *state = m_pDevice->GetResourceManager()->GetWrapper(real);
-      if(WrappedID3D11BlendState1::IsAlloc(state))
-      {
-        *ppBlendState = (ID3D11BlendState *)(ID3D11BlendState1 *)state;
-        (*ppBlendState)->AddRef();
-      }
-      else
-      {
-        *ppBlendState = (ID3D11BlendState *)state;
-        (*ppBlendState)->AddRef();
-      }
+      *ppBlendState = (ID3D11BlendState *)state;
+      (*ppBlendState)->AddRef();
     }
     else
     {
@@ -3169,7 +3138,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargets(
     m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, NumViews);
 
     for(UINT i = 0; i < NumViews; i++)
-      RenderTargetViews[i] = UNWRAP(WrappedID3D11RenderTargetView, RenderTargetViews[i]);
+      RenderTargetViews[i] = UNWRAP(WrappedID3D11RenderTargetView1, RenderTargetViews[i]);
 
     if(m_State == READING)
       RecordOutputMergerStats(NumViews, RenderTargetViews, pDepthStencilView, 0, 0, NULL);
@@ -3260,7 +3229,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
         SAFE_RELEASE(res);
       }
 
-      RTs[i] = UNWRAP(WrappedID3D11RenderTargetView, ppRenderTargetViews[i]);
+      RTs[i] = UNWRAP(WrappedID3D11RenderTargetView1, ppRenderTargetViews[i]);
     }
   }
 
@@ -3361,10 +3330,10 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargetsAndUnorderedAccessV
     }
 
     for(UINT i = 0; i < NumRTVs && NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL; i++)
-      RenderTargetViews[i] = UNWRAP(WrappedID3D11RenderTargetView, RenderTargetViews[i]);
+      RenderTargetViews[i] = UNWRAP(WrappedID3D11RenderTargetView1, RenderTargetViews[i]);
 
     for(UINT i = 0; i < NumUAVs && NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS; i++)
-      UnorderedAccessViews[i] = UNWRAP(WrappedID3D11UnorderedAccessView, UnorderedAccessViews[i]);
+      UnorderedAccessViews[i] = UNWRAP(WrappedID3D11UnorderedAccessView1, UnorderedAccessViews[i]);
 
     if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
       pDepthStencilView = UNWRAP(WrappedID3D11DepthStencilView, pDepthStencilView);
@@ -3495,7 +3464,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
       SAFE_RELEASE(res);
     }
 
-    RTs[i] = UNWRAP(WrappedID3D11RenderTargetView, ppRenderTargetViews[i]);
+    RTs[i] = UNWRAP(WrappedID3D11RenderTargetView1, ppRenderTargetViews[i]);
   }
 
   for(UINT i = 0; ppUnorderedAccessViews && i < NumUAVs; i++)
@@ -3509,7 +3478,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
       SAFE_RELEASE(res);
     }
 
-    UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView, ppUnorderedAccessViews[i]);
+    UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView1, ppUnorderedAccessViews[i]);
   }
 
   if(pDepthStencilView && m_State >= WRITING)
@@ -3562,19 +3531,11 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(ID3D11BlendState *pBl
     if(m_State == READING)
       RecordBlendStats((ID3D11BlendState *)live, BlendFactor, SampleMask);
 
-    if(WrappedID3D11BlendState1::IsAlloc(live))
     {
-      ID3D11BlendState1 *state = (ID3D11BlendState1 *)live;
+      WrappedID3D11BlendState1 *state = (WrappedID3D11BlendState1 *)live;
       m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->OM.BlendState,
                                             (ID3D11BlendState *)state);
-      m_pRealContext->OMSetBlendState((ID3D11BlendState *)UNWRAP(WrappedID3D11BlendState1, state),
-                                      BlendFactor, SampleMask);
-    }
-    else
-    {
-      ID3D11BlendState *state = (ID3D11BlendState *)live;
-      m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->OM.BlendState, state);
-      m_pRealContext->OMSetBlendState(UNWRAP(WrappedID3D11BlendState, state), BlendFactor,
+      m_pRealContext->OMSetBlendState(UNWRAP(WrappedID3D11BlendState1, state), BlendFactor,
                                       SampleMask);
     }
     m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.BlendFactor, BlendFactor, 0, 4);
@@ -3610,12 +3571,8 @@ void WrappedID3D11DeviceContext::OMSetBlendState(ID3D11BlendState *pBlendState,
     m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.BlendFactor, DefaultBlendFactor, 0, 4);
   m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.SampleMask, SampleMask);
 
-  if(!pBlendState || WrappedID3D11BlendState::IsAlloc(pBlendState))
-    m_pRealContext->OMSetBlendState(UNWRAP(WrappedID3D11BlendState, pBlendState), BlendFactor,
-                                    SampleMask);
-  else
-    m_pRealContext->OMSetBlendState(
-        (ID3D11BlendState *)UNWRAP(WrappedID3D11BlendState1, pBlendState), BlendFactor, SampleMask);
+  m_pRealContext->OMSetBlendState((ID3D11BlendState *)UNWRAP(WrappedID3D11BlendState1, pBlendState),
+                                  BlendFactor, SampleMask);
 
   VerifyState();
 }
@@ -4535,7 +4492,7 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShaderResources(
                                           NumViews);
 
     for(UINT i = 0; i < NumViews; i++)
-      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView, Views[i]);
+      Views[i] = UNWRAP(WrappedID3D11ShaderResourceView1, Views[i]);
 
     if(m_State == READING)
       RecordResourceStats(eShaderStage_Compute, NumViews, Views);
@@ -4579,7 +4536,7 @@ void WrappedID3D11DeviceContext::CSSetShaderResources(
       SAFE_RELEASE(res);
     }
 
-    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView, ppShaderResourceViews[i]);
+    SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
   }
 
   m_pRealContext->CSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -4605,7 +4562,7 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetUnorderedAccessViews(
 
     if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
       UAVs[i] =
-          (WrappedID3D11UnorderedAccessView *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+          (WrappedID3D11UnorderedAccessView1 *)m_pDevice->GetResourceManager()->GetLiveResource(id);
   }
 
   if(m_State <= EXECUTING)
@@ -4613,7 +4570,7 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetUnorderedAccessViews(
     m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->CSUAVs, UAVs, StartSlot, NumUAVs);
 
     for(UINT i = 0; i < NumUAVs; i++)
-      UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView, UAVs[i]);
+      UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView1, UAVs[i]);
 
     // #mivance this isn't strictly correct...
     if(m_State == READING)
@@ -4663,7 +4620,7 @@ void WrappedID3D11DeviceContext::CSSetUnorderedAccessViews(
       SAFE_RELEASE(res);
     }
 
-    UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView, ppUnorderedAccessViews[i]);
+    UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView1, ppUnorderedAccessViews[i]);
   }
 
   m_pRealContext->CSSetUnorderedAccessViews(StartSlot, NumUAVs, UAVs, pUAVInitialCounts);
@@ -5564,10 +5521,10 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource,
     }
     else if((WrappedID3D11Texture1D::IsAlloc(pDstResource) &&
              WrappedID3D11Texture1D::IsAlloc(pSrcResource)) ||
-            (WrappedID3D11Texture2D::IsAlloc(pDstResource) &&
-             WrappedID3D11Texture2D::IsAlloc(pSrcResource)) ||
-            (WrappedID3D11Texture3D::IsAlloc(pDstResource) &&
-             WrappedID3D11Texture3D::IsAlloc(pSrcResource)))
+            (WrappedID3D11Texture2D1::IsAlloc(pDstResource) &&
+             WrappedID3D11Texture2D1::IsAlloc(pSrcResource)) ||
+            (WrappedID3D11Texture3D1::IsAlloc(pDstResource) &&
+             WrappedID3D11Texture3D1::IsAlloc(pSrcResource)))
     {
       // can't copy without data allocated
       if(!record->DataInSerialiser || !srcRecord->DataInSerialiser)
@@ -5659,16 +5616,16 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
       ((WrappedID3D11Texture1D *)pDstResource)->GetDesc(&desc);
       fmt = desc.Format;
     }
-    else if(WrappedID3D11Texture2D::IsAlloc(pDstResource))
+    else if(WrappedID3D11Texture2D1::IsAlloc(pDstResource))
     {
       D3D11_TEXTURE2D_DESC desc;
-      ((WrappedID3D11Texture2D *)pDstResource)->GetDesc(&desc);
+      ((WrappedID3D11Texture2D1 *)pDstResource)->GetDesc(&desc);
       fmt = desc.Format;
     }
-    else if(WrappedID3D11Texture3D::IsAlloc(pDstResource))
+    else if(WrappedID3D11Texture3D1::IsAlloc(pDstResource))
     {
       D3D11_TEXTURE3D_DESC desc;
-      ((WrappedID3D11Texture3D *)pDstResource)->GetDesc(&desc);
+      ((WrappedID3D11Texture3D1 *)pDstResource)->GetDesc(&desc);
       fmt = desc.Format;
     }
     else
@@ -5731,8 +5688,8 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
       memcpy(ptr, pSrcData, length);
     }
     else if(WrappedID3D11Texture1D::IsAlloc(pDstResource) ||
-            WrappedID3D11Texture2D::IsAlloc(pDstResource) ||
-            WrappedID3D11Texture3D::IsAlloc(pDstResource))
+            WrappedID3D11Texture2D1::IsAlloc(pDstResource) ||
+            WrappedID3D11Texture3D1::IsAlloc(pDstResource))
     {
       RDCASSERT(record->Length == 1 && record->NumSubResources > 0);
 
@@ -5775,12 +5732,12 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
           WrappedID3D11Texture1D *tex1 = WrappedID3D11Texture1D::IsAlloc(pDstResource)
                                              ? (WrappedID3D11Texture1D *)pDstResource
                                              : NULL;
-          WrappedID3D11Texture2D *tex2 = WrappedID3D11Texture2D::IsAlloc(pDstResource)
-                                             ? (WrappedID3D11Texture2D *)pDstResource
-                                             : NULL;
-          WrappedID3D11Texture3D *tex3 = WrappedID3D11Texture3D::IsAlloc(pDstResource)
-                                             ? (WrappedID3D11Texture3D *)pDstResource
-                                             : NULL;
+          WrappedID3D11Texture2D1 *tex2 = WrappedID3D11Texture2D1::IsAlloc(pDstResource)
+                                              ? (WrappedID3D11Texture2D1 *)pDstResource
+                                              : NULL;
+          WrappedID3D11Texture3D1 *tex3 = WrappedID3D11Texture3D1::IsAlloc(pDstResource)
+                                              ? (WrappedID3D11Texture3D1 *)pDstResource
+                                              : NULL;
 
           RDCASSERT(tex1 || tex2 || tex3);
 
@@ -5915,7 +5872,7 @@ bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(ID3D11Buffer *pDst
   {
     m_pRealContext->CopyStructureCount(
         UNWRAP(WrappedID3D11Buffer, m_pDevice->GetResourceManager()->GetLiveResource(DestBuffer)),
-        DestAlignedByteOffset, UNWRAP(WrappedID3D11UnorderedAccessView,
+        DestAlignedByteOffset, UNWRAP(WrappedID3D11UnorderedAccessView1,
                                       m_pDevice->GetResourceManager()->GetLiveResource(SourceView)));
   }
 
@@ -5967,7 +5924,7 @@ void WrappedID3D11DeviceContext::CopyStructureCount(ID3D11Buffer *pDstBuffer,
   }
 
   m_pRealContext->CopyStructureCount(UNWRAP(WrappedID3D11Buffer, pDstBuffer), DstAlignedByteOffset,
-                                     UNWRAP(WrappedID3D11UnorderedAccessView, pSrcView));
+                                     UNWRAP(WrappedID3D11UnorderedAccessView1, pSrcView));
 }
 
 bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(ID3D11Resource *pDstResource,
@@ -6070,8 +6027,8 @@ void WrappedID3D11DeviceContext::ResolveSubresource(ID3D11Resource *pDstResource
   {
     // needs to go into device serialiser
 
-    RDCASSERT(WrappedID3D11Texture2D::IsAlloc(pDstResource) &&
-              WrappedID3D11Texture2D::IsAlloc(pSrcResource));
+    RDCASSERT(WrappedID3D11Texture2D1::IsAlloc(pDstResource) &&
+              WrappedID3D11Texture2D1::IsAlloc(pSrcResource));
 
     D3D11ResourceRecord *record =
         m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pDstResource));
@@ -6130,7 +6087,7 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(ID3D11ShaderResourceView
   if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(ShaderResourceView))
   {
     m_pRealContext->GenerateMips(
-        UNWRAP(WrappedID3D11ShaderResourceView,
+        UNWRAP(WrappedID3D11ShaderResourceView1,
                m_pDevice->GetResourceManager()->GetLiveResource(ShaderResourceView)));
   }
 
@@ -6146,7 +6103,7 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(ID3D11ShaderResourceView
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(ShaderResourceView))
     {
-      id = ((WrappedID3D11ShaderResourceView *)m_pDevice->GetResourceManager()->GetLiveResource(
+      id = ((WrappedID3D11ShaderResourceView1 *)m_pDevice->GetResourceManager()->GetLiveResource(
                 ShaderResourceView))
                ->GetResourceResID();
       m_ResourceUses[id].push_back(EventUsage(m_CurEventID, eUsage_GenMips));
@@ -6168,8 +6125,8 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(ID3D11ShaderResourceView
     AddDrawcall(draw, true);
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(ShaderResourceView))
-      m_ResourceUses[((WrappedID3D11ShaderResourceView *)m_pDevice->GetResourceManager()->GetLiveResource(
-                          ShaderResourceView))
+      m_ResourceUses[((WrappedID3D11ShaderResourceView1 *)m_pDevice->GetResourceManager()
+                          ->GetLiveResource(ShaderResourceView))
                          ->GetResourceResID()]
           .push_back(EventUsage(m_CurEventID, eUsage_GenMips));
   }
@@ -6213,7 +6170,7 @@ void WrappedID3D11DeviceContext::GenerateMips(ID3D11ShaderResourceView *pShaderR
     SAFE_RELEASE(res);
   }
 
-  m_pRealContext->GenerateMips(UNWRAP(WrappedID3D11ShaderResourceView, pShaderResourceView));
+  m_pRealContext->GenerateMips(UNWRAP(WrappedID3D11ShaderResourceView1, pShaderResourceView));
 }
 
 #pragma endregion Copy
@@ -6271,7 +6228,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
   if(m_State >= WRITING)
   {
     pRenderTargetView->GetDesc(&ViewDesc.Desc);
-    resID = ((WrappedID3D11RenderTargetView *)pRenderTargetView)->GetResourceResID();
+    resID = ((WrappedID3D11RenderTargetView1 *)pRenderTargetView)->GetResourceResID();
   }
 
   if(m_State >= WRITING || m_pDevice->GetLogVersion() >= 0x000009)
@@ -6292,7 +6249,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
     {
       m_pRealContext->ClearRenderTargetView(
-          UNWRAP(WrappedID3D11RenderTargetView,
+          UNWRAP(WrappedID3D11RenderTargetView1,
                  m_pDevice->GetResourceManager()->GetLiveResource(View)),
           Color);
     }
@@ -6305,7 +6262,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
         m_pDevice->CreateRenderTargetView(
             (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(resID),
             &ViewDesc.Desc, &view);
-        m_pRealContext->ClearRenderTargetView(UNWRAP(WrappedID3D11RenderTargetView, view), Color);
+        m_pRealContext->ClearRenderTargetView(UNWRAP(WrappedID3D11RenderTargetView1, view), Color);
         SAFE_RELEASE(view);
       }
     }
@@ -6334,7 +6291,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
     AddDrawcall(draw, true);
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
-      m_ResourceUses[((WrappedID3D11RenderTargetView *)m_pDevice->GetResourceManager()->GetLiveResource(View))
+      m_ResourceUses[((WrappedID3D11RenderTargetView1 *)m_pDevice->GetResourceManager()->GetLiveResource(
+                          View))
                          ->GetResourceResID()]
           .push_back(EventUsage(m_CurEventID, eUsage_Clear));
   }
@@ -6352,7 +6310,7 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
 
   m_EmptyCommandList = false;
 
-  m_pRealContext->ClearRenderTargetView(UNWRAP(WrappedID3D11RenderTargetView, pRenderTargetView),
+  m_pRealContext->ClearRenderTargetView(UNWRAP(WrappedID3D11RenderTargetView1, pRenderTargetView),
                                         ColorRGBA);
 
   if(m_State == WRITING_CAPFRAME)
@@ -6445,7 +6403,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
   if(m_State >= WRITING)
   {
     pUnorderedAccessView->GetDesc(&ViewDesc.Desc);
-    resID = ((WrappedID3D11UnorderedAccessView *)pUnorderedAccessView)->GetResourceResID();
+    resID = ((WrappedID3D11UnorderedAccessView1 *)pUnorderedAccessView)->GetResourceResID();
   }
 
   if(m_State >= WRITING || m_pDevice->GetLogVersion() >= 0x000009)
@@ -6466,7 +6424,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
     {
       m_pRealContext->ClearUnorderedAccessViewUint(
-          UNWRAP(WrappedID3D11UnorderedAccessView,
+          UNWRAP(WrappedID3D11UnorderedAccessView1,
                  m_pDevice->GetResourceManager()->GetLiveResource(View)),
           Values);
     }
@@ -6479,8 +6437,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
         m_pDevice->CreateUnorderedAccessView(
             (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(resID),
             &ViewDesc.Desc, &view);
-        m_pRealContext->ClearUnorderedAccessViewUint(UNWRAP(WrappedID3D11UnorderedAccessView, view),
-                                                     Values);
+        m_pRealContext->ClearUnorderedAccessViewUint(
+            UNWRAP(WrappedID3D11UnorderedAccessView1, view), Values);
         SAFE_RELEASE(view);
       }
     }
@@ -6509,7 +6467,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
     AddDrawcall(draw, true);
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
-      m_ResourceUses[((WrappedID3D11UnorderedAccessView *)m_pDevice->GetResourceManager()
+      m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)m_pDevice->GetResourceManager()
                           ->GetLiveResource(View))
                          ->GetResourceResID()]
           .push_back(EventUsage(m_CurEventID, eUsage_Clear));
@@ -6588,7 +6546,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewUint(
   }
 
   m_pRealContext->ClearUnorderedAccessViewUint(
-      UNWRAP(WrappedID3D11UnorderedAccessView, pUnorderedAccessView), Values);
+      UNWRAP(WrappedID3D11UnorderedAccessView1, pUnorderedAccessView), Values);
 }
 
 bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
@@ -6612,7 +6570,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
   if(m_State >= WRITING)
   {
     pUnorderedAccessView->GetDesc(&ViewDesc.Desc);
-    resID = ((WrappedID3D11UnorderedAccessView *)pUnorderedAccessView)->GetResourceResID();
+    resID = ((WrappedID3D11UnorderedAccessView1 *)pUnorderedAccessView)->GetResourceResID();
   }
 
   if(m_State >= WRITING || m_pDevice->GetLogVersion() >= 0x000009)
@@ -6633,7 +6591,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
     {
       m_pRealContext->ClearUnorderedAccessViewFloat(
-          UNWRAP(WrappedID3D11UnorderedAccessView,
+          UNWRAP(WrappedID3D11UnorderedAccessView1,
                  m_pDevice->GetResourceManager()->GetLiveResource(View)),
           Values);
     }
@@ -6647,7 +6605,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
             (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(resID),
             &ViewDesc.Desc, &view);
         m_pRealContext->ClearUnorderedAccessViewFloat(
-            UNWRAP(WrappedID3D11UnorderedAccessView, view), Values);
+            UNWRAP(WrappedID3D11UnorderedAccessView1, view), Values);
         SAFE_RELEASE(view);
       }
     }
@@ -6675,7 +6633,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
     AddDrawcall(draw, true);
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
-      m_ResourceUses[((WrappedID3D11UnorderedAccessView *)m_pDevice->GetResourceManager()
+      m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)m_pDevice->GetResourceManager()
                           ->GetLiveResource(View))
                          ->GetResourceResID()]
           .push_back(EventUsage(m_CurEventID, eUsage_Clear));
@@ -6754,7 +6712,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewFloat(
   }
 
   m_pRealContext->ClearUnorderedAccessViewFloat(
-      UNWRAP(WrappedID3D11UnorderedAccessView, pUnorderedAccessView), Values);
+      UNWRAP(WrappedID3D11UnorderedAccessView1, pUnorderedAccessView), Values);
 }
 
 bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
@@ -6921,7 +6879,7 @@ bool WrappedID3D11DeviceContext::Serialise_Begin(ID3D11Asynchronous *pAsync)
 {
   SERIALISE_ELEMENT(ResourceId, Async, GetIDForResource(pAsync));
 
-  SERIALISE_ELEMENT(bool, IsQuery, WrappedID3D11Query::IsAlloc(pAsync));
+  SERIALISE_ELEMENT(bool, IsQuery, WrappedID3D11Query1::IsAlloc(pAsync));
 
   if(IsQuery)
   {
@@ -6952,8 +6910,8 @@ void WrappedID3D11DeviceContext::Begin(ID3D11Asynchronous *pAsync)
 {
   ID3D11Asynchronous *unwrapped = NULL;
 
-  if(WrappedID3D11Query::IsAlloc(pAsync))
-    unwrapped = UNWRAP(WrappedID3D11Query, pAsync);
+  if(WrappedID3D11Query1::IsAlloc(pAsync))
+    unwrapped = UNWRAP(WrappedID3D11Query1, pAsync);
   else if(WrappedID3D11Predicate::IsAlloc(pAsync))
     unwrapped = UNWRAP(WrappedID3D11Predicate, pAsync);
   else if(WrappedID3D11Counter::IsAlloc(pAsync))
@@ -6977,7 +6935,7 @@ bool WrappedID3D11DeviceContext::Serialise_End(ID3D11Asynchronous *pAsync)
 {
   SERIALISE_ELEMENT(ResourceId, Async, GetIDForResource(pAsync));
 
-  SERIALISE_ELEMENT(bool, IsQuery, WrappedID3D11Query::IsAlloc(pAsync));
+  SERIALISE_ELEMENT(bool, IsQuery, WrappedID3D11Query1::IsAlloc(pAsync));
 
   if(IsQuery)
   {
@@ -7008,8 +6966,8 @@ void WrappedID3D11DeviceContext::End(ID3D11Asynchronous *pAsync)
 {
   ID3D11Asynchronous *unwrapped = NULL;
 
-  if(WrappedID3D11Query::IsAlloc(pAsync))
-    unwrapped = UNWRAP(WrappedID3D11Query, pAsync);
+  if(WrappedID3D11Query1::IsAlloc(pAsync))
+    unwrapped = UNWRAP(WrappedID3D11Query1, pAsync);
   else if(WrappedID3D11Predicate::IsAlloc(pAsync))
     unwrapped = UNWRAP(WrappedID3D11Predicate, pAsync);
   else if(WrappedID3D11Counter::IsAlloc(pAsync))
@@ -7034,8 +6992,8 @@ HRESULT WrappedID3D11DeviceContext::GetData(ID3D11Asynchronous *pAsync, void *pD
 {
   ID3D11Asynchronous *unwrapped = NULL;
 
-  if(WrappedID3D11Query::IsAlloc(pAsync))
-    unwrapped = UNWRAP(WrappedID3D11Query, pAsync);
+  if(WrappedID3D11Query1::IsAlloc(pAsync))
+    unwrapped = UNWRAP(WrappedID3D11Query1, pAsync);
   else if(WrappedID3D11Predicate::IsAlloc(pAsync))
     unwrapped = UNWRAP(WrappedID3D11Predicate, pAsync);
   else if(WrappedID3D11Counter::IsAlloc(pAsync))
@@ -7175,9 +7133,9 @@ void MapIntercept::InitWrappedResource(ID3D11Resource *res, UINT sub, void *appM
     Init((ID3D11Buffer *)res, appMemory);
   else if(WrappedID3D11Texture1D::IsAlloc(res))
     Init((ID3D11Texture1D *)res, sub, appMemory);
-  else if(WrappedID3D11Texture2D::IsAlloc(res))
+  else if(WrappedID3D11Texture2D1::IsAlloc(res))
     Init((ID3D11Texture2D *)res, sub, appMemory);
-  else if(WrappedID3D11Texture3D::IsAlloc(res))
+  else if(WrappedID3D11Texture3D1::IsAlloc(res))
     Init((ID3D11Texture3D *)res, sub, appMemory);
   else
     RDCERR("Unexpected resource type");
@@ -7622,9 +7580,10 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
     }
     else if(m_State >= WRITING)
     {
-      RDCASSERT(
-          WrappedID3D11Buffer::IsAlloc(pResource) || WrappedID3D11Texture1D::IsAlloc(pResource) ||
-          WrappedID3D11Texture2D::IsAlloc(pResource) || WrappedID3D11Texture3D::IsAlloc(pResource));
+      RDCASSERT(WrappedID3D11Buffer::IsAlloc(pResource) ||
+                WrappedID3D11Texture1D::IsAlloc(pResource) ||
+                WrappedID3D11Texture2D1::IsAlloc(pResource) ||
+                WrappedID3D11Texture3D1::IsAlloc(pResource));
 
       ResourceId Id = GetIDForResource(pResource);
 
@@ -7954,8 +7913,8 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
       {
         RDCASSERT(WrappedID3D11Buffer::IsAlloc(pResource) ||
                   WrappedID3D11Texture1D::IsAlloc(pResource) ||
-                  WrappedID3D11Texture2D::IsAlloc(pResource) ||
-                  WrappedID3D11Texture3D::IsAlloc(pResource));
+                  WrappedID3D11Texture2D1::IsAlloc(pResource) ||
+                  WrappedID3D11Texture3D1::IsAlloc(pResource));
 
         D3D11ResourceRecord *record =
             m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));

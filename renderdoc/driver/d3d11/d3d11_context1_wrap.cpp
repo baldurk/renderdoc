@@ -28,6 +28,9 @@
 #include "d3d11_renderstate.h"
 #include "d3d11_resources.h"
 
+/////////////////////////////////
+// implement ID3D11DeviceContext1
+
 bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pDstResource,
                                                               UINT DstSubresource,
                                                               const D3D11_BOX *pDstBox,
@@ -77,12 +80,12 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
         WrappedID3D11Texture1D *tex1 = WrappedID3D11Texture1D::IsAlloc(DestResource)
                                            ? (WrappedID3D11Texture1D *)DestResource
                                            : NULL;
-        WrappedID3D11Texture2D *tex2 = WrappedID3D11Texture2D::IsAlloc(DestResource)
-                                           ? (WrappedID3D11Texture2D *)DestResource
-                                           : NULL;
-        WrappedID3D11Texture3D *tex3 = WrappedID3D11Texture3D::IsAlloc(DestResource)
-                                           ? (WrappedID3D11Texture3D *)DestResource
-                                           : NULL;
+        WrappedID3D11Texture2D1 *tex2 = WrappedID3D11Texture2D1::IsAlloc(DestResource)
+                                            ? (WrappedID3D11Texture2D1 *)DestResource
+                                            : NULL;
+        WrappedID3D11Texture3D1 *tex3 = WrappedID3D11Texture3D1::IsAlloc(DestResource)
+                                            ? (WrappedID3D11Texture3D1 *)DestResource
+                                            : NULL;
 
         UINT mipLevel = GetMipForSubresource(DestResource, DestSubresource);
 
@@ -166,16 +169,16 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
             ((WrappedID3D11Texture1D *)DestResource)->GetDesc(&desc);
             fmt = desc.Format;
           }
-          else if(WrappedID3D11Texture2D::IsAlloc(DestResource))
+          else if(WrappedID3D11Texture2D1::IsAlloc(DestResource))
           {
             D3D11_TEXTURE2D_DESC desc;
-            ((WrappedID3D11Texture2D *)DestResource)->GetDesc(&desc);
+            ((WrappedID3D11Texture2D1 *)DestResource)->GetDesc(&desc);
             fmt = desc.Format;
           }
-          else if(WrappedID3D11Texture3D::IsAlloc(DestResource))
+          else if(WrappedID3D11Texture3D1::IsAlloc(DestResource))
           {
             D3D11_TEXTURE3D_DESC desc;
-            ((WrappedID3D11Texture3D *)DestResource)->GetDesc(&desc);
+            ((WrappedID3D11Texture3D1 *)DestResource)->GetDesc(&desc);
             fmt = desc.Format;
           }
           else
@@ -264,12 +267,12 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
       WrappedID3D11Texture1D *tex1 = WrappedID3D11Texture1D::IsAlloc(DestResource)
                                          ? (WrappedID3D11Texture1D *)DestResource
                                          : NULL;
-      WrappedID3D11Texture2D *tex2 = WrappedID3D11Texture2D::IsAlloc(DestResource)
-                                         ? (WrappedID3D11Texture2D *)DestResource
-                                         : NULL;
-      WrappedID3D11Texture3D *tex3 = WrappedID3D11Texture3D::IsAlloc(DestResource)
-                                         ? (WrappedID3D11Texture3D *)DestResource
-                                         : NULL;
+      WrappedID3D11Texture2D1 *tex2 = WrappedID3D11Texture2D1::IsAlloc(DestResource)
+                                          ? (WrappedID3D11Texture2D1 *)DestResource
+                                          : NULL;
+      WrappedID3D11Texture3D1 *tex3 = WrappedID3D11Texture3D1::IsAlloc(DestResource)
+                                          ? (WrappedID3D11Texture3D1 *)DestResource
+                                          : NULL;
 
       DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
       UINT subWidth = 1;
@@ -488,14 +491,14 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
 
     ID3D11View *real = NULL;
 
-    if(WrappedID3D11RenderTargetView::IsAlloc(wrapped))
-      real = UNWRAP(WrappedID3D11RenderTargetView, wrapped);
+    if(WrappedID3D11RenderTargetView1::IsAlloc(wrapped))
+      real = UNWRAP(WrappedID3D11RenderTargetView1, wrapped);
     else if(WrappedID3D11DepthStencilView::IsAlloc(wrapped))
       real = UNWRAP(WrappedID3D11DepthStencilView, wrapped);
-    else if(WrappedID3D11ShaderResourceView::IsAlloc(wrapped))
-      real = UNWRAP(WrappedID3D11ShaderResourceView, wrapped);
-    else if(WrappedID3D11UnorderedAccessView::IsAlloc(wrapped))
-      real = UNWRAP(WrappedID3D11UnorderedAccessView, wrapped);
+    else if(WrappedID3D11ShaderResourceView1::IsAlloc(wrapped))
+      real = UNWRAP(WrappedID3D11ShaderResourceView1, wrapped);
+    else if(WrappedID3D11UnorderedAccessView1::IsAlloc(wrapped))
+      real = UNWRAP(WrappedID3D11UnorderedAccessView1, wrapped);
 
     RDCASSERT(real);
 
@@ -544,14 +547,14 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
   {
     ID3D11View *real = NULL;
 
-    if(WrappedID3D11RenderTargetView::IsAlloc(pView))
-      real = UNWRAP(WrappedID3D11RenderTargetView, pView);
+    if(WrappedID3D11RenderTargetView1::IsAlloc(pView))
+      real = UNWRAP(WrappedID3D11RenderTargetView1, pView);
     else if(WrappedID3D11DepthStencilView::IsAlloc(pView))
       real = UNWRAP(WrappedID3D11DepthStencilView, pView);
-    else if(WrappedID3D11ShaderResourceView::IsAlloc(pView))
-      real = UNWRAP(WrappedID3D11ShaderResourceView, pView);
-    else if(WrappedID3D11UnorderedAccessView::IsAlloc(pView))
-      real = UNWRAP(WrappedID3D11UnorderedAccessView, pView);
+    else if(WrappedID3D11ShaderResourceView1::IsAlloc(pView))
+      real = UNWRAP(WrappedID3D11ShaderResourceView1, pView);
+    else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pView))
+      real = UNWRAP(WrappedID3D11UnorderedAccessView1, pView);
 
     RDCASSERT(real);
 
@@ -1607,10 +1610,10 @@ void WrappedID3D11DeviceContext::DiscardResource(ID3D11Resource *pResource)
       real = UNWRAP(WrappedID3D11Buffer, pResource);
     else if(WrappedID3D11Texture1D::IsAlloc(pResource))
       real = UNWRAP(WrappedID3D11Texture1D, pResource);
-    else if(WrappedID3D11Texture2D::IsAlloc(pResource))
-      real = UNWRAP(WrappedID3D11Texture2D, pResource);
-    else if(WrappedID3D11Texture3D::IsAlloc(pResource))
-      real = UNWRAP(WrappedID3D11Texture3D, pResource);
+    else if(WrappedID3D11Texture2D1::IsAlloc(pResource))
+      real = UNWRAP(WrappedID3D11Texture2D1, pResource);
+    else if(WrappedID3D11Texture3D1::IsAlloc(pResource))
+      real = UNWRAP(WrappedID3D11Texture3D1, pResource);
 
     RDCASSERT(real);
 
@@ -1668,17 +1671,17 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(ID3D11View *pResourceView
     {
       ID3D11DeviceChild *pLiveView = m_pDevice->GetResourceManager()->GetLiveResource(View);
 
-      if(WrappedID3D11RenderTargetView::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11RenderTargetView *)pLiveView)->GetResourceResID()].push_back(
+      if(WrappedID3D11RenderTargetView1::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11RenderTargetView1 *)pLiveView)->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, eUsage_Clear));
       else if(WrappedID3D11DepthStencilView::IsAlloc(pLiveView))
         m_ResourceUses[((WrappedID3D11DepthStencilView *)pLiveView)->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, eUsage_Clear));
-      else if(WrappedID3D11ShaderResourceView::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11ShaderResourceView *)pLiveView)->GetResourceResID()].push_back(
+      else if(WrappedID3D11ShaderResourceView1::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11ShaderResourceView1 *)pLiveView)->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, eUsage_Clear));
-      else if(WrappedID3D11UnorderedAccessView::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pLiveView)->GetResourceResID()].push_back(
+      else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)pLiveView)->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, eUsage_Clear));
     }
   }
@@ -1701,14 +1704,14 @@ void WrappedID3D11DeviceContext::DiscardView(ID3D11View *pResourceView)
   {
     ID3D11View *real = NULL;
 
-    if(WrappedID3D11RenderTargetView::IsAlloc(pResourceView))
-      real = UNWRAP(WrappedID3D11RenderTargetView, pResourceView);
+    if(WrappedID3D11RenderTargetView1::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11RenderTargetView1, pResourceView);
     else if(WrappedID3D11DepthStencilView::IsAlloc(pResourceView))
       real = UNWRAP(WrappedID3D11DepthStencilView, pResourceView);
-    else if(WrappedID3D11ShaderResourceView::IsAlloc(pResourceView))
-      real = UNWRAP(WrappedID3D11ShaderResourceView, pResourceView);
-    else if(WrappedID3D11UnorderedAccessView::IsAlloc(pResourceView))
-      real = UNWRAP(WrappedID3D11UnorderedAccessView, pResourceView);
+    else if(WrappedID3D11ShaderResourceView1::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11ShaderResourceView1, pResourceView);
+    else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11UnorderedAccessView1, pResourceView);
 
     RDCASSERT(real);
 
@@ -1781,17 +1784,17 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(ID3D11View *pResourceVie
     {
       ID3D11DeviceChild *pLiveView = m_pDevice->GetResourceManager()->GetLiveResource(View);
 
-      if(WrappedID3D11RenderTargetView::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11RenderTargetView *)pLiveView)->GetResourceResID()].push_back(
+      if(WrappedID3D11RenderTargetView1::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11RenderTargetView1 *)pLiveView)->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, eUsage_Clear));
       else if(WrappedID3D11DepthStencilView::IsAlloc(pLiveView))
         m_ResourceUses[((WrappedID3D11DepthStencilView *)pLiveView)->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, eUsage_Clear));
-      else if(WrappedID3D11ShaderResourceView::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11ShaderResourceView *)pLiveView)->GetResourceResID()].push_back(
+      else if(WrappedID3D11ShaderResourceView1::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11ShaderResourceView1 *)pLiveView)->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, eUsage_Clear));
-      else if(WrappedID3D11UnorderedAccessView::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pLiveView)->GetResourceResID()].push_back(
+      else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pLiveView))
+        m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)pLiveView)->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, eUsage_Clear));
     }
   }
@@ -1817,14 +1820,14 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
   {
     ID3D11View *real = NULL;
 
-    if(WrappedID3D11RenderTargetView::IsAlloc(pResourceView))
-      real = UNWRAP(WrappedID3D11RenderTargetView, pResourceView);
+    if(WrappedID3D11RenderTargetView1::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11RenderTargetView1, pResourceView);
     else if(WrappedID3D11DepthStencilView::IsAlloc(pResourceView))
       real = UNWRAP(WrappedID3D11DepthStencilView, pResourceView);
-    else if(WrappedID3D11ShaderResourceView::IsAlloc(pResourceView))
-      real = UNWRAP(WrappedID3D11ShaderResourceView, pResourceView);
-    else if(WrappedID3D11UnorderedAccessView::IsAlloc(pResourceView))
-      real = UNWRAP(WrappedID3D11UnorderedAccessView, pResourceView);
+    else if(WrappedID3D11ShaderResourceView1::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11ShaderResourceView1, pResourceView);
+    else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pResourceView))
+      real = UNWRAP(WrappedID3D11UnorderedAccessView1, pResourceView);
 
     RDCASSERT(real);
 

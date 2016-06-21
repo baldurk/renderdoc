@@ -40,10 +40,10 @@ ID3D11DeviceChild *D3D11ResourceManager::UnwrapResource(ID3D11DeviceChild *res)
     return UNWRAP(WrappedID3D11Buffer, res);
   else if(WrappedID3D11Texture1D::IsAlloc(res))
     return UNWRAP(WrappedID3D11Texture1D, res);
-  else if(WrappedID3D11Texture2D::IsAlloc(res))
-    return UNWRAP(WrappedID3D11Texture2D, res);
-  else if(WrappedID3D11Texture3D::IsAlloc(res))
-    return UNWRAP(WrappedID3D11Texture3D, res);
+  else if(WrappedID3D11Texture2D1::IsAlloc(res))
+    return UNWRAP(WrappedID3D11Texture2D1, res);
+  else if(WrappedID3D11Texture3D1::IsAlloc(res))
+    return UNWRAP(WrappedID3D11Texture3D1, res);
 
   RDCERR("UnwrapResource(): Unexpected non-wrapped resource");
   return res;

@@ -1835,7 +1835,7 @@ void D3D11DebugManager::FlipOutputWindow(uint64_t id)
 uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)
 {
   m_pImmediateContext->CopyStructureCount(m_DebugRender.StageBuffer, 0,
-                                          UNWRAP(WrappedID3D11UnorderedAccessView, uav));
+                                          UNWRAP(WrappedID3D11UnorderedAccessView1, uav));
 
   D3D11_MAPPED_SUBRESOURCE mapped;
   HRESULT hr = m_pImmediateContext->Map(m_DebugRender.StageBuffer, 0, D3D11_MAP_READ, 0, &mapped);
@@ -2852,12 +2852,12 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
       details.srvResource = details.previewCopy;
     }
   }
-  else if(WrappedID3D11Texture2D::m_TextureList.find(id) !=
-          WrappedID3D11Texture2D::m_TextureList.end())
+  else if(WrappedID3D11Texture2D1::m_TextureList.find(id) !=
+          WrappedID3D11Texture2D1::m_TextureList.end())
   {
-    WrappedID3D11Texture2D *wrapTex2D =
-        (WrappedID3D11Texture2D *)WrappedID3D11Texture2D::m_TextureList[id].m_Texture;
-    TextureDisplayType mode = WrappedID3D11Texture2D::m_TextureList[id].m_Type;
+    WrappedID3D11Texture2D1 *wrapTex2D =
+        (WrappedID3D11Texture2D1 *)WrappedID3D11Texture2D1::m_TextureList[id].m_Texture;
+    TextureDisplayType mode = WrappedID3D11Texture2D1::m_TextureList[id].m_Type;
 
     foundResource = true;
 
@@ -2956,12 +2956,12 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
       details.srvResource = details.previewCopy;
     }
   }
-  else if(WrappedID3D11Texture3D::m_TextureList.find(id) !=
-          WrappedID3D11Texture3D::m_TextureList.end())
+  else if(WrappedID3D11Texture3D1::m_TextureList.find(id) !=
+          WrappedID3D11Texture3D1::m_TextureList.end())
   {
-    WrappedID3D11Texture3D *wrapTex3D =
-        (WrappedID3D11Texture3D *)WrappedID3D11Texture3D::m_TextureList[id].m_Texture;
-    TextureDisplayType mode = WrappedID3D11Texture3D::m_TextureList[id].m_Type;
+    WrappedID3D11Texture3D1 *wrapTex3D =
+        (WrappedID3D11Texture3D1 *)WrappedID3D11Texture3D1::m_TextureList[id].m_Texture;
+    TextureDisplayType mode = WrappedID3D11Texture3D1::m_TextureList[id].m_Type;
 
     foundResource = true;
 

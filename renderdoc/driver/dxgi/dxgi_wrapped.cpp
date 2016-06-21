@@ -255,7 +255,7 @@ WrappedIDXGISwapChain3::WrappedIDXGISwapChain3(IDXGISwapChain *real, HWND wnd,
     {
       GetBuffer(i, __uuidof(ID3D11Texture2D), (void **)&m_pBackBuffers[i]);
 
-      WrappedID3D11Texture2D *wrapped = (WrappedID3D11Texture2D *)m_pBackBuffers[i];
+      WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_pBackBuffers[i];
 
       if(wrapped)
       {
@@ -279,7 +279,7 @@ WrappedIDXGISwapChain3::~WrappedIDXGISwapChain3()
 
   for(int i = 0; i < MAX_NUM_BACKBUFFERS; i++)
   {
-    WrappedID3D11Texture2D *wrapped = (WrappedID3D11Texture2D *)m_pBackBuffers[i];
+    WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_pBackBuffers[i];
     if(wrapped)
       wrapped->ViewRelease();
     m_pBackBuffers[i] = NULL;
@@ -296,7 +296,7 @@ void WrappedIDXGISwapChain3::ReleaseBuffersForResize()
 {
   for(int i = 0; i < MAX_NUM_BACKBUFFERS; i++)
   {
-    WrappedID3D11Texture2D *wrapped = (WrappedID3D11Texture2D *)m_pBackBuffers[i];
+    WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_pBackBuffers[i];
     if(wrapped)
     {
       m_pDevice->GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForWrite(wrapped);
@@ -331,7 +331,7 @@ void WrappedIDXGISwapChain3::WrapBuffersAfterResize()
     {
       GetBuffer(i, __uuidof(ID3D11Texture2D), (void **)&m_pBackBuffers[i]);
 
-      WrappedID3D11Texture2D *wrapped = (WrappedID3D11Texture2D *)m_pBackBuffers[i];
+      WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_pBackBuffers[i];
 
       if(wrapped)
       {
@@ -442,7 +442,7 @@ HRESULT WrappedIDXGISwapChain3::GetBuffer(
   }
   else
   {
-    tex = new WrappedID3D11Texture2D(realSurface, m_pDevice, TEXDISPLAY_UNKNOWN);
+    tex = new WrappedID3D11Texture2D1(realSurface, m_pDevice, TEXDISPLAY_UNKNOWN);
 
     DXGI_SWAP_CHAIN_DESC desc;
     m_pReal->GetDesc(&desc);

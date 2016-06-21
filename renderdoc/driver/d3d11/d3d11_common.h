@@ -29,7 +29,7 @@
 
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
-#include "official/d3d11_3.h"
+#include "official/d3d11_4.h"
 #include "official/dxgi1_3.h"
 
 class WrappedID3D11Device;
@@ -140,9 +140,15 @@ void Serialiser::Serialise(const char *name, D3D11_TEXTURE1D_DESC &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D11_TEXTURE2D_DESC &el);
 template <>
+void Serialiser::Serialise(const char *name, D3D11_TEXTURE2D_DESC1 &el);
+template <>
 void Serialiser::Serialise(const char *name, D3D11_TEXTURE3D_DESC &el);
 template <>
+void Serialiser::Serialise(const char *name, D3D11_TEXTURE3D_DESC1 &el);
+template <>
 void Serialiser::Serialise(const char *name, D3D11_SHADER_RESOURCE_VIEW_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D11_SHADER_RESOURCE_VIEW_DESC1 &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D11_RENDER_TARGET_VIEW_DESC &el);
 template <>
@@ -156,13 +162,21 @@ void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC1 &
 template <>
 void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC &el);
 template <>
+void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el);
+template <>
 void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_DESC &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC &el);
 template <>
+void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC1 &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC2 &el);
+template <>
 void Serialiser::Serialise(const char *name, D3D11_SAMPLER_DESC &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D11_QUERY_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D11_QUERY_DESC1 &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D11_COUNTER_DESC &el);
 template <>
@@ -171,10 +185,6 @@ template <>
 void Serialiser::Serialise(const char *name, D3D11_SO_DECLARATION_ENTRY &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D11_SUBRESOURCE_DATA &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC1 &el);
 
 #pragma region Chunks
 
@@ -328,6 +338,16 @@ enum D3D11ChunkType
   DISCARD_RESOURCE,
   DISCARD_VIEW,
   DISCARD_VIEW1,
+
+  CREATE_RASTER_STATE2,
+  CREATE_QUERY1,
+
+  CREATE_TEXTURE_2D1,
+  CREATE_TEXTURE_3D1,
+
+  CREATE_SRV1,
+  CREATE_RTV1,
+  CREATE_UAV1,
 
   NUM_D3D11_CHUNKS,
 };

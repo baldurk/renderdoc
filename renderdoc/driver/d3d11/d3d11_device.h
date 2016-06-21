@@ -263,7 +263,7 @@ struct DummyID3D11Debug : public ID3D11Debug
 class WrappedID3D11ClassLinkage;
 enum CaptureFailReason;
 
-class WrappedID3D11Device : public IFrameCapturer, public ID3D11Device2
+class WrappedID3D11Device : public IFrameCapturer, public ID3D11Device4
 {
 private:
   // since enumeration creates a lot of devices, save
@@ -298,6 +298,8 @@ private:
   ID3D11Device *m_pDevice;
   ID3D11Device1 *m_pDevice1;
   ID3D11Device2 *m_pDevice2;
+  ID3D11Device3 *m_pDevice3;
+  ID3D11Device4 *m_pDevice4;
   ID3D11InfoQueue *m_pInfoQueue;
   WrappedID3D11DeviceContext *m_pImmediateContext;
 
@@ -486,7 +488,26 @@ public:
                                              ID3D11Buffer **ppBuffer));
 
   template <typename TexDesc>
-  TextureDisplayType DispTypeForTexture(TexDesc &Descriptor);
+  TextureDisplayType DispTypeForTexture(TexDesc &Descriptor)
+  {
+    TextureDisplayType dispType = TEXDISPLAY_SRV_COMPATIBLE;
+
+    if(Descriptor.Usage == D3D11_USAGE_STAGING)
+    {
+      dispType = TEXDISPLAY_INDIRECT_VIEW;
+    }
+    else if(IsDepthFormat(Descriptor.Format) || (Descriptor.BindFlags & D3D11_BIND_DEPTH_STENCIL))
+    {
+      dispType = TEXDISPLAY_DEPTH_TARGET;
+    }
+    else
+    {
+      // diverging from perfect reproduction here
+      Descriptor.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+    }
+
+    return dispType;
+  }
 
   vector<D3D11_SUBRESOURCE_DATA> Serialise_CreateTextureData(ID3D11Resource *tex, ResourceId id,
                                                              const D3D11_SUBRESOURCE_DATA *data,
@@ -708,4 +729,60 @@ public:
   virtual HRESULT STDMETHODCALLTYPE CheckMultisampleQualityLevels1(DXGI_FORMAT Format,
                                                                    UINT SampleCount, UINT Flags,
                                                                    UINT *pNumQualityLevels);
+
+  //////////////////////////////
+  // implement ID3D11Device3
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
+                                CreateTexture2D1(const D3D11_TEXTURE2D_DESC1 *pDesc1,
+                                                 const D3D11_SUBRESOURCE_DATA *pInitialData,
+                                                 ID3D11Texture2D1 **ppTexture2D));
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
+                                CreateTexture3D1(const D3D11_TEXTURE3D_DESC1 *pDesc1,
+                                                 const D3D11_SUBRESOURCE_DATA *pInitialData,
+                                                 ID3D11Texture3D1 **ppTexture3D));
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
+                                CreateRasterizerState2(const D3D11_RASTERIZER_DESC2 *pRasterizerDesc,
+                                                       ID3D11RasterizerState2 **ppRasterizerState));
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
+                                CreateShaderResourceView1(ID3D11Resource *pResource,
+                                                          const D3D11_SHADER_RESOURCE_VIEW_DESC1 *pDesc1,
+                                                          ID3D11ShaderResourceView1 **ppSRView1));
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
+                                CreateUnorderedAccessView1(ID3D11Resource *pResource,
+                                                           const D3D11_UNORDERED_ACCESS_VIEW_DESC1 *pDesc1,
+                                                           ID3D11UnorderedAccessView1 **ppUAView1));
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
+                                CreateRenderTargetView1(ID3D11Resource *pResource,
+                                                        const D3D11_RENDER_TARGET_VIEW_DESC1 *pDesc1,
+                                                        ID3D11RenderTargetView1 **ppRTView1));
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
+                                CreateQuery1(const D3D11_QUERY_DESC1 *pQueryDesc1,
+                                             ID3D11Query1 **ppQuery1));
+
+  virtual void STDMETHODCALLTYPE GetImmediateContext3(ID3D11DeviceContext3 **ppImmediateContext);
+
+  virtual HRESULT STDMETHODCALLTYPE CreateDeferredContext3(UINT ContextFlags,
+                                                           ID3D11DeviceContext3 **ppDeferredContext);
+
+  virtual void STDMETHODCALLTYPE WriteToSubresource(ID3D11Resource *pDstResource, UINT DstSubresource,
+                                                    const D3D11_BOX *pDstBox, const void *pSrcData,
+                                                    UINT SrcRowPitch, UINT SrcDepthPitch);
+
+  virtual void STDMETHODCALLTYPE ReadFromSubresource(void *pDstData, UINT DstRowPitch,
+                                                     UINT DstDepthPitch, ID3D11Resource *pSrcResource,
+                                                     UINT SrcSubresource, const D3D11_BOX *pSrcBox);
+
+  //////////////////////////////
+  // implement ID3D11Device4
+
+  virtual HRESULT STDMETHODCALLTYPE RegisterDeviceRemovedEvent(HANDLE hEvent, DWORD *pdwCookie);
+
+  virtual void STDMETHODCALLTYPE UnregisterDeviceRemoved(DWORD dwCookie);
 };

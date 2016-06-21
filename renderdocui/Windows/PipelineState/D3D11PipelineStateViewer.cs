@@ -1192,6 +1192,7 @@ namespace renderdocui.Windows.PipelineState
             depthBiasClamp.Text = Formatter.Format(state.m_RS.m_State.DepthBiasClamp);
             slopeScaledBias.Text = Formatter.Format(state.m_RS.m_State.SlopeScaledDepthBias);
             forcedSampleCount.Text = state.m_RS.m_State.ForcedSampleCount.ToString();
+            conservativeRaster.Image = state.m_RS.m_State.ConservativeRasterization ? tick : cross;
 
             ////////////////////////////////////////////////
             // Output Merger
@@ -3038,9 +3039,10 @@ namespace renderdocui.Windows.PipelineState
                 writer.WriteEndElement();
 
                 ExportHTMLTable(writer,
-                    new string[] { "Scissor Enable", "Line AA Enable", "Multisample Enable", "Forced Sample Count" },
+                    new string[] { "Scissor Enable", "Line AA Enable", "Multisample Enable", "Forced Sample Count", "Conservative Raster" },
                     new object[] { rs.m_State.ScissorEnable ? "Yes" : "No", rs.m_State.AntialiasedLineEnable ? "Yes" : "No",
-                                   rs.m_State.MultisampleEnable ? "Yes" : "No", rs.m_State.ForcedSampleCount });
+                                   rs.m_State.MultisampleEnable ? "Yes" : "No", rs.m_State.ForcedSampleCount,
+                                   rs.m_State.ConservativeRasterization ? "Yes" : "No" });
 
                 writer.WriteStartElement("p");
                 writer.WriteEndElement();

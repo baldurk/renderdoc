@@ -153,8 +153,8 @@ const char *D3D11ChunkNames[] = {
     "ID3D11DeviceContext::Begin",
     "ID3D11DeviceContext::End",
 
-    "ID3D11Device1::CreateRasterizerState1",
-    "ID3D11Device1::CreateBlendState1",
+    "ID3D11Device2::CreateRasterizerState1",
+    "ID3D11Device2::CreateBlendState1",
 
     "ID3D11DeviceContext1::CopySubresourceRegion1",
     "ID3D11DeviceContext1::UpdateSubresource1",
@@ -181,6 +181,16 @@ const char *D3D11ChunkNames[] = {
     "ID3D11DeviceContext1::DiscardResource",
     "ID3D11DeviceContext1::DiscardView",
     "ID3D11DeviceContext1::DiscardView1",
+
+    "ID3D11Device3::CreateRasterizerState2",
+    "ID3D11Device3::CreateQuery1",
+
+    "ID3D11Device3::CreateTexture2D1",
+    "ID3D11Device3::CreateTexture3D1",
+
+    "ID3D11Device3::CreateShaderResourceView1",
+    "ID3D11Device3::CreateRenderTargetView1",
+    "ID3D11Device3::CreateUnorderedAccessView1",
 };
 
 WRAPPED_POOL_INST(WrappedID3D11Device);
@@ -287,6 +297,12 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   m_pDevice2 = NULL;
   m_pDevice->QueryInterface(__uuidof(ID3D11Device2), (void **)&m_pDevice2);
+
+  m_pDevice3 = NULL;
+  m_pDevice->QueryInterface(__uuidof(ID3D11Device3), (void **)&m_pDevice3);
+
+  m_pDevice4 = NULL;
+  m_pDevice->QueryInterface(__uuidof(ID3D11Device4), (void **)&m_pDevice4);
 
   m_Replay.SetDevice(this);
 
@@ -443,6 +459,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
   SAFE_RELEASE(m_pDevice1);
   SAFE_RELEASE(m_pDevice2);
+  SAFE_RELEASE(m_pDevice3);
+  SAFE_RELEASE(m_pDevice4);
 
   SAFE_RELEASE(m_pImmediateContext);
 
@@ -521,7 +539,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11Debug::QueryInterface(REFIID riid, void *
 {
   if(riid == __uuidof(ID3D11InfoQueue) || riid == __uuidof(ID3D11Debug) ||
      riid == __uuidof(ID3D11Device) || riid == __uuidof(ID3D11Device1) ||
-     riid == __uuidof(ID3D11Device2))
+     riid == __uuidof(ID3D11Device2) || riid == __uuidof(ID3D11Device3) ||
+     riid == __uuidof(ID3D11Device4))
     return m_pDevice->QueryInterface(riid, ppvObject);
 
   if(riid == __uuidof(IUnknown))
@@ -572,7 +591,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 
   if(riid == __uuidof(IUnknown))
   {
-    *ppvObject = (IUnknown *)(ID3D11Device2 *)this;
+    *ppvObject = (IUnknown *)(ID3D11Device4 *)this;
     AddRef();
     return S_OK;
   }
@@ -679,6 +698,32 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
       *ppvObject = (ID3D11Device2 *)this;
       RDCWARN(
           "Trying to get ID3D11Device2. DX11.2 tiled resources are not supported at this time.");
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D11Device3))
+  {
+    if(m_pDevice3)
+    {
+      AddRef();
+      *ppvObject = (ID3D11Device3 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D11Device4))
+  {
+    if(m_pDevice4)
+    {
+      AddRef();
+      *ppvObject = (ID3D11Device4 *)this;
       return S_OK;
     }
     else
@@ -890,7 +935,9 @@ void WrappedID3D11Device::ProcessChunk(uint64_t offset, D3D11ChunkType context)
     case CREATE_SWAP_BUFFER: Serialise_SetSwapChainTexture(0x0, 0x0, 0, 0x0); break;
     case CREATE_TEXTURE_1D: Serialise_CreateTexture1D(0x0, 0x0, 0x0); break;
     case CREATE_TEXTURE_2D: Serialise_CreateTexture2D(0x0, 0x0, 0x0); break;
+    case CREATE_TEXTURE_2D1: Serialise_CreateTexture2D1(0x0, 0x0, 0x0); break;
     case CREATE_TEXTURE_3D: Serialise_CreateTexture3D(0x0, 0x0, 0x0); break;
+    case CREATE_TEXTURE_3D1: Serialise_CreateTexture3D1(0x0, 0x0, 0x0); break;
     case CREATE_BUFFER: Serialise_CreateBuffer(0x0, 0x0, 0x0); break;
     case CREATE_VERTEX_SHADER: Serialise_CreateVertexShader(0x0, 0, 0x0, 0x0); break;
     case CREATE_HULL_SHADER: Serialise_CreateHullShader(0x0, 0, 0x0, 0x0); break;
@@ -905,17 +952,22 @@ void WrappedID3D11Device::ProcessChunk(uint64_t offset, D3D11ChunkType context)
     case CREATE_CLASS_INSTANCE: Serialise_CreateClassInstance(0x0, 0, 0, 0, 0, 0x0, 0x0); break;
     case CREATE_CLASS_LINKAGE: Serialise_CreateClassLinkage(0x0); break;
     case CREATE_SRV: Serialise_CreateShaderResourceView(0x0, 0x0, 0x0); break;
+    case CREATE_SRV1: Serialise_CreateShaderResourceView1(0x0, 0x0, 0x0); break;
     case CREATE_RTV: Serialise_CreateRenderTargetView(0x0, 0x0, 0x0); break;
+    case CREATE_RTV1: Serialise_CreateRenderTargetView1(0x0, 0x0, 0x0); break;
     case CREATE_DSV: Serialise_CreateDepthStencilView(0x0, 0x0, 0x0); break;
     case CREATE_UAV: Serialise_CreateUnorderedAccessView(0x0, 0x0, 0x0); break;
+    case CREATE_UAV1: Serialise_CreateUnorderedAccessView1(0x0, 0x0, 0x0); break;
     case CREATE_INPUT_LAYOUT: Serialise_CreateInputLayout(0x0, 0, 0x0, 0, 0x0); break;
     case CREATE_BLEND_STATE: Serialise_CreateBlendState(0x0, 0x0); break;
+    case CREATE_BLEND_STATE1: Serialise_CreateBlendState1(0x0, 0x0); break;
     case CREATE_DEPTHSTENCIL_STATE: Serialise_CreateDepthStencilState(0x0, 0x0); break;
     case CREATE_RASTER_STATE: Serialise_CreateRasterizerState(0x0, 0x0); break;
-    case CREATE_BLEND_STATE1: Serialise_CreateBlendState1(0x0, 0x0); break;
     case CREATE_RASTER_STATE1: Serialise_CreateRasterizerState1(0x0, 0x0); break;
+    case CREATE_RASTER_STATE2: Serialise_CreateRasterizerState2(0x0, 0x0); break;
     case CREATE_SAMPLER_STATE: Serialise_CreateSamplerState(0x0, 0x0); break;
     case CREATE_QUERY: Serialise_CreateQuery(0x0, 0x0); break;
+    case CREATE_QUERY1: Serialise_CreateQuery1(0x0, 0x0); break;
     case CREATE_PREDICATE: Serialise_CreatePredicate(0x0, 0x0); break;
     case CREATE_COUNTER: Serialise_CreateCounter(0x0, 0x0); break;
     case CREATE_DEFERRED_CONTEXT: Serialise_CreateDeferredContext(0, 0x0); break;
@@ -1116,7 +1168,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 
   if(type == Resource_UnorderedAccessView)
   {
-    WrappedID3D11UnorderedAccessView *uav = (WrappedID3D11UnorderedAccessView *)res;
+    WrappedID3D11UnorderedAccessView1 *uav = (WrappedID3D11UnorderedAccessView1 *)res;
 
     D3D11_UNORDERED_ACCESS_VIEW_DESC udesc;
     uav->GetDesc(&udesc);
@@ -1142,7 +1194,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
       else
       {
         m_pImmediateContext->GetReal()->CopyStructureCount(
-            stage, 0, UNWRAP(WrappedID3D11UnorderedAccessView, uav));
+            stage, 0, UNWRAP(WrappedID3D11UnorderedAccessView1, uav));
 
         m_ResourceManager->SetInitialContents(
             Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
@@ -1208,7 +1260,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
   }
   else if(type == Resource_Texture2D)
   {
-    WrappedID3D11Texture2D *tex2D = (WrappedID3D11Texture2D *)res;
+    WrappedID3D11Texture2D1 *tex2D = (WrappedID3D11Texture2D1 *)res;
 
     D3D11_TEXTURE2D_DESC desc;
     tex2D->GetDesc(&desc);
@@ -1247,7 +1299,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 
       if(desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX)
       {
-        hr = UNWRAP(WrappedID3D11Texture2D, tex2D)
+        hr = UNWRAP(WrappedID3D11Texture2D1, tex2D)
                  ->QueryInterface(__uuidof(IDXGIKeyedMutex), (void **)&mutex);
 
         if(SUCCEEDED(hr) && mutex)
@@ -1266,9 +1318,9 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
       }
 
       if(multisampled)
-        m_DebugManager->CopyTex2DMSToArray(stage, UNWRAP(WrappedID3D11Texture2D, tex2D));
+        m_DebugManager->CopyTex2DMSToArray(stage, UNWRAP(WrappedID3D11Texture2D1, tex2D));
       else
-        m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture2D, tex2D));
+        m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture2D1, tex2D));
 
       m_pImmediateContext->GetReal()->Flush();
 
@@ -1285,7 +1337,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
   }
   else if(type == Resource_Texture3D)
   {
-    WrappedID3D11Texture3D *tex3D = (WrappedID3D11Texture3D *)res;
+    WrappedID3D11Texture3D1 *tex3D = (WrappedID3D11Texture3D1 *)res;
 
     D3D11_TEXTURE3D_DESC desc;
     tex3D->GetDesc(&desc);
@@ -1306,7 +1358,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
     }
     else
     {
-      m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture3D, tex3D));
+      m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture3D1, tex3D));
 
       m_ResourceManager->SetInitialContents(
           Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
@@ -1360,12 +1412,12 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
   if(type == Resource_UnorderedAccessView)
   {
-    WrappedID3D11UnorderedAccessView *uav = (WrappedID3D11UnorderedAccessView *)res;
+    WrappedID3D11UnorderedAccessView1 *uav = (WrappedID3D11UnorderedAccessView1 *)res;
     if(m_State < WRITING)
     {
       if(m_ResourceManager->HasLiveResource(Id))
       {
-        uav = (WrappedID3D11UnorderedAccessView *)m_ResourceManager->GetLiveResource(Id);
+        uav = (WrappedID3D11UnorderedAccessView1 *)m_ResourceManager->GetLiveResource(Id);
       }
       else
       {
@@ -1574,9 +1626,9 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
   }
   else if(type == Resource_Texture2D)
   {
-    WrappedID3D11Texture2D *tex2D = (WrappedID3D11Texture2D *)res;
+    WrappedID3D11Texture2D1 *tex2D = (WrappedID3D11Texture2D1 *)res;
     if(m_State < WRITING && m_ResourceManager->HasLiveResource(Id))
-      tex2D = (WrappedID3D11Texture2D *)m_ResourceManager->GetLiveResource(Id);
+      tex2D = (WrappedID3D11Texture2D1 *)m_ResourceManager->GetLiveResource(Id);
 
     D3D11ResourceRecord *record = NULL;
     if(m_State >= WRITING)
@@ -1771,9 +1823,9 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
   }
   else if(type == Resource_Texture3D)
   {
-    WrappedID3D11Texture3D *tex3D = (WrappedID3D11Texture3D *)res;
+    WrappedID3D11Texture3D1 *tex3D = (WrappedID3D11Texture3D1 *)res;
     if(m_State < WRITING && m_ResourceManager->HasLiveResource(Id))
-      tex3D = (WrappedID3D11Texture3D *)m_ResourceManager->GetLiveResource(Id);
+      tex3D = (WrappedID3D11Texture3D1 *)m_ResourceManager->GetLiveResource(Id);
 
     D3D11ResourceRecord *record = NULL;
     if(m_State >= WRITING)
@@ -1939,7 +1991,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
   if(type == Resource_UnorderedAccessView)
   {
-    WrappedID3D11UnorderedAccessView *uav = (WrappedID3D11UnorderedAccessView *)live;
+    WrappedID3D11UnorderedAccessView1 *uav = (WrappedID3D11UnorderedAccessView1 *)live;
 
     D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
     uav->GetDesc(&desc);
@@ -1965,7 +2017,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       else
       {
         m_pImmediateContext->GetReal()->CopyStructureCount(
-            stage, 0, UNWRAP(WrappedID3D11UnorderedAccessView, uav));
+            stage, 0, UNWRAP(WrappedID3D11UnorderedAccessView1, uav));
 
         D3D11_MAPPED_SUBRESOURCE mapped;
         hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
@@ -2071,7 +2123,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
   }
   else if(type == Resource_Texture2D)
   {
-    WrappedID3D11Texture2D *tex2D = (WrappedID3D11Texture2D *)live;
+    WrappedID3D11Texture2D1 *tex2D = (WrappedID3D11Texture2D1 *)live;
 
     D3D11_TEXTURE2D_DESC desc;
     tex2D->GetDesc(&desc);
@@ -2090,7 +2142,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       ID3D11RenderTargetView *initContents = NULL;
 
-      HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D, tex2D), &rdesc,
+      HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D1, tex2D), &rdesc,
                                                      &initContents);
 
       if(FAILED(hr))
@@ -2116,7 +2168,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       ID3D11DepthStencilView *initContents = NULL;
 
-      HRESULT hr = m_pDevice->CreateDepthStencilView(UNWRAP(WrappedID3D11Texture2D, tex2D), &ddesc,
+      HRESULT hr = m_pDevice->CreateDepthStencilView(UNWRAP(WrappedID3D11Texture2D1, tex2D), &ddesc,
                                                      &initContents);
 
       if(FAILED(hr))
@@ -2149,7 +2201,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       else
       {
         m_pImmediateContext->GetReal()->CopyResource(initContents,
-                                                     UNWRAP(WrappedID3D11Texture2D, tex2D));
+                                                     UNWRAP(WrappedID3D11Texture2D1, tex2D));
 
         m_ResourceManager->SetInitialContents(
             id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_Copy, NULL));
@@ -2158,7 +2210,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
   }
   else if(type == Resource_Texture3D)
   {
-    WrappedID3D11Texture3D *tex3D = (WrappedID3D11Texture3D *)live;
+    WrappedID3D11Texture3D1 *tex3D = (WrappedID3D11Texture3D1 *)live;
 
     D3D11_TEXTURE3D_DESC desc;
     tex3D->GetDesc(&desc);
@@ -2174,7 +2226,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       ID3D11RenderTargetView *initContents = NULL;
 
-      HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture3D, tex3D), &rdesc,
+      HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture3D1, tex3D), &rdesc,
                                                      &initContents);
 
       if(FAILED(hr))
@@ -2205,7 +2257,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       else
       {
         m_pImmediateContext->GetReal()->CopyResource(initContents,
-                                                     UNWRAP(WrappedID3D11Texture3D, tex3D));
+                                                     UNWRAP(WrappedID3D11Texture3D1, tex3D));
 
         m_ResourceManager->SetInitialContents(
             id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_Copy, NULL));
@@ -2395,8 +2447,8 @@ bool WrappedID3D11Device::Serialise_SetSwapChainTexture(IDXGISwapChain *swap,
     }
     else
     {
-      WrappedID3D11Texture2D *wrapped =
-          new WrappedID3D11Texture2D(fakeBB, this, TEXDISPLAY_INDIRECT_VIEW);
+      WrappedID3D11Texture2D1 *wrapped =
+          new WrappedID3D11Texture2D1(fakeBB, this, TEXDISPLAY_INDIRECT_VIEW);
       fakeBB = wrapped;
 
       wrapped->m_RealDescriptor = new D3D11_TEXTURE2D_DESC(realDescriptor);
@@ -2445,7 +2497,7 @@ void WrappedID3D11Device::SetSwapChainTexture(IDXGISwapChain *swap, DXGI_SWAP_CH
   if(buffer == 0 && m_State >= WRITING)
   {
     ID3D11RenderTargetView *rtv = NULL;
-    HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D, pTex), NULL, &rtv);
+    HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D1, pTex), NULL, &rtv);
 
     if(FAILED(hr))
       RDCERR("Couldn't create RTV for swapchain tex %08x", hr);

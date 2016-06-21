@@ -581,16 +581,16 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
           ((WrappedID3D11Texture1D *)res)->GetDesc(&desc);
           format = desc.Format;
         }
-        else if(WrappedID3D11Texture2D::IsAlloc(res))
+        else if(WrappedID3D11Texture2D1::IsAlloc(res))
         {
           D3D11_TEXTURE2D_DESC desc;
-          ((WrappedID3D11Texture2D *)res)->GetDesc(&desc);
+          ((WrappedID3D11Texture2D1 *)res)->GetDesc(&desc);
           format = desc.Format;
         }
-        else if(WrappedID3D11Texture3D::IsAlloc(res))
+        else if(WrappedID3D11Texture3D1::IsAlloc(res))
         {
           D3D11_TEXTURE3D_DESC desc;
-          ((WrappedID3D11Texture3D *)res)->GetDesc(&desc);
+          ((WrappedID3D11Texture3D1 *)res)->GetDesc(&desc);
           format = desc.Format;
         }
       }
@@ -678,7 +678,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
                   udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
           {
             D3D11_TEXTURE2D_DESC desc;
-            ((WrappedID3D11Texture2D *)res)->GetDesc(&desc);
+            ((WrappedID3D11Texture2D1 *)res)->GetDesc(&desc);
 
             desc.MiscFlags = 0;
             desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
@@ -722,7 +722,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
           else if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE3D)
           {
             D3D11_TEXTURE3D_DESC desc;
-            ((WrappedID3D11Texture3D *)res)->GetDesc(&desc);
+            ((WrappedID3D11Texture3D1 *)res)->GetDesc(&desc);
 
             desc.MiscFlags = 0;
             desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
@@ -2571,7 +2571,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
         return NULL;
       }
 
-      ID3D11RenderTargetView *rtv = UNWRAP(WrappedID3D11RenderTargetView, wrappedrtv);
+      ID3D11RenderTargetView *rtv = UNWRAP(WrappedID3D11RenderTargetView1, wrappedrtv);
 
       m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
       float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -2619,11 +2619,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
       m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture1D, d), wrapTex->GetReal());
     }
   }
-  else if(WrappedID3D11Texture2D::m_TextureList.find(id) !=
-          WrappedID3D11Texture2D::m_TextureList.end())
+  else if(WrappedID3D11Texture2D1::m_TextureList.find(id) !=
+          WrappedID3D11Texture2D1::m_TextureList.end())
   {
-    WrappedID3D11Texture2D *wrapTex =
-        (WrappedID3D11Texture2D *)WrappedID3D11Texture2D::m_TextureList[id].m_Texture;
+    WrappedID3D11Texture2D1 *wrapTex =
+        (WrappedID3D11Texture2D1 *)WrappedID3D11Texture2D1::m_TextureList[id].m_Texture;
 
     D3D11_TEXTURE2D_DESC desc = {0};
     wrapTex->GetDesc(&desc);
@@ -2706,7 +2706,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
         return NULL;
       }
 
-      ID3D11RenderTargetView *rtv = UNWRAP(WrappedID3D11RenderTargetView, wrappedrtv);
+      ID3D11RenderTargetView *rtv = UNWRAP(WrappedID3D11RenderTargetView1, wrappedrtv);
 
       m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
       float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -2744,8 +2744,8 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 
       SetOutputDimensions(oldW, oldH);
 
-      m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D, d),
-                                        UNWRAP(WrappedID3D11Texture2D, rtTex));
+      m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D1, d),
+                                        UNWRAP(WrappedID3D11Texture2D1, rtTex));
       SAFE_RELEASE(rtTex);
 
       SAFE_RELEASE(wrappedrtv);
@@ -2766,27 +2766,27 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
         return NULL;
       }
 
-      m_pImmediateContext->ResolveSubresource(UNWRAP(WrappedID3D11Texture2D, resolveTex), arrayIdx,
+      m_pImmediateContext->ResolveSubresource(UNWRAP(WrappedID3D11Texture2D1, resolveTex), arrayIdx,
                                               wrapTex->GetReal(), arrayIdx, desc.Format);
-      m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D, d),
-                                        UNWRAP(WrappedID3D11Texture2D, resolveTex));
+      m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D1, d),
+                                        UNWRAP(WrappedID3D11Texture2D1, resolveTex));
 
       SAFE_RELEASE(resolveTex);
     }
     else if(wasms)
     {
-      CopyTex2DMSToArray(UNWRAP(WrappedID3D11Texture2D, d), wrapTex->GetReal());
+      CopyTex2DMSToArray(UNWRAP(WrappedID3D11Texture2D1, d), wrapTex->GetReal());
     }
     else
     {
-      m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D, d), wrapTex->GetReal());
+      m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D1, d), wrapTex->GetReal());
     }
   }
-  else if(WrappedID3D11Texture3D::m_TextureList.find(id) !=
-          WrappedID3D11Texture3D::m_TextureList.end())
+  else if(WrappedID3D11Texture3D1::m_TextureList.find(id) !=
+          WrappedID3D11Texture3D1::m_TextureList.end())
   {
-    WrappedID3D11Texture3D *wrapTex =
-        (WrappedID3D11Texture3D *)WrappedID3D11Texture3D::m_TextureList[id].m_Texture;
+    WrappedID3D11Texture3D1 *wrapTex =
+        (WrappedID3D11Texture3D1 *)WrappedID3D11Texture3D1::m_TextureList[id].m_Texture;
 
     D3D11_TEXTURE3D_DESC desc = {0};
     wrapTex->GetDesc(&desc);
@@ -2866,7 +2866,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
           return NULL;
         }
 
-        rtv = UNWRAP(WrappedID3D11RenderTargetView, wrappedrtv);
+        rtv = UNWRAP(WrappedID3D11RenderTargetView1, wrappedrtv);
 
         m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
         float color[4] = {0.0f, 0.5f, 0.0f, 0.0f};
@@ -2901,13 +2901,13 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 
       SetOutputDimensions(oldW, oldH);
 
-      m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture3D, d),
-                                        UNWRAP(WrappedID3D11Texture3D, rtTex));
+      m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture3D1, d),
+                                        UNWRAP(WrappedID3D11Texture3D1, rtTex));
       SAFE_RELEASE(rtTex);
     }
     else
     {
-      m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture3D, d), wrapTex->GetReal());
+      m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture3D1, d), wrapTex->GetReal());
     }
   }
   else
@@ -3026,7 +3026,7 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
   }
   else
   {
-    WrappedID3D11Texture2D *wrapped = (WrappedID3D11Texture2D *)m_CustomShaderTex;
+    WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_CustomShaderTex;
     hr = m_pDevice->CreateRenderTargetView(wrapped->GetReal(), NULL, &m_CustomShaderRTV);
 
     if(FAILED(hr))
@@ -3071,7 +3071,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
   if(m_OverlayRenderTex)
     m_OverlayRenderTex->GetDesc(&customTexDesc);
 
-  WrappedID3D11Texture2D *wrappedCustomRenderTex = (WrappedID3D11Texture2D *)m_OverlayRenderTex;
+  WrappedID3D11Texture2D1 *wrappedCustomRenderTex = (WrappedID3D11Texture2D1 *)m_OverlayRenderTex;
 
   // need to recreate backing custom render tex
   if(realTexDesc.Width != customTexDesc.Width || realTexDesc.Height != customTexDesc.Height ||
@@ -3089,7 +3089,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
       RDCERR("Failed to create custom render tex %08x", hr);
       return ResourceId();
     }
-    wrappedCustomRenderTex = (WrappedID3D11Texture2D *)customRenderTex;
+    wrappedCustomRenderTex = (WrappedID3D11Texture2D1 *)customRenderTex;
 
     m_OverlayRenderTex = wrappedCustomRenderTex;
     m_OverlayResourceId = wrappedCustomRenderTex->GetResourceID();
@@ -3785,7 +3785,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
         float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
         m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
-        ID3D11ShaderResourceView *srv = ((WrappedID3D11ShaderResourceView *)overdrawSRV)->GetReal();
+        ID3D11ShaderResourceView *srv = ((WrappedID3D11ShaderResourceView1 *)overdrawSRV)->GetReal();
         m_pImmediateContext->PSSetShaderResources(0, 1, &srv);
 
         m_pImmediateContext->Draw(3, 0);
@@ -4461,14 +4461,14 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
   if(WrappedID3D11Texture1D::m_TextureList.find(target) != WrappedID3D11Texture1D::m_TextureList.end())
     targetres =
         ((WrappedID3D11Texture1D *)WrappedID3D11Texture1D::m_TextureList[target].m_Texture)->GetReal();
-  else if(WrappedID3D11Texture2D::m_TextureList.find(target) !=
-          WrappedID3D11Texture2D::m_TextureList.end())
+  else if(WrappedID3D11Texture2D1::m_TextureList.find(target) !=
+          WrappedID3D11Texture2D1::m_TextureList.end())
     targetres =
-        ((WrappedID3D11Texture2D *)WrappedID3D11Texture2D::m_TextureList[target].m_Texture)->GetReal();
-  else if(WrappedID3D11Texture3D::m_TextureList.find(target) !=
-          WrappedID3D11Texture3D::m_TextureList.end())
+        ((WrappedID3D11Texture2D1 *)WrappedID3D11Texture2D1::m_TextureList[target].m_Texture)->GetReal();
+  else if(WrappedID3D11Texture3D1::m_TextureList.find(target) !=
+          WrappedID3D11Texture3D1::m_TextureList.end())
     targetres =
-        ((WrappedID3D11Texture3D *)WrappedID3D11Texture3D::m_TextureList[target].m_Texture)->GetReal();
+        ((WrappedID3D11Texture3D1 *)WrappedID3D11Texture3D1::m_TextureList[target].m_Texture)->GetReal();
 
   CopyPixelParams colourCopyParams = {};
 

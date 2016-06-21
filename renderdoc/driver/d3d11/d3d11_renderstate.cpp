@@ -933,8 +933,8 @@ void D3D11RenderState::TakeRef(ID3D11DeviceChild *p)
     p->AddRef();
     if(m_ImmediatePipeline)
     {
-      if(WrappedID3D11RenderTargetView::IsAlloc(p) || WrappedID3D11ShaderResourceView::IsAlloc(p) ||
-         WrappedID3D11DepthStencilView::IsAlloc(p) || WrappedID3D11UnorderedAccessView::IsAlloc(p))
+      if(WrappedID3D11RenderTargetView1::IsAlloc(p) || WrappedID3D11ShaderResourceView1::IsAlloc(p) ||
+         WrappedID3D11DepthStencilView::IsAlloc(p) || WrappedID3D11UnorderedAccessView1::IsAlloc(p))
         m_pDevice->InternalRef();
 
       m_pDevice->InternalRef();
@@ -954,8 +954,8 @@ void D3D11RenderState::ReleaseRef(ID3D11DeviceChild *p)
     p->Release();
     if(m_ImmediatePipeline)
     {
-      if(WrappedID3D11RenderTargetView::IsAlloc(p) || WrappedID3D11ShaderResourceView::IsAlloc(p) ||
-         WrappedID3D11DepthStencilView::IsAlloc(p) || WrappedID3D11UnorderedAccessView::IsAlloc(p))
+      if(WrappedID3D11RenderTargetView1::IsAlloc(p) || WrappedID3D11ShaderResourceView1::IsAlloc(p) ||
+         WrappedID3D11DepthStencilView::IsAlloc(p) || WrappedID3D11UnorderedAccessView1::IsAlloc(p))
         m_pDevice->InternalRelease();
 
       m_pDevice->InternalRelease();

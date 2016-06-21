@@ -256,6 +256,7 @@ namespace renderdoc
                 public bool MultisampleEnable;
                 public bool AntialiasedLineEnable;
                 public UInt32 ForcedSampleCount;
+                public bool ConservativeRasterization;
             };
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
             public RasterizerState m_State;

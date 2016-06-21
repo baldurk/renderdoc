@@ -127,10 +127,10 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     return tex;
   }
 
-  auto it2D = WrappedID3D11Texture2D::m_TextureList.find(id);
-  if(it2D != WrappedID3D11Texture2D::m_TextureList.end())
+  auto it2D = WrappedID3D11Texture2D1::m_TextureList.find(id);
+  if(it2D != WrappedID3D11Texture2D1::m_TextureList.end())
   {
-    WrappedID3D11Texture2D *d3dtex = (WrappedID3D11Texture2D *)it2D->second.m_Texture;
+    WrappedID3D11Texture2D1 *d3dtex = (WrappedID3D11Texture2D1 *)it2D->second.m_Texture;
 
     string str = GetDebugName(d3dtex);
 
@@ -224,10 +224,10 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     return tex;
   }
 
-  auto it3D = WrappedID3D11Texture3D::m_TextureList.find(id);
-  if(it3D != WrappedID3D11Texture3D::m_TextureList.end())
+  auto it3D = WrappedID3D11Texture3D1::m_TextureList.find(id);
+  if(it3D != WrappedID3D11Texture3D1::m_TextureList.end())
   {
-    WrappedID3D11Texture3D *d3dtex = (WrappedID3D11Texture3D *)it3D->second.m_Texture;
+    WrappedID3D11Texture3D1 *d3dtex = (WrappedID3D11Texture3D1 *)it3D->second.m_Texture;
 
     string str = GetDebugName(d3dtex);
 
@@ -415,19 +415,19 @@ vector<ResourceId> D3D11Replay::GetTextures()
   vector<ResourceId> ret;
 
   ret.reserve(WrappedID3D11Texture1D::m_TextureList.size() +
-              WrappedID3D11Texture2D::m_TextureList.size() +
-              WrappedID3D11Texture3D::m_TextureList.size());
+              WrappedID3D11Texture2D1::m_TextureList.size() +
+              WrappedID3D11Texture3D1::m_TextureList.size());
 
   for(auto it = WrappedID3D11Texture1D::m_TextureList.begin();
       it != WrappedID3D11Texture1D::m_TextureList.end(); ++it)
     ret.push_back(it->first);
 
-  for(auto it = WrappedID3D11Texture2D::m_TextureList.begin();
-      it != WrappedID3D11Texture2D::m_TextureList.end(); ++it)
+  for(auto it = WrappedID3D11Texture2D1::m_TextureList.begin();
+      it != WrappedID3D11Texture2D1::m_TextureList.end(); ++it)
     ret.push_back(it->first);
 
-  for(auto it = WrappedID3D11Texture3D::m_TextureList.begin();
-      it != WrappedID3D11Texture3D::m_TextureList.end(); ++it)
+  for(auto it = WrappedID3D11Texture3D1::m_TextureList.begin();
+      it != WrappedID3D11Texture3D1::m_TextureList.end(); ++it)
     ret.push_back(it->first);
 
   return ret;
@@ -890,10 +890,20 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
       D3D11_RASTERIZER_DESC1 desc1;
       RDCEraseEl(desc1);
 
-      if(WrappedID3D11RasterizerState1::IsAlloc(rs->RS.State))
+      if(CanQuery<ID3D11RasterizerState1>(rs->RS.State))
       {
         ((ID3D11RasterizerState1 *)rs->RS.State)->GetDesc1(&desc1);
         ret.m_RS.m_State.ForcedSampleCount = desc1.ForcedSampleCount;
+      }
+
+      D3D11_RASTERIZER_DESC2 desc2;
+      RDCEraseEl(desc2);
+
+      if(CanQuery<ID3D11RasterizerState2>(rs->RS.State))
+      {
+        ((ID3D11RasterizerState2 *)rs->RS.State)->GetDesc2(&desc2);
+        ret.m_RS.m_State.ConservativeRasterization =
+            desc2.ConservativeRaster == D3D11_CONSERVATIVE_RASTERIZATION_MODE_ON;
       }
 
       ret.m_RS.m_State.State = rm->GetOriginalID(GetIDForResource(rs->RS.State));
@@ -1159,9 +1169,9 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
       D3D11_BLEND_DESC1 desc1;
       RDCEraseEl(desc1);
 
-      if(WrappedID3D11BlendState1::IsAlloc(rs->OM.BlendState))
+      if(CanQuery<ID3D11BlendState1>(rs->OM.BlendState))
       {
-        ((ID3D11BlendState1 *)rs->OM.BlendState)->GetDesc1(&desc1);
+        ((WrappedID3D11BlendState1 *)rs->OM.BlendState)->GetDesc1(&desc1);
 
         state1 = true;
       }
@@ -1659,9 +1669,9 @@ ResourceId D3D11Replay::CreateProxyTexture(const FetchTexture &templateTex)
 
     resource = throwaway;
 
-    ret = ((WrappedID3D11Texture2D *)throwaway)->GetResourceID();
+    ret = ((WrappedID3D11Texture2D1 *)throwaway)->GetResourceID();
     if(templateTex.creationFlags & eTextureCreate_DSV)
-      WrappedID3D11Texture2D::m_TextureList[ret].m_Type = TEXDISPLAY_DEPTH_TARGET;
+      WrappedID3D11Texture2D1::m_TextureList[ret].m_Type = TEXDISPLAY_DEPTH_TARGET;
   }
   else if(templateTex.dimension == 3)
   {
@@ -1691,7 +1701,7 @@ ResourceId D3D11Replay::CreateProxyTexture(const FetchTexture &templateTex)
 
     resource = throwaway;
 
-    ret = ((WrappedID3D11Texture3D *)throwaway)->GetResourceID();
+    ret = ((WrappedID3D11Texture3D1 *)throwaway)->GetResourceID();
   }
   else
   {
@@ -1745,11 +1755,11 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
                            GetByteSize(desc.Width, 1, 1, desc.Format, mip),
                            GetByteSize(desc.Width, 1, 1, desc.Format, mip));
   }
-  else if(WrappedID3D11Texture2D::m_TextureList.find(texid) !=
-          WrappedID3D11Texture2D::m_TextureList.end())
+  else if(WrappedID3D11Texture2D1::m_TextureList.find(texid) !=
+          WrappedID3D11Texture2D1::m_TextureList.end())
   {
-    WrappedID3D11Texture2D *tex =
-        (WrappedID3D11Texture2D *)WrappedID3D11Texture2D::m_TextureList[texid].m_Texture;
+    WrappedID3D11Texture2D1 *tex =
+        (WrappedID3D11Texture2D1 *)WrappedID3D11Texture2D1::m_TextureList[texid].m_Texture;
 
     D3D11_TEXTURE2D_DESC desc;
     tex->GetDesc(&desc);
@@ -1774,11 +1784,11 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
                            GetByteSize(desc.Width, 1, 1, desc.Format, mip),
                            GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
   }
-  else if(WrappedID3D11Texture3D::m_TextureList.find(texid) !=
-          WrappedID3D11Texture3D::m_TextureList.end())
+  else if(WrappedID3D11Texture3D1::m_TextureList.find(texid) !=
+          WrappedID3D11Texture3D1::m_TextureList.end())
   {
-    WrappedID3D11Texture3D *tex =
-        (WrappedID3D11Texture3D *)WrappedID3D11Texture3D::m_TextureList[texid].m_Texture;
+    WrappedID3D11Texture3D1 *tex =
+        (WrappedID3D11Texture3D1 *)WrappedID3D11Texture3D1::m_TextureList[texid].m_Texture;
 
     D3D11_TEXTURE3D_DESC desc;
     tex->GetDesc(&desc);

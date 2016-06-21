@@ -24,6 +24,9 @@
 
 #include "d3d11_context.h"
 
+/////////////////////////////////
+// implement ID3D11DeviceContext2
+
 HRESULT WrappedID3D11DeviceContext::UpdateTileMappings(
     ID3D11Resource *pTiledResource, UINT NumTiledResourceRegions,
     const D3D11_TILED_RESOURCE_COORDINATE *pTiledResourceRegionStartCoordinates,

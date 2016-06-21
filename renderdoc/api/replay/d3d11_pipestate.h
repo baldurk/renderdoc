@@ -234,7 +234,8 @@ struct D3D11PipelineState
             ScissorEnable(false),
             MultisampleEnable(false),
             AntialiasedLineEnable(false),
-            ForcedSampleCount(0)
+            ForcedSampleCount(0),
+            ConservativeRasterization(false)
       {
       }
       ResourceId State;
@@ -249,6 +250,7 @@ struct D3D11PipelineState
       bool32 MultisampleEnable;
       bool32 AntialiasedLineEnable;
       uint32_t ForcedSampleCount;
+      bool32 ConservativeRasterization;
     } m_State;
   } m_RS;
 

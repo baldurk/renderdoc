@@ -294,28 +294,6 @@ vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTextureData(
   return descs;
 }
 
-template <typename TexDesc>
-TextureDisplayType WrappedID3D11Device::DispTypeForTexture(TexDesc &Descriptor)
-{
-  TextureDisplayType dispType = TEXDISPLAY_SRV_COMPATIBLE;
-
-  if(Descriptor.Usage == D3D11_USAGE_STAGING)
-  {
-    dispType = TEXDISPLAY_INDIRECT_VIEW;
-  }
-  else if(IsDepthFormat(Descriptor.Format) || (Descriptor.BindFlags & D3D11_BIND_DEPTH_STENCIL))
-  {
-    dispType = TEXDISPLAY_DEPTH_TARGET;
-  }
-  else
-  {
-    // diverging from perfect reproduction here
-    Descriptor.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
-  }
-
-  return dispType;
-}
-
 bool WrappedID3D11Device::Serialise_CreateTexture1D(const D3D11_TEXTURE1D_DESC *pDesc,
                                                     const D3D11_SUBRESOURCE_DATA *pInitialData,
                                                     ID3D11Texture1D **ppTexture1D)
@@ -449,7 +427,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(const D3D11_TEXTURE2D_DESC *
     }
     else
     {
-      ret = new WrappedID3D11Texture2D(ret, this, dispType);
+      ret = new WrappedID3D11Texture2D1(ret, this, dispType);
 
       GetResourceManager()->AddLiveResource(pTexture, ret);
     }
@@ -477,7 +455,7 @@ HRESULT WrappedID3D11Device::CreateTexture2D(const D3D11_TEXTURE2D_DESC *pDesc,
   {
     SCOPED_LOCK(m_D3DLock);
 
-    wrapped = new WrappedID3D11Texture2D(real, this);
+    wrapped = new WrappedID3D11Texture2D1(real, this);
 
     if(m_State >= WRITING)
     {
@@ -499,7 +477,7 @@ HRESULT WrappedID3D11Device::CreateTexture2D(const D3D11_TEXTURE2D_DESC *pDesc,
     }
     else
     {
-      WrappedID3D11Texture2D *w = (WrappedID3D11Texture2D *)wrapped;
+      WrappedID3D11Texture2D1 *w = (WrappedID3D11Texture2D1 *)wrapped;
 
       GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
     }
@@ -546,7 +524,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(const D3D11_TEXTURE3D_DESC *
     }
     else
     {
-      ret = new WrappedID3D11Texture3D(ret, this, dispType);
+      ret = new WrappedID3D11Texture3D1(ret, this, dispType);
 
       GetResourceManager()->AddLiveResource(pTexture, ret);
     }
@@ -574,7 +552,7 @@ HRESULT WrappedID3D11Device::CreateTexture3D(const D3D11_TEXTURE3D_DESC *pDesc,
   {
     SCOPED_LOCK(m_D3DLock);
 
-    wrapped = new WrappedID3D11Texture3D(real, this);
+    wrapped = new WrappedID3D11Texture3D1(real, this);
 
     if(m_State >= WRITING)
     {
@@ -596,7 +574,7 @@ HRESULT WrappedID3D11Device::CreateTexture3D(const D3D11_TEXTURE3D_DESC *pDesc,
     }
     else
     {
-      WrappedID3D11Texture3D *w = (WrappedID3D11Texture3D *)wrapped;
+      WrappedID3D11Texture3D1 *w = (WrappedID3D11Texture3D1 *)wrapped;
 
       GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
     }
@@ -626,13 +604,13 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(ID3D11Resource *pRe
 
     ID3D11Resource *live = (ID3D11Resource *)GetResourceManager()->GetLiveResource(Resource);
 
-    WrappedID3D11Texture2D *tex2d = (WrappedID3D11Texture2D *)live;
+    WrappedID3D11Texture2D1 *tex2d = (WrappedID3D11Texture2D1 *)live;
 
     D3D11_SHADER_RESOURCE_VIEW_DESC backbufferTypedDesc;
 
     // need to fixup typeless backbuffer fudging, if a descriptor isn't specified then
     // we need to make one to give the correct type
-    if(!HasDesc && WrappedID3D11Texture2D::IsAlloc(live) && tex2d->m_RealDescriptor)
+    if(!HasDesc && WrappedID3D11Texture2D1::IsAlloc(live) && tex2d->m_RealDescriptor)
     {
       backbufferTypedDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 
@@ -653,7 +631,7 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(ID3D11Resource *pRe
     // This behaviour is documented only for render targets, but seems to be used & work for
     // SRVs, so apply it here too.
     if(pSRVDesc && pSRVDesc->Format == DXGI_FORMAT_UNKNOWN &&
-       WrappedID3D11Texture2D::IsAlloc(live) && tex2d->m_RealDescriptor)
+       WrappedID3D11Texture2D1::IsAlloc(live) && tex2d->m_RealDescriptor)
     {
       pSRVDesc->Format = tex2d->m_RealDescriptor->Format;
     }
@@ -667,7 +645,7 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(ID3D11Resource *pRe
     }
     else
     {
-      ret = new WrappedID3D11ShaderResourceView(ret, live, this);
+      ret = new WrappedID3D11ShaderResourceView1(ret, live, this);
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
@@ -694,7 +672,7 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView(ID3D11Resource *pResource,
   {
     SCOPED_LOCK(m_D3DLock);
 
-    wrapped = new WrappedID3D11ShaderResourceView(real, pResource, this);
+    wrapped = new WrappedID3D11ShaderResourceView1(real, pResource, this);
 
     Chunk *chunk = NULL;
 
@@ -705,15 +683,15 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView(ID3D11Resource *pResource,
 
       chunk = scope.Get();
 
-      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D::IsAlloc(pResource) ||
-         WrappedID3D11Texture3D::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
+      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D1::IsAlloc(pResource) ||
+         WrappedID3D11Texture3D1::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
       {
         D3D11ResourceRecord *parent =
             GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
 
         RDCASSERT(parent);
 
-        WrappedID3D11ShaderResourceView *view = (WrappedID3D11ShaderResourceView *)wrapped;
+        WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)wrapped;
         ResourceId id = view->GetResourceID();
 
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
@@ -767,7 +745,7 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
     }
     else
     {
-      ret = new WrappedID3D11UnorderedAccessView(ret, live, this);
+      ret = new WrappedID3D11UnorderedAccessView1(ret, live, this);
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
@@ -794,7 +772,7 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView(ID3D11Resource *pResource
   {
     SCOPED_LOCK(m_D3DLock);
 
-    wrapped = new WrappedID3D11UnorderedAccessView(real, pResource, this);
+    wrapped = new WrappedID3D11UnorderedAccessView1(real, pResource, this);
 
     Chunk *chunk = NULL;
 
@@ -805,15 +783,15 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView(ID3D11Resource *pResource
 
       chunk = scope.Get();
 
-      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D::IsAlloc(pResource) ||
-         WrappedID3D11Texture3D::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
+      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D1::IsAlloc(pResource) ||
+         WrappedID3D11Texture3D1::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
       {
         D3D11ResourceRecord *parent =
             GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
 
         RDCASSERT(parent);
 
-        WrappedID3D11UnorderedAccessView *view = (WrappedID3D11UnorderedAccessView *)wrapped;
+        WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)wrapped;
         ResourceId id = view->GetResourceID();
 
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
@@ -857,13 +835,13 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(ID3D11Resource *pReso
 
     ID3D11Resource *live = (ID3D11Resource *)GetResourceManager()->GetLiveResource(Resource);
 
-    WrappedID3D11Texture2D *tex2d = (WrappedID3D11Texture2D *)live;
+    WrappedID3D11Texture2D1 *tex2d = (WrappedID3D11Texture2D1 *)live;
 
     D3D11_RENDER_TARGET_VIEW_DESC backbufferTypedDesc;
 
     // need to fixup typeless backbuffer fudging, if a descriptor isn't specified then
     // we need to make one to give the correct type
-    if(!HasDesc && WrappedID3D11Texture2D::IsAlloc(live) && tex2d->m_RealDescriptor)
+    if(!HasDesc && WrappedID3D11Texture2D1::IsAlloc(live) && tex2d->m_RealDescriptor)
     {
       backbufferTypedDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 
@@ -880,7 +858,7 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(ID3D11Resource *pReso
     // the texture's format. But as above, we fudge around the typeless backbuffer so we
     // have to set the correct typed format
     if(pRTVDesc && pRTVDesc->Format == DXGI_FORMAT_UNKNOWN &&
-       WrappedID3D11Texture2D::IsAlloc(live) && tex2d->m_RealDescriptor)
+       WrappedID3D11Texture2D1::IsAlloc(live) && tex2d->m_RealDescriptor)
     {
       pRTVDesc->Format = tex2d->m_RealDescriptor->Format;
     }
@@ -894,7 +872,7 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(ID3D11Resource *pReso
     }
     else
     {
-      ret = new WrappedID3D11RenderTargetView(ret, live, this);
+      ret = new WrappedID3D11RenderTargetView1(ret, live, this);
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
@@ -921,7 +899,7 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView(ID3D11Resource *pResource,
   {
     SCOPED_LOCK(m_D3DLock);
 
-    wrapped = new WrappedID3D11RenderTargetView(real, pResource, this);
+    wrapped = new WrappedID3D11RenderTargetView1(real, pResource, this);
 
     Chunk *chunk = NULL;
 
@@ -932,15 +910,15 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView(ID3D11Resource *pResource,
 
       chunk = scope.Get();
 
-      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D::IsAlloc(pResource) ||
-         WrappedID3D11Texture3D::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
+      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D1::IsAlloc(pResource) ||
+         WrappedID3D11Texture3D1::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
       {
         D3D11ResourceRecord *parent =
             GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
 
         RDCASSERT(parent);
 
-        WrappedID3D11RenderTargetView *view = (WrappedID3D11RenderTargetView *)wrapped;
+        WrappedID3D11RenderTargetView1 *view = (WrappedID3D11RenderTargetView1 *)wrapped;
         ResourceId id = view->GetResourceID();
 
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
@@ -1032,8 +1010,8 @@ HRESULT WrappedID3D11Device::CreateDepthStencilView(ID3D11Resource *pResource,
 
       chunk = scope.Get();
 
-      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D::IsAlloc(pResource) ||
-         WrappedID3D11Texture3D::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
+      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D1::IsAlloc(pResource) ||
+         WrappedID3D11Texture3D1::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
       {
         D3D11ResourceRecord *parent =
             GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
@@ -2012,7 +1990,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState(const D3D11_BLEND_DESC *pBl
       }
       else
       {
-        ret = new WrappedID3D11BlendState(ret, this);
+        ret = new WrappedID3D11BlendState1(ret, this);
 
         GetResourceManager()->AddLiveResource(State, ret);
       }
@@ -2045,7 +2023,7 @@ HRESULT WrappedID3D11Device::CreateBlendState(const D3D11_BLEND_DESC *pBlendStat
       return ret;
     }
 
-    ID3D11BlendState *wrapped = new WrappedID3D11BlendState(real, this);
+    ID3D11BlendState *wrapped = new WrappedID3D11BlendState1(real, this);
 
     CachedObjectsGarbageCollect();
 
@@ -2161,7 +2139,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState(const D3D11_RASTERIZER
     }
     else
     {
-      ret = new WrappedID3D11RasterizerState(ret, this);
+      ret = new WrappedID3D11RasterizerState2(ret, this);
 
       GetResourceManager()->AddLiveResource(State, ret);
     }
@@ -2193,7 +2171,7 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(const D3D11_RASTERIZER_DESC *
       return ret;
     }
 
-    ID3D11RasterizerState *wrapped = new WrappedID3D11RasterizerState(real, this);
+    ID3D11RasterizerState *wrapped = new WrappedID3D11RasterizerState2(real, this);
 
     CachedObjectsGarbageCollect();
 
@@ -2309,7 +2287,7 @@ bool WrappedID3D11Device::Serialise_CreateQuery(const D3D11_QUERY_DESC *pQueryDe
     }
     else
     {
-      ret = new WrappedID3D11Query(ret, this);
+      ret = new WrappedID3D11Query1(ret, this);
 
       GetResourceManager()->AddLiveResource(Query, ret);
     }
@@ -2331,7 +2309,7 @@ HRESULT WrappedID3D11Device::CreateQuery(const D3D11_QUERY_DESC *pQueryDesc, ID3
   {
     SCOPED_LOCK(m_D3DLock);
 
-    *ppQuery = new WrappedID3D11Query(real, this);
+    *ppQuery = new WrappedID3D11Query1(real, this);
   }
 
   return ret;
@@ -2681,7 +2659,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(HANDLE hResource, REFIID 
       }
       else
       {
-        ret = new WrappedID3D11Texture2D(ret, this, dispType);
+        ret = new WrappedID3D11Texture2D1(ret, this, dispType);
 
         GetResourceManager()->AddLiveResource(pResource, ret);
       }
@@ -2724,7 +2702,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(HANDLE hResource, REFIID 
       }
       else
       {
-        ret = new WrappedID3D11Texture3D(ret, this, dispType);
+        ret = new WrappedID3D11Texture3D1(ret, this, dispType);
 
         GetResourceManager()->AddLiveResource(pResource, ret);
       }
@@ -2838,7 +2816,7 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
       }
       else if(isTex2D)
       {
-        WrappedID3D11Texture2D *w = new WrappedID3D11Texture2D((ID3D11Texture2D *)res, this);
+        WrappedID3D11Texture2D1 *w = new WrappedID3D11Texture2D1((ID3D11Texture2D *)res, this);
         wrappedID = w->GetResourceID();
 
         realRes = w->GetReal();
@@ -2847,7 +2825,7 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
       }
       else if(isTex3D)
       {
-        WrappedID3D11Texture3D *w = new WrappedID3D11Texture3D((ID3D11Texture3D *)res, this);
+        WrappedID3D11Texture3D1 *w = new WrappedID3D11Texture3D1((ID3D11Texture3D *)res, this);
         wrappedID = w->GetResourceID();
 
         realRes = w->GetReal();

@@ -72,6 +72,15 @@
     <ClCompile Include="d3d11_hooks.cpp">
       <Filter>Hooks</Filter>
     </ClCompile>
+    <ClCompile Include="d3d11_context3_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_device3_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_device2_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d11_replay.h">

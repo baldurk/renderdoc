@@ -149,6 +149,7 @@
             System.Windows.Forms.Label label15;
             System.Windows.Forms.Label label16;
             System.Windows.Forms.Label label17;
+            System.Windows.Forms.Label label25;
             TreelistView.TreeListColumn treeListColumn109 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
             TreelistView.TreeListColumn treeListColumn110 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("X", "X")));
             TreelistView.TreeListColumn treeListColumn111 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Y", "Y")));
@@ -440,6 +441,7 @@
             this.showEmpty = new System.Windows.Forms.ToolStripMenuItem();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.exportDialog = new System.Windows.Forms.SaveFileDialog();
+            this.conservativeRaster = new System.Windows.Forms.PictureBox();
             toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             toolstripTable = new System.Windows.Forms.TableLayoutPanel();
             groupBox2 = new System.Windows.Forms.GroupBox();
@@ -452,6 +454,7 @@
             label16 = new System.Windows.Forms.Label();
             label17 = new System.Windows.Forms.Label();
             groupBox42 = new System.Windows.Forms.GroupBox();
+            label25 = new System.Windows.Forms.Label();
             toolstripTable.SuspendLayout();
             this.flowLayoutPanel6.SuspendLayout();
             this.toolStrip1.SuspendLayout();
@@ -602,6 +605,7 @@
             this.groupBox36.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.csCBuffers)).BeginInit();
             this.rightclickMenu.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.conservativeRaster)).BeginInit();
             this.SuspendLayout();
             // 
             // toolStripLabel1
@@ -2454,6 +2458,8 @@
             this.tableLayoutPanel8.Controls.Add(this.scissorEnable, 3, 2);
             this.tableLayoutPanel8.Controls.Add(this.lineAAEnable, 7, 2);
             this.tableLayoutPanel8.Controls.Add(this.label23, 6, 2);
+            this.tableLayoutPanel8.Controls.Add(label25, 6, 0);
+            this.tableLayoutPanel8.Controls.Add(this.conservativeRaster, 7, 0);
             this.tableLayoutPanel8.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel8.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel8.Name = "tableLayoutPanel8";
@@ -4238,6 +4244,27 @@
             this.exportDialog.Filter = "HTML Files (*.html)|*.html";
             this.exportDialog.Title = "Export pipeline state as HTML";
             // 
+            // label25
+            // 
+            label25.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            label25.AutoSize = true;
+            label25.Location = new System.Drawing.Point(426, 6);
+            label25.Name = "label25";
+            label25.Size = new System.Drawing.Size(106, 13);
+            label25.TabIndex = 25;
+            label25.Text = "Conservative Raster:";
+            // 
+            // conservativeRaster
+            // 
+            this.conservativeRaster.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.conservativeRaster.Image = ((System.Drawing.Image)(resources.GetObject("conservativeRaster.Image")));
+            this.conservativeRaster.Location = new System.Drawing.Point(539, 5);
+            this.conservativeRaster.Name = "conservativeRaster";
+            this.conservativeRaster.Size = new System.Drawing.Size(32, 16);
+            this.conservativeRaster.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
+            this.conservativeRaster.TabIndex = 26;
+            this.conservativeRaster.TabStop = false;
+            // 
             // D3D11PipelineStateViewer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -4416,6 +4443,7 @@
             this.groupBox36.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.csCBuffers)).EndInit();
             this.rightclickMenu.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.conservativeRaster)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -4622,5 +4650,6 @@
         private System.Windows.Forms.ToolStripButton export;
         private System.Windows.Forms.SaveFileDialog exportDialog;
         private TreelistView.TreeListView gsStreams;
+        private System.Windows.Forms.PictureBox conservativeRaster;
     }
 }

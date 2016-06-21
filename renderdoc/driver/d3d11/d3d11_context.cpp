@@ -105,6 +105,9 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   m_pRealContext2 = NULL;
   m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext2), (void **)&m_pRealContext2);
 
+  m_pRealContext3 = NULL;
+  m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext3), (void **)&m_pRealContext3);
+
 #if defined(RELEASE)
   const bool debugSerialiser = false;
 #else
@@ -198,6 +201,7 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
 
   SAFE_RELEASE(m_pRealContext1);
   SAFE_RELEASE(m_pRealContext2);
+  SAFE_RELEASE(m_pRealContext3);
 
   SAFE_DELETE(m_CurrentPipelineState);
   SAFE_RELEASE(m_pRealContext);
@@ -832,14 +836,14 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
 
     for(int i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
       if(sh.Used_SRV(i))
-        m_ResourceUses[((WrappedID3D11ShaderResourceView *)sh.SRVs[i])->GetResourceResID()].push_back(
+        m_ResourceUses[((WrappedID3D11ShaderResourceView1 *)sh.SRVs[i])->GetResourceResID()].push_back(
             EventUsage(e, (ResourceUsage)(eUsage_VS_Resource + s)));
 
     if(s == 5)
     {
       for(int i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
         if(pipe->CS.Used_UAV(i) && pipe->CSUAVs[i])
-          m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pipe->CSUAVs[i])->GetResourceResID()]
+          m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)pipe->CSUAVs[i])->GetResourceResID()]
               .push_back(EventUsage(e, eUsage_CS_RWResource));
     }
   }
@@ -856,7 +860,7 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
 
   for(int i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
     if(pipe->PS.Used_UAV(i) && pipe->OM.UAVs[i])
-      m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pipe->OM.UAVs[i])->GetResourceResID()]
+      m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)pipe->OM.UAVs[i])->GetResourceResID()]
           .push_back(EventUsage(e, eUsage_PS_RWResource));
 
   if(pipe->OM.DepthView)    // assuming for now that any DSV bound is used.
@@ -865,7 +869,7 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
 
   for(int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
     if(pipe->OM.RenderTargets[i])    // assuming for now that any RTV bound is used.
-      m_ResourceUses[((WrappedID3D11RenderTargetView *)pipe->OM.RenderTargets[i])->GetResourceResID()]
+      m_ResourceUses[((WrappedID3D11RenderTargetView1 *)pipe->OM.RenderTargets[i])->GetResourceResID()]
           .push_back(EventUsage(e, eUsage_ColourTarget));
 }
 
@@ -928,8 +932,9 @@ void WrappedID3D11DeviceContext::AddDrawcall(const FetchDrawcall &d, bool hasEve
   {
     draw.outputs[i] = ResourceId();
     if(m_CurrentPipelineState->OM.RenderTargets[i])
-      draw.outputs[i] = ((WrappedID3D11RenderTargetView *)m_CurrentPipelineState->OM.RenderTargets[i])
-                            ->GetResourceResID();
+      draw.outputs[i] =
+          ((WrappedID3D11RenderTargetView1 *)m_CurrentPipelineState->OM.RenderTargets[i])
+              ->GetResourceResID();
   }
 
   {
@@ -1114,11 +1119,11 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
     for(auto it = WrappedID3D11Texture1D::m_TextureList.begin();
         it != WrappedID3D11Texture1D::m_TextureList.end(); ++it)
       m_ResourceUses[it->first];
-    for(auto it = WrappedID3D11Texture2D::m_TextureList.begin();
-        it != WrappedID3D11Texture2D::m_TextureList.end(); ++it)
+    for(auto it = WrappedID3D11Texture2D1::m_TextureList.begin();
+        it != WrappedID3D11Texture2D1::m_TextureList.end(); ++it)
       m_ResourceUses[it->first];
-    for(auto it = WrappedID3D11Texture3D::m_TextureList.begin();
-        it != WrappedID3D11Texture3D::m_TextureList.end(); ++it)
+    for(auto it = WrappedID3D11Texture3D1::m_TextureList.begin();
+        it != WrappedID3D11Texture3D1::m_TextureList.end(); ++it)
       m_ResourceUses[it->first];
 
 #define CHECK_UNUSED_INITIAL_STATES 0
@@ -1210,6 +1215,11 @@ void WrappedID3D11DeviceContext::ClearMaps()
 
 HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid, void **ppvObject)
 {
+  // This doesn't seem to be in the headers yet. Will update when it appears.
+  // ID3D11Multithread UUID {0f0f0f0f-b0b0-c0c0-d0d0-e0e0e0e0e0e0}
+  static const GUID ID3D11Multithread_uuid = {
+      0x0f0f0f0f, 0xb0b0, 0xc0c0, {0xd0, 0xd0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0}};
+
   if(riid == __uuidof(IUnknown))
   {
     *ppvObject = (IUnknown *)(ID3D11DeviceContext *)this;
@@ -1256,6 +1266,24 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
     {
       return E_NOINTERFACE;
     }
+  }
+  else if(riid == __uuidof(ID3D11DeviceContext3))
+  {
+    if(m_pRealContext3)
+    {
+      *ppvObject = (ID3D11DeviceContext3 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == ID3D11Multithread_uuid)
+  {
+    RDCWARN("ID3D11Multithread is not supported");
+    return E_NOINTERFACE;
   }
   else if(riid == __uuidof(ID3DUserDefinedAnnotation))
   {

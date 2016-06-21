@@ -31,16 +31,16 @@
 
 WRAPPED_POOL_INST(WrappedID3D11Buffer);
 WRAPPED_POOL_INST(WrappedID3D11Texture1D);
-WRAPPED_POOL_INST(WrappedID3D11Texture2D);
-WRAPPED_POOL_INST(WrappedID3D11Texture3D);
+WRAPPED_POOL_INST(WrappedID3D11Texture2D1);
+WRAPPED_POOL_INST(WrappedID3D11Texture3D1);
 WRAPPED_POOL_INST(WrappedID3D11InputLayout);
 WRAPPED_POOL_INST(WrappedID3D11SamplerState);
-WRAPPED_POOL_INST(WrappedID3D11RasterizerState);
+WRAPPED_POOL_INST(WrappedID3D11RasterizerState2);
 WRAPPED_POOL_INST(WrappedID3D11DepthStencilState);
-WRAPPED_POOL_INST(WrappedID3D11BlendState);
-WRAPPED_POOL_INST(WrappedID3D11ShaderResourceView);
-WRAPPED_POOL_INST(WrappedID3D11UnorderedAccessView);
-WRAPPED_POOL_INST(WrappedID3D11RenderTargetView);
+WRAPPED_POOL_INST(WrappedID3D11BlendState1);
+WRAPPED_POOL_INST(WrappedID3D11ShaderResourceView1);
+WRAPPED_POOL_INST(WrappedID3D11UnorderedAccessView1);
+WRAPPED_POOL_INST(WrappedID3D11RenderTargetView1);
 WRAPPED_POOL_INST(WrappedID3D11DepthStencilView);
 WRAPPED_POOL_INST(WrappedID3D11Shader<ID3D11VertexShader>);
 WRAPPED_POOL_INST(WrappedID3D11Shader<ID3D11HullShader>);
@@ -49,19 +49,17 @@ WRAPPED_POOL_INST(WrappedID3D11Shader<ID3D11GeometryShader>);
 WRAPPED_POOL_INST(WrappedID3D11Shader<ID3D11PixelShader>);
 WRAPPED_POOL_INST(WrappedID3D11Shader<ID3D11ComputeShader>);
 WRAPPED_POOL_INST(WrappedID3D11Counter);
-WRAPPED_POOL_INST(WrappedID3D11Query);
+WRAPPED_POOL_INST(WrappedID3D11Query1);
 WRAPPED_POOL_INST(WrappedID3D11Predicate);
 WRAPPED_POOL_INST(WrappedID3D11ClassInstance);
 WRAPPED_POOL_INST(WrappedID3D11ClassLinkage);
-WRAPPED_POOL_INST(WrappedID3D11RasterizerState1);
-WRAPPED_POOL_INST(WrappedID3D11BlendState1);
 
 map<ResourceId, WrappedID3D11Texture1D::TextureEntry>
-    WrappedTexture<ID3D11Texture1D, D3D11_TEXTURE1D_DESC>::m_TextureList;
-map<ResourceId, WrappedID3D11Texture2D::TextureEntry>
-    WrappedTexture<ID3D11Texture2D, D3D11_TEXTURE2D_DESC>::m_TextureList;
-map<ResourceId, WrappedID3D11Texture3D::TextureEntry>
-    WrappedTexture<ID3D11Texture3D, D3D11_TEXTURE3D_DESC>::m_TextureList;
+    WrappedTexture<ID3D11Texture1D, D3D11_TEXTURE1D_DESC, ID3D11Texture1D>::m_TextureList;
+map<ResourceId, WrappedID3D11Texture2D1::TextureEntry>
+    WrappedTexture<ID3D11Texture2D, D3D11_TEXTURE2D_DESC, ID3D11Texture2D1>::m_TextureList;
+map<ResourceId, WrappedID3D11Texture3D1::TextureEntry>
+    WrappedTexture<ID3D11Texture3D, D3D11_TEXTURE3D_DESC, ID3D11Texture3D1>::m_TextureList;
 map<ResourceId, WrappedID3D11Buffer::BufferEntry> WrappedID3D11Buffer::m_BufferList;
 map<ResourceId, WrappedShader::ShaderEntry *> WrappedShader::m_ShaderList;
 Threading::CriticalSection WrappedShader::m_ShaderListLock;
@@ -182,9 +180,9 @@ UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)
   // require a virtual call
   if(WrappedID3D11Texture1D::IsAlloc(res))
     dim = D3D11_RESOURCE_DIMENSION_TEXTURE1D;
-  else if(WrappedID3D11Texture2D::IsAlloc(res))
+  else if(WrappedID3D11Texture2D1::IsAlloc(res))
     dim = D3D11_RESOURCE_DIMENSION_TEXTURE2D;
-  else if(WrappedID3D11Texture3D::IsAlloc(res))
+  else if(WrappedID3D11Texture3D1::IsAlloc(res))
     dim = D3D11_RESOURCE_DIMENSION_TEXTURE3D;
   else
     res->GetType(&dim);
@@ -1319,9 +1317,7 @@ string ToStrHelper<false, ResourceType>::Get(const ResourceType &el)
     TOSTR_CASE_STRINGIZE(Resource_Texture2D)
     TOSTR_CASE_STRINGIZE(Resource_Texture3D)
     TOSTR_CASE_STRINGIZE(Resource_RasterizerState)
-    TOSTR_CASE_STRINGIZE(Resource_RasterizerState1)
     TOSTR_CASE_STRINGIZE(Resource_BlendState)
-    TOSTR_CASE_STRINGIZE(Resource_BlendState1)
     TOSTR_CASE_STRINGIZE(Resource_DepthStencilState)
     TOSTR_CASE_STRINGIZE(Resource_SamplerState)
     TOSTR_CASE_STRINGIZE(Resource_RenderTargetView)
@@ -1372,37 +1368,33 @@ ResourceId GetIDForResource(ID3D11DeviceChild *ptr)
 
   if(WrappedID3D11Texture1D::IsAlloc(ptr))
     return ((WrappedID3D11Texture1D *)ptr)->GetResourceID();
-  if(WrappedID3D11Texture2D::IsAlloc(ptr))
-    return ((WrappedID3D11Texture2D *)ptr)->GetResourceID();
-  if(WrappedID3D11Texture3D::IsAlloc(ptr))
-    return ((WrappedID3D11Texture3D *)ptr)->GetResourceID();
+  if(WrappedID3D11Texture2D1::IsAlloc(ptr))
+    return ((WrappedID3D11Texture2D1 *)ptr)->GetResourceID();
+  if(WrappedID3D11Texture3D1::IsAlloc(ptr))
+    return ((WrappedID3D11Texture3D1 *)ptr)->GetResourceID();
 
-  if(WrappedID3D11RasterizerState::IsAlloc(ptr))
-    return ((WrappedID3D11RasterizerState *)ptr)->GetResourceID();
-  if(WrappedID3D11BlendState::IsAlloc(ptr))
-    return ((WrappedID3D11BlendState *)ptr)->GetResourceID();
+  if(WrappedID3D11RasterizerState2::IsAlloc(ptr))
+    return ((WrappedID3D11RasterizerState2 *)ptr)->GetResourceID();
+  if(WrappedID3D11BlendState1::IsAlloc(ptr))
+    return ((WrappedID3D11BlendState1 *)ptr)->GetResourceID();
   if(WrappedID3D11DepthStencilState::IsAlloc(ptr))
     return ((WrappedID3D11DepthStencilState *)ptr)->GetResourceID();
   if(WrappedID3D11SamplerState::IsAlloc(ptr))
     return ((WrappedID3D11SamplerState *)ptr)->GetResourceID();
-  if(WrappedID3D11RasterizerState1::IsAlloc(ptr))
-    return ((WrappedID3D11RasterizerState1 *)ptr)->GetResourceID();
-  if(WrappedID3D11BlendState1::IsAlloc(ptr))
-    return ((WrappedID3D11BlendState1 *)ptr)->GetResourceID();
 
-  if(WrappedID3D11RenderTargetView::IsAlloc(ptr))
-    return ((WrappedID3D11RenderTargetView *)ptr)->GetResourceID();
-  if(WrappedID3D11ShaderResourceView::IsAlloc(ptr))
-    return ((WrappedID3D11ShaderResourceView *)ptr)->GetResourceID();
+  if(WrappedID3D11RenderTargetView1::IsAlloc(ptr))
+    return ((WrappedID3D11RenderTargetView1 *)ptr)->GetResourceID();
+  if(WrappedID3D11ShaderResourceView1::IsAlloc(ptr))
+    return ((WrappedID3D11ShaderResourceView1 *)ptr)->GetResourceID();
   if(WrappedID3D11DepthStencilView::IsAlloc(ptr))
     return ((WrappedID3D11DepthStencilView *)ptr)->GetResourceID();
-  if(WrappedID3D11UnorderedAccessView::IsAlloc(ptr))
-    return ((WrappedID3D11UnorderedAccessView *)ptr)->GetResourceID();
+  if(WrappedID3D11UnorderedAccessView1::IsAlloc(ptr))
+    return ((WrappedID3D11UnorderedAccessView1 *)ptr)->GetResourceID();
 
   if(WrappedID3D11Counter::IsAlloc(ptr))
     return ((WrappedID3D11Counter *)ptr)->GetResourceID();
-  if(WrappedID3D11Query::IsAlloc(ptr))
-    return ((WrappedID3D11Query *)ptr)->GetResourceID();
+  if(WrappedID3D11Query1::IsAlloc(ptr))
+    return ((WrappedID3D11Query1 *)ptr)->GetResourceID();
   if(WrappedID3D11Predicate::IsAlloc(ptr))
     return ((WrappedID3D11Predicate *)ptr)->GetResourceID();
 
@@ -1439,36 +1431,32 @@ ResourceType IdentifyTypeByPtr(IUnknown *ptr)
 
   if(WrappedID3D11Texture1D::IsAlloc(ptr))
     return Resource_Texture1D;
-  if(WrappedID3D11Texture2D::IsAlloc(ptr))
+  if(WrappedID3D11Texture2D1::IsAlloc(ptr))
     return Resource_Texture2D;
-  if(WrappedID3D11Texture3D::IsAlloc(ptr))
+  if(WrappedID3D11Texture3D1::IsAlloc(ptr))
     return Resource_Texture3D;
 
-  if(WrappedID3D11RasterizerState::IsAlloc(ptr))
+  if(WrappedID3D11RasterizerState2::IsAlloc(ptr))
     return Resource_RasterizerState;
-  if(WrappedID3D11BlendState::IsAlloc(ptr))
+  if(WrappedID3D11BlendState1::IsAlloc(ptr))
     return Resource_BlendState;
   if(WrappedID3D11DepthStencilState::IsAlloc(ptr))
     return Resource_DepthStencilState;
   if(WrappedID3D11SamplerState::IsAlloc(ptr))
     return Resource_SamplerState;
-  if(WrappedID3D11RasterizerState1::IsAlloc(ptr))
-    return Resource_RasterizerState1;
-  if(WrappedID3D11BlendState1::IsAlloc(ptr))
-    return Resource_BlendState1;
 
-  if(WrappedID3D11RenderTargetView::IsAlloc(ptr))
+  if(WrappedID3D11RenderTargetView1::IsAlloc(ptr))
     return Resource_RenderTargetView;
-  if(WrappedID3D11ShaderResourceView::IsAlloc(ptr))
+  if(WrappedID3D11ShaderResourceView1::IsAlloc(ptr))
     return Resource_ShaderResourceView;
   if(WrappedID3D11DepthStencilView::IsAlloc(ptr))
     return Resource_DepthStencilView;
-  if(WrappedID3D11UnorderedAccessView::IsAlloc(ptr))
+  if(WrappedID3D11UnorderedAccessView1::IsAlloc(ptr))
     return Resource_UnorderedAccessView;
 
   if(WrappedID3D11Counter::IsAlloc(ptr))
     return Resource_Counter;
-  if(WrappedID3D11Query::IsAlloc(ptr))
+  if(WrappedID3D11Query1::IsAlloc(ptr))
     return Resource_Query;
   if(WrappedID3D11Predicate::IsAlloc(ptr))
     return Resource_Predicate;
