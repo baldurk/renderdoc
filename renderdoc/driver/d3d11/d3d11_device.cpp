@@ -202,14 +202,21 @@ D3D11InitParams::D3D11InitParams()
 // and set some defaults if necessary).
 // Here we list which non-current versions we support, and what changed
 const uint32_t D3D11InitParams::D3D11_OLD_VERSIONS[D3D11InitParams::D3D11_NUM_SUPPORTED_OLD_VERSIONS] = {
-    0x000004,    // from 0x4 to 0x5, we added the stream-out hidden counters in the context's
-                 // Serialise_BeginCaptureFrame
-    0x000005,    // from 0x5 to 0x6, several new calls were made 'drawcalls', like Copy &
-                 // GenerateMips, with serialised debug messages
-    0x000006,    // from 0x6 to 0x7, we added some more padding in some buffer & texture chunks to
-                 // get larger alignment than 16-byte
-    0x000007,    // from 0x7 to 0x8, we changed the UAV arrays in the render state to be D3D11.1
-                 // sized and separate CS array.
+    // from 0x4 to 0x5, we added the stream-out hidden counters in the context's
+    // Serialise_BeginCaptureFrame
+    0x000004,
+    // from 0x5 to 0x6, several new calls were made 'drawcalls', like Copy &
+    // GenerateMips, with serialised debug messages
+    0x000005,
+    // from 0x6 to 0x7, we added some more padding in some buffer & texture chunks to
+    // get larger alignment than 16-byte
+    0x000006,
+    // from 0x7 to 0x8, we changed the UAV arrays in the render state to be D3D11.1
+    // sized and separate CS array.
+    0x000007,
+    // from 0x8 to 0x9, we added the view creation details to clear calls in the device
+    // record so that we can still perform the clear even if the view wasn't referenced.
+    0x000008,
 };
 
 ReplayCreateStatus D3D11InitParams::Serialise()

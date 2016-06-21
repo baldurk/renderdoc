@@ -6255,6 +6255,31 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
 {
   SERIALISE_ELEMENT(ResourceId, View, GetIDForResource(pRenderTargetView));
 
+  // at time of writing we don't support the 11.3 DESC1, but for the sake
+  // of not having to bump serialisation version later we'll serialise that
+  // version of the descriptor. We can just alias the memory because the only
+  // difference is some union members got larger.
+  union
+  {
+    D3D11_RENDER_TARGET_VIEW_DESC1 Desc1;
+    D3D11_RENDER_TARGET_VIEW_DESC Desc;
+  } ViewDesc;
+  ResourceId resID;
+
+  RDCEraseEl(ViewDesc.Desc1);
+
+  if(m_State >= WRITING)
+  {
+    pRenderTargetView->GetDesc(&ViewDesc.Desc);
+    resID = ((WrappedID3D11RenderTargetView *)pRenderTargetView)->GetResourceResID();
+  }
+
+  if(m_State >= WRITING || m_pDevice->GetLogVersion() >= 0x000009)
+  {
+    m_pSerialiser->Serialise("ViewDesc", ViewDesc.Desc1);
+    m_pSerialiser->Serialise("resID", resID);
+  }
+
   float Color[4] = {0};
 
   if(m_State >= WRITING)
@@ -6262,11 +6287,34 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
 
   m_pSerialiser->SerialisePODArray<4>("ColorRGBA", Color);
 
-  if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
+  if(m_State <= EXECUTING)
   {
-    m_pRealContext->ClearRenderTargetView(
-        UNWRAP(WrappedID3D11RenderTargetView, m_pDevice->GetResourceManager()->GetLiveResource(View)),
-        Color);
+    if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+    {
+      m_pRealContext->ClearRenderTargetView(
+          UNWRAP(WrappedID3D11RenderTargetView,
+                 m_pDevice->GetResourceManager()->GetLiveResource(View)),
+          Color);
+    }
+    else if(m_pDevice->GetLogVersion() >= 0x000009)
+    {
+      // no live view, we have to create one ourselves to clear with.
+      if(m_pDevice->GetResourceManager()->HasLiveResource(resID))
+      {
+        ID3D11RenderTargetView *view = NULL;
+        m_pDevice->CreateRenderTargetView(
+            (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(resID),
+            &ViewDesc.Desc, &view);
+        m_pRealContext->ClearRenderTargetView(UNWRAP(WrappedID3D11RenderTargetView, view), Color);
+        SAFE_RELEASE(view);
+      }
+    }
+    else
+    {
+      RDCWARN(
+          "No view was found to perform clear - data might be wrong. "
+          "Re-capture with latest RenderDoc to solve this issue.");
+    }
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -6381,6 +6429,31 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
 {
   SERIALISE_ELEMENT(ResourceId, View, GetIDForResource(pUnorderedAccessView));
 
+  // at time of writing we don't support the 11.3 DESC1, but for the sake
+  // of not having to bump serialisation version later we'll serialise that
+  // version of the descriptor. We can just alias the memory because the only
+  // difference is some union members got larger.
+  union
+  {
+    D3D11_UNORDERED_ACCESS_VIEW_DESC1 Desc1;
+    D3D11_UNORDERED_ACCESS_VIEW_DESC Desc;
+  } ViewDesc;
+  ResourceId resID;
+
+  RDCEraseEl(ViewDesc.Desc1);
+
+  if(m_State >= WRITING)
+  {
+    pUnorderedAccessView->GetDesc(&ViewDesc.Desc);
+    resID = ((WrappedID3D11UnorderedAccessView *)pUnorderedAccessView)->GetResourceResID();
+  }
+
+  if(m_State >= WRITING || m_pDevice->GetLogVersion() >= 0x000009)
+  {
+    m_pSerialiser->Serialise("ViewDesc", ViewDesc.Desc1);
+    m_pSerialiser->Serialise("resID", resID);
+  }
+
   UINT Values[4] = {0};
 
   if(m_State >= WRITING)
@@ -6388,12 +6461,35 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
 
   m_pSerialiser->SerialisePODArray<4>("Values", Values);
 
-  if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
+  if(m_State <= EXECUTING)
   {
-    m_pRealContext->ClearUnorderedAccessViewUint(
-        UNWRAP(WrappedID3D11UnorderedAccessView,
-               m_pDevice->GetResourceManager()->GetLiveResource(View)),
-        Values);
+    if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+    {
+      m_pRealContext->ClearUnorderedAccessViewUint(
+          UNWRAP(WrappedID3D11UnorderedAccessView,
+                 m_pDevice->GetResourceManager()->GetLiveResource(View)),
+          Values);
+    }
+    else if(m_pDevice->GetLogVersion() >= 0x000009)
+    {
+      // no live view, we have to create one ourselves to clear with.
+      if(m_pDevice->GetResourceManager()->HasLiveResource(resID))
+      {
+        ID3D11UnorderedAccessView *view = NULL;
+        m_pDevice->CreateUnorderedAccessView(
+            (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(resID),
+            &ViewDesc.Desc, &view);
+        m_pRealContext->ClearUnorderedAccessViewUint(UNWRAP(WrappedID3D11UnorderedAccessView, view),
+                                                     Values);
+        SAFE_RELEASE(view);
+      }
+    }
+    else
+    {
+      RDCWARN(
+          "No view was found to perform clear - data might be wrong. "
+          "Re-capture with latest RenderDoc to solve this issue.");
+    }
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -6500,6 +6596,31 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
 {
   SERIALISE_ELEMENT(ResourceId, View, GetIDForResource(pUnorderedAccessView));
 
+  // at time of writing we don't support the 11.3 DESC1, but for the sake
+  // of not having to bump serialisation version later we'll serialise that
+  // version of the descriptor. We can just alias the memory because the only
+  // difference is some union members got larger.
+  union
+  {
+    D3D11_UNORDERED_ACCESS_VIEW_DESC1 Desc1;
+    D3D11_UNORDERED_ACCESS_VIEW_DESC Desc;
+  } ViewDesc;
+  ResourceId resID;
+
+  RDCEraseEl(ViewDesc.Desc1);
+
+  if(m_State >= WRITING)
+  {
+    pUnorderedAccessView->GetDesc(&ViewDesc.Desc);
+    resID = ((WrappedID3D11UnorderedAccessView *)pUnorderedAccessView)->GetResourceResID();
+  }
+
+  if(m_State >= WRITING || m_pDevice->GetLogVersion() >= 0x000009)
+  {
+    m_pSerialiser->Serialise("ViewDesc", ViewDesc.Desc1);
+    m_pSerialiser->Serialise("resID", resID);
+  }
+
   FLOAT Values[4] = {0};
 
   if(m_State >= WRITING)
@@ -6507,12 +6628,35 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
 
   m_pSerialiser->SerialisePODArray<4>("Values", Values);
 
-  if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
+  if(m_State <= EXECUTING)
   {
-    m_pRealContext->ClearUnorderedAccessViewFloat(
-        UNWRAP(WrappedID3D11UnorderedAccessView,
-               m_pDevice->GetResourceManager()->GetLiveResource(View)),
-        Values);
+    if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+    {
+      m_pRealContext->ClearUnorderedAccessViewFloat(
+          UNWRAP(WrappedID3D11UnorderedAccessView,
+                 m_pDevice->GetResourceManager()->GetLiveResource(View)),
+          Values);
+    }
+    else if(m_pDevice->GetLogVersion() >= 0x000009)
+    {
+      // no live view, we have to create one ourselves to clear with.
+      if(m_pDevice->GetResourceManager()->HasLiveResource(resID))
+      {
+        ID3D11UnorderedAccessView *view = NULL;
+        m_pDevice->CreateUnorderedAccessView(
+            (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(resID),
+            &ViewDesc.Desc, &view);
+        m_pRealContext->ClearUnorderedAccessViewFloat(
+            UNWRAP(WrappedID3D11UnorderedAccessView, view), Values);
+        SAFE_RELEASE(view);
+      }
+    }
+    else
+    {
+      RDCWARN(
+          "No view was found to perform clear - data might be wrong. "
+          "Re-capture with latest RenderDoc to solve this issue.");
+    }
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -6621,11 +6765,50 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
   SERIALISE_ELEMENT(float, Depth, Depth_);
   SERIALISE_ELEMENT(uint8_t, Stencil, Stencil_);
 
-  if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
+  D3D11_DEPTH_STENCIL_VIEW_DESC ViewDesc = {};
+  ResourceId resID;
+
+  if(m_State >= WRITING)
   {
-    m_pRealContext->ClearDepthStencilView(
-        UNWRAP(WrappedID3D11DepthStencilView, m_pDevice->GetResourceManager()->GetLiveResource(View)),
-        ClearFlags, Depth, Stencil);
+    pDepthStencilView->GetDesc(&ViewDesc);
+    resID = ((WrappedID3D11DepthStencilView *)pDepthStencilView)->GetResourceResID();
+  }
+
+  if(m_State >= WRITING || m_pDevice->GetLogVersion() >= 0x000009)
+  {
+    m_pSerialiser->Serialise("ViewDesc", ViewDesc);
+    m_pSerialiser->Serialise("resID", resID);
+  }
+
+  if(m_State <= EXECUTING)
+  {
+    if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+    {
+      m_pRealContext->ClearDepthStencilView(
+          UNWRAP(WrappedID3D11DepthStencilView,
+                 m_pDevice->GetResourceManager()->GetLiveResource(View)),
+          ClearFlags, Depth, Stencil);
+    }
+    else if(m_pDevice->GetLogVersion() >= 0x000009)
+    {
+      // no live view, we have to create one ourselves to clear with.
+      if(m_pDevice->GetResourceManager()->HasLiveResource(resID))
+      {
+        ID3D11DepthStencilView *view = NULL;
+        m_pDevice->CreateDepthStencilView(
+            (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(resID), &ViewDesc,
+            &view);
+        m_pRealContext->ClearDepthStencilView(UNWRAP(WrappedID3D11DepthStencilView, view),
+                                              ClearFlags, Depth, Stencil);
+        SAFE_RELEASE(view);
+      }
+    }
+    else
+    {
+      RDCWARN(
+          "No view was found to perform clear - data might be wrong. "
+          "Re-capture with latest RenderDoc to solve this issue.");
+    }
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
