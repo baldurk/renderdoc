@@ -90,6 +90,25 @@ namespace renderdocui.Code
             return (x + (a - 1)) & (~(a - 1));
         }
 
+        public static string SafeGetFileName(string filename)
+        {
+            try
+            {
+                return System.IO.Path.GetFileName(filename);
+            }
+            catch (ArgumentException)
+            {
+                // invalid path or similar, just try to go from last \ or / onwards
+
+                string ret = filename;
+                int idx = ret.LastIndexOfAny(new char[] { '/', '\\' });
+                if (idx > 0)
+                    ret = ret.Substring(idx + 1);
+
+                return ret;
+            }
+        }
+
         public static bool IsElevated
         {
             get

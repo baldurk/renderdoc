@@ -388,21 +388,7 @@ namespace renderdoc
             {
                 get
                 {
-                    try
-                    {
-                        return System.IO.Path.GetFileName(filename_);
-                    }
-                    catch (ArgumentException)
-                    {
-                        // invalid path or similar, just try to go from last \ or / onwards
-
-                        string ret = filename_;
-                        int idx = ret.LastIndexOfAny(new char[] { '/', '\\' });
-                        if (idx > 0)
-                            ret = ret.Substring(idx + 1);
-
-                        return ret;
-                    }
+                    return renderdocui.Code.Helpers.SafeGetFileName(filename_);
                 }
                 set
                 {

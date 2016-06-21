@@ -1937,13 +1937,18 @@ namespace renderdocui.Windows.PipelineState
                 entryFunc = shaderDetails.DebugInfo.entryFunc;
 
                 foreach (var s in shaderDetails.DebugInfo.files)
-                    files.Add(s.BaseFilename, s.filetext);
+                {
+                    if (files.ContainsKey(s.FullFilename))
+                        renderdoc.StaticExports.LogText(String.Format("Duplicate full filename {0}", s.FullFilename));
+                    else
+                        files.Add(s.FullFilename, s.filetext);
+                }
 
                 int entryFile = shaderDetails.DebugInfo.entryFile;
                 if (entryFile < 0 || entryFile >= shaderDetails.DebugInfo.files.Length)
                     entryFile = 0;
 
-                mainfile = shaderDetails.DebugInfo.files[entryFile].BaseFilename;
+                mainfile = shaderDetails.DebugInfo.files[entryFile].FullFilename;
             }
             else
             {
@@ -2093,10 +2098,27 @@ namespace renderdocui.Windows.PipelineState
 
                     string fileText = "";
 
+                    // look for exact match first
                     if (updatedfiles.ContainsKey(fname))
+                    {
                         fileText = updatedfiles[fname];
+                    }
                     else
-                        fileText = "// Can't find file " + fname + "\n";
+                    {
+                        string search = renderdocui.Code.Helpers.SafeGetFileName(fname);
+                        // if not, try and find the same filename (this is not proper include handling!)
+                        foreach (var k in updatedfiles.Keys)
+                        {
+                            if (renderdocui.Code.Helpers.SafeGetFileName(k) == search)
+                            {
+                                fileText = updatedfiles[k];
+                                break;
+                            }
+                        }
+
+                        if(fileText == "")
+                            fileText = "// Can't find file " + fname + "\n";
+                    }
 
                     compileSource = compileSource.Substring(0, offs) + "\n\n" + fileText + "\n\n" + (tail ? compileSource.Substring(lineEnd + 1) : "");
 

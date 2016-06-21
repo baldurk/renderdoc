@@ -249,11 +249,11 @@ namespace renderdocui.Windows
 
             foreach (var f in files)
             {
-                var name = f.Key;
+                var name = Helpers.SafeGetFileName(f.Key);
 
                 ScintillaNET.Scintilla scintilla1 = MakeEditor("scintilla" + name, f.Value, true);
                 scintilla1.IsReadOnly = false;
-                scintilla1.Tag = name;
+                scintilla1.Tag = f.Key;
 
                 scintilla1.PreviewKeyDown += new PreviewKeyDownEventHandler(scintilla1_PreviewKeyDown);
                 scintilla1.KeyDown += new KeyEventHandler(editScintilla_KeyDown);
