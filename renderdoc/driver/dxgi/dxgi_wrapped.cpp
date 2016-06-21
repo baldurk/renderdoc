@@ -67,7 +67,7 @@ HRESULT WrappedIDXGIFactory::staticCreateSwapChain(IDXGIFactory *factory, IUnkno
 
     if(SUCCEEDED(ret))
       *ppSwapChain =
-          new WrappedIDXGISwapChain2(*ppSwapChain, pDesc ? pDesc->OutputWindow : NULL, wrapDevice);
+          new WrappedIDXGISwapChain3(*ppSwapChain, pDesc ? pDesc->OutputWindow : NULL, wrapDevice);
 
     return ret;
   }
@@ -112,7 +112,7 @@ HRESULT WrappedIDXGIFactory2::staticCreateSwapChainForHwnd(
                                                   pFullscreenDesc, pRestrictToOutput, ppSwapChain);
 
     if(SUCCEEDED(ret))
-      *ppSwapChain = new WrappedIDXGISwapChain2(*ppSwapChain, hWnd, wrapDevice);
+      *ppSwapChain = new WrappedIDXGISwapChain3(*ppSwapChain, hWnd, wrapDevice);
 
     return ret;
   }
@@ -162,7 +162,7 @@ HRESULT WrappedIDXGIFactory2::staticCreateSwapChainForCoreWindow(IDXGIFactory2 *
     {
       HWND wnd = NULL;
       (*ppSwapChain)->GetHwnd(&wnd);
-      *ppSwapChain = new WrappedIDXGISwapChain2(*ppSwapChain, wnd, wrapDevice);
+      *ppSwapChain = new WrappedIDXGISwapChain3(*ppSwapChain, wnd, wrapDevice);
     }
 
     return ret;
@@ -213,7 +213,7 @@ HRESULT WrappedIDXGIFactory2::staticCreateSwapChainForComposition(IDXGIFactory2 
     {
       HWND wnd = NULL;
       (*ppSwapChain)->GetHwnd(&wnd);
-      *ppSwapChain = new WrappedIDXGISwapChain2(*ppSwapChain, wnd, wrapDevice);
+      *ppSwapChain = new WrappedIDXGISwapChain3(*ppSwapChain, wnd, wrapDevice);
     }
 
     return ret;
@@ -226,7 +226,7 @@ HRESULT WrappedIDXGIFactory2::staticCreateSwapChainForComposition(IDXGIFactory2 
   return factory->CreateSwapChainForComposition(pDevice, pDesc, pRestrictToOutput, ppSwapChain);
 }
 
-WrappedIDXGISwapChain2::WrappedIDXGISwapChain2(IDXGISwapChain *real, HWND wnd,
+WrappedIDXGISwapChain3::WrappedIDXGISwapChain3(IDXGISwapChain *real, HWND wnd,
                                                WrappedID3D11Device *device)
     : RefCountDXGIObject(real), m_pReal(real), m_pDevice(device), m_iRefcount(1), m_Wnd(wnd)
 {
@@ -237,6 +237,8 @@ WrappedIDXGISwapChain2::WrappedIDXGISwapChain2(IDXGISwapChain *real, HWND wnd,
   real->QueryInterface(__uuidof(IDXGISwapChain1), (void **)&m_pReal1);
   m_pReal2 = NULL;
   real->QueryInterface(__uuidof(IDXGISwapChain2), (void **)&m_pReal2);
+  m_pReal3 = NULL;
+  real->QueryInterface(__uuidof(IDXGISwapChain3), (void **)&m_pReal3);
 
   int bufCount = desc.BufferCount;
 
@@ -271,7 +273,7 @@ WrappedIDXGISwapChain2::WrappedIDXGISwapChain2(IDXGISwapChain *real, HWND wnd,
   m_pDevice->FirstFrame(this);
 }
 
-WrappedIDXGISwapChain2::~WrappedIDXGISwapChain2()
+WrappedIDXGISwapChain3::~WrappedIDXGISwapChain3()
 {
   m_pDevice->ReleaseSwapchainResources(this);
 
@@ -284,17 +286,13 @@ WrappedIDXGISwapChain2::~WrappedIDXGISwapChain2()
   }
   SAFE_RELEASE(m_pReal1);
   SAFE_RELEASE(m_pReal2);
+  SAFE_RELEASE(m_pReal3);
   SAFE_RELEASE(m_pReal);
 
   SAFE_RELEASE(m_pDevice);
 }
 
-HRESULT WrappedIDXGISwapChain2::ResizeBuffers(
-    /* [in] */ UINT BufferCount,
-    /* [in] */ UINT Width,
-    /* [in] */ UINT Height,
-    /* [in] */ DXGI_FORMAT NewFormat,
-    /* [in] */ UINT SwapChainFlags)
+void WrappedIDXGISwapChain3::ReleaseBuffersForResize()
 {
   for(int i = 0; i < MAX_NUM_BACKBUFFERS; i++)
   {
@@ -311,9 +309,10 @@ HRESULT WrappedIDXGISwapChain2::ResizeBuffers(
   }
 
   m_pDevice->ReleaseSwapchainResources(this);
+}
 
-  HRESULT ret = m_pReal->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
-
+void WrappedIDXGISwapChain3::WrapBuffersAfterResize()
+{
   DXGI_SWAP_CHAIN_DESC desc;
   m_pReal->GetDesc(&desc);
 
@@ -342,11 +341,42 @@ HRESULT WrappedIDXGISwapChain2::ResizeBuffers(
       }
     }
   }
+}
+
+HRESULT WrappedIDXGISwapChain3::ResizeBuffers(
+    /* [in] */ UINT BufferCount,
+    /* [in] */ UINT Width,
+    /* [in] */ UINT Height,
+    /* [in] */ DXGI_FORMAT NewFormat,
+    /* [in] */ UINT SwapChainFlags)
+{
+  ReleaseBuffersForResize();
+
+  HRESULT ret = m_pReal->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
+
+  WrapBuffersAfterResize();
 
   return ret;
 }
 
-HRESULT WrappedIDXGISwapChain2::SetFullscreenState(
+HRESULT WrappedIDXGISwapChain3::ResizeBuffers1(_In_ UINT BufferCount, _In_ UINT Width,
+                                               _In_ UINT Height, _In_ DXGI_FORMAT Format,
+                                               _In_ UINT SwapChainFlags,
+                                               _In_reads_(BufferCount) const UINT *pCreationNodeMask,
+                                               _In_reads_(BufferCount)
+                                                   IUnknown *const *ppPresentQueue)
+{
+  ReleaseBuffersForResize();
+
+  HRESULT ret = m_pReal3->ResizeBuffers1(BufferCount, Width, Height, Format, SwapChainFlags,
+                                         pCreationNodeMask, ppPresentQueue);
+
+  WrapBuffersAfterResize();
+
+  return ret;
+}
+
+HRESULT WrappedIDXGISwapChain3::SetFullscreenState(
     /* [in] */ BOOL Fullscreen,
     /* [in] */ IDXGIOutput *pTarget)
 {
@@ -356,14 +386,14 @@ HRESULT WrappedIDXGISwapChain2::SetFullscreenState(
   return S_OK;
 }
 
-HRESULT WrappedIDXGISwapChain2::GetFullscreenState(
+HRESULT WrappedIDXGISwapChain3::GetFullscreenState(
     /* [out] */ BOOL *pFullscreen,
     /* [out] */ IDXGIOutput **ppTarget)
 {
   return m_pReal->GetFullscreenState(pFullscreen, ppTarget);
 }
 
-HRESULT WrappedIDXGISwapChain2::GetBuffer(
+HRESULT WrappedIDXGISwapChain3::GetBuffer(
     /* [in] */ UINT Buffer,
     /* [in] */ REFIID riid,
     /* [out][in] */ void **ppSurface)
@@ -427,7 +457,7 @@ HRESULT WrappedIDXGISwapChain2::GetBuffer(
   return ret;
 }
 
-HRESULT WrappedIDXGISwapChain2::GetDevice(
+HRESULT WrappedIDXGISwapChain3::GetDevice(
     /* [in] */ REFIID riid,
     /* [retval][out] */ void **ppDevice)
 {
@@ -459,7 +489,7 @@ HRESULT WrappedIDXGISwapChain2::GetDevice(
   return ret;
 }
 
-HRESULT WrappedIDXGISwapChain2::Present(
+HRESULT WrappedIDXGISwapChain3::Present(
     /* [in] */ UINT SyncInterval,
     /* [in] */ UINT Flags)
 {
@@ -473,7 +503,7 @@ HRESULT WrappedIDXGISwapChain2::Present(
   return m_pReal->Present(SyncInterval, Flags);
 }
 
-HRESULT WrappedIDXGISwapChain2::Present1(UINT SyncInterval, UINT Flags,
+HRESULT WrappedIDXGISwapChain3::Present1(UINT SyncInterval, UINT Flags,
                                          const DXGI_PRESENT_PARAMETERS *pPresentParameters)
 {
   if(!RenderDoc::Inst().GetCaptureOptions().AllowVSync)
@@ -546,6 +576,12 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     *ppvObject = new WrappedIDXGIAdapter2(real);
     return true;
   }
+  else if(riid == __uuidof(IDXGIAdapter3))
+  {
+    IDXGIAdapter3 *real = (IDXGIAdapter3 *)(*ppvObject);
+    *ppvObject = new WrappedIDXGIAdapter3(real);
+    return true;
+  }
   else if(riid == __uuidof(IDXGIFactory2))
   {
     IDXGIFactory2 *real = (IDXGIFactory2 *)(*ppvObject);
@@ -556,6 +592,12 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   {
     IDXGIFactory3 *real = (IDXGIFactory3 *)(*ppvObject);
     *ppvObject = new WrappedIDXGIFactory3(real);
+    return true;
+  }
+  else if(riid == __uuidof(IDXGIFactory4))
+  {
+    IDXGIFactory4 *real = (IDXGIFactory4 *)(*ppvObject);
+    *ppvObject = new WrappedIDXGIFactory4(real);
     return true;
   }
   else
@@ -589,7 +631,7 @@ HRESULT RefCountDXGIObject::WrapQueryInterface(IUnknown *real, REFIID riid, void
   return ret;
 }
 
-HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain2::QueryInterface(REFIID riid, void **ppvObject)
+HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain3::QueryInterface(REFIID riid, void **ppvObject)
 {
   if(riid == __uuidof(IDXGISwapChain))
   {
@@ -616,6 +658,19 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain2::QueryInterface(REFIID riid, vo
     {
       AddRef();
       *ppvObject = (IDXGISwapChain2 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(IDXGISwapChain3))
+  {
+    if(m_pReal3)
+    {
+      AddRef();
+      *ppvObject = (IDXGISwapChain3 *)this;
       return S_OK;
     }
     else

@@ -131,5 +131,20 @@
     <ClInclude Include="official\d3d11_3.h">
       <Filter>official</Filter>
     </ClInclude>
+    <ClInclude Include="official\d3d11_4.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\dxgi1_4.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\dxgi1_5.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\dxgiformat.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\dxgitype.h">
+      <Filter>official</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
