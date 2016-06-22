@@ -2237,6 +2237,8 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
       ib = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
   }
 
+  HRESULT hr = S_OK;
+
   // most IB/VBs will not be available as SRVs. So, we copy into our own buffers.
   // In the case of VB we also tightly pack and unpack the data. IB can just be
   // read as R16 or R32 via the SRV so it is just a straight copy
@@ -2259,7 +2261,13 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
       m_DebugRender.PickIBSize = cfg.position.numVerts * cfg.position.idxByteWidth;
 
-      m_pDevice->CreateBuffer(&desc, NULL, &m_DebugRender.PickIBBuf);
+      hr = m_pDevice->CreateBuffer(&desc, NULL, &m_DebugRender.PickIBBuf);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create PickIBBuf %08x", hr);
+        return ~0U;
+      }
 
       D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
       sdesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
@@ -2267,7 +2275,15 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
       sdesc.Buffer.FirstElement = 0;
       sdesc.Buffer.NumElements = cfg.position.numVerts;
 
-      m_pDevice->CreateShaderResourceView(m_DebugRender.PickIBBuf, &sdesc, &m_DebugRender.PickIBSRV);
+      hr = m_pDevice->CreateShaderResourceView(m_DebugRender.PickIBBuf, &sdesc,
+                                               &m_DebugRender.PickIBSRV);
+
+      if(FAILED(hr))
+      {
+        SAFE_RELEASE(m_DebugRender.PickIBBuf);
+        RDCERR("Failed to create PickIBSRV %08x", hr);
+        return ~0U;
+      }
     }
 
     // copy index data as-is, the view format will take care of the rest
@@ -2300,7 +2316,13 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
     m_DebugRender.PickVBSize = cfg.position.numVerts * sizeof(Vec4f);
 
-    m_pDevice->CreateBuffer(&desc, NULL, &m_DebugRender.PickVBBuf);
+    hr = m_pDevice->CreateBuffer(&desc, NULL, &m_DebugRender.PickVBBuf);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create PickVBBuf %08x", hr);
+      return ~0U;
+    }
 
     D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
     sdesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
@@ -2308,7 +2330,15 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     sdesc.Buffer.FirstElement = 0;
     sdesc.Buffer.NumElements = cfg.position.numVerts;
 
-    m_pDevice->CreateShaderResourceView(m_DebugRender.PickVBBuf, &sdesc, &m_DebugRender.PickVBSRV);
+    hr = m_pDevice->CreateShaderResourceView(m_DebugRender.PickVBBuf, &sdesc,
+                                             &m_DebugRender.PickVBSRV);
+
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(m_DebugRender.PickVBBuf);
+      RDCERR("Failed to create PickVBSRV %08x", hr);
+      return ~0U;
+    }
   }
 
   // unpack and linearise the data
