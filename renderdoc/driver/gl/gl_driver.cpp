@@ -2787,6 +2787,8 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     }
   }
 
+  SAFE_DELETE_ARRAY(thpixels);
+
   BackbufferImage *bbim = new BackbufferImage();
   bbim->jpgbuf = jpgbuf;
   bbim->len = len;
