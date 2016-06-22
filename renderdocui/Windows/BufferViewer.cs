@@ -361,15 +361,17 @@ namespace renderdocui.Windows
 
         public class PersistData
         {
-            public static int currentPersistVersion = 2;
+            public static int currentPersistVersion = 3;
             public int persistVersion = currentPersistVersion;
 
+            public string panelLayout;
             public bool meshView;
 
             public static PersistData GetDefaults()
             {
                 PersistData data = new PersistData();
 
+                data.panelLayout = "";
                 data.meshView = true;
 
                 return data;
@@ -408,9 +410,34 @@ namespace renderdocui.Windows
             ApplyPersistData(data);
         }
 
+        private string onloadLayout = "";
+
+        Control[] LayoutPersistors
+        {
+            get
+            {
+                return new Control[] {
+                                         previewTab,
+                                         vsInBufferView,
+                                         gsOutBufferView,
+                                         vsOutBufferView,
+                                     };
+            }
+        }
+
+        private IDockContent GetContentFromPersistString(string persistString)
+        {
+            foreach (var p in LayoutPersistors)
+                if (persistString == p.Name && p.Parent is IDockContent && (p.Parent as DockContent).DockPanel == null)
+                    return p.Parent as IDockContent;
+
+            return null;
+        }
+
         private void ApplyPersistData(PersistData data)
         {
             MeshView = data.meshView;
+            onloadLayout = data.panelLayout;
         }
 
         // note that raw buffer viewers do not persist deliberately
@@ -423,6 +450,22 @@ namespace renderdocui.Windows
             writer.Write(GetType().ToString());
 
             PersistData data = new PersistData();
+
+            // passing in a MemoryStream gets disposed - can't see a way to retrieve this
+            // in-memory.
+            var enc = new UnicodeEncoding();
+            var path = Path.GetTempFileName();
+            dockPanel.SaveAsXml(path, "", enc);
+            try
+            {
+                data.panelLayout = File.ReadAllText(path, enc);
+                File.Delete(path);
+            }
+            catch (System.Exception)
+            {
+                // can't recover
+                return writer.ToString();
+            }
 
             data.meshView = MeshView;
 
@@ -2434,6 +2477,23 @@ namespace renderdocui.Windows
         {
             matrixType.SelectedIndex = 0;
             configCamControls.Visible = false;
+
+            if (onloadLayout.Length > 0)
+            {
+                foreach (var p in LayoutPersistors)
+                    (p.Parent as DockContent).DockPanel = null;
+
+                var enc = new UnicodeEncoding();
+                using (var strm = new MemoryStream(enc.GetBytes(onloadLayout)))
+                {
+                    strm.Flush();
+                    strm.Position = 0;
+
+                    dockPanel.LoadFromXml(strm, new DeserializeDockContent(GetContentFromPersistString));
+                }
+
+                onloadLayout = "";
+            }
         }
 
         private void BufferViewer_FormClosed(object sender, FormClosedEventArgs e)
