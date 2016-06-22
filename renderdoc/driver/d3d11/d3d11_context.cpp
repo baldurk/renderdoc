@@ -824,10 +824,12 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
   //////////////////////////////
   // Shaders
 
-  const D3D11RenderState::shader *shArr = &pipe->VS;
+  const D3D11RenderState::shader *shArr[6] = {
+      &pipe->VS, &pipe->HS, &pipe->DS, &pipe->GS, &pipe->PS, &pipe->CS,
+  };
   for(int s = 0; s < 6; s++)
   {
-    const D3D11RenderState::shader &sh = shArr[s];
+    const D3D11RenderState::shader &sh = *shArr[s];
 
     for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
       if(sh.Used_CB(i))
