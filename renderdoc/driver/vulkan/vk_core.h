@@ -331,6 +331,8 @@ private:
     vector<DebugMessage> debugMessages;
     list<VulkanDrawcallTreeNode *> drawStack;
 
+    vector<pair<ResourceId, EventUsage> > resourceUsage;
+
     struct CmdBufferState
     {
       ResourceId pipeline;

@@ -1745,6 +1745,13 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
     ResourceId cmd = GetResID(commandBuffer);
     GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
                                          (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+
+    for(size_t i = 0; i < imgBarriers.size(); i++)
+    {
+      m_BakedCmdBufferInfo[cmdid].resourceUsage.push_back(
+          std::make_pair(GetResourceManager()->GetNonDispWrapper(imgBarriers[i].image)->id,
+                         EventUsage(m_BakedCmdBufferInfo[cmdid].curEventID, eUsage_Barrier)));
+    }
   }
 
   SAFE_DELETE_ARRAY(memBarriers);

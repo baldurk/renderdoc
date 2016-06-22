@@ -153,8 +153,7 @@ namespace renderdocui.Windows
                 using(var brush = new SolidBrush(col))
                     g.FillPie(brush, x, y, width, height, 0.0f, 360.0f);
             }
-
-            if (type == 1 || type == 2 || type == 3 || type == 4)
+            else
             {
                 height += 2;
                 width += 4;
@@ -176,6 +175,10 @@ namespace renderdocui.Windows
                     if (type == 4)
                     {
                         uptri[0] = new PointF(x + width / 2.0f, y + height - 2);
+                    }
+                    if (type == 5)
+                    {
+                        update = false;
                     }
                     type = 1;
                 }
@@ -599,7 +602,8 @@ namespace renderdocui.Windows
                             {
                                 foreach (var u in m_HighlightUsage)
                                 {
-                                    if (u.eventID == s.draws[d].eventID)
+                                    if ((u.eventID == s.draws[d].eventID) ||
+                                        (u.eventID < s.draws[d].eventID && s.draws[d].events.Length > 0 && u.eventID >= s.draws[d].events[0].eventID))
                                     {
                                         var barcol = Color.Black;
 
@@ -641,7 +645,8 @@ namespace renderdocui.Windows
                             {
                                 foreach (var u in m_HighlightUsage)
                                 {
-                                    if (u.eventID == s.draws[d].eventID)
+                                    if ((u.eventID == s.draws[d].eventID) ||
+                                        (u.eventID < s.draws[d].eventID && s.draws[d].events.Length > 0 && u.eventID >= s.draws[d].events[0].eventID))
                                     {
                                         // read/write
                                         if (
@@ -669,6 +674,12 @@ namespace renderdocui.Windows
                                         else if (u.usage == ResourceUsage.Clear)
                                         {
                                             DrawPip(g, Color.Silver, highlightBarRect, 1, d, s.draws.Count, start, widths[i], "");
+                                            MarkWrite(s.draws[d].eventID);
+                                        }
+                                        // barrier
+                                        else if (u.usage == ResourceUsage.Barrier)
+                                        {
+                                            DrawPip(g, Color.Tomato, highlightBarRect, 5, d, s.draws.Count, start, widths[i], "");
                                             MarkWrite(s.draws[d].eventID);
                                         }
                                         // read
@@ -822,6 +833,19 @@ namespace renderdocui.Windows
 
                 DrawPip(g, Color.Black, new RectangleF(barRect.X, barRect.Y - pipRadius, pipRadius * 2, pipRadius * 2), 2, 0, 1, 0.0f, 1.0f, "");
                 DrawPip(g, Color.Silver, new RectangleF(barRect.X, barRect.Y - pipRadius, pipRadius * 2, pipRadius * 2), 1, 0, 1, 0.0f, 1.0f, "");
+
+                if (m_Core.CurPipelineState.SupportsBarriers)
+                {
+                    barRect.X += pipRadius * 2;
+                    barRect.X += pipRadius;
+
+                    g.DrawString(", Barriers ", barFont, Brushes.Black, barRect.X, barRect.Y + 2);
+                    barRect.X += (int)Math.Ceiling(g.MeasureString(", Barriers ", barFont).Width);
+                    barRect.X += pipRadius;
+
+                    DrawPip(g, Color.Black, new RectangleF(barRect.X, barRect.Y - pipRadius, pipRadius * 2, pipRadius * 2), 2, 0, 1, 0.0f, 1.0f, "");
+                    DrawPip(g, Color.Tomato, new RectangleF(barRect.X, barRect.Y - pipRadius, pipRadius * 2, pipRadius * 2), 1, 0, 1, 0.0f, 1.0f, "");
+                }
 
                 barRect.X += pipRadius * 2;
                 barRect.X += pipRadius;

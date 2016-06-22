@@ -2521,6 +2521,8 @@ void WrappedVulkan::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
   {
     VulkanDrawcallTreeNode node(draw);
 
+    node.resourceUsage.swap(m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage);
+
     if(m_LastCmdBufferID != ResourceId())
       AddUsage(node, m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages);
 

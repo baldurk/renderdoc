@@ -399,6 +399,8 @@ enum ResourceUsage
   eUsage_Copy,
   eUsage_CopySrc,
   eUsage_CopyDst,
+
+  eUsage_Barrier,
 };
 
 enum DrawcallFlags

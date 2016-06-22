@@ -403,6 +403,8 @@ namespace renderdoc
         Copy,
         CopySrc,
         CopyDst,
+
+        Barrier,
     };
 
     [Flags]
@@ -665,6 +667,8 @@ namespace renderdoc
                     case ResourceUsage.Copy: return "Copy";
                     case ResourceUsage.CopySrc: return "Copy - Source";
                     case ResourceUsage.CopyDst: return "Copy - Dest";
+
+                    case ResourceUsage.Barrier: return "Barrier";
                 }
             }
             else if (apitype == APIPipelineStateType.OpenGL || apitype == APIPipelineStateType.Vulkan)
@@ -712,6 +716,8 @@ namespace renderdoc
                     case ResourceUsage.Copy: return "Copy";
                     case ResourceUsage.CopySrc: return "Copy - Source";
                     case ResourceUsage.CopyDst: return "Copy - Dest";
+
+                    case ResourceUsage.Barrier: return "Barrier";
                 }
             }
 

@@ -146,13 +146,15 @@ namespace renderdocui.Code
         {
             get
             {
-                if (LogLoaded)
-                {
-                    if (IsLogVK)
-                        return true;
-                }
+                return LogLoaded && IsLogVK;
+            }
+        }
 
-                return false;
+        public bool SupportsBarriers
+        {
+            get
+            {
+                return LogLoaded && IsLogVK;
             }
         }
 
