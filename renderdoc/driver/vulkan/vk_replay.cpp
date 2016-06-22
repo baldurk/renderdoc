@@ -1818,11 +1818,10 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     VkPipeline pipe = VK_NULL_HANDLE;
     switch(solidShadeMode)
     {
+      default:
       case eShade_Solid: pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]; break;
       case eShade_Lit: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit]; break;
       case eShade_Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
-      case eShade_None:
-      case eShade_Count: break;
     }
 
     uint32_t uboOffs = 0;
