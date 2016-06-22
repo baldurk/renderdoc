@@ -3964,47 +3964,47 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
             case eResType_None: texList = NULL; break;
             case eResType_Buffer:
               texList = rs.TexBuffer;
-              listSize = sizeof(rs.TexBuffer);
+              listSize = (int32_t)ARRAY_COUNT(rs.TexBuffer);
               break;
             case eResType_Texture1D:
               texList = rs.Tex1D;
-              listSize = sizeof(rs.Tex1D);
+              listSize = (int32_t)ARRAY_COUNT(rs.Tex1D);
               break;
             case eResType_Texture1DArray:
               texList = rs.Tex1DArray;
-              listSize = sizeof(rs.Tex1DArray);
+              listSize = (int32_t)ARRAY_COUNT(rs.Tex1DArray);
               break;
             case eResType_Texture2D:
               texList = rs.Tex2D;
-              listSize = sizeof(rs.Tex2D);
+              listSize = (int32_t)ARRAY_COUNT(rs.Tex2D);
               break;
             case eResType_TextureRect:
               texList = rs.TexRect;
-              listSize = sizeof(rs.TexRect);
+              listSize = (int32_t)ARRAY_COUNT(rs.TexRect);
               break;
             case eResType_Texture2DArray:
               texList = rs.Tex2DArray;
-              listSize = sizeof(rs.Tex2DArray);
+              listSize = (int32_t)ARRAY_COUNT(rs.Tex2DArray);
               break;
             case eResType_Texture2DMS:
               texList = rs.Tex2DMS;
-              listSize = sizeof(rs.Tex2DMS);
+              listSize = (int32_t)ARRAY_COUNT(rs.Tex2DMS);
               break;
             case eResType_Texture2DMSArray:
               texList = rs.Tex2DMSArray;
-              listSize = sizeof(rs.Tex2DMSArray);
+              listSize = (int32_t)ARRAY_COUNT(rs.Tex2DMSArray);
               break;
             case eResType_Texture3D:
               texList = rs.Tex3D;
-              listSize = sizeof(rs.Tex3D);
+              listSize = (int32_t)ARRAY_COUNT(rs.Tex3D);
               break;
             case eResType_TextureCube:
               texList = rs.TexCube;
-              listSize = sizeof(rs.TexCube);
+              listSize = (int32_t)ARRAY_COUNT(rs.TexCube);
               break;
             case eResType_TextureCubeArray:
               texList = rs.TexCubeArray;
-              listSize = sizeof(rs.TexCubeArray);
+              listSize = (int32_t)ARRAY_COUNT(rs.TexCubeArray);
               break;
             case eResType_Count: RDCERR("Invalid shader resource type"); break;
           }
