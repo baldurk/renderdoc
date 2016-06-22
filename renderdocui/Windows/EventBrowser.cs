@@ -86,6 +86,7 @@ namespace renderdocui.Windows
             jumpEventButton.Enabled = false;
             timeDraws.Enabled = false;
             toggleBookmark.Enabled = false;
+            export.Enabled = false;
         }
 
         public class PersistData
@@ -420,6 +421,7 @@ namespace renderdocui.Windows
             jumpEventButton.Enabled = false;
             timeDraws.Enabled = false;
             toggleBookmark.Enabled = false;
+            export.Enabled = false;
         }
 
         public void OnLogfileLoaded()
@@ -428,6 +430,7 @@ namespace renderdocui.Windows
             jumpEventButton.Enabled = true;
             timeDraws.Enabled = true;
             toggleBookmark.Enabled = true;
+            export.Enabled = true;
 
             ClearBookmarks();
 
@@ -1157,6 +1160,74 @@ namespace renderdocui.Windows
             bookmarkStrip.Visible = m_BookmarkButtons.Count > 0;
 
             eventView.Invalidate();
+        }
+
+        private string GetExportDrawcallString(int indent, bool firstchild, FetchDrawcall drawcall)
+        {
+            string prefix = new string(' ', indent * 2 - (firstchild ? 1 : 0));
+            if(firstchild)
+                prefix += '\\';
+
+            return String.Format("{0}- {1}", prefix, drawcall.name);
+        }
+
+        private void GetMaxNameLength(ref int maxNameLength, int indent, bool firstchild, FetchDrawcall drawcall)
+        {
+            string nameString = GetExportDrawcallString(indent, firstchild, drawcall);
+
+            maxNameLength = Math.Max(maxNameLength, nameString.Length);
+
+            for (int i = 0; i < drawcall.children.Length; i++)
+                GetMaxNameLength(ref maxNameLength, indent + 1, i == 0, drawcall.children[i]);
+        }
+
+        private void ExportDrawcall(StreamWriter sw, int maxNameLength, int indent, bool firstchild, FetchDrawcall drawcall)
+        {
+            string eidString = drawcall.children.Length > 0 ? "" : drawcall.eventID.ToString();
+
+            string nameString = GetExportDrawcallString(indent, firstchild, drawcall);
+
+            sw.WriteLine(String.Format("{0,-5} | {1,-" + maxNameLength + "} | {2,-5}", eidString, nameString, drawcall.drawcallID));
+
+            for (int i = 0; i < drawcall.children.Length; i++)
+                ExportDrawcall(sw, maxNameLength, indent + 1, i == 0, drawcall.children[i]);
+        }
+
+        private void export_Click(object sender, EventArgs e)
+        {
+            DialogResult res = exportDialog.ShowDialog();
+
+            if (res == DialogResult.OK)
+            {
+                try
+                {
+                    using (Stream s = new FileStream(exportDialog.FileName, FileMode.Create))
+                    {
+                        StreamWriter sw = new StreamWriter(s);
+
+                        sw.WriteLine(String.Format("{0} - Frame #{1}", m_Core.LogFileName, m_Core.FrameInfo.frameNumber));
+                        sw.WriteLine("");
+
+                        int maxNameLength = 0;
+
+                        foreach (FetchDrawcall d in m_Core.GetDrawcalls())
+                            GetMaxNameLength(ref maxNameLength, 0, false, d);
+
+                        sw.WriteLine(String.Format(" EID  | {0,-" + maxNameLength + "} | Draw #", "Event"));
+                        sw.WriteLine(String.Format("--------{0}-----------", new string('-', maxNameLength)));
+
+                        foreach (FetchDrawcall d in m_Core.GetDrawcalls())
+                            ExportDrawcall(sw, maxNameLength, 0, false, d);
+
+                        sw.Dispose();
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Couldn't save to " + exportDialog.FileName + Environment.NewLine + ex.ToString(), "Cannot save",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
     }
 }

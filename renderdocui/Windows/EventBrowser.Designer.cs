@@ -60,6 +60,8 @@
             this.bookmarkStrip = new System.Windows.Forms.ToolStrip();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.toggleBookmark = new System.Windows.Forms.ToolStripButton();
+            this.export = new System.Windows.Forms.ToolStripButton();
+            this.exportDialog = new System.Windows.Forms.SaveFileDialog();
             toolStripLabel3 = new System.Windows.Forms.ToolStripLabel();
             toolStripLabel4 = new System.Windows.Forms.ToolStripLabel();
             this.toolStripContainer1.ContentPanel.SuspendLayout();
@@ -196,7 +198,8 @@
             this.jumpEventButton,
             this.timeDraws,
             this.selectColumnsButton,
-            this.toggleBookmark});
+            this.toggleBookmark,
+            this.export});
             this.toolStrip1.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
@@ -370,6 +373,22 @@
             this.toggleBookmark.Text = "Toggle Bookmark";
             this.toggleBookmark.Click += new System.EventHandler(this.toggleBookmark_Click);
             // 
+            // export
+            // 
+            this.export.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.export.Image = global::renderdocui.Properties.Resources.save;
+            this.export.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.export.Name = "export";
+            this.export.Size = new System.Drawing.Size(23, 22);
+            this.export.Text = "Export";
+            this.export.Click += new System.EventHandler(this.export_Click);
+            // 
+            // exportDialog
+            // 
+            this.exportDialog.DefaultExt = "txt";
+            this.exportDialog.Filter = "Text Files (*.txt)|*.txt";
+            this.exportDialog.Title = "Save Event List";
+            // 
             // EventBrowser
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -428,6 +447,8 @@
         private System.Windows.Forms.ToolStripButton toggleBookmark;
         private System.Windows.Forms.ToolStripMenuItem expandAll;
         private System.Windows.Forms.ToolStripMenuItem collapseAll;
+        private System.Windows.Forms.ToolStripButton export;
+        private System.Windows.Forms.SaveFileDialog exportDialog;
 
     }
 }
