@@ -1702,6 +1702,9 @@ namespace renderdocui.Windows.PipelineState
                                             }
                                         }
 
+                                        if (view.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                            format = "xint";
+
                                         format += view.Format.compCount;
                                     }
                                 }
