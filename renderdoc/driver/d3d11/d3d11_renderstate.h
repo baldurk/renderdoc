@@ -56,80 +56,165 @@ struct D3D11RenderState
   // need to be aware of depth-stencil as a special case, DSV can be flagged read-only
   // of depth, stencil or both to allow read binds of that component at the same time.
 
-  bool IsBoundIUnknownForWrite(IUnknown *resource, bool readDepthOnly, bool readStencilOnly);
-  void UnbindIUnknownForRead(IUnknown *resource, bool allowDepthOnly, bool allowStencilOnly);
+  struct ResourceRange
+  {
+    ResourceRange(ID3D11Buffer *res)
+    {
+      resource = res;
+      minMip = minSlice = 0;
+      maxMip = maxSlice = ~0U;
+      fullRange = true;
+    }
+
+    ResourceRange(ID3D11Texture2D *res)
+    {
+      resource = res;
+      minMip = minSlice = 0;
+      maxMip = maxSlice = ~0U;
+      fullRange = true;
+    }
+
+    // initialises the range with the contents of the view
+    ResourceRange(ID3D11ShaderResourceView *srv);
+    ResourceRange(ID3D11UnorderedAccessView *uav);
+    ResourceRange(ID3D11RenderTargetView *rtv);
+    ResourceRange(ID3D11DepthStencilView *dsv);
+
+    void SetMaxes(UINT numMips, UINT numSlices)
+    {
+      if(numMips == ~0U)
+        maxMip = ~0U;
+      else
+        maxMip = minMip + numMips - 1;
+
+      if(numSlices == ~0U)
+        maxSlice = ~0U;
+      else
+        maxSlice = minSlice + numSlices - 1;
+
+      // save this bool for faster intersection tests. Note that full range could also
+      // be true if maxMip == 12 or something, but since this is just a conservative
+      // early out we are only concerned with a common case.
+      fullRange = (minMip == 0 && minSlice == 0 && maxMip == ~0U && maxSlice == ~0U);
+    }
+
+    bool Intersects(const ResourceRange &range) const
+    {
+      if(resource != range.resource)
+        return false;
+
+      // we are the same resource, but maybe we refer to disjoint
+      // ranges of the subresources. Do an early-out check though
+      // if either of the ranges refers to the whole resource
+      if(fullRange || range.fullRange)
+        return true;
+
+      // do we refer to the same mip anywhere
+      if(minMip <= range.maxMip && range.minMip <= maxMip)
+      {
+        // and the same slice? (for resources without slices, this will just be
+        // 0 - ~0U so definitely true
+        if(minSlice <= range.maxSlice && range.minSlice <= maxSlice)
+          return true;
+      }
+
+      // if not, then we don't intersect
+      return false;
+    }
+
+  private:
+    ResourceRange();
+
+    IUnknown *resource;
+    UINT minMip;
+    UINT minSlice;
+    UINT maxMip;
+    UINT maxSlice;
+    bool fullRange;
+  };
+
+  // the below functions are only called with ResourceRange, which is only constructable for
+  // views (where it takes the resource and visible subresources from the view parameters)
+  // or directly for a resource. Thus, they are never called with a view directly, or any other
+  // type.
+
+  // is any part of this range bound for a writing part of the pipeline? if so, read binds will bind
+  // NULL
+  bool IsBoundIUnknownForWrite(const ResourceRange &range, bool readDepthOnly, bool readStencilOnly);
+
+  // this range was bound for writing - find any overlapping read binds and set them to NULL
+  void UnbindIUnknownForRead(const ResourceRange &range, bool allowDepthOnly, bool allowStencilOnly);
 
   // just for utility, not used below
-  void UnbindIUnknownForWrite(IUnknown *resource);
+  void UnbindIUnknownForWrite(const ResourceRange &range);
 
+  // define template but only implement for specific types, so we can more easily reason
+  // about what types are passing through these functions
   template <typename T>
-  bool IsBoundForWrite(T *resource)
-  {
-    if(resource == NULL)
-      return false;
+  bool IsBoundForWrite(T *resource);
 
-    return IsBoundIUnknownForWrite((IUnknown *)resource, false, false);
+  template <>
+  bool IsBoundForWrite(ID3D11InputLayout *resource)
+  {
+    return false;
   }
 
   template <>
-  bool IsBoundForWrite(ID3D11Resource *resource)
+  bool IsBoundForWrite(ID3D11ClassInstance *resource)
   {
-    if(resource == NULL)
-      return false;
-
-    bool readDepthOnly = false;
-    bool readStencilOnly = false;
-
-    D3D11_RESOURCE_DIMENSION dim;
-    resource->GetType(&dim);
-
-    if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
-    {
-      D3D11_TEXTURE1D_DESC d;
-      ((ID3D11Texture1D *)resource)->GetDesc(&d);
-
-      if(d.Format == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT ||
-         d.Format == DXGI_FORMAT_X24_TYPELESS_G8_UINT)
-      {
-        readStencilOnly = true;
-      }
-      if(d.Format == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
-         d.Format == DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
-      {
-        readDepthOnly = true;
-      }
-    }
-    else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
-    {
-      D3D11_TEXTURE2D_DESC d;
-      ((ID3D11Texture2D *)resource)->GetDesc(&d);
-
-      if(d.Format == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT ||
-         d.Format == DXGI_FORMAT_X24_TYPELESS_G8_UINT)
-      {
-        readStencilOnly = true;
-      }
-      if(d.Format == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
-         d.Format == DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
-      {
-        readDepthOnly = true;
-      }
-    }
-
-    return IsBoundIUnknownForWrite((IUnknown *)resource, readDepthOnly, readStencilOnly);
+    return false;
   }
 
   template <>
-  bool IsBoundForWrite(ID3D11ShaderResourceView *resource)
+  bool IsBoundForWrite(ID3D11DeviceChild *shader)
   {
-    if(resource == NULL)
+    return false;
+  }
+
+  template <>
+  bool IsBoundForWrite(ID3D11SamplerState *resource)
+  {
+    return false;
+  }
+
+  template <>
+  bool IsBoundForWrite(ID3D11BlendState *state)
+  {
+    return false;
+  }
+
+  template <>
+  bool IsBoundForWrite(ID3D11RasterizerState *state)
+  {
+    return false;
+  }
+
+  template <>
+  bool IsBoundForWrite(ID3D11DepthStencilState *state)
+  {
+    return false;
+  }
+
+  template <>
+  bool IsBoundForWrite(ID3D11Buffer *buffer)
+  {
+    if(buffer == NULL)
+      return false;
+
+    return IsBoundIUnknownForWrite(ResourceRange(buffer), false, false);
+  }
+
+  template <>
+  bool IsBoundForWrite(ID3D11ShaderResourceView *srv)
+  {
+    if(srv == NULL)
       return false;
 
     ID3D11Resource *res = NULL;
-    resource->GetResource(&res);
+    srv->GetResource(&res);
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srvd;
-    resource->GetDesc(&srvd);
+    srv->GetDesc(&srvd);
 
     bool readDepthOnly = false;
     bool readStencilOnly = false;
@@ -180,79 +265,66 @@ struct D3D11RenderState
       }
     }
 
-    bool ret = IsBoundIUnknownForWrite((IUnknown *)res, readDepthOnly, readStencilOnly);
-
     SAFE_RELEASE(res);
 
-    return ret;
+    return IsBoundIUnknownForWrite(ResourceRange(srv), readDepthOnly, readStencilOnly);
   }
 
+  // same as IsBoundForWrite above
   template <typename T>
-  void UnbindForRead(T *resource)
+  void UnbindForRead(T *resource);
+
+  template <>
+  void UnbindForRead(ID3D11Buffer *buffer)
   {
-    if(resource == NULL)
+    if(buffer == NULL)
       return;
-    UnbindIUnknownForRead((IUnknown *)resource, false, false);
+    UnbindIUnknownForRead(ResourceRange(buffer), false, false);
   }
 
   template <>
-  void UnbindForRead(ID3D11RenderTargetView *resource)
+  void UnbindForRead(ID3D11RenderTargetView *rtv)
   {
-    if(resource == NULL)
+    if(rtv == NULL)
       return;
 
-    ID3D11Resource *res = NULL;
-    resource->GetResource(&res);
-
-    UnbindIUnknownForRead((IUnknown *)res, false, false);
-
-    SAFE_RELEASE(res);
+    UnbindIUnknownForRead(ResourceRange(rtv), false, false);
   }
 
   template <>
-  void UnbindForRead(ID3D11DepthStencilView *resource)
+  void UnbindForRead(ID3D11DepthStencilView *dsv)
   {
-    if(resource == NULL)
+    if(dsv == NULL)
       return;
 
-    ID3D11Resource *res = NULL;
-    resource->GetResource(&res);
+    D3D11_DEPTH_STENCIL_VIEW_DESC desc;
+    dsv->GetDesc(&desc);
 
-    D3D11_DEPTH_STENCIL_VIEW_DESC d;
-    resource->GetDesc(&d);
-
-    if(d.Flags == (D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL))
+    if(desc.Flags == (D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL))
     {
       // don't need to.
     }
-    else if(d.Flags == D3D11_DSV_READ_ONLY_DEPTH)
+    else if(desc.Flags == D3D11_DSV_READ_ONLY_DEPTH)
     {
-      UnbindIUnknownForRead((IUnknown *)res, true, false);
+      UnbindIUnknownForRead(ResourceRange(dsv), true, false);
     }
-    else if(d.Flags == D3D11_DSV_READ_ONLY_STENCIL)
+    else if(desc.Flags == D3D11_DSV_READ_ONLY_STENCIL)
     {
-      UnbindIUnknownForRead((IUnknown *)res, false, true);
+      UnbindIUnknownForRead(ResourceRange(dsv), false, true);
     }
     else
     {
-      UnbindIUnknownForRead((IUnknown *)res, false, false);
+      UnbindIUnknownForRead(ResourceRange(dsv), false, false);
     }
-
-    SAFE_RELEASE(res);
   }
 
   template <>
-  void UnbindForRead(ID3D11UnorderedAccessView *resource)
+  void UnbindForRead(ID3D11UnorderedAccessView *uav)
   {
-    if(resource == NULL)
+    if(uav == NULL)
       return;
 
-    ID3D11Resource *res = NULL;
-    resource->GetResource(&res);
-
-    UnbindIUnknownForRead((IUnknown *)res, false, false);
-
-    SAFE_RELEASE(res);
+    UnbindIUnknownForRead(ResourceRange(uav), false, false);
   }
 
   /////////////////////////////////////////////////////////////////////////

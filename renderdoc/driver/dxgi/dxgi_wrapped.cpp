@@ -299,8 +299,11 @@ void WrappedIDXGISwapChain3::ReleaseBuffersForResize()
     WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_pBackBuffers[i];
     if(wrapped)
     {
-      m_pDevice->GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForWrite(wrapped);
-      m_pDevice->GetImmediateContext()->GetCurrentPipelineState()->UnbindForRead(wrapped);
+      D3D11RenderState::ResourceRange range(wrapped);
+
+      m_pDevice->GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForWrite(range);
+      m_pDevice->GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForRead(
+          range, false, false);
 
       wrapped->ViewRelease();
     }
