@@ -2331,6 +2331,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           srcIdx = 2;
           maxIndex = (stride - elemOffset) / sizeof(uint32_t);
         }
+        // raw loads/stores can come from any component (as long as it's within range of the data!)
+        if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
+        {
+          maxIndex = 4;
+        }
 
         if(load)
         {
