@@ -1504,6 +1504,8 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 
     bool ret = ExtractOperand(tokenStream, retDecl.operand);
     RDCASSERT(ret);
+
+    retDecl.str += retDecl.operand.toString(false);
   }
   else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED || op == OPCODE_DCL_RESOURCE_STRUCTURED)
   {
