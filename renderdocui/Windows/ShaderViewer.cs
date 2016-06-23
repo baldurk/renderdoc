@@ -1102,8 +1102,6 @@ namespace renderdocui.Windows
         {
             ScintillaNET.Scintilla scintilla1 = sender as ScintillaNET.Scintilla;
 
-            System.Diagnostics.Trace.WriteLine("leave");
-
             variableHover.Hide(scintilla1);
             hoverTimer.Enabled = false;
             m_HoverScintilla = null;
