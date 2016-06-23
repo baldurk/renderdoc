@@ -2247,6 +2247,14 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       uint32_t numElems = srv ? global.srvs[resIndex].numElements : global.uavs[resIndex].numElements;
       GlobalState::ViewFmt fmt = srv ? global.srvs[resIndex].format : global.uavs[resIndex].format;
 
+      // indexing for raw views is in bytes, but firstElement/numElements is in format-sized
+      // units. Multiply up by bytesize
+      if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
+      {
+        offset *= fmt.byteWidth;
+        numElems *= fmt.byteWidth;
+      }
+
       byte *data = srv ? &global.srvs[resIndex].data[0] : &global.uavs[resIndex].data[0];
       bool texData = srv ? false : global.uavs[resIndex].tex;
       uint32_t rowPitch = srv ? 0 : global.uavs[resIndex].rowPitch;
