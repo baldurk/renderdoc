@@ -137,7 +137,7 @@ namespace renderdoc
                 public UInt32 NumElements;
 
                 // BufferEx
-                public UInt32 Flags;
+                public D3D11BufferViewFlags Flags;
 
                 // Texture
                 public UInt32 HighestMip;

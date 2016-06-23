@@ -287,6 +287,14 @@ namespace renderdoc
         SwapBuffer = 0x10,
     };
 
+    [Flags]
+    public enum D3D11BufferViewFlags
+    {
+        Raw = 0x1,
+        Append = 0x2,
+        Counter = 0x4,
+    };
+
     public enum ShaderStageType
     {
         Vertex = 0,

@@ -332,7 +332,18 @@ namespace renderdocui.Windows.PipelineState
 
                                 // for structured buffers, display how many 'elements' there are in the buffer
                                 if (bufs[t].structureSize > 0)
+                                {
                                     typename = "StructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                                }
+                                else if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                {
+                                    typename = "ByteAddressBuffer";
+                                }
+
+                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Append) || r.Flags.HasFlag(D3D11BufferViewFlags.Counter))
+                                {
+                                    typename += " (Count: " + r.BufferStructCount + ")";
+                                }
 
                                 // get the buffer type, whether it's just a basic type or a complex struct
                                 if (shaderInput != null && !shaderInput.IsTexture)
@@ -1011,9 +1022,15 @@ namespace renderdocui.Windows.PipelineState
                                 typename = "Buffer";
 
                                 if (bufs[t].structureSize > 0)
-                                    typename = "StructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                                {
+                                    typename = "RWStructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                                }
+                                else if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                {
+                                    typename = "RWByteAddressBuffer";
+                                }
 
-                                if (r.Structured)
+                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Append) || r.Flags.HasFlag(D3D11BufferViewFlags.Counter))
                                 {
                                     typename += " (Count: " + r.BufferStructCount + ")";
                                 }
@@ -1336,9 +1353,15 @@ namespace renderdocui.Windows.PipelineState
                                 typename = "Buffer";
 
                                 if (bufs[t].structureSize > 0)
-                                    typename = "StructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                                {
+                                    typename = "RWStructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                                }
+                                else if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                {
+                                    typename = "RWByteAddressBuffer";
+                                }
 
-                                if (r.Structured)
+                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Append) || r.Flags.HasFlag(D3D11BufferViewFlags.Counter))
                                 {
                                     typename += " (Count: " + r.BufferStructCount + ")";
                                 }
@@ -2566,13 +2589,24 @@ namespace renderdocui.Windows.PipelineState
 
             ShaderResource shaderInput = null;
 
+            bool rw = false;
+
             if (refl != null)
             {
+                foreach (var bind in refl.ReadOnlyResources)
+                {
+                    if (bind.bindPoint == i)
+                    {
+                        shaderInput = bind;
+                        break;
+                    }
+                }
                 foreach (var bind in refl.ReadWriteResources)
                 {
                     if (bind.bindPoint == i)
                     {
                         shaderInput = bind;
+                        rw = true;
                         break;
                     }
                 }
@@ -2582,6 +2616,8 @@ namespace renderdocui.Windows.PipelineState
             string typename = "Unknown";
             string format = "Unknown";
             uint w = 0, h = 0, d = 0, a = 0;
+
+            string viewFormat = view.Format.ToString();
 
             FetchTexture tex = null;
             FetchBuffer buf = null;
@@ -2618,9 +2654,15 @@ namespace renderdocui.Windows.PipelineState
 
                     // for structured buffers, display how many 'elements' there are in the buffer
                     if (bufs[t].structureSize > 0)
-                        typename = "StructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                    {
+                        typename = (rw ? "RWStructuredBuffer" : "StructuredBuffer") + "[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                    }
+                    else if (view.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                    {
+                        typename = rw ? "RWByteAddressBuffer" : "ByteAddressBuffer";
+                    }
 
-                    if (view.Structured)
+                    if (view.Flags.HasFlag(D3D11BufferViewFlags.Append) || view.Flags.HasFlag(D3D11BufferViewFlags.Counter))
                     {
                         typename += " (Count: " + view.BufferStructCount + ")";
                     }
@@ -2630,9 +2672,9 @@ namespace renderdocui.Windows.PipelineState
                         if (view.Format.compType == FormatComponentType.None)
                         {
                             if (shaderInput.variableType.members.Length > 0)
-                                format = "struct " + shaderInput.variableType.Name;
+                                viewFormat = format = "struct " + shaderInput.variableType.Name;
                             else
-                                format = shaderInput.variableType.Name;
+                                viewFormat = format = shaderInput.variableType.Name;
                         }
                         else
                         {
@@ -2673,7 +2715,7 @@ namespace renderdocui.Windows.PipelineState
                         i, name,
                         view.Type, typename,
                         w, h, d, a,
-                        view.Format, format,
+                        viewFormat, format,
                         viewParams };
         }
 
@@ -2817,7 +2859,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     if (sh.SRVs[i].View == ResourceId.Null) continue;
 
-                    rows.Add(ExportViewHTML(sh.SRVs[i], i, null, ""));
+                    rows.Add(ExportViewHTML(sh.SRVs[i], i, sh.ShaderDetails, ""));
                 }
 
                 ExportHTMLTable(writer,
@@ -2843,7 +2885,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     if (sh.UAVs[i].View == ResourceId.Null) continue;
 
-                    rows.Add(ExportViewHTML(sh.UAVs[i], i, null, ""));
+                    rows.Add(ExportViewHTML(sh.UAVs[i], i, sh.ShaderDetails, ""));
                 }
 
                 ExportHTMLTable(writer,

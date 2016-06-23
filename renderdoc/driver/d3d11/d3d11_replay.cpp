@@ -769,11 +769,6 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
           if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
              (desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND | D3D11_BUFFER_UAV_FLAG_COUNTER)))
           {
-            D3D11_BUFFER_DESC bufdesc;
-            ((ID3D11Buffer *)res)->GetDesc(&bufdesc);
-
-            view.ElementSize = bufdesc.StructureByteStride;
-            view.Structured = true;
             view.BufferStructCount = m_pDevice->GetDebugManager()->GetStructCount(rs->CSUAVs[s]);
           }
 
@@ -782,10 +777,19 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
           view.Format = MakeResourceFormat(desc.Format);
           view.Type = ToStr::Get(desc.ViewDimension);
 
-          if(desc.ViewDimension == D3D11_RTV_DIMENSION_BUFFER)
+          if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
           {
             view.FirstElement = desc.Buffer.FirstElement;
             view.NumElements = desc.Buffer.NumElements;
+            view.Flags = desc.Buffer.Flags;
+
+            D3D11_BUFFER_DESC bufdesc;
+            ((ID3D11Buffer *)res)->GetDesc(&bufdesc);
+
+            view.Structured = bufdesc.StructureByteStride > 0 && desc.Format == DXGI_FORMAT_UNKNOWN;
+
+            if(view.Structured)
+              view.ElementSize = bufdesc.StructureByteStride;
           }
           else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D)
           {
