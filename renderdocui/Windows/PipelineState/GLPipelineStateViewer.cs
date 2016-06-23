@@ -226,7 +226,7 @@ namespace renderdocui.Windows.PipelineState
 
         private void EmptyRow(TreelistView.Node node)
         {
-            node.BackColor = Color.Firebrick;
+            node.BackColor = Color.FromArgb(255, 70, 70);
         }
 
         private void InactiveRow(TreelistView.Node node)
@@ -539,6 +539,7 @@ namespace renderdocui.Windows.PipelineState
                         ulong offset = 0;
                         ulong length = 0;
                         int numvars = shaderCBuf.variables.Length;
+                        ulong byteSize = (ulong)shaderCBuf.byteSize;
 
                         string slotname = "Uniforms";
                         string name = "";
@@ -568,7 +569,14 @@ namespace renderdocui.Windows.PipelineState
                                 }
                             }
 
-                            sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                            if(length == byteSize)
+                                sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                            else
+                                sizestr = String.Format("{0} Variables, {1} bytes needed, {2} provided", numvars, byteSize, length);
+
+                            if(length < byteSize)
+                                filledSlot = false;
+
                             byterange = String.Format("{0} - {1}", offset, offset + length);
                         }
 
@@ -2672,6 +2680,7 @@ namespace renderdocui.Windows.PipelineState
                         ulong offset = 0;
                         ulong length = 0;
                         int numvars = shaderCBuf.variables.Length;
+                        ulong byteSize = (ulong)shaderCBuf.byteSize;
 
                         string slotname = "Uniforms";
                         string name = "";
@@ -2701,7 +2710,11 @@ namespace renderdocui.Windows.PipelineState
                                 }
                             }
 
-                            sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                            if (length == byteSize)
+                                sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                            else
+                                sizestr = String.Format("{0} Variables, {1} bytes needed, {2} provided", numvars, byteSize, length);
+
                             byterange = String.Format("{0} - {1}", offset, offset + length);
                         }
 

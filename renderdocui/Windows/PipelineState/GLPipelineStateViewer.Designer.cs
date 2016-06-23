@@ -1307,7 +1307,7 @@
             treeListColumn32.AutoSizeMinSize = 0;
             treeListColumn32.Width = 150;
             treeListColumn33.AutoSizeMinSize = 0;
-            treeListColumn33.Width = 150;
+            treeListColumn33.Width = 250;
             treeListColumn34.AutoSizeMinSize = 0;
             treeListColumn34.Width = 25;
             this.vsCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
@@ -1681,7 +1681,7 @@
             treeListColumn61.AutoSizeMinSize = 0;
             treeListColumn61.Width = 150;
             treeListColumn62.AutoSizeMinSize = 0;
-            treeListColumn62.Width = 150;
+            treeListColumn62.Width = 250;
             treeListColumn63.AutoSizeMinSize = 0;
             treeListColumn63.Width = 25;
             this.tcsCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
@@ -2057,7 +2057,7 @@
             treeListColumn90.AutoSizeMinSize = 0;
             treeListColumn90.Width = 150;
             treeListColumn91.AutoSizeMinSize = 0;
-            treeListColumn91.Width = 150;
+            treeListColumn91.Width = 250;
             treeListColumn92.AutoSizeMinSize = 0;
             treeListColumn92.Width = 25;
             this.tesCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
@@ -2433,9 +2433,9 @@
             treeListColumn118.AutoSizeMinSize = 100;
             treeListColumn118.Width = 50;
             treeListColumn119.AutoSizeMinSize = 0;
-            treeListColumn119.Width = 120;
+            treeListColumn119.Width = 150;
             treeListColumn120.AutoSizeMinSize = 0;
-            treeListColumn120.Width = 120;
+            treeListColumn120.Width = 250;
             treeListColumn121.AutoSizeMinSize = 0;
             treeListColumn121.Width = 25;
             this.gsCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
@@ -3621,7 +3621,7 @@
             treeListColumn166.AutoSizeMinSize = 0;
             treeListColumn166.Width = 150;
             treeListColumn167.AutoSizeMinSize = 0;
-            treeListColumn167.Width = 150;
+            treeListColumn167.Width = 250;
             treeListColumn168.AutoSizeMinSize = 0;
             treeListColumn168.Width = 25;
             this.fsCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
@@ -4581,7 +4581,7 @@
             treeListColumn221.AutoSizeMinSize = 0;
             treeListColumn221.Width = 150;
             treeListColumn222.AutoSizeMinSize = 0;
-            treeListColumn222.Width = 150;
+            treeListColumn222.Width = 250;
             treeListColumn223.AutoSizeMinSize = 0;
             treeListColumn223.Width = 25;
             this.csCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {

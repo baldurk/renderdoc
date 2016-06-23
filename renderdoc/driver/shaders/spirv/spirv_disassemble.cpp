@@ -3554,6 +3554,66 @@ void MakeConstantBlockVariables(SPVTypeData *structType, rdctype::array<ShaderCo
                               structType->children[i].second, structType->childDecorations[i]);
 }
 
+uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variables)
+{
+  if(variables.count == 0)
+  {
+    RDCERR("Unexpectedly empty array of shader constants!");
+    return 0;
+  }
+
+  const ShaderConstant &last = variables[variables.count - 1];
+
+  if(last.type.members.count == 0)
+  {
+    // this is the last basic member
+
+    // find its offset
+    uint32_t byteOffset = last.reg.vec * sizeof(Vec4f) + last.reg.comp * sizeof(float);
+
+    // now calculate its size and return offset + size
+
+    // arrays are easy
+    if(last.type.descriptor.arrayStride > 0)
+      return byteOffset + last.type.descriptor.arrayStride * last.type.descriptor.elements;
+
+    RDCASSERT(last.type.descriptor.elements <= 1);
+
+    uint32_t basicTypeSize = 4;
+    if(last.type.descriptor.type == eVar_Double)
+      basicTypeSize = 8;
+
+    uint32_t rows = last.type.descriptor.rows;
+    uint32_t cols = last.type.descriptor.cols;
+
+    // vectors are also easy
+    if(rows == 1)
+      return byteOffset + cols * basicTypeSize;
+    if(cols == 1)
+      return byteOffset + rows * basicTypeSize;
+
+    // for matrices we need to pad 3-column or 3-row up to 4
+    if(cols == 3 && last.type.descriptor.rowMajorStorage)
+    {
+      return byteOffset + rows * 4 * basicTypeSize;
+    }
+    else if(rows == 3 && !last.type.descriptor.rowMajorStorage)
+    {
+      return byteOffset + cols * 4 * basicTypeSize;
+    }
+    else
+    {
+      // otherwise, it's a simple size
+      return byteOffset + rows * cols * basicTypeSize;
+    }
+  }
+  else
+  {
+    // if this is a struct type, recurse
+    return CalculateMinimumByteSize(last.type.members);
+  }
+}
+
 SystemAttribute BuiltInToSystemAttribute(const spv::BuiltIn el)
 {
   // not complete, might need to expand system attribute list
@@ -4005,6 +4065,8 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
         else
         {
           MakeConstantBlockVariables(type, cblock.variables);
+
+          cblock.byteSize = CalculateMinimumByteSize(cblock.variables);
         }
 
         bindmap.used = false;
@@ -4162,6 +4224,7 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
 
     cblock.name = StringFormat::Fmt("Specialization Constants");
     cblock.bufferBacked = false;
+    cblock.byteSize = 0;
 
     BindpointMap bindmap = {0};
 

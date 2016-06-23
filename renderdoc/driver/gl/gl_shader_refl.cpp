@@ -1530,6 +1530,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         cblock.bufferBacked = true;
         cblock.bindPoint = (int32_t)cbuffers.size();
 
+        GLenum bufSize = eGL_BUFFER_DATA_SIZE;
+        gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM_BLOCK, i, 1, &bufSize, 1, NULL,
+                                  (GLint *)&cblock.byteSize);
+
         sort(ubos[i]);
         copy(cblock.variables, ubos[i]);
 

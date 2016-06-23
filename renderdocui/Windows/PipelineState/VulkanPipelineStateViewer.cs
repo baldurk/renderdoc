@@ -217,7 +217,7 @@ namespace renderdocui.Windows.PipelineState
 
         private void EmptyRow(TreelistView.Node node)
         {
-            node.BackColor = Color.Firebrick;
+            node.BackColor = Color.FromArgb(255, 70, 70);
         }
 
         private void InactiveRow(TreelistView.Node node)
@@ -788,6 +788,7 @@ namespace renderdocui.Windows.PipelineState
                     string name = "Empty";
                     UInt64 length = 0;
                     int numvars = cblock != null ? cblock.variables.Length : 0;
+                    UInt64 byteSize = cblock != null ? cblock.byteSize : 0;
                     
                     string vecrange = "-";
 
@@ -806,8 +807,8 @@ namespace renderdocui.Windows.PipelineState
                         vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
                     }
 
-                    string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
-
+                    string sizestr;
+                    
                     // push constants or specialization constants
                     if (cblock != null && !cblock.bufferBacked)
                     {
@@ -819,6 +820,16 @@ namespace renderdocui.Windows.PipelineState
 
                         // could maybe get range from ShaderVariable.reg if it's filled out
                         // from SPIR-V side.
+                    }
+                    else
+                    {
+                        if (length == byteSize)
+                            sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                        else
+                            sizestr = String.Format("{0} Variables, {1} bytes needed, {2} provided", numvars, byteSize, length);
+
+                        if (length < byteSize)
+                            filledSlot = false;
                     }
 
                     var node = parentNodes.Add(new object[] { "", setname, slotname, name, vecrange, sizestr });
@@ -2476,11 +2487,11 @@ namespace renderdocui.Windows.PipelineState
                             // from SPIR-V side.
                         }
 
-                        rows.Add(new object[] { setname, slotname, name, byteOffset, length, numvars });
+                        rows.Add(new object[] { setname, slotname, name, byteOffset, length, numvars, b.byteSize });
                     }
                 }
 
-                ExportHTMLTable(writer, new string[] { "Set", "Bind", "Buffer", "Byte Offset", "Byte Size", "Number of Variables" }, rows.ToArray());
+                ExportHTMLTable(writer, new string[] { "Set", "Bind", "Buffer", "Byte Offset", "Byte Size", "Number of Variables", "Bytes Needed" }, rows.ToArray());
             }
             
             if(shaderDetails.ReadOnlyResources.Length > 0)

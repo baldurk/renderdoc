@@ -192,8 +192,9 @@ void Serialiser::Serialise(const char *name, ConstantBlock &el)
   Serialise("", el.variables);
   Serialise("", el.bufferBacked);
   Serialise("", el.bindPoint);
+  Serialise("", el.byteSize);
 
-  SIZE_CHECK(ConstantBlock, 40);
+  SIZE_CHECK(ConstantBlock, 48);
 }
 
 template <>

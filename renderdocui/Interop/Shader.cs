@@ -342,6 +342,7 @@ namespace renderdoc
 
         public bool bufferBacked;
         public Int32 bindPoint;
+        public UInt32 byteSize;
     };
 
     [StructLayout(LayoutKind.Sequential)]

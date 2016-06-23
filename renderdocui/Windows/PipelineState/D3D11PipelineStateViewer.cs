@@ -203,7 +203,7 @@ namespace renderdocui.Windows.PipelineState
 
         private void EmptyRow(TreelistView.Node node)
         {
-            node.BackColor = Color.Firebrick;
+            node.BackColor = Color.FromArgb(255, 70, 70);
         }
 
         private void InactiveRow(TreelistView.Node node)
@@ -511,6 +511,7 @@ namespace renderdocui.Windows.PipelineState
                         string name = "Constant Buffer " + b.Buffer.ToString();
                         UInt32 length = 1;
                         int numvars = shaderCBuf != null ? shaderCBuf.variables.Length : 0;
+                        UInt32 byteSize = shaderCBuf != null ? shaderCBuf.byteSize : 0;
 
                         if (!filledSlot)
                         {
@@ -532,7 +533,15 @@ namespace renderdocui.Windows.PipelineState
                         if (shaderCBuf != null && shaderCBuf.name.Length > 0)
                             slotname += ": " + shaderCBuf.name;
 
-                        string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                        string sizestr;
+                        if (byteSize == length)
+                            sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                        else
+                            sizestr = String.Format("{0} Variables, {1} bytes needed, {2} provided", numvars, byteSize, length);
+
+                        if (length < byteSize)
+                            filledSlot = false;
+
                         string vecrange = String.Format("{0} - {1}", b.VecOffset, b.VecOffset + b.VecCount);
 
                         var node = cbuffers.Nodes.Add(new object[] { slotname, name, vecrange, sizestr });
@@ -2983,6 +2992,7 @@ namespace renderdocui.Windows.PipelineState
                     string name = "Constant Buffer " + sh.ConstantBuffers[i].Buffer.ToString();
                     UInt32 length = 1;
                     int numvars = shaderCBuf != null ? shaderCBuf.variables.Length : 0;
+                    UInt32 byteSize = shaderCBuf != null ? shaderCBuf.byteSize : 0;
 
                     if (sh.ConstantBuffers[i].Buffer == ResourceId.Null)
                     {
@@ -2999,10 +3009,10 @@ namespace renderdocui.Windows.PipelineState
                         }
                     }
 
-                    rows.Add(new object[] { i, name, sh.ConstantBuffers[i].VecOffset, sh.ConstantBuffers[i].VecCount, numvars, length });
+                    rows.Add(new object[] { i, name, sh.ConstantBuffers[i].VecOffset, sh.ConstantBuffers[i].VecCount, numvars, byteSize, length });
                 }
 
-                ExportHTMLTable(writer, new string[] { "Slot", "Buffer", "Vector Offset", "Vector Count", "Number of Variables", "Byte Length", }, rows.ToArray());
+                ExportHTMLTable(writer, new string[] { "Slot", "Buffer", "Vector Offset", "Vector Count", "Number of Variables", "Bytes Needed", "Bytes Provided" }, rows.ToArray());
             }
 
             if (sh.ClassInstances.Length > 0)

@@ -213,6 +213,7 @@ struct ConstantBlock
   rdctype::array<ShaderConstant> variables;
   bool32 bufferBacked;
   int32_t bindPoint;
+  uint32_t byteSize;
 };
 
 struct ShaderResource
