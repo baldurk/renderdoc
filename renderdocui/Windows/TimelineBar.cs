@@ -153,7 +153,7 @@ namespace renderdocui.Windows
                 using(var brush = new SolidBrush(col))
                     g.FillPie(brush, x, y, width, height, 0.0f, 360.0f);
             }
-            else
+            else if(type < 999)
             {
                 height += 2;
                 width += 4;
