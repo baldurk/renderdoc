@@ -61,6 +61,9 @@ namespace renderdoc
                         public string SamplerName;
                         public bool customSamplerName;
 
+                        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+                        public ResourceFormat viewfmt;
+
                         public UInt32 baseMip;
                         public UInt32 baseLayer;
 
@@ -369,6 +372,9 @@ namespace renderdoc
                 {
                     public ResourceId view;
                     public ResourceId img;
+
+                    [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+                    public ResourceFormat viewfmt;
 
                     public UInt32 baseMip;
                     public UInt32 baseArray;

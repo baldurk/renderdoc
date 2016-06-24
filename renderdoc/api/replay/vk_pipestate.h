@@ -71,6 +71,7 @@ struct VulkanPipelineState
           bool32 customSamplerName;
 
           // image views
+          ResourceFormat viewfmt;
           uint32_t baseMip;
           uint32_t baseLayer;
 
@@ -315,6 +316,7 @@ struct VulkanPipelineState
         ResourceId view;
         ResourceId img;
 
+        ResourceFormat viewfmt;
         uint32_t baseMip;
         uint32_t baseLayer;
       };

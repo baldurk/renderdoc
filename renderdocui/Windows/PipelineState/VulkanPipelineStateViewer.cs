@@ -620,7 +620,7 @@ namespace renderdocui.Windows.PipelineState
                             node = parentNodes.Add(new object[] {
                                 "", bindset, slotname, typename, name, 
                                 dim,
-                                format,
+                                descriptorBind.viewfmt.ToString(),
                                 arraydim,
                             });
 
@@ -1450,7 +1450,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         UInt32 w = 1, h = 1, d = 1;
                         UInt32 a = 1;
-                        string format = "Unknown";
+                        string format = p.viewfmt.ToString();
                         string name = "Texture " + p.ToString();
                         string typename = "Unknown";
                         object tag = null;
@@ -1471,7 +1471,6 @@ namespace renderdocui.Windows.PipelineState
                                 h = texs[t].height;
                                 d = texs[t].depth;
                                 a = texs[t].arraysize;
-                                format = texs[t].format.ToString();
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
 

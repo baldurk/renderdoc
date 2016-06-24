@@ -3390,6 +3390,8 @@ void VulkanReplay::SavePipelineState()
             m_VulkanPipelineState.Pass.framebuffer.attachments[i].img =
                 rm->GetOriginalID(c.m_ImageView[viewid].image);
 
+            m_VulkanPipelineState.Pass.framebuffer.attachments[i].viewfmt =
+                MakeResourceFormat(c.m_ImageView[viewid].format);
             m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseMip =
                 c.m_ImageView[viewid].range.baseMipLevel;
             m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseLayer =
@@ -3564,6 +3566,7 @@ void VulkanReplay::SavePipelineState()
 
                   dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
                   dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[viewid].image);
+                  dst.bindings[b].binds[a].viewfmt = MakeResourceFormat(c.m_ImageView[viewid].format);
                   dst.bindings[b].binds[a].baseMip = c.m_ImageView[viewid].range.baseMipLevel;
                   dst.bindings[b].binds[a].baseLayer = c.m_ImageView[viewid].range.baseArrayLayer;
                 }
