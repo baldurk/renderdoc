@@ -253,9 +253,10 @@ namespace renderdocui.Windows.PipelineState
             node.Italic = true;
         }
 
-        private void ViewDetailsRow(TreelistView.Node node)
+        private void ViewDetailsRow(TreelistView.Node node, bool highlight)
         {
-            node.BackColor = Color.Aquamarine;
+            if(highlight)
+                node.BackColor = Color.Aquamarine;
             m_ViewDetailNodes.Add(node);
         }
 
@@ -726,8 +727,7 @@ namespace renderdocui.Windows.PipelineState
                             if (!usedSlot)
                                 InactiveRow(node);
 
-                            if (viewDetails)
-                                ViewDetailsRow(node);
+                            ViewDetailsRow(node, viewDetails);
                         }
 
                         if (bindType == ShaderBindType.ImageSampler)
@@ -1620,8 +1620,7 @@ namespace renderdocui.Windows.PipelineState
                         {
                             targets[i] = true;
 
-                            if (viewDetails)
-                                ViewDetailsRow(node);
+                            ViewDetailsRow(node, viewDetails);
                         }
                     }
 
@@ -1849,6 +1848,9 @@ namespace renderdocui.Windows.PipelineState
 
                         if (tex != null)
                         {
+                            if(m_Core.CurVulkanPipelineState.Images.ContainsKey(tex.tex.ID))
+                                text += String.Format("Texture is in the '{0}' layout\n\n", m_Core.CurVulkanPipelineState.Images[tex.tex.ID].layouts[0].name);
+
                             if (tex.tex.format != tex.fmt)
                                 text += String.Format("The texture is format {0}, the view treats it as {1}.\n",
                                     tex.tex.format, tex.fmt);

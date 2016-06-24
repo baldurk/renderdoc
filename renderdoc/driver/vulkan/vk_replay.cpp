@@ -3666,6 +3666,30 @@ void VulkanReplay::SavePipelineState()
         }
       }
     }
+
+    // image layouts
+    {
+      create_array_uninit(m_VulkanPipelineState.images, m_pDriver->m_ImageLayouts.size());
+      size_t i = 0;
+      for(auto it = m_pDriver->m_ImageLayouts.begin(); it != m_pDriver->m_ImageLayouts.end(); ++it)
+      {
+        VulkanPipelineState::ImageData &img = m_VulkanPipelineState.images[i];
+
+        img.image = rm->GetOriginalID(it->first);
+
+        create_array_uninit(img.layouts, it->second.subresourceStates.size());
+        for(size_t l = 0; l < it->second.subresourceStates.size(); l++)
+        {
+          img.layouts[l].name = ToStr::Get(it->second.subresourceStates[l].newLayout);
+          img.layouts[l].baseMip = it->second.subresourceStates[l].subresourceRange.baseMipLevel;
+          img.layouts[l].baseLayer = it->second.subresourceStates[l].subresourceRange.baseArrayLayer;
+          img.layouts[l].numLayer = it->second.subresourceStates[l].subresourceRange.layerCount;
+          img.layouts[l].numMip = it->second.subresourceStates[l].subresourceRange.levelCount;
+        }
+
+        i++;
+      }
+    }
   }
 }
 

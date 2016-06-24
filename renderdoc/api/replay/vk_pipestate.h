@@ -348,4 +348,20 @@ struct VulkanPipelineState
       int32_t x, y, width, height;
     } renderArea;
   } Pass;
+
+  struct ImageData
+  {
+    ResourceId image;
+
+    struct ImageLayout
+    {
+      uint32_t baseMip;
+      uint32_t baseLayer;
+      uint32_t numMip;
+      uint32_t numLayer;
+      rdctype::str name;
+    };
+    rdctype::array<ImageLayout> layouts;
+  };
+  rdctype::array<ImageData> images;
 };

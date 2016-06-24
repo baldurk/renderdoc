@@ -176,6 +176,17 @@ namespace renderdocui.Code
             }
         }
 
+        public string GetImageLayout(ResourceId id)
+        {
+            if (LogLoaded)
+            {
+                if (IsLogVK && m_Vulkan.Images.ContainsKey(id))
+                    return m_Vulkan.Images[id].layouts[0].name;
+            }
+
+            return "Unknown";
+        }
+
         public string Abbrev(ShaderStageType stage)
         {
             if (IsLogD3D11 || (!LogLoaded && DefaultType == APIPipelineStateType.D3D11))

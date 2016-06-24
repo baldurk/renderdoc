@@ -76,6 +76,7 @@
             this.stencilDisplay = new System.Windows.Forms.RadioButton();
             this.zoomStrip = new System.Windows.Forms.ToolStrip();
             this.toolStripLabel4 = new System.Windows.Forms.ToolStripLabel();
+            this.zoomExactSize = new System.Windows.Forms.ToolStripButton();
             this.fitToWindow = new System.Windows.Forms.ToolStripButton();
             this.zoomOption = new System.Windows.Forms.ToolStripComboBox();
             this.flip_y = new System.Windows.Forms.ToolStripButton();
@@ -148,7 +149,8 @@
             this.pixelContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.highlightedPixelHistoryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.highlightedPixelDebugToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.zoomExactSize = new System.Windows.Forms.ToolStripButton();
+            this.imageInLayoutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             subSep = new System.Windows.Forms.ToolStripSeparator();
             toolStripLabel2 = new System.Windows.Forms.ToolStripLabel();
             toolStripLabel3 = new System.Windows.Forms.ToolStripLabel();
@@ -213,10 +215,12 @@
             this.showEmpty,
             this.usedSep,
             this.openNewTab,
+            this.toolStripSeparator1,
+            this.imageInLayoutMenuItem,
             this.usedStartLabel});
             this.rightclickMenu.MaximumSize = new System.Drawing.Size(0, 480);
             this.rightclickMenu.Name = "rightclickMenu";
-            this.rightclickMenu.Size = new System.Drawing.Size(181, 98);
+            this.rightclickMenu.Size = new System.Drawing.Size(181, 148);
             // 
             // showDisabled
             // 
@@ -481,7 +485,7 @@
             this.zoomStrip.Location = new System.Drawing.Point(0, 50);
             this.zoomStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
             this.zoomStrip.Name = "zoomStrip";
-            this.zoomStrip.Size = new System.Drawing.Size(285, 25);
+            this.zoomStrip.Size = new System.Drawing.Size(254, 25);
             this.zoomStrip.TabIndex = 2;
             // 
             // toolStripLabel4
@@ -489,6 +493,16 @@
             this.toolStripLabel4.Name = "toolStripLabel4";
             this.toolStripLabel4.Size = new System.Drawing.Size(33, 22);
             this.toolStripLabel4.Text = "Zoom";
+            // 
+            // zoomExactSize
+            // 
+            this.zoomExactSize.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.zoomExactSize.Image = ((System.Drawing.Image)(resources.GetObject("zoomExactSize.Image")));
+            this.zoomExactSize.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.zoomExactSize.Name = "zoomExactSize";
+            this.zoomExactSize.Size = new System.Drawing.Size(27, 22);
+            this.zoomExactSize.Text = "1:1";
+            this.zoomExactSize.Click += new System.EventHandler(this.zoomExactSize_Click);
             // 
             // fitToWindow
             // 
@@ -538,7 +552,7 @@
             this.overlayStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripLabel5,
             this.overlay});
-            this.overlayStrip.Location = new System.Drawing.Point(297, 50);
+            this.overlayStrip.Location = new System.Drawing.Point(266, 50);
             this.overlayStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
             this.overlayStrip.Name = "overlayStrip";
             this.overlayStrip.Size = new System.Drawing.Size(171, 25);
@@ -633,7 +647,7 @@
             this.autoFit,
             this.reset01,
             this.visualiseRange});
-            this.rangeStrip.Location = new System.Drawing.Point(480, 50);
+            this.rangeStrip.Location = new System.Drawing.Point(449, 50);
             this.rangeStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
             this.rangeStrip.Name = "rangeStrip";
             this.rangeStrip.Size = new System.Drawing.Size(337, 25);
@@ -1318,15 +1332,16 @@
             this.highlightedPixelDebugToolStripMenuItem.Text = "Highlighted Pixel &Debug";
             this.highlightedPixelDebugToolStripMenuItem.Click += new System.EventHandler(this.debugPixel_Click);
             // 
-            // zoomExactSize
+            // imageInLayoutMenuItem
             // 
-            this.zoomExactSize.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.zoomExactSize.Image = ((System.Drawing.Image)(resources.GetObject("zoomExactSize.Image")));
-            this.zoomExactSize.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.zoomExactSize.Name = "zoomExactSize";
-            this.zoomExactSize.Size = new System.Drawing.Size(27, 22);
-            this.zoomExactSize.Text = "1:1";
-            this.zoomExactSize.Click += new System.EventHandler(this.zoomExactSize_Click);
+            this.imageInLayoutMenuItem.Name = "imageInLayoutMenuItem";
+            this.imageInLayoutMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.imageInLayoutMenuItem.Text = "Image in layout <X>";
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
             // 
             // TextureViewer
             // 
@@ -1490,6 +1505,8 @@
         private System.Windows.Forms.ToolStripMenuItem highlightedPixelDebugToolStripMenuItem;
         private System.Windows.Forms.ToolStripButton viewTexBuffer;
         private System.Windows.Forms.ToolStripButton zoomExactSize;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem imageInLayoutMenuItem;
 
     }
 }

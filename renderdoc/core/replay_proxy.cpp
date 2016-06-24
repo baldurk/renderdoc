@@ -963,6 +963,27 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::CurrentPass &e
 }
 
 template <>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::ImageData::ImageLayout &el)
+{
+  Serialise("", el.baseMip);
+  Serialise("", el.baseLayer);
+  Serialise("", el.numMip);
+  Serialise("", el.numLayer);
+  Serialise("", el.name);
+
+  SIZE_CHECK(VulkanPipelineState::ImageData::ImageLayout, 32);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, VulkanPipelineState::ImageData &el)
+{
+  Serialise("", el.image);
+  Serialise("", el.layouts);
+
+  SIZE_CHECK(VulkanPipelineState::ImageData, 24);
+}
+
+template <>
 void Serialiser::Serialise(const char *name, VulkanPipelineState &el)
 {
   Serialise("", el.compute);
@@ -987,7 +1008,9 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState &el)
   Serialise("", el.DS);
   Serialise("", el.Pass);
 
-  SIZE_CHECK(VulkanPipelineState, 1456);
+  Serialise("", el.images);
+
+  SIZE_CHECK(VulkanPipelineState, 1472);
 }
 
 #pragma endregion Vulkan pipeline state

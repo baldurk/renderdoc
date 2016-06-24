@@ -2607,6 +2607,8 @@
             this.targetOutputs.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.targetOutputs.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.targetOutputs.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.targetOutputs.MouseLeave += new System.EventHandler(this.resource_MouseLeave);
+            this.targetOutputs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.resource_MouseMove);
             // 
             // groupBox37
             // 

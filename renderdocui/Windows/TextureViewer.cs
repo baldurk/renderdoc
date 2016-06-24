@@ -3546,6 +3546,16 @@ namespace renderdocui.Windows
                 menuItems[i].Visible = thumbStripMenu;
             }
 
+            if (m_Core.CurPipelineState.SupportsBarriers)
+            {
+                imageInLayoutMenuItem.Visible = true;
+                imageInLayoutMenuItem.Text = "Image is in layout " + m_Core.CurPipelineState.GetImageLayout(id);
+            }
+            else
+            {
+                imageInLayoutMenuItem.Visible = false;
+            }
+
             if (id != ResourceId.Null)
             {
                 usedSep.Visible = true;
