@@ -42,6 +42,10 @@ VulkanReplay::OutputWindow::OutputWindow()
 
   fresh = true;
 
+  hasDepth = false;
+
+  failures = recreatePause = 0;
+
   bb = VK_NULL_HANDLE;
   bbview = VK_NULL_HANDLE;
   fb = VK_NULL_HANDLE;
@@ -158,6 +162,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
   const VkLayerDispatchTable *vt = ObjDisp(device);
   VkInstance inst = driver->GetInstance();
   VkPhysicalDevice phys = driver->GetPhysDev();
+
+  hasDepth = depth;
 
   // save the old swapchain so it isn't destroyed
   VkSwapchainKHR old = swap;
@@ -315,13 +321,37 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
   vkr = vt->CreateSwapchainKHR(Unwrap(device), &swapInfo, NULL, &swap);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  GetResourceManager()->WrapResource(Unwrap(device), swap);
-
   if(old != VK_NULL_HANDLE)
   {
     vt->DestroySwapchainKHR(Unwrap(device), Unwrap(old), NULL);
     GetResourceManager()->ReleaseWrappedResource(old);
   }
+
+  if(swap == VK_NULL_HANDLE)
+  {
+    RDCERR("Failed to create swapchain. %d consecutive failures!", failures);
+    failures++;
+
+    // do some sort of backoff.
+
+    // the first time, try to recreate again next frame
+    if(failures == 1)
+      recreatePause = 0;
+    // the next few times, wait 200 'frames' between attempts
+    else if(failures < 10)
+      recreatePause = 100;
+    // otherwise, only reattempt very infrequently. A resize will
+    // always retrigger a recreate, so ew probably don't want to
+    // try again
+    else
+      recreatePause = 1000;
+
+    return;
+  }
+
+  failures = 0;
+
+  GetResourceManager()->WrapResource(Unwrap(device), swap);
 
   vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, NULL);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -1034,6 +1064,11 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 
   OutputWindow &outw = it->second;
 
+  // if the swapchain failed to create, do nothing. We will try to recreate it
+  // again in CheckResizeOutputWindow (once per render 'frame')
+  if(outw.swap == VK_NULL_HANDLE)
+    return false;
+
   VkClearValue clearval = {};
   VkRenderPassBeginInfo rpbegin = {
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -1435,6 +1470,11 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 
   OutputWindow &outw = it->second;
 
+  // if the swapchain failed to create, do nothing. We will try to recreate it
+  // again in CheckResizeOutputWindow (once per render 'frame')
+  if(outw.swap == VK_NULL_HANDLE)
+    return;
+
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
@@ -1502,6 +1542,11 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
     return;
 
   OutputWindow &outw = it->second;
+
+  // if the swapchain failed to create, do nothing. We will try to recreate it
+  // again in CheckResizeOutputWindow (once per render 'frame')
+  if(outw.swap == VK_NULL_HANDLE)
+    return;
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -1627,6 +1672,11 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     return;
 
   OutputWindow &outw = it->second;
+
+  // if the swapchain failed to create, do nothing. We will try to recreate it
+  // again in CheckResizeOutputWindow (once per render 'frame')
+  if(outw.swap == VK_NULL_HANDLE)
+    return;
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -2680,13 +2730,17 @@ bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
     outw.height = h;
 
     if(outw.width > 0 && outw.height > 0)
-    {
-      bool depth = (outw.dsimg != VK_NULL_HANDLE);
-
-      outw.Create(m_pDriver, m_pDriver->GetDev(), depth);
-    }
+      outw.Create(m_pDriver, m_pDriver->GetDev(), outw.hasDepth);
 
     return true;
+  }
+
+  if(outw.swap == VK_NULL_HANDLE && outw.width > 0 && outw.height > 0)
+  {
+    if(outw.recreatePause <= 0)
+      outw.Create(m_pDriver, m_pDriver->GetDev(), outw.hasDepth);
+    else
+      outw.recreatePause--;
   }
 
   return false;
@@ -2702,6 +2756,11 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
     return;
 
   OutputWindow &outw = it->second;
+
+  // if the swapchain failed to create, do nothing. We will try to recreate it
+  // again in CheckResizeOutputWindow (once per render 'frame')
+  if(outw.swap == VK_NULL_HANDLE)
+    return;
 
   m_DebugWidth = (int32_t)outw.width;
   m_DebugHeight = (int32_t)outw.height;
@@ -2799,6 +2858,11 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 
   OutputWindow &outw = it->second;
 
+  // if the swapchain failed to create, do nothing. We will try to recreate it
+  // again in CheckResizeOutputWindow (once per render 'frame')
+  if(outw.swap == VK_NULL_HANDLE)
+    return;
+
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
@@ -2843,6 +2907,11 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
     return;
 
   OutputWindow &outw = it->second;
+
+  // if the swapchain failed to create, do nothing. We will try to recreate it
+  // again in CheckResizeOutputWindow (once per render 'frame')
+  if(outw.swap == VK_NULL_HANDLE)
+    return;
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -2891,6 +2960,11 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
     return;
 
   OutputWindow &outw = it->second;
+
+  // if the swapchain failed to create, do nothing. We will try to recreate it
+  // again in CheckResizeOutputWindow (once per render 'frame')
+  if(outw.swap == VK_NULL_HANDLE)
+    return;
 
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();

@@ -227,6 +227,11 @@ private:
 
     uint32_t width, height;
 
+    bool hasDepth;
+
+    int failures;
+    int recreatePause;
+
     VkSurfaceKHR surface;
     VkSwapchainKHR swap;
     uint32_t numImgs;
