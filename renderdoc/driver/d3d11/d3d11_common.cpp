@@ -570,10 +570,10 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 
     case DXGI_FORMAT_BC4_SNORM:
     case DXGI_FORMAT_BC5_SNORM:
-    case DXGI_FORMAT_BC6H_SF16:
-    case DXGI_FORMAT_BC6H_TYPELESS: ret.compType = eCompType_SNorm; break;
+    case DXGI_FORMAT_BC6H_SF16: ret.compType = eCompType_SNorm; break;
 
-    case DXGI_FORMAT_R24G8_TYPELESS: ret.compType = eCompType_None; break;
+    case DXGI_FORMAT_R24G8_TYPELESS:
+    case DXGI_FORMAT_R32G8X24_TYPELESS: ret.compType = eCompType_None; break;
     case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
     case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
     case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
@@ -591,6 +591,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_BC3_TYPELESS:
     case DXGI_FORMAT_BC4_TYPELESS:
     case DXGI_FORMAT_BC5_TYPELESS:
+    case DXGI_FORMAT_BC6H_TYPELESS:
     case DXGI_FORMAT_BC7_TYPELESS: ret.compType = eCompType_None; break;
     case DXGI_FORMAT_R8G8_B8G8_UNORM:
     case DXGI_FORMAT_G8R8_G8B8_UNORM:
