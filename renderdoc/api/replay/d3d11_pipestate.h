@@ -93,11 +93,11 @@ struct D3D11PipelineState
             ElementOffset(0),
             ElementWidth(0),
             FirstElement(0),
-            NumElements(0),
+            NumElements(1),
             Flags(0),
             HighestMip(0),
-            NumMipLevels(0),
-            ArraySize(0),
+            NumMipLevels(1),
+            ArraySize(1),
             FirstArraySlice(0)
       {
       }
