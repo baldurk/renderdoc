@@ -69,6 +69,8 @@ namespace renderdoc
 
                         public UInt32 baseMip;
                         public UInt32 baseLayer;
+                        public UInt32 numMip;
+                        public UInt32 numLayer;
 
                         public UInt64 offset;
                         public UInt64 size;
@@ -383,7 +385,9 @@ namespace renderdoc
                     public TextureSwizzle[] swizzle;
 
                     public UInt32 baseMip;
-                    public UInt32 baseArray;
+                    public UInt32 baseLayer;
+                    public UInt32 numMip;
+                    public UInt32 numLayer;
                 };
                 [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
                 public Attachment[] attachments;

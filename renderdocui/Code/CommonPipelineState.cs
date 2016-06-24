@@ -1090,7 +1090,7 @@ namespace renderdocui.Code
                         var ret = new BoundResource();
                         ret.Id = fb.attachments[rp.depthstencilAttachment].img;
                         ret.HighestMip = (int)fb.attachments[rp.depthstencilAttachment].baseMip;
-                        ret.FirstSlice = (int)fb.attachments[rp.depthstencilAttachment].baseArray;
+                        ret.FirstSlice = (int)fb.attachments[rp.depthstencilAttachment].baseLayer;
                         return ret;
                     }
 
@@ -1151,7 +1151,7 @@ namespace renderdocui.Code
                         {
                             ret[i].Id = fb.attachments[rp.colorAttachments[i]].img;
                             ret[i].HighestMip = (int)fb.attachments[rp.colorAttachments[i]].baseMip;
-                            ret[i].FirstSlice = (int)fb.attachments[rp.colorAttachments[i]].baseArray;
+                            ret[i].FirstSlice = (int)fb.attachments[rp.colorAttachments[i]].baseLayer;
                         }
                     }
 

@@ -543,6 +543,12 @@ void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, Vul
   format = pCreateInfo->format;
   range = pCreateInfo->subresourceRange;
 
+  if(range.levelCount == VK_REMAINING_MIP_LEVELS)
+    range.levelCount = info.m_Image[image].mipLevels - range.baseMipLevel;
+
+  if(range.layerCount == VK_REMAINING_ARRAY_LAYERS)
+    range.layerCount = info.m_Image[image].arrayLayers - range.baseArrayLayer;
+
   swizzle[0] = Convert(pCreateInfo->components.r, 0);
   swizzle[1] = Convert(pCreateInfo->components.g, 1);
   swizzle[2] = Convert(pCreateInfo->components.b, 2);

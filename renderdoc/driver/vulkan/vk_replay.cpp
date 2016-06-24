@@ -3396,6 +3396,10 @@ void VulkanReplay::SavePipelineState()
                 c.m_ImageView[viewid].range.baseMipLevel;
             m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseLayer =
                 c.m_ImageView[viewid].range.baseArrayLayer;
+            m_VulkanPipelineState.Pass.framebuffer.attachments[i].numMip =
+                c.m_ImageView[viewid].range.levelCount;
+            m_VulkanPipelineState.Pass.framebuffer.attachments[i].numLayer =
+                c.m_ImageView[viewid].range.layerCount;
 
             memcpy(m_VulkanPipelineState.Pass.framebuffer.attachments[i].swizzle,
                    c.m_ImageView[viewid].swizzle, sizeof(TextureSwizzle) * 4);
@@ -3407,6 +3411,8 @@ void VulkanReplay::SavePipelineState()
 
             m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseMip = 0;
             m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseLayer = 0;
+            m_VulkanPipelineState.Pass.framebuffer.attachments[i].numMip = 1;
+            m_VulkanPipelineState.Pass.framebuffer.attachments[i].numLayer = 1;
           }
         }
       }
@@ -3575,6 +3581,8 @@ void VulkanReplay::SavePipelineState()
                          sizeof(TextureSwizzle) * 4);
                   dst.bindings[b].binds[a].baseMip = c.m_ImageView[viewid].range.baseMipLevel;
                   dst.bindings[b].binds[a].baseLayer = c.m_ImageView[viewid].range.baseArrayLayer;
+                  dst.bindings[b].binds[a].numMip = c.m_ImageView[viewid].range.levelCount;
+                  dst.bindings[b].binds[a].numLayer = c.m_ImageView[viewid].range.layerCount;
                 }
                 else
                 {
@@ -3582,6 +3590,8 @@ void VulkanReplay::SavePipelineState()
                   dst.bindings[b].binds[a].res = ResourceId();
                   dst.bindings[b].binds[a].baseMip = 0;
                   dst.bindings[b].binds[a].baseLayer = 0;
+                  dst.bindings[b].binds[a].numMip = 1;
+                  dst.bindings[b].binds[a].numLayer = 1;
                 }
               }
               if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||

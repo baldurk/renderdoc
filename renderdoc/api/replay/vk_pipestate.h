@@ -79,6 +79,8 @@ struct VulkanPipelineState
           TextureSwizzle swizzle[4];
           uint32_t baseMip;
           uint32_t baseLayer;
+          uint32_t numMip;
+          uint32_t numLayer;
 
           // buffers
           uint64_t offset;
@@ -318,7 +320,7 @@ struct VulkanPipelineState
 
       struct Attachment
       {
-        Attachment() : baseMip(0), baseLayer(0)
+        Attachment() : baseMip(0), baseLayer(0), numMip(1), numLayer(1)
         {
           swizzle[0] = eSwizzle_Red;
           swizzle[1] = eSwizzle_Green;
@@ -332,6 +334,8 @@ struct VulkanPipelineState
         TextureSwizzle swizzle[4];
         uint32_t baseMip;
         uint32_t baseLayer;
+        uint32_t numMip;
+        uint32_t numLayer;
       };
       rdctype::array<Attachment> attachments;
 

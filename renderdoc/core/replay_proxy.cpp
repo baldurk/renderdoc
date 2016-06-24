@@ -743,6 +743,8 @@ void Serialiser::Serialise(
   SerialisePODArray<4>("", el.swizzle);
   Serialise("", el.baseMip);
   Serialise("", el.baseLayer);
+  Serialise("", el.numMip);
+  Serialise("", el.numLayer);
 
   Serialise("", el.offset);
   Serialise("", el.size);
@@ -763,7 +765,7 @@ void Serialiser::Serialise(
   Serialise("", el.border);
   Serialise("", el.unnormalized);
 
-  SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement, 320);
+  SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement, 328);
 };
 
 template <>
@@ -889,6 +891,24 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ColorBlend &el
   SerialisePODArray<4>("", el.blendConst);
 
   SIZE_CHECK(VulkanPipelineState::ColorBlend, 64);
+}
+
+template <>
+void Serialiser::Serialise(const char *name,
+                           VulkanPipelineState::CurrentPass::Framebuffer::Attachment &el)
+{
+  Serialise("", el.view);
+  Serialise("", el.img);
+
+  Serialise("", el.viewfmt);
+  SerialisePODArray<4>("", el.swizzle);
+
+  Serialise("", el.baseMip);
+  Serialise("", el.baseLayer);
+  Serialise("", el.numMip);
+  Serialise("", el.numLayer);
+
+  SIZE_CHECK(VulkanPipelineState::CurrentPass::Framebuffer::Attachment, 104);
 }
 
 template <>
@@ -1595,12 +1615,6 @@ string ToStrHelper<false, VulkanPipelineState::VertexInput::VertexBuffer>::Get(
 template <>
 string ToStrHelper<false, VulkanPipelineState::ViewState::ViewportScissor>::Get(
     const VulkanPipelineState::ViewState::ViewportScissor &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, VulkanPipelineState::CurrentPass::Framebuffer::Attachment>::Get(
-    const VulkanPipelineState::CurrentPass::Framebuffer::Attachment &el)
 {
   return "<...>";
 }
