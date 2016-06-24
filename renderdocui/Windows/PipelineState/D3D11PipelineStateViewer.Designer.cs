@@ -351,6 +351,7 @@
             this.scissorEnable = new System.Windows.Forms.PictureBox();
             this.lineAAEnable = new System.Windows.Forms.PictureBox();
             this.label23 = new System.Windows.Forms.Label();
+            this.conservativeRaster = new System.Windows.Forms.PictureBox();
             this.groupBox32 = new System.Windows.Forms.GroupBox();
             this.viewports = new TreelistView.TreeListView();
             this.scissors = new TreelistView.TreeListView();
@@ -441,7 +442,6 @@
             this.showEmpty = new System.Windows.Forms.ToolStripMenuItem();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.exportDialog = new System.Windows.Forms.SaveFileDialog();
-            this.conservativeRaster = new System.Windows.Forms.PictureBox();
             toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             toolstripTable = new System.Windows.Forms.TableLayoutPanel();
             groupBox2 = new System.Windows.Forms.GroupBox();
@@ -453,8 +453,8 @@
             label15 = new System.Windows.Forms.Label();
             label16 = new System.Windows.Forms.Label();
             label17 = new System.Windows.Forms.Label();
-            groupBox42 = new System.Windows.Forms.GroupBox();
             label25 = new System.Windows.Forms.Label();
+            groupBox42 = new System.Windows.Forms.GroupBox();
             toolstripTable.SuspendLayout();
             this.flowLayoutPanel6.SuspendLayout();
             this.toolStrip1.SuspendLayout();
@@ -546,6 +546,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.multisampleEnable)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.scissorEnable)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.lineAAEnable)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.conservativeRaster)).BeginInit();
             this.groupBox32.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.viewports)).BeginInit();
             groupBox42.SuspendLayout();
@@ -605,7 +606,6 @@
             this.groupBox36.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.csCBuffers)).BeginInit();
             this.rightclickMenu.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.conservativeRaster)).BeginInit();
             this.SuspendLayout();
             // 
             // toolStripLabel1
@@ -1253,6 +1253,8 @@
             this.vsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.vsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.vsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.vsResources.MouseLeave += new System.EventHandler(this.textureCell_MouseLeave);
+            this.vsResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.textureCell_MouseMove);
             // 
             // groupBox8
             // 
@@ -1574,6 +1576,8 @@
             this.hsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.hsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.hsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.hsResources.MouseLeave += new System.EventHandler(this.textureCell_MouseLeave);
+            this.hsResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.textureCell_MouseMove);
             // 
             // groupBox14
             // 
@@ -1895,6 +1899,8 @@
             this.dsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.dsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.dsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.dsResources.MouseLeave += new System.EventHandler(this.textureCell_MouseLeave);
+            this.dsResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.textureCell_MouseMove);
             // 
             // groupBox20
             // 
@@ -2265,6 +2271,8 @@
             this.gsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.gsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.gsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.gsResources.MouseLeave += new System.EventHandler(this.textureCell_MouseLeave);
+            this.gsResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.textureCell_MouseMove);
             // 
             // groupBox25
             // 
@@ -2435,7 +2443,7 @@
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 608F));
+            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 610F));
             this.tableLayoutPanel8.Controls.Add(this.forcedSampleCount, 7, 1);
             this.tableLayoutPanel8.Controls.Add(this.label14, 6, 1);
             this.tableLayoutPanel8.Controls.Add(this.frontCCW, 5, 0);
@@ -2479,7 +2487,7 @@
             this.forcedSampleCount.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.forcedSampleCount.Location = new System.Drawing.Point(539, 28);
             this.forcedSampleCount.Name = "forcedSampleCount";
-            this.forcedSampleCount.Size = new System.Drawing.Size(18, 19);
+            this.forcedSampleCount.Size = new System.Drawing.Size(32, 19);
             this.forcedSampleCount.TabIndex = 24;
             this.forcedSampleCount.Text = "0";
             this.forcedSampleCount.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -2709,6 +2717,27 @@
             this.label23.Size = new System.Drawing.Size(47, 13);
             this.label23.TabIndex = 12;
             this.label23.Text = "Line AA:";
+            // 
+            // label25
+            // 
+            label25.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            label25.AutoSize = true;
+            label25.Location = new System.Drawing.Point(426, 6);
+            label25.Name = "label25";
+            label25.Size = new System.Drawing.Size(106, 13);
+            label25.TabIndex = 25;
+            label25.Text = "Conservative Raster:";
+            // 
+            // conservativeRaster
+            // 
+            this.conservativeRaster.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.conservativeRaster.Image = ((System.Drawing.Image)(resources.GetObject("conservativeRaster.Image")));
+            this.conservativeRaster.Location = new System.Drawing.Point(539, 5);
+            this.conservativeRaster.Name = "conservativeRaster";
+            this.conservativeRaster.Size = new System.Drawing.Size(32, 16);
+            this.conservativeRaster.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
+            this.conservativeRaster.TabIndex = 26;
+            this.conservativeRaster.TabStop = false;
             // 
             // groupBox32
             // 
@@ -3026,6 +3055,8 @@
             this.psResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.psResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.psResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.psResources.MouseLeave += new System.EventHandler(this.textureCell_MouseLeave);
+            this.psResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.textureCell_MouseMove);
             // 
             // groupBox29
             // 
@@ -3233,6 +3264,8 @@
             this.targetOutputs.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.targetOutputs.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.targetOutputs.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.targetOutputs.MouseLeave += new System.EventHandler(this.textureCell_MouseLeave);
+            this.targetOutputs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.textureCell_MouseMove);
             // 
             // groupBox37
             // 
@@ -3834,6 +3867,8 @@
             this.csUAVs.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.csUAVs.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.csUAVs.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.csUAVs.MouseLeave += new System.EventHandler(this.textureCell_MouseLeave);
+            this.csUAVs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.textureCell_MouseMove);
             // 
             // groupBox27
             // 
@@ -4111,6 +4146,8 @@
             this.csResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.csResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.csResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.csResources.MouseLeave += new System.EventHandler(this.textureCell_MouseLeave);
+            this.csResources.MouseMove += new System.Windows.Forms.MouseEventHandler(this.textureCell_MouseMove);
             // 
             // groupBox35
             // 
@@ -4238,32 +4275,16 @@
             this.showEmpty.Text = "Show Empty";
             this.showEmpty.Click += new System.EventHandler(this.hideEmpty_Click);
             // 
+            // toolTip
+            // 
+            this.toolTip.UseAnimation = false;
+            this.toolTip.UseFading = false;
+            // 
             // exportDialog
             // 
             this.exportDialog.DefaultExt = "html";
             this.exportDialog.Filter = "HTML Files (*.html)|*.html";
             this.exportDialog.Title = "Export pipeline state as HTML";
-            // 
-            // label25
-            // 
-            label25.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            label25.AutoSize = true;
-            label25.Location = new System.Drawing.Point(426, 6);
-            label25.Name = "label25";
-            label25.Size = new System.Drawing.Size(106, 13);
-            label25.TabIndex = 25;
-            label25.Text = "Conservative Raster:";
-            // 
-            // conservativeRaster
-            // 
-            this.conservativeRaster.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.conservativeRaster.Image = ((System.Drawing.Image)(resources.GetObject("conservativeRaster.Image")));
-            this.conservativeRaster.Location = new System.Drawing.Point(539, 5);
-            this.conservativeRaster.Name = "conservativeRaster";
-            this.conservativeRaster.Size = new System.Drawing.Size(32, 16);
-            this.conservativeRaster.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
-            this.conservativeRaster.TabIndex = 26;
-            this.conservativeRaster.TabStop = false;
             // 
             // D3D11PipelineStateViewer
             // 
@@ -4374,6 +4395,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.multisampleEnable)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.scissorEnable)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.lineAAEnable)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.conservativeRaster)).EndInit();
             this.groupBox32.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.viewports)).EndInit();
             groupBox42.ResumeLayout(false);
@@ -4443,7 +4465,6 @@
             this.groupBox36.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.csCBuffers)).EndInit();
             this.rightclickMenu.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.conservativeRaster)).EndInit();
             this.ResumeLayout(false);
 
         }

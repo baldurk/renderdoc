@@ -49,6 +49,11 @@ namespace renderdocui.Windows.PipelineState
         private List<TreelistView.Node> m_VBNodes = new List<TreelistView.Node>();
         private List<TreelistView.Node> m_BindNodes = new List<TreelistView.Node>();
 
+        // keep track of resource nodes that need view details
+        private List<TreelistView.Node> m_ViewDetailNodes = new List<TreelistView.Node>();
+
+        TreelistView.Node m_CurViewDetailNode = null;
+
         private struct IABufferTag
         {
             public IABufferTag(ResourceId i, ulong offs)
@@ -84,6 +89,26 @@ namespace renderdocui.Windows.PipelineState
             public ResourceId ID;
             public ulong offset;
             public ulong size;
+        };
+
+        private class ViewTexTag
+        {
+            public ViewTexTag(ResourceFormat f, UInt32 bm, UInt32 bl, UInt32 nm, UInt32 nl, FetchTexture t)
+            {
+                fmt = f;
+                baseMip = bm;
+                baseLayer = bl;
+                numMip = nm;
+                numLayer = nl;
+                tex = t;
+            }
+
+            public ResourceFormat fmt;
+            public UInt32 baseMip;
+            public UInt32 baseLayer;
+            public UInt32 numMip;
+            public UInt32 numLayer;
+            public FetchTexture tex;
         };
 
         private Dictionary<TreelistView.Node, TreelistView.Node> m_CombinedImageSamplers = new Dictionary<TreelistView.Node, TreelistView.Node>();
@@ -157,6 +182,9 @@ namespace renderdocui.Windows.PipelineState
 
         public void OnLogfileClosed()
         {
+            HideViewDetailsTooltip();
+            m_ViewDetailNodes.Clear();
+
             viAttrs.Nodes.Clear();
             viBuffers.Nodes.Clear();
             topology.Text = "";
@@ -223,6 +251,47 @@ namespace renderdocui.Windows.PipelineState
         private void InactiveRow(TreelistView.Node node)
         {
             node.Italic = true;
+        }
+
+        private void ViewDetailsRow(TreelistView.Node node)
+        {
+            node.BackColor = Color.Aquamarine;
+            m_ViewDetailNodes.Add(node);
+        }
+
+        private bool HasImportantViewParams(VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement view, FetchTexture tex)
+        {
+            // Since mutable formats are more unclear in vulkan (it allows casting between any
+            // similar format, and the underlying texture still has a valid format), we consider
+            // a format difference to be important even though we display the view's format in
+            // the row data itself
+            if (view.viewfmt != tex.format ||
+                view.baseMip > 0 || view.baseLayer > 0 ||
+                (view.numMip < tex.mips && tex.mips > 1) ||
+                (view.numLayer < tex.arraysize && tex.arraysize > 1))
+                return true;
+
+            return false;
+        }
+
+        private bool HasImportantViewParams(VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement view, FetchBuffer buf)
+        {
+            if (view.offset > 0 || view.size < buf.byteSize)
+                return true;
+
+            return false;
+        }
+
+        private bool HasImportantViewParams(VulkanPipelineState.CurrentPass.Framebuffer.Attachment att, FetchTexture tex)
+        {
+            // see above in BindingElement overload for justification for comparing formats
+            if (att.viewfmt != tex.format ||
+                att.baseMip > 0 || att.baseLayer > 0 ||
+                (att.numMip < tex.mips && tex.mips > 1) ||
+                (att.numLayer < tex.arraysize && tex.arraysize > 1))
+                return true;
+
+            return false;
         }
 
         private void ClearShaderState(Label shader, TreelistView.TreeListView resources,
@@ -459,6 +528,7 @@ namespace renderdocui.Windows.PipelineState
                     string name = "Empty";
                     ShaderResourceType restype = ShaderResourceType.None;
                     object tag = null;
+                    bool viewDetails = false;
 
                     if (filledSlot && descriptorBind != null)
                     {
@@ -479,7 +549,15 @@ namespace renderdocui.Windows.PipelineState
                                 restype = texs[t].resType;
                                 samples = texs[t].msSamp;
 
-                                tag = texs[t];
+                                if (HasImportantViewParams(descriptorBind, texs[t]))
+                                    viewDetails = true;
+
+                                tag = new ViewTexTag(
+                                        descriptorBind.viewfmt,
+                                        descriptorBind.baseMip, descriptorBind.baseLayer,
+                                        descriptorBind.numMip, descriptorBind.numLayer,
+                                        texs[t]
+                                    );
                             }
                         }
 
@@ -497,6 +575,9 @@ namespace renderdocui.Windows.PipelineState
                                 restype = ShaderResourceType.Buffer;
 
                                 tag = new BufferResTag(isrw, bindPoint, bufs[t].ID, descriptorBind.offset, descriptorBind.size);
+
+                                if (HasImportantViewParams(descriptorBind, bufs[t]))
+                                    viewDetails = true;
 
                                 isbuf = true;
                             }
@@ -649,6 +730,9 @@ namespace renderdocui.Windows.PipelineState
 
                             if (!usedSlot)
                                 InactiveRow(node);
+
+                            if (viewDetails)
+                                ViewDetailsRow(node);
                         }
 
                         if (bindType == ShaderBindType.ImageSampler)
@@ -1470,6 +1554,7 @@ namespace renderdocui.Windows.PipelineState
                         string name = "Texture " + p.ToString();
                         string typename = "Unknown";
                         object tag = null;
+                        bool viewDetails = false;
 
                         if (p.img == ResourceId.Null)
                         {
@@ -1503,7 +1588,10 @@ namespace renderdocui.Windows.PipelineState
                                     }
                                 }
 
-                                tag = texs[t];
+                                if (HasImportantViewParams(p, texs[t]))
+                                    viewDetails = true;
+
+                                tag = new ViewTexTag(p.viewfmt, p.baseMip, p.baseLayer, p.numMip, p.numLayer, texs[t]);
                             }
                         }
 
@@ -1526,11 +1614,20 @@ namespace renderdocui.Windows.PipelineState
                         node.Tag = tag;
 
                         if (p.img == ResourceId.Null)
+                        {
                             EmptyRow(node);
+                        }
                         else if (!usedSlot)
+                        {
                             InactiveRow(node);
+                        }
                         else
+                        {
                             targets[i] = true;
+
+                            if (viewDetails)
+                                ViewDetailsRow(node);
+                        }
                     }
 
                     i++;
@@ -1692,6 +1789,117 @@ namespace renderdocui.Windows.PipelineState
             UpdateState();
         }
 
+        private void HideViewDetailsTooltip()
+        {
+            if (m_CurViewDetailNode != null)
+                toolTip.Hide(m_CurViewDetailNode.OwnerView);
+            m_CurViewDetailNode = null;
+        }
+
+        private void MakeNodesTransparent(TreelistView.TreeListView treeview)
+        {
+            foreach (var n in treeview.Nodes)
+            {
+                foreach (var n2 in n.Nodes)
+                    n2.DefaultBackColor = Color.Transparent;
+                n.DefaultBackColor = Color.Transparent;
+            }
+
+            treeview.Invalidate();
+        }
+
+        private void resource_MouseLeave(object sender, EventArgs e)
+        {
+            MakeNodesTransparent((TreelistView.TreeListView)sender);
+
+            HideViewDetailsTooltip();
+        }
+
+        private void resource_MouseMove(object sender, MouseEventArgs e)
+        {
+            TreelistView.TreeListView treeview = (TreelistView.TreeListView)sender;
+
+            if (m_Core.CurVulkanPipelineState == null) return;
+
+            Point mousePoint = treeview.PointToClient(Cursor.Position);
+            var hoverNode = treeview.CalcHitNode(mousePoint);
+
+            MakeNodesTransparent(treeview);
+
+            if (hoverNode != null)
+            {
+                if (hoverNode.Tag is SamplerData)
+                {
+                    SamplerData data = (SamplerData)hoverNode.Tag;
+                    foreach (var imgnode in data.images)
+                        imgnode.DefaultBackColor = Color.Wheat;
+                }
+                else if (m_CombinedImageSamplers.ContainsKey(hoverNode))
+                {
+                    m_CombinedImageSamplers[hoverNode].DefaultBackColor = Color.LightCyan;
+                }
+
+                if (m_ViewDetailNodes.Contains(hoverNode))
+                {
+                    if (hoverNode != m_CurViewDetailNode)
+                    {
+                        // round y up to the next row
+                        int y = (e.Location.Y - treeview.Columns.Options.HeaderHeight) / treeview.RowOptions.ItemHeight;
+                        y = treeview.Columns.Options.HeaderHeight + (y + 1) * treeview.RowOptions.ItemHeight;
+
+                        string text = "";
+
+                        ViewTexTag tex = (hoverNode.Tag as ViewTexTag);
+                        BufferResTag buf = (hoverNode.Tag as BufferResTag);
+
+                        if (tex != null)
+                        {
+                            if (tex.tex.format != tex.fmt)
+                                text += String.Format("The texture is format {0}, the view treats it as {1}.\n",
+                                    tex.tex.format, tex.fmt);
+
+                            if (tex.tex.mips > 1 && (tex.tex.mips != tex.numMip || tex.baseMip > 0))
+                            {
+                                if (tex.numMip == 1)
+                                    text += String.Format("The texture has {0} mips, the view covers mip {1}.\n",
+                                        tex.tex.mips, tex.baseMip);
+                                else
+                                    text += String.Format("The texture has {0} mips, the view covers mips {1}-{2}.\n",
+                                        tex.tex.mips, tex.baseMip, tex.baseMip + tex.numMip - 1);
+                            }
+
+                            if (tex.tex.arraysize > 1 && (tex.tex.arraysize != tex.numLayer || tex.baseLayer > 0))
+                            {
+                                if (tex.numLayer == 1)
+                                    text += String.Format("The texture has {0} array slices, the view covers slice {1}.\n",
+                                        tex.tex.arraysize, tex.baseLayer);
+                                else
+                                    text += String.Format("The texture has {0} array slices, the view covers slices {1}-{2}.\n",
+                                        tex.tex.arraysize, tex.baseLayer, tex.baseLayer + tex.numLayer);
+                            }
+                        }
+                        else if (buf != null)
+                        {
+                            text += String.Format("The view covers bytes {0}-{1}.\nThe buffer is {3} bytes in length.",
+                                buf.offset, buf.size,
+                                m_Core.GetBuffer(buf.ID).byteSize);
+                        }
+
+                        toolTip.Show(text.TrimEnd(), treeview, e.Location.X + Cursor.Size.Width, y);
+
+                        m_CurViewDetailNode = hoverNode;
+                    }
+                }
+                else // node is not in view details list
+                {
+                    HideViewDetailsTooltip();
+                }
+            }
+            else
+            {
+                HideViewDetailsTooltip();
+            }
+        }
         // launch the appropriate kind of viewer, depending on the type of resource that's in this node
         private void textureCell_CellDoubleClick(TreelistView.Node node)
         {
@@ -1700,6 +1908,9 @@ namespace renderdocui.Windows.PipelineState
             VulkanPipelineState.ShaderStage stage = GetStageForSender(node.OwnerView);
 
             if (stage == null) return;
+
+            if (tag is ViewTexTag)
+                tag = (tag as ViewTexTag).tex;
 
             if (tag is FetchTexture)
             {
@@ -2583,13 +2794,13 @@ namespace renderdocui.Windows.PipelineState
                             name = tex.name;
 
                             if (tex.mips > 1)
-                                viewParams = String.Format("Highest Mip: {0}", descriptorBind.baseMip);
+                                viewParams = String.Format("Mips: {0}-{1}", descriptorBind.baseMip, descriptorBind.baseMip+descriptorBind.numMip - 1);
 
                             if (tex.arraysize > 1)
                             {
                                 if (viewParams.Length > 0)
                                     viewParams += ", ";
-                                viewParams += String.Format("First array slice: {0}", descriptorBind.baseLayer);
+                                viewParams += String.Format("Layers: {0}-{1}", descriptorBind.baseLayer, descriptorBind.baseLayer + descriptorBind.numLayer - 1);
                             }
                         }
 
@@ -2943,7 +3154,7 @@ namespace renderdocui.Windows.PipelineState
 
                     rows.Add(new object[] {
                         i,
-                        name, a.baseMip, a.baseArray });
+                        name, a.baseMip, a.numMip, a.baseLayer, a.numLayer });
 
                     i++;
                 }
@@ -2951,7 +3162,7 @@ namespace renderdocui.Windows.PipelineState
                 ExportHTMLTable(writer,
                     new string[] {
                         "Slot",
-                        "Image", "First mip", "First array slice",
+                        "Image", "First mip", "Number of mips", "First array layer", "Number of layers",
                     },
                     rows.ToArray());
             }
@@ -3193,44 +3404,5 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
             }
         }
 
-        private void resource_MouseLeave(object sender, EventArgs e)
-        {
-            TreelistView.TreeListView treeview = (TreelistView.TreeListView)sender;
-
-            foreach (var n in treeview.Nodes)
-            {
-                foreach (var n2 in n.Nodes)
-                    n2.DefaultBackColor = Color.Transparent;
-                n.DefaultBackColor = Color.Transparent;
-            }
-
-            treeview.Invalidate();
-        }
-
-        private void resource_MouseMove(object sender, MouseEventArgs e)
-        {
-            TreelistView.TreeListView treeview = (TreelistView.TreeListView)sender;
-
-            if (m_Core.CurVulkanPipelineState == null) return;
-
-            Point mousePoint = treeview.PointToClient(Cursor.Position);
-            var hoverNode = treeview.CalcHitNode(mousePoint);
-
-            resource_MouseLeave(sender, e);
-
-            if (hoverNode != null)
-            {
-                if (hoverNode.Tag is SamplerData)
-                {
-                    SamplerData data = (SamplerData)hoverNode.Tag;
-                    foreach (var imgnode in data.images)
-                        imgnode.DefaultBackColor = Color.Wheat;
-                }
-                else if (m_CombinedImageSamplers.ContainsKey(hoverNode))
-                {
-                    m_CombinedImageSamplers[hoverNode].DefaultBackColor = Color.LightCyan;
-                }
-            }
-        }
    }
 }

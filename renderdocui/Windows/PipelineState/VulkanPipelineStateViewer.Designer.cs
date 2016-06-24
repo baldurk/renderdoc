@@ -3359,6 +3359,11 @@
             this.showEmpty.Text = "Show Empty";
             this.showEmpty.Click += new System.EventHandler(this.hideEmpty_Click);
             // 
+            // toolTip
+            // 
+            this.toolTip.UseAnimation = false;
+            this.toolTip.UseFading = false;
+            // 
             // exportDialog
             // 
             this.exportDialog.DefaultExt = "html";
