@@ -381,8 +381,7 @@ namespace renderdocui.Windows.PipelineState
                                         descriptor.immutableSampler ? "Immutable Sampler" : "Sampler",
                                         descriptor.SamplerName, 
                                         addressing,
-                                        filter,
-                                        lod
+                                        filter + ", " + lod
                                     };
         }
 
@@ -600,9 +599,9 @@ namespace renderdocui.Windows.PipelineState
                         if (!isbuf)
                         {
                             node = parentNodes.Add(new object[] {
-                                "", bindset, slotname, bindType, "-", 
+                                "", bindset, slotname, bindType,
+                                "-", 
                                 "-",
-                                "",
                                 "",
                             });
 
@@ -614,10 +613,10 @@ namespace renderdocui.Windows.PipelineState
                             if (descriptorBind != null)
                                 range = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.size);
                             node = parentNodes.Add(new object[] {
-                                "", bindset, slotname, bindType, name, 
+                                "", bindset, slotname, bindType,
+                                name, 
                                 String.Format("{0} bytes", len),
                                 range,
-                                "",
                             });
 
                             node.Image = global::renderdocui.Properties.Resources.action;
@@ -636,9 +635,9 @@ namespace renderdocui.Windows.PipelineState
                         if (descriptorBind == null || descriptorBind.sampler == ResourceId.Null)
                         {
                             node = parentNodes.Add(new object[] {
-                                "", bindset, slotname, bindType, "-", 
+                                "", bindset, slotname, bindType,
+                                "-", 
                                 "-",
-                                "",
                                 "",
                             });
 
@@ -666,9 +665,9 @@ namespace renderdocui.Windows.PipelineState
                         if (descriptorBind == null || descriptorBind.res == ResourceId.Null)
                         {
                             node = parentNodes.Add(new object[] {
-                                "", bindset, slotname, bindType, "-", 
+                                "", bindset, slotname, bindType,
+                                "-", 
                                 "-",
-                                "",
                                 "",
                             });
 
@@ -687,14 +686,12 @@ namespace renderdocui.Windows.PipelineState
                             else
                                 dim = String.Format("{0}x{1}", w, h);
 
-                            string arraydim = "";
-
                             if (descriptorBind.swizzle[0] != TextureSwizzle.Red ||
                                 descriptorBind.swizzle[1] != TextureSwizzle.Green ||
                                 descriptorBind.swizzle[2] != TextureSwizzle.Blue ||
                                 descriptorBind.swizzle[3] != TextureSwizzle.Alpha)
                             {
-                                arraydim = String.Format("swizzle[{0}{1}{2}{3}]",
+                                format += String.Format(" swizzle[{0}{1}{2}{3}]",
                                     descriptorBind.swizzle[0].Str(),
                                     descriptorBind.swizzle[1].Str(),
                                     descriptorBind.swizzle[2].Str(),
@@ -706,19 +703,17 @@ namespace renderdocui.Windows.PipelineState
                                restype == ShaderResourceType.Texture2DMSArray ||
                                restype == ShaderResourceType.TextureCubeArray)
                             {
-                                if (arraydim != "")
-                                    arraydim += " ";
-                                arraydim = String.Format("{0}[{1}]", restype.Str(), a);
+                                dim += String.Format(" {0}[{1}]", restype.Str(), a);
                             }
 
                             if (restype == ShaderResourceType.Texture2DMS || restype == ShaderResourceType.Texture2DMSArray)
                                 dim += String.Format(", {0}x MSAA", samples);
 
                             node = parentNodes.Add(new object[] {
-                                "", bindset, slotname, typename, name, 
+                                "", bindset, slotname, typename,
+                                name, 
                                 dim,
                                 format,
-                                arraydim,
                             });
 
                             node.Image = global::renderdocui.Properties.Resources.action;
@@ -740,9 +735,9 @@ namespace renderdocui.Windows.PipelineState
                             if (descriptorBind == null || descriptorBind.sampler == ResourceId.Null)
                             {
                                 node = parentNodes.Add(new object[] {
-                                    "", bindset, slotname, bindType, "-", 
+                                    "", bindset, slotname, bindType,
+                                    "-", 
                                     "-",
-                                    "",
                                     "",
                                 });
 
