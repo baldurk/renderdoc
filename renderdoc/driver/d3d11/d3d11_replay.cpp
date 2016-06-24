@@ -730,12 +730,13 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBE)
           {
+            view.ArraySize = 6;
             view.HighestMip = desc.TextureCube.MostDetailedMip;
             view.NumMipLevels = desc.TextureCube.MipLevels;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBEARRAY)
           {
-            view.ArraySize = desc.TextureCubeArray.NumCubes;
+            view.ArraySize = desc.TextureCubeArray.NumCubes * 6;
             view.FirstArraySlice = desc.TextureCubeArray.First2DArrayFace;
             view.HighestMip = desc.TextureCubeArray.MostDetailedMip;
             view.NumMipLevels = desc.TextureCubeArray.MipLevels;
