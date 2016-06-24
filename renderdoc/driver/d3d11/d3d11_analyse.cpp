@@ -1734,11 +1734,10 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
     }
   }
 
-  SAFE_DELETE_ARRAY(initialData);
-
   if(winner == NULL)
   {
     RDCLOG("Couldn't find any pixels that passed depth test at target co-ordinates");
+    SAFE_DELETE_ARRAY(initialData);
     return empty;
   }
 
@@ -1768,6 +1767,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
     if(*ddx != 1.0f)
     {
       RDCERR("Derivatives invalid");
+      SAFE_DELETE_ARRAY(initialData);
       return empty;
     }
 
@@ -1983,6 +1983,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
       ddyfine += initialValues[i].numwords;
     }
   }
+
+  SAFE_DELETE_ARRAY(initialData);
 
   vector<ShaderDebugState> states;
 
