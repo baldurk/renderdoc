@@ -313,6 +313,12 @@ namespace renderdocui.Windows.PipelineState
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
 
+                                if (texs[t].resType == ShaderResourceType.Texture2DMS ||
+                                    texs[t].resType == ShaderResourceType.Texture2DMSArray)
+                                {
+                                    typename += String.Format(" {0}x", texs[t].msSamp);
+                                }
+
                                 // if it's a typeless format, show the format of the view
                                 if (texs[t].format.compType == FormatComponentType.None)
                                 {
@@ -1020,6 +1026,12 @@ namespace renderdocui.Windows.PipelineState
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
 
+                                if (texs[t].resType == ShaderResourceType.Texture2DMS ||
+                                    texs[t].resType == ShaderResourceType.Texture2DMSArray)
+                                {
+                                    typename += String.Format(" {0}x", texs[t].msSamp);
+                                }
+
                                 // if it's a typeless format, show the format of the view
                                 if (texs[t].format.compType == FormatComponentType.None)
                                 {
@@ -1277,6 +1289,12 @@ namespace renderdocui.Windows.PipelineState
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
 
+                                if (texs[t].resType == ShaderResourceType.Texture2DMS ||
+                                    texs[t].resType == ShaderResourceType.Texture2DMSArray)
+                                {
+                                    typename += String.Format(" {0}x", texs[t].msSamp);
+                                }
+
                                 // if it's a typeless format, show the format of the view
                                 if (texs[t].format.compType == FormatComponentType.None)
                                 {
@@ -1362,6 +1380,12 @@ namespace renderdocui.Windows.PipelineState
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
+
+                                if (texs[t].resType == ShaderResourceType.Texture2DMS ||
+                                    texs[t].resType == ShaderResourceType.Texture2DMSArray)
+                                {
+                                    typename += String.Format(" {0}x", texs[t].msSamp);
+                                }
 
                                 // if it's a typeless format, show the format of the view
                                 if (texs[t].format.compType == FormatComponentType.None)
@@ -1460,6 +1484,12 @@ namespace renderdocui.Windows.PipelineState
                         format = texs[t].format.ToString();
                         name = texs[t].name;
                         typename = texs[t].resType.Str();
+
+                        if (texs[t].resType == ShaderResourceType.Texture2DMS ||
+                            texs[t].resType == ShaderResourceType.Texture2DMSArray)
+                        {
+                            typename += String.Format(" {0}x", texs[t].msSamp);
+                        }
 
                         // if it's a typeless format, show the format of the view
                         if (texs[t].format.compType == FormatComponentType.None)
