@@ -313,6 +313,7 @@ struct VulkanCreationInfo
     ResourceId image;
     VkFormat format;
     VkImageSubresourceRange range;
+    TextureSwizzle swizzle[4];
   };
   map<ResourceId, ImageView> m_ImageView;
 

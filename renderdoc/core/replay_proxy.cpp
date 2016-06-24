@@ -739,6 +739,8 @@ void Serialiser::Serialise(
   Serialise("", el.SamplerName);
   Serialise("", el.customSamplerName);
 
+  Serialise("", el.viewfmt);
+  SerialisePODArray<4>("", el.swizzle);
   Serialise("", el.baseMip);
   Serialise("", el.baseLayer);
 
@@ -761,7 +763,7 @@ void Serialiser::Serialise(
   Serialise("", el.border);
   Serialise("", el.unnormalized);
 
-  SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement, 248);
+  SIZE_CHECK(VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement, 320);
 };
 
 template <>
@@ -1378,6 +1380,11 @@ string ToStrHelper<false, SpecialFormat>::Get(const SpecialFormat &el)
 }
 template <>
 string ToStrHelper<false, FormatComponentType>::Get(const FormatComponentType &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, TextureSwizzle>::Get(const TextureSwizzle &el)
 {
   return "<...>";
 }

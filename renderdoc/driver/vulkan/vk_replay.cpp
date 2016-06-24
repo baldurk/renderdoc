@@ -3396,6 +3396,9 @@ void VulkanReplay::SavePipelineState()
                 c.m_ImageView[viewid].range.baseMipLevel;
             m_VulkanPipelineState.Pass.framebuffer.attachments[i].baseLayer =
                 c.m_ImageView[viewid].range.baseArrayLayer;
+
+            memcpy(m_VulkanPipelineState.Pass.framebuffer.attachments[i].swizzle,
+                   c.m_ImageView[viewid].swizzle, sizeof(TextureSwizzle) * 4);
           }
           else
           {
@@ -3567,6 +3570,9 @@ void VulkanReplay::SavePipelineState()
                   dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
                   dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[viewid].image);
                   dst.bindings[b].binds[a].viewfmt = MakeResourceFormat(c.m_ImageView[viewid].format);
+
+                  memcpy(dst.bindings[b].binds[a].swizzle, c.m_ImageView[viewid].swizzle,
+                         sizeof(TextureSwizzle) * 4);
                   dst.bindings[b].binds[a].baseMip = c.m_ImageView[viewid].range.baseMipLevel;
                   dst.bindings[b].binds[a].baseLayer = c.m_ImageView[viewid].range.baseArrayLayer;
                 }

@@ -64,6 +64,9 @@ namespace renderdoc
                         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                         public ResourceFormat viewfmt;
 
+                        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+                        public TextureSwizzle[] swizzle;
+
                         public UInt32 baseMip;
                         public UInt32 baseLayer;
 
@@ -375,6 +378,9 @@ namespace renderdoc
 
                     [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                     public ResourceFormat viewfmt;
+
+                    [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+                    public TextureSwizzle[] swizzle;
 
                     public UInt32 baseMip;
                     public UInt32 baseArray;

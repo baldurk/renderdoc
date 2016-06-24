@@ -464,6 +464,8 @@ namespace renderdocui.Windows.PipelineState
                     {
                         name = "Object " + descriptorBind.res.ToString();
 
+                        format = descriptorBind.viewfmt.ToString();
+
                         // check to see if it's a texture
                         for (int t = 0; t < texs.Length; t++)
                         {
@@ -473,7 +475,6 @@ namespace renderdocui.Windows.PipelineState
                                 h = texs[t].height;
                                 d = texs[t].depth;
                                 a = texs[t].arraysize;
-                                format = texs[t].format.ToString();
                                 name = texs[t].name;
                                 restype = texs[t].resType;
                                 samples = texs[t].msSamp;
@@ -492,7 +493,6 @@ namespace renderdocui.Windows.PipelineState
                                 h = 0;
                                 d = 0;
                                 a = 0;
-                                format = "";
                                 name = bufs[t].name;
                                 restype = ShaderResourceType.Buffer;
 
@@ -606,13 +606,29 @@ namespace renderdocui.Windows.PipelineState
                             else
                                 dim = String.Format("{0}x{1}", w, h);
 
-                            string arraydim = "-";
+                            string arraydim = "";
+
+                            if (descriptorBind.swizzle[0] != TextureSwizzle.Red ||
+                                descriptorBind.swizzle[1] != TextureSwizzle.Green ||
+                                descriptorBind.swizzle[2] != TextureSwizzle.Blue ||
+                                descriptorBind.swizzle[3] != TextureSwizzle.Alpha)
+                            {
+                                arraydim = String.Format("swizzle[{0}{1}{2}{3}]",
+                                    descriptorBind.swizzle[0].Str(),
+                                    descriptorBind.swizzle[1].Str(),
+                                    descriptorBind.swizzle[2].Str(),
+                                    descriptorBind.swizzle[3].Str());
+                            }
 
                             if (restype == ShaderResourceType.Texture1DArray ||
                                restype == ShaderResourceType.Texture2DArray ||
                                restype == ShaderResourceType.Texture2DMSArray ||
                                restype == ShaderResourceType.TextureCubeArray)
+                            {
+                                if (arraydim != "")
+                                    arraydim += " ";
                                 arraydim = String.Format("{0}[{1}]", restype.Str(), a);
+                            }
 
                             if (restype == ShaderResourceType.Texture2DMS || restype == ShaderResourceType.Texture2DMSArray)
                                 dim += String.Format(", {0}x MSAA", samples);
@@ -620,7 +636,7 @@ namespace renderdocui.Windows.PipelineState
                             node = parentNodes.Add(new object[] {
                                 "", bindset, slotname, typename, name, 
                                 dim,
-                                descriptorBind.viewfmt.ToString(),
+                                format,
                                 arraydim,
                             });
 
@@ -1489,6 +1505,18 @@ namespace renderdocui.Windows.PipelineState
 
                                 tag = texs[t];
                             }
+                        }
+
+                        if (p.swizzle[0] != TextureSwizzle.Red ||
+                            p.swizzle[1] != TextureSwizzle.Green ||
+                            p.swizzle[2] != TextureSwizzle.Blue ||
+                            p.swizzle[3] != TextureSwizzle.Alpha)
+                        {
+                            format += String.Format(" swizzle[{0}{1}{2}{3}]",
+                                p.swizzle[0].Str(),
+                                p.swizzle[1].Str(),
+                                p.swizzle[2].Str(),
+                                p.swizzle[3].Str());
                         }
 
                         var node = targetOutputs.Nodes.Add(new object[] { i, name, typename, w, h, d, a, format });

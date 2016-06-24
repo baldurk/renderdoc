@@ -519,12 +519,34 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
   unnormalizedCoordinates = pCreateInfo->unnormalizedCoordinates != 0;
 }
 
+static TextureSwizzle Convert(VkComponentSwizzle s, int i)
+{
+  switch(s)
+  {
+    default: RDCWARN("Unexpected component swizzle value %d", (int)s);
+    case VK_COMPONENT_SWIZZLE_IDENTITY: break;
+    case VK_COMPONENT_SWIZZLE_ZERO: return eSwizzle_Zero;
+    case VK_COMPONENT_SWIZZLE_ONE: return eSwizzle_One;
+    case VK_COMPONENT_SWIZZLE_R: return eSwizzle_Red;
+    case VK_COMPONENT_SWIZZLE_G: return eSwizzle_Green;
+    case VK_COMPONENT_SWIZZLE_B: return eSwizzle_Blue;
+    case VK_COMPONENT_SWIZZLE_A: return eSwizzle_Alpha;
+  }
+
+  return TextureSwizzle(eSwizzle_Red + i);
+}
+
 void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                                          const VkImageViewCreateInfo *pCreateInfo)
 {
   image = resourceMan->GetNonDispWrapper(pCreateInfo->image)->id;
   format = pCreateInfo->format;
   range = pCreateInfo->subresourceRange;
+
+  swizzle[0] = Convert(pCreateInfo->components.r, 0);
+  swizzle[1] = Convert(pCreateInfo->components.g, 1);
+  swizzle[2] = Convert(pCreateInfo->components.b, 2);
+  swizzle[3] = Convert(pCreateInfo->components.a, 3);
 }
 
 void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan,

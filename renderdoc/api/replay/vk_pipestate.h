@@ -60,6 +60,10 @@ struct VulkanPipelineState
                 borderEnable(false),
                 unnormalized(false)
           {
+            swizzle[0] = eSwizzle_Red;
+            swizzle[1] = eSwizzle_Green;
+            swizzle[2] = eSwizzle_Blue;
+            swizzle[3] = eSwizzle_Alpha;
           }
 
           ResourceId view;    // bufferview, imageview, attachmentview
@@ -72,6 +76,7 @@ struct VulkanPipelineState
 
           // image views
           ResourceFormat viewfmt;
+          TextureSwizzle swizzle[4];
           uint32_t baseMip;
           uint32_t baseLayer;
 
@@ -313,10 +318,18 @@ struct VulkanPipelineState
 
       struct Attachment
       {
+        Attachment() : baseMip(0), baseLayer(0)
+        {
+          swizzle[0] = eSwizzle_Red;
+          swizzle[1] = eSwizzle_Green;
+          swizzle[2] = eSwizzle_Blue;
+          swizzle[3] = eSwizzle_Alpha;
+        }
         ResourceId view;
         ResourceId img;
 
         ResourceFormat viewfmt;
+        TextureSwizzle swizzle[4];
         uint32_t baseMip;
         uint32_t baseLayer;
       };
