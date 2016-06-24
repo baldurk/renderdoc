@@ -313,6 +313,12 @@ namespace renderdocui.Windows.PipelineState
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
 
+                                // if it's a typeless format, show the format of the view
+                                if (texs[t].format.compType == FormatComponentType.None)
+                                {
+                                    format = r.Format.ToString();
+                                }
+
                                 tag = texs[t];
                             }
                         }
@@ -1014,6 +1020,12 @@ namespace renderdocui.Windows.PipelineState
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
 
+                                // if it's a typeless format, show the format of the view
+                                if (texs[t].format.compType == FormatComponentType.None)
+                                {
+                                    format = r.Format.ToString();
+                                }
+
                                 tag = texs[t];
                             }
                         }
@@ -1265,6 +1277,12 @@ namespace renderdocui.Windows.PipelineState
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
 
+                                // if it's a typeless format, show the format of the view
+                                if (texs[t].format.compType == FormatComponentType.None)
+                                {
+                                    format = p.Format.ToString();
+                                }
+
                                 tag = texs[t];
                             }
                         }
@@ -1344,6 +1362,12 @@ namespace renderdocui.Windows.PipelineState
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
+
+                                // if it's a typeless format, show the format of the view
+                                if (texs[t].format.compType == FormatComponentType.None)
+                                {
+                                    format = r.Format.ToString();
+                                }
 
                                 tag = texs[t];
                             }
@@ -1436,6 +1460,12 @@ namespace renderdocui.Windows.PipelineState
                         format = texs[t].format.ToString();
                         name = texs[t].name;
                         typename = texs[t].resType.Str();
+
+                        // if it's a typeless format, show the format of the view
+                        if (texs[t].format.compType == FormatComponentType.None)
+                        {
+                            format = state.m_OM.DepthTarget.Format.ToString();
+                        }
 
                         tag = texs[t];
                     }
