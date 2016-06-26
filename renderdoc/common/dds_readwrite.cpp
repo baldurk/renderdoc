@@ -912,6 +912,7 @@ dds_data load_dds_from_file(FILE *f)
       case MAKE_FOURCC('D', 'X', 'T', '5'):
         ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC3_UNORM);
         break;
+      case MAKE_FOURCC('A', 'T', 'I', '1'):
       case MAKE_FOURCC('B', 'C', '4', 'U'):
         ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC4_UNORM);
         break;
@@ -919,6 +920,7 @@ dds_data load_dds_from_file(FILE *f)
         ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC4_SNORM);
         break;
       case MAKE_FOURCC('A', 'T', 'I', '2'):
+      case MAKE_FOURCC('B', 'C', '5', 'U'):
         ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC5_UNORM);
         break;
       case MAKE_FOURCC('B', 'C', '5', 'S'):

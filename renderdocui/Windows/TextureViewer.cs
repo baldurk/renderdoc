@@ -1449,6 +1449,14 @@ namespace renderdocui.Windows
 
         private PointF m_PrevSize = PointF.Empty;
 
+        private void UI_SetHistogramRange(FetchTexture tex)
+        {
+            if (tex.format.compType == FormatComponentType.SNorm)
+                rangeHistogram.SetRange(-1.0f, 1.0f);
+            else
+                rangeHistogram.SetRange(0.0f, 1.0f);
+        }
+
         private void UI_OnTextureSelectionChanged()
         {
             FetchTexture tex = CurrentTexture;
@@ -1670,14 +1678,14 @@ namespace renderdocui.Windows
                     depthDisplay.Checked = true;
 
                     norangePaint = true;
-                    rangeHistogram.SetRange(0.0f, 1.0f);
+                    UI_SetHistogramRange(tex);
                     norangePaint = false;
                 }
 
                 // reset the range if desired
                 if (m_Core.Config.TextureViewer_ResetRange)
                 {
-                    rangeHistogram.SetRange(0.0f, 1.0f);
+                    UI_SetHistogramRange(tex);
                 }
             }
 
@@ -3075,7 +3083,7 @@ namespace renderdocui.Windows
 
         private void reset01_Click(object sender, EventArgs e)
         {
-            rangeHistogram.SetRange(0.0f, 1.0f);
+            UI_SetHistogramRange(CurrentTexture);
 
             autoFit.Checked = false;
 
