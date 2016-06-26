@@ -1451,7 +1451,7 @@ namespace renderdocui.Windows
 
         private void UI_SetHistogramRange(FetchTexture tex)
         {
-            if (tex.format.compType == FormatComponentType.SNorm)
+            if (tex != null && tex.format.compType == FormatComponentType.SNorm)
                 rangeHistogram.SetRange(-1.0f, 1.0f);
             else
                 rangeHistogram.SetRange(0.0f, 1.0f);
