@@ -814,5 +814,25 @@ namespace renderdoc
 
             return "Unknown";
         }
+
+        public static string Str(this FormatComponentType compType)
+        {
+            switch (compType)
+            {
+                case FormatComponentType.None: return "Typeless";
+                case FormatComponentType.Float: return "Float";
+                case FormatComponentType.UNorm: return "UNorm";
+                case FormatComponentType.SNorm: return "SNorm";
+                case FormatComponentType.UInt: return "UInt";
+                case FormatComponentType.SInt: return "SInt";
+                case FormatComponentType.UScaled: return "UScaled";
+                case FormatComponentType.SScaled: return "SScaled";
+                case FormatComponentType.Depth: return "Depth";
+                case FormatComponentType.Double: return "Double";
+                default: break;
+            }
+
+            return "Unknown";
+        }
     }
 }

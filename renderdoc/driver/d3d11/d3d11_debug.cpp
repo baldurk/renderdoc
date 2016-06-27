@@ -38,39 +38,6 @@
 #include "d3d11_manager.h"
 #include "d3d11_renderstate.h"
 
-// used for serialising out ms textures - converts typeless to uint typed where possible,
-// or float/unorm if necessary. Only typeless formats are converted.
-DXGI_FORMAT GetTypedFormatUIntPreferred(DXGI_FORMAT f)
-{
-  switch(f)
-  {
-    case DXGI_FORMAT_R32G32B32A32_TYPELESS: return DXGI_FORMAT_R32G32B32A32_UINT;
-    case DXGI_FORMAT_R32G32B32_TYPELESS: return DXGI_FORMAT_R32G32B32_UINT;
-    case DXGI_FORMAT_R16G16B16A16_TYPELESS: return DXGI_FORMAT_R16G16B16A16_UINT;
-    case DXGI_FORMAT_R32G32_TYPELESS: return DXGI_FORMAT_R32G32_UINT;
-    case DXGI_FORMAT_R10G10B10A2_TYPELESS: return DXGI_FORMAT_R10G10B10A2_UINT;
-    case DXGI_FORMAT_R8G8B8A8_TYPELESS: return DXGI_FORMAT_R8G8B8A8_UINT;
-    case DXGI_FORMAT_R16G16_TYPELESS: return DXGI_FORMAT_R16G16_UINT;
-    case DXGI_FORMAT_R32_TYPELESS: return DXGI_FORMAT_R32_UINT;
-    case DXGI_FORMAT_R8G8_TYPELESS: return DXGI_FORMAT_R8G8_UINT;
-    case DXGI_FORMAT_R16_TYPELESS: return DXGI_FORMAT_R16_UINT;
-    case DXGI_FORMAT_R8_TYPELESS: return DXGI_FORMAT_R8_UINT;
-    case DXGI_FORMAT_BC1_TYPELESS: return DXGI_FORMAT_BC1_UNORM;
-    case DXGI_FORMAT_BC2_TYPELESS: return DXGI_FORMAT_BC2_UNORM;
-    case DXGI_FORMAT_BC3_TYPELESS: return DXGI_FORMAT_BC3_UNORM;
-    case DXGI_FORMAT_BC4_TYPELESS: return DXGI_FORMAT_BC4_UNORM;
-    case DXGI_FORMAT_BC5_TYPELESS: return DXGI_FORMAT_BC5_UNORM;
-    case DXGI_FORMAT_B8G8R8A8_TYPELESS: return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-    case DXGI_FORMAT_B8G8R8X8_TYPELESS: return DXGI_FORMAT_B8G8R8X8_UNORM_SRGB;
-    case DXGI_FORMAT_BC6H_TYPELESS: return DXGI_FORMAT_BC6H_UF16;
-    case DXGI_FORMAT_BC7_TYPELESS: return DXGI_FORMAT_BC7_UNORM;
-
-    default: break;
-  }
-
-  return f;
-}
-
 typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);
 
 struct D3DBlobShaderCallbacks
@@ -1854,13 +1821,13 @@ uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)
 }
 
 bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip,
-                                     uint32_t sample, float minval, float maxval, bool channels[4],
-                                     vector<uint32_t> &histogram)
+                                     uint32_t sample, FormatComponentType typeHint, float minval,
+                                     float maxval, bool channels[4], vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
 
-  TextureShaderDetails details = GetShaderDetails(texid, true);
+  TextureShaderDetails details = GetShaderDetails(texid, typeHint, true);
 
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return false;
@@ -1964,10 +1931,10 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
   return true;
 }
 
-bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
-                                  uint32_t sample, float *minval, float *maxval)
+bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                                  FormatComponentType typeHint, float *minval, float *maxval)
 {
-  TextureShaderDetails details = GetShaderDetails(texid, true);
+  TextureShaderDetails details = GetShaderDetails(texid, typeHint, true);
 
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return false;
@@ -2277,7 +2244,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
   rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
   rtvDesc.Format =
-      depth ? GetUIntTypedFormat(descMS.Format) : GetTypedFormatUIntPreferred(descMS.Format);
+      depth ? GetUIntTypedFormat(descMS.Format) : GetTypedFormat(descMS.Format, eCompType_UInt);
   rtvDesc.Texture2DMSArray.ArraySize = descMS.ArraySize;
   rtvDesc.Texture2DMSArray.FirstArraySlice = 0;
 
@@ -2291,7 +2258,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
   srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
   srvDesc.Format =
-      depth ? GetUIntTypedFormat(descArr.Format) : GetTypedFormatUIntPreferred(descArr.Format);
+      depth ? GetUIntTypedFormat(descArr.Format) : GetTypedFormat(descArr.Format, eCompType_UInt);
   srvDesc.Texture2DArray.ArraySize = descArr.ArraySize;
   srvDesc.Texture2DArray.FirstArraySlice = 0;
   srvDesc.Texture2DArray.MipLevels = descArr.MipLevels;
@@ -2566,7 +2533,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
   rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
   rtvDesc.Format =
-      depth ? GetUIntTypedFormat(descArr.Format) : GetTypedFormatUIntPreferred(descArr.Format);
+      depth ? GetUIntTypedFormat(descArr.Format) : GetTypedFormat(descArr.Format, eCompType_UInt);
   rtvDesc.Texture2DArray.FirstArraySlice = 0;
   rtvDesc.Texture2DArray.ArraySize = 1;
   rtvDesc.Texture2DArray.MipSlice = 0;
@@ -2582,7 +2549,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
   srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
   srvDesc.Format =
-      depth ? GetUIntTypedFormat(descMS.Format) : GetTypedFormatUIntPreferred(descMS.Format);
+      depth ? GetUIntTypedFormat(descMS.Format) : GetTypedFormat(descMS.Format, eCompType_UInt);
   srvDesc.Texture2DMSArray.ArraySize = descMS.ArraySize;
   srvDesc.Texture2DMSArray.FirstArraySlice = 0;
 
@@ -2761,11 +2728,12 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   SAFE_RELEASE(srvResource);
 }
 
-D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id, bool raw)
+D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id,
+                                                               FormatComponentType typeHint, bool raw)
 {
   for(auto it = m_ShaderItemCache.begin(); it != m_ShaderItemCache.end(); ++it)
   {
-    if(it->id == id && it->raw == raw)
+    if(it->id == id && it->typeHint == typeHint && it->raw == raw)
       return *it;
   }
 
@@ -2776,19 +2744,19 @@ D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id, bo
     m_ShaderItemCache.pop_back();
   }
 
-  m_ShaderItemCache.push_front(CacheElem(id, raw));
+  m_ShaderItemCache.push_front(CacheElem(id, typeHint, raw));
   return m_ShaderItemCache.front();
 }
 
-D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id,
-                                                                            bool rawOutput)
+D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(
+    ResourceId id, FormatComponentType typeHint, bool rawOutput)
 {
   TextureShaderDetails details;
   HRESULT hr = S_OK;
 
   bool foundResource = false;
 
-  CacheElem &cache = GetCachedElem(id, rawOutput);
+  CacheElem &cache = GetCachedElem(id, typeHint, rawOutput);
 
   bool msaaDepth = false;
 
@@ -2818,7 +2786,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
     details.texArraySize = desc1d.ArraySize;
     details.texMips = desc1d.MipLevels;
 
-    srvFormat = GetTypedFormat(details.texFmt);
+    srvFormat = GetTypedFormat(details.texFmt, typeHint);
 
     details.srvResource = wrapTex1D->GetReal();
 
@@ -2886,7 +2854,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
     if(mode == TEXDISPLAY_DEPTH_TARGET || IsDepthFormat(details.texFmt))
     {
       details.texType = eTexType_Depth;
-      details.texFmt = GetTypedFormat(details.texFmt);
+      details.texFmt = GetTypedFormat(details.texFmt, typeHint);
     }
 
     // backbuffer is always interpreted as SRGB data regardless of format specified:
@@ -2910,7 +2878,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
         details.texFmt = GetSRGBFormat(wrapTex2D->m_RealDescriptor->Format);
     }
 
-    srvFormat = GetTypedFormat(details.texFmt);
+    srvFormat = GetTypedFormat(details.texFmt, typeHint);
 
     details.srvResource = wrapTex2D->GetReal();
 
@@ -2977,7 +2945,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
     details.texArraySize = 1;
     details.texMips = desc3d.MipLevels;
 
-    srvFormat = GetTypedFormat(details.texFmt);
+    srvFormat = GetTypedFormat(details.texFmt, typeHint);
 
     details.srvResource = wrapTex3D->GetReal();
 
@@ -3325,7 +3293,8 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
   pixelData.FlipY = cfg.FlipY ? 1 : 0;
 
-  TextureShaderDetails details = GetShaderDetails(cfg.texid, cfg.rawoutput ? true : false);
+  TextureShaderDetails details =
+      GetShaderDetails(cfg.texid, cfg.typeHint, cfg.rawoutput ? true : false);
 
   pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, details.sampleCount - 1);
 

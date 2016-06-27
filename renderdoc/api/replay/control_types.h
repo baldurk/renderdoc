@@ -93,6 +93,7 @@ struct MeshDisplay
 struct TextureDisplay
 {
   ResourceId texid;
+  FormatComponentType typeHint;
   float rangemin;
   float rangemax;
   float scale;
@@ -117,6 +118,8 @@ struct TextureDisplay
 struct TextureSave
 {
   ResourceId id;
+
+  FormatComponentType typeHint;
 
   FileType destType;
 

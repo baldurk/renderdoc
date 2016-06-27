@@ -2202,9 +2202,9 @@ void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32
                        outvars, data);
 }
 
-byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve,
-                               bool forceRGBA8unorm, float blackPoint, float whitePoint,
-                               size_t &dataSize)
+byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                               FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
+                               float blackPoint, float whitePoint, size_t &dataSize)
 {
   WrappedOpenGL &gl = *m_pDriver;
 
@@ -2319,6 +2319,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, 
       texDisplay.rangemax = whitePoint;
       texDisplay.scale = 1.0f;
       texDisplay.texid = tex;
+      texDisplay.typeHint = eCompType_None;
       texDisplay.rawoutput = false;
       texDisplay.offx = 0;
       texDisplay.offy = 0;
@@ -2591,7 +2592,8 @@ void GLReplay::BuildCustomShader(string source, string entry, const uint32_t com
     *id = m_pDriver->GetResourceManager()->GetID(ProgramRes(m_pDriver->GetCtx(), shaderprog));
 }
 
-ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
+ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                       FormatComponentType typeHint)
 {
   if(shader == ResourceId() || texid == ResourceId())
     return ResourceId();
@@ -2621,6 +2623,7 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint
   disp.offy = 0.0f;
   disp.CustomShader = shader;
   disp.texid = texid;
+  disp.typeHint = typeHint;
   disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = true;
@@ -3017,8 +3020,8 @@ void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t las
 }
 
 vector<PixelModification> GLReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
-                                                 uint32_t x, uint32_t y, uint32_t slice,
-                                                 uint32_t mip, uint32_t sampleIdx)
+                                                 uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
+                                                 uint32_t sampleIdx, FormatComponentType typeHint)
 {
   GLNOTIMP("GLReplay::PixelHistory");
   return vector<PixelModification>();

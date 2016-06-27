@@ -34,13 +34,14 @@ namespace renderdocui.Code
     public class BoundResource
     {
         public BoundResource()
-        { Id = ResourceId.Null; HighestMip = -1; FirstSlice = -1; }
+        { Id = ResourceId.Null; HighestMip = -1; FirstSlice = -1; typeHint = FormatComponentType.None; }
         public BoundResource(ResourceId id)
-        { Id = id; HighestMip = -1; FirstSlice = -1; }
+        { Id = id; HighestMip = -1; FirstSlice = -1; typeHint = FormatComponentType.None; }
 
         public ResourceId Id;
         public int HighestMip;
         public int FirstSlice;
+        public FormatComponentType typeHint;
     };
 
     public struct BoundVBuffer
@@ -907,6 +908,7 @@ namespace renderdocui.Code
                         val.Id = s.SRVs[i].Resource;
                         val.HighestMip = (int)s.SRVs[i].HighestMip;
                         val.FirstSlice = (int)s.SRVs[i].FirstArraySlice;
+                        val.typeHint = s.SRVs[i].Format.compType;
 
                         ret.Add(key, new BoundResource[] { val });
                     }
@@ -923,6 +925,7 @@ namespace renderdocui.Code
                         val.Id = m_GL.Textures[i].Resource;
                         val.HighestMip = (int)m_GL.Textures[i].HighestMip;
                         val.FirstSlice = (int)m_GL.Textures[i].FirstSlice;
+                        val.typeHint = FormatComponentType.None;
 
                         ret.Add(key, new BoundResource[] { val });
                     }
@@ -959,6 +962,7 @@ namespace renderdocui.Code
                                     val[i].Id = bind.binds[i].res;
                                     val[i].HighestMip = (int)bind.binds[i].baseMip;
                                     val[i].FirstSlice = (int)bind.binds[i].baseLayer;
+                                    val[i].typeHint = bind.binds[i].viewfmt.compType;
                                 }
 
                                 ret.Add(key, val);
@@ -991,6 +995,7 @@ namespace renderdocui.Code
                             val.Id = m_D3D11.m_CS.UAVs[i].Resource;
                             val.HighestMip = (int)m_D3D11.m_CS.UAVs[i].HighestMip;
                             val.FirstSlice = (int)m_D3D11.m_CS.UAVs[i].FirstArraySlice;
+                            val.typeHint = m_D3D11.m_CS.UAVs[i].Format.compType;
 
                             ret.Add(key, new BoundResource[] { val });
                         }
@@ -1005,6 +1010,7 @@ namespace renderdocui.Code
                             val.Id = m_D3D11.m_OM.UAVs[i].Resource;
                             val.HighestMip = (int)m_D3D11.m_OM.UAVs[i].HighestMip;
                             val.FirstSlice = (int)m_D3D11.m_OM.UAVs[i].FirstArraySlice;
+                            val.typeHint = FormatComponentType.None;
 
                             ret.Add(key, new BoundResource[] { val });
                         }
@@ -1022,6 +1028,7 @@ namespace renderdocui.Code
                         val.Id = m_GL.Images[i].Resource;
                         val.HighestMip = (int)m_GL.Images[i].Level;
                         val.FirstSlice = (int)m_GL.Images[i].Layer;
+                        val.typeHint = m_GL.Images[i].Format.compType;
 
                         ret.Add(key, new BoundResource[] { val });
                     }
@@ -1057,6 +1064,7 @@ namespace renderdocui.Code
                                     val[i].Id = bind.binds[i].res;
                                     val[i].HighestMip = (int)bind.binds[i].baseMip;
                                     val[i].FirstSlice = (int)bind.binds[i].baseLayer;
+                                    val[i].typeHint = bind.binds[i].viewfmt.compType;
                                 }
 
                                 ret.Add(key, val);
@@ -1081,6 +1089,7 @@ namespace renderdocui.Code
                     ret.Id = m_D3D11.m_OM.DepthTarget.Resource;
                     ret.HighestMip = (int)m_D3D11.m_OM.DepthTarget.HighestMip;
                     ret.FirstSlice = (int)m_D3D11.m_OM.DepthTarget.FirstArraySlice;
+                    ret.typeHint = m_D3D11.m_OM.DepthTarget.Format.compType;
                     return ret;
                 }
                 else if (IsLogGL)
@@ -1089,6 +1098,7 @@ namespace renderdocui.Code
                     ret.Id = m_GL.m_FB.m_DrawFBO.Depth.Obj;
                     ret.HighestMip = (int)m_GL.m_FB.m_DrawFBO.Depth.Mip;
                     ret.FirstSlice = (int)m_GL.m_FB.m_DrawFBO.Depth.Layer;
+                    ret.typeHint = FormatComponentType.None;
                     return ret;
                 }
                 else if (IsLogVK)
@@ -1102,6 +1112,7 @@ namespace renderdocui.Code
                         ret.Id = fb.attachments[rp.depthstencilAttachment].img;
                         ret.HighestMip = (int)fb.attachments[rp.depthstencilAttachment].baseMip;
                         ret.FirstSlice = (int)fb.attachments[rp.depthstencilAttachment].baseLayer;
+                        ret.typeHint = fb.attachments[rp.depthstencilAttachment].viewfmt.compType;
                         return ret;
                     }
 
@@ -1125,6 +1136,7 @@ namespace renderdocui.Code
                         ret[i].Id = m_D3D11.m_OM.RenderTargets[i].Resource;
                         ret[i].HighestMip = (int)m_D3D11.m_OM.RenderTargets[i].HighestMip;
                         ret[i].FirstSlice = (int)m_D3D11.m_OM.RenderTargets[i].FirstArraySlice;
+                        ret[i].typeHint = m_D3D11.m_OM.RenderTargets[i].Format.compType;
                     }
 
                     return ret;
@@ -1143,6 +1155,7 @@ namespace renderdocui.Code
                             ret[i].Id = m_GL.m_FB.m_DrawFBO.Color[db].Obj;
                             ret[i].HighestMip = (int)m_GL.m_FB.m_DrawFBO.Color[db].Mip;
                             ret[i].FirstSlice = (int)m_GL.m_FB.m_DrawFBO.Color[db].Layer;
+                            ret[i].typeHint = FormatComponentType.None;
                         }
                     }
 
@@ -1163,6 +1176,7 @@ namespace renderdocui.Code
                             ret[i].Id = fb.attachments[rp.colorAttachments[i]].img;
                             ret[i].HighestMip = (int)fb.attachments[rp.colorAttachments[i]].baseMip;
                             ret[i].FirstSlice = (int)fb.attachments[rp.colorAttachments[i]].baseLayer;
+                            ret[i].typeHint = fb.attachments[rp.colorAttachments[i]].viewfmt.compType;
                         }
                     }
 

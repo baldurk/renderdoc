@@ -142,9 +142,9 @@ void ReplayOutput::RefreshOverlay()
   {
     if(draw && m_pDevice->IsRenderOutput(m_RenderData.texDisplay.texid))
     {
-      m_OverlayResourceId =
-          m_pDevice->RenderOverlay(m_pDevice->GetLiveID(m_RenderData.texDisplay.texid),
-                                   m_RenderData.texDisplay.overlay, m_EventID, passEvents);
+      m_OverlayResourceId = m_pDevice->RenderOverlay(
+          m_pDevice->GetLiveID(m_RenderData.texDisplay.texid), m_RenderData.texDisplay.typeHint,
+          m_RenderData.texDisplay.overlay, m_EventID, passEvents);
       m_OverlayDirty = false;
     }
   }
@@ -189,7 +189,7 @@ bool ReplayOutput::SetPixelContext(void *wnd)
   return true;
 }
 
-bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID)
+bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID, FormatComponentType typeHint)
 {
   OutputPair p;
 
@@ -215,6 +215,8 @@ bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID)
 
       m_Thumbnails[i].depthMode = depthMode;
 
+      m_Thumbnails[i].typeHint = typeHint;
+
       m_Thumbnails[i].dirty = true;
 
       return true;
@@ -225,6 +227,7 @@ bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID)
   p.outputID = m_pDevice->MakeOutputWindow(p.wndHandle, false);
   p.texture = texID;
   p.depthMode = depthMode;
+  p.typeHint = typeHint;
   p.dirty = true;
 
   RDCASSERT(p.outputID > 0);
@@ -244,10 +247,13 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
 
   bool decodeRamp = false;
 
+  FormatComponentType typeHint = m_RenderData.texDisplay.typeHint;
+
   if(customShader && m_RenderData.texDisplay.CustomShader != ResourceId() &&
      m_CustomShaderResourceId != ResourceId())
   {
     tex = m_CustomShaderResourceId;
+    typeHint = eCompType_None;
   }
   if((m_RenderData.texDisplay.overlay == eTexOverlay_QuadOverdrawDraw ||
       m_RenderData.texDisplay.overlay == eTexOverlay_QuadOverdrawPass) &&
@@ -255,9 +261,11 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
   {
     decodeRamp = true;
     tex = m_OverlayResourceId;
+    typeHint = eCompType_None;
   }
 
-  m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, sample, ret->value_f);
+  m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, sample, typeHint,
+                       ret->value_f);
 
   if(decodeRamp)
   {
@@ -425,11 +433,15 @@ bool ReplayOutput::Display()
     disp.sampleIdx = ~0U;
     disp.CustomShader = ResourceId();
     disp.texid = m_pDevice->GetLiveID(m_Thumbnails[i].texture);
+    disp.typeHint = m_Thumbnails[i].typeHint;
     disp.scale = -1.0f;
     disp.rangemin = 0.0f;
     disp.rangemax = 1.0f;
     disp.sliceFace = 0;
     disp.rawoutput = false;
+
+    if(m_Thumbnails[i].typeHint == eCompType_SNorm)
+      disp.rangemin = -1.0f;
 
     if(m_Thumbnails[i].depthMode)
       disp.Green = disp.Blue = false;
@@ -506,10 +518,11 @@ void ReplayOutput::DisplayTex()
 
   if(m_RenderData.texDisplay.CustomShader != ResourceId())
   {
-    m_CustomShaderResourceId = m_pDevice->ApplyCustomShader(m_RenderData.texDisplay.CustomShader,
-                                                            texDisplay.texid, texDisplay.mip);
+    m_CustomShaderResourceId = m_pDevice->ApplyCustomShader(
+        m_RenderData.texDisplay.CustomShader, texDisplay.texid, texDisplay.mip, texDisplay.typeHint);
 
     texDisplay.texid = m_pDevice->GetLiveID(m_CustomShaderResourceId);
+    texDisplay.typeHint = eCompType_None;
     texDisplay.CustomShader = ResourceId();
     texDisplay.sliceFace = 0;
     texDisplay.mip = 0;
@@ -676,9 +689,10 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(Replay
   return output->ClearThumbnails();
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(ReplayOutput *output,
-                                                                       void *wnd, ResourceId texID)
+                                                                       void *wnd, ResourceId texID,
+                                                                       FormatComponentType typeHint)
 {
-  return output->AddThumbnail(wnd, texID);
+  return output->AddThumbnail(wnd, texID, typeHint);
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(ReplayOutput *output)

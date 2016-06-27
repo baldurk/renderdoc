@@ -645,6 +645,7 @@ namespace renderdoc
     public class TextureDisplay
     {
         public ResourceId texid = ResourceId.Null;
+        public FormatComponentType typeHint = FormatComponentType.None;
         public float rangemin = 0.0f;
         public float rangemax = 1.0f;
         public float scale = 1.0f;
@@ -670,6 +671,8 @@ namespace renderdoc
     public class TextureSave
     {
         public ResourceId id = ResourceId.Null;
+
+        public FormatComponentType typeHint = FormatComponentType.None;
 
         public FileType destType = FileType.DDS;
 

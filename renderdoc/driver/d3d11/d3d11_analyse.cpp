@@ -2427,7 +2427,8 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 }
 
 void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                                  uint32_t mip, uint32_t sample, float pixel[4])
+                                  uint32_t mip, uint32_t sample, FormatComponentType typeHint,
+                                  float pixel[4])
 {
   m_pImmediateContext->OMSetRenderTargets(1, &m_DebugRender.PickPixelRT, NULL);
 
@@ -2464,6 +2465,7 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
     texDisplay.rangemax = 1.0f;
     texDisplay.scale = 1.0f;
     texDisplay.texid = texture;
+    texDisplay.typeHint = typeHint;
     texDisplay.rawoutput = true;
     texDisplay.offx = -float(x);
     texDisplay.offy = -float(y);
@@ -2517,8 +2519,9 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 }
 
 byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32_t mip,
-                                        bool resolve, bool forceRGBA8unorm, float blackPoint,
-                                        float whitePoint, size_t &dataSize)
+                                        FormatComponentType typeHint, bool resolve,
+                                        bool forceRGBA8unorm, float blackPoint, float whitePoint,
+                                        size_t &dataSize)
 {
   ID3D11Resource *dummyTex = NULL;
 
@@ -2631,6 +2634,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
         texDisplay.rangemax = whitePoint;
         texDisplay.scale = 1.0f;
         texDisplay.texid = id;
+        texDisplay.typeHint = typeHint;
         texDisplay.rawoutput = false;
         texDisplay.offx = 0;
         texDisplay.offy = 0;
@@ -2767,6 +2771,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
         texDisplay.rangemax = whitePoint;
         texDisplay.scale = 1.0f;
         texDisplay.texid = id;
+        texDisplay.typeHint = typeHint;
         texDisplay.rawoutput = false;
         texDisplay.offx = 0;
         texDisplay.offy = 0;
@@ -2922,6 +2927,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
         texDisplay.rangemax = whitePoint;
         texDisplay.scale = 1.0f;
         texDisplay.texid = id;
+        texDisplay.typeHint = typeHint;
         texDisplay.rawoutput = false;
         texDisplay.offx = 0;
         texDisplay.offy = 0;
@@ -2975,9 +2981,10 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
   return ret;
 }
 
-ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
+ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                                FormatComponentType typeHint)
 {
-  TextureShaderDetails details = GetShaderDetails(texid, false);
+  TextureShaderDetails details = GetShaderDetails(texid, typeHint, false);
 
   CreateCustomShaderTex(details.texWidth, details.texHeight);
 
@@ -3003,6 +3010,7 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
   disp.offy = 0.0f;
   disp.CustomShader = shader;
   disp.texid = texid;
+  disp.typeHint = typeHint;
   disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = true;
@@ -3070,10 +3078,11 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
 
 #include "data/hlsl/debugcbuffers.h"
 
-ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay,
-                                            uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                                            TextureDisplayOverlay overlay, uint32_t eventID,
+                                            const vector<uint32_t> &passEvents)
 {
-  TextureShaderDetails details = GetShaderDetails(texid, false);
+  TextureShaderDetails details = GetShaderDetails(texid, typeHint, false);
 
   ResourceId id = texid;
 
@@ -4176,7 +4185,8 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> events,
                                                           ResourceId target, uint32_t x, uint32_t y,
                                                           uint32_t slice, uint32_t mip,
-                                                          uint32_t sampleIdx)
+                                                          uint32_t sampleIdx,
+                                                          FormatComponentType typeHint)
 {
   vector<PixelModification> history;
 
@@ -4185,13 +4195,13 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
   if(events.empty())
     return history;
 
-  TextureShaderDetails details = GetShaderDetails(target, true);
+  TextureShaderDetails details = GetShaderDetails(target, typeHint, true);
 
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return history;
 
   details.texFmt = GetNonSRGBFormat(details.texFmt);
-  details.texFmt = GetTypedFormat(details.texFmt);
+  details.texFmt = GetTypedFormat(details.texFmt, typeHint);
 
   SCOPED_TIMER("D3D11DebugManager::PixelHistory");
 

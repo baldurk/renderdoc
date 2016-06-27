@@ -1710,7 +1710,7 @@ void ProxySerialiser::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint3
     ResourceId proxyid = m_ProxyTextureIds[texid];
 
     size_t size;
-    byte *data = GetTextureData(texid, arrayIdx, mip, false, false, 0.0f, 0.0f, size);
+    byte *data = GetTextureData(texid, arrayIdx, mip, eCompType_None, false, false, 0.0f, 0.0f, size);
 
     if(data)
       m_Proxy->SetProxyTextureData(proxyid, arrayIdx, mip, data, size);
@@ -1809,7 +1809,7 @@ bool ProxySerialiser::Tick()
     case eCommand_GetTextureData:
     {
       size_t dummy;
-      GetTextureData(ResourceId(), 0, 0, false, false, 0.0f, 0.0f, dummy);
+      GetTextureData(ResourceId(), 0, 0, eCompType_None, false, false, 0.0f, 0.0f, dummy);
       break;
     }
     case eCommand_InitPostVS: InitPostVSBuffers(0); break;
@@ -1826,10 +1826,10 @@ bool ProxySerialiser::Tick()
     case eCommand_ReplaceResource: ReplaceResource(ResourceId(), ResourceId()); break;
     case eCommand_RemoveReplacement: RemoveReplacement(ResourceId()); break;
     case eCommand_RenderOverlay:
-      RenderOverlay(ResourceId(), eTexOverlay_None, 0, vector<uint32_t>());
+      RenderOverlay(ResourceId(), eCompType_None, eTexOverlay_None, 0, vector<uint32_t>());
       break;
     case eCommand_PixelHistory:
-      PixelHistory(vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0);
+      PixelHistory(vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0, eCompType_None);
       break;
     case eCommand_DebugVertex: DebugVertex(0, 0, 0, 0, 0, 0); break;
     case eCommand_DebugPixel: DebugPixel(0, 0, 0, 0, 0); break;
@@ -2284,13 +2284,15 @@ void ProxySerialiser::GetBufferData(ResourceId buff, uint64_t offset, uint64_t l
   }
 }
 
-byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve,
+byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                      FormatComponentType typeHint, bool resolve,
                                       bool forceRGBA8unorm, float blackPoint, float whitePoint,
                                       size_t &dataSize)
 {
   m_ToReplaySerialiser->Serialise("", tex);
   m_ToReplaySerialiser->Serialise("", arrayIdx);
   m_ToReplaySerialiser->Serialise("", mip);
+  m_ToReplaySerialiser->Serialise("", typeHint);
   m_ToReplaySerialiser->Serialise("", resolve);
   m_ToReplaySerialiser->Serialise("", forceRGBA8unorm);
   m_ToReplaySerialiser->Serialise("", blackPoint);
@@ -2298,8 +2300,8 @@ byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_
 
   if(m_ReplayHost)
   {
-    byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, resolve, forceRGBA8unorm, blackPoint,
-                                          whitePoint, dataSize);
+    byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, typeHint, resolve, forceRGBA8unorm,
+                                          blackPoint, whitePoint, dataSize);
 
     byte *compressed = new byte[dataSize + 512];
 
@@ -2388,21 +2390,23 @@ MeshFormat ProxySerialiser::GetPostVSBuffers(uint32_t eventID, uint32_t instID, 
   return ret;
 }
 
-ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay,
-                                          uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                                          TextureDisplayOverlay overlay, uint32_t eventID,
+                                          const vector<uint32_t> &passEvents)
 {
   ResourceId ret;
 
   vector<uint32_t> events = passEvents;
 
   m_ToReplaySerialiser->Serialise("", texid);
+  m_ToReplaySerialiser->Serialise("", typeHint);
   m_ToReplaySerialiser->Serialise("", overlay);
   m_ToReplaySerialiser->Serialise("", eventID);
   m_ToReplaySerialiser->Serialise("", events);
 
   if(m_ReplayHost)
   {
-    ret = m_Remote->RenderOverlay(texid, overlay, eventID, events);
+    ret = m_Remote->RenderOverlay(texid, typeHint, overlay, eventID, events);
   }
   else
   {
@@ -2609,7 +2613,8 @@ void ProxySerialiser::RemoveReplacement(ResourceId id)
 
 vector<PixelModification> ProxySerialiser::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                         uint32_t x, uint32_t y, uint32_t slice,
-                                                        uint32_t mip, uint32_t sampleIdx)
+                                                        uint32_t mip, uint32_t sampleIdx,
+                                                        FormatComponentType typeHint)
 {
   vector<PixelModification> ret;
 
@@ -2620,10 +2625,11 @@ vector<PixelModification> ProxySerialiser::PixelHistory(vector<EventUsage> event
   m_ToReplaySerialiser->Serialise("", slice);
   m_ToReplaySerialiser->Serialise("", mip);
   m_ToReplaySerialiser->Serialise("", sampleIdx);
+  m_ToReplaySerialiser->Serialise("", typeHint);
 
   if(m_ReplayHost)
   {
-    ret = m_Remote->PixelHistory(events, target, x, y, slice, mip, sampleIdx);
+    ret = m_Remote->PixelHistory(events, target, x, y, slice, mip, sampleIdx, typeHint);
   }
   else
   {

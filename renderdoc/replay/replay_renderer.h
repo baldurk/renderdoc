@@ -43,7 +43,7 @@ public:
   bool SetMeshDisplay(const MeshDisplay &o);
 
   bool ClearThumbnails();
-  bool AddThumbnail(void *wnd, ResourceId texID);
+  bool AddThumbnail(void *wnd, ResourceId texID, FormatComponentType typeHint);
 
   bool Display();
 
@@ -86,6 +86,7 @@ private:
     ResourceId texture;
     bool depthMode;
     void *wndHandle;
+    FormatComponentType typeHint;
     uint64_t outputID;
 
     bool dirty;
@@ -166,7 +167,8 @@ public:
   bool GetDebugMessages(rdctype::array<DebugMessage> *msgs);
 
   bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-                    uint32_t sampleIdx, rdctype::array<PixelModification> *history);
+                    uint32_t sampleIdx, FormatComponentType typeHint,
+                    rdctype::array<PixelModification> *history);
   bool DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset,
                    uint32_t vertOffset, ShaderDebugTrace *trace);
   bool DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive,
@@ -176,9 +178,10 @@ public:
   bool GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFormat *data);
 
   bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 PixelValue *minval, PixelValue *maxval);
-  bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval,
-                    float maxval, bool channels[4], rdctype::array<uint32_t> *histogram);
+                 FormatComponentType typeHint, PixelValue *minval, PixelValue *maxval);
+  bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                    FormatComponentType typeHint, float minval, float maxval, bool channels[4],
+                    rdctype::array<uint32_t> *histogram);
 
   bool GetUsage(ResourceId id, rdctype::array<EventUsage> *usage);
 

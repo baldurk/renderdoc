@@ -1411,17 +1411,18 @@ ResourceId D3D11Replay::GetLiveID(ResourceId id)
 }
 
 bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            float *minval, float *maxval)
+                            FormatComponentType typeHint, float *minval, float *maxval)
 {
-  return m_pDevice->GetDebugManager()->GetMinMax(texid, sliceFace, mip, sample, minval, maxval);
+  return m_pDevice->GetDebugManager()->GetMinMax(texid, sliceFace, mip, sample, typeHint, minval,
+                                                 maxval);
 }
 
 bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                               float minval, float maxval, bool channels[4],
-                               vector<uint32_t> &histogram)
+                               FormatComponentType typeHint, float minval, float maxval,
+                               bool channels[4], vector<uint32_t> &histogram)
 {
-  return m_pDevice->GetDebugManager()->GetHistogram(texid, sliceFace, mip, sample, minval, maxval,
-                                                    channels, histogram);
+  return m_pDevice->GetDebugManager()->GetHistogram(texid, sliceFace, mip, sample, typeHint, minval,
+                                                    maxval, channels, histogram);
 }
 
 MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
@@ -1434,12 +1435,12 @@ void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
   m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
 
-byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve,
-                                  bool forceRGBA8unorm, float blackPoint, float whitePoint,
-                                  size_t &dataSize)
+byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                  FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
+                                  float blackPoint, float whitePoint, size_t &dataSize)
 {
-  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, resolve, forceRGBA8unorm,
-                                                      blackPoint, whitePoint, dataSize);
+  return m_pDevice->GetDebugManager()->GetTextureData(
+      tex, arrayIdx, mip, typeHint, resolve, forceRGBA8unorm, blackPoint, whitePoint, dataSize);
 }
 
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -1521,9 +1522,11 @@ void D3D11Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
 
 vector<PixelModification> D3D11Replay::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                     uint32_t x, uint32_t y, uint32_t slice,
-                                                    uint32_t mip, uint32_t sampleIdx)
+                                                    uint32_t mip, uint32_t sampleIdx,
+                                                    FormatComponentType typeHint)
 {
-  return m_pDevice->GetDebugManager()->PixelHistory(events, target, x, y, slice, mip, sampleIdx);
+  return m_pDevice->GetDebugManager()->PixelHistory(events, target, x, y, slice, mip, sampleIdx,
+                                                    typeHint);
 }
 
 ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid,
@@ -1550,20 +1553,23 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint3
 }
 
 void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                            uint32_t mip, uint32_t sample, float pixel[4])
+                            uint32_t mip, uint32_t sample, FormatComponentType typeHint,
+                            float pixel[4])
 {
-  m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, sample, pixel);
+  m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, sample, typeHint, pixel);
 }
 
-ResourceId D3D11Replay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay,
-                                      uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                                      TextureDisplayOverlay overlay, uint32_t eventID,
+                                      const vector<uint32_t> &passEvents)
 {
-  return m_pDevice->GetDebugManager()->RenderOverlay(texid, overlay, eventID, passEvents);
+  return m_pDevice->GetDebugManager()->RenderOverlay(texid, typeHint, overlay, eventID, passEvents);
 }
 
-ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
+ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                          FormatComponentType typeHint)
 {
-  return m_pDevice->GetDebugManager()->ApplyCustomShader(shader, texid, mip);
+  return m_pDevice->GetDebugManager()->ApplyCustomShader(shader, texid, mip, typeHint);
 }
 
 bool D3D11Replay::IsRenderOutput(ResourceId id)

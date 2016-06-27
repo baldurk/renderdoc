@@ -101,7 +101,7 @@ struct IReplayOutput
   virtual bool SetMeshDisplay(const MeshDisplay &o) = 0;
 
   virtual bool ClearThumbnails() = 0;
-  virtual bool AddThumbnail(void *wnd, ResourceId texID) = 0;
+  virtual bool AddThumbnail(void *wnd, ResourceId texID, FormatComponentType typeHint) = 0;
 
   virtual bool Display() = 0;
 
@@ -136,7 +136,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetMeshDisplay(ReplayO
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(ReplayOutput *output);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(ReplayOutput *output,
-                                                                       void *wnd, ResourceId texID);
+                                                                       void *wnd, ResourceId texID,
+                                                                       FormatComponentType typeHint);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(ReplayOutput *output);
 
@@ -203,7 +204,8 @@ struct IReplayRenderer
   virtual bool GetDebugMessages(rdctype::array<DebugMessage> *msgs) = 0;
 
   virtual bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-                            uint32_t sampleIdx, rdctype::array<PixelModification> *history) = 0;
+                            uint32_t sampleIdx, FormatComponentType typeHint,
+                            rdctype::array<PixelModification> *history) = 0;
   virtual bool DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset,
                            uint32_t vertOffset, ShaderDebugTrace *trace) = 0;
   virtual bool DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive,
@@ -221,10 +223,10 @@ struct IReplayRenderer
   virtual bool GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFormat *data) = 0;
 
   virtual bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                         PixelValue *minval, PixelValue *maxval) = 0;
+                         FormatComponentType typeHint, PixelValue *minval, PixelValue *maxval) = 0;
   virtual bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            float minval, float maxval, bool channels[4],
-                            rdctype::array<uint32_t> *histogram) = 0;
+                            FormatComponentType typeHint, float minval, float maxval,
+                            bool channels[4], rdctype::array<uint32_t> *histogram) = 0;
 
   virtual bool GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
                              rdctype::array<byte> *data) = 0;
@@ -316,7 +318,7 @@ ReplayRenderer_GetDebugMessages(ReplayRenderer *rend, rdctype::array<DebugMessag
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_PixelHistory(
     ReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-    uint32_t sampleIdx, rdctype::array<PixelModification> *history);
+    uint32_t sampleIdx, FormatComponentType typeHint, rdctype::array<PixelModification> *history);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayRenderer_DebugVertex(ReplayRenderer *rend, uint32_t vertid, uint32_t instid, uint32_t idx,
                            uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace);
@@ -346,12 +348,13 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetPostVSData(Replay
                                                                           MeshDataStage stage,
                                                                           MeshFormat *data);
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetMinMax(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip,
-                         uint32_t sample, PixelValue *minval, PixelValue *maxval);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetHistogram(
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetMinMax(
     ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-    float minval, float maxval, bool32 channels[4], rdctype::array<uint32_t> *histogram);
+    FormatComponentType typeHint, PixelValue *minval, PixelValue *maxval);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+ReplayRenderer_GetHistogram(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip,
+                            uint32_t sample, FormatComponentType typeHint, float minval,
+                            float maxval, bool32 channels[4], rdctype::array<uint32_t> *histogram);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBufferData(
     ReplayRenderer *rend, ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data);

@@ -175,26 +175,28 @@ public:
       return m_Proxy->RenderHighlightBox(w, h, scale);
   }
 
-  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval,
-                 float *maxval)
+  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                 FormatComponentType typeHint, float *minval, float *maxval)
   {
     if(m_Proxy)
     {
       EnsureTexCached(texid, sliceFace, mip);
-      return m_Proxy->GetMinMax(m_ProxyTextureIds[texid], sliceFace, mip, sample, minval, maxval);
+      return m_Proxy->GetMinMax(m_ProxyTextureIds[texid], sliceFace, mip, sample, typeHint, minval,
+                                maxval);
     }
 
     return false;
   }
 
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+                    FormatComponentType typeHint, float minval, float maxval, bool channels[4],
+                    vector<uint32_t> &histogram)
   {
     if(m_Proxy)
     {
       EnsureTexCached(texid, sliceFace, mip);
-      return m_Proxy->GetHistogram(m_ProxyTextureIds[texid], sliceFace, mip, sample, minval, maxval,
-                                   channels, histogram);
+      return m_Proxy->GetHistogram(m_ProxyTextureIds[texid], sliceFace, mip, sample, typeHint,
+                                   minval, maxval, channels, histogram);
     }
 
     return false;
@@ -213,12 +215,12 @@ public:
   }
 
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, float pixel[4])
+                 uint32_t sample, FormatComponentType typeHint, float pixel[4])
   {
     if(m_Proxy)
     {
       EnsureTexCached(texture, sliceFace, mip);
-      m_Proxy->PickPixel(m_ProxyTextureIds[texture], x, y, sliceFace, mip, sample, pixel);
+      m_Proxy->PickPixel(m_ProxyTextureIds[texture], x, y, sliceFace, mip, sample, typeHint, pixel);
     }
   }
 
@@ -312,13 +314,14 @@ public:
       m_Proxy->FreeTargetResource(id);
   }
 
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
+  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                               FormatComponentType typeHint)
   {
     if(m_Proxy)
     {
       EnsureTexCached(texid, 0, mip);
       texid = m_ProxyTextureIds[texid];
-      ResourceId customResourceId = m_Proxy->ApplyCustomShader(shader, texid, mip);
+      ResourceId customResourceId = m_Proxy->ApplyCustomShader(shader, texid, mip, typeHint);
       m_LocalTextures.insert(customResourceId);
       m_ProxyTextureIds[customResourceId] = customResourceId;
       return customResourceId;
@@ -363,14 +366,16 @@ public:
                             vector<ShaderVariable> &outvars, const vector<byte> &data);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData);
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve,
-                       bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                       FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
+                       float blackPoint, float whitePoint, size_t &dataSize);
 
   void InitPostVSBuffers(uint32_t eventID);
   void InitPostVSBuffers(const vector<uint32_t> &passEvents);
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
-  ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID,
+  ResourceId RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                           TextureDisplayOverlay overlay, uint32_t eventID,
                            const vector<uint32_t> &passEvents);
 
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
@@ -385,7 +390,7 @@ public:
 
   vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
                                          uint32_t y, uint32_t slice, uint32_t mip,
-                                         uint32_t sampleIdx);
+                                         uint32_t sampleIdx, FormatComponentType typeHint);
   ShaderDebugTrace DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx,
                                uint32_t instOffset, uint32_t vertOffset);
   ShaderDebugTrace DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample,

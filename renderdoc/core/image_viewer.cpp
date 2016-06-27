@@ -92,16 +92,17 @@ public:
   {
     m_Proxy->RenderHighlightBox(w, h, scale);
   }
-  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval,
-                 float *maxval)
+  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                 FormatComponentType typeHint, float *minval, float *maxval)
   {
-    return m_Proxy->GetMinMax(m_TextureID, sliceFace, mip, sample, minval, maxval);
+    return m_Proxy->GetMinMax(m_TextureID, sliceFace, mip, sample, typeHint, minval, maxval);
   }
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+                    FormatComponentType typeHint, float minval, float maxval, bool channels[4],
+                    vector<uint32_t> &histogram)
   {
-    return m_Proxy->GetHistogram(m_TextureID, sliceFace, mip, sample, minval, maxval, channels,
-                                 histogram);
+    return m_Proxy->GetHistogram(m_TextureID, sliceFace, mip, sample, typeHint, minval, maxval,
+                                 channels, histogram);
   }
   bool RenderTexture(TextureDisplay cfg)
   {
@@ -109,9 +110,9 @@ public:
     return m_Proxy->RenderTexture(cfg);
   }
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, float pixel[4])
+                 uint32_t sample, FormatComponentType typeHint, float pixel[4])
   {
-    m_Proxy->PickPixel(m_TextureID, x, y, sliceFace, mip, sample, pixel);
+    m_Proxy->PickPixel(m_TextureID, x, y, sliceFace, mip, sample, typeHint, pixel);
   }
   uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
   {
@@ -123,17 +124,19 @@ public:
     m_Proxy->BuildCustomShader(source, entry, compileFlags, type, id, errors);
   }
   void FreeCustomShader(ResourceId id) { m_Proxy->FreeTargetResource(id); }
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
+  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                               FormatComponentType typeHint)
   {
-    return m_Proxy->ApplyCustomShader(shader, m_TextureID, mip);
+    return m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, typeHint);
   }
   vector<ResourceId> GetTextures() { return m_Proxy->GetTextures(); }
   FetchTexture GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve,
-                       bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                       FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
+                       float blackPoint, float whitePoint, size_t &dataSize)
   {
-    return m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, resolve, forceRGBA8unorm, blackPoint,
-                                   whitePoint, dataSize);
+    return m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, typeHint, resolve, forceRGBA8unorm,
+                                   blackPoint, whitePoint, dataSize);
   }
 
   // handle a couple of operations ourselves to return a simple fake log
@@ -185,7 +188,8 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID,
+  ResourceId RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                           TextureDisplayOverlay overlay, uint32_t eventID,
                            const vector<uint32_t> &passEvents)
   {
     return ResourceId();
@@ -196,7 +200,8 @@ public:
   Callstack::StackResolver *GetCallstackResolver() { return NULL; }
   void FreeTargetResource(ResourceId id) {}
   vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
-                                         uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
+                                         uint32_t y, uint32_t slice, uint32_t mip,
+                                         uint32_t sampleIdx, FormatComponentType typeHint)
   {
     return vector<PixelModification>();
   }

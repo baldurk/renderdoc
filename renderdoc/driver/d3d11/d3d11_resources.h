@@ -74,6 +74,7 @@ UINT GetFormatBPP(DXGI_FORMAT f);
 
 DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f);
+DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, FormatComponentType hint);
 DXGI_FORMAT GetDepthTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetFloatTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetUnormTypedFormat(DXGI_FORMAT f);

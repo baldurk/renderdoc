@@ -905,7 +905,8 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId shader, string entryPoint)
 }
 
 void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                             uint32_t mip, uint32_t sample, float pixel[4])
+                             uint32_t mip, uint32_t sample, FormatComponentType typeHint,
+                             float pixel[4])
 {
   int oldW = m_DebugWidth, oldH = m_DebugHeight;
 
@@ -935,6 +936,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
       texDisplay.rangemax = 1.0f;
       texDisplay.scale = 1.0f;
       texDisplay.texid = texture;
+      texDisplay.typeHint = typeHint;
       texDisplay.rawoutput = true;
       texDisplay.offx = -float(x);
       texDisplay.offy = -float(y);
@@ -1636,8 +1638,9 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 #endif
 }
 
-ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay,
-                                       uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                                       TextureDisplayOverlay overlay, uint32_t eventID,
+                                       const vector<uint32_t> &passEvents)
 {
   return GetDebugManager()->RenderOverlay(texid, overlay, eventID, passEvents);
 }
@@ -3971,7 +3974,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
 }
 
 bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                             float *minval, float *maxval)
+                             FormatComponentType typeHint, float *minval, float *maxval)
 {
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -4218,8 +4221,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 }
 
 bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                                float minval, float maxval, bool channels[4],
-                                vector<uint32_t> &histogram)
+                                FormatComponentType typeHint, float minval, float maxval,
+                                bool channels[4], vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
@@ -4513,9 +4516,9 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, Mes
   return GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
 }
 
-byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve,
-                                   bool forceRGBA8unorm, float blackPoint, float whitePoint,
-                                   size_t &dataSize)
+byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                   FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
+                                   float blackPoint, float whitePoint, size_t &dataSize)
 {
   bool wasms = false;
 
@@ -4699,6 +4702,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       texDisplay.rangemax = whitePoint;
       texDisplay.scale = 1.0f;
       texDisplay.texid = tex;
+      texDisplay.typeHint = eCompType_None;
       texDisplay.rawoutput = true;
       texDisplay.offx = 0;
       texDisplay.offy = 0;
@@ -5095,7 +5099,8 @@ void VulkanReplay::FreeCustomShader(ResourceId id)
   m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(id));
 }
 
-ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
+ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                           FormatComponentType typeHint)
 {
   if(shader == ResourceId() || texid == ResourceId())
     return ResourceId();
@@ -5116,6 +5121,7 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   disp.offy = 0.0f;
   disp.CustomShader = shader;
   disp.texid = texid;
+  disp.typeHint = typeHint;
   disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = true;
@@ -5217,7 +5223,8 @@ void VulkanReplay::FreeTargetResource(ResourceId id)
 
 vector<PixelModification> VulkanReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                      uint32_t x, uint32_t y, uint32_t slice,
-                                                     uint32_t mip, uint32_t sampleIdx)
+                                                     uint32_t mip, uint32_t sampleIdx,
+                                                     FormatComponentType typeHint)
 {
   VULKANNOTIMP("PixelHistory");
   return vector<PixelModification>();

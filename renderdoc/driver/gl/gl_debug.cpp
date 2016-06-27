@@ -661,7 +661,7 @@ void GLReplay::DeleteDebugData()
 }
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                         float *minval, float *maxval)
+                         FormatComponentType typeHint, float *minval, float *maxval)
 {
   if(m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
     return false;
@@ -826,7 +826,8 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 }
 
 bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+                            FormatComponentType typeHint, float minval, float maxval,
+                            bool channels[4], vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
@@ -1203,7 +1204,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
 }
 
 void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                         uint32_t mip, uint32_t sample, float pixel[4])
+                         uint32_t mip, uint32_t sample, FormatComponentType typeHint, float pixel[4])
 {
   WrappedOpenGL &gl = *m_pDriver;
 
@@ -1232,6 +1233,7 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
   texDisplay.rangemax = 1.0f;
   texDisplay.scale = 1.0f;
   texDisplay.texid = texture;
+  texDisplay.typeHint = typeHint;
   texDisplay.rawoutput = true;
   texDisplay.offx = -float(x);
   texDisplay.offy = -float(y);
@@ -1769,8 +1771,9 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
   gl.glUseProgramStages(DebugData.overlayPipe, eGL_FRAGMENT_SHADER_BIT, fragProgram);
 }
 
-ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay,
-                                   uint32_t eventID, const vector<uint32_t> &passEvents)
+ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                                   TextureDisplayOverlay overlay, uint32_t eventID,
+                                   const vector<uint32_t> &passEvents)
 {
   WrappedOpenGL &gl = *m_pDriver;
 

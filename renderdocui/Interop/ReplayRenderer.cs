@@ -88,7 +88,7 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_ClearThumbnails(IntPtr real);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayOutput_AddThumbnail(IntPtr real, IntPtr wnd, ResourceId texID);
+        private static extern bool ReplayOutput_AddThumbnail(IntPtr real, IntPtr wnd, ResourceId texID, FormatComponentType typeHint);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_Display(IntPtr real);
@@ -130,9 +130,9 @@ namespace renderdoc
         {
             return ReplayOutput_ClearThumbnails(m_Real);
         }
-        public bool AddThumbnail(IntPtr wnd, ResourceId texID)
+        public bool AddThumbnail(IntPtr wnd, ResourceId texID, FormatComponentType typeHint)
         {
-            return ReplayOutput_AddThumbnail(m_Real, wnd, texID);
+            return ReplayOutput_AddThumbnail(m_Real, wnd, texID, typeHint);
         }
 
         public bool Display()
@@ -251,7 +251,7 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetDebugMessages(IntPtr real, IntPtr outmsgs);
         
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_PixelHistory(IntPtr real, ResourceId target, UInt32 x, UInt32 y, UInt32 slice, UInt32 mip, UInt32 sampleIdx, IntPtr history);
+        private static extern bool ReplayRenderer_PixelHistory(IntPtr real, ResourceId target, UInt32 x, UInt32 y, UInt32 slice, UInt32 mip, UInt32 sampleIdx, FormatComponentType typeHint, IntPtr history);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_DebugVertex(IntPtr real, UInt32 vertid, UInt32 instid, UInt32 idx, UInt32 instOffset, UInt32 vertOffset, IntPtr outtrace);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -272,9 +272,9 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetPostVSData(IntPtr real, UInt32 instID, MeshDataStage stage, IntPtr outdata);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetMinMax(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, IntPtr outminval, IntPtr outmaxval);
+        private static extern bool ReplayRenderer_GetMinMax(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, FormatComponentType typeHint, IntPtr outminval, IntPtr outmaxval);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetHistogram(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, float minval, float maxval, bool[] channels, IntPtr outhistogram);
+        private static extern bool ReplayRenderer_GetHistogram(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, FormatComponentType typeHint, float minval, float maxval, bool[] channels, IntPtr outhistogram);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetBufferData(IntPtr real, ResourceId buff, UInt64 offset, UInt64 len, IntPtr outdata);
@@ -634,11 +634,11 @@ namespace renderdoc
             return ret;
         }
 
-        public PixelModification[] PixelHistory(ResourceId target, UInt32 x, UInt32 y, UInt32 slice, UInt32 mip, UInt32 sampleIdx)
+        public PixelModification[] PixelHistory(ResourceId target, UInt32 x, UInt32 y, UInt32 slice, UInt32 mip, UInt32 sampleIdx, FormatComponentType typeHint)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
-            bool success = ReplayRenderer_PixelHistory(m_Real, target, x, y, slice, mip, sampleIdx, mem);
+            bool success = ReplayRenderer_PixelHistory(m_Real, target, x, y, slice, mip, sampleIdx, typeHint, mem);
 
             PixelModification[] ret = null;
 
@@ -761,12 +761,12 @@ namespace renderdoc
             return ret;
         }
 
-        public bool GetMinMax(ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, out PixelValue minval, out PixelValue maxval)
+        public bool GetMinMax(ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, FormatComponentType typeHint, out PixelValue minval, out PixelValue maxval)
         {
             IntPtr mem1 = CustomMarshal.Alloc(typeof(PixelValue));
             IntPtr mem2 = CustomMarshal.Alloc(typeof(PixelValue));
 
-            bool success = ReplayRenderer_GetMinMax(m_Real, tex, sliceFace, mip, sample, mem1, mem2);
+            bool success = ReplayRenderer_GetMinMax(m_Real, tex, sliceFace, mip, sample, typeHint, mem1, mem2);
 
             if (success)
             {
@@ -785,7 +785,7 @@ namespace renderdoc
             return success;
         }
 
-        public bool GetHistogram(ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, float minval, float maxval,
+        public bool GetHistogram(ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, FormatComponentType typeHint, float minval, float maxval,
                                  bool Red, bool Green, bool Blue, bool Alpha,
                                  out UInt32[] histogram)
         {
@@ -793,7 +793,7 @@ namespace renderdoc
 
             bool[] channels = new bool[] { Red, Green, Blue, Alpha };
 
-            bool success = ReplayRenderer_GetHistogram(m_Real, tex, sliceFace, mip, sample, minval, maxval, channels, mem);
+            bool success = ReplayRenderer_GetHistogram(m_Real, tex, sliceFace, mip, sample, typeHint, minval, maxval, channels, mem);
 
             histogram = null;
 

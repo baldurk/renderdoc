@@ -412,7 +412,7 @@ bool ReplayRenderer::GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFor
 }
 
 bool ReplayRenderer::GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                               PixelValue *minval, PixelValue *maxval)
+                               FormatComponentType typeHint, PixelValue *minval, PixelValue *maxval)
 {
   PixelValue *a = minval;
   PixelValue *b = maxval;
@@ -424,21 +424,21 @@ bool ReplayRenderer::GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip,
   if(b == NULL)
     b = &dummy;
 
-  return m_pDevice->GetMinMax(m_pDevice->GetLiveID(tex), sliceFace, mip, sample, &a->value_f[0],
-                              &b->value_f[0]);
+  return m_pDevice->GetMinMax(m_pDevice->GetLiveID(tex), sliceFace, mip, sample, typeHint,
+                              &a->value_f[0], &b->value_f[0]);
 }
 
 bool ReplayRenderer::GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                                  float minval, float maxval, bool channels[4],
-                                  rdctype::array<uint32_t> *histogram)
+                                  FormatComponentType typeHint, float minval, float maxval,
+                                  bool channels[4], rdctype::array<uint32_t> *histogram)
 {
   if(histogram == NULL)
     return false;
 
   vector<uint32_t> hist;
 
-  bool ret = m_pDevice->GetHistogram(m_pDevice->GetLiveID(tex), sliceFace, mip, sample, minval,
-                                     maxval, channels, hist);
+  bool ret = m_pDevice->GetHistogram(m_pDevice->GetLiveID(tex), sliceFace, mip, sample, typeHint,
+                                     minval, maxval, channels, hist);
 
   if(ret)
     *histogram = hist;
@@ -483,7 +483,8 @@ bool ReplayRenderer::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t 
   }
 
   size_t sz;
-  byte *bytes = m_pDevice->GetTextureData(liveId, arrayIdx, mip, false, false, 0.0f, 0.0f, sz);
+  byte *bytes =
+      m_pDevice->GetTextureData(liveId, arrayIdx, mip, eCompType_None, false, false, 0.0f, 0.0f, sz);
 
   create_array_init(*data, sz, bytes);
 
@@ -740,8 +741,9 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
       uint32_t mip = m + mipOffset;
 
       size_t datasize = 0;
-      byte *bytes = m_pDevice->GetTextureData(liveid, slice, mip, resolveSamples, downcast,
-                                              sd.comp.blackPoint, sd.comp.whitePoint, datasize);
+      byte *bytes =
+          m_pDevice->GetTextureData(liveid, slice, mip, sd.typeHint, resolveSamples, downcast,
+                                    sd.comp.blackPoint, sd.comp.whitePoint, datasize);
 
       if(bytes == NULL)
       {
@@ -1258,7 +1260,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 }
 
 bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice,
-                                  uint32_t mip, uint32_t sampleIdx,
+                                  uint32_t mip, uint32_t sampleIdx, FormatComponentType typeHint,
                                   rdctype::array<PixelModification> *history)
 {
   for(size_t t = 0; t < m_Textures.size(); t++)
@@ -1347,8 +1349,8 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
     return false;
   }
 
-  *history =
-      m_pDevice->PixelHistory(events, m_pDevice->GetLiveID(target), x, y, slice, mip, sampleIdx);
+  *history = m_pDevice->PixelHistory(events, m_pDevice->GetLiveID(target), x, y, slice, mip,
+                                     sampleIdx, typeHint);
 
   SetFrameEvent(m_EventID, true);
 
@@ -1805,9 +1807,9 @@ ReplayRenderer_GetDebugMessages(ReplayRenderer *rend, rdctype::array<DebugMessag
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_PixelHistory(
     ReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-    uint32_t sampleIdx, rdctype::array<PixelModification> *history)
+    uint32_t sampleIdx, FormatComponentType typeHint, rdctype::array<PixelModification> *history)
 {
-  return rend->PixelHistory(target, x, y, slice, mip, sampleIdx, history);
+  return rend->PixelHistory(target, x, y, slice, mip, sampleIdx, typeHint, history);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayRenderer_DebugVertex(ReplayRenderer *rend, uint32_t vertid, uint32_t instid, uint32_t idx,
@@ -1859,18 +1861,19 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetPostVSData(Replay
   return rend->GetPostVSData(instID, stage, data);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetMinMax(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip,
-                         uint32_t sample, PixelValue *minval, PixelValue *maxval)
-{
-  return rend->GetMinMax(tex, sliceFace, mip, sample, minval, maxval);
-}
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetHistogram(
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetMinMax(
     ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-    float minval, float maxval, bool32 channels[4], rdctype::array<uint32_t> *histogram)
+    FormatComponentType typeHint, PixelValue *minval, PixelValue *maxval)
+{
+  return rend->GetMinMax(tex, sliceFace, mip, sample, typeHint, minval, maxval);
+}
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+ReplayRenderer_GetHistogram(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip,
+                            uint32_t sample, FormatComponentType typeHint, float minval,
+                            float maxval, bool32 channels[4], rdctype::array<uint32_t> *histogram)
 {
   bool chans[4] = {channels[0] != 0, channels[1] != 0, channels[2] != 0, channels[3] != 0};
-  return rend->GetHistogram(tex, sliceFace, mip, sample, minval, maxval, chans, histogram);
+  return rend->GetHistogram(tex, sliceFace, mip, sample, typeHint, minval, maxval, chans, histogram);
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBufferData(
