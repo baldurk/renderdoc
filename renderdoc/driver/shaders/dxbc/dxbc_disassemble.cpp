@@ -1059,20 +1059,22 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 
       default:
       {
-        RDCERR("Unsupported custom data class %d!", customClass);
+        RDCWARN("Unsupported custom data class %d!", customClass);
 
         uint32_t dataLength = customDataLength - 2;
         RDCLOG("Data length seems to be %d uint32s", dataLength);
 
+#if 0
         for(uint32_t i = 0; i < dataLength; i++)
         {
-#if !defined(RELEASE)
           char *str = (char *)tokenStream;
           RDCDEBUG("uint32 %d: 0x%08x   %c %c %c %c", i, tokenStream[0], str[0], str[1], str[2],
                    str[3]);
-#endif
           tokenStream++;
         }
+#else
+        tokenStream += dataLength;
+#endif
 
         break;
       }
