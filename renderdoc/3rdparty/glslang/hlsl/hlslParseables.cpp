@@ -109,8 +109,8 @@ glslang::TString& AppendTypeName(glslang::TString& s, const char* argOrder, cons
     }
 
     // verify dimensions
-    if ((*argOrder == 'V' || *argOrder == 'M') && (dim0 < 1 || dim0 > 4) ||
-        (*argOrder == 'M' && (dim1 < 1 || dim1 > 4))) {
+    if (((*argOrder == 'V' || *argOrder == 'M') && (dim0 < 1 || dim0 > 4)) ||
+        ((*argOrder == 'M' && (dim1 < 1 || dim1 > 4)))) {
         s += "UNKNOWN_DIMENSION";
         return s;
     }
@@ -145,8 +145,8 @@ inline bool IsValidGlsl(const char* cname, char retOrder, char retType, char arg
     if (isMat && dim0 != dim1)  // TODO: avoid mats until we find the right GLSL profile
         return false;
 
-    if (isMat && (argType == 'I' || argType == 'U' || argType == 'B') ||
-        retOrder == 'M' && (retType == 'I' || retType == 'U' || retType == 'B'))
+    if ((isMat && (argType == 'I' || argType == 'U' || argType == 'B')) ||
+        (retOrder == 'M' && (retType == 'I' || retType == 'U' || retType == 'B')))
         return false;
 
     if (name == "GetRenderTargetSamplePosition" ||

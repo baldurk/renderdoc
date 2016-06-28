@@ -175,7 +175,7 @@ public:
 
     void setFile(const char* filename, size_t i)
     {
-        if (i == getLastValidSourceIndex()) {
+        if ((int)i == getLastValidSourceIndex()) {
             logicalSourceLoc.name = filename;
         }
         loc[i].name = filename;
