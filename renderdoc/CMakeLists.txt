@@ -178,12 +178,10 @@ elseif(UNIX)
     list(APPEND sources os/posix/posix_libentry.cpp)
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
     set_source_files_properties(3rdparty/tinyexr/tinyexr.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-extra -Wno-unused-function")
-endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX OR APPLE)
     set_source_files_properties(3rdparty/jpeg-compressor/jpgd.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-shift-negative-value")
 endif()
