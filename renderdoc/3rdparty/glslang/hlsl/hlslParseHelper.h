@@ -1,5 +1,6 @@
 //
 //Copyright (C) 2016 Google, Inc.
+//Copyright (C) 2016 LunarG, Inc.
 //
 //All rights reserved.
 //
@@ -43,12 +44,12 @@ namespace glslang {
 class HlslParseContext : public TParseContextBase {
 public:
     HlslParseContext(TSymbolTable&, TIntermediate&, bool parsingBuiltins,
-                     int version, EProfile, int spv, int vulkan, EShLanguage, TInfoSink&,
+                     int version, EProfile, const SpvVersion& spvVersion, EShLanguage, TInfoSink&,
                      bool forwardCompatible = false, EShMessages messages = EShMsgDefault);
     virtual ~HlslParseContext();
     void setLimits(const TBuiltInResource&);
     bool parseShaderStrings(TPpContext&, TInputScanner& input, bool versionWillBeError = false);
-    const char* getPreamble();
+    void getPreamble(std::string&);
 
     void C_DECL error(const TSourceLoc&, const char* szReason, const char* szToken,
         const char* szExtraInfoFormat, ...);
@@ -65,7 +66,7 @@ public:
     bool builtInName(const TString&);
 
     void handlePragma(const TSourceLoc&, const TVector<TString>&);
-    TIntermTyped* handleVariable(const TSourceLoc&, TSymbol* symbol, const TString* string);
+    TIntermTyped* handleVariable(const TSourceLoc&, TSymbol* symbol,  const TString* string);
     TIntermTyped* handleBracketDereference(const TSourceLoc&, TIntermTyped* base, TIntermTyped* index);
     void checkIndex(const TSourceLoc&, const TType&, int& index);
 
@@ -83,13 +84,15 @@ public:
     TIntermTyped* handleDotDereference(const TSourceLoc&, TIntermTyped* base, const TString& field);
     TFunction* handleFunctionDeclarator(const TSourceLoc&, TFunction& function, bool prototype);
     TIntermAggregate* handleFunctionDefinition(const TSourceLoc&, TFunction&);
-    void handleFunctionArgument(TFunction*, TIntermAggregate*&, TIntermTyped*);
+    void handleFunctionArgument(TFunction*, TIntermTyped*& arguments, TIntermTyped* newArg);
     TIntermTyped* handleFunctionCall(const TSourceLoc&, TFunction*, TIntermNode*);
+    void decomposeIntrinsic(const TSourceLoc&, TIntermTyped*& node, TIntermNode* arguments);
     TIntermTyped* handleLengthMethod(const TSourceLoc&, TFunction*, TIntermNode*);
     void addInputArgumentConversions(const TFunction&, TIntermNode*&) const;
     TIntermTyped* addOutputArgumentConversions(const TFunction&, TIntermAggregate&) const;
     void builtInOpCheck(const TSourceLoc&, const TFunction&, TIntermOperator&);
     TFunction* handleConstructorCall(const TSourceLoc&, const TType&);
+    void handleSemantic(TType& type, const TString& semantic);
 
     bool parseVectorFields(const TSourceLoc&, const TString&, int vecSize, TVectorFields&);
     void assignError(const TSourceLoc&, const char* op, TString left, TString right);
@@ -107,15 +110,13 @@ public:
     void arrayDimMerge(TType& type, const TArraySizes* sizes);
     bool voidErrorCheck(const TSourceLoc&, const TString&, TBasicType);
     void boolCheck(const TSourceLoc&, const TIntermTyped*);
-    void boolCheck(const TSourceLoc&, const TPublicType&);
     void globalQualifierFix(const TSourceLoc&, TQualifier&);
     bool structQualifierErrorCheck(const TSourceLoc&, const TPublicType& pType);
     void mergeQualifiers(const TSourceLoc&, TQualifier& dst, const TQualifier& src, bool force);
     int computeSamplerTypeIndex(TSampler&);
     TSymbol* redeclareBuiltinVariable(const TSourceLoc&, const TString&, const TQualifier&, const TShaderQualifiers&, bool& newDeclaration);
     void redeclareBuiltinBlock(const TSourceLoc&, TTypeList& typeList, const TString& blockName, const TString* instanceName, TArraySizes* arraySizes);
-    void paramCheckFix(const TSourceLoc&, const TStorageQualifier&, TType& type);
-    void paramCheckFix(const TSourceLoc&, const TQualifier&, TType& type);
+    void paramFix(TType& type);
     void specializationCheck(const TSourceLoc&, const TType&, const char* op);
 
     void setLayoutQualifier(const TSourceLoc&, TPublicType&, TString&);
@@ -140,6 +141,11 @@ public:
 
     void updateImplicitArraySize(const TSourceLoc&, TIntermNode*, int index);
 
+    void nestLooping()     { ++loopNestingLevel; }
+    void unnestLooping()   { --loopNestingLevel; }
+    void pushScope()       { symbolTable.push(); }
+    void popScope()        { symbolTable.pop(0); }
+
 protected:
     void inheritGlobalDefaults(TQualifier& dst) const;
     TVariable* makeInternalVariable(const char* name, const TType&) const;
@@ -148,6 +154,7 @@ protected:
     TIntermNode* executeInitializer(const TSourceLoc&, TIntermTyped* initializer, TVariable* variable);
     TIntermTyped* convertInitializerList(const TSourceLoc&, const TType&, TIntermTyped* initializer);
     TOperator mapTypeToConstructorOp(const TType&) const;
+    TOperator mapAtomicOp(const TSourceLoc& loc, TOperator op, bool isImage);
     void outputMessage(const TSourceLoc&, const char* szReason, const char* szToken,
                        const char* szExtraInfoFormat, TPrefixType prefix,
                        va_list args);
@@ -157,7 +164,6 @@ protected:
     int loopNestingLevel;        // 0 if outside all loops
     int structNestingLevel;      // 0 if outside blocks and structures
     int controlFlowNestingLevel; // 0 if outside all flow control
-    int statementNestingLevel;   // 0 if outside all flow control or compound statements
     TList<TIntermSequence*> switchSequenceStack;  // case, node, case, case, node, ...; ensure only one node between cases;   stack of them for nesting
     TList<int> switchLevel;      // the statementNestingLevel the current switch statement is at, which must match the level of its case statements
     bool inEntrypoint;           // if inside a function, true if the function is the entry point

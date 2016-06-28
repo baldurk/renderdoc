@@ -115,7 +115,7 @@ void TIntermBinary::traverse(TIntermTraverser *it)
 
     //
     // Visit the node after the children, if requested and the traversal
-    // hasn't been cancelled yet.
+    // hasn't been canceled yet.
     //
     if (visit && it->postVisit)
         it->visitBinary(EvPostVisit, this);

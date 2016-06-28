@@ -119,6 +119,8 @@ enum EFixedAtoms {
 
     PpAtomConstInt,
     PpAtomConstUint,
+    PpAtomConstInt64,
+    PpAtomConstUint64,
     PpAtomConstFloat,
     PpAtomConstDouble,
     PpAtomConstString,

@@ -72,6 +72,17 @@ inline const char* ProfileName(EProfile profile)
 }
 
 //
+// SPIR-V has versions for multiple things; tie them together.
+// 0 means a target or rule set is not enabled.
+//
+struct SpvVersion {
+    SpvVersion() : spv(0), vulkan(0), openGl(0) {}
+    unsigned int spv; // the version of the targeted SPIR-V, as defined by SPIR-V in word 1 of the SPIR-V binary header
+    int vulkan;       // the version of semantics for Vulkan; e.g., for GLSL from KHR_vulkan_glsl "#define VULKAN"
+    int openGl;       // the version of semantics for OpenGL; gl_spirv TODO
+};
+
+//
 // The behaviors from the GLSL "#extension extension_name : behavior"
 //
 typedef enum {
@@ -108,13 +119,18 @@ const char* const E_GL_ARB_explicit_attrib_location     = "GL_ARB_explicit_attri
 const char* const E_GL_ARB_shader_image_load_store      = "GL_ARB_shader_image_load_store";
 const char* const E_GL_ARB_shader_atomic_counters       = "GL_ARB_shader_atomic_counters";
 const char* const E_GL_ARB_shader_draw_parameters       = "GL_ARB_shader_draw_parameters";
+const char* const E_GL_ARB_shader_group_vote            = "GL_ARB_shader_group_vote";
 const char* const E_GL_ARB_derivative_control           = "GL_ARB_derivative_control";
 const char* const E_GL_ARB_shader_texture_image_samples = "GL_ARB_shader_texture_image_samples";
 const char* const E_GL_ARB_viewport_array               = "GL_ARB_viewport_array";
+const char* const E_GL_ARB_gpu_shader_int64             = "GL_ARB_gpu_shader_int64";
 const char* const E_GL_ARB_gl_spirv                     = "GL_ARB_gl_spirv";
+const char* const E_GL_ARB_shader_ballot                = "GL_ARB_shader_ballot";
 const char* const E_GL_ARB_sparse_texture2              = "GL_ARB_sparse_texture2";
 const char* const E_GL_ARB_sparse_texture_clamp         = "GL_ARB_sparse_texture_clamp";
 //const char* const E_GL_ARB_cull_distance            = "GL_ARB_cull_distance";  // present for 4.5, but need extension control over block members
+
+const char* const E_GL_EXT_shader_non_constant_global_initializers = "GL_EXT_shader_non_constant_global_initializers";
 
 // #line and #include
 const char* const E_GL_GOOGLE_cpp_style_line_directive          = "GL_GOOGLE_cpp_style_line_directive";

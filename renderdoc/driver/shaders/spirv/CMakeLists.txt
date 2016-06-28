@@ -6,12 +6,17 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/GlslangToSpv.h
     ${glslang_dir}/SPIRV/GLSL.std.450.h
     ${glslang_dir}/SPIRV/InReadableOrder.cpp
+    ${glslang_dir}/SPIRV/Logger.cpp
+    ${glslang_dir}/SPIRV/Logger.h
     ${glslang_dir}/SPIRV/SpvBuilder.cpp
     ${glslang_dir}/SPIRV/SpvBuilder.h
     ${glslang_dir}/SPIRV/spvIR.h
     ${glslang_dir}/hlsl/hlslParseHelper.cpp
+    ${glslang_dir}/hlsl/hlslOpMap.cpp
+    ${glslang_dir}/hlsl/hlslParseables.cpp
     ${glslang_dir}/hlsl/hlslScanContext.cpp
     ${glslang_dir}/hlsl/hlslGrammar.cpp
+    ${glslang_dir}/hlsl/hlslTokenStream.cpp
     ${glslang_dir}/glslang/GenericCodeGen/CodeGen.cpp
     ${glslang_dir}/glslang/GenericCodeGen/Link.cpp
     ${glslang_dir}/glslang/Include/arrays.h
@@ -43,6 +48,8 @@ set(glslang_sources
     ${glslang_dir}/glslang/MachineIndependent/ParseHelper.cpp
     ${glslang_dir}/glslang/MachineIndependent/ParseHelper.h
     ${glslang_dir}/glslang/MachineIndependent/PoolAlloc.cpp
+    ${glslang_dir}/glslang/MachineIndependent/propagateNoContraction.cpp
+    ${glslang_dir}/glslang/MachineIndependent/propagateNoContraction.h
     ${glslang_dir}/glslang/MachineIndependent/preprocessor/PpAtom.cpp
     ${glslang_dir}/glslang/MachineIndependent/preprocessor/PpContext.cpp
     ${glslang_dir}/glslang/MachineIndependent/preprocessor/PpContext.h

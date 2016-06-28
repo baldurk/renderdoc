@@ -238,9 +238,11 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
     int len = 0;
     int ch = 0;
     int ii = 0;
-    unsigned ival = 0;
+    unsigned long long ival = 0;
+    bool enableInt64 = pp->parseContext.version >= 450 && pp->parseContext.extensionTurnedOn(E_GL_ARB_gpu_shader_int64);
 
     ppToken->ival = 0;
+    ppToken->i64val = 0;
     ppToken->space = false;
     ch = getch();
     for (;;) {
@@ -299,6 +301,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                 // must be hexidecimal
 
                 bool isUnsigned = false;
+                bool isInt64 = false;
                 ppToken->name[len++] = (char)ch;
                 ch = getch();
                 if ((ch >= '0' && ch <= '9') ||
@@ -307,7 +310,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
 
                     ival = 0;
                     do {
-                        if (ival <= 0x0fffffff) {
+                        if (ival <= 0x0fffffff || (enableInt64 && ival <= 0x0fffffffffffffffull)) {
                             ppToken->name[len++] = (char)ch;
                             if (ch >= '0' && ch <= '9') {
                                 ii = ch - '0';
@@ -323,7 +326,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                                 pp->parseContext.ppError(ppToken->loc, "hexidecimal literal too big", "", "");
                                 AlreadyComplained = 1;
                             }
-                            ival = 0xffffffff;
+                            ival = 0xffffffffffffffffull;
                         }
                         ch = getch();
                     } while ((ch >= '0' && ch <= '9') ||
@@ -336,19 +339,37 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                     if (len < MaxTokenLength)
                         ppToken->name[len++] = (char)ch;
                     isUnsigned = true;
+
+                    if (enableInt64) {
+                        int nextCh = getch();
+                        if ((ch == 'u' && nextCh == 'l') || (ch == 'U' && nextCh == 'L')) {
+                            if (len < MaxTokenLength)
+                                ppToken->name[len++] = (char)nextCh;
+                            isInt64 = true;
+                        } else
+                            ungetch();
+                    }
+                }
+                else if (enableInt64 && (ch == 'l' || ch == 'L')) {
+                    if (len < MaxTokenLength)
+                        ppToken->name[len++] = (char)ch;
+                    isInt64 = true;
                 } else
                     ungetch();
                 ppToken->name[len] = '\0';
-                ppToken->ival = (int)ival;
 
-                if (isUnsigned)
-                    return PpAtomConstUint;
-                else
-                    return PpAtomConstInt;
+                if (isInt64) {
+                    ppToken->i64val = ival;
+                    return isUnsigned ? PpAtomConstUint64 : PpAtomConstInt64;
+                } else {
+                    ppToken->ival = (int)ival;
+                    return isUnsigned ? PpAtomConstUint : PpAtomConstInt;
+                }
             } else {
                 // could be octal integer or floating point, speculative pursue octal until it must be floating point
 
                 bool isUnsigned = false;
+                bool isInt64 = false;
                 bool octalOverflow = false;
                 bool nonOctal = false;
                 ival = 0;
@@ -361,7 +382,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                         pp->parseContext.ppError(ppToken->loc, "numeric literal too long", "", "");
                         AlreadyComplained = 1;
                     }
-                    if (ival <= 0x1fffffff) {
+                    if (ival <= 0x1fffffff || (enableInt64 && ival <= 0x1fffffffffffffffull)) {
                         ii = ch - '0';
                         ival = (ival << 3) | ii;
                     } else
@@ -382,7 +403,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                         ch = getch();
                     } while (ch >= '0' && ch <= '9');
                 }
-                if (ch == '.' || ch == 'e' || ch == 'f' || ch == 'E' || ch == 'F' || ch == 'l' || ch == 'L') 
+                if (ch == '.' || ch == 'e' || ch == 'f' || ch == 'E' || ch == 'F')
                     return pp->lFloatConst(len, ch, ppToken);
                 
                 // wasn't a float, so must be octal...
@@ -393,6 +414,21 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                     if (len < MaxTokenLength)
                         ppToken->name[len++] = (char)ch;
                     isUnsigned = true;
+
+                    if (enableInt64) {
+                        int nextCh = getch();
+                        if ((ch == 'u' && nextCh == 'l') || (ch == 'U' && nextCh == 'L')) {
+                            if (len < MaxTokenLength)
+                                ppToken->name[len++] = (char)nextCh;
+                            isInt64 = true;
+                        } else
+                            ungetch();
+                    }
+                }
+                else if (enableInt64 && (ch == 'l' || ch == 'L')) {
+                    if (len < MaxTokenLength)
+                        ppToken->name[len++] = (char)ch;
+                    isInt64 = true;
                 } else
                     ungetch();
                 ppToken->name[len] = '\0';
@@ -400,12 +436,13 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                 if (octalOverflow)
                     pp->parseContext.ppError(ppToken->loc, "octal literal too big", "", "");
 
-                ppToken->ival = (int)ival;
-
-                if (isUnsigned)
-                    return PpAtomConstUint;
-                else
-                    return PpAtomConstInt;
+                if (isInt64) {
+                    ppToken->i64val = ival;
+                    return isUnsigned ? PpAtomConstUint64 : PpAtomConstInt64;
+                } else {
+                    ppToken->ival = (int)ival;
+                    return isUnsigned ? PpAtomConstUint : PpAtomConstInt;
+                }
             }
             break;
         case '1': case '2': case '3': case '4':
@@ -421,16 +458,31 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                 }
                 ch = getch();
             } while (ch >= '0' && ch <= '9');
-            if (ch == '.' || ch == 'e' || ch == 'f' || ch == 'E' || ch == 'F' || ch == 'l' || ch == 'L') {
+            if (ch == '.' || ch == 'e' || ch == 'f' || ch == 'E' || ch == 'F') {
                 return pp->lFloatConst(len, ch, ppToken);
             } else {
                 // Finish handling signed and unsigned integers
                 int numericLen = len;
-                bool uint = false;
+                bool isUnsigned = false;
+                bool isInt64 = false;
                 if (ch == 'u' || ch == 'U') {
                     if (len < MaxTokenLength)
                         ppToken->name[len++] = (char)ch;
-                    uint = true;
+                    isUnsigned = true;
+
+                    if (enableInt64) {
+                        int nextCh = getch();
+                        if ((ch == 'u' && nextCh == 'l') || (ch == 'U' && nextCh == 'L')) {
+                            if (len < MaxTokenLength)
+                                ppToken->name[len++] = (char)nextCh;
+                            isInt64 = true;
+                        } else
+                            ungetch();
+                    }
+                } else if (enableInt64 && (ch == 'l' || ch == 'L')) {
+                    if (len < MaxTokenLength)
+                        ppToken->name[len++] = (char)ch;
+                    isInt64 = true;
                 } else
                     ungetch();
 
@@ -438,21 +490,26 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                 ival = 0;
                 const unsigned oneTenthMaxInt  = 0xFFFFFFFFu / 10;
                 const unsigned remainderMaxInt = 0xFFFFFFFFu - 10 * oneTenthMaxInt;
+                const unsigned long long oneTenthMaxInt64  = 0xFFFFFFFFFFFFFFFFull / 10;
+                const unsigned long long remainderMaxInt64 = 0xFFFFFFFFFFFFFFFFull - 10 * oneTenthMaxInt64;
                 for (int i = 0; i < numericLen; i++) {
                     ch = ppToken->name[i] - '0';
-                    if ((ival > oneTenthMaxInt) || (ival == oneTenthMaxInt && (unsigned)ch > remainderMaxInt)) {
+                    if ((enableInt64 == false && ((ival > oneTenthMaxInt) || (ival == oneTenthMaxInt && (unsigned)ch > remainderMaxInt))) ||
+                        (enableInt64 && ((ival > oneTenthMaxInt64) || (ival == oneTenthMaxInt64 && (unsigned long long)ch > remainderMaxInt64)))) {
                         pp->parseContext.ppError(ppToken->loc, "numeric literal too big", "", "");
-                        ival = 0xFFFFFFFFu;
+                        ival = 0xFFFFFFFFFFFFFFFFull;
                         break;
                     } else
                         ival = ival * 10 + ch;
                 }
-                ppToken->ival = (int)ival;
 
-                if (uint)
-                    return PpAtomConstUint;
-                else
-                    return PpAtomConstInt;
+                if (isInt64) {
+                    ppToken->i64val = ival;
+                    return isUnsigned ? PpAtomConstUint64 : PpAtomConstInt64;
+                } else {
+                    ppToken->ival = (int)ival;
+                    return isUnsigned ? PpAtomConstUint : PpAtomConstInt;
+                }
             }
             break;
         case '-':
@@ -686,6 +743,8 @@ const char* TPpContext::tokenize(TPpToken* ppToken)
         case PpAtomConstInt:
         case PpAtomConstUint:
         case PpAtomConstFloat:
+        case PpAtomConstInt64:
+        case PpAtomConstUint64:
         case PpAtomConstDouble:
             tokenString = ppToken->name;
             break;

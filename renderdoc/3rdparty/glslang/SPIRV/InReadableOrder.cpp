@@ -32,10 +32,6 @@
 //ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //POSSIBILITY OF SUCH DAMAGE.
 
-//
-// Author: Dejan Mircevski, Google
-//
-
 // The SPIR-V spec requires code blocks to appear in an order satisfying the
 // dominator-tree direction (ie, dominator before the dominated).  This is,
 // actually, easy to achieve: any pre-order CFG traversal algorithm will do it.

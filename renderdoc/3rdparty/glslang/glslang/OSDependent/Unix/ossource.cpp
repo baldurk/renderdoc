@@ -69,7 +69,7 @@ static void DetachThreadLinux(void *)
 void OS_CleanupThreadData(void)
 {
 #ifdef __ANDROID__
-  DetachThread();
+	DetachThreadLinux(NULL);
 #else
 	int old_cancel_state, old_cancel_type;
 	void *cleanupArg = NULL;

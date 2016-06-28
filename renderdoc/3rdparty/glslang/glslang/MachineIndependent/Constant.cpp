@@ -194,6 +194,22 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TIntermTyped* right
                 } else
                     newConstArray[i].setUConst(leftUnionArray[i].getUConst() / rightUnionArray[i].getUConst());
                 break;
+
+            case EbtInt64:
+                if (rightUnionArray[i] == 0)
+                    newConstArray[i].setI64Const(0x7FFFFFFFFFFFFFFFll);
+                else if (rightUnionArray[i].getI64Const() == -1 && leftUnionArray[i].getI64Const() == (long long)0x8000000000000000)
+                    newConstArray[i].setI64Const(0x8000000000000000);
+                else
+                    newConstArray[i].setI64Const(leftUnionArray[i].getI64Const() / rightUnionArray[i].getI64Const());
+                break;
+
+            case EbtUint64:
+                if (rightUnionArray[i] == 0) {
+                    newConstArray[i].setU64Const(0xFFFFFFFFFFFFFFFFull);
+                } else
+                    newConstArray[i].setU64Const(leftUnionArray[i].getU64Const() / rightUnionArray[i].getU64Const());
+                break;
             default:
                 return 0;
             }
@@ -419,6 +435,8 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
             case EbtFloat: newConstArray[i].setDConst(-unionArray[i].getDConst()); break;
             case EbtInt:   newConstArray[i].setIConst(-unionArray[i].getIConst()); break;
             case EbtUint:  newConstArray[i].setUConst(static_cast<unsigned int>(-static_cast<int>(unionArray[i].getUConst())));  break;
+            case EbtInt64: newConstArray[i].setI64Const(-unionArray[i].getI64Const()); break;
+            case EbtUint64: newConstArray[i].setU64Const(static_cast<unsigned int>(-static_cast<int>(unionArray[i].getU64Const())));  break;
             default:
                 return 0;
             }
@@ -566,6 +584,8 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
         case EOpFloatBitsToUint:
         case EOpIntBitsToFloat:
         case EOpUintBitsToFloat:
+        case EOpDoubleBitsToInt64:
+        case EOpDoubleBitsToUint64:
 
         default:
             return 0;
@@ -651,7 +671,10 @@ TIntermTyped* TIntermediate::fold(TIntermAggregate* aggrNode)
 
     bool isFloatingPoint = children[0]->getAsTyped()->getBasicType() == EbtFloat ||
                            children[0]->getAsTyped()->getBasicType() == EbtDouble;
-    bool isSigned = children[0]->getAsTyped()->getBasicType() == EbtInt;
+    bool isSigned = children[0]->getAsTyped()->getBasicType() == EbtInt ||
+                    children[0]->getAsTyped()->getBasicType() == EbtInt64;
+    bool isInt64 = children[0]->getAsTyped()->getBasicType() == EbtInt64 ||
+                   children[0]->getAsTyped()->getBasicType() == EbtUint64;
     if (componentwise) {
         for (int comp = 0; comp < objectSize; comp++) {
 
@@ -674,29 +697,52 @@ TIntermTyped* TIntermediate::fold(TIntermAggregate* aggrNode)
             case EOpMin:
                 if (isFloatingPoint)
                     newConstArray[comp].setDConst(std::min(childConstUnions[0][arg0comp].getDConst(), childConstUnions[1][arg1comp].getDConst()));
-                else if (isSigned)
-                    newConstArray[comp].setIConst(std::min(childConstUnions[0][arg0comp].getIConst(), childConstUnions[1][arg1comp].getIConst()));
-                else
-                    newConstArray[comp].setUConst(std::min(childConstUnions[0][arg0comp].getUConst(), childConstUnions[1][arg1comp].getUConst()));
+                else if (isSigned) {
+                    if (isInt64)
+                        newConstArray[comp].setI64Const(std::min(childConstUnions[0][arg0comp].getI64Const(), childConstUnions[1][arg1comp].getI64Const()));
+                    else
+                        newConstArray[comp].setIConst(std::min(childConstUnions[0][arg0comp].getIConst(), childConstUnions[1][arg1comp].getIConst()));
+                } else {
+                    if (isInt64)
+                        newConstArray[comp].setU64Const(std::min(childConstUnions[0][arg0comp].getU64Const(), childConstUnions[1][arg1comp].getU64Const()));
+                    else
+                        newConstArray[comp].setUConst(std::min(childConstUnions[0][arg0comp].getUConst(), childConstUnions[1][arg1comp].getUConst()));
+                }
                 break;
             case EOpMax:
                 if (isFloatingPoint)
                     newConstArray[comp].setDConst(std::max(childConstUnions[0][arg0comp].getDConst(), childConstUnions[1][arg1comp].getDConst()));
-                else if (isSigned)
-                    newConstArray[comp].setIConst(std::max(childConstUnions[0][arg0comp].getIConst(), childConstUnions[1][arg1comp].getIConst()));
-                else
-                    newConstArray[comp].setUConst(std::max(childConstUnions[0][arg0comp].getUConst(), childConstUnions[1][arg1comp].getUConst()));
+                else if (isSigned) {
+                    if (isInt64)
+                        newConstArray[comp].setI64Const(std::max(childConstUnions[0][arg0comp].getI64Const(), childConstUnions[1][arg1comp].getI64Const()));
+                    else
+                        newConstArray[comp].setIConst(std::max(childConstUnions[0][arg0comp].getIConst(), childConstUnions[1][arg1comp].getIConst()));
+                } else {
+                    if (isInt64)
+                        newConstArray[comp].setU64Const(std::max(childConstUnions[0][arg0comp].getU64Const(), childConstUnions[1][arg1comp].getU64Const()));
+                    else
+                        newConstArray[comp].setUConst(std::max(childConstUnions[0][arg0comp].getUConst(), childConstUnions[1][arg1comp].getUConst()));
+                }
                 break;
             case EOpClamp:
                 if (isFloatingPoint)
-                    newConstArray[comp].setDConst(std::min(std::max(childConstUnions[0][arg0comp].getDConst(), childConstUnions[1][arg1comp].getDConst()), 
+                    newConstArray[comp].setDConst(std::min(std::max(childConstUnions[0][arg0comp].getDConst(), childConstUnions[1][arg1comp].getDConst()),
                                                                                                                childConstUnions[2][arg2comp].getDConst()));
-                else if (isSigned)
-                    newConstArray[comp].setIConst(std::min(std::max(childConstUnions[0][arg0comp].getIConst(), childConstUnions[1][arg1comp].getIConst()), 
-                                                                                                               childConstUnions[2][arg2comp].getIConst()));
-                else
-                    newConstArray[comp].setUConst(std::min(std::max(childConstUnions[0][arg0comp].getUConst(), childConstUnions[1][arg1comp].getUConst()), 
-                                                                                                               childConstUnions[2][arg2comp].getUConst()));
+                else if (isSigned) {
+                    if (isInt64)
+                        newConstArray[comp].setI64Const(std::min(std::max(childConstUnions[0][arg0comp].getI64Const(), childConstUnions[1][arg1comp].getI64Const()),
+                                                                                                                       childConstUnions[2][arg2comp].getI64Const()));
+                    else
+                        newConstArray[comp].setIConst(std::min(std::max(childConstUnions[0][arg0comp].getIConst(), childConstUnions[1][arg1comp].getIConst()),
+                                                                                                                   childConstUnions[2][arg2comp].getIConst()));
+                } else {
+                    if (isInt64)
+                        newConstArray[comp].setU64Const(std::min(std::max(childConstUnions[0][arg0comp].getU64Const(), childConstUnions[1][arg1comp].getU64Const()),
+                                                                                                                       childConstUnions[2][arg2comp].getU64Const()));
+                    else
+                        newConstArray[comp].setUConst(std::min(std::max(childConstUnions[0][arg0comp].getUConst(), childConstUnions[1][arg1comp].getUConst()),
+                                                                                                                   childConstUnions[2][arg2comp].getUConst()));
+                }
                 break;
             case EOpLessThan:
                 newConstArray[comp].setBConst(childConstUnions[0][arg0comp] < childConstUnions[1][arg1comp]);

@@ -134,7 +134,7 @@ unsigned int __stdcall EnterGenericThread (void* entry)
 
 void* OS_CreateThread(TThreadEntrypoint entry)
 {
-    return (void*)_beginthreadex(0, 0, EnterGenericThread, entry, 0, 0);
+    return (void*)_beginthreadex(0, 0, EnterGenericThread, (void*)entry, 0, 0);
 }
 
 void OS_WaitForAllThreads(void* threads, int numThreads)

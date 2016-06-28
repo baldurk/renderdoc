@@ -41,6 +41,16 @@
 #define GL_UNSIGNED_INT_VEC3              0x8DC7
 #define GL_UNSIGNED_INT_VEC4              0x8DC8
 
+#define GL_INT64_ARB                      0x140E
+#define GL_INT64_VEC2_ARB                 0x8FE9
+#define GL_INT64_VEC3_ARB                 0x8FEA
+#define GL_INT64_VEC4_ARB                 0x8FEB
+
+#define GL_UNSIGNED_INT64_ARB             0x140F
+#define GL_UNSIGNED_INT64_VEC2_ARB        0x8FE5
+#define GL_UNSIGNED_INT64_VEC3_ARB        0x8FE6
+#define GL_UNSIGNED_INT64_VEC4_ARB        0x8FE7
+
 #define GL_BOOL                           0x8B56
 #define GL_BOOL_VEC2                      0x8B57
 #define GL_BOOL_VEC3                      0x8B58

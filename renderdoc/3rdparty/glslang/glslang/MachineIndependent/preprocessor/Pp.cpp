@@ -705,7 +705,8 @@ int TPpContext::CPPerror(TPpToken* ppToken)
     TSourceLoc loc = ppToken->loc;
 
     while (token != '\n' && token != EndOfInput) {
-        if (token == PpAtomConstInt || token == PpAtomConstUint ||
+        if (token == PpAtomConstInt   || token == PpAtomConstUint   ||
+            token == PpAtomConstInt64 || token == PpAtomConstUint64 ||
             token == PpAtomConstFloat || token == PpAtomConstDouble) {
                 message.append(ppToken->name);
         } else if (token == PpAtomIdentifier || token == PpAtomConstString) {
@@ -736,6 +737,8 @@ int TPpContext::CPPpragma(TPpToken* ppToken)
         case PpAtomIdentifier:
         case PpAtomConstInt:
         case PpAtomConstUint:
+        case PpAtomConstInt64:
+        case PpAtomConstUint64:
         case PpAtomConstFloat:
         case PpAtomConstDouble:
             tokens.push_back(ppToken->name);

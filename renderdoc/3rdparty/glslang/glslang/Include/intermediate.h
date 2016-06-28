@@ -1,6 +1,6 @@
 //
 //Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
-//Copyright (C) 2012-2013 LunarG, Inc.
+//Copyright (C) 2012-2016 LunarG, Inc.
 //
 //All rights reserved.
 //
@@ -81,22 +81,44 @@ enum TOperator {
     EOpConvUintToBool,
     EOpConvFloatToBool,
     EOpConvDoubleToBool,
+    EOpConvInt64ToBool,
+    EOpConvUint64ToBool,
     EOpConvBoolToFloat,
     EOpConvIntToFloat,
     EOpConvUintToFloat,
     EOpConvDoubleToFloat,
+    EOpConvInt64ToFloat,
+    EOpConvUint64ToFloat,
     EOpConvUintToInt,
     EOpConvFloatToInt,
     EOpConvBoolToInt,
     EOpConvDoubleToInt,
+    EOpConvInt64ToInt,
+    EOpConvUint64ToInt,
     EOpConvIntToUint,
     EOpConvFloatToUint,
     EOpConvBoolToUint,
     EOpConvDoubleToUint,
+    EOpConvInt64ToUint,
+    EOpConvUint64ToUint,
     EOpConvIntToDouble,
     EOpConvUintToDouble,
     EOpConvFloatToDouble,
     EOpConvBoolToDouble,
+    EOpConvInt64ToDouble,
+    EOpConvUint64ToDouble,
+    EOpConvBoolToInt64,
+    EOpConvIntToInt64,
+    EOpConvUintToInt64,
+    EOpConvFloatToInt64,
+    EOpConvDoubleToInt64,
+    EOpConvUint64ToInt64,
+    EOpConvBoolToUint64,
+    EOpConvIntToUint64,
+    EOpConvUintToUint64,
+    EOpConvFloatToUint64,
+    EOpConvDoubleToUint64,
+    EOpConvInt64ToUint64,
 
     //
     // binary operations
@@ -194,6 +216,10 @@ enum TOperator {
     EOpFloatBitsToUint,
     EOpIntBitsToFloat,
     EOpUintBitsToFloat,
+    EOpDoubleBitsToInt64,
+    EOpDoubleBitsToUint64,
+    EOpInt64BitsToDouble,
+    EOpUint64BitsToDouble,
     EOpPackSnorm2x16,
     EOpUnpackSnorm2x16,
     EOpPackUnorm2x16,
@@ -206,6 +232,10 @@ enum TOperator {
     EOpUnpackHalf2x16,
     EOpPackDouble2x32,
     EOpUnpackDouble2x32,
+    EOpPackInt2x32,
+    EOpUnpackInt2x32,
+    EOpPackUint2x32,
+    EOpUnpackUint2x32,
 
     EOpLength,
     EOpDistance,
@@ -253,6 +283,14 @@ enum TOperator {
     EOpMemoryBarrierShared,  // compute only
     EOpGroupMemoryBarrier,   // compute only
 
+    EOpBallot,
+    EOpReadInvocation,
+    EOpReadFirstInvocation,
+
+    EOpAnyInvocation,
+    EOpAllInvocations,
+    EOpAllInvocationsEqual,
+
     EOpAtomicAdd,
     EOpAtomicMin,
     EOpAtomicMax,
@@ -287,6 +325,8 @@ enum TOperator {
     EOpConstructGuardStart,
     EOpConstructInt,          // these first scalar forms also identify what implicit conversion is needed
     EOpConstructUint,
+    EOpConstructInt64,
+    EOpConstructUint64,
     EOpConstructBool,
     EOpConstructFloat,
     EOpConstructDouble,
@@ -305,6 +345,12 @@ enum TOperator {
     EOpConstructUVec2,
     EOpConstructUVec3,
     EOpConstructUVec4,
+    EOpConstructI64Vec2,
+    EOpConstructI64Vec3,
+    EOpConstructI64Vec4,
+    EOpConstructU64Vec2,
+    EOpConstructU64Vec3,
+    EOpConstructU64Vec4,
     EOpConstructMat2x2,
     EOpConstructMat2x3,
     EOpConstructMat2x4,
@@ -447,6 +493,36 @@ enum TOperator {
     EOpBitCount,
     EOpFindLSB,
     EOpFindMSB,
+
+    //
+    // HLSL operations
+    //
+
+    EOpClip,                // discard if input value < 0
+    EOpIsFinite,
+    EOpLog10,               // base 10 log
+    EOpRcp,                 // 1/x
+    EOpSaturate,            // clamp from 0 to 1
+    EOpSinCos,              // sin and cos in out parameters
+    EOpGenMul,              // mul(x,y) on any of mat/vec/scalars
+    EOpDst,                 // x = 1, y=src0.y * src1.y, z=src0.z, w=src1.w
+    EOpInterlockedAdd,      // atomic ops, but uses [optional] out arg instead of return
+    EOpInterlockedAnd,      // ...
+    EOpInterlockedCompareExchange, // ...
+    EOpInterlockedCompareStore,    // ...
+    EOpInterlockedExchange, // ...
+    EOpInterlockedMax,      // ...
+    EOpInterlockedMin,      // ...
+    EOpInterlockedOr,       // ...
+    EOpInterlockedXor,      // ...
+    EOpAllMemoryBarrierWithGroupSync,    // memory barriers without non-hlsl AST equivalents
+    EOpGroupMemoryBarrierWithGroupSync,  // ...
+    EOpWorkgroupMemoryBarrier,           // ...
+    EOpWorkgroupMemoryBarrierWithGroupSync, // ...
+    EOpEvaluateAttributeSnapped,         // InterpolateAtOffset with int position on 16x16 grid
+    EOpF32tof16,                         // HLSL conversion: half of a PackHalf2x16
+    EOpF16tof32,                         // HLSL conversion: half of an UnpackHalf2x16
+    EOpLit,                              // HLSL lighting coefficient vector
 };
 
 class TIntermTraverser;
@@ -955,6 +1031,11 @@ enum TVisit
 //
 // If you only want post-visits, explicitly turn off preVisit (and inVisit) 
 // and turn on postVisit.
+//
+// In general, for the visit*() methods, return true from interior nodes 
+// to have the traversal continue on to children.
+//
+// If you process children yourself, or don't want them processed, return false.
 //
 class TIntermTraverser {
 public:

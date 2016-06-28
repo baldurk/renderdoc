@@ -74,9 +74,9 @@ typedef std::set<int> TIdSetType;
 class TParseContextBase : public TParseVersions {
 public:
     TParseContextBase(TSymbolTable& symbolTable, TIntermediate& interm, int version,
-                      EProfile profile, int spv, int vulkan, EShLanguage language,
+                      EProfile profile, const SpvVersion& spvVersion, EShLanguage language,
                       TInfoSink& infoSink, bool forwardCompatible, EShMessages messages)
-          : TParseVersions(interm, version, profile, spv, vulkan, language, infoSink, forwardCompatible, messages),
+          : TParseVersions(interm, version, profile, spvVersion, language, infoSink, forwardCompatible, messages),
             symbolTable(symbolTable), tokensBeforeEOF(false),
             linkage(nullptr), scanContext(nullptr), ppContext(nullptr) { }
     virtual ~TParseContextBase() { }
@@ -151,7 +151,7 @@ protected:
 //
 class TParseContext : public TParseContextBase {
 public:
-    TParseContext(TSymbolTable&, TIntermediate&, bool parsingBuiltins, int version, EProfile, int spv, int vulkan, EShLanguage, TInfoSink&,
+    TParseContext(TSymbolTable&, TIntermediate&, bool parsingBuiltins, int version, EProfile, const SpvVersion& spvVersion, EShLanguage, TInfoSink&,
                   bool forwardCompatible = false, EShMessages messages = EShMsgDefault);
     virtual ~TParseContext();
 
@@ -334,8 +334,8 @@ protected:
     TParseContext(TParseContext&);
     TParseContext& operator=(TParseContext&);
 
-    bool parsingBuiltins;        // true if parsing built-in symbols/functions
-    static const int maxSamplerIndex = EsdNumDims * (EbtNumTypes * (2 * 2 * 2)); // see computeSamplerTypeIndex()
+    const bool parsingBuiltins;        // true if parsing built-in symbols/functions
+    static const int maxSamplerIndex = EsdNumDims * (EbtNumTypes * (2 * 2 * 2 * 2 * 2)); // see computeSamplerTypeIndex()
     TPrecisionQualifier defaultSamplerPrecision[maxSamplerIndex];
     bool afterEOF;
     TQualifier globalBufferDefaults;

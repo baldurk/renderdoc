@@ -162,7 +162,7 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_ARB_texture_gather]               = EBhDisable;
     extensionBehavior[E_GL_ARB_gpu_shader5]                  = EBhDisablePartial;
     extensionBehavior[E_GL_ARB_separate_shader_objects]      = EBhDisable;
-    extensionBehavior[E_GL_ARB_compute_shader]               = EBhDisablePartial;
+    extensionBehavior[E_GL_ARB_compute_shader]               = EBhDisable;
     extensionBehavior[E_GL_ARB_tessellation_shader]          = EBhDisable;
     extensionBehavior[E_GL_ARB_enhanced_layouts]             = EBhDisable;
     extensionBehavior[E_GL_ARB_texture_cube_map_array]       = EBhDisable;
@@ -171,13 +171,18 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_ARB_shader_image_load_store]      = EBhDisable;
     extensionBehavior[E_GL_ARB_shader_atomic_counters]       = EBhDisable;
     extensionBehavior[E_GL_ARB_shader_draw_parameters]       = EBhDisable;
+    extensionBehavior[E_GL_ARB_shader_group_vote]            = EBhDisable;
     extensionBehavior[E_GL_ARB_derivative_control]           = EBhDisable;
     extensionBehavior[E_GL_ARB_shader_texture_image_samples] = EBhDisable;
     extensionBehavior[E_GL_ARB_viewport_array]               = EBhDisable;
+    extensionBehavior[E_GL_ARB_gpu_shader_int64]             = EBhDisable;
     extensionBehavior[E_GL_ARB_gl_spirv]                     = EBhDisable;
+    extensionBehavior[E_GL_ARB_shader_ballot]                = EBhDisable;
     extensionBehavior[E_GL_ARB_sparse_texture2]              = EBhDisable;
     extensionBehavior[E_GL_ARB_sparse_texture_clamp]         = EBhDisable;
 //    extensionBehavior[E_GL_ARB_cull_distance]                = EBhDisable;    // present for 4.5, but need extension control over block members
+
+    extensionBehavior[E_GL_EXT_shader_non_constant_global_initializers] = EBhDisable;
 
     // #line and #include
     extensionBehavior[E_GL_GOOGLE_cpp_style_line_directive]          = EBhDisable;
@@ -214,10 +219,10 @@ void TParseVersions::initializeExtensionBehavior()
 
 // Get code that is not part of a shared symbol table, is specific to this shader,
 // or needed by the preprocessor (which does not use a shared symbol table).
-const char* TParseVersions::getPreamble()
+void TParseVersions::getPreamble(std::string& preamble)
 {
     if (profile == EEsProfile) {
-        return
+        preamble = 
             "#define GL_ES 1\n"
             "#define GL_FRAGMENT_PRECISION_HIGH 1\n"
             "#define GL_OES_texture_3D 1\n"
@@ -225,10 +230,6 @@ const char* TParseVersions::getPreamble()
             "#define GL_EXT_frag_depth 1\n"
             "#define GL_OES_EGL_image_external 1\n"
             "#define GL_EXT_shader_texture_lod 1\n"
-
-            // #line and #include
-            "#define GL_GOOGLE_cpp_style_line_directive 1\n"
-            "#define GL_GOOGLE_include_directive 1\n"
 
             // AEP
             "#define GL_ANDROID_extension_pack_es31a 1\n"
@@ -257,9 +258,10 @@ const char* TParseVersions::getPreamble()
             "#define GL_OES_tessellation_point_size 1\n"
             "#define GL_OES_texture_buffer 1\n"
             "#define GL_OES_texture_cube_map_array 1\n"
+            "#define GL_EXT_shader_non_constant_global_initializers 1\n"
             ;
     } else {
-        return
+        preamble = 
             "#define GL_FRAGMENT_PRECISION_HIGH 1\n"
             "#define GL_ARB_texture_rectangle 1\n"
             "#define GL_ARB_shading_language_420pack 1\n"
@@ -275,18 +277,35 @@ const char* TParseVersions::getPreamble()
             "#define GL_ARB_shader_image_load_store 1\n"
             "#define GL_ARB_shader_atomic_counters 1\n"
             "#define GL_ARB_shader_draw_parameters 1\n"
+            "#define GL_ARB_shader_group_vote 1\n"
             "#define GL_ARB_derivative_control 1\n"
             "#define GL_ARB_shader_texture_image_samples 1\n"
             "#define GL_ARB_viewport_array 1\n"
+            "#define GL_ARB_gpu_shader_int64 1\n"
             "#define GL_ARB_gl_spirv 1\n"
+            "#define GL_ARB_shader_ballot 1\n"
             "#define GL_ARB_sparse_texture2 1\n"
             "#define GL_ARB_sparse_texture_clamp 1\n"
-
-            "#define GL_GOOGLE_cpp_style_line_directive 1\n"
-            "#define GL_GOOGLE_include_directive 1\n"
 //            "#define GL_ARB_cull_distance 1\n"    // present for 4.5, but need extension control over block members
+            "#define GL_EXT_shader_non_constant_global_initializers 1\n"
             ;
     }
+
+    // #line and #include
+    preamble += 
+            "#define GL_GOOGLE_cpp_style_line_directive 1\n"
+            "#define GL_GOOGLE_include_directive 1\n"
+            ;
+
+    // #define VULKAN XXXX
+    if (spvVersion.vulkan > 0) {
+        preamble += "#define VULKAN ";
+        char number[12];
+        snprintf(number, 12, "%d", spvVersion.vulkan);
+        preamble += number;
+        preamble += "\n";
+    }
+    // gl_spirv TODO
 }
 
 //
@@ -567,9 +586,6 @@ void TParseVersions::updateExtensionBehavior(int line, const char* extension, co
         updateExtensionBehavior(line, "GL_OES_shader_io_blocks", behaviorString);
     else if (strcmp(extension, "GL_GOOGLE_include_directive") == 0)
         updateExtensionBehavior(line, "GL_GOOGLE_cpp_style_line_directive", behaviorString);
-    // SPIR-V
-    else if (strcmp(extension, "GL_ARB_gl_spirv") == 0)
-        spv = 100;
 }
 
 void TParseVersions::updateExtensionBehavior(const char* extension, TExtensionBehavior behavior)
@@ -627,31 +643,42 @@ void TParseVersions::doubleCheck(const TSourceLoc& loc, const char* op)
     profileRequires(loc, ECompatibilityProfile, 400, nullptr, op);
 }
 
+// Call for any operation needing GLSL 64-bit integer data-type support.
+void TParseVersions::int64Check(const TSourceLoc& loc, const char* op, bool builtIn)
+{
+    if (! builtIn) {
+        requireExtensions(loc, 1, &E_GL_ARB_gpu_shader_int64, "shader int64");
+        requireProfile(loc, ECoreProfile | ECompatibilityProfile, op);
+        profileRequires(loc, ECoreProfile, 450, nullptr, op);
+        profileRequires(loc, ECompatibilityProfile, 450, nullptr, op);
+    }
+}
+
 // Call for any operation removed because SPIR-V is in use.
 void TParseVersions::spvRemoved(const TSourceLoc& loc, const char* op)
 {
-    if (spv > 0)
+    if (spvVersion.spv != 0)
         error(loc, "not allowed when generating SPIR-V", op, "");
 }
 
 // Call for any operation removed because Vulkan SPIR-V is being generated.
 void TParseVersions::vulkanRemoved(const TSourceLoc& loc, const char* op)
 {
-    if (vulkan > 0)
+    if (spvVersion.vulkan >= 100)
         error(loc, "not allowed when using GLSL for Vulkan", op, "");
 }
 
 // Call for any operation that requires Vulkan.
 void TParseVersions::requireVulkan(const TSourceLoc& loc, const char* op)
 {
-    if (vulkan == 0)
+    if (spvVersion.vulkan == 0)
         error(loc, "only allowed when using GLSL for Vulkan", op, "");
 }
 
 // Call for any operation that requires SPIR-V.
 void TParseVersions::requireSpv(const TSourceLoc& loc, const char* op)
 {
-    if (spv == 0)
+    if (spvVersion.spv == 0)
         error(loc, "only allowed when generating SPIR-V", op, "");
 }
 

@@ -111,6 +111,7 @@ public:
     bool   space;  // true if a space (for white space or a removed comment) should also be recognized, in front of the token returned
     int    ival;
     double dval;
+    long long i64val;
     int    atom;
     char   name[MaxTokenLength + 1];
 };

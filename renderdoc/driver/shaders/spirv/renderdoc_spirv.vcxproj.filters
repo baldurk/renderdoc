@@ -120,6 +120,21 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslScanContext.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslOpMap.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslParseables.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslTokenStream.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\Logger.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\propagateNoContraction.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h">
@@ -232,6 +247,21 @@
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslTokens.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslOpMap.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslParseables.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslTokenStream.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\Logger.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\propagateNoContraction.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
   </ItemGroup>

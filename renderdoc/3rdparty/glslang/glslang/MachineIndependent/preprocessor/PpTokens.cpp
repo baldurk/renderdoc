@@ -141,6 +141,8 @@ void TPpContext::RecordToken(TokenStream *pTok, int token, TPpToken* ppToken)
         break;
     case PpAtomConstInt:
     case PpAtomConstUint:
+    case PpAtomConstInt64:
+    case PpAtomConstUint64:
     case PpAtomConstFloat:
     case PpAtomConstDouble:
         str = ppToken->name;
@@ -193,6 +195,8 @@ int TPpContext::ReadToken(TokenStream *pTok, TPpToken *ppToken)
     case PpAtomConstDouble:
     case PpAtomConstInt:
     case PpAtomConstUint:
+    case PpAtomConstInt64:
+    case PpAtomConstUint64:
         len = 0;
         ch = lReadByte(pTok);
         while (ch != 0 && ch != EndOfInput) {
@@ -226,6 +230,16 @@ int TPpContext::ReadToken(TokenStream *pTok, TPpToken *ppToken)
                     ppToken->ival = strtol(ppToken->name, 0, 8);
             } else
                 ppToken->ival = atoi(ppToken->name);
+            break;
+        case PpAtomConstInt64:
+        case PpAtomConstUint64:
+            if (len > 0 && tokenText[0] == '0') {
+                if (len > 1 && (tokenText[1] == 'x' || tokenText[1] == 'X'))
+                    ppToken->i64val = strtoll(ppToken->name, nullptr, 16);
+                else
+                    ppToken->i64val = strtoll(ppToken->name, nullptr, 8);
+            } else
+                ppToken->i64val = atoll(ppToken->name);
             break;
         }
     }

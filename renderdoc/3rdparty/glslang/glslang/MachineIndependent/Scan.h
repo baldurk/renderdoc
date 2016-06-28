@@ -54,7 +54,7 @@ public:
     TInputScanner(int n, const char* const s[], size_t L[], const char* const* names = nullptr, int b = 0, int f = 0, bool single = false) :
         numSources(n),
         sources(reinterpret_cast<const unsigned char* const *>(s)), // up to this point, common usage is "char*", but now we need positive 8-bit characters
-        lengths(L), currentSource(0), currentChar(0), stringBias(b), finale(f), singleLogical(single)
+        lengths(L), currentSource(0), currentChar(0), stringBias(b), finale(f), singleLogical(single), endOfFileReached(false)
     {
         loc = new TSourceLoc[numSources];
         for (int i = 0; i < numSources; ++i) {
@@ -81,10 +81,8 @@ public:
     // retrieve the next character and advance one character
     int get()
     {
-        if (currentSource >= numSources)
-            return EndOfInput;
-
         int ret = peek();
+        if (ret == EndOfInput)  return ret;
         ++loc[currentSource].column;
         ++logicalSourceLoc.column;
         if (ret == '\n') {
@@ -101,8 +99,10 @@ public:
     // retrieve the next character, no advance
     int peek()
     {
-        if (currentSource >= numSources)
+        if (currentSource >= numSources) {
+            endOfFileReached = true;
             return EndOfInput;
+        }
         // Make sure we do not read off the end of a string.
         // N.B. Sources can have a length of 0.
         int sourceToRead = currentSource;
@@ -122,6 +122,9 @@ public:
     // go back one character
     void unget()
     {
+        // Do not roll back once we've reached the end of the file.
+        if (endOfFileReached) return;
+
         if (currentChar > 0) {
             --currentChar;
             --loc[currentSource].column;
@@ -172,7 +175,7 @@ public:
 
     void setFile(const char* filename, size_t i)
     {
-        if ((int)i == getLastValidSourceIndex()) {
+        if (i == getLastValidSourceIndex()) {
             logicalSourceLoc.name = filename;
         }
         loc[i].name = filename;
@@ -251,6 +254,10 @@ protected:
     TSourceLoc logicalSourceLoc;
     bool singleLogical; // treats the strings as a single logical string.
                         // locations will be reported from the first string.
+
+    // set to true once peak() returns EndOfFile, so that we won't roll back
+    // once we've reached EndOfFile.
+    bool endOfFileReached;
 };
 
 } // end namespace glslang

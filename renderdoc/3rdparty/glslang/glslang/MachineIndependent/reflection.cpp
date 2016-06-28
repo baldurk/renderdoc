@@ -108,6 +108,22 @@ public:
         }
     }
 
+    void addAttribute(const TIntermSymbol& base)
+    {
+        if (processedDerefs.find(&base) == processedDerefs.end()) {
+            processedDerefs.insert(&base);
+
+            const TString &name = base.getName();
+            const TType &type = base.getType();
+
+            TReflection::TNameToIndex::const_iterator it = reflection.nameToIndex.find(name);
+            if (it == reflection.nameToIndex.end()) {
+                reflection.nameToIndex[name] = (int)reflection.indexToAttribute.size();
+                reflection.indexToAttribute.push_back(TObjectReflection(name, 0, mapToGlType(type), 0, 0));
+            }
+        }
+    }
+
     // Lookup or calculate the offset of a block member, using the recursively
     // defined block offset rules.
     int getOffset(const TType& type, int index)
@@ -540,6 +556,8 @@ public:
             case EbtDouble:     return GL_DOUBLE_VEC2                 + offset;
             case EbtInt:        return GL_INT_VEC2                    + offset;
             case EbtUint:       return GL_UNSIGNED_INT_VEC2           + offset;
+            case EbtInt64:      return GL_INT64_ARB                   + offset;
+            case EbtUint64:     return GL_UNSIGNED_INT64_ARB          + offset;
             case EbtBool:       return GL_BOOL_VEC2                   + offset;
             case EbtAtomicUint: return GL_UNSIGNED_INT_ATOMIC_COUNTER + offset;
             default:            return 0;
@@ -605,6 +623,8 @@ public:
             case EbtDouble:     return GL_DOUBLE;
             case EbtInt:        return GL_INT;
             case EbtUint:       return GL_UNSIGNED_INT;
+            case EbtInt64:      return GL_INT64_ARB;
+            case EbtUint64:     return GL_UNSIGNED_INT64_ARB;
             case EbtBool:       return GL_BOOL;
             case EbtAtomicUint: return GL_UNSIGNED_INT_ATOMIC_COUNTER;
             default:            return 0;
@@ -667,6 +687,9 @@ void TLiveTraverser::visitSymbol(TIntermSymbol* base)
 {
     if (base->getQualifier().storage == EvqUniform)
         addUniform(*base);
+
+    if (intermediate.getStage() == EShLangVertex && base->getQualifier().isPipeInput())
+        addAttribute(*base);
 }
 
 // To prune semantically dead paths.
@@ -722,6 +745,11 @@ void TReflection::dump()
     printf("Uniform block reflection:\n");
     for (size_t i = 0; i < indexToUniformBlock.size(); ++i)
         indexToUniformBlock[i].dump();
+    printf("\n");
+
+    printf("Vertex attribute reflection:\n");
+    for (size_t i = 0; i < indexToAttribute.size(); ++i)
+        indexToAttribute[i].dump();
     printf("\n");
 
     //printf("Live names\n");

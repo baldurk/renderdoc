@@ -1,5 +1,5 @@
 //
-//Copyright (C) 2014 LunarG, Inc.
+//Copyright (C) 2016 LunarG, Inc.
 //
 //All rights reserved.
 //
@@ -31,19 +31,31 @@
 //LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 //ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //POSSIBILITY OF SUCH DAMAGE.
+//
 
-#include "../glslang/Include/intermediate.h"
+#ifndef _HLSLPARSEABLES_INCLUDED_
+#define _HLSLPARSEABLES_INCLUDED_
 
-#include <string>
-#include <vector>
-
-#include "Logger.h"
+#include "../glslang/MachineIndependent/Initialize.h"
 
 namespace glslang {
 
-void GetSpirvVersion(std::string&);
-void GlslangToSpv(const glslang::TIntermediate& intermediate, std::vector<unsigned int>& spirv);
-void GlslangToSpv(const glslang::TIntermediate& intermediate, std::vector<unsigned int>& spirv, spv::SpvBuildLogger* logger);
-void OutputSpv(const std::vector<unsigned int>& spirv, const char* baseName);
+//
+// This is an HLSL specific derivation of TBuiltInParseables.  See comment
+// above TBuiltInParseables for details.
+//
+class TBuiltInParseablesHlsl : public TBuiltInParseables {
+public:
+    POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
+    TBuiltInParseablesHlsl();
+    void initialize(int version, EProfile, const SpvVersion& spvVersion);
+    void initialize(const TBuiltInResource& resources, int version, EProfile, const SpvVersion& spvVersion, EShLanguage);
 
-}
+    void identifyBuiltIns(int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TSymbolTable& symbolTable);
+    
+    void identifyBuiltIns(int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TSymbolTable& symbolTable, const TBuiltInResource &resources);
+};
+
+} // end namespace glslang
+
+#endif // _HLSLPARSEABLES_INCLUDED_

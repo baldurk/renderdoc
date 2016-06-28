@@ -1,5 +1,6 @@
 //
 //Copyright (C) 2016 Google, Inc.
+//Copyright (C) 2016 LunarG, Inc.
 //
 //All rights reserved.
 //
@@ -48,10 +49,10 @@
 namespace glslang {
 
 HlslParseContext::HlslParseContext(TSymbolTable& symbolTable, TIntermediate& interm, bool /*parsingBuiltins*/,
-                                   int version, EProfile profile, int spv, int vulkan, EShLanguage language, TInfoSink& infoSink,
+                                   int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TInfoSink& infoSink,
                                    bool forwardCompatible, EShMessages messages) :
-    TParseContextBase(symbolTable, interm, version, profile, spv, vulkan, language, infoSink, forwardCompatible, messages),
-    contextPragma(true, false), loopNestingLevel(0), structNestingLevel(0), controlFlowNestingLevel(0), statementNestingLevel(0),
+    TParseContextBase(symbolTable, interm, version, profile, spvVersion, language, infoSink, forwardCompatible, messages),
+    contextPragma(true, false), loopNestingLevel(0), structNestingLevel(0), controlFlowNestingLevel(0),
     postMainReturn(false),
     limits(resources.limits),
     afterEOF(false)
@@ -61,11 +62,11 @@ HlslParseContext::HlslParseContext(TSymbolTable& symbolTable, TIntermediate& int
 
     globalUniformDefaults.clear();
     globalUniformDefaults.layoutMatrix = ElmColumnMajor;
-    globalUniformDefaults.layoutPacking = vulkan > 0 ? ElpStd140 : ElpShared;
+    globalUniformDefaults.layoutPacking = ElpStd140;
 
     globalBufferDefaults.clear();
     globalBufferDefaults.layoutMatrix = ElmColumnMajor;
-    globalBufferDefaults.layoutPacking = vulkan > 0 ? ElpStd430 : ElpShared;
+    globalBufferDefaults.layoutPacking = ElpStd430;
 
     globalInputDefaults.clear();
     globalOutputDefaults.clear();
@@ -284,7 +285,12 @@ void C_DECL HlslParseContext::ppWarn(const TSourceLoc& loc, const char* szReason
 //
 TIntermTyped* HlslParseContext::handleVariable(const TSourceLoc& loc, TSymbol* symbol, const TString* string)
 {
-    TIntermTyped* node = nullptr;
+    if (symbol == nullptr)
+        symbol = symbolTable.find(*string);
+    if (symbol && symbol->getAsVariable() && symbol->getAsVariable()->isUserType()) {
+        error(loc, "expected symbol, not user-defined type", string->c_str(), "");
+        return nullptr;
+    }
 
     // Error check for requiring specific extensions present.
     if (symbol && symbol->getNumExtensions())
@@ -305,6 +311,7 @@ TIntermTyped* HlslParseContext::handleVariable(const TSourceLoc& loc, TSymbol* s
 
     const TVariable* variable;
     const TAnonMember* anon = symbol ? symbol->getAsAnonMember() : nullptr;
+    TIntermTyped* node = nullptr;
     if (anon) {
         // It was a member of an anonymous container.
 
@@ -710,11 +717,16 @@ TIntermAggregate* HlslParseContext::handleFunctionDefinition(const TSourceLoc& l
     functionReturnsValue = false;
 
     inEntrypoint = (function.getName() == intermediate.getEntryPoint().c_str());
+    if (inEntrypoint) {
+        // parameters are actually shader-level inputs
+        for (int i = 0; i < function.getParamCount(); i++)
+            function[i].type->getQualifier().storage = EvqVaryingIn;
+    }
 
     //
     // New symbol table scope for body of function plus its arguments
     //
-    symbolTable.push();
+    pushScope();
 
     //
     // Insert parameters into the symbol table.
@@ -747,19 +759,363 @@ TIntermAggregate* HlslParseContext::handleFunctionDefinition(const TSourceLoc& l
     }
     intermediate.setAggregateOperator(paramNodes, EOpParameters, TType(EbtVoid), loc);
     loopNestingLevel = 0;
-    statementNestingLevel = 0;
     controlFlowNestingLevel = 0;
     postMainReturn = false;
 
     return paramNodes;
 }
 
-void HlslParseContext::handleFunctionArgument(TFunction* function, TIntermAggregate*& arguments, TIntermTyped* arg)
+void HlslParseContext::handleFunctionArgument(TFunction* function, TIntermTyped*& arguments, TIntermTyped* newArg)
 {
     TParameter param = { 0, new TType };
-    param.type->shallowCopy(arg->getType());
+    param.type->shallowCopy(newArg->getType());
     function->addParameter(param);
-    arguments = intermediate.growAggregate(arguments, arg);
+    if (arguments)
+        arguments = intermediate.growAggregate(arguments, newArg);
+    else
+        arguments = newArg;
+}
+
+//
+// HLSL atomic operations have slightly different arguments than
+// GLSL/AST/SPIRV.  The semantics are converted below in decomposeIntrinsic.
+// This provides the post-decomposition equivalent opcode.
+//
+TOperator HlslParseContext::mapAtomicOp(const TSourceLoc& loc, TOperator op, bool isImage)
+{
+    switch (op) {
+    case EOpInterlockedAdd:             return isImage ? EOpImageAtomicAdd : EOpAtomicAdd;
+    case EOpInterlockedAnd:             return isImage ? EOpImageAtomicAnd : EOpAtomicAnd;
+    case EOpInterlockedCompareExchange: return isImage ? EOpImageAtomicCompSwap : EOpAtomicCompSwap;
+    case EOpInterlockedMax:             return isImage ? EOpImageAtomicMax : EOpAtomicMax;
+    case EOpInterlockedMin:             return isImage ? EOpImageAtomicMin : EOpAtomicMin;
+    case EOpInterlockedOr:              return isImage ? EOpImageAtomicOr : EOpAtomicOr;
+    case EOpInterlockedXor:             return isImage ? EOpImageAtomicXor : EOpAtomicXor;
+    case EOpInterlockedExchange:        return isImage ? EOpImageAtomicExchange : EOpAtomicExchange;
+    case EOpInterlockedCompareStore:  // TODO: ... 
+    default:
+        error(loc, "unknown atomic operation", "unknown op", "");
+        return EOpNull;
+    }
+}
+
+// Optionally decompose intrinsics to AST opcodes.
+//
+void HlslParseContext::decomposeIntrinsic(const TSourceLoc& loc, TIntermTyped*& node, TIntermNode* arguments)
+{
+    // HLSL intrinsics can be pass through to native AST opcodes, or decomposed here to existing AST
+    // opcodes for compatibility with existing software stacks.
+    static const bool decomposeHlslIntrinsics = true;
+
+    if (!decomposeHlslIntrinsics || !node || !node->getAsOperator())
+        return;
+    
+    const TIntermAggregate* argAggregate = arguments ? arguments->getAsAggregate() : nullptr;
+    TIntermUnary* fnUnary = node->getAsUnaryNode();
+    const TOperator op  = node->getAsOperator()->getOp();
+
+    switch (op) {
+    case EOpGenMul:
+        {
+            // mul(a,b) -> MatrixTimesMatrix, MatrixTimesVector, MatrixTimesScalar, VectorTimesScalar, Dot, Mul
+            TIntermTyped* arg0 = argAggregate->getSequence()[0]->getAsTyped();
+            TIntermTyped* arg1 = argAggregate->getSequence()[1]->getAsTyped();
+
+            if (arg0->isVector() && arg1->isVector()) {  // vec * vec
+                node->getAsAggregate()->setOperator(EOpDot);
+            } else {
+                node = handleBinaryMath(loc, "mul", EOpMul, arg0, arg1);
+            }
+
+            break;
+        }
+
+    case EOpRcp:
+        {
+            // rcp(a) -> 1 / a
+            TIntermTyped* arg0 = fnUnary->getOperand();
+            TBasicType   type0 = arg0->getBasicType();
+            TIntermTyped* one  = intermediate.addConstantUnion(1, type0, loc, true);
+            node  = handleBinaryMath(loc, "rcp", EOpDiv, one, arg0);
+
+            break;
+        }
+
+    case EOpSaturate:
+        {
+            // saturate(a) -> clamp(a,0,1)
+            TIntermTyped* arg0 = fnUnary->getOperand();
+            TBasicType   type0 = arg0->getBasicType();
+            TIntermAggregate* clamp = new TIntermAggregate(EOpClamp);
+
+            clamp->getSequence().push_back(arg0);
+            clamp->getSequence().push_back(intermediate.addConstantUnion(0, type0, loc, true));
+            clamp->getSequence().push_back(intermediate.addConstantUnion(1, type0, loc, true));
+            clamp->setLoc(loc);
+            clamp->setType(node->getType());
+            clamp->getWritableType().getQualifier().makeTemporary();
+            node = clamp;
+
+            break;
+        }
+
+    case EOpSinCos:
+        {
+            // sincos(a,b,c) -> b = sin(a), c = cos(a)
+            TIntermTyped* arg0 = argAggregate->getSequence()[0]->getAsTyped();
+            TIntermTyped* arg1 = argAggregate->getSequence()[1]->getAsTyped();
+            TIntermTyped* arg2 = argAggregate->getSequence()[2]->getAsTyped();
+
+            TIntermTyped* sinStatement = handleUnaryMath(loc, "sin", EOpSin, arg0);
+            TIntermTyped* cosStatement = handleUnaryMath(loc, "cos", EOpCos, arg0);
+            TIntermTyped* sinAssign    = intermediate.addAssign(EOpAssign, arg1, sinStatement, loc);
+            TIntermTyped* cosAssign    = intermediate.addAssign(EOpAssign, arg2, cosStatement, loc);
+
+            TIntermAggregate* compoundStatement = intermediate.makeAggregate(sinAssign, loc);
+            compoundStatement = intermediate.growAggregate(compoundStatement, cosAssign);
+            compoundStatement->setOperator(EOpSequence);
+            compoundStatement->setLoc(loc);
+
+            node = compoundStatement;
+
+            break;
+        }
+
+    case EOpClip:
+        {
+            // clip(a) -> if (any(a<0)) discard;
+            TIntermTyped*  arg0 = fnUnary->getOperand();
+            TBasicType     type0 = arg0->getBasicType();
+            TIntermTyped*  compareNode = nullptr;
+
+            // For non-scalars: per experiment with FXC compiler, discard if any component < 0.
+            if (!arg0->isScalar()) {
+                // component-wise compare: a < 0
+                TIntermAggregate* less = new TIntermAggregate(EOpLessThan);
+                less->getSequence().push_back(arg0);
+                less->setLoc(loc);
+
+                // make vec or mat of bool matching dimensions of input
+                less->setType(TType(EbtBool, EvqTemporary,
+                                    arg0->getType().getVectorSize(),
+                                    arg0->getType().getMatrixCols(),
+                                    arg0->getType().getMatrixRows(),
+                                    arg0->getType().isVector()));
+
+                // calculate # of components for comparison const
+                const int constComponentCount = 
+                    std::max(arg0->getType().getVectorSize(), 1) *
+                    std::max(arg0->getType().getMatrixCols(), 1) *
+                    std::max(arg0->getType().getMatrixRows(), 1);
+
+                TConstUnion zero;
+                zero.setDConst(0.0);
+                TConstUnionArray zeros(constComponentCount, zero);
+
+                less->getSequence().push_back(intermediate.addConstantUnion(zeros, arg0->getType(), loc, true));
+
+                compareNode = intermediate.addBuiltInFunctionCall(loc, EOpAny, true, less, TType(EbtBool));
+            } else {
+                TIntermTyped* zero = intermediate.addConstantUnion(0, type0, loc, true);
+                compareNode = handleBinaryMath(loc, "clip", EOpLessThan, arg0, zero);
+            }
+            
+            TIntermBranch* killNode = intermediate.addBranch(EOpKill, loc);
+
+            node = new TIntermSelection(compareNode, killNode, nullptr);
+            node->setLoc(loc);
+            
+            break;
+        }
+
+    case EOpLog10:
+        {
+            // log10(a) -> log2(a) * 0.301029995663981  (== 1/log2(10))
+            TIntermTyped* arg0 = fnUnary->getOperand();
+            TIntermTyped* log2 = handleUnaryMath(loc, "log2", EOpLog2, arg0);
+            TIntermTyped* base = intermediate.addConstantUnion(0.301029995663981f, EbtFloat, loc, true);
+
+            node  = handleBinaryMath(loc, "mul", EOpMul, log2, base);
+
+            break;
+        }
+
+    case EOpDst:
+        {
+            // dest.x = 1;
+            // dest.y = src0.y * src1.y;
+            // dest.z = src0.z;
+            // dest.w = src1.w;
+
+            TIntermTyped* arg0 = argAggregate->getSequence()[0]->getAsTyped();
+            TIntermTyped* arg1 = argAggregate->getSequence()[1]->getAsTyped();
+            TBasicType    type0 = arg0->getBasicType();
+
+            TIntermTyped* x = intermediate.addConstantUnion(0, loc, true);
+            TIntermTyped* y = intermediate.addConstantUnion(1, loc, true);
+            TIntermTyped* z = intermediate.addConstantUnion(2, loc, true);
+            TIntermTyped* w = intermediate.addConstantUnion(3, loc, true);
+
+            TIntermTyped* src0y = intermediate.addIndex(EOpIndexDirect, arg0, y, loc);
+            TIntermTyped* src1y = intermediate.addIndex(EOpIndexDirect, arg1, y, loc);
+            TIntermTyped* src0z = intermediate.addIndex(EOpIndexDirect, arg0, z, loc);
+            TIntermTyped* src1w = intermediate.addIndex(EOpIndexDirect, arg1, w, loc);
+
+            TIntermAggregate* dst = new TIntermAggregate(EOpConstructVec4);
+
+            dst->getSequence().push_back(intermediate.addConstantUnion(1.0, EbtFloat, loc, true));
+            dst->getSequence().push_back(handleBinaryMath(loc, "mul", EOpMul, src0y, src1y));
+            dst->getSequence().push_back(src0z);
+            dst->getSequence().push_back(src1w);
+            dst->setType(TType(EbtFloat, EvqTemporary, 4));
+            dst->setLoc(loc);
+            node = dst;
+
+            break;
+        }
+
+    case EOpInterlockedAdd: // optional last argument (if present) is assigned from return value
+    case EOpInterlockedMin: // ...
+    case EOpInterlockedMax: // ...
+    case EOpInterlockedAnd: // ...
+    case EOpInterlockedOr:  // ...
+    case EOpInterlockedXor: // ...
+    case EOpInterlockedExchange: // always has output arg
+        {
+            TIntermTyped* arg0 = argAggregate->getSequence()[0]->getAsTyped();
+            TIntermTyped* arg1 = argAggregate->getSequence()[1]->getAsTyped();
+
+            const bool isImage = arg0->getType().isImage();
+            const TOperator atomicOp = mapAtomicOp(loc, op, isImage);
+
+            if (argAggregate->getSequence().size() > 2) {
+                // optional output param is present.  return value goes to arg2.
+                TIntermTyped* arg2 = argAggregate->getSequence()[2]->getAsTyped();
+
+                TIntermAggregate* atomic = new TIntermAggregate(atomicOp);
+                atomic->getSequence().push_back(arg0);
+                atomic->getSequence().push_back(arg1);
+                atomic->setLoc(loc);
+                atomic->setType(arg0->getType());
+                atomic->getWritableType().getQualifier().makeTemporary();
+
+                node = intermediate.addAssign(EOpAssign, arg2, atomic, loc);
+            } else {
+                // Set the matching operator.  Since output is absent, this is all we need to do.
+                node->getAsAggregate()->setOperator(atomicOp);
+            }
+
+            break;
+        }
+
+    case EOpInterlockedCompareExchange:
+        {
+            TIntermTyped* arg0 = argAggregate->getSequence()[0]->getAsTyped();  // dest
+            TIntermTyped* arg1 = argAggregate->getSequence()[1]->getAsTyped();  // cmp
+            TIntermTyped* arg2 = argAggregate->getSequence()[2]->getAsTyped();  // value
+            TIntermTyped* arg3 = argAggregate->getSequence()[3]->getAsTyped();  // orig
+
+            const bool isImage = arg0->getType().isImage();
+            TIntermAggregate* atomic = new TIntermAggregate(mapAtomicOp(loc, op, isImage));
+            atomic->getSequence().push_back(arg0);
+            atomic->getSequence().push_back(arg1);
+            atomic->getSequence().push_back(arg2);
+            atomic->setLoc(loc);
+            atomic->setType(arg2->getType());
+            atomic->getWritableType().getQualifier().makeTemporary();
+
+            node = intermediate.addAssign(EOpAssign, arg3, atomic, loc);
+            
+            break;
+        }
+
+    case EOpEvaluateAttributeSnapped:
+        {
+            // SPIR-V InterpolateAtOffset uses float vec2 offset in pixels
+            // HLSL uses int2 offset on a 16x16 grid in [-8..7] on x & y:
+            //   iU = (iU<<28)>>28
+            //   fU = ((float)iU)/16
+            // Targets might handle this natively, in which case they can disable
+            // decompositions.
+
+            TIntermTyped* arg0 = argAggregate->getSequence()[0]->getAsTyped();  // value
+            TIntermTyped* arg1 = argAggregate->getSequence()[1]->getAsTyped();  // offset
+
+            TIntermTyped* i28 = intermediate.addConstantUnion(28, loc, true);
+            TIntermTyped* iU = handleBinaryMath(loc, ">>", EOpRightShift,
+                                                handleBinaryMath(loc, "<<", EOpLeftShift, arg1, i28),
+                                                i28);
+
+            TIntermTyped* recip16 = intermediate.addConstantUnion((1.0/16.0), EbtFloat, loc, true);
+            TIntermTyped* floatOffset = handleBinaryMath(loc, "mul", EOpMul,
+                                                         intermediate.addConversion(EOpConstructFloat,
+                                                                                    TType(EbtFloat, EvqTemporary, 2), iU),
+                                                         recip16);
+            
+            TIntermAggregate* interp = new TIntermAggregate(EOpInterpolateAtOffset);
+            interp->getSequence().push_back(arg0);
+            interp->getSequence().push_back(floatOffset);
+            interp->setLoc(loc);
+            interp->setType(arg0->getType());
+            interp->getWritableType().getQualifier().makeTemporary();
+
+            node = interp;
+
+            break;
+        }
+
+    case EOpLit:
+        {
+            TIntermTyped* n_dot_l = argAggregate->getSequence()[0]->getAsTyped();
+            TIntermTyped* n_dot_h = argAggregate->getSequence()[1]->getAsTyped();
+            TIntermTyped* m = argAggregate->getSequence()[2]->getAsTyped();
+
+            TIntermAggregate* dst = new TIntermAggregate(EOpConstructVec4);
+
+            // Ambient
+            dst->getSequence().push_back(intermediate.addConstantUnion(1.0, EbtFloat, loc, true));
+
+            // Diffuse:
+            TIntermTyped* zero = intermediate.addConstantUnion(0.0, EbtFloat, loc, true);
+            TIntermAggregate* diffuse = new TIntermAggregate(EOpMax);
+            diffuse->getSequence().push_back(n_dot_l);
+            diffuse->getSequence().push_back(zero);
+            diffuse->setLoc(loc);
+            diffuse->setType(TType(EbtFloat));
+            dst->getSequence().push_back(diffuse);
+
+            // Specular:
+            TIntermAggregate* min_ndot = new TIntermAggregate(EOpMin);
+            min_ndot->getSequence().push_back(n_dot_l);
+            min_ndot->getSequence().push_back(n_dot_h);
+            min_ndot->setLoc(loc);
+            min_ndot->setType(TType(EbtFloat));
+
+            TIntermTyped* compare = handleBinaryMath(loc, "<", EOpLessThan, min_ndot, zero);
+            TIntermTyped* n_dot_h_m = handleBinaryMath(loc, "mul", EOpMul, n_dot_h, m);  // n_dot_h * m
+
+            dst->getSequence().push_back(intermediate.addSelection(compare, zero, n_dot_h_m, loc));
+            
+            // One:
+            dst->getSequence().push_back(intermediate.addConstantUnion(1.0, EbtFloat, loc, true));
+
+            dst->setLoc(loc);
+            dst->setType(TType(EbtFloat, EvqTemporary, 4));
+            node = dst;
+            break;
+        }
+
+    case EOpF16tof32:
+    case EOpF32tof16:
+        {
+            // Temporary until decomposition is available.
+            error(loc, "unimplemented intrinsic: handle natively", "f32tof16", "");
+            break;
+        }
+
+    default:
+        break; // most pass through unchanged
+    }
 }
 
 //
@@ -864,6 +1220,8 @@ TIntermTyped* HlslParseContext::handleFunctionCall(const TSourceLoc& loc, TFunct
                 }
                 result = addOutputArgumentConversions(*fnCandidate, *result->getAsAggregate());
             }
+
+            decomposeIntrinsic(loc, result, arguments);
         }
     }
 
@@ -1202,6 +1560,38 @@ TFunction* HlslParseContext::handleConstructorCall(const TSourceLoc& loc, const 
     TString empty("");
 
     return new TFunction(&empty, type, op);
+}
+
+//
+// Handle seeing a "COLON semantic" at the end of a type declaration,
+// by updating the type according to the semantic.
+//
+void HlslParseContext::handleSemantic(TType& type, const TString& semantic)
+{
+    // TODO: need to know if it's an input or an output
+    // The following sketches what needs to be done, but can't be right
+    // without taking into account stage and input/output.
+    
+    if (semantic == "PSIZE")
+        type.getQualifier().builtIn = EbvPointSize;
+    else if (semantic == "POSITION")
+        type.getQualifier().builtIn = EbvPosition;
+    else if (semantic == "FOG")
+        type.getQualifier().builtIn = EbvFogFragCoord;
+    else if (semantic == "DEPTH" || semantic == "SV_Depth")
+        type.getQualifier().builtIn = EbvFragDepth;
+    else if (semantic == "VFACE" || semantic == "SV_IsFrontFace")
+        type.getQualifier().builtIn = EbvFace;
+    else if (semantic == "VPOS" || semantic == "SV_Position")
+        type.getQualifier().builtIn = EbvFragCoord;
+    else if (semantic == "SV_ClipDistance")
+        type.getQualifier().builtIn = EbvClipDistance;
+    else if (semantic == "SV_CullDistance")
+        type.getQualifier().builtIn = EbvCullDistance;
+    else if (semantic == "SV_VertexID")
+        type.getQualifier().builtIn = EbvVertexId;
+    else if (semantic == "SV_ViewportArrayIndex")
+        type.getQualifier().builtIn = EbvViewportIndex;
 }
 
 //
@@ -1652,13 +2042,6 @@ void HlslParseContext::boolCheck(const TSourceLoc& loc, const TIntermTyped* type
         error(loc, "boolean expression expected", "", "");
 }
 
-// This function checks to see if the node (for the expression) contains a scalar boolean expression or not
-void HlslParseContext::boolCheck(const TSourceLoc& loc, const TPublicType& pType)
-{
-    if (pType.basicType != EbtBool || pType.arraySizes || pType.matrixCols > 1 || (pType.vectorSize > 1))
-        error(loc, "boolean expression expected", "", "");
-}
-
 //
 // Fix just a full qualifier (no variables or types yet, but qualifier is complete) at global level.
 //
@@ -1711,6 +2094,7 @@ void HlslParseContext::mergeQualifiers(const TSourceLoc& loc, TQualifier& dst, c
     bool repeated = false;
 #define MERGE_SINGLETON(field) repeated |= dst.field && src.field; dst.field |= src.field;
     MERGE_SINGLETON(invariant);
+    MERGE_SINGLETON(noContraction);
     MERGE_SINGLETON(centroid);
     MERGE_SINGLETON(smooth);
     MERGE_SINGLETON(flat);
@@ -2016,6 +2400,7 @@ void HlslParseContext::redeclareBuiltinBlock(const TSourceLoc& loc, TTypeList& n
             oldType.getQualifier().centroid = newType.getQualifier().centroid;
             oldType.getQualifier().sample = newType.getQualifier().sample;
             oldType.getQualifier().invariant = newType.getQualifier().invariant;
+            oldType.getQualifier().noContraction = newType.getQualifier().noContraction;
             oldType.getQualifier().smooth = newType.getQualifier().smooth;
             oldType.getQualifier().flat = newType.getQualifier().flat;
             oldType.getQualifier().nopersp = newType.getQualifier().nopersp;
@@ -2061,40 +2446,19 @@ void HlslParseContext::redeclareBuiltinBlock(const TSourceLoc& loc, TTypeList& n
     intermediate.addSymbolLinkageNode(linkage, *block);
 }
 
-void HlslParseContext::paramCheckFix(const TSourceLoc& loc, const TStorageQualifier& qualifier, TType& type)
+void HlslParseContext::paramFix(TType& type)
 {
-    switch (qualifier) {
+    switch (type.getQualifier().storage) {
     case EvqConst:
-    case EvqConstReadOnly:
         type.getQualifier().storage = EvqConstReadOnly;
-        break;
-    case EvqIn:
-    case EvqOut:
-    case EvqInOut:
-        type.getQualifier().storage = qualifier;
         break;
     case EvqGlobal:
     case EvqTemporary:
         type.getQualifier().storage = EvqIn;
         break;
     default:
-        type.getQualifier().storage = EvqIn;
-        error(loc, "storage qualifier not allowed on function parameter", GetStorageQualifierString(qualifier), "");
         break;
     }
-}
-
-void HlslParseContext::paramCheckFix(const TSourceLoc& loc, const TQualifier& qualifier, TType& type)
-{
-    if (qualifier.isMemory()) {
-        type.getQualifier().volatil = qualifier.volatil;
-        type.getQualifier().coherent = qualifier.coherent;
-        type.getQualifier().readonly = qualifier.readonly;
-        type.getQualifier().writeonly = qualifier.writeonly;
-        type.getQualifier().restrict = qualifier.restrict;
-    }
-
-    paramCheckFix(loc, qualifier.storage, type);
 }
 
 void HlslParseContext::specializationCheck(const TSourceLoc& loc, const TType& type, const char* op)
@@ -2119,18 +2483,6 @@ void HlslParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& pu
     }
     if (id == TQualifier::getLayoutMatrixString(ElmRowMajor)) {
         publicType.qualifier.layoutMatrix = ElmRowMajor;
-        return;
-    }
-    if (id == TQualifier::getLayoutPackingString(ElpPacked)) {
-        if (vulkan > 0)
-            vulkanRemoved(loc, "packed");
-        publicType.qualifier.layoutPacking = ElpPacked;
-        return;
-    }
-    if (id == TQualifier::getLayoutPackingString(ElpShared)) {
-        if (vulkan > 0)
-            vulkanRemoved(loc, "shared");
-        publicType.qualifier.layoutPacking = ElpShared;
         return;
     }
     if (id == "push_constant") {
@@ -2419,7 +2771,7 @@ void HlslParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& pu
                 publicType.shaderQualifiers.localSize[2] = value;
                 return;
             }
-            if (spv > 0) {
+            if (spvVersion.spv != 0) {
                 if (id == "local_size_x_id") {
                     publicType.shaderQualifiers.localSizeSpecId[0] = value;
                     return;
@@ -3380,6 +3732,14 @@ void HlslParseContext::addQualifierToExisting(const TSourceLoc& loc, TQualifier 
         if (intermediate.inIoAccessed(identifier))
             error(loc, "cannot change qualification after use", "invariant", "");
         symbol->getWritableType().getQualifier().invariant = true;
+    } else if (qualifier.noContraction) {
+        if (intermediate.inIoAccessed(identifier))
+            error(loc, "cannot change qualification after use", "precise", "");
+        symbol->getWritableType().getQualifier().noContraction = true;
+    } else if (qualifier.specConstant) {
+        symbol->getWritableType().getQualifier().makeSpecConstant();
+        if (qualifier.hasSpecConstantId())
+            symbol->getWritableType().getQualifier().layoutSpecConstantId = qualifier.layoutSpecConstantId;
     } else
         warn(loc, "unknown requalification", "", "");
 }

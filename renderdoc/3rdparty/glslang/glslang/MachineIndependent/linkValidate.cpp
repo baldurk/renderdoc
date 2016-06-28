@@ -86,10 +86,6 @@ void TIntermediate::merge(TInfoSink& infoSink, TIntermediate& unit)
     numPushConstants += unit.numPushConstants;
     callGraph.insert(callGraph.end(), unit.callGraph.begin(), unit.callGraph.end());
 
-    if ((profile != EEsProfile && unit.profile == EEsProfile) ||
-        (profile == EEsProfile && unit.profile != EEsProfile))
-        error(infoSink, "Cannot mix ES profile with non-ES profile shaders\n");
-
     if (originUpperLeft != unit.originUpperLeft || pixelCenterInteger != unit.pixelCenterInteger)
         error(infoSink, "gl_FragCoord redeclarations must match across shaders\n");
 
@@ -309,6 +305,12 @@ void TIntermediate::mergeErrorCheck(TInfoSink& infoSink, const TIntermSymbol& sy
         writeTypeComparison = true;
     }
 
+    // Precise...
+    if (! crossStage && symbol.getQualifier().noContraction != unitSymbol.getQualifier().noContraction) {
+        error(infoSink, "Presence of precise qualifier must match:");
+        writeTypeComparison = true;
+    }
+
     // Auxiliary and interpolation...
     if (symbol.getQualifier().centroid  != unitSymbol.getQualifier().centroid ||
         symbol.getQualifier().smooth    != unitSymbol.getQualifier().smooth ||
@@ -386,6 +388,8 @@ void TIntermediate::finalCheck(TInfoSink& infoSink)
 
     if (inIoAccessed("gl_ClipDistance") && inIoAccessed("gl_ClipVertex"))
         error(infoSink, "Can only use one of gl_ClipDistance or gl_ClipVertex (gl_ClipDistance is preferred)");
+    if (inIoAccessed("gl_CullDistance") && inIoAccessed("gl_ClipVertex"))
+        error(infoSink, "Can only use one of gl_CullDistance or gl_ClipVertex (gl_ClipDistance is preferred)");
 
     if (userOutputUsed() && (inIoAccessed("gl_FragColor") || inIoAccessed("gl_FragData")))
         error(infoSink, "Cannot use gl_FragColor or gl_FragData when using user-defined outputs");
@@ -880,6 +884,8 @@ const int baseAlignmentVec4Std140 = 16;
 int TIntermediate::getBaseAlignmentScalar(const TType& type, int& size)
 {
     switch (type.getBasicType()) {
+    case EbtInt64:
+    case EbtUint64:
     case EbtDouble:  size = 8; return 8;
     default:         size = 4; return 4;
     }

@@ -54,10 +54,9 @@ class TPpToken;
 // Everything needed to fully describe a token.
 //
 struct HlslToken {
-    HlslToken() : isType(false), string(nullptr), symbol(nullptr) { loc.init(); }
+    HlslToken() : string(nullptr), symbol(nullptr) { loc.init(); }
     TSourceLoc loc;                // location of token in the source
     EHlslTokenClass tokenClass;    // what kind of token it is
-    bool isType;                   // true if the token represents a user type
     union {                        // what data the token holds
         glslang::TString *string;  // for identifiers
         int i;                     // for literals
@@ -65,7 +64,7 @@ struct HlslToken {
         bool b;
         double d;
     };
-    glslang::TSymbol* symbol;      // if a symbol table lookup was done already, this is the result
+    glslang::TSymbol* symbol;      // if a symbol-table lookup was done already, this is the result
 };
 
 //
@@ -76,7 +75,7 @@ struct HlslToken {
 class HlslScanContext {
 public:
     HlslScanContext(TParseContextBase& parseContext, TPpContext& ppContext)
-        : parseContext(parseContext), ppContext(ppContext), afterType(false), field(false) { }
+        : parseContext(parseContext), ppContext(ppContext) { }
     virtual ~HlslScanContext() { }
 
     static void fillInKeywordMap();
@@ -97,8 +96,6 @@ protected:
 
     TParseContextBase& parseContext;
     TPpContext& ppContext;
-    bool afterType;           // true if we've recognized a type, so can only be looking for an identifier
-    bool field;               // true if we're on a field, right after a '.'
     TSourceLoc loc;
     TPpToken* ppToken;
     HlslToken* parserToken;

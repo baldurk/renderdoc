@@ -62,6 +62,8 @@ void TType::buildMangledName(TString& mangledName)
     case EbtDouble:             mangledName += 'd';      break;
     case EbtInt:                mangledName += 'i';      break;
     case EbtUint:               mangledName += 'u';      break;
+    case EbtInt64:              mangledName += "i64";    break;
+    case EbtUint64:             mangledName += "u64";    break;
     case EbtBool:               mangledName += 'b';      break;
     case EbtAtomicUint:         mangledName += "au";     break;
     case EbtSampler:
@@ -71,9 +73,13 @@ void TType::buildMangledName(TString& mangledName)
         default: break; // some compilers want this
         }
         if (sampler.image)
-            mangledName += "I";
+            mangledName += "I";  // a normal image
+        else if (sampler.sampler)
+            mangledName += "p";  // a "pure" sampler
+        else if (!sampler.combined)
+            mangledName += "t";  // a "pure" texture
         else
-            mangledName += "s";
+            mangledName += "s";  // traditional combined sampler
         if (sampler.arrayed)
             mangledName += "A";
         if (sampler.shadow)

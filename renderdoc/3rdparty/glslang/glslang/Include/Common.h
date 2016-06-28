@@ -51,7 +51,7 @@
     #define UINT_PTR uintptr_t
 #endif
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || _MSC_VER < 1700
 #include <sstream>
 namespace std {
 template<typename T>
@@ -62,6 +62,18 @@ std::string to_string(const T& val) {
 }
 }
 #endif
+
+#if defined(_MSC_VER) && _MSC_VER < 1700
+inline long long int strtoll (const char* str, char** endptr, int base)
+{
+  return _strtoi64(str, endptr, base); 
+}
+inline long long int atoll (const char* str)
+{
+  return strtoll(str, NULL, 10);
+}
+#endif
+
 /* windows only pragma */
 #ifdef _MSC_VER
     #pragma warning(disable : 4786) // Don't warn about too long identifiers
@@ -163,7 +175,7 @@ template <class T> class TList  : public std::list<T, pool_allocator<T> > {
 };
 
 template <class K, class D, class CMP = std::less<K> > 
-class TMap : public std::map<K, D, CMP, pool_allocator<std::pair<K, D> > > {
+class TMap : public std::map<K, D, CMP, pool_allocator<std::pair<K const, D> > > {
 };
 
 template <class K, class D, class HASH = std::hash<K>, class PRED = std::equal_to<K> >

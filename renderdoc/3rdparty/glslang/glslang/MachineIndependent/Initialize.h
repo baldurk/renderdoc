@@ -1,6 +1,6 @@
 //
 //Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
-//Copyright (C) 2013 LunarG, Inc.
+//Copyright (C) 2013-2016 LunarG, Inc.
 //
 //All rights reserved.
 //
@@ -49,31 +49,56 @@ namespace glslang {
 // This is made to hold parseable strings for almost all the built-in
 // functions and variables for one specific combination of version
 // and profile.  (Some still need to be added programmatically.)
+// This is a base class for language-specific derivations, which
+// can be used for language independent builtins.
 //
 // The strings are organized by
 //    commonBuiltins:  intersection of all stages' built-ins, processed just once
 //    stageBuiltins[]: anything a stage needs that's not in commonBuiltins
 //
-class TBuiltIns {
+class TBuiltInParseables {
+public:
+    POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
+    TBuiltInParseables();
+    virtual ~TBuiltInParseables();
+    virtual void initialize(int version, EProfile, const SpvVersion& spvVersion) = 0;
+    virtual void initialize(const TBuiltInResource& resources, int version, EProfile, const SpvVersion& spvVersion, EShLanguage) = 0;
+    virtual const TString& getCommonString() const { return commonBuiltins; }
+    virtual const TString& getStageString(EShLanguage language) const { return stageBuiltins[language]; }
+
+    virtual void identifyBuiltIns(int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TSymbolTable& symbolTable) = 0;
+    
+    virtual void identifyBuiltIns(int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TSymbolTable& symbolTable, const TBuiltInResource &resources) = 0;
+
+protected:
+    TString commonBuiltins;
+    TString stageBuiltins[EShLangCount];
+};
+
+//
+// This is a GLSL specific derivation of TBuiltInParseables.  To present a stable
+// interface and match other similar code, it is called TBuiltIns, rather
+// than TBuiltInParseablesGlsl.
+//
+class TBuiltIns : public TBuiltInParseables {
 public:
     POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
     TBuiltIns();
     virtual ~TBuiltIns();
-    void initialize(int version, EProfile, int spv, int vulkan);
-    void initialize(const TBuiltInResource& resources, int version, EProfile, int spv, int vulkan, EShLanguage);
-    const TString& getCommonString() const { return commonBuiltins; }
-    const TString& getStageString(EShLanguage language) const { return stageBuiltins[language]; }
+    void initialize(int version, EProfile, const SpvVersion& spvVersion);
+    void initialize(const TBuiltInResource& resources, int version, EProfile, const SpvVersion& spvVersion, EShLanguage);
+
+    void identifyBuiltIns(int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TSymbolTable& symbolTable);
+    
+    void identifyBuiltIns(int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TSymbolTable& symbolTable, const TBuiltInResource &resources);
 
 protected:
-    void add2ndGenerationSamplingImaging(int version, EProfile profile, int spv, int vulkan);
+    void add2ndGenerationSamplingImaging(int version, EProfile profile, const SpvVersion& spvVersion);
     void addSubpassSampling(TSampler, TString& typeName, int version, EProfile profile);
     void addQueryFunctions(TSampler, TString& typeName, int version, EProfile profile);
     void addImageFunctions(TSampler, TString& typeName, int version, EProfile profile);
     void addSamplingFunctions(TSampler, TString& typeName, int version, EProfile profile);
     void addGatherFunctions(TSampler, TString& typeName, int version, EProfile profile);
-
-    TString commonBuiltins;
-    TString stageBuiltins[EShLangCount];
 
     // Helpers for making textual representations of the permutations
     // of texturing/imaging functions.
@@ -82,8 +107,6 @@ protected:
     int dimMap[EsdNumDims];
 };
 
-void IdentifyBuiltIns(int version, EProfile profile, int spv, int vulkan, EShLanguage, TSymbolTable&);
-void IdentifyBuiltIns(int version, EProfile profile, int spv, int vulkan, EShLanguage, TSymbolTable&, const TBuiltInResource &resources);
 
 } // end namespace glslang
 

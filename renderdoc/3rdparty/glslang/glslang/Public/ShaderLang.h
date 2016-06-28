@@ -222,7 +222,6 @@ SH_IMPORT_EXPORT const char* ShGetInfoLog(const ShHandle);
 SH_IMPORT_EXPORT const void* ShGetExecutable(const ShHandle);
 SH_IMPORT_EXPORT int ShSetVirtualAttributeBindings(const ShHandle, const ShBindingTable*);   // to detect user aliasing
 SH_IMPORT_EXPORT int ShSetFixedAttributeBindings(const ShHandle, const ShBindingTable*);     // to force any physical mappings
-SH_IMPORT_EXPORT int ShGetPhysicalAttributeBindings(const ShHandle, const ShBindingTable**); // for all attributes
 //
 // Tell the linker to never assign a vertex attribute to this list of physical attributes
 //
@@ -328,13 +327,13 @@ public:
             // include.  For example, in a filesystem-based includer, full resolution
             // should convert a relative path name into an absolute path name.
             // For a failed inclusion, this is an empty string.
-            std::string file_name;
+            const std::string file_name;
             // The content and byte length of the requested inclusion.  The
             // Includer producing this IncludeResult retains ownership of the
             // storage.
             // For a failed inclusion, the file_data
             // field points to a string containing error details.
-            const char* file_data;
+            const char* const file_data;
             const size_t file_length;
             // Include resolver's context.
             void* user_data;
@@ -356,6 +355,9 @@ public:
         // Signals that the parser will no longer use the contents of the
         // specified IncludeResult.
         virtual void releaseInclude(IncludeResult* result) = 0;
+#ifdef __ANDROID__
+        virtual ~Includer() {} // Pacify -Werror=non-virtual-dtor
+#endif
     };
 
     // Returns an error message for any #include directive.
@@ -458,6 +460,9 @@ public:
     int getUniformType(int index);                   // can be used for glGetActiveUniformsiv(GL_UNIFORM_TYPE)
     int getUniformBufferOffset(int index);           // can be used for glGetActiveUniformsiv(GL_UNIFORM_OFFSET)
     int getUniformArraySize(int index);              // can be used for glGetActiveUniformsiv(GL_UNIFORM_SIZE)
+    int getNumLiveAttributes();                      // can be used for glGetProgramiv(GL_ACTIVE_ATTRIBUTES)
+    const char *getAttributeName(int index);         // can be used for glGetActiveAttrib()
+    int getAttributeType(int index);                 // can be used for glGetActiveAttrib()
     void dumpReflection();
 
 protected:

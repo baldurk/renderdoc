@@ -102,6 +102,7 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["extern"] =                  EHTokExtern;
     (*KeywordMap)["uniform"] =                 EHTokUniform;
     (*KeywordMap)["volatile"] =                EHTokVolatile;
+    (*KeywordMap)["precise"] =                 EHTokPrecise;
     (*KeywordMap)["shared"] =                  EHTokShared;
     (*KeywordMap)["groupshared"] =             EHTokGroupShared;
     (*KeywordMap)["linear"] =                  EHTokLinear;
@@ -168,6 +169,38 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["int4x2"] =                  EHTokInt4x2;
     (*KeywordMap)["int4x3"] =                  EHTokInt4x3;
     (*KeywordMap)["int4x4"] =                  EHTokInt4x4;
+    (*KeywordMap)["uint1x1"] =                 EHTokUint1x1;
+    (*KeywordMap)["uint1x2"] =                 EHTokUint1x2;
+    (*KeywordMap)["uint1x3"] =                 EHTokUint1x3;
+    (*KeywordMap)["uint1x4"] =                 EHTokUint1x4;
+    (*KeywordMap)["uint2x1"] =                 EHTokUint2x1;
+    (*KeywordMap)["uint2x2"] =                 EHTokUint2x2;
+    (*KeywordMap)["uint2x3"] =                 EHTokUint2x3;
+    (*KeywordMap)["uint2x4"] =                 EHTokUint2x4;
+    (*KeywordMap)["uint3x1"] =                 EHTokUint3x1;
+    (*KeywordMap)["uint3x2"] =                 EHTokUint3x2;
+    (*KeywordMap)["uint3x3"] =                 EHTokUint3x3;
+    (*KeywordMap)["uint3x4"] =                 EHTokUint3x4;
+    (*KeywordMap)["uint4x1"] =                 EHTokUint4x1;
+    (*KeywordMap)["uint4x2"] =                 EHTokUint4x2;
+    (*KeywordMap)["uint4x3"] =                 EHTokUint4x3;
+    (*KeywordMap)["uint4x4"] =                 EHTokUint4x4;
+    (*KeywordMap)["bool1x1"] =                 EHTokBool1x1;
+    (*KeywordMap)["bool1x2"] =                 EHTokBool1x2;
+    (*KeywordMap)["bool1x3"] =                 EHTokBool1x3;
+    (*KeywordMap)["bool1x4"] =                 EHTokBool1x4;
+    (*KeywordMap)["bool2x1"] =                 EHTokBool2x1;
+    (*KeywordMap)["bool2x2"] =                 EHTokBool2x2;
+    (*KeywordMap)["bool2x3"] =                 EHTokBool2x3;
+    (*KeywordMap)["bool2x4"] =                 EHTokBool2x4;
+    (*KeywordMap)["bool3x1"] =                 EHTokBool3x1;
+    (*KeywordMap)["bool3x2"] =                 EHTokBool3x2;
+    (*KeywordMap)["bool3x3"] =                 EHTokBool3x3;
+    (*KeywordMap)["bool3x4"] =                 EHTokBool3x4;
+    (*KeywordMap)["bool4x1"] =                 EHTokBool4x1;
+    (*KeywordMap)["bool4x2"] =                 EHTokBool4x2;
+    (*KeywordMap)["bool4x3"] =                 EHTokBool4x3;
+    (*KeywordMap)["bool4x4"] =                 EHTokBool4x4;
     (*KeywordMap)["float1x1"] =                EHTokFloat1x1;
     (*KeywordMap)["float1x2"] =                EHTokFloat1x2;
     (*KeywordMap)["float1x3"] =                EHTokFloat1x3;
@@ -282,11 +315,8 @@ void HlslScanContext::deleteKeywordMap()
 // Wrapper for tokenizeClass()"] =  to get everything inside the token.
 void HlslScanContext::tokenize(HlslToken& token)
 {
-    token.isType = false;
     EHlslTokenClass tokenClass = tokenizeClass(token);
     token.tokenClass = tokenClass;
-    if (token.isType)
-        afterType = true;
 }
 
 //
@@ -306,13 +336,13 @@ EHlslTokenClass HlslScanContext::tokenizeClass(HlslToken& token)
         loc = ppToken.loc;
         parserToken->loc = loc;
         switch (ppToken.token) {
-        case ';':  afterType = false;   return EHTokSemicolon;
-        case ',':  afterType = false;   return EHTokComma;
+        case ';':                       return EHTokSemicolon;
+        case ',':                       return EHTokComma;
         case ':':                       return EHTokColon;
-        case '=':  afterType = false;   return EHTokEqual;
-        case '(':  afterType = false;   return EHTokLeftParen;
-        case ')':  afterType = false;   return EHTokRightParen;
-        case '.':  field = true;        return EHTokDot;
+        case '=':                       return EHTokAssign;
+        case '(':                       return EHTokLeftParen;
+        case ')':                       return EHTokRightParen;
+        case '.':                       return EHTokDot;
         case '!':                       return EHTokBang;
         case '-':                       return EHTokDash;
         case '~':                       return EHTokTilde;
@@ -368,7 +398,6 @@ EHlslTokenClass HlslScanContext::tokenizeClass(HlslToken& token)
         case PpAtomIdentifier:
         {
             EHlslTokenClass token = tokenizeIdentifier();
-            field = false;
             return token;
         }
 
@@ -510,7 +539,6 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
     case EHTokDouble4x2:
     case EHTokDouble4x3:
     case EHTokDouble4x4:
-        parserToken->isType = true;
         return keyword;
 
     // texturing types
@@ -528,7 +556,6 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
     case EHTokTexture2darray:
     case EHTokTexture3d:
     case EHTokTextureCube:
-        parserToken->isType = true;
         return keyword;
 
     // variable, user type, ...
@@ -566,19 +593,6 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
 EHlslTokenClass HlslScanContext::identifierOrType()
 {
     parserToken->string = NewPoolTString(tokenText);
-    if (field)
-        return EHTokIdentifier;
-
-    parserToken->symbol = parseContext.symbolTable.find(*parserToken->string);
-    if (afterType == false && parserToken->symbol) {
-        if (const TVariable* variable = parserToken->symbol->getAsVariable()) {
-            if (variable->isUserType()) {
-                afterType = true;
-
-                return EHTokTypeName;
-            }
-        }
-    }
 
     return EHTokIdentifier;
 }

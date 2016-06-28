@@ -454,6 +454,15 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["uvec3"] =                   UVEC3;
     (*KeywordMap)["uvec4"] =                   UVEC4;
 
+    (*KeywordMap)["int64_t"] =                 INT64_T;
+    (*KeywordMap)["uint64_t"] =                UINT64_T;
+    (*KeywordMap)["i64vec2"] =                 I64VEC2;
+    (*KeywordMap)["i64vec3"] =                 I64VEC3;
+    (*KeywordMap)["i64vec4"] =                 I64VEC4;
+    (*KeywordMap)["u64vec2"] =                 U64VEC2;
+    (*KeywordMap)["u64vec3"] =                 U64VEC3;
+    (*KeywordMap)["u64vec4"] =                 U64VEC4;
+
     (*KeywordMap)["sampler2D"] =               SAMPLER2D;
     (*KeywordMap)["samplerCube"] =             SAMPLERCUBE;
     (*KeywordMap)["samplerCubeArray"] =        SAMPLERCUBEARRAY;
@@ -667,10 +676,12 @@ int TScanContext::tokenize(TPpContext* pp, TParserToken& token)
         case PpAtomDecrement:          return DEC_OP;
         case PpAtomIncrement:          return INC_OP;
                                    
-        case PpAtomConstInt:           parserToken->sType.lex.i = ppToken.ival;       return INTCONSTANT;
-        case PpAtomConstUint:          parserToken->sType.lex.i = ppToken.ival;       return UINTCONSTANT;
-        case PpAtomConstFloat:         parserToken->sType.lex.d = ppToken.dval;       return FLOATCONSTANT;
-        case PpAtomConstDouble:        parserToken->sType.lex.d = ppToken.dval;       return DOUBLECONSTANT;
+        case PpAtomConstInt:           parserToken->sType.lex.i   = ppToken.ival;       return INTCONSTANT;
+        case PpAtomConstUint:          parserToken->sType.lex.i   = ppToken.ival;       return UINTCONSTANT;
+        case PpAtomConstInt64:         parserToken->sType.lex.i64 = ppToken.i64val;     return INT64CONSTANT;
+        case PpAtomConstUint64:        parserToken->sType.lex.i64 = ppToken.i64val;     return UINT64CONSTANT;
+        case PpAtomConstFloat:         parserToken->sType.lex.d   = ppToken.dval;       return FLOATCONSTANT;
+        case PpAtomConstDouble:        parserToken->sType.lex.d   = ppToken.dval;       return DOUBLECONSTANT;
         case PpAtomIdentifier:
         {
             int token = tokenizeIdentifier();
@@ -914,6 +925,18 @@ int TScanContext::tokenizeIdentifier()
             reservedWord();
         return keyword;
 
+    case INT64_T:
+    case UINT64_T:
+    case I64VEC2:
+    case I64VEC3:
+    case I64VEC4:
+    case U64VEC2:
+    case U64VEC3:
+    case U64VEC4:
+        if (parseContext.profile != EEsProfile && parseContext.version >= 450)
+            return keyword;
+        return identifierOrType();
+
     case SAMPLERCUBEARRAY:
     case SAMPLERCUBEARRAYSHADOW:
     case ISAMPLERCUBEARRAY:
@@ -1069,7 +1092,7 @@ int TScanContext::tokenizeIdentifier()
     case TEXTURE1DARRAY:
     case SAMPLER:
     case SAMPLERSHADOW:
-        if (parseContext.spv > 0)
+        if (parseContext.spvVersion.vulkan >= 100)
             return keyword;
         else
             return identifierOrType();
@@ -1080,7 +1103,7 @@ int TScanContext::tokenizeIdentifier()
     case ISUBPASSINPUTMS:
     case USUBPASSINPUT:
     case USUBPASSINPUTMS:
-        if (parseContext.spv > 0)
+        if (parseContext.spvVersion.vulkan >= 100)
             return keyword;
         else
             return identifierOrType();
