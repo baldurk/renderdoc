@@ -1347,9 +1347,21 @@ struct SPVInstruction
             }
             else
             {
-              // assuming can't dynamically index into a vector (would be a OpVectorShuffle)
-              RDCASSERT(op->arguments[i]->constant && op->arguments[i]->constant->type->IsBasicInt());
-              idx = op->arguments[i]->constant->u32;
+              // if it's a constant index, treat it like a vector access
+              if(op->arguments[i]->constant && op->arguments[i]->constant->type->IsBasicInt())
+              {
+                idx = op->arguments[i]->constant->u32;
+              }
+              else
+              {
+                // otherwise we have to treat it as another dynamic index, which is valid
+
+                string arg;
+                op->GetArg(ids, i, arg);
+                accessString += StringFormat::Fmt("[%s]", arg.c_str());
+
+                continue;
+              }
             }
           }
 
