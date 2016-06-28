@@ -182,8 +182,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
     set_source_files_properties(3rdparty/tinyexr/tinyexr.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-extra -Wno-unused-function")
 
+    # Need to add -Wno-unknown-warning-option since some clang versions don't have
+    # -Wno-shift-negative-value available
     set_source_files_properties(3rdparty/jpeg-compressor/jpgd.cpp
-        PROPERTIES COMPILE_FLAGS "-Wno-shift-negative-value")
+        PROPERTIES COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-shift-negative-value")
 endif()
 
 add_library(rdoc OBJECT ${sources})
