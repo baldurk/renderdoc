@@ -79,6 +79,9 @@
     <Filter Include="OS\Posix\Android">
       <UniqueIdentifier>{16bdcbe1-31de-4732-aaaf-8d77039a26ec}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\Posix\Apple">
+      <UniqueIdentifier>{2d03f185-425a-4de5-8eeb-67dce5e56de9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -388,6 +391,30 @@
     </ClCompile>
     <ClCompile Include="os\posix\posix_threading.cpp">
       <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_callstack.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_process.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_stringio.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_threading.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_process.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_threading.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_process.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_threading.cpp">
+      <Filter>OS\Posix\Linux</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
