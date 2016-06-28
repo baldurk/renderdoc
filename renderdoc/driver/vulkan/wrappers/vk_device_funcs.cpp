@@ -82,7 +82,7 @@ static void StripUnwantedLayers(vector<string> &Layers)
   }
 }
 
-void WrappedVulkan::Initialise(VkInitParams &params)
+ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
 {
   m_InitParams = params;
 
@@ -115,7 +115,63 @@ void WrappedVulkan::Initialise(VkInitParams &params)
     }
   }
 
-  AddRequiredExtensions(true, params.Extensions);
+  std::set<string> supportedExtensions;
+
+  for(size_t i = 0; i <= params.Layers.size(); i++)
+  {
+    const char *pLayerName = (i == 0 ? NULL : params.Layers[i - 1].c_str());
+
+    uint32_t count = 0;
+    GetInstanceDispatchTable(NULL)->EnumerateInstanceExtensionProperties(pLayerName, &count, NULL);
+
+    VkExtensionProperties *props = new VkExtensionProperties[count];
+    GetInstanceDispatchTable(NULL)->EnumerateInstanceExtensionProperties(pLayerName, &count, props);
+
+    for(uint32_t e = 0; e < count; e++)
+      supportedExtensions.insert(props[e].extensionName);
+
+    SAFE_DELETE_ARRAY(props);
+  }
+
+  std::set<string> supportedLayers;
+
+  {
+    uint32_t count = 0;
+    GetInstanceDispatchTable(NULL)->EnumerateInstanceLayerProperties(&count, NULL);
+
+    VkLayerProperties *props = new VkLayerProperties[count];
+    GetInstanceDispatchTable(NULL)->EnumerateInstanceLayerProperties(&count, props);
+
+    for(uint32_t e = 0; e < count; e++)
+      supportedLayers.insert(props[e].layerName);
+
+    SAFE_DELETE_ARRAY(props);
+  }
+
+  bool ok = AddRequiredExtensions(true, params.Extensions, supportedExtensions);
+
+  // error message will be printed to log in above function if something went wrong
+  if(!ok)
+    return eReplayCreate_APIHardwareUnsupported;
+
+  // verify that extensions & layers are supported
+  for(size_t i = 0; i < params.Layers.size(); i++)
+  {
+    if(supportedLayers.find(params.Layers[i]) == supportedLayers.end())
+    {
+      RDCERR("Log requires layer '%s' which is not supported", params.Layers[i].c_str());
+      return eReplayCreate_APIHardwareUnsupported;
+    }
+  }
+
+  for(size_t i = 0; i < params.Extensions.size(); i++)
+  {
+    if(supportedExtensions.find(params.Extensions[i]) == supportedExtensions.end())
+    {
+      RDCERR("Log requires extension '%s' which is not supported", params.Extensions[i].c_str());
+      return eReplayCreate_APIHardwareUnsupported;
+    }
+  }
 
   const char **layerscstr = new const char *[params.Layers.size()];
   for(size_t i = 0; i < params.Layers.size(); i++)
@@ -149,6 +205,13 @@ void WrappedVulkan::Initialise(VkInitParams &params)
   m_Instance = VK_NULL_HANDLE;
 
   VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
+
+  SAFE_DELETE_ARRAY(layerscstr);
+  SAFE_DELETE_ARRAY(extscstr);
+
+  if(ret != VK_SUCCESS)
+    return eReplayCreate_APIHardwareUnsupported;
+
   RDCASSERTEQUAL(ret, VK_SUCCESS);
 
   InitInstanceReplayTables(m_Instance);
@@ -177,8 +240,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
         ->CreateDebugReportCallbackEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgMsgCallback);
   }
 
-  SAFE_DELETE_ARRAY(layerscstr);
-  SAFE_DELETE_ARRAY(extscstr);
+  return eReplayCreate_Success;
 }
 
 VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo,
@@ -612,7 +674,29 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
 
     StripUnwantedLayers(Layers);
 
-    AddRequiredExtensions(false, Extensions);
+    physicalDevice = GetResourceManager()->GetLiveHandle<VkPhysicalDevice>(physId);
+
+    std::set<string> supportedExtensions;
+
+    for(size_t i = 0; i <= Layers.size(); i++)
+    {
+      const char *pLayerName = (i == 0 ? NULL : Layers[i - 1].c_str());
+
+      uint32_t count = 0;
+      ObjDisp(physicalDevice)
+          ->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), pLayerName, &count, NULL);
+
+      VkExtensionProperties *props = new VkExtensionProperties[count];
+      ObjDisp(physicalDevice)
+          ->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), pLayerName, &count, props);
+
+      for(uint32_t e = 0; e < count; e++)
+        supportedExtensions.insert(props[e].extensionName);
+
+      SAFE_DELETE_ARRAY(props);
+    }
+
+    AddRequiredExtensions(false, Extensions, supportedExtensions);
 
 #if defined(FORCE_VALIDATION_LAYERS)
     Layers.push_back("VK_LAYER_LUNARG_standard_validation");
@@ -643,8 +727,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
 
       createInfo.ppEnabledExtensionNames = extArray;
     }
-
-    physicalDevice = GetResourceManager()->GetLiveHandle<VkPhysicalDevice>(physId);
 
     VkDevice device;
 

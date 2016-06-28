@@ -605,6 +605,10 @@ struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
   // even though it won't actually ever get used
   PFN_vkCreateInstance CreateInstance;
 
+  // we need to use these before we have a dispatch table
+  PFN_vkEnumerateInstanceExtensionProperties EnumerateInstanceExtensionProperties;
+  PFN_vkEnumerateInstanceLayerProperties EnumerateInstanceLayerProperties;
+
   // extensions here
 };
 

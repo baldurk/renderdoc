@@ -531,7 +531,8 @@ private:
   VulkanDrawcallTreeNode m_ParentDrawcall;
 
   // in vk_<platform>.cpp
-  void AddRequiredExtensions(bool instance, vector<string> &extensionList);
+  bool AddRequiredExtensions(bool instance, vector<string> &extensionList,
+                             const std::set<string> &supportedExtensions);
 
   void InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID,
                                 uint32_t baseDrawID);
@@ -590,7 +591,7 @@ public:
 
   bool ReleaseResource(WrappedVkRes *res);
 
-  void Initialise(VkInitParams &params);
+  ReplayCreateStatus Initialise(VkInitParams &params);
   void Shutdown();
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
   void ReadLogInitialisation();

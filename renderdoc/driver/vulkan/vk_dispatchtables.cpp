@@ -57,13 +57,15 @@ void InitReplayTables(void *vulkanModule)
     VkLayerInstanceDispatchTableExtended &table = replayInstanceTable;
     memset(&table, 0, sizeof(table));
     HookInit(GetInstanceProcAddr);
+    HookInit(EnumerateInstanceExtensionProperties);
+    HookInit(EnumerateInstanceLayerProperties);
     HookInitVulkanInstance();
   }
 }
 
 #define InstanceGPA(func) \
   table->func =           \
-      (CONCAT(PFN_vk, func))table->GetInstanceProcAddr(instance, STRINGIZE(CONCAT(vk, func)));
+      (CONCAT(PFN_vk, func))table->GetInstanceProcAddr(instance, STRINGIZE(CONCAT(vk, func)))
 
 void InitInstanceReplayTables(VkInstance instance)
 {
@@ -72,30 +74,34 @@ void InitInstanceReplayTables(VkInstance instance)
 
   // we know we'll only have one instance, so this is safe
 
-  InstanceGPA(EnumerateDeviceExtensionProperties) InstanceGPA(EnumerateDeviceLayerProperties)
+  InstanceGPA(EnumerateDeviceExtensionProperties);
+  InstanceGPA(EnumerateDeviceLayerProperties);
 
-      InstanceGPA(GetPhysicalDeviceSurfaceCapabilitiesKHR) InstanceGPA(
-          GetPhysicalDeviceSurfaceFormatsKHR) InstanceGPA(GetPhysicalDeviceSurfacePresentModesKHR)
-          InstanceGPA(GetPhysicalDeviceSurfaceSupportKHR) InstanceGPA(CreateDebugReportCallbackEXT)
-              InstanceGPA(DestroyDebugReportCallbackEXT) InstanceGPA(DebugReportMessageEXT)
+  InstanceGPA(GetPhysicalDeviceSurfaceCapabilitiesKHR);
+  InstanceGPA(GetPhysicalDeviceSurfaceFormatsKHR);
+  InstanceGPA(GetPhysicalDeviceSurfacePresentModesKHR);
+  InstanceGPA(GetPhysicalDeviceSurfaceSupportKHR);
+  InstanceGPA(CreateDebugReportCallbackEXT);
+  InstanceGPA(DestroyDebugReportCallbackEXT);
+  InstanceGPA(DebugReportMessageEXT);
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
-                  InstanceGPA(CreateWin32SurfaceKHR)
+  InstanceGPA(CreateWin32SurfaceKHR);
 #endif
 
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
-                      InstanceGPA(CreateAndroidSurfaceKHR)
+  InstanceGPA(CreateAndroidSurfaceKHR);
 #endif
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
-                          InstanceGPA(CreateXcbSurfaceKHR)
+  InstanceGPA(CreateXcbSurfaceKHR);
 #endif
 
 #ifdef VK_USE_PLATFORM_XLIB_KHR
-                              InstanceGPA(CreateXlibSurfaceKHR)
+  InstanceGPA(CreateXlibSurfaceKHR);
 #endif
 
-                                  InstanceGPA(DestroySurfaceKHR)
+  InstanceGPA(DestroySurfaceKHR);
 }
 
 void InitInstanceExtensionTables(VkInstance instance)

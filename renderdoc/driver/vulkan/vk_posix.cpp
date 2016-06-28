@@ -35,28 +35,68 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
   return true;
 }
 
-void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensionList)
+bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensionList,
+                                          const std::set<string> &supportedExtensions)
 {
   bool device = !instance;
 
-  // TODO should check if these are present..
-
   if(instance)
   {
-    extensionList.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+    // we must have VK_KHR_surface
+    if(supportedExtensions.find(VK_KHR_SURFACE_EXTENSION_NAME) == supportedExtensions.end())
+    {
+      RDCERR("Unsupported required instance extension '%s'", VK_KHR_SURFACE_EXTENSION_NAME);
+      return false;
+    }
+
+    // don't add duplicates
+    if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_SURFACE_EXTENSION_NAME) ==
+       extensionList.end())
+      extensionList.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+
+    bool oneSurfaceTypeSupported = false;
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
-    extensionList.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+    // don't add duplicates, and only add if supported
+    if(supportedExtensions.find(VK_KHR_XCB_SURFACE_EXTENSION_NAME) != supportedExtensions.end() &&
+       std::find(extensionList.begin(), extensionList.end(), VK_KHR_XCB_SURFACE_EXTENSION_NAME) ==
+           extensionList.end())
+    {
+      extensionList.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+      oneSurfaceTypeSupported = true;
+    }
 #endif
 
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-    extensionList.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+    // don't add duplicates
+    if(supportedExtensions.find(VK_KHR_XLIB_SURFACE_EXTENSION_NAME) != supportedExtensions.end() &&
+       std::find(extensionList.begin(), extensionList.end(), VK_KHR_XLIB_SURFACE_EXTENSION_NAME) ==
+           extensionList.end())
+    {
+      extensionList.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+      oneSurfaceTypeSupported = true;
+    }
 #endif
+
+    if(!oneSurfaceTypeSupported)
+    {
+      RDCERR("Required at least one of '%s' or '%s' extension to be present",
+             VK_KHR_XCB_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+      return false;
+    }
   }
   else if(device)
   {
+    if(supportedExtensions.find(VK_KHR_SWAPCHAIN_EXTENSION_NAME) == supportedExtensions.end())
+    {
+      RDCERR("Unsupported required device extension '%s'", VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+      return false;
+    }
+
     extensionList.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
   }
+
+  return true;
 }
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)

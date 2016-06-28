@@ -5304,7 +5304,13 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
   VulkanReplay::PreDeviceInitCounters();
 
   WrappedVulkan *vk = new WrappedVulkan(logfile);
-  vk->Initialise(initParams);
+  ReplayCreateStatus status = vk->Initialise(initParams);
+
+  if(status != eReplayCreate_Success)
+  {
+    delete vk;
+    return status;
+  }
 
   RDCLOG("Created device.");
   VulkanReplay *replay = vk->GetReplay();
