@@ -77,3 +77,46 @@ int GetIdentPort(pid_t childPid)
 
   return ret;
 }
+
+// because OSUtility::DebuggerPresent is called often we want it to be
+// cheap. Opening and parsing a file would cause high overhead on each
+// call, so instead we just cache it at startup. This fails in the case
+// of attaching to processes
+bool debuggerPresent = false;
+
+void CacheDebuggerPresent()
+{
+  FILE *f = FileIO::fopen("/proc/self/status", "r");
+
+  if(f == NULL)
+  {
+    RDCWARN("Couldn't open /proc/self/status");
+    return;
+  }
+
+  // read through the proc file to check for TracerPid
+  while(ret == 0 && !feof(f))
+  {
+    const size_t sz = 512;
+    char line[sz];
+    line[sz - 1] = 0;
+    fgets(line, sz - 1, f);
+
+    int tracerpid = 0;
+    int num = sscanf(line, "TracerPid: %d", &tracerpid);
+
+    // found TracerPid line
+    if(num == 1)
+    {
+      debuggerPresent = (tracerpid != 0);
+      break;
+    }
+  }
+
+  FileIO::fclose(f);
+}
+
+bool OSUtility::DebuggerPresent()
+{
+  return debuggerPresent;
+}

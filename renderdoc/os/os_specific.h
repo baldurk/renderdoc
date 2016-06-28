@@ -317,7 +317,7 @@ namespace OSUtility
 {
 inline void ForceCrash();
 inline void DebugBreak();
-inline bool DebuggerPresent();
+bool DebuggerPresent();
 enum
 {
   Output_DebugMon,

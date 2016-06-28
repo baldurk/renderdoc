@@ -46,10 +46,7 @@ inline void DebugBreak()
 {
   raise(SIGTRAP);
 }
-inline bool DebuggerPresent()
-{
-  return true;
-}
+bool DebuggerPresent();
 void WriteOutput(int channel, const char *str);
 };
 

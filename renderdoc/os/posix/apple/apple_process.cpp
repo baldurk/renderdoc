@@ -25,6 +25,7 @@
 #include <crt_externs.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include "os/os_specific.h"
 
 char **GetCurrentEnvironment()
@@ -132,4 +133,24 @@ int GetIdentPort(pid_t childPid)
   }
 
   return 0;
+}
+
+void CacheDebuggerPresent()
+{
+}
+
+// from https://developer.apple.com/library/mac/qa/qa1361/_index.html on how to detect the debugger
+bool OSUtility::DebuggerPresent()
+{
+// apple requires that this only be called in debug builds
+#if defined(RELEASE)
+  return false;
+#else
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};
+  kinfo_proc info = {};
+  size_t size = sizeof(info);
+  sysctl(mib, ARRAY_COUNT(mib), &info, &size, NULL, 0);
+
+  return info.kp_proc.p_flag & P_TRACED;
+#endif
 }

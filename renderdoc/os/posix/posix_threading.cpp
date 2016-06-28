@@ -26,6 +26,8 @@
 #include <unistd.h>
 #include "os/os_specific.h"
 
+void CacheDebuggerPresent();
+
 uint64_t Timing::GetUnixTimestamp()
 {
   return (uint64_t)time(NULL);
@@ -128,6 +130,8 @@ void Init()
   int err = pthread_key_create(&OSTLSHandle, NULL);
   if(err != 0)
     RDCFATAL("Can't allocate OS TLS slot");
+
+  CacheDebuggerPresent();
 }
 
 void Shutdown()
