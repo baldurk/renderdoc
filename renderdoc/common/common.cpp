@@ -254,8 +254,10 @@ uint64_t Log2Floor(uint64_t value)
 
 static string &logfile()
 {
-  static string fn;
-  return fn;
+  // deliberately leak this so that it doesn't get destructed while we're still logging in process
+  // teardown.
+  static string *fn = new string;
+  return *fn;
 }
 
 const char *rdclog_getfilename()
