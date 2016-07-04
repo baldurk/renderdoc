@@ -271,9 +271,6 @@ namespace renderdocui.Windows
                 Text = string.Format("{0} - Edit ({1})", entry, f.Key);
             }
 
-            m_FindAll = new FindAllDialog(FindAllFiles);
-            m_FindAll.Hide();
-
             if (files.Count > 3)
                 AddFileList();
 
@@ -341,12 +338,23 @@ namespace renderdocui.Windows
                     if (sc.Selection.Length > 0)
                         search = sc.Selection.Text;
 
+                    ShowFindAll();
+
                     if (search.Length > 0)
                         m_FindAll.Search = search;
-
-                    m_FindAll.Show();
                 }
             }
+        }
+
+        private void ShowFindAll()
+        {
+            if (m_FindAll != null && m_FindAll.IsDisposed)
+                m_FindAll = null;
+
+            if (m_FindAll == null)
+                m_FindAll = new FindAllDialog(FindAllFiles);
+
+            m_FindAll.Show(this);
         }
 
         private HashSet<int> m_Breakpoints = new HashSet<int>();
@@ -594,9 +602,6 @@ namespace renderdocui.Windows
                 sel.Show();
             }
 
-            m_FindAll = new FindAllDialog(FindAllFiles);
-            m_FindAll.Hide();
-            
             ShowConstants();
             ShowVariables();
             ShowWatch();
@@ -802,7 +807,7 @@ namespace renderdocui.Windows
 
         void FindAllFiles()
         {
-            if (m_Scintillas.Count == 0)
+            if (m_Scintillas.Count == 0 || m_FindAll == null)
                 return;
 
             if (m_FindResultsDisplay == null)
@@ -2216,7 +2221,10 @@ namespace renderdocui.Windows
         {
             foreach (var sc in m_Scintillas)
                 sc.FindReplace.Window.Close();
-            m_FindAll.Close();
+
+            if(m_FindAll != null)
+                m_FindAll.Close();
+
             if (m_CloseCallback != null)
                 m_CloseCallback();
         }
@@ -2283,7 +2291,7 @@ namespace renderdocui.Windows
 
         private void findinall_Click(object sender, EventArgs e)
         {
-            m_FindAll.Show();
+            ShowFindAll();
         }
     }
 }

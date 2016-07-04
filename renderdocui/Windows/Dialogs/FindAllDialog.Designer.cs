@@ -303,8 +303,6 @@
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.Text = "Find In All Files";
-            this.TopMost = true;
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FindAllDialog_FormClosing);
             this.Shown += new System.EventHandler(this.FindAllDialog_Shown);
             this.options.ResumeLayout(false);
             this.options.PerformLayout();

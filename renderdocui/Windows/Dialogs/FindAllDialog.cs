@@ -98,12 +98,6 @@ namespace renderdocui.Windows.Dialogs
             findtext.Focus();
         }
 
-        private void FindAllDialog_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            Hide();
-            e.Cancel = true;
-        }
-
         private void findtext_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
