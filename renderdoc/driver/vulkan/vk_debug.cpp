@@ -6147,7 +6147,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
 
   const FetchDrawcall *drawcall = m_pDriver->GetDrawcall(eventID);
 
-  if(drawcall->numIndices == 0)
+  if(drawcall->numIndices == 0 || drawcall->numInstances == 0)
     return;
 
   uint32_t descSet = (uint32_t)creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts.size();
@@ -6444,7 +6444,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
         VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         NULL,
         0,
-        drawcall->numIndices * RDCMAX(1U, drawcall->numInstances) * bufStride,
+        drawcall->numIndices * drawcall->numInstances * bufStride,
         0,
     };
 
@@ -6556,11 +6556,8 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
     // index-minIndex which is 0-based but potentially sparse, so this buffer may
     // be more or less wasteful
     VkBufferCreateInfo bufInfo = {
-        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        NULL,
-        0,
-        numVerts * RDCMAX(1U, drawcall->numInstances) * bufStride,
-        0,
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,          NULL, 0,
+        numVerts * drawcall->numInstances * bufStride, 0,
     };
 
     bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -6632,7 +6629,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
     DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 
     // set bufSize
-    bufSize = numVerts * RDCMAX(1U, drawcall->numInstances) * bufStride;
+    bufSize = numVerts * drawcall->numInstances * bufStride;
 
     // bind unique'd ibuffer
     modifiedstate.ibuffer.bytewidth = 4;
@@ -6820,7 +6817,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
 
   m_PostVSData[eventID].vsout.instStride = 0;
   if(drawcall->flags & eDraw_Instanced)
-    m_PostVSData[eventID].vsout.instStride = uint32_t(bufSize / RDCMAX(1U, drawcall->numInstances));
+    m_PostVSData[eventID].vsout.instStride = uint32_t(bufSize / drawcall->numInstances);
 
   m_PostVSData[eventID].vsout.idxBuf = VK_NULL_HANDLE;
   if(m_PostVSData[eventID].vsout.useIndices && idxBuf != VK_NULL_HANDLE)
