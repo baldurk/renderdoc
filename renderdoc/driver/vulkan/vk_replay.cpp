@@ -4034,6 +4034,13 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
   descSetBinding += textype;
 
+  if(GetDebugManager()->m_MinMaxTilePipe[textype][intTypeIndex] == VK_NULL_HANDLE)
+  {
+    *minval = 0.0f;
+    *maxval = 1.0f;
+    return false;
+  }
+
   VkDescriptorBufferInfo bufdescs[3];
   RDCEraseEl(bufdescs);
   GetDebugManager()->m_MinMaxTileResult.FillDescriptor(bufdescs[0]);
@@ -4275,6 +4282,14 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   }
 
   descSetBinding += textype;
+
+  if(GetDebugManager()->m_HistogramPipe[textype][intTypeIndex] == VK_NULL_HANDLE)
+  {
+    histogram.resize(HGRAM_NUM_BUCKETS);
+    for(size_t i = 0; i < HGRAM_NUM_BUCKETS; i++)
+      histogram[i] = 1;
+    return false;
+  }
 
   VkImageView liveImView =
       (aspectFlags == VK_IMAGE_ASPECT_STENCIL_BIT ? iminfo.stencilView : iminfo.view);
