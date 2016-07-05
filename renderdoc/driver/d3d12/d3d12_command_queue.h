@@ -30,6 +30,7 @@
 class WrappedID3D12CommandQueue : public RefCounter12<ID3D12CommandQueue>, public ID3D12CommandQueue
 {
   ID3D12CommandQueue *m_pReal;
+  WrappedID3D12Device *m_pDevice;
 
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandQueue);
@@ -38,6 +39,7 @@ public:
                             Serialiser *serialiser);
   virtual ~WrappedID3D12CommandQueue();
 
+  WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   //////////////////////////////
   // implement ID3D12CommandQueue
 

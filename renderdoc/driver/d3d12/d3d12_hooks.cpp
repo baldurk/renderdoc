@@ -22,17 +22,18 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d12/d3d12_device.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "hooks/hooks.h"
 #include "serialise/serialiser.h"
+#include "d3d12_command_queue.h"
+#include "d3d12_device.h"
 
 #define DLL_NAME "d3d12.dll"
 
 ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev)
 {
-  if(WrappedID3D12Device::IsAlloc(dev))
-    return (ID3DDevice *)dev;
+  if(WrappedID3D12CommandQueue::IsAlloc(dev))
+    return ((WrappedID3D12CommandQueue *)dev)->GetWrappedDevice();
 
   return NULL;
 }
