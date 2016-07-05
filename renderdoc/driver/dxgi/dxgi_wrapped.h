@@ -155,8 +155,11 @@ class WrappedIDXGISwapChain3;
 
 struct ID3DDevice
 {
+  // re-use IUnknown
   virtual ULONG STDMETHODCALLTYPE AddRef() = 0;
   virtual ULONG STDMETHODCALLTYPE Release() = 0;
+  virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) = 0;
+
   virtual IUnknown *GetRealIUnknown() = 0;
 
   virtual IID GetBackbufferUUID() = 0;
@@ -176,6 +179,365 @@ struct ID3DDevice
 };
 
 typedef ID3DDevice *(*D3DDeviceCallback)(IUnknown *dev);
+
+template <typename NestedType>
+class WrappedDXGIInterface : public RefCountDXGIObject,
+                             public IDXGIKeyedMutex,
+                             public IDXGISurface2,
+                             public IDXGIResource1
+{
+public:
+  ID3DDevice *m_pDevice;
+  NestedType *m_pWrapped;
+
+  WrappedDXGIInterface(NestedType *wrapped, ID3DDevice *device)
+      : RefCountDXGIObject(NULL), m_pDevice(device), m_pWrapped(wrapped)
+  {
+    m_pWrapped->AddRef();
+    m_pDevice->AddRef();
+  }
+
+  virtual ~WrappedDXGIInterface()
+  {
+    m_pWrapped->Release();
+    m_pDevice->Release();
+  }
+
+  //////////////////////////////
+  // Implement IUnknown
+  ULONG STDMETHODCALLTYPE AddRef() { return RefCountDXGIObject::AddRef(); }
+  ULONG STDMETHODCALLTYPE Release() { return RefCountDXGIObject::Release(); }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    // ensure the real object has this interface
+    void *outObj;
+    HRESULT hr = m_pWrapped->QueryInterface(riid, &outObj);
+
+    IUnknown *unk = (IUnknown *)outObj;
+    SAFE_RELEASE(unk);
+
+    if(FAILED(hr))
+    {
+      return hr;
+    }
+
+    if(riid == __uuidof(IUnknown))
+    {
+      *ppvObject = (IUnknown *)(IDXGIKeyedMutex *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(IDXGIObject))
+    {
+      *ppvObject = (IDXGIObject *)(IDXGIKeyedMutex *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(IDXGIDeviceSubObject))
+    {
+      *ppvObject = (IDXGIDeviceSubObject *)(IDXGIKeyedMutex *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(IDXGIResource))
+    {
+      *ppvObject = (IDXGIResource *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(IDXGIKeyedMutex))
+    {
+      *ppvObject = (IDXGIKeyedMutex *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(IDXGISurface))
+    {
+      *ppvObject = (IDXGISurface *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(IDXGISurface1))
+    {
+      *ppvObject = (IDXGISurface1 *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(IDXGIResource1))
+    {
+      *ppvObject = (IDXGIResource1 *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(IDXGISurface2))
+    {
+      *ppvObject = (IDXGISurface2 *)this;
+      AddRef();
+      return S_OK;
+    }
+
+    return m_pWrapped->QueryInterface(riid, ppvObject);
+  }
+
+  //////////////////////////////
+  // Implement IDXGIObject
+  HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID Name, UINT DataSize, const void *pData)
+  {
+    return m_pWrapped->SetPrivateData(Name, DataSize, pData);
+  }
+
+  HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID Name, const IUnknown *pUnknown)
+  {
+    return m_pWrapped->SetPrivateDataInterface(Name, pUnknown);
+  }
+
+  HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID Name, UINT *pDataSize, void *pData)
+  {
+    return m_pWrapped->GetPrivateData(Name, pDataSize, pData);
+  }
+
+  // this should only be called for adapters, devices, factories etc
+  // so we pass it onto the device
+  HRESULT STDMETHODCALLTYPE GetParent(REFIID riid, void **ppParent)
+  {
+    return m_pDevice->QueryInterface(riid, ppParent);
+  }
+
+  //////////////////////////////
+  // Implement IDXGIDeviceSubObject
+
+  // same as GetParent
+  HRESULT STDMETHODCALLTYPE GetDevice(REFIID riid, void **ppDevice)
+  {
+    return m_pDevice->QueryInterface(riid, ppDevice);
+  }
+
+  //////////////////////////////
+  // Implement IDXGIKeyedMutex
+  HRESULT STDMETHODCALLTYPE AcquireSync(UINT64 Key, DWORD dwMilliseconds)
+  {
+    // temporarily get the real interface
+    IDXGIKeyedMutex *mutex = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGIKeyedMutex), (void **)&mutex);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(mutex);
+      return hr;
+    }
+
+    hr = mutex->AcquireSync(Key, dwMilliseconds);
+    SAFE_RELEASE(mutex);
+    return hr;
+  }
+
+  HRESULT STDMETHODCALLTYPE ReleaseSync(UINT64 Key)
+  {
+    // temporarily get the real interface
+    IDXGIKeyedMutex *mutex = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGIKeyedMutex), (void **)&mutex);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(mutex);
+      return hr;
+    }
+
+    hr = mutex->ReleaseSync(Key);
+    SAFE_RELEASE(mutex);
+    return hr;
+  }
+
+  //////////////////////////////
+  // Implement IDXGIResource
+  virtual HRESULT STDMETHODCALLTYPE GetSharedHandle(HANDLE *pSharedHandle)
+  {
+    // temporarily get the real interface
+    IDXGIResource *res = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGIResource), (void **)&res);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(res);
+      return hr;
+    }
+
+    hr = res->GetSharedHandle(pSharedHandle);
+    SAFE_RELEASE(res);
+    return hr;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetUsage(DXGI_USAGE *pUsage)
+  {
+    // temporarily get the real interface
+    IDXGIResource *res = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGIResource), (void **)&res);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(res);
+      return hr;
+    }
+
+    hr = res->GetUsage(pUsage);
+    SAFE_RELEASE(res);
+    return hr;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE SetEvictionPriority(UINT EvictionPriority)
+  {
+    // temporarily get the real interface
+    IDXGIResource *res = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGIResource), (void **)&res);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(res);
+      return hr;
+    }
+
+    hr = res->SetEvictionPriority(EvictionPriority);
+    SAFE_RELEASE(res);
+    return hr;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetEvictionPriority(UINT *pEvictionPriority)
+  {
+    // temporarily get the real interface
+    IDXGIResource *res = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGIResource), (void **)&res);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(res);
+      return hr;
+    }
+
+    hr = res->GetEvictionPriority(pEvictionPriority);
+    SAFE_RELEASE(res);
+    return hr;
+  }
+
+  //////////////////////////////
+  // Implement IDXGISurface
+  virtual HRESULT STDMETHODCALLTYPE GetDesc(DXGI_SURFACE_DESC *pDesc)
+  {
+    // temporarily get the real interface
+    IDXGISurface *surf = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGISurface), (void **)&surf);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(surf);
+      return hr;
+    }
+
+    hr = surf->GetDesc(pDesc);
+    SAFE_RELEASE(surf);
+    return hr;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE Map(DXGI_MAPPED_RECT *pLockedRect, UINT MapFlags)
+  {
+    // temporarily get the real interface
+    IDXGISurface *surf = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGISurface), (void **)&surf);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(surf);
+      return hr;
+    }
+
+    hr = surf->Map(pLockedRect, MapFlags);
+    SAFE_RELEASE(surf);
+    return hr;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE Unmap(void)
+  {
+    // temporarily get the real interface
+    IDXGISurface *surf = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGISurface), (void **)&surf);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(surf);
+      return hr;
+    }
+
+    hr = surf->Unmap();
+    SAFE_RELEASE(surf);
+    return hr;
+  }
+
+  //////////////////////////////
+  // Implement IDXGISurface1
+  virtual HRESULT STDMETHODCALLTYPE GetDC(BOOL Discard, HDC *phdc)
+  {
+    // temporarily get the real interface
+    IDXGISurface1 *surf = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGISurface1), (void **)&surf);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(surf);
+      return hr;
+    }
+
+    hr = surf->GetDC(Discard, phdc);
+    SAFE_RELEASE(surf);
+    return hr;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE ReleaseDC(RECT *pDirtyRect)
+  {
+    // temporarily get the real interface
+    IDXGISurface1 *surf = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGISurface1), (void **)&surf);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(surf);
+      return hr;
+    }
+
+    hr = surf->ReleaseDC(pDirtyRect);
+    SAFE_RELEASE(surf);
+    return hr;
+  }
+
+  //////////////////////////////
+  // Implement IDXGIResource1
+  virtual HRESULT STDMETHODCALLTYPE CreateSubresourceSurface(UINT index, IDXGISurface2 **ppSurface)
+  {
+    if(ppSurface == NULL)
+      return E_INVALIDARG;
+
+    // maybe this will work?!?
+    AddRef();
+    *ppSurface = (IDXGISurface2 *)this;
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE CreateSharedHandle(const SECURITY_ATTRIBUTES *pAttributes,
+                                                       DWORD dwAccess, LPCWSTR lpName,
+                                                       HANDLE *pHandle)
+  {
+    // temporarily get the real interface
+    IDXGIResource1 *res = NULL;
+    HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGIResource1), (void **)&res);
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(res);
+      return hr;
+    }
+
+    hr = res->CreateSharedHandle(pAttributes, dwAccess, lpName, pHandle);
+    SAFE_RELEASE(res);
+    return hr;
+  }
+
+  //////////////////////////////
+  // Implement IDXGISurface2
+  virtual HRESULT STDMETHODCALLTYPE GetResource(REFIID riid, void **ppParentResource,
+                                                UINT *pSubresourceIndex)
+  {
+    // not really sure how to implement this :(.
+    if(pSubresourceIndex)
+      pSubresourceIndex = 0;
+    return QueryInterface(riid, ppParentResource);
+  }
+};
 
 class WrappedIDXGISwapChain3 : public IDXGISwapChain3, public RefCountDXGIObject
 {

@@ -4702,7 +4702,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   DXGI_FORMAT ifmt = DXGI_FORMAT_R16_UINT;
   UINT ioffs = (UINT)cfg.position.idxoffs;
 
-  D3D11_PRIMITIVE_TOPOLOGY topo = MakeD3D11PrimitiveTopology(cfg.position.topo);
+  D3D11_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(cfg.position.topo);
 
   // render the mesh itself (solid, then wireframe)
   {
@@ -4756,7 +4756,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
           FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData,
                       sizeof(DebugPixelCBufferData));
 
-          m_pImmediateContext->IASetPrimitiveTopology(MakeD3D11PrimitiveTopology(fmt.topo));
+          m_pImmediateContext->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(fmt.topo));
 
           auto it = WrappedID3D11Buffer::m_BufferList.find(fmt.buf);
 

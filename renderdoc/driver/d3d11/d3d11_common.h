@@ -31,15 +31,11 @@
 #include "core/core.h"
 #include "driver/dx/official/d3d11_4.h"
 #include "driver/dx/official/dxgi1_3.h"
+#include "driver/dxgi/dxgi_common.h"
 #include "driver/shaders/dxbc/dxbc_compile.h"
 
 class WrappedID3D11Device;
 struct D3D11RenderState;
-
-ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt);
-DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt);
-PrimitiveTopology MakePrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topo);
-D3D11_PRIMITIVE_TOPOLOGY MakeD3D11PrimitiveTopology(PrimitiveTopology Topo);
 
 ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc);
 

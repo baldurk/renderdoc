@@ -184,6 +184,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="dxgi_common.cpp" />
     <ClCompile Include="dxgi_hooks.cpp" />
     <ClCompile Include="dxgi_wrapped.cpp" />
   </ItemGroup>
@@ -195,6 +196,7 @@
     <ClInclude Include="..\dx\official\dxgi1_5.h" />
     <ClInclude Include="..\dx\official\dxgiformat.h" />
     <ClInclude Include="..\dx\official\dxgitype.h" />
+    <ClInclude Include="dxgi_common.h" />
     <ClInclude Include="dxgi_wrapped.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
