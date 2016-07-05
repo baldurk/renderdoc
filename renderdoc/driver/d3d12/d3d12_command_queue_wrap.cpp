@@ -24,8 +24,6 @@
 
 #include "d3d12_command_queue.h"
 
-WRAPPED_POOL_INST(WrappedID3D12CommandQueue);
-
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::UpdateTileMappings(
     ID3D12Resource *pResource, UINT NumResourceRegions,
     const D3D12_TILED_RESOURCE_COORDINATE *pResourceRegionStartCoordinates,

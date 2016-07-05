@@ -68,5 +68,8 @@
     <ClCompile Include="d3d12_command_list_wrap.cpp">
       <Filter>Wrapped</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_commands.cpp">
+      <Filter>Core IFaces</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

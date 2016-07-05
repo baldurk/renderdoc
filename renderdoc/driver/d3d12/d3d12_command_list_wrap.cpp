@@ -24,8 +24,6 @@
 
 #include "d3d12_command_list.h"
 
-WRAPPED_POOL_INST(WrappedID3D12GraphicsCommandList);
-
 HRESULT WrappedID3D12GraphicsCommandList::Close()
 {
   return S_OK;
