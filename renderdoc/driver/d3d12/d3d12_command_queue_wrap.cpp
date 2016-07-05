@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "d3d12_command_queue.h"
+#include "d3d12_command_list.h"
+#include "d3d12_resources.h"
 
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::UpdateTileMappings(
     ID3D12Resource *pResource, UINT NumResourceRegions,
@@ -48,7 +50,13 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::CopyTileMappings(
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
     UINT NumCommandLists, ID3D12CommandList *const *ppCommandLists)
 {
-  m_pReal->ExecuteCommandLists(NumCommandLists, ppCommandLists);
+  ID3D12CommandList **unwrapped = new ID3D12CommandList *[NumCommandLists];
+  for(UINT i = 0; i < NumCommandLists; i++)
+    unwrapped[i] = Unwrap(ppCommandLists[i]);
+
+  m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped);
+
+  SAFE_DELETE_ARRAY(unwrapped);
 }
 
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::SetMarker(UINT Metadata, const void *pData,

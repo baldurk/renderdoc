@@ -110,6 +110,8 @@ public:
 
 template <>
 void Serialiser::Serialise(const char *name, D3D12_RESOURCE_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_COMMAND_QUEUE_DESC &el);
 
 #pragma region Chunks
 
@@ -132,6 +134,10 @@ enum D3D12ChunkType
   CONTEXT_CAPTURE_FOOTER,    // chunk at end of context's chunk stream
 
   SET_SHADER_DEBUG_PATH,
+
+  CREATE_COMMAND_QUEUE,
+  CREATE_COMMAND_ALLOCATOR,
+  CREATE_COMMAND_LIST,
 
   NUM_D3D12_CHUNKS,
 };

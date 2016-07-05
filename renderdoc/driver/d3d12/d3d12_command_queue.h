@@ -26,11 +26,60 @@
 
 #include "common/wrapped_pool.h"
 #include "d3d12_common.h"
+#include "d3d12_device.h"
+#include "d3d12_resources.h"
 
-class WrappedID3D12CommandQueue : public RefCounter12<ID3D12CommandQueue>, public ID3D12CommandQueue
+class WrappedID3D12CommandQueue;
+
+struct DummyID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
 {
-  ID3D12CommandQueue *m_pReal;
+  WrappedID3D12CommandQueue *m_pQueue;
+  ID3D12DebugCommandQueue *m_pReal;
+
+  DummyID3D12DebugCommandQueue() {}
+  //////////////////////////////
+  // implement IUnknown
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    if(riid == __uuidof(ID3D12DebugCommandQueue))
+    {
+      *ppvObject = (ID3D12DebugCommandQueue *)this;
+      AddRef();
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
+  }
+
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+
+  //////////////////////////////
+  // implement ID3D12DebugCommandQueue
+
+  virtual BOOL STDMETHODCALLTYPE AssertResourceState(ID3D12Resource *pResource, UINT Subresource,
+                                                     UINT State)
+  {
+    if(m_pReal)
+      m_pReal->AssertResourceState(pResource, Subresource, State);
+    return TRUE;
+  }
+};
+
+class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
+                                  public RefCounter12<ID3D12CommandQueue>,
+                                  public ID3DDevice
+{
+  ID3D12CommandQueue *m_pQueue;
   WrappedID3D12Device *m_pDevice;
+
+  ResourceId m_ResourceID;
+  D3D12ResourceRecord *m_QueueRecord;
+
+  Serialiser *m_pSerialiser;
+  LogState m_State;
+
+  DummyID3D12DebugCommandQueue m_DummyDebug;
 
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandQueue);
@@ -39,7 +88,95 @@ public:
                             Serialiser *serialiser);
   virtual ~WrappedID3D12CommandQueue();
 
+  Serialiser *GetSerialiser() { return m_pSerialiser; }
+  ResourceId GetResourceID() { return m_ResourceID; }
+  ID3D12CommandQueue *GetReal() { return m_pQueue; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
+  // interface for DXGI
+  virtual IUnknown *GetRealIUnknown() { return GetReal(); }
+  virtual IID GetBackbufferUUID() { return __uuidof(ID3D12Resource); }
+  virtual IID GetDeviceUUID() { return __uuidof(ID3D12CommandQueue); }
+  virtual IUnknown *GetDeviceInterface() { return (ID3D12CommandQueue *)this; }
+  // the rest forward to the device
+  virtual void FirstFrame(WrappedIDXGISwapChain3 *swapChain) { m_pDevice->FirstFrame(swapChain); }
+  virtual void ShutdownSwapchain(WrappedIDXGISwapChain3 *swapChain)
+  {
+    m_pDevice->FirstFrame(swapChain);
+  }
+
+  virtual void NewSwapchainBuffer(IUnknown *backbuffer)
+  {
+    m_pDevice->NewSwapchainBuffer(backbuffer);
+  }
+  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swapChain)
+  {
+    m_pDevice->ReleaseSwapchainResources(swapChain);
+  }
+  virtual IUnknown *WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap, DXGI_SWAP_CHAIN_DESC *swapDesc,
+                                        UINT buffer, IUnknown *realSurface)
+  {
+    return m_pDevice->WrapSwapchainBuffer(swap, swapDesc, buffer, realSurface);
+  }
+
+  virtual HRESULT Present(WrappedIDXGISwapChain3 *swapChain, UINT SyncInterval, UINT Flags)
+  {
+    return m_pDevice->Present(swapChain, SyncInterval, Flags);
+  }
+
+  //////////////////////////////
+  // implement IUnknown
+
+  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::SoftRef(m_pDevice); }
+  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::SoftRelease(m_pDevice); }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+
+  //////////////////////////////
+  // implement ID3D12Object
+
+  HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID guid, UINT *pDataSize, void *pData)
+  {
+    return m_pQueue->GetPrivateData(guid, pDataSize, pData);
+  }
+
+  HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID guid, UINT DataSize, const void *pData)
+  {
+    if(guid == WKPDID_D3DDebugObjectName)
+      m_pDevice->SetResourceName(this, (const char *)pData);
+
+    return m_pQueue->SetPrivateData(guid, DataSize, pData);
+  }
+
+  HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID guid, const IUnknown *pData)
+  {
+    return m_pQueue->SetPrivateDataInterface(guid, pData);
+  }
+
+  HRESULT STDMETHODCALLTYPE SetName(LPCWSTR Name)
+  {
+    string utf8 = StringFormat::Wide2UTF8(Name);
+    m_pDevice->SetResourceName(this, utf8.c_str());
+
+    return m_pQueue->SetName(Name);
+  }
+
+  //////////////////////////////
+  // implement ID3D12DeviceChild
+
+  virtual HRESULT STDMETHODCALLTYPE GetDevice(REFIID riid, _COM_Outptr_opt_ void **ppvDevice)
+  {
+    if(riid == __uuidof(ID3D12Device) && ppvDevice)
+    {
+      *ppvDevice = (ID3D12Device *)m_pDevice;
+      m_pDevice->AddRef();
+    }
+    else if(riid != __uuidof(ID3D12Device))
+    {
+      return E_NOINTERFACE;
+    }
+
+    return E_INVALIDARG;
+  }
+
   //////////////////////////////
   // implement ID3D12CommandQueue
 
@@ -86,3 +223,6 @@ public:
 
   virtual D3D12_COMMAND_QUEUE_DESC STDMETHODCALLTYPE GetDesc() { return m_pReal->GetDesc(); }
 };
+
+template <>
+ID3D12CommandQueue *Unwrap(ID3D12CommandQueue *obj);

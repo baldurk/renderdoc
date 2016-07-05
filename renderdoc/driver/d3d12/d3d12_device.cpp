@@ -36,16 +36,16 @@
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
 const char *D3D12ChunkNames[] = {
-    "ID3D11Device::Initialisation",
+    "ID3D12Device::Initialisation",
     "ID3D12Object::SetName",
-    "ID3D12Resource::Release",
+    "IUnknown::Release",
     "IDXGISwapChain::GetBuffer",
 
     "Capture",
 
-    "ID3D12CommandQueue::BeginEvent",
-    "ID3D12CommandQueue::SetMarker",
-    "ID3D12CommandQueue::EndEvent",
+    "BeginEvent",
+    "SetMarker",
+    "EndEvent",
 
     "DebugMessageList",
 
@@ -53,6 +53,10 @@ const char *D3D12ChunkNames[] = {
     "ContextEnd",
 
     "SetShaderDebugPath",
+
+    "WrappedID3D12Device::CreateCommandQueue",
+    "WrappedID3D12Device::CreateCommandAllocator",
+    "WrappedID3D12Device::CreateCommandList",
 };
 
 D3D12InitParams::D3D12InitParams()
@@ -200,6 +204,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   {
     m_State = WRITING_IDLE;
     m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, true);
+
+    m_pSerialiser->SetDebugText(true);
   }
 
   m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
@@ -503,7 +509,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *
       WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(fakeBB, this);
       fakeBB = wrapped;
 
-      fakeBB->SetName(L"Serialised Swap Chain Buffer");
+      fakeBB->SetName(L"Swap Chain Buffer");
 
       GetResourceManager()->AddLiveResource(TexID, fakeBB);
     }
@@ -528,8 +534,6 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
   }
 
   ID3D12Resource *pRes = new WrappedID3D12Resource((ID3D12Resource *)realSurface, this);
-
-  pRes->SetName(L"Swap Chain Backbuffer");
 
   ResourceId id = GetResID(pRes);
 

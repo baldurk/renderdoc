@@ -33,7 +33,7 @@
 ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev)
 {
   if(WrappedID3D12CommandQueue::IsAlloc(dev))
-    return ((WrappedID3D12CommandQueue *)dev)->GetWrappedDevice();
+    return (WrappedID3D12CommandQueue *)dev;
 
   return NULL;
 }

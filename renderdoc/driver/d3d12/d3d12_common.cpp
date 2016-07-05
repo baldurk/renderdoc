@@ -42,6 +42,31 @@ void Serialiser::Serialise(const char *name, D3D12_RESOURCE_DESC &el)
   Serialise("Flags", el.Flags);
 }
 
+template <>
+void Serialiser::Serialise(const char *name, D3D12_COMMAND_QUEUE_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_COMMAND_QUEUE_DESC", 0, true);
+
+  Serialise("Type", el.Type);
+  Serialise("Priority", el.Priority);
+  Serialise("Flags", el.Flags);
+  Serialise("NodeMask", el.NodeMask);
+}
+
+string ToStrHelper<false, D3D12_COMMAND_LIST_TYPE>::Get(const D3D12_COMMAND_LIST_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_COMMAND_LIST_TYPE_DIRECT)
+    TOSTR_CASE_STRINGIZE(D3D12_COMMAND_LIST_TYPE_BUNDLE)
+    TOSTR_CASE_STRINGIZE(D3D12_COMMAND_LIST_TYPE_COMPUTE)
+    TOSTR_CASE_STRINGIZE(D3D12_COMMAND_LIST_TYPE_COPY)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_COMMAND_LIST_TYPE<%d>", el);
+}
+
 string ToStrHelper<false, D3D12_RESOURCE_DIMENSION>::Get(const D3D12_RESOURCE_DIMENSION &el)
 {
   switch(el)
@@ -87,6 +112,19 @@ string ToStrHelper<false, D3D12_RESOURCE_FLAGS>::Get(const D3D12_RESOURCE_FLAGS 
     ret += " | D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER";
   if(el & D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS)
     ret += " | D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
+string ToStrHelper<false, D3D12_COMMAND_QUEUE_FLAGS>::Get(const D3D12_COMMAND_QUEUE_FLAGS &el)
+{
+  string ret;
+
+  if(el & D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT)
+    ret += " | D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT";
 
   if(!ret.empty())
     ret = ret.substr(3);

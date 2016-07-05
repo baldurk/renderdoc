@@ -26,10 +26,74 @@
 
 #include "common/wrapped_pool.h"
 #include "d3d12_common.h"
+#include "d3d12_device.h"
+#include "d3d12_resources.h"
+
+class WrappedID3D12GraphicsCommandList;
+
+struct DummyID3D12DebugCommandList : public ID3D12DebugCommandList
+{
+  WrappedID3D12GraphicsCommandList *m_pList;
+  ID3D12DebugCommandList *m_pReal;
+
+  DummyID3D12DebugCommandList() {}
+  //////////////////////////////
+  // implement IUnknown
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    if(riid == __uuidof(ID3D12DebugCommandList))
+    {
+      *ppvObject = (ID3D12DebugCommandList *)this;
+      AddRef();
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
+  }
+
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+
+  //////////////////////////////
+  // implement ID3D12DebugCommandList
+
+  virtual BOOL STDMETHODCALLTYPE AssertResourceState(ID3D12Resource *pResource, UINT Subresource,
+                                                     UINT State)
+  {
+    if(m_pReal)
+      m_pReal->AssertResourceState(pResource, Subresource, State);
+    return TRUE;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE SetFeatureMask(D3D12_DEBUG_FEATURE Mask)
+  {
+    if(m_pReal)
+      m_pReal->SetFeatureMask(Mask);
+    return S_OK;
+  }
+
+  virtual D3D12_DEBUG_FEATURE STDMETHODCALLTYPE GetFeatureMask()
+  {
+    if(m_pReal)
+      return m_pReal->GetFeatureMask();
+    return D3D12_DEBUG_FEATURE_NONE;
+  }
+};
 
 class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsCommandList>,
                                          public ID3D12GraphicsCommandList
 {
+  ID3D12GraphicsCommandList *m_pList;
+  WrappedID3D12Device *m_pDevice;
+
+  ResourceId m_ResourceID;
+  D3D12ResourceRecord *m_ListRecord;
+
+  Serialiser *m_pSerialiser;
+  LogState m_State;
+
+  DummyID3D12DebugCommandList m_DummyDebug;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList);
 
@@ -37,6 +101,68 @@ public:
                                    Serialiser *serialiser);
   virtual ~WrappedID3D12GraphicsCommandList();
 
+  Serialiser *GetSerialiser() { return m_pSerialiser; }
+  ResourceId GetResourceID() { return m_ResourceID; }
+  ID3D12GraphicsCommandList *GetReal() { return m_pList; }
+  WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
+  //////////////////////////////
+  // implement IUnknown
+
+  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::SoftRef(m_pDevice); }
+  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::SoftRelease(m_pDevice); }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+
+  //////////////////////////////
+  // implement ID3D12Object
+
+  HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID guid, UINT *pDataSize, void *pData)
+  {
+    return m_pList->GetPrivateData(guid, pDataSize, pData);
+  }
+
+  HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID guid, UINT DataSize, const void *pData)
+  {
+    if(guid == WKPDID_D3DDebugObjectName)
+      m_pDevice->SetResourceName(this, (const char *)pData);
+
+    return m_pList->SetPrivateData(guid, DataSize, pData);
+  }
+
+  HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID guid, const IUnknown *pData)
+  {
+    return m_pList->SetPrivateDataInterface(guid, pData);
+  }
+
+  HRESULT STDMETHODCALLTYPE SetName(LPCWSTR Name)
+  {
+    string utf8 = StringFormat::Wide2UTF8(Name);
+    m_pDevice->SetResourceName(this, utf8.c_str());
+
+    return m_pList->SetName(Name);
+  }
+
+  //////////////////////////////
+  // implement ID3D12DeviceChild
+
+  virtual HRESULT STDMETHODCALLTYPE GetDevice(REFIID riid, _COM_Outptr_opt_ void **ppvDevice)
+  {
+    if(riid == __uuidof(ID3D12Device) && ppvDevice)
+    {
+      *ppvDevice = (ID3D12Device *)m_pDevice;
+      m_pDevice->AddRef();
+    }
+    else if(riid != __uuidof(ID3D12Device))
+    {
+      return E_NOINTERFACE;
+    }
+
+    return E_INVALIDARG;
+  }
+
+  //////////////////////////////
+  // implement ID3D12CommandList
+
+  virtual D3D12_COMMAND_LIST_TYPE STDMETHODCALLTYPE GetType() { return m_pList->GetType(); }
   //////////////////////////////
   // implement ID3D12GraphicsCommandList
 
@@ -263,3 +389,8 @@ public:
                                                 ID3D12Resource *pCountBuffer,
                                                 UINT64 CountBufferOffset));
 };
+
+template <>
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList *obj);
+template <>
+ID3D12CommandList *Unwrap(ID3D12CommandList *obj);

@@ -27,3 +27,237 @@
 
 WRAPPED_POOL_INST(WrappedID3D12CommandQueue);
 WRAPPED_POOL_INST(WrappedID3D12GraphicsCommandList);
+
+template <>
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
+}
+
+template <>
+ID3D12CommandList *Unwrap(ID3D12CommandList *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
+}
+
+template <>
+ID3D12CommandQueue *Unwrap(ID3D12CommandQueue *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12CommandQueue *)obj)->GetReal();
+}
+
+ULONG STDMETHODCALLTYPE DummyID3D12DebugCommandQueue::AddRef()
+{
+  m_pQueue->AddRef();
+  return 1;
+}
+
+ULONG STDMETHODCALLTYPE DummyID3D12DebugCommandQueue::Release()
+{
+  m_pQueue->Release();
+  return 1;
+}
+
+ULONG STDMETHODCALLTYPE DummyID3D12DebugCommandList::AddRef()
+{
+  m_pList->AddRef();
+  return 1;
+}
+
+ULONG STDMETHODCALLTYPE DummyID3D12DebugCommandList::Release()
+{
+  m_pList->Release();
+  return 1;
+}
+
+WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
+                                                     WrappedID3D12Device *device,
+                                                     Serialiser *serialiser)
+    : RefCounter12(real), m_pDevice(device), m_pQueue(real)
+{
+  if(RenderDoc::Inst().GetCrashHandler())
+    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
+                                                              sizeof(WrappedID3D12CommandQueue));
+
+  m_pQueue->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_DummyDebug.m_pReal);
+
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    m_State = READING;
+    m_pSerialiser = serialiser;
+  }
+  else
+  {
+    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, true);
+    m_State = WRITING_IDLE;
+
+    m_pSerialiser->SetDebugText(true);
+  }
+
+  // create a temporary and grab its resource ID
+  m_ResourceID = ResourceIDGen::GetNewUniqueID();
+
+  m_QueueRecord = NULL;
+
+  if(!RenderDoc::Inst().IsReplayApp())
+  {
+    m_QueueRecord = m_pDevice->GetResourceManager()->AddResourceRecord(m_ResourceID);
+    m_QueueRecord->DataInSerialiser = false;
+    m_QueueRecord->SpecialResource = true;
+    m_QueueRecord->Length = 0;
+    m_QueueRecord->NumSubResources = 0;
+    m_QueueRecord->SubResources = NULL;
+    m_QueueRecord->ignoreSerialise = true;
+  }
+
+  m_pDevice->SoftRef();
+}
+
+WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
+{
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid, void **ppvObject)
+{
+  if(riid == __uuidof(IUnknown))
+  {
+    *ppvObject = (IUnknown *)(ID3D12CommandQueue *)this;
+    AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12CommandQueue))
+  {
+    *ppvObject = (ID3D12CommandQueue *)this;
+    AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12Pageable))
+  {
+    *ppvObject = (ID3D12Pageable *)this;
+    AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12DeviceChild))
+  {
+    *ppvObject = (ID3D12DeviceChild *)this;
+    AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12Object))
+  {
+    *ppvObject = (ID3D12DeviceChild *)this;
+    AddRef();
+    return S_OK;
+  }
+  else
+  {
+    string guid = ToStr::Get(riid);
+    RDCWARN("Querying ID3D12CommandQueue for interface: %s", guid.c_str());
+  }
+
+  return RefCounter12::QueryInterface(riid, ppvObject);
+}
+
+WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real,
+                                                                   WrappedID3D12Device *device,
+                                                                   Serialiser *serialiser)
+    : RefCounter12(real), m_pDevice(device), m_pList(real)
+{
+  if(RenderDoc::Inst().GetCrashHandler())
+    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(
+        this, sizeof(WrappedID3D12GraphicsCommandList));
+
+  m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList), (void **)&m_DummyDebug.m_pReal);
+
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    m_State = READING;
+    m_pSerialiser = serialiser;
+  }
+  else
+  {
+    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, true);
+    m_State = WRITING_IDLE;
+
+    m_pSerialiser->SetDebugText(true);
+  }
+
+  // create a temporary and grab its resource ID
+  m_ResourceID = ResourceIDGen::GetNewUniqueID();
+
+  m_ListRecord = NULL;
+
+  if(!RenderDoc::Inst().IsReplayApp())
+  {
+    m_ListRecord = m_pDevice->GetResourceManager()->AddResourceRecord(m_ResourceID);
+    m_ListRecord->DataInSerialiser = false;
+    m_ListRecord->SpecialResource = true;
+    m_ListRecord->Length = 0;
+    m_ListRecord->NumSubResources = 0;
+    m_ListRecord->SubResources = NULL;
+    m_ListRecord->ignoreSerialise = true;
+  }
+
+  m_pDevice->SoftRef();
+}
+
+WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
+{
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFIID riid,
+                                                                           void **ppvObject)
+{
+  if(riid == __uuidof(IUnknown))
+  {
+    *ppvObject = (IUnknown *)(ID3D12GraphicsCommandList *)this;
+    AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12GraphicsCommandList))
+  {
+    *ppvObject = (ID3D12GraphicsCommandList *)this;
+    AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12CommandList))
+  {
+    *ppvObject = (ID3D12CommandList *)this;
+    AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12Pageable))
+  {
+    *ppvObject = (ID3D12Pageable *)this;
+    AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12DeviceChild))
+  {
+    *ppvObject = (ID3D12DeviceChild *)this;
+    AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12Object))
+  {
+    *ppvObject = (ID3D12DeviceChild *)this;
+    AddRef();
+    return S_OK;
+  }
+  else
+  {
+    string guid = ToStr::Get(riid);
+    RDCWARN("Querying ID3D12GraphicsCommandList for interface: %s", guid.c_str());
+  }
+
+  return RefCounter12::QueryInterface(riid, ppvObject);
+}
