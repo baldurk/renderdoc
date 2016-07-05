@@ -45,13 +45,13 @@ public:
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
     m_EnabledHooks = true;
     m_InsideCreate = false;
-
-    WrappedIDXGISwapChain3::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
   }
 
   bool CreateHooks(const char *libName)
   {
     bool success = true;
+
+    WrappedIDXGISwapChain3::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
 
     // also require d3dcompiler_??.dll
     if(GetD3DCompiler() == NULL)
