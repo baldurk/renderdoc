@@ -546,7 +546,7 @@ ALL_D3D12_TYPES;
 
 ResourceType IdentifyTypeByPtr(ID3D12DeviceChild *ptr);
 
-#define WRAPPING_DEBUG 0
+#define WRAPPING_DEBUG 1
 
 template <typename iface>
 typename UnwrapHelper<iface>::Outer *GetWrapped(iface *obj)
@@ -559,7 +559,7 @@ typename UnwrapHelper<iface>::Outer *GetWrapped(iface *obj)
 #if WRAPPING_DEBUG
   if(obj != NULL && !wrapped->IsAlloc(wrapped))
   {
-    RDCERR("Trying to unwrap invalid type");
+    RDCWARN("Trying to unwrap invalid type");
     return NULL;
   }
 #endif
@@ -578,7 +578,12 @@ iface *Unwrap(iface *obj)
   if(obj == NULL)
     return NULL;
 
-  return GetWrapped(obj)->GetReal();
+  auto wrapped = GetWrapped(obj);
+
+  if(wrapped)
+    return wrapped->GetReal();
+
+  return NULL;
 }
 
 template <typename iface>
@@ -587,7 +592,12 @@ ResourceId GetResID(iface *obj)
   if(obj == NULL)
     return ResourceId();
 
-  return GetWrapped(obj)->GetResourceID();
+  auto wrapped = GetWrapped(obj);
+
+  if(wrapped)
+    return wrapped->GetResourceID();
+
+  return ResourceId();
 }
 
 template <typename iface>
@@ -596,7 +606,12 @@ D3D12ResourceRecord *GetRecord(iface *obj)
   if(obj == NULL)
     return NULL;
 
-  return GetWrapped(obj)->GetResourceRecord();
+  auto wrapped = GetWrapped(obj);
+
+  if(wrapped)
+    return wrapped->GetResourceRecord();
+
+  return NULL;
 }
 
 // specialisations that use the GetTracked() function to fetch the ID
