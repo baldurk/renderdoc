@@ -95,14 +95,14 @@ private:
 extern const GUID RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue;
 
 template <typename NestedType, typename NestedType1 = NestedType, typename NestedType2 = NestedType1>
-class WrappedDeviceChild : public RefCounter, public NestedType2, public TrackedResource
+class WrappedDeviceChild11 : public RefCounter, public NestedType2, public TrackedResource
 {
 protected:
   WrappedID3D11Device *m_pDevice;
   NestedType *m_pReal;
   unsigned int m_PipelineRefs;
 
-  WrappedDeviceChild(NestedType *real, WrappedID3D11Device *device)
+  WrappedDeviceChild11(NestedType *real, WrappedID3D11Device *device)
       : RefCounter(real), m_pDevice(device), m_pReal(real), m_PipelineRefs(0)
   {
     m_pDevice->SoftRef();
@@ -123,7 +123,7 @@ protected:
     m_pDevice = NULL;
   }
 
-  virtual ~WrappedDeviceChild()
+  virtual ~WrappedDeviceChild11()
   {
     // should have already called shutdown (needs to be called from child class to ensure
     // vtables are still in place when we call ReleaseResource)
@@ -213,7 +213,7 @@ public:
         return hr;
       }
 
-      auto dxgiWrapper = new WrappedDXGIInterface<WrappedDeviceChild>(this, m_pDevice);
+      auto dxgiWrapper = new WrappedDXGIInterface<WrappedDeviceChild11>(this, m_pDevice);
 
       // anything could happen outside of our wrapped ecosystem, so immediately mark dirty
       m_pDevice->GetResourceManager()->MarkDirtyResource(GetResourceID());
@@ -315,7 +315,7 @@ public:
 };
 
 template <typename NestedType, typename DescType, typename NestedType1 = NestedType>
-class WrappedResource : public WrappedDeviceChild<NestedType, NestedType1>
+class WrappedResource11 : public WrappedDeviceChild11<NestedType, NestedType1>
 {
 private:
   unsigned int m_ViewRefcount;    // refcount from views (invisible to the end-user)
@@ -325,8 +325,8 @@ protected:
   DescType m_Desc;
 #endif
 
-  WrappedResource(NestedType *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild(real, device), m_ViewRefcount(0)
+  WrappedResource11(NestedType *real, WrappedID3D11Device *device)
+      : WrappedDeviceChild11(real, device), m_ViewRefcount(0)
   {
 #if !defined(RELEASE)
     real->GetDesc(&m_Desc);
@@ -336,8 +336,8 @@ protected:
     RefCounter::SetSelfDeleting(false);
   }
 
-  virtual void Shutdown() { WrappedDeviceChild::Shutdown(); }
-  virtual ~WrappedResource() {}
+  virtual void Shutdown() { WrappedDeviceChild11::Shutdown(); }
+  virtual ~WrappedResource11() {}
 public:
   void ViewAddRef()
   {
@@ -384,7 +384,7 @@ public:
       return S_OK;
     }
 
-    return WrappedDeviceChild::QueryInterface(riid, ppvObject);
+    return WrappedDeviceChild11::QueryInterface(riid, ppvObject);
   }
 
   //////////////////////////////
@@ -420,7 +420,7 @@ public:
   }
 };
 
-class WrappedID3D11Buffer : public WrappedResource<ID3D11Buffer, D3D11_BUFFER_DESC>
+class WrappedID3D11Buffer : public WrappedResource11<ID3D11Buffer, D3D11_BUFFER_DESC>
 {
 public:
   struct BufferEntry
@@ -437,7 +437,7 @@ public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Buffer, AllocPoolCount, AllocPoolMaxByteSize);
 
   WrappedID3D11Buffer(ID3D11Buffer *real, uint32_t byteLength, WrappedID3D11Device *device)
-      : WrappedResource(real, device)
+      : WrappedResource11(real, device)
   {
     SCOPED_LOCK(m_pDevice->D3DLock());
 
@@ -463,7 +463,7 @@ public:
 };
 
 template <typename NestedType, typename DescType, typename NestedType1>
-class WrappedTexture : public WrappedResource<NestedType, DescType, NestedType1>
+class WrappedTexture : public WrappedResource11<NestedType, DescType, NestedType1>
 {
 public:
   struct TextureEntry
@@ -479,7 +479,7 @@ public:
   static map<ResourceId, TextureEntry> m_TextureList;
 
   WrappedTexture(NestedType *real, WrappedID3D11Device *device, TextureDisplayType type)
-      : WrappedResource(real, device)
+      : WrappedResource11(real, device)
   {
     if(type != TEXDISPLAY_UNKNOWN)
     {
@@ -602,26 +602,26 @@ public:
   }
 };
 
-class WrappedID3D11InputLayout : public WrappedDeviceChild<ID3D11InputLayout>
+class WrappedID3D11InputLayout : public WrappedDeviceChild11<ID3D11InputLayout>
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11InputLayout);
 
   WrappedID3D11InputLayout(ID3D11InputLayout *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild<ID3D11InputLayout>(real, device)
+      : WrappedDeviceChild11<ID3D11InputLayout>(real, device)
   {
   }
   virtual ~WrappedID3D11InputLayout() { Shutdown(); }
 };
 
 class WrappedID3D11RasterizerState2
-    : public WrappedDeviceChild<ID3D11RasterizerState, ID3D11RasterizerState1, ID3D11RasterizerState2>
+    : public WrappedDeviceChild11<ID3D11RasterizerState, ID3D11RasterizerState1, ID3D11RasterizerState2>
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11RasterizerState2);
 
   WrappedID3D11RasterizerState2(ID3D11RasterizerState *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild(real, device)
+      : WrappedDeviceChild11(real, device)
   {
   }
   virtual ~WrappedID3D11RasterizerState2() { Shutdown(); }
@@ -656,13 +656,13 @@ public:
   }
 };
 
-class WrappedID3D11BlendState1 : public WrappedDeviceChild<ID3D11BlendState, ID3D11BlendState1>
+class WrappedID3D11BlendState1 : public WrappedDeviceChild11<ID3D11BlendState, ID3D11BlendState1>
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11BlendState1);
 
   WrappedID3D11BlendState1(ID3D11BlendState *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild(real, device)
+      : WrappedDeviceChild11(real, device)
   {
   }
   virtual ~WrappedID3D11BlendState1() { Shutdown(); }
@@ -685,13 +685,13 @@ public:
   }
 };
 
-class WrappedID3D11DepthStencilState : public WrappedDeviceChild<ID3D11DepthStencilState>
+class WrappedID3D11DepthStencilState : public WrappedDeviceChild11<ID3D11DepthStencilState>
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11DepthStencilState);
 
   WrappedID3D11DepthStencilState(ID3D11DepthStencilState *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild<ID3D11DepthStencilState>(real, device)
+      : WrappedDeviceChild11<ID3D11DepthStencilState>(real, device)
   {
   }
   virtual ~WrappedID3D11DepthStencilState() { Shutdown(); }
@@ -704,13 +704,13 @@ public:
   }
 };
 
-class WrappedID3D11SamplerState : public WrappedDeviceChild<ID3D11SamplerState>
+class WrappedID3D11SamplerState : public WrappedDeviceChild11<ID3D11SamplerState>
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11SamplerState);
 
   WrappedID3D11SamplerState(ID3D11SamplerState *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild<ID3D11SamplerState>(real, device)
+      : WrappedDeviceChild11<ID3D11SamplerState>(real, device)
   {
   }
   virtual ~WrappedID3D11SamplerState() { Shutdown(); }
@@ -721,14 +721,14 @@ public:
 };
 
 template <typename NestedType, typename DescType, typename NestedType1>
-class WrappedView1 : public WrappedDeviceChild<NestedType, NestedType1>
+class WrappedView1 : public WrappedDeviceChild11<NestedType, NestedType1>
 {
 protected:
   ID3D11Resource *m_pResource;
   ResourceId m_ResourceResID;
 
   WrappedView1(NestedType *real, WrappedID3D11Device *device, ID3D11Resource *res)
-      : WrappedDeviceChild(real, device), m_pResource(res)
+      : WrappedDeviceChild11(real, device), m_pResource(res)
   {
     m_ResourceResID = GetIDForResource(m_pResource);
     // cast is potentially invalid but functions in WrappedResource will be identical across each
@@ -737,7 +737,7 @@ protected:
 
   virtual void Shutdown()
   {
-    WrappedDeviceChild::Shutdown();
+    WrappedDeviceChild11::Shutdown();
     // cast is potentially invalid but functions in WrappedResource will be identical across each
     ((WrappedID3D11Buffer *)m_pResource)->ViewRelease();
     m_pResource = NULL;
@@ -755,7 +755,7 @@ public:
       return S_OK;
     }
 
-    return WrappedDeviceChild::QueryInterface(riid, ppvObject);
+    return WrappedDeviceChild11::QueryInterface(riid, ppvObject);
   }
 
   //////////////////////////////
@@ -972,7 +972,7 @@ private:
 };
 
 template <class RealShaderType>
-class WrappedID3D11Shader : public WrappedDeviceChild<RealShaderType>, public WrappedShader
+class WrappedID3D11Shader : public WrappedDeviceChild11<RealShaderType>, public WrappedShader
 {
 public:
   static const int AllocPoolCount = 32 * 1024;
@@ -982,20 +982,20 @@ public:
 
   WrappedID3D11Shader(RealShaderType *real, const byte *code, size_t codeLen,
                       WrappedID3D11Device *device)
-      : WrappedDeviceChild<RealShaderType>(real, device),
+      : WrappedDeviceChild11<RealShaderType>(real, device),
         WrappedShader(GetResourceID(), code, codeLen)
   {
   }
   virtual ~WrappedID3D11Shader() { Shutdown(); }
 };
 
-class WrappedID3D11Counter : public WrappedDeviceChild<ID3D11Counter>
+class WrappedID3D11Counter : public WrappedDeviceChild11<ID3D11Counter>
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Counter);
 
   WrappedID3D11Counter(ID3D11Counter *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild(real, device)
+      : WrappedDeviceChild11(real, device)
   {
   }
   virtual ~WrappedID3D11Counter() { Shutdown(); }
@@ -1008,7 +1008,7 @@ public:
       return S_OK;
     }
 
-    return WrappedDeviceChild<ID3D11Counter>::QueryInterface(riid, ppvObject);
+    return WrappedDeviceChild11<ID3D11Counter>::QueryInterface(riid, ppvObject);
   }
 
   //////////////////////////////
@@ -1021,7 +1021,7 @@ public:
   void STDMETHODCALLTYPE GetDesc(__out D3D11_COUNTER_DESC *pDesc) { m_pReal->GetDesc(pDesc); }
 };
 
-class WrappedID3D11Query1 : public WrappedDeviceChild<ID3D11Query, ID3D11Query1>
+class WrappedID3D11Query1 : public WrappedDeviceChild11<ID3D11Query, ID3D11Query1>
 {
 public:
   static const int AllocPoolCount = 16 * 1024;
@@ -1029,7 +1029,7 @@ public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Query1, AllocPoolCount, AllocPoolMaxByteSize);
 
   WrappedID3D11Query1(ID3D11Query *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild(real, device)
+      : WrappedDeviceChild11(real, device)
   {
   }
   virtual ~WrappedID3D11Query1() { Shutdown(); }
@@ -1042,7 +1042,7 @@ public:
       return S_OK;
     }
 
-    return WrappedDeviceChild::QueryInterface(riid, ppvObject);
+    return WrappedDeviceChild11::QueryInterface(riid, ppvObject);
   }
 
   //////////////////////////////
@@ -1067,13 +1067,13 @@ public:
   }
 };
 
-class WrappedID3D11Predicate : public WrappedDeviceChild<ID3D11Predicate>
+class WrappedID3D11Predicate : public WrappedDeviceChild11<ID3D11Predicate>
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Predicate);
 
   WrappedID3D11Predicate(ID3D11Predicate *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild(real, device)
+      : WrappedDeviceChild11(real, device)
   {
   }
   virtual ~WrappedID3D11Predicate() { Shutdown(); }
@@ -1086,7 +1086,7 @@ public:
       return S_OK;
     }
 
-    return WrappedDeviceChild<ID3D11Predicate>::QueryInterface(riid, ppvObject);
+    return WrappedDeviceChild11<ID3D11Predicate>::QueryInterface(riid, ppvObject);
   }
 
   //////////////////////////////
@@ -1099,7 +1099,7 @@ public:
   void STDMETHODCALLTYPE GetDesc(__out D3D11_QUERY_DESC *pDesc) { m_pReal->GetDesc(pDesc); }
 };
 
-class WrappedID3D11ClassInstance : public WrappedDeviceChild<ID3D11ClassInstance>
+class WrappedID3D11ClassInstance : public WrappedDeviceChild11<ID3D11ClassInstance>
 {
 private:
   ID3D11ClassLinkage *m_pLinkage;
@@ -1109,7 +1109,7 @@ public:
 
   WrappedID3D11ClassInstance(ID3D11ClassInstance *real, ID3D11ClassLinkage *linkage,
                              WrappedID3D11Device *device)
-      : WrappedDeviceChild(real, device), m_pLinkage(linkage)
+      : WrappedDeviceChild11(real, device), m_pLinkage(linkage)
   {
     SAFE_ADDREF(m_pLinkage);
   }
@@ -1159,13 +1159,13 @@ public:
   }
 };
 
-class WrappedID3D11ClassLinkage : public WrappedDeviceChild<ID3D11ClassLinkage>
+class WrappedID3D11ClassLinkage : public WrappedDeviceChild11<ID3D11ClassLinkage>
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11ClassLinkage);
 
   WrappedID3D11ClassLinkage(ID3D11ClassLinkage *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild(real, device)
+      : WrappedDeviceChild11(real, device)
   {
   }
   virtual ~WrappedID3D11ClassLinkage() { Shutdown(); }
@@ -1237,7 +1237,7 @@ public:
 
 class WrappedID3D11DeviceContext;
 
-class WrappedID3D11CommandList : public WrappedDeviceChild<ID3D11CommandList>
+class WrappedID3D11CommandList : public WrappedDeviceChild11<ID3D11CommandList>
 {
   WrappedID3D11DeviceContext *m_pContext;
   bool m_Successful;    // indicates whether we have all of the commands serialised for this command
@@ -1247,7 +1247,7 @@ public:
 
   WrappedID3D11CommandList(ID3D11CommandList *real, WrappedID3D11Device *device,
                            WrappedID3D11DeviceContext *context, bool success)
-      : WrappedDeviceChild(real, device), m_pContext(context), m_Successful(success)
+      : WrappedDeviceChild11(real, device), m_pContext(context), m_Successful(success)
   {
     // context isn't defined type at this point.
   }

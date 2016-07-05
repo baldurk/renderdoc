@@ -942,7 +942,7 @@ void D3D11RenderState::TakeRef(ID3D11DeviceChild *p)
       // we can use any specialisation of device child here, as all that is templated
       // is the nested pointer type. Saves having another class in the inheritance
       // heirarchy :(
-      ((WrappedDeviceChild<ID3D11Buffer> *)p)->PipelineAddRef();
+      ((WrappedDeviceChild11<ID3D11Buffer> *)p)->PipelineAddRef();
     }
   }
 }
@@ -961,7 +961,7 @@ void D3D11RenderState::ReleaseRef(ID3D11DeviceChild *p)
       m_pDevice->InternalRelease();
 
       // see above
-      ((WrappedDeviceChild<ID3D11Buffer> *)p)->PipelineRelease();
+      ((WrappedDeviceChild11<ID3D11Buffer> *)p)->PipelineRelease();
     }
   }
 }
