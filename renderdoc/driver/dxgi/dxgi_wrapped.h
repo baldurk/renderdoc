@@ -2348,7 +2348,7 @@ public:
     if(SUCCEEDED(ret) && ppvAdapter && *ppvAdapter)
     {
       IDXGIAdapter *adapter = (IDXGIAdapter *)*ppvAdapter;
-      *ppvAdapter = (void *)new WrappedIDXGIAdapter(adapter);
+      *ppvAdapter = (IDXGIAdapter *)(new WrappedIDXGIAdapter(adapter));
     }
     return ret;
   }
@@ -2363,7 +2363,7 @@ public:
     if(SUCCEEDED(ret) && ppvAdapter && *ppvAdapter)
     {
       IDXGIAdapter *adapter = (IDXGIAdapter *)*ppvAdapter;
-      *ppvAdapter = (void *)new WrappedIDXGIAdapter(adapter);
+      *ppvAdapter = (IDXGIAdapter *)(new WrappedIDXGIAdapter(adapter));
     }
     return ret;
   }

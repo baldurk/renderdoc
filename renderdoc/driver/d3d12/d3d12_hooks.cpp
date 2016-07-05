@@ -231,7 +231,7 @@ private:
 
         RDCDEBUG("created wrapped device.");
 
-        *ppDevice = wrap;
+        *ppDevice = (ID3D12Device *)wrap;
       }
     }
     else if(SUCCEEDED(ret))
@@ -271,7 +271,7 @@ private:
       return E_NOINTERFACE;
     }
 
-    *ppvDebug = new WrappedID3D12Debug();
+    *ppvDebug = (ID3D12Debug *)(new WrappedID3D12Debug());
     return S_OK;
   }
 };

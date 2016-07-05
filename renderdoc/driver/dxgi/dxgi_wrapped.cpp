@@ -451,7 +451,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   else if(riid == __uuidof(IDXGIAdapter))
   {
     IDXGIAdapter *real = (IDXGIAdapter *)(*ppvObject);
-    *ppvObject = new WrappedIDXGIAdapter(real);
+    *ppvObject = (IDXGIAdapter *)(new WrappedIDXGIAdapter(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory))
@@ -462,7 +462,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     // IDXGIFactory1 like a IDXGIFactory should all just work by definition, but there's no way to
     // know now if someone trying to create a IDXGIFactory really means it or not.
     IDXGIFactory1 *real = (IDXGIFactory1 *)(*ppvObject);
-    *ppvObject = new WrappedIDXGIFactory1(real);
+    *ppvObject = (IDXGIFactory *)(new WrappedIDXGIFactory1(real));
     return true;
   }
 
@@ -475,43 +475,43 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   else if(riid == __uuidof(IDXGIAdapter1))
   {
     IDXGIAdapter1 *real = (IDXGIAdapter1 *)(*ppvObject);
-    *ppvObject = new WrappedIDXGIAdapter1(real);
+    *ppvObject = (IDXGIAdapter1 *)(new WrappedIDXGIAdapter1(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory1))
   {
     IDXGIFactory1 *real = (IDXGIFactory1 *)(*ppvObject);
-    *ppvObject = new WrappedIDXGIFactory1(real);
+    *ppvObject = (IDXGIFactory1 *)(new WrappedIDXGIFactory1(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIAdapter2))
   {
     IDXGIAdapter2 *real = (IDXGIAdapter2 *)(*ppvObject);
-    *ppvObject = new WrappedIDXGIAdapter2(real);
+    *ppvObject = (IDXGIAdapter2 *)(new WrappedIDXGIAdapter2(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIAdapter3))
   {
     IDXGIAdapter3 *real = (IDXGIAdapter3 *)(*ppvObject);
-    *ppvObject = new WrappedIDXGIAdapter3(real);
+    *ppvObject = (IDXGIAdapter3 *)(new WrappedIDXGIAdapter3(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory2))
   {
     IDXGIFactory2 *real = (IDXGIFactory2 *)(*ppvObject);
-    *ppvObject = new WrappedIDXGIFactory2(real);
+    *ppvObject = (IDXGIFactory2 *)(new WrappedIDXGIFactory2(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory3))
   {
     IDXGIFactory3 *real = (IDXGIFactory3 *)(*ppvObject);
-    *ppvObject = new WrappedIDXGIFactory3(real);
+    *ppvObject = (IDXGIFactory3 *)(new WrappedIDXGIFactory3(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory4))
   {
     IDXGIFactory4 *real = (IDXGIFactory4 *)(*ppvObject);
-    *ppvObject = new WrappedIDXGIFactory4(real);
+    *ppvObject = (IDXGIFactory4 *)(new WrappedIDXGIFactory4(real));
     return true;
   }
   else
@@ -641,7 +641,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice1::QueryInterface(REFIID riid, void 
     if(SUCCEEDED(hr))
     {
       IDXGIDevice2 *real = (IDXGIDevice2 *)(*ppvObject);
-      *ppvObject = new WrappedIDXGIDevice2(real, m_pD3DDevice);
+      *ppvObject = (IDXGIDevice2 *)(new WrappedIDXGIDevice2(real, m_pD3DDevice));
       return S_OK;
     }
     else
@@ -656,7 +656,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice1::QueryInterface(REFIID riid, void 
     if(SUCCEEDED(hr))
     {
       IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
-      *ppvObject = new WrappedIDXGIDevice3(real, m_pD3DDevice);
+      *ppvObject = (IDXGIDevice3 *)(new WrappedIDXGIDevice3(real, m_pD3DDevice));
       return S_OK;
     }
     else
@@ -700,7 +700,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice2::QueryInterface(REFIID riid, void 
     if(SUCCEEDED(hr))
     {
       IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
-      *ppvObject = new WrappedIDXGIDevice3(real, m_pD3DDevice);
+      *ppvObject = (IDXGIDevice3 *)(new WrappedIDXGIDevice3(real, m_pD3DDevice));
       return S_OK;
     }
     else
