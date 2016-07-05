@@ -94,17 +94,62 @@ struct FunctionHook
 
 struct DllHookset
 {
-  DllHookset() : module(NULL) {}
+  DllHookset() : module(NULL), OrdinalBase(0) {}
   HMODULE module;
   vector<FunctionHook> FunctionHooks;
+  DWORD OrdinalBase;
+  vector<string> OrdinalNames;
+
+  void FetchOrdinalNames()
+  {
+    byte *baseAddress = (byte *)module;
+
+    PIMAGE_DOS_HEADER dosheader = (PIMAGE_DOS_HEADER)baseAddress;
+
+    if(dosheader->e_magic != 0x5a4d)
+      return;
+
+    char *PE00 = (char *)(baseAddress + dosheader->e_lfanew);
+    PIMAGE_FILE_HEADER fileHeader = (PIMAGE_FILE_HEADER)(PE00 + 4);
+    PIMAGE_OPTIONAL_HEADER optHeader =
+        (PIMAGE_OPTIONAL_HEADER)((BYTE *)fileHeader + sizeof(IMAGE_FILE_HEADER));
+
+    DWORD eatOffset = optHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
+
+    IMAGE_EXPORT_DIRECTORY *exportDesc = (IMAGE_EXPORT_DIRECTORY *)(baseAddress + eatOffset);
+
+    WORD *ordinals = (WORD *)(baseAddress + exportDesc->AddressOfNameOrdinals);
+    DWORD *names = (DWORD *)(baseAddress + exportDesc->AddressOfNames);
+
+    DWORD count = RDCMIN(exportDesc->NumberOfFunctions, exportDesc->NumberOfNames);
+
+    WORD maxOrdinal = 0;
+    for(DWORD i = 0; i < count; i++)
+      maxOrdinal = RDCMAX(maxOrdinal, ordinals[i]);
+
+    OrdinalBase = exportDesc->Base;
+    OrdinalNames.resize(maxOrdinal + 1);
+
+    for(DWORD i = 0; i < count; i++)
+      OrdinalNames[ordinals[i]] = (char *)(baseAddress + names[i]);
+  }
 };
 
 struct CachedHookData
 {
+  CachedHookData()
+  {
+    ownmodule = NULL;
+    missedOrdinals = false;
+    RDCEraseEl(lowername);
+  }
+
   map<string, DllHookset> DllHooks;
   HMODULE ownmodule;
   Threading::CriticalSection lock;
   char lowername[512];
+
+  bool missedOrdinals;
 
   void ApplyHooks(const char *modName, HMODULE module)
   {
@@ -130,6 +175,23 @@ struct CachedHookData
        strstr(lowername, "renderdoc.dll") == lowername)
       return;
 
+    // set module pointer if we are hooking exports from this module
+    for(auto it = DllHooks.begin(); it != DllHooks.end(); ++it)
+    {
+      if(!_stricmp(it->first.c_str(), modName))
+      {
+        if(it->second.module == NULL)
+        {
+          it->second.module = module;
+          it->second.FetchOrdinalNames();
+        }
+        else
+        {
+          it->second.module = module;
+        }
+      }
+    }
+
     // for safety (and because we don't need to), ignore these modules
     if(!_stricmp(modName, "kernel32.dll") || !_stricmp(modName, "powrprof.dll") ||
        !_stricmp(modName, "opengl32.dll") || !_stricmp(modName, "gdi32.dll") ||
@@ -137,11 +199,6 @@ struct CachedHookData
        strstr(lowername, "nv-vk") == lowername || strstr(lowername, "amdvlk") == lowername ||
        strstr(lowername, "igvk") == lowername)
       return;
-
-    // set module pointer if we are hooking exports from this module
-    for(auto it = DllHooks.begin(); it != DllHooks.end(); ++it)
-      if(!_stricmp(it->first.c_str(), modName))
-        it->second.module = module;
 
     byte *baseAddress = (byte *)module;
 
@@ -197,20 +254,6 @@ struct CachedHookData
 
         while(origFirst->u1.AddressOfData)
         {
-#ifdef WIN64
-          if(origFirst->u1.AddressOfData & 0x8000000000000000)
-#else
-          if(origFirst->u1.AddressOfData & 0x80000000)
-#endif
-          {
-            // low bits of origFirst->u1.AddressOfData contain an ordinal
-            origFirst++;
-            first++;
-            continue;
-          }
-
-          IMAGE_IMPORT_BY_NAME *import =
-              (IMAGE_IMPORT_BY_NAME *)(baseAddress + origFirst->u1.AddressOfData);
           void **IATentry = (void **)&first->u1.AddressOfData;
 
           struct hook_find
@@ -220,6 +263,72 @@ struct CachedHookData
               return strcmp(a.function.c_str(), b) < 0;
             }
           };
+
+#ifdef WIN64
+          if(IMAGE_SNAP_BY_ORDINAL64(origFirst->u1.AddressOfData))
+#else
+          if(IMAGE_SNAP_BY_ORDINAL32(origFirst->u1.AddressOfData))
+#endif
+          {
+            // low bits of origFirst->u1.AddressOfData contain an ordinal
+            WORD ordinal = IMAGE_ORDINAL64(origFirst->u1.AddressOfData);
+
+            if(!hookset->OrdinalNames.empty())
+            {
+              if(ordinal >= hookset->OrdinalBase)
+              {
+                // rebase into OrdinalNames index
+                DWORD nameIndex = ordinal - hookset->OrdinalBase;
+
+                // it's perfectly valid to have more functions than names, we only
+                // list those with names - so ignore any others
+                if(nameIndex < hookset->OrdinalNames.size())
+                {
+                  const char *importName = (const char *)hookset->OrdinalNames[nameIndex].c_str();
+
+                  auto found =
+                      std::lower_bound(hookset->FunctionHooks.begin(), hookset->FunctionHooks.end(),
+                                       importName, hook_find());
+
+                  if(found != hookset->FunctionHooks.end() &&
+                     !strcmp(found->function.c_str(), importName) && found->excludeModule != module)
+                  {
+                    SCOPED_LOCK(lock);
+                    bool applied = found->ApplyHook(IATentry);
+
+                    if(!applied)
+                    {
+                      FreeLibrary(refcountModHandle);
+                      return;
+                    }
+                  }
+                }
+              }
+              else
+              {
+                RDCERR("Import ordinal is below ordinal base in %s importing module %s", modName,
+                       dllName);
+              }
+            }
+            else
+            {
+              // the very first time we try to apply hooks, we might apply them to a module
+              // before we've looked up the ordinal names for the one it's linking against.
+              // Subsequent times we're only loading one new module - and since it can't
+              // link to itself we will have all ordinal names loaded.
+              //
+              // Setting this flag causes us to do a second pass right at the start
+              missedOrdinals = true;
+            }
+
+            // continue
+            origFirst++;
+            first++;
+            continue;
+          }
+
+          IMAGE_IMPORT_BY_NAME *import =
+              (IMAGE_IMPORT_BY_NAME *)(baseAddress + origFirst->u1.AddressOfData);
 
           const char *importName = (const char *)import->Name;
           auto found = std::lower_bound(hookset->FunctionHooks.begin(),
@@ -424,6 +533,17 @@ void Win32_IAT_EndHooks()
     std::sort(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end());
 
   HookAllModules();
+
+  if(s_HookData->missedOrdinals)
+  {
+    // we need to do a second pass now that we know ordinal names to finally hook
+    // some imports by ordinal only.
+    s_HookData->missedOrdinals = false;
+
+    HookAllModules();
+
+    RDCASSERT(!s_HookData->missedOrdinals);
+  }
 }
 
 void Win32_IAT_RemoveHooks()
