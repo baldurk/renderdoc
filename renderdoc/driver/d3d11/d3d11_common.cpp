@@ -30,56 +30,6 @@
 #include "serialise/serialiser.h"
 #include "serialise/string_utils.h"
 
-// gives us an address to identify this dll with
-static int dllLocator = 0;
-
-HMODULE GetD3DCompiler()
-{
-  static HMODULE ret = NULL;
-  if(ret != NULL)
-    return ret;
-
-  // dlls to try in priority order
-  const char *dlls[] = {
-      "d3dcompiler_47.dll", "d3dcompiler_46.dll", "d3dcompiler_45.dll",
-      "d3dcompiler_44.dll", "d3dcompiler_43.dll",
-  };
-
-  for(int i = 0; i < 2; i++)
-  {
-    for(int d = 0; d < ARRAY_COUNT(dlls); d++)
-    {
-      if(i == 0)
-        ret = GetModuleHandleA(dlls[d]);
-      else
-        ret = LoadLibraryA(dlls[d]);
-
-      if(ret != NULL)
-        return ret;
-    }
-  }
-
-  // all else failed, couldn't find d3dcompiler loaded,
-  // and couldn't even loadlibrary any version!
-  // we'll have to loadlibrary the version that ships with
-  // RenderDoc.
-
-  HMODULE hModule = NULL;
-  GetModuleHandleEx(
-      GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-      (LPCTSTR)&dllLocator, &hModule);
-  wchar_t curFile[512] = {0};
-  GetModuleFileNameW(hModule, curFile, 511);
-
-  wstring path = wstring(curFile);
-  path = dirname(path);
-  wstring dll = path + L"/d3dcompiler_47.dll";
-
-  ret = LoadLibraryW(dll.c_str());
-
-  return ret;
-}
-
 D3D11_PRIMITIVE_TOPOLOGY MakeD3D11PrimitiveTopology(PrimitiveTopology Topo)
 {
   switch(Topo)
@@ -1678,17 +1628,6 @@ void Serialiser::Serialise(const char *name, D3D11_SUBRESOURCE_DATA &el)
 
 /////////////////////////////////////////////////////////////
 // Trivial structures
-
-string ToStrHelper<false, IID>::Get(const IID &el)
-{
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "GUID {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
-                         el.Data1, (unsigned int)el.Data2, (unsigned int)el.Data3, el.Data4[0],
-                         el.Data4[1], el.Data4[2], el.Data4[3], el.Data4[4], el.Data4[5],
-                         el.Data4[6], el.Data4[7]);
-
-  return tostrBuf;
-}
 
 string ToStrHelper<false, D3D11_VIEWPORT>::Get(const D3D11_VIEWPORT &el)
 {

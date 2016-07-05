@@ -19,11 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="dxbc_compile.cpp" />
     <ClCompile Include="dxbc_debug.cpp" />
     <ClCompile Include="dxbc_disassemble.cpp" />
     <ClCompile Include="dxbc_inspect.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="dxbc_compile.h" />
     <ClInclude Include="dxbc_debug.h" />
     <ClInclude Include="dxbc_disassemble.h" />
     <ClInclude Include="dxbc_inspect.h" />

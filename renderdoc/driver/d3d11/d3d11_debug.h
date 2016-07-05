@@ -29,8 +29,8 @@
 #include <map>
 #include <utility>
 #include "api/replay/renderdoc_replay.h"
+#include "driver/dx/official/d3d11_4.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
-#include "official/d3d11_4.h"
 
 using std::map;
 using std::pair;

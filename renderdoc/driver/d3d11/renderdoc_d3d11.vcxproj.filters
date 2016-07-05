@@ -107,52 +107,28 @@
     <ClInclude Include="d3d11_common.h">
       <Filter>Util</Filter>
     </ClInclude>
-    <ClInclude Include="official\d3d11_1.h">
+    <ClInclude Include="..\dx\official\d3d11.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="official\d3d11_2.h">
+    <ClInclude Include="..\dx\official\d3d11_1.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="official\d3d11sdklayers.h">
+    <ClInclude Include="..\dx\official\d3d11_2.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="official\d3dcommon.h">
+    <ClInclude Include="..\dx\official\d3d11_3.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="official\d3dcompiler.h">
+    <ClInclude Include="..\dx\official\d3d11_4.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="official\dxgi.h">
+    <ClInclude Include="..\dx\official\d3d11sdklayers.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="official\dxgi1_2.h">
+    <ClInclude Include="..\dx\official\d3dcommon.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="official\dxgi1_3.h">
-      <Filter>official</Filter>
-    </ClInclude>
-    <ClInclude Include="official\winapifamily.h">
-      <Filter>official</Filter>
-    </ClInclude>
-    <ClInclude Include="official\d3d11.h">
-      <Filter>official</Filter>
-    </ClInclude>
-    <ClInclude Include="official\d3d11_3.h">
-      <Filter>official</Filter>
-    </ClInclude>
-    <ClInclude Include="official\d3d11_4.h">
-      <Filter>official</Filter>
-    </ClInclude>
-    <ClInclude Include="official\dxgi1_4.h">
-      <Filter>official</Filter>
-    </ClInclude>
-    <ClInclude Include="official\dxgi1_5.h">
-      <Filter>official</Filter>
-    </ClInclude>
-    <ClInclude Include="official\dxgiformat.h">
-      <Filter>official</Filter>
-    </ClInclude>
-    <ClInclude Include="official\dxgitype.h">
+    <ClInclude Include="..\dx\official\d3dcompiler.h">
       <Filter>official</Filter>
     </ClInclude>
   </ItemGroup>

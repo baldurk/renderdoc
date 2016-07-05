@@ -29,6 +29,14 @@
 
 #define DLL_NAME "d3d11.dll"
 
+ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev)
+{
+  if(WrappedID3D11Device::IsAlloc(dev))
+    return (ID3DDevice *)dev;
+
+  return NULL;
+}
+
 class D3D11Hook : LibraryHook
 {
 public:
@@ -37,6 +45,8 @@ public:
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
     m_EnabledHooks = true;
     m_InsideCreate = false;
+
+    WrappedIDXGISwapChain3::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
   }
 
   bool CreateHooks(const char *libName)
@@ -84,7 +94,6 @@ private:
   bool m_HasHooks;
   bool m_EnabledHooks;
 
-  byte CreateDeviceAndSwapChain_ident[16];
   Hook<PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN> CreateDeviceAndSwapChain;
   Hook<PFN_D3D11_CREATE_DEVICE> CreateDevice;
 

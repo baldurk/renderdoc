@@ -29,13 +29,12 @@
 
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
-#include "official/d3d11_4.h"
-#include "official/dxgi1_3.h"
+#include "driver/dx/official/d3d11_4.h"
+#include "driver/dx/official/dxgi1_3.h"
+#include "driver/shaders/dxbc/dxbc_compile.h"
 
 class WrappedID3D11Device;
 struct D3D11RenderState;
-
-HMODULE GetD3DCompiler();
 
 ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt);
 DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt);

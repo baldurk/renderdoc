@@ -25,10 +25,15 @@
 
 #pragma once
 
-#include "../d3d11/official/d3d11_4.h"
-#include "../d3d11/official/dxgi1_5.h"
 #include "common/common.h"
 #include "common/wrapped_pool.h"
+#include "driver/dx/official/dxgi1_5.h"
+
+MIDL_INTERFACE("6f15aaf2-d208-4e89-9ab4-489535d34f9c") ID3D11Texture2D;
+MIDL_INTERFACE("dc8e63f3-d12b-4952-b47b-5e45026a862d") ID3D11Resource;
+MIDL_INTERFACE("db6f6ddb-ac77-4e88-8253-819df9bbf140") ID3D11Device;
+MIDL_INTERFACE("696442be-a72e-4059-bc79-5b5c98040fad") ID3D12Resource;
+MIDL_INTERFACE("189819f1-1db6-4b57-be54-1821339b85f7") ID3D12Device;
 
 class RefCountDXGIObject : public IDXGIObject
 {
@@ -58,11 +63,15 @@ public:
     return WrapQueryInterface(m_pReal, riid, ppvObject);
   }
 
-  ULONG STDMETHODCALLTYPE AddRef() { return ++m_iRefcount; }
+  ULONG STDMETHODCALLTYPE AddRef()
+  {
+    InterlockedIncrement(&m_iRefcount);
+    return m_iRefcount;
+  }
   ULONG STDMETHODCALLTYPE Release()
   {
-    ULONG ret = --m_iRefcount;
-    if(m_iRefcount == 0)
+    unsigned int ret = InterlockedDecrement(&m_iRefcount);
+    if(ret == 0)
       delete this;
     return ret;
   }
@@ -142,8 +151,31 @@ public:
     return RefCountDXGIObject::GetParent(riid, ppvObject);                                 \
   }
 
-class WrappedID3D11Device;
-struct ID3D11Resource;
+class WrappedIDXGISwapChain3;
+
+struct ID3DDevice
+{
+  virtual ULONG STDMETHODCALLTYPE AddRef() = 0;
+  virtual ULONG STDMETHODCALLTYPE Release() = 0;
+  virtual IUnknown *GetRealIUnknown() = 0;
+
+  virtual IID GetBackbufferUUID() = 0;
+
+  virtual IID GetDeviceUUID() = 0;
+  virtual IUnknown *GetDeviceInterface() = 0;
+
+  virtual void FirstFrame(WrappedIDXGISwapChain3 *swapChain) = 0;
+  virtual void ShutdownSwapchain(WrappedIDXGISwapChain3 *swapChain) = 0;
+
+  virtual void NewSwapchainBuffer(IUnknown *backbuffer) = 0;
+  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swapChain) = 0;
+  virtual IUnknown *WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap, DXGI_SWAP_CHAIN_DESC *swapDesc,
+                                        UINT buffer, IUnknown *realSurface) = 0;
+
+  virtual HRESULT Present(WrappedIDXGISwapChain3 *swapChain, UINT SyncInterval, UINT Flags) = 0;
+};
+
+typedef ID3DDevice *(*D3DDeviceCallback)(IUnknown *dev);
 
 class WrappedIDXGISwapChain3 : public IDXGISwapChain3, public RefCountDXGIObject
 {
@@ -151,22 +183,43 @@ class WrappedIDXGISwapChain3 : public IDXGISwapChain3, public RefCountDXGIObject
   IDXGISwapChain1 *m_pReal1;
   IDXGISwapChain2 *m_pReal2;
   IDXGISwapChain3 *m_pReal3;
-  WrappedID3D11Device *m_pDevice;
+  ID3DDevice *m_pDevice;
   unsigned int m_iRefcount;
+
+  static std::vector<D3DDeviceCallback> m_D3DCallbacks;
 
   HWND m_Wnd;
 
   static const int MAX_NUM_BACKBUFFERS = 4;
 
-  ID3D11Resource *m_pBackBuffers[MAX_NUM_BACKBUFFERS];
+  IUnknown *m_pBackBuffers[MAX_NUM_BACKBUFFERS];
 
   void ReleaseBuffersForResize();
   void WrapBuffersAfterResize();
 
 public:
-  WrappedIDXGISwapChain3(IDXGISwapChain *real, HWND wnd, WrappedID3D11Device *device);
+  WrappedIDXGISwapChain3(IDXGISwapChain *real, HWND wnd, ID3DDevice *device);
   virtual ~WrappedIDXGISwapChain3();
 
+  static void RegisterD3DDeviceCallback(D3DDeviceCallback callback)
+  {
+    m_D3DCallbacks.push_back(callback);
+  }
+
+  static ID3DDevice *GetD3DDevice(IUnknown *dev)
+  {
+    for(size_t i = 0; i < m_D3DCallbacks.size(); i++)
+    {
+      ID3DDevice *d3d = m_D3DCallbacks[i](dev);
+      if(d3d)
+        return d3d;
+    }
+
+    return NULL;
+  }
+
+  int GetNumBackbuffers() { return MAX_NUM_BACKBUFFERS; }
+  IUnknown **GetBackbuffers() { return m_pBackBuffers; }
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
@@ -445,10 +498,10 @@ public:
 class WrappedIDXGIDevice : public IDXGIDevice, public RefCountDXGIObject
 {
   IDXGIDevice *m_pReal;
-  ID3D11Device *m_pD3DDevice;
+  ID3DDevice *m_pD3DDevice;
 
 public:
-  WrappedIDXGIDevice(IDXGIDevice *real, ID3D11Device *d3d)
+  WrappedIDXGIDevice(IDXGIDevice *real, ID3DDevice *d3d)
       : RefCountDXGIObject(real), m_pReal(real), m_pD3DDevice(d3d)
   {
     m_pD3DDevice->AddRef();
@@ -466,7 +519,7 @@ public:
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
-  ID3D11Device *GetD3DDevice() { return m_pD3DDevice; }
+  ID3DDevice *GetD3DDevice() { return m_pD3DDevice; }
   //////////////////////////////
   // implement IDXGIDevice
 
@@ -636,10 +689,10 @@ public:
 class WrappedIDXGIDevice1 : public IDXGIDevice1, public RefCountDXGIObject
 {
   IDXGIDevice1 *m_pReal;
-  ID3D11Device *m_pD3DDevice;
+  ID3DDevice *m_pD3DDevice;
 
 public:
-  WrappedIDXGIDevice1(IDXGIDevice1 *real, ID3D11Device *d3d)
+  WrappedIDXGIDevice1(IDXGIDevice1 *real, ID3DDevice *d3d)
       : RefCountDXGIObject(real), m_pReal(real), m_pD3DDevice(d3d)
   {
     m_pD3DDevice->AddRef();
@@ -656,7 +709,7 @@ public:
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
-  ID3D11Device *GetD3DDevice() { return m_pD3DDevice; }
+  ID3DDevice *GetD3DDevice() { return m_pD3DDevice; }
   //////////////////////////////
   // implement IDXGIDevice
 
@@ -804,10 +857,10 @@ public:
 class WrappedIDXGIDevice2 : public IDXGIDevice2, public RefCountDXGIObject
 {
   IDXGIDevice2 *m_pReal;
-  ID3D11Device *m_pD3DDevice;
+  ID3DDevice *m_pD3DDevice;
 
 public:
-  WrappedIDXGIDevice2(IDXGIDevice2 *real, ID3D11Device *d3d)
+  WrappedIDXGIDevice2(IDXGIDevice2 *real, ID3DDevice *d3d)
       : RefCountDXGIObject(real), m_pReal(real), m_pD3DDevice(d3d)
   {
     m_pD3DDevice->AddRef();
@@ -824,7 +877,7 @@ public:
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
-  ID3D11Device *GetD3DDevice() { return m_pD3DDevice; }
+  ID3DDevice *GetD3DDevice() { return m_pD3DDevice; }
   //////////////////////////////
   // implement IDXGIDevice
 
@@ -924,10 +977,10 @@ public:
 class WrappedIDXGIDevice3 : public IDXGIDevice3, public RefCountDXGIObject
 {
   IDXGIDevice3 *m_pReal;
-  ID3D11Device *m_pD3DDevice;
+  ID3DDevice *m_pD3DDevice;
 
 public:
-  WrappedIDXGIDevice3(IDXGIDevice3 *real, ID3D11Device *d3d)
+  WrappedIDXGIDevice3(IDXGIDevice3 *real, ID3DDevice *d3d)
       : RefCountDXGIObject(real), m_pReal(real), m_pD3DDevice(d3d)
   {
     m_pD3DDevice->AddRef();
@@ -944,7 +997,7 @@ public:
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
-  ID3D11Device *GetD3DDevice() { return m_pD3DDevice; }
+  ID3DDevice *GetD3DDevice() { return m_pD3DDevice; }
   //////////////////////////////
   // implement IDXGIDevice
 

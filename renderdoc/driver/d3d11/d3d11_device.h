@@ -31,6 +31,7 @@
 #include "common/threading.h"
 #include "common/timing.h"
 #include "core/core.h"
+#include "driver/dxgi/dxgi_wrapped.h"
 #include "d3d11_common.h"
 #include "d3d11_debug.h"
 #include "d3d11_manager.h"
@@ -263,7 +264,7 @@ struct DummyID3D11Debug : public ID3D11Debug
 class WrappedID3D11ClassLinkage;
 enum CaptureFailReason;
 
-class WrappedID3D11Device : public IFrameCapturer, public ID3D11Device4
+class WrappedID3D11Device : public IFrameCapturer, public ID3DDevice, public ID3D11Device4
 {
 private:
   // since enumeration creates a lot of devices, save
@@ -341,7 +342,7 @@ private:
 
   static WrappedID3D11Device *m_pCurrentWrappedDevice;
 
-  map<IDXGISwapChain *, ID3D11RenderTargetView *> m_SwapChains;
+  map<WrappedIDXGISwapChain3 *, ID3D11RenderTargetView *> m_SwapChains;
 
   uint32_t m_FrameCounter;
   uint32_t m_FailedFrame;
@@ -393,7 +394,7 @@ public:
   FetchFrameStatistics &GetFrameStats() { return m_FrameRecord.frameInfo.stats; }
   const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
-  void FirstFrame(IDXGISwapChain *swap);
+  void FirstFrame(WrappedIDXGISwapChain3 *swapChain);
 
   vector<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
@@ -404,13 +405,16 @@ public:
     return m_LayoutDescs[layout];
   }
 
-  void ReleaseSwapchainResources(IDXGISwapChain *swap);
-
   void Serialise_CaptureScope(uint64_t offset);
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
 
+  // interface for DXGI
+  virtual IUnknown *GetRealIUnknown() { return GetReal(); }
+  virtual IID GetBackbufferUUID() { return __uuidof(ID3D11Texture2D); }
+  virtual IID GetDeviceUUID() { return __uuidof(ID3D11Device); }
+  virtual IUnknown *GetDeviceInterface() { return (ID3D11Device *)this; }
   ////////////////////////////////////////////////////////////////
   // log replaying
 
@@ -447,10 +451,15 @@ public:
                                                  ID3D11ClassInstance *inst));
 
   // Swap Chain
-  IMPLEMENT_FUNCTION_SERIALISED(void, SetSwapChainTexture(IDXGISwapChain *swap,
-                                                          DXGI_SWAP_CHAIN_DESC *desc, UINT buffer,
-                                                          ID3D11Texture2D *pTex));
-  HRESULT Present(IDXGISwapChain *swap, UINT SyncInterval, UINT Flags);
+  IMPLEMENT_FUNCTION_SERIALISED(IUnknown *, WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
+                                                                DXGI_SWAP_CHAIN_DESC *desc,
+                                                                UINT buffer, IUnknown *realSurface));
+  HRESULT Present(WrappedIDXGISwapChain3 *swap, UINT SyncInterval, UINT Flags);
+
+  void ShutdownSwapchain(WrappedIDXGISwapChain3 *swapChain);
+  void NewSwapchainBuffer(IUnknown *backbuffer);
+
+  void ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap);
 
   void InternalRef() { InterlockedIncrement(&m_InternalRefcount); }
   void InternalRelease() { InterlockedDecrement(&m_InternalRefcount); }

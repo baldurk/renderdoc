@@ -6,5 +6,31 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxgi_wrapped.h" />
+    <ClInclude Include="..\dx\official\dxgi.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgi1_2.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgi1_3.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgi1_4.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgi1_5.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgiformat.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgitype.h">
+      <Filter>official</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="official">
+      <UniqueIdentifier>{285b6e05-2a6b-4161-9d67-e24933eebb28}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

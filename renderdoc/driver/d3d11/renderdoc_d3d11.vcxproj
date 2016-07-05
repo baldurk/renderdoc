@@ -214,22 +214,14 @@
     <ClInclude Include="d3d11_renderstate.h" />
     <ClInclude Include="d3d11_replay.h" />
     <ClInclude Include="d3d11_resources.h" />
-    <ClInclude Include="official\d3d11.h" />
-    <ClInclude Include="official\d3d11sdklayers.h" />
-    <ClInclude Include="official\d3d11_1.h" />
-    <ClInclude Include="official\d3d11_2.h" />
-    <ClInclude Include="official\d3d11_3.h" />
-    <ClInclude Include="official\d3d11_4.h" />
-    <ClInclude Include="official\d3dcommon.h" />
-    <ClInclude Include="official\d3dcompiler.h" />
-    <ClInclude Include="official\dxgi.h" />
-    <ClInclude Include="official\dxgi1_2.h" />
-    <ClInclude Include="official\dxgi1_3.h" />
-    <ClInclude Include="official\dxgi1_4.h" />
-    <ClInclude Include="official\dxgi1_5.h" />
-    <ClInclude Include="official\dxgiformat.h" />
-    <ClInclude Include="official\dxgitype.h" />
-    <ClInclude Include="official\winapifamily.h" />
+		<ClInclude Include="..\dx\official\d3d11.h" />
+    <ClInclude Include="..\dx\official\d3d11_1.h" />
+    <ClInclude Include="..\dx\official\d3d11_2.h" />
+    <ClInclude Include="..\dx\official\d3d11_3.h" />
+    <ClInclude Include="..\dx\official\d3d11_4.h" />
+    <ClInclude Include="..\dx\official\d3d11sdklayers.h" />
+    <ClInclude Include="..\dx\official\d3dcommon.h" />
+    <ClInclude Include="..\dx\official\d3dcompiler.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\shaders\dxbc\renderdoc_dxbc.vcxproj">

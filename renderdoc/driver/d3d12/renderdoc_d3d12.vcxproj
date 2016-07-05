@@ -19,10 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{2A793574-BD3C-46D4-9788-C339D9550CE1}</ProjectGuid>
+    <ProjectGuid>{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>renderdoc_dxgi</RootNamespace>
-    <ProjectName>dxgi</ProjectName>
+    <RootNamespace>renderdoc_d3d12</RootNamespace>
+    <ProjectName>d3d12</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32'" Label="Configuration">
@@ -76,7 +76,7 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <ExcludePath>$(ExcludePath)</ExcludePath>
     <TargetName>driver_$(ProjectName)</TargetName>
@@ -184,18 +184,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="dxgi_hooks.cpp" />
-    <ClCompile Include="dxgi_wrapped.cpp" />
+    <ClCompile Include="d3d12_common.cpp" />
+    <ClCompile Include="d3d12_device.cpp" />
+    <ClCompile Include="d3d12_device_wrap.cpp" />
+    <ClCompile Include="d3d12_hooks.cpp" />
+    <ClCompile Include="d3d12_manager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\dx\official\dxgi.h" />
-    <ClInclude Include="..\dx\official\dxgi1_2.h" />
-    <ClInclude Include="..\dx\official\dxgi1_3.h" />
-    <ClInclude Include="..\dx\official\dxgi1_4.h" />
-    <ClInclude Include="..\dx\official\dxgi1_5.h" />
-    <ClInclude Include="..\dx\official\dxgiformat.h" />
-    <ClInclude Include="..\dx\official\dxgitype.h" />
-    <ClInclude Include="dxgi_wrapped.h" />
+    <ClInclude Include="d3d12_common.h" />
+    <ClInclude Include="d3d12_device.h" />
+    <ClInclude Include="d3d12_manager.h" />
+    <ClInclude Include="..\dx\official\d3d12.h" />
+    <ClInclude Include="..\dx\official\d3d12sdklayers.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\shaders\dxbc\renderdoc_dxbc.vcxproj">
+      <Project>{c43ff27e-a155-4852-88ec-5ce9334c07a8}</Project>
+      <Private>false</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

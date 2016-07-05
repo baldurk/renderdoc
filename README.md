@@ -34,7 +34,7 @@ API Support
 | D3D11            | Well supported, all features.          | :heavy_check_mark:       | :heavy_multiplication_x:        |
 | OpenGL 3.2 core+ | Well supported, most features.\*       | :heavy_check_mark:       | :heavy_check_mark: No UI\*\*    |
 | Vulkan           | Well supported, most features.         | :heavy_check_mark:       | :heavy_check_mark: No UI\*\*    |
-| D3D12            | Planned for the future.                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| D3D12            | In Progress.                           | :arrows_clockwise:       | :heavy_multiplication_x:        |
 | OpenGL Pre-3.2   | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
 | D3D10            | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
 | D3D9             | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |

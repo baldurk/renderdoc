@@ -4,6 +4,7 @@
     <ClCompile Include="dxbc_debug.cpp" />
     <ClCompile Include="dxbc_disassemble.cpp" />
     <ClCompile Include="dxbc_inspect.cpp" />
+    <ClCompile Include="dxbc_compile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxbc_debug.h" />
@@ -11,5 +12,6 @@
     <ClInclude Include="dxbc_inspect.h" />
     <ClInclude Include="dxbc_sdbg.h" />
     <ClInclude Include="dxbc_spdb.h" />
+    <ClInclude Include="dxbc_compile.h" />
   </ItemGroup>
 </Project>

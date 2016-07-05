@@ -270,6 +270,28 @@ ReplayCreateStatus D3D11InitParams::Serialise()
   return eReplayCreate_Success;
 }
 
+void WrappedID3D11Device::ShutdownSwapchain(WrappedIDXGISwapChain3 *swapChain)
+{
+  for(int i = 0; i < swapChain->GetNumBackbuffers(); i++)
+  {
+    WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)swapChain->GetBackbuffers()[i];
+    if(wrapped)
+      wrapped->ViewRelease();
+  }
+}
+
+void WrappedID3D11Device::NewSwapchainBuffer(IUnknown *backbuffer)
+{
+  WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)backbuffer;
+
+  if(wrapped)
+  {
+    // keep ref as a 'view' (invisible to user)
+    wrapped->ViewAddRef();
+    wrapped->Release();
+  }
+}
+
 void WrappedID3D11Device::SetLogFile(const char *logfile)
 {
 #if defined(RELEASE)
@@ -932,7 +954,7 @@ void WrappedID3D11Device::ProcessChunk(uint64_t offset, D3D11ChunkType context)
     }
     case SET_RESOURCE_NAME: Serialise_SetResourceName(0x0, ""); break;
     case RELEASE_RESOURCE: Serialise_ReleaseResource(0x0); break;
-    case CREATE_SWAP_BUFFER: Serialise_SetSwapChainTexture(0x0, 0x0, 0, 0x0); break;
+    case CREATE_SWAP_BUFFER: Serialise_WrapSwapchainBuffer(0x0, 0x0, 0, 0x0); break;
     case CREATE_TEXTURE_1D: Serialise_CreateTexture1D(0x0, 0x0, 0x0); break;
     case CREATE_TEXTURE_2D: Serialise_CreateTexture2D(0x0, 0x0, 0x0); break;
     case CREATE_TEXTURE_2D1: Serialise_CreateTexture2D1(0x0, 0x0, 0x0); break;
@@ -2390,8 +2412,24 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
   }
 }
 
-void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapChain *swap)
+void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap)
 {
+  for(int i = 0; i < swap->GetNumBackbuffers(); i++)
+  {
+    WrappedID3D11Texture2D1 *wrapped11 = (WrappedID3D11Texture2D1 *)swap->GetBackbuffers()[i];
+    if(wrapped11)
+    {
+      D3D11RenderState::ResourceRange range(wrapped11);
+
+      GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForWrite(range);
+      GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForRead(range, false, false);
+
+      wrapped11->ViewRelease();
+    }
+
+    wrapped11 = NULL;
+  }
+
   if(swap)
   {
     DXGI_SWAP_CHAIN_DESC desc;
@@ -2410,10 +2448,12 @@ void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapChain *swap)
   }
 }
 
-bool WrappedID3D11Device::Serialise_SetSwapChainTexture(IDXGISwapChain *swap,
+bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
                                                         DXGI_SWAP_CHAIN_DESC *swapDesc, UINT buffer,
-                                                        ID3D11Texture2D *pTex)
+                                                        IUnknown *realSurface)
 {
+  WrappedID3D11Texture2D1 *pTex = (WrappedID3D11Texture2D1 *)realSurface;
+
   SERIALISE_ELEMENT(DXGI_FORMAT, swapFormat, swapDesc->BufferDesc.Format);
   SERIALISE_ELEMENT(uint32_t, BuffNum, buffer);
   SERIALISE_ELEMENT(ResourceId, pTexture, GetIDForResource(pTex));
@@ -2462,9 +2502,26 @@ bool WrappedID3D11Device::Serialise_SetSwapChainTexture(IDXGISwapChain *swap,
   return true;
 }
 
-void WrappedID3D11Device::SetSwapChainTexture(IDXGISwapChain *swap, DXGI_SWAP_CHAIN_DESC *swapDesc,
-                                              UINT buffer, ID3D11Texture2D *pTex)
+IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
+                                                   DXGI_SWAP_CHAIN_DESC *swapDesc, UINT buffer,
+                                                   IUnknown *realSurface)
 {
+  if(GetResourceManager()->HasWrapper((ID3D11DeviceChild *)realSurface))
+  {
+    ID3D11Texture2D *tex =
+        (ID3D11Texture2D *)GetResourceManager()->GetWrapper((ID3D11DeviceChild *)realSurface);
+    tex->AddRef();
+
+    realSurface->Release();
+
+    return tex;
+  }
+
+  WrappedID3D11Texture2D1 *pTex =
+      new WrappedID3D11Texture2D1((ID3D11Texture2D *)realSurface, this, TEXDISPLAY_UNKNOWN);
+
+  SetDebugName(pTex, "Swap Chain Backbuffer");
+
   D3D11_TEXTURE2D_DESC desc;
   pTex->GetDesc(&desc);
 
@@ -2489,7 +2546,7 @@ void WrappedID3D11Device::SetSwapChainTexture(IDXGISwapChain *swap, DXGI_SWAP_CH
 
     SCOPED_SERIALISE_CONTEXT(CREATE_SWAP_BUFFER);
 
-    Serialise_SetSwapChainTexture(swap, swapDesc, buffer, pTex);
+    Serialise_WrapSwapchainBuffer(swap, swapDesc, buffer, pTex);
 
     record->AddChunk(scope.Get());
   }
@@ -2514,6 +2571,8 @@ void WrappedID3D11Device::SetSwapChainTexture(IDXGISwapChain *swap, DXGI_SWAP_CH
 
     RenderDoc::Inst().AddFrameCapturer((ID3D11Device *)this, sdesc.OutputWindow, this);
   }
+
+  return pTex;
 }
 
 void WrappedID3D11Device::SetMarker(uint32_t col, const wchar_t *name)
@@ -2604,7 +2663,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
   CaptureFailReason reason;
 
-  IDXGISwapChain *swap = NULL;
+  WrappedIDXGISwapChain3 *swap = NULL;
 
   if(wnd)
   {
@@ -3052,10 +3111,10 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
   }
 }
 
-void WrappedID3D11Device::FirstFrame(IDXGISwapChain *swap)
+void WrappedID3D11Device::FirstFrame(WrappedIDXGISwapChain3 *swapChain)
 {
   DXGI_SWAP_CHAIN_DESC swapdesc;
-  swap->GetDesc(&swapdesc);
+  swapChain->GetDesc(&swapdesc);
 
   // if we have to capture the first frame, begin capturing immediately
   if(m_State == WRITING_IDLE && RenderDoc::Inst().ShouldTriggerCapture(0))
@@ -3066,7 +3125,7 @@ void WrappedID3D11Device::FirstFrame(IDXGISwapChain *swap)
   }
 }
 
-HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UINT Flags)
+HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInterval, UINT Flags)
 {
   if((Flags & DXGI_PRESENT_TEST) != 0)
     return S_OK;

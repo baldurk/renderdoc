@@ -26,7 +26,7 @@
 #include "driver/d3d11/d3d11_context.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_resources.h"
-#include "official/dxgi1_3.h"
+#include "driver/dx/official/dxgi1_3.h"
 #include "serialise/string_utils.h"
 
 #ifndef DXGI_ERROR_INVALID_CALL
