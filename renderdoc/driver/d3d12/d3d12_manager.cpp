@@ -24,6 +24,7 @@
 
 #include "d3d12_manager.h"
 #include "d3d12_device.h"
+#include "d3d12_resources.h"
 
 bool D3D12ResourceManager::SerialisableResource(ResourceId id, D3D12ResourceRecord *record)
 {
@@ -38,7 +39,7 @@ bool D3D12ResourceManager::SerialisableResource(ResourceId id, D3D12ResourceReco
 
 ResourceId D3D12ResourceManager::GetID(ID3D12DeviceChild *res)
 {
-  return GetID(res);
+  return GetResID(res);
 }
 
 bool D3D12ResourceManager::ResourceTypeRelease(ID3D12DeviceChild *res)

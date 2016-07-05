@@ -33,24 +33,28 @@
 #include "driver/shaders/dxbc/dxbc_compile.h"
 #include "serialise/serialiser.h"
 
+// similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
+// debugbreak.
+#define D3D12NOTIMP(...) RDCDEBUG("D3D12 not implemented - " __VA_ARGS__)
+
 class WrappedID3D12Device;
 
+template <typename RealType>
 class RefCounter12
 {
 private:
-  IUnknown *m_pReal;
   unsigned int m_iRefcount;
   bool m_SelfDeleting;
 
 protected:
+  RealType *m_pReal;
+
   void SetSelfDeleting(bool selfDelete) { m_SelfDeleting = selfDelete; }
   // used for derived classes that need to soft ref but are handling their
   // own self-deletion
-  static void AddDeviceSoftref(WrappedID3D12Device *device);
-  static void ReleaseDeviceSoftref(WrappedID3D12Device *device);
 
 public:
-  RefCounter12(IUnknown *real, bool selfDelete = true)
+  RefCounter12(RealType *real, bool selfDelete = true)
       : m_pReal(real), m_iRefcount(1), m_SelfDeleting(selfDelete)
   {
   }
@@ -58,7 +62,10 @@ public:
   unsigned int GetRefCount() { return m_iRefcount; }
   //////////////////////////////
   // implement IUnknown
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    return RefCountDXGIObject::WrapQueryInterface(m_pReal, riid, ppvObject);
+  }
 
   ULONG STDMETHODCALLTYPE AddRef()
   {
@@ -73,8 +80,25 @@ public:
     return ret;
   }
 
-  unsigned int SoftRef(WrappedID3D12Device *device);
-  unsigned int SoftRelease(WrappedID3D12Device *device);
+  unsigned int SoftRef(WrappedID3D12Device *device)
+  {
+    unsigned int ret = AddRef();
+    if(device)
+      device->SoftRef();
+    else
+      RDCWARN("No device pointer, is a deleted resource being AddRef()d?");
+    return ret;
+  }
+
+  unsigned int SoftRelease(WrappedID3D12Device *device)
+  {
+    unsigned int ret = Release();
+    if(device)
+      device->SoftRelease();
+    else
+      RDCWARN("No device pointer, is a deleted resource being Release()d?");
+    return ret;
+  }
 };
 
 #define IMPLEMENT_IUNKNOWN_WITH_REFCOUNTER_CUSTOMQUERY                \
@@ -83,6 +107,9 @@ public:
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func) \
   ret func;                                      \
   bool CONCAT(Serialise_, func);
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_RESOURCE_DESC &el);
 
 #pragma region Chunks
 

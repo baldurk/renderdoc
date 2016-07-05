@@ -38,7 +38,7 @@ ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev)
 }
 
 // dummy class to present to the user, while we maintain control
-class WrappedID3D12Debug : public RefCounter12, public ID3D12Debug
+class WrappedID3D12Debug : public RefCounter12<ID3D12Debug>, public ID3D12Debug
 {
 public:
   WrappedID3D12Debug() : RefCounter12(NULL) {}

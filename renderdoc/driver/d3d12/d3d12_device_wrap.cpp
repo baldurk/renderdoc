@@ -22,7 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d12/d3d12_device.h"
+#include "d3d12_device.h"
+#include "d3d12_resources.h"
 
 HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *pDesc, REFIID riid,
                                                 void **ppCommandQueue)

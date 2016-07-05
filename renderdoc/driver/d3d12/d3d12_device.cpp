@@ -22,12 +22,16 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d12/d3d12_device.h"
+#include "d3d12_device.h"
 #include "core/core.h"
+#include "driver/dxgi/dxgi_common.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
 #include "serialise/string_utils.h"
+#include "d3d12_command_list.h"
+#include "d3d12_command_queue.h"
+#include "d3d12_resources.h"
 
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
@@ -464,6 +468,50 @@ void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap
     m_SwapChains.erase(it);
 }
 
+bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
+                                                        DXGI_SWAP_CHAIN_DESC *swapDesc, UINT buffer,
+                                                        IUnknown *realSurface)
+{
+  WrappedID3D12Resource *pRes = (WrappedID3D12Resource *)realSurface;
+
+  SERIALISE_ELEMENT(DXGI_FORMAT, swapFormat, swapDesc->BufferDesc.Format);
+  SERIALISE_ELEMENT(uint32_t, BuffNum, buffer);
+  SERIALISE_ELEMENT(ResourceId, TexID, GetResID(pRes));
+
+  SERIALISE_ELEMENT(D3D12_RESOURCE_DESC, Descriptor, pRes->GetDesc());
+
+  if(m_State < WRITING)
+  {
+    ID3D12Resource *fakeBB = NULL;
+
+    RDCUNIMPLEMENTED("Creating fake backbuffer texture");
+
+    // DXGI swap chain back buffers can be freely cast as a special-case.
+    // translate the format to a typeless format to allow for this.
+    // the original type will be stored in the texture below
+    Descriptor.Format = GetTypelessFormat(Descriptor.Format);
+
+    // create fake texture
+    HRESULT hr = E_INVALIDARG;
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create fake back buffer, HRESULT: 0x%08x", hr);
+    }
+    else
+    {
+      WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(fakeBB, this);
+      fakeBB = wrapped;
+
+      fakeBB->SetName(L"Serialised Swap Chain Buffer");
+
+      GetResourceManager()->AddLiveResource(TexID, fakeBB);
+    }
+  }
+
+  return true;
+}
+
 IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
                                                    DXGI_SWAP_CHAIN_DESC *swapDesc, UINT buffer,
                                                    IUnknown *realSurface)
@@ -479,9 +527,61 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     return tex;
   }
 
-  RDCUNIMPLEMENTED("WrapSwapchainBuffer");
+  ID3D12Resource *pRes = new WrappedID3D12Resource((ID3D12Resource *)realSurface, this);
 
-  return NULL;
+  pRes->SetName(L"Swap Chain Backbuffer");
+
+  ResourceId id = GetResID(pRes);
+
+  // there shouldn't be a resource record for this texture as it wasn't created via
+  // Create*Resource
+  RDCASSERT(id != ResourceId() && !GetResourceManager()->HasResourceRecord(id));
+
+  if(m_State >= WRITING)
+  {
+    D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+    record->DataInSerialiser = false;
+    record->SpecialResource = true;
+    record->Length = 0;
+    record->NumSubResources = 0;
+    record->SubResources = NULL;
+
+    SCOPED_LOCK(m_D3DLock);
+
+    SCOPED_SERIALISE_CONTEXT(CREATE_SWAP_BUFFER);
+
+    Serialise_WrapSwapchainBuffer(swap, swapDesc, buffer, pRes);
+
+    record->AddChunk(scope.Get());
+  }
+
+  if(buffer == 0 && m_State >= WRITING)
+  {
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv = {};
+
+    D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+    rtvDesc.Format = GetSRGBFormat(swapDesc->BufferDesc.Format);
+    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    rtvDesc.Texture2D.MipSlice = 0;
+    rtvDesc.Texture2D.PlaneSlice = 0;
+
+    D3D12NOTIMP("Creating RTV for rendering to back buffer");
+    // m_pDevice->CreateRenderTargetView(Unwrap(pRes), &rtvDesc, rtv);
+
+    m_SwapChains[swap] = rtv;
+  }
+
+  if(swap)
+  {
+    DXGI_SWAP_CHAIN_DESC sdesc;
+    swap->GetDesc(&sdesc);
+
+    Keyboard::AddInputWindow(sdesc.OutputWindow);
+
+    RenderDoc::Inst().AddFrameCapturer((ID3D12Device *)this, sdesc.OutputWindow, this);
+  }
+
+  return pRes;
 }
 
 HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInterval, UINT Flags)
@@ -504,4 +604,109 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     return true;
 
   return false;
+}
+bool WrappedID3D12Device::Serialise_ReleaseResource(ID3D12DeviceChild *res)
+{
+  return true;
+}
+
+void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
+{
+  D3D12NOTIMP("ReleaseResource");
+}
+
+bool WrappedID3D12Device::Serialise_SetShaderDebugPath(ID3D12DeviceChild *res, const char *p)
+{
+  SERIALISE_ELEMENT(ResourceId, resource, GetResID(res));
+  string debugPath = p ? p : "";
+  m_pSerialiser->Serialise("debugPath", debugPath);
+
+  if(m_State < WRITING && GetResourceManager()->HasLiveResource(resource))
+  {
+    RDCUNIMPLEMENTED("SetDebugInfoPath");
+  }
+
+  return true;
+}
+
+HRESULT WrappedID3D12Device::SetShaderDebugPath(ID3D12DeviceChild *res, const char *path)
+{
+  if(m_State >= WRITING)
+  {
+    D3D12ResourceRecord *record = GetRecord(res);
+
+    if(record == NULL)
+    {
+      RDCERR("Setting shader debug path on object %p of type %d that has no resource record.", res,
+             IdentifyTypeByPtr(res));
+      return E_INVALIDARG;
+    }
+
+    {
+      SCOPED_SERIALISE_CONTEXT(SET_SHADER_DEBUG_PATH);
+      Serialise_SetShaderDebugPath(res, path);
+      record->AddChunk(scope.Get());
+    }
+
+    return S_OK;
+  }
+
+  return S_OK;
+}
+
+bool WrappedID3D12Device::Serialise_SetResourceName(ID3D12DeviceChild *res, const char *nm)
+{
+  SERIALISE_ELEMENT(ResourceId, resource, GetResID(res));
+  string name = nm ? nm : "";
+  m_pSerialiser->Serialise("name", name);
+
+  if(m_State < WRITING && GetResourceManager()->HasLiveResource(resource))
+  {
+    ID3D12DeviceChild *r = GetResourceManager()->GetLiveResource(resource);
+
+    r->SetName(StringFormat::UTF82Wide(name).c_str());
+  }
+
+  return true;
+}
+
+void WrappedID3D12Device::SetResourceName(ID3D12DeviceChild *res, const char *name)
+{
+  // don't allow naming device contexts or command lists so we know this chunk
+  // is always on a pre-capture chunk.
+  if(m_State >= WRITING && !WrappedID3D12GraphicsCommandList::IsAlloc(res) &&
+     !WrappedID3D12CommandQueue::IsAlloc(res))
+  {
+    D3D12ResourceRecord *record = GetRecord(res);
+
+    if(record == NULL)
+      record = m_DeviceRecord;
+
+    SCOPED_LOCK(m_D3DLock);
+    {
+      SCOPED_SERIALISE_CONTEXT(SET_RESOURCE_NAME);
+
+      Serialise_SetResourceName(res, name);
+
+      // don't serialise many SetResourceName chunks to the
+      // object record, but we can't afford to drop any.
+      record->LockChunks();
+      while(record->HasChunks())
+      {
+        Chunk *end = record->GetLastChunk();
+
+        if(end->GetChunkType() == SET_RESOURCE_NAME)
+        {
+          SAFE_DELETE(end);
+          record->PopChunk();
+          continue;
+        }
+
+        break;
+      }
+      record->UnlockChunks();
+
+      record->AddChunk(scope.Get());
+    }
+  }
 }
