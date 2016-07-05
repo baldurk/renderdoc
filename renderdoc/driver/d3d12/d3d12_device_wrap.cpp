@@ -28,25 +28,25 @@
 HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *pDesc, REFIID riid,
                                                 void **ppCommandQueue)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateCommandQueue(pDesc, riid, ppCommandQueue);
 }
 
 HRESULT WrappedID3D12Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type, REFIID riid,
                                                     void **ppCommandAllocator)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateCommandAllocator(type, riid, ppCommandAllocator);
 }
 
 HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc,
                                                          REFIID riid, void **ppPipelineState)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateGraphicsPipelineState(pDesc, riid, ppPipelineState);
 }
 
 HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc,
                                                         REFIID riid, void **ppPipelineState)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateComputePipelineState(pDesc, riid, ppPipelineState);
 }
 
 HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST_TYPE type,
@@ -54,31 +54,35 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
                                                ID3D12PipelineState *pInitialState, REFIID riid,
                                                void **ppCommandList)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateCommandList(nodeMask, type, pCommandAllocator, pInitialState, riid,
+                                      ppCommandList);
 }
 
 HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DESC *pDescriptorHeapDesc,
                                                   REFIID riid, void **ppvHeap)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateDescriptorHeap(pDescriptorHeapDesc, riid, ppvHeap);
 }
 
 HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlobWithRootSignature,
                                                  SIZE_T blobLengthInBytes, REFIID riid,
                                                  void **ppvRootSignature)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateRootSignature(nodeMask, pBlobWithRootSignature, blobLengthInBytes, riid,
+                                        ppvRootSignature);
 }
 
 void WrappedID3D12Device::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc,
                                                    D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
+  return m_pDevice->CreateConstantBufferView(pDesc, DestDescriptor);
 }
 
 void WrappedID3D12Device::CreateShaderResourceView(ID3D12Resource *pResource,
                                                    const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc,
                                                    D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
+  return m_pDevice->CreateShaderResourceView(pResource, pDesc, DestDescriptor);
 }
 
 void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
@@ -86,23 +90,27 @@ void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
                                                     const D3D12_UNORDERED_ACCESS_VIEW_DESC *pDesc,
                                                     D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
+  return m_pDevice->CreateUnorderedAccessView(pResource, pCounterResource, pDesc, DestDescriptor);
 }
 
 void WrappedID3D12Device::CreateRenderTargetView(ID3D12Resource *pResource,
                                                  const D3D12_RENDER_TARGET_VIEW_DESC *pDesc,
                                                  D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
+  return m_pDevice->CreateRenderTargetView(pResource, pDesc, DestDescriptor);
 }
 
 void WrappedID3D12Device::CreateDepthStencilView(ID3D12Resource *pResource,
                                                  const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc,
                                                  D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
+  return m_pDevice->CreateDepthStencilView(pResource, pDesc, DestDescriptor);
 }
 
 void WrappedID3D12Device::CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
                                         D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
+  return m_pDevice->CreateSampler(pDesc, DestDescriptor);
 }
 
 HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES *pHeapProperties,
@@ -112,12 +120,14 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
                                                      const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                      REFIID riidResource, void **ppvResource)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateCommittedResource(pHeapProperties, HeapFlags, pResourceDesc,
+                                            InitialResourceState, pOptimizedClearValue,
+                                            riidResource, ppvResource);
 }
 
 HRESULT WrappedID3D12Device::CreateHeap(const D3D12_HEAP_DESC *pDesc, REFIID riid, void **ppvHeap)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateHeap(pDesc, riid, ppvHeap);
 }
 
 HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 HeapOffset,
@@ -126,7 +136,8 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
                                                   const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                   REFIID riid, void **ppvResource)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreatePlacedResource(pHeap, HeapOffset, pDesc, InitialState,
+                                         pOptimizedClearValue, riid, ppvResource);
 }
 
 HRESULT WrappedID3D12Device::CreateReservedResource(const D3D12_RESOURCE_DESC *pDesc,
@@ -134,33 +145,34 @@ HRESULT WrappedID3D12Device::CreateReservedResource(const D3D12_RESOURCE_DESC *p
                                                     const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                     REFIID riid, void **ppvResource)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateReservedResource(pDesc, InitialState, pOptimizedClearValue, riid,
+                                           ppvResource);
 }
 
 HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS Flags, REFIID riid,
                                          void **ppFence)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateFence(InitialValue, Flags, riid, ppFence);
 }
 
 HRESULT WrappedID3D12Device::CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc, REFIID riid,
                                              void **ppvHeap)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateQueryHeap(pDesc, riid, ppvHeap);
 }
 
 HRESULT WrappedID3D12Device::CreateCommandSignature(const D3D12_COMMAND_SIGNATURE_DESC *pDesc,
                                                     ID3D12RootSignature *pRootSignature,
                                                     REFIID riid, void **ppvCommandSignature)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateCommandSignature(pDesc, pRootSignature, riid, ppvCommandSignature);
 }
 
 HRESULT WrappedID3D12Device::CreateSharedHandle(ID3D12DeviceChild *pObject,
                                                 const SECURITY_ATTRIBUTES *pAttributes,
                                                 DWORD Access, LPCWSTR Name, HANDLE *pHandle)
 {
-  return E_NOTIMPL;
+  return m_pDevice->CreateSharedHandle(pObject, pAttributes, Access, Name, pHandle);
 }
 
 void WrappedID3D12Device::CopyDescriptors(
@@ -169,6 +181,10 @@ void WrappedID3D12Device::CopyDescriptors(
     const D3D12_CPU_DESCRIPTOR_HANDLE *pSrcDescriptorRangeStarts,
     const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapsType)
 {
+  return m_pDevice->CopyDescriptors(NumDestDescriptorRanges, pDestDescriptorRangeStarts,
+                                    pDestDescriptorRangeSizes, NumSrcDescriptorRanges,
+                                    pSrcDescriptorRangeStarts, pSrcDescriptorRangeSizes,
+                                    DescriptorHeapsType);
 }
 
 void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
@@ -176,29 +192,33 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
                                                 D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart,
                                                 D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapsType)
 {
+  return m_pDevice->CopyDescriptorsSimple(NumDescriptors, DestDescriptorRangeStart,
+                                          SrcDescriptorRangeStart, DescriptorHeapsType);
 }
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)
 {
-  return E_NOTIMPL;
+  return m_pDevice->OpenSharedHandle(NTHandle, riid, ppvObj);
 }
 
 HRESULT WrappedID3D12Device::OpenSharedHandleByName(LPCWSTR Name, DWORD Access, HANDLE *pNTHandle)
 {
-  return E_NOTIMPL;
+  return m_pDevice->OpenSharedHandleByName(Name, Access, pNTHandle);
 }
 
 HRESULT WrappedID3D12Device::MakeResident(UINT NumObjects, ID3D12Pageable *const *ppObjects)
 {
-  return E_NOTIMPL;
+  return m_pDevice->MakeResident(NumObjects, ppObjects);
 }
 
 HRESULT WrappedID3D12Device::Evict(UINT NumObjects, ID3D12Pageable *const *ppObjects)
 {
-  return E_NOTIMPL;
+  return m_pDevice->Evict(NumObjects, ppObjects);
 }
 
-// we don't need to wrap any of these
+//////////////////////////////////////////////////////////////////////
+// we don't need to wrap any of these functions below
+
 HRESULT WrappedID3D12Device::GetPrivateData(REFGUID guid, UINT *pDataSize, void *pData)
 {
   return m_pDevice->GetPrivateData(guid, pDataSize, pData);
