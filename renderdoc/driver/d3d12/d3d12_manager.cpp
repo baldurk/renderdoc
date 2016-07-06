@@ -26,6 +26,113 @@
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
 
+void D3D12Descriptor::Init(const D3D12_SAMPLER_DESC *pDesc)
+{
+  if(pDesc)
+    samp.desc = *pDesc;
+  else
+    RDCEraseEl(samp.desc);
+}
+
+void D3D12Descriptor::Init(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc)
+{
+  nonsamp.type = TypeCBV;
+  nonsamp.resource = NULL;
+  if(pDesc)
+    nonsamp.cbv = *pDesc;
+  else
+    RDCEraseEl(nonsamp.cbv);
+}
+
+void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc)
+{
+  nonsamp.type = TypeSRV;
+  nonsamp.resource = pResource;
+  if(pDesc)
+    nonsamp.srv = *pDesc;
+  else
+    RDCEraseEl(nonsamp.srv);
+}
+
+void D3D12Descriptor::Init(ID3D12Resource *pResource, ID3D12Resource *pCounterResource,
+                           const D3D12_UNORDERED_ACCESS_VIEW_DESC *pDesc)
+{
+  nonsamp.type = TypeUAV;
+  nonsamp.resource = pResource;
+  nonsamp.uav.counterResource = pCounterResource;
+  if(pDesc)
+    nonsamp.uav.desc.Init(*pDesc);
+  else
+    RDCEraseEl(nonsamp.uav.desc);
+}
+
+void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_RENDER_TARGET_VIEW_DESC *pDesc)
+{
+  nonsamp.type = TypeRTV;
+  nonsamp.resource = pResource;
+  if(pDesc)
+    nonsamp.rtv = *pDesc;
+  else
+    RDCEraseEl(nonsamp.rtv);
+}
+
+void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc)
+{
+  nonsamp.type = TypeDSV;
+  nonsamp.resource = pResource;
+  if(pDesc)
+    nonsamp.dsv = *pDesc;
+  else
+    RDCEraseEl(nonsamp.dsv);
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE Unwrap(D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+  if(handle.ptr == 0)
+    return handle;
+
+  D3D12Descriptor *desc = GetWrapped(handle);
+  return desc->samp.heap->GetCPU(desc->samp.idx);
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE Unwrap(D3D12_GPU_DESCRIPTOR_HANDLE handle)
+{
+  if(handle.ptr == 0)
+    return handle;
+
+  D3D12Descriptor *desc = GetWrapped(handle);
+  return desc->samp.heap->GetGPU(desc->samp.idx);
+}
+
+PortableHandle ToPortableHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+  if(handle.ptr == 0)
+    return PortableHandle(0);
+
+  D3D12Descriptor *desc = GetWrapped(handle);
+
+  return PortableHandle(GetResID(desc->samp.heap), desc->samp.idx);
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE FromPortableHandle(D3D12ResourceManager *manager, PortableHandle handle)
+{
+  if(handle.heap == ResourceId())
+    return D3D12_CPU_DESCRIPTOR_HANDLE();
+
+  WrappedID3D12DescriptorHeap *heap = manager->GetLiveAs<WrappedID3D12DescriptorHeap>(handle.heap);
+
+  if(heap)
+    return heap->GetCPU(handle.index);
+
+  return D3D12_CPU_DESCRIPTOR_HANDLE();
+}
+
+string ToStrHelper<false, PortableHandle>::Get(const PortableHandle &el)
+{
+  return StringFormat::Fmt("D3D12_CPU_DESCRIPTOR_HANDLE %s[%u]", ToStr::Get(el.heap).c_str(),
+                           el.index);
+}
+
 bool D3D12ResourceManager::SerialisableResource(ResourceId id, D3D12ResourceRecord *record)
 {
   if(id == m_Device->GetResourceID())

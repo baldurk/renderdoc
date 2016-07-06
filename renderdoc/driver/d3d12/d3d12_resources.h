@@ -314,8 +314,17 @@ public:
   virtual ~WrappedID3D12CommandSignature() { Shutdown(); }
 };
 
+struct D3D12Descriptor;
+
 class WrappedID3D12DescriptorHeap : public WrappedDeviceChild12<ID3D12DescriptorHeap>
 {
+  D3D12_CPU_DESCRIPTOR_HANDLE realCPUBase;
+  D3D12_GPU_DESCRIPTOR_HANDLE realGPUBase;
+
+  UINT increment;
+
+  D3D12Descriptor *descriptors;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12DescriptorHeap);
 
@@ -324,23 +333,40 @@ public:
     TypeEnum = Resource_DescriptorHeap,
   };
 
-  WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real, WrappedID3D12Device *device)
-      : WrappedDeviceChild12(real, device)
-  {
-  }
-  virtual ~WrappedID3D12DescriptorHeap() { Shutdown(); }
+  WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real, WrappedID3D12Device *device,
+                              const D3D12_DESCRIPTOR_HEAP_DESC &desc);
+  virtual ~WrappedID3D12DescriptorHeap();
+
   //////////////////////////////
   // implement ID3D12DescriptorHeap
 
   virtual D3D12_DESCRIPTOR_HEAP_DESC STDMETHODCALLTYPE GetDesc() { return m_pReal->GetDesc(); }
   virtual D3D12_CPU_DESCRIPTOR_HANDLE STDMETHODCALLTYPE GetCPUDescriptorHandleForHeapStart()
   {
-    return m_pReal->GetCPUDescriptorHandleForHeapStart();
+    D3D12_CPU_DESCRIPTOR_HANDLE handle;
+    handle.ptr = (SIZE_T)descriptors;
+    return handle;
   }
 
   virtual D3D12_GPU_DESCRIPTOR_HANDLE STDMETHODCALLTYPE GetGPUDescriptorHandleForHeapStart()
   {
-    return m_pReal->GetGPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE handle;
+    handle.ptr = (UINT64)descriptors;
+    return handle;
+  }
+
+  D3D12_CPU_DESCRIPTOR_HANDLE GetCPU(uint32_t idx)
+  {
+    D3D12_CPU_DESCRIPTOR_HANDLE handle = realCPUBase;
+    handle.ptr += idx * increment;
+    return handle;
+  }
+
+  D3D12_GPU_DESCRIPTOR_HANDLE GetGPU(uint32_t idx)
+  {
+    D3D12_GPU_DESCRIPTOR_HANDLE handle = realGPUBase;
+    handle.ptr += idx * increment;
+    return handle;
   }
 };
 
@@ -464,9 +490,10 @@ public:
   virtual D3D12_RESOURCE_DESC STDMETHODCALLTYPE GetDesc() { return m_pReal->GetDesc(); }
   virtual D3D12_GPU_VIRTUAL_ADDRESS STDMETHODCALLTYPE GetGPUVirtualAddress()
   {
-    return m_pReal->GetGPUVirtualAddress();
+    return (D3D12_GPU_VIRTUAL_ADDRESS) this;
   }
 
+  D3D12_GPU_VIRTUAL_ADDRESS GetGPU() { return m_pReal->GetGPUVirtualAddress(); }
   virtual HRESULT STDMETHODCALLTYPE WriteToSubresource(UINT DstSubresource, const D3D12_BOX *pDstBox,
                                                        const void *pSrcData, UINT SrcRowPitch,
                                                        UINT SrcDepthPitch)
@@ -572,8 +599,8 @@ typename UnwrapHelper<iface>::Outer *GetWrapped(iface *obj)
 // or record
 TrackedResource *GetTracked(ID3D12DeviceChild *ptr);
 
-template <typename iface>
-iface *Unwrap(iface *obj)
+template <typename ifaceptr>
+ifaceptr Unwrap(ifaceptr obj)
 {
   if(obj == NULL)
     return NULL;
@@ -581,8 +608,8 @@ iface *Unwrap(iface *obj)
   return GetWrapped(obj)->GetReal();
 }
 
-template <typename iface>
-ResourceId GetResID(iface *obj)
+template <typename ifaceptr>
+ResourceId GetResID(ifaceptr obj)
 {
   if(obj == NULL)
     return ResourceId();
@@ -590,8 +617,8 @@ ResourceId GetResID(iface *obj)
   return GetWrapped(obj)->GetResourceID();
 }
 
-template <typename iface>
-D3D12ResourceRecord *GetRecord(iface *obj)
+template <typename ifaceptr>
+D3D12ResourceRecord *GetRecord(ifaceptr obj)
 {
   if(obj == NULL)
     return NULL;
@@ -606,3 +633,9 @@ template <>
 ID3D12DeviceChild *Unwrap(ID3D12DeviceChild *ptr);
 template <>
 D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr);
+
+// specialisations for aliasing ID3D12Resource pointer as a D3D12_GPU_VIRTUAL_ADDRESS
+template <>
+D3D12_GPU_VIRTUAL_ADDRESS Unwrap(D3D12_GPU_VIRTUAL_ADDRESS addr);
+template <>
+ResourceId GetResID(D3D12_GPU_VIRTUAL_ADDRESS addr);

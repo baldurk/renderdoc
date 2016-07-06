@@ -163,6 +163,10 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D12Device));
 
+  for(size_t i = 0; i < ARRAY_COUNT(m_DescriptorIncrements); i++)
+    m_DescriptorIncrements[i] =
+        realDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE(i));
+
   // refcounters implicitly construct with one reference, but we don't start with any soft
   // references.
   m_SoftRefCounter.Release();

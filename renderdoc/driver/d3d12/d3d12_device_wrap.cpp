@@ -363,7 +363,7 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
     }
     else
     {
-      ret = new WrappedID3D12DescriptorHeap(ret, this);
+      ret = new WrappedID3D12DescriptorHeap(ret, this, Descriptor);
 
       GetResourceManager()->AddLiveResource(Heap, ret);
     }
@@ -388,7 +388,8 @@ HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DE
   {
     SCOPED_LOCK(m_D3DLock);
 
-    WrappedID3D12DescriptorHeap *wrapped = new WrappedID3D12DescriptorHeap(real, this);
+    WrappedID3D12DescriptorHeap *wrapped =
+        new WrappedID3D12DescriptorHeap(real, this, *pDescriptorHeapDesc);
 
     if(m_State >= WRITING)
     {
@@ -476,14 +477,24 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
 void WrappedID3D12Device::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc,
                                                    D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  return m_pDevice->CreateConstantBufferView(pDesc, DestDescriptor);
+  GetWrapped(DestDescriptor)->Init(pDesc);
+
+  D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
+  if(pDesc)
+  {
+    desc = *pDesc;
+    desc.BufferLocation = Unwrap(desc.BufferLocation);
+  }
+
+  return m_pDevice->CreateConstantBufferView(pDesc ? &desc : NULL, Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateShaderResourceView(ID3D12Resource *pResource,
                                                    const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc,
                                                    D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  return m_pDevice->CreateShaderResourceView(Unwrap(pResource), pDesc, DestDescriptor);
+  GetWrapped(DestDescriptor)->Init(pResource, pDesc);
+  return m_pDevice->CreateShaderResourceView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
@@ -491,29 +502,32 @@ void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
                                                     const D3D12_UNORDERED_ACCESS_VIEW_DESC *pDesc,
                                                     D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
+  GetWrapped(DestDescriptor)->Init(pResource, pCounterResource, pDesc);
   return m_pDevice->CreateUnorderedAccessView(Unwrap(pResource), Unwrap(pCounterResource), pDesc,
-                                              DestDescriptor);
+                                              Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateRenderTargetView(ID3D12Resource *pResource,
                                                  const D3D12_RENDER_TARGET_VIEW_DESC *pDesc,
                                                  D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  D3D12NOTIMP(__FUNCSIG__);
-  return m_pDevice->CreateRenderTargetView(Unwrap(pResource), pDesc, DestDescriptor);
+  GetWrapped(DestDescriptor)->Init(pResource, pDesc);
+  return m_pDevice->CreateRenderTargetView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateDepthStencilView(ID3D12Resource *pResource,
                                                  const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc,
                                                  D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  return m_pDevice->CreateDepthStencilView(Unwrap(pResource), pDesc, DestDescriptor);
+  GetWrapped(DestDescriptor)->Init(pResource, pDesc);
+  return m_pDevice->CreateDepthStencilView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
                                         D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  return m_pDevice->CreateSampler(pDesc, DestDescriptor);
+  GetWrapped(DestDescriptor)->Init(pDesc);
+  return m_pDevice->CreateSampler(pDesc, Unwrap(DestDescriptor));
 }
 
 bool WrappedID3D12Device::Serialise_CreateCommittedResource(
@@ -707,10 +721,21 @@ void WrappedID3D12Device::CopyDescriptors(
     const D3D12_CPU_DESCRIPTOR_HANDLE *pSrcDescriptorRangeStarts,
     const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapsType)
 {
-  return m_pDevice->CopyDescriptors(NumDestDescriptorRanges, pDestDescriptorRangeStarts,
-                                    pDestDescriptorRangeSizes, NumSrcDescriptorRanges,
-                                    pSrcDescriptorRangeStarts, pSrcDescriptorRangeSizes,
-                                    DescriptorHeapsType);
+  D3D12_CPU_DESCRIPTOR_HANDLE *dstStarts = new D3D12_CPU_DESCRIPTOR_HANDLE[NumDestDescriptorRanges];
+  D3D12_CPU_DESCRIPTOR_HANDLE *srcStarts = new D3D12_CPU_DESCRIPTOR_HANDLE[NumSrcDescriptorRanges];
+
+  for(UINT i = 0; i < NumDestDescriptorRanges; i++)
+    dstStarts[i] = Unwrap(pDestDescriptorRangeStarts[i]);
+
+  for(UINT i = 0; i < NumDestDescriptorRanges; i++)
+    srcStarts[i] = Unwrap(pSrcDescriptorRangeStarts[i]);
+
+  m_pDevice->CopyDescriptors(NumDestDescriptorRanges, dstStarts, pDestDescriptorRangeSizes,
+                             NumSrcDescriptorRanges, srcStarts, pSrcDescriptorRangeSizes,
+                             DescriptorHeapsType);
+
+  SAFE_DELETE_ARRAY(dstStarts);
+  SAFE_DELETE_ARRAY(srcStarts);
 }
 
 void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
@@ -718,8 +743,8 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
                                                 D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart,
                                                 D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapsType)
 {
-  return m_pDevice->CopyDescriptorsSimple(NumDescriptors, DestDescriptorRangeStart,
-                                          SrcDescriptorRangeStart, DescriptorHeapsType);
+  m_pDevice->CopyDescriptorsSimple(NumDescriptors, Unwrap(DestDescriptorRangeStart),
+                                   Unwrap(SrcDescriptorRangeStart), DescriptorHeapsType);
 }
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)
@@ -801,7 +826,8 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
 UINT WrappedID3D12Device::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType)
 {
-  return m_pDevice->GetDescriptorHandleIncrementSize(DescriptorHeapType);
+  // we essentially intercept this, so it's a fixed size.
+  return sizeof(D3D12Descriptor);
 }
 
 D3D12_RESOURCE_ALLOCATION_INFO WrappedID3D12Device::GetResourceAllocationInfo(

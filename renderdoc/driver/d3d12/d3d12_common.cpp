@@ -336,7 +336,24 @@ void Serialiser::Serialise(const char *name, D3D12_VERTEX_BUFFER_VIEW &el)
 {
   ScopedContext scope(this, name, "D3D12_VERTEX_BUFFER_VIEW", 0, true);
 
-  // TODO serialise gpu virtual address as heap ID and idx
+  D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData();
+
+  ResourceId buffer;
+
+  if(m_Mode == WRITING)
+    buffer = GetResID(el.BufferLocation);
+
+  Serialise("BufferLocation", buffer);
+
+  if(m_Mode == READING)
+  {
+    ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
+    if(res)
+      el.BufferLocation = Unwrap(res->GetGPUVirtualAddress());
+    else
+      el.BufferLocation = 0;
+  }
+
   Serialise("SizeInBytes", el.SizeInBytes);
   Serialise("StrideInBytes", el.StrideInBytes);
 }
@@ -346,7 +363,24 @@ void Serialiser::Serialise(const char *name, D3D12_INDEX_BUFFER_VIEW &el)
 {
   ScopedContext scope(this, name, "D3D12_INDEX_BUFFER_VIEW", 0, true);
 
-  // TODO serialise gpu virtual address as heap ID and idx
+  D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData();
+
+  ResourceId buffer;
+
+  if(m_Mode == WRITING)
+    buffer = GetResID(el.BufferLocation);
+
+  Serialise("BufferLocation", buffer);
+
+  if(m_Mode == READING)
+  {
+    ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
+    if(res)
+      el.BufferLocation = Unwrap(res->GetGPUVirtualAddress());
+    else
+      el.BufferLocation = 0;
+  }
+
   Serialise("SizeInBytes", el.SizeInBytes);
   Serialise("Format", el.Format);
 }

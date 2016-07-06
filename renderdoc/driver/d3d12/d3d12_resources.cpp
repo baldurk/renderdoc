@@ -124,3 +124,50 @@ D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr)
 
   return res->GetResourceRecord();
 }
+
+template <>
+D3D12_GPU_VIRTUAL_ADDRESS Unwrap(D3D12_GPU_VIRTUAL_ADDRESS addr)
+{
+  if(addr == 0)
+    return addr;
+
+  WrappedID3D12Resource *res = (WrappedID3D12Resource *)addr;
+  return res->GetGPU();
+}
+
+template <>
+ResourceId GetResID(D3D12_GPU_VIRTUAL_ADDRESS addr)
+{
+  if(addr == 0)
+    return ResourceId();
+
+  WrappedID3D12Resource *res = (WrappedID3D12Resource *)addr;
+  return res->GetResourceID();
+}
+
+WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,
+                                                         WrappedID3D12Device *device,
+                                                         const D3D12_DESCRIPTOR_HEAP_DESC &desc)
+    : WrappedDeviceChild12(real, device)
+{
+  realCPUBase = real->GetCPUDescriptorHandleForHeapStart();
+  realGPUBase = real->GetGPUDescriptorHandleForHeapStart();
+
+  increment = device->GetDescriptorIncrement(desc.Type);
+
+  descriptors = new D3D12Descriptor[desc.NumDescriptors];
+
+  RDCEraseMem(descriptors, sizeof(D3D12Descriptor) * desc.NumDescriptors);
+  for(UINT i = 0; i < desc.NumDescriptors; i++)
+  {
+    // only need to set this once, it's aliased between samp and nonsamp
+    descriptors[i].samp.heap = this;
+    descriptors[i].samp.idx = i;
+  }
+}
+
+WrappedID3D12DescriptorHeap::~WrappedID3D12DescriptorHeap()
+{
+  Shutdown();
+  SAFE_DELETE_ARRAY(descriptors);
+}

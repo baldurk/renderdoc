@@ -449,13 +449,13 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootSignature(ID3D12RootSignat
 void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
     UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
 {
-  m_pReal->SetComputeRootDescriptorTable(RootParameterIndex, BaseDescriptor);
+  m_pReal->SetComputeRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor));
 }
 
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
     UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
 {
-  m_pReal->SetGraphicsRootDescriptorTable(RootParameterIndex, BaseDescriptor);
+  m_pReal->SetGraphicsRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor));
 }
 
 void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstant(UINT RootParameterIndex,
@@ -493,18 +493,20 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants(UINT RootPa
 void WrappedID3D12GraphicsCommandList::SetComputeRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetComputeRootConstantBufferView(RootParameterIndex, BufferLocation);
+  m_pReal->SetComputeRootConstantBufferView(RootParameterIndex, Unwrap(BufferLocation));
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
   SERIALISE_ELEMENT(UINT, idx, RootParameterIndex);
-  // TODO wrap and serialise buffer location as heap ID + idx
+  SERIALISE_ELEMENT(ResourceId, buffer, GetResID(BufferLocation));
 
   if(m_State <= READING)
   {
-    m_pReal->SetGraphicsRootConstantBufferView(idx, BufferLocation);
+    WrappedID3D12Resource *pRes = GetResourceManager()->GetLiveAs<WrappedID3D12Resource>(buffer);
+
+    m_pReal->SetGraphicsRootConstantBufferView(idx, pRes->GetGPU());
   }
 
   return true;
@@ -513,7 +515,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation);
+  m_pReal->SetGraphicsRootConstantBufferView(RootParameterIndex, Unwrap(BufferLocation));
 
   if(m_State >= WRITING)
   {
@@ -527,25 +529,25 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
 void WrappedID3D12GraphicsCommandList::SetComputeRootShaderResourceView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetComputeRootShaderResourceView(RootParameterIndex, BufferLocation);
+  m_pReal->SetComputeRootShaderResourceView(RootParameterIndex, Unwrap(BufferLocation));
 }
 
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetGraphicsRootShaderResourceView(RootParameterIndex, BufferLocation);
+  m_pReal->SetGraphicsRootShaderResourceView(RootParameterIndex, Unwrap(BufferLocation));
 }
 
 void WrappedID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetComputeRootUnorderedAccessView(RootParameterIndex, BufferLocation);
+  m_pReal->SetComputeRootUnorderedAccessView(RootParameterIndex, Unwrap(BufferLocation));
 }
 
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetGraphicsRootUnorderedAccessView(RootParameterIndex, BufferLocation);
+  m_pReal->SetGraphicsRootUnorderedAccessView(RootParameterIndex, Unwrap(BufferLocation));
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *pView)
@@ -566,7 +568,17 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_IN
 
 void WrappedID3D12GraphicsCommandList::IASetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *pView)
 {
-  m_pReal->IASetIndexBuffer(pView);
+  if(pView)
+  {
+    D3D12_INDEX_BUFFER_VIEW view = *pView;
+    view.BufferLocation = Unwrap(view.BufferLocation);
+
+    m_pReal->IASetIndexBuffer(&view);
+  }
+  else
+  {
+    m_pReal->IASetIndexBuffer(pView);
+  }
 
   if(m_State >= WRITING)
   {
@@ -597,7 +609,17 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
 void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT NumViews,
                                                           const D3D12_VERTEX_BUFFER_VIEW *pViews)
 {
-  m_pReal->IASetVertexBuffers(StartSlot, NumViews, pViews);
+  D3D12_VERTEX_BUFFER_VIEW *unwrapped = new D3D12_VERTEX_BUFFER_VIEW[NumViews];
+
+  for(UINT i = 0; i < NumViews; i++)
+  {
+    unwrapped[i] = pViews[i];
+    unwrapped[i].BufferLocation = Unwrap(unwrapped[i].BufferLocation);
+  }
+
+  m_pReal->IASetVertexBuffers(StartSlot, NumViews, unwrapped);
+
+  SAFE_DELETE_ARRAY(unwrapped);
 
   if(m_State >= WRITING)
   {
@@ -611,7 +633,18 @@ void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT N
 void WrappedID3D12GraphicsCommandList::SOSetTargets(UINT StartSlot, UINT NumViews,
                                                     const D3D12_STREAM_OUTPUT_BUFFER_VIEW *pViews)
 {
-  m_pReal->SOSetTargets(StartSlot, NumViews, pViews);
+  D3D12_STREAM_OUTPUT_BUFFER_VIEW *unwrapped = new D3D12_STREAM_OUTPUT_BUFFER_VIEW[NumViews];
+
+  for(UINT i = 0; i < NumViews; i++)
+  {
+    unwrapped[i] = pViews[i];
+    unwrapped[i].BufferLocation = Unwrap(unwrapped[i].BufferLocation);
+    unwrapped[i].BufferFilledSizeLocation = Unwrap(unwrapped[i].BufferFilledSizeLocation);
+  }
+
+  m_pReal->SOSetTargets(StartSlot, NumViews, unwrapped);
+
+  SAFE_DELETE_ARRAY(unwrapped);
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
@@ -621,11 +654,36 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   SERIALISE_ELEMENT(UINT, num, NumRenderTargetDescriptors);
   SERIALISE_ELEMENT(bool, singlehandle, RTsSingleHandleToDescriptorRange != FALSE);
 
-  // TODO unwrap and serialise handles as heaps + idxs
+  UINT numHandles = singlehandle ? 1U : num;
+
+  std::vector<PortableHandle> rts;
+
+  if(m_State >= WRITING)
+  {
+    rts.resize(numHandles);
+    // indexing pRenderTargetDescriptors with [i] is fine since if single handle is true,
+    // i will only ever be 0 (so we do equivalent of *pRenderTargetDescriptors)
+    for(UINT i = 0; i < numHandles; i++)
+      rts[i] = ToPortableHandle(pRenderTargetDescriptors[i]);
+  }
+
+  m_pSerialiser->Serialise("pRenderTargetDescriptors", rts);
+
+  SERIALISE_ELEMENT(PortableHandle, dsv, pDepthStencilDescriptor
+                                             ? ToPortableHandle(*pDepthStencilDescriptor)
+                                             : PortableHandle(0));
 
   if(m_State <= READING)
   {
-    m_pReal->OMSetRenderTargets(num, NULL, singlehandle ? TRUE : FALSE, NULL);
+    D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = FromPortableHandle(GetResourceManager(), dsv);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE *rtHandles = new D3D12_CPU_DESCRIPTOR_HANDLE[numHandles];
+
+    for(UINT i = 0; i < numHandles; i++)
+      rtHandles[i] = FromPortableHandle(GetResourceManager(), rts[i]);
+
+    m_pReal->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
+                                dsv.heap != ResourceId() ? &dsvHandle : NULL);
   }
 
   return true;
@@ -635,8 +693,18 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
     UINT NumRenderTargetDescriptors, const D3D12_CPU_DESCRIPTOR_HANDLE *pRenderTargetDescriptors,
     BOOL RTsSingleHandleToDescriptorRange, const D3D12_CPU_DESCRIPTOR_HANDLE *pDepthStencilDescriptor)
 {
-  m_pReal->OMSetRenderTargets(NumRenderTargetDescriptors, pRenderTargetDescriptors,
-                              RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
+  UINT numHandles = RTsSingleHandleToDescriptorRange ? 1U : NumRenderTargetDescriptors;
+  D3D12_CPU_DESCRIPTOR_HANDLE *unwrapped = new D3D12_CPU_DESCRIPTOR_HANDLE[numHandles];
+  for(UINT i = 0; i < numHandles; i++)
+    unwrapped[i] = Unwrap(pRenderTargetDescriptors[i]);
+
+  D3D12_CPU_DESCRIPTOR_HANDLE dsv =
+      pDepthStencilDescriptor ? Unwrap(*pDepthStencilDescriptor) : D3D12_CPU_DESCRIPTOR_HANDLE();
+
+  m_pReal->OMSetRenderTargets(NumRenderTargetDescriptors, unwrapped, RTsSingleHandleToDescriptorRange,
+                              pDepthStencilDescriptor ? &dsv : NULL);
+
+  SAFE_DELETE_ARRAY(unwrapped);
 
   if(m_State >= WRITING)
   {
@@ -652,14 +720,15 @@ void WrappedID3D12GraphicsCommandList::ClearDepthStencilView(
     D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth,
     UINT8 Stencil, UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->ClearDepthStencilView(DepthStencilView, ClearFlags, Depth, Stencil, NumRects, pRects);
+  m_pReal->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth, Stencil, NumRects,
+                                 pRects);
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
     D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView, const FLOAT ColorRGBA[4], UINT NumRects,
     const D3D12_RECT *pRects)
 {
-  // TODO unwrap and serialise handle as heap + idx
+  SERIALISE_ELEMENT(PortableHandle, rtv, ToPortableHandle(RenderTargetView));
 
   float Color[4] = {0};
 
@@ -673,6 +742,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
 
   if(m_State <= READING)
   {
+    RenderTargetView = FromPortableHandle(GetResourceManager(), rtv);
+
     m_pReal->ClearRenderTargetView(RenderTargetView, Color, num, rects);
   }
 
@@ -685,7 +756,7 @@ void WrappedID3D12GraphicsCommandList::ClearRenderTargetView(
     D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView, const FLOAT ColorRGBA[4], UINT NumRects,
     const D3D12_RECT *pRects)
 {
-  m_pReal->ClearRenderTargetView(RenderTargetView, ColorRGBA, NumRects, pRects);
+  m_pReal->ClearRenderTargetView(Unwrap(RenderTargetView), ColorRGBA, NumRects, pRects);
 
   if(m_State >= WRITING)
   {
@@ -700,7 +771,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewUint(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const UINT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->ClearUnorderedAccessViewUint(ViewGPUHandleInCurrentHeap, ViewCPUHandle,
+  m_pReal->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap), ViewCPUHandle,
                                         Unwrap(pResource), Values, NumRects, pRects);
 }
 
@@ -708,7 +779,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const FLOAT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->ClearUnorderedAccessViewFloat(ViewGPUHandleInCurrentHeap, ViewCPUHandle,
+  m_pReal->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap), ViewCPUHandle,
                                          Unwrap(pResource), Values, NumRects, pRects);
 }
 

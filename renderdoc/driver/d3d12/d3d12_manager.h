@@ -31,6 +31,73 @@
 #include "driver/d3d12/d3d12_common.h"
 #include "serialise/serialiser.h"
 
+class WrappedID3D12DescriptorHeap;
+
+// squeeze the descriptor a bit so that the below struct fits in 64 bytes
+struct D3D12_UNORDERED_ACCESS_VIEW_DESC_SQUEEZED
+{
+  // pull up and compress down to 1 byte the enums/flags that don't have any larger values
+  uint8_t Format;
+  uint8_t ViewDimension;
+  uint8_t BufferFlags;
+
+  // 5 more bytes here - below union is 8-byte aligned
+
+  union
+  {
+    struct D3D12_BUFFER_UAV_SQUEEZED
+    {
+      UINT64 FirstElement;
+      UINT NumElements;
+      UINT StructureByteStride;
+      UINT64 CounterOffsetInBytes;
+    } Buffer;
+    D3D12_TEX1D_UAV Texture1D;
+    D3D12_TEX1D_ARRAY_UAV Texture1DArray;
+    D3D12_TEX2D_UAV Texture2D;
+    D3D12_TEX2D_ARRAY_UAV Texture2DArray;
+    D3D12_TEX3D_UAV Texture3D;
+  };
+
+  void Init(const D3D12_UNORDERED_ACCESS_VIEW_DESC &desc)
+  {
+    Format = (uint8_t)desc.Format;
+    ViewDimension = (uint8_t)desc.ViewDimension;
+
+    // all but buffer elements should fit in 4 UINTs, so we can copy the Buffer (minus the flags we
+    // moved) and still cover them.
+    RDCCOMPILE_ASSERT(sizeof(Texture1D) <= 4 * sizeof(UINT), "Buffer isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(Texture1DArray) <= 4 * sizeof(UINT),
+                      "Buffer isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(Texture2D) <= 4 * sizeof(UINT), "Buffer isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(Texture2DArray) <= 4 * sizeof(UINT),
+                      "Buffer isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(Texture3D) <= 4 * sizeof(UINT), "Buffer isn't largest union member!");
+
+    Buffer.FirstElement = desc.Buffer.FirstElement;
+    Buffer.NumElements = desc.Buffer.NumElements;
+    Buffer.StructureByteStride = desc.Buffer.StructureByteStride;
+    Buffer.CounterOffsetInBytes = desc.Buffer.CounterOffsetInBytes;
+    BufferFlags = (uint8_t)desc.Buffer.Flags;
+  }
+
+  D3D12_UNORDERED_ACCESS_VIEW_DESC AsDesc() const
+  {
+    D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
+
+    desc.Format = (DXGI_FORMAT)Format;
+    desc.ViewDimension = (D3D12_UAV_DIMENSION)ViewDimension;
+
+    desc.Buffer.FirstElement = Buffer.FirstElement;
+    desc.Buffer.NumElements = Buffer.NumElements;
+    desc.Buffer.StructureByteStride = Buffer.StructureByteStride;
+    desc.Buffer.CounterOffsetInBytes = Buffer.CounterOffsetInBytes;
+    desc.Buffer.Flags = (D3D12_BUFFER_UAV_FLAGS)BufferFlags;
+
+    return desc;
+  }
+};
+
 struct D3D12Descriptor
 {
   enum DescriptorType
@@ -55,13 +122,21 @@ struct D3D12Descriptor
     return nonsamp.type;
   }
 
+  void Init(const D3D12_SAMPLER_DESC *pDesc);
+  void Init(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc);
+  void Init(ID3D12Resource *pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc);
+  void Init(ID3D12Resource *pResource, ID3D12Resource *pCounterResource,
+            const D3D12_UNORDERED_ACCESS_VIEW_DESC *pDesc);
+  void Init(ID3D12Resource *pResource, const D3D12_RENDER_TARGET_VIEW_DESC *pDesc);
+  void Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc);
+
   union
   {
     // keep the sampler outside as it's the largest descriptor
     struct
     {
       // same location in both structs
-      ID3D12DescriptorHeap *heap;
+      WrappedID3D12DescriptorHeap *heap;
       uint32_t idx;
 
       D3D12_SAMPLER_DESC desc;
@@ -70,7 +145,7 @@ struct D3D12Descriptor
     struct
     {
       // same location in both structs
-      ID3D12DescriptorHeap *heap;
+      WrappedID3D12DescriptorHeap *heap;
       uint32_t idx;
 
       // this element overlaps with the D3D12_FILTER in D3D12_SAMPLER_DESC,
@@ -83,13 +158,44 @@ struct D3D12Descriptor
       {
         D3D12_CONSTANT_BUFFER_VIEW_DESC cbv;
         D3D12_SHADER_RESOURCE_VIEW_DESC srv;
-        D3D12_UNORDERED_ACCESS_VIEW_DESC uav;
+        struct
+        {
+          ID3D12Resource *counterResource;
+          D3D12_UNORDERED_ACCESS_VIEW_DESC_SQUEEZED desc;
+        } uav;
         D3D12_RENDER_TARGET_VIEW_DESC rtv;
         D3D12_DEPTH_STENCIL_VIEW_DESC dsv;
       };
     } nonsamp;
   };
 };
+
+inline D3D12Descriptor *GetWrapped(D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+  return (D3D12Descriptor *)handle.ptr;
+}
+
+inline D3D12Descriptor *GetWrapped(D3D12_GPU_DESCRIPTOR_HANDLE handle)
+{
+  return (D3D12Descriptor *)handle.ptr;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE Unwrap(D3D12_CPU_DESCRIPTOR_HANDLE handle);
+D3D12_GPU_DESCRIPTOR_HANDLE Unwrap(D3D12_GPU_DESCRIPTOR_HANDLE handle);
+
+struct PortableHandle
+{
+  PortableHandle() {}
+  PortableHandle(ResourceId id, uint32_t i) : heap(id), index(i) {}
+  PortableHandle(uint32_t i) : index(i) {}
+  ResourceId heap;
+  uint32_t index;
+};
+
+class D3D12ResourceManager;
+
+PortableHandle ToPortableHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle);
+D3D12_CPU_DESCRIPTOR_HANDLE FromPortableHandle(D3D12ResourceManager *manager, PortableHandle handle);
 
 struct D3D12ResourceRecord : public ResourceRecord
 {

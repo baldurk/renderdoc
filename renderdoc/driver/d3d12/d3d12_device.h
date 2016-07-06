@@ -240,12 +240,19 @@ private:
 
   map<WrappedIDXGISwapChain3 *, D3D12_CPU_DESCRIPTOR_HANDLE> m_SwapChains;
 
+  UINT m_DescriptorIncrements[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
 public:
   static const int AllocPoolCount = 4;
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Device, AllocPoolCount);
 
   WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams *params);
   virtual ~WrappedID3D12Device();
+
+  UINT GetDescriptorIncrement(D3D12_DESCRIPTOR_HEAP_TYPE type)
+  {
+    return m_DescriptorIncrements[type];
+  }
 
   ////////////////////////////////////////////////////////////////
   // non wrapping interface
