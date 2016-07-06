@@ -998,8 +998,8 @@ void Serialiser::Serialise(const char *name, D3D11_SUBRESOURCE_DATA &el)
 string ToStrHelper<false, D3D11_VIEWPORT>::Get(const D3D11_VIEWPORT &el)
 {
   char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "Viewport<%.0fx%.0f+%.0f+%.0f>", el.Width, el.Height,
-                         el.TopLeftX, el.TopLeftY);
+  StringFormat::snprintf(tostrBuf, 255, "Viewport<%.0fx%.0f+%.0f+%.0f z=%f->%f>", el.Width,
+                         el.Height, el.TopLeftX, el.TopLeftY, el.MinDepth, el.MaxDepth);
 
   return tostrBuf;
 }
