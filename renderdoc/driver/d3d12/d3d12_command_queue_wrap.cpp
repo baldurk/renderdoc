@@ -47,6 +47,31 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::CopyTileMappings(
                             pSrcRegionStartCoordinate, pRegionSize, Flags);
 }
 
+bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLists,
+                                                              ID3D12CommandList *const *ppCommandLists)
+{
+  SERIALISE_ELEMENT(UINT, num, NumCommandLists);
+
+  std::vector<ResourceId> ids;
+  ids.reserve(num);
+  for(UINT i = 0; i < num; i++)
+    ids.push_back(GetResID(ppCommandLists[i]));
+
+  m_pSerialiser->Serialise("ppCommandLists", ids);
+
+  if(m_State <= EXECUTING)
+  {
+    std::vector<ID3D12CommandList *> unwrappedLists;
+    unwrappedLists.reserve(num);
+    for(UINT i = 0; i < num; i++)
+      unwrappedLists.push_back(Unwrap(GetResourceManager()->GetLiveAs<ID3D12CommandList>(ids[i])));
+
+    m_pReal->ExecuteCommandLists(num, &unwrappedLists[0]);
+  }
+
+  return true;
+}
+
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
     UINT NumCommandLists, ID3D12CommandList *const *ppCommandLists)
 {
@@ -57,6 +82,14 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
   m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped);
 
   SAFE_DELETE_ARRAY(unwrapped);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(EXECUTE_CMD_LISTS);
+    Serialise_ExecuteCommandLists(NumCommandLists, ppCommandLists);
+
+    m_QueueRecord->AddChunk(scope.Get());
+  }
 }
 
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::SetMarker(UINT Metadata, const void *pData,
@@ -76,8 +109,31 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::EndEvent()
   m_pReal->EndEvent();
 }
 
+bool WrappedID3D12CommandQueue::Serialise_Signal(ID3D12Fence *pFence, UINT64 Value)
+{
+  SERIALISE_ELEMENT(ResourceId, Fence, GetResID(pFence));
+  SERIALISE_ELEMENT(UINT64, val, Value);
+
+  if(m_State <= EXECUTING)
+  {
+    pFence = GetResourceManager()->GetLiveAs<ID3D12Fence>(Fence);
+
+    m_pReal->Signal(Unwrap(pFence), val);
+  }
+
+  return true;
+}
+
 HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Signal(ID3D12Fence *pFence, UINT64 Value)
 {
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(SIGNAL);
+    Serialise_Signal(pFence, Value);
+
+    m_QueueRecord->AddChunk(scope.Get());
+  }
+
   return m_pReal->Signal(pFence, Value);
 }
 

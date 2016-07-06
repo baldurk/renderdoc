@@ -330,6 +330,69 @@ void Serialiser::Serialise(const char *name, D3D12_COMPUTE_PIPELINE_STATE_DESC &
   }
 }
 
+template <>
+void Serialiser::Serialise(const char *name, D3D12_VERTEX_BUFFER_VIEW &el)
+{
+  ScopedContext scope(this, name, "D3D12_VERTEX_BUFFER_VIEW", 0, true);
+
+  // TODO serialise gpu virtual address as heap ID and idx
+  Serialise("SizeInBytes", el.SizeInBytes);
+  Serialise("StrideInBytes", el.StrideInBytes);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_INDEX_BUFFER_VIEW &el)
+{
+  ScopedContext scope(this, name, "D3D12_INDEX_BUFFER_VIEW", 0, true);
+
+  // TODO serialise gpu virtual address as heap ID and idx
+  Serialise("SizeInBytes", el.SizeInBytes);
+  Serialise("Format", el.Format);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_RESOURCE_BARRIER &el)
+{
+  ScopedContext scope(this, name, "D3D12_RESOURCE_BARRIER", 0, true);
+
+  Serialise("Type", el.Type);
+  Serialise("Flags", el.Flags);
+
+  switch(el.Type)
+  {
+    case D3D12_RESOURCE_BARRIER_TYPE_TRANSITION:
+      Serialise("Transition.pResource", el.Transition.pResource);
+      Serialise("Transition.Subresource", el.Transition.Subresource);
+      Serialise("Transition.StateBefore", el.Transition.StateBefore);
+      Serialise("Transition.StateAfter", el.Transition.StateAfter);
+      break;
+    case D3D12_RESOURCE_BARRIER_TYPE_ALIASING:
+      Serialise("Aliasing.pResourceBefore", el.Aliasing.pResourceBefore);
+      Serialise("Aliasing.pResourceAfter", el.Aliasing.pResourceAfter);
+      break;
+    case D3D12_RESOURCE_BARRIER_TYPE_UAV: Serialise("UAV.pResource", el.UAV.pResource); break;
+  }
+}
+
+string ToStrHelper<false, D3D12_VIEWPORT>::Get(const D3D12_VIEWPORT &el)
+{
+  return StringFormat::Fmt("Viewport<%.0fx%.0f+%.0f+%.0f z=%f->%f>", el.Width, el.Height,
+                           el.TopLeftX, el.TopLeftY, el.MinDepth, el.MaxDepth);
+}
+
+string ToStrHelper<false, D3D12_RESOURCE_BARRIER_TYPE>::Get(const D3D12_RESOURCE_BARRIER_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_RESOURCE_BARRIER_TYPE_TRANSITION)
+    TOSTR_CASE_STRINGIZE(D3D12_RESOURCE_BARRIER_TYPE_ALIASING)
+    TOSTR_CASE_STRINGIZE(D3D12_RESOURCE_BARRIER_TYPE_UAV)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_RESOURCE_BARRIER_TYPE<%d>", el);
+}
+
 string ToStrHelper<false, D3D12_BLEND>::Get(const D3D12_BLEND &el)
 {
   switch(el)
@@ -566,6 +629,65 @@ string ToStrHelper<false, D3D12_TEXTURE_LAYOUT>::Get(const D3D12_TEXTURE_LAYOUT 
   }
 
   return StringFormat::Fmt("D3D12_TEXTURE_LAYOUT<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_RESOURCE_BARRIER_FLAGS>::Get(const D3D12_RESOURCE_BARRIER_FLAGS &el)
+{
+  string ret;
+
+  if(el & D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY)
+    ret += " | D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY";
+  if(el & D3D12_RESOURCE_BARRIER_FLAG_END_ONLY)
+    ret += " | D3D12_RESOURCE_BARRIER_FLAG_END_ONLY";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
+string ToStrHelper<false, D3D12_RESOURCE_STATES>::Get(const D3D12_RESOURCE_STATES &el)
+{
+  string ret;
+
+  if(el == D3D12_RESOURCE_STATE_COMMON)
+    return "COMMON/PRESENT";
+
+  if(el == D3D12_RESOURCE_STATE_GENERIC_READ)
+    return "GENERIC_READ";
+
+  if(el & D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)
+    ret += " | VB & CB";
+  if(el & D3D12_RESOURCE_STATE_INDEX_BUFFER)
+    ret += " | IB";
+  if(el & D3D12_RESOURCE_STATE_RENDER_TARGET)
+    ret += " | RTV";
+  if(el & D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+    ret += " | UAV";
+  if(el & D3D12_RESOURCE_STATE_DEPTH_WRITE)
+    ret += " | DSV Write";
+  if(el & D3D12_RESOURCE_STATE_DEPTH_READ)
+    ret += " | DSV Read";
+  if(el & D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+    ret += " | SRV (Non-Pixel)";
+  if(el & D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+    ret += " | SRV (Pixel)";
+  if(el & D3D12_RESOURCE_STATE_STREAM_OUT)
+    ret += " | Stream Out";
+  if(el & D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT)
+    ret += " | Indirect";
+  if(el & D3D12_RESOURCE_STATE_COPY_DEST)
+    ret += " | Copy (Dst)";
+  if(el & D3D12_RESOURCE_STATE_COPY_SOURCE)
+    ret += " | Copy (Src)";
+  if(el & D3D12_RESOURCE_STATE_RESOLVE_DEST)
+    ret += " | Resolve (Dst)";
+  if(el & D3D12_RESOURCE_STATE_RESOLVE_SOURCE)
+    ret += " | Resolve (Src)";
+  if(el & D3D12_RESOURCE_STATE_PREDICATION)
+    ret += " | Predication";
+
+  return ret;
 }
 
 string ToStrHelper<false, D3D12_PIPELINE_STATE_FLAGS>::Get(const D3D12_PIPELINE_STATE_FLAGS &el)

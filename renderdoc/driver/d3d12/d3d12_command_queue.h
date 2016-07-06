@@ -70,7 +70,6 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
                                   public RefCounter12<ID3D12CommandQueue>,
                                   public ID3DDevice
 {
-  ID3D12CommandQueue *m_pQueue;
   WrappedID3D12Device *m_pDevice;
 
   ResourceId m_ResourceID;
@@ -81,6 +80,8 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   DummyID3D12DebugCommandQueue m_DummyDebug;
 
+  const char *GetChunkName(uint32_t idx) { return m_pDevice->GetChunkName(idx); }
+  D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandQueue);
 
@@ -90,7 +91,7 @@ public:
 
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   ResourceId GetResourceID() { return m_ResourceID; }
-  ID3D12CommandQueue *GetReal() { return m_pQueue; }
+  ID3D12CommandQueue *GetReal() { return m_pReal; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
@@ -135,7 +136,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID guid, UINT *pDataSize, void *pData)
   {
-    return m_pQueue->GetPrivateData(guid, pDataSize, pData);
+    return m_pReal->GetPrivateData(guid, pDataSize, pData);
   }
 
   HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID guid, UINT DataSize, const void *pData)
@@ -143,12 +144,12 @@ public:
     if(guid == WKPDID_D3DDebugObjectName)
       m_pDevice->SetResourceName(this, (const char *)pData);
 
-    return m_pQueue->SetPrivateData(guid, DataSize, pData);
+    return m_pReal->SetPrivateData(guid, DataSize, pData);
   }
 
   HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID guid, const IUnknown *pData)
   {
-    return m_pQueue->SetPrivateDataInterface(guid, pData);
+    return m_pReal->SetPrivateDataInterface(guid, pData);
   }
 
   HRESULT STDMETHODCALLTYPE SetName(LPCWSTR Name)
@@ -156,7 +157,7 @@ public:
     string utf8 = StringFormat::Wide2UTF8(Name);
     m_pDevice->SetResourceName(this, utf8.c_str());
 
-    return m_pQueue->SetName(Name);
+    return m_pReal->SetName(Name);
   }
 
   //////////////////////////////

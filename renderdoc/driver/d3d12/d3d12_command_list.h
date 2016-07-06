@@ -83,7 +83,6 @@ struct DummyID3D12DebugCommandList : public ID3D12DebugCommandList
 class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsCommandList>,
                                          public ID3D12GraphicsCommandList
 {
-  ID3D12GraphicsCommandList *m_pList;
   WrappedID3D12Device *m_pDevice;
 
   ResourceId m_ResourceID;
@@ -94,6 +93,8 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
 
   DummyID3D12DebugCommandList m_DummyDebug;
 
+  const char *GetChunkName(uint32_t idx) { return m_pDevice->GetChunkName(idx); }
+  D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList);
 
@@ -103,7 +104,7 @@ public:
 
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   ResourceId GetResourceID() { return m_ResourceID; }
-  ID3D12GraphicsCommandList *GetReal() { return m_pList; }
+  ID3D12GraphicsCommandList *GetReal() { return m_pReal; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   //////////////////////////////
   // implement IUnknown
@@ -117,7 +118,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID guid, UINT *pDataSize, void *pData)
   {
-    return m_pList->GetPrivateData(guid, pDataSize, pData);
+    return m_pReal->GetPrivateData(guid, pDataSize, pData);
   }
 
   HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID guid, UINT DataSize, const void *pData)
@@ -125,12 +126,12 @@ public:
     if(guid == WKPDID_D3DDebugObjectName)
       m_pDevice->SetResourceName(this, (const char *)pData);
 
-    return m_pList->SetPrivateData(guid, DataSize, pData);
+    return m_pReal->SetPrivateData(guid, DataSize, pData);
   }
 
   HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID guid, const IUnknown *pData)
   {
-    return m_pList->SetPrivateDataInterface(guid, pData);
+    return m_pReal->SetPrivateDataInterface(guid, pData);
   }
 
   HRESULT STDMETHODCALLTYPE SetName(LPCWSTR Name)
@@ -138,7 +139,7 @@ public:
     string utf8 = StringFormat::Wide2UTF8(Name);
     m_pDevice->SetResourceName(this, utf8.c_str());
 
-    return m_pList->SetName(Name);
+    return m_pReal->SetName(Name);
   }
 
   //////////////////////////////
@@ -162,7 +163,7 @@ public:
   //////////////////////////////
   // implement ID3D12CommandList
 
-  virtual D3D12_COMMAND_LIST_TYPE STDMETHODCALLTYPE GetType() { return m_pList->GetType(); }
+  virtual D3D12_COMMAND_LIST_TYPE STDMETHODCALLTYPE GetType() { return m_pReal->GetType(); }
   //////////////////////////////
   // implement ID3D12GraphicsCommandList
 
@@ -394,3 +395,8 @@ template <>
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList *obj);
 template <>
 ID3D12CommandList *Unwrap(ID3D12CommandList *obj);
+
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList *obj);
+template <>
+ResourceId GetResID(ID3D12CommandList *obj);

@@ -162,8 +162,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandList(UINT nodeMask, D3D12_COMMA
 
   if(m_State == READING)
   {
-    pCommandAllocator = (ID3D12CommandAllocator *)GetResourceManager()->GetLiveResource(Allocator);
-    pInitialState = (ID3D12PipelineState *)GetResourceManager()->GetLiveResource(State);
+    pCommandAllocator = GetResourceManager()->GetLiveAs<ID3D12CommandAllocator>(Allocator);
+    pInitialState = GetResourceManager()->GetLiveAs<ID3D12PipelineState>(State);
 
     ID3D12GraphicsCommandList *ret = NULL;
     HRESULT hr = m_pDevice->CreateCommandList(Mask, ListType, pCommandAllocator, pInitialState,

@@ -234,6 +234,12 @@ public:
   {
   }
 
+  template <class T>
+  T *GetLiveAs(ResourceId id)
+  {
+    return (T *)GetLiveResource(id);
+  }
+
 private:
   bool SerialisableResource(ResourceId id, D3D12ResourceRecord *record);
   ResourceId GetID(ID3D12DeviceChild *res);

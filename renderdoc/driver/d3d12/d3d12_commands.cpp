@@ -47,6 +47,24 @@ ID3D12CommandList *Unwrap(ID3D12CommandList *obj)
 }
 
 template <>
+ResourceId GetResID(ID3D12GraphicsCommandList *obj)
+{
+  if(obj == NULL)
+    return ResourceId();
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetResourceID();
+}
+
+template <>
+ResourceId GetResID(ID3D12CommandList *obj)
+{
+  if(obj == NULL)
+    return ResourceId();
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetResourceID();
+}
+
+template <>
 ID3D12CommandQueue *Unwrap(ID3D12CommandQueue *obj)
 {
   if(obj == NULL)
@@ -82,13 +100,13 @@ ULONG STDMETHODCALLTYPE DummyID3D12DebugCommandList::Release()
 WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
                                                      WrappedID3D12Device *device,
                                                      Serialiser *serialiser)
-    : RefCounter12(real), m_pDevice(device), m_pQueue(real)
+    : RefCounter12(real), m_pDevice(device)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
                                                               sizeof(WrappedID3D12CommandQueue));
 
-  m_pQueue->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_DummyDebug.m_pReal);
+  m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_DummyDebug.m_pReal);
 
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -172,13 +190,13 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
 WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real,
                                                                    WrappedID3D12Device *device,
                                                                    Serialiser *serialiser)
-    : RefCounter12(real), m_pDevice(device), m_pList(real)
+    : RefCounter12(real), m_pDevice(device)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(
         this, sizeof(WrappedID3D12GraphicsCommandList));
 
-  m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList), (void **)&m_DummyDebug.m_pReal);
+  m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandList), (void **)&m_DummyDebug.m_pReal);
 
   if(RenderDoc::Inst().IsReplayApp())
   {
