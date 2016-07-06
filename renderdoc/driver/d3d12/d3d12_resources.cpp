@@ -75,6 +75,28 @@ TrackedResource *GetTracked(ID3D12DeviceChild *ptr)
   return NULL;
 }
 
+ID3D12DeviceChild *Unwrap(ID3D12DeviceChild *ptr)
+{
+  if(ptr == NULL)
+    return NULL;
+
+#undef D3D12_TYPE_MACRO
+#define D3D12_TYPE_MACRO(iface)         \
+  if(UnwrapHelper<iface>::IsAlloc(ptr)) \
+    return (ID3D12DeviceChild *)GetWrapped((iface *)ptr)->GetReal();
+
+  ALL_D3D12_TYPES;
+
+  if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
+    return (ID3D12DeviceChild *)(((WrappedID3D12GraphicsCommandList *)ptr)->GetReal());
+  if(WrappedID3D12CommandQueue::IsAlloc(ptr))
+    return (ID3D12DeviceChild *)(((WrappedID3D12CommandQueue *)ptr)->GetReal());
+
+  RDCERR("Unknown type of ptr 0x%p", ptr);
+
+  return NULL;
+}
+
 template <>
 ResourceId GetResID(ID3D12DeviceChild *ptr)
 {

@@ -124,6 +124,12 @@ template <>
 void Serialiser::Serialise(const char *name, D3D12_VERTEX_BUFFER_VIEW &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_RESOURCE_BARRIER &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_HEAP_PROPERTIES &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_DESCRIPTOR_HEAP_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_CLEAR_VALUE &el);
 
 #pragma region Chunks
 
@@ -152,6 +158,12 @@ void Serialiser::Serialise(const char *name, D3D12_RESOURCE_BARRIER &el);
                                                                                           \
   D3D12_CHUNK_MACRO(CREATE_GRAPHICS_PIPE, "ID3D12Device::CreateGraphicsPipeline")         \
   D3D12_CHUNK_MACRO(CREATE_COMPUTE_PIPE, "ID3D12Device::CreateComputePipeline")           \
+  D3D12_CHUNK_MACRO(CREATE_DESCRIPTOR_HEAP, "ID3D12Device::CreateDescriptorHeap")         \
+  D3D12_CHUNK_MACRO(CREATE_ROOT_SIG, "ID3D12Device::CreateRootSignature")                 \
+                                                                                          \
+  D3D12_CHUNK_MACRO(CREATE_COMMITTED_RESOURCE, "ID3D12Device::CreateCommittedResource")   \
+                                                                                          \
+  D3D12_CHUNK_MACRO(CREATE_FENCE, "ID3D12Device::CreateFence")                            \
                                                                                           \
   D3D12_CHUNK_MACRO(CLOSE_LIST, "ID3D12GraphicsCommandList::Close")                       \
   D3D12_CHUNK_MACRO(RESET_LIST, "ID3D12GraphicsCommandList::Reset")                       \

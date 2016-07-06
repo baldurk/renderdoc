@@ -33,8 +33,8 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::UpdateTileMappings(
     const D3D12_TILE_RANGE_FLAGS *pRangeFlags, const UINT *pHeapRangeStartOffsets,
     const UINT *pRangeTileCounts, D3D12_TILE_MAPPING_FLAGS Flags)
 {
-  m_pReal->UpdateTileMappings(pResource, NumResourceRegions, pResourceRegionStartCoordinates,
-                              pResourceRegionSizes, pHeap, NumRanges, pRangeFlags,
+  m_pReal->UpdateTileMappings(Unwrap(pResource), NumResourceRegions, pResourceRegionStartCoordinates,
+                              pResourceRegionSizes, Unwrap(pHeap), NumRanges, pRangeFlags,
                               pHeapRangeStartOffsets, pRangeTileCounts, Flags);
 }
 
@@ -43,7 +43,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::CopyTileMappings(
     ID3D12Resource *pSrcResource, const D3D12_TILED_RESOURCE_COORDINATE *pSrcRegionStartCoordinate,
     const D3D12_TILE_REGION_SIZE *pRegionSize, D3D12_TILE_MAPPING_FLAGS Flags)
 {
-  m_pReal->CopyTileMappings(pDstResource, pDstRegionStartCoordinate, pSrcResource,
+  m_pReal->CopyTileMappings(Unwrap(pDstResource), pDstRegionStartCoordinate, Unwrap(pSrcResource),
                             pSrcRegionStartCoordinate, pRegionSize, Flags);
 }
 
@@ -134,12 +134,12 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Signal(ID3D12Fence *pFence,
     m_QueueRecord->AddChunk(scope.Get());
   }
 
-  return m_pReal->Signal(pFence, Value);
+  return m_pReal->Signal(Unwrap(pFence), Value);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Wait(ID3D12Fence *pFence, UINT64 Value)
 {
-  return m_pReal->Wait(pFence, Value);
+  return m_pReal->Wait(Unwrap(pFence), Value);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::GetTimestampFrequency(UINT64 *pFrequency)

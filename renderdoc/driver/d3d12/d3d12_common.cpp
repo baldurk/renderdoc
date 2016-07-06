@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_common.h"
+#include "driver/dxgi/dxgi_common.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
@@ -374,10 +375,106 @@ void Serialiser::Serialise(const char *name, D3D12_RESOURCE_BARRIER &el)
   }
 }
 
+template <>
+void Serialiser::Serialise(const char *name, D3D12_HEAP_PROPERTIES &el)
+{
+  ScopedContext scope(this, name, "D3D12_HEAP_PROPERTIES", 0, true);
+
+  Serialise("Type", el.Type);
+  Serialise("CPUPageProperty", el.CPUPageProperty);
+  Serialise("MemoryPoolPreference", el.MemoryPoolPreference);
+  Serialise("CreationNodeMask", el.CreationNodeMask);
+  Serialise("VisibleNodeMask", el.VisibleNodeMask);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_DESCRIPTOR_HEAP_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_DESCRIPTOR_HEAP_DESC", 0, true);
+
+  Serialise("Type", el.Type);
+  Serialise("NumDescriptors", el.NumDescriptors);
+  Serialise("Flags", el.Flags);
+  Serialise("NodeMask", el.NodeMask);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_CLEAR_VALUE &el)
+{
+  ScopedContext scope(this, name, "D3D12_CLEAR_VALUE", 0, true);
+
+  Serialise("Format", el.Format);
+
+  if(!IsDepthFormat(el.Format))
+  {
+    SerialisePODArray<4>("Color", el.Color);
+  }
+  else
+  {
+    Serialise("Depth", el.DepthStencil.Depth);
+    Serialise("Stencil", el.DepthStencil.Stencil);
+  }
+}
+
 string ToStrHelper<false, D3D12_VIEWPORT>::Get(const D3D12_VIEWPORT &el)
 {
   return StringFormat::Fmt("Viewport<%.0fx%.0f+%.0f+%.0f z=%f->%f>", el.Width, el.Height,
                            el.TopLeftX, el.TopLeftY, el.MinDepth, el.MaxDepth);
+}
+
+string ToStrHelper<false, D3D12_HEAP_TYPE>::Get(const D3D12_HEAP_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_HEAP_TYPE_DEFAULT)
+    TOSTR_CASE_STRINGIZE(D3D12_HEAP_TYPE_UPLOAD)
+    TOSTR_CASE_STRINGIZE(D3D12_HEAP_TYPE_READBACK)
+    TOSTR_CASE_STRINGIZE(D3D12_HEAP_TYPE_CUSTOM)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_HEAP_TYPE<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_CPU_PAGE_PROPERTY>::Get(const D3D12_CPU_PAGE_PROPERTY &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_CPU_PAGE_PROPERTY_UNKNOWN)
+    TOSTR_CASE_STRINGIZE(D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE)
+    TOSTR_CASE_STRINGIZE(D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE)
+    TOSTR_CASE_STRINGIZE(D3D12_CPU_PAGE_PROPERTY_WRITE_BACK)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_CPU_PAGE_PROPERTY<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_MEMORY_POOL>::Get(const D3D12_MEMORY_POOL &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_MEMORY_POOL_UNKNOWN)
+    TOSTR_CASE_STRINGIZE(D3D12_MEMORY_POOL_L0)
+    TOSTR_CASE_STRINGIZE(D3D12_MEMORY_POOL_L1)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_MEMORY_POOL<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_DESCRIPTOR_HEAP_TYPE>::Get(const D3D12_DESCRIPTOR_HEAP_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+    TOSTR_CASE_STRINGIZE(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+    TOSTR_CASE_STRINGIZE(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
+    TOSTR_CASE_STRINGIZE(D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_DESCRIPTOR_HEAP_TYPE<%d>", el);
 }
 
 string ToStrHelper<false, D3D12_RESOURCE_BARRIER_TYPE>::Get(const D3D12_RESOURCE_BARRIER_TYPE &el)
@@ -631,9 +728,80 @@ string ToStrHelper<false, D3D12_TEXTURE_LAYOUT>::Get(const D3D12_TEXTURE_LAYOUT 
   return StringFormat::Fmt("D3D12_TEXTURE_LAYOUT<%d>", el);
 }
 
+string ToStrHelper<false, D3D12_HEAP_FLAGS>::Get(const D3D12_HEAP_FLAGS &el)
+{
+  string ret;
+
+  if(el == D3D12_HEAP_FLAG_NONE)
+    return "D3D12_HEAP_FLAG_NONE";
+
+  if(el & D3D12_HEAP_FLAG_SHARED)
+    ret += " | D3D12_HEAP_FLAG_SHARED";
+  if(el & D3D12_HEAP_FLAG_DENY_BUFFERS)
+    ret += " | D3D12_HEAP_FLAG_DENY_BUFFERS";
+  if(el & D3D12_HEAP_FLAG_ALLOW_DISPLAY)
+    ret += " | D3D12_HEAP_FLAG_ALLOW_DISPLAY";
+  if(el & D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER)
+    ret += " | D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER";
+  if(el & D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES)
+    ret += " | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES";
+  if(el & D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES)
+    ret += " | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES";
+  if(el & D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES)
+    ret += " | D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES";
+  if(el & D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS)
+    ret += " | D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS";
+  if(el & D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES)
+    ret += " | D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES";
+  if(el & D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES)
+    ret += " | D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
+string ToStrHelper<false, D3D12_FENCE_FLAGS>::Get(const D3D12_FENCE_FLAGS &el)
+{
+  string ret;
+
+  if(el == D3D12_FENCE_FLAG_NONE)
+    return "D3D12_FENCE_FLAG_NONE";
+
+  if(el & D3D12_FENCE_FLAG_SHARED)
+    ret += " | D3D12_FENCE_FLAG_SHARED";
+  if(el & D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER)
+    ret += " | D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
+string ToStrHelper<false, D3D12_DESCRIPTOR_HEAP_FLAGS>::Get(const D3D12_DESCRIPTOR_HEAP_FLAGS &el)
+{
+  string ret;
+
+  if(el == D3D12_DESCRIPTOR_HEAP_FLAG_NONE)
+    return "D3D12_DESCRIPTOR_HEAP_FLAG_NONE";
+
+  if(el & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
+    ret += " | D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
 string ToStrHelper<false, D3D12_RESOURCE_BARRIER_FLAGS>::Get(const D3D12_RESOURCE_BARRIER_FLAGS &el)
 {
   string ret;
+
+  if(el == D3D12_RESOURCE_BARRIER_FLAG_NONE)
+    return "D3D12_RESOURCE_BARRIER_FLAG_NONE";
 
   if(el & D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY)
     ret += " | D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY";
@@ -694,6 +862,9 @@ string ToStrHelper<false, D3D12_PIPELINE_STATE_FLAGS>::Get(const D3D12_PIPELINE_
 {
   string ret;
 
+  if(el == D3D12_PIPELINE_STATE_FLAG_NONE)
+    return "D3D12_PIPELINE_STATE_FLAG_NONE";
+
   if(el & D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG)
     ret += " | D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG";
 
@@ -706,6 +877,9 @@ string ToStrHelper<false, D3D12_PIPELINE_STATE_FLAGS>::Get(const D3D12_PIPELINE_
 string ToStrHelper<false, D3D12_RESOURCE_FLAGS>::Get(const D3D12_RESOURCE_FLAGS &el)
 {
   string ret;
+
+  if(el == D3D12_RESOURCE_FLAG_NONE)
+    return "D3D12_RESOURCE_FLAG_NONE";
 
   if(el & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
     ret += " | D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET";
@@ -729,6 +903,9 @@ string ToStrHelper<false, D3D12_RESOURCE_FLAGS>::Get(const D3D12_RESOURCE_FLAGS 
 string ToStrHelper<false, D3D12_COMMAND_QUEUE_FLAGS>::Get(const D3D12_COMMAND_QUEUE_FLAGS &el)
 {
   string ret;
+
+  if(el == D3D12_COMMAND_QUEUE_FLAG_NONE)
+    return "D3D12_COMMAND_QUEUE_FLAG_NONE";
 
   if(el & D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT)
     ret += " | D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT";

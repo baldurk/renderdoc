@@ -190,7 +190,7 @@ void WrappedID3D12GraphicsCommandList::CopyBufferRegion(ID3D12Resource *pDstBuff
                                                         UINT64 DstOffset, ID3D12Resource *pSrcBuffer,
                                                         UINT64 SrcOffset, UINT64 NumBytes)
 {
-  m_pReal->CopyBufferRegion(pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, NumBytes);
+  m_pReal->CopyBufferRegion(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer), SrcOffset, NumBytes);
 
   if(m_State >= WRITING)
   {
@@ -206,13 +206,19 @@ void WrappedID3D12GraphicsCommandList::CopyTextureRegion(const D3D12_TEXTURE_COP
                                                          const D3D12_TEXTURE_COPY_LOCATION *pSrc,
                                                          const D3D12_BOX *pSrcBox)
 {
-  m_pReal->CopyTextureRegion(pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
+  D3D12_TEXTURE_COPY_LOCATION dst = *pDst;
+  dst.pResource = Unwrap(dst.pResource);
+
+  D3D12_TEXTURE_COPY_LOCATION src = *pSrc;
+  src.pResource = Unwrap(src.pResource);
+
+  m_pReal->CopyTextureRegion(&dst, DstX, DstY, DstZ, &src, pSrcBox);
 }
 
 void WrappedID3D12GraphicsCommandList::CopyResource(ID3D12Resource *pDstResource,
                                                     ID3D12Resource *pSrcResource)
 {
-  m_pReal->CopyResource(pDstResource, pSrcResource);
+  m_pReal->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
 }
 
 void WrappedID3D12GraphicsCommandList::CopyTiles(
@@ -220,8 +226,8 @@ void WrappedID3D12GraphicsCommandList::CopyTiles(
     const D3D12_TILE_REGION_SIZE *pTileRegionSize, ID3D12Resource *pBuffer,
     UINT64 BufferStartOffsetInBytes, D3D12_TILE_COPY_FLAGS Flags)
 {
-  m_pReal->CopyTiles(pTiledResource, pTileRegionStartCoordinate, pTileRegionSize, pBuffer,
-                     BufferStartOffsetInBytes, Flags);
+  m_pReal->CopyTiles(Unwrap(pTiledResource), pTileRegionStartCoordinate, pTileRegionSize,
+                     Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
 }
 
 void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstResource,
@@ -229,7 +235,8 @@ void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstRe
                                                           ID3D12Resource *pSrcResource,
                                                           UINT SrcSubresource, DXGI_FORMAT Format)
 {
-  m_pReal->ResolveSubresource(pDstResource, DstSubresource, pSrcResource, SrcSubresource, Format);
+  m_pReal->ResolveSubresource(Unwrap(pDstResource), DstSubresource, Unwrap(pSrcResource),
+                              SrcSubresource, Format);
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
@@ -397,18 +404,19 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
 
 void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *pCommandList)
 {
-  m_pReal->ExecuteBundle(pCommandList);
+  m_pReal->ExecuteBundle(Unwrap(pCommandList));
 }
 
 void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeaps,
                                                           ID3D12DescriptorHeap *const *ppDescriptorHeaps)
 {
+  RDCUNIMPLEMENTED("SetDescriptorHeaps");    // need to unwrap heaps
   m_pReal->SetDescriptorHeaps(NumDescriptorHeaps, ppDescriptorHeaps);
 }
 
 void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignature *pRootSignature)
 {
-  m_pReal->SetComputeRootSignature(pRootSignature);
+  m_pReal->SetComputeRootSignature(Unwrap(pRootSignature));
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
@@ -427,7 +435,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
 
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootSignature(ID3D12RootSignature *pRootSignature)
 {
-  m_pReal->SetGraphicsRootSignature(pRootSignature);
+  m_pReal->SetGraphicsRootSignature(Unwrap(pRootSignature));
 
   if(m_State >= WRITING)
   {
@@ -692,34 +700,34 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewUint(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const UINT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->ClearUnorderedAccessViewUint(ViewGPUHandleInCurrentHeap, ViewCPUHandle, pResource,
-                                        Values, NumRects, pRects);
+  m_pReal->ClearUnorderedAccessViewUint(ViewGPUHandleInCurrentHeap, ViewCPUHandle,
+                                        Unwrap(pResource), Values, NumRects, pRects);
 }
 
 void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const FLOAT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->ClearUnorderedAccessViewFloat(ViewGPUHandleInCurrentHeap, ViewCPUHandle, pResource,
-                                         Values, NumRects, pRects);
+  m_pReal->ClearUnorderedAccessViewFloat(ViewGPUHandleInCurrentHeap, ViewCPUHandle,
+                                         Unwrap(pResource), Values, NumRects, pRects);
 }
 
 void WrappedID3D12GraphicsCommandList::DiscardResource(ID3D12Resource *pResource,
                                                        const D3D12_DISCARD_REGION *pRegion)
 {
-  m_pReal->DiscardResource(pResource, pRegion);
+  m_pReal->DiscardResource(Unwrap(pResource), pRegion);
 }
 
 void WrappedID3D12GraphicsCommandList::BeginQuery(ID3D12QueryHeap *pQueryHeap,
                                                   D3D12_QUERY_TYPE Type, UINT Index)
 {
-  m_pReal->BeginQuery(pQueryHeap, Type, Index);
+  m_pReal->BeginQuery(Unwrap(pQueryHeap), Type, Index);
 }
 
 void WrappedID3D12GraphicsCommandList::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type,
                                                 UINT Index)
 {
-  m_pReal->EndQuery(pQueryHeap, Type, Index);
+  m_pReal->EndQuery(Unwrap(pQueryHeap), Type, Index);
 }
 
 void WrappedID3D12GraphicsCommandList::ResolveQueryData(ID3D12QueryHeap *pQueryHeap,
@@ -728,15 +736,15 @@ void WrappedID3D12GraphicsCommandList::ResolveQueryData(ID3D12QueryHeap *pQueryH
                                                         ID3D12Resource *pDestinationBuffer,
                                                         UINT64 AlignedDestinationBufferOffset)
 {
-  m_pReal->ResolveQueryData(pQueryHeap, Type, StartIndex, NumQueries, pDestinationBuffer,
-                            AlignedDestinationBufferOffset);
+  m_pReal->ResolveQueryData(Unwrap(pQueryHeap), Type, StartIndex, NumQueries,
+                            Unwrap(pDestinationBuffer), AlignedDestinationBufferOffset);
 }
 
 void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
                                                       UINT64 AlignedBufferOffset,
                                                       D3D12_PREDICATION_OP Operation)
 {
-  m_pReal->SetPredication(pBuffer, AlignedBufferOffset, Operation);
+  m_pReal->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation);
 }
 
 void WrappedID3D12GraphicsCommandList::SetMarker(UINT Metadata, const void *pData, UINT Size)
@@ -761,6 +769,6 @@ void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *p
                                                        ID3D12Resource *pCountBuffer,
                                                        UINT64 CountBufferOffset)
 {
-  m_pReal->ExecuteIndirect(pCommandSignature, MaxCommandCount, pArgumentBuffer,
-                           ArgumentBufferOffset, pCountBuffer, CountBufferOffset);
+  m_pReal->ExecuteIndirect(Unwrap(pCommandSignature), MaxCommandCount, Unwrap(pArgumentBuffer),
+                           ArgumentBufferOffset, Unwrap(pCountBuffer), CountBufferOffset);
 }
