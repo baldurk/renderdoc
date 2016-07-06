@@ -32,12 +32,12 @@ HRESULT WrappedID3D12GraphicsCommandList::Close()
 HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocator,
                                                 ID3D12PipelineState *pInitialState)
 {
-  return m_pReal->Reset(pAllocator, pInitialState);
+  return m_pReal->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
 }
 
 void WrappedID3D12GraphicsCommandList::ClearState(ID3D12PipelineState *pPipelineState)
 {
-  m_pReal->ClearState(pPipelineState);
+  m_pReal->ClearState(Unwrap(pPipelineState));
 }
 
 void WrappedID3D12GraphicsCommandList::DrawInstanced(UINT VertexCountPerInstance,
@@ -130,7 +130,7 @@ void WrappedID3D12GraphicsCommandList::OMSetStencilRef(UINT StencilRef)
 
 void WrappedID3D12GraphicsCommandList::SetPipelineState(ID3D12PipelineState *pPipelineState)
 {
-  m_pReal->SetPipelineState(pPipelineState);
+  m_pReal->SetPipelineState(Unwrap(pPipelineState));
 }
 
 void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,

@@ -36,28 +36,10 @@
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
 const char *D3D12ChunkNames[] = {
-    "ID3D12Device::Initialisation",
-    "ID3D12Object::SetName",
-    "IUnknown::Release",
-    "IDXGISwapChain::GetBuffer",
+#undef D3D12_CHUNK_MACRO
+#define D3D12_CHUNK_MACRO(enum, string) string,
 
-    "Capture",
-
-    "BeginEvent",
-    "SetMarker",
-    "EndEvent",
-
-    "DebugMessageList",
-
-    "ContextBegin",
-    "ContextEnd",
-
-    "SetShaderDebugPath",
-
-    "WrappedID3D12Device::CreateCommandQueue",
-    "WrappedID3D12Device::CreateCommandAllocator",
-    "WrappedID3D12Device::CreateCommandList",
-};
+    D3D12_CHUNKS};
 
 D3D12InitParams::D3D12InitParams()
 {
@@ -210,6 +192,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
 
+  m_pSerialiser->SetUserData(m_ResourceManager);
+
   if(m_pSerialiser)
     m_pSerialiser->SetChunkNameLookup(&GetChunkName);
 
@@ -269,7 +253,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   //////////////////////////////////////////////////////////////////////////
   // Compile time asserts
 
-  RDCCOMPILE_ASSERT(ARRAY_COUNT(D3D12ChunkNames) == NUM_D3D12_CHUNKS - FIRST_CHUNK_ID,
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(D3D12ChunkNames) == NUM_D3D12_CHUNKS - FIRST_CHUNK_ID + 1,
                     "Not right number of chunk names");
 }
 

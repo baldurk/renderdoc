@@ -112,34 +112,49 @@ template <>
 void Serialiser::Serialise(const char *name, D3D12_RESOURCE_DESC &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_COMMAND_QUEUE_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_SHADER_BYTECODE &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_GRAPHICS_PIPELINE_STATE_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_COMPUTE_PIPELINE_STATE_DESC &el);
 
 #pragma region Chunks
 
+#define D3D12_CHUNKS                                                                         \
+  D3D12_CHUNK_MACRO(DEVICE_INIT = FIRST_CHUNK_ID, "ID3D12Device::Initialisation")            \
+  D3D12_CHUNK_MACRO(SET_RESOURCE_NAME, "ID3D12Object::SetName")                              \
+  D3D12_CHUNK_MACRO(RELEASE_RESOURCE, "IUnknown::Release")                                   \
+  D3D12_CHUNK_MACRO(CREATE_SWAP_BUFFER, "IDXGISwapChain::GetBuffer")                         \
+                                                                                             \
+  D3D12_CHUNK_MACRO(CAPTURE_SCOPE, "Capture")                                                \
+                                                                                             \
+  D3D12_CHUNK_MACRO(PUSH_EVENT, "BeginEvent")                                                \
+  D3D12_CHUNK_MACRO(SET_MARKER, "SetMarker")                                                 \
+  D3D12_CHUNK_MACRO(POP_EVENT, "EndEvent")                                                   \
+                                                                                             \
+  D3D12_CHUNK_MACRO(DEBUG_MESSAGES, "DebugMessageList")                                      \
+                                                                                             \
+  D3D12_CHUNK_MACRO(CONTEXT_CAPTURE_HEADER, "ContextBegin")                                  \
+  D3D12_CHUNK_MACRO(CONTEXT_CAPTURE_FOOTER, "ContextEnd")                                    \
+                                                                                             \
+  D3D12_CHUNK_MACRO(SET_SHADER_DEBUG_PATH, "SetShaderDebugPath")                             \
+                                                                                             \
+  D3D12_CHUNK_MACRO(CREATE_COMMAND_QUEUE, "WrappedID3D12Device::CreateCommandQueue")         \
+  D3D12_CHUNK_MACRO(CREATE_COMMAND_ALLOCATOR, "WrappedID3D12Device::CreateCommandAllocator") \
+  D3D12_CHUNK_MACRO(CREATE_COMMAND_LIST, "WrappedID3D12Device::CreateCommandList")           \
+                                                                                             \
+  D3D12_CHUNK_MACRO(CREATE_GRAPHICS_PIPE, "WrappedID3D12Device::CreateGraphicsPipeline")     \
+  D3D12_CHUNK_MACRO(CREATE_COMPUTE_PIPE, "WrappedID3D12Device::CreateComputePipeline")       \
+                                                                                             \
+  D3D12_CHUNK_MACRO(NUM_D3D12_CHUNKS, "")
+
 enum D3D12ChunkType
 {
-  DEVICE_INIT = FIRST_CHUNK_ID,
-  SET_RESOURCE_NAME,
-  RELEASE_RESOURCE,
-  CREATE_SWAP_BUFFER,
+#undef D3D12_CHUNK_MACRO
+#define D3D12_CHUNK_MACRO(enum, string) enum,
 
-  CAPTURE_SCOPE,
-
-  PUSH_EVENT,
-  SET_MARKER,
-  POP_EVENT,
-
-  DEBUG_MESSAGES,
-
-  CONTEXT_CAPTURE_HEADER,    // chunk at beginning of context's chunk stream
-  CONTEXT_CAPTURE_FOOTER,    // chunk at end of context's chunk stream
-
-  SET_SHADER_DEBUG_PATH,
-
-  CREATE_COMMAND_QUEUE,
-  CREATE_COMMAND_ALLOCATOR,
-  CREATE_COMMAND_LIST,
-
-  NUM_D3D12_CHUNKS,
+  D3D12_CHUNKS
 };
 
 #pragma endregion Chunks

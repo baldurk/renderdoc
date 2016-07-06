@@ -103,6 +103,8 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
     m_pSerialiser->SetDebugText(true);
   }
 
+  m_pSerialiser->SetUserData(m_pDevice->GetResourceManager());
+
   // create a temporary and grab its resource ID
   m_ResourceID = ResourceIDGen::GetNewUniqueID();
 
@@ -190,6 +192,8 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
 
     m_pSerialiser->SetDebugText(true);
   }
+
+  m_pSerialiser->SetUserData(m_pDevice->GetResourceManager());
 
   // create a temporary and grab its resource ID
   m_ResourceID = ResourceIDGen::GetNewUniqueID();
