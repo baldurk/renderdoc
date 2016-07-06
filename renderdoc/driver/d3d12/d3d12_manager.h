@@ -31,6 +31,66 @@
 #include "driver/d3d12/d3d12_common.h"
 #include "serialise/serialiser.h"
 
+struct D3D12Descriptor
+{
+  enum DescriptorType
+  {
+    // we start at 0x1000 since this element will alias with the filter
+    // in the sampler, to save space
+    TypeSampler,
+    TypeCBV = 0x1000,
+    TypeSRV,
+    TypeUAV,
+    TypeRTV,
+    TypeDSV,
+  };
+
+  DescriptorType GetType()
+  {
+    RDCCOMPILE_ASSERT(sizeof(D3D12Descriptor) <= 64, "D3D12Descriptor has gotten larger");
+
+    if(nonsamp.type < TypeCBV)
+      return TypeSampler;
+
+    return nonsamp.type;
+  }
+
+  union
+  {
+    // keep the sampler outside as it's the largest descriptor
+    struct
+    {
+      // same location in both structs
+      ID3D12DescriptorHeap *heap;
+      uint32_t idx;
+
+      D3D12_SAMPLER_DESC desc;
+    } samp;
+
+    struct
+    {
+      // same location in both structs
+      ID3D12DescriptorHeap *heap;
+      uint32_t idx;
+
+      // this element overlaps with the D3D12_FILTER in D3D12_SAMPLER_DESC,
+      // with values that are invalid for filter
+      DescriptorType type;
+
+      ID3D12Resource *resource;
+
+      union
+      {
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbv;
+        D3D12_SHADER_RESOURCE_VIEW_DESC srv;
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uav;
+        D3D12_RENDER_TARGET_VIEW_DESC rtv;
+        D3D12_DEPTH_STENCIL_VIEW_DESC dsv;
+      };
+    } nonsamp;
+  };
+};
+
 struct D3D12ResourceRecord : public ResourceRecord
 {
   enum
