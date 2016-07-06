@@ -41,7 +41,7 @@ string ToStrHelper<false, ResourceId>::Get(const ResourceId &el)
 {
   char tostrBuf[256] = {0};
 
-  StringFormat::snprintf(tostrBuf, 255, "ID %llu", el.id);
+  StringFormat::snprintf(tostrBuf, 255, "ResID_%llu", el.id);
 
   return tostrBuf;
 }
