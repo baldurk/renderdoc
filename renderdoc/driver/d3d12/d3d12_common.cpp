@@ -889,6 +889,9 @@ string ToStrHelper<false, D3D12_RESOURCE_STATES>::Get(const D3D12_RESOURCE_STATE
   if(el & D3D12_RESOURCE_STATE_PREDICATION)
     ret += " | Predication";
 
+  if(!ret.empty())
+    ret = ret.substr(3);
+
   return ret;
 }
 
