@@ -187,6 +187,12 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_HeaderChunk = NULL;
 
+  m_Alloc = NULL;
+  m_List = NULL;
+  m_GPUSyncFence = NULL;
+  m_GPUSyncHandle = NULL;
+  m_GPUSyncCounter = 0;
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_State = READING;
@@ -281,6 +287,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 WrappedID3D12Device::~WrappedID3D12Device()
 {
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D12Device *)this);
+
+  DestroyInternalResources();
 
   if(m_DeviceRecord)
   {
@@ -1196,6 +1204,38 @@ void WrappedID3D12Device::SetResourceName(ID3D12DeviceChild *res, const char *na
       record->AddChunk(scope.Get());
     }
   }
+}
+
+void WrappedID3D12Device::CreateInternalResources()
+{
+  m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                    __uuidof(ID3D12CommandAllocator), (void **)&m_Alloc);
+  m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc, NULL,
+                               __uuidof(ID3D12GraphicsCommandList), (void **)&m_List);
+  m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
+  m_GPUSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+
+  m_GPUSyncCounter = 0;
+}
+
+void WrappedID3D12Device::DestroyInternalResources()
+{
+  if(m_GPUSyncHandle == NULL)
+    return;
+
+  SAFE_RELEASE(m_Alloc);
+  SAFE_RELEASE(m_List);
+  SAFE_RELEASE(m_GPUSyncFence);
+  CloseHandle(m_GPUSyncHandle);
+}
+
+void WrappedID3D12Device::GPUSync()
+{
+  m_GPUSyncCounter++;
+
+  m_Queue->GetReal()->Signal(m_GPUSyncFence, m_GPUSyncCounter);
+  m_GPUSyncFence->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle);
+  WaitForSingleObject(m_GPUSyncHandle, 2000);
 }
 
 // need to create this dummy here so that we can record D3D12.

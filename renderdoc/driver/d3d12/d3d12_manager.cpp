@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_manager.h"
+#include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
 
@@ -279,7 +280,39 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     D3D12_RESOURCE_DESC desc = r->GetDesc();
 
-    (void)desc;
+    if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+      D3D12_HEAP_PROPERTIES heapProps;
+      heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
+
+      ID3D12Resource *copyDst = NULL;
+      HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
+          &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+          __uuidof(ID3D12Resource), (void **)&copyDst);
+
+      if(SUCCEEDED(hr))
+      {
+        m_Device->GetList()->Reset(m_Device->GetAlloc(), NULL);
+
+        m_Device->GetList()->CopyResource(copyDst, Unwrap(r));
+
+        m_Device->GetList()->Close();
+
+        ID3D12CommandList *list = (ID3D12CommandList *)m_Device->GetList();
+        m_Device->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
+      }
+      else
+      {
+        RDCERR("Couldn't create readback buffer: 0x%08x", hr);
+      }
+
+      SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(copyDst, 0, NULL));
+      return true;
+    }
 
     D3D12NOTIMP("resource init states");
     return true;
@@ -315,7 +348,40 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
 
       D3D12_RESOURCE_DESC desc = r->GetDesc();
 
-      (void)desc;
+      m_pSerialiser->Serialise("Dimension", desc.Dimension);
+
+      if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+      {
+        m_Device->GPUSync();
+
+        ID3D12Resource *copySrc = (ID3D12Resource *)initContents.resource;
+
+        byte dummy[4] = {};
+        byte *ptr = NULL;
+        uint64_t size = 0;
+
+        HRESULT hr = E_NOINTERFACE;
+
+        if(copySrc)
+        {
+          copySrc->Map(0, NULL, (void **)&ptr);
+          size = copySrc->GetDesc().Width;
+        }
+
+        if(FAILED(hr) || ptr == NULL)
+        {
+          size = 4;
+          ptr = dummy;
+        }
+
+        m_pSerialiser->Serialise("NumBytes", size);
+        m_pSerialiser->SerialiseBuffer("BufferData", ptr, size);
+
+        if(SUCCEEDED(hr) && ptr)
+          copySrc->Unmap(0, NULL);
+
+        return true;
+      }
 
       D3D12NOTIMP("resource init states");
       return true;
@@ -375,6 +441,53 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
     }
     else if(type == Resource_Resource)
     {
+      D3D12_RESOURCE_DIMENSION Dimension;
+      m_pSerialiser->Serialise("Dimension", Dimension);
+
+      if(Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+      {
+        uint64_t size = 0;
+        byte *ptr = NULL;
+
+        m_pSerialiser->Serialise("NumBytes", size);
+        m_pSerialiser->SerialiseBuffer("BufferData", ptr, size);
+
+        D3D12_HEAP_PROPERTIES heapProps;
+        heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+        heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        heapProps.CreationNodeMask = 1;
+        heapProps.VisibleNodeMask = 1;
+
+        D3D12_RESOURCE_DESC desc;
+        desc.Alignment = 0;
+        desc.DepthOrArraySize = 1;
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+        desc.Format = DXGI_FORMAT_UNKNOWN;
+        desc.Height = 1;
+        desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        desc.MipLevels = 1;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+        desc.Width = size;
+
+        ID3D12Resource *copySrc = NULL;
+        HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
+            &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+            __uuidof(ID3D12Resource), (void **)&copySrc);
+
+        if(FAILED(hr))
+        {
+          RDCERR("Couldn't create upload buffer: 0x%08x", hr);
+          return false;
+        }
+
+        SetInitialContents(id, D3D12ResourceManager::InitialContentData(copySrc, 1, NULL));
+
+        return true;
+      }
+
       D3D12NOTIMP("resource init states");
       return true;
     }
@@ -401,6 +514,8 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
   else if(type == Resource_Resource)
   {
     D3D12NOTIMP("resource init states");
+
+    // not handling any missing states at the moment
   }
   else
   {
@@ -427,7 +542,25 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
   }
   else if(type == Resource_Resource)
   {
-    D3D12NOTIMP("resource init states");
+    if(data.num == 1 && data.resource)
+    {
+      // buffer
+      m_Device->GetList()->Reset(m_Device->GetAlloc(), NULL);
+
+      ID3D12Resource *copyDst = Unwrap((ID3D12Resource *)live);
+      ID3D12Resource *copySrc = (ID3D12Resource *)data.resource;
+
+      m_Device->GetList()->CopyResource(copyDst, copySrc);
+
+      m_Device->GetList()->Close();
+
+      ID3D12CommandList *list = (ID3D12CommandList *)m_Device->GetList();
+      m_Device->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
+    }
+    else
+    {
+      D3D12NOTIMP("resource init states");
+    }
   }
   else
   {

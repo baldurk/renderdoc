@@ -219,6 +219,15 @@ private:
 
   WrappedID3D12CommandQueue *m_Queue;
 
+  ID3D12CommandAllocator *m_Alloc;
+  ID3D12GraphicsCommandList *m_List;
+  ID3D12Fence *m_GPUSyncFence;
+  HANDLE m_GPUSyncHandle;
+  UINT64 m_GPUSyncCounter;
+
+  void CreateInternalResources();
+  void DestroyInternalResources();
+
   D3D12ResourceManager *m_ResourceManager;
   DummyID3D12InfoQueue m_DummyInfoQueue;
   DummyID3D12DebugDevice m_DummyDebug;
@@ -302,6 +311,10 @@ public:
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
   void FirstFrame(WrappedIDXGISwapChain3 *swap);
 
+  WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
+  ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
+  ID3D12GraphicsCommandList *GetList() { return m_List; }
+  void GPUSync();
   void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers);
 
   void StartFrameCapture(void *dev, void *wnd);

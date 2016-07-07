@@ -49,6 +49,16 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(const D3D12_COMMAND_QUEUE
       ret = new WrappedID3D12CommandQueue(ret, this, m_pSerialiser, m_State);
 
       GetResourceManager()->AddLiveResource(Queue, ret);
+
+      if(Descriptor.Type == D3D12_COMMAND_LIST_TYPE_DIRECT)
+      {
+        if(m_Queue != NULL)
+          RDCERR("Don't support multiple direct queues yet!");
+
+        m_Queue = (WrappedID3D12CommandQueue *)ret;
+
+        CreateInternalResources();
+      }
     }
   }
 
@@ -82,10 +92,15 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
       m_DeviceRecord->AddChunk(scope.Get());
     }
 
-    if(m_Queue != NULL)
-      RDCERR("Don't support multiple queues yet!");
+    if(pDesc->Type == D3D12_COMMAND_LIST_TYPE_DIRECT)
+    {
+      if(m_Queue != NULL)
+        RDCERR("Don't support multiple queues yet!");
 
-    m_Queue = wrapped;
+      m_Queue = wrapped;
+
+      CreateInternalResources();
+    }
 
     *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
   }
