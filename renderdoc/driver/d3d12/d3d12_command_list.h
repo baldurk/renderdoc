@@ -106,6 +106,8 @@ public:
   ResourceId GetResourceID() { return m_ResourceID; }
   ID3D12GraphicsCommandList *GetReal() { return m_pReal; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
+  ID3D12GraphicsCommandList *GetList(ResourceId id);
+
   //////////////////////////////
   // implement IUnknown
 

@@ -24,10 +24,17 @@
 
 #include "d3d12_command_list.h"
 
+ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetList(ResourceId id)
+{
+  return GetResourceManager()->GetLiveAs<WrappedID3D12GraphicsCommandList>(id)->GetReal();
+}
+
 bool WrappedID3D12GraphicsCommandList::Serialise_Close()
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+
   if(m_State <= READING)
-    m_pReal->Close();
+    GetList(CommandList)->Close();
 
   return true;
 }
@@ -50,6 +57,7 @@ HRESULT WrappedID3D12GraphicsCommandList::Close()
 bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *pAllocator,
                                                        ID3D12PipelineState *pInitialState)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(ResourceId, Allocator, GetResID(pAllocator));
   SERIALISE_ELEMENT(ResourceId, State, GetResID(pInitialState));
 
@@ -59,7 +67,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
     pInitialState =
         State == ResourceId() ? NULL : GetResourceManager()->GetLiveAs<ID3D12PipelineState>(State);
 
-    m_pReal->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
+    GetList(CommandList)->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
   }
 
   return true;
@@ -101,6 +109,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
                                                                       INT BaseVertexLocation,
                                                                       UINT StartInstanceLocation)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(UINT, idxCount, IndexCountPerInstance);
   SERIALISE_ELEMENT(UINT, instCount, InstanceCount);
   SERIALISE_ELEMENT(UINT, startIdx, StartIndexLocation);
@@ -109,7 +118,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
 
   if(m_State <= READING)
   {
-    m_pReal->DrawIndexedInstanced(idxCount, instCount, startIdx, startVtx, startInst);
+    GetList(CommandList)->DrawIndexedInstanced(idxCount, instCount, startIdx, startVtx, startInst);
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -168,6 +177,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(ID3D12Resource
                                                                   ID3D12Resource *pSrcBuffer,
                                                                   UINT64 SrcOffset, UINT64 NumBytes)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(ResourceId, dst, GetResID(pDstBuffer));
   SERIALISE_ELEMENT(UINT64, dstoffs, DstOffset);
   SERIALISE_ELEMENT(ResourceId, src, GetResID(pSrcBuffer));
@@ -180,7 +190,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(ID3D12Resource
     pDstBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(dst);
     pSrcBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
 
-    m_pReal->CopyBufferRegion(Unwrap(pDstBuffer), dstoffs, Unwrap(pSrcBuffer), srcoffs, num);
+    GetList(CommandList)->CopyBufferRegion(Unwrap(pDstBuffer), dstoffs, Unwrap(pSrcBuffer), srcoffs, num);
   }
 
   return true;
@@ -242,11 +252,12 @@ void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstRe
 bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
     D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(D3D12_PRIMITIVE_TOPOLOGY, topo, PrimitiveTopology);
 
   if(m_State <= READING)
   {
-    m_pReal->IASetPrimitiveTopology(topo);
+    GetList(CommandList)->IASetPrimitiveTopology(topo);
   }
 
   return true;
@@ -268,12 +279,13 @@ void WrappedID3D12GraphicsCommandList::IASetPrimitiveTopology(D3D12_PRIMITIVE_TO
 bool WrappedID3D12GraphicsCommandList::Serialise_RSSetViewports(UINT NumViewports,
                                                                 const D3D12_VIEWPORT *pViewports)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(UINT, num, NumViewports);
   SERIALISE_ELEMENT_ARR(D3D12_VIEWPORT, views, pViewports, num);
 
   if(m_State <= READING)
   {
-    m_pReal->RSSetViewports(num, views);
+    GetList(CommandList)->RSSetViewports(num, views);
   }
 
   SAFE_DELETE_ARRAY(views);
@@ -298,12 +310,13 @@ void WrappedID3D12GraphicsCommandList::RSSetViewports(UINT NumViewports,
 bool WrappedID3D12GraphicsCommandList::Serialise_RSSetScissorRects(UINT NumRects,
                                                                    const D3D12_RECT *pRects)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(UINT, num, NumRects);
   SERIALISE_ELEMENT_ARR(D3D12_RECT, rects, pRects, num);
 
   if(m_State <= READING)
   {
-    m_pReal->RSSetScissorRects(num, rects);
+    GetList(CommandList)->RSSetScissorRects(num, rects);
   }
 
   SAFE_DELETE_ARRAY(rects);
@@ -336,12 +349,13 @@ void WrappedID3D12GraphicsCommandList::OMSetStencilRef(UINT StencilRef)
 
 bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(ID3D12PipelineState *pPipelineState)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(ResourceId, pipe, GetResID(pPipelineState));
 
   if(m_State <= READING)
   {
     pPipelineState = GetResourceManager()->GetLiveAs<ID3D12PipelineState>(pipe);
-    m_pReal->SetPipelineState(Unwrap(pPipelineState));
+    GetList(CommandList)->SetPipelineState(Unwrap(pPipelineState));
   }
 
   return true;
@@ -363,12 +377,13 @@ void WrappedID3D12GraphicsCommandList::SetPipelineState(ID3D12PipelineState *pPi
 bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(UINT NumBarriers,
                                                                  const D3D12_RESOURCE_BARRIER *pBarriers)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(UINT, num, NumBarriers);
   SERIALISE_ELEMENT_ARR(D3D12_RESOURCE_BARRIER, barriers, pBarriers, num);
 
   if(m_State <= READING)
   {
-    m_pReal->ResourceBarrier(num, barriers);
+    GetList(CommandList)->ResourceBarrier(num, barriers);
   }
 
   return true;
@@ -422,12 +437,13 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignatu
 bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
     ID3D12RootSignature *pRootSignature)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(ResourceId, sig, GetResID(pRootSignature));
 
   if(m_State <= READING)
   {
     pRootSignature = GetResourceManager()->GetLiveAs<ID3D12RootSignature>(sig);
-    m_pReal->SetGraphicsRootSignature(Unwrap(pRootSignature));
+    GetList(CommandList)->SetGraphicsRootSignature(Unwrap(pRootSignature));
   }
 
   return true;
@@ -499,6 +515,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootConstantBufferView(
 bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(UINT, idx, RootParameterIndex);
   SERIALISE_ELEMENT(ResourceId, buffer, GetResID(BufferLocation));
 
@@ -506,7 +523,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
   {
     WrappedID3D12Resource *pRes = GetResourceManager()->GetLiveAs<WrappedID3D12Resource>(buffer);
 
-    m_pReal->SetGraphicsRootConstantBufferView(idx, pRes->GetGPU());
+    GetList(CommandList)->SetGraphicsRootConstantBufferView(idx, pRes->GetGPU());
   }
 
   return true;
@@ -552,15 +569,16 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView(
 
 bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *pView)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(bool, HasView, pView != NULL);
   SERIALISE_ELEMENT_OPT(D3D12_INDEX_BUFFER_VIEW, view, *pView, HasView);
 
   if(m_State <= READING)
   {
     if(HasView)
-      m_pReal->IASetIndexBuffer(&view);
+      GetList(CommandList)->IASetIndexBuffer(&view);
     else
-      m_pReal->IASetIndexBuffer(NULL);
+      GetList(CommandList)->IASetIndexBuffer(NULL);
   }
 
   return true;
@@ -592,13 +610,14 @@ void WrappedID3D12GraphicsCommandList::IASetIndexBuffer(const D3D12_INDEX_BUFFER
 bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
     UINT StartSlot, UINT NumViews, const D3D12_VERTEX_BUFFER_VIEW *pViews)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(UINT, start, StartSlot);
   SERIALISE_ELEMENT(UINT, num, NumViews);
   SERIALISE_ELEMENT_ARR(D3D12_VERTEX_BUFFER_VIEW, views, pViews, num);
 
   if(m_State <= READING)
   {
-    m_pReal->IASetVertexBuffers(start, num, views);
+    GetList(CommandList)->IASetVertexBuffers(start, num, views);
   }
 
   SAFE_DELETE_ARRAY(views);
@@ -651,6 +670,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
     UINT NumRenderTargetDescriptors, const D3D12_CPU_DESCRIPTOR_HANDLE *pRenderTargetDescriptors,
     BOOL RTsSingleHandleToDescriptorRange, const D3D12_CPU_DESCRIPTOR_HANDLE *pDepthStencilDescriptor)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(UINT, num, NumRenderTargetDescriptors);
   SERIALISE_ELEMENT(bool, singlehandle, RTsSingleHandleToDescriptorRange != FALSE);
 
@@ -682,8 +702,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
     for(UINT i = 0; i < numHandles; i++)
       rtHandles[i] = FromPortableHandle(GetResourceManager(), rts[i]);
 
-    m_pReal->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
-                                dsv.heap != ResourceId() ? &dsvHandle : NULL);
+    GetList(CommandList)
+        ->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
+                             dsv.heap != ResourceId() ? &dsvHandle : NULL);
   }
 
   return true;
@@ -728,6 +749,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
     D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView, const FLOAT ColorRGBA[4], UINT NumRects,
     const D3D12_RECT *pRects)
 {
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(PortableHandle, rtv, ToPortableHandle(RenderTargetView));
 
   float Color[4] = {0};
@@ -744,7 +766,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
   {
     RenderTargetView = FromPortableHandle(GetResourceManager(), rtv);
 
-    m_pReal->ClearRenderTargetView(RenderTargetView, Color, num, rects);
+    GetList(CommandList)->ClearRenderTargetView(RenderTargetView, Color, num, rects);
   }
 
   SAFE_DELETE_ARRAY(rects);
