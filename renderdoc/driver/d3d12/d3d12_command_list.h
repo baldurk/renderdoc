@@ -93,6 +93,13 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
 
   DummyID3D12DebugCommandList m_DummyDebug;
 
+  struct
+  {
+    IID riid;
+    UINT nodeMask;
+    D3D12_COMMAND_LIST_TYPE type;
+  } m_Init;
+
   const char *GetChunkName(uint32_t idx) { return m_pDevice->GetChunkName(idx); }
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:
@@ -106,7 +113,15 @@ public:
   ResourceId GetResourceID() { return m_ResourceID; }
   ID3D12GraphicsCommandList *GetReal() { return m_pReal; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
+  D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
   ID3D12GraphicsCommandList *GetList(ResourceId id);
+
+  void SetInitParams(REFIID riid, UINT nodeMask, D3D12_COMMAND_LIST_TYPE type)
+  {
+    m_Init.riid = riid;
+    m_Init.nodeMask = nodeMask;
+    m_Init.type = type;
+  }
 
   //////////////////////////////
   // implement IUnknown
@@ -402,3 +417,8 @@ template <>
 ResourceId GetResID(ID3D12GraphicsCommandList *obj);
 template <>
 ResourceId GetResID(ID3D12CommandList *obj);
+
+template <>
+D3D12ResourceRecord *GetRecord(ID3D12GraphicsCommandList *obj);
+template <>
+D3D12ResourceRecord *GetRecord(ID3D12CommandList *obj);

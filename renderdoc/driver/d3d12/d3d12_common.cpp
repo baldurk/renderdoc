@@ -28,6 +28,19 @@
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
 
+enum D3D12ResourceBarrierSubresource
+{
+  D3D12AllSubresources = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
+};
+
+string ToStrHelper<false, D3D12ResourceBarrierSubresource>::Get(const D3D12ResourceBarrierSubresource &el)
+{
+  if(el == D3D12AllSubresources)
+    return "All Subresources";
+
+  return ToStr::Get(uint32_t(el));
+}
+
 // we know the object will be a non-dispatchable object type
 #define SerialiseObject(type, name, obj)                              \
   {                                                                   \
@@ -398,7 +411,11 @@ void Serialiser::Serialise(const char *name, D3D12_RESOURCE_BARRIER &el)
     case D3D12_RESOURCE_BARRIER_TYPE_TRANSITION:
     {
       SerialiseObject(ID3D12Resource, "Transition.pResource", el.Transition.pResource);
-      Serialise("Transition.Subresource", el.Transition.Subresource);
+      // cast to a special enum so we print 'all subresources' nicely
+      RDCCOMPILE_ASSERT(sizeof(D3D12ResourceBarrierSubresource) == sizeof(UINT),
+                        "Enum isn't uint sized");
+      Serialise("Transition.Subresource",
+                (D3D12ResourceBarrierSubresource &)el.Transition.Subresource);
       Serialise("Transition.StateBefore", el.Transition.StateBefore);
       Serialise("Transition.StateAfter", el.Transition.StateAfter);
       break;

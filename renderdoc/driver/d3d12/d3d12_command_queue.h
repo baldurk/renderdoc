@@ -80,10 +80,13 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   DummyID3D12DebugCommandQueue m_DummyDebug;
 
+  vector<D3D12ResourceRecord *> m_CmdListRecords;
+
   const char *GetChunkName(uint32_t idx) { return m_pDevice->GetChunkName(idx); }
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandQueue);
+  static const int AllocPoolCount = 16;
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandQueue, AllocPoolCount);
 
   WrappedID3D12CommandQueue(ID3D12CommandQueue *real, WrappedID3D12Device *device,
                             Serialiser *serialiser, LogState &state);
@@ -92,8 +95,11 @@ public:
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   ResourceId GetResourceID() { return m_ResourceID; }
   ID3D12CommandQueue *GetReal() { return m_pReal; }
-  D3D12ResourceRecord *GetRecord() { return m_QueueRecord; }
+  D3D12ResourceRecord *GetResourceRecord() { return m_QueueRecord; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
+  const vector<D3D12ResourceRecord *> &GetCmdLists() { return m_CmdListRecords; }
+  void ClearAfterCapture();
+
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D12Resource); }

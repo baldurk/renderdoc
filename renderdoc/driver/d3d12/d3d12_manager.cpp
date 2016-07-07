@@ -129,16 +129,16 @@ D3D12_CPU_DESCRIPTOR_HANDLE FromPortableHandle(D3D12ResourceManager *manager, Po
 
 string ToStrHelper<false, PortableHandle>::Get(const PortableHandle &el)
 {
-  return StringFormat::Fmt("D3D12_CPU_DESCRIPTOR_HANDLE %s[%u]", ToStr::Get(el.heap).c_str(),
+  if(el.heap == ResourceId())
+    return "NULL";
+
+  return StringFormat::Fmt("D3D12_CPU_DESCRIPTOR_HANDLE(%s, %u)", ToStr::Get(el.heap).c_str(),
                            el.index);
 }
 
 bool D3D12ResourceManager::SerialisableResource(ResourceId id, D3D12ResourceRecord *record)
 {
-  if(id == m_Device->GetResourceID())
-    return true;
-
-  if(record->ignoreSerialise)
+  if(record->SpecialResource)
     return false;
 
   return true;

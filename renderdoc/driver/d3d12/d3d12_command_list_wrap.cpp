@@ -43,10 +43,14 @@ HRESULT WrappedID3D12GraphicsCommandList::Close()
 {
   if(m_State >= WRITING)
   {
-    SCOPED_SERIALISE_CONTEXT(CLOSE_LIST);
-    Serialise_Close();
+    {
+      SCOPED_SERIALISE_CONTEXT(CLOSE_LIST);
+      Serialise_Close();
 
-    m_ListRecord->AddChunk(scope.Get());
+      m_ListRecord->AddChunk(scope.Get());
+    }
+
+    m_ListRecord->Bake();
   }
 
   // bake m_ListRecord to somewhere else
@@ -57,6 +61,11 @@ HRESULT WrappedID3D12GraphicsCommandList::Close()
 bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *pAllocator,
                                                        ID3D12PipelineState *pInitialState)
 {
+  // parameters to create the list with if needed
+  SERIALISE_ELEMENT(IID, riid, m_Init.riid);
+  SERIALISE_ELEMENT(UINT, nodeMask, m_Init.nodeMask);
+  SERIALISE_ELEMENT(D3D12_COMMAND_LIST_TYPE, type, m_Init.type);
+
   SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(ResourceId, Allocator, GetResID(pAllocator));
   SERIALISE_ELEMENT(ResourceId, State, GetResID(pInitialState));
@@ -66,6 +75,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
     pAllocator = GetResourceManager()->GetLiveAs<ID3D12CommandAllocator>(Allocator);
     pInitialState =
         State == ResourceId() ? NULL : GetResourceManager()->GetLiveAs<ID3D12PipelineState>(State);
+
+    if(m_State == READING && !GetResourceManager()->HasLiveResource(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = NULL;
+      m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState, riid, (void **)&list);
+    }
 
     GetList(CommandList)->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
   }
@@ -84,10 +99,21 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
     // free parents
     m_ListRecord->FreeParents(GetResourceManager());
 
-    SCOPED_SERIALISE_CONTEXT(RESET_LIST);
-    Serialise_Reset(pAllocator, pInitialState);
+    // free any baked commands
+    if(m_ListRecord->bakedCommands)
+      m_ListRecord->bakedCommands->Delete(GetResourceManager());
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->bakedCommands =
+        GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+    m_ListRecord->bakedCommands->SpecialResource = true;
+    m_ListRecord->bakedCommands->cmdInfo = new CmdListRecordingInfo();
+
+    {
+      SCOPED_SERIALISE_CONTEXT(RESET_LIST);
+      Serialise_Reset(pAllocator, pInitialState);
+
+      m_ListRecord->AddChunk(scope.Get());
+    }
 
     // add allocator and initial state (if there is one) as parents
     m_ListRecord->AddParent(GetRecord(pAllocator));
@@ -216,6 +242,8 @@ void WrappedID3D12GraphicsCommandList::CopyBufferRegion(ID3D12Resource *pDstBuff
     Serialise_CopyBufferRegion(pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, NumBytes);
 
     m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstBuffer), eFrameRef_Write);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcBuffer), eFrameRef_Read);
   }
 }
 
@@ -379,6 +407,7 @@ void WrappedID3D12GraphicsCommandList::SetPipelineState(ID3D12PipelineState *pPi
     Serialise_SetPipelineState(pPipelineState);
 
     m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pPipelineState), eFrameRef_Read);
   }
 }
 
@@ -422,6 +451,9 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
     Serialise_ResourceBarrier(NumBarriers, pBarriers);
 
     m_ListRecord->AddChunk(scope.Get());
+
+    m_ListRecord->cmdInfo->barriers.insert(m_ListRecord->cmdInfo->barriers.end(), pBarriers,
+                                           pBarriers + NumBarriers);
   }
 }
 
@@ -467,6 +499,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootSignature(ID3D12RootSignat
     Serialise_SetGraphicsRootSignature(pRootSignature);
 
     m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pRootSignature), eFrameRef_Read);
   }
 }
 
@@ -548,6 +581,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
     Serialise_SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation);
 
     m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(BufferLocation), eFrameRef_Read);
   }
 }
 
@@ -612,6 +646,8 @@ void WrappedID3D12GraphicsCommandList::IASetIndexBuffer(const D3D12_INDEX_BUFFER
     Serialise_IASetIndexBuffer(pView);
 
     m_ListRecord->AddChunk(scope.Get());
+    if(pView)
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(pView->BufferLocation), eFrameRef_Read);
   }
 }
 
@@ -654,6 +690,8 @@ void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT N
     Serialise_IASetVertexBuffers(StartSlot, NumViews, pViews);
 
     m_ListRecord->AddChunk(scope.Get());
+    for(UINT i = 0; i < NumViews; i++)
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(pViews[i].BufferLocation), eFrameRef_Read);
   }
 }
 
@@ -742,6 +780,19 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
                                  RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
 
     m_ListRecord->AddChunk(scope.Get());
+    for(UINT i = 0; i < numHandles; i++)
+    {
+      D3D12Descriptor *desc = GetWrapped(pRenderTargetDescriptors[i]);
+      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Read);
+    }
+
+    if(pDepthStencilDescriptor)
+    {
+      D3D12Descriptor *desc = GetWrapped(*pDepthStencilDescriptor);
+      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Read);
+    }
   }
 }
 
@@ -794,6 +845,12 @@ void WrappedID3D12GraphicsCommandList::ClearRenderTargetView(
     Serialise_ClearRenderTargetView(RenderTargetView, ColorRGBA, NumRects, pRects);
 
     m_ListRecord->AddChunk(scope.Get());
+
+    {
+      D3D12Descriptor *desc = GetWrapped(RenderTargetView);
+      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Read);
+    }
   }
 }
 

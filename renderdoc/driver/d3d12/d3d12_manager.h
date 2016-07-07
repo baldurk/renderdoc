@@ -197,6 +197,19 @@ class D3D12ResourceManager;
 PortableHandle ToPortableHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 D3D12_CPU_DESCRIPTOR_HANDLE FromPortableHandle(D3D12ResourceManager *manager, PortableHandle handle);
 
+struct D3D12ResourceRecord;
+
+struct CmdListRecordingInfo
+{
+  vector<D3D12_RESOURCE_BARRIER> barriers;
+
+  // a list of all resources dirtied by this command buffer
+  set<ResourceId> dirtied;
+
+  // bundles executed
+  vector<D3D12ResourceRecord *> bundles;
+};
+
 struct D3D12ResourceRecord : public ResourceRecord
 {
   enum
@@ -204,8 +217,19 @@ struct D3D12ResourceRecord : public ResourceRecord
     NullResource = NULL
   };
 
-  D3D12ResourceRecord(ResourceId id) : ResourceRecord(id, true) { ignoreSerialise = false; }
+  D3D12ResourceRecord(ResourceId id) : ResourceRecord(id, true), cmdInfo(NULL), bakedCommands(NULL)
+  {
+  }
   ~D3D12ResourceRecord() {}
+  void Bake()
+  {
+    RDCASSERT(cmdInfo);
+    SwapChunks(bakedCommands);
+    cmdInfo->barriers.swap(bakedCommands->cmdInfo->barriers);
+    cmdInfo->dirtied.swap(bakedCommands->cmdInfo->dirtied);
+    cmdInfo->bundles.swap(bakedCommands->cmdInfo->bundles);
+  }
+
   void Insert(map<int32_t, Chunk *> &recordlist)
   {
     bool dataWritten = DataWritten;
@@ -224,7 +248,8 @@ struct D3D12ResourceRecord : public ResourceRecord
       recordlist.insert(m_Chunks.begin(), m_Chunks.end());
   }
 
-  bool ignoreSerialise;
+  D3D12ResourceRecord *bakedCommands;
+  CmdListRecordingInfo *cmdInfo;
 };
 
 class D3D12ResourceManager

@@ -210,12 +210,14 @@ struct DummyID3D12DebugDevice : public ID3D12DebugDevice
   virtual HRESULT STDMETHODCALLTYPE ReportLiveDeviceObjects(D3D12_RLDO_FLAGS Flags) { return S_OK; }
 };
 
+class WrappedID3D12CommandQueue;
+
 class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device
 {
 private:
   ID3D12Device *m_pDevice;
 
-  ID3D12CommandQueue *m_Queue;
+  WrappedID3D12CommandQueue *m_Queue;
 
   D3D12ResourceManager *m_ResourceManager;
   DummyID3D12InfoQueue m_DummyInfoQueue;
@@ -251,19 +253,19 @@ private:
   D3D12ResourceRecord *m_FrameCaptureRecord;
   Chunk *m_HeaderChunk;
 
-  // we record the command buffer records so we can insert them
-  // individually, that means even if they were recorded locklessly
-  // in parallel, on replay they are disjoint and it makes things
-  // much easier to process (we will enforce/display ordering
-  // by queue submit order anyway, so it's OK to lose the record
-  // order).
-  Threading::CriticalSection m_CmdListRecordsLock;
-  vector<D3D12ResourceRecord *> m_CmdListRecords;
-
   ResourceId m_ResourceID;
   D3D12ResourceRecord *m_DeviceRecord;
 
-  map<WrappedIDXGISwapChain3 *, D3D12_CPU_DESCRIPTOR_HANDLE> m_SwapChains;
+  struct SwapPresentInfo
+  {
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8];
+
+    int32_t lastPresentedBuffer;
+  };
+
+  map<WrappedIDXGISwapChain3 *, SwapPresentInfo> m_SwapChains;
+
+  WrappedIDXGISwapChain3 *m_LastSwap;
 
   UINT m_DescriptorIncrements[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
@@ -291,6 +293,7 @@ public:
   D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   ResourceId GetResourceID() { return m_ResourceID; }
+  Threading::CriticalSection &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
   void FirstFrame(WrappedIDXGISwapChain3 *swap);
 

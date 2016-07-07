@@ -85,7 +85,7 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
     if(m_Queue != NULL)
       RDCERR("Don't support multiple queues yet!");
 
-    m_Queue = (ID3D12CommandQueue *)wrapped;
+    m_Queue = wrapped;
 
     *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
   }
@@ -219,18 +219,9 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
 
     if(m_State >= WRITING)
     {
-      SCOPED_SERIALISE_CONTEXT(CREATE_COMMAND_LIST);
-      Serialise_CreateCommandList(nodeMask, type, pCommandAllocator, pInitialState, riid,
-                                  (void **)&wrapped);
-
-      D3D12ResourceRecord *record = wrapped->GetResourceRecord();
-
-      // we can add these parents - if the list is reset later, it will free all of its parents
-      record->AddParent(GetRecord(pCommandAllocator));
-      if(pInitialState)
-        record->AddParent(GetRecord(pInitialState));
-
-      record->AddChunk(scope.Get());
+      // we just serialise out command allocator creation as a reset, since it's equivalent.
+      wrapped->SetInitParams(riid, nodeMask, type);
+      wrapped->Reset(pCommandAllocator, pInitialState);
     }
 
     *ppCommandList = (ID3D12GraphicsCommandList *)wrapped;
@@ -297,6 +288,8 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
+      record->AddParent(GetRecord(pDesc->pRootSignature));
+
       record->AddChunk(scope.Get());
     }
 
@@ -360,6 +353,8 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->Length = 0;
       wrapped->SetResourceRecord(record);
+
+      record->AddParent(GetRecord(pDesc->pRootSignature));
 
       record->AddChunk(scope.Get());
     }

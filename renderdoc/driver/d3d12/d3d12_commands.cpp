@@ -65,6 +65,24 @@ ResourceId GetResID(ID3D12CommandList *obj)
 }
 
 template <>
+D3D12ResourceRecord *GetRecord(ID3D12GraphicsCommandList *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetResourceRecord();
+}
+
+template <>
+D3D12ResourceRecord *GetRecord(ID3D12CommandList *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetResourceRecord();
+}
+
+template <>
 ID3D12CommandQueue *Unwrap(ID3D12CommandQueue *obj)
 {
   if(obj == NULL)
@@ -88,7 +106,7 @@ D3D12ResourceRecord *GetRecord(ID3D12CommandQueue *obj)
   if(obj == NULL)
     return NULL;
 
-  return ((WrappedID3D12CommandQueue *)obj)->GetRecord();
+  return ((WrappedID3D12CommandQueue *)obj)->GetResourceRecord();
 }
 
 ULONG STDMETHODCALLTYPE DummyID3D12DebugCommandQueue::AddRef()
@@ -150,7 +168,6 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
     m_QueueRecord->DataInSerialiser = false;
     m_QueueRecord->SpecialResource = true;
     m_QueueRecord->Length = 0;
-    m_QueueRecord->ignoreSerialise = true;
   }
 
   m_pDevice->SoftRef();
@@ -201,6 +218,15 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
   return RefCounter12::QueryInterface(riid, ppvObject);
 }
 
+void WrappedID3D12CommandQueue::ClearAfterCapture()
+{
+  // delete cmd buffers now - had to keep them alive until after serialiser flush.
+  for(size_t i = 0; i < m_CmdListRecords.size(); i++)
+    m_CmdListRecords[i]->Delete(GetResourceManager());
+
+  m_CmdListRecords.clear();
+}
+
 WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real,
                                                                    WrappedID3D12Device *device,
                                                                    Serialiser *serialiser,
@@ -237,7 +263,11 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
     m_ListRecord->DataInSerialiser = false;
     m_ListRecord->SpecialResource = true;
     m_ListRecord->Length = 0;
-    m_ListRecord->ignoreSerialise = true;
+
+    m_ListRecord->cmdInfo = new CmdListRecordingInfo();
+
+    // this is set up in the implicit Reset() right after creation
+    m_ListRecord->bakedCommands = NULL;
   }
 
   m_pDevice->SoftRef();
