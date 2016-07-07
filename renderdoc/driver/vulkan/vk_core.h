@@ -490,10 +490,7 @@ private:
   Serialiser *GetMainSerialiser() { return m_pSerialiser; }
   void Serialise_CaptureScope(uint64_t offset);
   bool HasSuccessfulCapture();
-  void AttemptCapture();
   bool Serialise_BeginCaptureFrame(bool applyInitialState);
-  void BeginCaptureFrame();
-  void FinishCapture();
   void EndCaptureFrame(VkImage presentImage);
 
   void FirstFrame(VkSwapchainKHR swap);

@@ -833,25 +833,6 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
   m_FrameCaptureRecord->AddChunk(scope.Get());
 }
 
-void WrappedVulkan::AttemptCapture()
-{
-  {
-    RDCDEBUG("Attempting capture");
-
-    // m_SuccessfulCapture = true;
-
-    m_FrameCaptureRecord->LockChunks();
-    while(m_FrameCaptureRecord->HasChunks())
-    {
-      Chunk *chunk = m_FrameCaptureRecord->GetLastChunk();
-
-      SAFE_DELETE(chunk);
-      m_FrameCaptureRecord->PopChunk();
-    }
-    m_FrameCaptureRecord->UnlockChunks();
-  }
-}
-
 void WrappedVulkan::FirstFrame(VkSwapchainKHR swap)
 {
   SwapchainInfo *swapdesc = GetRecord(swap)->swapInfo;
@@ -931,39 +912,6 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
   return true;
 }
 
-void WrappedVulkan::BeginCaptureFrame()
-{
-  // must use main serialiser here to match resource manager
-  Serialiser *localSerialiser = GetMainSerialiser();
-
-  SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_HEADER);
-
-  Serialise_BeginCaptureFrame(false);
-
-  // need to hold onto this as it must come right after the capture chunk,
-  // before any command buffers
-  m_HeaderChunk = scope.Get();
-}
-
-void WrappedVulkan::FinishCapture()
-{
-  m_State = WRITING_IDLE;
-
-  // m_SuccessfulCapture = false;
-
-  ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
-
-  {
-    SCOPED_LOCK(m_CoherentMapsLock);
-    for(auto it = m_CoherentMaps.begin(); it != m_CoherentMaps.end(); ++it)
-    {
-      Serialiser::FreeAlignedBuffer((*it)->memMapState->refData);
-      (*it)->memMapState->refData = NULL;
-      (*it)->memMapState->needRefData = false;
-    }
-  }
-}
-
 void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 {
   if(m_State != WRITING_IDLE)
@@ -994,8 +942,21 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
     SCOPED_LOCK(m_CapTransitionLock);
     GetResourceManager()->PrepareInitialContents();
 
-    AttemptCapture();
-    BeginCaptureFrame();
+    RDCDEBUG("Attempting capture");
+    m_FrameCaptureRecord->DeleteChunks();
+
+    {
+      // must use main serialiser here to match resource manager
+      Serialiser *localSerialiser = GetMainSerialiser();
+
+      SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_HEADER);
+
+      Serialise_BeginCaptureFrame(false);
+
+      // need to hold onto this as it must come right after the capture chunk,
+      // before any command buffers
+      m_HeaderChunk = scope.Get();
+    }
 
     m_State = WRITING_CAPFRAME;
   }
@@ -1072,7 +1033,22 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   {
     SCOPED_LOCK(m_CapTransitionLock);
     EndCaptureFrame(backbuffer);
-    FinishCapture();
+
+    m_State = WRITING_IDLE;
+
+    // m_SuccessfulCapture = false;
+
+    ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
+
+    {
+      SCOPED_LOCK(m_CoherentMapsLock);
+      for(auto it = m_CoherentMaps.begin(); it != m_CoherentMaps.end(); ++it)
+      {
+        Serialiser::FreeAlignedBuffer((*it)->memMapState->refData);
+        (*it)->memMapState->refData = NULL;
+        (*it)->memMapState->needRefData = false;
+      }
+    }
   }
 
   byte *thpixels = NULL;
