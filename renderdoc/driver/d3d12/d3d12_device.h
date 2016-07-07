@@ -32,6 +32,7 @@
 #include "common/wrapped_pool.h"
 #include "core/core.h"
 #include "driver/dxgi/dxgi_wrapped.h"
+#include "replay/replay_driver.h"
 #include "d3d12_common.h"
 #include "d3d12_manager.h"
 
@@ -214,6 +215,8 @@ class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3
 private:
   ID3D12Device *m_pDevice;
 
+  ID3D12CommandQueue *m_Queue;
+
   D3D12ResourceManager *m_ResourceManager;
   DummyID3D12InfoQueue m_DummyInfoQueue;
   DummyID3D12DebugDevice m_DummyDebug;
@@ -226,14 +229,17 @@ private:
 
   uint32_t m_FrameCounter;
   vector<FetchFrameInfo> m_CapturedFrames;
+  FetchFrameRecord m_FrameRecord;
 
   PerformanceTimer m_FrameTimer;
   vector<double> m_FrameTimes;
   double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
 
   Serialiser *m_pSerialiser;
-  LogState m_State;
   bool m_AppControlledCapture;
+
+  Threading::CriticalSection m_CapTransitionLock;
+  LogState m_State;
 
   D3D12InitParams m_InitParams;
   ID3D12InfoQueue *m_pInfoQueue;
@@ -242,12 +248,28 @@ private:
   // protects wrapped resource creation and serialiser access
   Threading::CriticalSection m_D3DLock;
 
+  D3D12ResourceRecord *m_FrameCaptureRecord;
+  Chunk *m_HeaderChunk;
+
+  // we record the command buffer records so we can insert them
+  // individually, that means even if they were recorded locklessly
+  // in parallel, on replay they are disjoint and it makes things
+  // much easier to process (we will enforce/display ordering
+  // by queue submit order anyway, so it's OK to lose the record
+  // order).
+  Threading::CriticalSection m_CmdListRecordsLock;
+  vector<D3D12ResourceRecord *> m_CmdListRecords;
+
   ResourceId m_ResourceID;
   D3D12ResourceRecord *m_DeviceRecord;
 
   map<WrappedIDXGISwapChain3 *, D3D12_CPU_DESCRIPTOR_HANDLE> m_SwapChains;
 
   UINT m_DescriptorIncrements[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+  void Serialise_CaptureScope(uint64_t offset);
+  bool Serialise_BeginCaptureFrame(bool applyInitialState);
+  void EndCaptureFrame(ID3D12Resource *presentImage);
 
 public:
   static const int AllocPoolCount = 4;

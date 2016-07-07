@@ -89,7 +89,7 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
   D3D12ResourceRecord *m_ListRecord;
 
   Serialiser *m_pSerialiser;
-  LogState m_State;
+  LogState &m_State;
 
   DummyID3D12DebugCommandList m_DummyDebug;
 
@@ -99,7 +99,7 @@ public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList);
 
   WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real, WrappedID3D12Device *device,
-                                   Serialiser *serialiser);
+                                   Serialiser *serialiser, LogState &state);
   virtual ~WrappedID3D12GraphicsCommandList();
 
   Serialiser *GetSerialiser() { return m_pSerialiser; }

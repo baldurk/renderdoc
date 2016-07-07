@@ -46,7 +46,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(const D3D12_COMMAND_QUEUE
     }
     else
     {
-      ret = new WrappedID3D12CommandQueue(ret, this, m_pSerialiser);
+      ret = new WrappedID3D12CommandQueue(ret, this, m_pSerialiser, m_State);
 
       GetResourceManager()->AddLiveResource(Queue, ret);
     }
@@ -71,7 +71,8 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
   {
     SCOPED_LOCK(m_D3DLock);
 
-    WrappedID3D12CommandQueue *wrapped = new WrappedID3D12CommandQueue(real, this, m_pSerialiser);
+    WrappedID3D12CommandQueue *wrapped =
+        new WrappedID3D12CommandQueue(real, this, m_pSerialiser, m_State);
 
     if(m_State >= WRITING)
     {
@@ -80,6 +81,11 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
 
       m_DeviceRecord->AddChunk(scope.Get());
     }
+
+    if(m_Queue != NULL)
+      RDCERR("Don't support multiple queues yet!");
+
+    m_Queue = (ID3D12CommandQueue *)wrapped;
 
     *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
   }
@@ -138,7 +144,11 @@ HRESULT WrappedID3D12Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type
       SCOPED_SERIALISE_CONTEXT(CREATE_COMMAND_ALLOCATOR);
       Serialise_CreateCommandAllocator(type, riid, (void **)&wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
     }
 
     *ppCommandAllocator = (ID3D12CommandAllocator *)wrapped;
@@ -175,7 +185,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandList(UINT nodeMask, D3D12_COMMA
     }
     else
     {
-      ret = new WrappedID3D12GraphicsCommandList(ret, this, m_pSerialiser);
+      ret = new WrappedID3D12GraphicsCommandList(ret, this, m_pSerialiser, m_State);
 
       GetResourceManager()->AddLiveResource(List, ret);
     }
@@ -205,7 +215,7 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
     SCOPED_LOCK(m_D3DLock);
 
     WrappedID3D12GraphicsCommandList *wrapped =
-        new WrappedID3D12GraphicsCommandList(real, this, m_pSerialiser);
+        new WrappedID3D12GraphicsCommandList(real, this, m_pSerialiser, m_State);
 
     if(m_State >= WRITING)
     {
@@ -213,7 +223,14 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
       Serialise_CreateCommandList(nodeMask, type, pCommandAllocator, pInitialState, riid,
                                   (void **)&wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      D3D12ResourceRecord *record = wrapped->GetResourceRecord();
+
+      // we can add these parents - if the list is reset later, it will free all of its parents
+      record->AddParent(GetRecord(pCommandAllocator));
+      if(pInitialState)
+        record->AddParent(GetRecord(pInitialState));
+
+      record->AddChunk(scope.Get());
     }
 
     *ppCommandList = (ID3D12GraphicsCommandList *)wrapped;
@@ -276,7 +293,11 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
       SCOPED_SERIALISE_CONTEXT(CREATE_GRAPHICS_PIPE);
       Serialise_CreateGraphicsPipelineState(pDesc, riid, (void **)&wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
     }
 
     *ppPipelineState = (ID3D12PipelineState *)wrapped;
@@ -336,7 +357,11 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
       SCOPED_SERIALISE_CONTEXT(CREATE_COMPUTE_PIPE);
       Serialise_CreateComputePipelineState(pDesc, riid, (void **)&wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
     }
 
     *ppPipelineState = (ID3D12PipelineState *)wrapped;
@@ -396,7 +421,11 @@ HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DE
       SCOPED_SERIALISE_CONTEXT(CREATE_DESCRIPTOR_HEAP);
       Serialise_CreateDescriptorHeap(pDescriptorHeapDesc, riid, (void **)&wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
     }
 
     *ppvHeap = (ID3D12DescriptorHeap *)wrapped;
@@ -465,7 +494,11 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
       Serialise_CreateRootSignature(nodeMask, pBlobWithRootSignature, blobLengthInBytes, riid,
                                     (void **)&wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
     }
 
     *ppvRootSignature = (ID3D12RootSignature *)wrapped;
@@ -602,7 +635,11 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
                                         InitialResourceState, pOptimizedClearValue, riidResource,
                                         (void **)&wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;
@@ -686,7 +723,11 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
       SCOPED_SERIALISE_CONTEXT(CREATE_FENCE);
       Serialise_CreateFence(InitialValue, Flags, riid, (void **)&wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
     }
 
     *ppFence = (ID3D12Fence *)wrapped;

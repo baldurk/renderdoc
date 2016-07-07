@@ -185,10 +185,14 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
 
+  m_HeaderChunk = NULL;
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_State = READING;
     m_pSerialiser = NULL;
+
+    m_FrameCaptureRecord = NULL;
 
     ResourceIDGen::SetReplayResourceIDs();
   }
@@ -212,14 +216,19 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_DeviceRecord = NULL;
 
+  m_Queue = NULL;
+
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_ResourceID);
     m_DeviceRecord->DataInSerialiser = false;
     m_DeviceRecord->SpecialResource = true;
     m_DeviceRecord->Length = 0;
-    m_DeviceRecord->NumSubResources = 0;
-    m_DeviceRecord->SubResources = NULL;
+
+    m_FrameCaptureRecord = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+    m_FrameCaptureRecord->DataInSerialiser = false;
+    m_FrameCaptureRecord->Length = 0;
+    m_FrameCaptureRecord->SpecialResource = true;
 
     RenderDoc::Inst().AddDeviceFrameCapturer((ID3D12Device *)this, this);
   }
@@ -541,8 +550,6 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     record->DataInSerialiser = false;
     record->SpecialResource = true;
     record->Length = 0;
-    record->NumSubResources = 0;
-    record->SubResources = NULL;
 
     SCOPED_LOCK(m_D3DLock);
 
@@ -734,7 +741,7 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
   if(!activeWindow)
     return S_OK;
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_D3D11);
+  RenderDoc::Inst().SetCurrentDriver(RDC_D3D12);
 
   // kill any current capture that isn't application defined
   if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
@@ -750,10 +757,117 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
   return S_OK;
 }
 
+bool WrappedID3D12Device::Serialise_BeginCaptureFrame(bool applyInitialState)
+{
+  if(m_State < WRITING && !applyInitialState)
+  {
+    m_pSerialiser->SkipCurrentChunk();
+    return true;
+  }
+
+  // TODO save initial resources
+
+  if(applyInitialState)
+  {
+    // apply initial resources
+  }
+
+  return true;
+}
+
+void WrappedID3D12Device::Serialise_CaptureScope(uint64_t offset)
+{
+  uint32_t FrameNumber = m_FrameCounter;
+  m_pSerialiser->Serialise("FrameNumber", FrameNumber);
+
+  if(m_State >= WRITING)
+  {
+    GetResourceManager()->Serialise_InitialContentsNeeded();
+  }
+  else
+  {
+    m_FrameRecord.frameInfo.fileOffset = offset;
+    m_FrameRecord.frameInfo.firstEvent = 1;
+    m_FrameRecord.frameInfo.frameNumber = FrameNumber;
+    m_FrameRecord.frameInfo.immContextId = ResourceId();
+    RDCEraseEl(m_FrameRecord.frameInfo.stats);
+
+    GetResourceManager()->CreateInitialContents();
+  }
+}
+
+void WrappedID3D12Device::EndCaptureFrame(ID3D12Resource *presentImage)
+{
+  SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_FOOTER);
+
+  SERIALISE_ELEMENT(ResourceId, bbid, GetResID(presentImage));
+
+  bool HasCallstack = RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks != 0;
+  m_pSerialiser->Serialise("HasCallstack", HasCallstack);
+
+  if(HasCallstack)
+  {
+    Callstack::Stackwalk *call = Callstack::Collect();
+
+    RDCASSERT(call->NumLevels() < 0xff);
+
+    size_t numLevels = call->NumLevels();
+    uint64_t *stack = (uint64_t *)call->GetAddrs();
+
+    m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
+
+    delete call;
+  }
+
+  m_FrameCaptureRecord->AddChunk(scope.Get());
+}
+
 void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 {
   if(m_State != WRITING_IDLE)
     return;
+
+  RenderDoc::Inst().SetCurrentDriver(RDC_D3D12);
+
+  m_AppControlledCapture = true;
+
+  m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
+
+  FetchFrameInfo frame;
+  frame.frameNumber = m_FrameCounter + 1;
+  frame.captureTime = Timing::GetUnixTimestamp();
+  RDCEraseEl(frame.stats);
+  m_CapturedFrames.push_back(frame);
+
+  GetResourceManager()->ClearReferencedResources();
+
+  GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
+  GetResourceManager()->MarkResourceFrameReferenced(GetResID(m_Queue), eFrameRef_Read);
+
+  // need to do all this atomically so that no other commands
+  // will check to see if they need to markdirty or markpendingdirty
+  // and go into the frame record.
+  {
+    SCOPED_LOCK(m_CapTransitionLock);
+    GetResourceManager()->PrepareInitialContents();
+
+    RDCDEBUG("Attempting capture");
+    m_FrameCaptureRecord->DeleteChunks();
+
+    {
+      SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_HEADER);
+
+      Serialise_BeginCaptureFrame(false);
+
+      // need to hold onto this as it must come right after the capture chunk,
+      // before any command buffers
+      m_HeaderChunk = scope.Get();
+    }
+
+    m_State = WRITING_CAPFRAME;
+  }
+
+  RDCLOG("Starting capture, frame %u", m_FrameCounter);
 }
 
 bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
@@ -761,8 +875,173 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   if(m_State != WRITING_CAPFRAME)
     return true;
 
-  return false;
+  WrappedIDXGISwapChain3 *swap = NULL;
+
+  if(wnd)
+  {
+    for(auto it = m_SwapChains.begin(); it != m_SwapChains.end(); ++it)
+    {
+      DXGI_SWAP_CHAIN_DESC swapDesc;
+      it->first->GetDesc(&swapDesc);
+
+      if(swapDesc.OutputWindow == wnd)
+      {
+        swap = it->first;
+        break;
+      }
+    }
+
+    if(swap == NULL)
+    {
+      RDCERR("Output window %p provided for frame capture corresponds with no known swap chain", wnd);
+      return false;
+    }
+  }
+
+  RDCLOG("Finished capture, Frame %u", m_FrameCounter);
+
+  // TODO either get the swapchain associated with this window, or the last swapchain
+  // to be presented.
+  // Get the last buffer presented on that swapchain as backbuffer
+  ID3D12Resource *backbuffer = NULL;
+
+  // transition back to IDLE atomically
+  {
+    SCOPED_LOCK(m_CapTransitionLock);
+    EndCaptureFrame(backbuffer);
+
+    m_State = WRITING_IDLE;
+
+    // TOD wait for idle
+
+    // TODO free coherent map capture ref-data
+  }
+
+  byte *thpixels = NULL;
+  uint32_t thwidth = 0;
+  uint32_t thheight = 0;
+
+  const uint32_t maxSize = 1024;
+
+  // gather backbuffer screenshot
+  (void)maxSize;
+
+  byte *jpgbuf = NULL;
+  int len = thwidth * thheight;
+
+  if(wnd && thpixels)
+  {
+    jpgbuf = new byte[len];
+
+    jpge::params p;
+
+    p.m_quality = 40;
+
+    bool success =
+        jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
+
+    if(!success)
+    {
+      RDCERR("Failed to compress to jpg");
+      SAFE_DELETE_ARRAY(jpgbuf);
+      thwidth = 0;
+      thheight = 0;
+    }
+  }
+
+  Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(
+      m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
+
+  {
+    SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
+
+    m_pFileSerialiser->Insert(scope.Get(true));
+  }
+
+  RDCDEBUG("Inserting Resource Serialisers");
+
+  GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
+
+  GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
+
+  RDCDEBUG("Creating Capture Scope");
+
+  {
+    SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
+
+    Serialise_CaptureScope(0);
+
+    m_pFileSerialiser->Insert(scope.Get(true));
+
+    m_pFileSerialiser->Insert(m_HeaderChunk);
+  }
+
+  // don't need to lock access to m_CmdListRecords as we are no longer
+  // in capframe (the transition is thread-protected) so nothing will be
+  // pushed to the vector
+
+  {
+    RDCDEBUG("Flushing %u command buffer records to file serialiser",
+             (uint32_t)m_CmdListRecords.size());
+
+    map<int32_t, Chunk *> recordlist;
+
+    // ensure all command buffer records within the frame evne if recorded before, but
+    // otherwise order must be preserved (vs. queue submits and desc set updates)
+    for(size_t i = 0; i < m_CmdListRecords.size(); i++)
+    {
+      /*
+      SCOPED_SERIALISE_CONTEXT(BEGIN_CMD_LIST);
+      Serialise_BeginCmdList(m_CmdListRecords[i]->GetResourceID());
+      Chunk *beginCmdList = scope.Get();
+
+        */
+
+      m_CmdListRecords[i]->Insert(recordlist);
+
+      RDCDEBUG("Adding %u chunks to file serialiser from command buffer %llu",
+               (uint32_t)recordlist.size(), m_CmdListRecords[i]->GetResourceID());
+    }
+
+    GetRecord(m_Queue)->Insert(recordlist);
+
+    m_FrameCaptureRecord->Insert(recordlist);
+
+    RDCDEBUG("Flushing %u chunks to file serialiser from context record",
+             (uint32_t)recordlist.size());
+
+    for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
+      m_pFileSerialiser->Insert(it->second);
+
+    RDCDEBUG("Done");
+  }
+
+  m_pFileSerialiser->FlushToDisk();
+
+  RenderDoc::Inst().SuccessfullyWrittenLog();
+
+  SAFE_DELETE(m_pFileSerialiser);
+  SAFE_DELETE(m_HeaderChunk);
+
+  m_State = WRITING_IDLE;
+
+  // delete cmd buffers now - had to keep them alive until after serialiser flush.
+  for(size_t i = 0; i < m_CmdListRecords.size(); i++)
+    m_CmdListRecords[i]->Delete(GetResourceManager());
+
+  m_CmdListRecords.clear();
+
+  GetResourceManager()->MarkUnwrittenResources();
+
+  GetResourceManager()->ClearReferencedResources();
+
+  GetResourceManager()->FreeInitialContents();
+
+  GetResourceManager()->FlushPendingDirty();
+
+  return true;
 }
+
 bool WrappedID3D12Device::Serialise_ReleaseResource(ID3D12DeviceChild *res)
 {
   return true;
@@ -868,3 +1147,11 @@ void WrappedID3D12Device::SetResourceName(ID3D12DeviceChild *res, const char *na
     }
   }
 }
+
+// need to create this dummy here so that we can record D3D12.
+ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+{
+  return eReplayCreate_APIUnsupported;
+}
+
+static DriverRegistration D3D12DriverRegistration(RDC_D3D12, "D3D12", &D3D12_CreateReplayDevice);

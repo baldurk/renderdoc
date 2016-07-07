@@ -50,6 +50,7 @@ public:
   TrackedResource() { m_ID = ResourceIDGen::GetNewUniqueID(); }
   ResourceId GetResourceID() { return m_ID; }
   D3D12ResourceRecord *GetResourceRecord() { return m_pRecord; }
+  void SetResourceRecord(D3D12ResourceRecord *record) { m_pRecord = record; }
 private:
   TrackedResource(const TrackedResource &);
   TrackedResource &operator=(const TrackedResource &);

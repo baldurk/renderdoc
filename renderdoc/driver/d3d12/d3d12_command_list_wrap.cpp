@@ -81,10 +81,18 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
     // reset for new recording
     m_ListRecord->DeleteChunks();
 
+    // free parents
+    m_ListRecord->FreeParents(GetResourceManager());
+
     SCOPED_SERIALISE_CONTEXT(RESET_LIST);
     Serialise_Reset(pAllocator, pInitialState);
 
     m_ListRecord->AddChunk(scope.Get());
+
+    // add allocator and initial state (if there is one) as parents
+    m_ListRecord->AddParent(GetRecord(pAllocator));
+    if(pInitialState)
+      m_ListRecord->AddParent(GetRecord(pInitialState));
   }
 
   return m_pReal->Reset(Unwrap(pAllocator), Unwrap(pInitialState));

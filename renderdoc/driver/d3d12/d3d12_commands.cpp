@@ -73,6 +73,24 @@ ID3D12CommandQueue *Unwrap(ID3D12CommandQueue *obj)
   return ((WrappedID3D12CommandQueue *)obj)->GetReal();
 }
 
+template <>
+ResourceId GetResID(ID3D12CommandQueue *obj)
+{
+  if(obj == NULL)
+    return ResourceId();
+
+  return ((WrappedID3D12CommandQueue *)obj)->GetResourceID();
+}
+
+template <>
+D3D12ResourceRecord *GetRecord(ID3D12CommandQueue *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12CommandQueue *)obj)->GetRecord();
+}
+
 ULONG STDMETHODCALLTYPE DummyID3D12DebugCommandQueue::AddRef()
 {
   m_pQueue->AddRef();
@@ -99,8 +117,8 @@ ULONG STDMETHODCALLTYPE DummyID3D12DebugCommandList::Release()
 
 WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
                                                      WrappedID3D12Device *device,
-                                                     Serialiser *serialiser)
-    : RefCounter12(real), m_pDevice(device)
+                                                     Serialiser *serialiser, LogState &state)
+    : RefCounter12(real), m_pDevice(device), m_State(state)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
@@ -110,13 +128,11 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 
   if(RenderDoc::Inst().IsReplayApp())
   {
-    m_State = READING;
     m_pSerialiser = serialiser;
   }
   else
   {
     m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, true);
-    m_State = WRITING_IDLE;
 
     m_pSerialiser->SetDebugText(true);
   }
@@ -134,8 +150,6 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
     m_QueueRecord->DataInSerialiser = false;
     m_QueueRecord->SpecialResource = true;
     m_QueueRecord->Length = 0;
-    m_QueueRecord->NumSubResources = 0;
-    m_QueueRecord->SubResources = NULL;
     m_QueueRecord->ignoreSerialise = true;
   }
 
@@ -189,8 +203,9 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
 
 WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real,
                                                                    WrappedID3D12Device *device,
-                                                                   Serialiser *serialiser)
-    : RefCounter12(real), m_pDevice(device)
+                                                                   Serialiser *serialiser,
+                                                                   LogState &state)
+    : RefCounter12(real), m_pDevice(device), m_State(state)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(
@@ -200,13 +215,11 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
 
   if(RenderDoc::Inst().IsReplayApp())
   {
-    m_State = READING;
     m_pSerialiser = serialiser;
   }
   else
   {
     m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, true);
-    m_State = WRITING_IDLE;
 
     m_pSerialiser->SetDebugText(true);
   }
@@ -224,8 +237,6 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
     m_ListRecord->DataInSerialiser = false;
     m_ListRecord->SpecialResource = true;
     m_ListRecord->Length = 0;
-    m_ListRecord->NumSubResources = 0;
-    m_ListRecord->SubResources = NULL;
     m_ListRecord->ignoreSerialise = true;
   }
 

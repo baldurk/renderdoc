@@ -76,7 +76,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   D3D12ResourceRecord *m_QueueRecord;
 
   Serialiser *m_pSerialiser;
-  LogState m_State;
+  LogState &m_State;
 
   DummyID3D12DebugCommandQueue m_DummyDebug;
 
@@ -86,12 +86,13 @@ public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandQueue);
 
   WrappedID3D12CommandQueue(ID3D12CommandQueue *real, WrappedID3D12Device *device,
-                            Serialiser *serialiser);
+                            Serialiser *serialiser, LogState &state);
   virtual ~WrappedID3D12CommandQueue();
 
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   ResourceId GetResourceID() { return m_ResourceID; }
   ID3D12CommandQueue *GetReal() { return m_pReal; }
+  D3D12ResourceRecord *GetRecord() { return m_QueueRecord; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
@@ -227,3 +228,9 @@ public:
 
 template <>
 ID3D12CommandQueue *Unwrap(ID3D12CommandQueue *obj);
+
+template <>
+ResourceId GetResID(ID3D12CommandQueue *obj);
+
+template <>
+D3D12ResourceRecord *GetRecord(ID3D12CommandQueue *obj);
