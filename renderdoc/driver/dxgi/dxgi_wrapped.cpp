@@ -227,8 +227,6 @@ WrappedIDXGISwapChain3::WrappedIDXGISwapChain3(IDXGISwapChain *real, HWND wnd, I
 
 WrappedIDXGISwapChain3::~WrappedIDXGISwapChain3()
 {
-  RDCLOG("~WrappedIDXGISwapChain3");
-
   m_pDevice->ShutdownSwapchain(this);
 
   SAFE_RELEASE(m_pDevice);

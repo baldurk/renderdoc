@@ -179,6 +179,12 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_AppControlledCapture = false;
 
+  m_FrameCounter = 0;
+
+  m_FrameTimer.Restart();
+
+  m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_State = READING;
@@ -580,6 +586,166 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
 {
   if((Flags & DXGI_PRESENT_TEST) != 0)
     return S_OK;
+
+  if(m_State == WRITING_IDLE)
+    RenderDoc::Inst().Tick();
+
+  m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
+
+  DXGI_SWAP_CHAIN_DESC swapdesc;
+  swap->GetDesc(&swapdesc);
+  bool activeWindow = RenderDoc::Inst().IsActiveWindow((ID3D12Device *)this, swapdesc.OutputWindow);
+
+  if(m_State == WRITING_IDLE)
+  {
+    m_FrameTimes.push_back(m_FrameTimer.GetMilliseconds());
+    m_TotalTime += m_FrameTimes.back();
+    m_FrameTimer.Restart();
+
+    bool doprint = false;
+
+    // update every second
+    if(m_TotalTime > 1000.0)
+    {
+      m_MinFrametime = 10000.0;
+      m_MaxFrametime = 0.0;
+      m_AvgFrametime = 0.0;
+
+      m_TotalTime = 0.0;
+
+      doprint = true;
+
+      for(size_t i = 0; i < m_FrameTimes.size(); i++)
+      {
+        m_AvgFrametime += m_FrameTimes[i];
+        if(m_FrameTimes[i] < m_MinFrametime)
+          m_MinFrametime = m_FrameTimes[i];
+        if(m_FrameTimes[i] > m_MaxFrametime)
+          m_MaxFrametime = m_FrameTimes[i];
+      }
+
+      m_AvgFrametime /= double(m_FrameTimes.size());
+
+      m_FrameTimes.clear();
+    }
+
+    uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
+
+    if(overlay & eRENDERDOC_Overlay_Enabled)
+    {
+      if(activeWindow)
+      {
+        vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetCaptureKeys();
+
+        string overlayText = "D3D12. ";
+
+        if(Keyboard::PlatformHasKeyInput())
+        {
+          for(size_t i = 0; i < keys.size(); i++)
+          {
+            if(i > 0)
+              overlayText += ", ";
+
+            overlayText += ToStr::Get(keys[i]);
+          }
+
+          if(!keys.empty())
+            overlayText += " to capture.";
+        }
+        else
+        {
+          if(RenderDoc::Inst().IsRemoteAccessConnected())
+            overlayText += "Connected by " + RenderDoc::Inst().GetRemoteAccessUsername() + ".";
+          else
+            overlayText += "No remote access connection.";
+        }
+
+        if(overlay & eRENDERDOC_Overlay_FrameNumber)
+        {
+          overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
+        }
+        if(overlay & eRENDERDOC_Overlay_FrameRate)
+        {
+          overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_AvgFrametime,
+                                           m_MinFrametime, m_MaxFrametime,
+                                           // max with 0.01ms so that we don't divide by zero
+                                           1000.0f / RDCMAX(0.01, m_AvgFrametime));
+        }
+
+        float y = 0.0f;
+
+        if(!overlayText.empty())
+        {
+          if(doprint)
+            RDCLOG(overlayText.c_str());
+          y += 1.0f;
+        }
+
+        if(overlay & eRENDERDOC_Overlay_CaptureList)
+        {
+          if(doprint)
+            RDCLOG("%d Captures saved.", (uint32_t)m_CapturedFrames.size());
+          y += 1.0f;
+
+          uint64_t now = Timing::GetUnixTimestamp();
+          for(size_t i = 0; i < m_CapturedFrames.size(); i++)
+          {
+            if(now - m_CapturedFrames[i].captureTime < 20)
+            {
+              if(doprint)
+                RDCLOG("Captured frame %d.", m_CapturedFrames[i].frameNumber);
+              y += 1.0f;
+            }
+          }
+        }
+
+#if !defined(RELEASE)
+        if(doprint)
+          RDCLOG("%llu chunks - %.2f MB", Chunk::NumLiveChunks(),
+                 float(Chunk::TotalMem()) / 1024.0f / 1024.0f);
+        y += 1.0f;
+#endif
+      }
+      else
+      {
+        vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetFocusKeys();
+
+        string str = "D3D12. Inactive swapchain.";
+
+        for(size_t i = 0; i < keys.size(); i++)
+        {
+          if(i == 0)
+            str += " ";
+          else
+            str += ", ";
+
+          str += ToStr::Get(keys[i]);
+        }
+
+        if(!keys.empty())
+          str += " to cycle between swapchains";
+
+        if(doprint)
+          RDCLOG(str.c_str());
+      }
+    }
+  }
+
+  if(!activeWindow)
+    return S_OK;
+
+  RenderDoc::Inst().SetCurrentDriver(RDC_D3D11);
+
+  // kill any current capture that isn't application defined
+  if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
+    RenderDoc::Inst().EndFrameCapture((ID3D12Device *)this, swapdesc.OutputWindow);
+
+  if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
+  {
+    RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapdesc.OutputWindow);
+
+    m_AppControlledCapture = false;
+  }
 
   return S_OK;
 }

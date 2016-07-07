@@ -224,6 +224,13 @@ private:
   RefCounter12<ID3D12Device> m_SoftRefCounter;
   bool m_Alive;
 
+  uint32_t m_FrameCounter;
+  vector<FetchFrameInfo> m_CapturedFrames;
+
+  PerformanceTimer m_FrameTimer;
+  vector<double> m_FrameTimes;
+  double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
+
   Serialiser *m_pSerialiser;
   LogState m_State;
   bool m_AppControlledCapture;
