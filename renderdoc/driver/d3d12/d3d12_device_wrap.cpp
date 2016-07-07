@@ -145,6 +145,7 @@ HRESULT WrappedID3D12Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type
       Serialise_CreateCommandAllocator(type, riid, (void **)&wrapped);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_CommandAllocator;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
@@ -285,6 +286,7 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
       Serialise_CreateGraphicsPipelineState(pDesc, riid, (void **)&wrapped);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_PipelineState;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
@@ -351,6 +353,7 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
       Serialise_CreateComputePipelineState(pDesc, riid, (void **)&wrapped);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_PipelineState;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
@@ -417,10 +420,19 @@ HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DE
       Serialise_CreateDescriptorHeap(pDescriptorHeapDesc, riid, (void **)&wrapped);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_DescriptorHeap;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
       record->AddChunk(scope.Get());
+
+      {
+        SCOPED_LOCK(m_CapTransitionLock);
+        if(m_State != WRITING_CAPFRAME)
+          GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
+        else
+          GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
+      }
     }
 
     *ppvHeap = (ID3D12DescriptorHeap *)wrapped;
@@ -490,6 +502,7 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
                                     (void **)&wrapped);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_RootSignature;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
@@ -631,10 +644,19 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
                                         (void **)&wrapped);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_Resource;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
       record->AddChunk(scope.Get());
+
+      {
+        SCOPED_LOCK(m_CapTransitionLock);
+        if(m_State != WRITING_CAPFRAME)
+          GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
+        else
+          GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
+      }
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;
@@ -719,6 +741,7 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
       Serialise_CreateFence(InitialValue, Flags, riid, (void **)&wrapped);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_Resource;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 

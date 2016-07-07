@@ -31,7 +31,7 @@
 
 ALL_D3D12_TYPES;
 
-ResourceType IdentifyTypeByPtr(ID3D12DeviceChild *ptr)
+D3D12ResourceType IdentifyTypeByPtr(ID3D12DeviceChild *ptr)
 {
   if(ptr == NULL)
     return Resource_Unknown;
@@ -163,6 +163,11 @@ WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *r
     // only need to set this once, it's aliased between samp and nonsamp
     descriptors[i].samp.heap = this;
     descriptors[i].samp.idx = i;
+
+    // initially descriptors are undefined. This way we just fill them with
+    // some null SRV descriptor so it's safe to copy around etc but is no
+    // less undefined for the application to use
+    descriptors[i].nonsamp.type = D3D12Descriptor::TypeUndefined;
   }
 }
 

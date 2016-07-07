@@ -31,6 +31,23 @@
 #include "driver/d3d12/d3d12_common.h"
 #include "serialise/serialiser.h"
 
+enum D3D12ResourceType
+{
+  Resource_Unknown = 0,
+  Resource_Device,
+  Resource_CommandAllocator,
+  Resource_CommandQueue,
+  Resource_CommandSignature,
+  Resource_DescriptorHeap,
+  Resource_Fence,
+  Resource_Heap,
+  Resource_PipelineState,
+  Resource_QueryHeap,
+  Resource_Resource,
+  Resource_GraphicsCommandList,
+  Resource_RootSignature,
+};
+
 class WrappedID3D12DescriptorHeap;
 
 // squeeze the descriptor a bit so that the below struct fits in 64 bytes
@@ -110,6 +127,7 @@ struct D3D12Descriptor
     TypeUAV,
     TypeRTV,
     TypeDSV,
+    TypeUndefined,
   };
 
   DescriptorType GetType()
@@ -129,6 +147,8 @@ struct D3D12Descriptor
             const D3D12_UNORDERED_ACCESS_VIEW_DESC *pDesc);
   void Init(ID3D12Resource *pResource, const D3D12_RENDER_TARGET_VIEW_DESC *pDesc);
   void Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc);
+
+  void Create(ID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
   union
   {
@@ -217,7 +237,8 @@ struct D3D12ResourceRecord : public ResourceRecord
     NullResource = NULL
   };
 
-  D3D12ResourceRecord(ResourceId id) : ResourceRecord(id, true), cmdInfo(NULL), bakedCommands(NULL)
+  D3D12ResourceRecord(ResourceId id)
+      : ResourceRecord(id, true), type(Resource_Unknown), cmdInfo(NULL), bakedCommands(NULL)
   {
   }
   ~D3D12ResourceRecord() {}
@@ -248,6 +269,7 @@ struct D3D12ResourceRecord : public ResourceRecord
       recordlist.insert(m_Chunks.begin(), m_Chunks.end());
   }
 
+  D3D12ResourceType type;
   D3D12ResourceRecord *bakedCommands;
   CmdListRecordingInfo *cmdInfo;
 };

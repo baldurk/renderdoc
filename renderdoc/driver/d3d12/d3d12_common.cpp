@@ -41,19 +41,121 @@ string ToStrHelper<false, D3D12ResourceBarrierSubresource>::Get(const D3D12Resou
   return ToStr::Get(uint32_t(el));
 }
 
-// we know the object will be a non-dispatchable object type
-#define SerialiseObject(type, name, obj)                              \
-  {                                                                   \
-    D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData(); \
-    ResourceId id;                                                    \
-    if(m_Mode >= WRITING)                                             \
-      id = GetResID(obj);                                             \
-    Serialise(name, id);                                              \
-    if(m_Mode < WRITING)                                              \
-      obj = (id == ResourceId() || !rm->HasLiveResource(id))          \
-                ? NULL                                                \
-                : Unwrap((type *)rm->GetLiveResource(id));            \
+enum D3D12ComponentMapping
+{
+};
+
+string ToStrHelper<false, D3D12ComponentMapping>::Get(const D3D12ComponentMapping &el)
+{
+  string ret;
+
+  uint32_t swizzle = (uint32_t)el;
+
+  uint32_t shift = 0;
+  uint32_t mask = D3D12_SHADER_COMPONENT_MAPPING_MASK;
+  for(int i = 0; i < 4; i++)
+  {
+    // value should always be <= 5, see D3D12_SHADER_COMPONENT_MAPPING
+    char mapping[] = {'R', 'G', 'B', 'A', '0', '1', '?', '?'};
+
+    ret += mapping[(swizzle & mask) >> shift];
+
+    shift += D3D12_SHADER_COMPONENT_MAPPING_SHIFT;
+    mask <<= D3D12_SHADER_COMPONENT_MAPPING_SHIFT;
   }
+
+  return ret;
+}
+
+#define SerialiseObject(type, name, obj)                                                        \
+  {                                                                                             \
+    D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData();                           \
+    ResourceId id;                                                                              \
+    if(m_Mode >= WRITING)                                                                       \
+      id = GetResID(obj);                                                                       \
+    Serialise(name, id);                                                                        \
+    if(m_Mode < WRITING)                                                                        \
+      obj = (id == ResourceId() || !rm->HasLiveResource(id)) ? NULL                             \
+                                                             : Unwrap(rm->GetLiveAs<type>(id)); \
+  }
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12Descriptor &el)
+{
+  ScopedContext scope(this, name, "D3D12Descriptor", 0, true);
+
+  D3D12Descriptor::DescriptorType type = el.GetType();
+  Serialise("type", type);
+
+  // we serialise the heap by hand because we want to keep it wrapped
+  {
+    D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData();
+
+    PortableHandle handle;
+
+    if(m_Mode >= WRITING)
+      handle = PortableHandle(el.samp.heap->GetResourceID(), el.samp.idx);
+
+    Serialise("handle", handle);
+
+    if(m_Mode < WRITING)
+    {
+      el.samp.heap = (handle.heap == ResourceId() || !rm->HasLiveResource(handle.heap))
+                         ? NULL
+                         : rm->GetLiveAs<WrappedID3D12DescriptorHeap>(handle.heap);
+      el.samp.idx = handle.index;
+    }
+  }
+
+  switch(type)
+  {
+    case D3D12Descriptor::TypeSampler:
+    {
+      Serialise("Descriptor", el.samp.desc);
+      break;
+    }
+    case D3D12Descriptor::TypeCBV:
+    {
+      SerialiseObject(ID3D12Resource, "Resource", el.nonsamp.resource);
+      Serialise("Descriptor", el.nonsamp.cbv);
+      break;
+    }
+    case D3D12Descriptor::TypeSRV:
+    {
+      SerialiseObject(ID3D12Resource, "Resource", el.nonsamp.resource);
+      Serialise("Descriptor", el.nonsamp.srv);
+      break;
+    }
+    case D3D12Descriptor::TypeRTV:
+    {
+      SerialiseObject(ID3D12Resource, "Resource", el.nonsamp.resource);
+      Serialise("Descriptor", el.nonsamp.rtv);
+      break;
+    }
+    case D3D12Descriptor::TypeDSV:
+    {
+      SerialiseObject(ID3D12Resource, "Resource", el.nonsamp.resource);
+      Serialise("Descriptor", el.nonsamp.dsv);
+      break;
+    }
+    case D3D12Descriptor::TypeUAV:
+    {
+      SerialiseObject(ID3D12Resource, "Resource", el.nonsamp.resource);
+      SerialiseObject(ID3D12Resource, "CounterResource", el.nonsamp.uav.counterResource);
+
+      // special case because of extra resource and squeezed descriptor
+      D3D12_UNORDERED_ACCESS_VIEW_DESC desc = el.nonsamp.uav.desc.AsDesc();
+      Serialise("Descriptor", desc);
+      el.nonsamp.uav.desc.Init(desc);
+      break;
+    }
+    case D3D12Descriptor::TypeUndefined:
+    {
+      el.nonsamp.type = type;
+      break;
+    }
+  }
+}
 
 template <>
 void Serialiser::Serialise(const char *name, D3D12_RESOURCE_DESC &el)
@@ -186,7 +288,7 @@ void Serialiser::Serialise(const char *name, D3D12_BLEND_DESC &el)
   Serialise("IndependentBlendEnable", el.IndependentBlendEnable);
   for(int i = 0; i < 8; i++)
   {
-    ScopedContext targetscope(this, name, "D3D11_RENDER_TARGET_BLEND_DESC", 0, true);
+    ScopedContext targetscope(this, name, "D3D12_RENDER_TARGET_BLEND_DESC", 0, true);
 
     bool enable = el.RenderTarget[i].BlendEnable == TRUE;
     Serialise("BlendEnable", enable);
@@ -399,6 +501,234 @@ void Serialiser::Serialise(const char *name, D3D12_INDEX_BUFFER_VIEW &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12_CONSTANT_BUFFER_VIEW_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_CONSTANT_BUFFER_VIEW_DESC", 0, true);
+
+  D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData();
+
+  ResourceId buffer;
+
+  if(m_Mode == WRITING)
+    buffer = GetResID(el.BufferLocation);
+
+  Serialise("BufferLocation", buffer);
+
+  if(m_Mode == READING)
+  {
+    ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
+    if(res)
+      el.BufferLocation = Unwrap(res->GetGPUVirtualAddress());
+    else
+      el.BufferLocation = 0;
+  }
+
+  Serialise("SizeInBytes", el.SizeInBytes);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_SHADER_RESOURCE_VIEW_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_SHADER_RESOURCE_VIEW_DESC", 0, true);
+
+  Serialise("Format", el.Format);
+  Serialise("ViewDimension", el.ViewDimension);
+  // cast to a special enum so we print nicely
+  Serialise("Shader4ComponentMapping", (D3D12ComponentMapping &)el.Shader4ComponentMapping);
+
+  switch(el.ViewDimension)
+  {
+    case D3D12_SRV_DIMENSION_BUFFER:
+      Serialise("Buffer.FirstElement", el.Buffer.FirstElement);
+      Serialise("Buffer.NumElements", el.Buffer.NumElements);
+      Serialise("Buffer.StructureByteStride", el.Buffer.StructureByteStride);
+      Serialise("Buffer.Flags", el.Buffer.Flags);
+      break;
+    case D3D12_SRV_DIMENSION_TEXTURE1D:
+      Serialise("Texture1D.MostDetailedMip", el.Texture1D.MostDetailedMip);
+      Serialise("Texture1D.MipLevels", el.Texture1D.MipLevels);
+      Serialise("Texture1D.ResourceMinLODClamp", el.Texture1D.ResourceMinLODClamp);
+      break;
+    case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
+      Serialise("Texture1DArray.MostDetailedMip", el.Texture1DArray.MostDetailedMip);
+      Serialise("Texture1DArray.MipLevels", el.Texture1DArray.MipLevels);
+      Serialise("Texture1DArray.FirstArraySlice", el.Texture1DArray.FirstArraySlice);
+      Serialise("Texture1DArray.ArraySize", el.Texture1DArray.ArraySize);
+      Serialise("Texture1DArray.ResourceMinLODClamp", el.Texture1DArray.ResourceMinLODClamp);
+      break;
+    case D3D12_SRV_DIMENSION_TEXTURE2D:
+      Serialise("Texture2D.MostDetailedMip", el.Texture2D.MostDetailedMip);
+      Serialise("Texture2D.MipLevels", el.Texture2D.MipLevels);
+      Serialise("Texture2D.PlaneSlice", el.Texture2D.PlaneSlice);
+      Serialise("Texture2D.ResourceMinLODClamp", el.Texture2D.ResourceMinLODClamp);
+      break;
+    case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
+      Serialise("Texture2DArray.MostDetailedMip", el.Texture2DArray.MostDetailedMip);
+      Serialise("Texture2DArray.MipLevels", el.Texture2DArray.MipLevels);
+      Serialise("Texture2DArray.FirstArraySlice", el.Texture2DArray.FirstArraySlice);
+      Serialise("Texture2DArray.ArraySize", el.Texture2DArray.ArraySize);
+      Serialise("Texture2DArray.PlaneSlice", el.Texture2DArray.PlaneSlice);
+      Serialise("Texture2DArray.ResourceMinLODClamp", el.Texture2DArray.ResourceMinLODClamp);
+      break;
+    case D3D12_SRV_DIMENSION_TEXTURE2DMS:
+      // el.Texture2DMS.UnusedField_NothingToDefine
+      break;
+    case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY:
+      Serialise("Texture2DMSArray.FirstArraySlice", el.Texture2DMSArray.FirstArraySlice);
+      Serialise("Texture2DMSArray.ArraySize", el.Texture2DMSArray.ArraySize);
+      break;
+    case D3D12_SRV_DIMENSION_TEXTURE3D:
+      Serialise("Texture3D.MipLevels", el.Texture3D.MipLevels);
+      Serialise("Texture3D.MostDetailedMip", el.Texture3D.MostDetailedMip);
+      Serialise("Texture3D.ResourceMinLODClamp", el.Texture3D.ResourceMinLODClamp);
+      break;
+    case D3D12_SRV_DIMENSION_TEXTURECUBE:
+      Serialise("TextureCube.MostDetailedMip", el.TextureCube.MostDetailedMip);
+      Serialise("TextureCube.MipLevels", el.TextureCube.MipLevels);
+      Serialise("TextureCube.ResourceMinLODClamp", el.TextureCube.ResourceMinLODClamp);
+      break;
+    case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
+      Serialise("TextureCubeArray.MostDetailedMip", el.TextureCubeArray.MostDetailedMip);
+      Serialise("TextureCubeArray.MipLevels", el.TextureCubeArray.MipLevels);
+      Serialise("TextureCubeArray.First2DArrayFace", el.TextureCubeArray.First2DArrayFace);
+      Serialise("TextureCubeArray.NumCubes", el.TextureCubeArray.NumCubes);
+      Serialise("TextureCubeArray.ResourceMinLODClamp", el.TextureCubeArray.ResourceMinLODClamp);
+      break;
+    default: RDCERR("Unrecognised SRV Dimension %d", el.ViewDimension); break;
+  }
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_RENDER_TARGET_VIEW_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_RENDER_TARGET_VIEW_DESC", 0, true);
+
+  Serialise("Format", el.Format);
+  Serialise("ViewDimension", el.ViewDimension);
+
+  switch(el.ViewDimension)
+  {
+    case D3D12_RTV_DIMENSION_BUFFER:
+      Serialise("Buffer.FirstElement", el.Buffer.FirstElement);
+      Serialise("Buffer.NumElements", el.Buffer.NumElements);
+      break;
+    case D3D12_RTV_DIMENSION_TEXTURE1D:
+      Serialise("Texture1D.MipSlice", el.Texture1D.MipSlice);
+      break;
+    case D3D12_RTV_DIMENSION_TEXTURE1DARRAY:
+      Serialise("Texture1DArray.MipSlice", el.Texture1DArray.MipSlice);
+      Serialise("Texture1DArray.FirstArraySlice", el.Texture1DArray.FirstArraySlice);
+      Serialise("Texture1DArray.ArraySize", el.Texture1DArray.ArraySize);
+      break;
+    case D3D12_RTV_DIMENSION_TEXTURE2D:
+      Serialise("Texture2D.MipSlice", el.Texture2D.MipSlice);
+      Serialise("Texture2D.PlaneSlice", el.Texture2D.PlaneSlice);
+      break;
+    case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
+      Serialise("Texture2DArray.MipSlice", el.Texture2DArray.MipSlice);
+      Serialise("Texture2DArray.FirstArraySlice", el.Texture2DArray.FirstArraySlice);
+      Serialise("Texture2DArray.ArraySize", el.Texture2DArray.ArraySize);
+      Serialise("Texture2DArray.PlaneSlice", el.Texture2DArray.PlaneSlice);
+      break;
+    case D3D12_RTV_DIMENSION_TEXTURE2DMS:
+      // el.Texture2DMS.UnusedField_NothingToDefine
+      break;
+    case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY:
+      Serialise("Texture2DMSArray.FirstArraySlice", el.Texture2DMSArray.FirstArraySlice);
+      Serialise("Texture2DMSArray.ArraySize", el.Texture2DMSArray.ArraySize);
+      break;
+    case D3D12_RTV_DIMENSION_TEXTURE3D:
+      Serialise("Texture3D.MipSlice", el.Texture3D.MipSlice);
+      Serialise("Texture3D.FirstWSlice", el.Texture3D.FirstWSlice);
+      Serialise("Texture3D.WSize", el.Texture3D.WSize);
+      break;
+    default: RDCERR("Unrecognised RTV Dimension %d", el.ViewDimension); break;
+  }
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_DEPTH_STENCIL_VIEW_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_DEPTH_STENCIL_VIEW_DESC", 0, true);
+
+  Serialise("Format", el.Format);
+  Serialise("Flags", el.Flags);
+  Serialise("ViewDimension", el.ViewDimension);
+
+  switch(el.ViewDimension)
+  {
+    case D3D12_DSV_DIMENSION_TEXTURE1D:
+      Serialise("Texture1D.MipSlice", el.Texture1D.MipSlice);
+      break;
+    case D3D12_DSV_DIMENSION_TEXTURE1DARRAY:
+      Serialise("Texture1DArray.MipSlice", el.Texture1DArray.MipSlice);
+      Serialise("Texture1DArray.FirstArraySlice", el.Texture1DArray.FirstArraySlice);
+      Serialise("Texture1DArray.ArraySize", el.Texture1DArray.ArraySize);
+      break;
+    case D3D12_DSV_DIMENSION_TEXTURE2D:
+      Serialise("Texture2D.MipSlice", el.Texture2D.MipSlice);
+      break;
+    case D3D12_DSV_DIMENSION_TEXTURE2DARRAY:
+      Serialise("Texture2DArray.MipSlice", el.Texture2DArray.MipSlice);
+      Serialise("Texture2DArray.FirstArraySlice", el.Texture2DArray.FirstArraySlice);
+      Serialise("Texture2DArray.ArraySize", el.Texture2DArray.ArraySize);
+      break;
+    case D3D12_DSV_DIMENSION_TEXTURE2DMS:
+      // el.Texture2DMS.UnusedField_NothingToDefine
+      break;
+    case D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY:
+      Serialise("Texture2DMSArray.FirstArraySlice", el.Texture2DMSArray.FirstArraySlice);
+      Serialise("Texture2DMSArray.ArraySize", el.Texture2DMSArray.ArraySize);
+      break;
+    default: RDCERR("Unrecognised DSV Dimension %d", el.ViewDimension); break;
+  }
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_UNORDERED_ACCESS_VIEW_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_UNORDERED_ACCESS_VIEW_DESC", 0, true);
+
+  Serialise("Format", el.Format);
+  Serialise("ViewDimension", el.ViewDimension);
+
+  switch(el.ViewDimension)
+  {
+    case D3D12_UAV_DIMENSION_BUFFER:
+      Serialise("Buffer.FirstElement", el.Buffer.FirstElement);
+      Serialise("Buffer.NumElements", el.Buffer.NumElements);
+      Serialise("Buffer.StructureByteStride", el.Buffer.StructureByteStride);
+      Serialise("Buffer.CounterOffsetInBytes", el.Buffer.CounterOffsetInBytes);
+      Serialise("Buffer.Flags", el.Buffer.Flags);
+      break;
+    case D3D12_UAV_DIMENSION_TEXTURE1D:
+      Serialise("Texture1D.MipSlice", el.Texture1D.MipSlice);
+      break;
+    case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
+      Serialise("Texture1DArray.MipSlice", el.Texture1DArray.MipSlice);
+      Serialise("Texture1DArray.FirstArraySlice", el.Texture1DArray.FirstArraySlice);
+      Serialise("Texture1DArray.ArraySize", el.Texture1DArray.ArraySize);
+      break;
+    case D3D12_UAV_DIMENSION_TEXTURE2D:
+      Serialise("Texture2D.MipSlice", el.Texture2D.MipSlice);
+      Serialise("Texture2D.PlaneSlice", el.Texture2D.PlaneSlice);
+      break;
+    case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
+      Serialise("Texture2DArray.MipSlice", el.Texture2DArray.MipSlice);
+      Serialise("Texture2DArray.FirstArraySlice", el.Texture2DArray.FirstArraySlice);
+      Serialise("Texture2DArray.ArraySize", el.Texture2DArray.ArraySize);
+      Serialise("Texture2DArray.PlaneSlice", el.Texture2DArray.PlaneSlice);
+      break;
+    case D3D12_UAV_DIMENSION_TEXTURE3D:
+      Serialise("Texture3D.MipSlice", el.Texture3D.MipSlice);
+      Serialise("Texture3D.FirstWSlice", el.Texture3D.FirstWSlice);
+      Serialise("Texture3D.WSize", el.Texture3D.WSize);
+      break;
+    default: RDCERR("Unrecognised RTV Dimension %d", el.ViewDimension); break;
+  }
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D12_RESOURCE_BARRIER &el)
 {
   ScopedContext scope(this, name, "D3D12_RESOURCE_BARRIER", 0, true);
@@ -475,10 +805,78 @@ void Serialiser::Serialise(const char *name, D3D12_CLEAR_VALUE &el)
   }
 }
 
+template <>
+void Serialiser::Serialise(const char *name, D3D12_SAMPLER_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_SAMPLER_DESC", 0, true);
+
+  Serialise("Filter", el.Filter);
+  Serialise("AddressU", el.AddressU);
+  Serialise("AddressV", el.AddressV);
+  Serialise("AddressW", el.AddressW);
+  Serialise("MipLODBias", el.MipLODBias);
+  Serialise("MaxAnisotropy", el.MaxAnisotropy);
+  Serialise("ComparisonFunc", el.ComparisonFunc);
+  SerialisePODArray<4>("BorderColor", el.BorderColor);
+  Serialise("MinLOD", el.MinLOD);
+  Serialise("MaxLOD", el.MaxLOD);
+}
+
 string ToStrHelper<false, D3D12_VIEWPORT>::Get(const D3D12_VIEWPORT &el)
 {
   return StringFormat::Fmt("Viewport<%.0fx%.0f+%.0f+%.0f z=%f->%f>", el.Width, el.Height,
                            el.TopLeftX, el.TopLeftY, el.MinDepth, el.MaxDepth);
+}
+
+string ToStrHelper<false, PortableHandle>::Get(const PortableHandle &el)
+{
+  if(el.heap == ResourceId())
+    return "NULL";
+
+  return StringFormat::Fmt("D3D12_CPU_DESCRIPTOR_HANDLE(%s, %u)", ToStr::Get(el.heap).c_str(),
+                           el.index);
+}
+
+string ToStrHelper<false, D3D12Descriptor::DescriptorType>::Get(const D3D12Descriptor::DescriptorType &el)
+{
+  switch(el)
+  {
+    case D3D12Descriptor::TypeCBV: return "CBV";
+    case D3D12Descriptor::TypeSRV: return "SRV";
+    case D3D12Descriptor::TypeUAV: return "UAV";
+    case D3D12Descriptor::TypeRTV: return "RTV";
+    case D3D12Descriptor::TypeDSV: return "DSV";
+    case D3D12Descriptor::TypeUndefined: return "Undefined";
+    default: break;
+  }
+
+  if((uint32_t)el < D3D12Descriptor::TypeCBV)
+    return "Sampler";
+
+  return StringFormat::Fmt("DescriptorType<%d>", el);
+}
+
+string ToStrHelper<false, D3D12ResourceType>::Get(const D3D12ResourceType &el)
+{
+  switch(el)
+  {
+    case Resource_Device: return "Device";
+    case Resource_Unknown: return "Unknown";
+    case Resource_CommandAllocator: return "Command Allocator";
+    case Resource_CommandQueue: return "Command Queue";
+    case Resource_CommandSignature: return "Command Signature";
+    case Resource_DescriptorHeap: return "Descriptor Heap";
+    case Resource_Fence: return "Fence";
+    case Resource_Heap: return "Heap";
+    case Resource_PipelineState: return "Pipeline State";
+    case Resource_QueryHeap: return "Query Heap";
+    case Resource_Resource: return "Resource";
+    case Resource_GraphicsCommandList: return "Graphics CommandList";
+    case Resource_RootSignature: return "Root Signature";
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12ResourceType<%d>", el);
 }
 
 string ToStrHelper<false, D3D12_HEAP_TYPE>::Get(const D3D12_HEAP_TYPE &el)
@@ -547,6 +945,150 @@ string ToStrHelper<false, D3D12_RESOURCE_BARRIER_TYPE>::Get(const D3D12_RESOURCE
   }
 
   return StringFormat::Fmt("D3D12_RESOURCE_BARRIER_TYPE<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_SRV_DIMENSION>::Get(const D3D12_SRV_DIMENSION &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_UNKNOWN)
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_BUFFER)
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_TEXTURE1D)
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_TEXTURE1DARRAY)
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_TEXTURE2D)
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_TEXTURE2DMS)
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_TEXTURE3D)
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_TEXTURECUBE)
+    TOSTR_CASE_STRINGIZE(D3D12_SRV_DIMENSION_TEXTURECUBEARRAY)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_SRV_DIMENSION<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_RTV_DIMENSION>::Get(const D3D12_RTV_DIMENSION &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_RTV_DIMENSION_UNKNOWN)
+    TOSTR_CASE_STRINGIZE(D3D12_RTV_DIMENSION_BUFFER)
+    TOSTR_CASE_STRINGIZE(D3D12_RTV_DIMENSION_TEXTURE1D)
+    TOSTR_CASE_STRINGIZE(D3D12_RTV_DIMENSION_TEXTURE1DARRAY)
+    TOSTR_CASE_STRINGIZE(D3D12_RTV_DIMENSION_TEXTURE2D)
+    TOSTR_CASE_STRINGIZE(D3D12_RTV_DIMENSION_TEXTURE2DARRAY)
+    TOSTR_CASE_STRINGIZE(D3D12_RTV_DIMENSION_TEXTURE2DMS)
+    TOSTR_CASE_STRINGIZE(D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY)
+    TOSTR_CASE_STRINGIZE(D3D12_RTV_DIMENSION_TEXTURE3D)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_RTV_DIMENSION<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_UAV_DIMENSION>::Get(const D3D12_UAV_DIMENSION &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_UAV_DIMENSION_BUFFER)
+    TOSTR_CASE_STRINGIZE(D3D12_UAV_DIMENSION_TEXTURE1D)
+    TOSTR_CASE_STRINGIZE(D3D12_UAV_DIMENSION_TEXTURE1DARRAY)
+    TOSTR_CASE_STRINGIZE(D3D12_UAV_DIMENSION_TEXTURE2D)
+    TOSTR_CASE_STRINGIZE(D3D12_UAV_DIMENSION_TEXTURE2DARRAY)
+    TOSTR_CASE_STRINGIZE(D3D12_UAV_DIMENSION_TEXTURE3D)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_UAV_DIMENSION<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_DSV_DIMENSION>::Get(const D3D12_DSV_DIMENSION &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_DSV_DIMENSION_UNKNOWN)
+    TOSTR_CASE_STRINGIZE(D3D12_DSV_DIMENSION_TEXTURE1D)
+    TOSTR_CASE_STRINGIZE(D3D12_DSV_DIMENSION_TEXTURE1DARRAY)
+    TOSTR_CASE_STRINGIZE(D3D12_DSV_DIMENSION_TEXTURE2D)
+    TOSTR_CASE_STRINGIZE(D3D12_DSV_DIMENSION_TEXTURE2DARRAY)
+    TOSTR_CASE_STRINGIZE(D3D12_DSV_DIMENSION_TEXTURE2DMS)
+    TOSTR_CASE_STRINGIZE(D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_DSV_DIMENSION<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_FILTER>::Get(const D3D12_FILTER &el)
+{
+  switch(el)
+  {
+    case D3D12_FILTER_MIN_MAG_MIP_POINT: return "MIN_MAG_MIP_POINT";
+    case D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR: return "MIN_MAG_POINT_MIP_LINEAR";
+    case D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT: return "MIN_POINT_MAG_LINEAR_MIP_POINT";
+    case D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR: return "MIN_POINT_MAG_MIP_LINEAR";
+    case D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT: return "MIN_LINEAR_MAG_MIP_POINT";
+    case D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR: return "MIN_LINEAR_MAG_POINT_MIP_LINEAR";
+    case D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT: return "MIN_MAG_LINEAR_MIP_POINT";
+    case D3D12_FILTER_MIN_MAG_MIP_LINEAR: return "MIN_MAG_MIP_LINEAR";
+    case D3D12_FILTER_ANISOTROPIC: return "ANISOTROPIC";
+
+    case D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT: return "CMP:MIN_MAG_MIP_POINT";
+    case D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR: return "CMP:MIN_MAG_POINT_MIP_LINEAR";
+    case D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT:
+      return "CMP:MIN_POINT_MAG_LINEAR_MIP_POINT";
+    case D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR: return "CMP:MIN_POINT_MAG_MIP_LINEAR";
+    case D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT: return "CMP:MIN_LINEAR_MAG_MIP_POINT";
+    case D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR:
+      return "CMP:MIN_LINEAR_MAG_POINT_MIP_LINEAR";
+    case D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT: return "CMP:MIN_MAG_LINEAR_MIP_POINT";
+    case D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR: return "CMP:MIN_MAG_MIP_LINEAR";
+    case D3D12_FILTER_COMPARISON_ANISOTROPIC: return "CMP:ANISOTROPIC";
+
+    case D3D12_FILTER_MINIMUM_MIN_MAG_MIP_POINT: return "MIN:MIN_MAG_MIP_POINT";
+    case D3D12_FILTER_MINIMUM_MIN_MAG_POINT_MIP_LINEAR: return "MIN:MIN_MAG_POINT_MIP_LINEAR";
+    case D3D12_FILTER_MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT:
+      return "MIN:MIN_POINT_MAG_LINEAR_MIP_POINT";
+    case D3D12_FILTER_MINIMUM_MIN_POINT_MAG_MIP_LINEAR: return "MIN:MIN_POINT_MAG_MIP_LINEAR";
+    case D3D12_FILTER_MINIMUM_MIN_LINEAR_MAG_MIP_POINT: return "MIN:MIN_LINEAR_MAG_MIP_POINT";
+    case D3D12_FILTER_MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR:
+      return "MIN:MIN_LINEAR_MAG_POINT_MIP_LINEAR";
+    case D3D12_FILTER_MINIMUM_MIN_MAG_LINEAR_MIP_POINT: return "MIN:MIN_MAG_LINEAR_MIP_POINT";
+    case D3D12_FILTER_MINIMUM_MIN_MAG_MIP_LINEAR: return "MIN:MIN_MAG_MIP_LINEAR";
+    case D3D12_FILTER_MINIMUM_ANISOTROPIC: return "MIN:ANISOTROPIC";
+
+    case D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_POINT: return "MAX:MIN_MAG_MIP_POINT";
+    case D3D12_FILTER_MAXIMUM_MIN_MAG_POINT_MIP_LINEAR: return "MAX:MIN_MAG_POINT_MIP_LINEAR";
+    case D3D12_FILTER_MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT:
+      return "MAX:MIN_POINT_MAG_LINEAR_MIP_POINT";
+    case D3D12_FILTER_MAXIMUM_MIN_POINT_MAG_MIP_LINEAR: return "MAX:MIN_POINT_MAG_MIP_LINEAR";
+    case D3D12_FILTER_MAXIMUM_MIN_LINEAR_MAG_MIP_POINT: return "MAX:MIN_LINEAR_MAG_MIP_POINT";
+    case D3D12_FILTER_MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR:
+      return "MAX:MIN_LINEAR_MAG_POINT_MIP_LINEAR";
+    case D3D12_FILTER_MAXIMUM_MIN_MAG_LINEAR_MIP_POINT: return "MAX:MIN_MAG_LINEAR_MIP_POINT";
+    case D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_LINEAR: return "MAX:MIN_MAG_MIP_LINEAR";
+    case D3D12_FILTER_MAXIMUM_ANISOTROPIC: return "MAX:ANISOTROPIC";
+
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_FILTER<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_TEXTURE_ADDRESS_MODE>::Get(const D3D12_TEXTURE_ADDRESS_MODE &el)
+{
+  switch(el)
+  {
+    case D3D12_TEXTURE_ADDRESS_MODE_WRAP: return "WRAP";
+    case D3D12_TEXTURE_ADDRESS_MODE_MIRROR: return "MIRROR";
+    case D3D12_TEXTURE_ADDRESS_MODE_CLAMP: return "CLAMP";
+    case D3D12_TEXTURE_ADDRESS_MODE_BORDER: return "BORDER";
+    case D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE: return "MIRROR_ONCE";
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_TEXTURE_ADDRESS_MODE<%d>", el);
 }
 
 string ToStrHelper<false, D3D12_BLEND>::Get(const D3D12_BLEND &el)
@@ -785,6 +1327,56 @@ string ToStrHelper<false, D3D12_TEXTURE_LAYOUT>::Get(const D3D12_TEXTURE_LAYOUT 
   }
 
   return StringFormat::Fmt("D3D12_TEXTURE_LAYOUT<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_BUFFER_SRV_FLAGS>::Get(const D3D12_BUFFER_SRV_FLAGS &el)
+{
+  string ret;
+
+  if(el == D3D12_BUFFER_SRV_FLAG_NONE)
+    return "D3D12_BUFFER_SRV_FLAG_NONE";
+
+  if(el & D3D12_BUFFER_SRV_FLAG_RAW)
+    ret += " | D3D12_BUFFER_SRV_FLAG_RAW";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
+string ToStrHelper<false, D3D12_DSV_FLAGS>::Get(const D3D12_DSV_FLAGS &el)
+{
+  string ret;
+
+  if(el == D3D12_DSV_FLAG_NONE)
+    return "D3D12_DSV_FLAG_NONE";
+
+  if(el & D3D12_DSV_FLAG_READ_ONLY_DEPTH)
+    ret += " | D3D12_DSV_FLAG_READ_ONLY_DEPTH";
+  if(el & D3D12_DSV_FLAG_READ_ONLY_STENCIL)
+    ret += " | D3D12_DSV_FLAG_READ_ONLY_STENCIL";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
+string ToStrHelper<false, D3D12_BUFFER_UAV_FLAGS>::Get(const D3D12_BUFFER_UAV_FLAGS &el)
+{
+  string ret;
+
+  if(el == D3D12_BUFFER_UAV_FLAG_NONE)
+    return "D3D12_BUFFER_UAV_FLAG_NONE";
+
+  if(el & D3D12_BUFFER_UAV_FLAG_RAW)
+    ret += " | D3D12_BUFFER_UAV_FLAG_RAW";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
 }
 
 string ToStrHelper<false, D3D12_HEAP_FLAGS>::Get(const D3D12_HEAP_FLAGS &el)

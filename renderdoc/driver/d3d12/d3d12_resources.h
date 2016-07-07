@@ -28,22 +28,6 @@
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
 
-enum ResourceType
-{
-  Resource_Unknown = 0,
-  Resource_CommandAllocator,
-  Resource_CommandQueue,
-  Resource_CommandSignature,
-  Resource_DescriptorHeap,
-  Resource_Fence,
-  Resource_Heap,
-  Resource_PipelineState,
-  Resource_QueryHeap,
-  Resource_Resource,
-  Resource_GraphicsCommandList,
-  Resource_RootSignature,
-};
-
 class TrackedResource
 {
 public:
@@ -338,6 +322,7 @@ public:
                               const D3D12_DESCRIPTOR_HEAP_DESC &desc);
   virtual ~WrappedID3D12DescriptorHeap();
 
+  const D3D12Descriptor *GetDescriptors() { return descriptors; }
   //////////////////////////////
   // implement ID3D12DescriptorHeap
 
@@ -552,27 +537,27 @@ struct UnwrapHelper
 };
 
 #undef D3D12_TYPE_MACRO
-#define D3D12_TYPE_MACRO(iface)                                                 \
-  template <>                                                                   \
-  struct UnwrapHelper<iface>                                                    \
-  {                                                                             \
-    typedef CONCAT(Wrapped, iface) Outer;                                       \
-    static bool IsAlloc(void *ptr) { return Outer::IsAlloc(ptr); }              \
-    static ResourceType GetTypeEnum() { return (ResourceType)Outer::TypeEnum; } \
-    static Outer *FromHandle(iface *wrapped) { return (Outer *)wrapped; }       \
-  };                                                                            \
-  template <>                                                                   \
-  struct UnwrapHelper<CONCAT(Wrapped, iface)>                                   \
-  {                                                                             \
-    typedef CONCAT(Wrapped, iface) Outer;                                       \
-    static bool IsAlloc(void *ptr) { return Outer::IsAlloc(ptr); }              \
-    static ResourceType GetTypeEnum() { return (ResourceType)Outer::TypeEnum; } \
-    static Outer *FromHandle(iface *wrapped) { return (Outer *)wrapped; }       \
+#define D3D12_TYPE_MACRO(iface)                                                           \
+  template <>                                                                             \
+  struct UnwrapHelper<iface>                                                              \
+  {                                                                                       \
+    typedef CONCAT(Wrapped, iface) Outer;                                                 \
+    static bool IsAlloc(void *ptr) { return Outer::IsAlloc(ptr); }                        \
+    static D3D12ResourceType GetTypeEnum() { return (D3D12ResourceType)Outer::TypeEnum; } \
+    static Outer *FromHandle(iface *wrapped) { return (Outer *)wrapped; }                 \
+  };                                                                                      \
+  template <>                                                                             \
+  struct UnwrapHelper<CONCAT(Wrapped, iface)>                                             \
+  {                                                                                       \
+    typedef CONCAT(Wrapped, iface) Outer;                                                 \
+    static bool IsAlloc(void *ptr) { return Outer::IsAlloc(ptr); }                        \
+    static D3D12ResourceType GetTypeEnum() { return (D3D12ResourceType)Outer::TypeEnum; } \
+    static Outer *FromHandle(iface *wrapped) { return (Outer *)wrapped; }                 \
   };
 
 ALL_D3D12_TYPES;
 
-ResourceType IdentifyTypeByPtr(ID3D12DeviceChild *ptr);
+D3D12ResourceType IdentifyTypeByPtr(ID3D12DeviceChild *ptr);
 
 #define WRAPPING_DEBUG 0
 

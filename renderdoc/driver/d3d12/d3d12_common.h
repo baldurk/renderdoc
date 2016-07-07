@@ -129,7 +129,23 @@ void Serialiser::Serialise(const char *name, D3D12_HEAP_PROPERTIES &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_DESCRIPTOR_HEAP_DESC &el);
 template <>
+void Serialiser::Serialise(const char *name, D3D12_SAMPLER_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_CONSTANT_BUFFER_VIEW_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_SHADER_RESOURCE_VIEW_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_RENDER_TARGET_VIEW_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_DEPTH_STENCIL_VIEW_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_UNORDERED_ACCESS_VIEW_DESC &el);
+template <>
 void Serialiser::Serialise(const char *name, D3D12_CLEAR_VALUE &el);
+
+struct D3D12Descriptor;
+template <>
+void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
 
 #pragma region Chunks
 

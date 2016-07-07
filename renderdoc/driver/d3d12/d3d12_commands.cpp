@@ -165,6 +165,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_QueueRecord = m_pDevice->GetResourceManager()->AddResourceRecord(m_ResourceID);
+    m_QueueRecord->type = Resource_CommandQueue;
     m_QueueRecord->DataInSerialiser = false;
     m_QueueRecord->SpecialResource = true;
     m_QueueRecord->Length = 0;
@@ -260,6 +261,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_ListRecord = m_pDevice->GetResourceManager()->AddResourceRecord(m_ResourceID);
+    m_ListRecord->type = Resource_GraphicsCommandList;
     m_ListRecord->DataInSerialiser = false;
     m_ListRecord->SpecialResource = true;
     m_ListRecord->Length = 0;

@@ -222,6 +222,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_ResourceID);
+    m_DeviceRecord->type = Resource_Device;
     m_DeviceRecord->DataInSerialiser = false;
     m_DeviceRecord->SpecialResource = true;
     m_DeviceRecord->Length = 0;
@@ -548,6 +549,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
   if(m_State >= WRITING)
   {
     D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+    record->type = Resource_Resource;
     record->DataInSerialiser = false;
     record->SpecialResource = true;
     record->Length = 0;
