@@ -396,16 +396,24 @@ void Serialiser::Serialise(const char *name, D3D12_RESOURCE_BARRIER &el)
   switch(el.Type)
   {
     case D3D12_RESOURCE_BARRIER_TYPE_TRANSITION:
-      Serialise("Transition.pResource", el.Transition.pResource);
+    {
+      SerialiseObject(ID3D12Resource, "Transition.pResource", el.Transition.pResource);
       Serialise("Transition.Subresource", el.Transition.Subresource);
       Serialise("Transition.StateBefore", el.Transition.StateBefore);
       Serialise("Transition.StateAfter", el.Transition.StateAfter);
       break;
+    }
     case D3D12_RESOURCE_BARRIER_TYPE_ALIASING:
-      Serialise("Aliasing.pResourceBefore", el.Aliasing.pResourceBefore);
-      Serialise("Aliasing.pResourceAfter", el.Aliasing.pResourceAfter);
+    {
+      SerialiseObject(ID3D12Resource, "Aliasing.pResourceBefore", el.Aliasing.pResourceBefore);
+      SerialiseObject(ID3D12Resource, "Aliasing.pResourceAfter", el.Aliasing.pResourceAfter);
       break;
-    case D3D12_RESOURCE_BARRIER_TYPE_UAV: Serialise("UAV.pResource", el.UAV.pResource); break;
+    }
+    case D3D12_RESOURCE_BARRIER_TYPE_UAV:
+    {
+      SerialiseObject(ID3D12Resource, "UAV.pResource", el.UAV.pResource);
+      break;
+    }
   }
 }
 
