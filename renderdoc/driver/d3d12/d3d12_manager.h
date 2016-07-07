@@ -204,98 +204,8 @@ struct D3D12ResourceRecord : public ResourceRecord
     NullResource = NULL
   };
 
-  static byte markerValue[32];
-
-  D3D12ResourceRecord(ResourceId id)
-      : ResourceRecord(id, true), NumSubResources(0), SubResources(NULL)
-  {
-    RDCEraseEl(ShadowPtr);
-    RDCEraseEl(contexts);
-    ignoreSerialise = false;
-  }
-
-  ~D3D12ResourceRecord()
-  {
-    for(int i = 0; i < NumSubResources; i++)
-    {
-      SubResources[i]->DeleteChunks();
-      SAFE_DELETE(SubResources[i]);
-    }
-
-    SAFE_DELETE_ARRAY(SubResources);
-
-    FreeShadowStorage();
-  }
-
-  void AllocShadowStorage(int ctx, size_t size)
-  {
-    if(ShadowPtr[ctx][0] == NULL)
-    {
-      ShadowPtr[ctx][0] = Serialiser::AllocAlignedBuffer(size + sizeof(markerValue));
-      ShadowPtr[ctx][1] = Serialiser::AllocAlignedBuffer(size + sizeof(markerValue));
-
-      memcpy(ShadowPtr[ctx][0] + size, markerValue, sizeof(markerValue));
-      memcpy(ShadowPtr[ctx][1] + size, markerValue, sizeof(markerValue));
-
-      ShadowSize[ctx] = size;
-    }
-  }
-
-  bool VerifyShadowStorage(int ctx)
-  {
-    if(ShadowPtr[ctx][0] &&
-       memcmp(ShadowPtr[ctx][0] + ShadowSize[ctx], markerValue, sizeof(markerValue)))
-      return false;
-
-    if(ShadowPtr[ctx][1] &&
-       memcmp(ShadowPtr[ctx][1] + ShadowSize[ctx], markerValue, sizeof(markerValue)))
-      return false;
-
-    return true;
-  }
-
-  void FreeShadowStorage()
-  {
-    for(int i = 0; i < 32; i++)
-    {
-      if(ShadowPtr[i][0] != NULL)
-      {
-        Serialiser::FreeAlignedBuffer(ShadowPtr[i][0]);
-        Serialiser::FreeAlignedBuffer(ShadowPtr[i][1]);
-      }
-      ShadowPtr[i][0] = ShadowPtr[i][1] = NULL;
-    }
-  }
-
-  byte *GetShadowPtr(int ctx, int p) { return ShadowPtr[ctx][p]; }
-  int GetContextID()
-  {
-    // 0 is reserved for the immediate context
-    for(int i = 1; i < 32; i++)
-    {
-      if(contexts[i] == false)
-      {
-        contexts[i] = true;
-        return i;
-      }
-    }
-
-    RDCERR(
-        "More than 32 deferred contexts wanted an ID! Either a leak, or many many contexts mapping "
-        "the same buffer");
-
-    return 0;
-  }
-
-  void FreeContextID(int ctx) { contexts[ctx] = false; }
-  void SetDataPtr(byte *ptr)
-  {
-    DataPtr = ptr;
-
-    for(int i = 0; i < NumSubResources; i++)
-      SubResources[i]->SetDataPtr(ptr);
-  }
-
+  D3D12ResourceRecord(ResourceId id) : ResourceRecord(id, true) { ignoreSerialise = false; }
+  ~D3D12ResourceRecord() {}
   void Insert(map<int32_t, Chunk *> &recordlist)
   {
     bool dataWritten = DataWritten;
@@ -311,24 +221,10 @@ struct D3D12ResourceRecord : public ResourceRecord
     }
 
     if(!dataWritten)
-    {
       recordlist.insert(m_Chunks.begin(), m_Chunks.end());
-
-      for(int i = 0; i < NumSubResources; i++)
-        SubResources[i]->Insert(recordlist);
-    }
   }
 
   bool ignoreSerialise;
-
-  int NumSubResources;
-  ResourceRecord **SubResources;
-
-private:
-  byte *ShadowPtr[32][2];
-  size_t ShadowSize[32];
-
-  bool contexts[32];
 };
 
 class D3D12ResourceManager
