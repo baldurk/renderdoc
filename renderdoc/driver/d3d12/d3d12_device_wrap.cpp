@@ -604,6 +604,9 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
       ret = new WrappedID3D12Resource(ret, this);
 
       GetResourceManager()->AddLiveResource(Res, ret);
+
+      SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
+      states.resize(GetNumSubresources(&desc), state);
     }
   }
 
@@ -657,6 +660,13 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
         else
           GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
       }
+    }
+
+    {
+      SCOPED_LOCK(m_ResourceStatesLock);
+      SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
+
+      states.resize(GetNumSubresources(pResourceDesc), InitialResourceState);
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;

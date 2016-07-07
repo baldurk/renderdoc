@@ -462,6 +462,12 @@ void WrappedID3D12Device::FirstFrame(WrappedIDXGISwapChain3 *swap)
   }
 }
 
+void WrappedID3D12Device::ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers)
+{
+  SCOPED_LOCK(m_ResourceStatesLock);
+  GetResourceManager()->ApplyBarriers(barriers, m_ResourceStates);
+}
+
 void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap)
 {
   if(swap)
@@ -502,8 +508,9 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *
     // the original type will be stored in the texture below
     Descriptor.Format = GetTypelessFormat(Descriptor.Format);
 
-    // create fake texture
     HRESULT hr = E_INVALIDARG;
+
+    // TODO create fake backbuffer texture
 
     if(FAILED(hr))
     {
@@ -517,6 +524,10 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *
       fakeBB->SetName(L"Swap Chain Buffer");
 
       GetResourceManager()->AddLiveResource(TexID, fakeBB);
+
+      SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
+
+      states.resize(1, D3D12_RESOURCE_STATE_PRESENT);
     }
   }
 
@@ -561,6 +572,13 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     Serialise_WrapSwapchainBuffer(swap, swapDesc, buffer, pRes);
 
     record->AddChunk(scope.Get());
+
+    {
+      SCOPED_LOCK(m_ResourceStatesLock);
+      SubresourceStateVector &states = m_ResourceStates[id];
+
+      states.resize(1, D3D12_RESOURCE_STATE_PRESENT);
+    }
   }
 
   if(buffer == 0 && m_State >= WRITING)
@@ -785,11 +803,18 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(bool applyInitialState)
     return true;
   }
 
-  // TODO save initial resource states
+  vector<D3D12_RESOURCE_BARRIER> barriers;
+
+  {
+    SCOPED_LOCK(m_ResourceStatesLock);    // not needed on replay, but harmless also
+    GetResourceManager()->SerialiseResourceStates(barriers, m_ResourceStates);
+  }
 
   if(applyInitialState)
   {
     // apply initial resource states
+    for(size_t i = 0; i < barriers.size(); i++)
+      barriers[i].Transition.pResource = Unwrap(barriers[i].Transition.pResource);
   }
 
   return true;
@@ -1068,6 +1093,13 @@ bool WrappedID3D12Device::Serialise_ReleaseResource(ID3D12DeviceChild *res)
 void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
 {
   D3D12NOTIMP("ReleaseResource");
+
+  ResourceId id = GetResID(res);
+
+  {
+    SCOPED_LOCK(m_ResourceStatesLock);
+    m_ResourceStates.erase(id);
+  }
 }
 
 bool WrappedID3D12Device::Serialise_SetShaderDebugPath(ID3D12DeviceChild *res, const char *p)

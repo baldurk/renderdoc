@@ -131,6 +131,97 @@ D3D12_CPU_DESCRIPTOR_HANDLE FromPortableHandle(D3D12ResourceManager *manager, Po
   return D3D12_CPU_DESCRIPTOR_HANDLE();
 }
 
+// debugging logging for barriers
+#if 1
+#define BARRIER_DBG RDCLOG
+#define BARRIER_ASSERT RDCASSERTMSG
+#else
+#define BARRIER_DBG(...)
+#define BARRIER_ASSERT(...)
+#endif
+
+void D3D12ResourceManager::ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers,
+                                         map<ResourceId, SubresourceStateVector> &states)
+{
+  for(size_t b = 0; b < barriers.size(); b++)
+  {
+    D3D12_RESOURCE_TRANSITION_BARRIER &trans = barriers[b].Transition;
+    ResourceId id = GetResID(trans.pResource);
+    SubresourceStateVector &st = states[id];
+
+    // skip non-transitions, or begin-halves of transitions
+    if(barriers[b].Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION ||
+       (barriers[b].Flags & D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY))
+      continue;
+
+    if(trans.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+    {
+      for(size_t i = 0; i < st.size(); i++)
+      {
+        BARRIER_ASSERT("Mismatching before state", st[i] == trans.StateBefore, st[i],
+                       trans.StateBefore, i);
+        st[i] = trans.StateAfter;
+      }
+    }
+    else
+    {
+      BARRIER_ASSERT("Mismatching before state", st[trans.Subresource] == trans.StateBefore,
+                     st[trans.Subresource], trans.StateBefore, trans.Subresource);
+      st[trans.Subresource] = trans.StateAfter;
+    }
+  }
+}
+
+void D3D12ResourceManager::SerialiseResourceStates(vector<D3D12_RESOURCE_BARRIER> &barriers,
+                                                   map<ResourceId, SubresourceStateVector> &states)
+{
+  SERIALISE_ELEMENT(uint32_t, NumMems, (uint32_t)states.size());
+
+  auto srcit = states.begin();
+
+  for(uint32_t i = 0; i < NumMems; i++)
+  {
+    SERIALISE_ELEMENT(ResourceId, id, srcit->first);
+    SERIALISE_ELEMENT(uint32_t, NumStates, (uint32_t)srcit->second.size());
+
+    ResourceId liveid;
+    if(m_State < WRITING && HasLiveResource(id))
+      liveid = GetLiveID(id);
+
+    for(uint32_t m = 0; m < NumStates; m++)
+    {
+      SERIALISE_ELEMENT(D3D12_RESOURCE_STATES, state, srcit->second[m]);
+
+      if(m_State < WRITING && liveid != ResourceId() && srcit != states.end())
+      {
+        D3D12_RESOURCE_BARRIER b;
+        b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        b.Transition.pResource = (ID3D12Resource *)GetCurrentResource(liveid);
+        b.Transition.Subresource = m;
+        b.Transition.StateBefore = states[liveid][m];
+        b.Transition.StateAfter = state;
+
+        barriers.push_back(b);
+      }
+    }
+
+    if(m_State >= WRITING)
+      srcit++;
+  }
+
+  // erase any do-nothing barriers
+  for(auto it = barriers.begin(); it != barriers.end();)
+  {
+    if(it->Transition.StateBefore == it->Transition.StateAfter)
+      it = barriers.erase(it);
+    else
+      ++it;
+  }
+
+  ApplyBarriers(barriers, states);
+}
+
 bool D3D12ResourceManager::SerialisableResource(ResourceId id, D3D12ResourceRecord *record)
 {
   if(record->SpecialResource)

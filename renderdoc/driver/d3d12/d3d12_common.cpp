@@ -45,6 +45,24 @@ enum D3D12ComponentMapping
 {
 };
 
+UINT GetNumSubresources(const D3D12_RESOURCE_DESC *desc)
+{
+  switch(desc->Dimension)
+  {
+    default:
+    case D3D12_RESOURCE_DIMENSION_UNKNOWN:
+      RDCERR("Unexpected resource dimension! %d", desc->Dimension);
+      break;
+    case D3D12_RESOURCE_DIMENSION_BUFFER: return 1;
+    case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
+    case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+      return RDCMAX((UINT16)1, desc->DepthOrArraySize) * RDCMAX((UINT16)1, desc->MipLevels);
+    case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return RDCMAX((UINT16)1, desc->MipLevels);
+  }
+
+  return 1;
+}
+
 string ToStrHelper<false, D3D12ComponentMapping>::Get(const D3D12ComponentMapping &el)
 {
   string ret;

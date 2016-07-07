@@ -37,6 +37,8 @@
 // debugbreak.
 #define D3D12NOTIMP(...) RDCDEBUG("D3D12 not implemented - " __VA_ARGS__)
 
+UINT GetNumSubresources(const D3D12_RESOURCE_DESC *desc);
+
 class WrappedID3D12Device;
 
 template <typename RealType>

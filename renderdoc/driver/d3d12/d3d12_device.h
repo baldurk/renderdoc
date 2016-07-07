@@ -256,6 +256,11 @@ private:
   ResourceId m_ResourceID;
   D3D12ResourceRecord *m_DeviceRecord;
 
+  // used both on capture and replay side to track resource states. Only locked
+  // in capture
+  map<ResourceId, SubresourceStateVector> m_ResourceStates;
+  Threading::CriticalSection m_ResourceStatesLock;
+
   struct SwapPresentInfo
   {
     D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8];
@@ -296,6 +301,8 @@ public:
   Threading::CriticalSection &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
   void FirstFrame(WrappedIDXGISwapChain3 *swap);
+
+  void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers);
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);

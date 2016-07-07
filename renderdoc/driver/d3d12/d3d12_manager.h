@@ -274,6 +274,8 @@ struct D3D12ResourceRecord : public ResourceRecord
   CmdListRecordingInfo *cmdInfo;
 };
 
+typedef vector<D3D12_RESOURCE_STATES> SubresourceStateVector;
+
 class D3D12ResourceManager
     : public ResourceManager<ID3D12DeviceChild *, ID3D12DeviceChild *, D3D12ResourceRecord>
 {
@@ -288,6 +290,12 @@ public:
   {
     return (T *)GetLiveResource(id);
   }
+
+  void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers,
+                     map<ResourceId, SubresourceStateVector> &states);
+
+  void SerialiseResourceStates(vector<D3D12_RESOURCE_BARRIER> &barriers,
+                               map<ResourceId, SubresourceStateVector> &states);
 
 private:
   bool SerialisableResource(ResourceId id, D3D12ResourceRecord *record);

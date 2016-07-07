@@ -92,6 +92,8 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
 
     // TODO apply barriers from command list to current resource state tracking
 
+    m_pDevice->ApplyBarriers(record->bakedCommands->cmdInfo->barriers);
+
     // need to lock the whole section of code, not just the check on
     // m_State, as we also need to make sure we don't check the state,
     // start marking dirty resources then while we're doing so the
