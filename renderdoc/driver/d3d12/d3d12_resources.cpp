@@ -27,6 +27,7 @@
 #include "d3d12_command_queue.h"
 
 std::vector<WrappedID3D12Resource::AddressRange> WrappedID3D12Resource::m_Addresses;
+std::map<ResourceId, WrappedID3D12Resource *> WrappedID3D12Resource::m_List;
 
 #undef D3D12_TYPE_MACRO
 #define D3D12_TYPE_MACRO(iface) WRAPPED_POOL_INST(CONCAT(Wrapped, iface));
