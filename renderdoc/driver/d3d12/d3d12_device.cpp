@@ -512,16 +512,24 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *
   {
     ID3D12Resource *fakeBB = NULL;
 
-    RDCUNIMPLEMENTED("Creating fake backbuffer texture");
-
     // DXGI swap chain back buffers can be freely cast as a special-case.
     // translate the format to a typeless format to allow for this.
     // the original type will be stored in the texture below
     Descriptor.Format = GetTypelessFormat(Descriptor.Format);
 
-    HRESULT hr = E_INVALIDARG;
+    HRESULT hr = S_OK;
 
-    // TODO create fake backbuffer texture
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    // create in common, which is the same as present
+    hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &Descriptor,
+                                            D3D12_RESOURCE_STATE_COMMON, NULL,
+                                            __uuidof(ID3D12Resource), (void **)&fakeBB);
 
     if(FAILED(hr))
     {
