@@ -89,6 +89,59 @@ void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_
 
 void D3D12Descriptor::Create(ID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
+  D3D12Descriptor::DescriptorType type = GetType();
+
+  switch(type)
+  {
+    case D3D12Descriptor::TypeSampler:
+    {
+      dev->CreateSampler(&samp.desc, handle);
+      break;
+    }
+    case D3D12Descriptor::TypeCBV:
+    {
+      dev->CreateConstantBufferView(&nonsamp.cbv, handle);
+      break;
+    }
+    case D3D12Descriptor::TypeSRV:
+    {
+      dev->CreateShaderResourceView(nonsamp.resource, &nonsamp.srv, handle);
+      break;
+    }
+    case D3D12Descriptor::TypeRTV:
+    {
+      dev->CreateRenderTargetView(nonsamp.resource, &nonsamp.rtv, handle);
+      break;
+    }
+    case D3D12Descriptor::TypeDSV:
+    {
+      dev->CreateDepthStencilView(nonsamp.resource, &nonsamp.dsv, handle);
+      break;
+    }
+    case D3D12Descriptor::TypeUAV:
+    {
+      D3D12_UNORDERED_ACCESS_VIEW_DESC desc = nonsamp.uav.desc.AsDesc();
+      dev->CreateUnorderedAccessView(nonsamp.resource, nonsamp.uav.counterResource, &desc, handle);
+      break;
+    }
+    case D3D12Descriptor::TypeUndefined:
+    {
+      // initially descriptors are undefined. This way we just init with
+      // a null SRV descriptor so it's valid to copy around etc but is no
+      // less undefined for the application to use
+      D3D12_SHADER_RESOURCE_VIEW_DESC desc;
+      desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+      desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+      desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+      desc.Texture2D.MipLevels = 1;
+      desc.Texture2D.MostDetailedMip = 0;
+      desc.Texture2D.PlaneSlice = 0;
+      desc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+      dev->CreateShaderResourceView(NULL, &desc, handle);
+      break;
+    }
+  }
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE Unwrap(D3D12_CPU_DESCRIPTOR_HANDLE handle)
