@@ -417,7 +417,7 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
 
         if(copySrc)
         {
-          copySrc->Map(0, NULL, (void **)&ptr);
+          hr = copySrc->Map(0, NULL, (void **)&ptr);
           size = copySrc->GetDesc().Width;
         }
 
@@ -425,6 +425,8 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
         {
           size = 4;
           ptr = dummy;
+
+          RDCERR("Failed to map buffer for readback! 0x%08x", hr);
         }
 
         m_pSerialiser->Serialise("NumBytes", size);
@@ -479,7 +481,7 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
 
       D3D12_CPU_DESCRIPTOR_HANDLE handle = copyheap->GetCPUDescriptorHandleForHeapStart();
 
-      UINT increment = m_Device->GetDescriptorHandleIncrementSize(desc.Type);
+      UINT increment = m_Device->GetDescriptorIncrement(desc.Type);
 
       for(uint32_t i = 0; i < numElems; i++)
       {
@@ -500,10 +502,8 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
       if(Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
       {
         uint64_t size = 0;
-        byte *ptr = NULL;
 
         m_pSerialiser->Serialise("NumBytes", size);
-        m_pSerialiser->SerialiseBuffer("BufferData", ptr, size);
 
         D3D12_HEAP_PROPERTIES heapProps;
         heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -535,6 +535,22 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
           RDCERR("Couldn't create upload buffer: 0x%08x", hr);
           return false;
         }
+
+        byte *ptr = NULL;
+        hr = copySrc->Map(0, NULL, (void **)&ptr);
+
+        if(FAILED(hr))
+        {
+          RDCERR("Couldn't map upload buffer: 0x%08x", hr);
+          ptr = NULL;
+        }
+
+        m_pSerialiser->SerialiseBuffer("BufferData", ptr, size);
+
+        if(SUCCEEDED(hr))
+          copySrc->Unmap(0, NULL);
+        else
+          SAFE_DELETE_ARRAY(ptr);
 
         SetInitialContents(id, D3D12ResourceManager::InitialContentData(copySrc, 1, NULL));
 
@@ -588,7 +604,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
     if(srcheap)
     {
       // copy the whole heap
-      m_Device->CopyDescriptorsSimple(
+      m_Device->GetReal()->CopyDescriptorsSimple(
           srcheap->GetDesc().NumDescriptors, dstheap->GetCPUDescriptorHandleForHeapStart(),
           srcheap->GetCPUDescriptorHandleForHeapStart(), srcheap->GetDesc().Type);
     }
@@ -598,17 +614,72 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
     if(data.num == 1 && data.resource)
     {
       // buffer
-      m_Device->GetList()->Reset(m_Device->GetAlloc(), NULL);
-
       ID3D12Resource *copyDst = Unwrap((ID3D12Resource *)live);
       ID3D12Resource *copySrc = (ID3D12Resource *)data.resource;
 
-      m_Device->GetList()->CopyResource(copyDst, copySrc);
+      D3D12_HEAP_PROPERTIES heapProps = {};
+      copyDst->GetHeapProperties(&heapProps, NULL);
 
-      m_Device->GetList()->Close();
+      // if destination is on the upload heap, it's impossible to copy via the device,
+      // so we have to map both sides and CPU copy.
+      if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
+      {
+        byte *src = NULL, *dst = NULL;
 
-      ID3D12CommandList *list = (ID3D12CommandList *)m_Device->GetList();
-      m_Device->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
+        HRESULT hr = S_OK;
+
+        hr = copySrc->Map(0, NULL, (void **)&src);
+
+        if(FAILED(hr))
+        {
+          RDCERR("Doing CPU-side copy, couldn't map source: 0x%08x", hr);
+          src = NULL;
+        }
+
+        hr = copyDst->Map(0, NULL, (void **)&dst);
+
+        if(FAILED(hr))
+        {
+          RDCERR("Doing CPU-side copy, couldn't map source: 0x%08x", hr);
+          dst = NULL;
+        }
+
+        if(src && dst)
+          memcpy(dst, src, copySrc->GetDesc().Width);
+
+        if(src)
+          copySrc->Unmap(0, NULL);
+        if(dst)
+          copyDst->Unmap(0, NULL);
+      }
+      else
+      {
+        m_Device->GetList()->Reset(m_Device->GetAlloc(), NULL);
+
+        D3D12_RESOURCE_BARRIER barrier;
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = copyDst;
+        barrier.Transition.Subresource = 0;
+        barrier.Transition.StateBefore = m_Device->GetSubresourceStates(GetResID(live))[0];
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+
+        // transition to copy dest
+        if(barrier.Transition.StateBefore != barrier.Transition.StateAfter)
+          m_Device->GetList()->ResourceBarrier(1, &barrier);
+
+        m_Device->GetList()->CopyBufferRegion(copyDst, 0, copySrc, 0, copySrc->GetDesc().Width);
+
+        // transition back to whatever it was before
+        std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+        if(barrier.Transition.StateBefore != barrier.Transition.StateAfter)
+          m_Device->GetList()->ResourceBarrier(1, &barrier);
+
+        m_Device->GetList()->Close();
+
+        ID3D12CommandList *list = (ID3D12CommandList *)m_Device->GetList();
+        m_Device->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
+      }
     }
     else
     {

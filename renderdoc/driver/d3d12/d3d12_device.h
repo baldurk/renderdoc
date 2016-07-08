@@ -323,6 +323,11 @@ public:
   FetchFrameRecord GetFrameRecord() { return m_FrameRecord; }
   const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
+  vector<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)
+  {
+    return m_ResourceStates[id];
+  }
+
   void SetLogFile(const char *logfile);
   void SetLogVersion(uint32_t fileversion)
   {
