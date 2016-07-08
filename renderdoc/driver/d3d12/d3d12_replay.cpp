@@ -391,10 +391,13 @@ extern "C" __declspec(dllexport) HRESULT
     __cdecl RENDERDOC_CreateWrappedD3D12Device(IUnknown *pAdapter,
                                                D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
                                                void **ppDevice);
+ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev);
 
 ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a D3D12 replay device");
+
+  WrappedIDXGISwapChain3::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
 
   HMODULE lib = NULL;
   lib = LoadLibraryA("d3d12.dll");
