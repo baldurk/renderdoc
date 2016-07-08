@@ -335,6 +335,8 @@ void D3D12DebugManager::ClearOutputWindowColour(uint64_t id, float col[4])
 
   ID3D12CommandList *list = (ID3D12CommandList *)m_WrappedDevice->GetList();
   m_WrappedDevice->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
+
+  m_WrappedDevice->GPUSync();
 }
 
 void D3D12DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
@@ -352,6 +354,8 @@ void D3D12DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t
 
   ID3D12CommandList *list = (ID3D12CommandList *)m_WrappedDevice->GetList();
   m_WrappedDevice->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
+
+  m_WrappedDevice->GPUSync();
 }
 
 void D3D12DebugManager::BindOutputWindow(uint64_t id, bool depth)
@@ -421,6 +425,8 @@ void D3D12DebugManager::FlipOutputWindow(uint64_t id)
 
   ID3D12CommandList *list = (ID3D12CommandList *)m_WrappedDevice->GetList();
   m_WrappedDevice->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
+
+  m_WrappedDevice->GPUSync();
 
   outw.swap->Present(0, 0);
 
