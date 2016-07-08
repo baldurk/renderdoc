@@ -320,7 +320,7 @@ public:
   Threading::CriticalSection &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
   void FirstFrame(WrappedIDXGISwapChain3 *swap);
-  FetchFrameRecord GetFrameRecord() { return m_FrameRecord; }
+  FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
   vector<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)
