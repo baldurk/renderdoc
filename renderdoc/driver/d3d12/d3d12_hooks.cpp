@@ -183,15 +183,28 @@ private:
 
     if(EnableDebugLayer)
     {
-      ID3D12Debug *debug = NULL;
-      HRESULT hr = GetDebugInterface()(__uuidof(ID3D12Debug), (void **)&debug);
+      PFN_D3D12_GET_DEBUG_INTERFACE getfn = GetDebugInterface();
 
-      if(SUCCEEDED(hr) && debug)
-        debug->EnableDebugLayer();
+      if(getfn == NULL)
+        getfn = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(GetModuleHandleA("d3d12.dll"),
+                                                              "D3D12GetDebugInterface");
+
+      if(getfn)
+      {
+        ID3D12Debug *debug = NULL;
+        HRESULT hr = getfn(__uuidof(ID3D12Debug), (void **)&debug);
+
+        if(SUCCEEDED(hr) && debug)
+          debug->EnableDebugLayer();
+        else
+          RDCERR("Couldn't enable debug layer: %x", hr);
+
+        SAFE_RELEASE(debug);
+      }
       else
-        RDCERR("Couldn't enable debug layer: %x", hr);
-
-      SAFE_RELEASE(debug);
+      {
+        RDCERR("Couldn't find D3D12GetDebugInterface!");
+      }
     }
 
     RDCDEBUG("Calling real createdevice...");
