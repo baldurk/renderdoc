@@ -204,6 +204,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Signal(ID3D12Fence *pFence,
     Serialise_Signal(pFence, Value);
 
     m_QueueRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pFence), eFrameRef_Read);
   }
 
   return m_pReal->Signal(Unwrap(pFence), Value);
