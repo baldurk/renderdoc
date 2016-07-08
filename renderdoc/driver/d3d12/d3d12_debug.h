@@ -55,6 +55,8 @@ public:
   }
   int GetWidth() { return m_width; }
   int GetHeight() { return m_height; }
+  bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
+
 private:
   struct OutputWindow
   {
@@ -75,12 +77,35 @@ private:
     int width, height;
   };
 
+  void FillCBuffer(ID3D12Resource *buf, void *data, size_t size);
+
+  ID3D12DescriptorHeap *cbvsrvHeap;
+  ID3D12DescriptorHeap *samplerHeap;
   ID3D12DescriptorHeap *rtvHeap;
   ID3D12DescriptorHeap *dsvHeap;
+
+  ID3D12Resource *m_GenericVSCbuffer;
+  ID3D12Resource *m_GenericPSCbuffer;
+
+  ID3D12PipelineState *m_TexDisplayPipe;
+  ID3D12PipelineState *m_TexDisplayBlendPipe;
+
+  ID3D12RootSignature *m_TexDisplayRootSig;
+
+  static const uint32_t m_ShaderCacheMagic = 0xbaafd1d1;
+  static const uint32_t m_ShaderCacheVersion = 1;
+
+  bool m_ShaderCacheDirty, m_CacheShaders;
+  map<uint32_t, ID3DBlob *> m_ShaderCache;
+
+  string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
+                       const char *profile, ID3DBlob **srcblob);
+  ID3DBlob *MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &rootSig);
 
   int m_width, m_height;
 
   uint64_t m_OutputWindowID;
+  uint64_t m_CurrentOutputWindow;
   map<uint64_t, OutputWindow> m_OutputWindows;
 
   WrappedID3D12Device *m_WrappedDevice;

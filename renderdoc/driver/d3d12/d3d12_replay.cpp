@@ -282,7 +282,7 @@ void D3D12Replay::BuildCustomShader(string source, string entry, const uint32_t 
 
 bool D3D12Replay::RenderTexture(TextureDisplay cfg)
 {
-  return false;
+  return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
 }
 
 void D3D12Replay::RenderCheckerboard(Vec3f light, Vec3f dark)
