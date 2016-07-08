@@ -467,8 +467,13 @@ void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *
 void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeaps,
                                                           ID3D12DescriptorHeap *const *ppDescriptorHeaps)
 {
-  RDCUNIMPLEMENTED("SetDescriptorHeaps");    // need to unwrap heaps
-  m_pReal->SetDescriptorHeaps(NumDescriptorHeaps, ppDescriptorHeaps);
+  ID3D12DescriptorHeap **heaps = new ID3D12DescriptorHeap *[NumDescriptorHeaps];
+  for(UINT i = 0; i < NumDescriptorHeaps; i++)
+    heaps[i] = Unwrap(ppDescriptorHeaps[i]);
+
+  m_pReal->SetDescriptorHeaps(NumDescriptorHeaps, heaps);
+
+  SAFE_DELETE_ARRAY(heaps);
 }
 
 void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignature *pRootSignature)
