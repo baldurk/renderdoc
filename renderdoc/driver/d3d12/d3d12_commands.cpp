@@ -264,7 +264,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
   switch(chunk)
   {
-    case CLOSE_LIST: m_ReplayList->Close(); break;
+    case CLOSE_LIST: m_ReplayList->Serialise_Close(); break;
     case RESET_LIST: m_ReplayList->Serialise_Reset(NULL, NULL); break;
 
     case RESOURCE_BARRIER: m_ReplayList->Serialise_ResourceBarrier(0, NULL); break;
@@ -324,6 +324,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
         AddDrawcall(draw, true);
       }
+      break;
     }
     default:
       // ignore system chunks
