@@ -67,20 +67,13 @@ string ToStrHelper<false, D3D12ComponentMapping>::Get(const D3D12ComponentMappin
 {
   string ret;
 
+  // value should always be <= 5, see D3D12_SHADER_COMPONENT_MAPPING
+  const char mapping[] = {'R', 'G', 'B', 'A', '0', '1', '?', '?'};
+
   uint32_t swizzle = (uint32_t)el;
 
-  uint32_t shift = 0;
-  uint32_t mask = D3D12_SHADER_COMPONENT_MAPPING_MASK;
   for(int i = 0; i < 4; i++)
-  {
-    // value should always be <= 5, see D3D12_SHADER_COMPONENT_MAPPING
-    char mapping[] = {'R', 'G', 'B', 'A', '0', '1', '?', '?'};
-
-    ret += mapping[(swizzle & mask) >> shift];
-
-    shift += D3D12_SHADER_COMPONENT_MAPPING_SHIFT;
-    mask <<= D3D12_SHADER_COMPONENT_MAPPING_SHIFT;
-  }
+    ret += mapping[D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(swizzle, i)];
 
   return ret;
 }
