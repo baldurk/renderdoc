@@ -53,8 +53,6 @@ HRESULT WrappedID3D12GraphicsCommandList::Close()
     m_ListRecord->Bake();
   }
 
-  // bake m_ListRecord to somewhere else
-
   return m_pReal->Close();
 }
 
@@ -80,9 +78,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
     {
       ID3D12GraphicsCommandList *list = NULL;
       m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState, riid, (void **)&list);
-    }
 
-    GetList(CommandList)->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
+      GetResourceManager()->AddLiveResource(CommandList, list);
+    }
+    else
+      GetList(CommandList)->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
   }
 
   return true;
@@ -421,6 +421,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(UINT NumBarrier
 
   if(m_State <= READING)
   {
+    // TODO filter out any barriers for NULL resources
     GetList(CommandList)->ResourceBarrier(num, barriers);
   }
 
