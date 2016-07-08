@@ -26,6 +26,9 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 
+extern "C" __declspec(dllexport) HRESULT
+    __cdecl RENDERDOC_CreateWrappedDXGIFactory1(REFIID riid, void **ppFactory);
+
 D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 {
   if(RenderDoc::Inst().GetCrashHandler())
@@ -45,35 +48,11 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   HRESULT hr = S_OK;
 
-  IDXGIDevice *pDXGIDevice;
-  hr = m_WrappedDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
+  hr = RENDERDOC_CreateWrappedDXGIFactory1(__uuidof(IDXGIFactory4), (void **)&m_pFactory);
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't get DXGI device from D3D device");
-  }
-  else
-  {
-    IDXGIAdapter *pDXGIAdapter;
-    hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Couldn't get DXGI adapter from DXGI device");
-      SAFE_RELEASE(pDXGIDevice);
-    }
-    else
-    {
-      hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory), (void **)&m_pFactory);
-
-      SAFE_RELEASE(pDXGIDevice);
-      SAFE_RELEASE(pDXGIAdapter);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Couldn't get DXGI factory from DXGI adapter");
-      }
-    }
+    RDCERR("Couldn't create DXGI factory!");
   }
 
   D3D12_DESCRIPTOR_HEAP_DESC desc;
@@ -179,7 +158,7 @@ uint64_t D3D12DebugManager::MakeOutputWindow(void *w, bool depth)
 
   HRESULT hr = S_OK;
 
-  hr = m_pFactory->CreateSwapChain(m_WrappedDevice->GetQueue()->GetReal(), &swapDesc, &outw.swap);
+  hr = m_pFactory->CreateSwapChain(m_WrappedDevice->GetQueue(), &swapDesc, &outw.swap);
 
   if(FAILED(hr))
   {

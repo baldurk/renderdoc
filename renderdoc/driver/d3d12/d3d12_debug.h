@@ -83,7 +83,7 @@ private:
   WrappedID3D12Device *m_WrappedDevice;
   ID3D12Device *m_Device;
 
-  IDXGIFactory *m_pFactory;
+  IDXGIFactory4 *m_pFactory;
 
   D3D12ResourceManager *m_ResourceManager;
 };
