@@ -2072,9 +2072,10 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 
         AddDrawcall(draw, true);
       }
+      break;
     }
-    break;
     default:
+    {
       // ignore system chunks
       if((int)context == (int)INITIAL_CONTENTS)
         Serialise_InitialState(ResourceId(), NULL);
@@ -2083,6 +2084,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
       else
         RDCERR("Unrecognised Chunk type %d", context);
       break;
+    }
   }
 }
 
