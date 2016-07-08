@@ -177,6 +177,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_DummyDebug.m_pDevice = this;
   m_WrappedDebug.m_pDevice = this;
 
+  m_Replay.SetDevice(this);
+
   m_AppControlledCapture = false;
 
   m_FrameCounter = 0;
@@ -212,10 +214,11 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
 
-  m_pSerialiser->SetUserData(m_ResourceManager);
-
   if(m_pSerialiser)
+  {
+    m_pSerialiser->SetUserData(m_ResourceManager);
     m_pSerialiser->SetChunkNameLookup(&GetChunkName);
+  }
 
   // create a temporary and grab its resource ID
   m_ResourceID = ResourceIDGen::GetNewUniqueID();
@@ -1242,6 +1245,7 @@ void WrappedID3D12Device::SetLogFile(const char *logfile)
 {
   m_pSerialiser = new Serialiser(logfile, Serialiser::READING, false);
   m_pSerialiser->SetChunkNameLookup(&GetChunkName);
+  m_pSerialiser->SetUserData(m_ResourceManager);
 
   SAFE_DELETE(m_ResourceManager);
   m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
