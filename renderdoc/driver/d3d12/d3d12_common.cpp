@@ -209,7 +209,9 @@ void Serialiser::Serialise(const char *name, D3D12_SHADER_BYTECODE &el)
     el.pShaderBytecode = NULL;
     el.BytecodeLength = sz;
   }
-  SerialiseBuffer("pShaderBytecode", (byte *&)el.pShaderBytecode, sz);
+
+  if(dataSize > 0)
+    SerialiseBuffer("pShaderBytecode", (byte *&)el.pShaderBytecode, sz);
 }
 
 template <>
