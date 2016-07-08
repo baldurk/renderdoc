@@ -534,15 +534,7 @@ void WrappedID3D12Device::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_V
                                                    D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
   GetWrapped(DestDescriptor)->Init(pDesc);
-
-  D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
-  if(pDesc)
-  {
-    desc = *pDesc;
-    desc.BufferLocation = Unwrap(desc.BufferLocation);
-  }
-
-  return m_pDevice->CreateConstantBufferView(pDesc ? &desc : NULL, Unwrap(DestDescriptor));
+  return m_pDevice->CreateConstantBufferView(pDesc, Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateShaderResourceView(ID3D12Resource *pResource,

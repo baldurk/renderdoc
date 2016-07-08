@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include "driver/shaders/dxbc/dxbc_inspect.h"
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
@@ -447,8 +448,39 @@ public:
 
 class WrappedID3D12Resource : public WrappedDeviceChild12<ID3D12Resource>
 {
+  struct AddressRange
+  {
+    D3D12_GPU_VIRTUAL_ADDRESS start, end;
+    ResourceId id;
+
+    bool operator<(const D3D12_GPU_VIRTUAL_ADDRESS &o) const
+    {
+      if(o < start)
+        return true;
+
+      return false;
+    }
+  };
+
+  static std::vector<AddressRange> m_Addresses;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource);
+
+  static ResourceId GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr)
+  {
+    if(m_Addresses.empty())
+      return ResourceId();
+
+    auto it = std::lower_bound(m_Addresses.begin(), m_Addresses.end(), addr);
+    if(it == m_Addresses.end())
+      return ResourceId();
+
+    if(addr < it->start || addr >= it->end)
+      return ResourceId();
+
+    return it->id;
+  }
 
   enum
   {
@@ -458,8 +490,38 @@ public:
   WrappedID3D12Resource(ID3D12Resource *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
+    // assuming only valid for buffers
+    if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+      D3D12_GPU_VIRTUAL_ADDRESS addr = m_pReal->GetGPUVirtualAddress();
+
+      auto it = std::lower_bound(m_Addresses.begin(), m_Addresses.end(), addr);
+      RDCASSERT(it == m_Addresses.begin() || it == m_Addresses.end() || addr < it->start ||
+                addr >= it->end);
+
+      AddressRange range;
+      range.start = addr;
+      range.end = addr + m_pReal->GetDesc().Width;
+      range.id = GetResourceID();
+
+      m_Addresses.insert(it, range);
+    }
   }
-  virtual ~WrappedID3D12Resource() { Shutdown(); }
+  virtual ~WrappedID3D12Resource()
+  {
+    // assuming only valid for buffers
+    if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+      D3D12_GPU_VIRTUAL_ADDRESS addr = m_pReal->GetGPUVirtualAddress();
+
+      auto it = std::lower_bound(m_Addresses.begin(), m_Addresses.end(), addr);
+      RDCASSERT(it != m_Addresses.end() && addr >= it->start && addr < it->end);
+
+      m_Addresses.erase(it);
+    }
+
+    Shutdown();
+  }
   //////////////////////////////
   // implement ID3D12Resource
 
@@ -476,10 +538,9 @@ public:
   virtual D3D12_RESOURCE_DESC STDMETHODCALLTYPE GetDesc() { return m_pReal->GetDesc(); }
   virtual D3D12_GPU_VIRTUAL_ADDRESS STDMETHODCALLTYPE GetGPUVirtualAddress()
   {
-    return (D3D12_GPU_VIRTUAL_ADDRESS) this;
+    return m_pReal->GetGPUVirtualAddress();
   }
 
-  D3D12_GPU_VIRTUAL_ADDRESS GetGPU() { return m_pReal->GetGPUVirtualAddress(); }
   virtual HRESULT STDMETHODCALLTYPE WriteToSubresource(UINT DstSubresource, const D3D12_BOX *pDstBox,
                                                        const void *pSrcData, UINT SrcRowPitch,
                                                        UINT SrcDepthPitch)
@@ -620,8 +681,6 @@ ID3D12DeviceChild *Unwrap(ID3D12DeviceChild *ptr);
 template <>
 D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr);
 
-// specialisations for aliasing ID3D12Resource pointer as a D3D12_GPU_VIRTUAL_ADDRESS
-template <>
-D3D12_GPU_VIRTUAL_ADDRESS Unwrap(D3D12_GPU_VIRTUAL_ADDRESS addr);
+// specialisations for looking up ID3D12Resource pointer from its D3D12_GPU_VIRTUAL_ADDRESS
 template <>
 ResourceId GetResID(D3D12_GPU_VIRTUAL_ADDRESS addr);

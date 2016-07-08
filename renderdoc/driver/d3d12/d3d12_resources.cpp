@@ -26,6 +26,8 @@
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 
+std::vector<WrappedID3D12Resource::AddressRange> WrappedID3D12Resource::m_Addresses;
+
 #undef D3D12_TYPE_MACRO
 #define D3D12_TYPE_MACRO(iface) WRAPPED_POOL_INST(CONCAT(Wrapped, iface));
 
@@ -126,23 +128,9 @@ D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr)
 }
 
 template <>
-D3D12_GPU_VIRTUAL_ADDRESS Unwrap(D3D12_GPU_VIRTUAL_ADDRESS addr)
-{
-  if(addr == 0)
-    return addr;
-
-  WrappedID3D12Resource *res = (WrappedID3D12Resource *)addr;
-  return res->GetGPU();
-}
-
-template <>
 ResourceId GetResID(D3D12_GPU_VIRTUAL_ADDRESS addr)
 {
-  if(addr == 0)
-    return ResourceId();
-
-  WrappedID3D12Resource *res = (WrappedID3D12Resource *)addr;
-  return res->GetResourceID();
+  return WrappedID3D12Resource::GetResIDFromAddr(addr);
 }
 
 WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,

@@ -552,7 +552,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants(UINT RootPa
 void WrappedID3D12GraphicsCommandList::SetComputeRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetComputeRootConstantBufferView(RootParameterIndex, Unwrap(BufferLocation));
+  m_pReal->SetComputeRootConstantBufferView(RootParameterIndex, BufferLocation);
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferView(
@@ -566,7 +566,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
   {
     WrappedID3D12Resource *pRes = GetResourceManager()->GetLiveAs<WrappedID3D12Resource>(buffer);
 
-    GetList(CommandList)->SetGraphicsRootConstantBufferView(idx, pRes->GetGPU());
+    GetList(CommandList)->SetGraphicsRootConstantBufferView(idx, pRes->GetGPUVirtualAddress());
   }
 
   return true;
@@ -575,7 +575,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetGraphicsRootConstantBufferView(RootParameterIndex, Unwrap(BufferLocation));
+  m_pReal->SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation);
 
   if(m_State >= WRITING)
   {
@@ -590,25 +590,25 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
 void WrappedID3D12GraphicsCommandList::SetComputeRootShaderResourceView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetComputeRootShaderResourceView(RootParameterIndex, Unwrap(BufferLocation));
+  m_pReal->SetComputeRootShaderResourceView(RootParameterIndex, BufferLocation);
 }
 
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetGraphicsRootShaderResourceView(RootParameterIndex, Unwrap(BufferLocation));
+  m_pReal->SetGraphicsRootShaderResourceView(RootParameterIndex, BufferLocation);
 }
 
 void WrappedID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetComputeRootUnorderedAccessView(RootParameterIndex, Unwrap(BufferLocation));
+  m_pReal->SetComputeRootUnorderedAccessView(RootParameterIndex, BufferLocation);
 }
 
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetGraphicsRootUnorderedAccessView(RootParameterIndex, Unwrap(BufferLocation));
+  m_pReal->SetGraphicsRootUnorderedAccessView(RootParameterIndex, BufferLocation);
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *pView)
@@ -630,17 +630,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_IN
 
 void WrappedID3D12GraphicsCommandList::IASetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *pView)
 {
-  if(pView)
-  {
-    D3D12_INDEX_BUFFER_VIEW view = *pView;
-    view.BufferLocation = Unwrap(view.BufferLocation);
-
-    m_pReal->IASetIndexBuffer(&view);
-  }
-  else
-  {
-    m_pReal->IASetIndexBuffer(pView);
-  }
+  m_pReal->IASetIndexBuffer(pView);
 
   if(m_State >= WRITING)
   {
@@ -674,17 +664,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
 void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT NumViews,
                                                           const D3D12_VERTEX_BUFFER_VIEW *pViews)
 {
-  D3D12_VERTEX_BUFFER_VIEW *unwrapped = new D3D12_VERTEX_BUFFER_VIEW[NumViews];
-
-  for(UINT i = 0; i < NumViews; i++)
-  {
-    unwrapped[i] = pViews[i];
-    unwrapped[i].BufferLocation = Unwrap(unwrapped[i].BufferLocation);
-  }
-
-  m_pReal->IASetVertexBuffers(StartSlot, NumViews, unwrapped);
-
-  SAFE_DELETE_ARRAY(unwrapped);
+  m_pReal->IASetVertexBuffers(StartSlot, NumViews, pViews);
 
   if(m_State >= WRITING)
   {
@@ -700,18 +680,7 @@ void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT N
 void WrappedID3D12GraphicsCommandList::SOSetTargets(UINT StartSlot, UINT NumViews,
                                                     const D3D12_STREAM_OUTPUT_BUFFER_VIEW *pViews)
 {
-  D3D12_STREAM_OUTPUT_BUFFER_VIEW *unwrapped = new D3D12_STREAM_OUTPUT_BUFFER_VIEW[NumViews];
-
-  for(UINT i = 0; i < NumViews; i++)
-  {
-    unwrapped[i] = pViews[i];
-    unwrapped[i].BufferLocation = Unwrap(unwrapped[i].BufferLocation);
-    unwrapped[i].BufferFilledSizeLocation = Unwrap(unwrapped[i].BufferFilledSizeLocation);
-  }
-
-  m_pReal->SOSetTargets(StartSlot, NumViews, unwrapped);
-
-  SAFE_DELETE_ARRAY(unwrapped);
+  m_pReal->SOSetTargets(StartSlot, NumViews, pViews);
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(

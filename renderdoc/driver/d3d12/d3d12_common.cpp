@@ -481,7 +481,7 @@ void Serialiser::Serialise(const char *name, D3D12_VERTEX_BUFFER_VIEW &el)
   {
     ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
     if(res)
-      el.BufferLocation = Unwrap(res->GetGPUVirtualAddress());
+      el.BufferLocation = res->GetGPUVirtualAddress();
     else
       el.BufferLocation = 0;
   }
@@ -508,7 +508,7 @@ void Serialiser::Serialise(const char *name, D3D12_INDEX_BUFFER_VIEW &el)
   {
     ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
     if(res)
-      el.BufferLocation = Unwrap(res->GetGPUVirtualAddress());
+      el.BufferLocation = res->GetGPUVirtualAddress();
     else
       el.BufferLocation = 0;
   }
@@ -535,7 +535,7 @@ void Serialiser::Serialise(const char *name, D3D12_CONSTANT_BUFFER_VIEW_DESC &el
   {
     ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
     if(res)
-      el.BufferLocation = Unwrap(res->GetGPUVirtualAddress());
+      el.BufferLocation = res->GetGPUVirtualAddress();
     else
       el.BufferLocation = 0;
   }
