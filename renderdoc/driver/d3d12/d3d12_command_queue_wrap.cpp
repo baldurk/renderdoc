@@ -53,9 +53,13 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
   SERIALISE_ELEMENT(UINT, num, NumCommandLists);
 
   std::vector<ResourceId> ids;
-  ids.reserve(num);
-  for(UINT i = 0; i < num; i++)
-    ids.push_back(GetResID(ppCommandLists[i]));
+
+  if(m_State >= WRITING)
+  {
+    ids.reserve(num);
+    for(UINT i = 0; i < num; i++)
+      ids.push_back(GetResID(ppCommandLists[i]));
+  }
 
   m_pSerialiser->Serialise("ppCommandLists", ids);
 
