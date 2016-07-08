@@ -1226,6 +1226,8 @@ void WrappedID3D12Device::CreateInternalResources()
   m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
   m_GPUSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
+  m_List->Close();
+
   m_GPUSyncCounter = 0;
 }
 
