@@ -212,6 +212,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_pSerialiser->SetDebugText(true);
   }
 
+  m_DebugManager = NULL;
   m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
 
   if(m_pSerialiser)
@@ -1263,7 +1264,8 @@ void WrappedID3D12Device::SetLogFile(const char *logfile)
 
 void WrappedID3D12Device::LazyInit()
 {
-  m_DebugManager = new D3D12DebugManager(this);
+  if(m_DebugManager == NULL)
+    m_DebugManager = new D3D12DebugManager(this);
 }
 
 const FetchDrawcall *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
