@@ -3488,7 +3488,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
     ID3D11Buffer *buf = MakeCBuffer((float *)&pixelData, sizeof(DebugPixelCBufferData));
 
-    m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
+    m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
 
     m_pImmediateContext->Draw(3, 0);
 
@@ -3515,7 +3515,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
       buf = MakeCBuffer((float *)&pixelData, sizeof(DebugPixelCBufferData));
 
-      m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
+      m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
 
       m_pImmediateContext->Draw(3, 0);
     }
