@@ -417,8 +417,6 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
     return eReplayCreate_APIInitFailed;
   }
 
-  ID3D12Device *device = NULL;
-
   D3D12InitParams initParams;
   RDCDriver driverFileType = RDC_D3D12;
   string driverName = "D3D12";
@@ -448,7 +446,7 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
     return eReplayCreate_APIHardwareUnsupported;
   }
 
-  WrappedID3D12Device *wrappedDev = (WrappedID3D12Device *)device;
+  WrappedID3D12Device *wrappedDev = (WrappedID3D12Device *)dev;
   if(logfile)
     wrappedDev->SetLogFile(logfile);
   wrappedDev->SetLogVersion(initParams.SerialiseVersion);
