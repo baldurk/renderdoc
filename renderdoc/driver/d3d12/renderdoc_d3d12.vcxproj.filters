@@ -16,6 +16,9 @@
     <Filter Include="Wrapped">
       <UniqueIdentifier>{b66407e3-297a-4a8d-bdae-09468c64ca18}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Replay">
+      <UniqueIdentifier>{97a405db-4782-4c62-b6c1-ca6a398c6a60}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dx\official\d3d12.h">
@@ -41,6 +44,12 @@
     </ClInclude>
     <ClInclude Include="d3d12_command_queue.h">
       <Filter>Core IFaces</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_replay.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_debug.h">
+      <Filter>Replay</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -70,6 +79,12 @@
     </ClCompile>
     <ClCompile Include="d3d12_commands.cpp">
       <Filter>Core IFaces</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_replay.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_debug.cpp">
+      <Filter>Replay</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

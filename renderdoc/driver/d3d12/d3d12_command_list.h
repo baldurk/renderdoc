@@ -100,6 +100,9 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
     D3D12_COMMAND_LIST_TYPE type;
   } m_Init;
 
+  void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
+  void AddEvent(D3D12ChunkType type, string description);
+
   const char *GetChunkName(uint32_t idx) { return m_pDevice->GetChunkName(idx); }
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:

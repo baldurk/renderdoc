@@ -162,7 +162,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
 
   if(m_State == READING)
   {
-    // TODO - AddEvent(DRAW_INDEXED_INST, desc);
+    AddEvent(DRAW_INDEXED_INST, desc);
     string name =
         "DrawIndexedInstanced(" + ToStr::Get(idxCount) + ", " + ToStr::Get(instCount) + ")";
 
@@ -176,7 +176,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
 
     draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_UseIBuffer;
 
-    // TODO - AddDrawcall(draw, true);
+    AddDrawcall(draw, true);
   }
 
   return true;
@@ -496,7 +496,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootSignature(ID3D12RootSignat
 
   if(m_State >= WRITING)
   {
-    SCOPED_SERIALISE_CONTEXT(SET_ROOT_SIG);
+    SCOPED_SERIALISE_CONTEXT(SET_GFX_ROOT_SIG);
     Serialise_SetGraphicsRootSignature(pRootSignature);
 
     m_ListRecord->AddChunk(scope.Get());

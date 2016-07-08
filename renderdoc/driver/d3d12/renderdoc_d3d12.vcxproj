@@ -188,20 +188,24 @@
     <ClCompile Include="d3d12_command_list_wrap.cpp" />
     <ClCompile Include="d3d12_command_queue_wrap.cpp" />
     <ClCompile Include="d3d12_common.cpp" />
+    <ClCompile Include="d3d12_debug.cpp" />
     <ClCompile Include="d3d12_device.cpp" />
     <ClCompile Include="d3d12_device_wrap.cpp" />
     <ClCompile Include="d3d12_hooks.cpp" />
     <ClCompile Include="d3d12_manager.cpp" />
+    <ClCompile Include="d3d12_replay.cpp" />
     <ClCompile Include="d3d12_resources.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d12_command_list.h" />
     <ClInclude Include="d3d12_command_queue.h" />
     <ClInclude Include="d3d12_common.h" />
+    <ClInclude Include="d3d12_debug.h" />
     <ClInclude Include="d3d12_device.h" />
     <ClInclude Include="d3d12_manager.h" />
     <ClInclude Include="..\dx\official\d3d12.h" />
     <ClInclude Include="..\dx\official\d3d12sdklayers.h" />
+    <ClInclude Include="d3d12_replay.h" />
     <ClInclude Include="d3d12_resources.h" />
   </ItemGroup>
   <ItemGroup>

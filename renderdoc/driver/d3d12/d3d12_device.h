@@ -34,7 +34,9 @@
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "replay/replay_driver.h"
 #include "d3d12_common.h"
+#include "d3d12_debug.h"
 #include "d3d12_manager.h"
+#include "d3d12_replay.h"
 
 struct D3D12InitParams : public RDCInitParams
 {
@@ -233,6 +235,13 @@ private:
   DummyID3D12DebugDevice m_DummyDebug;
   WrappedID3D12DebugDevice m_WrappedDebug;
 
+  D3D12Replay m_Replay;
+  D3D12DebugManager *m_DebugManager;
+
+  void LazyInit();
+
+  void ProcessChunk(uint64_t offset, D3D12ChunkType context);
+
   unsigned int m_InternalRefcount;
   RefCounter12<ID3D12Device> m_RefCounter;
   RefCounter12<ID3D12Device> m_SoftRefCounter;
@@ -241,6 +250,7 @@ private:
   uint32_t m_FrameCounter;
   vector<FetchFrameInfo> m_CapturedFrames;
   FetchFrameRecord m_FrameRecord;
+  vector<FetchDrawcall *> m_Drawcalls;
 
   PerformanceTimer m_FrameTimer;
   vector<double> m_FrameTimes;
@@ -284,7 +294,6 @@ private:
   UINT m_DescriptorIncrements[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
   void Serialise_CaptureScope(uint64_t offset);
-  bool Serialise_BeginCaptureFrame(bool applyInitialState);
   void EndCaptureFrame(ID3D12Resource *presentImage);
 
 public:
@@ -305,12 +314,23 @@ public:
   ID3D12Device *GetReal() { return m_pDevice; }
   static const char *GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
+  D3D12DebugManager *GetDebugManager() { return m_DebugManager; }
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   ResourceId GetResourceID() { return m_ResourceID; }
   Threading::CriticalSection &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
   void FirstFrame(WrappedIDXGISwapChain3 *swap);
+  FetchFrameRecord GetFrameRecord() { return m_FrameRecord; }
+  const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
+  void SetLogFile(const char *logfile);
+  void SetLogVersion(uint32_t fileversion)
+  {
+    LazyInit();
+    m_InitParams.SerialiseVersion = fileversion;
+  }
+
+  D3D12Replay *GetReplay() { return &m_Replay; }
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
   ID3D12GraphicsCommandList *GetList() { return m_List; }
@@ -319,6 +339,11 @@ public:
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
+
+  bool Serialise_BeginCaptureFrame(bool applyInitialState);
+
+  void ReadLogInitialisation();
+  void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }

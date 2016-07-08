@@ -90,8 +90,6 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
   {
     D3D12ResourceRecord *record = GetRecord(ppCommandLists[i]);
 
-    // TODO apply barriers from command list to current resource state tracking
-
     m_pDevice->ApplyBarriers(record->bakedCommands->cmdInfo->barriers);
 
     // need to lock the whole section of code, not just the check on

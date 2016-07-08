@@ -357,7 +357,6 @@ private:
   // on replay, the current command buffer for the last chunk we
   // handled.
   ResourceId m_LastCmdBufferID;
-  int m_CmdBuffersInProgress;
 
   // this is a list of uint64_t file offset -> uint32_t EIDs of where each
   // drawcall is used. E.g. the drawcall at offset 873954 is EID 50. If a

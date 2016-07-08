@@ -311,7 +311,6 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
   if(m_State < WRITING)
   {
     m_LastCmdBufferID = cmdId;
-    m_CmdBuffersInProgress++;
   }
 
   SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
@@ -509,7 +508,6 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser *localSerialiser,
   if(m_State < WRITING)
   {
     m_LastCmdBufferID = cmdid;
-    m_CmdBuffersInProgress--;
   }
 
   if(m_State == EXECUTING)

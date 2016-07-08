@@ -557,6 +557,8 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     return tex;
   }
 
+  LazyInit();
+
   ID3D12Resource *pRes = new WrappedID3D12Resource((ID3D12Resource *)realSurface, this);
 
   ResourceId id = GetResID(pRes);
@@ -803,6 +805,27 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
   return S_OK;
 }
 
+void WrappedID3D12Device::Serialise_CaptureScope(uint64_t offset)
+{
+  uint32_t FrameNumber = m_FrameCounter;
+  m_pSerialiser->Serialise("FrameNumber", FrameNumber);
+
+  if(m_State >= WRITING)
+  {
+    GetResourceManager()->Serialise_InitialContentsNeeded();
+  }
+  else
+  {
+    m_FrameRecord.frameInfo.fileOffset = offset;
+    m_FrameRecord.frameInfo.firstEvent = 1;
+    m_FrameRecord.frameInfo.frameNumber = FrameNumber;
+    m_FrameRecord.frameInfo.immContextId = ResourceId();
+    RDCEraseEl(m_FrameRecord.frameInfo.stats);
+
+    GetResourceManager()->CreateInitialContents();
+  }
+}
+
 bool WrappedID3D12Device::Serialise_BeginCaptureFrame(bool applyInitialState)
 {
   if(m_State < WRITING && !applyInitialState)
@@ -826,27 +849,6 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(bool applyInitialState)
   }
 
   return true;
-}
-
-void WrappedID3D12Device::Serialise_CaptureScope(uint64_t offset)
-{
-  uint32_t FrameNumber = m_FrameCounter;
-  m_pSerialiser->Serialise("FrameNumber", FrameNumber);
-
-  if(m_State >= WRITING)
-  {
-    GetResourceManager()->Serialise_InitialContentsNeeded();
-  }
-  else
-  {
-    m_FrameRecord.frameInfo.fileOffset = offset;
-    m_FrameRecord.frameInfo.firstEvent = 1;
-    m_FrameRecord.frameInfo.frameNumber = FrameNumber;
-    m_FrameRecord.frameInfo.immContextId = ResourceId();
-    RDCEraseEl(m_FrameRecord.frameInfo.stats);
-
-    GetResourceManager()->CreateInitialContents();
-  }
 }
 
 void WrappedID3D12Device::EndCaptureFrame(ID3D12Resource *presentImage)
@@ -972,9 +974,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
     m_State = WRITING_IDLE;
 
-    // TODO wait for idle
-
-    // TODO free coherent map capture ref-data
+    GPUSync();
   }
 
   byte *thpixels = NULL;
@@ -1238,10 +1238,211 @@ void WrappedID3D12Device::GPUSync()
   WaitForSingleObject(m_GPUSyncHandle, 2000);
 }
 
-// need to create this dummy here so that we can record D3D12.
-ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+void WrappedID3D12Device::SetLogFile(const char *logfile)
 {
-  return eReplayCreate_APIUnsupported;
+  m_pSerialiser = new Serialiser(logfile, Serialiser::READING, false);
+  m_pSerialiser->SetChunkNameLookup(&GetChunkName);
+
+  SAFE_DELETE(m_ResourceManager);
+  m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
 }
 
-static DriverRegistration D3D12DriverRegistration(RDC_D3D12, "D3D12", &D3D12_CreateReplayDevice);
+void WrappedID3D12Device::LazyInit()
+{
+  m_DebugManager = new D3D12DebugManager(this);
+}
+
+const FetchDrawcall *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
+{
+  if(eventID >= m_Drawcalls.size())
+    return NULL;
+
+  return m_Drawcalls[eventID];
+}
+
+void WrappedID3D12Device::ProcessChunk(uint64_t offset, D3D12ChunkType context)
+{
+  switch(context)
+  {
+    case DEVICE_INIT: { break;
+    }
+
+    case CREATE_COMMAND_QUEUE: Serialise_CreateCommandQueue(NULL, IID(), NULL); break;
+    case CREATE_COMMAND_ALLOCATOR:
+      Serialise_CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID(), NULL);
+      break;
+    case CREATE_COMMAND_LIST:
+      Serialise_CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, NULL, NULL, IID(), NULL);
+      break;
+
+    case CREATE_GRAPHICS_PIPE: Serialise_CreateGraphicsPipelineState(NULL, IID(), NULL); break;
+    case CREATE_COMPUTE_PIPE: Serialise_CreateComputePipelineState(NULL, IID(), NULL); break;
+    case CREATE_DESCRIPTOR_HEAP: Serialise_CreateDescriptorHeap(NULL, IID(), NULL); break;
+    case CREATE_ROOT_SIG: Serialise_CreateRootSignature(0, NULL, 0, IID(), NULL); break;
+
+    case CREATE_COMMITTED_RESOURCE:
+      Serialise_CreateCommittedResource(NULL, D3D12_HEAP_FLAG_NONE, NULL,
+                                        D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
+      break;
+
+    case CREATE_FENCE: Serialise_CreateFence(0, D3D12_FENCE_FLAG_NONE, IID(), NULL); break;
+
+    case SET_RESOURCE_NAME: Serialise_SetResourceName(0x0, ""); break;
+    case SET_SHADER_DEBUG_PATH: Serialise_SetShaderDebugPath(NULL, NULL); break;
+    case RELEASE_RESOURCE: Serialise_ReleaseResource(0x0); break;
+    case CREATE_SWAP_BUFFER: Serialise_WrapSwapchainBuffer(NULL, NULL, 0, NULL); break;
+    case CAPTURE_SCOPE: Serialise_CaptureScope(offset); break;
+    default:
+      // ignore system chunks
+      if(context == INITIAL_CONTENTS)
+        GetResourceManager()->Serialise_InitialState(ResourceId(), NULL);
+      else if(context < FIRST_CHUNK_ID)
+        m_pSerialiser->SkipCurrentChunk();
+      else
+        RDCERR("Unexpected non-device chunk %d at offset %llu", context, offset);
+      break;
+  }
+}
+
+void WrappedID3D12Device::ReadLogInitialisation()
+{
+  uint64_t frameOffset = 0;
+
+  m_pSerialiser->SetDebugText(true);
+
+  m_pSerialiser->Rewind();
+
+  int chunkIdx = 0;
+
+  struct chunkinfo
+  {
+    chunkinfo() : count(0), totalsize(0), total(0.0) {}
+    int count;
+    uint64_t totalsize;
+    double total;
+  };
+
+  map<D3D12ChunkType, chunkinfo> chunkInfos;
+
+  SCOPED_TIMER("chunk initialisation");
+
+  for(;;)
+  {
+    PerformanceTimer timer;
+
+    uint64_t offset = m_pSerialiser->GetOffset();
+
+    D3D12ChunkType context = (D3D12ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
+
+    if(context == CAPTURE_SCOPE)
+    {
+      // immediately read rest of log into memory
+      m_pSerialiser->SetPersistentBlock(offset);
+    }
+
+    chunkIdx++;
+
+    ProcessChunk(offset, context);
+
+    m_pSerialiser->PopContext(context);
+
+    RenderDoc::Inst().SetProgress(FileInitialRead, float(offset) / float(m_pSerialiser->GetSize()));
+
+    if(context == CAPTURE_SCOPE)
+    {
+      frameOffset = offset;
+
+      GetResourceManager()->ApplyInitialContents();
+
+      m_Queue->ReplayLog(READING, 0, 0, false);
+    }
+
+    uint64_t offset2 = m_pSerialiser->GetOffset();
+
+    chunkInfos[context].total += timer.GetMilliseconds();
+    chunkInfos[context].totalsize += offset2 - offset;
+    chunkInfos[context].count++;
+
+    if(context == CAPTURE_SCOPE)
+      break;
+
+    if(m_pSerialiser->AtEnd())
+      break;
+  }
+
+  if(m_State == READING)
+  {
+    GetFrameRecord().drawcallList = m_Queue->GetParentDrawcall().Bake();
+
+    m_Queue->GetParentDrawcall().children.clear();
+
+    SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.frameInfo.immContextId,
+                          m_FrameRecord.drawcallList, NULL, NULL);
+  }
+
+#if !defined(RELEASE)
+  for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
+  {
+    double dcount = double(it->second.count);
+
+    RDCDEBUG(
+        "% 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %s (%u)",
+        it->second.count, it->second.total, it->second.total / dcount,
+        double(it->second.totalsize) / (1024.0 * 1024.0),
+        double(it->second.totalsize) / (dcount * 1024.0 * 1024.0), GetChunkName(it->first),
+        uint32_t(it->first));
+  }
+#endif
+
+  m_FrameRecord.frameInfo.fileSize = m_pSerialiser->GetSize();
+  m_FrameRecord.frameInfo.persistentSize = m_pSerialiser->GetSize() - frameOffset;
+  m_FrameRecord.frameInfo.initDataSize = chunkInfos[(D3D12ChunkType)INITIAL_CONTENTS].totalsize;
+
+  RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
+           m_pSerialiser->GetSize() - frameOffset);
+
+  m_pSerialiser->SetDebugText(false);
+}
+
+void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
+                                    ReplayLogType replayType)
+{
+  uint64_t offs = m_FrameRecord.frameInfo.fileOffset;
+
+  m_pSerialiser->SetOffset(offs);
+
+  bool partial = true;
+
+  if(startEventID == 0 && (replayType == eReplay_WithoutDraw || replayType == eReplay_Full))
+  {
+    startEventID = m_FrameRecord.frameInfo.firstEvent;
+    partial = false;
+  }
+
+  D3D12ChunkType header = (D3D12ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
+
+  RDCASSERTEQUAL(header, CAPTURE_SCOPE);
+
+  m_pSerialiser->SkipCurrentChunk();
+
+  m_pSerialiser->PopContext(header);
+
+  if(!partial)
+  {
+    GetResourceManager()->ApplyInitialContents();
+    GetResourceManager()->ReleaseInFrameResources();
+
+    GPUSync();
+  }
+
+  m_State = EXECUTING;
+
+  if(replayType == eReplay_Full)
+    m_Queue->ReplayLog(EXECUTING, startEventID, endEventID, partial);
+  else if(replayType == eReplay_WithoutDraw)
+    m_Queue->ReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
+  else if(replayType == eReplay_OnlyDraw)
+    m_Queue->ReplayLog(EXECUTING, endEventID, endEventID, partial);
+  else
+    RDCFATAL("Unexpected replay type");
+}

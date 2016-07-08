@@ -1532,8 +1532,6 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
   m_RootEvents.clear();
 
-  m_CmdBuffersInProgress = 0;
-
   if(m_State == EXECUTING)
   {
     FetchAPIEvent ev = GetEvent(startEventID);

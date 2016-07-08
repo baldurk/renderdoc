@@ -297,6 +297,8 @@ public:
   void SerialiseResourceStates(vector<D3D12_RESOURCE_BARRIER> &barriers,
                                map<ResourceId, SubresourceStateVector> &states);
 
+  bool Serialise_InitialState(ResourceId resid, ID3D12DeviceChild *res);
+
 private:
   bool SerialisableResource(ResourceId id, D3D12ResourceRecord *record);
   ResourceId GetID(ID3D12DeviceChild *res);
@@ -306,7 +308,6 @@ private:
   bool Force_InitialState(ID3D12DeviceChild *res);
   bool Need_InitialStateChunk(ID3D12DeviceChild *res);
   bool Prepare_InitialState(ID3D12DeviceChild *res);
-  bool Serialise_InitialState(ResourceId resid, ID3D12DeviceChild *res);
   void Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData);
   void Apply_InitialState(ID3D12DeviceChild *live, InitialContentData data);
 
