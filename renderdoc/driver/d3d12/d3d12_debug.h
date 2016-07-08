@@ -60,13 +60,16 @@ private:
   {
     HWND wnd;
     IDXGISwapChain *swap;
-    ID3D12Resource *bb;
+    ID3D12Resource *bb[2];
+    uint32_t bbIdx;
+    ID3D12Resource *col;
     ID3D12Resource *depth;
     D3D12_CPU_DESCRIPTOR_HANDLE rtv;
     D3D12_CPU_DESCRIPTOR_HANDLE dsv;
 
     WrappedID3D12Device *dev;
 
+    void MakeRTV(bool multisampled);
     void MakeDSV();
 
     int width, height;
