@@ -118,11 +118,15 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el)
     }
   }
 
+  // for sampler types, this will be overwritten when serialising the sampler descriptor
+  el.nonsamp.type = type;
+
   switch(type)
   {
     case D3D12Descriptor::TypeSampler:
     {
       Serialise("Descriptor", el.samp.desc);
+      RDCASSERTEQUAL(el.GetType(), D3D12Descriptor::TypeSampler);
       break;
     }
     case D3D12Descriptor::TypeCBV:
