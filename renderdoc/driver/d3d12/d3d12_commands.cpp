@@ -366,7 +366,8 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
 
   m_pDevice->Serialise_BeginCaptureFrame(!partial);
 
-  m_pDevice->GPUSync();
+  m_pDevice->ExecuteLists();
+  m_pDevice->FlushLists();
 
   m_pSerialiser->PopContext(header);
 
@@ -440,7 +441,8 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     }
   }
 
-  m_pDevice->GPUSync();
+  m_pDevice->ExecuteLists();
+  m_pDevice->FlushLists(true);
 
   if(m_State == READING)
   {

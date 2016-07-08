@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_manager.h"
+#include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
@@ -349,14 +350,11 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       if(SUCCEEDED(hr))
       {
-        m_Device->GetList()->Reset(m_Device->GetAlloc(), NULL);
+        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetNewList());
 
-        m_Device->GetList()->CopyResource(copyDst, Unwrap(r));
+        list->CopyResource(copyDst, Unwrap(r));
 
-        m_Device->GetList()->Close();
-
-        ID3D12CommandList *list = (ID3D12CommandList *)m_Device->GetList();
-        m_Device->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
+        list->Close();
       }
       else
       {
@@ -405,7 +403,8 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
 
       if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
       {
-        m_Device->GPUSync();
+        m_Device->ExecuteLists();
+        m_Device->FlushLists();
 
         ID3D12Resource *copySrc = (ID3D12Resource *)initContents.resource;
 
@@ -654,7 +653,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
       }
       else
       {
-        m_Device->GetList()->Reset(m_Device->GetAlloc(), NULL);
+        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetNewList());
 
         D3D12_RESOURCE_BARRIER barrier;
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -666,19 +665,16 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
 
         // transition to copy dest
         if(barrier.Transition.StateBefore != barrier.Transition.StateAfter)
-          m_Device->GetList()->ResourceBarrier(1, &barrier);
+          list->ResourceBarrier(1, &barrier);
 
-        m_Device->GetList()->CopyBufferRegion(copyDst, 0, copySrc, 0, copySrc->GetDesc().Width);
+        list->CopyBufferRegion(copyDst, 0, copySrc, 0, copySrc->GetDesc().Width);
 
         // transition back to whatever it was before
         std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
         if(barrier.Transition.StateBefore != barrier.Transition.StateAfter)
-          m_Device->GetList()->ResourceBarrier(1, &barrier);
+          list->ResourceBarrier(1, &barrier);
 
-        m_Device->GetList()->Close();
-
-        ID3D12CommandList *list = (ID3D12CommandList *)m_Device->GetList();
-        m_Device->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
+        list->Close();
       }
     }
     else

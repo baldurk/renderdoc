@@ -288,26 +288,26 @@ private:
       pendingcmds.clear();
       submittedcmds.clear();
 
-      freecmds.clear();
-      pendingcmds.clear();
-      submittedcmds.clear();
+      freesems.clear();
+      pendingsems.clear();
+      submittedsems.clear();
     }
 
     VkCommandPool cmdpool;    // the command pool used for allocating our own command buffers
 
-    vector<VkCommandBuffer> freecmds;    // <
-    // -> GetNextCmd() ->                   // |
-    vector<VkCommandBuffer> pendingcmds;    // |
-    // -> SubmitCmds() ->                      |
-    vector<VkCommandBuffer> submittedcmds;    // |
-    // -> FlushQ() ----------------------------^
+    vector<VkCommandBuffer> freecmds;
+    // -> GetNextCmd() ->
+    vector<VkCommandBuffer> pendingcmds;
+    // -> SubmitCmds() ->
+    vector<VkCommandBuffer> submittedcmds;
+    // -> FlushQ() ------back to freecmds------^
 
-    vector<VkSemaphore> freesems;    // <
-    // -> GetNextSemaphore() ->        // |
-    vector<VkSemaphore> pendingsems;    // |
-    // -> SubmitSemaphores() ->           |
-    vector<VkSemaphore> submittedsems;    // |
-                                          // -> FlushQ() -----------------------^
+    vector<VkSemaphore> freesems;
+    // -> GetNextSemaphore() ->
+    vector<VkSemaphore> pendingsems;
+    // -> SubmitSemaphores() ->
+    vector<VkSemaphore> submittedsems;
+    // -> FlushQ() ----back to freesems-------^
   } m_InternalCmds;
 
   vector<VkDeviceMemory> m_CleanupMems;

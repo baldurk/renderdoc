@@ -338,9 +338,30 @@ public:
   D3D12Replay *GetReplay() { return &m_Replay; }
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
-  ID3D12GraphicsCommandList *GetList() { return m_List; }
-  void GPUSync();
   void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers);
+
+  struct
+  {
+    void Reset()
+    {
+      freecmds.clear();
+      pendingcmds.clear();
+      submittedcmds.clear();
+    }
+
+    vector<ID3D12GraphicsCommandList *> freecmds;
+    // -> GetNextCmd() ->
+    vector<ID3D12GraphicsCommandList *> pendingcmds;
+    // -> ExecuteLists() ->
+    vector<ID3D12GraphicsCommandList *> submittedcmds;
+    // -> FlushLists()--------back to freecmds--------^
+  } m_InternalCmds;
+
+  ID3D12GraphicsCommandList *GetNewList();
+  void ExecuteLists();
+  void FlushLists(bool forceSync = false);
+
+  void GPUSync();
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);

@@ -1220,14 +1220,10 @@ void WrappedID3D12Device::SetResourceName(ID3D12DeviceChild *res, const char *na
 
 void WrappedID3D12Device::CreateInternalResources()
 {
-  m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                    __uuidof(ID3D12CommandAllocator), (void **)&m_Alloc);
-  m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc, NULL,
-                               __uuidof(ID3D12GraphicsCommandList), (void **)&m_List);
-  m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
+  CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
+                         (void **)&m_Alloc);
+  CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
   m_GPUSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
-
-  m_List->Close();
 
   m_GPUSyncCounter = 0;
 }
@@ -1237,8 +1233,13 @@ void WrappedID3D12Device::DestroyInternalResources()
   if(m_GPUSyncHandle == NULL)
     return;
 
+  ExecuteLists();
+  FlushLists(true);
+
+  for(size_t i = 0; i < m_InternalCmds.pendingcmds.size(); i++)
+    SAFE_RELEASE(m_InternalCmds.pendingcmds[i]);
+
   SAFE_RELEASE(m_Alloc);
-  SAFE_RELEASE(m_List);
   SAFE_RELEASE(m_GPUSyncFence);
   CloseHandle(m_GPUSyncHandle);
 }
@@ -1247,9 +1248,66 @@ void WrappedID3D12Device::GPUSync()
 {
   m_GPUSyncCounter++;
 
-  m_Queue->GetReal()->Signal(m_GPUSyncFence, m_GPUSyncCounter);
+  m_Queue->Signal(m_GPUSyncFence, m_GPUSyncCounter);
   m_GPUSyncFence->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle);
   WaitForSingleObject(m_GPUSyncHandle, 2000);
+}
+
+ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
+{
+  ID3D12GraphicsCommandList *ret;
+
+  if(!m_InternalCmds.freecmds.empty())
+  {
+    ret = m_InternalCmds.freecmds.back();
+    m_InternalCmds.freecmds.pop_back();
+
+    ret->Reset(m_Alloc, NULL);
+  }
+  else
+  {
+    HRESULT hr = CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc, NULL,
+                                   __uuidof(ID3D12GraphicsCommandList), (void **)&ret);
+
+    RDCASSERTEQUAL(hr, S_OK);
+  }
+
+  m_InternalCmds.pendingcmds.push_back(ret);
+
+  return ret;
+}
+
+void WrappedID3D12Device::ExecuteLists()
+{
+  // nothing to do
+  if(m_InternalCmds.pendingcmds.empty())
+    return;
+
+  vector<ID3D12CommandList *> cmds;
+  cmds.resize(m_InternalCmds.pendingcmds.size());
+  for(size_t i = 0; i < cmds.size(); i++)
+    cmds[i] = m_InternalCmds.pendingcmds[i];
+
+  GetQueue()->ExecuteCommandLists((UINT)cmds.size(), &cmds[0]);
+
+  m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(),
+                                      m_InternalCmds.pendingcmds.begin(),
+                                      m_InternalCmds.pendingcmds.end());
+  m_InternalCmds.pendingcmds.clear();
+}
+
+void WrappedID3D12Device::FlushLists(bool forceSync)
+{
+  if(!m_InternalCmds.submittedcmds.empty() || forceSync)
+  {
+    GPUSync();
+
+    if(!m_InternalCmds.submittedcmds.empty())
+      m_InternalCmds.freecmds.insert(m_InternalCmds.freecmds.end(),
+                                     m_InternalCmds.submittedcmds.begin(),
+                                     m_InternalCmds.submittedcmds.end());
+    m_InternalCmds.submittedcmds.clear();
+  }
 }
 
 void WrappedID3D12Device::SetLogFile(const char *logfile)
@@ -1448,7 +1506,8 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     GetResourceManager()->ApplyInitialContents();
     GetResourceManager()->ReleaseInFrameResources();
 
-    GPUSync();
+    ExecuteLists();
+    FlushLists(true);
   }
 
   m_State = EXECUTING;

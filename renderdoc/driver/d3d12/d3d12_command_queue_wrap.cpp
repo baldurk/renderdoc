@@ -87,83 +87,86 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
 
   SAFE_DELETE_ARRAY(unwrapped);
 
-  bool capframe = false;
-  set<ResourceId> refdIDs;
-
-  for(UINT i = 0; i < NumCommandLists; i++)
+  if(m_State >= WRITING)
   {
-    D3D12ResourceRecord *record = GetRecord(ppCommandLists[i]);
+    bool capframe = false;
+    set<ResourceId> refdIDs;
 
-    m_pDevice->ApplyBarriers(record->bakedCommands->cmdInfo->barriers);
-
-    // need to lock the whole section of code, not just the check on
-    // m_State, as we also need to make sure we don't check the state,
-    // start marking dirty resources then while we're doing so the
-    // state becomes capframe.
-    // the next sections where we mark resources referenced and add
-    // the submit chunk to the frame record don't have to be protected.
-    // Only the decision of whether we're inframe or not, and marking
-    // dirty.
+    for(UINT i = 0; i < NumCommandLists; i++)
     {
-      SCOPED_LOCK(m_pDevice->GetCapTransitionLock());
-      if(m_State == WRITING_CAPFRAME)
-      {
-        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-          GetResourceManager()->MarkPendingDirty(*it);
+      D3D12ResourceRecord *record = GetRecord(ppCommandLists[i]);
 
-        capframe = true;
-      }
-      else
+      m_pDevice->ApplyBarriers(record->bakedCommands->cmdInfo->barriers);
+
+      // need to lock the whole section of code, not just the check on
+      // m_State, as we also need to make sure we don't check the state,
+      // start marking dirty resources then while we're doing so the
+      // state becomes capframe.
+      // the next sections where we mark resources referenced and add
+      // the submit chunk to the frame record don't have to be protected.
+      // Only the decision of whether we're inframe or not, and marking
+      // dirty.
       {
-        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-          GetResourceManager()->MarkDirtyResource(*it);
+        SCOPED_LOCK(m_pDevice->GetCapTransitionLock());
+        if(m_State == WRITING_CAPFRAME)
+        {
+          for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+              it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+            GetResourceManager()->MarkPendingDirty(*it);
+
+          capframe = true;
+        }
+        else
+        {
+          for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+              it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+            GetResourceManager()->MarkDirtyResource(*it);
+        }
       }
+
+      if(capframe)
+      {
+        // pull in frame refs from this baked command buffer
+        record->bakedCommands->AddResourceReferences(GetResourceManager());
+        record->bakedCommands->AddReferencedIDs(refdIDs);
+
+        // ref the parent command buffer by itself, this will pull in the cmd buffer pool
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+
+        // reference all executed bundles as well
+        for(size_t b = 0; b < record->bakedCommands->cmdInfo->bundles.size(); b++)
+        {
+          record->bakedCommands->cmdInfo->bundles[b]->bakedCommands->AddResourceReferences(
+              GetResourceManager());
+          record->bakedCommands->cmdInfo->bundles[b]->bakedCommands->AddReferencedIDs(refdIDs);
+          GetResourceManager()->MarkResourceFrameReferenced(
+              record->bakedCommands->cmdInfo->bundles[b]->GetResourceID(), eFrameRef_Read);
+
+          record->bakedCommands->cmdInfo->bundles[b]->bakedCommands->AddRef();
+        }
+
+        {
+          m_CmdListRecords.push_back(record->bakedCommands);
+          for(size_t sub = 0; sub < record->bakedCommands->cmdInfo->bundles.size(); sub++)
+            m_CmdListRecords.push_back(record->bakedCommands->cmdInfo->bundles[sub]->bakedCommands);
+        }
+
+        record->bakedCommands->AddRef();
+      }
+
+      record->cmdInfo->dirtied.clear();
     }
 
     if(capframe)
     {
-      // pull in frame refs from this baked command buffer
-      record->bakedCommands->AddResourceReferences(GetResourceManager());
-      record->bakedCommands->AddReferencedIDs(refdIDs);
-
-      // ref the parent command buffer by itself, this will pull in the cmd buffer pool
-      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-
-      // reference all executed bundles as well
-      for(size_t b = 0; b < record->bakedCommands->cmdInfo->bundles.size(); b++)
+      // flush coherent maps
+      for(UINT i = 0; i < NumCommandLists; i++)
       {
-        record->bakedCommands->cmdInfo->bundles[b]->bakedCommands->AddResourceReferences(
-            GetResourceManager());
-        record->bakedCommands->cmdInfo->bundles[b]->bakedCommands->AddReferencedIDs(refdIDs);
-        GetResourceManager()->MarkResourceFrameReferenced(
-            record->bakedCommands->cmdInfo->bundles[b]->GetResourceID(), eFrameRef_Read);
+        SCOPED_SERIALISE_CONTEXT(EXECUTE_CMD_LISTS);
+        Serialise_ExecuteCommandLists(1, ppCommandLists + i);
 
-        record->bakedCommands->cmdInfo->bundles[b]->bakedCommands->AddRef();
+        m_QueueRecord->AddChunk(scope.Get());
       }
-
-      {
-        m_CmdListRecords.push_back(record->bakedCommands);
-        for(size_t sub = 0; sub < record->bakedCommands->cmdInfo->bundles.size(); sub++)
-          m_CmdListRecords.push_back(record->bakedCommands->cmdInfo->bundles[sub]->bakedCommands);
-      }
-
-      record->bakedCommands->AddRef();
-    }
-
-    record->cmdInfo->dirtied.clear();
-  }
-
-  if(capframe)
-  {
-    // flush coherent maps
-    for(UINT i = 0; i < NumCommandLists; i++)
-    {
-      SCOPED_SERIALISE_CONTEXT(EXECUTE_CMD_LISTS);
-      Serialise_ExecuteCommandLists(1, ppCommandLists + i);
-
-      m_QueueRecord->AddChunk(scope.Get());
     }
   }
 }

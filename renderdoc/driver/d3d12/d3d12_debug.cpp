@@ -272,7 +272,8 @@ bool D3D12DebugManager::CheckResizeOutputWindow(uint64_t id)
     outw.width = w;
     outw.height = h;
 
-    m_WrappedDevice->GPUSync();
+    m_WrappedDevice->ExecuteLists();
+    m_WrappedDevice->FlushLists(true);
 
     if(outw.width > 0 && outw.height > 0)
     {
@@ -327,16 +328,11 @@ void D3D12DebugManager::ClearOutputWindowColour(uint64_t id, float col[4])
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
 
-  m_WrappedDevice->GetList()->Reset(m_WrappedDevice->GetAlloc(), NULL);
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
-  m_WrappedDevice->GetList()->ClearRenderTargetView(Unwrap(m_OutputWindows[id].rtv), col, 0, NULL);
+  list->ClearRenderTargetView(m_OutputWindows[id].rtv, col, 0, NULL);
 
-  m_WrappedDevice->GetList()->Close();
-
-  ID3D12CommandList *list = (ID3D12CommandList *)m_WrappedDevice->GetList();
-  m_WrappedDevice->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
-
-  m_WrappedDevice->GPUSync();
+  list->Close();
 }
 
 void D3D12DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
@@ -344,18 +340,13 @@ void D3D12DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
 
-  m_WrappedDevice->GetList()->Reset(m_WrappedDevice->GetAlloc(), NULL);
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
-  m_WrappedDevice->GetList()->ClearDepthStencilView(
-      Unwrap(m_OutputWindows[id].dsv), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth,
-      stencil, 0, NULL);
+  list->ClearDepthStencilView(m_OutputWindows[id].dsv,
+                              D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0,
+                              NULL);
 
-  m_WrappedDevice->GetList()->Close();
-
-  ID3D12CommandList *list = (ID3D12CommandList *)m_WrappedDevice->GetList();
-  m_WrappedDevice->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
-
-  m_WrappedDevice->GPUSync();
+  list->Close();
 }
 
 void D3D12DebugManager::BindOutputWindow(uint64_t id, bool depth)
@@ -365,11 +356,12 @@ void D3D12DebugManager::BindOutputWindow(uint64_t id, bool depth)
 
   OutputWindow &outw = m_OutputWindows[id];
 
+  m_CurrentOutputWindow = id;
+
   if(outw.bb[0] == NULL)
     return;
 
-  m_width = (int32_t)outw.width;
-  m_height = (int32_t)outw.height;
+  SetOutputDimensions(outw.width, outw.height);
 }
 
 bool D3D12DebugManager::IsOutputWindowVisible(uint64_t id)
@@ -393,40 +385,36 @@ void D3D12DebugManager::FlipOutputWindow(uint64_t id)
   D3D12_RESOURCE_BARRIER barriers[2];
   RDCEraseEl(barriers);
 
-  barriers[0].Transition.pResource = Unwrap(outw.col);
+  barriers[0].Transition.pResource = outw.col;
   barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
   barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
-  barriers[1].Transition.pResource = Unwrap(outw.bb[outw.bbIdx]);
+  barriers[1].Transition.pResource = outw.bb[outw.bbIdx];
   barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
   barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 
-  m_WrappedDevice->GetList()->Reset(m_WrappedDevice->GetAlloc(), NULL);
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
   // transition colour to copy source, backbuffer to copy test
-  m_WrappedDevice->GetList()->ResourceBarrier(2, barriers);
+  list->ResourceBarrier(2, barriers);
 
   // resolve or copy from colour to backbuffer
   if(outw.depth)
-    m_WrappedDevice->GetList()->ResolveSubresource(barriers[1].Transition.pResource, 0,
-                                                   barriers[0].Transition.pResource, 0,
-                                                   DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+    list->ResolveSubresource(barriers[1].Transition.pResource, 0, barriers[0].Transition.pResource,
+                             0, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
   else
-    m_WrappedDevice->GetList()->CopyResource(barriers[1].Transition.pResource,
-                                             barriers[0].Transition.pResource);
+    list->CopyResource(barriers[1].Transition.pResource, barriers[0].Transition.pResource);
 
   std::swap(barriers[0].Transition.StateBefore, barriers[0].Transition.StateAfter);
   std::swap(barriers[1].Transition.StateBefore, barriers[1].Transition.StateAfter);
 
   // transition colour back to render target, and backbuffer back to present
-  m_WrappedDevice->GetList()->ResourceBarrier(2, barriers);
+  list->ResourceBarrier(2, barriers);
 
-  m_WrappedDevice->GetList()->Close();
+  list->Close();
 
-  ID3D12CommandList *list = (ID3D12CommandList *)m_WrappedDevice->GetList();
-  m_WrappedDevice->GetQueue()->GetReal()->ExecuteCommandLists(1, &list);
-
-  m_WrappedDevice->GPUSync();
+  m_WrappedDevice->ExecuteLists();
+  m_WrappedDevice->FlushLists();
 
   outw.swap->Present(0, 0);
 
