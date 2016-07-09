@@ -550,10 +550,6 @@ public:
   void SetDebugText(bool enabled) { m_DebugTextWriting = enabled; }
   bool GetDebugText() { return m_DebugTextWriting; }
   string GetDebugStr() { return m_DebugText; }
-  // debug-only output must be locked since it's global across all serialisers
-  // essentially, which might not be thread safe in the normal flow
-  void DebugLock() { m_DebugLock.Lock(); }
-  void DebugUnlock() { m_DebugLock.Unlock(); }
 private:
   //////////////////////////////////////////
   // Raw memory buffer read/write
@@ -676,8 +672,6 @@ private:
   bool m_DebugTextWriting;
   string m_DebugText;
   ChunkLookup m_ChunkLookup;
-
-  Threading::CriticalSection m_DebugLock;
 };
 
 template <>
