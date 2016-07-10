@@ -32,7 +32,7 @@
 ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev)
 {
   if(WrappedID3D11Device::IsAlloc(dev))
-    return (ID3DDevice *)dev;
+    return (WrappedID3D11Device *)dev;
 
   return NULL;
 }
