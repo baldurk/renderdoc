@@ -55,6 +55,7 @@ public:
   }
   int GetWidth() { return m_width; }
   int GetHeight() { return m_height; }
+  void RenderCheckerboard(Vec3f light, Vec3f dark);
   bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
 
 private:
@@ -91,6 +92,8 @@ private:
   ID3D12PipelineState *m_TexDisplayBlendPipe;
 
   ID3D12RootSignature *m_TexDisplayRootSig;
+
+  ID3D12PipelineState *m_CheckerboardPipe;
 
   static const uint32_t m_ShaderCacheMagic = 0xbaafd1d1;
   static const uint32_t m_ShaderCacheVersion = 1;

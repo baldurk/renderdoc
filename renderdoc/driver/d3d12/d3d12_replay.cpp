@@ -229,6 +229,11 @@ ResourceId D3D12Replay::GetLiveID(ResourceId id)
   return m_pDevice->GetResourceManager()->GetLiveID(id);
 }
 
+void D3D12Replay::RenderCheckerboard(Vec3f light, Vec3f dark)
+{
+  m_pDevice->GetDebugManager()->RenderCheckerboard(light, dark);
+}
+
 bool D3D12Replay::RenderTexture(TextureDisplay cfg)
 {
   return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
@@ -413,10 +418,6 @@ void D3D12Replay::BuildTargetShader(string source, string entry, const uint32_t 
 
 void D3D12Replay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
                                     ShaderStageType type, ResourceId *id, string *errors)
-{
-}
-
-void D3D12Replay::RenderCheckerboard(Vec3f light, Vec3f dark)
 {
 }
 

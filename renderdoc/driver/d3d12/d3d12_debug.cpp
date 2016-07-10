@@ -289,14 +289,18 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   ID3DBlob *GenericVS = NULL;
   ID3DBlob *TexDisplayPS = NULL;
+  ID3DBlob *CheckerboardPS = NULL;
 
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_DebugVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0",
                 &GenericVS);
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                 "ps_5_0", &TexDisplayPS);
+  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                "ps_5_0", &CheckerboardPS);
 
   RDCASSERT(GenericVS);
   RDCASSERT(TexDisplayPS);
+  RDCASSERT(CheckerboardPS);
 
   pipeDesc.pRootSignature = m_TexDisplayRootSig;
   pipeDesc.VS.BytecodeLength = GenericVS->GetBufferSize();
@@ -339,8 +343,20 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create m_TexDisplayPipe! 0x%08x", hr);
   }
 
+  pipeDesc.PS.BytecodeLength = CheckerboardPS->GetBufferSize();
+  pipeDesc.PS.pShaderBytecode = CheckerboardPS->GetBufferPointer();
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                    (void **)&m_CheckerboardPipe);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create m_CheckerboardPipe! 0x%08x", hr);
+  }
+
   SAFE_RELEASE(GenericVS);
   SAFE_RELEASE(TexDisplayPS);
+  SAFE_RELEASE(CheckerboardPS);
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
 
@@ -371,6 +387,12 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_GenericVSCbuffer);
   SAFE_RELEASE(m_GenericPSCbuffer);
+
+  SAFE_RELEASE(m_TexDisplayBlendPipe);
+  SAFE_RELEASE(m_TexDisplayPipe);
+  SAFE_RELEASE(m_TexDisplayRootSig);
+
+  SAFE_RELEASE(m_CheckerboardPipe);
 
   m_WrappedDevice->InternalRelease();
 
@@ -846,6 +868,71 @@ void D3D12DebugManager::FillCBuffer(ID3D12Resource *buf, void *data, size_t size
   }
 }
 
+void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
+{
+  DebugVertexCBuffer vertexData;
+
+  vertexData.Scale = 2.0f;
+  vertexData.Position.x = vertexData.Position.y = 0;
+
+  vertexData.ScreenAspect.x = 1.0f;
+  vertexData.ScreenAspect.y = 1.0f;
+
+  vertexData.TextureResolution.x = 1.0f;
+  vertexData.TextureResolution.y = 1.0f;
+
+  vertexData.LineStrip = 0;
+
+  DebugPixelCBufferData pixelData;
+
+  pixelData.AlwaysZero = 0.0f;
+
+  pixelData.Channels = Vec4f(light.x, light.y, light.z, 0.0f);
+  pixelData.WireframeColour = dark;
+
+  FillCBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
+  FillCBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
+
+  OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
+
+  {
+    ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+    list->OMSetRenderTargets(1, &outw.rtv, TRUE, NULL);
+
+    D3D12_VIEWPORT viewport = {0, 0, (float)outw.width, (float)outw.height, 0.0f, 1.0f};
+    list->RSSetViewports(1, &viewport);
+
+    D3D12_RECT scissor = {0, 0, outw.width, outw.height};
+    list->RSSetScissorRects(1, &scissor);
+
+    list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+    list->SetPipelineState(m_CheckerboardPipe);
+
+    list->SetGraphicsRootSignature(m_TexDisplayRootSig);
+
+    // Set the descriptor heap containing the texture srv
+    ID3D12DescriptorHeap *heaps[] = {cbvsrvHeap, samplerHeap};
+    list->SetDescriptorHeaps(2, heaps);
+
+    list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
+    list->SetGraphicsRootConstantBufferView(1, m_GenericPSCbuffer->GetGPUVirtualAddress());
+    list->SetGraphicsRootDescriptorTable(2, cbvsrvHeap->GetGPUDescriptorHandleForHeapStart());
+    list->SetGraphicsRootDescriptorTable(3, samplerHeap->GetGPUDescriptorHandleForHeapStart());
+
+    float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    list->OMSetBlendFactor(factor);
+
+    list->DrawInstanced(4, 1, 0, 0);
+
+    list->Close();
+
+    m_WrappedDevice->ExecuteLists();
+    m_WrappedDevice->FlushLists();
+  }
+}
+
 bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 {
   DebugVertexCBuffer vertexData;
@@ -1033,7 +1120,6 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
   OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
 
-  // can't just clear state because we need to keep things like render targets.
   {
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
