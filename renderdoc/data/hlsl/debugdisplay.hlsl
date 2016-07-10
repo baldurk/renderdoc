@@ -303,10 +303,10 @@ float4 RENDERDOC_CheckerboardPS(float4 IN : SV_Position) : SV_Target0
 		(ab.x > 64 && ab.y > 64)
 		)
 	{
-		return float4(sqrt(WireframeColour.rgb), 1);
+		return float4(WireframeColour.rgb*WireframeColour.rgb, 1);
 	}
 
-	return float4(sqrt(Channels.rgb), 1);
+	return float4(Channels.rgb*Channels.rgb, 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

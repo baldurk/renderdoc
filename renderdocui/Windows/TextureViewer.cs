@@ -2293,13 +2293,13 @@ namespace renderdocui.Windows
             int numX = (int)Math.Ceiling((float)rect.Width / 64.0f);
             int numY = (int)Math.Ceiling((float)rect.Height / 64.0f);
 
-            Brush dark = new SolidBrush(Color.FromArgb((int)(255 * Math.Sqrt(Math.Sqrt(darkBack.x))),
-                                                       (int)(255 * Math.Sqrt(Math.Sqrt(darkBack.y))),
-                                                       (int)(255 * Math.Sqrt(Math.Sqrt(darkBack.z)))));
+            Brush dark = new SolidBrush(Color.FromArgb((int)(255 * darkBack.x),
+                                                       (int)(255 * darkBack.y),
+                                                       (int)(255 * darkBack.z)));
 
-            Brush light = new SolidBrush(Color.FromArgb((int)(255 * Math.Sqrt(Math.Sqrt(lightBack.x))),
-                                                        (int)(255 * Math.Sqrt(Math.Sqrt(lightBack.y))),
-                                                        (int)(255 * Math.Sqrt(Math.Sqrt(lightBack.z)))));
+            Brush light = new SolidBrush(Color.FromArgb((int)(255 * lightBack.x),
+                                                        (int)(255 * lightBack.y),
+                                                        (int)(255 * lightBack.z)));
 
             for (int x = 0; x < numX; x++)
             {
@@ -2330,10 +2330,7 @@ namespace renderdocui.Windows
             renderContainer.Invalidate();
             if (m_Output == null || m_Core.Renderer == null)
             {
-                if (backcolorPick.Checked)
-                    e.Graphics.Clear(colorDialog.Color);
-                else
-                    DrawCheckerboard(e.Graphics, render.DisplayRectangle);
+                DrawCheckerboard(e.Graphics, render.DisplayRectangle);
                 return;
             }
 

@@ -39,10 +39,10 @@ void main(void)
 		(ab.x > 64 && ab.y > 64)
 		)
 	{
-		color_out = vec4(sqrt(checker.lightCol.rgb), 1);
+		color_out = vec4(checker.darkCol.rgb*checker.darkCol.rgb, 1);
 	}
 	else
 	{
-		color_out = vec4(sqrt(checker.darkCol.rgb), 1);
+		color_out = vec4(checker.lightCol.rgb*checker.lightCol.rgb, 1);
 	}
 }

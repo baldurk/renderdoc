@@ -339,7 +339,7 @@ void ReplayOutput::DisplayContext()
   if((m_Config.m_Type != eOutputType_TexDisplay) || (m_ContextX < 0.0f && m_ContextY < 0.0f) ||
      (m_RenderData.texDisplay.texid == ResourceId()))
   {
-    m_pDevice->RenderCheckerboard(Vec3f(0.666f, 0.666f, 0.666f), Vec3f(0.333f, 0.333f, 0.333f));
+    m_pDevice->RenderCheckerboard(Vec3f(0.81f, 0.81f, 0.81f), Vec3f(0.57f, 0.57f, 0.57f));
     m_pDevice->FlipOutputWindow(m_PixelContext.outputID);
     return;
   }
@@ -573,7 +573,7 @@ void ReplayOutput::DisplayMesh()
     m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
     m_pDevice->ClearOutputWindowColour(m_MainOutput.outputID, color);
     m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
-    m_pDevice->RenderCheckerboard(Vec3f(0.666f, 0.666f, 0.666f), Vec3f(0.333f, 0.333f, 0.333f));
+    m_pDevice->RenderCheckerboard(Vec3f(0.81f, 0.81f, 0.81f), Vec3f(0.57f, 0.57f, 0.57f));
 
     return;
   }
@@ -588,7 +588,7 @@ void ReplayOutput::DisplayMesh()
   m_pDevice->BindOutputWindow(m_MainOutput.outputID, true);
   m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 
-  m_pDevice->RenderCheckerboard(Vec3f(0.666f, 0.666f, 0.666f), Vec3f(0.333f, 0.333f, 0.333f));
+  m_pDevice->RenderCheckerboard(Vec3f(0.81f, 0.81f, 0.81f), Vec3f(0.57f, 0.57f, 0.57f));
 
   m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 

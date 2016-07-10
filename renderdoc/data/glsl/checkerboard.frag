@@ -42,10 +42,10 @@ void main(void)
 		(ab.x > 64 && ab.y > 64)
 		)
 	{
-		color_out = vec4(sqrt(lightCol.rgb), 1);
+		color_out = vec4(darkCol.rgb*darkCol.rgb, 1);
 	}
 	else
 	{
-		color_out = vec4(sqrt(darkCol.rgb), 1);
+		color_out = vec4(lightCol.rgb*lightCol.rgb, 1);
 	}
 }

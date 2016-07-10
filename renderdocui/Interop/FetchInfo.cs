@@ -659,8 +659,8 @@ namespace renderdoc
 
         public float offx = 0.0f, offy = 0.0f;
 
-        public FloatVector lightBackgroundColour = new FloatVector(0.666f, 0.666f, 0.666f);
-        public FloatVector darkBackgroundColour = new FloatVector(0.333f, 0.333f, 0.333f);
+        public FloatVector lightBackgroundColour = new FloatVector(0.81f, 0.81f, 0.81f);
+        public FloatVector darkBackgroundColour = new FloatVector(0.57f, 0.57f, 0.57f);
 
         public TextureDisplayOverlay overlay = TextureDisplayOverlay.None;
     };
@@ -712,8 +712,8 @@ namespace renderdoc
         public int channelExtract = -1;
 
         public AlphaMapping alpha = AlphaMapping.Discard;
-        public FloatVector alphaCol = new FloatVector(0.666f, 0.666f, 0.666f);
-        public FloatVector alphaColSecondary = new FloatVector(0.333f, 0.333f, 0.333f);
+        public FloatVector alphaCol = new FloatVector(0.81f, 0.81f, 0.81f);
+        public FloatVector alphaColSecondary = new FloatVector(0.57f, 0.57f, 0.57f);
 
         public int jpegQuality = 90;
     };
