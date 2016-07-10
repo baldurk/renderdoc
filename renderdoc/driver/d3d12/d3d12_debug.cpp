@@ -506,7 +506,7 @@ void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
   D3D12_RESOURCE_DESC texDesc = bb[0]->GetDesc();
 
   texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-  texDesc.SampleDesc.Count = multisampled ? 4 : 1;
+  texDesc.SampleDesc.Count = multisampled ? 1 : 1;
   texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
   D3D12_HEAP_PROPERTIES heapProps;
@@ -546,7 +546,7 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
 
   D3D12_RESOURCE_DESC texDesc = bb[0]->GetDesc();
 
-  texDesc.SampleDesc.Count = 4;
+  texDesc.SampleDesc.Count = 1;
   texDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
   texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
@@ -557,10 +557,9 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
   heapProps.CreationNodeMask = 1;
   heapProps.VisibleNodeMask = 1;
 
-  HRESULT hr = dev->CreateCommittedResource(
-      &heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-      D3D12_RESOURCE_STATE_DEPTH_WRITE | D3D12_RESOURCE_STATE_DEPTH_READ, NULL,
-      __uuidof(ID3D12Resource), (void **)&depth);
+  HRESULT hr = dev->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
+                                            D3D12_RESOURCE_STATE_DEPTH_WRITE, NULL,
+                                            __uuidof(ID3D12Resource), (void **)&depth);
 
   if(FAILED(hr))
   {
@@ -806,11 +805,13 @@ void D3D12DebugManager::FlipOutputWindow(uint64_t id)
   list->ResourceBarrier(2, barriers);
 
   // resolve or copy from colour to backbuffer
+  /*
   if(outw.depth)
     list->ResolveSubresource(barriers[1].Transition.pResource, 0, barriers[0].Transition.pResource,
                              0, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
   else
-    list->CopyResource(barriers[1].Transition.pResource, barriers[0].Transition.pResource);
+  */
+  list->CopyResource(barriers[1].Transition.pResource, barriers[0].Transition.pResource);
 
   std::swap(barriers[0].Transition.StateBefore, barriers[0].Transition.StateAfter);
   std::swap(barriers[1].Transition.StateBefore, barriers[1].Transition.StateAfter);
