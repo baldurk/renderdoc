@@ -1327,6 +1327,8 @@ void WrappedID3D12Device::FlushLists(bool forceSync)
                                      m_InternalCmds.submittedcmds.begin(),
                                      m_InternalCmds.submittedcmds.end());
     m_InternalCmds.submittedcmds.clear();
+
+    m_Alloc->Reset();
   }
 }
 
