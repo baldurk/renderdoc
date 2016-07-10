@@ -71,6 +71,7 @@ TrackedResource *GetTracked(ID3D12DeviceChild *ptr)
   return NULL;
 }
 
+template <>
 ID3D12DeviceChild *Unwrap(ID3D12DeviceChild *ptr)
 {
   if(ptr == NULL)
