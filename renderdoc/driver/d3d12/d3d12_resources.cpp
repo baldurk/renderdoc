@@ -68,13 +68,6 @@ TrackedResource *GetTracked(ID3D12DeviceChild *ptr)
 
   ALL_D3D12_TYPES;
 
-  if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
-    return (TrackedResource *)(WrappedID3D12GraphicsCommandList *)ptr;
-  if(WrappedID3D12CommandQueue::IsAlloc(ptr))
-    return (TrackedResource *)(WrappedID3D12CommandQueue *)ptr;
-
-  RDCERR("Unknown type of ptr 0x%p", ptr);
-
   return NULL;
 }
 
@@ -109,7 +102,16 @@ ResourceId GetResID(ID3D12DeviceChild *ptr)
   TrackedResource *res = GetTracked(ptr);
 
   if(res == NULL)
+  {
+    if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
+      return ((WrappedID3D12GraphicsCommandList *)ptr)->GetResourceID();
+    if(WrappedID3D12CommandQueue::IsAlloc(ptr))
+      return ((WrappedID3D12CommandQueue *)ptr)->GetResourceID();
+
+    RDCERR("Unknown type of ptr 0x%p", ptr);
+
     return ResourceId();
+  }
 
   return res->GetResourceID();
 }
@@ -123,7 +125,16 @@ D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr)
   TrackedResource *res = GetTracked(ptr);
 
   if(res == NULL)
+  {
+    if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
+      return ((WrappedID3D12GraphicsCommandList *)ptr)->GetResourceRecord();
+    if(WrappedID3D12CommandQueue::IsAlloc(ptr))
+      return ((WrappedID3D12CommandQueue *)ptr)->GetResourceRecord();
+
+    RDCERR("Unknown type of ptr 0x%p", ptr);
+
     return NULL;
+  }
 
   return res->GetResourceRecord();
 }

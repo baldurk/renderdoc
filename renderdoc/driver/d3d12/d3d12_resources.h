@@ -647,11 +647,6 @@ typename UnwrapHelper<iface>::Outer *GetWrapped(iface *obj)
   return wrapped;
 }
 
-// this function identifies the type by IsAlloc() and returns
-// the pointer to the TrackedResource interface for fetching ID
-// or record
-TrackedResource *GetTracked(ID3D12DeviceChild *ptr);
-
 template <typename ifaceptr>
 ifaceptr Unwrap(ifaceptr obj)
 {
@@ -679,7 +674,7 @@ D3D12ResourceRecord *GetRecord(ifaceptr obj)
   return GetWrapped(obj)->GetResourceRecord();
 }
 
-// specialisations that use the GetTracked() function to fetch the ID
+// specialisations that use the IsAlloc() function to identify the real type
 template <>
 ResourceId GetResID(ID3D12DeviceChild *ptr);
 template <>
