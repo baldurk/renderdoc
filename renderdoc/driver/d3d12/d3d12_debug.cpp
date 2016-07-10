@@ -1039,6 +1039,12 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
     list->OMSetRenderTargets(1, &outw.rtv, TRUE, NULL);
 
+    D3D12_VIEWPORT viewport = {0, 0, (float)outw.width, (float)outw.height, 0.0f, 1.0f};
+    list->RSSetViewports(1, &viewport);
+
+    D3D12_RECT scissor = {0, 0, outw.width, outw.height};
+    list->RSSetScissorRects(1, &scissor);
+
     list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
     if(cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId())
