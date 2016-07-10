@@ -1126,6 +1126,15 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
     SCOPED_LOCK(m_ResourceStatesLock);
     m_ResourceStates.erase(id);
   }
+
+  // wrapped resources get released all the time, we don't want to
+  // try and slerp in a resource release. Just the explicit ones
+  if(m_State < WRITING)
+  {
+    if(GetResourceManager()->HasLiveResource(id))
+      GetResourceManager()->EraseLiveResource(id);
+    return;
+  }
 }
 
 bool WrappedID3D12Device::Serialise_SetShaderDebugPath(ID3D12DeviceChild *res, const char *p)
@@ -1274,6 +1283,11 @@ ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
   {
     HRESULT hr = CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc, NULL,
                                    __uuidof(ID3D12GraphicsCommandList), (void **)&ret);
+
+    if(m_State < WRITING)
+    {
+      GetResourceManager()->AddLiveResource(GetResID(ret), ret);
+    }
 
     RDCASSERTEQUAL(hr, S_OK);
   }

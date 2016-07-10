@@ -91,6 +91,10 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
 
       m_DeviceRecord->AddChunk(scope.Get());
     }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
 
     if(pDesc->Type == D3D12_COMMAND_LIST_TYPE_DIRECT)
     {
@@ -166,6 +170,10 @@ HRESULT WrappedID3D12Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type
 
       record->AddChunk(scope.Get());
     }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
 
     *ppCommandAllocator = (ID3D12CommandAllocator *)wrapped;
   }
@@ -240,6 +248,9 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
       wrapped->Reset(pCommandAllocator, pInitialState);
     }
 
+    // during replay, the caller is responsible for calling AddLiveResource as this function
+    // can be called from ID3D12GraphicsCommandList::Reset serialising
+
     *ppCommandList = (ID3D12GraphicsCommandList *)wrapped;
   }
 
@@ -309,6 +320,10 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
 
       record->AddChunk(scope.Get());
     }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
 
     *ppPipelineState = (ID3D12PipelineState *)wrapped;
   }
@@ -375,6 +390,10 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
       record->AddParent(GetRecord(pDesc->pRootSignature));
 
       record->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
     }
 
     *ppPipelineState = (ID3D12PipelineState *)wrapped;
@@ -449,6 +468,10 @@ HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DE
           GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
       }
     }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
 
     *ppvHeap = (ID3D12DescriptorHeap *)wrapped;
   }
@@ -522,6 +545,10 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
       wrapped->SetResourceRecord(record);
 
       record->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
     }
 
     *ppvRootSignature = (ID3D12RootSignature *)wrapped;
@@ -668,6 +695,10 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
           GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
       }
     }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
 
     {
       SCOPED_LOCK(m_ResourceStatesLock);
@@ -763,6 +794,10 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
       wrapped->SetResourceRecord(record);
 
       record->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
     }
 
     *ppFence = (ID3D12Fence *)wrapped;
