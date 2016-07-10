@@ -128,6 +128,8 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   D3D12DrawcallTreeNode m_ParentDrawcall;
 
+  ResourceId m_BackbufferID;
+
   void InsertDrawsAndRefreshIDs(vector<D3D12DrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID,
                                 uint32_t baseDrawID);
 
@@ -268,6 +270,7 @@ public:
   D3D12DrawcallTreeNode &GetParentDrawcall() { return m_ParentDrawcall; }
   FetchAPIEvent GetEvent(uint32_t eventID);
   uint32_t GetMaxEID() { return m_Events.back().eventID; }
+  ResourceId GetBackbufferResourceID() { return m_BackbufferID; }
   void ClearAfterCapture();
 
   void AddDrawcall(const FetchDrawcall &d, bool hasEvents);

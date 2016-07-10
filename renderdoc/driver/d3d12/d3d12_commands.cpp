@@ -300,6 +300,8 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
       bool HasCallstack = false;
       m_pSerialiser->Serialise("HasCallstack", HasCallstack);
 
+      m_BackbufferID = bbid;
+
       if(HasCallstack)
       {
         size_t numLevels = 0;
