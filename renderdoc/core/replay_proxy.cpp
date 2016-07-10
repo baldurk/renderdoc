@@ -1046,12 +1046,10 @@ void Serialiser::Serialise(const char *name, FetchBuffer &el)
   Serialise("", el.ID);
   Serialise("", el.name);
   Serialise("", el.customName);
-  Serialise("", el.length);
-  Serialise("", el.structureSize);
   Serialise("", el.creationFlags);
-  Serialise("", el.byteSize);
+  Serialise("", el.length);
 
-  SIZE_CHECK(FetchBuffer, 48);
+  SIZE_CHECK(FetchBuffer, 40);
 }
 
 template <>

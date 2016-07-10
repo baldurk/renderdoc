@@ -265,7 +265,7 @@ namespace renderdocui.Windows.PipelineState
 
         private bool HasImportantViewParams(D3D11PipelineState.ShaderStage.ResourceView view, FetchBuffer buf)
         {
-            if (view.FirstElement > 0 || view.NumElements*view.ElementSize < buf.byteSize)
+            if (view.FirstElement > 0 || view.NumElements*view.ElementSize < buf.length)
                 return true;
 
             return false;
@@ -345,7 +345,8 @@ namespace renderdocui.Windows.PipelineState
                         if (shaderInput != null && shaderInput.name.Length > 0)
                             slotname += ": " + shaderInput.name;
 
-                        UInt32 w = 1, h = 1, d = 1;
+                        UInt64 w = 1;
+                        UInt32 h = 1, d = 1;
                         UInt32 a = 1;
                         string format = "Unknown";
                         string name = "Shader Resource " + r.Resource.ToString();
@@ -407,9 +408,9 @@ namespace renderdocui.Windows.PipelineState
                                 typename = "Buffer";
 
                                 // for structured buffers, display how many 'elements' there are in the buffer
-                                if (bufs[t].structureSize > 0)
+                                if (r.ElementSize > 0)
                                 {
-                                    typename = "StructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                                    typename = "StructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
                                 }
                                 else if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
                                 {
@@ -591,7 +592,7 @@ namespace renderdocui.Windows.PipelineState
                         )
                     {
                         string name = "Constant Buffer " + b.Buffer.ToString();
-                        UInt32 length = 1;
+                        UInt64 length = 1;
                         int numvars = shaderCBuf != null ? shaderCBuf.variables.Length : 0;
                         UInt32 byteSize = shaderCBuf != null ? shaderCBuf.byteSize : 0;
 
@@ -927,7 +928,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     string ptr = "Buffer " + state.m_IA.ibuffer.Buffer.ToString();
                     string name = ptr;
-                    UInt32 length = 1;
+                    UInt64 length = 1;
 
                     if (!ibufferUsed)
                     {
@@ -990,7 +991,7 @@ namespace renderdocui.Windows.PipelineState
                         )
                     {
                         string name = "Buffer " + v.Buffer.ToString();
-                        UInt32 length = 1;
+                        UInt64 length = 1;
 
                         for (int t = 0; t < bufs.Length; t++)
                         {
@@ -1072,7 +1073,8 @@ namespace renderdocui.Windows.PipelineState
                         if (shaderInput != null && shaderInput.name.Length > 0)
                             slotname += ": " + shaderInput.name;
 
-                        UInt32 w = 1, h = 1, d = 1;
+                        UInt64 w = 1;
+                        UInt32 h = 1, d = 1;
                         UInt32 a = 1;
                         string format = "Unknown";
                         string name = "UAV " + r.Resource.ToString();
@@ -1131,9 +1133,9 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 typename = "Buffer";
 
-                                if (bufs[t].structureSize > 0)
+                                if (r.ElementSize > 0)
                                 {
-                                    typename = "RWStructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                                    typename = "RWStructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
                                 }
                                 else if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
                                 {
@@ -1212,7 +1214,7 @@ namespace renderdocui.Windows.PipelineState
                         )
                     {
                         string name = "Buffer " + s.Buffer.ToString();
-                        uint length = 0;
+                        UInt64 length = 0;
 
                         if (!filledSlot)
                         {
@@ -1444,7 +1446,8 @@ namespace renderdocui.Windows.PipelineState
                         (showDisabled.Checked && !usedSlot && filledSlot) // it's bound, but not referenced, and we have "show disabled"
                         )
                     {
-                        UInt32 w = 1, h = 1, d = 1;
+                        UInt64 w = 1;
+                        UInt32 h = 1, d = 1;
                         UInt32 a = 1;
                         string format = "Unknown";
                         string name = "UAV " + r.Resource.ToString();
@@ -1503,9 +1506,9 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 typename = "Buffer";
 
-                                if (bufs[t].structureSize > 0)
+                                if (r.ElementSize > 0)
                                 {
-                                    typename = "RWStructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                                    typename = "RWStructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
                                 }
                                 else if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
                                 {
@@ -1834,8 +1837,8 @@ namespace renderdocui.Windows.PipelineState
                             buf.view.FirstElement * buf.view.ElementSize,
                             (buf.view.FirstElement + buf.view.NumElements) * buf.view.ElementSize,
                             buf.view.NumElements,
-                            buf.buf.byteSize,
-                            buf.buf.byteSize / buf.view.ElementSize);
+                            buf.buf.length,
+                            buf.buf.length / buf.view.ElementSize);
                     }
 
                     toolTip.Show(text.TrimEnd(), view, e.Location.X + Cursor.Size.Width, y);
@@ -2896,7 +2899,9 @@ namespace renderdocui.Windows.PipelineState
             string name = "Empty";
             string typename = "Unknown";
             string format = "Unknown";
-            uint w = 0, h = 0, d = 0, a = 0;
+            UInt64 w = 1;
+            UInt32 h = 1, d = 1;
+            UInt32 a = 0;
 
             string viewFormat = view.Format.ToString();
 
@@ -2934,9 +2939,9 @@ namespace renderdocui.Windows.PipelineState
                     typename = "Buffer";
 
                     // for structured buffers, display how many 'elements' there are in the buffer
-                    if (bufs[t].structureSize > 0)
+                    if (view.ElementSize > 0)
                     {
-                        typename = (rw ? "RWStructuredBuffer" : "StructuredBuffer") + "[" + (bufs[t].length / bufs[t].structureSize) + "]";
+                        typename = (rw ? "RWStructuredBuffer" : "StructuredBuffer") + "[" + (bufs[t].length / view.ElementSize) + "]";
                     }
                     else if (view.Flags.HasFlag(D3D11BufferViewFlags.Raw))
                     {
@@ -3033,7 +3038,7 @@ namespace renderdocui.Windows.PipelineState
                 foreach (var vb in ia.vbuffers)
                 {
                     string name = "Buffer " + vb.Buffer.ToString();
-                    UInt32 length = 0;
+                    UInt64 length = 0;
 
                     if (vb.Buffer == ResourceId.Null)
                     {
@@ -3065,7 +3070,7 @@ namespace renderdocui.Windows.PipelineState
                 writer.WriteEndElement();
 
                 string name = "Buffer " + ia.ibuffer.Buffer.ToString();
-                UInt32 length = 0;
+                UInt64 length = 0;
 
                 if (ia.ibuffer.Buffer == ResourceId.Null)
                 {
@@ -3259,7 +3264,7 @@ namespace renderdocui.Windows.PipelineState
                         shaderCBuf = sh.ShaderDetails.ConstantBlocks[i];
 
                     string name = "Constant Buffer " + sh.ConstantBuffers[i].Buffer.ToString();
-                    UInt32 length = 1;
+                    UInt64 length = 1;
                     int numvars = shaderCBuf != null ? shaderCBuf.variables.Length : 0;
                     UInt32 byteSize = shaderCBuf != null ? shaderCBuf.byteSize : 0;
 
@@ -3321,7 +3326,7 @@ namespace renderdocui.Windows.PipelineState
                 foreach (var o in so.Outputs)
                 {
                     string name = "Buffer " + o.Buffer.ToString();
-                    UInt32 length = 0;
+                    UInt64 length = 0;
 
                     if (o.Buffer == ResourceId.Null)
                     {

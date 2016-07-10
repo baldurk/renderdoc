@@ -243,10 +243,8 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
         public bool customName;
-        public UInt32 length;
-        public UInt32 structureSize;
         public BufferCreationFlags creationFlags;
-        public UInt64 byteSize;
+        public UInt64 length;
     };
 
     [StructLayout(LayoutKind.Sequential)]

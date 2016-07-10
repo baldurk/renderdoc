@@ -787,7 +787,7 @@ namespace renderdocui.Windows
                 if (b.ID == id)
                 {
                     Text = b.name + " - Contents";
-                    len = b.byteSize;
+                    len = b.length;
                     break;
                 }
             }

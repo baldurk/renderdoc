@@ -740,8 +740,6 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
     gl.glBindBuffer(res.curType, res.resource.name);
   }
 
-  ret.structureSize = 0;
-
   ret.creationFlags = 0;
   switch(res.curType)
   {
@@ -779,12 +777,12 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
     gl.glGetBufferParameteriv(res.curType, eGL_BUFFER_SIZE, &size);
   }
 
-  ret.byteSize = ret.length = (uint32_t)size;
+  ret.length = size;
 
   if(res.size == 0)
   {
     RDCWARN("BufferData::size didn't get filled out, setting at last minute");
-    res.size = ret.byteSize;
+    res.size = ret.length;
   }
 
   string str = "";
@@ -2991,7 +2989,7 @@ ResourceId GLReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
   GLuint buf = 0;
   gl.glGenBuffers(1, &buf);
   gl.glBindBuffer(target, buf);
-  gl.glNamedBufferStorageEXT(buf, (GLsizeiptr)templateBuf.byteSize, NULL,
+  gl.glNamedBufferStorageEXT(buf, (GLsizeiptr)templateBuf.length, NULL,
                              GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT);
 
   if(templateBuf.customName)

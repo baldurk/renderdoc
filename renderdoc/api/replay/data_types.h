@@ -81,10 +81,8 @@ struct FetchBuffer
   ResourceId ID;
   rdctype::str name;
   bool32 customName;
-  uint32_t length;
-  uint32_t structureSize;
   uint32_t creationFlags;
-  uint64_t byteSize;
+  uint64_t length;
 };
 
 struct FetchTexture

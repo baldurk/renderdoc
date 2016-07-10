@@ -391,11 +391,7 @@ FetchBuffer D3D11Replay::GetBuffer(ResourceId id)
   it->second.m_Buffer->GetDesc(&desc);
 
   ret.name = str;
-  ret.length = it->second.length;
-  ret.structureSize = 0;
-  if(desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_STRUCTURED)
-    ret.structureSize = desc.StructureByteStride;
-  ret.byteSize = desc.ByteWidth;
+  ret.length = desc.ByteWidth;
 
   ret.creationFlags = 0;
   if(desc.BindFlags & D3D11_BIND_VERTEX_BUFFER)
@@ -1839,18 +1835,11 @@ ResourceId D3D11Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
     ID3D11Buffer *throwaway = NULL;
     D3D11_BUFFER_DESC desc;
 
-    desc.ByteWidth = (UINT)templateBuf.byteSize;
+    desc.ByteWidth = (UINT)templateBuf.length;
     desc.CPUAccessFlags = 0;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
     desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    if(templateBuf.structureSize > 0)
-    {
-      desc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-      desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-      desc.StructureByteStride = templateBuf.structureSize;
-    }
 
     if(templateBuf.creationFlags & eBufferCreate_Indirect)
     {

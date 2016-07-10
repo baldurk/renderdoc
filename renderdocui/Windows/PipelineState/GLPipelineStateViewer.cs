@@ -994,7 +994,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     string ptr = "Buffer " + state.m_VtxIn.ibuffer.ToString();
                     string name = ptr;
-                    UInt32 length = 1;
+                    UInt64 length = 1;
 
                     if (!ibufferUsed)
                     {
@@ -1057,7 +1057,7 @@ namespace renderdocui.Windows.PipelineState
                         )
                     {
                         string name = "Buffer " + v.Buffer.ToString();
-                        UInt32 length = 1;
+                        UInt64 length = 1;
 
                         if (!filledSlot)
                         {
@@ -2327,7 +2327,7 @@ namespace renderdocui.Windows.PipelineState
                 foreach (var vb in vtx.vbuffers)
                 {
                     string name = "Buffer " + vb.Buffer.ToString();
-                    UInt32 length = 0;
+                    UInt64 length = 0;
 
                     if (vb.Buffer == ResourceId.Null)
                     {
@@ -2359,7 +2359,7 @@ namespace renderdocui.Windows.PipelineState
                 writer.WriteEndElement();
 
                 string name = "Buffer " + vtx.ibuffer.ToString();
-                UInt32 length = 0;
+                UInt64 length = 0;
 
                 if (vtx.ibuffer == ResourceId.Null)
                 {
@@ -2937,7 +2937,7 @@ namespace renderdocui.Windows.PipelineState
                 for(int i=0; i < xfb.BufferBinding.Length; i++)
                 {
                     string name = "Buffer " + xfb.BufferBinding[i].ToString();
-                    UInt32 length = 0;
+                    UInt64 length = 0;
 
                     if (xfb.BufferBinding[i] == ResourceId.Null)
                     {

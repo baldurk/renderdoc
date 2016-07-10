@@ -277,7 +277,7 @@ namespace renderdocui.Windows.PipelineState
 
         private bool HasImportantViewParams(VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement view, FetchBuffer buf)
         {
-            if (view.offset > 0 || view.size < buf.byteSize)
+            if (view.offset > 0 || view.size < buf.length)
                 return true;
 
             return false;
@@ -566,8 +566,8 @@ namespace renderdocui.Windows.PipelineState
                         {
                             if (bufs[t].ID == descriptorBind.res)
                             {
-                                len = bufs[t].byteSize;
-                                w = bufs[t].length;
+                                len = bufs[t].length;
+                                w = 0;
                                 h = 0;
                                 d = 0;
                                 a = 0;
@@ -1303,7 +1303,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     string ptr = "Buffer " + state.IA.ibuffer.buf.ToString();
                     string name = ptr;
-                    UInt32 length = 1;
+                    UInt64 length = 1;
 
                     if (!ibufferUsed)
                     {
@@ -1376,7 +1376,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         string name = "No Buffer";
                         string rate = "-";
-                        UInt32 length = 1;
+                        UInt64 length = 1;
                         UInt64 offset = 0;
                         UInt32 stride = 0;
 
@@ -1879,7 +1879,7 @@ namespace renderdocui.Windows.PipelineState
                         {
                             text += String.Format("The view covers bytes {0}-{1}.\nThe buffer is {3} bytes in length.",
                                 buf.offset, buf.size,
-                                m_Core.GetBuffer(buf.ID).byteSize);
+                                m_Core.GetBuffer(buf.ID).length);
                         }
 
                         toolTip.Show(text.TrimEnd(), treeview, e.Location.X + Cursor.Size.Width, y);
@@ -2544,7 +2544,7 @@ namespace renderdocui.Windows.PipelineState
                 if (ib != null)
                 {
                     name = ib.name;
-                    length = ib.byteSize;
+                    length = ib.length;
                 }
 
                 string ifmt = "UNKNOWN";
@@ -2616,7 +2616,7 @@ namespace renderdocui.Windows.PipelineState
                         if(buf != null)
                         {
                             name = buf.name;
-                            length = buf.byteSize;
+                            length = buf.length;
                         }
                     }
 
@@ -2777,7 +2777,9 @@ namespace renderdocui.Windows.PipelineState
                         if (name == "")
                             name = "Resource " + descriptorBind.res.ToString();
 
-                        uint w = 0, h = 0, d = 0, arr = 0;
+                        UInt64 w = 1;
+                        UInt32 h = 1, d = 1;
+                        UInt32 arr = 0;
                         string format = "Unknown";
                         string viewParams = "";
 
@@ -2893,7 +2895,9 @@ namespace renderdocui.Windows.PipelineState
                         if (name == "")
                             name = "Resource " + descriptorBind.res.ToString();
 
-                        uint w = 0, h = 0, d = 0, arr = 0;
+                        UInt64 w = 1;
+                        UInt32 h = 1, d = 1;
+                        UInt32 arr = 0;
                         string format = "Unknown";
                         string viewParams = "";
 

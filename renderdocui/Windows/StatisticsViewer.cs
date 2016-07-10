@@ -686,12 +686,12 @@ namespace renderdocui.Windows
             ulong BufBytes = 0;
             foreach (var b in m_Core.CurBuffers)
             {
-                BufBytes += b.byteSize;
+                BufBytes += b.length;
 
                 if ((b.creationFlags & BufferCreationFlags.IB) != 0)
-                    IBBytes += b.byteSize;
+                    IBBytes += b.length;
                 if ((b.creationFlags & BufferCreationFlags.VB) != 0)
-                    VBBytes += b.byteSize;
+                    VBBytes += b.length;
             }
 
             ulong RTBytes = 0;

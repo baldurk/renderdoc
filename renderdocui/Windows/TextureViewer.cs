@@ -1195,7 +1195,7 @@ namespace renderdocui.Windows
                     if (fullname.Length == 0)
                         fullname = buf.name;
 
-                    prev.Init(fullname, buf.length, 0, 0, Math.Max(1, buf.structureSize));
+                    prev.Init(fullname, buf.length, 0, 0, 1);
                     IntPtr handle = prev.ThumbnailHandle;
                     m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
                     {

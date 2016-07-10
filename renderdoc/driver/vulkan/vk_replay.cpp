@@ -858,9 +858,7 @@ FetchBuffer VulkanReplay::GetBuffer(ResourceId id)
 
   FetchBuffer ret;
   ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
-  ret.byteSize = bufinfo.size;
-  ret.structureSize = 0;
-  ret.length = (uint32_t)ret.byteSize;
+  ret.length = bufinfo.size;
 
   ret.creationFlags = 0;
 
