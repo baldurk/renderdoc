@@ -164,8 +164,11 @@ FetchTexture D3D12Replay::GetTexture(ResourceId id)
   if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
     ret.creationFlags |= eTextureCreate_UAV;
 
-  if(id == m_pDevice->GetQueue()->GetBackbufferResourceID())
+  if(ret.ID == m_pDevice->GetQueue()->GetBackbufferResourceID())
+  {
+    ret.format = MakeResourceFormat(GetTypedFormat(desc.Format, eCompType_UNorm));
     ret.creationFlags |= eTextureCreate_SwapBuffer;
+  }
 
   ret.customName = true;
   string str = "";    // TODO GetName(it.second);
