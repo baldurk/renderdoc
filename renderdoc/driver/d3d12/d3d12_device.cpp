@@ -482,6 +482,12 @@ void WrappedID3D12Device::ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers
 
 void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap)
 {
+  for(int i = 0; i < swap->GetNumBackbuffers(); i++)
+  {
+    WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)swap->GetBackbuffers()[i];
+    SAFE_RELEASE(wrapped);
+  }
+
   if(swap)
   {
     DXGI_SWAP_CHAIN_DESC desc;
