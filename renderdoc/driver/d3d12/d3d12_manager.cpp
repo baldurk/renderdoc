@@ -410,14 +410,14 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
 
         byte dummy[4] = {};
         byte *ptr = NULL;
-        uint64_t size = 0;
+        size_t size = 0;
 
         HRESULT hr = E_NOINTERFACE;
 
         if(copySrc)
         {
           hr = copySrc->Map(0, NULL, (void **)&ptr);
-          size = copySrc->GetDesc().Width;
+          size = (size_t)copySrc->GetDesc().Width;
         }
 
         if(FAILED(hr) || ptr == NULL)
@@ -544,7 +544,9 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
           ptr = NULL;
         }
 
-        m_pSerialiser->SerialiseBuffer("BufferData", ptr, size);
+        size_t sz = (size_t)size;
+
+        m_pSerialiser->SerialiseBuffer("BufferData", ptr, sz);
 
         if(SUCCEEDED(hr))
           copySrc->Unmap(0, NULL);
@@ -644,7 +646,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
         }
 
         if(src && dst)
-          memcpy(dst, src, copySrc->GetDesc().Width);
+          memcpy(dst, src, (size_t)copySrc->GetDesc().Width);
 
         if(src)
           copySrc->Unmap(0, NULL);

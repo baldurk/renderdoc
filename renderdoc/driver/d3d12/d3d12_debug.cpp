@@ -643,11 +643,11 @@ uint64_t D3D12DebugManager::MakeOutputWindow(void *w, bool depth)
   outw.bbIdx = 0;
 
   outw.rtv = rtvHeap->GetCPUDescriptorHandleForHeapStart();
-  outw.rtv.ptr += m_OutputWindowID *
+  outw.rtv.ptr += SIZE_T(m_OutputWindowID) *
                   m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
   outw.dsv = dsvHeap->GetCPUDescriptorHandleForHeapStart();
-  outw.dsv.ptr += m_OutputWindowID *
+  outw.dsv.ptr += SIZE_T(m_OutputWindowID) *
                   m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
   outw.col = NULL;
