@@ -456,7 +456,6 @@ public:
                                                                 UINT buffer, IUnknown *realSurface));
   HRESULT Present(WrappedIDXGISwapChain3 *swap, UINT SyncInterval, UINT Flags);
 
-  void ShutdownSwapchain(WrappedIDXGISwapChain3 *swapChain);
   void NewSwapchainBuffer(IUnknown *backbuffer);
 
   void ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap);

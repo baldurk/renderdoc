@@ -270,16 +270,6 @@ ReplayCreateStatus D3D11InitParams::Serialise()
   return eReplayCreate_Success;
 }
 
-void WrappedID3D11Device::ShutdownSwapchain(WrappedIDXGISwapChain3 *swapChain)
-{
-  for(int i = 0; i < swapChain->GetNumBackbuffers(); i++)
-  {
-    WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)swapChain->GetBackbuffers()[i];
-    if(wrapped)
-      wrapped->ViewRelease();
-  }
-}
-
 void WrappedID3D11Device::NewSwapchainBuffer(IUnknown *backbuffer)
 {
   WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)backbuffer;

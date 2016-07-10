@@ -285,11 +285,6 @@ public:
   virtual IUnknown *GetDeviceInterface() { return (ID3D12CommandQueue *)this; }
   // the rest forward to the device
   virtual void FirstFrame(WrappedIDXGISwapChain3 *swapChain) { m_pDevice->FirstFrame(swapChain); }
-  virtual void ShutdownSwapchain(WrappedIDXGISwapChain3 *swapChain)
-  {
-    m_pDevice->FirstFrame(swapChain);
-  }
-
   virtual void NewSwapchainBuffer(IUnknown *backbuffer)
   {
     m_pDevice->NewSwapchainBuffer(backbuffer);

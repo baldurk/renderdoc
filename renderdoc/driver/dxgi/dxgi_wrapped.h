@@ -168,7 +168,6 @@ struct ID3DDevice
   virtual IUnknown *GetDeviceInterface() = 0;
 
   virtual void FirstFrame(WrappedIDXGISwapChain3 *swapChain) = 0;
-  virtual void ShutdownSwapchain(WrappedIDXGISwapChain3 *swapChain) = 0;
 
   virtual void NewSwapchainBuffer(IUnknown *backbuffer) = 0;
   virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swapChain) = 0;

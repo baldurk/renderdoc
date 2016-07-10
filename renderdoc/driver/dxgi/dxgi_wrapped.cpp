@@ -229,8 +229,6 @@ WrappedIDXGISwapChain3::~WrappedIDXGISwapChain3()
 {
   m_pDevice->ReleaseSwapchainResources(this);
 
-  m_pDevice->ShutdownSwapchain(this);
-
   SAFE_RELEASE(m_pDevice);
 
   SAFE_RELEASE(m_pReal1);
