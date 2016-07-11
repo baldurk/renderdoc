@@ -1913,7 +1913,7 @@ namespace renderdocui.Windows
             if (current.format.compType != m_TexDisplay.typeHint &&
                  m_TexDisplay.typeHint != FormatComponentType.None)
             {
-                texStatusDim.Text += " Viewed as type " + m_TexDisplay.typeHint.Str();
+                texStatusDim.Text += " Viewed as " + m_TexDisplay.typeHint.Str();
             }
         }
 
