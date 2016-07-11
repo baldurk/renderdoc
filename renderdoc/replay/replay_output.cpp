@@ -358,7 +358,9 @@ void ReplayOutput::DisplayContext()
      m_OverlayResourceId != ResourceId())
     disp.texid = m_OverlayResourceId;
 
-  disp.scale = 8.0f;
+  const float contextZoom = 8.0f;
+
+  disp.scale = contextZoom / float(1 << disp.mip);
 
   int32_t width = 0, height = 0;
   m_pDevice->GetOutputWindowDimensions(m_PixelContext.outputID, width, height);
@@ -366,8 +368,17 @@ void ReplayOutput::DisplayContext()
   float w = (float)width;
   float h = (float)height;
 
-  disp.offx = -m_ContextX * disp.scale;
-  disp.offy = -m_ContextY * disp.scale;
+  int x = (int)m_ContextX;
+  int y = (int)m_ContextY;
+
+  x >>= disp.mip;
+  x <<= disp.mip;
+
+  y >>= disp.mip;
+  y <<= disp.mip;
+
+  disp.offx = -(float)x * disp.scale;
+  disp.offy = -(float)y * disp.scale;
 
   disp.offx += w / 2.0f;
   disp.offy += h / 2.0f;
@@ -376,7 +387,7 @@ void ReplayOutput::DisplayContext()
 
   m_pDevice->RenderTexture(disp);
 
-  m_pDevice->RenderHighlightBox(w, h, disp.scale);
+  m_pDevice->RenderHighlightBox(w, h, contextZoom);
 
   m_pDevice->FlipOutputWindow(m_PixelContext.outputID);
 }
