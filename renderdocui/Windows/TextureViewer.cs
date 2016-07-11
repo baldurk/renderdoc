@@ -584,6 +584,14 @@ namespace renderdocui.Windows
                 data = PersistData.GetDefaults();
             }
 
+            // fixup old incorrect checkerboard colours
+            if (data.lightBack.x != data.darkBack.x)
+            {
+                TextureDisplay defaults = new TextureDisplay();
+                data.lightBack = defaults.lightBackgroundColour;
+                data.darkBack = defaults.darkBackgroundColour;
+            }
+
             ApplyPersistData(data);
         }
 
