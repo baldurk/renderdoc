@@ -966,6 +966,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     m_pDriver->vkDestroyRenderPass(dev, RGBA32RP, NULL);
     m_pDriver->vkDestroyRenderPass(dev, RGBA8RP, NULL);
     m_pDriver->vkDestroyRenderPass(dev, RGBA8MSRP, NULL);
+    for(size_t i = 0; i < ARRAY_COUNT(RGBA16MSRP); i++)
+      m_pDriver->vkDestroyRenderPass(dev, RGBA16MSRP[i], NULL);
 
     return;
   }
