@@ -364,10 +364,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   VkDescriptorPoolSize captureDescPoolTypes[] = {
       {
-          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2,
+          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
       },
       {
-          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1,
+          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 2,
       },
       {
           VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
