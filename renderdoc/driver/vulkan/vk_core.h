@@ -315,7 +315,8 @@ private:
 
   const VkPhysicalDeviceFeatures &GetDeviceFeatures() { return m_PhysicalDeviceData.features; }
   const VkPhysicalDeviceProperties &GetDeviceProps() { return m_PhysicalDeviceData.props; }
-  bool IsAMD() { return m_PhysicalDeviceData.props.vendorID == 0x1002; }
+  bool IsAMD() { return m_PhysicalDeviceData.props.vendorID == AMD_PCI_ID; }
+  bool IsNV() { return m_PhysicalDeviceData.props.vendorID == NV_PCI_ID; }
   const VkFormatProperties &GetFormatProperties(VkFormat f)
   {
     return m_PhysicalDeviceData.fmtprops[f];

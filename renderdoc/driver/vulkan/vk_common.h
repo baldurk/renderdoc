@@ -67,6 +67,9 @@ int StageIndex(VkShaderStageFlagBits stageFlag);
 // in vk_<platform>.cpp
 extern const char *VulkanLibraryName;
 
+extern const uint32_t AMD_PCI_ID;
+extern const uint32_t NV_PCI_ID;
+
 // structure for casting to easily iterate and template specialising Serialise
 struct VkGenericStruct
 {

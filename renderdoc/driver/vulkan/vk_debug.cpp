@@ -1358,10 +1358,19 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   // but it came out recently so I want a short transition period with the
   // workaround in place while people update. So we just check if we're
   // on AMD and look at the modified date of amdvlk32/64.dll. Cheeky!
-  bool texelFetchBrokenAMDDriver = true;
+  bool texelFetchBrokenDriver = false;
+
+  if(m_pDriver->IsNV())
+  {
+    // at time of writing, this isn't fixed on nv
+    texelFetchBrokenDriver = true;
+  }
 
   if(m_pDriver->IsAMD())
   {
+    // assume it's broken
+    texelFetchBrokenDriver = true;
+
 #if defined(RENDERDOC_PLATFORM_WIN32)
 
 #if defined(RDC64BIT)
@@ -1387,7 +1396,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       const uint64_t referenceTimestamp = 1460880000;
 
       if(timestamp > referenceTimestamp)
-        texelFetchBrokenAMDDriver = false;
+        texelFetchBrokenDriver = false;
       else
         RDCWARN(
             "Detected an older AMD driver, enabling workaround - try updating to the latest "
@@ -1407,7 +1416,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       continue;
 
     sources[0] = "#version 430 core\n";
-    if(m_pDriver->IsAMD() && texelFetchBrokenAMDDriver)
+    if(texelFetchBrokenDriver)
       sources[0] += "#define NO_TEXEL_FETCH\n";
     sources[2] = "";
     sources[3] = shaderSources[i];
@@ -1560,7 +1569,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   sources.resize(5);
   sources[0] = "#version 430 core\n";
-  if(m_pDriver->IsAMD() && texelFetchBrokenAMDDriver)
+  if(texelFetchBrokenDriver)
     sources[0] += "#define NO_TEXEL_FETCH\n";
   sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
   sources[2] = GetEmbeddedResource(spv_texsample_h);

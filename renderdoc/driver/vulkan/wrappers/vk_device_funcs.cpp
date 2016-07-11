@@ -438,7 +438,7 @@ static void GetVulkanDriverVersion(const VkPhysicalDeviceProperties &physProps, 
   // nvidia uses its own version packing:
   //   10 |  8  |        8       |       6
   // major|minor|secondary_branch|tertiary_branch
-  if(physProps.vendorID == 0x10DE)
+  if(physProps.vendorID == NV_PCI_ID)
   {
     major = ((uint32_t)(physProps.driverVersion) >> (8 + 8 + 6)) & 0x3ff;
     minor = ((uint32_t)(physProps.driverVersion) >> (8 + 6)) & 0x0ff;

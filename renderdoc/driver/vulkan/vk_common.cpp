@@ -26,6 +26,9 @@
 #include "vk_manager.h"
 #include "vk_resources.h"
 
+const uint32_t AMD_PCI_ID = 0x1002;
+const uint32_t NV_PCI_ID = 0x10DE;
+
 VkAccessFlags MakeAccessMask(VkImageLayout layout)
 {
   switch(layout)
