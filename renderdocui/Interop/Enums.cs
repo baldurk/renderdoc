@@ -827,7 +827,7 @@ namespace renderdoc
                 case FormatComponentType.SInt: return "SInt";
                 case FormatComponentType.UScaled: return "UScaled";
                 case FormatComponentType.SScaled: return "SScaled";
-                case FormatComponentType.Depth: return "Depth";
+                case FormatComponentType.Depth: return "Depth/Stencil";
                 case FormatComponentType.Double: return "Double";
                 default: break;
             }
