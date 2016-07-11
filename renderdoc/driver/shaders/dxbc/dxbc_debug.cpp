@@ -2739,34 +2739,14 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
         for(int i = 0; i < 4; i++)
         {
-          if(op.operands[2].comps[i] == 0xff)
+          if(op.operands[1].comps[i] == 0xff)
             swizzled.value.uv[i] = result.value.uv[0];
           else
-            swizzled.value.uv[i] = result.value.uv[op.operands[2].comps[i]];
+            swizzled.value.uv[i] = result.value.uv[op.operands[1].comps[i]];
         }
 
-        // apply ret type
-        if(op.resinfoRetType == RETTYPE_FLOAT)
-        {
-          result.value.f.x = (float)swizzled.value.u.x;
-          result.value.f.y = (float)swizzled.value.u.y;
-          result.value.f.z = (float)swizzled.value.u.z;
-          result.value.f.w = (float)swizzled.value.u.w;
-          result.type = eVar_Float;
-        }
-        else if(op.resinfoRetType == RETTYPE_RCPFLOAT)
-        {
-          result.value.f.x = 1.0f / (float)swizzled.value.u.x;
-          result.value.f.y = 1.0f / (float)swizzled.value.u.y;
-          result.value.f.z = 1.0f / (float)swizzled.value.u.z;
-          result.value.f.w = 1.0f / (float)swizzled.value.u.w;
-          result.type = eVar_Float;
-        }
-        else if(op.resinfoRetType == RETTYPE_UINT)
-        {
-          result = swizzled;
-          result.type = eVar_UInt;
-        }
+        result = swizzled;
+        result.type = eVar_UInt;
 
         // if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we
         // are assigning FROM a scalar also).
