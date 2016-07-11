@@ -2000,10 +2000,13 @@ namespace renderdocui.Windows
             }
 
             int y = m_CurHoverPixel.Y >> (int)m_TexDisplay.mip;
+
+            uint mipHeight = Math.Max(1, tex.height >> (int)m_TexDisplay.mip);
+
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
-                y = (int)(tex.height - 1) - y;
+                y = (int)(mipHeight - 1) - y;
             if (m_TexDisplay.FlipY)
-                y = (int)(tex.height - 1) - y;
+                y = (int)(mipHeight - 1) - y;
 
             y = Math.Max(0, y);
 
