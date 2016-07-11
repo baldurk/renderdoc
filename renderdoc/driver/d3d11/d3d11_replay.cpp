@@ -1154,6 +1154,10 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
       }
     }
 
+    ret.m_OM.m_BlendState.SampleMask = rs->OM.SampleMask;
+
+    memcpy(ret.m_OM.m_BlendState.BlendFactor, rs->OM.BlendFactor, sizeof(FLOAT) * 4);
+
     if(rs->OM.BlendState)
     {
       D3D11_BLEND_DESC desc;
@@ -1161,8 +1165,6 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
       ret.m_OM.m_BlendState.State = GetIDForResource(rs->OM.BlendState);
 
-      ret.m_OM.m_BlendState.SampleMask = rs->OM.SampleMask;
-      memcpy(ret.m_OM.m_BlendState.BlendFactor, rs->OM.BlendFactor, sizeof(FLOAT) * 4);
       ret.m_OM.m_BlendState.AlphaToCoverage = desc.AlphaToCoverageEnable == TRUE;
       ret.m_OM.m_BlendState.IndependentBlend = desc.IndependentBlendEnable == TRUE;
 
@@ -1203,9 +1205,6 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
     {
       ret.m_OM.m_BlendState.State = ResourceId();
 
-      ret.m_OM.m_BlendState.SampleMask = ~0U;
-      ret.m_OM.m_BlendState.BlendFactor[0] = ret.m_OM.m_BlendState.BlendFactor[1] =
-          ret.m_OM.m_BlendState.BlendFactor[2] = ret.m_OM.m_BlendState.BlendFactor[3] = 1.0f;
       ret.m_OM.m_BlendState.AlphaToCoverage = false;
       ret.m_OM.m_BlendState.IndependentBlend = false;
 
