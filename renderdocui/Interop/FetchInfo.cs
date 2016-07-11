@@ -814,6 +814,7 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ModificationValue postMod;
 
+        public bool sampleMasked;
         public bool backfaceCulled;
         public bool depthClipped;
         public bool viewClipped;
@@ -824,9 +825,9 @@ namespace renderdoc
 
         public bool EventPassed()
         {
-            return !backfaceCulled && !depthClipped && !viewClipped &&
-                !scissorClipped && !shaderDiscarded && !depthTestFailed &&
-                !stencilTestFailed;
+            return !sampleMasked && !backfaceCulled && !depthClipped &&
+                !viewClipped && !scissorClipped && !shaderDiscarded &&
+                !depthTestFailed && !stencilTestFailed;
         }
     };
 }

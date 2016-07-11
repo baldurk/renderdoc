@@ -483,6 +483,7 @@ struct PixelModification
   ModificationValue shaderOut;
   ModificationValue postMod;
 
+  bool32 sampleMasked;
   bool32 backfaceCulled;
   bool32 depthClipped;
   bool32 viewClipped;

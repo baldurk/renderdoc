@@ -1398,6 +1398,7 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
   Serialise("", el.postMod.depth);
   Serialise("", el.postMod.stencil);
 
+  Serialise("", el.sampleMasked);
   Serialise("", el.backfaceCulled);
   Serialise("", el.depthClipped);
   Serialise("", el.viewClipped);
@@ -1406,7 +1407,7 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
   Serialise("", el.depthTestFailed);
   Serialise("", el.stencilTestFailed);
 
-  SIZE_CHECK(PixelModification, 116);
+  SIZE_CHECK(PixelModification, 120);
 }
 
 #pragma endregion Data descriptors

@@ -4623,6 +4623,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     TestMustFail_DepthTesting = 1 << 8,      // if the comparison func is NEVER
     TestMustFail_StencilTesting = 1 << 9,    // if the comparison func is NEVER for both faces, or
                                              // one face is backface culled and the other is NEVER
+
+    // if the sample mask set at this event doesn't have the right bit set
+    TestMustFail_SampleMask = 1 << 10,
   };
 
 #if 1
@@ -4934,6 +4937,13 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     else
     {
       // no blending enabled by default
+    }
+
+    // sampleMask is a mask containing only the bit for the sample we want
+    // (or 0xFFFFFFFF if no sample was chosen and we are looking at them all).
+    if((curSample & sampleMask) == 0)
+    {
+      flags[ev] |= TestMustFail_SampleMask;
     }
 
     m_pDevice->CreateRasterizerState(&rd, &newRS);
@@ -5309,6 +5319,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
           mod.stencilTestFailed = true;
         if(flags[i] & TestMustFail_Scissor)
           mod.scissorClipped = true;
+        if(flags[i] & TestMustFail_SampleMask)
+          mod.sampleMasked = true;
 
         m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_WithoutDraw);
 

@@ -233,6 +233,8 @@ namespace renderdocui.Windows
         {
             string s = "";
 
+            if (mod.sampleMasked)
+                s += "\nMasked by SampleMask";
             if (mod.backfaceCulled)
                 s += "\nBackface culled";
             if (mod.depthClipped)
