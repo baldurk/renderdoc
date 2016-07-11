@@ -4024,6 +4024,71 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       SAFE_RELEASE(os);
     }
   }
+  else
+  {
+    // no depth? trivial pass for depth or stencil tests
+    if(overlay == eTexOverlay_Depth || overlay == eTexOverlay_Stencil)
+    {
+      m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+
+      dsDesc.DepthEnable = FALSE;
+      dsDesc.StencilEnable = FALSE;
+
+      ID3D11DepthStencilState *os = NULL;
+      hr = m_pDevice->CreateDepthStencilState(&dsDesc, &os);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create drawcall depth stencil state %08x", hr);
+        return m_OverlayResourceId;
+      }
+
+      m_pImmediateContext->OMSetDepthStencilState(os, 0);
+
+      m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
+
+      ID3D11RasterizerState *rs = NULL;
+      {
+        D3D11_RASTERIZER_DESC rdesc;
+
+        rdesc.FillMode = D3D11_FILL_SOLID;
+        rdesc.CullMode = D3D11_CULL_NONE;
+        rdesc.FrontCounterClockwise = FALSE;
+        rdesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+        rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
+        rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+        rdesc.DepthClipEnable = FALSE;
+        rdesc.ScissorEnable = FALSE;
+        rdesc.MultisampleEnable = FALSE;
+        rdesc.AntialiasedLineEnable = FALSE;
+
+        hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
+        if(FAILED(hr))
+        {
+          RDCERR("Failed to create drawcall rast state %08x", hr);
+          return m_OverlayResourceId;
+        }
+      }
+
+      float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
+      m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
+
+      float overlayConsts[] = {0.0f, 1.0f, 0.0f, 1.0f};
+      ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+
+      m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+
+      m_pImmediateContext->RSSetState(rs);
+
+      m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
+
+      SAFE_RELEASE(os);
+      SAFE_RELEASE(rs);
+    }
+    else
+    {
+      RDCERR("Unhandled overlay case!");
+    }
+  }
 
   SAFE_RELEASE(rtv);
 
