@@ -4587,6 +4587,9 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, const 
 void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
                                    const MeshDisplay &cfg)
 {
+  if(cfg.position.buf == ResourceId() || cfg.position.numVerts == 0)
+    return;
+
   DebugVertexCBuffer vertexData;
 
   D3D11RenderStateTracker tracker(m_WrappedContext);
