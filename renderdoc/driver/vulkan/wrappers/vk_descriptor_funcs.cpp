@@ -430,6 +430,9 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(Serialiser *localSerialiser
           m_CreationInfo.m_DescSetLayout
               [m_DescriptorSetState[GetResourceManager()->GetNonDispWrapper(writeDesc.dstSet)->id].layout];
 
+      const DescSetLayout::Binding *layoutBinding = &layout.bindings[writeDesc.dstBinding];
+      uint32_t curIdx = writeDesc.dstArrayElement;
+
       switch(writeDesc.descriptorType)
       {
         case VK_DESCRIPTOR_TYPE_SAMPLER:
@@ -440,11 +443,19 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(Serialiser *localSerialiser
         }
         case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
         {
-          for(uint32_t i = 0; i < writeDesc.descriptorCount; i++)
+          for(uint32_t i = 0; i < writeDesc.descriptorCount; i++, curIdx++)
           {
+            // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
+            // explanation
+            if(curIdx >= layoutBinding->descriptorCount)
+            {
+              layoutBinding++;
+              curIdx = 0;
+            }
+
             valid &= (writeDesc.pImageInfo[i].sampler != VK_NULL_HANDLE) ||
-                     (layout.bindings[writeDesc.dstBinding].immutableSampler &&
-                      layout.bindings[writeDesc.dstBinding].immutableSampler[i] != ResourceId());
+                     (layoutBinding->immutableSampler &&
+                      layoutBinding->immutableSampler[curIdx] != ResourceId());
             valid &= (writeDesc.pImageInfo[i].imageView != VK_NULL_HANDLE);
           }
           break;
@@ -488,13 +499,26 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(Serialiser *localSerialiser
         {
           RDCASSERT(writeDesc.dstBinding < bindings.size());
 
-          DescriptorSetSlot *bind = bindings[writeDesc.dstBinding];
+          DescriptorSetSlot **bind = &bindings[writeDesc.dstBinding];
+          layoutBinding = &layout.bindings[writeDesc.dstBinding];
+          curIdx = writeDesc.dstArrayElement;
 
           if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
              writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
           {
-            for(uint32_t d = 0; d < writeDesc.descriptorCount; d++)
-              bind[writeDesc.dstArrayElement + d].texelBufferView = writeDesc.pTexelBufferView[d];
+            for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
+            {
+              // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
+              // explanation
+              if(curIdx >= layoutBinding->descriptorCount)
+              {
+                layoutBinding++;
+                bind++;
+                curIdx = 0;
+              }
+
+              (*bind)[curIdx].texelBufferView = writeDesc.pTexelBufferView[d];
+            }
           }
           else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
                   writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
@@ -502,13 +526,35 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(Serialiser *localSerialiser
                   writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
                   writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
           {
-            for(uint32_t d = 0; d < writeDesc.descriptorCount; d++)
-              bind[writeDesc.dstArrayElement + d].imageInfo = writeDesc.pImageInfo[d];
+            for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
+            {
+              // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
+              // explanation
+              if(curIdx >= layoutBinding->descriptorCount)
+              {
+                layoutBinding++;
+                bind++;
+                curIdx = 0;
+              }
+
+              (*bind)[curIdx].imageInfo = writeDesc.pImageInfo[d];
+            }
           }
           else
           {
-            for(uint32_t d = 0; d < writeDesc.descriptorCount; d++)
-              bind[writeDesc.dstArrayElement + d].bufferInfo = writeDesc.pBufferInfo[d];
+            for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
+            {
+              // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
+              // explanation
+              if(curIdx >= layoutBinding->descriptorCount)
+              {
+                layoutBinding++;
+                bind++;
+                curIdx = 0;
+              }
+
+              (*bind)[curIdx].bufferInfo = writeDesc.pBufferInfo[d];
+            }
           }
         }
       }
@@ -521,21 +567,54 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(Serialiser *localSerialiser
 
       ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), 0, NULL, 1, &copyDesc);
 
+      ResourceId dstSetId = GetResourceManager()->GetNonDispWrapper(copyDesc.dstSet)->id;
+      ResourceId srcSetId = GetResourceManager()->GetNonDispWrapper(copyDesc.srcSet)->id;
+
       // update our local tracking
-      vector<DescriptorSetSlot *> &dstbindings =
-          m_DescriptorSetState[GetResourceManager()->GetNonDispWrapper(copyDesc.dstSet)->id].currentBindings;
-      vector<DescriptorSetSlot *> &srcbindings =
-          m_DescriptorSetState[GetResourceManager()->GetNonDispWrapper(copyDesc.srcSet)->id].currentBindings;
+      vector<DescriptorSetSlot *> &dstbindings = m_DescriptorSetState[dstSetId].currentBindings;
+      vector<DescriptorSetSlot *> &srcbindings = m_DescriptorSetState[srcSetId].currentBindings;
 
       {
         RDCASSERT(copyDesc.dstBinding < dstbindings.size());
         RDCASSERT(copyDesc.srcBinding < srcbindings.size());
 
-        DescriptorSetSlot *dstbind = dstbindings[copyDesc.dstBinding];
-        DescriptorSetSlot *srcbind = srcbindings[copyDesc.srcBinding];
+        const DescSetLayout &dstlayout =
+            m_CreationInfo.m_DescSetLayout[m_DescriptorSetState[dstSetId].layout];
+        const DescSetLayout &srclayout =
+            m_CreationInfo.m_DescSetLayout[m_DescriptorSetState[srcSetId].layout];
 
-        for(uint32_t d = 0; d < copyDesc.descriptorCount; d++)
-          dstbind[copyDesc.dstArrayElement + d] = srcbind[copyDesc.srcArrayElement + d];
+        const DescSetLayout::Binding *layoutSrcBinding = &srclayout.bindings[copyDesc.srcBinding];
+        const DescSetLayout::Binding *layoutDstBinding = &dstlayout.bindings[copyDesc.dstBinding];
+
+        DescriptorSetSlot **dstbind = &dstbindings[copyDesc.dstBinding];
+        DescriptorSetSlot **srcbind = &srcbindings[copyDesc.srcBinding];
+
+        uint32_t curDstIdx = copyDesc.dstArrayElement;
+        uint32_t curSrcIdx = copyDesc.srcArrayElement;
+
+        for(uint32_t d = 0; d < copyDesc.descriptorCount; d++, curSrcIdx++, curDstIdx++)
+        {
+          // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
+          // explanation
+          if(curSrcIdx >= layoutSrcBinding->descriptorCount)
+          {
+            layoutSrcBinding++;
+            srcbind++;
+            curSrcIdx = 0;
+          }
+
+          // src and dst could wrap independently - think copying from
+          // { sampler2D, sampler2D[4], sampler2D } to a { sampler2D[3], sampler2D[3] }
+          // or copying from different starting array elements
+          if(curDstIdx >= layoutDstBinding->descriptorCount)
+          {
+            layoutDstBinding++;
+            dstbind++;
+            curDstIdx = 0;
+          }
+
+          (*dstbind)[curDstIdx] = (*srcbind)[curSrcIdx];
+        }
       }
     }
 
@@ -722,11 +801,13 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
       RDCASSERT(pDescriptorWrites[i].dstBinding < record->descInfo->descBindings.size());
 
-      DescriptorSetSlot *binding = record->descInfo->descBindings[pDescriptorWrites[i].dstBinding];
+      DescriptorSetSlot **binding = &record->descInfo->descBindings[pDescriptorWrites[i].dstBinding];
+
+      const DescSetLayout::Binding *layoutBinding = &layout.bindings[pDescriptorWrites[i].dstBinding];
 
       FrameRefType ref = eFrameRef_Write;
 
-      switch(layout.bindings[pDescriptorWrites[i].dstBinding].descriptorType)
+      switch(layoutBinding->descriptorType)
       {
         case VK_DESCRIPTOR_TYPE_SAMPLER:
         case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
@@ -757,9 +838,30 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       //
       // This is handled by RemoveBindFrameRef silently dropping id == ResourceId()
 
-      for(uint32_t d = 0; d < pDescriptorWrites[i].descriptorCount; d++)
+      // start at the dstArrayElement
+      uint32_t curIdx = pDescriptorWrites[i].dstArrayElement;
+
+      for(uint32_t d = 0; d < pDescriptorWrites[i].descriptorCount; d++, curIdx++)
       {
-        DescriptorSetSlot &bind = binding[pDescriptorWrites[i].dstArrayElement + d];
+        // roll over onto the next binding, on the assumption that it is the same
+        // type and there is indeed a next binding at all. See spec language:
+        //
+        // If the dstBinding has fewer than descriptorCount array elements remaining starting from
+        // dstArrayElement, then the remainder will be used to update the subsequent binding -
+        // dstBinding+1 starting at array element zero. This behavior applies recursively, with the
+        // update affecting consecutive bindings as needed to update all descriptorCount
+        // descriptors. All consecutive bindings updated via a single VkWriteDescriptorSet structure
+        // must have identical descriptorType and stageFlags, and must all either use immutable
+        // samplers or must all not use immutable samplers.
+
+        if(curIdx >= layoutBinding->descriptorCount)
+        {
+          layoutBinding++;
+          binding++;
+          curIdx = 0;
+        }
+
+        DescriptorSetSlot &bind = (*binding)[curIdx];
 
         if(bind.texelBufferView != VK_NULL_HANDLE)
         {
@@ -855,21 +957,28 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
     {
       VkResourceRecord *dstrecord = GetRecord(pDescriptorCopies[i].dstSet);
       RDCASSERT(dstrecord->descInfo && dstrecord->descInfo->layout);
-      const DescSetLayout &layout = *dstrecord->descInfo->layout;
+      const DescSetLayout &dstlayout = *dstrecord->descInfo->layout;
 
       VkResourceRecord *srcrecord = GetRecord(pDescriptorCopies[i].srcSet);
+      RDCASSERT(srcrecord->descInfo && srcrecord->descInfo->layout);
+      const DescSetLayout &srclayout = *srcrecord->descInfo->layout;
 
       RDCASSERT(pDescriptorCopies[i].dstBinding < dstrecord->descInfo->descBindings.size());
       RDCASSERT(pDescriptorCopies[i].srcBinding < srcrecord->descInfo->descBindings.size());
 
-      DescriptorSetSlot *dstbinding =
-          dstrecord->descInfo->descBindings[pDescriptorCopies[i].dstBinding];
-      DescriptorSetSlot *srcbinding =
-          srcrecord->descInfo->descBindings[pDescriptorCopies[i].srcBinding];
+      DescriptorSetSlot **dstbinding =
+          &dstrecord->descInfo->descBindings[pDescriptorCopies[i].dstBinding];
+      DescriptorSetSlot **srcbinding =
+          &srcrecord->descInfo->descBindings[pDescriptorCopies[i].srcBinding];
+
+      const DescSetLayout::Binding *dstlayoutBinding =
+          &dstlayout.bindings[pDescriptorCopies[i].dstBinding];
+      const DescSetLayout::Binding *srclayoutBinding =
+          &srclayout.bindings[pDescriptorCopies[i].srcBinding];
 
       FrameRefType ref = eFrameRef_Write;
 
-      switch(layout.bindings[pDescriptorCopies[i].dstBinding].descriptorType)
+      switch(dstlayoutBinding->descriptorType)
       {
         case VK_DESCRIPTOR_TYPE_SAMPLER:
         case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
@@ -885,9 +994,29 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         default: RDCERR("Unexpected descriptor type");
       }
 
-      for(uint32_t d = 0; d < pDescriptorCopies[i].descriptorCount; d++)
+      // allow roll-over between consecutive bindings. See above in the plain write case for more
+      // explanation
+      uint32_t curSrcIdx = pDescriptorCopies[i].srcArrayElement;
+      uint32_t curDstIdx = pDescriptorCopies[i].dstArrayElement;
+
+      for(uint32_t d = 0; d < pDescriptorCopies[i].descriptorCount; d++, curSrcIdx++, curDstIdx++)
       {
-        DescriptorSetSlot &bind = dstbinding[pDescriptorCopies[i].dstArrayElement + d];
+        if(curDstIdx >= dstlayoutBinding->descriptorCount)
+        {
+          dstlayoutBinding++;
+          dstbinding++;
+          curDstIdx = 0;
+        }
+
+        // dst and src indices must roll-over independently
+        if(curSrcIdx >= srclayoutBinding->descriptorCount)
+        {
+          srclayoutBinding++;
+          srcbinding++;
+          curSrcIdx = 0;
+        }
+
+        DescriptorSetSlot &bind = (*dstbinding)[curDstIdx];
 
         if(bind.texelBufferView != VK_NULL_HANDLE)
         {
@@ -913,7 +1042,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
             dstrecord->RemoveBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource);
         }
 
-        bind = srcbinding[pDescriptorCopies[i].srcArrayElement + d];
+        bind = (*srcbinding)[curSrcIdx];
 
         if(bind.texelBufferView != VK_NULL_HANDLE)
         {
