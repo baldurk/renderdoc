@@ -442,7 +442,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
   byte *memory = GetTempMemory(tempmemSize);
 
   VkSubmitInfo *unwrappedSubmits = (VkSubmitInfo *)memory;
-  VkCommandBuffer *unwrappedObjects = (VkCommandBuffer *)(unwrappedSubmits + submitCount);
+  VkSemaphore *unwrappedWaitSems = (VkSemaphore *)(unwrappedSubmits + submitCount);
 
   for(uint32_t i = 0; i < submitCount; i++)
   {
@@ -450,24 +450,25 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     unwrappedSubmits[i] = pSubmits[i];
 
     unwrappedSubmits[i].pWaitSemaphores =
-        unwrappedSubmits[i].waitSemaphoreCount ? (VkSemaphore *)unwrappedObjects : NULL;
-    VkSemaphore *sems = (VkSemaphore *)unwrappedObjects;
+        unwrappedSubmits[i].waitSemaphoreCount ? unwrappedWaitSems : NULL;
     for(uint32_t o = 0; o < unwrappedSubmits[i].waitSemaphoreCount; o++)
-      sems[o] = Unwrap(pSubmits[i].pWaitSemaphores[o]);
-    unwrappedObjects += unwrappedSubmits[i].waitSemaphoreCount;
+      unwrappedWaitSems[o] = Unwrap(pSubmits[i].pWaitSemaphores[o]);
+    unwrappedWaitSems += unwrappedSubmits[i].waitSemaphoreCount;
+
+    VkCommandBuffer *unwrappedCommandBuffers = (VkCommandBuffer *)unwrappedWaitSems;
 
     unwrappedSubmits[i].pCommandBuffers =
-        unwrappedSubmits[i].commandBufferCount ? (VkCommandBuffer *)unwrappedObjects : NULL;
+        unwrappedSubmits[i].commandBufferCount ? unwrappedCommandBuffers : NULL;
     for(uint32_t o = 0; o < unwrappedSubmits[i].commandBufferCount; o++)
-      unwrappedObjects[o] = Unwrap(pSubmits[i].pCommandBuffers[o]);
-    unwrappedObjects += unwrappedSubmits[i].commandBufferCount;
+      unwrappedCommandBuffers[o] = Unwrap(pSubmits[i].pCommandBuffers[o]);
+    unwrappedCommandBuffers += unwrappedSubmits[i].commandBufferCount;
+
+    VkSemaphore *unwrappedSignalSems = (VkSemaphore *)unwrappedCommandBuffers;
 
     unwrappedSubmits[i].pSignalSemaphores =
-        unwrappedSubmits[i].signalSemaphoreCount ? (VkSemaphore *)unwrappedObjects : NULL;
-    sems = (VkSemaphore *)unwrappedObjects;
+        unwrappedSubmits[i].signalSemaphoreCount ? unwrappedSignalSems : NULL;
     for(uint32_t o = 0; o < unwrappedSubmits[i].signalSemaphoreCount; o++)
-      sems[o] = Unwrap(pSubmits[i].pSignalSemaphores[o]);
-    unwrappedObjects += unwrappedSubmits[i].signalSemaphoreCount;
+      unwrappedSignalSems[o] = Unwrap(pSubmits[i].pSignalSemaphores[o]);
   }
 
   VkResult ret =
