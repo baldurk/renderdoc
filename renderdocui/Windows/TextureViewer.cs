@@ -3553,6 +3553,7 @@ namespace renderdocui.Windows
 
             item.Click += new EventHandler(resourceContextItem_Click);
             item.Tag = end;
+            item.Size = new System.Drawing.Size(180, 22);
 
             items.Add(item);
         }
