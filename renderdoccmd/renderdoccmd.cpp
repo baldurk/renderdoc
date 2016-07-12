@@ -267,7 +267,8 @@ struct CaptureCommand : public Command
 {
   virtual void AddOptions(cmdline::parser &parser)
   {
-    parser.set_footer("<executable> -- [program arguments]");
+    parser.set_footer("<executable> [program arguments]");
+    parser.stop_at_rest(true);
   }
   virtual const char *Description() { return "Launches the given executable to capture."; }
   virtual bool IsInternalOnly() { return false; }
@@ -279,7 +280,77 @@ struct CaptureCommand : public Command
       std::cerr << parser.usage() << std::endl;
       return 0;
     }
-    return 0;
+
+    if(parser.rest().empty())
+    {
+      std::cerr << "Error: capture command requires an executable to launch." << std::endl
+                << std::endl
+                << parser.usage();
+      return 0;
+    }
+
+    std::string executable = parser.rest()[0];
+    std::string workingDir = parser.get<string>("working-dir");
+    std::string cmdLine;
+    std::string logFile = parser.get<string>("capture-file");
+
+    for(size_t i = 1; i < parser.rest().size(); i++)
+    {
+      if(!cmdLine.empty())
+        cmdLine += ' ';
+
+      cmdLine += EscapeArgument(parser.rest()[i]);
+    }
+
+    std::cout << "Launching '" << executable << "'";
+
+    if(!cmdLine.empty())
+      std::cout << " with params: " << cmdLine;
+
+    std::cout << std::endl;
+
+    uint32_t ident = RENDERDOC_ExecuteAndInject(
+        executable.c_str(), workingDir.empty() ? "" : workingDir.c_str(),
+        cmdLine.empty() ? "" : cmdLine.c_str(), logFile.empty() ? "" : logFile.c_str(), &opts,
+        parser.exist("wait-for-exit"));
+
+    if(ident == 0)
+    {
+      std::cerr << "Failed to create & inject." << std::endl;
+      return 2;
+    }
+
+    if(parser.exist("wait-for-exit"))
+    {
+      std::cerr << "'" << executable << "' finished executing." << std::endl;
+      ident = 0;
+    }
+    else
+    {
+      std::cerr << "Launched as ID " << ident << std::endl;
+    }
+
+    return ident;
+  }
+
+  std::string EscapeArgument(const std::string &arg)
+  {
+    // nothing to escape or quote
+    if(arg.find_first_of(" \t\r\n\"") == std::string::npos)
+      return arg;
+
+    // return arg in quotes, with any quotation marks escaped
+    std::string ret = arg;
+
+    size_t i = ret.find('\"');
+    while(i != std::string::npos)
+    {
+      ret.insert(ret.begin() + i, '\\');
+
+      i = ret.find('\"', i + 2);
+    }
+
+    return '"' + ret + '"';
   }
 };
 
@@ -287,7 +358,7 @@ struct InjectCommand : public Command
 {
   virtual void AddOptions(cmdline::parser &parser)
   {
-    parser.add<int>("PID", 0, "The process ID of the process to inject.", true);
+    parser.add<uint32_t>("PID", 0, "The process ID of the process to inject.", true);
   }
   virtual const char *Description() { return "Injects RenderDoc into a given running process."; }
   virtual bool IsInternalOnly() { return false; }
@@ -299,7 +370,33 @@ struct InjectCommand : public Command
       std::cerr << parser.usage() << std::endl;
       return 0;
     }
-    return 0;
+
+    uint32_t PID = parser.get<uint32_t>("PID");
+    std::string workingDir = parser.get<string>("working-dir");
+    std::string logFile = parser.get<string>("capture-file");
+
+    std::cout << "Injecting into PID " << PID << std::endl;
+
+    uint32_t ident = RENDERDOC_InjectIntoProcess(PID, logFile.empty() ? "" : logFile.c_str(), &opts,
+                                                 parser.exist("wait-for-exit"));
+
+    if(ident == 0)
+    {
+      std::cerr << "Failed to inject." << std::endl;
+      return 2;
+    }
+
+    if(parser.exist("wait-for-exit"))
+    {
+      std::cerr << PID << " finished executing." << std::endl;
+      ident = 0;
+    }
+    else
+    {
+      std::cerr << "Launched as ID " << ident << std::endl;
+    }
+
+    return ident;
   }
 };
 
@@ -365,10 +462,10 @@ int renderdoccmd(std::vector<std::string> &argv)
     cmd.add<string>("working-dir", 'd', "Set the working directory of the program, if launched.",
                     false);
     cmd.add<string>(
-        "capture", 'c',
+        "capture-file", 'c',
         "Set the filename template for new captures. Frame number will be automatically appended.",
         false);
-    cmd.add("wait", 'w', "Wait for the target program to exit, before returning.");
+    cmd.add("wait-for-exit", 'w', "Wait for the target program to exit, before returning.");
 
     // CaptureOptions
     cmd.add("opt-disallow-vsync", 0,
