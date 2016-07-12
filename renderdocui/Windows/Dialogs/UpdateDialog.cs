@@ -171,7 +171,7 @@ namespace renderdocui.Windows.Dialogs
                             File.Copy(Path.Combine(srcpath, "renderdoccmd.exe"), Path.Combine(dstpath, "renderdoccmd.exe"), true);
 
                             var process = new Process();
-                            process.StartInfo = new ProcessStartInfo(Path.Combine(dstpath, "renderdoccmd.exe"), "--update \"" + srcpath.Replace('\\', '/') + "/\"");
+                            process.StartInfo = new ProcessStartInfo(Path.Combine(dstpath, "renderdoccmd.exe"), "upgrade --path \"" + srcpath.Replace('\\', '/') + "/\"");
                             process.StartInfo.WorkingDirectory = dstpath;
                             process.StartInfo.Verb = "runas"; // need to run as admin to have write permissions
 

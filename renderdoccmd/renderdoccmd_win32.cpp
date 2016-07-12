@@ -274,117 +274,16 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
   DestroyWindow(wnd);
 }
 
-// from http://stackoverflow.com/q/29939893/4070143
-// and http://stackoverflow.com/a/4570213/4070143
-
-std::string getParentExe()
+struct UpgradeCommand : public Command
 {
-  DWORD pid = GetCurrentProcessId();
-  HANDLE h = NULL;
-  PROCESSENTRY32 pe = {0};
-  DWORD ppid = 0;
-  pe.dwSize = sizeof(PROCESSENTRY32);
-  h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-  if(Process32First(h, &pe))
+  virtual void AddOptions(cmdline::parser &parser) { parser.add<string>("path", 0, ""); }
+  virtual const char *Description() { return "Internal use only!"; }
+  virtual bool IsInternalOnly() { return true; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    do
-    {
-      if(pe.th32ProcessID == pid)
-      {
-        ppid = pe.th32ParentProcessID;
-        break;
-      }
-    } while(Process32Next(h, &pe));
-  }
-  CloseHandle(h);
+    string originalpath = parser.get<string>("path");
 
-  if(ppid == 0)
-    return "";
-
-  h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, ppid);
-  if(h)
-  {
-    char buf[MAX_PATH];
-    if(GetModuleFileNameExA(h, 0, buf, MAX_PATH))
-    {
-      CloseHandle(h);
-      return buf;
-    }
-    CloseHandle(h);
-  }
-
-  return "";
-}
-
-int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
-                    _In_ int nShowCmd)
-{
-  LPWSTR *wargv;
-  int argc;
-
-  wargv = CommandLineToArgvW(GetCommandLine(), &argc);
-
-  std::vector<std::string> argv;
-
-  argv.resize(argc);
-  for(size_t i = 0; i < argv.size(); i++)
-  {
-    size_t len = wcslen(wargv[i]);
-    len *= 4;    // worst case, every UTF-8 character takes 4 bytes
-    argv[i].resize(len + 1);
-    argv[i][len] = 0;
-    char *cstr = (char *)&argv[i][0];
-
-    WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, cstr, (int)len + 1, NULL, NULL);
-
-    argv[i].resize(strlen(cstr));
-  }
-
-  if(argv.empty())
-    argv.push_back("renderdoccmd");
-
-  LocalFree(wargv);
-
-  // if launched from cmd.exe, be friendly and redirect output
-  std::string parent = getParentExe();
-  for(size_t i = 0; i < parent.length(); i++)
-  {
-    parent[i] = tolower(parent[i]);
-    if(parent[i] == '\\')
-      parent[i] = '/';
-  }
-
-  if(strstr(parent.c_str(), "/cmd.exe") && AttachConsole(ATTACH_PARENT_PROCESS))
-  {
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-  }
-
-  hInstance = hInst;
-
-  WNDCLASSEX wc;
-  wc.cbSize = sizeof(WNDCLASSEX);
-  wc.style = 0;
-  wc.lpfnWndProc = WndProc;
-  wc.cbClsExtra = 0;
-  wc.cbWndExtra = 0;
-  wc.hInstance = hInstance;
-  wc.hIcon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_ICON));
-  wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-  wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-  wc.lpszMenuName = NULL;
-  wc.lpszClassName = L"renderdoccmd";
-  wc.hIconSm = LoadIcon(NULL, MAKEINTRESOURCE(IDI_ICON));
-
-  if(!RegisterClassEx(&wc))
-  {
-    return 1;
-  }
-
-  // special WIN32 option for launching the crash handler
-  if(argv.size() == 3 && argequal(argv[1], "--update"))
-  {
-    string originalpath = argv[2];
     wstring wide_path;
 
     {
@@ -579,13 +478,19 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
 
     return 0;
   }
+};
 
 #if defined(RELEASE)
-  CrashGenerationServer *crashServer = NULL;
-
-  // special WIN32 option for launching the crash handler
-  if(argv.size() == 2 && argequal(argv[1], "--crashhandle"))
+struct CrashHandlerCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser) {}
+  virtual const char *Description() { return "Internal use only!"; }
+  virtual bool IsInternalOnly() { return true; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
+    CrashGenerationServer *crashServer = NULL;
+
     wchar_t tempPath[MAX_PATH] = {0};
     GetTempPathW(MAX_PATH - 1, tempPath);
 
@@ -758,15 +663,27 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
 
     return 0;
   }
+};
 #endif
 
-  // this installs a global windows hook pointing at renderdocshim*.dll that filters all running
-  // processes and
-  // loads renderdoc.dll in the target one. In any other process it unloads as soon as possible
-  if(argv.size() == 5 && argequal(argv[1], "--globalhook"))
+struct GlobalHookCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
   {
-    std::string &pathmatch = argv[2];
-    std::string &log = argv[3];
+    parser.add<string>("match", 0, "");
+    parser.add<string>("log", 0, "");
+    parser.add<string>("capopts", 0, "");
+  }
+  virtual const char *Description() { return "Internal use only!"; }
+  virtual bool IsInternalOnly() { return true; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    string pathmatch = parser.get<string>("match");
+    string log = parser.get<string>("log");
+
+    CaptureOptions cmdopts;
+    readCapOpts(parser.get<string>("capopts").c_str(), &cmdopts);
 
     size_t len = pathmatch.length();
     wstring wpathmatch;
@@ -774,16 +691,13 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
     MultiByteToWideChar(CP_UTF8, 0, pathmatch.c_str(), -1, &wpathmatch[0], (int)len);
     wpathmatch.resize(wcslen(wpathmatch.c_str()));
 
-    CaptureOptions cmdopts;
-    readCapOpts(argv[4], &cmdopts);
-
     // make sure the user doesn't accidentally run this with 'a' as a parameter or something.
     // "a.exe" is over 4 characters so this limit should not be a problem.
     if(wpathmatch.length() < 4)
     {
-      fprintf(
-          stderr,
-          "--globalhook path match is too short/general. Danger of matching too many processes!\n");
+      std::cerr
+          << "globalhook path match is too short/general. Danger of matching too many processes!"
+          << std::endl;
       return 1;
     }
 
@@ -794,7 +708,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
 
     if(rdoc == NULL)
     {
-      fprintf(stderr, "--globalhook couldn't find renderdoc.dll!\n");
+      std::cerr << "globalhook couldn't find renderdoc.dll!" << std::endl;
       return 1;
     }
 
@@ -814,7 +728,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
 
     if(pipe == INVALID_HANDLE_VALUE)
     {
-      fprintf(stderr, "--globalhook couldn't open control pipe.\n");
+      std::cerr << "globalhook couldn't open control pipe.\n" << std::endl;
       return 1;
     }
 
@@ -824,8 +738,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
     {
       CloseHandle(pipe);
       CloseHandle(datahandle);
-      fprintf(stderr,
-              "--globalhook found pre-existing global data, not creating second global hook.\n");
+      std::cerr << "globalhook found pre-existing global data, not creating second global hook."
+                << std::endl;
       return 1;
     }
 
@@ -858,20 +772,141 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
       }
       else
       {
-        fprintf(stderr, "--globalhook couldn't map global data store.\n");
+        std::cerr << "globalhook couldn't map global data store." << std::endl;
       }
 
       CloseHandle(datahandle);
     }
     else
     {
-      fprintf(stderr, "--globalhook couldn't create global data store.\n");
+      std::cerr << "globalhook couldn't create global data store." << std::endl;
     }
 
     CloseHandle(pipe);
 
     return 0;
   }
+};
+
+// from http://stackoverflow.com/q/29939893/4070143
+// and http://stackoverflow.com/a/4570213/4070143
+
+std::string getParentExe()
+{
+  DWORD pid = GetCurrentProcessId();
+  HANDLE h = NULL;
+  PROCESSENTRY32 pe = {0};
+  DWORD ppid = 0;
+  pe.dwSize = sizeof(PROCESSENTRY32);
+  h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if(Process32First(h, &pe))
+  {
+    do
+    {
+      if(pe.th32ProcessID == pid)
+      {
+        ppid = pe.th32ParentProcessID;
+        break;
+      }
+    } while(Process32Next(h, &pe));
+  }
+  CloseHandle(h);
+
+  if(ppid == 0)
+    return "";
+
+  h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, ppid);
+  if(h)
+  {
+    char buf[MAX_PATH];
+    if(GetModuleFileNameExA(h, 0, buf, MAX_PATH))
+    {
+      CloseHandle(h);
+      return buf;
+    }
+    CloseHandle(h);
+  }
+
+  return "";
+}
+
+int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
+                    _In_ int nShowCmd)
+{
+  LPWSTR *wargv;
+  int argc;
+
+  wargv = CommandLineToArgvW(GetCommandLine(), &argc);
+
+  std::vector<std::string> argv;
+
+  argv.resize(argc);
+  for(size_t i = 0; i < argv.size(); i++)
+  {
+    size_t len = wcslen(wargv[i]);
+    len *= 4;    // worst case, every UTF-8 character takes 4 bytes
+    argv[i].resize(len + 1);
+    argv[i][len] = 0;
+    char *cstr = (char *)&argv[i][0];
+
+    WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, cstr, (int)len + 1, NULL, NULL);
+
+    argv[i].resize(strlen(cstr));
+  }
+
+  if(argv.empty())
+    argv.push_back("renderdoccmd");
+
+  LocalFree(wargv);
+
+  // if launched from cmd.exe, be friendly and redirect output
+  std::string parent = getParentExe();
+  for(size_t i = 0; i < parent.length(); i++)
+  {
+    parent[i] = tolower(parent[i]);
+    if(parent[i] == '\\')
+      parent[i] = '/';
+  }
+
+  if(strstr(parent.c_str(), "/cmd.exe") && AttachConsole(ATTACH_PARENT_PROCESS))
+  {
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
+  }
+
+  hInstance = hInst;
+
+  WNDCLASSEX wc;
+  wc.cbSize = sizeof(WNDCLASSEX);
+  wc.style = 0;
+  wc.lpfnWndProc = WndProc;
+  wc.cbClsExtra = 0;
+  wc.cbWndExtra = 0;
+  wc.hInstance = hInstance;
+  wc.hIcon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_ICON));
+  wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+  wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+  wc.lpszMenuName = NULL;
+  wc.lpszClassName = L"renderdoccmd";
+  wc.hIconSm = LoadIcon(NULL, MAKEINTRESOURCE(IDI_ICON));
+
+  if(!RegisterClassEx(&wc))
+  {
+    return 1;
+  }
+
+  // perform an upgrade of the UI
+  add_command("upgrade", new UpgradeCommand());
+
+#if defined(RELEASE)
+  // special WIN32 option for launching the crash handler
+  add_command("crashhandle", new CrashHandlerCommand());
+#endif
+
+  // this installs a global windows hook pointing at renderdocshim*.dll that filters all running
+  // processes and loads renderdoc.dll in the target one. In any other process it unloads as soon as
+  // possible
+  add_command("globalhook", new GlobalHookCommand());
 
   return renderdoccmd(argv);
 }

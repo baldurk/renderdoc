@@ -647,8 +647,9 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(string(logfile));
   wstring wpathmatch = StringFormat::UTF82Wide(string(pathmatch));
 
-  _snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --globalhook \"%ls\" \"%ls\" \"%hs\"",
-               renderdocPath, wpathmatch.c_str(), wlogfile.c_str(), optstr.c_str());
+  _snwprintf_s(paramsAlloc, 2047, 2047,
+               L"\"%ls\" globalhook --match \"%ls\" --log \"%ls\" --capopts \"%hs\"", renderdocPath,
+               wpathmatch.c_str(), wlogfile.c_str(), optstr.c_str());
 
   paramsAlloc[2047] = 0;
 
@@ -665,8 +666,9 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
 
   wcscat_s(renderdocPath, L"\\x86\\renderdoccmd.exe");
 
-  _snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --globalhook \"%ls\" \"%ls\" \"%hs\"",
-               renderdocPath, wpathmatch.c_str(), wlogfile.c_str(), optstr.c_str());
+  _snwprintf_s(paramsAlloc, 2047, 2047,
+               L"\"%ls\" globalhook --match \"%ls\" --log \"%ls\" --capopts \"%hs\"", renderdocPath,
+               wpathmatch.c_str(), wlogfile.c_str(), optstr.c_str());
 
   paramsAlloc[2047] = 0;
 
