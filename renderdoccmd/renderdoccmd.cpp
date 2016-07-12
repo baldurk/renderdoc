@@ -23,50 +23,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "renderdoccmd.h"
 #include <app/renderdoc_app.h>
 #include <replay/renderdoc_replay.h>
 #include <string>
 
 using std::string;
 using std::wstring;
-
-uint32_t wtoi(wchar_t *str)
-{
-  uint32_t ret = 0;
-
-  while(str && *str)
-  {
-    if(*str > L'9' || *str < L'0')
-      break;
-
-    uint32_t digit = uint32_t(*str - L'0');
-
-    ret *= 10;
-    ret += digit;
-
-    str++;
-  }
-
-  return ret;
-}
-
-bool argequal(const std::string &a, const std::string &b)
-{
-  if(a.length() != b.length())
-    return false;
-
-  for(size_t i = 0; i < a.length(); i++)
-  {
-    char ca = a[i];
-    char cb = b[i];
-
-    // only compare ASCII characters in UTF-8 string
-    if((ca & 0x80) == 0 && (cb & 0x80) == 0 && tolower(ca) != tolower(cb))
-      return false;
-  }
-
-  return true;
-}
 
 void readCapOpts(const std::string &str, CaptureOptions *opts)
 {
@@ -78,10 +41,6 @@ void readCapOpts(const std::string &str, CaptureOptions *opts)
   for(size_t i = 0; i < sizeof(CaptureOptions); i++)
     *(b++) = (byte(str[i * 2 + 0] - 'a') << 4) | byte(str[i * 2 + 1] - 'a');
 }
-
-// defined in platform .cpps
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg);
-wstring GetUsername();
 
 void DisplayRendererPreview(ReplayRenderer *renderer)
 {
@@ -133,17 +92,282 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
   DisplayRendererPreview(renderer, d);
 }
 
-int renderdoccmd(const std::vector<std::string> &argv)
+std::map<std::string, Command *> commands;
+std::map<std::string, std::string> aliases;
+
+void add_command(const std::string &name, Command *cmd)
 {
-  CaptureOptions opts;
+  commands[name] = cmd;
+}
 
-  RENDERDOC_GetDefaultCaptureOptions(&opts);
+void add_alias(const std::string &alias, const std::string &command)
+{
+  aliases[alias] = command;
+}
 
-  opts.AllowFullscreen = false;
-  opts.AllowVSync = false;
-  opts.DelayForDebugger = 5;
-  opts.HookIntoChildren = true;
+static void clean_up()
+{
+  for(auto it = commands.begin(); it != commands.end(); ++it)
+    delete it->second;
+}
 
+static int command_usage(std::string command = "")
+{
+  if(!command.empty())
+    std::cerr << command << " is not a valid command." << std::endl << std::endl;
+
+  std::cerr << "renderdoccmd <command> [args ...]" << std::endl << std::endl;
+
+  std::cerr << "Command can be one of:" << std::endl;
+
+  size_t max_width = 0;
+  for(auto it = commands.begin(); it != commands.end(); ++it)
+  {
+    if(it->second->IsInternalOnly())
+      continue;
+
+    max_width = std::max(max_width, it->first.length());
+  }
+
+  for(auto it = commands.begin(); it != commands.end(); ++it)
+  {
+    if(it->second->IsInternalOnly())
+      continue;
+
+    std::cerr << "  " << it->first;
+    for(size_t n = it->first.length(); n < max_width + 4; n++)
+      std::cerr << ' ';
+    std::cerr << it->second->Description() << std::endl;
+  }
+  std::cerr << std::endl;
+
+  std::cerr << "To see details of any command, see 'renderdoccmd <command> --help'" << std::endl
+            << std::endl;
+
+  std::cerr << "For more information, see <https://renderdoc.org/>." << std::endl;
+
+  return 2;
+}
+
+struct VersionCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser) {}
+  virtual const char *Description() { return "Print version information"; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    std::cout << "renderdoccmd " << RENDERDOC_GetVersionString()
+              << (sizeof(uintptr_t) == sizeof(uint64_t) ? " x64 " : " x86 ")
+              << RENDERDOC_GetCommitHash() << std::endl;
+    return 0;
+  }
+};
+
+struct HelpCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser) {}
+  virtual const char *Description() { return "Print this help message"; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    command_usage();
+    return 0;
+  }
+};
+
+struct ThumbCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.set_footer("<filename.rdc>");
+    parser.add<string>("out", 'o', "The output filename to save the jpg to", false, "filename.jpg");
+  }
+  virtual const char *Description() { return "Saves a capture's embedded thumbnail to disk."; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    if(parser.exist("help"))
+    {
+      std::cerr << parser.usage() << std::endl;
+      return 0;
+    }
+
+    if(parser.rest().empty())
+    {
+      std::cerr << "Error: thumb command requires a capture filename." << std::endl
+                << std::endl
+                << parser.usage();
+      return 0;
+    }
+
+    string filename = parser.rest()[0];
+
+    string jpgname;
+
+    if(parser.exist("out"))
+    {
+      jpgname = parser.get<string>("out");
+    }
+    else
+    {
+      jpgname = filename;
+
+      if(jpgname[jpgname.length() - 4] == '.' && jpgname[jpgname.length() - 3] == 'r' &&
+         jpgname[jpgname.length() - 2] == 'd' && jpgname[jpgname.length() - 1] == 'c')
+      {
+        jpgname.pop_back();
+        jpgname.pop_back();
+        jpgname.pop_back();
+
+        jpgname += "jpg";
+      }
+      else
+      {
+        jpgname += ".jpg";
+      }
+    }
+
+    uint32_t len = 0;
+    bool32 ret = RENDERDOC_GetThumbnail(filename.c_str(), NULL, len);
+
+    if(!ret)
+    {
+      std::cerr << "Couldn't fetch the thumbnail in '" << filename << "'" << std::endl;
+    }
+    else
+    {
+      byte *jpgbuf = new byte[len];
+      RENDERDOC_GetThumbnail(filename.c_str(), jpgbuf, len);
+
+      FILE *f = fopen(jpgname.c_str(), "wb");
+
+      if(!f)
+      {
+        std::cerr << "Couldn't open destination file '" << jpgname << "'" << std::endl;
+      }
+      else
+      {
+        fwrite(jpgbuf, 1, len, f);
+        fclose(f);
+
+        std::cout << "Wrote thumbnail from '" << filename << "' to '" << jpgname << "'." << std::endl;
+      }
+
+      delete[] jpgbuf;
+    }
+
+    return 0;
+  }
+};
+
+struct CaptureCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.set_footer("<executable> -- [program arguments]");
+  }
+  virtual const char *Description() { return "Launches the given executable to capture."; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return true; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts)
+  {
+    if(parser.exist("help"))
+    {
+      std::cerr << parser.usage() << std::endl;
+      return 0;
+    }
+    return 0;
+  }
+};
+
+struct InjectCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.add<int>("PID", 0, "The process ID of the process to inject.", true);
+  }
+  virtual const char *Description() { return "Injects RenderDoc into a given running process."; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return true; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts)
+  {
+    if(parser.exist("help"))
+    {
+      std::cerr << parser.usage() << std::endl;
+      return 0;
+    }
+    return 0;
+  }
+};
+
+int renderdoccmd(std::vector<std::string> &argv)
+{
+  // add basic commands, and common aliases
+  add_command("version", new VersionCommand());
+  add_alias("--version", "version");
+  add_alias("-v", "version");
+  add_command("help", new HelpCommand());
+  add_alias("-h", "help");
+  add_alias("-?", "help");
+
+  // add platform agnostic commands
+  add_command("thumb", new ThumbCommand());
+  add_command("capture", new CaptureCommand());
+  add_command("inject", new InjectCommand());
+  // add_command("replay", new ReplayCommand());
+  // add_command("replayhost", new ReplayHostCommand());
+  // add_command("cap32for64", new Cap32For64Command());
+  // add_command("remotereplay", new RemoteReplayCommand());
+
+  if(argv.size() <= 1)
+  {
+    int ret = command_usage();
+    clean_up();
+    return ret;
+  }
+
+  // std::string programName = argv[0];
+
+  argv.erase(argv.begin());
+
+  std::string command = *argv.begin();
+
+  argv.erase(argv.begin());
+
+  auto it = commands.find(command);
+
+  if(it == commands.end())
+  {
+    auto a = aliases.find(command);
+    if(a != aliases.end())
+      it = commands.find(a->second);
+  }
+
+  if(it == commands.end())
+  {
+    int ret = command_usage(command);
+    clean_up();
+    return ret;
+  }
+
+  cmdline::parser cmd;
+
+  cmd.set_program_name("renderdoccmd");
+  cmd.set_header(command);
+
+  it->second->AddOptions(cmd);
+
+  cmd.parse_check(argv, true);
+
+  int ret = it->second->Execute(cmd);
+  clean_up();
+  return ret;
+}
+
+#if 0
   if(argv.size() >= 2)
   {
     // fall through and print usage
@@ -381,6 +605,7 @@ int renderdoccmd(const std::vector<std::string> &argv)
     }
   }
 
+
   fprintf(stderr, "renderdoccmd usage:\n\n");
   fprintf(stderr,
           "  <file.rdc>                        Launch a preview window that replays this logfile "
@@ -415,9 +640,8 @@ int renderdoccmd(const std::vector<std::string> &argv)
   fprintf(
       stderr,
       "                                    window. Use the remote host to replay all commands.\n");
-
   return 1;
-}
+#endif
 
 int renderdoccmd(int argc, char **c_argv)
 {

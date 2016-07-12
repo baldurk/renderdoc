@@ -26,11 +26,21 @@
 
 #include "3rdparty/cmdline/cmdline.h"
 
+struct CaptureOptions;
+struct TextureDisplay;
+
+#ifdef __cplusplus
+struct IReplayRenderer;
+typedef IReplayRenderer ReplayRenderer;
+#else
+struct ReplayRenderer
+#endif
+
 struct Command
 {
   virtual ~Command() {}
   virtual void AddOptions(cmdline::parser &parser) = 0;
-  virtual int Execute(cmdline::parser &parser) = 0;
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts) = 0;
   virtual const char *Description() = 0;
 
   virtual bool IsInternalOnly() = 0;
@@ -42,16 +52,6 @@ void add_alias(const std::string &alias, const std::string &command);
 
 int renderdoccmd(int argc, char **argv);
 int renderdoccmd(std::vector<std::string> &argv);
-
-struct CaptureOptions;
-struct TextureDisplay;
-
-#ifdef __cplusplus
-struct IReplayRenderer;
-typedef IReplayRenderer ReplayRenderer;
-#else
-struct ReplayRenderer
-#endif
 
 void readCapOpts(const std::string &str, CaptureOptions *opts);
 
