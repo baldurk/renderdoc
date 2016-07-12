@@ -107,9 +107,6 @@ namespace renderdocui.Windows
                 bool copy, compute;
                 GetDrawContext(core, out copy, out compute);
 
-                if (copy || compute)
-                    return -1;
-
                 return GetBoundResource(core, arrayEl).HighestMip;
             }
 
@@ -118,9 +115,6 @@ namespace renderdocui.Windows
                 var curDraw = core.CurDrawcall;
                 bool copy, compute;
                 GetDrawContext(core, out copy, out compute);
-
-                if (copy || compute)
-                    return -1;
 
                 return GetBoundResource(core, arrayEl).FirstSlice;
             }
@@ -131,49 +125,12 @@ namespace renderdocui.Windows
                 bool copy, compute;
                 GetDrawContext(core, out copy, out compute);
 
-                if (copy || compute)
-                    return FormatComponentType.None;
-
                 return GetBoundResource(core, arrayEl).typeHint;
             }
 
             public ResourceId GetResourceId(Core core)
             {
                 return GetBoundResource(core, arrayEl).Id;
-            }
-
-            public int GetBoundResourceArraySize(Core core)
-            {
-                if (Type == FollowType.ReadWrite)
-                {
-                    var rw = GetReadWriteResources(core);
-
-                    var mapping = GetMapping(core);
-
-                    if (index < mapping.ReadWriteResources.Length)
-                    {
-                        var key = mapping.ReadWriteResources[index];
-
-                        if (rw.ContainsKey(key))
-                            return rw[key].Length;
-                    }
-                }
-                else if (Type == FollowType.ReadOnly)
-                {
-                    var res = GetReadOnlyResources(core);
-
-                    var mapping = GetMapping(core);
-
-                    if (index < mapping.ReadOnlyResources.Length)
-                    {
-                        var key = mapping.ReadOnlyResources[index];
-
-                        if (res.ContainsKey(key))
-                            return res[key].Length;
-                    }
-                }
-
-                return 1;
             }
 
             public BoundResource GetBoundResource(Core core, int arrayIdx)
