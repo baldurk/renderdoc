@@ -540,6 +540,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, byte *buf,
                                                                     uint32_t &len);
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetVersionString();
+extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetCommitHash();
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name);
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name,
                                                                       const char *value);

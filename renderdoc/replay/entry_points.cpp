@@ -236,6 +236,11 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetVersionString()
   return RENDERDOC_VERSION_STRING;
 }
 
+extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetCommitHash()
+{
+  return GIT_COMMIT_HASH;
+}
+
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name)
 {
   return RenderDoc::Inst().GetConfigSetting(name).c_str();
