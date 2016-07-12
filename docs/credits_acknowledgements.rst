@@ -72,6 +72,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
    <a href="http://www.qt.io/" target="_blank">Qt</a>
 
+.. |cmdline_link| raw:: html
+
+   <a href="https://github.com/tanakh/cmdline target="_blank">cmdline</a>
+
 * |mhook_link| DLL hooking library, used to inject RenderDoc into applications
 * |treeview_link| An invaluable control filling a much needed niche in .NET winforms.
 * |dockpanel_link| A mature and stable library that adds the docking and flexibility of RenderDoc's UI.
@@ -88,6 +92,7 @@ The following libraries and components are incorporated into RenderDoc, listed h
 * |tinyexr_link| Used for the OpenEXR file loading and saving.
 * |glslang_link| Used for compiling GLSL to SPIR-V.
 * |qt_link| Used for QRenderDoc replay UI program.
+* |cmdline_link| Used for parsing command line arguments to renderdoccmd.
 
 Thanks
 ------
