@@ -22,34 +22,39 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "renderdoccmd.h"
-#include <locale.h>
-#include <replay/renderdoc_replay.h>
-#include <string.h>
-#include <unistd.h>
-#include <string>
+#pragma once
 
-using std::string;
+#include "3rdparty/cmdline/cmdline.h"
 
-string GetUsername()
+struct Command
 {
-  char buf[256] = {0};
-  getlogin_r(buf, 255);
+  virtual ~Command() {}
+  virtual void AddOptions(cmdline::parser &parser) = 0;
+  virtual int Execute(cmdline::parser &parser) = 0;
+  virtual const char *Description() = 0;
 
-  return string(buf, buf + strlen(buf));
-}
+  virtual bool IsInternalOnly() = 0;
+  virtual bool IsCaptureCommand() = 0;
+};
 
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg)
-{
-}
+void add_command(const std::string &name, Command *cmd);
+void add_alias(const std::string &alias, const std::string &command);
 
-int main(int argc, char *argv[])
-{
-  setlocale(LC_CTYPE, "");
+int renderdoccmd(int argc, char **argv);
+int renderdoccmd(std::vector<std::string> &argv);
 
-  // do any apple-specific setup here
+struct CaptureOptions;
+struct TextureDisplay;
 
-  // process any apple-specific arguments here
+#ifdef __cplusplus
+struct IReplayRenderer;
+typedef IReplayRenderer ReplayRenderer;
+#else
+struct ReplayRenderer
+#endif
 
-  return renderdoccmd(argc, argv);
-}
+void readCapOpts(const std::string &str, CaptureOptions *opts);
+
+// these must be defined in platform .cpps
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg);
+std::wstring GetUsername();

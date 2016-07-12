@@ -20,6 +20,10 @@
     <ClInclude Include="..\renderdoc\3rdparty\miniz\miniz.h">
       <Filter>3rdparty</Filter>
     </ClInclude>
+    <ClInclude Include="renderdoccmd.h" />
+    <ClInclude Include="3rdparty\cmdline\cmdline.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Resources">

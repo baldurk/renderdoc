@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "renderdoccmd.h"
 #include <app/renderdoc_app.h>
 #include <renderdocshim.h>
 #include <replay/renderdoc_replay.h>
@@ -221,7 +222,7 @@ wstring GetUsername()
   return username;
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg)
 {
   HWND wnd = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdoccmd", L"renderdoccmd", WS_OVERLAPPEDWINDOW,
                             CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, NULL, NULL, hInstance, NULL);
@@ -264,10 +265,6 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 
   DestroyWindow(wnd);
 }
-
-int renderdoccmd(const std::vector<std::string> &argv);
-bool argequal(const std::string &a, const std::string &b);
-void readCapOpts(const std::string &str, CaptureOptions *opts);
 
 int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
                     _In_ int nShowCmd)

@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "renderdoccmd.h"
 #include <iconv.h>
 #include <locale.h>
 #include <replay/renderdoc_replay.h>
@@ -41,7 +42,7 @@ string GetUsername()
   return string(buf, buf + strlen(buf));
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg)
 {
   int scr;
 
@@ -139,8 +140,6 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 // Forces link of libGL after renderdoc (otherwise all symbols would
 // be resolved and libGL wouldn't link, meaning dlsym(RTLD_NEXT) would fai
 extern "C" void glXWaitGL();
-
-int renderdoccmd(int argc, char **argv);
 
 int main(int argc, char *argv[])
 {

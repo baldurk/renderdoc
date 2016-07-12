@@ -179,6 +179,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\renderdoc\3rdparty\miniz\miniz.h" />
+    <ClInclude Include="3rdparty\cmdline\cmdline.h" />
+    <ClInclude Include="renderdoccmd.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>

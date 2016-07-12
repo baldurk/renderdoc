@@ -22,14 +22,12 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <string>
-
+#include "renderdoccmd.h"
 #include <locale.h>
-#include <string.h>
-
-#include <unistd.h>
-
 #include <replay/renderdoc_replay.h>
+#include <string.h>
+#include <unistd.h>
+#include <string>
 
 #include <android_native_app_glue.h>
 #define ANativeActivity_onCreate __attribute__((visibility("default"))) ANativeActivity_onCreate
@@ -49,7 +47,7 @@ string GetUsername()
   return string("Username");
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg)
 {
   ANativeWindow *connectionScreenWindow = android_state->window;
 
@@ -72,7 +70,6 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
   }
 }
 
-int renderdoccmd(int argc, char **argv);
 void handle_cmd(android_app *app, int32_t cmd)
 {
   switch(cmd)
