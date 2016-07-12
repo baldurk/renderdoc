@@ -50,27 +50,29 @@ uint32_t wtoi(wchar_t *str)
   return ret;
 }
 
-bool argequal(const char *a, const char *b)
+bool argequal(const std::string &a, const std::string &b)
 {
-  if(a == NULL || b == NULL)
+  if(a.length() != b.length())
     return false;
 
-  while(*a && *b)
+  for(size_t i = 0; i < a.length(); i++)
   {
-    // only compare ASCII characters in UTF-8 string
-    if((*a & 0x80) == 0 && (*b & 0x80) == 0 && tolower(*a) != tolower(*b))
-      break;
+    char ca = a[i];
+    char cb = b[i];
 
-    a++;
-    b++;
+    // only compare ASCII characters in UTF-8 string
+    if((ca & 0x80) == 0 && (cb & 0x80) == 0 && tolower(ca) != tolower(cb))
+      return false;
   }
 
-  // if both reached null terminator then strings are equal
-  return *a == 0 && *b == 0;
+  return true;
 }
 
-void readCapOpts(const char *str, CaptureOptions *opts)
+void readCapOpts(const std::string &str, CaptureOptions *opts)
 {
+  if(str.length() < sizeof(CaptureOptions))
+    return;
+
   // serialise from string with two chars per byte
   byte *b = (byte *)opts;
   for(size_t i = 0; i < sizeof(CaptureOptions); i++)
@@ -131,7 +133,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
   DisplayRendererPreview(renderer, d);
 }
 
-int renderdoccmd(int argc, char **argv)
+int renderdoccmd(const std::vector<std::string> &argv)
 {
   CaptureOptions opts;
 
@@ -142,18 +144,18 @@ int renderdoccmd(int argc, char **argv)
   opts.DelayForDebugger = 5;
   opts.HookIntoChildren = true;
 
-  if(argc >= 2)
+  if(argv.size() >= 2)
   {
     // fall through and print usage
     if(argequal(argv[1], "--help") || argequal(argv[1], "-h"))
     {
     }
     // if we were given a logfile, load it and continually replay it.
-    else if(strstr(argv[1], ".rdc") != NULL)
+    else if(strstr(argv[1].c_str(), ".rdc") != NULL)
     {
       float progress = 0.0f;
       ReplayRenderer *renderer = NULL;
-      auto status = RENDERDOC_CreateReplayRenderer(argv[1], &progress, &renderer);
+      auto status = RENDERDOC_CreateReplayRenderer(argv[1].c_str(), &progress, &renderer);
 
       if(renderer)
       {
@@ -167,7 +169,7 @@ int renderdoccmd(int argc, char **argv)
     // dump the image from a logfile
     if(argequal(argv[1], "--thumb") || argequal(argv[1], "-t"))
     {
-      if(argc >= 3)
+      if(argv.size() >= 3)
       {
         string jpgname = argv[2];
 
@@ -186,16 +188,16 @@ int renderdoccmd(int argc, char **argv)
         }
 
         uint32_t len = 0;
-        bool32 ret = RENDERDOC_GetThumbnail(argv[2], NULL, len);
+        bool32 ret = RENDERDOC_GetThumbnail(argv[2].c_str(), NULL, len);
 
         if(!ret)
         {
-          fprintf(stderr, "No thumbnail in '%s' or error retrieving it", argv[2]);
+          fprintf(stderr, "No thumbnail in '%s' or error retrieving it", argv[2].c_str());
         }
         else
         {
           byte *jpgbuf = new byte[len];
-          RENDERDOC_GetThumbnail(argv[2], jpgbuf, len);
+          RENDERDOC_GetThumbnail(argv[2].c_str(), jpgbuf, len);
 
           FILE *f = fopen(jpgname.c_str(), "wb");
 
@@ -221,11 +223,11 @@ int renderdoccmd(int argc, char **argv)
     // replay a logfile
     else if(argequal(argv[1], "--replay") || argequal(argv[1], "-r"))
     {
-      if(argc >= 3)
+      if(argv.size() >= 3)
       {
         float progress = 0.0f;
         ReplayRenderer *renderer = NULL;
-        auto status = RENDERDOC_CreateReplayRenderer(argv[2], &progress, &renderer);
+        auto status = RENDERDOC_CreateReplayRenderer(argv[2].c_str(), &progress, &renderer);
 
         if(renderer)
         {
@@ -246,9 +248,9 @@ int renderdoccmd(int argc, char **argv)
     // can't do this on other platforms as there's no nice extension
     // and we don't want to just launch any single parameter in case it's
     // -h or -help or some other guess/typo
-    else if(strstr(argv[1], ".exe") != NULL)
+    else if(strstr(argv[1].c_str(), ".exe") != NULL)
     {
-      uint32_t ident = RENDERDOC_ExecuteAndInject(argv[1], NULL, NULL, NULL, &opts, false);
+      uint32_t ident = RENDERDOC_ExecuteAndInject(argv[1].c_str(), NULL, NULL, NULL, &opts, false);
 
       if(ident == 0)
         fprintf(stderr, "Failed to create & inject\n");
@@ -261,26 +263,28 @@ int renderdoccmd(int argc, char **argv)
     // capture a program with default capture options
     else if(argequal(argv[1], "--capture") || argequal(argv[1], "-c"))
     {
-      if(argc >= 4)
+      if(argv.size() >= 4)
       {
-        uint32_t ident = RENDERDOC_ExecuteAndInject(argv[2], NULL, argv[3], NULL, &opts, false);
+        uint32_t ident =
+            RENDERDOC_ExecuteAndInject(argv[2].c_str(), NULL, argv[3].c_str(), NULL, &opts, false);
 
         if(ident == 0)
-          fprintf(stderr, "Failed to create & inject to '%s' with params \"%s\"\n", argv[2], argv[3]);
+          fprintf(stderr, "Failed to create & inject to '%s' with params \"%s\"\n", argv[2].c_str(),
+                  argv[3].c_str());
         else
-          fprintf(stderr, "Created & injected '%s' with params \"%s\" as %d\n", argv[2], argv[3],
-                  ident);
+          fprintf(stderr, "Created & injected '%s' with params \"%s\" as %d\n", argv[2].c_str(),
+                  argv[3].c_str(), ident);
 
         return ident;
       }
-      else if(argc >= 3)
+      else if(argv.size() >= 3)
       {
-        uint32_t ident = RENDERDOC_ExecuteAndInject(argv[2], NULL, NULL, NULL, &opts, false);
+        uint32_t ident = RENDERDOC_ExecuteAndInject(argv[2].c_str(), NULL, NULL, NULL, &opts, false);
 
         if(ident == 0)
-          fprintf(stderr, "Failed to create & inject to '%s'\n", argv[2]);
+          fprintf(stderr, "Failed to create & inject to '%s'\n", argv[2].c_str());
         else
-          fprintf(stderr, "Created & injected '%s' as %d\n", argv[2], ident);
+          fprintf(stderr, "Created & injected '%s' as %d\n", argv[2].c_str(), ident);
 
         return ident;
       }
@@ -292,9 +296,9 @@ int renderdoccmd(int argc, char **argv)
     // inject into a running process with default capture options
     else if(argequal(argv[1], "--inject") || argequal(argv[1], "-i"))
     {
-      if(argc >= 3)
+      if(argv.size() >= 3)
       {
-        char *pid = argv[2];
+        const char *pid = argv[2].c_str();
         while(*pid == '"' || isspace(*pid))
           pid++;
 
@@ -323,10 +327,10 @@ int renderdoccmd(int argc, char **argv)
     // replay a logfile over the network on a remote host
     else if(argequal(argv[1], "--remotereplay") || argequal(argv[1], "-rr"))
     {
-      if(argc >= 4)
+      if(argv.size() >= 4)
       {
         RemoteRenderer *remote = NULL;
-        auto status = RENDERDOC_CreateRemoteReplayConnection(argv[2], &remote);
+        auto status = RENDERDOC_CreateRemoteReplayConnection(argv[2].c_str(), &remote);
 
         if(remote == NULL || status != eReplayCreate_Success)
           return 1;
@@ -334,7 +338,7 @@ int renderdoccmd(int argc, char **argv)
         float progress = 0.0f;
 
         ReplayRenderer *renderer = NULL;
-        status = RemoteRenderer_CreateProxyRenderer(remote, 0, argv[3], &progress, &renderer);
+        status = RemoteRenderer_CreateProxyRenderer(remote, 0, argv[3].c_str(), &progress, &renderer);
 
         if(renderer)
         {
@@ -353,20 +357,20 @@ int renderdoccmd(int argc, char **argv)
     // not documented/useful for manual use on the cmd line, used internally
     else if(argequal(argv[1], "--cap32for64"))
     {
-      if(argc >= 5)
+      if(argv.size() >= 5)
       {
-        char *pid = argv[2];
+        const char *pid = argv[2].c_str();
         while(*pid == '"' || isspace(*pid))
           pid++;
 
         uint32_t pidNum = (uint32_t)atoi(pid);
 
-        char *log = argv[3];
+        const char *log = argv[3].c_str();
         if(log[0] == 0)
           log = NULL;
 
         CaptureOptions cmdopts;
-        readCapOpts(argv[4], &cmdopts);
+        readCapOpts(argv[4].c_str(), &cmdopts);
 
         return RENDERDOC_InjectIntoProcess(pidNum, log, &cmdopts, false);
       }
@@ -413,4 +417,14 @@ int renderdoccmd(int argc, char **argv)
       "                                    window. Use the remote host to replay all commands.\n");
 
   return 1;
+}
+
+int renderdoccmd(int argc, char **c_argv)
+{
+  std::vector<std::string> argv;
+  argv.resize(argc);
+  for(int i = 0; i < argc; i++)
+    argv[i] = c_argv[i];
+
+  return renderdoccmd(argv);
 }

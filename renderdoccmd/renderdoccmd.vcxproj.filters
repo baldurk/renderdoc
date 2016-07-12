@@ -7,6 +7,8 @@
       <Filter>3rdparty</Filter>
     </ClCompile>
     <ClCompile Include="renderdoccmd_linux.cpp" />
+    <ClCompile Include="renderdoccmd_android.cpp" />
+    <ClCompile Include="renderdoccmd_apple.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

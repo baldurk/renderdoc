@@ -265,9 +265,9 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
   DestroyWindow(wnd);
 }
 
-int renderdoccmd(int argc, char **argv);
-bool argequal(const char *a, const char *b);
-void readCapOpts(const char *str, CaptureOptions *opts);
+int renderdoccmd(const std::vector<std::string> &argv);
+bool argequal(const std::string &a, const std::string &b);
+void readCapOpts(const std::string &str, CaptureOptions *opts);
 
 int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
                     _In_ int nShowCmd)
@@ -277,29 +277,24 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
 
   wargv = CommandLineToArgvW(GetCommandLine(), &argc);
 
-  std::vector<std::string> argv_storage;
-  std::vector<char *> argv_pointers;
+  std::vector<std::string> argv;
 
-  argv_storage.resize(argc);
-  argv_pointers.resize(argc);
-  for(int i = 0; i < argc; i++)
+  argv.resize(argc);
+  for(size_t i = 0; i < argv.size(); i++)
   {
     size_t len = wcslen(wargv[i]);
     len *= 4;    // worst case, every UTF-8 character takes 4 bytes
-    argv_storage[i].resize(len + 1);
-    argv_storage[i][len] = 0;
-    argv_pointers[i] = &argv_storage[i][0];
+    argv[i].resize(len + 1);
+    argv[i][len] = 0;
+    char *cstr = (char *)&argv[i][0];
 
-    WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, argv_pointers[i], (int)len + 1, NULL, NULL);
+    WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, cstr, (int)len + 1, NULL, NULL);
+
+    argv[i].resize(strlen(cstr));
   }
 
-  char *argv_backup[] = {"", NULL};
-  char **argv = NULL;
-
-  if(argc > 0)
-    argv = &argv_pointers[0];
-  else
-    argv = argv_backup;
+  if(argv.empty())
+    argv.push_back("renderdoccmd");
 
   LocalFree(wargv);
 
@@ -325,7 +320,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
   }
 
   // special WIN32 option for launching the crash handler
-  if(argc == 3 && !_stricmp(argv[1], "--update"))
+  if(argv.size() == 3 && argequal(argv[1], "--update"))
   {
     string originalpath = argv[2];
     wstring wide_path;
@@ -527,7 +522,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
   CrashGenerationServer *crashServer = NULL;
 
   // special WIN32 option for launching the crash handler
-  if(argc == 2 && !_stricmp(argv[1], "--crashhandle"))
+  if(argv.size() == 2 && argequal(argv[1], "--crashhandle"))
   {
     wchar_t tempPath[MAX_PATH] = {0};
     GetTempPathW(MAX_PATH - 1, tempPath);
@@ -706,15 +701,15 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
   // this installs a global windows hook pointing at renderdocshim*.dll that filters all running
   // processes and
   // loads renderdoc.dll in the target one. In any other process it unloads as soon as possible
-  if(argc == 5 && argequal(argv[1], "--globalhook"))
+  if(argv.size() == 5 && argequal(argv[1], "--globalhook"))
   {
-    char *pathmatch = argv[2];
-    char *log = argv[3];
+    std::string &pathmatch = argv[2];
+    std::string &log = argv[3];
 
-    size_t len = strlen(pathmatch);
+    size_t len = pathmatch.length();
     wstring wpathmatch;
     wpathmatch.resize(len);
-    MultiByteToWideChar(CP_UTF8, 0, pathmatch, -1, &wpathmatch[0], (int)len);
+    MultiByteToWideChar(CP_UTF8, 0, pathmatch.c_str(), -1, &wpathmatch[0], (int)len);
     wpathmatch.resize(wcslen(wpathmatch.c_str()));
 
     CaptureOptions cmdopts;
@@ -786,7 +781,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
 
         wcsncpy_s(shimdata->pathmatchstring, wpathmatch.c_str(), _TRUNCATE);
         wcsncpy_s(shimdata->rdocpath, rdocpath, _TRUNCATE);
-        strncpy_s(shimdata->log, log, _TRUNCATE);
+        strncpy_s(shimdata->log, log.c_str(), _TRUNCATE);
         memcpy(shimdata->opts, &cmdopts, sizeof(CaptureOptions));
 
         static_assert(sizeof(CaptureOptions) <= sizeof(shimdata->opts),
@@ -816,5 +811,5 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
     return 0;
   }
 
-  return renderdoccmd(argc, argv);
+  return renderdoccmd(argv);
 }
