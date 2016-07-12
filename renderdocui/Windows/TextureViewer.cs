@@ -2001,6 +2001,7 @@ namespace renderdocui.Windows
 
             int y = m_CurHoverPixel.Y >> (int)m_TexDisplay.mip;
 
+            uint mipWidth = Math.Max(1, tex.width >> (int)m_TexDisplay.mip);
             uint mipHeight = Math.Max(1, tex.height >> (int)m_TexDisplay.mip);
 
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
@@ -2011,8 +2012,8 @@ namespace renderdocui.Windows
             y = Math.Max(0, y);
 
             int x = m_CurHoverPixel.X >> (int)m_TexDisplay.mip;
-            float invWidth = tex.width > 0 ? 1.0f / tex.width : 0.0f;
-            float invHeight = tex.height > 0 ? 1.0f /tex.height : 0.0f;
+            float invWidth = mipWidth > 0 ? 1.0f / mipWidth : 0.0f;
+            float invHeight = mipHeight > 0 ? 1.0f / mipHeight : 0.0f;
 
             string hoverCoords = String.Format("{0,4}, {1,4} ({2:0.0000}, {3:0.0000})", 
                 x, y, (x * invWidth), (y * invHeight));
@@ -2027,9 +2028,9 @@ namespace renderdocui.Windows
                 x = m_PickedPoint.X >> (int)m_TexDisplay.mip;
                 y = m_PickedPoint.Y >> (int)m_TexDisplay.mip;
                 if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
-                    y = (int)(tex.height - 1) - y;
+                    y = (int)(mipHeight - 1) - y;
                 if (m_TexDisplay.FlipY)
-                    y = (int)(tex.height - 1) - y;
+                    y = (int)(mipHeight - 1) - y;
 
                 y = Math.Max(0, y);
 
@@ -2749,7 +2750,7 @@ namespace renderdocui.Windows
                 {
                     m_PickedPoint = m_CurHoverPixel;
 
-                    m_PickedPoint.X = Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width-1);
+                    m_PickedPoint.X = Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width - 1);
                     m_PickedPoint.Y = Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1);
 
                     m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
