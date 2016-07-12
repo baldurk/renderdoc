@@ -189,12 +189,6 @@ struct ThumbCommand : public Command
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    if(parser.exist("help"))
-    {
-      std::cerr << parser.usage() << std::endl;
-      return 0;
-    }
-
     if(parser.rest().empty())
     {
       std::cerr << "Error: thumb command requires a capture filename." << std::endl
@@ -275,12 +269,6 @@ struct CaptureCommand : public Command
   virtual bool IsCaptureCommand() { return true; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts)
   {
-    if(parser.exist("help"))
-    {
-      std::cerr << parser.usage() << std::endl;
-      return 0;
-    }
-
     if(parser.rest().empty())
     {
       std::cerr << "Error: capture command requires an executable to launch." << std::endl
@@ -365,12 +353,6 @@ struct InjectCommand : public Command
   virtual bool IsCaptureCommand() { return true; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts)
   {
-    if(parser.exist("help"))
-    {
-      std::cerr << parser.usage() << std::endl;
-      return 0;
-    }
-
     uint32_t PID = parser.get<uint32_t>("PID");
     std::string workingDir = parser.get<string>("working-dir");
     std::string logFile = parser.get<string>("capture-file");
@@ -525,6 +507,13 @@ int renderdoccmd(std::vector<std::string> &argv)
       opts.CaptureAllCmdLists = true;
 
     opts.DelayForDebugger = (uint32_t)cmd.get<int>("opt-delay-for-debugger");
+  }
+
+  if(cmd.exist("help"))
+  {
+    std::cerr << cmd.usage() << std::endl;
+    clean_up();
+    return 0;
   }
 
   int ret = it->second->Execute(cmd, opts);
