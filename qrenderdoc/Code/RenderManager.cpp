@@ -98,7 +98,7 @@ void RenderManager::run()
   }
   else
   {
-    m_CreateStatus = RENDERDOC_CreateRemoteReplayConnection(m_ReplayHost.toUtf8(), &remote);
+    m_CreateStatus = RENDERDOC_CreateRemoteReplayConnection(m_ReplayHost.toUtf8(), 0, &remote);
 
     if(remote == NULL)
     {
