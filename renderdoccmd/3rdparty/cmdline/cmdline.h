@@ -36,8 +36,8 @@
 #include <typeinfo>
 #include <cstring>
 #include <algorithm>
-#include <cxxabi.h>
 #include <cstdlib>
+#include <cstdint>
 
 namespace cmdline{
 
@@ -102,20 +102,8 @@ Target lexical_cast(const Source &arg)
   return lexical_cast_t<Target, Source, detail::is_same<Target, Source>::value>::cast(arg);
 }
 
-static inline std::string demangle(const std::string &name)
-{
-  int status=0;
-  char *p=abi::__cxa_demangle(name.c_str(), 0, 0, &status);
-  std::string ret(p);
-  free(p);
-  return ret;
-}
-
 template <class T>
-std::string readable_typename()
-{
-  return demangle(typeid(T).name());
-}
+std::string readable_typename();
 
 template <class T>
 std::string default_value(T def)
@@ -127,6 +115,18 @@ template <>
 inline std::string readable_typename<std::string>()
 {
   return "string";
+}
+
+template <>
+inline std::string readable_typename<int>()
+{
+  return "int";
+}
+
+template <>
+inline std::string readable_typename<uint32_t>()
+{
+  return "uint";
 }
 
 } // detail
@@ -533,7 +533,7 @@ public:
   void parse_check(const std::vector<std::string> &args){
     if (!options.count("help"))
       add("help", '?', "print this message");
-    check(args.size(), parse(args));
+    check((int)args.size(), parse(args));
   }
 
   void parse_check(int argc, char *argv[]){
@@ -722,6 +722,7 @@ private:
         has=true;
       }
       catch(const std::exception &e){
+        (void)e;
         return false;
       }
       return true;
