@@ -47,7 +47,8 @@ string GetUsername()
   return string("Username");
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg)
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
+                            uint32_t height)
 {
   ANativeWindow *connectionScreenWindow = android_state->window;
 

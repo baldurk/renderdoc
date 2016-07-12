@@ -439,7 +439,7 @@ RENDERDOC_CreateRemoteReplayConnection(const char *host, uint32_t port, RemoteRe
     s = host;
 
   if(port == 0)
-    port = RENDERDOC_DefaultReplayHostPort();
+    port = RENDERDOC_GetDefaultReplayHostPort();
 
   Network::Socket *sock = NULL;
 

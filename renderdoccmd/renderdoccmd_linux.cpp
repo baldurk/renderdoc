@@ -42,7 +42,8 @@ string GetUsername()
   return string(buf, buf + strlen(buf));
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg)
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
+                            uint32_t height)
 {
   int scr;
 
@@ -63,7 +64,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
   value_list[1] =
       XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 
-  xcb_create_window(connection, XCB_COPY_FROM_PARENT, window, screen->root, 0, 0, 1280, 720, 0,
+  xcb_create_window(connection, XCB_COPY_FROM_PARENT, window, screen->root, 0, 0, width, height, 0,
                     XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, value_mask, value_list);
 
   /* Magic code that will send notification when window is destroyed */

@@ -225,10 +225,15 @@ wstring GetUsername()
   return username;
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg)
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
+                            uint32_t height)
 {
+  RECT wr = {0, 0, width, height};
+  AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
+
   HWND wnd = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdoccmd", L"renderdoccmd", WS_OVERLAPPEDWINDOW,
-                            CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, NULL, NULL, hInstance, NULL);
+                            CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top,
+                            NULL, NULL, hInstance, NULL);
 
   if(wnd == NULL)
     return;

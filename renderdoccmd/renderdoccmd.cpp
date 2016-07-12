@@ -42,7 +42,7 @@ void readCapOpts(const std::string &str, CaptureOptions *opts)
     *(b++) = (byte(str[i * 2 + 0] - 'a') << 4) | byte(str[i * 2 + 1] - 'a');
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer)
+void DisplayRendererPreview(ReplayRenderer *renderer, uint32_t width, uint32_t height)
 {
   if(renderer == NULL)
     return;
@@ -66,7 +66,8 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
   d.offy = 0.0f;
   d.sliceFace = 0;
   d.rawoutput = false;
-  d.lightBackgroundColour = d.darkBackgroundColour = FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
+  d.lightBackgroundColour = FloatVector(0.81f, 0.81f, 0.81f, 1.0f);
+  d.darkBackgroundColour = FloatVector(0.57f, 0.57f, 0.57f, 1.0f);
   d.Red = d.Green = d.Blue = true;
   d.Alpha = false;
 
@@ -89,7 +90,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
       d.texid = id;
   }
 
-  DisplayRendererPreview(renderer, d);
+  DisplayRendererPreview(renderer, d, width, height);
 }
 
 std::map<std::string, Command *> commands;
@@ -389,7 +390,7 @@ struct ReplayHostCommand : public Command
     parser.add<string>(
         "host", 'h', "The interface to listen on. By default listens on all interfaces", false, "");
     parser.add<uint32_t>("port", 'p', "The port to listen on.", false,
-                         RENDERDOC_DefaultReplayHostPort());
+                         RENDERDOC_GetDefaultReplayHostPort());
   }
   virtual const char *Description()
   {
@@ -412,6 +413,84 @@ struct ReplayHostCommand : public Command
   }
 };
 
+struct ReplayCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.set_footer("<capture.rdc>");
+    parser.add<uint32_t>("width", 'w', "The preview window width.", false, 1280);
+    parser.add<uint32_t>("height", 'h', "The preview window height.", false, 720);
+    parser.add<string>("remote-host", 0,
+                       "Instead of replaying locally, replay on this host over the network.", false);
+    parser.add<uint32_t>("remote-port", 0, "If --remote-host is set, use this port.", false,
+                         RENDERDOC_GetDefaultReplayHostPort());
+  }
+  virtual const char *Description()
+  {
+    return "Replay the log file and show the backbuffer on a preview window.";
+  }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    if(parser.rest().empty())
+    {
+      std::cerr << "Error: capture command requires a filename to load." << std::endl
+                << std::endl
+                << parser.usage();
+      return 0;
+    }
+
+    string filename = parser.rest()[0];
+
+    float progress = 0.0f;
+    RemoteRenderer *remote = NULL;
+    ReplayRenderer *renderer = NULL;
+
+    if(parser.exist("remote-host"))
+    {
+      ReplayCreateStatus status = RENDERDOC_CreateRemoteReplayConnection(
+          parser.get<string>("remote-host").c_str(), parser.get<uint32_t>("remote-port"), &remote);
+
+      if(remote == NULL || status != eReplayCreate_Success)
+      {
+        std::cerr << "Error: Couldn't connect to " << parser.get<string>("remote-host") << ":"
+                  << parser.get<uint32_t>("remote-port") << "." << std::endl;
+        std::cerr << "       Have you run renderdoccmd replayhost ?" << std::endl;
+        return 1;
+      }
+
+      float progress = 0.0f;
+
+      ReplayRenderer *renderer = NULL;
+      status = RemoteRenderer_CreateProxyRenderer(remote, 0, filename.c_str(), &progress, &renderer);
+
+      if(status == eReplayCreate_Success)
+        DisplayRendererPreview(renderer, parser.get<uint32_t>("width"),
+                               parser.get<uint32_t>("height"));
+      else
+        std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
+
+      ReplayRenderer_Shutdown(renderer);
+      remote->Shutdown();
+    }
+    else
+    {
+      ReplayCreateStatus status =
+          RENDERDOC_CreateReplayRenderer(filename.c_str(), &progress, &renderer);
+
+      if(status == eReplayCreate_Success)
+        DisplayRendererPreview(renderer, parser.get<uint32_t>("width"),
+                               parser.get<uint32_t>("height"));
+      else
+        std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
+
+      ReplayRenderer_Shutdown(renderer);
+    }
+    return 0;
+  }
+};
+
 int renderdoccmd(std::vector<std::string> &argv)
 {
   // add basic commands, and common aliases
@@ -427,9 +506,8 @@ int renderdoccmd(std::vector<std::string> &argv)
   add_command("capture", new CaptureCommand());
   add_command("inject", new InjectCommand());
   add_command("replayhost", new ReplayHostCommand());
-  // add_command("replay", new ReplayCommand());
+  add_command("replay", new ReplayCommand());
   // add_command("cap32for64", new Cap32For64Command());
-  // add_command("remotereplay", new RemoteReplayCommand());
 
   if(argv.size() <= 1)
   {
