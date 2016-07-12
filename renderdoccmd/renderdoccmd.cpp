@@ -360,9 +360,77 @@ int renderdoccmd(std::vector<std::string> &argv)
 
   it->second->AddOptions(cmd);
 
+  if(it->second->IsCaptureCommand())
+  {
+    cmd.add<string>("working-dir", 'd', "Set the working directory of the program, if launched.",
+                    false);
+    cmd.add<string>(
+        "capture", 'c',
+        "Set the filename template for new captures. Frame number will be automatically appended.",
+        false);
+    cmd.add("wait", 'w', "Wait for the target program to exit, before returning.");
+
+    // CaptureOptions
+    cmd.add("opt-disallow-vsync", 0,
+            "Capturing Option: Disallow the application from enabling vsync.");
+    cmd.add("opt-disallow-fullscreen", 0,
+            "Capturing Option: Disallow the application from enabling fullscreen.");
+    cmd.add("opt-api-validation", 0, "Capturing Option: Record API debugging events and messages.");
+    cmd.add("opt-api-validation-unmute", 0,
+            "Capturing Option: Unmutes API debugging output from --opt-api-validation.");
+    cmd.add("opt-capture-callstacks", 0,
+            "Capturing Option: Capture CPU callstacks for API events.");
+    cmd.add("opt-capture-callstacks-only-draws", 0,
+            "Capturing Option: When capturing CPU callstacks, only capture them from drawcalls.");
+    cmd.add<int>("opt-delay-for-debugger", 0,
+                 "Capturing Option: Specify a delay in seconds to wait for a debugger to attach.",
+                 false, 0, cmdline::range(0, 10000));
+    cmd.add("opt-verify-map-writes", 0,
+            "Capturing Option: Verify any writes to mapped buffers, by bounds checking.");
+    cmd.add("opt-hook-children", 0,
+            "Capturing Option: Hooks any system API calls that create child processes.");
+    cmd.add("opt-ref-all-resources", 0,
+            "Capturing Option: Include all live resources, not just those used by a frame.");
+    cmd.add("opt-save-all-initials", 0,
+            "Capturing Option: Save all initial resource contents at frame start.");
+    cmd.add("opt-capture-all-cmd-lists", 0,
+            "Capturing Option: In D3D11, record all command lists from application start.");
+  }
+
   cmd.parse_check(argv, true);
 
-  int ret = it->second->Execute(cmd);
+  CaptureOptions opts;
+  RENDERDOC_GetDefaultCaptureOptions(&opts);
+
+  if(it->second->IsCaptureCommand())
+  {
+    if(cmd.exist("opt-disallow-vsync"))
+      opts.AllowVSync = false;
+    if(cmd.exist("opt-disallow-fullscreen"))
+      opts.AllowFullscreen = false;
+    if(cmd.exist("opt-api-validation"))
+      opts.APIValidation = true;
+    if(cmd.exist("opt-api-validation-unmute"))
+      opts.DebugOutputMute = false;
+    if(cmd.exist("opt-capture-callstacks"))
+      opts.CaptureCallstacks = true;
+    if(cmd.exist("opt-capture-callstacks-only-draws"))
+      opts.CaptureCallstacksOnlyDraws = true;
+    if(cmd.exist("opt-verify-map-writes"))
+      opts.VerifyMapWrites = true;
+    if(cmd.exist("opt-hook-children"))
+      opts.HookIntoChildren = true;
+    if(cmd.exist("opt-ref-all-resources"))
+      opts.RefAllResources = true;
+    if(cmd.exist("opt-save-all-initials"))
+      opts.SaveAllInitials = true;
+    if(cmd.exist("opt-capture-all-cmd-lists"))
+      opts.CaptureAllCmdLists = true;
+
+    opts.DelayForDebugger = (uint32_t)cmd.get<int>("opt-delay-for-debugger");
+  }
+
+  int ret = it->second->Execute(cmd, opts);
   clean_up();
   return ret;
 }
