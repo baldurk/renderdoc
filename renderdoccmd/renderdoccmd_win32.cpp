@@ -33,6 +33,9 @@
 #include "miniz/miniz.h"
 #include "resource.h"
 
+#include <Psapi.h>
+#include <tlhelp32.h>
+
 using std::string;
 using std::wstring;
 using std::vector;
@@ -266,6 +269,48 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
   DestroyWindow(wnd);
 }
 
+// from http://stackoverflow.com/q/29939893/4070143
+// and http://stackoverflow.com/a/4570213/4070143
+
+std::string getParentExe()
+{
+  DWORD pid = GetCurrentProcessId();
+  HANDLE h = NULL;
+  PROCESSENTRY32 pe = {0};
+  DWORD ppid = 0;
+  pe.dwSize = sizeof(PROCESSENTRY32);
+  h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if(Process32First(h, &pe))
+  {
+    do
+    {
+      if(pe.th32ProcessID == pid)
+      {
+        ppid = pe.th32ParentProcessID;
+        break;
+      }
+    } while(Process32Next(h, &pe));
+  }
+  CloseHandle(h);
+
+  if(ppid == 0)
+    return "";
+
+  h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, ppid);
+  if(h)
+  {
+    char buf[MAX_PATH];
+    if(GetModuleFileNameExA(h, 0, buf, MAX_PATH))
+    {
+      CloseHandle(h);
+      return buf;
+    }
+    CloseHandle(h);
+  }
+
+  return "";
+}
+
 int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
                     _In_ int nShowCmd)
 {
@@ -294,6 +339,21 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
     argv.push_back("renderdoccmd");
 
   LocalFree(wargv);
+
+  // if launched from cmd.exe, be friendly and redirect output
+  std::string parent = getParentExe();
+  for(size_t i = 0; i < parent.length(); i++)
+  {
+    parent[i] = tolower(parent[i]);
+    if(parent[i] == '\\')
+      parent[i] = '/';
+  }
+
+  if(strstr(parent.c_str(), "/cmd.exe") && AttachConsole(ATTACH_PARENT_PROCESS))
+  {
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
+  }
 
   hInstance = hInst;
 
