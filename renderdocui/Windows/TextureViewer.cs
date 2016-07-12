@@ -1292,7 +1292,8 @@ namespace renderdocui.Windows
         {
             if (IsDisposed) return;
 
-            UI_OnTextureSelectionChanged();
+            if (!CurrentTextureIsLocked || (CurrentTexture != null && m_TexDisplay.texid != CurrentTexture.ID))
+                UI_OnTextureSelectionChanged();
 
             UI_CreateThumbnails();
 
@@ -1483,7 +1484,8 @@ namespace renderdocui.Windows
             m_TexDisplay.texid = tex.ID;
 
             // interpret the texture according to the currently following type.
-            m_TexDisplay.typeHint = m_Following.GetTypeHint(m_Core);
+            if(!CurrentTextureIsLocked)
+                m_TexDisplay.typeHint = m_Following.GetTypeHint(m_Core);
 
             // if there is no such type or it isn't being followed, use the last seen interpretation
             if (m_TexDisplay.typeHint == FormatComponentType.None && m_TextureSettings.ContainsKey(m_TexDisplay.texid))
@@ -1568,7 +1570,10 @@ namespace renderdocui.Windows
 
                 mipLevelLabel.Text = "Mip";
 
-                int highestMip = m_Following.GetHighestMip(m_Core);
+                int highestMip = -1;
+                if (!CurrentTextureIsLocked)
+                    highestMip = m_Following.GetHighestMip(m_Core);
+
                 // assuming we get a valid mip for the highest mip, only switch to it
                 // if we've selected a new texture, or if it's different than the last mip.
                 // This prevents the case where the user has clicked on another mip and
@@ -1582,7 +1587,7 @@ namespace renderdocui.Windows
                 }
 
                 if (mipLevel.SelectedIndex == -1)
-                    mipLevel.SelectedIndex = 0;
+                    mipLevel.SelectedIndex = prevHighestMip;
 
                 prevHighestMip = highestMip;
             }
@@ -1625,13 +1630,19 @@ namespace renderdocui.Windows
                     }
                 }
 
-                int firstArraySlice = m_Following.GetFirstArraySlice(m_Core);
+                int firstArraySlice = -1;
+                if (!CurrentTextureIsLocked)
+                    firstArraySlice = m_Following.GetFirstArraySlice(m_Core);
+
                 // see above with highestMip and prevHighestMip for the logic behind this
                 if (firstArraySlice >= 0 && (newtex || firstArraySlice != prevFirstArraySlice))
                 {
                     useslicesettings = false;
                     sliceFace.SelectedIndex = Helpers.Clamp(firstArraySlice, 0, (int)numSlices - 1);
                 }
+
+                if (sliceFace.SelectedIndex == -1)
+                    sliceFace.SelectedIndex = prevFirstArraySlice;
 
                 prevFirstArraySlice = firstArraySlice;
             }
@@ -2341,6 +2352,17 @@ namespace renderdocui.Windows
                 return null;
             }
         }
+
+        private bool CurrentTextureIsLocked
+        {
+            get
+            {
+                var dc = renderToolstripContainer.Parent as DockContent;
+
+                return (dc != null && dc.Tag != null);
+            }
+        }
+
         private FetchTexture CurrentTexture
         {
             get
