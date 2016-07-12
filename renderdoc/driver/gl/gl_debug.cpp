@@ -3796,10 +3796,11 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
       {
         GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name;
         gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
+
+        gl.glDrawElementsBaseVertex(topo != eGL_PATCHES ? topo : eGL_POINTS, cfg.position.numVerts,
+                                    idxtype, (const void *)uintptr_t(cfg.position.idxoffs),
+                                    cfg.position.baseVertex);
       }
-      gl.glDrawElementsBaseVertex(topo != eGL_PATCHES ? topo : eGL_POINTS, cfg.position.numVerts,
-                                  idxtype, (const void *)uintptr_t(cfg.position.idxoffs),
-                                  cfg.position.baseVertex);
     }
     else
     {
