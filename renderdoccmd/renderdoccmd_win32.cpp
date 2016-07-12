@@ -216,15 +216,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
   return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-wstring GetUsername()
-{
-  wchar_t username[256] = {0};
-  DWORD usersize = 255;
-  GetUserNameW(username, &usersize);
-
-  return username;
-}
-
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {

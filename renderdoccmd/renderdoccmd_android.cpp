@@ -42,11 +42,6 @@ using std::string;
 
 struct android_app *android_state;
 
-string GetUsername()
-{
-  return string("Username");
-}
-
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {

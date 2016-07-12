@@ -34,14 +34,6 @@
 
 using std::string;
 
-string GetUsername()
-{
-  char buf[256] = {0};
-  getlogin_r(buf, 255);
-
-  return string(buf, buf + strlen(buf));
-}
-
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {
