@@ -169,7 +169,7 @@ namespace renderdocui.Code
                 return;
             }
 
-            remote = StaticExports.CreateRemoteReplayConnection(m_ReplayHost);
+            remote = StaticExports.CreateRemoteReplayConnection(m_ReplayHost, 0);
 
             if(remote == null)
             {

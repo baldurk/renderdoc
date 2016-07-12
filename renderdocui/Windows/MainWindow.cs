@@ -673,7 +673,7 @@ namespace renderdocui.Windows
                         string[] drivers = new string[0];
                         try
                         {
-                            var dummy = StaticExports.CreateRemoteReplayConnection(m_RemoteReplay);
+                            var dummy = StaticExports.CreateRemoteReplayConnection(m_RemoteReplay, 0);
                             drivers = dummy.RemoteSupportedReplays();
                             dummy.Shutdown();
                         }
@@ -708,7 +708,7 @@ namespace renderdocui.Windows
                                 string[] proxies = new string[0];
                                 try
                                 {
-                                    var dummy = StaticExports.CreateRemoteReplayConnection("-");
+                                    var dummy = StaticExports.CreateRemoteReplayConnection("-", 0);
                                     proxies = dummy.LocalProxies();
                                     dummy.Shutdown();
                                 }
@@ -1498,7 +1498,7 @@ namespace renderdocui.Windows
 
             Thread thread = Helpers.NewThread(new ThreadStart(() =>
             {
-                StaticExports.SpawnReplayHost(ref killReplay);
+                StaticExports.SpawnReplayHost("", 0, ref killReplay);
             }));
 
             thread.Start();

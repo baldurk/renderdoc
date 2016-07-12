@@ -62,7 +62,7 @@ namespace renderdocui.Windows.Dialogs
             string[] proxies = new string[0];
             try
             {
-                var dummy = StaticExports.CreateRemoteReplayConnection("-");
+                var dummy = StaticExports.CreateRemoteReplayConnection("-", 0);
                 proxies = dummy.LocalProxies();
                 dummy.Shutdown();
             }

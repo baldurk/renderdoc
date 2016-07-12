@@ -454,12 +454,25 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnecti
   return ~0U;
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SpawnReplayHost(volatile bool32 *killReplay)
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_DefaultReplayHostPort()
+{
+  return RenderDoc_ReplayNetworkPort;
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SpawnReplayHost(const char *listenhost,
+                                                                     uint32_t port,
+                                                                     volatile bool32 *killReplay)
 {
   bool32 dummy = false;
 
   if(killReplay == NULL)
     killReplay = &dummy;
 
-  RenderDoc::Inst().BecomeReplayHost(*killReplay);
+  if(listenhost == NULL || listenhost[0] == 0)
+    listenhost = "0.0.0.0";
+
+  if(port == 0)
+    port = RENDERDOC_DefaultReplayHostPort();
+
+  RenderDoc::Inst().BecomeReplayHost(listenhost, (uint16_t)port, *killReplay);
 }

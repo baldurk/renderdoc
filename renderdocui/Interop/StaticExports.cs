@@ -54,13 +54,13 @@ namespace renderdoc
         private static extern UInt32 RENDERDOC_EnumerateRemoteConnections(IntPtr host, UInt32 nextIdent);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern ReplayCreateStatus RENDERDOC_CreateRemoteReplayConnection(IntPtr host, ref IntPtr outrend);
+        private static extern ReplayCreateStatus RENDERDOC_CreateRemoteReplayConnection(IntPtr host, UInt32 port, ref IntPtr outrend);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_GetDefaultCaptureOptions(IntPtr outopts);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RENDERDOC_SpawnReplayHost(ref bool killReplay);
+        private static extern void RENDERDOC_SpawnReplayHost(IntPtr host, UInt32 port, ref bool killReplay);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_TriggerExceptionHandler(IntPtr exceptionPtrs, bool crashed);
@@ -202,13 +202,13 @@ namespace renderdoc
             CustomMarshal.Free(host_mem);
         }
 
-        public static RemoteRenderer CreateRemoteReplayConnection(string host)
+        public static RemoteRenderer CreateRemoteReplayConnection(string host, uint port)
         {
             IntPtr rendPtr = IntPtr.Zero;
 
             IntPtr host_mem = CustomMarshal.MakeUTF8String(host);
 
-            ReplayCreateStatus ret = RENDERDOC_CreateRemoteReplayConnection(host_mem, ref rendPtr);
+            ReplayCreateStatus ret = RENDERDOC_CreateRemoteReplayConnection(host_mem, port, ref rendPtr);
 
             CustomMarshal.Free(host_mem);
 
@@ -222,9 +222,13 @@ namespace renderdoc
             return new RemoteRenderer(rendPtr);
         }
 
-        public static void SpawnReplayHost(ref bool killReplay)
+        public static void SpawnReplayHost(string host, uint port, ref bool killReplay)
         {
-            RENDERDOC_SpawnReplayHost(ref killReplay);
+            IntPtr host_mem = CustomMarshal.MakeUTF8String(host);
+
+            RENDERDOC_SpawnReplayHost(host_mem, port, ref killReplay);
+
+            CustomMarshal.Free(host_mem);
         }
 
         public static void TriggerExceptionHandler(IntPtr exceptionPtrs, bool crashed)

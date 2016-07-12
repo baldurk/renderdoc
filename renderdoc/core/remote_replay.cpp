@@ -70,9 +70,9 @@ static void ProgressTicker(void *d)
   }
 }
 
-void RenderDoc::BecomeReplayHost(volatile bool32 &killReplay)
+void RenderDoc::BecomeReplayHost(const char *listenhost, uint16_t port, volatile bool32 &killReplay)
 {
-  Network::Socket *sock = Network::CreateServerSocket("0.0.0.0", RenderDoc_ReplayNetworkPort, 1);
+  Network::Socket *sock = Network::CreateServerSocket(listenhost, port, 1);
 
   if(sock == NULL)
     return;
@@ -429,7 +429,7 @@ RemoteRenderer_CreateProxyRenderer(RemoteRenderer *remote, uint32_t proxyid, con
 }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
-RENDERDOC_CreateRemoteReplayConnection(const char *host, RemoteRenderer **rend)
+RENDERDOC_CreateRemoteReplayConnection(const char *host, uint32_t port, RemoteRenderer **rend)
 {
   if(rend == NULL)
     return eReplayCreate_InternalError;
@@ -438,11 +438,14 @@ RENDERDOC_CreateRemoteReplayConnection(const char *host, RemoteRenderer **rend)
   if(host != NULL && host[0] != '\0')
     s = host;
 
+  if(port == 0)
+    port = RENDERDOC_DefaultReplayHostPort();
+
   Network::Socket *sock = NULL;
 
   if(s != "-")
   {
-    sock = Network::CreateClientSocket(s.c_str(), RenderDoc_ReplayNetworkPort, 3000);
+    sock = Network::CreateClientSocket(s.c_str(), (uint16_t)port, 3000);
 
     if(sock == NULL)
       return eReplayCreate_NetworkIOFailed;
