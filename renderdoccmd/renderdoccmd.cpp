@@ -382,6 +382,36 @@ struct InjectCommand : public Command
   }
 };
 
+struct ReplayHostCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.add<string>(
+        "host", 'h', "The interface to listen on. By default listens on all interfaces", false, "");
+    parser.add<uint32_t>("port", 'p', "The port to listen on.", false,
+                         RENDERDOC_DefaultReplayHostPort());
+  }
+  virtual const char *Description()
+  {
+    return "Start up a server listening as a host for remote replays.";
+  }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    string host = parser.get<string>("host");
+    uint32_t port = parser.get<uint32_t>("port");
+
+    volatile bool32 kill = false;
+
+    std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host) << ":"
+              << port << "..." << std::endl;
+
+    RENDERDOC_SpawnReplayHost(host.empty() ? NULL : host.c_str(), port, &kill);
+    return 0;
+  }
+};
+
 int renderdoccmd(std::vector<std::string> &argv)
 {
   // add basic commands, and common aliases
@@ -396,8 +426,8 @@ int renderdoccmd(std::vector<std::string> &argv)
   add_command("thumb", new ThumbCommand());
   add_command("capture", new CaptureCommand());
   add_command("inject", new InjectCommand());
+  add_command("replayhost", new ReplayHostCommand());
   // add_command("replay", new ReplayCommand());
-  // add_command("replayhost", new ReplayHostCommand());
   // add_command("cap32for64", new Cap32For64Command());
   // add_command("remotereplay", new RemoteReplayCommand());
 
