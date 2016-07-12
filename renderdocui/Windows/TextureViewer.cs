@@ -1624,6 +1624,9 @@ namespace renderdocui.Windows
                     mipLevel.SelectedIndex = Helpers.Clamp(highestMip, 0, (int)tex.mips - 1);
                 }
 
+                if (mipLevel.SelectedIndex == -1)
+                    mipLevel.SelectedIndex = 0;
+
                 prevHighestMip = highestMip;
             }
 
