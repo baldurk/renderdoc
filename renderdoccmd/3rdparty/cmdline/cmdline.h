@@ -39,6 +39,10 @@
 #include <cstdlib>
 #include <cstdint>
 
+#ifdef max
+#undef max
+#endif
+
 namespace cmdline{
 
 namespace detail{
@@ -147,6 +151,7 @@ struct default_reader{
   T operator()(const std::string &str){
     return detail::lexical_cast<T>(str);
   }
+  std::string description() const { return ""; }
 };
 
 template <class T>
@@ -154,9 +159,11 @@ struct range_reader{
   range_reader(const T &low, const T &high): low(low), high(high) {}
   T operator()(const std::string &s) const {
     T ret=default_reader<T>()(s);
-    if (!(ret>=low && ret<=high)) throw cmdline::cmdline_error("range_error");
+    if (!(ret>=low && ret<=high))
+      throw cmdline::cmdline_error(description());
     return ret;
   }
+  std::string description() const { return "Must be within [" + detail::lexical_cast<std::string>(low) + ", " + detail::lexical_cast<std::string>(high) + "]"; }
 private:
   T low, high;
 };
@@ -172,10 +179,17 @@ struct oneof_reader{
   T operator()(const std::string &s){
     T ret=default_reader<T>()(s);
     if (std::find(alt.begin(), alt.end(), ret)==alt.end())
-      throw cmdline_error("");
+      throw cmdline::cmdline_error("'" + s + "' is not one of the accepted values");
     return ret;
   }
   void add(const T &v){ alt.push_back(v); }
+  std::string description() const
+  {
+    std::string ret = "Options are:";
+    for(size_t i=0; i < alt.size(); i++)
+      ret += "\n  * " + detail::lexical_cast<std::string>(alt[i]);
+    return ret;
+  }
 private:
   std::vector<T> alt;
 };
@@ -310,6 +324,7 @@ oneof_reader<T> oneof(T a1, T a2, T a3, T a4, T a5, T a6, T a7, T a8, T a9, T a1
 class parser{
 public:
   parser(){
+    stop = false;
   }
   ~parser(){
     for (std::map<std::string, option_base*>::iterator p=options.begin();
@@ -346,8 +361,16 @@ public:
     ordered.push_back(options[name]);
   }
 
-  void footer(const std::string &f){
+  void set_header(const std::string &f){
+    hdr=f;
+  }
+
+  void set_footer(const std::string &f){
     ftr=f;
+  }
+
+  void stop_at_rest(bool s){
+    stop=s;
   }
 
   void set_program_name(const std::string &name){
@@ -371,67 +394,25 @@ public:
     return others;
   }
 
-  bool parse(const std::string &arg){
-    std::vector<std::string> args;
-
-    std::string buf;
-    bool in_quote=false;
-    for (std::string::size_type i=0; i<arg.length(); i++){
-      if (arg[i]=='\"'){
-        in_quote=!in_quote;
-        continue;
-      }
-
-      if (arg[i]==' ' && !in_quote){
-        args.push_back(buf);
-        buf="";
-        continue;
-      }
-
-      if (arg[i]=='\\'){
-        i++;
-        if (i>=arg.length()){
-          errors.push_back("unexpected occurrence of '\\' at end of string");
-          return false;
-        }
-      }
-
-      buf+=arg[i];
-    }
-
-    if (in_quote){
-      errors.push_back("quote is not closed");
-      return false;
-    }
-
-    if (buf.length()>0)
-      args.push_back(buf);
-
-    for (size_t i=0; i<args.size(); i++)
-      std::cout<<"\""<<args[i]<<"\""<<std::endl;
-
-    return parse(args);
-  }
-
-  bool parse(const std::vector<std::string> &args){
+  bool parse(const std::vector<std::string> &args, bool processed_arg0 = false){
     int argc=static_cast<int>(args.size());
     std::vector<const char*> argv(argc);
 
     for (int i=0; i<argc; i++)
       argv[i]=args[i].c_str();
 
-    return parse(argc, &argv[0]);
+    return parse(argc, &argv[0], processed_arg0);
   }
 
-  bool parse(int argc, const char * const argv[]){
+  bool parse(int argc, const char * const argv[], bool processed_arg0 = false){
     errors.clear();
     others.clear();
 
-    if (argc<1){
-      errors.push_back("argument number must be longer than 0");
+    if (argc<1 && !processed_arg0){
+      errors.push_back("Missing program name as argv[0]");
       return false;
     }
-    if (prog_name=="")
+    if (prog_name=="" && !processed_arg0)
       prog_name=argv[0];
 
     std::map<char, std::string> lookup;
@@ -449,8 +430,10 @@ public:
       }
     }
 
-    for (int i=1; i<argc; i++){
-      if (strncmp(argv[i], "--", 2)==0){
+    bool found_others = false;
+
+    for (int i=processed_arg0 ? 0 : 1; i<argc; i++){
+      if (!found_others && strncmp(argv[i], "--", 2)==0){
         const char *p=strchr(argv[i]+2, '=');
         if (p){
           std::string name(argv[i]+2, p);
@@ -478,7 +461,7 @@ public:
           }
         }
       }
-      else if (strncmp(argv[i], "-", 1)==0){
+      else if (!found_others && strncmp(argv[i], "-", 1)==0){
         if (!argv[i][1]) continue;
         char last=argv[i][1];
         for (int j=2; argv[i][j]; j++){
@@ -513,6 +496,9 @@ public:
       }
       else{
         others.push_back(argv[i]);
+
+        if(stop)
+          found_others = true;
       }
     }
 
@@ -524,26 +510,10 @@ public:
     return errors.size()==0;
   }
 
-  void parse_check(const std::string &arg){
+  void parse_check(const std::vector<std::string> &args, bool processed_arg0 = false){
     if (!options.count("help"))
       add("help", '?', "print this message");
-    check(0, parse(arg));
-  }
-
-  void parse_check(const std::vector<std::string> &args){
-    if (!options.count("help"))
-      add("help", '?', "print this message");
-    check((int)args.size(), parse(args));
-  }
-
-  void parse_check(int argc, char *argv[]){
-    if (!options.count("help"))
-      add("help", '?', "print this message");
-    check(argc, parse(argc, argv));
-  }
-
-  std::string error() const{
-    return errors.size()>0?errors[0]:"";
+    check((int)args.size(), parse(args, processed_arg0));
   }
 
   std::string error_full() const{
@@ -555,13 +525,13 @@ public:
 
   std::string usage() const {
     std::ostringstream oss;
-    oss<<"usage: "<<prog_name<<" ";
+    oss<<"usage: "<<prog_name<<" "<<hdr<<(hdr.empty() ? "" : " ");
     for (size_t i=0; i<ordered.size(); i++){
       if (ordered[i]->must())
         oss<<ordered[i]->short_description()<<" ";
     }
     
-    oss<<"[options] ... "<<ftr<<std::endl;
+    oss<<"[options ...] "<<ftr<<std::endl<<std::endl;
     oss<<"options:"<<std::endl;
 
     size_t max_width=0;
@@ -579,7 +549,29 @@ public:
       oss<<"--"<<ordered[i]->name();
       for (size_t j=ordered[i]->name().length(); j<max_width+4; j++)
         oss<<' ';
-      oss<<ordered[i]->description()<<std::endl;
+
+      std::string desc = ordered[i]->description();
+
+      // allow multiline descriptions, align them properly
+      size_t nl = desc.find('\n');
+
+      while(nl != std::string::npos)
+      {
+        std::string firstline = desc.substr(0, nl);
+        desc = desc.substr(nl+1);
+        
+        // print the first line
+        oss<<firstline<<std::endl;
+
+        // align for the next line
+        for (size_t j=0; j<max_width+12; j++)
+          oss<<' ';
+
+        nl = desc.find('\n');
+      }
+
+      // print the remainder
+      oss<<desc<<std::endl;
     }
     return oss.str();
   }
@@ -587,14 +579,19 @@ public:
 private:
 
   void check(int argc, bool ok){
-    if ((argc==1 && !ok) || exist("help")){
-      std::cerr<<usage();
-      exit(0);
+    if (!ok){
+      if(errors.size() == 1)
+        std::cerr<<"Error: "<<errors[0]<<std::endl<<std::endl<<usage();
+      else if(!errors.empty())
+        std::cerr<<"Errors:"<<std::endl<<error_full()<<std::endl<<usage();
+      else
+        std::cerr<<usage();
+      exit(1);
     }
 
-    if (!ok){
-      std::cerr<<error()<<std::endl<<usage();
-      exit(1);
+    if (argc<=1 && !ok){
+      std::cerr<<usage();
+      exit(0);
     }
   }
 
@@ -615,7 +612,11 @@ private:
       return;
     }
     if (!options[name]->set(value)){
-      errors.push_back("option value is invalid: --"+name+"="+value);
+      std::string err_details = options[name]->error_details();
+      if(err_details.empty())
+        errors.push_back("option value is invalid: --"+name+"="+value);
+      else
+        errors.push_back("option value is invalid: --"+name+"="+value+" ("+err_details+")");
       return;
     }
   }
@@ -630,6 +631,8 @@ private:
     virtual bool has_set() const=0;
     virtual bool valid() const=0;
     virtual bool must() const=0;
+
+    virtual const std::string error_details() { return ""; }
 
     virtual const std::string &name() const=0;
     virtual char short_name() const=0;
@@ -685,6 +688,8 @@ private:
       return "--"+nam;
     }
 
+    virtual const std::string error_details() { return nam+" can't have parameter"; }
+
   private:
     std::string nam;
     char snam;
@@ -703,6 +708,7 @@ private:
       : nam(name), snam(short_name), need(need), has(false)
       , def(def), actual(def) {
       this->desc=full_description(desc);
+      this->error = " (Unknown error)";
     }
     ~option_with_value(){}
 
@@ -722,11 +728,13 @@ private:
         has=true;
       }
       catch(const std::exception &e){
-        (void)e;
+        error = e.what();
         return false;
       }
       return true;
     }
+
+    virtual const std::string error_details() { return error; }
 
     bool has_set() const{
       return has;
@@ -754,15 +762,19 @@ private:
     }
 
     std::string short_description() const{
-      return "--"+nam+"="+detail::readable_typename<T>();
+      return "--"+nam+"=<"+detail::readable_typename<T>() + ">";
     }
 
   protected:
     std::string full_description(const std::string &desc){
+      std::string defval = detail::default_value<T>(def);
+
       return
-        desc+" ("+detail::readable_typename<T>()+
-        (need?"":" [="+detail::default_value<T>(def)+"]")
-        +")";
+        desc+" ("+
+        (need?"":"optional ")+
+        detail::readable_typename<T>()+
+        (!need && !defval.empty() ? "="+defval : "")+
+        ")";
     }
 
     virtual T read(const std::string &s)=0;
@@ -771,6 +783,7 @@ private:
     char snam;
     bool need;
     std::string desc;
+    std::string error;
 
     bool has;
     T def;
@@ -787,6 +800,10 @@ private:
                                   const std::string &desc,
                                   F reader)
       : option_with_value<T>(name, short_name, need, def, desc), reader(reader){
+        std::string reader_description = this->reader.description();
+
+        if(!reader_description.empty())
+          this->desc = this->desc + " " + reader_description;
     }
 
   private:
@@ -799,7 +816,9 @@ private:
 
   std::map<std::string, option_base*> options;
   std::vector<option_base*> ordered;
+  std::string hdr;
   std::string ftr;
+  bool stop;
 
   std::string prog_name;
   std::vector<std::string> others;
