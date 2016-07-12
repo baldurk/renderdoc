@@ -481,8 +481,9 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
       }
     }
 
-    _snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --cap32for64 %d \"%ls\" \"%hs\"", renderdocPath,
-                 pid, wlogfile.c_str(), optstr.c_str());
+    _snwprintf_s(paramsAlloc, 2047, 2047,
+                 L"\"%ls\" cap32for64 --pid=%d --log=\"%ls\" --capopts=\"%hs\"", renderdocPath, pid,
+                 wlogfile.c_str(), optstr.c_str());
 
     paramsAlloc[2047] = 0;
 

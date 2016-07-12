@@ -491,6 +491,27 @@ struct ReplayCommand : public Command
   }
 };
 
+struct Cap32For64Command : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.add<uint32_t>("pid", 0, "");
+    parser.add<string>("log", 0, "");
+    parser.add<string>("capopts", 0, "");
+  }
+  virtual const char *Description() { return "Internal use only!"; }
+  virtual bool IsInternalOnly() { return true; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    CaptureOptions cmdopts;
+    readCapOpts(parser.get<string>("capopts").c_str(), &cmdopts);
+
+    return RENDERDOC_InjectIntoProcess(parser.get<uint32_t>("pid"),
+                                       parser.get<string>("log").c_str(), &cmdopts, false);
+  }
+};
+
 int renderdoccmd(std::vector<std::string> &argv)
 {
   // add basic commands, and common aliases
@@ -507,7 +528,7 @@ int renderdoccmd(std::vector<std::string> &argv)
   add_command("inject", new InjectCommand());
   add_command("replayhost", new ReplayHostCommand());
   add_command("replay", new ReplayCommand());
-  // add_command("cap32for64", new Cap32For64Command());
+  add_command("cap32for64", new Cap32For64Command());
 
   if(argv.size() <= 1)
   {
