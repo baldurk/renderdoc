@@ -226,6 +226,9 @@ Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 {
   int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
+  int yes = 1;
+  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+
   if(s == -1)
     return NULL;
 
