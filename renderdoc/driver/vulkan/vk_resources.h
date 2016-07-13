@@ -1069,4 +1069,6 @@ bool IsSRGBFormat(VkFormat f);
 bool IsUIntFormat(VkFormat f);
 bool IsSIntFormat(VkFormat f);
 
+VkFormat GetDepthOnlyFormat(VkFormat f);
+
 uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip);

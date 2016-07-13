@@ -4566,7 +4566,9 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
   bool isDepth =
       (layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
-  VkImageAspectFlags aspectMask = layouts.subresourceStates[0].subresourceRange.aspectMask;
+  bool isStencil =
+      (layouts.subresourceStates[0].subresourceRange.aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT) != 0;
+  VkImageAspectFlags srcAspectMask = layouts.subresourceStates[0].subresourceRange.aspectMask;
 
   VkImage srcImage = Unwrap(GetResourceManager()->GetCurrentHandle<VkImage>(tex));
   VkImage tmpImage = VK_NULL_HANDLE;
@@ -4794,6 +4796,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
     // no longer depth, if it was
     isDepth = false;
+    isStencil = false;
   }
   else if(wasms && resolve)
   {
@@ -4821,11 +4824,12 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     vkr = vt->BindImageMemory(Unwrap(dev), tmpImage, tmpMemory, 0);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+    RDCASSERT(!isDepth && !isStencil);
+
     VkImageResolve resolveRegion = {
-        {VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), mip,
-         arrayIdx, 1},
+        {VK_IMAGE_ASPECT_COLOR_BIT, mip, arrayIdx, 1},
         {0, 0, 0},
-        {VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), 0, 0, 1},
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
         {0, 0, 0},
         imCreateInfo.extent,
     };
@@ -4840,7 +4844,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
         VK_QUEUE_FAMILY_IGNORED,
         VK_QUEUE_FAMILY_IGNORED,
         srcImage,
-        {aspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
     VkImageMemoryBarrier dstimBarrier = {
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -4852,7 +4856,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
         0,
         0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
         tmpImage,
-        {aspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
     // ensure all previous writes have completed
     srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
@@ -4917,7 +4921,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       VK_QUEUE_FAMILY_IGNORED,
       VK_QUEUE_FAMILY_IGNORED,
       srcImage,
-      {aspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+      {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
   // if we have no tmpImage, we're copying directly from the real image
   if(tmpImage == VK_NULL_HANDLE)
@@ -4935,30 +4939,54 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     }
   }
 
-  VkImageSubresource sub = {
-      VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), mip,
-      arrayIdx};
-  VkSubresourceLayout sublayout;
+  VkImageAspectFlags copyAspects = VK_IMAGE_ASPECT_COLOR_BIT;
 
-  vt->GetImageSubresourceLayout(Unwrap(dev), srcImage, &sub, &sublayout);
+  if(isDepth)
+    copyAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
+  else if(isStencil)
+    copyAspects = VK_IMAGE_ASPECT_STENCIL_BIT;
 
-  VkBufferImageCopy copyregion = {
-      0,
-      0,
-      0,
-      {VkImageAspectFlags(isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT), mip,
-       arrayIdx, 1},
+  VkBufferImageCopy copyregion[2] = {
       {
-          0, 0, 0,
+          0,
+          0,
+          0,
+          {copyAspects, mip, arrayIdx, 1},
+          {
+              0, 0, 0,
+          },
+          imCreateInfo.extent,
       },
-      imCreateInfo.extent,
+      // second region is only used for combined depth-stencil images
+      {
+          0,
+          0,
+          0,
+          {VK_IMAGE_ASPECT_STENCIL_BIT, mip, arrayIdx, 1},
+          {
+              0, 0, 0,
+          },
+          imCreateInfo.extent,
+      },
   };
+
+  // for most combined depth-stencil images this will be large enough for both to be copied
+  // separately, but for D24S8 we need to add extra space since they won't be copied packed
+  dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
+                         imCreateInfo.format, mip);
+
+  if(imCreateInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
+  {
+    dataSize = AlignUp(dataSize, (VkDeviceSize)4);
+    dataSize += GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
+                            VK_FORMAT_S8_UINT, mip);
+  }
 
   VkBufferCreateInfo bufInfo = {
       VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       NULL,
       0,
-      sublayout.size,
+      dataSize,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
   };
 
@@ -4971,7 +4999,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
   vt->GetBufferMemoryRequirements(Unwrap(dev), readbackBuf, &mrq);
 
   VkMemoryAllocateInfo allocInfo = {
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, sublayout.size,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, dataSize,
       m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
   };
 
@@ -4982,9 +5010,23 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
   vkr = vt->BindBufferMemory(Unwrap(dev), readbackBuf, readbackMem, 0);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  // copy from desired subresource in srcImage to buffer
-  vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, readbackBuf,
-                           1, &copyregion);
+  if(isDepth && isStencil)
+  {
+    copyregion[1].bufferOffset =
+        GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
+                    GetDepthOnlyFormat(imCreateInfo.format), mip);
+
+    copyregion[1].bufferOffset = AlignUp(copyregion[1].bufferOffset, (VkDeviceSize)4);
+
+    vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                             readbackBuf, 2, copyregion);
+  }
+  else
+  {
+    // copy from desired subresource in srcImage to buffer
+    vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                             readbackBuf, 1, copyregion);
+  }
 
   // if we have no tmpImage, we're copying directly from the real image
   if(tmpImage == VK_NULL_HANDLE)
@@ -5007,7 +5049,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       VK_QUEUE_FAMILY_IGNORED,
       readbackBuf,
       0,
-      sublayout.size,
+      dataSize,
   };
 
   // wait for copy to finish before reading back to host
@@ -5025,10 +5067,82 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
   RDCASSERT(pData != NULL);
 
-  dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                         imCreateInfo.format, mip);
   byte *ret = new byte[dataSize];
-  memcpy(ret, pData, dataSize);
+
+  if(isDepth && isStencil)
+  {
+    size_t pixelCount =
+        imCreateInfo.extent.width * imCreateInfo.extent.height * imCreateInfo.extent.depth;
+
+    if(imCreateInfo.format == VK_FORMAT_D16_UNORM_S8_UINT)
+    {
+      uint16_t *dSrc = (uint16_t *)pData;
+      uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
+
+      uint16_t *dDst = (uint16_t *)ret;
+      uint16_t *sDst = dDst + 1;    // interleaved, next pixel
+
+      for(size_t i = 0; i < pixelCount; i++)
+      {
+        *dDst = *dSrc;
+        *sDst = *sSrc;
+
+        // increment source pointers by 1 since they're separate, and dest pointers by 2 since
+        // they're interleaved
+        dDst += 2;
+        sDst += 2;
+
+        sSrc++;
+        dSrc++;
+      }
+    }
+    else if(imCreateInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
+    {
+      // we can copy the depth from D24 as a 32-bit integer, since the remaining bits are garbage
+      // and we overwrite them with stencil
+      uint32_t *dSrc = (uint32_t *)pData;
+      uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
+
+      uint32_t *dst = (uint32_t *)ret;
+
+      for(size_t i = 0; i < pixelCount; i++)
+      {
+        // pack the data together again, stencil in top bits
+        *dst = (*dSrc & 0x00ffffff) | (uint32_t(*sSrc) << 24);
+
+        dst++;
+        sSrc++;
+        dSrc++;
+      }
+    }
+    else
+    {
+      uint32_t *dSrc = (uint32_t *)pData;
+      uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
+
+      uint32_t *dDst = (uint32_t *)ret;
+      uint32_t *sDst = dDst + 1;    // interleaved, next pixel
+
+      for(size_t i = 0; i < pixelCount; i++)
+      {
+        *dDst = *dSrc;
+        *sDst = *sSrc;
+
+        // increment source pointers by 1 since they're separate, and dest pointers by 2 since
+        // they're interleaved
+        dDst += 2;
+        sDst += 2;
+
+        sSrc++;
+        dSrc++;
+      }
+    }
+    // need to manually copy to interleave pixels
+  }
+  else
+  {
+    memcpy(ret, pData, dataSize);
+  }
 
   vt->UnmapMemory(Unwrap(dev), readbackMem);
 
