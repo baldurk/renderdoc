@@ -481,8 +481,28 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(Serialiser *localSerialiser, VkD
     }
     else
     {
-      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sem);
-      GetResourceManager()->AddLiveResource(id, sem);
+      ResourceId live;
+
+      if(GetResourceManager()->HasWrapper(ToTypedHandle(sem)))
+      {
+        live = GetResourceManager()->GetNonDispWrapper(sem)->id;
+
+        RDCWARN(
+            "On replay, semaphore got a duplicate handle - maybe a bug, or it could be an "
+            "indication of an implementation that doesn't use semaphores");
+
+        // destroy this instance of the duplicate, as we must have matching create/destroy
+        // calls and there won't be a wrapped resource hanging around to destroy this one.
+        ObjDisp(device)->DestroySemaphore(Unwrap(device), sem, NULL);
+
+        // whenever the new ID is requested, return the old ID, via replacements.
+        GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+      }
+      else
+      {
+        live = GetResourceManager()->WrapResource(Unwrap(device), sem);
+        GetResourceManager()->AddLiveResource(id, sem);
+      }
     }
   }
 
