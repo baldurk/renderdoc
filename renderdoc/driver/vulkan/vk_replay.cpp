@@ -1121,7 +1121,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   {
     aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
   }
-  else if(IsDepthStencilFormat(layouts.format))
+  else if(IsDepthOrStencilFormat(layouts.format))
   {
     aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
     if(layouts.format == VK_FORMAT_S8_UINT || (!cfg.Red && cfg.Green))
@@ -3985,7 +3985,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
   if(IsStencilOnlyFormat(layouts.format))
     aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-  else if(IsDepthStencilFormat(layouts.format))
+  else if(IsDepthOrStencilFormat(layouts.format))
     aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
   CreateTexImageView(aspectFlags, liveIm, iminfo);
@@ -4243,7 +4243,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
   if(IsStencilOnlyFormat(layouts.format))
     aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-  else if(IsDepthStencilFormat(layouts.format))
+  else if(IsDepthOrStencilFormat(layouts.format))
     aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
   CreateTexImageView(aspectFlags, liveIm, iminfo);

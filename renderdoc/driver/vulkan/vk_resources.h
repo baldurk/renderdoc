@@ -1061,7 +1061,7 @@ struct ImageLayouts
 };
 
 bool IsBlockFormat(VkFormat f);
-bool IsDepthStencilFormat(VkFormat f);
+bool IsDepthOrStencilFormat(VkFormat f);
 bool IsDepthOnlyFormat(VkFormat f);
 bool IsStencilFormat(VkFormat f);
 bool IsStencilOnlyFormat(VkFormat f);

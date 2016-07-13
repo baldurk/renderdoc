@@ -191,7 +191,7 @@ bool IsBlockFormat(VkFormat f)
   return false;
 }
 
-bool IsDepthStencilFormat(VkFormat f)
+bool IsDepthOrStencilFormat(VkFormat f)
 {
   switch(f)
   {

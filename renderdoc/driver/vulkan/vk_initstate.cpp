@@ -1076,7 +1076,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
     if(IsStencilOnlyFormat(layout->format))
       aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-    else if(IsDepthStencilFormat(layout->format))
+    else if(IsDepthOrStencilFormat(layout->format))
       aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
     VkImageMemoryBarrier srcimBarrier = {
@@ -1585,7 +1585,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
           VK_SHARING_MODE_EXCLUSIVE, 0, NULL, VK_IMAGE_LAYOUT_UNDEFINED,
       };
 
-      if(IsDepthStencilFormat(m_CreationInfo.m_Image[liveim->id].format))
+      if(IsDepthOrStencilFormat(m_CreationInfo.m_Image[liveim->id].format))
       {
         imInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
       }
@@ -1626,7 +1626,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
       VkFormat fmt = m_CreationInfo.m_Image[liveim->id].format;
       if(IsStencilOnlyFormat(fmt))
         aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-      else if(IsDepthStencilFormat(fmt))
+      else if(IsDepthOrStencilFormat(fmt))
         aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
       VkImageMemoryBarrier srcimBarrier = {
@@ -1919,7 +1919,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
     if(m_CreationInfo.m_Image[id].samples != VK_SAMPLE_COUNT_1_BIT)
     {
       initial.resource = NULL;
-      initial.num = IsDepthStencilFormat(m_ImageLayouts[id].format)
+      initial.num = IsDepthOrStencilFormat(m_ImageLayouts[id].format)
                         ? eInitialContents_ClearDepthStencilImage
                         : eInitialContents_ClearColorImage;
     }
@@ -2078,7 +2078,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
     VkFormat fmt = m_CreationInfo.m_Image[id].format;
     if(IsStencilOnlyFormat(fmt))
       aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-    else if(IsDepthStencilFormat(fmt))
+    else if(IsDepthOrStencilFormat(fmt))
       aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
     VkImageMemoryBarrier dstimBarrier = {
