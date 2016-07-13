@@ -720,7 +720,7 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
       case eSpecial_R5G6B5:
       case eSpecial_R5G5B5A1:
       case eSpecial_R4G4B4A4: bytesPerPixel = 2; break;
-      case eSpecial_D32S8: bytesPerPixel = 5; break;
+      case eSpecial_D32S8: bytesPerPixel = 8; break;
       case eSpecial_D16S8:
       case eSpecial_YUV:
       case eSpecial_R4G4:
@@ -969,7 +969,7 @@ dds_data load_dds_from_file(FILE *f)
     case eSpecial_R5G6B5:
     case eSpecial_R5G5B5A1:
     case eSpecial_R4G4B4A4: bytesPerPixel = 2; break;
-    case eSpecial_D32S8: bytesPerPixel = 5; break;
+    case eSpecial_D32S8: bytesPerPixel = 8; break;
     case eSpecial_D16S8:
     case eSpecial_YUV:
     case eSpecial_R4G4:
