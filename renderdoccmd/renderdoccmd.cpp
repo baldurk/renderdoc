@@ -31,6 +31,9 @@
 using std::string;
 using std::wstring;
 
+bool usingKillSignal = false;
+volatile uint32_t killSignal = false;
+
 void readCapOpts(const std::string &str, CaptureOptions *opts)
 {
   if(str.length() < sizeof(CaptureOptions))
@@ -403,12 +406,15 @@ struct ReplayHostCommand : public Command
     string host = parser.get<string>("host");
     uint32_t port = parser.get<uint32_t>("port");
 
-    volatile bool32 kill = false;
-
     std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host) << ":"
               << port << "..." << std::endl;
 
-    RENDERDOC_SpawnReplayHost(host.empty() ? NULL : host.c_str(), port, &kill);
+    usingKillSignal = true;
+
+    RENDERDOC_SpawnReplayHost(host.empty() ? NULL : host.c_str(), port, &killSignal);
+
+    std::cerr << std::endl << "Cleaning up from replay hosting." << std::endl;
+
     return 0;
   }
 };
@@ -449,6 +455,9 @@ struct ReplayCommand : public Command
 
     if(parser.exist("remote-host"))
     {
+      std::cout << "Replaying '" << filename << "' on " << parser.get<string>("remote-host") << ":"
+                << parser.get<uint32_t>("remote-port") << "." << std::endl;
+
       ReplayCreateStatus status = RENDERDOC_CreateRemoteReplayConnection(
           parser.get<string>("remote-host").c_str(), parser.get<uint32_t>("remote-port"), &remote);
 
@@ -476,6 +485,8 @@ struct ReplayCommand : public Command
     }
     else
     {
+      std::cout << "Replaying '" << filename << "' locally.." << std::endl;
+
       ReplayCreateStatus status =
           RENDERDOC_CreateReplayRenderer(filename.c_str(), &progress, &renderer);
 

@@ -47,6 +47,9 @@ struct Command
   virtual bool IsCaptureCommand() = 0;
 };
 
+extern bool usingKillSignal;
+extern volatile uint32_t killSignal;
+
 void add_command(const std::string &name, Command *cmd);
 void add_alias(const std::string &alias, const std::string &command);
 

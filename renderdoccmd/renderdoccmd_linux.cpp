@@ -27,6 +27,7 @@
 #include <iconv.h>
 #include <locale.h>
 #include <replay/renderdoc_replay.h>
+#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
@@ -134,6 +135,14 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
 // be resolved and libGL wouldn't link, meaning dlsym(RTLD_NEXT) would fai
 extern "C" void glXWaitGL();
 
+void sig_handler(int signo)
+{
+  if(usingKillSignal)
+    killSignal = true;
+  else
+    exit(1);
+}
+
 int main(int argc, char *argv[])
 {
   std::setlocale(LC_CTYPE, "");
@@ -141,6 +150,8 @@ int main(int argc, char *argv[])
   volatile bool never_run = false;
   if(never_run)
     glXWaitGL();
+
+  signal(SIGINT, sig_handler);
 
   // do any linux-specific setup here
 
