@@ -1030,9 +1030,10 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       layout = &m_ImageLayouts[im->id];
     }
 
-    // get requirements to allocate memory large enough for all slices/mips
-    VkMemoryRequirements immrq = {0};
-    ObjDisp(d)->GetImageMemoryRequirements(Unwrap(d), im->real.As<VkImage>(), &immrq);
+    // must ensure offset remains valid. Must be multiple of block size, or 4, depending on format
+    VkDeviceSize bufAlignment = 4;
+    if(IsBlockFormat(layout->format))
+      bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, layout->format, 0);
 
     VkDeviceMemory readbackmem = VK_NULL_HANDLE;
 
@@ -1040,9 +1041,20 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         NULL,
         0,
-        immrq.size,
+        0,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
     };
+
+    for(int a = 0; a < layout->layerCount; a++)
+    {
+      for(int m = 0; m < layout->levelCount; m++)
+      {
+        bufInfo.size = AlignUp(bufInfo.size, bufAlignment);
+
+        bufInfo.size += GetByteSize(layout->extent.width, layout->extent.height,
+                                    layout->extent.depth, layout->format, m);
+      }
+    }
 
     // since this is very short lived, it is not wrapped
     VkBuffer dstBuf;
@@ -1111,11 +1123,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     VkDeviceSize bufOffset = 0;
 
-    // must ensure offset remains valid. Must be multiple of block size, or 4, depending on format
-    VkDeviceSize bufAlignment = 4;
-    if(IsBlockFormat(layout->format))
-      bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, layout->format, 0);
-
     // loop over every slice/mip, copying it to the appropriate point in the buffer
     for(int a = 0; a < layout->layerCount; a++)
     {
@@ -1151,8 +1158,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       }
     }
 
-    RDCASSERTMSG("buffer wasn't sized sufficiently!", bufOffset <= mrq.size, bufOffset, mrq.size,
-                 layout->extent, layout->format, layout->layerCount, layout->levelCount);
+    RDCASSERTMSG("buffer wasn't sized sufficiently!", bufOffset <= bufInfo.size, bufOffset,
+                 mrq.size, layout->extent, layout->format, layout->layerCount, layout->levelCount);
 
     // transfer back to whatever it was
     srcimBarrier.oldLayout = srcimBarrier.newLayout;
@@ -1705,9 +1712,6 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
           extent.depth = RDCMAX(extent.depth >> 1, 1U);
         }
       }
-
-      RDCASSERTMSG("buffer wasn't sized sufficiently!", bufOffset <= mrq.size, bufOffset, mrq.size,
-                   imInfo.extent, imInfo.format, imInfo.arrayLayers, imInfo.mipLevels);
 
       vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
