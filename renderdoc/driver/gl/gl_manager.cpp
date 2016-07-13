@@ -187,11 +187,11 @@ void Serialiser::Serialise(const char *name, TextureStateInitialData &el)
   Serialise("texBufSize", el.texBufSize);
 }
 
-void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref)
+void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool allowFake0)
 {
   const GLHookSet &gl = m_GL->m_Real;
 
-  if(res.name)
+  if(res.name || allowFake0)
   {
     MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
 

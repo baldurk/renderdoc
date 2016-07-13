@@ -332,7 +332,8 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *gl, bool initial) const
     gl->AddMissingTrack(manager->GetID(TextureRes(ctx, Images[i].name)));
   }
 
-  manager->MarkVAOReferenced(VertexArrayRes(ctx, VAO), initial ? eFrameRef_Unknown : eFrameRef_Read);
+  manager->MarkVAOReferenced(VertexArrayRes(ctx, VAO), initial ? eFrameRef_Unknown : eFrameRef_Read,
+                             true);
 
   manager->MarkResourceFrameReferenced(FeedbackRes(ctx, FeedbackObj),
                                        initial ? eFrameRef_Unknown : eFrameRef_Read);

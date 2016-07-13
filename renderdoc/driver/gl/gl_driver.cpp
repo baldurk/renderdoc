@@ -2451,6 +2451,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   GetResourceManager()->ClearReferencedResources();
 
   GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
+  GetResourceManager()->MarkResourceFrameReferenced(m_FakeVAOID, eFrameRef_Write);
   GetResourceManager()->PrepareInitialContents();
 
   FreeCaptureData();
