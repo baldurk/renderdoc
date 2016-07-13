@@ -1657,7 +1657,7 @@ ResourceId D3D11Replay::CreateProxyTexture(const FetchTexture &templateTex)
     desc.SampleDesc.Count = templateTex.msSamp;
     desc.SampleDesc.Quality = templateTex.msQual;
 
-    if(templateTex.creationFlags & eTextureCreate_DSV)
+    if(templateTex.creationFlags & eTextureCreate_DSV || IsDepthFormat(desc.Format))
     {
       desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
       desc.Format = GetTypelessFormat(desc.Format);
