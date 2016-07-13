@@ -276,20 +276,24 @@ void rdclog_flush()
 {
 }
 
-void rdclogprint_int(const char *str)
+void rdclogprint_int(LogType type, const char *fullMsg, const char *msg)
 {
   static Threading::CriticalSection lock;
 
   SCOPED_LOCK(lock);
 
 #if defined(OUTPUT_LOG_TO_DEBUG_OUT)
-  OSUtility::WriteOutput(OSUtility::Output_DebugMon, str);
+  OSUtility::WriteOutput(OSUtility::Output_DebugMon, fullMsg);
 #endif
 #if defined(OUTPUT_LOG_TO_STDOUT)
-  OSUtility::WriteOutput(OSUtility::Output_StdOut, str);
+  // don't output debug messages to stdout/stderr
+  if(type != RDCLog_Debug)
+    OSUtility::WriteOutput(OSUtility::Output_StdOut, msg);
 #endif
 #if defined(OUTPUT_LOG_TO_STDERR)
-  OSUtility::WriteOutput(OSUtility::Output_StdErr, str);
+  // don't output debug messages to stdout/stderr
+  if(type != RDCLog_Debug)
+    OSUtility::WriteOutput(OSUtility::Output_StdErr, msg);
 #endif
 #if defined(OUTPUT_LOG_TO_DISK)
   if(!logfile().empty())
@@ -298,7 +302,7 @@ void rdclogprint_int(const char *str)
     if(f)
     {
       // strlen used as byte length - str is UTF-8 so this is NOT number of characters
-      FileIO::fwrite(str, 1, strlen(str), f);
+      FileIO::fwrite(fullMsg, 1, strlen(fullMsg), f);
       FileIO::fclose(f);
     }
   }
@@ -358,6 +362,9 @@ void rdclog_int(LogType type, const char *file, unsigned int line, const char *f
   output += numWritten;
   available -= numWritten;
 
+  // -3 is for the " - " after the type.
+  const char *noPrefixOutput = (output - 3 - (sizeof(typestr[type]) - 1));
+
   numWritten = StringFormat::vsnprintf(output, available, fmt, args);
 
   va_end(args);
@@ -374,5 +381,5 @@ void rdclog_int(LogType type, const char *file, unsigned int line, const char *f
   *output = '\n';
   *(output + 1) = 0;
 
-  rdclogprint_int(rdclog_outputBuffer);
+  rdclogprint_int(type, rdclog_outputBuffer, noPrefixOutput);
 }

@@ -247,7 +247,7 @@ void rdclog_flush();
 
 // actual low-level print to log output streams defined (useful for if we need to print
 // fatal error messages from within the more complex log function).
-void rdclogprint_int(const char *str);
+void rdclogprint_int(LogType type, const char *fullMsg, const char *msg);
 
 // printf() style main logger function
 void rdclog_int(LogType type, const char *file, unsigned int line, const char *fmt, ...);
@@ -292,13 +292,13 @@ void rdclog_filename(const char *filename);
     RDCDUMP();                         \
     exit(0);                           \
   } while((void)0, 0)
-#define RDCDUMPMSG(message)   \
-  do                          \
-  {                           \
-    rdclogprint_int(message); \
-    rdclog_flush();           \
-    RDCDUMP();                \
-    exit(0);                  \
+#define RDCDUMPMSG(message)                          \
+  do                                                 \
+  {                                                  \
+    rdclogprint_int(RDCLog_Fatal, message, message); \
+    rdclog_flush();                                  \
+    RDCDUMP();                                       \
+    exit(0);                                         \
   } while((void)0, 0)
 #endif
 
