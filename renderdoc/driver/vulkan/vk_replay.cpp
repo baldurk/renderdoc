@@ -4977,7 +4977,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
   if(imCreateInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
   {
-    dataSize = AlignUp(dataSize, (VkDeviceSize)4);
+    dataSize = AlignUp(dataSize, (size_t)4);
     dataSize += GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
                             VK_FORMAT_S8_UINT, mip);
   }
