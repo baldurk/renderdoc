@@ -197,7 +197,7 @@ struct CachedHookData
        !_stricmp(modName, "opengl32.dll") || !_stricmp(modName, "gdi32.dll") ||
        strstr(lowername, "msvcr") == lowername || strstr(lowername, "msvcp") == lowername ||
        strstr(lowername, "nv-vk") == lowername || strstr(lowername, "amdvlk") == lowername ||
-       strstr(lowername, "igvk") == lowername)
+       strstr(lowername, "igvk") == lowername || strstr(lowername, "nvopencl") == lowername)
       return;
 
     byte *baseAddress = (byte *)module;
