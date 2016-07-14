@@ -962,7 +962,10 @@ Serialiser::~Serialiser()
   }
 
   for(size_t i = 0; i < m_Sections.size(); i++)
+  {
     SAFE_DELETE(m_Sections[i]->compressedReader);
+    SAFE_DELETE(m_Sections[i]);
+  }
 
   for(size_t i = 0; i < m_Chunks.size(); i++)
   {

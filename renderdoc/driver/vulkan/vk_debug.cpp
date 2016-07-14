@@ -1461,8 +1461,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
-  m_CacheShaders = false;
-
   attState.blendEnable = false;
 
   pipeInfo.layout = m_CheckerboardPipeLayout;
@@ -1654,6 +1652,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
         m_pDriver->vkDestroyShaderModule(dev, minmaxresult, NULL);
     }
   }
+
+  m_CacheShaders = false;
 
   {
     compPipeInfo.stage.module = module[MESHCS];
@@ -2101,11 +2101,9 @@ VulkanDebugManager::~VulkanDebugManager()
     SaveShaderCache("vkshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache,
                     ShaderCacheCallbacks);
   }
-  else
-  {
-    for(auto it = m_ShaderCache.begin(); it != m_ShaderCache.end(); ++it)
-      ShaderCacheCallbacks.Destroy(it->second);
-  }
+
+  for(auto it = m_ShaderCache.begin(); it != m_ShaderCache.end(); ++it)
+    ShaderCacheCallbacks.Destroy(it->second);
 
   for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
   {

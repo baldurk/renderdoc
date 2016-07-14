@@ -3016,7 +3016,9 @@ void Serialiser::Serialise(const char *name, VkPhysicalDeviceProperties &el)
   Serialise("deviceID", el.deviceID);
   Serialise("deviceType", el.deviceType);
 
-  string deviceName = el.deviceName;
+  string deviceName;
+  if(m_Mode == WRITING)
+    deviceName = el.deviceName;
   Serialise("deviceName", deviceName);
   if(m_Mode == READING)
   {
@@ -3101,8 +3103,8 @@ void Serialiser::Deserialise(const VkDeviceCreateInfo *const el) const
     for(uint32_t i = 0; i < el->queueCreateInfoCount; i++)
       delete[] el->pQueueCreateInfos[i].pQueuePriorities;
     delete[] el->pQueueCreateInfos;
-    delete el->ppEnabledExtensionNames;
-    delete el->ppEnabledLayerNames;
+    delete[] el->ppEnabledExtensionNames;
+    delete[] el->ppEnabledLayerNames;
     delete el->pEnabledFeatures;
   }
 }
@@ -4141,8 +4143,8 @@ void Serialiser::Deserialise(const VkGraphicsPipelineCreateInfo *const el) const
     if(el->pVertexInputState)
     {
       RDCASSERT(el->pVertexInputState->pNext == NULL);    // otherwise delete
-      delete el->pVertexInputState->pVertexBindingDescriptions;
-      delete el->pVertexInputState->pVertexAttributeDescriptions;
+      delete[] el->pVertexInputState->pVertexBindingDescriptions;
+      delete[] el->pVertexInputState->pVertexAttributeDescriptions;
       delete el->pVertexInputState;
     }
     if(el->pInputAssemblyState)

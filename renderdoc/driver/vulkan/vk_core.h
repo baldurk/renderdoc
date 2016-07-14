@@ -328,6 +328,8 @@ private:
 
   struct BakedCmdBufferInfo
   {
+    BakedCmdBufferInfo() : draw(NULL) {}
+    ~BakedCmdBufferInfo() { SAFE_DELETE(draw); }
     vector<FetchAPIEvent> curEvents;
     vector<DebugMessage> debugMessages;
     list<VulkanDrawcallTreeNode *> drawStack;
@@ -446,6 +448,12 @@ private:
   // need it on replay too
   struct DescriptorSetInfo
   {
+    ~DescriptorSetInfo()
+    {
+      for(size_t i = 0; i < currentBindings.size(); i++)
+        delete[] currentBindings[i];
+      currentBindings.clear();
+    }
     ResourceId layout;
     vector<DescriptorSetSlot *> currentBindings;
   };

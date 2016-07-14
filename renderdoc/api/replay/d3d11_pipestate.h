@@ -302,7 +302,7 @@ struct D3D11PipelineState
 
       struct RTBlend
       {
-        RTBlend() : Enabled(false), WriteMask(0) {}
+        RTBlend() : Enabled(false), LogicEnabled(false), WriteMask(0) {}
         struct BlendOp
         {
           rdctype::str Source;

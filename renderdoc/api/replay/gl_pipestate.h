@@ -206,6 +206,12 @@ struct GLPipelineState
 
   struct Feedback
   {
+    Feedback() : Active(false), Paused(false)
+    {
+      Offset[0] = Offset[1] = Offset[2] = Offset[3] = 0;
+      Size[0] = Size[1] = Size[2] = Size[3] = 0;
+    }
+
     ResourceId Obj;
     ResourceId BufferBinding[4];
     uint64_t Offset[4];

@@ -108,7 +108,7 @@ public:
   vector<DebugMessage> GetDebugMessages();
 
   void SavePipelineState();
-  D3D11PipelineState GetD3D11PipelineState() { return m_D3D11PipelineState; }
+  D3D11PipelineState GetD3D11PipelineState() { return D3D11PipelineState(); }
   GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
   VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
   void FreeTargetResource(ResourceId id);
@@ -260,7 +260,6 @@ private:
   };
 
   VulkanPipelineState m_VulkanPipelineState;
-  D3D11PipelineState m_D3D11PipelineState;
 
   map<uint64_t, OutputWindow> m_OutputWindows;
   uint64_t m_OutputWinID;

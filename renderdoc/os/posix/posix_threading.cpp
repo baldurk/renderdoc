@@ -125,21 +125,29 @@ struct TLSData
   vector<void *> data;
 };
 
+static CriticalSection *m_TLSListLock = NULL;
+static vector<TLSData *> *m_TLSList = NULL;
+
 void Init()
 {
   int err = pthread_key_create(&OSTLSHandle, NULL);
   if(err != 0)
     RDCFATAL("Can't allocate OS TLS slot");
 
+  m_TLSListLock = new CriticalSection();
+  m_TLSList = new vector<TLSData *>();
+
   CacheDebuggerPresent();
 }
 
 void Shutdown()
 {
-  // let the TLS data leak. It's not great, but it's only a few kb per thread
-  // that we actually use (ie. not short-lived threads that don't use our TLS).
-  // We don't have a realistic alternative as the threads aren't ours when in-app
-  // and there may not be a way to have something call on thread death.
+  for(size_t i = 0; i < m_TLSList->size(); i++)
+    delete m_TLSList->at(i);
+
+  delete m_TLSList;
+  delete m_TLSListLock;
+
   pthread_key_delete(OSTLSHandle);
 }
 
@@ -173,6 +181,13 @@ void SetTLSValue(uint64_t slot, void *value)
     {
       slots = new TLSData;
       pthread_setspecific(OSTLSHandle, slots);
+
+      // in the case where this thread is entirely new, we globally lock so we can
+      // store its data for shutdown (as we might not get notified of every thread
+      // that exits). This only happens once, so we take the hit of the lock.
+      m_TLSListLock->Lock();
+      m_TLSList->push_back(slots);
+      m_TLSListLock->Unlock();
     }
 
     if(slot - 1 >= slots->data.size())

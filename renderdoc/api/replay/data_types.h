@@ -284,6 +284,17 @@ struct FetchFrameStatistics
 
 struct FetchFrameInfo
 {
+  FetchFrameInfo()
+      : frameNumber(0),
+        firstEvent(0),
+        fileOffset(0),
+        fileSize(0),
+        persistentSize(0),
+        initDataSize(0),
+        captureTime(0)
+  {
+  }
+
   uint32_t frameNumber;
   uint32_t firstEvent;
   uint64_t fileOffset;

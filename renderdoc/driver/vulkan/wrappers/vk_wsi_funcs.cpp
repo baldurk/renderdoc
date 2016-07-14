@@ -281,6 +281,11 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(Serialiser *localSerialiser, 
       range.layerCount = info.imageArrayLayers;
       range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
+      m_ImageLayouts[liveId].extent = iminfo.extent;
+      m_ImageLayouts[liveId].format = iminfo.format;
+      m_ImageLayouts[liveId].layerCount = 1;
+      m_ImageLayouts[liveId].levelCount = 1;
+
       m_ImageLayouts[liveId].subresourceStates.clear();
       m_ImageLayouts[liveId].subresourceStates.push_back(
           ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));

@@ -1036,6 +1036,7 @@ void Serialiser::Serialise(const char *name, FetchTexture &el)
   Serialise("", el.creationFlags);
   Serialise("", el.msQual);
   Serialise("", el.msSamp);
+  Serialise("", el.byteSize);
 
   SIZE_CHECK(FetchTexture, 152);
 }
