@@ -164,9 +164,11 @@ D3D11DebugManager::~D3D11DebugManager()
     SaveShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache,
                     ShaderCacheCallbacks);
   }
-
-  for(auto it = m_ShaderCache.begin(); it != m_ShaderCache.end(); ++it)
-    ShaderCacheCallbacks.Destroy(it->second);
+  else
+  {
+    for(auto it = m_ShaderCache.begin(); it != m_ShaderCache.end(); ++it)
+      ShaderCacheCallbacks.Destroy(it->second);
+  }
 
   ShutdownFontRendering();
   ShutdownStreamOut();
