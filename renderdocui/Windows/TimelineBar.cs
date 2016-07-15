@@ -171,16 +171,23 @@ namespace renderdocui.Windows
                     {
                         uptri[1] = new PointF(x + width / 2.0f, y + height - 2);
                         update = false;
+                        type = 1;
                     }
                     if (type == 4)
                     {
                         uptri[0] = new PointF(x + width / 2.0f, y + height - 2);
+                        type = 1;
                     }
                     if (type == 5)
                     {
                         update = false;
+                        type = 1;
                     }
-                    type = 1;
+                    if (type == 6)
+                    {
+                        update = false;
+                        type = 2;
+                    }
                 }
 
                 if (x - lastPipX[type] > pipRadius*2.0f)
@@ -608,6 +615,9 @@ namespace renderdocui.Windows
                                         var barcol = Color.Black;
 
                                         int type = 2;
+
+                                        if (u.usage == ResourceUsage.Barrier)
+                                            type = 6;
 
                                         DrawPip(g, barcol, highlightBarRect, type, d, s.draws.Count, start, widths[i], "");
                                     }
