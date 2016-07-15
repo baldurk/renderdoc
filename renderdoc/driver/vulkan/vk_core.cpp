@@ -2540,9 +2540,12 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
     if(sh.module == ResourceId())
       continue;
 
+    ResourceId origPipe = GetResourceManager()->GetOriginalID(state.pipeline);
+    ResourceId origShad = GetResourceManager()->GetOriginalID(sh.module);
+
     // 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
-    const vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descSets =
-        (shad == 5 ? m_RenderState.compute.descSets : m_RenderState.graphics.descSets);
+    const vector<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descSets =
+        (shad == 5 ? state.computeDescSets : state.graphicsDescSets);
 
     RDCASSERT(sh.mapping);
 
@@ -2590,6 +2593,9 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
 
         DescriptorSetInfo &descset = m_DescriptorSetState[descSets[bindset].descSet];
         DescSetLayout &layout = c.m_DescSetLayout[descset.layout];
+
+        ResourceId origId = GetResourceManager()->GetOriginalID(descSets[bindset].descSet);
+        ResourceId layoutId = GetResourceManager()->GetOriginalID(descset.layout);
 
         if(layout.bindings.empty())
         {

@@ -1208,9 +1208,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
     layout = GetResourceManager()->GetLiveHandle<VkPipelineLayout>(layoutid);
 
     // track while reading, as we need to track resource usage
-    vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
-        (bind == VK_PIPELINE_BIND_POINT_GRAPHICS) ? m_RenderState.graphics.descSets
-                                                  : m_RenderState.compute.descSets;
+    vector<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
+        (bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
+            ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphicsDescSets
+            : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.computeDescSets;
 
     // expand as necessary
     if(descsets.size() < first + numSets)

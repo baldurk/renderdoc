@@ -340,6 +340,13 @@ private:
     {
       ResourceId pipeline;
 
+      struct DescriptorAndOffsets
+      {
+        ResourceId descSet;
+        vector<uint32_t> offsets;
+      };
+      vector<DescriptorAndOffsets> graphicsDescSets, computeDescSets;
+
       uint32_t idxWidth;
       ResourceId ibuffer;
       vector<ResourceId> vbuffers;
