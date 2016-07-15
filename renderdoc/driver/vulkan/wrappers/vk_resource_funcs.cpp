@@ -381,7 +381,8 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
       MemMapState &state = *memrecord->memMapState;
 
       // ensure size is valid
-      RDCASSERT(size == VK_WHOLE_SIZE || (size > 0 && size <= memrecord->Length));
+      RDCASSERT(size == VK_WHOLE_SIZE || (size > 0 && size <= memrecord->Length), GetResID(mem),
+                size, memrecord->Length);
 
       state.mappedPtr = (byte *)realData - (size_t)offset;
       state.refData = NULL;
