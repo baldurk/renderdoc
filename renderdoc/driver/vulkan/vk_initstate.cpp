@@ -1974,7 +1974,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
             0,
             0,
             0,
-            {aspectFlags, m, a, 1},
+            {aspectFlags, (uint32_t)m, (uint32_t)a, 1},
             {
                 0, 0, 0,
             },
