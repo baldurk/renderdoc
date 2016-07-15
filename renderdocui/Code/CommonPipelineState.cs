@@ -941,9 +941,9 @@ namespace renderdocui.Code
 
                     ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
 
-                    for (int set = 0; set < m_Vulkan.graphics.DescSets.Length; set++)
+                    for (int set = 0; set < descsets.Length; set++)
                     {
-                        var descset = m_Vulkan.graphics.DescSets[set];
+                        var descset = descsets[set];
                         for (int slot = 0; slot < descset.bindings.Length; slot++)
                         {
                             var bind = descset.bindings[slot];
