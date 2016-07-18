@@ -165,7 +165,10 @@ void RenderDoc::RemoteAccessClientThread(void *s)
         }
         else if(type == ePacket_TriggerCapture)
         {
-          RenderDoc::Inst().TriggerCapture();
+          uint32_t numFrames = 0;
+          recvser->Serialise("", numFrames);
+
+          RenderDoc::Inst().TriggerCapture(numFrames);
         }
         else if(type == ePacket_QueueCapture)
         {
@@ -417,10 +420,17 @@ public:
   const char *GetAPI() { return m_API.c_str(); }
   uint32_t GetPID() { return m_PID; }
   const char *GetBusyClient() { return m_BusyClient.c_str(); }
-  void TriggerCapture()
+  void TriggerCapture(uint32_t numFrames)
   {
-    if(!SendPacket(m_Socket, ePacket_TriggerCapture))
+    Serialiser ser("", Serialiser::WRITING, false);
+
+    ser.Serialise("", numFrames);
+
+    if(!SendPacket(m_Socket, ePacket_TriggerCapture, ser))
+    {
       SAFE_DELETE(m_Socket);
+      return;
+    }
   }
 
   void QueueCapture(uint32_t frameNumber)
@@ -635,9 +645,10 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RemoteAccess_GetBusyClient(Rem
   return access->GetBusyClient();
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_TriggerCapture(RemoteAccess *access)
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_TriggerCapture(RemoteAccess *access,
+                                                                       uint32_t numFrames)
 {
-  access->TriggerCapture();
+  access->TriggerCapture(numFrames);
 }
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_QueueCapture(RemoteAccess *access,
                                                                      uint32_t frameNumber)

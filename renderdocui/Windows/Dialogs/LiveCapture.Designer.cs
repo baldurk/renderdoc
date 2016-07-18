@@ -35,6 +35,7 @@
             System.Windows.Forms.GroupBox groupBox1;
             System.Windows.Forms.ToolStrip toolStrip1;
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(LiveCapture));
+            System.Windows.Forms.Label label4;
             this.queueCap = new System.Windows.Forms.Button();
             this.captureFrame = new System.Windows.Forms.NumericUpDown();
             this.captureDelay = new System.Windows.Forms.NumericUpDown();
@@ -59,11 +60,13 @@
             this.deleteThisCaptureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.captureCountdown = new System.Windows.Forms.Timer(this.components);
             this.childUpdateTimer = new System.Windows.Forms.Timer(this.components);
+            this.numFrames = new System.Windows.Forms.NumericUpDown();
             label1 = new System.Windows.Forms.Label();
             label2 = new System.Windows.Forms.Label();
             label3 = new System.Windows.Forms.Label();
             groupBox1 = new System.Windows.Forms.GroupBox();
             toolStrip1 = new System.Windows.Forms.ToolStrip();
+            label4 = new System.Windows.Forms.Label();
             groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.captureFrame)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.captureDelay)).BeginInit();
@@ -71,6 +74,7 @@
             this.tableLayoutPanel1.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
             this.rightclickContext.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numFrames)).BeginInit();
             this.SuspendLayout();
             // 
             // label1
@@ -106,6 +110,8 @@
             groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            groupBox1.Controls.Add(this.numFrames);
+            groupBox1.Controls.Add(label4);
             groupBox1.Controls.Add(this.queueCap);
             groupBox1.Controls.Add(this.captureFrame);
             groupBox1.Controls.Add(label3);
@@ -114,7 +120,7 @@
             groupBox1.Controls.Add(this.triggerCapture);
             groupBox1.Location = new System.Drawing.Point(3, 34);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new System.Drawing.Size(351, 75);
+            groupBox1.Size = new System.Drawing.Size(356, 75);
             groupBox1.TabIndex = 7;
             groupBox1.TabStop = false;
             groupBox1.Text = "Tools";
@@ -156,12 +162,12 @@
             // 
             this.captureDelay.Location = new System.Drawing.Point(96, 19);
             this.captureDelay.Name = "captureDelay";
-            this.captureDelay.Size = new System.Drawing.Size(120, 20);
+            this.captureDelay.Size = new System.Drawing.Size(46, 20);
             this.captureDelay.TabIndex = 1;
             // 
             // triggerCapture
             // 
-            this.triggerCapture.Location = new System.Drawing.Point(222, 17);
+            this.triggerCapture.Location = new System.Drawing.Point(253, 16);
             this.triggerCapture.Name = "triggerCapture";
             this.triggerCapture.Size = new System.Drawing.Size(92, 23);
             this.triggerCapture.TabIndex = 2;
@@ -181,7 +187,7 @@
             toolStrip1.Location = new System.Drawing.Point(0, 375);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            toolStrip1.Size = new System.Drawing.Size(357, 25);
+            toolStrip1.Size = new System.Drawing.Size(362, 25);
             toolStrip1.Stretch = true;
             toolStrip1.TabIndex = 8;
             toolStrip1.Text = "toolStrip1";
@@ -256,7 +262,7 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(357, 400);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(362, 400);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // captures
@@ -266,7 +272,7 @@
             this.captures.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.captures.Location = new System.Drawing.Point(3, 221);
             this.captures.Name = "captures";
-            this.captures.Size = new System.Drawing.Size(351, 151);
+            this.captures.Size = new System.Drawing.Size(356, 151);
             this.captures.TabIndex = 6;
             this.captures.TileSize = new System.Drawing.Size(300, 100);
             this.captures.UseCompatibleStateImageBehavior = false;
@@ -283,7 +289,7 @@
             this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel1.Location = new System.Drawing.Point(3, 3);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(351, 25);
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(356, 25);
             this.flowLayoutPanel1.TabIndex = 4;
             this.flowLayoutPanel1.WrapContents = false;
             // 
@@ -321,9 +327,9 @@
             this.childProcesses.Dock = System.Windows.Forms.DockStyle.Fill;
             this.childProcesses.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.childProcesses.Location = new System.Drawing.Point(3, 143);
-            this.childProcesses.MinimumSize = new System.Drawing.Size(0, 40);
+            this.childProcesses.MinimumSize = new System.Drawing.Size(4, 40);
             this.childProcesses.Name = "childProcesses";
-            this.childProcesses.Size = new System.Drawing.Size(351, 40);
+            this.childProcesses.Size = new System.Drawing.Size(356, 40);
             this.childProcesses.TabIndex = 5;
             this.childProcesses.UseCompatibleStateImageBehavior = false;
             this.childProcesses.View = System.Windows.Forms.View.Tile;
@@ -385,11 +391,37 @@
             this.childUpdateTimer.Enabled = true;
             this.childUpdateTimer.Tick += new System.EventHandler(this.childUpdateTimer_Tick);
             // 
+            // label4
+            // 
+            label4.AutoSize = true;
+            label4.Location = new System.Drawing.Point(148, 21);
+            label4.Name = "label4";
+            label4.Size = new System.Drawing.Size(54, 13);
+            label4.TabIndex = 5;
+            label4.Text = "# Frames:";
+            // 
+            // numFrames
+            // 
+            this.numFrames.Location = new System.Drawing.Point(208, 19);
+            this.numFrames.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numFrames.Name = "numFrames";
+            this.numFrames.Size = new System.Drawing.Size(39, 20);
+            this.numFrames.TabIndex = 6;
+            this.numFrames.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
             // LiveCapture
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(357, 400);
+            this.ClientSize = new System.Drawing.Size(362, 400);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "LiveCapture";
@@ -408,6 +440,7 @@
             this.flowLayoutPanel1.ResumeLayout(false);
             this.flowLayoutPanel1.PerformLayout();
             this.rightclickContext.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.numFrames)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -438,5 +471,6 @@
         private System.Windows.Forms.ToolStripSplitButton openMenu;
         private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem newInstanceToolStripMenuItem;
+        private System.Windows.Forms.NumericUpDown numFrames;
     }
 }

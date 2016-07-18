@@ -168,7 +168,7 @@ RenderDoc::RenderDoc()
 
   m_Replay = false;
 
-  m_Cap = false;
+  m_Cap = 0;
 
   m_FocusKeys.clear();
   m_FocusKeys.push_back(eRENDERDOC_Key_F11);
@@ -459,7 +459,7 @@ void RenderDoc::Tick()
 
   if(!prev_focus && cur_focus)
   {
-    m_Cap = false;
+    m_Cap = 0;
 
     // can only shift focus if we have multiple windows
     if(m_WindowFrameCapturers.size() > 1)
@@ -483,7 +483,7 @@ void RenderDoc::Tick()
   }
   if(!prev_cap && cur_cap)
   {
-    TriggerCapture();
+    TriggerCapture(1);
   }
 
   prev_focus = cur_focus;
@@ -492,9 +492,10 @@ void RenderDoc::Tick()
 
 bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
 {
-  bool ret = m_Cap;
+  bool ret = m_Cap > 0;
 
-  m_Cap = false;
+  if(m_Cap > 0)
+    m_Cap--;
 
   set<uint32_t> frames;
   frames.swap(m_QueuedFrameCaptures);

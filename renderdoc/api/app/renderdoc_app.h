@@ -379,9 +379,6 @@ typedef uint32_t(RENDERDOC_CC *pRENDERDOC_GetNumCaptures)();
 typedef uint32_t(RENDERDOC_CC *pRENDERDOC_GetCapture)(uint32_t idx, char *logfile,
                                                       uint32_t *pathlength, uint64_t *timestamp);
 
-// capture the next frame on whichever window and API is currently considered active
-typedef void(RENDERDOC_CC *pRENDERDOC_TriggerCapture)();
-
 // returns 1 if the RenderDoc UI is connected to this application, 0 otherwise
 typedef uint32_t(RENDERDOC_CC *pRENDERDOC_IsRemoteAccessConnected)();
 
@@ -420,6 +417,12 @@ typedef void *RENDERDOC_WindowHandle;
 // respond to keypresses. Neither parameter can be NULL
 typedef void(RENDERDOC_CC *pRENDERDOC_SetActiveWindow)(RENDERDOC_DevicePointer device,
                                                        RENDERDOC_WindowHandle wndHandle);
+
+// capture the next frame on whichever window and API is currently considered active
+typedef void(RENDERDOC_CC *pRENDERDOC_TriggerCapture)();
+
+// capture the next N frames on whichever window and API is currently considered active
+typedef void(RENDERDOC_CC *pRENDERDOC_TriggerMultiFrameCapture)(uint32_t numFrames);
 
 // When choosing either a device pointer or a window handle to capture, you can pass NULL.
 // Passing NULL specifies a 'wildcard' match against anything. This allows you to specify
@@ -470,6 +473,7 @@ typedef enum {
   eRENDERDOC_API_Version_1_0_0 = 10000,    // RENDERDOC_API_1_0_0 = 1 00 00
   eRENDERDOC_API_Version_1_0_1 = 10001,    // RENDERDOC_API_1_0_1 = 1 00 01
   eRENDERDOC_API_Version_1_0_2 = 10002,    // RENDERDOC_API_1_0_2 = 1 00 02
+  eRENDERDOC_API_Version_1_1_0 = 10100,    // RENDERDOC_API_1_1_0 = 1 01 00
 } RENDERDOC_Version;
 
 // API version changelog:
@@ -478,8 +482,10 @@ typedef enum {
 // 1.0.1 - Bugfix: IsFrameCapturing() was returning false for captures that were triggered
 //         by keypress or TriggerCapture, instead of Start/EndFrameCapture.
 // 1.0.2 - Refactor: Renamed eRENDERDOC_Option_DebugDeviceMode to eRENDERDOC_Option_APIValidation
+// 1.1.0 - Add feature: TriggerMultiFrameCapture(). Backwards compatible with 1.0.x since the new
+//         function pointer is added to the end of the struct, the original layout is identical
 
-// eRENDERDOC_API_Version_1_0_2
+// eRENDERDOC_API_Version_1_1_0
 typedef struct
 {
   pRENDERDOC_GetAPIVersion GetAPIVersion;
@@ -515,10 +521,13 @@ typedef struct
   pRENDERDOC_StartFrameCapture StartFrameCapture;
   pRENDERDOC_IsFrameCapturing IsFrameCapturing;
   pRENDERDOC_EndFrameCapture EndFrameCapture;
-} RENDERDOC_API_1_0_2;
 
-typedef RENDERDOC_API_1_0_2 RENDERDOC_API_1_0_0;
-typedef RENDERDOC_API_1_0_2 RENDERDOC_API_1_0_1;
+  pRENDERDOC_TriggerMultiFrameCapture TriggerMultiFrameCapture;
+} RENDERDOC_API_1_1_0;
+
+typedef RENDERDOC_API_1_1_0 RENDERDOC_API_1_0_0;
+typedef RENDERDOC_API_1_1_0 RENDERDOC_API_1_0_1;
+typedef RENDERDOC_API_1_1_0 RENDERDOC_API_1_0_2;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API entry point

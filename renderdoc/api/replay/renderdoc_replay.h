@@ -374,7 +374,7 @@ struct IRemoteAccess
   virtual uint32_t GetPID() = 0;
   virtual const char *GetBusyClient() = 0;
 
-  virtual void TriggerCapture() = 0;
+  virtual void TriggerCapture(uint32_t numFrames) = 0;
   virtual void QueueCapture(uint32_t frameNumber) = 0;
   virtual void CopyCapture(uint32_t remoteID, const char *localpath) = 0;
 
@@ -402,7 +402,8 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RemoteAccess_GetAPI(RemoteAcce
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RemoteAccess_GetPID(RemoteAccess *access);
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RemoteAccess_GetBusyClient(RemoteAccess *access);
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_TriggerCapture(RemoteAccess *access);
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_TriggerCapture(RemoteAccess *access,
+                                                                       uint32_t numFrames);
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_QueueCapture(RemoteAccess *access,
                                                                      uint32_t frameNumber);
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_CopyCapture(RemoteAccess *access,

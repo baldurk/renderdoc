@@ -105,7 +105,12 @@ static uint32_t GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, ui
 
 static void TriggerCapture()
 {
-  RenderDoc::Inst().TriggerCapture();
+  RenderDoc::Inst().TriggerCapture(1);
+}
+
+static void TriggerMultiFrameCapture(uint32_t numFrames)
+{
+  RenderDoc::Inst().TriggerCapture(numFrames);
 }
 
 static uint32_t IsRemoteAccessConnected()
@@ -160,22 +165,22 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val);
 uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt);
 float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt);
 
-void RENDERDOC_CC GetAPIVersion_1_0_2(int *major, int *minor, int *patch)
+void RENDERDOC_CC GetAPIVersion_1_1_0(int *major, int *minor, int *patch)
 {
   if(major)
     *major = 1;
   if(minor)
-    *minor = 0;
+    *minor = 1;
   if(patch)
-    *patch = 2;
+    *patch = 0;
 }
 
-RENDERDOC_API_1_0_2 api_1_0_2;
-void Init_1_0_2()
+RENDERDOC_API_1_1_0 api_1_1_0;
+void Init_1_1_0()
 {
-  RENDERDOC_API_1_0_2 &api = api_1_0_2;
+  RENDERDOC_API_1_1_0 &api = api_1_1_0;
 
-  api.GetAPIVersion = &GetAPIVersion_1_0_2;
+  api.GetAPIVersion = &GetAPIVersion_1_1_0;
 
   api.SetCaptureOptionU32 = &SetCaptureOptionU32;
   api.SetCaptureOptionF32 = &SetCaptureOptionF32;
@@ -208,6 +213,8 @@ void Init_1_0_2()
   api.StartFrameCapture = &StartFrameCapture;
   api.IsFrameCapturing = &IsFrameCapturing;
   api.EndFrameCapture = &EndFrameCapture;
+
+  api.TriggerMultiFrameCapture = &TriggerMultiFrameCapture;
 }
 
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version version,
@@ -231,9 +238,10 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version ver
     ret = 1;                                                       \
   }
 
-  API_VERSION_HANDLE(1_0_0, 1_0_2);
-  API_VERSION_HANDLE(1_0_1, 1_0_2);
-  API_VERSION_HANDLE(1_0_2, 1_0_2);
+  API_VERSION_HANDLE(1_0_0, 1_1_0);
+  API_VERSION_HANDLE(1_0_1, 1_1_0);
+  API_VERSION_HANDLE(1_0_2, 1_1_0);
+  API_VERSION_HANDLE(1_1_0, 1_1_0);
 
 #undef API_VERSION_HANDLE
 

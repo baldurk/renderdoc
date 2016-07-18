@@ -274,7 +274,7 @@ public:
     return dev == m_ActiveWindow.dev && wnd == m_ActiveWindow.wnd;
   }
 
-  void TriggerCapture() { m_Cap = true; }
+  void TriggerCapture(uint32_t numFrames) { m_Cap = numFrames; }
   uint32_t GetOverlayBits() { return m_Overlay; }
   void MaskOverlayBits(uint32_t And, uint32_t Or) { m_Overlay = (m_Overlay & And) | Or; }
   void QueueCapture(uint32_t frameNumber) { m_QueuedFrameCaptures.insert(frameNumber); }
@@ -303,7 +303,7 @@ private:
 
   bool m_Replay;
 
-  bool m_Cap;
+  uint32_t m_Cap;
 
   vector<RENDERDOC_InputButton> m_FocusKeys;
   vector<RENDERDOC_InputButton> m_CaptureKeys;

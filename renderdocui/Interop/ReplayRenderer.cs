@@ -930,7 +930,7 @@ namespace renderdoc
         private static extern IntPtr RemoteAccess_GetBusyClient(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_TriggerCapture(IntPtr real);
+        private static extern void RemoteAccess_TriggerCapture(IntPtr real, UInt32 numFrames);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RemoteAccess_QueueCapture(IntPtr real, UInt32 frameNumber);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -994,9 +994,9 @@ namespace renderdoc
             m_Real = IntPtr.Zero;
         }
 
-        public void TriggerCapture()
+        public void TriggerCapture(UInt32 numFrames)
         {
-            RemoteAccess_TriggerCapture(m_Real);
+            RemoteAccess_TriggerCapture(m_Real, numFrames);
         }
 
         public void QueueCapture(UInt32 frameNum)

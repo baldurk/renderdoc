@@ -54,6 +54,7 @@ namespace renderdocui.Windows
         Thread m_ConnectThread = null;
         bool m_TriggerCapture = false;
         bool m_QueueCapture = false;
+        int m_CaptureNumFrames = 1;
         int m_CaptureFrameNum = 0;
         int m_CaptureCounter = 0;
         bool m_Disconnect = false;
@@ -174,7 +175,7 @@ namespace renderdocui.Windows
 
                     if (m_TriggerCapture)
                     {
-                        m_Connection.TriggerCapture();
+                        m_Connection.TriggerCapture((uint)m_CaptureNumFrames);
                         m_TriggerCapture = false;
                     }
 
@@ -703,6 +704,7 @@ namespace renderdocui.Windows
 
         private void triggerCapture_Click(object sender, EventArgs e)
         {
+            m_CaptureNumFrames = (int)numFrames.Value;
             if (captureDelay.Value == 0)
             {
                 m_TriggerCapture = true;
