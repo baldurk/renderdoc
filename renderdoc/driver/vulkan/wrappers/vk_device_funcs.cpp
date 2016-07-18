@@ -470,17 +470,32 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
   VkPhysicalDeviceProperties physProps;
   VkPhysicalDeviceMemoryProperties memProps;
   VkPhysicalDeviceFeatures physFeatures;
+  VkQueueFamilyProperties queueProps[16];
 
   if(m_State >= WRITING)
   {
     ObjDisp(instance)->GetPhysicalDeviceProperties(Unwrap(*pPhysicalDevices), &physProps);
     ObjDisp(instance)->GetPhysicalDeviceMemoryProperties(Unwrap(*pPhysicalDevices), &memProps);
     ObjDisp(instance)->GetPhysicalDeviceFeatures(Unwrap(*pPhysicalDevices), &physFeatures);
+
+    uint32_t queueCount = 0;
+    ObjDisp(instance)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(*pPhysicalDevices),
+                                                              &queueCount, NULL);
+
+    if(queueCount < 16)
+    {
+      RDCWARN("More than 16 queues");
+      queueCount = 16;
+    }
+
+    ObjDisp(instance)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(*pPhysicalDevices),
+                                                              &queueCount, queueProps);
   }
 
   localSerialiser->Serialise("physProps", physProps);
   localSerialiser->Serialise("memProps", memProps);
   localSerialiser->Serialise("physFeatures", physFeatures);
+  localSerialiser->SerialisePODArray<16>("queueProps", queueProps);
 
   VkPhysicalDevice pd = VK_NULL_HANDLE;
 
@@ -580,6 +595,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   m_PhysicalDevices.resize(count);
+  m_SupportedQueueFamilies.resize(count);
 
   for(uint32_t i = 0; i < count; i++)
   {
@@ -632,6 +648,89 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
         }
       }
     }
+
+    // find the queue with the most bits set and only report that one
+
+    {
+      uint32_t count = 0;
+      ObjDisp(m_PhysicalDevices[i])
+          ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(m_PhysicalDevices[i]), &count, NULL);
+
+      VkQueueFamilyProperties *props = new VkQueueFamilyProperties[count];
+      ObjDisp(m_PhysicalDevices[i])
+          ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(m_PhysicalDevices[i]), &count, props);
+
+      uint32_t best = 0;
+
+      // don't need to explicitly check for transfer, because graphics bit
+      // implies it. We do have to check for compute bit, because there might
+      // be a graphics only queue - it just means we have to keep looking
+      // to find the grpahics & compute queue family which is guaranteed.
+      for(uint32_t q = 1; q < count; q++)
+      {
+        // compare current against the known best
+        VkQueueFamilyProperties &currentProps = props[q];
+        VkQueueFamilyProperties &bestProps = props[best];
+
+        const bool currentGraphics = (currentProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
+        const bool currentCompute = (currentProps.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
+        const bool currentSparse = (currentProps.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) != 0;
+
+        const bool bestGraphics = (bestProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
+        const bool bestCompute = (bestProps.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
+        const bool bestSparse = (bestProps.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) != 0;
+
+        // if one has graphics bit set, but the other doesn't
+        if(currentGraphics != bestGraphics)
+        {
+          // if current has graphics but best doesn't, we have a new best
+          if(currentGraphics)
+            best = q;
+          continue;
+        }
+
+        if(currentCompute != bestCompute)
+        {
+          // if current has compute but best doesn't, we have a new best
+          if(currentCompute)
+            best = q;
+          continue;
+        }
+
+        // if we've gotten here, both best and current have graphics and compute. Check
+        // to see if the current is somehow better than best (in the case of a tie, we
+        // keep the lower index of queue).
+
+        if(currentSparse != bestSparse)
+        {
+          if(currentSparse)
+            best = q;
+          continue;
+        }
+
+        if(currentProps.timestampValidBits != bestProps.timestampValidBits)
+        {
+          if(currentProps.timestampValidBits > bestProps.timestampValidBits)
+            best = q;
+          continue;
+        }
+
+        if(currentProps.minImageTransferGranularity.width <
+               bestProps.minImageTransferGranularity.width ||
+           currentProps.minImageTransferGranularity.height <
+               bestProps.minImageTransferGranularity.height ||
+           currentProps.minImageTransferGranularity.depth <
+               bestProps.minImageTransferGranularity.depth)
+        {
+          best = q;
+          continue;
+        }
+      }
+
+      m_SupportedQueueFamilies[i] = std::make_pair(best, props[best]);
+
+      SAFE_DELETE_ARRAY(props);
+    }
   }
 
   if(pPhysicalDeviceCount)
@@ -653,12 +752,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
   SERIALISE_ELEMENT(ResourceId, physId, GetResID(physicalDevice));
   SERIALISE_ELEMENT(VkDeviceCreateInfo, serCreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT(ResourceId, devId, GetResID(*pDevice));
+  SERIALISE_ELEMENT(uint32_t, queueFamily, m_SupportedQueueFamily);
 
   if(m_State == READING)
   {
     // we must make any modifications locally, so the free of pointers
     // in the serialised VkDeviceCreateInfo don't double-free
     VkDeviceCreateInfo createInfo = serCreateInfo;
+
+    m_SupportedQueueFamily = queueFamily;
 
     std::vector<string> Extensions;
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
@@ -1001,6 +1103,11 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     for(uint32_t q = 0; q < count; q++)
       m_QueueFamilies[family][q] = VK_NULL_HANDLE;
   }
+
+  // find the matching physical device
+  for(size_t i = 0; i < m_PhysicalDevices.size(); i++)
+    if(m_PhysicalDevices[i] == physicalDevice)
+      m_SupportedQueueFamily = m_SupportedQueueFamilies[i].first;
 
   VkLayerDeviceCreateInfo *layerCreateInfo = (VkLayerDeviceCreateInfo *)pCreateInfo->pNext;
 

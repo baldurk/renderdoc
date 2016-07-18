@@ -87,9 +87,18 @@ void WrappedVulkan::vkGetPhysicalDeviceProperties(VkPhysicalDevice physicalDevic
 void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties(
     VkPhysicalDevice physicalDevice, uint32_t *pCount, VkQueueFamilyProperties *pQueueFamilyProperties)
 {
-  ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), pCount,
-                                               pQueueFamilyProperties);
+  // pretend to only have one queue, the one with graphics capability
+  if(pCount)
+    *pCount = 1;
+
+  if(pQueueFamilyProperties)
+  {
+    // find the matching physical device
+    for(size_t i = 0; i < m_PhysicalDevices.size(); i++)
+      if(m_PhysicalDevices[i] == physicalDevice)
+        *pQueueFamilyProperties = m_SupportedQueueFamilies[i].second;
+    return;
+  }
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceMemoryProperties(

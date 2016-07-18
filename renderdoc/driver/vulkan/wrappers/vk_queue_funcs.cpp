@@ -29,7 +29,7 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(Serialiser *localSerialiser, VkDe
                                                VkQueue *pQueue)
 {
   SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(uint32_t, familyIdx, queueFamilyIndex);
+  SERIALISE_ELEMENT(uint32_t, familyIdx, m_SupportedQueueFamily);
   SERIALISE_ELEMENT(uint32_t, idx, queueIndex);
   SERIALISE_ELEMENT(ResourceId, queueId, GetResID(*pQueue));
 

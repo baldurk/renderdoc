@@ -2595,6 +2595,14 @@ string ToStrHelper<false, VkClearAttachment>::Get(const VkClearAttachment &el)
 }
 
 template <>
+string ToStrHelper<false, VkQueueFamilyProperties>::Get(const VkQueueFamilyProperties &el)
+{
+  return StringFormat::Fmt(
+      "%s x %u, %u bits, %s", ToStr::Get((VkQueueFlagBits)el.queueFlags).c_str(), el.queueCount,
+      el.timestampValidBits, ToStr::Get(el.minImageTransferGranularity).c_str());
+}
+
+template <>
 string ToStrHelper<false, VkExtent2D>::Get(const VkExtent2D &el)
 {
   return StringFormat::Fmt("VkExtent<%u,%u>", el.width, el.height);

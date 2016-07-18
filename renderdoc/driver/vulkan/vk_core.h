@@ -44,7 +44,7 @@ struct VkInitParams : public RDCInitParams
 
   void Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst);
 
-  static const uint32_t VK_SERIALISE_VERSION = 0x0000004;
+  static const uint32_t VK_SERIALISE_VERSION = 0x0000005;
 
   // version number internal to vulkan stream
   uint32_t SerialiseVersion;
@@ -273,7 +273,16 @@ private:
       m_QueueFamilyIdx;    // the family index that we've selected in CreateDevice for our queue
   VkQueue m_Queue;         // the queue used for our own command buffer work
 
+  // the physical devices
   vector<VkPhysicalDevice> m_PhysicalDevices;
+
+  // the single queue family supported for each physical device
+  vector<pair<uint32_t, VkQueueFamilyProperties> > m_SupportedQueueFamilies;
+
+  // the supported queue family for the created device
+  uint32_t m_SupportedQueueFamily;
+
+  // the queue families (an array of count for each) for the created device
   vector<VkQueue *> m_QueueFamilies;
 
   vector<uint32_t *> m_MemIdxMaps;
