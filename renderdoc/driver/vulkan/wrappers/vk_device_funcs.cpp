@@ -652,13 +652,13 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
     // find the queue with the most bits set and only report that one
 
     {
-      uint32_t count = 0;
+      uint32_t queuecount = 0;
       ObjDisp(m_PhysicalDevices[i])
-          ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(m_PhysicalDevices[i]), &count, NULL);
+          ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(m_PhysicalDevices[i]), &queuecount, NULL);
 
-      VkQueueFamilyProperties *props = new VkQueueFamilyProperties[count];
+      VkQueueFamilyProperties *props = new VkQueueFamilyProperties[queuecount];
       ObjDisp(m_PhysicalDevices[i])
-          ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(m_PhysicalDevices[i]), &count, props);
+          ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(m_PhysicalDevices[i]), &queuecount, props);
 
       uint32_t best = 0;
 
@@ -666,7 +666,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
       // implies it. We do have to check for compute bit, because there might
       // be a graphics only queue - it just means we have to keep looking
       // to find the grpahics & compute queue family which is guaranteed.
-      for(uint32_t q = 1; q < count; q++)
+      for(uint32_t q = 1; q < queuecount; q++)
       {
         // compare current against the known best
         VkQueueFamilyProperties &currentProps = props[q];
