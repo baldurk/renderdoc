@@ -271,7 +271,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_TextDescSetLayout = VK_NULL_HANDLE;
   m_TextPipeLayout = VK_NULL_HANDLE;
   m_TextDescSet = VK_NULL_HANDLE;
-  m_TextPipeline = VK_NULL_HANDLE;
+  RDCEraseEl(m_TextPipeline);
   RDCEraseEl(m_TextGeneralUBO);
   RDCEraseEl(m_TextGlyphUBO);
   RDCEraseEl(m_TextStringUBO);
@@ -437,6 +437,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   VkRenderPass RGBA16RP = VK_NULL_HANDLE;
   VkRenderPass RGBA8MSRP = VK_NULL_HANDLE;
   VkRenderPass RGBA16MSRP[8] = {0};
+  VkRenderPass BGRA8RP = VK_NULL_HANDLE;
 
   RDCCOMPILE_ASSERT(ARRAY_COUNT(RGBA16MSRP) == ARRAY_COUNT(m_OutlinePipeline),
                     "Arrays are mismatched in size!");
@@ -478,6 +479,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     };
 
     m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8RP);
+
+    attDesc.format = VK_FORMAT_B8G8R8A8_UNORM;
+
+    m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &BGRA8RP);
 
     attDesc.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
@@ -735,7 +740,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     pipeInfo.layout = m_TextPipeLayout;
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
-                                               &m_TextPipeline);
+                                               &m_TextPipeline[0]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    pipeInfo.renderPass = BGRA8RP;
+
+    vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
+                                               &m_TextPipeline[1]);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     m_pDriver->vkDestroyShaderModule(dev, stages[0].module, NULL);
@@ -968,6 +979,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     m_pDriver->vkDestroyRenderPass(dev, RGBA8MSRP, NULL);
     for(size_t i = 0; i < ARRAY_COUNT(RGBA16MSRP); i++)
       m_pDriver->vkDestroyRenderPass(dev, RGBA16MSRP[i], NULL);
+    m_pDriver->vkDestroyRenderPass(dev, BGRA8RP, NULL);
 
     return;
   }
@@ -1670,6 +1682,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_pDriver->vkDestroyRenderPass(dev, RGBA8MSRP, NULL);
   for(size_t i = 0; i < ARRAY_COUNT(RGBA16MSRP); i++)
     m_pDriver->vkDestroyRenderPass(dev, RGBA16MSRP[i], NULL);
+  m_pDriver->vkDestroyRenderPass(dev, BGRA8RP, NULL);
 
   for(size_t i = 0; i < ARRAY_COUNT(module); i++)
   {
@@ -2172,7 +2185,8 @@ VulkanDebugManager::~VulkanDebugManager()
 
   m_pDriver->vkDestroyDescriptorSetLayout(dev, m_TextDescSetLayout, NULL);
   m_pDriver->vkDestroyPipelineLayout(dev, m_TextPipeLayout, NULL);
-  m_pDriver->vkDestroyPipeline(dev, m_TextPipeline, NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_TextPipeline[0], NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_TextPipeline[1], NULL);
 
   m_TextGeneralUBO.Destroy();
   m_TextGlyphUBO.Destroy();
@@ -2264,9 +2278,13 @@ void VulkanDebugManager::BeginText(const TextPrintState &textstate)
   };
   ObjDisp(textstate.cmd)->CmdBeginRenderPass(Unwrap(textstate.cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
+  VkPipeline pipe = m_TextPipeline[0];
+
+  if(textstate.fmt == VK_FORMAT_B8G8R8A8_UNORM)
+    pipe = m_TextPipeline[1];
+
   ObjDisp(textstate.cmd)
-      ->CmdBindPipeline(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        Unwrap(m_TextPipeline));
+      ->CmdBindPipeline(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
 
   VkViewport viewport = {0.0f, 0.0f, (float)textstate.w, (float)textstate.h, 0.0f, 1.0f};
   ObjDisp(textstate.cmd)->CmdSetViewport(Unwrap(textstate.cmd), 0, 1, &viewport);

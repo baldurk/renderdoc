@@ -36,6 +36,7 @@ struct TextPrintState
   VkRenderPass rp;
   VkFramebuffer fb;
   uint32_t w, h;
+  VkFormat fmt;
 };
 
 struct MeshDisplayPipelines
@@ -230,7 +231,7 @@ public:
   VkDescriptorSetLayout m_TextDescSetLayout;
   VkPipelineLayout m_TextPipeLayout;
   VkDescriptorSet m_TextDescSet;
-  VkPipeline m_TextPipeline;
+  VkPipeline m_TextPipeline[2];    // 0 - RGBA8, 1 - BGRA8
   GPUBuffer m_TextGeneralUBO;
   GPUBuffer m_TextGlyphUBO;
   GPUBuffer m_TextStringUBO;
