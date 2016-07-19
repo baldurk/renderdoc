@@ -46,6 +46,10 @@
 // down the cause of device lost errors
 //#define SINGLE_FLUSH_VALIDATE
 
+// uncomment this to get verbose debugging about when/where/why partial command
+// buffer replay is happening
+//#define VERBOSE_PARTIAL_REPLAY
+
 ResourceFormat MakeResourceFormat(VkFormat fmt);
 VkFormat MakeVkFormat(ResourceFormat fmt);
 PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPoints);
