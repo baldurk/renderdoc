@@ -26,6 +26,14 @@ layout (location = 0) out vec4 color_out;
 
 //#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
 
+float ConvertSRGBToLinear(float srgb)
+{
+	if (srgb <= 0.04045f)
+		return srgb / 12.92f;
+	else
+		return pow(( clamp(srgb, 0.0f, 1.0f) + 0.055f) / 1.055f, 2.4f);
+}
+
 void main(void)
 {
 	bool uintTex = (texdisplay.OutputDisplayFormat & TEXDISPLAY_UINT_TEX) != 0;
@@ -166,7 +174,7 @@ void main(void)
 	
 	if((texdisplay.OutputDisplayFormat & TEXDISPLAY_GAMMA_CURVE) > 0)
 	{
-		col.rgb = pow(clamp(col.rgb, 0.0f.xxx, 1.0f.xxx), 2.2f.xxx);
+		col.rgb = vec3(ConvertSRGBToLinear(col.r), ConvertSRGBToLinear(col.g), ConvertSRGBToLinear(col.b));
 	}
 
 	color_out = col;
