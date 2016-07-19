@@ -126,7 +126,7 @@ public:
   uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y, uint32_t w,
                       uint32_t h);
 
-  void CreateCustomShaderTex(uint32_t width, uint32_t height);
+  void CreateCustomShaderTex(uint32_t width, uint32_t height, uint32_t mip);
   void CreateCustomShaderPipeline(ResourceId shader);
 
   void ReplaceResource(ResourceId from, ResourceId to);
@@ -214,7 +214,7 @@ public:
   uint32_t m_CustomTexWidth, m_CustomTexHeight;
   VkDeviceSize m_CustomTexMemSize;
   VkImage m_CustomTexImg;
-  VkImageView m_CustomTexImgView;
+  VkImageView m_CustomTexImgView[16];
   VkDeviceMemory m_CustomTexMem;
   VkFramebuffer m_CustomTexFB;
   VkRenderPass m_CustomTexRP;

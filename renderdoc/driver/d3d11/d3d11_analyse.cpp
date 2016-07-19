@@ -2988,6 +2988,23 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
 
   CreateCustomShaderTex(details.texWidth, details.texHeight);
 
+  {
+    D3D11_RENDER_TARGET_VIEW_DESC desc;
+
+    desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    desc.Texture2D.MipSlice = mip;
+
+    WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_CustomShaderTex;
+    HRESULT hr = m_pDevice->CreateRenderTargetView(wrapped->GetReal(), &desc, &m_CustomShaderRTV);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create custom shader rtv %08x", hr);
+      return m_CustomShaderResourceId;
+    }
+  }
+
   m_pImmediateContext->OMSetRenderTargets(1, &m_CustomShaderRTV, NULL);
 
   float clr[] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -2998,8 +3015,8 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
 
   viewport.TopLeftX = 0;
   viewport.TopLeftY = 0;
-  viewport.Width = (float)details.texWidth;
-  viewport.Height = (float)details.texHeight;
+  viewport.Width = (float)RDCMAX(1U, details.texWidth >> mip);
+  viewport.Height = (float)RDCMAX(1U, details.texHeight >> mip);
 
   m_pImmediateContext->RSSetViewports(1, &viewport);
 
@@ -3013,7 +3030,7 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
   disp.typeHint = typeHint;
   disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
-  disp.linearDisplayAsGamma = true;
+  disp.linearDisplayAsGamma = false;
   disp.mip = mip;
   disp.sampleIdx = 0;
   disp.overlay = eTexOverlay_None;
@@ -3023,7 +3040,7 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
   disp.scale = 1.0f;
   disp.sliceFace = 0;
 
-  SetOutputDimensions(details.texWidth, details.texHeight);
+  SetOutputDimensions(RDCMAX(1U, details.texWidth >> mip), RDCMAX(1U, details.texHeight >> mip));
 
   RenderTexture(disp, true);
 
@@ -3037,7 +3054,7 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
   texdesc.ArraySize = 1;
   texdesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
   texdesc.CPUAccessFlags = 0;
-  texdesc.MipLevels = 1;
+  texdesc.MipLevels = CalcNumMips((int)w, (int)h, 1);
   texdesc.MiscFlags = 0;
   texdesc.SampleDesc.Count = 1;
   texdesc.SampleDesc.Quality = 0;
@@ -3066,12 +3083,6 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
   }
   else
   {
-    WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_CustomShaderTex;
-    hr = m_pDevice->CreateRenderTargetView(wrapped->GetReal(), NULL, &m_CustomShaderRTV);
-
-    if(FAILED(hr))
-      RDCERR("Failed to create custom shader rtv %08x", hr);
-
     m_CustomShaderResourceId = GetIDForResource(m_CustomShaderTex);
   }
 }

@@ -255,7 +255,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   m_CustomTexWidth = m_CustomTexHeight = 0;
   m_CustomTexImg = VK_NULL_HANDLE;
-  m_CustomTexImgView = VK_NULL_HANDLE;
+  RDCEraseEl(m_CustomTexImgView);
   m_CustomTexMemSize = 0;
   m_CustomTexMem = VK_NULL_HANDLE;
   m_CustomTexFB = VK_NULL_HANDLE;
@@ -2168,7 +2168,8 @@ VulkanDebugManager::~VulkanDebugManager()
   m_pDriver->vkDestroyRenderPass(dev, m_CustomTexRP, NULL);
   m_pDriver->vkDestroyFramebuffer(dev, m_CustomTexFB, NULL);
   m_pDriver->vkDestroyImage(dev, m_CustomTexImg, NULL);
-  m_pDriver->vkDestroyImageView(dev, m_CustomTexImgView, NULL);
+  for(size_t i = 0; i < ARRAY_COUNT(m_CustomTexImgView); i++)
+    m_pDriver->vkDestroyImageView(dev, m_CustomTexImgView[i], NULL);
   m_pDriver->vkFreeMemory(dev, m_CustomTexMem, NULL);
   m_pDriver->vkDestroyPipeline(dev, m_CustomTexPipeline, NULL);
 
@@ -2440,25 +2441,46 @@ void VulkanDebugManager::RemoveReplacement(ResourceId id)
   }
 }
 
-void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height)
+void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, uint32_t mip)
 {
   VkDevice dev = m_Device;
+
+  VkResult vkr = VK_SUCCESS;
 
   if(m_CustomTexImg != VK_NULL_HANDLE)
   {
     if(width == m_CustomTexWidth && height == m_CustomTexHeight)
+    {
+      // recreate framebuffer for this mip
+
+      // Create framebuffer rendering just to overlay image, no depth
+      VkFramebufferCreateInfo fbinfo = {
+          VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+          NULL,
+          0,
+          m_CustomTexRP,
+          1,
+          &m_CustomTexImgView[mip],
+          RDCMAX(1U, width >> mip),
+          RDCMAX(1U, height >> mip),
+          1,
+      };
+
+      vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &m_CustomTexFB);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
       return;
+    }
 
     m_pDriver->vkDestroyRenderPass(dev, m_CustomTexRP, NULL);
     m_pDriver->vkDestroyFramebuffer(dev, m_CustomTexFB, NULL);
-    m_pDriver->vkDestroyImageView(dev, m_CustomTexImgView, NULL);
+    for(size_t i = 0; i < ARRAY_COUNT(m_CustomTexImgView); i++)
+      m_pDriver->vkDestroyImageView(dev, m_CustomTexImgView[i], NULL);
+    RDCEraseEl(m_CustomTexImgView);
     m_pDriver->vkDestroyImage(dev, m_CustomTexImg, NULL);
   }
 
   m_CustomTexWidth = width;
   m_CustomTexHeight = height;
-
-  VkResult vkr = VK_SUCCESS;
 
   VkImageCreateInfo imInfo = {
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -2467,7 +2489,7 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height)
       VK_IMAGE_TYPE_2D,
       VK_FORMAT_R16G16B16A16_SFLOAT,
       {width, height, 1},
-      1,
+      CalcNumMips((int)width, (int)height, 1),
       1,
       VK_SAMPLE_COUNT_1_BIT,
       VK_IMAGE_TILING_OPTIMAL,
@@ -2520,8 +2542,12 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height)
       },
   };
 
-  vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_CustomTexImgView);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  for(uint32_t i = 0; i < imInfo.mipLevels; i++)
+  {
+    viewInfo.subresourceRange.baseMipLevel = i;
+    vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_CustomTexImgView[i]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
 
   // need to update image layout into valid state
 
@@ -2535,7 +2561,7 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height)
       0,
       0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
       Unwrap(m_CustomTexImg),
-      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+      {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, 1}};
 
   m_pDriver->m_ImageLayouts[GetResID(m_CustomTexImg)].subresourceStates[0].newLayout =
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -2599,9 +2625,9 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height)
       0,
       m_CustomTexRP,
       1,
-      &m_CustomTexImgView,
-      width,
-      height,
+      &m_CustomTexImgView[mip],
+      RDCMAX(1U, width >> mip),
+      RDCMAX(1U, height >> mip),
       1,
   };
 

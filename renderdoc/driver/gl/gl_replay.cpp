@@ -2604,12 +2604,13 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint
 
   m_pDriver->glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.customFBO);
   m_pDriver->glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
-                                    DebugData.customTex, 0);
+                                    DebugData.customTex, mip);
 
-  m_pDriver->glViewport(0, 0, texDetails.width, texDetails.height);
+  m_pDriver->glViewport(0, 0, RDCMAX(1, texDetails.width >> mip),
+                        RDCMAX(1, texDetails.height >> mip));
 
-  DebugData.outWidth = float(texDetails.width);
-  DebugData.outHeight = float(texDetails.height);
+  DebugData.outWidth = float(RDCMAX(1, texDetails.width >> mip));
+  DebugData.outHeight = float(RDCMAX(1, texDetails.height >> mip));
 
   float clr[] = {0.0f, 0.8f, 0.0f, 0.0f};
   m_pDriver->glClearBufferfv(eGL_COLOR, 0, clr);
@@ -2624,7 +2625,7 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint
   disp.typeHint = typeHint;
   disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
-  disp.linearDisplayAsGamma = true;
+  disp.linearDisplayAsGamma = false;
   disp.mip = mip;
   disp.sampleIdx = 0;
   disp.overlay = eTexOverlay_None;
@@ -2656,14 +2657,16 @@ void GLReplay::CreateCustomShaderTex(uint32_t w, uint32_t h)
     DebugData.customTex = 0;
   }
 
+  uint32_t mips = CalcNumMips((int)w, (int)h, 1);
+
   m_pDriver->glGenTextures(1, &DebugData.customTex);
   m_pDriver->glBindTexture(eGL_TEXTURE_2D, DebugData.customTex);
-  m_pDriver->glTextureStorage2DEXT(DebugData.customTex, eGL_TEXTURE_2D, 1, eGL_RGBA16F, (GLsizei)w,
-                                   (GLsizei)h);
+  m_pDriver->glTextureStorage2DEXT(DebugData.customTex, eGL_TEXTURE_2D, mips, eGL_RGBA16F,
+                                   (GLsizei)w, (GLsizei)h);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_BASE_LEVEL, 0);
-  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, mips);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
 

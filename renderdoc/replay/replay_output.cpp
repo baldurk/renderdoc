@@ -536,8 +536,6 @@ void ReplayOutput::DisplayTex()
     texDisplay.typeHint = eCompType_None;
     texDisplay.CustomShader = ResourceId();
     texDisplay.sliceFace = 0;
-    texDisplay.mip = 0;
-    texDisplay.linearDisplayAsGamma = false;
   }
 
   float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};

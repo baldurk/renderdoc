@@ -1489,7 +1489,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
 
   // need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
-  if(clampmaxlevel != maxlevel)
+  if(clampmaxlevel != maxlevel && cfg.texid != DebugData.CustomShaderTexID)
   {
     gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&clampmaxlevel);
   }

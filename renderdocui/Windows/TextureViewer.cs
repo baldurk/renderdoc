@@ -2116,8 +2116,11 @@ namespace renderdocui.Windows
                 else
                     gammaDisplay.Enabled = false;
 
-                m_TexDisplay.linearDisplayAsGamma = gammaDisplay.Checked;
+                m_TexDisplay.linearDisplayAsGamma = !gammaDisplay.Enabled || gammaDisplay.Checked;
             }
+
+            if (tex != null && tex.format.srgbCorrected)
+                m_TexDisplay.linearDisplayAsGamma = false;
 
             bool dsv = false;
             if(tex != null)

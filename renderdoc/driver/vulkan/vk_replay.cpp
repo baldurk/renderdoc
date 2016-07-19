@@ -5234,12 +5234,12 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
 
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
 
-  GetDebugManager()->CreateCustomShaderTex(iminfo.extent.width, iminfo.extent.height);
+  GetDebugManager()->CreateCustomShaderTex(iminfo.extent.width, iminfo.extent.height, mip);
 
   int oldW = m_DebugWidth, oldH = m_DebugHeight;
 
-  m_DebugWidth = iminfo.extent.width;
-  m_DebugHeight = iminfo.extent.height;
+  m_DebugWidth = RDCMAX(1U, iminfo.extent.width >> mip);
+  m_DebugHeight = RDCMAX(1U, iminfo.extent.height >> mip);
 
   TextureDisplay disp;
   disp.Red = disp.Green = disp.Blue = disp.Alpha = true;
@@ -5251,7 +5251,7 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   disp.typeHint = typeHint;
   disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
-  disp.linearDisplayAsGamma = true;
+  disp.linearDisplayAsGamma = false;
   disp.mip = mip;
   disp.sampleIdx = 0;
   disp.overlay = eTexOverlay_None;
@@ -5270,7 +5270,7 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
       {{
            0, 0,
        },
-       {iminfo.extent.width, iminfo.extent.height}},
+       {m_DebugWidth, m_DebugHeight}},
       1,
       &clearval,
   };
