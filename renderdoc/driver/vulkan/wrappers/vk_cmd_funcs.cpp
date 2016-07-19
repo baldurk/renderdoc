@@ -2160,6 +2160,13 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
 
       BakedCmdBufferInfo &parentCmdBufInfo = m_BakedCmdBufferInfo[m_LastCmdBufferID];
 
+      // if we're replaying a range but not from the start, we are guaranteed to only be replaying
+      // one of our executed command buffers and doing it to an outside command buffer. The outer
+      // loop will be doing SetOffset() to jump to each event, and any time we land here is just for
+      // the markers we've added, which have this file offset, so just skip all of our work.
+      if(m_FirstEventID > 1 && m_FirstEventID + 1 < m_LastEventID)
+        return true;
+
       // account for the execute commands event
       parentCmdBufInfo.curEventID++;
 
