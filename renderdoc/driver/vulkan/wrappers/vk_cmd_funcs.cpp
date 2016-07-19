@@ -2103,11 +2103,11 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
                                       ToStr::Get(cmdids[c]).c_str());
 
       // add a fake marker
-      FetchDrawcall draw;
-      draw.name = name;
-      draw.flags = eDraw_PassBoundary | eDraw_BeginPass;
+      FetchDrawcall marker;
+      marker.name = name;
+      marker.flags = eDraw_PassBoundary | eDraw_BeginPass;
       AddEvent(SET_MARKER, name);
-      AddDrawcall(draw, true);
+      AddDrawcall(marker, true);
       parentCmdBufInfo.curEventID++;
 
       BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmdids[c]];
@@ -2133,10 +2133,10 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
 
       name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkEndCommandBuffer(%s)", c,
                                ToStr::Get(cmdids[c]).c_str());
-      draw.name = name;
-      draw.flags = eDraw_PassBoundary | eDraw_EndPass;
+      marker.name = name;
+      marker.flags = eDraw_PassBoundary | eDraw_EndPass;
       AddEvent(SET_MARKER, name);
-      AddDrawcall(draw, true);
+      AddDrawcall(marker, true);
       parentCmdBufInfo.curEventID++;
     }
 
