@@ -2078,7 +2078,7 @@ namespace renderdocui.Windows
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
-                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uvec4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform uvec4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
                 InsertVulkanUBO();
             CurrentScintilla.CurrentPos = 0;
@@ -2091,8 +2091,10 @@ namespace renderdocui.Windows
 
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
                 InsertVulkanUBO();
-            else
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_SelectedMip; // selected mip in UI" + Environment.NewLine + Environment.NewLine);
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform uint RENDERDOC_SelectedMip; // selected mip in UI" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
 
@@ -2104,7 +2106,7 @@ namespace renderdocui.Windows
             if(m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil, 6 = Depth (MS), 7 = Depth + Stencil (MS)" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
-                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube, 5 = 1DArray, 6 = 2DArray, 7 = CubeArray, 8 = Rect, 9 = Buffer, 10 = 2DMS" + Environment.NewLine + Environment.NewLine);
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube, 5 = 1DArray, 6 = 2DArray, 7 = CubeArray, 8 = Rect, 9 = Buffer, 10 = 2DMS" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
                 InsertVulkanUBO();
             CurrentScintilla.CurrentPos = 0;
