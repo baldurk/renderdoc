@@ -246,7 +246,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   }
 
   bool ShouldRerecordCmd(ResourceId cmdid);
-  bool InRerecordRange();
+  bool InRerecordRange(ResourceId cmdid);
   ID3D12GraphicsCommandList *RerecordCmdList(ResourceId cmdid);
 
   void ProcessChunk(uint64_t offset, D3D12ChunkType context);

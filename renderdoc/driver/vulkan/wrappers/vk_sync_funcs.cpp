@@ -563,7 +563,7 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(Serialiser *localSerialiser, VkComma
   {
     event = GetResourceManager()->GetLiveHandle<VkEvent>(eid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       cmdBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(cmdBuffer)->CmdSetEvent(Unwrap(cmdBuffer), Unwrap(event), mask);
@@ -619,7 +619,7 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(Serialiser *localSerialiser, VkCom
   {
     event = GetResourceManager()->GetLiveHandle<VkEvent>(eid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       cmdBuffer = RerecordCmdBuf(cmdid);
       // ObjDisp(cmdBuffer)->CmdResetEvent(Unwrap(cmdBuffer), Unwrap(event), mask);
@@ -711,7 +711,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       cmdBuffer = RerecordCmdBuf(cmdid);
 

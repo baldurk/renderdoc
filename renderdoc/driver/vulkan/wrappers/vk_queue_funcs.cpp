@@ -232,7 +232,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
         m_DebugMessages.back().eventID += m_RootEventID;
       }
 
-      m_PartialReplayData.cmdBufferSubmits[cmdIds[c]].push_back(m_RootEventID);
+      // only primary command buffers can be submitted
+      m_Partial[Primary].cmdBufferSubmits[cmdIds[c]].push_back(m_RootEventID);
 
       m_RootEventID += cmdBufInfo.eventCount;
       m_RootDrawcallID += cmdBufInfo.drawCount;
@@ -315,12 +316,12 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
 
         uint32_t end = eid + m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
 
-        if(eid == m_PartialReplayData.baseEvent)
+        if(eid == m_Partial[Primary].baseEvent)
         {
-          ResourceId partial = GetResID(RerecordCmdBuf(cmdIds[c]));
+          ResourceId partial = GetResID(RerecordCmdBuf(cmdIds[c], Primary));
           RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
           trimmedCmdIds.push_back(partial);
-          trimmedCmds.push_back(Unwrap(RerecordCmdBuf(cmdIds[c])));
+          trimmedCmds.push_back(Unwrap(RerecordCmdBuf(cmdIds[c], Primary)));
         }
         else if(m_LastEventID >= end)
         {

@@ -321,26 +321,33 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    const vector<uint32_t> &baseEvents = m_PartialReplayData.cmdBufferSubmits[bakeId];
-    uint32_t length = m_BakedCmdBufferInfo[bakeId].eventCount;
+    const uint32_t length = m_BakedCmdBufferInfo[bakeId].eventCount;
 
     bool partial = false;
+    int partialType = ePartialNum;
 
-    for(auto it = baseEvents.begin(); it != baseEvents.end(); ++it)
+    // check for partial execution of this command buffer
+    for(int p = 0; p < ePartialNum; p++)
     {
-      if(*it <= m_LastEventID && m_LastEventID < (*it + length))
+      const vector<uint32_t> &baseEvents = m_Partial[p].cmdBufferSubmits[bakeId];
+
+      for(auto it = baseEvents.begin(); it != baseEvents.end(); ++it)
       {
-        RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", *it, m_LastEventID,
-                 *it + length, cmdId, bakeId);
+        if(*it <= m_LastEventID && m_LastEventID < (*it + length))
+        {
+          RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", *it, m_LastEventID,
+                   *it + length, cmdId, bakeId);
 
-        m_PartialReplayData.partialParent = cmdId;
-        m_PartialReplayData.baseEvent = *it;
-        m_PartialReplayData.renderPassActive = false;
-        m_PartialReplayData.partialDevice = device;
-        m_PartialReplayData.resultPartialCmdPool =
-            (VkCommandPool)(uint64_t)GetResourceManager()->GetNonDispWrapper(allocInfo.commandPool);
+          m_Partial[p].partialParent = cmdId;
+          m_Partial[p].baseEvent = *it;
+          m_Partial[p].renderPassActive = false;
+          m_Partial[p].partialDevice = device;
+          m_Partial[p].resultPartialCmdPool =
+              (VkCommandPool)(uint64_t)GetResourceManager()->GetNonDispWrapper(allocInfo.commandPool);
 
-        partial = true;
+          partial = true;
+          partialType = p;
+        }
       }
     }
 
@@ -367,7 +374,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
 
       if(partial)
       {
-        m_PartialReplayData.resultPartialCmdBuffer = cmd;
+        m_Partial[partialType].resultPartialCmdBuffer = cmd;
       }
       else
       {
@@ -519,7 +526,8 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser *localSerialiser,
 
       bool recordAll = m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds();
 
-      if(!recordAll && m_PartialReplayData.renderPassActive)
+      if(!recordAll && m_Partial[Primary].partialParent == cmdid &&
+         m_Partial[Primary].renderPassActive)
       {
         uint32_t numSubpasses =
             (uint32_t)m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses.size();
@@ -536,7 +544,8 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser *localSerialiser,
       // duplicates when it comes time to clean up. See above in vkBeginCommandBuffer
       m_RerecordCmds.erase(cmdid);
 
-      m_PartialReplayData.partialParent = ResourceId();
+      if(m_Partial[Primary].partialParent == cmdid)
+        m_Partial[Primary].partialParent = ResourceId();
     }
 
     m_BakedCmdBufferInfo[cmdid].curEventID = 0;
@@ -655,11 +664,11 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
-      m_PartialReplayData.renderPassActive = true;
+      m_Partial[Primary].renderPassActive = true;
       ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &beginInfo, cont);
 
       m_RenderState.subpass = 0;
@@ -752,7 +761,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -841,7 +850,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -919,11 +928,11 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
-      m_PartialReplayData.renderPassActive = false;
+      m_Partial[Primary].renderPassActive = false;
       ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
     }
   }
@@ -988,7 +997,7 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       pipeline = GetResourceManager()->GetLiveHandle<VkPipeline>(pipeid);
       commandBuffer = RerecordCmdBuf(cmdid);
@@ -1133,7 +1142,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
   {
     layout = GetResourceManager()->GetLiveHandle<VkPipelineLayout>(layoutid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -1313,7 +1322,7 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(Serialiser *localSerialiser
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -1399,7 +1408,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(Serialiser *localSerialiser,
   {
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offs, idxType);
@@ -1471,7 +1480,7 @@ bool WrappedVulkan::Serialise_vkCmdUpdateBuffer(Serialiser *localSerialiser,
   {
     destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -1546,7 +1555,7 @@ bool WrappedVulkan::Serialise_vkCmdFillBuffer(Serialiser *localSerialiser,
   {
     destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)->CmdFillBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), offs, sz, d);
@@ -1614,7 +1623,7 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       layout = GetResourceManager()->GetLiveHandle<VkPipelineLayout>(layid);
@@ -1717,7 +1726,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -1835,7 +1844,7 @@ bool WrappedVulkan::Serialise_vkCmdWriteTimestamp(Serialiser *localSerialiser,
   {
     queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(poolid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)->CmdWriteTimestamp(Unwrap(commandBuffer), stage, Unwrap(queryPool), q);
@@ -1900,7 +1909,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyQueryPoolResults(
     queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
     destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -1978,7 +1987,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginQuery(Serialiser *localSerialiser,
   {
     queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)->CmdBeginQuery(Unwrap(commandBuffer), Unwrap(queryPool), q, f);
@@ -2033,7 +2042,7 @@ bool WrappedVulkan::Serialise_vkCmdEndQuery(Serialiser *localSerialiser,
   {
     queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)->CmdEndQuery(Unwrap(commandBuffer), Unwrap(queryPool), q);
@@ -2089,7 +2098,7 @@ bool WrappedVulkan::Serialise_vkCmdResetQueryPool(Serialiser *localSerialiser,
   {
     queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)->CmdResetQueryPool(Unwrap(commandBuffer), Unwrap(queryPool), first, count);

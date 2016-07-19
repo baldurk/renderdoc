@@ -3913,7 +3913,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
   VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-  if(!m_pDriver->m_PartialReplayData.renderPassActive)
+  // Secondary commands can't have render passes
+  if(!m_pDriver->m_Partial[WrappedVulkan::Primary].renderPassActive)
   {
     // don't do anything, no drawcall capable of making overlays selected
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};

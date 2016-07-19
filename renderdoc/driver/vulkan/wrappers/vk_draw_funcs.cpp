@@ -42,7 +42,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(Serialiser *localSerialiser, VkCommandBu
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -127,7 +127,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -219,7 +219,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
   {
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -328,7 +328,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
   {
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -435,7 +435,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -514,7 +514,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(Serialiser *localSerialiser,
   {
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -622,7 +622,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(Serialiser *localSerialiser,
     srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
     destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -737,7 +737,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(Serialiser *localSerialiser,
     srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
     destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -852,7 +852,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(Serialiser *localSerialiser,
     srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
     destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -967,7 +967,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(Serialiser *localSerialiser
     srcBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
     destImage = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -1073,7 +1073,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(Serialiser *localSerialiser
     srcImage = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
     destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -1180,7 +1180,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(Serialiser *localSerialiser,
     srcBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(srcid);
     destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(dstid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -1296,7 +1296,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(Serialiser *localSerialiser,
   {
     image = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -1384,7 +1384,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
   {
     image = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)
@@ -1475,7 +1475,7 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
       ObjDisp(commandBuffer)->CmdClearAttachments(Unwrap(commandBuffer), acount, atts, rcount, rects);

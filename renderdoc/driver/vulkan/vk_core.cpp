@@ -283,12 +283,6 @@ WrappedVulkan::WrappedVulkan(const char *logFilename) : m_RenderState(&m_Creatio
 
   m_LastCmdBufferID = ResourceId();
 
-  m_PartialReplayData.renderPassActive = false;
-  m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;
-  m_PartialReplayData.outsideCmdBuffer = VK_NULL_HANDLE;
-  m_PartialReplayData.partialParent = ResourceId();
-  m_PartialReplayData.baseEvent = 0;
-
   m_DrawcallStack.push_back(&m_ParentDrawcall);
 
   m_SetDeviceLoaderData = NULL;
@@ -1629,12 +1623,15 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
   m_CleanupEvents.clear();
 
-  if(m_PartialReplayData.resultPartialCmdBuffer != VK_NULL_HANDLE)
+  for(int p = 0; p < ePartialNum; p++)
   {
-    // deliberately call our own function, so this is destroyed as a wrapped object
-    vkFreeCommandBuffers(m_PartialReplayData.partialDevice, m_PartialReplayData.resultPartialCmdPool,
-                         1, &m_PartialReplayData.resultPartialCmdBuffer);
-    m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;
+    if(m_Partial[p].resultPartialCmdBuffer != VK_NULL_HANDLE)
+    {
+      // deliberately call our own function, so this is destroyed as a wrapped object
+      vkFreeCommandBuffers(m_Partial[p].partialDevice, m_Partial[p].resultPartialCmdPool, 1,
+                           &m_Partial[p].resultPartialCmdBuffer);
+      m_Partial[p].resultPartialCmdBuffer = VK_NULL_HANDLE;
+    }
   }
 
   for(auto it = m_RerecordCmds.begin(); it != m_RerecordCmds.end(); ++it)
@@ -2123,10 +2120,10 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
   {
     if(!partial)
     {
-      m_PartialReplayData.renderPassActive = false;
-      RDCASSERT(m_PartialReplayData.resultPartialCmdBuffer == VK_NULL_HANDLE);
-      m_PartialReplayData.partialParent = ResourceId();
-      m_PartialReplayData.baseEvent = 0;
+      RDCASSERT(m_Partial[Primary].resultPartialCmdBuffer == VK_NULL_HANDLE);
+      RDCASSERT(m_Partial[Secondary].resultPartialCmdBuffer == VK_NULL_HANDLE);
+      m_Partial[Primary].Reset();
+      m_Partial[Secondary].Reset();
       m_RenderState = VulkanRenderState(&m_CreationInfo);
       m_RenderState.m_ResourceManager = GetResourceManager();
     }
@@ -2141,7 +2138,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     // has chosen a subsection that lies within a command buffer
     if(partial)
     {
-      VkCommandBuffer cmd = m_PartialReplayData.outsideCmdBuffer = GetNextCmd();
+      VkCommandBuffer cmd = m_Partial[Primary].outsideCmdBuffer = GetNextCmd();
 
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -2149,10 +2146,10 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      rpWasActive = m_PartialReplayData.renderPassActive;
+      rpWasActive = m_Partial[Primary].renderPassActive;
 
       // if a render pass was active, begin it and set up the partial replay state
-      if(m_PartialReplayData.renderPassActive)
+      if(m_Partial[Primary].renderPassActive)
         m_RenderState.BeginRenderPassAndApplyState(cmd);
       // if we had a compute pipeline, need to bind that
       else if(m_RenderState.compute.pipeline != ResourceId())
@@ -2174,25 +2171,25 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     else
       RDCFATAL("Unexpected replay type");
 
-    if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
+    if(m_Partial[Primary].outsideCmdBuffer != VK_NULL_HANDLE)
     {
-      VkCommandBuffer cmd = m_PartialReplayData.outsideCmdBuffer;
+      VkCommandBuffer cmd = m_Partial[Primary].outsideCmdBuffer;
 
       // check if the render pass is active - it could have become active
       // even if it wasn't before (if the above event was a CmdBeginRenderPass)
-      if(m_PartialReplayData.renderPassActive)
+      if(m_Partial[Primary].renderPassActive)
         m_RenderState.EndRenderPass(cmd);
 
       // we might have replayed a CmdBeginRenderPass or CmdEndRenderPass,
       // but we want to keep the partial replay data state intact, so restore
       // whether or not a render pass was active.
-      m_PartialReplayData.renderPassActive = rpWasActive;
+      m_Partial[Primary].renderPassActive = rpWasActive;
 
       ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 
       SubmitCmds();
 
-      m_PartialReplayData.outsideCmdBuffer = VK_NULL_HANDLE;
+      m_Partial[Primary].outsideCmdBuffer = VK_NULL_HANDLE;
     }
 
 #if defined(SINGLE_FLUSH_VALIDATE)
@@ -2379,31 +2376,39 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
 
 bool WrappedVulkan::ShouldRerecordCmd(ResourceId cmdid)
 {
-  if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
+  if(m_Partial[Primary].outsideCmdBuffer != VK_NULL_HANDLE)
     return true;
 
   if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
     return true;
 
-  return cmdid == m_PartialReplayData.partialParent;
+  return cmdid == m_Partial[Primary].partialParent || cmdid == m_Partial[Secondary].partialParent;
 }
 
-bool WrappedVulkan::InRerecordRange()
+bool WrappedVulkan::InRerecordRange(ResourceId cmdid)
 {
-  if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
+  if(m_Partial[Primary].outsideCmdBuffer != VK_NULL_HANDLE)
     return true;
 
   if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
     return true;
 
-  return m_BakedCmdBufferInfo[m_PartialReplayData.partialParent].curEventID <=
-         m_LastEventID - m_PartialReplayData.baseEvent;
+  for(int p = 0; p < ePartialNum; p++)
+  {
+    if(cmdid == m_Partial[p].partialParent)
+    {
+      return m_BakedCmdBufferInfo[m_Partial[p].partialParent].curEventID <=
+             m_LastEventID - m_Partial[p].baseEvent;
+    }
+  }
+
+  return false;
 }
 
-VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid)
+VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid, PartialReplayIndex partialType)
 {
-  if(m_PartialReplayData.outsideCmdBuffer != VK_NULL_HANDLE)
-    return m_PartialReplayData.outsideCmdBuffer;
+  if(m_Partial[Primary].outsideCmdBuffer != VK_NULL_HANDLE)
+    return m_Partial[Primary].outsideCmdBuffer;
 
   if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
   {
@@ -2414,7 +2419,16 @@ VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid)
     return it->second;
   }
 
-  return m_PartialReplayData.resultPartialCmdBuffer;
+  if(partialType != ePartialNum)
+    return m_Partial[partialType].resultPartialCmdBuffer;
+
+  for(int p = 0; p < ePartialNum; p++)
+    if(cmdid == m_Partial[p].partialParent)
+      return m_Partial[p].resultPartialCmdBuffer;
+
+  RDCERR("Calling re-record for invalid command buffer id");
+
+  return VK_NULL_HANDLE;
 }
 
 void WrappedVulkan::AddDrawcall(const FetchDrawcall &d, bool hasEvents)

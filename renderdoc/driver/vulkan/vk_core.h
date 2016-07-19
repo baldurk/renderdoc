@@ -396,8 +396,27 @@ private:
   };
   vector<DrawcallUse> m_DrawcallUses;
 
+  enum PartialReplayIndex
+  {
+    Primary,
+    Secondary,
+    ePartialNum
+  };
+
   struct PartialReplayData
   {
+    PartialReplayData() { Reset(); }
+    void Reset()
+    {
+      resultPartialCmdPool = VK_NULL_HANDLE;
+      resultPartialCmdBuffer = VK_NULL_HANDLE;
+      partialDevice = VK_NULL_HANDLE;
+      outsideCmdBuffer = VK_NULL_HANDLE;
+      partialParent = ResourceId();
+      baseEvent = 0;
+      renderPassActive = false;
+    }
+
     // if we're doing a partial replay, by definition only one command
     // buffer will be partial at any one time. While replaying through
     // the command buffer chunks, the partial command buffer will be
@@ -447,7 +466,7 @@ private:
     // reach the vkEndCommandBuffer that we also need to end a render
     // pass.
     bool renderPassActive;
-  } m_PartialReplayData;
+  } m_Partial[ePartialNum];
 
   map<ResourceId, VkCommandBuffer> m_RerecordCmds;
 
@@ -457,8 +476,8 @@ private:
   VulkanRenderState m_RenderState;
 
   bool ShouldRerecordCmd(ResourceId cmdid);
-  bool InRerecordRange();
-  VkCommandBuffer RerecordCmdBuf(ResourceId cmdid);
+  bool InRerecordRange(ResourceId cmdid);
+  VkCommandBuffer RerecordCmdBuf(ResourceId cmdid, PartialReplayIndex partialType = ePartialNum);
 
   // this info is stored in the record on capture, but we
   // need it on replay too
