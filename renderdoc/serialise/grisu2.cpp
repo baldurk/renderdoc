@@ -264,6 +264,12 @@ int grisu2(uint64_t mantissa, int exponent, char digits[18], int &kout)
     upper.mantissa <<= 1;
     upper.exp--;
   }
+
+  // for valid floats shift operation will always be non-negative, but just to be paranoid let's
+  // make sure that it is. This will produce incorrect results but garbage-in, garbage-out.
+  if(lower.exp < upper.exp)
+    lower.exp = upper.exp;
+
   // lower needs to be the same exponent as upper so we can calculate delta by upper-lower, so
   // it is not normalised, but shifted to upper's exponent
   lower.mantissa <<= (lower.exp - upper.exp);
