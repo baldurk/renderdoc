@@ -2472,7 +2472,7 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetScissorRects(UINT NumRects_, con
     VerifyState();
   }
 
-  SAFE_DELETE(Rects);
+  SAFE_DELETE_ARRAY(Rects);
 
   return true;
 }
