@@ -1488,22 +1488,24 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
     gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
   }
 
-  int maxlevel = -1;
+  // defined as arrays mostly for Coverity code analysis to stay calm about passing
+  // them to the *TexParameter* functions
+  GLint maxlevel[4] = {-1};
+  GLint clampmaxlevel[4] = {};
 
-  int clampmaxlevel = 0;
   if(cfg.texid != DebugData.CustomShaderTexID)
-    clampmaxlevel = m_CachedTextures[cfg.texid].mips - 1;
+    clampmaxlevel[0] = GLint(m_CachedTextures[cfg.texid].mips - 1);
 
-  gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
+  gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
   // need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
-  if(clampmaxlevel != maxlevel && cfg.texid != DebugData.CustomShaderTexID)
+  if(clampmaxlevel[0] != maxlevel[0] && cfg.texid != DebugData.CustomShaderTexID)
   {
-    gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&clampmaxlevel);
+    gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, clampmaxlevel);
   }
   else
   {
-    maxlevel = -1;
+    maxlevel[0] = -1;
   }
 
   if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE && resType != RESTYPE_TEXBUFFER &&
@@ -1637,8 +1639,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   gl.glBindVertexArray(DebugData.emptyVAO);
   gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 
-  if(maxlevel >= 0)
-    gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
+  if(maxlevel[0] >= 0)
+    gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
   gl.glBindSampler(0, 0);
 

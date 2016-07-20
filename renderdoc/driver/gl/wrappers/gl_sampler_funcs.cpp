@@ -337,10 +337,10 @@ void WrappedOpenGL::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLi
 {
   m_Real.glSamplerParameteriv(sampler, pname, params);
 
-  GLenum clamptoedge = eGL_CLAMP_TO_EDGE;
+  GLint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
   if(*params == eGL_CLAMP)
-    params = (GLint *)&clamptoedge;
+    params = clamptoedge;
 
   if(m_State >= WRITING)
   {
@@ -382,10 +382,10 @@ void WrappedOpenGL::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLf
 {
   m_Real.glSamplerParameterfv(sampler, pname, params);
 
-  GLfloat clamptoedge = (float)eGL_CLAMP_TO_EDGE;
+  GLfloat clamptoedge[4] = {(float)eGL_CLAMP_TO_EDGE};
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
   if(*params == (float)eGL_CLAMP)
-    params = &clamptoedge;
+    params = clamptoedge;
 
   if(m_State >= WRITING)
   {
@@ -427,10 +427,10 @@ void WrappedOpenGL::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GL
 {
   m_Real.glSamplerParameterIiv(sampler, pname, params);
 
-  GLint clamptoedge = eGL_CLAMP_TO_EDGE;
+  GLint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
   if(*params == eGL_CLAMP)
-    params = &clamptoedge;
+    params = clamptoedge;
 
   if(m_State >= WRITING)
   {
@@ -473,10 +473,10 @@ void WrappedOpenGL::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const G
 {
   m_Real.glSamplerParameterIuiv(sampler, pname, params);
 
-  GLuint clamptoedge = eGL_CLAMP_TO_EDGE;
+  GLuint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
   if(*params == eGL_CLAMP)
-    params = &clamptoedge;
+    params = clamptoedge;
 
   if(m_State >= WRITING)
   {
