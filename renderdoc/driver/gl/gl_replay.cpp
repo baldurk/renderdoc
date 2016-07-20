@@ -763,7 +763,7 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
     case eGL_NONE:
       break;    // could be from a 'create' DSA call which didn't ever bind the buffer to an
                 // explicit type
-    default: RDCERR("Unexpected buffer type %s", ToStr::Get(res.curType).c_str());
+    default: RDCERR("Unexpected buffer type %s", ToStr::Get(res.curType).c_str()); break;
   }
 
   GLint size = 0;
@@ -1588,7 +1588,9 @@ void GLReplay::SavePipelineState()
   int polygonOffsetEnableEnum;
   switch(rs.PolygonMode)
   {
-    default: RDCWARN("Unexpected value for POLYGON_MODE %x", rs.PolygonMode);
+    default:
+      RDCWARN("Unexpected value for POLYGON_MODE %x", rs.PolygonMode);
+    // fall through
     case eGL_FILL:
       pipe.m_Rasterizer.m_State.FillMode = eFill_Solid;
       polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetFill;
@@ -1619,7 +1621,9 @@ void GLReplay::SavePipelineState()
   {
     switch(rs.CullFace)
     {
-      default: RDCWARN("Unexpected value for CULL_FACE");
+      default:
+        RDCWARN("Unexpected value for CULL_FACE %x", rs.CullFace);
+      // fall through
       case eGL_BACK: pipe.m_Rasterizer.m_State.CullMode = eCull_Back; break;
       case eGL_FRONT: pipe.m_Rasterizer.m_State.CullMode = eCull_Front; break;
       case eGL_FRONT_AND_BACK: pipe.m_Rasterizer.m_State.CullMode = eCull_FrontAndBack; break;
@@ -2560,13 +2564,19 @@ void GLReplay::BuildCustomShader(string source, string entry, const uint32_t com
   GLenum shtype = eGL_VERTEX_SHADER;
   switch(type)
   {
-    default: RDCWARN("Unknown shader type %u", type);
     case eShaderStage_Vertex: shtype = eGL_VERTEX_SHADER; break;
     case eShaderStage_Tess_Control: shtype = eGL_TESS_CONTROL_SHADER; break;
     case eShaderStage_Tess_Eval: shtype = eGL_TESS_EVALUATION_SHADER; break;
     case eShaderStage_Geometry: shtype = eGL_GEOMETRY_SHADER; break;
     case eShaderStage_Fragment: shtype = eGL_FRAGMENT_SHADER; break;
     case eShaderStage_Compute: shtype = eGL_COMPUTE_SHADER; break;
+    default:
+    {
+      RDCERR("Unknown shader type %u", type);
+      if(id)
+        *id = ResourceId();
+      return;
+    }
   }
 
   const char *src = source.c_str();
@@ -2701,13 +2711,19 @@ void GLReplay::BuildTargetShader(string source, string entry, const uint32_t com
   GLenum shtype = eGL_VERTEX_SHADER;
   switch(type)
   {
-    default: RDCWARN("Unknown shader type %u", type);
     case eShaderStage_Vertex: shtype = eGL_VERTEX_SHADER; break;
     case eShaderStage_Tess_Control: shtype = eGL_TESS_CONTROL_SHADER; break;
     case eShaderStage_Tess_Eval: shtype = eGL_TESS_EVALUATION_SHADER; break;
     case eShaderStage_Geometry: shtype = eGL_GEOMETRY_SHADER; break;
     case eShaderStage_Fragment: shtype = eGL_FRAGMENT_SHADER; break;
     case eShaderStage_Compute: shtype = eGL_COMPUTE_SHADER; break;
+    default:
+    {
+      RDCERR("Unknown shader type %u", type);
+      if(id)
+        *id = ResourceId();
+      return;
+    }
   }
 
   const char *src = source.c_str();

@@ -1593,7 +1593,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_BC4_UNORM:
     case DXGI_FORMAT_BC4_SNORM: ret.compCount = 1; break;
 
-    case DXGI_FORMAT_UNKNOWN: ret.compCount = 0;
+    case DXGI_FORMAT_UNKNOWN: ret.compCount = 0; break;
 
     default: ret.special = true;
   }
@@ -1660,7 +1660,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
     case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB: ret.compByteWidth = 1; break;
 
-    case DXGI_FORMAT_UNKNOWN: ret.compByteWidth = 0;
+    case DXGI_FORMAT_UNKNOWN: ret.compByteWidth = 0; break;
 
     default: ret.special = true;
   }
@@ -1772,7 +1772,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_BC3_UNORM_SRGB:
     case DXGI_FORMAT_BC7_UNORM_SRGB: ret.compType = eCompType_UNorm; break;
 
-    case DXGI_FORMAT_UNKNOWN: ret.compType = eCompType_None;
+    case DXGI_FORMAT_UNKNOWN: ret.compType = eCompType_None; break;
 
     default: ret.special = true;
   }
@@ -1859,6 +1859,8 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
       ret.specialFormat = eSpecial_R4G4B4A4;
       ret.bgraOrder = true;
       break;
+
+    case DXGI_FORMAT_UNKNOWN: ret.specialFormat = eSpecial_Unknown; break;
 
     default: break;
   }

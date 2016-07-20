@@ -684,7 +684,9 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: texSlot = RESTYPE_TEX1D; break;
-    default: RDCWARN("Unexpected texture type");
+    default:
+      RDCWARN("Unexpected texture type");
+    // fall through
     case eGL_TEXTURE_2D: texSlot = RESTYPE_TEX2D; break;
     case eGL_TEXTURE_2D_MULTISAMPLE: texSlot = RESTYPE_TEX2DMS; break;
     case eGL_TEXTURE_RECTANGLE: texSlot = RESTYPE_TEXRECT; break;
@@ -853,7 +855,9 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: texSlot = RESTYPE_TEX1D; break;
-    default: RDCWARN("Unexpected texture type");
+    default:
+      RDCWARN("Unexpected texture type");
+    // fall through
     case eGL_TEXTURE_2D: texSlot = RESTYPE_TEX2D; break;
     case eGL_TEXTURE_2D_MULTISAMPLE: texSlot = RESTYPE_TEX2DMS; break;
     case eGL_TEXTURE_RECTANGLE: texSlot = RESTYPE_TEXRECT; break;
@@ -1358,7 +1362,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: resType = RESTYPE_TEX1D; break;
-    default: RDCWARN("Unexpected texture type");
+    default:
+      RDCWARN("Unexpected texture type");
+    // fall through
     case eGL_TEXTURE_2D: resType = RESTYPE_TEX2D; break;
     case eGL_TEXTURE_2D_MULTISAMPLE: resType = RESTYPE_TEX2DMS; break;
     case eGL_TEXTURE_RECTANGLE: resType = RESTYPE_TEXRECT; break;
@@ -1423,7 +1429,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
       {
         case eGL_STENCIL_INDEX1: rangeScale = 1.0f; break;
         case eGL_STENCIL_INDEX4: rangeScale = 16.0f; break;
-        default: RDCWARN("Unexpected raw format for stencil visualization");
+        default:
+          RDCWARN("Unexpected raw format for stencil visualization");
+        // fall through
         case eGL_DEPTH24_STENCIL8:
         case eGL_DEPTH32F_STENCIL8:
         case eGL_STENCIL_INDEX8: rangeScale = 256.0f; break;
