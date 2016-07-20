@@ -190,7 +190,7 @@ VkResult WrappedVulkan::vkGetPipelineCacheData(VkDevice device, VkPipelineCache 
   if(pDataSize && !pData)
     *pDataSize = totalSize;
 
-  if(pData)
+  if(pDataSize && pData)
   {
     if(*pDataSize < totalSize)
     {

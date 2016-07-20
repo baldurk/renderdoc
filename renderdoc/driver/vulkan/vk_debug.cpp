@@ -6203,7 +6203,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
 
   const FetchDrawcall *drawcall = m_pDriver->GetDrawcall(eventID);
 
-  if(drawcall->numIndices == 0 || drawcall->numInstances == 0)
+  if(drawcall == NULL || drawcall->numIndices == 0 || drawcall->numInstances == 0)
     return;
 
   uint32_t descSet = (uint32_t)creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts.size();

@@ -262,6 +262,12 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   }
   RDCASSERT(layerCreateInfo);
 
+  if(layerCreateInfo == NULL)
+  {
+    RDCERR("Couldn't find loader instance create info, which is required. Incompatible loader?");
+    return VK_ERROR_INITIALIZATION_FAILED;
+  }
+
   PFN_vkGetInstanceProcAddr gpa = layerCreateInfo->u.pLayerInfo->pfnNextGetInstanceProcAddr;
   // move chain on for next layer
   layerCreateInfo->u.pLayerInfo = layerCreateInfo->u.pLayerInfo->pNext;
@@ -1118,6 +1124,12 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     layerCreateInfo = (VkLayerDeviceCreateInfo *)layerCreateInfo->pNext;
   }
   RDCASSERT(layerCreateInfo);
+
+  if(layerCreateInfo == NULL)
+  {
+    RDCERR("Couldn't find loader device create info, which is required. Incompatible loader?");
+    return VK_ERROR_INITIALIZATION_FAILED;
+  }
 
   PFN_vkGetDeviceProcAddr gdpa = layerCreateInfo->u.pLayerInfo->pfnNextGetDeviceProcAddr;
   PFN_vkGetInstanceProcAddr gipa = layerCreateInfo->u.pLayerInfo->pfnNextGetInstanceProcAddr;
