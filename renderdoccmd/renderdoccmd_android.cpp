@@ -57,7 +57,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
 
   for(int i = 0; i < 100; i++)
   {
-    ReplayRenderer_SetFrameEvent(renderer, 10000000 + rand() % 1000, true);
+    ReplayRenderer_SetFrameEvent(renderer, 10000000, true);
 
     __android_log_print(ANDROID_LOG_INFO, LOGCAT_TAG, "Frame %i", i);
     ReplayOutput_Display(out);

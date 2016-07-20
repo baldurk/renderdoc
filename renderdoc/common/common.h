@@ -92,8 +92,6 @@
 #define ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))
 #endif
 
-#define RANDF(mn, mx) ((float(rand()) / float(RAND_MAX)) * ((mx) - (mn)) + (mn))
-
 #define STRINGIZE2(a) #a
 #define STRINGIZE(a) STRINGIZE2(a)
 
