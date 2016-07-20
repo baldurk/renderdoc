@@ -418,15 +418,19 @@ void DXBCFile::MakeDisassemblyString()
 
       // handle #line directives by inserting empty lines or erasing as necessary
 
-      char emptyString[] = "";
-
       for(size_t srcLine = 0; srcLine < srclines.size(); srcLine++)
       {
-        char *c = emptyString;
-        if(!srclines[srcLine].empty())
-          c = &srclines[srcLine][0];
+        if(srclines[srcLine].empty())
+          continue;
+
+        char *c = &srclines[srcLine][0];
+        char *end = c + srclines[srcLine].size();
+
         while(*c == '\t' || *c == ' ' || *c == '\r')
           c++;
+
+        if(c + 5 > end)
+          continue;
 
         if(strncmp(c, "#line", 5))
         {
@@ -449,8 +453,14 @@ void DXBCFile::MakeDisassemblyString()
         // we have a #line directive
         c += 5;
 
+        if(c >= end)
+          continue;
+
         while(*c == '\t' || *c == ' ')
           c++;
+
+        if(c >= end)
+          continue;
 
         // invalid #line, no line number. Skip/ignore
         if(*c < '0' || *c > '9')
