@@ -1366,9 +1366,9 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
         ((ID3D11Texture1D *)DepthResource)->GetDesc(&d1);
         d3.Width = RDCMAX(1U, d1.Width >> DepthDesc.Texture1D.MipSlice);
 
-        if(DepthDesc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1D)
+        if(DepthDesc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1D)
           d3.Depth = 1;
-        else if(DepthDesc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1DARRAY)
+        else if(DepthDesc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1DARRAY)
           d3.Depth = RDCMIN(d1.ArraySize, DepthDesc.Texture1DArray.ArraySize);
       }
       else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
