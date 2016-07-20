@@ -381,6 +381,8 @@ public:
     Serialiser *ser = NULL;
     GetPacket(type, ser);
 
+    m_PID = 0;
+
     // failed handshaking
     if(m_Socket == NULL || ser == NULL)
       return;

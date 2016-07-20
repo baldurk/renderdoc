@@ -1053,7 +1053,11 @@ public:
 
 struct ImageLayouts
 {
-  ImageLayouts() : layerCount(1), levelCount(1) {}
+  ImageLayouts() : layerCount(1), levelCount(1), format(VK_FORMAT_UNDEFINED)
+  {
+    extent.width = extent.height = extent.depth = 1;
+  }
+
   vector<ImageRegionState> subresourceStates;
   int layerCount, levelCount;
   VkExtent3D extent;

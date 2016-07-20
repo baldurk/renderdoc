@@ -1889,11 +1889,6 @@ APIProperties ProxySerialiser::GetAPIProperties()
 
   m_FromReplaySerialiser->Serialise("", ret);
 
-  if(!m_ReplayHost)
-  {
-    m_APIProperties = ret;
-  }
-
   return ret;
 }
 

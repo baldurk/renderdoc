@@ -37,6 +37,8 @@ GLReplay::GLReplay()
   RDCEraseEl(m_ReplayCtx);
   m_DebugCtx = NULL;
 
+  m_DebugID = 0;
+
   m_OutputWindowID = 1;
 }
 

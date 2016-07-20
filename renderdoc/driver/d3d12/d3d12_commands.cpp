@@ -598,6 +598,8 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   // create a temporary and grab its resource ID
   m_ResourceID = ResourceIDGen::GetNewUniqueID();
 
+  RDCEraseEl(m_Init);
+
   m_ListRecord = NULL;
 
   if(!RenderDoc::Inst().IsReplayApp())

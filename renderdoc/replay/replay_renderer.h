@@ -72,14 +72,11 @@ private:
   void DisplayMesh();
 
   ReplayRenderer *m_pRenderer;
-  size_t m_ID;
 
   bool m_OverlayDirty;
   bool m_ForceOverlayRefresh;
 
   IReplayDriver *m_pDevice;
-
-  uint32_t m_TexWidth, m_TexHeight;
 
   struct OutputPair
   {

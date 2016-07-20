@@ -160,6 +160,9 @@ const char *VkChunkNames[] = {
 VkInitParams::VkInitParams()
 {
   SerialiseVersion = VK_SERIALISE_VERSION;
+  AppVersion = 0;
+  EngineVersion = 0;
+  APIVersion = 0;
 }
 
 ReplayCreateStatus VkInitParams::Serialise()

@@ -77,6 +77,7 @@ public:
   D3D12Hook()
   {
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
+    m_HasHooks = false;
     m_EnabledHooks = true;
     m_InsideCreate = false;
   }

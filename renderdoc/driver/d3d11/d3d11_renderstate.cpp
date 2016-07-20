@@ -1566,6 +1566,7 @@ D3D11RenderState::ResourceRange::ResourceRange(ID3D11ShaderResourceView *srv)
   {
     resource = NULL;
     maxMip = maxSlice = ~0U;
+    fullRange = true;
     return;
   }
 
@@ -1636,6 +1637,7 @@ D3D11RenderState::ResourceRange::ResourceRange(ID3D11UnorderedAccessView *uav)
   {
     resource = NULL;
     maxMip = maxSlice = ~0U;
+    fullRange = true;
     return;
   }
 
@@ -1692,6 +1694,7 @@ D3D11RenderState::ResourceRange::ResourceRange(ID3D11RenderTargetView *rtv)
   {
     resource = NULL;
     maxMip = maxSlice = ~0U;
+    fullRange = true;
     return;
   }
 
@@ -1753,6 +1756,7 @@ D3D11RenderState::ResourceRange::ResourceRange(ID3D11DepthStencilView *dsv)
   {
     resource = NULL;
     maxMip = maxSlice = ~0U;
+    fullRange = true;
     return;
   }
 

@@ -483,7 +483,6 @@ private:
 
   bool m_RemoteHasResolver;
 
-  APIProperties m_APIProperties;
   D3D11PipelineState m_D3D11PipelineState;
   GLPipelineState m_GLPipelineState;
   VulkanPipelineState m_VulkanPipelineState;

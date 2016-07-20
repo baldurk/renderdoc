@@ -148,6 +148,7 @@ public:
           align(0),
           totalsize(0),
           curoffset(0),
+          ringCount(0),
           m_pDriver(NULL),
           device(VK_NULL_HANDLE)
     {

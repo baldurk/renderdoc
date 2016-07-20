@@ -39,6 +39,8 @@ ReplayOutput::ReplayOutput(ReplayRenderer *parent, void *w, OutputType type)
 
   m_pDevice = parent->GetDevice();
 
+  m_EventID = parent->m_EventID;
+
   m_OverlayResourceId = ResourceId();
 
   RDCEraseEl(m_RenderData);

@@ -244,7 +244,7 @@ struct RDCThumbnailProviderFactory : public IClassFactory
 {
   unsigned int m_iRefcount;
 
-  RDCThumbnailProviderFactory() : m_iRefcount(1) {}
+  RDCThumbnailProviderFactory() : m_iRefcount(1), locked(false) {}
   virtual ~RDCThumbnailProviderFactory() {}
   ULONG STDMETHODCALLTYPE AddRef()
   {

@@ -205,7 +205,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE Unwrap(D3D12_GPU_DESCRIPTOR_HANDLE handle);
 
 struct PortableHandle
 {
-  PortableHandle() {}
+  PortableHandle() : index(0) {}
   PortableHandle(ResourceId id, uint32_t i) : heap(id), index(i) {}
   PortableHandle(uint32_t i) : index(i) {}
   ResourceId heap;

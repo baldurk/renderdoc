@@ -42,6 +42,9 @@ struct MapIntercept
     RDCEraseEl(app);
     RDCEraseEl(d3d);
     numRows = numSlices = 1;
+    MapType = D3D11_MAP_WRITE_DISCARD;
+    MapFlags = 0;
+    verifyWrite = false;
   }
 
   void SetAppMemory(void *appMemory);

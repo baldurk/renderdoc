@@ -526,6 +526,8 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
   RDCASSERT(ByteCodeLength < UINT32_MAX);
 
+  RDCEraseEl(m_ShaderStats);
+
   m_ShaderBlob.resize(ByteCodeLength);
   memcpy(&m_ShaderBlob[0], ByteCode, m_ShaderBlob.size());
 
@@ -1277,6 +1279,9 @@ SDBGChunk::SDBGChunk(void *data)
 {
   m_HasDebugInfo = false;
 
+  m_ShaderFlags = 0;
+  RDCEraseEl(m_Header);
+
   {
     uint32_t *raw = (uint32_t *)data;
 
@@ -1415,6 +1420,8 @@ SPDBChunk::SPDBChunk(void *chunk)
 
   byte *data = NULL;
 
+  m_ShaderFlags = 0;
+
   uint32_t spdblength;
   {
     uint32_t *raw = (uint32_t *)chunk;
@@ -1426,8 +1433,6 @@ SPDBChunk::SPDBChunk(void *chunk)
 
     data = (byte *)&raw[2];
   }
-
-  m_ShaderFlags = 0;
 
   FileHeaderPage *header = (FileHeaderPage *)data;
 

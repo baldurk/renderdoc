@@ -41,7 +41,7 @@
 
 struct diy_fp
 {
-  diy_fp() {}
+  diy_fp() : mantissa(0), exp(0) {}
   diy_fp(uint64_t mant, int exponent) : mantissa(mant), exp(exponent) {}
   uint64_t mantissa;
   int exp;

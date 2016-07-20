@@ -374,7 +374,7 @@ private:
   void CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth);
 
   GLWindowingData m_ReplayCtx;
-  int64_t m_DebugID;
+  uint64_t m_DebugID;
   OutputWindow *m_DebugCtx;
 
   void MakeCurrentReplayContext(GLWindowingData *ctx);

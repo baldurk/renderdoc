@@ -51,6 +51,7 @@ public:
   {
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
     m_EnabledHooks = true;
+    m_HasHooks = false;
   }
 
   bool CreateHooks(const char *libName)

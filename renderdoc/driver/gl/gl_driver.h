@@ -323,9 +323,6 @@ private:
 
   ResourceId m_FakeVAOID;
 
-  bool m_DoStateVerify;
-  // GLRenderState *m_CurrentPipelineState;
-
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
   void ProcessChunk(uint64_t offset, GLChunkType context);

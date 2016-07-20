@@ -663,6 +663,7 @@ struct ASMOperand
     values[0] = values[1] = values[2] = values[3] = 0;
     modifier = OPERAND_MODIFIER_NONE;
     precision = PRECISION_DEFAULT;
+    funcNum = 0;
   }
 
   bool operator==(const ASMOperand &o) const;
@@ -747,10 +748,13 @@ struct ASMDecl
     instruction = 0;
     declaration = NUM_OPCODES;
     refactoringAllowed = doublePrecisionFloats = forceEarlyDepthStencil =
-        enableRawAndStructuredBuffers = false;
+        enableRawAndStructuredBuffers = skipOptimisation = enableMinPrecision =
+            enableD3D11_1DoubleExtensions = enableD3D11_1ShaderExtensions = false;
     stride = 0;
     hasCounter = false;
     numTemps = 0;
+    tempReg = 0;
+    tempComponentCount = 0;
     count = 0;
     groupSize[0] = groupSize[1] = groupSize[2] = 0;
     resType[0] = resType[1] = resType[2] = resType[3] = NUM_RETURN_TYPES;
@@ -766,6 +770,15 @@ struct ASMDecl
     outPrim = OUTPUT_PRIMITIVE_UNDEFINED;
     inPrim = PRIMITIVE_UNDEFINED;
     outTopology = TOPOLOGY_UNDEFINED;
+    instanceCount = 0;
+    indexRange = 0;
+    maxTessFactor = 0.0f;
+    globallyCoherant = false;
+    functionBody = 0;
+    functionTable = 0;
+    interfaceID = 0;
+    numInterfaces = 0;
+    numTypes = 0;
   }
 
   string str;

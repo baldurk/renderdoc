@@ -122,7 +122,10 @@ public:
     quadIndex = 0;
     nextInstruction = 0;
     done = false;
+    trace = NULL;
     dxbc = NULL;
+    device = NULL;
+    RDCEraseEl(semantics);
   }
   State(int quadIdx, const ShaderDebugTrace *t, DXBC::DXBCFile *f, WrappedID3D11Device *d)
   {
@@ -132,6 +135,7 @@ public:
     trace = t;
     dxbc = f;
     device = d;
+    RDCEraseEl(semantics);
   }
 
   void SetTrace(int quadIdx, const ShaderDebugTrace *t)

@@ -807,6 +807,9 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Re
   m_FakeIdxBuf = 0;
   m_FakeIdxSize = 0;
 
+  m_CurChunkOffset = 0;
+  m_AddedDrawcall = false;
+
   RDCDEBUG("Debug Text enabled - for development! remove before release!");
   m_pSerialiser->SetDebugText(true);
 
@@ -2921,9 +2924,7 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
 
   if(m_State <= EXECUTING && applyInitialState)
   {
-    m_DoStateVerify = false;
     state.ApplyState(GetCtx(), this);
-    m_DoStateVerify = true;
   }
 
   return true;
@@ -3670,8 +3671,6 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 {
   m_State = readType;
 
-  m_DoStateVerify = true;
-
   GLChunkType header = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
   RDCASSERTEQUAL(header, CONTEXT_CAPTURE_HEADER);
 
@@ -3779,8 +3778,6 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
   GetResourceManager()->MarkInFrame(false);
 
   m_State = READING;
-
-  m_DoStateVerify = false;
 }
 
 void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk)

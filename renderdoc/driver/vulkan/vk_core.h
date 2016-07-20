@@ -360,7 +360,7 @@ private:
 
   struct BakedCmdBufferInfo
   {
-    BakedCmdBufferInfo() : draw(NULL) {}
+    BakedCmdBufferInfo() : draw(NULL), eventCount(0), curEventID(0), drawCount(0) {}
     ~BakedCmdBufferInfo() { SAFE_DELETE(draw); }
     vector<FetchAPIEvent> curEvents;
     vector<DebugMessage> debugMessages;
@@ -370,6 +370,7 @@ private:
 
     struct CmdBufferState
     {
+      CmdBufferState() : idxWidth(0), subpass(0) {}
       ResourceId pipeline;
 
       struct DescriptorAndOffsets
