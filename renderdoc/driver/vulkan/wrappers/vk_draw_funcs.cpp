@@ -397,20 +397,19 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
 
       offs += strd;
 
-      FetchDrawcall multidraw;
-      multidraw.numIndices = params.vertexCount;
-      multidraw.numInstances = params.instanceCount;
-      multidraw.vertexOffset = params.firstVertex;
-      multidraw.instanceOffset = params.firstInstance;
+      FetchDrawcall multi;
+      multi.numIndices = params.vertexCount;
+      multi.numInstances = params.instanceCount;
+      multi.vertexOffset = params.firstVertex;
+      multi.instanceOffset = params.firstInstance;
 
-      multidraw.name = "vkCmdDrawIndirect[" + ToStr::Get(i) + "](<" +
-                       ToStr::Get(multidraw.numIndices) + ", " +
-                       ToStr::Get(multidraw.numInstances) + ">)";
+      multi.name = "vkCmdDrawIndirect[" + ToStr::Get(i) + "](<" + ToStr::Get(multi.numIndices) +
+                   ", " + ToStr::Get(multi.numInstances) + ">)";
 
-      multidraw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
+      multi.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
 
-      AddEvent(DRAW_INDIRECT, multidraw.name.elems);
-      AddDrawcall(multidraw, true);
+      AddEvent(DRAW_INDIRECT, multi.name.elems);
+      AddDrawcall(multi, true);
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
     }
@@ -671,21 +670,20 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
 
       offs += strd;
 
-      FetchDrawcall multidraw;
-      multidraw.numIndices = params.indexCount;
-      multidraw.numInstances = params.instanceCount;
-      multidraw.vertexOffset = params.vertexOffset;
-      multidraw.indexOffset = params.firstIndex;
-      multidraw.instanceOffset = params.firstInstance;
+      FetchDrawcall multi;
+      multi.numIndices = params.indexCount;
+      multi.numInstances = params.instanceCount;
+      multi.vertexOffset = params.vertexOffset;
+      multi.indexOffset = params.firstIndex;
+      multi.instanceOffset = params.firstInstance;
 
-      multidraw.name = "vkCmdDrawIndexedIndirect[" + ToStr::Get(i) + "](<" +
-                       ToStr::Get(multidraw.numIndices) + ", " +
-                       ToStr::Get(multidraw.numInstances) + ">)";
+      multi.name = "vkCmdDrawIndexedIndirect[" + ToStr::Get(i) + "](<" +
+                   ToStr::Get(multi.numIndices) + ", " + ToStr::Get(multi.numInstances) + ">)";
 
-      multidraw.flags |= eDraw_Drawcall | eDraw_UseIBuffer | eDraw_Instanced | eDraw_Indirect;
+      multi.flags |= eDraw_Drawcall | eDraw_UseIBuffer | eDraw_Instanced | eDraw_Indirect;
 
-      AddEvent(DRAW_INDEXED_INDIRECT, multidraw.name.elems);
-      AddDrawcall(multidraw, true);
+      AddEvent(DRAW_INDEXED_INDIRECT, multi.name.elems);
+      AddDrawcall(multi, true);
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
     }
