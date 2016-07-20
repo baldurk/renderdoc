@@ -210,13 +210,22 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
   SERIALISE_ELEMENT(uint32_t, cnt, count);
   SERIALISE_ELEMENT(uint32_t, strd, stride);
 
-  Serialise_DebugMessages(localSerialiser, true);
+  bool multidraw = cnt > 1;
 
   if(m_State < WRITING)
     m_LastCmdBufferID = cmdid;
 
-  if(m_State == EXECUTING)
+  // do execution (possibly partial)
+  if(m_State == READING)
   {
+    commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
+    buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+    ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+  }
+  else if(m_State == EXECUTING && cnt <= 1)
+  {
+    // for single draws, it's pretty simple
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
@@ -234,49 +243,186 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
       }
     }
   }
-  else if(m_State == READING)
+  else if(m_State == EXECUTING)
   {
-    commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-
-    const string desc = localSerialiser->GetDebugStr();
-
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
-      VkDrawIndirectCommand unknown = {0};
-      vector<byte> argbuf;
-      GetDebugManager()->GetBufferData(GetResID(buffer), offs,
-                                       sizeof(VkDrawIndirectCommand) + (cnt - 1) * strd, argbuf);
-      VkDrawIndirectCommand *args = (VkDrawIndirectCommand *)&argbuf[0];
+      commandBuffer = RerecordCmdBuf(cmdid);
 
-      if(argbuf.size() < sizeof(VkDrawIndirectCommand))
+      uint32_t curEID = m_RootEventID;
+
+      if(m_FirstEventID <= 1)
       {
-        RDCERR("Couldn't fetch arguments buffer for vkCmdDrawIndirect");
-        args = &unknown;
+        curEID = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
+
+        if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
+          curEID += m_Partial[Primary].baseEvent;
+        else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
+          curEID += m_Partial[Secondary].baseEvent;
       }
 
-      if(cnt > 1)
+      DrawcallUse use(m_CurChunkOffset, 0);
+      auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+
+      RDCASSERT(it != m_DrawcallUses.end());
+
+      uint32_t baseEventID = it->eventID;
+
+      // when re-recording all, submit every drawcall individually to the callback
+      if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
       {
-        RDCWARN("Stepping inside multi indirect draws not yet supported");
+        for(uint32_t i = 0; i < cnt; i++)
+        {
+          uint32_t eventID = HandlePreCallback(commandBuffer, false, i + 1);
+
+          ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, 1, strd);
+
+          if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+          {
+            ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, 1, strd);
+            m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+          }
+
+          offs += strd;
+        }
+      }
+      // To add the multidraw, we made an event N that is the 'parent' marker, then
+      // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
+      // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
+      // the first sub-draw in that range.
+      else if(m_LastEventID > baseEventID)
+      {
+        uint32_t drawidx = 0;
+
+        if(m_FirstEventID <= 1)
+        {
+          // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
+          // by just reducing the Count parameter to however many we want to replay. This only
+          // works if we're replaying from the first multidraw to the nth (n less than Count)
+          cnt = RDCMIN(cnt, m_LastEventID - baseEventID);
+        }
+        else
+        {
+          // otherwise we do the 'hard' case, draw only one multidraw
+          // note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
+          // a single draw.
+          drawidx = (curEID - baseEventID - 1);
+
+          offs += strd * drawidx;
+          cnt = 1;
+        }
+
+        uint32_t eventID = HandlePreCallback(commandBuffer, false, drawidx + 1);
+
+        ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+
+        if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+        {
+          ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+          m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+        }
+      }
+    }
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages(localSerialiser, true);
+
+  // while reading, create the drawcall set
+  if(m_State == READING)
+  {
+    vector<byte> argbuf;
+    GetDebugManager()->GetBufferData(GetResID(buffer), offs,
+                                     sizeof(VkDrawIndirectCommand) + (cnt - 1) * strd, argbuf);
+
+    string name = "vkCmdDrawIndirect(" + ToStr::Get(cnt) + ")";
+
+    // for 'single' draws, don't do complex multi-draw just inline it
+    if(cnt <= 1)
+    {
+      FetchDrawcall draw;
+
+      if(cnt == 1)
+      {
+        VkDrawIndirectCommand *args = (VkDrawIndirectCommand *)&argbuf[0];
+
+        if(argbuf.size() >= sizeof(VkDrawIndirectCommand))
+        {
+          name += StringFormat::Fmt(" => <%u, %u>", args->vertexCount, args->instanceCount);
+
+          draw.numIndices = args->vertexCount;
+          draw.numInstances = args->instanceCount;
+          draw.vertexOffset = args->firstVertex;
+          draw.instanceOffset = args->firstInstance;
+        }
+        else
+        {
+          name += " => <?, ?>";
+        }
       }
 
       AddEvent(DRAW_INDIRECT, desc);
-      string name = "vkCmdDrawIndirect(<" + ToStr::Get(args->vertexCount) + "," +
-                    ToStr::Get(args->instanceCount) + ")";
 
-      FetchDrawcall draw;
       draw.name = name;
-      draw.numIndices = args->vertexCount;
-      draw.numInstances = args->instanceCount;
-      draw.indexOffset = 0;
-      draw.vertexOffset = args->firstVertex;
-      draw.instanceOffset = args->firstInstance;
-
-      draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
+      draw.flags = eDraw_Drawcall | eDraw_Instanced;
 
       AddDrawcall(draw, true);
+
+      return true;
     }
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags = eDraw_MultiDraw | eDraw_PushMarker;
+    AddEvent(DRAW_INDIRECT, desc);
+    AddDrawcall(draw, true);
+
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+
+    uint32_t cmdOffs = 0;
+
+    for(uint32_t i = 0; i < cnt; i++)
+    {
+      VkDrawIndirectCommand params = {};
+      bool valid = false;
+
+      if(cmdOffs + sizeof(VkDrawIndirectCommand) <= argbuf.size())
+      {
+        params = *((VkDrawIndirectCommand *)&argbuf[cmdOffs]);
+        valid = true;
+      }
+
+      offs += strd;
+
+      FetchDrawcall multidraw;
+      multidraw.numIndices = params.vertexCount;
+      multidraw.numInstances = params.instanceCount;
+      multidraw.vertexOffset = params.firstVertex;
+      multidraw.instanceOffset = params.firstInstance;
+
+      multidraw.name = "vkCmdDrawIndirect[" + ToStr::Get(i) + "](<" +
+                       ToStr::Get(multidraw.numIndices) + ", " +
+                       ToStr::Get(multidraw.numInstances) + ">)";
+
+      multidraw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
+
+      AddEvent(DRAW_INDIRECT, multidraw.name.elems);
+      AddDrawcall(multidraw, true);
+
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+    }
+
+    draw.name = name;
+    draw.flags = eDraw_PopMarker;
+    AddDrawcall(draw, false);
+  }
+  else if(multidraw)
+  {
+    // multidraws skip the event ID past the whole thing
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += cnt + 1;
   }
 
   return true;
@@ -319,13 +465,22 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
   SERIALISE_ELEMENT(uint32_t, cnt, count);
   SERIALISE_ELEMENT(uint32_t, strd, stride);
 
-  Serialise_DebugMessages(localSerialiser, true);
+  bool multidraw = cnt > 1;
 
   if(m_State < WRITING)
     m_LastCmdBufferID = cmdid;
 
-  if(m_State == EXECUTING)
+  // do execution (possibly partial)
+  if(m_State == READING)
   {
+    commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
+    buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
+
+    ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+  }
+  else if(m_State == EXECUTING && cnt <= 1)
+  {
+    // for single draws, it's pretty simple
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
@@ -345,49 +500,204 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
       }
     }
   }
-  else if(m_State == READING)
+  else if(m_State == EXECUTING)
   {
-    commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-
-    const string desc = localSerialiser->GetDebugStr();
-
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
-      VkDrawIndexedIndirectCommand unknown = {0};
-      vector<byte> argbuf;
-      GetDebugManager()->GetBufferData(
-          GetResID(buffer), offs, sizeof(VkDrawIndexedIndirectCommand) + (cnt - 1) * strd, argbuf);
-      VkDrawIndexedIndirectCommand *args = (VkDrawIndexedIndirectCommand *)&argbuf[0];
+      commandBuffer = RerecordCmdBuf(cmdid);
 
-      if(argbuf.size() < sizeof(VkDrawIndexedIndirectCommand))
+      uint32_t curEID = m_RootEventID;
+
+      if(m_FirstEventID <= 1)
       {
-        RDCERR("Couldn't fetch arguments buffer for vkCmdDrawIndexedIndirect");
-        args = &unknown;
+        curEID = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
+
+        if(m_Partial[Primary].partialParent == m_LastCmdBufferID)
+          curEID += m_Partial[Primary].baseEvent;
+        else if(m_Partial[Secondary].partialParent == m_LastCmdBufferID)
+          curEID += m_Partial[Secondary].baseEvent;
       }
 
-      if(cnt > 1)
+      DrawcallUse use(m_CurChunkOffset, 0);
+      auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+
+      RDCASSERT(it != m_DrawcallUses.end());
+
+      uint32_t baseEventID = it->eventID;
+
+      // when re-recording all, submit every drawcall individually to the callback
+      if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
       {
-        RDCWARN("Stepping inside multi indirect draws not yet supported");
+        for(uint32_t i = 0; i < cnt; i++)
+        {
+          uint32_t eventID = HandlePreCallback(commandBuffer, false, i + 1);
+
+          ObjDisp(commandBuffer)
+              ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, 1, strd);
+
+          if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+          {
+            ObjDisp(commandBuffer)
+                ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, 1, strd);
+            m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+          }
+
+          offs += strd;
+        }
+      }
+      // To add the multidraw, we made an event N that is the 'parent' marker, then
+      // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
+      // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
+      // the first sub-draw in that range.
+      else if(m_LastEventID > baseEventID)
+      {
+        uint32_t drawidx = 0;
+
+        if(m_FirstEventID <= 1)
+        {
+          // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
+          // by just reducing the Count parameter to however many we want to replay. This only
+          // works if we're replaying from the first multidraw to the nth (n less than Count)
+          cnt = RDCMIN(cnt, m_LastEventID - baseEventID);
+        }
+        else
+        {
+          if(curEID > baseEventID)
+          {
+            // otherwise we do the 'hard' case, draw only one multidraw
+            // note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
+            // a single draw.
+            drawidx = (curEID - baseEventID - 1);
+
+            RDCASSERT(drawidx < cnt, drawidx, cnt);
+
+            if(drawidx >= cnt)
+              drawidx = 0;
+
+            offs += strd * drawidx;
+            cnt = 1;
+          }
+          else
+          {
+            cnt = 0;
+          }
+        }
+
+        uint32_t eventID = HandlePreCallback(commandBuffer, false, drawidx + 1);
+
+        ObjDisp(commandBuffer)
+            ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+
+        if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+        {
+          ObjDisp(commandBuffer)
+              ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+          m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+        }
+      }
+    }
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages(localSerialiser, true);
+
+  // while reading, create the drawcall set
+  if(m_State == READING)
+  {
+    vector<byte> argbuf;
+    GetDebugManager()->GetBufferData(
+        GetResID(buffer), offs, sizeof(VkDrawIndexedIndirectCommand) + (cnt - 1) * strd, argbuf);
+
+    string name = "vkCmdDrawIndexedIndirect(" + ToStr::Get(cnt) + ")";
+
+    // for 'single' draws, don't do complex multi-draw just inline it
+    if(cnt <= 1)
+    {
+      FetchDrawcall draw;
+
+      if(cnt == 1)
+      {
+        VkDrawIndexedIndirectCommand *args = (VkDrawIndexedIndirectCommand *)&argbuf[0];
+
+        if(argbuf.size() >= sizeof(VkDrawIndexedIndirectCommand))
+        {
+          name += StringFormat::Fmt(" => <%u, %u>", args->indexCount, args->instanceCount);
+
+          draw.numIndices = args->indexCount;
+          draw.numInstances = args->instanceCount;
+          draw.vertexOffset = args->vertexOffset;
+          draw.indexOffset = args->firstIndex;
+          draw.instanceOffset = args->firstInstance;
+        }
+        else
+        {
+          name += " => <?, ?>";
+        }
       }
 
       AddEvent(DRAW_INDEXED_INDIRECT, desc);
-      string name = "vkCmdDrawIndexedIndirect(<" + ToStr::Get(args->indexCount) + "," +
-                    ToStr::Get(args->instanceCount) + ")";
 
-      FetchDrawcall draw;
       draw.name = name;
-      draw.numIndices = args->indexCount;
-      draw.numInstances = args->instanceCount;
-      draw.indexOffset = args->firstIndex;
-      draw.baseVertex = args->vertexOffset;
-      draw.instanceOffset = args->firstInstance;
-
-      draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer | eDraw_Instanced | eDraw_Indirect;
+      draw.flags = eDraw_Drawcall | eDraw_UseIBuffer | eDraw_Instanced;
 
       AddDrawcall(draw, true);
+
+      return true;
     }
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags = eDraw_MultiDraw | eDraw_PushMarker;
+    AddEvent(DRAW_INDEXED_INDIRECT, desc);
+    AddDrawcall(draw, true);
+
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+
+    uint32_t cmdOffs = 0;
+
+    for(uint32_t i = 0; i < cnt; i++)
+    {
+      VkDrawIndexedIndirectCommand params = {};
+      bool valid = false;
+
+      if(cmdOffs + sizeof(VkDrawIndexedIndirectCommand) <= argbuf.size())
+      {
+        params = *((VkDrawIndexedIndirectCommand *)&argbuf[cmdOffs]);
+        valid = true;
+      }
+
+      offs += strd;
+
+      FetchDrawcall multidraw;
+      multidraw.numIndices = params.indexCount;
+      multidraw.numInstances = params.instanceCount;
+      multidraw.vertexOffset = params.vertexOffset;
+      multidraw.indexOffset = params.firstIndex;
+      multidraw.instanceOffset = params.firstInstance;
+
+      multidraw.name = "vkCmdDrawIndexedIndirect[" + ToStr::Get(i) + "](<" +
+                       ToStr::Get(multidraw.numIndices) + ", " +
+                       ToStr::Get(multidraw.numInstances) + ">)";
+
+      multidraw.flags |= eDraw_Drawcall | eDraw_UseIBuffer | eDraw_Instanced | eDraw_Indirect;
+
+      AddEvent(DRAW_INDEXED_INDIRECT, multidraw.name.elems);
+      AddDrawcall(multidraw, true);
+
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+    }
+
+    draw.name = name;
+    draw.flags = eDraw_PopMarker;
+    AddDrawcall(draw, false);
+  }
+  else if(multidraw)
+  {
+    // multidraws skip the event ID past the whole thing
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID += cnt + 1;
   }
 
   return true;

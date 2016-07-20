@@ -492,7 +492,8 @@ void WrappedVulkan::FlushQ()
   }
 }
 
-uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, bool dispatch)
+uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, bool dispatch,
+                                          uint32_t multiDrawOffset)
 {
   if(!m_DrawcallCallback)
     return 0;
@@ -506,13 +507,20 @@ uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, bool di
 
   RDCASSERT(eventID != 0);
 
-  // handle all aliases of this drawcall
-  ++it;
-  while(it != m_DrawcallUses.end() && it->fileOffset == m_CurChunkOffset)
+  // handle all aliases of this drawcall as long as it's not a multidraw
+  const FetchDrawcall *draw = GetDrawcall(eventID);
+
+  if(draw == NULL || (draw->flags & eDraw_MultiDraw) == 0)
   {
-    m_DrawcallCallback->AliasEvent(eventID, it->eventID);
     ++it;
+    while(it != m_DrawcallUses.end() && it->fileOffset == m_CurChunkOffset)
+    {
+      m_DrawcallCallback->AliasEvent(eventID, it->eventID);
+      ++it;
+    }
   }
+
+  eventID += multiDrawOffset;
 
   if(dispatch)
     m_DrawcallCallback->PreDispatch(eventID, commandBuffer);

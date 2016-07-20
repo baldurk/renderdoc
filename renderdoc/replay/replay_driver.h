@@ -192,12 +192,28 @@ FetchDrawcall *SetupDrawcallPointers(vector<FetchDrawcall *> *drawcallTable, Res
 
     if(draw->children.count > 0)
     {
+      if(drawcallTable)
+      {
+        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID ||
+                  draw->context != contextID);
+        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
+        (*drawcallTable)[draw->eventID] = draw;
+      }
+
       ret = previous =
           SetupDrawcallPointers(drawcallTable, contextID, draw->children, draw, previous);
     }
     else if(draw->flags & (eDraw_PushMarker | eDraw_SetMarker | eDraw_Present | eDraw_MultiDraw))
     {
-      // don't want to set up previous/next links for markers
+      // don't want to set up previous/next links for markers, but still add them to the table
+
+      if(drawcallTable)
+      {
+        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID ||
+                  draw->context != contextID);
+        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
+        (*drawcallTable)[draw->eventID] = draw;
+      }
     }
     else
     {

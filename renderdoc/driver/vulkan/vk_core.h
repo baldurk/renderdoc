@@ -243,7 +243,8 @@ private:
 
   // util function to handle fetching the right eventID, calling any
   // aliases then calling PreDraw/PreDispatch.
-  uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, bool dispatch = false);
+  uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, bool dispatch = false,
+                             uint32_t multiDrawOffset = 0);
 
   uint32_t m_FrameCounter;
 
