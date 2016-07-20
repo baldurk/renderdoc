@@ -2366,7 +2366,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
   ID3D11ShaderResourceView *srvs[2] = {m_DebugRender.PickIBSRV, m_DebugRender.PickVBSRV};
 
-  ID3D11Buffer *buf = MakeCBuffer((float *)&cbuf, sizeof(cbuf));
+  ID3D11Buffer *buf = MakeCBuffer(&cbuf, sizeof(cbuf));
 
   m_pImmediateContext->CSSetConstantBuffers(0, 1, &buf);
 
@@ -3497,7 +3497,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
     pixelData.InverseRangeSize = views[0].TopLeftY;
     pixelData.TextureResolutionPS = Vec3f(views[0].Width, views[0].Height, 0.0f);
 
-    ID3D11Buffer *buf = MakeCBuffer((float *)&pixelData, sizeof(DebugPixelCBufferData));
+    ID3D11Buffer *buf = MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
 
     m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
 
@@ -3524,7 +3524,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       pixelData.InverseRangeSize = scissorview.TopLeftY;
       pixelData.TextureResolutionPS = Vec3f(scissorview.Width, scissorview.Height, 0.0f);
 
-      buf = MakeCBuffer((float *)&pixelData, sizeof(DebugPixelCBufferData));
+      buf = MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
 
       m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
 
@@ -3824,7 +3824,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
         m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         m_pImmediateContext->IASetInputLayout(NULL);
 
-        ID3D11Buffer *buf = MakeCBuffer((float *)&overdrawRamp[0].x, sizeof(overdrawRamp));
+        ID3D11Buffer *buf = MakeCBuffer(&overdrawRamp[0].x, sizeof(overdrawRamp));
 
         m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
@@ -4548,8 +4548,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
   ID3D11Buffer *shadoutsrcxyCBuf = MakeCBuffer(sizeof(shadoutsrcxyData));
   ID3D11Buffer *storexyCBuf = MakeCBuffer(sizeof(srcxyData));
 
-  FillCBuffer(srcxyCBuf, (float *)srcxyData, sizeof(srcxyData));
-  FillCBuffer(shadoutsrcxyCBuf, (float *)srcxyData, sizeof(shadoutsrcxyData));
+  FillCBuffer(srcxyCBuf, srcxyData, sizeof(srcxyData));
+  FillCBuffer(shadoutsrcxyCBuf, srcxyData, sizeof(shadoutsrcxyData));
 
   // so we do:
   // per sample: orig depth --copy--> depthCopyXXX (created/upsized on demand) --CS pixel copy-->

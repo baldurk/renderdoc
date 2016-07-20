@@ -569,7 +569,7 @@ ID3D11Buffer *D3D11DebugManager::MakeCBuffer(UINT size)
   return ret;
 }
 
-void D3D11DebugManager::FillCBuffer(ID3D11Buffer *buf, float *data, size_t size)
+void D3D11DebugManager::FillCBuffer(ID3D11Buffer *buf, const void *data, size_t size)
 {
   D3D11_MAPPED_SUBRESOURCE mapped;
 
@@ -586,7 +586,7 @@ void D3D11DebugManager::FillCBuffer(ID3D11Buffer *buf, float *data, size_t size)
   }
 }
 
-ID3D11Buffer *D3D11DebugManager::MakeCBuffer(float *data, size_t size)
+ID3D11Buffer *D3D11DebugManager::MakeCBuffer(const void *data, size_t size)
 {
   int idx = m_DebugRender.publicCBufIdx;
 
@@ -1506,7 +1506,7 @@ bool D3D11DebugManager::InitFontRendering()
     glyphData[(i + 1) * 2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
   }
 
-  FillCBuffer(m_Font.GlyphData, (float *)&glyphData, sizeof(glyphData));
+  FillCBuffer(m_Font.GlyphData, &glyphData, sizeof(glyphData));
 
   m_Font.CBuffer = MakeCBuffer(sizeof(FontCBuffer));
 
@@ -1875,7 +1875,7 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
   if(details.texType == eTexType_3D)
     cdata.HistogramSlice = float(sliceFace) / float(details.texDepth);
 
-  ID3D11Buffer *cbuf = MakeCBuffer((float *)&cdata, sizeof(cdata));
+  ID3D11Buffer *cbuf = MakeCBuffer(&cdata, sizeof(cdata));
 
   UINT zeroes[] = {0, 0, 0, 0};
   m_pImmediateContext->ClearUnorderedAccessViewUint(m_DebugRender.histogramUAV, zeroes);
@@ -1976,7 +1976,7 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
   if(details.texType == eTexType_3D)
     cdata.HistogramSlice = float(sliceFace) / float(details.texDepth);
 
-  ID3D11Buffer *cbuf = MakeCBuffer((float *)&cdata, sizeof(cdata));
+  ID3D11Buffer *cbuf = MakeCBuffer(&cdata, sizeof(cdata));
 
   m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, 0, 0, NULL, NULL);
 
@@ -2315,7 +2315,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   {
     uint32_t cdata[4] = {descMS.SampleDesc.Count, 1000, 0, slice};
 
-    ID3D11Buffer *cbuf = MakeCBuffer((float *)cdata, sizeof(cdata));
+    ID3D11Buffer *cbuf = MakeCBuffer(cdata, sizeof(cdata));
 
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &cbuf);
 
@@ -2404,7 +2404,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
       {
         uint32_t cdata[4] = {descMS.SampleDesc.Count, stencilval, 0, slice};
 
-        ID3D11Buffer *cbuf = MakeCBuffer((float *)cdata, sizeof(cdata));
+        ID3D11Buffer *cbuf = MakeCBuffer(cdata, sizeof(cdata));
 
         m_pImmediateContext->PSSetConstantBuffers(0, 1, &cbuf);
 
@@ -2614,7 +2614,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     {
       uint32_t cdata[4] = {descMS.SampleDesc.Count, 1000, sample, slice};
 
-      ID3D11Buffer *cbuf = MakeCBuffer((float *)cdata, sizeof(cdata));
+      ID3D11Buffer *cbuf = MakeCBuffer(cdata, sizeof(cdata));
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &cbuf);
 
@@ -2706,7 +2706,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
         {
           uint32_t cdata[4] = {descMS.SampleDesc.Count, stencilval, sample, slice};
 
-          ID3D11Buffer *cbuf = MakeCBuffer((float *)cdata, sizeof(cdata));
+          ID3D11Buffer *cbuf = MakeCBuffer(cdata, sizeof(cdata));
 
           m_pImmediateContext->PSSetConstantBuffers(0, 1, &cbuf);
 
@@ -3186,7 +3186,7 @@ void D3D11DebugManager::RenderTextInternal(float x, float y, const char *text)
 
   D3D11_MAPPED_SUBRESOURCE mapped;
 
-  FillCBuffer(m_Font.CBuffer, (float *)&data, sizeof(FontCBuffer));
+  FillCBuffer(m_Font.CBuffer, &data, sizeof(FontCBuffer));
 
   HRESULT hr = m_pImmediateContext->Map(m_Font.CharBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 
@@ -3509,8 +3509,8 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
   }
 
-  FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
-  FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+  FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
+  FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
   // can't just clear state because we need to keep things like render targets.
   {
@@ -3590,7 +3590,7 @@ void D3D11DebugManager::RenderHighlightBox(float w, float h, float scale)
 
   vertCBuffer.LineStrip = 1;
 
-  vconst = MakeCBuffer((float *)&vertCBuffer, sizeof(vertCBuffer));
+  vconst = MakeCBuffer(&vertCBuffer, sizeof(vertCBuffer));
 
   m_pImmediateContext->HSSetShader(NULL, NULL, 0);
   m_pImmediateContext->DSSetShader(NULL, NULL, 0);
@@ -3617,7 +3617,7 @@ void D3D11DebugManager::RenderHighlightBox(float w, float h, float scale)
 
   overlayConsts[0] = overlayConsts[1] = overlayConsts[2] = 0.0f;
 
-  vconst = MakeCBuffer((float *)&vertCBuffer, sizeof(vertCBuffer));
+  vconst = MakeCBuffer(&vertCBuffer, sizeof(vertCBuffer));
   pconst = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
   m_pImmediateContext->VSSetConstantBuffers(0, 1, &vconst);
@@ -3642,7 +3642,7 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 
   vertexData.LineStrip = 0;
 
-  FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+  FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
 
   DebugPixelCBufferData pixelData;
 
@@ -3651,7 +3651,7 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
   pixelData.Channels = Vec4f(light.x, light.y, light.z, 0.0f);
   pixelData.WireframeColour = dark;
 
-  FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+  FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
   // can't just clear state because we need to keep things like render targets.
   {
@@ -4611,7 +4611,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
   pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
   pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
-  FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+  FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
   m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
   m_pImmediateContext->PSSetShader(m_DebugRender.WireframePS, NULL, 0);
@@ -4729,7 +4729,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
     }
 
-    FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+    FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
 
     m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
     m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
@@ -4756,8 +4756,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
         if(fmt.buf != ResourceId())
         {
           pixelData.WireframeColour = Vec3f(fmt.meshColour.x, fmt.meshColour.y, fmt.meshColour.z);
-          FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData,
-                      sizeof(DebugPixelCBufferData));
+          FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
           m_pImmediateContext->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(fmt.topo));
 
@@ -4840,7 +4839,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
         pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
       pixelData.WireframeColour = Vec3f(0.8f, 0.8f, 0.0f);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
       m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
 
@@ -4850,7 +4849,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
         geomData.InvProj = projMat.Inverse();
 
-        FillCBuffer(m_DebugRender.GenericGSCBuffer, (float *)&geomData, sizeof(DebugGeometryCBuffer));
+        FillCBuffer(m_DebugRender.GenericGSCBuffer, &geomData, sizeof(DebugGeometryCBuffer));
         m_pImmediateContext->GSSetConstantBuffers(0, 1, &m_DebugRender.GenericGSCBuffer);
 
         m_pImmediateContext->GSSetShader(m_DebugRender.MeshGS, NULL, 0);
@@ -4876,7 +4875,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
       pixelData.WireframeColour =
           Vec3f(cfg.position.meshColour.x, cfg.position.meshColour.y, cfg.position.meshColour.z);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
       m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
 
@@ -4897,7 +4896,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   // set up state for drawing helpers
   {
     vertexData.ModelViewProj = projMat.Mul(camMat);
-    FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+    FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
 
     m_pImmediateContext->RSSetState(m_SolidHelpersRS);
 
@@ -4922,15 +4921,15 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
 
     pixelData.WireframeColour = Vec3f(1.0f, 0.0f, 0.0f);
-    FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+    FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
     m_pImmediateContext->Draw(2, 0);
 
     pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
-    FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+    FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
     m_pImmediateContext->Draw(2, 2);
 
     pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 1.0f);
-    FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+    FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
     m_pImmediateContext->Draw(2, 4);
   }
 
@@ -5316,7 +5315,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
         m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
       }
 
-      FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+      FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
 
       D3D11_MAPPED_SUBRESOURCE mapped;
       HRESULT hr = S_OK;
@@ -5332,7 +5331,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       // Draw active primitive (red)
       pixelData.WireframeColour = Vec3f(1.0f, 0.0f, 0.0f);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
       if(activePrim.size() >= primSize)
       {
@@ -5352,7 +5351,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       // Draw adjacent primitives (green)
       pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
       if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
       {
@@ -5376,11 +5375,11 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       float asp = float(GetWidth()) / float(GetHeight());
 
       vertexData.SpriteSize = Vec2f(scale / asp, scale);
-      FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+      FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
 
       // Draw active vertex (blue)
       pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 1.0f);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
       m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
@@ -5403,7 +5402,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       // Draw inactive vertices (green)
       pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
-      FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
       for(size_t i = 0; i < inactiveVertices.size(); i++)
       {
@@ -5437,7 +5436,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
     vertexData.SpriteSize = Vec2f();
     vertexData.ModelViewProj = projMat.Mul(camMat);
-    FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+    FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
 
     HRESULT hr =
         m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
@@ -5478,7 +5477,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
 
     pixelData.WireframeColour = Vec3f(0.2f, 0.2f, 1.0f);
-    FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+    FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
     m_pImmediateContext->Draw(24, 0);
 
@@ -5493,7 +5492,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
     vertexData.SpriteSize = Vec2f();
     vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
-    FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+    FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
 
     m_pImmediateContext->IASetVertexBuffers(0, 1, &m_FrustumHelper, (UINT *)&strides,
                                             (UINT *)&offsets);
@@ -5501,7 +5500,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
 
     pixelData.WireframeColour = Vec3f(1.0f, 1.0f, 1.0f);
-    FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+    FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
     m_pImmediateContext->Draw(24, 0);
   }

@@ -157,7 +157,7 @@ public:
   void RenderText(float x, float y, const char *textfmt, ...);
   void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
-  ID3D11Buffer *MakeCBuffer(float *data, size_t size);
+  ID3D11Buffer *MakeCBuffer(const void *data, size_t size);
 
   string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
                        const char *profile, ID3DBlob **srcblob);
@@ -592,5 +592,5 @@ private:
 
   void FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode);
 
-  void FillCBuffer(ID3D11Buffer *buf, float *data, size_t size);
+  void FillCBuffer(ID3D11Buffer *buf, const void *data, size_t size);
 };
