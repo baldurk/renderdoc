@@ -2838,7 +2838,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
   DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
   DoPipelineBarrier(cmd, 1, &outw.colBarrier[outw.curidx]);
-  if(depth)
+  if(outw.dsimg != VK_NULL_HANDLE)
     DoPipelineBarrier(cmd, 1, &outw.depthBarrier);
 
   outw.depthBarrier.oldLayout = outw.depthBarrier.newLayout;
