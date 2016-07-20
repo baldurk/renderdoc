@@ -508,12 +508,8 @@ ID3DBlob *D3D12DebugManager::MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &roo
     RDCERR("Root signature serialize error:\n%s", logerror.c_str());
 
     SAFE_RELEASE(errBlob);
-
-    if(FAILED(hr))
-    {
-      SAFE_RELEASE(ret);
-      return NULL;
-    }
+    SAFE_RELEASE(ret);
+    return NULL;
   }
 
   SAFE_RELEASE(errBlob);
