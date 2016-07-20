@@ -188,7 +188,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
   }
 
   // sensible defaults
-  VkFormat imformat = VK_FORMAT_B8G8R8A8_UNORM;
+  VkFormat imformat = VK_FORMAT_B8G8R8A8_SRGB;
   VkPresentModeKHR presentmode = VK_PRESENT_MODE_FIFO_KHR;
   VkColorSpaceKHR imcolspace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
 
@@ -226,7 +226,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
       if(numFormats == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
       {
         // 1 entry with undefined means no preference, just use our default
-        imformat = VK_FORMAT_B8G8R8A8_UNORM;
+        imformat = VK_FORMAT_B8G8R8A8_SRGB;
         imcolspace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
       }
       else
@@ -369,6 +369,9 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
   }
 
   curidx = 0;
+
+  // for our 'fake' backbuffer, create in RGBA8
+  imformat = VK_FORMAT_R8G8B8A8_SRGB;
 
   if(depth)
   {

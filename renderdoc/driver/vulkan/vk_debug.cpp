@@ -446,7 +446,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   {
     VkAttachmentDescription attDesc = {0,
-                                       VK_FORMAT_R8G8B8A8_UNORM,
+                                       VK_FORMAT_R8G8B8A8_SRGB,
                                        VK_SAMPLE_COUNT_1_BIT,
                                        VK_ATTACHMENT_LOAD_OP_LOAD,
                                        VK_ATTACHMENT_STORE_OP_STORE,
@@ -480,7 +480,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
     m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &RGBA8RP);
 
-    attDesc.format = VK_FORMAT_B8G8R8A8_UNORM;
+    attDesc.format = VK_FORMAT_B8G8R8A8_SRGB;
 
     m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &BGRA8RP);
 
@@ -2281,7 +2281,7 @@ void VulkanDebugManager::BeginText(const TextPrintState &textstate)
 
   VkPipeline pipe = m_TextPipeline[0];
 
-  if(textstate.fmt == VK_FORMAT_B8G8R8A8_UNORM)
+  if(textstate.fmt == VK_FORMAT_B8G8R8A8_UNORM || textstate.fmt == VK_FORMAT_B8G8R8A8_SRGB)
     pipe = m_TextPipeline[1];
 
   ObjDisp(textstate.cmd)
