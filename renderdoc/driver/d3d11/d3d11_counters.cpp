@@ -277,7 +277,8 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<uint32_t> &c
       double ticksToSecs = double(disjointData.Frequency);
 
       UINT64 a = 0;
-      m_pImmediateContext->GetData(start, &a, sizeof(UINT64), 0);
+      hr = m_pImmediateContext->GetData(start, &a, sizeof(UINT64), 0);
+      RDCASSERTEQUAL(hr, S_OK);
 
       for(size_t i = 0; i < ctx.timers.size(); i++)
       {
