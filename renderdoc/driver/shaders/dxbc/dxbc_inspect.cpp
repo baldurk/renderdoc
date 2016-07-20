@@ -1172,7 +1172,7 @@ void DXBCFile::GuessResources()
         desc.bindPoint = idx;
         desc.bindCount = 1;
         desc.flags = 0;
-        desc.retType = (ShaderInputBind::RetType)dcl.resType[0];
+        desc.retType = (ShaderInputBind::RetType) int(dcl.resType[0]);    // enums match
         desc.dimension =
             dcl.dim == RESOURCE_DIMENSION_TEXTURE1D
                 ? ShaderInputBind::DIM_TEXTURE1D

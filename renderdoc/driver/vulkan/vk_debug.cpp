@@ -1842,7 +1842,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
             NULL,
             0,
             m_TexDisplayDummyImages[index],
-            VkImageViewType(types[type]),    // image/view type enums overlap for 1D/2D/3D
+            VkImageViewType(int(types[type])),    // image/view type enums overlap for 1D/2D/3D
             formats[fmt],
             {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
              VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
