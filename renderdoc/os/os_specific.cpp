@@ -57,42 +57,46 @@ int Wide2UTF8(wchar_t chr, char mbchr[4])
   // U+00800 -> U+00FFFF 3 bytes 1110xxxx 10xxxxxx 10xxxxxx
   // U+10000 -> U+1FFFFF 4 bytes 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 
-  if(chr > 0x10FFFF)
-    chr = 0xFFFD;    // replacement character
+  // upcast to uint32_t, so we do the same processing on windows where
+  // sizeof(wchar_t) == 2
+  uint32_t wc = (uint32_t)chr;
 
-  if(chr <= 0x7f)
+  if(wc > 0x10FFFF)
+    wc = 0xFFFD;    // replacement character
+
+  if(wc <= 0x7f)
   {
-    mbchr[0] = (char)chr;
+    mbchr[0] = (char)wc;
     return 1;
   }
-  else if(chr <= 0x7ff)
+  else if(wc <= 0x7ff)
   {
-    mbchr[1] = 0x80 | (char)(chr & 0x3f);
-    chr >>= 6;
-    mbchr[0] = 0xC0 | (char)(chr & 0x1f);
+    mbchr[1] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[0] = 0xC0 | (char)(wc & 0x1f);
     return 2;
   }
-  else if(chr <= 0xffff)
+  else if(wc <= 0xffff)
   {
-    mbchr[2] = 0x80 | (char)(chr & 0x3f);
-    chr >>= 6;
-    mbchr[1] = 0x80 | (char)(chr & 0x3f);
-    chr >>= 6;
-    mbchr[0] = 0xE0 | (char)(chr & 0x0f);
-    chr >>= 4;
+    mbchr[2] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[1] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[0] = 0xE0 | (char)(wc & 0x0f);
+    wc >>= 4;
     return 3;
   }
   else
   {
     // invalid codepoints above 0x10FFFF were replaced above
-    mbchr[3] = 0x80 | (char)(chr & 0x3f);
-    chr >>= 6;
-    mbchr[2] = 0x80 | (char)(chr & 0x3f);
-    chr >>= 6;
-    mbchr[1] = 0x80 | (char)(chr & 0x3f);
-    chr >>= 6;
-    mbchr[0] = 0xF0 | (char)(chr & 0x07);
-    chr >>= 3;
+    mbchr[3] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[2] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[1] = 0x80 | (char)(wc & 0x3f);
+    wc >>= 6;
+    mbchr[0] = 0xF0 | (char)(wc & 0x07);
+    wc >>= 3;
     return 4;
   }
 }
