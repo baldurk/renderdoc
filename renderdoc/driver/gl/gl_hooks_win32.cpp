@@ -318,12 +318,16 @@ public:
 
     m_GLDriver = NULL;
 
+    m_HasHooks = false;
+
     m_HaveContextCreation = false;
 
     m_EnabledHooks = true;
     m_PopulatedHooks = false;
 
     m_CreatingContext = false;
+
+    SetUnsupportedFunctionPointersToNULL();
   }
   ~OpenGLHook() { delete m_GLDriver; }
   bool CreateHooks(const char *libName)
@@ -1206,6 +1210,95 @@ private:
   }
 
   DefineUnsupportedDummies();
+
+  /*
+         in bash:
+
+      function HookWrapper()
+      {
+          N=$1;
+          echo "#undef HookWrapper$N";
+          echo -n "#define HookWrapper$N(ret, function";
+              for I in `seq 1 $N`; do echo -n ", t$I, p$I"; done;
+          echo ") \\";
+
+          echo -e "\tCONCAT(unsupported_real_,function) = NULL;";
+      }
+
+    for I in `seq 0 15`; do HookWrapper $I; echo; done
+  */
+  void SetUnsupportedFunctionPointersToNULL()
+  {
+#undef HookWrapper0
+#define HookWrapper0(ret, function) CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper1
+#define HookWrapper1(ret, function, t1, p1) CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper2
+#define HookWrapper2(ret, function, t1, p1, t2, p2) CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper3
+#define HookWrapper3(ret, function, t1, p1, t2, p2, t3, p3) \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper4
+#define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4) \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper5
+#define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5) \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper6
+#define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6) \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper7
+#define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper8
+#define HookWrapper8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper9
+#define HookWrapper9(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, \
+                     p8, t9, p9)                                                                \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper10
+#define HookWrapper10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, \
+                      p8, t9, p9, t10, p10)                                                      \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper11
+#define HookWrapper11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, \
+                      p8, t9, p9, t10, p10, t11, p11)                                            \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper12
+#define HookWrapper12(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, \
+                      p8, t9, p9, t10, p10, t11, p11, t12, p12)                                  \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper13
+#define HookWrapper13(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, \
+                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13)                        \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper14
+#define HookWrapper14(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, \
+                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14)              \
+  CONCAT(unsupported_real_, function) = NULL;
+
+#undef HookWrapper15
+#define HookWrapper15(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, \
+                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14, t15, p15)    \
+  CONCAT(unsupported_real_, function) = NULL;
+
+    DefineUnsupportedDummies();
+  }
 };
 
 OpenGLHook OpenGLHook::glhooks;

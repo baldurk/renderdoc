@@ -393,6 +393,8 @@ public:
 
     RDCEraseEl(GL);
 
+    m_HasHooks = false;
+
     m_GLDriver = NULL;
 
     m_EnabledHooks = true;
@@ -542,7 +544,7 @@ DefineGLExtensionHooks();
             for I in `seq 1 $N`; do echo -n "t$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
         echo "); \\";
 
-        echo -en "\tCONCAT(function, _hooktype) CONCAT(unsupported_real_,function);";
+        echo -en "\tCONCAT(function, _hooktype) CONCAT(unsupported_real_,function) = NULL;";
 
         echo -en "\tret CONCAT(function,_renderdoc_hooked)(";
             for I in `seq 1 $N`; do echo -n "t$I p$I"; if [ $I -ne $N ]; then echo -n ", "; fi;
@@ -565,7 +567,7 @@ DefineGLExtensionHooks();
 #undef HookWrapper0
 #define HookWrapper0(ret, function)                                                     \
   typedef ret (*CONCAT(function, _hooktype))();                                         \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                      \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
   ret CONCAT(function, _renderdoc_hooked)()                                             \
   {                                                                                     \
     static bool hit = false;                                                            \
@@ -580,7 +582,7 @@ DefineGLExtensionHooks();
 #undef HookWrapper1
 #define HookWrapper1(ret, function, t1, p1)                                             \
   typedef ret (*CONCAT(function, _hooktype))(t1);                                       \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                      \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1)                                        \
   {                                                                                     \
     static bool hit = false;                                                            \
@@ -595,7 +597,7 @@ DefineGLExtensionHooks();
 #undef HookWrapper2
 #define HookWrapper2(ret, function, t1, p1, t2, p2)                                     \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2);                                   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                      \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2)                                 \
   {                                                                                     \
     static bool hit = false;                                                            \
@@ -610,7 +612,7 @@ DefineGLExtensionHooks();
 #undef HookWrapper3
 #define HookWrapper3(ret, function, t1, p1, t2, p2, t3, p3)                             \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3);                               \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                      \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3)                          \
   {                                                                                     \
     static bool hit = false;                                                            \
@@ -625,7 +627,7 @@ DefineGLExtensionHooks();
 #undef HookWrapper4
 #define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)                     \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                           \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                      \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                   \
   {                                                                                     \
     static bool hit = false;                                                            \
@@ -640,7 +642,7 @@ DefineGLExtensionHooks();
 #undef HookWrapper5
 #define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)             \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                       \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                      \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)            \
   {                                                                                     \
     static bool hit = false;                                                            \
@@ -655,7 +657,7 @@ DefineGLExtensionHooks();
 #undef HookWrapper6
 #define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)     \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6);                   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                      \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)     \
   {                                                                                     \
     static bool hit = false;                                                            \
@@ -670,7 +672,7 @@ DefineGLExtensionHooks();
 #undef HookWrapper7
 #define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7);                   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                          \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                   \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)  \
   {                                                                                         \
     static bool hit = false;                                                                \
@@ -685,7 +687,7 @@ DefineGLExtensionHooks();
 #undef HookWrapper8
 #define HookWrapper8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8);                       \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                                  \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                           \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8)   \
   {                                                                                                 \
     static bool hit = false;                                                                        \
@@ -701,7 +703,7 @@ DefineGLExtensionHooks();
 #define HookWrapper9(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
                      p8, t9, p9)                                                                  \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9);                 \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                                \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9)                                                  \
   {                                                                                               \
@@ -718,7 +720,7 @@ DefineGLExtensionHooks();
 #define HookWrapper10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,  \
                       p8, t9, p9, t10, p10)                                                       \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);            \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                                \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10)                                         \
   {                                                                                               \
@@ -735,7 +737,7 @@ DefineGLExtensionHooks();
 #define HookWrapper11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,  \
                       p8, t9, p9, t10, p10, t11, p11)                                             \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11);       \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                                \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11)                                \
   {                                                                                               \
@@ -752,7 +754,7 @@ DefineGLExtensionHooks();
 #define HookWrapper12(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
                       p8, t9, p9, t10, p10, t11, p11, t12, p12)                                    \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12);   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                                 \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
                                           t9 p9, t10 p10, t11 p11, t12 p12)                        \
   {                                                                                                \
@@ -770,7 +772,7 @@ DefineGLExtensionHooks();
                       p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13)                         \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12,   \
                                              t13);                                                \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                                \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13)              \
   {                                                                                               \
@@ -789,7 +791,7 @@ DefineGLExtensionHooks();
                       p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14)               \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12,   \
                                              t13, t14);                                           \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                                \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14)     \
   {                                                                                               \
@@ -808,7 +810,7 @@ DefineGLExtensionHooks();
                       p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14, t15, p15)     \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12,   \
                                              t13, t14, t15);                                      \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function);                                \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,     \
                                           t15 p15)                                                \

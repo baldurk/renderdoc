@@ -43,6 +43,8 @@ VulkanRenderState::VulkanRenderState(VulkanCreationInfo *createInfo) : m_Creatio
   RDCEraseEl(back);
   RDCEraseEl(pushconsts);
 
+  m_ResourceManager = NULL;
+
   renderPass = ResourceId();
   subpass = 0;
 

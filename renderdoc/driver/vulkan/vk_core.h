@@ -260,8 +260,12 @@ private:
   {
     PhysicalDeviceData() : readbackMemIndex(0), uploadMemIndex(0), GPULocalMemIndex(0)
     {
+      fakeMemProps = NULL;
+      memIdxMap = NULL;
       RDCEraseEl(features);
+      RDCEraseEl(props);
       RDCEraseEl(memProps);
+      RDCEraseEl(fmtprops);
     }
 
     uint32_t GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps,

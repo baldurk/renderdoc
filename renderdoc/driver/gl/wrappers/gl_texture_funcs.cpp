@@ -3534,7 +3534,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage1DEXT(GLuint texture, GLenum targe
 
   if(m_State == READING)
   {
-    GLenum dummy;
+    GLenum dummy = eGL_NONE;
     bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name,
                                            Target, Format, dummy);
 
@@ -3652,7 +3652,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DEXT(GLuint texture, GLenum targe
 
   if(m_State == READING)
   {
-    GLenum dummy;
+    GLenum dummy = eGL_NONE;
     bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name,
                                            Target, Format, dummy);
 
@@ -3774,7 +3774,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DEXT(GLuint texture, GLenum targe
 
   if(m_State == READING)
   {
-    GLenum dummy;
+    GLenum dummy = eGL_NONE;
     bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name,
                                            Target, Format, dummy);
 
@@ -3899,7 +3899,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DMultisampleEXT(GLuint texture, G
 
   if(m_State == READING)
   {
-    GLenum dummy;
+    GLenum dummy = eGL_NONE;
     bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name,
                                            Target, Format, dummy);
 
@@ -4063,7 +4063,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DMultisampleEXT(GLuint texture, G
 
   if(m_State == READING)
   {
-    GLenum dummy;
+    GLenum dummy = eGL_NONE;
     bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name,
                                            Target, Format, dummy);
 

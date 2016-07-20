@@ -37,7 +37,7 @@ struct DummyID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
   WrappedID3D12CommandQueue *m_pQueue;
   ID3D12DebugCommandQueue *m_pReal;
 
-  DummyID3D12DebugCommandQueue() {}
+  DummyID3D12DebugCommandQueue() : m_pQueue(NULL), m_pReal(NULL) {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)

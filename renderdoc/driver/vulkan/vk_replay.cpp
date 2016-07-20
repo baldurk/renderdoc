@@ -32,8 +32,7 @@
 #include "vk_debug.h"
 #include "vk_resources.h"
 
-VulkanReplay::OutputWindow::OutputWindow()
-    : wnd(NULL_WND_HANDLE), width(0), height(0), dsimg(VK_NULL_HANDLE), dsmem(VK_NULL_HANDLE)
+VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), height(0)
 {
   surface = VK_NULL_HANDLE;
   swap = VK_NULL_HANDLE;
@@ -47,11 +46,22 @@ VulkanReplay::OutputWindow::OutputWindow()
   failures = recreatePause = 0;
 
   bb = VK_NULL_HANDLE;
+  bbmem = VK_NULL_HANDLE;
   bbview = VK_NULL_HANDLE;
+
+  dsimg = VK_NULL_HANDLE;
+  dsmem = VK_NULL_HANDLE;
+  dsview = VK_NULL_HANDLE;
+
   fb = VK_NULL_HANDLE;
   fbdepth = VK_NULL_HANDLE;
   rp = VK_NULL_HANDLE;
   rpdepth = VK_NULL_HANDLE;
+
+  numImgs = 0;
+  curidx = 0;
+
+  m_ResourceManager = NULL;
 
   VkImageMemoryBarrier t = {
       VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,

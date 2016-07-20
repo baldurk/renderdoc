@@ -93,11 +93,13 @@ struct GLResource
   GLResource()
   {
     Namespace = eResUnknown;
+    Context = NULL;
     name = ~0U;
   }
   GLResource(NullInitialiser)
   {
     Namespace = eResUnknown;
+    Context = NULL;
     name = ~0U;
   }
   GLResource(void *ctx, GLNamespace n, GLuint i)

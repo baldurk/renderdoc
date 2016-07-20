@@ -83,7 +83,7 @@ struct WrappedID3D11Debug : public ID3D11Debug
   WrappedID3D11Device *m_pDevice;
   ID3D11Debug *m_pDebug;
 
-  WrappedID3D11Debug() {}
+  WrappedID3D11Debug() : m_pDevice(NULL), m_pDebug(NULL) {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);

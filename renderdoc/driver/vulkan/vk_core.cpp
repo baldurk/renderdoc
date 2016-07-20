@@ -284,6 +284,9 @@ WrappedVulkan::WrappedVulkan(const char *logFilename) : m_RenderState(&m_Creatio
 
   m_DrawcallCallback = NULL;
 
+  m_CurChunkOffset = 0;
+  m_AddedDrawcall = false;
+
   m_LastCmdBufferID = ResourceId();
 
   m_DrawcallStack.push_back(&m_ParentDrawcall);
@@ -292,8 +295,18 @@ WrappedVulkan::WrappedVulkan(const char *logFilename) : m_RenderState(&m_Creatio
 
   m_ResourceManager = new VulkanResourceManager(m_State, m_pSerialiser, this);
 
+  m_DebugManager = NULL;
+
   m_pSerialiser->SetUserData(m_ResourceManager);
   m_RenderState.m_ResourceManager = GetResourceManager();
+
+  m_Instance = VK_NULL_HANDLE;
+  m_PhysicalDevice = VK_NULL_HANDLE;
+  m_Device = VK_NULL_HANDLE;
+  m_Queue = VK_NULL_HANDLE;
+  m_QueueFamilyIdx = 0;
+  m_SupportedQueueFamily = 0;
+  m_DbgMsgCallback = NULL;
 
   m_HeaderChunk = NULL;
 

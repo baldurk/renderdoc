@@ -161,7 +161,7 @@ struct WrappedID3D12DebugDevice : public ID3D12DebugDevice
   WrappedID3D12Device *m_pDevice;
   ID3D12DebugDevice *m_pDebug;
 
-  WrappedID3D12DebugDevice() {}
+  WrappedID3D12DebugDevice() : m_pDevice(NULL), m_pDebug(NULL) {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
@@ -194,7 +194,7 @@ struct DummyID3D12DebugDevice : public ID3D12DebugDevice
 {
   WrappedID3D12Device *m_pDevice;
 
-  DummyID3D12DebugDevice() {}
+  DummyID3D12DebugDevice() : m_pDevice(NULL) {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);

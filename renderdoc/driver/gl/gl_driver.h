@@ -351,6 +351,8 @@ private:
   {
     ContextData()
     {
+      ctx = NULL;
+
       built = ready = false;
       attribsCreate = false;
       version = 0;

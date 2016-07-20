@@ -290,6 +290,23 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     return tex;
   }
 
+  RDCERR("Unrecognised/unknown texture %llu", id);
+
+  tex.name = "Unrecognised/unknown texture";
+  tex.customName = true;
+  tex.byteSize = 0;
+  tex.dimension = 2;
+  tex.resType = eResType_Texture2D;
+  tex.width = 1;
+  tex.height = 1;
+  tex.depth = 1;
+  tex.cubemap = false;
+  tex.mips = 1;
+  tex.arraysize = 1;
+  tex.numSubresources = 1;
+  tex.msQual = 0;
+  tex.msSamp = 1;
+
   return tex;
 }
 
