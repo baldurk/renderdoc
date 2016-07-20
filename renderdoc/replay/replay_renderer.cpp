@@ -1627,25 +1627,37 @@ void ReplayRenderer::FetchPipelineState()
   m_VulkanPipelineState = m_pDevice->GetVulkanPipelineState();
 
   {
-    D3D11PipelineState::ShaderStage *stage = &m_D3D11PipelineState.m_VS;
+    D3D11PipelineState::ShaderStage *stages[] = {
+        &m_D3D11PipelineState.m_VS, &m_D3D11PipelineState.m_HS, &m_D3D11PipelineState.m_DS,
+        &m_D3D11PipelineState.m_GS, &m_D3D11PipelineState.m_PS, &m_D3D11PipelineState.m_CS,
+    };
+
     for(int i = 0; i < 6; i++)
-      if(stage[i].Shader != ResourceId())
-        stage[i].ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader), "");
+      if(stages[i]->Shader != ResourceId())
+        stages[i]->ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stages[i]->Shader), "");
   }
 
   {
-    GLPipelineState::ShaderStage *stage = &m_GLPipelineState.m_VS;
+    GLPipelineState::ShaderStage *stages[] = {
+        &m_GLPipelineState.m_VS, &m_GLPipelineState.m_TCS, &m_GLPipelineState.m_TES,
+        &m_GLPipelineState.m_GS, &m_GLPipelineState.m_FS,  &m_GLPipelineState.m_CS,
+    };
+
     for(int i = 0; i < 6; i++)
-      if(stage[i].Shader != ResourceId())
-        stage[i].ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader), "");
+      if(stages[i]->Shader != ResourceId())
+        stages[i]->ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stages[i]->Shader), "");
   }
 
   {
-    VulkanPipelineState::ShaderStage *stage = &m_VulkanPipelineState.VS;
+    VulkanPipelineState::ShaderStage *stages[] = {
+        &m_VulkanPipelineState.VS, &m_VulkanPipelineState.TCS, &m_VulkanPipelineState.TES,
+        &m_VulkanPipelineState.GS, &m_VulkanPipelineState.FS,  &m_VulkanPipelineState.CS,
+    };
+
     for(int i = 0; i < 6; i++)
-      if(stage[i].Shader != ResourceId())
-        stage[i].ShaderDetails =
-            m_pDevice->GetShader(m_pDevice->GetLiveID(stage[i].Shader), stage[i].entryPoint.elems);
+      if(stages[i]->Shader != ResourceId())
+        stages[i]->ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stages[i]->Shader),
+                                                        stages[i]->entryPoint.elems);
   }
 }
 

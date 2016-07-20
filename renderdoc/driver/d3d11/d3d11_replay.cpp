@@ -498,15 +498,17 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
   /////////////////////////////////////////////////
 
   {
-    D3D11PipelineState::ShaderStage *dstArr = &ret.m_VS;
-    const D3D11RenderState::shader *srcArr = &rs->VS;
+    D3D11PipelineState::ShaderStage *dstArr[] = {&ret.m_VS, &ret.m_HS, &ret.m_DS,
+                                                 &ret.m_GS, &ret.m_PS, &ret.m_CS};
+    const D3D11RenderState::shader *srcArr[] = {&rs->VS, &rs->HS, &rs->DS,
+                                                &rs->GS, &rs->PS, &rs->CS};
 
     const char *stageNames[] = {"Vertex", "Hull", "Domain", "Geometry", "Pixel", "Compute"};
 
     for(size_t stage = 0; stage < 6; stage++)
     {
-      D3D11PipelineState::ShaderStage &dst = dstArr[stage];
-      const D3D11RenderState::shader &src = srcArr[stage];
+      D3D11PipelineState::ShaderStage &dst = *dstArr[stage];
+      const D3D11RenderState::shader &src = *srcArr[stage];
 
       dst.stage = (ShaderStageType)stage;
 

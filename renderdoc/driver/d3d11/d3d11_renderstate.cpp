@@ -104,9 +104,11 @@ void D3D11RenderState::ReleaseRefs()
   for(UINT i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
     ReleaseRef(IA.VBs[i]);
 
-  shader *sh = &VS;
+  shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
+    shader *sh = stages[s];
+
     ReleaseRef(sh->Shader);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
@@ -217,9 +219,11 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
     ctx->MarkResourceReferenced(GetIDForResource(IA.VBs[i]),
                                 initial ? eFrameRef_Unknown : eFrameRef_Read);
 
-  const shader *sh = &VS;
+  const shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
+    const shader *sh = stages[s];
+
     ctx->MarkResourceReferenced(GetIDForResource(sh->Shader),
                                 initial ? eFrameRef_Unknown : eFrameRef_Read);
 
@@ -419,9 +423,11 @@ void D3D11RenderState::AddRefs()
   for(UINT i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
     TakeRef(IA.VBs[i]);
 
-  shader *sh = &VS;
+  shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
+    shader *sh = stages[s];
+
     TakeRef(sh->Shader);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
@@ -517,9 +523,11 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 
 #undef MAKE_NAMES
 
-  shader *sh = &VS;
+  shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
+    shader *sh = stages[s];
+
     SERIALISE_ELEMENT(ResourceId, Shader, GetIDForResource(sh->Shader));
     if(m_State < WRITING)
     {
@@ -1108,9 +1116,11 @@ void D3D11RenderState::UnbindIUnknownForRead(const ResourceRange &range, bool al
   }
 
   // const char *names[] = { "VS", "DS", "HS", "GS", "PS", "CS" };
-  shader *sh = &VS;
+  shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
+    shader *sh = stages[s];
+
     for(UINT i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
     {
       if(range.Intersects(ResourceRange(sh->ConstantBuffers[i])))
