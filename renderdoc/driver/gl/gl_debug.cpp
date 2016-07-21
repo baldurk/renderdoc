@@ -317,13 +317,12 @@ void GLReplay::InitDebugData()
   DebugData.genericProg = CreateShaderProgram(genericvsSource.c_str(), genericfsSource.c_str());
   DebugData.genericFSProg = CreateShaderProgram(NULL, genericfsSource.c_str());
 
-  string meshvs = GetEmbeddedResource(glsl_mesh_vert);
-  string meshgs = GetEmbeddedResource(glsl_mesh_geom);
-  string meshfs = GetEmbeddedResource(glsl_mesh_frag);
-  meshfs = "#version 420 core\n\n" + GetEmbeddedResource(glsl_debuguniforms_h) + meshfs;
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_mesh_vert), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_mesh_frag), 420);
+  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(spv_mesh_geom), 420);
 
-  DebugData.meshProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str());
-  DebugData.meshgsProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str(), meshgs.c_str());
+  DebugData.meshProg = CreateShaderProgram(vs, fs);
+  DebugData.meshgsProg = CreateShaderProgram(vs, fs, gs);
 
   gl.glGenProgramPipelines(1, &DebugData.texDisplayPipe);
 
@@ -3570,11 +3569,10 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
   GLuint prog = DebugData.meshProg;
 
-  GLint colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
-  GLint mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
-  GLint fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
-  GLint sizeLoc = gl.glGetUniformLocation(prog, "PointSpriteSize");
-  GLint homogLoc = gl.glGetUniformLocation(prog, "HomogenousInput");
+  MeshUBOData uboParams = {};
+  MeshUBOData *uboptr = NULL;
+
+  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 
   gl.glUseProgram(prog);
 
@@ -3599,13 +3597,13 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
     ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
   }
 
-  gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
-  gl.glUniform1ui(homogLoc, cfg.position.unproject);
-  gl.glUniform2f(sizeLoc, 0.0f, 0.0f);
+  uboParams.mvp = ModelViewProj;
+  uboParams.homogenousInput = cfg.position.unproject;
+  uboParams.pointSpriteSize = Vec2f(0.0f, 0.0f);
 
   if(!secondaryDraws.empty())
   {
-    gl.glUniform1ui(fmtLoc, MESHDISPLAY_SOLID);
+    uboParams.displayFormat = MESHDISPLAY_SOLID;
 
     gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
@@ -3620,7 +3618,13 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
       if(fmt.buf != ResourceId())
       {
-        gl.glUniform4fv(colLoc, 1, &fmt.meshColour.x);
+        uboParams.color =
+            Vec4f(fmt.meshColour.x, fmt.meshColour.y, fmt.meshColour.z, fmt.meshColour.w);
+
+        uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        *uboptr = uboParams;
+        gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
         GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.buf).name;
         gl.glBindVertexBuffer(0, vb, (GLintptr)fmt.offset, fmt.stride);
@@ -3761,35 +3765,34 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
       // pick program with GS for per-face lighting
       solidProg = DebugData.meshgsProg;
 
+      ClearGLErrors(gl.GetHookset());
       gl.glUseProgram(solidProg);
+      GLenum err = gl.glGetError();
 
-      GLint invProjLoc = gl.glGetUniformLocation(solidProg, "InvProj");
-
-      Matrix4f InvProj = projMat.Inverse();
-
-      gl.glUniformMatrix4fv(invProjLoc, 1, GL_FALSE, InvProj.Data());
+      err = eGL_NONE;
     }
 
-    GLint solidcolLoc = gl.glGetUniformLocation(solidProg, "RENDERDOC_GenericFS_Color");
-    GLint solidmvpLoc = gl.glGetUniformLocation(solidProg, "ModelViewProj");
-    GLint solidfmtLoc = gl.glGetUniformLocation(solidProg, "Mesh_DisplayFormat");
-    GLint solidsizeLoc = gl.glGetUniformLocation(solidProg, "PointSpriteSize");
-    GLint solidhomogLoc = gl.glGetUniformLocation(solidProg, "HomogenousInput");
+    MeshUBOData *soliddata = (MeshUBOData *)gl.glMapBufferRange(
+        eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-    gl.glUniformMatrix4fv(solidmvpLoc, 1, GL_FALSE, ModelViewProj.Data());
-    gl.glUniform2f(solidsizeLoc, 0.0f, 0.0f);
-    gl.glUniform1ui(solidhomogLoc, cfg.position.unproject);
+    soliddata->mvp = ModelViewProj;
+    soliddata->pointSpriteSize = Vec2f(0.0f, 0.0f);
+    soliddata->homogenousInput = cfg.position.unproject;
+
+    soliddata->color = Vec4f(0.8f, 0.8f, 0.0f, 1.0f);
+
+    uint32_t OutputDisplayFormat = (uint32_t)cfg.solidShadeMode;
+    if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
+      OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
+    soliddata->displayFormat = OutputDisplayFormat;
+
+    if(cfg.solidShadeMode == eShade_Lit)
+      soliddata->invProj = projMat.Inverse();
+
+    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
     if(cfg.second.buf != ResourceId())
       gl.glEnableVertexAttribArray(1);
-
-    float wireCol[] = {0.8f, 0.8f, 0.0f, 1.0f};
-    gl.glUniform4fv(solidcolLoc, 1, wireCol);
-
-    GLint OutputDisplayFormat = (int)cfg.solidShadeMode;
-    if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
-      OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
-    gl.glUniform1ui(solidfmtLoc, OutputDisplayFormat);
 
     gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
@@ -3825,11 +3828,17 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
   // wireframe render
   if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || topo == eGL_PATCHES)
   {
-    gl.glUniform4fv(colLoc, 1, &cfg.position.meshColour.x);
+    uboParams.color = Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y,
+                            cfg.position.meshColour.z, cfg.position.meshColour.w);
 
-    gl.glUniform1ui(fmtLoc, MESHDISPLAY_SOLID);
+    uboParams.displayFormat = MESHDISPLAY_SOLID;
 
     gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
+
+    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    *uboptr = uboParams;
+    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
     if(cfg.position.idxByteWidth)
     {
@@ -3884,12 +3893,16 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
     gl.glBindVertexArray(DebugData.triHighlightVAO);
 
-    float wireCol[] = {0.2f, 0.2f, 1.0f, 1.0f};
-    gl.glUniform4fv(colLoc, 1, wireCol);
+    uboParams.color = Vec4f(0.2f, 0.2f, 1.0f, 1.0f);
 
     Matrix4f mvpMat = projMat.Mul(camMat);
 
-    gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, mvpMat.Data());
+    uboParams.mvp = mvpMat;
+
+    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    *uboptr = uboParams;
+    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
     // we want this to clip
     gl.glDepthFunc(eGL_LESS);
@@ -3904,16 +3917,26 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
   {
     gl.glBindVertexArray(DebugData.axisVAO);
 
-    Vec4f wireCol(1.0f, 0.0f, 0.0f, 1.0f);
-    gl.glUniform4fv(colLoc, 1, &wireCol.x);
+    uboParams.color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
+    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    *uboptr = uboParams;
+    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
     gl.glDrawArrays(eGL_LINES, 0, 2);
 
-    wireCol = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
-    gl.glUniform4fv(colLoc, 1, &wireCol.x);
+    uboParams.color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    *uboptr = uboParams;
+    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
     gl.glDrawArrays(eGL_LINES, 2, 2);
 
-    wireCol = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
-    gl.glUniform4fv(colLoc, 1, &wireCol.x);
+    uboParams.color = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    *uboptr = uboParams;
+    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
     gl.glDrawArrays(eGL_LINES, 4, 2);
   }
 
@@ -3922,10 +3945,13 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
   {
     gl.glBindVertexArray(DebugData.frustumVAO);
 
-    float wireCol[] = {1.0f, 1.0f, 1.0f, 1.0f};
-    gl.glUniform4fv(colLoc, 1, wireCol);
+    uboParams.color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+    uboParams.mvp = ModelViewProj;
 
-    gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+    uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    *uboptr = uboParams;
+    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
     gl.glDrawArrays(eGL_LINES, 0, 24);
   }
@@ -4317,9 +4343,9 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
       else
         ModelViewProj = projMat.Mul(camMat);
 
-      gl.glUniform1ui(homogLoc, cfg.position.unproject);
+      uboParams.homogenousInput = cfg.position.unproject;
 
-      gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+      uboParams.mvp = ModelViewProj;
 
       gl.glBindVertexArray(DebugData.triHighlightVAO);
 
@@ -4327,11 +4353,15 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
       // render primitives
 
       // Draw active primitive (red)
-      Vec4f WireframeColour(1.0f, 0.0f, 0.0f, 1.0f);
-      gl.glUniform4fv(colLoc, 1, &WireframeColour.x);
+      uboParams.color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
 
       if(activePrim.size() >= primSize)
       {
+        uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        *uboptr = uboParams;
+        gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
         gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
         gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(Vec4f) * primSize, &activePrim[0]);
 
@@ -4339,11 +4369,15 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
       }
 
       // Draw adjacent primitives (green)
-      WireframeColour = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
-      gl.glUniform4fv(colLoc, 1, &WireframeColour.x);
+      uboParams.color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
 
       if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
       {
+        uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        *uboptr = uboParams;
+        gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
         gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
         gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(Vec4f) * adjacentPrimVertices.size(),
                            &adjacentPrimVertices[0]);
@@ -4356,12 +4390,15 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
       float scale = 800.0f / float(DebugData.outHeight);
       float asp = float(DebugData.outWidth) / float(DebugData.outHeight);
 
-      Vec2f SpriteSize = Vec2f(scale / asp, scale);
-      gl.glUniform2fv(sizeLoc, 1, &SpriteSize.x);
+      uboParams.pointSpriteSize = Vec2f(scale / asp, scale);
 
       // Draw active vertex (blue)
-      WireframeColour = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
-      gl.glUniform4fv(colLoc, 1, &WireframeColour.x);
+      uboParams.color = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+
+      uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+      *uboptr = uboParams;
+      gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
       FloatVector vertSprite[4] = {
           activeVertex, activeVertex, activeVertex, activeVertex,
@@ -4373,8 +4410,12 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
       gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 
       // Draw inactive vertices (green)
-      WireframeColour = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
-      gl.glUniform4fv(colLoc, 1, &WireframeColour.x);
+      uboParams.color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+
+      uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
+                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+      *uboptr = uboParams;
+      gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
       for(size_t i = 0; i < inactiveVertices.size(); i++)
       {

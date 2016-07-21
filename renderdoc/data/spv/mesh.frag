@@ -21,12 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
- 
-in v2f
-{
-	vec4 secondary;
-	vec4 norm;
-} IN;
+
+layout (location = 0) in vec4 secondary;
+layout (location = 1) in vec4 norm;
 
 layout (location = 0) out vec4 color_out;
 
@@ -36,17 +33,17 @@ void main(void)
 	
 	if(type == MESHDISPLAY_SECONDARY)
 	{
-		color_out = vec4(IN.secondary.xyz, 1);
+		color_out = vec4(secondary.xyz, 1);
 	}
 	else if(type == MESHDISPLAY_SECONDARY_ALPHA)
 	{
-		color_out = vec4(IN.secondary.www, 1);
+		color_out = vec4(secondary.www, 1);
 	}
 	else if(type == MESHDISPLAY_FACELIT)
 	{
 		vec3 lightDir = normalize(vec3(0, -0.3f, -1));
 
-		color_out = vec4(Mesh.color.xyz*abs(dot(lightDir, IN.norm.xyz)), 1);
+		color_out = vec4(Mesh.color.xyz*abs(dot(lightDir, norm.xyz)), 1);
 	}
 	else //if(type == MESHDISPLAY_SOLID)
 	{

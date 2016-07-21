@@ -25,17 +25,17 @@
 layout(triangles, invocations = 1) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-in v2f
-{
-	vec4 secondary;
-	vec4 norm;
-} IN[];
+layout (location = 0) in vec4 IN_secondary[3];
+layout (location = 1) in vec4 IN_norm[3];
 
-out v2f
+layout (location = 0) out vec4 OUT_secondary;
+layout (location = 1) out vec4 OUT_norm;
+
+in gl_PerVertex
 {
-	vec4 secondary;
-	vec4 norm;
-} OUT;
+  vec4 gl_Position;
+  float gl_PointSize;
+} gl_in[];
 
 out gl_PerVertex
 {
@@ -52,8 +52,8 @@ void main()
     for(int i=0; i < 3; i++)
     {
 		gl_Position = gl_in[i].gl_Position;
-		OUT.secondary = IN[i].secondary;
-		OUT.norm = vec4(faceNormal.xyz, 1);
+		OUT_secondary = IN_secondary[i];
+		OUT_norm = vec4(faceNormal.xyz, 1);
         EmitVertex();
     }
     EndPrimitive();
