@@ -25,7 +25,7 @@
 
 #include <float.h>
 #include <algorithm>
-#include "data/glsl/debuguniforms.h"
+#include "common/common.h"
 #include "data/glsl_shaders.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
@@ -34,6 +34,9 @@
 #include "gl_driver.h"
 #include "gl_replay.h"
 #include "gl_resources.h"
+
+#define OPENGL 1
+#include "data/spv/debuguniforms.h"
 
 GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 {
@@ -280,44 +283,33 @@ void GLReplay::InitDebugData()
       break;
   }
 
-  string blitvsSource =
-      "#version 420 core\n#define VERTEX_ID gl_VertexID" + GetEmbeddedResource(spv_blit_vert);
+  DebugData.quadoverdraw420 = !support450;
 
-  if(support450)
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_blit_vert), 420);
+
   {
-    DebugData.quadoverdraw420 = false;
+    string defines = "";
 
-    string glsl = "#version 450 core\n\n";
-    glsl += "#define RENDERDOC_QuadOverdrawPS\n\n";
-    glsl += GetEmbeddedResource(glsl_quadoverdraw_frag);
-    DebugData.quadoverdrawFSProg = CreateShaderProgram(NULL, glsl.c_str());
+    if(!support450)
+    {
+      // dFdx fine functions not available before GLSL 450. Use normal dFdx, which might be coarse,
+      // so won't show quad overdraw properly
+      defines += "#define dFdxFine dFdx\n\n";
+      defines += "#define dFdyFine dFdy\n\n";
+    }
 
-    glsl = "#version 420 core\n\n";
-    glsl += "#define RENDERDOC_QOResolvePS\n\n";
-    glsl += GetEmbeddedResource(glsl_quadoverdraw_frag);
-    DebugData.quadoverdrawResolveProg = CreateShaderProgram(blitvsSource.c_str(), glsl.c_str());
-  }
-  else
-  {
-    DebugData.quadoverdraw420 = true;
+    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(spv_quadwrite_frag),
+                       support450 ? 450 : 420);
 
-    string glsl = "#version 420 core\n\n";
-    glsl += "#define RENDERDOC_QuadOverdrawPS\n\n";
-    glsl += "#define dFdxFine dFdx\n\n";    // dFdx fine functions not available before GLSL 450
-    glsl += "#define dFdyFine dFdy\n\n";    // use normal dFdx, which might be coarse, so won't show
-                                            // quad overdraw properly
-    glsl += GetEmbeddedResource(glsl_quadoverdraw_frag);
-    DebugData.quadoverdrawFSProg = CreateShaderProgram(NULL, glsl.c_str());
+    DebugData.quadoverdrawResolveProg = CreateShaderProgram(empty, fs);
 
-    glsl = "#version 420 core\n\n";
-    glsl += "#define RENDERDOC_QOResolvePS\n\n";
-    glsl += GetEmbeddedResource(glsl_quadoverdraw_frag);
-    DebugData.quadoverdrawResolveProg = CreateShaderProgram(blitvsSource.c_str(), glsl.c_str());
+    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_quadresolve_frag), 420);
+
+    DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
   }
 
-  string checkerfs = GetEmbeddedResource(glsl_checkerboard_frag);
-
-  DebugData.checkerProg = CreateShaderProgram(blitvsSource.c_str(), checkerfs.c_str());
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_checkerboard_frag), 420);
+  DebugData.checkerProg = CreateShaderProgram(vs, fs);
 
   string genericvsSource = GetEmbeddedResource(glsl_generic_vert);
   string genericfsSource = GetEmbeddedResource(glsl_generic_frag);
@@ -377,9 +369,9 @@ void GLReplay::InitDebugData()
   {
     gl.glBindBuffer(eGL_UNIFORM_BUFFER, DebugData.UBOs[i]);
     gl.glNamedBufferDataEXT(DebugData.UBOs[i], 512, NULL, eGL_DYNAMIC_DRAW);
-    RDCCOMPILE_ASSERT(sizeof(texdisplay) < 512, "texdisplay UBO too large");
-    RDCCOMPILE_ASSERT(sizeof(FontUniforms) < 512, "texdisplay UBO too large");
-    RDCCOMPILE_ASSERT(sizeof(HistogramCBufferData) < 512, "texdisplay UBO too large");
+    RDCCOMPILE_ASSERT(sizeof(TexDisplayUBOData) < 512, "texdisplay UBO too large");
+    RDCCOMPILE_ASSERT(sizeof(FontUBOData) < 512, "texdisplay UBO too large");
+    RDCCOMPILE_ASSERT(sizeof(HistogramUBOData) < 512, "texdisplay UBO too large");
   }
 
   DebugData.overlayTexWidth = DebugData.overlayTexHeight = 0;
@@ -574,11 +566,10 @@ void GLReplay::InitDebugData()
   gl.glVertexAttribPointer(0, 4, eGL_FLOAT, GL_FALSE, sizeof(Vec4f), NULL);
   gl.glEnableVertexAttribArray(0);
 
-  DebugData.replayQuadProg = CreateShaderProgram(blitvsSource.c_str(), genericfsSource.c_str());
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_blit_vert), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_outline_frag), 420);
 
-  string outlinefsSource = GetEmbeddedResource(glsl_outline_frag);
-
-  DebugData.outlineQuadProg = CreateShaderProgram(blitvsSource.c_str(), outlinefsSource.c_str());
+  DebugData.outlineQuadProg = CreateShaderProgram(vs, fs);
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
@@ -699,7 +690,6 @@ void GLReplay::DeleteDebugData()
   gl.glDeleteBuffers(1, &DebugData.axisFrustumBuffer);
   gl.glDeleteBuffers(1, &DebugData.triHighlightBuffer);
 
-  gl.glDeleteProgram(DebugData.replayQuadProg);
   gl.glDeleteProgram(DebugData.outlineQuadProg);
 }
 
@@ -772,9 +762,9 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
   MakeCurrentReplayContext(m_DebugCtx);
 
   gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
-  HistogramCBufferData *cdata = (HistogramCBufferData *)gl.glMapBufferRange(
-      eGL_UNIFORM_BUFFER, 0, sizeof(HistogramCBufferData),
-      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+  HistogramUBOData *cdata =
+      (HistogramUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramUBOData),
+                                              GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
   cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width >> mip, 1U);
   cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height >> mip, 1U);
@@ -943,9 +933,9 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   MakeCurrentReplayContext(m_DebugCtx);
 
   gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
-  HistogramCBufferData *cdata = (HistogramCBufferData *)gl.glMapBufferRange(
-      eGL_UNIFORM_BUFFER, 0, sizeof(HistogramCBufferData),
-      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+  HistogramUBOData *cdata =
+      (HistogramUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramUBOData),
+                                              GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
   cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width >> mip, 1U);
   cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height >> mip, 1U);
@@ -1568,8 +1558,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
   gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 
-  texdisplay *ubo = (texdisplay *)gl.glMapBufferRange(
-      eGL_UNIFORM_BUFFER, 0, sizeof(texdisplay), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+  TexDisplayUBOData *ubo =
+      (TexDisplayUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(TexDisplayUBOData),
+                                               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
   float x = cfg.offx;
   float y = cfg.offy;
@@ -1623,7 +1614,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   ubo->RangeMinimum = cfg.rangemin;
   ubo->InverseRangeSize = 1.0f / (cfg.rangemax - cfg.rangemin);
 
-  ubo->MipLevel = (float)cfg.mip;
+  ubo->MipLevel = (int)cfg.mip;
   if(texDetails.curType != eGL_TEXTURE_3D)
     ubo->Slice = (float)cfg.sliceFace;
   else
@@ -1939,20 +1930,18 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     gl.glViewportIndexedf(0, rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width,
                           rs.Viewports[0].height);
 
-    GLint innerLoc = gl.glGetUniformLocation(DebugData.outlineQuadProg, "RENDERDOC_Inner_Color");
-    GLint borderLoc = gl.glGetUniformLocation(DebugData.outlineQuadProg, "RENDERDOC_Border_Color");
-    GLint rectLoc = gl.glGetUniformLocation(DebugData.outlineQuadProg, "RENDERDOC_ViewRect");
-    GLint scissorLoc = gl.glGetUniformLocation(DebugData.outlineQuadProg, "RENDERDOC_Scissor");
+    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+    OutlineUBOData *cdata =
+        (OutlineUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
+                                              GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-    float innerConsts[] = {0.2f, 0.2f, 0.9f, 0.7f};
-    gl.glUniform4fv(innerLoc, 1, innerConsts);
+    cdata->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+    cdata->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
+    cdata->ViewRect =
+        Vec4f(rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width, rs.Viewports[0].height);
+    cdata->Scissor = 0;
 
-    float borderConsts[] = {0.1f, 0.1f, 0.1f, 1.0f};
-    gl.glUniform4fv(borderLoc, 1, borderConsts);
-
-    gl.glUniform4fv(rectLoc, 1, (float *)rs.Viewports);
-
-    gl.glUniform1ui(scissorLoc, 0);
+    gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
     gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 
@@ -1963,9 +1952,15 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
 
       gl.glViewportIndexedf(0, scissor.x, scissor.y, scissor.z, scissor.w);
 
-      gl.glUniform4fv(rectLoc, 1, (float *)&scissor);
+      cdata = (OutlineUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
+                                                    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-      gl.glUniform1ui(scissorLoc, 1);
+      cdata->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+      cdata->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
+      cdata->ViewRect = scissor;
+      cdata->Scissor = 1;
+
+      gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
       gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
     }
