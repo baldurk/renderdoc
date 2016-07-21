@@ -142,13 +142,15 @@ namespace renderdoc
 
         private static void UpdateFormatters()
         {
-            m_EFormatter = "{0:" + String.Format("E{0}", m_MaxFigures) + "}";
             m_FFormatter = "{0:0.";
 
             int i = 0;
 
             for (; i < m_MinFigures; i++) m_FFormatter += "0";
             for (; i < m_MaxFigures; i++) m_FFormatter += "#";
+
+            m_EFormatter = m_FFormatter + "e+00}";
+
             m_FFormatter += "}";
         }
     };
