@@ -3003,11 +3003,11 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
   VkImageBlit blit = {
       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
       {
-          {0, 0, 0}, {outw.width, outw.height, 1},
+          {0, 0, 0}, {(int32_t)outw.width, (int32_t)outw.height, 1},
       },
       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
       {
-          {0, 0, 0}, {outw.width, outw.height, 1},
+          {0, 0, 0}, {(int32_t)outw.width, (int32_t)outw.height, 1},
       },
   };
 
