@@ -1990,7 +1990,9 @@ namespace renderdocui.Windows.PipelineState
                                     }
                                 }
 
-                                if (format == "" && r.variableType.Name.Length > 0)
+                                // if view format is unknown, use the variable type
+                                if (!view.Format.special && view.Format.compCount == 0 &&
+                                    view.Format.compByteWidth == 0 && r.variableType.Name.Length > 0)
                                     format = r.variableType.Name;
 
                                 format += " " + r.name + ";";
