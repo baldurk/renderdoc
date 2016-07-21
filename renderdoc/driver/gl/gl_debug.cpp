@@ -26,6 +26,7 @@
 #include <float.h>
 #include <algorithm>
 #include "data/glsl/debuguniforms.h"
+#include "data/glsl_shaders.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
@@ -81,6 +82,27 @@ GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 
 GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *fsSrc, const char *gsSrc)
 {
+  vector<string> vs;
+  if(vsSrc)
+    vs.push_back(vsSrc);
+  vector<string> fs;
+  if(fsSrc)
+    fs.push_back(fsSrc);
+  vector<string> gs;
+  if(gsSrc)
+    gs.push_back(gsSrc);
+  return CreateShaderProgram(vs, fs, gs);
+}
+
+GLuint GLReplay::CreateShaderProgram(const vector<string> &vs, const vector<string> &fs)
+{
+  vector<string> empty;
+  return CreateShaderProgram(vs, fs, empty);
+}
+
+GLuint GLReplay::CreateShaderProgram(const vector<string> &vsSources,
+                                     const vector<string> &fsSources, const vector<string> &gsSources)
+{
   if(m_pDriver == NULL)
     return 0;
 
@@ -95,10 +117,16 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *fsSrc, const
   char buffer[1024];
   GLint status = 0;
 
-  if(vsSrc)
+  if(!vsSources.empty())
   {
     vs = gl.glCreateShader(eGL_VERTEX_SHADER);
-    gl.glShaderSource(vs, 1, &vsSrc, NULL);
+
+    vector<const char *> srcs;
+    srcs.reserve(vsSources.size());
+    for(size_t i = 0; i < vsSources.size(); i++)
+      srcs.push_back(vsSources[i].c_str());
+
+    gl.glShaderSource(vs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
     gl.glCompileShader(vs);
 
@@ -110,10 +138,16 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *fsSrc, const
     }
   }
 
-  if(fsSrc)
+  if(!fsSources.empty())
   {
     fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
-    gl.glShaderSource(fs, 1, &fsSrc, NULL);
+
+    vector<const char *> srcs;
+    srcs.reserve(fsSources.size());
+    for(size_t i = 0; i < fsSources.size(); i++)
+      srcs.push_back(fsSources[i].c_str());
+
+    gl.glShaderSource(fs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
     gl.glCompileShader(fs);
 
@@ -125,10 +159,16 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *fsSrc, const
     }
   }
 
-  if(gsSrc)
+  if(!gsSources.empty())
   {
     gs = gl.glCreateShader(eGL_GEOMETRY_SHADER);
-    gl.glShaderSource(gs, 1, &gsSrc, NULL);
+
+    vector<const char *> srcs;
+    srcs.reserve(gsSources.size());
+    for(size_t i = 0; i < gsSources.size(); i++)
+      srcs.push_back(gsSources[i].c_str());
+
+    gl.glShaderSource(gs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
     gl.glCompileShader(gs);
 
@@ -198,27 +238,27 @@ void GLReplay::InitDebugData()
   DebugData.outWidth = 0.0f;
   DebugData.outHeight = 0.0f;
 
-  string blitvsSource = GetEmbeddedResource(glsl_blit_vert);
-  string blitfsSource = GetEmbeddedResource(glsl_blit_frag);
+  vector<string> empty;
 
-  DebugData.blitProg = CreateShaderProgram(blitvsSource.c_str(), blitfsSource.c_str());
+  vector<string> vs;
+  vector<string> fs;
+  vector<string> gs;
 
-  string glslheader = "#version 420 core\n\n";
-  glslheader += GetEmbeddedResource(glsl_debuguniforms_h);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_blit_vert), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_frag), 420);
 
-  string texfs = GetEmbeddedResource(glsl_texsample_h);
-  texfs += GetEmbeddedResource(glsl_texdisplay_frag);
+  DebugData.blitProg = CreateShaderProgram(vs, fs);
 
-  DebugData.texDisplayVSProg = CreateShaderProgram(blitvsSource.c_str(), NULL);
+  DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
 
   for(int i = 0; i < 3; i++)
   {
-    string glsl = glslheader;
-    glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-    glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
-    glsl += texfs;
+    string defines = string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+    defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-    DebugData.texDisplayProg[i] = CreateShaderProgram(NULL, glsl.c_str());
+    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(spv_texdisplay_frag), 420);
+
+    DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
   }
 
   GLint numsl = 0;
@@ -239,6 +279,9 @@ void GLReplay::InitDebugData()
     if(support450)
       break;
   }
+
+  string blitvsSource =
+      "#version 420 core\n#define VERTEX_ID gl_VertexID" + GetEmbeddedResource(spv_blit_vert);
 
   if(support450)
   {
@@ -285,7 +328,7 @@ void GLReplay::InitDebugData()
   string meshvs = GetEmbeddedResource(glsl_mesh_vert);
   string meshgs = GetEmbeddedResource(glsl_mesh_geom);
   string meshfs = GetEmbeddedResource(glsl_mesh_frag);
-  meshfs = glslheader + meshfs;
+  meshfs = "#version 420 core\n\n" + GetEmbeddedResource(glsl_debuguniforms_h) + meshfs;
 
   DebugData.meshProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str());
   DebugData.meshgsProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str(), meshgs.c_str());
@@ -366,9 +409,6 @@ void GLReplay::InitDebugData()
 
   // histogram/minmax data
   {
-    string histogramglsl = GetEmbeddedResource(glsl_texsample_h);
-    histogramglsl += GetEmbeddedResource(glsl_histogram_comp);
-
     RDCEraseEl(DebugData.minmaxTileProgram);
     RDCEraseEl(DebugData.histogramProgram);
     RDCEraseEl(DebugData.minmaxResultProgram);
@@ -376,6 +416,12 @@ void GLReplay::InitDebugData()
     RDCCOMPILE_ASSERT(
         ARRAY_COUNT(DebugData.minmaxTileProgram) >= (TEXDISPLAY_SINT_TEX | TEXDISPLAY_TYPEMASK) + 1,
         "not enough programs");
+
+    string glslheader =
+        "#version 420 core\n\n#extension GL_ARB_compute_shader : require\n#extension "
+        "GL_ARB_shader_storage_buffer_object : require\n";
+    glslheader += GetEmbeddedResource(spv_debuguniforms_h);
+    glslheader += GetEmbeddedResource(glsl_texsample_h);
 
     for(int t = 1; t <= RESTYPE_TEXTYPEMAX; t++)
     {
@@ -393,8 +439,7 @@ void GLReplay::InitDebugData()
           glsl += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
           glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
-          glsl += string("#define RENDERDOC_TileMinMaxCS 1\n");
-          glsl += histogramglsl;
+          glsl += GetEmbeddedResource(spv_minmaxtile_comp);
 
           DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(glsl.c_str());
         }
@@ -404,8 +449,7 @@ void GLReplay::InitDebugData()
           glsl += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
           glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
-          glsl += string("#define RENDERDOC_HistogramCS 1\n");
-          glsl += histogramglsl;
+          glsl += GetEmbeddedResource(spv_histogram_comp);
 
           DebugData.histogramProgram[idx] = CreateCShaderProgram(glsl.c_str());
         }
@@ -416,8 +460,7 @@ void GLReplay::InitDebugData()
           glsl += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
           glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
-          glsl += string("#define RENDERDOC_ResultMinMaxCS 1\n");
-          glsl += histogramglsl;
+          glsl += GetEmbeddedResource(spv_minmaxresult_comp);
 
           DebugData.minmaxResultProgram[i] = CreateCShaderProgram(glsl.c_str());
         }
@@ -1613,12 +1656,11 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   ubo->OutputRes.x = DebugData.outWidth;
   ubo->OutputRes.y = DebugData.outHeight;
 
-  ubo->NumSamples = texDetails.samples;
   ubo->SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)texDetails.samples - 1);
 
   // hacky resolve
   if(cfg.sampleIdx == ~0U)
-    ubo->SampleIdx = -1;
+    ubo->SampleIdx = -texDetails.samples;
 
   gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 

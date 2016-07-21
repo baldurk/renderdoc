@@ -64,7 +64,7 @@ void main(void)
 	vec2 scr = gl_FragCoord.xy;
 
 #ifdef OPENGL
-	scr.y = OutputRes.y - scr.y;
+	scr.y = texdisplay.OutputRes.y - scr.y;
 #endif
 
 	scr -= texdisplay.Position.xy;
@@ -90,7 +90,13 @@ void main(void)
 		}
 	}
 
-	if (texdisplay.FlipY != 0)
+#ifdef VULKAN
+	const int defaultFlipY = 0;
+#else // OPENGL
+	const int defaultFlipY = 1;
+#endif
+
+	if (texdisplay.FlipY != defaultFlipY)
 		scr.y = texdisplay.TextureResolutionPS.y - scr.y;
 
 	if(uintTex)

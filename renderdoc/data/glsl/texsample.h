@@ -58,7 +58,12 @@ layout(binding = 8) uniform usampler2DRect texUInt2DRect;
 layout(binding = 9) uniform usamplerBuffer texUIntBuffer;
 layout(binding = 10) uniform usampler2DMS texUInt2DMS;
 
-uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float slice, int sampleIdx)
+vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
+{
+  return vec4(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
   uvec4 col;
   if(type == RESTYPE_TEX1D)
@@ -77,17 +82,11 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   {
     ivec2 size = textureSize(texUInt2D, mipLevel);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     col = texelFetch(texUInt2D, ivec2(pos), mipLevel);
   }
   else if(type == RESTYPE_TEXRECT)
   {
     ivec2 size = textureSize(texUInt2DRect);
-
-    if(flipY)
-      pos.y = size.y - pos.y;
 
     col = texelFetch(texUInt2DRect, ivec2(pos));
   }
@@ -99,9 +98,6 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   {
     ivec2 size = textureSize(texUInt2DMS);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     if(sampleIdx < 0)
       sampleIdx = 0;
 
@@ -111,22 +107,21 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   {
     ivec3 size = textureSize(texUInt2DArray, mipLevel);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     col = texelFetch(texUInt2DArray, ivec3(pos, slice), mipLevel);
   }
   else    // if (type == RESTYPE_TEX3D)
   {
     ivec3 size = textureSize(texUInt3D, mipLevel);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     col = texelFetch(texUInt3D, ivec3(pos, slice), mipLevel);
   }
 
   return col;
+}
+
+ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
+{
+  return ivec4(0, 0, 0, 0);
 }
 
 #elif SINT_TEX
@@ -144,7 +139,17 @@ layout(binding = 8) uniform isampler2DRect texSInt2DRect;
 layout(binding = 9) uniform isamplerBuffer texSIntBuffer;
 layout(binding = 10) uniform isampler2DMS texSInt2DMS;
 
-ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float slice, int sampleIdx)
+vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
+{
+  return vec4(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
+{
+  return uvec4(0u, 0u, 0u, 0u);
+}
+
+ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
   ivec4 col;
   if(type == RESTYPE_TEX1D)
@@ -163,17 +168,11 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   {
     ivec2 size = textureSize(texSInt2D, mipLevel);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     col = texelFetch(texSInt2D, ivec2(pos), mipLevel);
   }
   else if(type == RESTYPE_TEXRECT)
   {
     ivec2 size = textureSize(texSInt2DRect);
-
-    if(flipY)
-      pos.y = size.y - pos.y;
 
     col = texelFetch(texSInt2DRect, ivec2(pos));
   }
@@ -185,9 +184,6 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   {
     ivec2 size = textureSize(texSInt2DMS);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     if(sampleIdx < 0)
       sampleIdx = 0;
 
@@ -197,17 +193,11 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   {
     ivec3 size = textureSize(texSInt2DArray, mipLevel);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     col = texelFetch(texSInt2DArray, ivec3(pos, slice), mipLevel);
   }
   else    // if (type == RESTYPE_TEX3D)
   {
     ivec3 size = textureSize(texSInt3D, mipLevel);
-
-    if(flipY)
-      pos.y = size.y - pos.y;
 
     col = texelFetch(texSInt3D, ivec3(pos, slice), mipLevel);
   }
@@ -230,8 +220,7 @@ layout(binding = 8) uniform sampler2DRect tex2DRect;
 layout(binding = 9) uniform samplerBuffer texBuffer;
 layout(binding = 10) uniform sampler2DMS tex2DMS;
 
-vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, int mipLevel, float slice, int sampleIdx,
-                         int sampleCount)
+vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
   vec4 col;
   if(type == RESTYPE_TEX1D)
@@ -250,17 +239,11 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   {
     ivec2 size = textureSize(tex2D, mipLevel);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     col = textureLod(tex2D, pos / size, float(mipLevel));
   }
   else if(type == RESTYPE_TEXRECT)
   {
     ivec2 size = textureSize(tex2DRect);
-
-    if(flipY)
-      pos.y = size.y - pos.y;
 
     col = texelFetch(tex2DRect, ivec2(pos));
   }
@@ -272,11 +255,10 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   {
     ivec2 size = textureSize(tex2DMS);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     if(sampleIdx < 0)
     {
+      int sampleCount = -sampleIdx;
+
       // worst resolve you've seen in your life
       // it's manually unrolled because doing it as a dynamic loop on
       // sampleCount seems to produce crazy artifacts on nvidia - probably a compiler bug
@@ -332,26 +314,17 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   {
     ivec3 size = textureSize(tex2DArray, mipLevel);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     col = textureLod(tex2DArray, vec3(pos / size.xy, slice), float(mipLevel));
   }
   else if(type == RESTYPE_TEX3D)
   {
     ivec3 size = textureSize(tex3D, mipLevel);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     col = textureLod(tex3D, vec3(pos / size.xy, slice / size.z), float(mipLevel));
   }
   else if(type == RESTYPE_TEXCUBE)
   {
     ivec2 size = textureSize(texCube, mipLevel);
-
-    if(flipY)
-      pos.y = size.y - pos.y;
 
     vec3 cubeCoord = CalcCubeCoord(pos / size, int(slice));
 
@@ -361,9 +334,6 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   {
     ivec3 size = textureSize(texCubeArray, mipLevel);
 
-    if(flipY)
-      pos.y = size.y - pos.y;
-
     vec3 cubeCoord = CalcCubeCoord(pos / size.xy, int(slice) % 6);
     vec4 arrayCoord = vec4(cubeCoord, int(slice) / 6);
 
@@ -371,6 +341,16 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, int mipLevel, float sli
   }
 
   return col;
+}
+
+uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
+{
+  return uvec4(0u, 0u, 0u, 0u);
+}
+
+ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
+{
+  return ivec4(0, 0, 0, 0);
 }
 
 #endif

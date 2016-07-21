@@ -1223,7 +1223,6 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   data->Scale = cfg.scale * mipScale;
 
-  data->NumSamples = iminfo.samples;
   data->SampleIdx = cfg.sampleIdx;
 
   if(cfg.sampleIdx == ~0U)

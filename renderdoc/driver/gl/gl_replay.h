@@ -367,6 +367,11 @@ private:
 
   void FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode);
 
+  GLuint CreateShaderProgram(const vector<string> &vs, const vector<string> &fs,
+                             const vector<string> &gs);
+  GLuint CreateShaderProgram(const vector<string> &vs, const vector<string> &fs);
+  GLuint CreateCShaderProgram(const vector<string> &cs);
+
   GLuint CreateShaderProgram(const char *vs, const char *fs, const char *gs = NULL);
   GLuint CreateCShaderProgram(const char *cs);
 
