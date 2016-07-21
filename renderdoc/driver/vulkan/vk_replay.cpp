@@ -3000,10 +3000,15 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
   outw.bbBarrier.srcAccessMask = 0;
   outw.bbBarrier.dstAccessMask = 0;
 
-  VkImageCopy cpy = {
-      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0},
-      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0},
-      {outw.width, outw.height, 1},
+  VkImageBlit blit = {
+      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+      {
+          {0, 0, 0}, {outw.width, outw.height, 1},
+      },
+      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+      {
+          {0, 0, 0}, {outw.width, outw.height, 1},
+      },
   };
 
 #if MSAA_MESH_VIEW
@@ -3019,8 +3024,9 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
                         &resolve);
   else
 #endif
-    vt->CmdCopyImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                     Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cpy);
+    vt->CmdBlitImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                     Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                     &blit, VK_FILTER_NEAREST);
 
   outw.bbBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
   outw.bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
