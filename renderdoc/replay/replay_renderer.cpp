@@ -48,11 +48,11 @@ float ConvertComponent(ResourceFormat fmt, byte *data)
     {
       return *(float *)u32;
     }
-    else if(fmt.compType == eCompType_UInt)
+    else if(fmt.compType == eCompType_UInt || fmt.compType == eCompType_UScaled)
     {
       return float(*u32);
     }
-    else if(fmt.compType == eCompType_SInt)
+    else if(fmt.compType == eCompType_SInt || fmt.compType == eCompType_SScaled)
     {
       return float(*i32);
     }
@@ -66,11 +66,11 @@ float ConvertComponent(ResourceFormat fmt, byte *data)
     {
       return ConvertFromHalf(*u16);
     }
-    else if(fmt.compType == eCompType_UInt)
+    else if(fmt.compType == eCompType_UInt || fmt.compType == eCompType_UScaled)
     {
       return float(*u16);
     }
-    else if(fmt.compType == eCompType_SInt)
+    else if(fmt.compType == eCompType_SInt || fmt.compType == eCompType_SScaled)
     {
       return float(*i16);
     }
@@ -95,11 +95,11 @@ float ConvertComponent(ResourceFormat fmt, byte *data)
     uint8_t *u8 = (uint8_t *)data;
     int8_t *i8 = (int8_t *)data;
 
-    if(fmt.compType == eCompType_UInt)
+    if(fmt.compType == eCompType_UInt || fmt.compType == eCompType_UScaled)
     {
       return float(*u8);
     }
-    else if(fmt.compType == eCompType_SInt)
+    else if(fmt.compType == eCompType_SInt || fmt.compType == eCompType_SScaled)
     {
       return float(*i8);
     }

@@ -236,9 +236,9 @@ namespace renderdoc
 
                 if (compType == FormatComponentType.Float)
                     ret += "float";
-                else if (compType == FormatComponentType.UInt)
+                else if (compType == FormatComponentType.UInt || compType == FormatComponentType.UScaled)
                     ret += "uint";
-                else if (compType == FormatComponentType.SInt)
+                else if (compType == FormatComponentType.SInt || compType == FormatComponentType.SScaled)
                     ret += "int";
                 else if (compType == FormatComponentType.UNorm)
                     ret += "unorm float";

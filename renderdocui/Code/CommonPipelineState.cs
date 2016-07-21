@@ -699,6 +699,10 @@ namespace renderdocui.Code
                                         ret[a].GenericValue[c] = attrs[i].GenericValue.u[c];
                                     else if (compType == FormatComponentType.SInt)
                                         ret[a].GenericValue[c] = attrs[i].GenericValue.i[c];
+                                    else if (compType == FormatComponentType.UScaled)
+                                        ret[a].GenericValue[c] = (float)attrs[i].GenericValue.u[c];
+                                    else if (compType == FormatComponentType.SScaled)
+                                        ret[a].GenericValue[c] = (float)attrs[i].GenericValue.i[c];
                                 }
 
                                 ret[a].PerInstance = false;

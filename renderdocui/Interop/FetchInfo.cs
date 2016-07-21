@@ -181,6 +181,14 @@ namespace renderdoc
             {
                 return comp;
             }
+            else if (compType == FormatComponentType.SScaled)
+            {
+                return (float)((Int16)comp);
+            }
+            else if (compType == FormatComponentType.UScaled)
+            {
+                return (float)comp;
+            }
             else if (compType == FormatComponentType.UNorm)
             {
                 return (float)comp / (float)UInt16.MaxValue;
@@ -213,6 +221,14 @@ namespace renderdoc
             else if (compType == FormatComponentType.UInt)
             {
                 return comp;
+            }
+            else if (compType == FormatComponentType.SScaled)
+            {
+                return (float)((sbyte)comp);
+            }
+            else if (compType == FormatComponentType.UScaled)
+            {
+                return (float)comp;
             }
             else if (compType == FormatComponentType.UNorm)
             {

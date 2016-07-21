@@ -168,12 +168,68 @@ namespace renderdocui.Code
                     uint b = (packed >> 20) & 0x3ff;
                     uint a = (packed >> 30) & 0x003;
 
+                    if (format.bgraOrder)
+                    {
+                        uint tmp = b;
+                        b = r;
+                        r = tmp;
+                    }
+
                     if (format.compType == FormatComponentType.UInt)
                     {
                         ret.Add(r);
                         ret.Add(g);
                         ret.Add(b);
                         ret.Add(a);
+                    }
+                    else if (format.compType == FormatComponentType.UScaled)
+                    {
+                        ret.Add((float)r);
+                        ret.Add((float)g);
+                        ret.Add((float)b);
+                        ret.Add((float)a);
+                    }
+                    else if (format.compType == FormatComponentType.SInt ||
+                             format.compType == FormatComponentType.SScaled)
+                    {
+                        int ir, ig, ib, ia;
+
+                        // interpret RGB as 10-bit signed integers
+                        if(r <= 511)
+                            ir = (int)r;
+                        else
+                            ir = ((int)r) - 1024;
+
+                        if (g <= 511)
+                            ig = (int)g;
+                        else
+                            ig = ((int)g) - 1024;
+
+                        if (b <= 511)
+                            ib = (int)b;
+                        else
+                            ib = ((int)b) - 1024;
+
+                        // 2-bit signed integer
+                        if (a <= 1)
+                            ia = (int)a;
+                        else
+                            ia = ((int)a) - 4;
+
+                        if (format.compType == FormatComponentType.SInt)
+                        {
+                            ret.Add(ir);
+                            ret.Add(ig);
+                            ret.Add(ib);
+                            ret.Add(ia);
+                        }
+                        else if (format.compType == FormatComponentType.SScaled)
+                        {
+                            ret.Add((float)ir);
+                            ret.Add((float)ig);
+                            ret.Add((float)ib);
+                            ret.Add((float)ia);
+                        }
                     }
                     else
                     {
@@ -231,6 +287,24 @@ namespace renderdocui.Code
                             ret.Add((uint)read.ReadUInt16());
                         else if (format.compByteWidth == 1)
                             ret.Add((uint)read.ReadByte());
+                    }
+                    else if (format.compType == FormatComponentType.UScaled)
+                    {
+                        if (format.compByteWidth == 4)
+                            ret.Add((float)read.ReadUInt32());
+                        else if (format.compByteWidth == 2)
+                            ret.Add((float)read.ReadUInt16());
+                        else if (format.compByteWidth == 1)
+                            ret.Add((float)read.ReadByte());
+                    }
+                    else if (format.compType == FormatComponentType.SScaled)
+                    {
+                        if (format.compByteWidth == 4)
+                            ret.Add((float)read.ReadInt32());
+                        else if (format.compByteWidth == 2)
+                            ret.Add((float)read.ReadInt16());
+                        else if (format.compByteWidth == 1)
+                            ret.Add((float)read.ReadSByte());
                     }
                     else if (format.compType == FormatComponentType.Depth)
                     {
