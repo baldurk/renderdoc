@@ -84,6 +84,8 @@ set(sources
     data/hlsl/debugcbuffers.h
     data/spv/debuguniforms.h
     data/spv/texsample.h
+    data/glsl_shaders.cpp
+    data/glsl_shaders.h
     data/version.h
     hooks/hooks.cpp
     hooks/hooks.h

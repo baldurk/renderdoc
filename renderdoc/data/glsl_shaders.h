@@ -1,19 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
- * Copyright (c) 2015-2016 Baldur Karlsson
- * Copyright (c) 2014 Crytek
- * 
+ *
+ * Copyright (c) 2016 Baldur Karlsson
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,21 +22,15 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout (location = 0) out vec4 color_out;
-
-#ifndef VULKAN // OpenGL can't use SPIR-V patching
-uniform vec4 RENDERDOC_GenericFS_Color;
-#endif
-
-void main(void)
+enum ShaderType
 {
-#ifdef VULKAN
-    // used to have a shader-replacement pixel shader
-    // that outputs a fixed colour, without needing a
-    // slot in a descriptor set. We re-write the SPIR-V
-    // on the fly to replace these constants
-    color_out = vec4(1.1f, 2.2f, 3.3f, 4.4f);
-#else
-    color_out = RENDERDOC_GenericFS_Color;
-#endif
-}
+  eShaderGLSL,
+  eShaderVulkan
+};
+
+#include <string>
+#include <vector>
+
+void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
+                        const std::string &defines, const std::string &shader, int version,
+                        bool uniforms = true);

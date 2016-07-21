@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+//#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
+
 layout(binding=0, std140) writeonly buffer minmaxtiledest
 {
 #if UINT_TEX

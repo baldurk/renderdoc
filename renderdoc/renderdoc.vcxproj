@@ -254,6 +254,7 @@
     <ClInclude Include="data\embedded_files.h" />
     <ClInclude Include="data\glsl\debuguniforms.h" />
     <ClInclude Include="data\glsl\texsample.h" />
+    <ClInclude Include="data\glsl_shaders.h" />
     <ClInclude Include="data\hlsl\debugcbuffers.h" />
     <ClInclude Include="data\resource.h" />
     <ClInclude Include="data\spv\debuguniforms.h" />
@@ -295,6 +296,7 @@
     <ClCompile Include="core\remote_replay.cpp" />
     <ClCompile Include="core\replay_proxy.cpp" />
     <ClCompile Include="core\resource_manager.cpp" />
+    <ClCompile Include="data\glsl_shaders.cpp" />
     <ClCompile Include="hooks\hooks.cpp" />
     <ClCompile Include="maths\camera.cpp" />
     <ClCompile Include="maths\matrix.cpp" />

@@ -27,6 +27,7 @@
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "3rdparty/stb/stb_truetype.h"
 #include "common/shader_cache.h"
+#include "data/glsl_shaders.h"
 #include "driver/shaders/spirv/spirv_common.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
@@ -716,11 +717,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
     for(size_t i = 0; i < 2; i++)
     {
-      sources.resize(4);
-      sources[0] = "#version 430 core\n";
-      sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
-
-      sources[2] = i == 0 ? GetEmbeddedResource(spv_text_vert) : GetEmbeddedResource(spv_text_frag);
+      GenerateGLSLShader(
+          sources, eShaderVulkan, "",
+          i == 0 ? GetEmbeddedResource(spv_text_vert) : GetEmbeddedResource(spv_text_frag), 430);
 
       vector<uint32_t> *spirv;
 
@@ -1359,14 +1358,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_CacheShaders = true;
 
   {
-    sources.push_back(GetEmbeddedResource(spv_fixedcol_frag));
+    GenerateGLSLShader(sources, eShaderVulkan, "", GetEmbeddedResource(spv_fixedcol_frag), 430,
+                       false);
 
     string err = GetSPIRVBlob(eSPIRVFragment, sources, &m_FixedColSPIRV);
     RDCASSERT(err.empty() && m_FixedColSPIRV);
   }
-
-  sources.resize(4);
-  sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
 
   // the newest AMD driver (at time of committing) has texelFetch fixed,
   // but it came out recently so I want a short transition period with the
@@ -1429,29 +1426,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     if(i == HISTOGRAMCS || i == MINMAXTILECS || i == MINMAXRESULTCS)
       continue;
 
-    sources[0] = "#version 430 core\n";
+    string defines = "";
     if(texelFetchBrokenDriver)
-      sources[0] += "#define NO_TEXEL_FETCH\n";
-    sources[2] = "";
-    sources[3] = shaderSources[i];
+      defines += "#define NO_TEXEL_FETCH\n";
 
-    if(sources[3].find("#include \"texsample.h\"") != string::npos)
-      sources[2] = GetEmbeddedResource(spv_texsample_h);
-
-    // hoist up any #extension directives
-    size_t extsearch = 0;
-    do
-    {
-      extsearch = sources[3].find("#extension", extsearch);
-
-      if(extsearch == string::npos)
-        break;
-
-      size_t begin = extsearch;
-      extsearch = sources[3].find('\n', extsearch);
-
-      sources[0] += sources[3].substr(begin, extsearch - begin + 1);
-    } while(extsearch != string::npos);
+    GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[i], 430, i != QUADWRITEFS);
 
     string err = GetSPIRVBlob(shaderStages[i], sources, &shaderSPIRV[i]);
     RDCASSERT(err.empty() && shaderSPIRV[i]);
@@ -1579,13 +1558,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       0,    // base pipeline VkPipeline
   };
 
-  sources.resize(5);
-  sources[0] = "#version 430 core\n";
-  if(texelFetchBrokenDriver)
-    sources[0] += "#define NO_TEXEL_FETCH\n";
-  sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
-  sources[2] = GetEmbeddedResource(spv_texsample_h);
-
   for(size_t t = eTexType_1D; t < eTexType_Max; t++)
   {
     for(size_t f = 0; f < 3; f++)
@@ -1599,11 +1571,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
           VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0, 0, NULL,
       };
 
-      sources[3] = string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
-      sources[3] += string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
-      sources[3] += string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
+      string defines = "";
+      if(texelFetchBrokenDriver)
+        defines += "#define NO_TEXEL_FETCH\n";
+      defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+      defines += string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
+      defines += string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
 
-      sources[4] = shaderSources[HISTOGRAMCS];
+      GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[HISTOGRAMCS], 430);
 
       err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
       RDCASSERT(err.empty() && blob);
@@ -1614,7 +1589,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &histogram);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      sources[4] = shaderSources[MINMAXTILECS];
+      GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[MINMAXTILECS], 430);
 
       err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
       RDCASSERT(err.empty() && blob);
@@ -1627,7 +1602,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
       if(t == 1)
       {
-        sources[4] = shaderSources[MINMAXRESULTCS];
+        GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[MINMAXRESULTCS], 430);
 
         err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
         RDCASSERT(err.empty() && blob);

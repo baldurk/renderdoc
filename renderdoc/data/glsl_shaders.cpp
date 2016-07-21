@@ -1,19 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
- * Copyright (c) 2015-2016 Baldur Karlsson
- * Copyright (c) 2014 Crytek
- * 
+ *
+ * Copyright (c) 2016 Baldur Karlsson
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,21 +22,51 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout (location = 0) out vec4 color_out;
+#include "glsl_shaders.h"
+#include "os/os_specific.h"
 
-#ifndef VULKAN // OpenGL can't use SPIR-V patching
-uniform vec4 RENDERDOC_GenericFS_Color;
-#endif
-
-void main(void)
+void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
+                        const std::string &defines, const std::string &shader, int version,
+                        bool uniforms)
 {
-#ifdef VULKAN
-    // used to have a shader-replacement pixel shader
-    // that outputs a fixed colour, without needing a
-    // slot in a descriptor set. We re-write the SPIR-V
-    // on the fly to replace these constants
-    color_out = vec4(1.1f, 2.2f, 3.3f, 4.4f);
-#else
-    color_out = RENDERDOC_GenericFS_Color;
-#endif
+  sources.resize(4);
+  sources[0] = StringFormat::Fmt("#version %d core\n", version);
+
+  // hoist up any #extension directives
+  size_t extsearch = 0;
+  do
+  {
+    extsearch = shader.find("#extension", extsearch);
+
+    if(extsearch == string::npos)
+      break;
+
+    size_t begin = extsearch;
+    extsearch = shader.find('\n', extsearch);
+
+    sources[0] += shader.substr(begin, extsearch - begin + 1);
+  } while(extsearch != string::npos);
+
+  sources[0] += "\n" + defines;
+
+  if(uniforms)
+    sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
+  else
+    sources[1] = "";
+
+  if(shader.find("#include \"texsample.h\"") != string::npos)
+  {
+    if(type == eShaderVulkan)
+      sources[2] = GetEmbeddedResource(spv_texsample_h);
+    else if(type == eShaderGLSL)
+      sources[2] = GetEmbeddedResource(glsl_texsample_h);
+    else
+      RDCERR("Unknown type! %d", type);
+  }
+  else
+  {
+    sources[2] = "";
+  }
+
+  sources[3] = shader;
 }

@@ -252,6 +252,9 @@
     <ClInclude Include="os\posix\posix_specific.h">
       <Filter>OS\Posix</Filter>
     </ClInclude>
+    <ClInclude Include="data\glsl_shaders.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -415,6 +418,9 @@
     </ClCompile>
     <ClCompile Include="os\posix\linux\linux_threading.cpp">
       <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="data\glsl_shaders.cpp">
+      <Filter>Resources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
