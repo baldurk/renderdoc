@@ -37,7 +37,7 @@
 #define mat4 Matrix4f
 #define uint uint32_t
 
-#define BINDING(s, b)
+#define BINDING(b)
 #define INST_NAME(name)
 
 struct Vec4u
@@ -47,18 +47,41 @@ struct Vec4u
 
 #define uvec4 Vec4u
 
+#if !defined(VULKAN) && !defined(OPENGL)
+#error "Must define VULKAN or OPENGL before including debuguniforms.h"
+#endif
+
+#if defined(VULKAN) && defined(OPENGL)
+#error "Only one of VULKAN and OPENGL must be defined in debuguniforms.h"
+#endif
+
 #else
 
 // this has to happen above even any pre-processor definitions,
 // so it's added in code
 //#version 430 core
 
-#define BINDING(s, b) layout(set = s, binding = b, std140)
+#ifdef VULKAN
+
+#define BINDING(b) layout(set = 0, binding = b, std140)
+#define VERTEX_ID gl_VertexIndex
+#define INSTANCE_ID gl_InstanceIndex
+
+#else
+
+#define OPENGL 1
+
+#define BINDING(b) layout(binding = b, std140)
+#define VERTEX_ID gl_VertexID
+#define INSTANCE_ID gl_InstanceID
+
+#endif
+
 #define INST_NAME(name) name
 
 #endif
 
-BINDING(0, 2) uniform HistogramUBOData
+BINDING(2) uniform HistogramUBOData
 {
   uint HistogramChannels;
   float HistogramMin;
@@ -75,7 +98,7 @@ BINDING(0, 2) uniform HistogramUBOData
 }
 INST_NAME(histogram_minmax);
 
-BINDING(0, 0) uniform MeshUBOData
+BINDING(0) uniform MeshUBOData
 {
   mat4 mvp;
   mat4 invProj;
@@ -86,7 +109,7 @@ BINDING(0, 0) uniform MeshUBOData
 }
 INST_NAME(Mesh);
 
-BINDING(0, 0) uniform OutlineUBOData
+BINDING(0) uniform OutlineUBOData
 {
   vec4 Inner_Color;
   vec4 Border_Color;
@@ -96,7 +119,7 @@ BINDING(0, 0) uniform OutlineUBOData
 }
 INST_NAME(outline);
 
-BINDING(0, 0) uniform FontUBOData
+BINDING(0) uniform FontUBOData
 {
   vec2 TextPosition;
   float txtpadding;
@@ -107,7 +130,7 @@ BINDING(0, 0) uniform FontUBOData
 }
 INST_NAME(general);
 
-BINDING(0, 0) uniform MeshPickUBOData
+BINDING(0) uniform MeshPickUBOData
 {
   vec2 coords;
   vec2 viewport;
@@ -130,7 +153,7 @@ struct FontGlyphData
 #define FONT_FIRST_CHAR 32
 #define FONT_LAST_CHAR 126
 
-BINDING(0, 1) uniform GlyphUBOData
+BINDING(1) uniform GlyphUBOData
 {
   FontGlyphData data[FONT_LAST_CHAR - FONT_FIRST_CHAR + 1];
 }
@@ -138,13 +161,13 @@ INST_NAME(glyphs);
 
 #define MAX_SINGLE_LINE_LENGTH 256
 
-BINDING(0, 2) uniform StringUBOData
+BINDING(2) uniform StringUBOData
 {
   uvec4 chars[MAX_SINGLE_LINE_LENGTH];
 }
 INST_NAME(str);
 
-BINDING(0, 0) uniform TexDisplayUBOData
+BINDING(0) uniform TexDisplayUBOData
 {
   vec2 Position;
   float Scale;
@@ -178,6 +201,8 @@ INST_NAME(texdisplay);
 #define CUBEMAP_FACE_POS_Z 4
 #define CUBEMAP_FACE_NEG_Z 5
 
+#ifdef VULKAN
+
 // we always upload an array (but it might have only one layer),
 // so 2D and 2D arrays are the same.
 // Cube and cube array textures are treated as 2D arrays.
@@ -186,6 +211,22 @@ INST_NAME(texdisplay);
 #define RESTYPE_TEX3D 0x3
 #define RESTYPE_TEX2DMS 0x4
 #define RESTYPE_TEXTYPEMAX 0x5
+
+#else    // OPENGL
+
+#define RESTYPE_TEX1D 0x1
+#define RESTYPE_TEX2D 0x2
+#define RESTYPE_TEX3D 0x3
+#define RESTYPE_TEXCUBE 0x4
+#define RESTYPE_TEX1DARRAY 0x5
+#define RESTYPE_TEX2DARRAY 0x6
+#define RESTYPE_TEXCUBEARRAY 0x7
+#define RESTYPE_TEXRECT 0x8
+#define RESTYPE_TEXBUFFER 0x9
+#define RESTYPE_TEX2DMS 0xA
+#define RESTYPE_TEXTYPEMAX 0xA
+
+#endif
 
 #define MESHDISPLAY_SOLID 0x1
 #define MESHDISPLAY_FACELIT 0x2

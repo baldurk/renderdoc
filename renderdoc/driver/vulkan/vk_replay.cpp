@@ -24,13 +24,15 @@
 
 #include "vk_replay.h"
 #include <float.h>
-#include "data/spv/debuguniforms.h"
 #include "maths/camera.h"
 #include "maths/matrix.h"
 #include "serialise/string_utils.h"
 #include "vk_core.h"
 #include "vk_debug.h"
 #include "vk_resources.h"
+
+#define VULKAN 1
+#include "data/spv/debuguniforms.h"
 
 VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), height(0)
 {

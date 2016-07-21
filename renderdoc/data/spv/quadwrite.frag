@@ -32,8 +32,12 @@
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx
 ////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef VULKAN
 // descriptor set will be patched from 0 to whichever descriptor set we're using in code
 layout(set = 0, binding = 0, r32ui) uniform coherent uimage2DArray overdrawImage;
+#else // OPENGL
+layout(binding = 0, r32ui) uniform coherent uimage2DArray overdrawImage;
+#endif
 layout(early_fragment_tests) in;
 
 void main()

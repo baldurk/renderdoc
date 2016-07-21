@@ -38,8 +38,8 @@ void main(void)
                                   vec3( 0.0,  1.0, 0.5),
                                   vec3( 1.0,  1.0, 0.5));
 
-	vec3 pos = verts[gl_VertexIndex];
-	uint strindex = gl_InstanceIndex;
+	vec3 pos = verts[VERTEX_ID];
+	uint strindex = INSTANCE_ID;
 	
 	vec2 charPos = vec2(strindex + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
 	

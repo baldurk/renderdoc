@@ -27,11 +27,19 @@
 
 layout (location = 0) out vec4 color_out;
 
+#ifndef VULKAN // OpenGL can't use SPIR-V patching
+uniform vec4 RENDERDOC_GenericFS_Color;
+#endif
+
 void main(void)
 {
-	// used to have a shader-replacement pixel shader
-	// that outputs a fixed colour, without needing a
-	// slot in a descriptor set. We re-write the SPIR-V
-	// on the fly to replace these constants
+#ifdef VULKAN
+    // used to have a shader-replacement pixel shader
+    // that outputs a fixed colour, without needing a
+    // slot in a descriptor set. We re-write the SPIR-V
+    // on the fly to replace these constants
     color_out = vec4(1.1f, 2.2f, 3.3f, 4.4f);
+#else
+    color_out = RENDERDOC_GenericFS_Color;
+#endif
 }

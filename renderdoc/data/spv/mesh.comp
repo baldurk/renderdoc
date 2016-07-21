@@ -57,8 +57,10 @@ void main()
 
 	wpos.xyz /= wpos.www;
 
+#ifdef VULKAN
 	if(meshpick.unproject == 0u)
 		wpos.xy *= vec2(1.0f, -1.0f);
+#endif
 
 	vec2 scr = (wpos.xy + 1.0f) * 0.5f * meshpick.viewport;
 

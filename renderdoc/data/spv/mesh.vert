@@ -50,18 +50,26 @@ void main(void)
 
 	vec4 pos = position;
 	if(Mesh.homogenousInput == 0)
+	{
 		pos = vec4(position.xyz, 1);
+	}
 	else
+	{
+#ifdef VULKAN
 		pos = vec4(position.x, -position.y, position.z, position.w);
+#endif
+	}
 
 	gl_Position = Mesh.mvp * pos;
-	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[gl_VertexIndex%4]*gl_Position.w;
+	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[VERTEX_ID%4]*gl_Position.w;
 	OUT.secondary = secondary;
 	OUT.norm = vec4(0, 0, 1, 1);
 
+#ifdef VULKAN
 	// GL->VK conventions
 	gl_Position.y = -gl_Position.y;
 	gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
 
 	gl_PointSize = 4.0f;
+#endif
 }

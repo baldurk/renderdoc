@@ -36,8 +36,23 @@ float ConvertSRGBToLinear(float srgb)
 
 void main(void)
 {
+#ifdef VULKAN // vulkan combines all three types
 	bool uintTex = (texdisplay.OutputDisplayFormat & TEXDISPLAY_UINT_TEX) != 0;
 	bool sintTex = (texdisplay.OutputDisplayFormat & TEXDISPLAY_SINT_TEX) != 0;
+#else // OPENGL
+
+#if UINT_TEX
+	const bool uintTex = true;
+	const bool sintTex = false;
+#elif SINT_TEX
+	const bool uintTex = false;
+	const bool sintTex = true;
+#else
+	const bool uintTex = false;
+	const bool sintTex = false;
+#endif
+
+#endif
 
 	int texType = (texdisplay.OutputDisplayFormat & TEXDISPLAY_TYPEMASK);
 
@@ -46,11 +61,21 @@ void main(void)
 	ivec4 scol;
 
 	// calc screen co-ords with origin top left, modified by Position
-	vec2 scr = gl_FragCoord.xy - texdisplay.Position.xy;
+	vec2 scr = gl_FragCoord.xy;
+
+#ifdef OPENGL
+	scr.y = OutputRes.y - scr.y;
+#endif
+
+	scr -= texdisplay.Position.xy;
 
 	scr /= texdisplay.Scale;
 
+#ifdef VULKAN
 	if(texType == RESTYPE_TEX1D)
+#else
+	if(texType == RESTYPE_TEX1D || texType == RESTYPE_TEXBUFFER || texType == RESTYPE_TEX1DARRAY)
+#endif
 	{
 		// by convention display 1D textures as 100 high
 		if(scr.x < 0.0f || scr.x > texdisplay.TextureResolutionPS.x || scr.y < 0.0f || scr.y > 100.0f)

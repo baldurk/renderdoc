@@ -27,13 +27,15 @@
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "3rdparty/stb/stb_truetype.h"
 #include "common/shader_cache.h"
-#include "data/spv/debuguniforms.h"
 #include "driver/shaders/spirv/spirv_common.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "serialise/string_utils.h"
 #include "vk_core.h"
+
+#define VULKAN 1
+#include "data/spv/debuguniforms.h"
 
 const VkDeviceSize STAGE_BUFFER_BYTE_SIZE = 16 * 1024 * 1024ULL;
 

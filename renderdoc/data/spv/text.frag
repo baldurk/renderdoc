@@ -22,7 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#ifdef VULKAN
 layout (binding = 3) uniform sampler2D tex0;
+#else // OPENGL
+layout (binding = 0) uniform sampler2D tex0;
+#endif
 layout (location = 0) out vec4 color_out;
 
 layout (location = 0) in vec4 tex;
