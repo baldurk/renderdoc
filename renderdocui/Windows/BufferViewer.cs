@@ -163,6 +163,9 @@ namespace renderdocui.Windows
         // is different.
         private int m_ReqID = 0;
 
+        private const int CellDefaultWidth = 100;
+        private int CellFloatWidth = CellDefaultWidth;
+
         private BufferFormatSpecifier m_FormatSpecifier = null;
 
         private string m_FormatText = "";
@@ -570,6 +573,32 @@ namespace renderdocui.Windows
                     m_Output = null;
                 });
             }
+        }
+
+        private void CalcCellFloatWidth()
+        {
+            Graphics g = vsInBufferView.CreateGraphics();
+            Font f = vsInBufferView.DefaultCellStyle.Font;
+
+            // measure a few doubles at different extremes to get a max column width
+            // for floats under the current float formatter settings
+
+            // all numbers are negative to account for negative sign
+            double[] testNums = new double[] {
+                -1.0, // some default number
+                -1.2345e-200, // something that will definitely be exponential notation
+                -123456.7890123456789, // some number with a 'large' value before the decimal, and numbers after the decimal
+            };
+
+            CellFloatWidth = CellDefaultWidth;
+
+            foreach (double d in testNums)
+            {
+                float stringWidth = g.MeasureString(Formatter.Format(d), f).Width;
+                CellFloatWidth = Math.Max(CellFloatWidth, (int)stringWidth + 5);
+            }
+
+            g.Dispose();
         }
 
         public void OnEventSelected(UInt32 eventID)
@@ -1366,8 +1395,12 @@ namespace renderdocui.Windows
                 {
                     DataGridViewTextBoxColumn col = new DataGridViewTextBoxColumn();
 
-                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
                     col.MinimumWidth = 50;
+                    col.Width =
+                        (el[e].format.compType == FormatComponentType.Double ||
+                        el[e].format.compType == FormatComponentType.Float)
+                        ? CellFloatWidth : CellDefaultWidth;
                     col.HeaderText = el[e].name;
                     col.ReadOnly = true;
                     col.SortMode = DataGridViewColumnSortMode.Programmatic;
@@ -1406,8 +1439,12 @@ namespace renderdocui.Windows
                 {
                     DataGridViewTextBoxColumn col = new DataGridViewTextBoxColumn();
 
-                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
                     col.MinimumWidth = 50;
+                    col.Width =
+                        (el[e].format.compType == FormatComponentType.Double ||
+                        el[e].format.compType == FormatComponentType.Float)
+                        ? CellFloatWidth : CellDefaultWidth;
                     col.HeaderText = el[e].name;
                     col.ReadOnly = true;
                     col.SortMode = DataGridViewColumnSortMode.Programmatic;
@@ -1457,6 +1494,10 @@ namespace renderdocui.Windows
         private void UI_SetRowsData(MeshDataStage type, Dataset data, int horizScroll)
         {
             var state = GetUIState(type);
+
+            // only do this once, VSIn is guaranteed to be set (even if it's empty data)
+            if(type == MeshDataStage.VSIn)
+                CalcCellFloatWidth();
 
             Input input = state.m_Input;
 
@@ -1759,14 +1800,6 @@ namespace renderdocui.Windows
                 return;
 
             SuppressCaching = true;
-
-            for (int i = 0; i < bufView.Columns.Count; i++)
-            {
-                if (bufView.Columns[i].AutoSizeMode == DataGridViewAutoSizeColumnMode.AllCells)
-                {
-                    bufView.Columns[i].AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-                }
-            }
 
             bufView.RowCount = 0;
             if(!MeshView) byteOffset.Enabled = true;
