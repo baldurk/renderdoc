@@ -1602,9 +1602,9 @@ namespace renderdocui.Windows.PipelineState
             stencilFuncs.BeginUpdate();
             stencilFuncs.Nodes.Clear();
             var sop = state.m_StencilState.m_FrontFace;
-            stencilFuncs.Nodes.Add(new object[] { "Front", sop.Func, sop.FailOp, sop.DepthFailOp, sop.PassOp, sop.Ref, sop.WriteMask, sop.ValueMask });
+            stencilFuncs.Nodes.Add(new object[] { "Front", sop.Func, sop.FailOp, sop.DepthFailOp, sop.PassOp, sop.Ref.ToString("X2"), sop.WriteMask.ToString("X2"), sop.ValueMask.ToString("X2") });
             sop = state.m_StencilState.m_BackFace;
-            stencilFuncs.Nodes.Add(new object[] { "Back", sop.Func, sop.FailOp, sop.DepthFailOp, sop.PassOp, sop.Ref, sop.WriteMask, sop.ValueMask });
+            stencilFuncs.Nodes.Add(new object[] { "Back", sop.Func, sop.FailOp, sop.DepthFailOp, sop.PassOp, sop.Ref.ToString("X2"), sop.WriteMask.ToString("X2"), sop.ValueMask.ToString("X2") });
             stencilFuncs.EndUpdate();
             stencilFuncs.NodesSelection.Clear();
 
