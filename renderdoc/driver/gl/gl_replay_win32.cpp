@@ -68,9 +68,11 @@ void GLReplay::CloseReplayContext()
   }
 }
 
-uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
+uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
-  HWND w = (HWND)wn;
+  RDCASSERT(system == eWindowingSystem_Win32 || system == eWindowingSystem_Unknown, system);
+
+  HWND w = (HWND)data;
 
   if(w == NULL)
     w = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdocGLclass", L"", WS_OVERLAPPEDWINDOW,

@@ -15,7 +15,7 @@ elseif(UNIX)
     list(APPEND includes PRIVATE ${OPENGL_INCLUDE_DIR})
     list(APPEND libraries PRIVATE ${OPENGL_gl_LIBRARY})
 
-    list(APPEND libraries PRIVATE -lxcb)
+    list(APPEND libraries PRIVATE -lxcb -lX11 -lX11-xcb)
 endif()
 
 if(ANDROID)

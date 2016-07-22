@@ -114,10 +114,16 @@ public:
   bool IsRemoteProxy() { return !m_ReplayHost; }
   void Shutdown() { delete this; }
   void ReadLogInitialisation() {}
-  uint64_t MakeOutputWindow(void *w, bool depth)
+  vector<WindowingSystem> GetSupportedWindowSystems()
   {
     if(m_Proxy)
-      return m_Proxy->MakeOutputWindow(w, depth);
+      return m_Proxy->GetSupportedWindowSystems();
+    return vector<WindowingSystem>();
+  }
+  uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth)
+  {
+    if(m_Proxy)
+      return m_Proxy->MakeOutputWindow(system, data, depth);
     return 0;
   }
   void DestroyOutputWindow(uint64_t id)

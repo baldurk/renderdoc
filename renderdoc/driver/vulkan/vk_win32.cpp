@@ -27,9 +27,11 @@
 
 static int dllLocator = 0;
 
-void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
+void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *data)
 {
-  wnd = (HWND)wn;
+  RDCASSERT(system == eWindowingSystem_Win32, system);
+  wnd = (HWND)data;
+  m_WindowSystem = system;
 }
 
 void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)

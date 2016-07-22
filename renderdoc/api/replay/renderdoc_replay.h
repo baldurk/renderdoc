@@ -55,6 +55,57 @@ typedef uint32_t bool32;
 
 #endif
 
+// windowing structures
+
+#if defined(RENDERDOC_PLATFORM_WIN32)
+
+// Win32 uses HWND
+
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XLIB)
+
+#include <X11/Xlib.h>
+
+#undef None
+
+struct XlibWindowData
+{
+  Display *display;
+  Drawable window;
+};
+
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XCB)
+
+#include <xcb/xcb.h>
+
+#undef None
+
+struct XCBWindowData
+{
+  xcb_connection_t *connection;
+  xcb_window_t window;
+};
+
+#endif
+
+#if defined(RENDERDOC_PLATFORM_ANDROID)
+
+// android uses ANativeWindow*
+
+#endif
+
+enum WindowingSystem
+{
+  eWindowingSystem_Unknown,
+  eWindowingSystem_Win32,
+  eWindowingSystem_Xlib,
+  eWindowingSystem_XCB,
+  eWindowingSystem_Android,
+};
+
 // needs to be declared up here for reference in basic_types
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem);
@@ -101,11 +152,12 @@ struct IReplayOutput
   virtual bool SetMeshDisplay(const MeshDisplay &o) = 0;
 
   virtual bool ClearThumbnails() = 0;
-  virtual bool AddThumbnail(void *wnd, ResourceId texID, FormatComponentType typeHint) = 0;
+  virtual bool AddThumbnail(WindowingSystem system, void *data, ResourceId texID,
+                            FormatComponentType typeHint) = 0;
 
   virtual bool Display() = 0;
 
-  virtual bool SetPixelContext(void *wnd) = 0;
+  virtual bool SetPixelContext(WindowingSystem system, void *data) = 0;
   virtual bool SetPixelContextLocation(uint32_t x, uint32_t y) = 0;
   virtual void DisablePixelContext() = 0;
 
@@ -136,13 +188,15 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetMeshDisplay(ReplayO
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(ReplayOutput *output);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(ReplayOutput *output,
-                                                                       void *wnd, ResourceId texID,
+                                                                       WindowingSystem system,
+                                                                       void *data, ResourceId texID,
                                                                        FormatComponentType typeHint);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(ReplayOutput *output);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContext(ReplayOutput *output,
-                                                                          void *wnd);
+                                                                          WindowingSystem system,
+                                                                          void *data);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayOutput_SetPixelContextLocation(ReplayOutput *output, uint32_t x, uint32_t y);
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(ReplayOutput *output);
@@ -164,7 +218,9 @@ struct IReplayRenderer
 {
   virtual APIProperties GetAPIProperties() = 0;
 
-  virtual ReplayOutput *CreateOutput(void *handle, OutputType type) = 0;
+  virtual void GetSupportedWindowSystems(rdctype::array<WindowingSystem> *systems) = 0;
+
+  virtual ReplayOutput *CreateOutput(WindowingSystem system, void *data, OutputType type) = 0;
   virtual void Shutdown() = 0;
   virtual void ShutdownOutput(ReplayOutput *output) = 0;
 
@@ -251,9 +307,11 @@ struct ReplayRenderer
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetAPIProperties(ReplayRenderer *rend,
                                                                            APIProperties *props);
 
-extern "C" RENDERDOC_API ReplayOutput *RENDERDOC_CC ReplayRenderer_CreateOutput(ReplayRenderer *rend,
-                                                                                void *handle,
-                                                                                OutputType type);
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetSupportedWindowSystems(
+    ReplayRenderer *rend, rdctype::array<WindowingSystem> *systems);
+
+extern "C" RENDERDOC_API ReplayOutput *RENDERDOC_CC ReplayRenderer_CreateOutput(
+    ReplayRenderer *rend, WindowingSystem system, void *data, OutputType type);
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_Shutdown(ReplayRenderer *rend);
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_ShutdownOutput(ReplayRenderer *rend,
                                                                          ReplayOutput *output);

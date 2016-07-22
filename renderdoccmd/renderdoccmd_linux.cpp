@@ -24,23 +24,47 @@
  ******************************************************************************/
 
 #include "renderdoccmd.h"
+#include <X11/Xlib-xcb.h>
 #include <iconv.h>
 #include <locale.h>
-#include <replay/renderdoc_replay.h>
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
-#include <xcb/xcb.h>
 #include <string>
+
+#define RENDERDOC_WINDOWING_XLIB 1
+#define RENDERDOC_WINDOWING_XCB 1
+#include <replay/renderdoc_replay.h>
 
 using std::string;
 
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {
-  int scr;
+  // need to create a hybrid setup xlib and xcb in case only one or the other is supported.
+  // We'll prefer xcb
 
-  xcb_connection_t *connection = xcb_connect(NULL, &scr);
+  Display *display = XOpenDisplay(NULL);
+
+  if(display == NULL)
+  {
+    std::cerr << "Couldn't open X Display" << std::endl;
+    return;
+  }
+
+  int scr = DefaultScreen(display);
+
+  xcb_connection_t *connection = XGetXCBConnection(display);
+
+  if(connection == NULL)
+  {
+    XCloseDisplay(display);
+    std::cerr << "Couldn't get XCB connection from Xlib Display" << std::endl;
+    return;
+  }
+
+  XSetEventQueueOwner(display, XCBOwnsEventQueue);
+
   const xcb_setup_t *setup = xcb_get_setup(connection);
   xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
   while(scr-- > 0)
@@ -76,11 +100,49 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
 
   xcb_map_window(connection, window);
 
-  void *connectionScreenWindow[] = {(void *)connection, (void *)(uintptr_t)scr,
-                                    (void *)(uintptr_t)window};
+  rdctype::array<WindowingSystem> systems;
+  ReplayRenderer_GetSupportedWindowSystems(renderer, &systems);
 
-  ReplayOutput *out =
-      ReplayRenderer_CreateOutput(renderer, connectionScreenWindow, eOutputType_TexDisplay);
+  bool xcb = false, xlib = false;
+
+  for(int32_t i = 0; i < systems.count; i++)
+  {
+    if(systems[i] == eWindowingSystem_Xlib)
+      xlib = true;
+    if(systems[i] == eWindowingSystem_XCB)
+      xcb = true;
+  }
+
+  ReplayOutput *out = NULL;
+
+  // prefer xcb
+  if(xcb)
+  {
+    XCBWindowData windowData;
+    windowData.connection = connection;
+    windowData.window = window;
+
+    out = ReplayRenderer_CreateOutput(renderer, eWindowingSystem_XCB, &windowData,
+                                      eOutputType_TexDisplay);
+  }
+  else if(xlib)
+  {
+    XlibWindowData windowData;
+    windowData.display = display;
+    windowData.window = (Drawable)window;    // safe to cast types
+
+    out = ReplayRenderer_CreateOutput(renderer, eWindowingSystem_Xlib, &windowData,
+                                      eOutputType_TexDisplay);
+  }
+  else
+  {
+    std::cerr << "Neither XCB nor XLib are supported, can't create window." << std::endl;
+    std::cerr << "Supported systems: ";
+    for(int32_t i = 0; i < systems.count; i++)
+      std::cerr << systems[i] << std::endl;
+    std::cerr << std::endl;
+    return;
+  }
 
   OutputConfig c = {eOutputType_TexDisplay};
 

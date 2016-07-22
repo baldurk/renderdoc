@@ -22,37 +22,60 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#define RENDERDOC_WINDOWING_XLIB 1
+#define RENDERDOC_WINDOWING_XCB 1
+
+#include "api/replay/renderdoc_replay.h"
+
 #include "vk_core.h"
 #include "vk_replay.h"
 
-void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
+void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *data)
 {
-  void **connectionScreenWindow = (void **)wn;
+  m_WindowSystem = system;
 
-  connection = (xcb_connection_t *)connectionScreenWindow[0];
-  int scr = (int)(uintptr_t)connectionScreenWindow[1];
-  wnd = (xcb_window_t)(uintptr_t)connectionScreenWindow[2];
-
-  const xcb_setup_t *setup = xcb_get_setup(connection);
-  xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-  while(scr-- > 0)
-    xcb_screen_next(&iter);
-
-  screen = iter.data;
+  if(system == eWindowingSystem_Xlib)
+  {
+    XlibWindowData *xdata = (XlibWindowData *)data;
+    xlib.display = xdata->display;
+    xlib.window = xdata->window;
+  }
+  else if(system == eWindowingSystem_XCB)
+  {
+    XCBWindowData *xdata = (XCBWindowData *)data;
+    xcb.connection = xdata->connection;
+    xcb.window = xdata->window;
+  }
 }
 
 void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 {
-  VkXcbSurfaceCreateInfoKHR createInfo;
+  if(m_WindowSystem == eWindowingSystem_Xlib)
+  {
+    VkXlibSurfaceCreateInfoKHR createInfo;
 
-  createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-  createInfo.pNext = NULL;
-  createInfo.flags = 0;
-  createInfo.connection = connection;
-  createInfo.window = wnd;
+    createInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0;
+    createInfo.dpy = xlib.display;
+    createInfo.window = xlib.window;
 
-  VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    VkResult vkr = ObjDisp(inst)->CreateXlibSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+  else if(m_WindowSystem == eWindowingSystem_XCB)
+  {
+    VkXcbSurfaceCreateInfoKHR createInfo;
+
+    createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0;
+    createInfo.connection = xcb.connection;
+    createInfo.window = xcb.window;
+
+    VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
@@ -62,12 +85,23 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
   OutputWindow &outw = m_OutputWindows[id];
 
-  xcb_get_geometry_cookie_t geomCookie =
-      xcb_get_geometry(outw.connection, outw.wnd);    // window is a xcb_drawable_t
-  xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(outw.connection, geomCookie, NULL);
+  if(outw.m_WindowSystem == eWindowingSystem_Xlib)
+  {
+    XWindowAttributes attr = {};
+    XGetWindowAttributes(outw.xlib.display, outw.xlib.window, &attr);
 
-  w = (int32_t)geom->width;
-  h = (int32_t)geom->height;
+    w = (int32_t)attr.width;
+    h = (int32_t)attr.height;
+  }
+  else if(outw.m_WindowSystem == eWindowingSystem_XCB)
+  {
+    xcb_get_geometry_cookie_t geomCookie =
+        xcb_get_geometry(outw.xcb.connection, outw.xcb.window);    // window is a xcb_drawable_t
+    xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(outw.xcb.connection, geomCookie, NULL);
 
-  free(geom);
+    w = (int32_t)geom->width;
+    h = (int32_t)geom->height;
+
+    free(geom);
+  }
 }

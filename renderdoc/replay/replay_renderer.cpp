@@ -1415,9 +1415,15 @@ bool ReplayRenderer::GetCBufferVariableContents(ResourceId shader, const char *e
   return true;
 }
 
-ReplayOutput *ReplayRenderer::CreateOutput(void *wndhandle, OutputType type)
+void ReplayRenderer::GetSupportedWindowSystems(rdctype::array<WindowingSystem> *systems)
 {
-  ReplayOutput *out = new ReplayOutput(this, wndhandle, type);
+  if(systems)
+    *systems = m_pDevice->GetSupportedWindowSystems();
+}
+
+ReplayOutput *ReplayRenderer::CreateOutput(WindowingSystem system, void *data, OutputType type)
+{
+  ReplayOutput *out = new ReplayOutput(this, system, data, type);
 
   m_Outputs.push_back(out);
 
@@ -1668,11 +1674,16 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetAPIProperties(Repla
     *props = rend->GetAPIProperties();
 }
 
-extern "C" RENDERDOC_API ReplayOutput *RENDERDOC_CC ReplayRenderer_CreateOutput(ReplayRenderer *rend,
-                                                                                void *handle,
-                                                                                OutputType type)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetSupportedWindowSystems(
+    ReplayRenderer *rend, rdctype::array<WindowingSystem> *systems)
 {
-  return rend->CreateOutput(handle, type);
+  rend->GetSupportedWindowSystems(systems);
+}
+
+extern "C" RENDERDOC_API ReplayOutput *RENDERDOC_CC ReplayRenderer_CreateOutput(
+    ReplayRenderer *rend, WindowingSystem system, void *data, OutputType type)
+{
+  return rend->CreateOutput(system, data, type);
 }
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_Shutdown(ReplayRenderer *rend)
 {

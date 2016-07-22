@@ -52,12 +52,18 @@ bool PlatformHasKeyInput()
   return true;
 }
 
-xcb_connection_t *connection;
-xcb_key_symbols_t *symbols;
+Display *CurrentXDisplay = NULL;
 
 void CloneDisplay(Display *dpy)
 {
+  if(CurrentXDisplay || dpy == NULL)
+    return;
+
+  CurrentXDisplay = XOpenDisplay(XDisplayString(dpy));
 }
+
+xcb_connection_t *connection;
+xcb_key_symbols_t *symbols;
 
 void UseConnection(xcb_connection_t *conn)
 {
@@ -74,12 +80,71 @@ void RemoveInputWindow(void *wnd)
 {
 }
 
-bool GetKeyState(int key)
+bool GetXlibKeyState(int key)
 {
+  if(CurrentXDisplay == NULL)
+    return false;
+
   KeySym ks = 0;
 
+  if(key >= eRENDERDOC_Key_A && key <= eRENDERDOC_Key_Z)
+    ks = key;
+  if(key >= eRENDERDOC_Key_0 && key <= eRENDERDOC_Key_9)
+    ks = key;
+
+  switch(key)
+  {
+    case eRENDERDOC_Key_Divide: ks = XK_KP_Divide; break;
+    case eRENDERDOC_Key_Multiply: ks = XK_KP_Multiply; break;
+    case eRENDERDOC_Key_Subtract: ks = XK_KP_Subtract; break;
+    case eRENDERDOC_Key_Plus: ks = XK_KP_Add; break;
+    case eRENDERDOC_Key_F1: ks = XK_F1; break;
+    case eRENDERDOC_Key_F2: ks = XK_F2; break;
+    case eRENDERDOC_Key_F3: ks = XK_F3; break;
+    case eRENDERDOC_Key_F4: ks = XK_F4; break;
+    case eRENDERDOC_Key_F5: ks = XK_F5; break;
+    case eRENDERDOC_Key_F6: ks = XK_F6; break;
+    case eRENDERDOC_Key_F7: ks = XK_F7; break;
+    case eRENDERDOC_Key_F8: ks = XK_F8; break;
+    case eRENDERDOC_Key_F9: ks = XK_F9; break;
+    case eRENDERDOC_Key_F10: ks = XK_F10; break;
+    case eRENDERDOC_Key_F11: ks = XK_F11; break;
+    case eRENDERDOC_Key_F12: ks = XK_F12; break;
+    case eRENDERDOC_Key_Home: ks = XK_Home; break;
+    case eRENDERDOC_Key_End: ks = XK_End; break;
+    case eRENDERDOC_Key_Insert: ks = XK_Insert; break;
+    case eRENDERDOC_Key_Delete: ks = XK_Delete; break;
+    case eRENDERDOC_Key_PageUp: ks = XK_Prior; break;
+    case eRENDERDOC_Key_PageDn: ks = XK_Next; break;
+    case eRENDERDOC_Key_Backspace: ks = XK_BackSpace; break;
+    case eRENDERDOC_Key_Tab: ks = XK_Tab; break;
+    case eRENDERDOC_Key_PrtScrn: ks = XK_Print; break;
+    case eRENDERDOC_Key_Pause: ks = XK_Pause; break;
+    default: break;
+  }
+
+  if(ks == 0)
+    return false;
+
+  KeyCode kc = XKeysymToKeycode(CurrentXDisplay, ks);
+
+  char keyState[32];
+  XQueryKeymap(CurrentXDisplay, keyState);
+
+  int byteIdx = (kc / 8);
+  int bitMask = 1 << (kc % 8);
+
+  uint8_t keyByte = (uint8_t)keyState[byteIdx];
+
+  return (keyByte & bitMask) != 0;
+}
+
+bool GetXCBKeyState(int key)
+{
   if(symbols == NULL)
     return false;
+
+  KeySym ks = 0;
 
   if(key >= eRENDERDOC_Key_A && key <= eRENDERDOC_Key_Z)
     ks = key;
@@ -142,6 +207,11 @@ bool GetKeyState(int key)
   free(keys);
 
   return ret;
+}
+
+bool GetKeyState(int key)
+{
+  return GetXCBKeyState(key) || GetXlibKeyState(key);
 }
 }
 

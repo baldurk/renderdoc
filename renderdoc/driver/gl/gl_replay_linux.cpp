@@ -23,6 +23,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#define RENDERDOC_WINDOWING_XLIB 1
+
 #include "gl_replay.h"
 #include <dlfcn.h>
 #include "gl_driver.h"
@@ -63,29 +65,34 @@ void GLReplay::CloseReplayContext()
 {
   if(glXDestroyCtxProc)
   {
-    glXMakeContextCurrentProc(m_ReplayCtx.dpy, None, None, NULL);
+    glXMakeContextCurrentProc(m_ReplayCtx.dpy, 0L, 0L, NULL);
     glXDestroyCtxProc(m_ReplayCtx.dpy, m_ReplayCtx.ctx);
   }
 }
 
-uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
+uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
-  void **displayAndDrawable = (void **)wn;
-
   Display *dpy = NULL;
-  GLXDrawable wnd = 0;
+  Drawable draw = 0;
 
-  if(wn)
+  if(system == eWindowingSystem_Xlib)
   {
-    dpy = (Display *)displayAndDrawable[0];
-    wnd = (GLXDrawable)displayAndDrawable[1];
+    XlibWindowData *xlib = (XlibWindowData *)data;
+
+    dpy = xlib->display;
+    draw = xlib->window;
   }
-  else
+  else if(system == eWindowingSystem_Unknown)
   {
+    // allow undefined so that internally we can create a window-less context
     dpy = XOpenDisplay(NULL);
 
     if(dpy == NULL)
       return 0;
+  }
+  else
+  {
+    RDCERR("Unexpected window system %u", system);
   }
 
   static int visAttribs[] = {GLX_X_RENDERABLE,
@@ -140,12 +147,18 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
     return 0;
   }
 
-  if(wnd == 0)
+  GLXDrawable wnd = 0;
+
+  if(draw == 0)
   {
     // don't care about pbuffer properties as we won't render directly to this
     int pbAttribs[] = {GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0};
 
     wnd = glXCreatePbufferProc(dpy, fbcfg[0], pbAttribs);
+  }
+  else
+  {
+    wnd = glXCreateWindow(dpy, fbcfg[0], draw, 0);
   }
 
   XFree(fbcfg);
@@ -183,7 +196,7 @@ void GLReplay::DestroyOutputWindow(uint64_t id)
   WrappedOpenGL &gl = *m_pDriver;
   gl.glDeleteFramebuffers(1, &outw.BlitData.readFBO);
 
-  glXMakeContextCurrentProc(outw.dpy, None, None, NULL);
+  glXMakeContextCurrentProc(outw.dpy, 0L, 0L, NULL);
   glXDestroyCtxProc(outw.dpy, outw.ctx);
 
   m_OutputWindows.erase(it);

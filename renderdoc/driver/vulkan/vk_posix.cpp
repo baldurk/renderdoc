@@ -57,24 +57,52 @@ bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
     bool oneSurfaceTypeSupported = false;
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
-    // don't add duplicates, and only add if supported
-    if(supportedExtensions.find(VK_KHR_XCB_SURFACE_EXTENSION_NAME) != supportedExtensions.end() &&
-       std::find(extensionList.begin(), extensionList.end(), VK_KHR_XCB_SURFACE_EXTENSION_NAME) ==
-           extensionList.end())
+    // check if supported
+    if(supportedExtensions.find(VK_KHR_XCB_SURFACE_EXTENSION_NAME) != supportedExtensions.end())
     {
-      extensionList.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
       oneSurfaceTypeSupported = true;
+
+      m_SupportedWindowSystems.push_back(eWindowingSystem_XCB);
+
+      // don't add duplicates
+      if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_XCB_SURFACE_EXTENSION_NAME) ==
+         extensionList.end())
+      {
+        extensionList.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+      }
     }
 #endif
 
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-    // don't add duplicates
-    if(supportedExtensions.find(VK_KHR_XLIB_SURFACE_EXTENSION_NAME) != supportedExtensions.end() &&
-       std::find(extensionList.begin(), extensionList.end(), VK_KHR_XLIB_SURFACE_EXTENSION_NAME) ==
-           extensionList.end())
+    // check if supported
+    if(supportedExtensions.find(VK_KHR_XLIB_SURFACE_EXTENSION_NAME) != supportedExtensions.end())
     {
-      extensionList.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
       oneSurfaceTypeSupported = true;
+
+      m_SupportedWindowSystems.push_back(eWindowingSystem_Xlib);
+
+      // don't add duplicates
+      if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_XLIB_SURFACE_EXTENSION_NAME) ==
+         extensionList.end())
+      {
+        extensionList.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+      }
+    }
+#endif
+
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+    // must be supported
+    RDCASSERT(supportedExtensions.find(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME) !=
+              supportedExtensions.end());
+
+    oneSurfaceTypeSupported = true;
+    m_SupportedWindowSystems.push_back(eWindowingSystem_Android);
+
+    // don't add duplicates, application will have added this but just be sure
+    if(std::find(extensionList.begin(), extensionList.end(),
+                 VK_KHR_ANDROID_SURFACE_EXTENSION_NAME) == extensionList.end())
+    {
+      extensionList.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
     }
 #endif
 
@@ -111,10 +139,10 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalD
                                                    connection, visual_id);
 }
 
-struct xcb_connection_t;
 namespace Keyboard
 {
 void UseConnection(xcb_connection_t *conn);
+void CloneDisplay(Display *dpy);
 }
 
 VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(VkInstance instance,
@@ -177,8 +205,7 @@ VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(VkInstance instance,
     // handle under there somewhere, we just cast. We won't use the resource record for anything
     wrapped->record = (VkResourceRecord *)pCreateInfo->window;
 
-    // VKTODOLOW Should support Xlib here
-    // Keyboard::UseConnection(pCreateInfo->dpy);
+    Keyboard::CloneDisplay(pCreateInfo->dpy);
   }
 
   return ret;

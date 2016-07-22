@@ -599,10 +599,12 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
   }
 }
 
-uint64_t D3D12DebugManager::MakeOutputWindow(void *w, bool depth)
+uint64_t D3D12DebugManager::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
+  RDCASSERT(system == eWindowingSystem_Win32, system);
+
   OutputWindow outw;
-  outw.wnd = (HWND)w;
+  outw.wnd = (HWND)data;
   outw.dev = m_WrappedDevice;
 
   DXGI_SWAP_CHAIN_DESC swapDesc;

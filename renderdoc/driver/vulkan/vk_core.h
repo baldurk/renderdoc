@@ -246,6 +246,8 @@ private:
   uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, bool dispatch = false,
                              uint32_t multiDrawOffset = 0);
 
+  vector<WindowingSystem> m_SupportedWindowSystems;
+
   uint32_t m_FrameCounter;
 
   PerformanceTimer m_FrameTimer;

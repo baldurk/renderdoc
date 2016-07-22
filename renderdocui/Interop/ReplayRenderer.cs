@@ -88,13 +88,13 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_ClearThumbnails(IntPtr real);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayOutput_AddThumbnail(IntPtr real, IntPtr wnd, ResourceId texID, FormatComponentType typeHint);
+        private static extern bool ReplayOutput_AddThumbnail(IntPtr real, UInt32 windowSystem, IntPtr wnd, ResourceId texID, FormatComponentType typeHint);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_Display(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayOutput_SetPixelContext(IntPtr real, IntPtr wnd);
+        private static extern bool ReplayOutput_SetPixelContext(IntPtr real, UInt32 windowSystem, IntPtr wnd);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_SetPixelContextLocation(IntPtr real, UInt32 x, UInt32 y);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -132,7 +132,8 @@ namespace renderdoc
         }
         public bool AddThumbnail(IntPtr wnd, ResourceId texID, FormatComponentType typeHint)
         {
-            return ReplayOutput_AddThumbnail(m_Real, wnd, texID, typeHint);
+            // 1 == eWindowingSystem_Win32
+            return ReplayOutput_AddThumbnail(m_Real, 1u, wnd, texID, typeHint);
         }
 
         public bool Display()
@@ -142,7 +143,8 @@ namespace renderdoc
 
         public bool SetPixelContext(IntPtr wnd)
         {
-            return ReplayOutput_SetPixelContext(m_Real, wnd);
+            // 1 == eWindowingSystem_Win32
+            return ReplayOutput_SetPixelContext(m_Real, 1u, wnd);
         }
         public bool SetPixelContextLocation(UInt32 x, UInt32 y)
         {
@@ -194,7 +196,7 @@ namespace renderdoc
         private static extern void ReplayRenderer_GetAPIProperties(IntPtr real, IntPtr propsOut);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr ReplayRenderer_CreateOutput(IntPtr real, IntPtr WindowHandle, OutputType type);
+        private static extern IntPtr ReplayRenderer_CreateOutput(IntPtr real, UInt32 windowSystem, IntPtr WindowHandle, OutputType type);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayRenderer_ShutdownOutput(IntPtr real, IntPtr replayOutput);
 
@@ -309,7 +311,9 @@ namespace renderdoc
 
         public ReplayOutput CreateOutput(IntPtr WindowHandle, OutputType type)
         {
-            IntPtr ret = ReplayRenderer_CreateOutput(m_Real, WindowHandle, type);
+            // 0 == eWindowingSystem_Unknown
+            // 1 == eWindowingSystem_Win32
+            IntPtr ret = ReplayRenderer_CreateOutput(m_Real, WindowHandle == IntPtr.Zero ? 0u : 1u, WindowHandle, type);
 
             if (ret == IntPtr.Zero)
                 return null;

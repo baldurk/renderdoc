@@ -34,12 +34,15 @@
 #define VULKAN 1
 #include "data/glsl/debuguniforms.h"
 
-VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), height(0)
+VulkanReplay::OutputWindow::OutputWindow()
+    : m_WindowSystem(eWindowingSystem_Unknown), width(0), height(0)
 {
   surface = VK_NULL_HANDLE;
   swap = VK_NULL_HANDLE;
   for(size_t i = 0; i < ARRAY_COUNT(colimg); i++)
     colimg[i] = VK_NULL_HANDLE;
+
+  WINDOW_HANDLE_INIT;
 
   fresh = true;
 
@@ -2733,7 +2736,7 @@ bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
 
   OutputWindow &outw = m_OutputWindows[id];
 
-  if(outw.wnd == NULL_WND_HANDLE)
+  if(outw.m_WindowSystem == eWindowingSystem_Unknown)
     return false;
 
   int32_t w, h;
@@ -3082,15 +3085,20 @@ void VulkanReplay::DestroyOutputWindow(uint64_t id)
   m_OutputWindows.erase(it);
 }
 
-uint64_t VulkanReplay::MakeOutputWindow(void *wn, bool depth)
+vector<WindowingSystem> VulkanReplay::GetSupportedWindowSystems()
+{
+  return m_pDriver->m_SupportedWindowSystems;
+}
+
+uint64_t VulkanReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
   uint64_t id = m_OutputWinID;
   m_OutputWinID++;
 
-  m_OutputWindows[id].SetWindowHandle(wn);
+  m_OutputWindows[id].SetWindowHandle(system, data);
   m_OutputWindows[id].m_ResourceManager = GetResourceManager();
 
-  if(wn != NULL)
+  if(system != eWindowingSystem_Unknown)
   {
     int32_t w, h;
     GetOutputWindowDimensions(id, w, h);

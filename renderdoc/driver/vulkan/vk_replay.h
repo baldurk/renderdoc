@@ -34,21 +34,29 @@
 
 #include <windows.h>
 #define WINDOW_HANDLE_DECL HWND wnd;
-#define NULL_WND_HANDLE NULL
+#define WINDOW_HANDLE_INIT wnd = NULL;
 
 #elif defined(RENDERDOC_PLATFORM_ANDROID)
 
 #define WINDOW_HANDLE_DECL ANativeWindow *wnd;
-#define NULL_WND_HANDLE NULL
+#define WINDOW_HANDLE_INIT wnd = NULL;
 
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 
-#include <xcb/xcb.h>
-#define WINDOW_HANDLE_DECL      \
-  xcb_connection_t *connection; \
-  xcb_screen_t *screen;         \
-  xcb_window_t wnd;
-#define NULL_WND_HANDLE xcb_window_t(0)
+#define WINDOW_HANDLE_DECL        \
+  struct                          \
+  {                               \
+    Display *display;             \
+    Drawable window;              \
+  } xlib;                         \
+  struct                          \
+  {                               \
+    xcb_connection_t *connection; \
+    xcb_window_t window;          \
+  } xcb;
+#define WINDOW_HANDLE_INIT \
+  RDCEraseEl(xlib);        \
+  RDCEraseEl(xcb);
 
 #else
 
@@ -119,7 +127,9 @@ public:
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
 
-  uint64_t MakeOutputWindow(void *w, bool depth);
+  vector<WindowingSystem> GetSupportedWindowSystems();
+
+  uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth);
   void DestroyOutputWindow(uint64_t id);
   bool CheckResizeOutputWindow(uint64_t id);
   void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h);
@@ -223,9 +233,11 @@ private:
 
     // implemented in vk_replay_platform.cpp
     void CreateSurface(VkInstance inst);
-    void SetWindowHandle(void *wn);
+    void SetWindowHandle(WindowingSystem system, void *data);
 
-    WINDOW_HANDLE_DECL
+    WindowingSystem m_WindowSystem;
+
+    WINDOW_HANDLE_DECL;
 
     bool fresh;
 

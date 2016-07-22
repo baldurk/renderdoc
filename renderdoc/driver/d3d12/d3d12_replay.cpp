@@ -239,9 +239,9 @@ bool D3D12Replay::RenderTexture(TextureDisplay cfg)
   return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
 }
 
-uint64_t D3D12Replay::MakeOutputWindow(void *w, bool depth)
+uint64_t D3D12Replay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
-  return m_pDevice->GetDebugManager()->MakeOutputWindow(w, depth);
+  return m_pDevice->GetDebugManager()->MakeOutputWindow(system, data, depth);
 }
 
 void D3D12Replay::DestroyOutputWindow(uint64_t id)

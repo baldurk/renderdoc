@@ -1347,9 +1347,9 @@ vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventID)
   return passEvents;
 }
 
-uint64_t D3D11Replay::MakeOutputWindow(void *w, bool depth)
+uint64_t D3D11Replay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
-  return m_pDevice->GetDebugManager()->MakeOutputWindow(w, depth);
+  return m_pDevice->GetDebugManager()->MakeOutputWindow(system, data, depth);
 }
 
 void D3D11Replay::DestroyOutputWindow(uint64_t id)

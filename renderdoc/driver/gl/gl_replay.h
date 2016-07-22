@@ -115,7 +115,19 @@ public:
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
 
-  uint64_t MakeOutputWindow(void *w, bool depth);
+  vector<WindowingSystem> GetSupportedWindowSystems()
+  {
+    vector<WindowingSystem> ret;
+    // only Xlib supported for GLX. We can't report XCB here since we need
+    // the Display, and that can't be obtained from XCB. The application is
+    // free to use XCB internally but it would have to create a hybrid and
+    // initialise XCB out of Xlib, to be able to provide the display and
+    // drawable to us.
+    ret.push_back(eWindowingSystem_Xlib);
+    return ret;
+  }
+
+  uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth);
   void DestroyOutputWindow(uint64_t id);
   bool CheckResizeOutputWindow(uint64_t id);
   void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h);

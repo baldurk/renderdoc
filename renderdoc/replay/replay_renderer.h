@@ -43,12 +43,13 @@ public:
   bool SetMeshDisplay(const MeshDisplay &o);
 
   bool ClearThumbnails();
-  bool AddThumbnail(void *wnd, ResourceId texID, FormatComponentType typeHint);
+  bool AddThumbnail(WindowingSystem system, void *data, ResourceId texID,
+                    FormatComponentType typeHint);
 
   bool Display();
 
   OutputType GetType() { return m_Config.m_Type; }
-  bool SetPixelContext(void *wnd);
+  bool SetPixelContext(WindowingSystem system, void *data);
   bool SetPixelContextLocation(uint32_t x, uint32_t y);
   void DisablePixelContext();
 
@@ -58,7 +59,7 @@ public:
   uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y);
 
 private:
-  ReplayOutput(ReplayRenderer *parent, void *w, OutputType type);
+  ReplayOutput(ReplayRenderer *parent, WindowingSystem system, void *data, OutputType type);
   virtual ~ReplayOutput();
 
   void SetFrameEvent(int eventID);
@@ -82,7 +83,7 @@ private:
   {
     ResourceId texture;
     bool depthMode;
-    void *wndHandle;
+    uint64_t wndHandle;
     FormatComponentType typeHint;
     uint64_t outputID;
 
@@ -191,7 +192,9 @@ public:
                                   ResourceId buffer, uint64_t offs,
                                   rdctype::array<ShaderVariable> *vars);
 
-  ReplayOutput *CreateOutput(void *handle, OutputType type);
+  void GetSupportedWindowSystems(rdctype::array<WindowingSystem> *systems);
+
+  ReplayOutput *CreateOutput(WindowingSystem, void *data, OutputType type);
 
   void ShutdownOutput(ReplayOutput *output);
   void Shutdown();

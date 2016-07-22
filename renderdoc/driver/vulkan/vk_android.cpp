@@ -25,9 +25,11 @@
 #include "vk_core.h"
 #include "vk_replay.h"
 
-void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
+void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *data)
 {
+  RDCASSERT(system == eWindowingSystem_Android, system);
   wnd = (ANativeWindow *)wn;
+  m_WindowSystem = system;
 }
 
 void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)

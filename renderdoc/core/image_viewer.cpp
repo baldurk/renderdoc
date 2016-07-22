@@ -69,7 +69,14 @@ public:
   bool IsRemoteProxy() { return true; }
   void Shutdown() { delete this; }
   // pass through necessary operations to proxy
-  uint64_t MakeOutputWindow(void *w, bool depth) { return m_Proxy->MakeOutputWindow(w, depth); }
+  vector<WindowingSystem> GetSupportedWindowSystems()
+  {
+    return m_Proxy->GetSupportedWindowSystems();
+  }
+  uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth)
+  {
+    return m_Proxy->MakeOutputWindow(system, data, depth);
+  }
   void DestroyOutputWindow(uint64_t id) { m_Proxy->DestroyOutputWindow(id); }
   bool CheckResizeOutputWindow(uint64_t id) { return m_Proxy->CheckResizeOutputWindow(id); }
   void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)

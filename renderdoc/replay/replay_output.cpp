@@ -23,12 +23,46 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#if defined(RENDERDOC_PLATFORM_LINUX)
+#define RENDERDOC_WINDOWING_XLIB 1
+#define RENDERDOC_WINDOWING_XCB 1
+#endif
+
 #include "common/common.h"
 #include "maths/matrix.h"
 #include "serialise/string_utils.h"
 #include "replay_renderer.h"
 
-ReplayOutput::ReplayOutput(ReplayRenderer *parent, void *w, OutputType type)
+static uint64_t GetHandle(WindowingSystem system, void *data)
+{
+#if defined(RENDERDOC_PLATFORM_LINUX)
+
+  if(system == eWindowingSystem_Xlib)
+    return (uint64_t)((XlibWindowData *)data)->window;
+
+  if(system == eWindowingSystem_XCB)
+    return (uint64_t)((XCBWindowData *)data)->window;
+
+  RDCERR("Unrecognised window system %d", system);
+
+  return 0;
+
+#elif defined(RENDERDOC_PLATFORM_WIN32)
+
+  RDCASSERT(system == eWindowingSystem_Win32);
+  return (uint64_t)data;    // HWND
+
+#elif defined(RENDERDOC_PLATFORM_ANDROID)
+
+  RDCASSERT(system == eWindowingSystem_Android);
+  return (uint64_t)data;    // ANativeWindow *
+
+#else
+  RDCFATAL("No windowing data defined for this platform! Must be implemented for replay outputs");
+#endif
+}
+
+ReplayOutput::ReplayOutput(ReplayRenderer *parent, WindowingSystem system, void *data, OutputType type)
 {
   m_pRenderer = parent;
 
@@ -45,7 +79,6 @@ ReplayOutput::ReplayOutput(ReplayRenderer *parent, void *w, OutputType type)
 
   RDCEraseEl(m_RenderData);
 
-  m_PixelContext.wndHandle = 0;
   m_PixelContext.outputID = 0;
   m_PixelContext.texture = ResourceId();
   m_PixelContext.depthMode = false;
@@ -55,8 +88,9 @@ ReplayOutput::ReplayOutput(ReplayRenderer *parent, void *w, OutputType type)
 
   m_Config.m_Type = type;
 
-  if(w)
-    m_MainOutput.outputID = m_pDevice->MakeOutputWindow(w, type == eOutputType_MeshDisplay);
+  if(system != eWindowingSystem_Unknown)
+    m_MainOutput.outputID =
+        m_pDevice->MakeOutputWindow(system, data, type == eOutputType_MeshDisplay);
   else
     m_MainOutput.outputID = 0;
   m_MainOutput.texture = ResourceId();
@@ -179,10 +213,9 @@ bool ReplayOutput::ClearThumbnails()
   return true;
 }
 
-bool ReplayOutput::SetPixelContext(void *wnd)
+bool ReplayOutput::SetPixelContext(WindowingSystem system, void *data)
 {
-  m_PixelContext.wndHandle = wnd;
-  m_PixelContext.outputID = m_pDevice->MakeOutputWindow(m_PixelContext.wndHandle, false);
+  m_PixelContext.outputID = m_pDevice->MakeOutputWindow(system, data, false);
   m_PixelContext.texture = ResourceId();
   m_PixelContext.depthMode = false;
 
@@ -191,11 +224,12 @@ bool ReplayOutput::SetPixelContext(void *wnd)
   return true;
 }
 
-bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID, FormatComponentType typeHint)
+bool ReplayOutput::AddThumbnail(WindowingSystem system, void *data, ResourceId texID,
+                                FormatComponentType typeHint)
 {
   OutputPair p;
 
-  RDCASSERT(wnd);
+  RDCASSERT(data);
 
   bool depthMode = false;
 
@@ -211,7 +245,7 @@ bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID, FormatComponentType
 
   for(size_t i = 0; i < m_Thumbnails.size(); i++)
   {
-    if(m_Thumbnails[i].wndHandle == wnd)
+    if(m_Thumbnails[i].wndHandle == GetHandle(system, data))
     {
       m_Thumbnails[i].texture = texID;
 
@@ -225,8 +259,8 @@ bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID, FormatComponentType
     }
   }
 
-  p.wndHandle = wnd;
-  p.outputID = m_pDevice->MakeOutputWindow(p.wndHandle, false);
+  p.wndHandle = GetHandle(system, data);
+  p.outputID = m_pDevice->MakeOutputWindow(system, data, false);
   p.texture = texID;
   p.depthMode = depthMode;
   p.typeHint = typeHint;
@@ -700,10 +734,11 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(Replay
   return output->ClearThumbnails();
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(ReplayOutput *output,
-                                                                       void *wnd, ResourceId texID,
+                                                                       WindowingSystem system,
+                                                                       void *data, ResourceId texID,
                                                                        FormatComponentType typeHint)
 {
-  return output->AddThumbnail(wnd, texID, typeHint);
+  return output->AddThumbnail(system, data, texID, typeHint);
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(ReplayOutput *output)
@@ -712,9 +747,10 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(ReplayOutput *
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContext(ReplayOutput *output,
-                                                                          void *wnd)
+                                                                          WindowingSystem system,
+                                                                          void *data)
 {
-  return output->SetPixelContext(wnd);
+  return output->SetPixelContext(system, data);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayOutput_SetPixelContextLocation(ReplayOutput *output, uint32_t x, uint32_t y)

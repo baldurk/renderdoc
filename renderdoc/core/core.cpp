@@ -74,6 +74,25 @@ string ToStrHelper<false, RDCDriver>::Get(const RDCDriver &el)
 }
 
 template <>
+string ToStrHelper<false, WindowingSystem>::Get(const WindowingSystem &el)
+{
+  switch(el)
+  {
+    case eWindowingSystem_Unknown: return "Unknown";
+    case eWindowingSystem_Win32: return "Win32";
+    case eWindowingSystem_Xlib: return "Xlib";
+    case eWindowingSystem_XCB: return "XCB";
+    case eWindowingSystem_Android: return "Android";
+    default: break;
+  }
+
+  char tostrBuf[256] = {0};
+  StringFormat::snprintf(tostrBuf, 255, "WindowingSystem<%d>", el);
+
+  return tostrBuf;
+}
+
+template <>
 string ToStrHelper<false, RENDERDOC_InputButton>::Get(const RENDERDOC_InputButton &el)
 {
   char alphanumericbuf[2] = {'A', 0};

@@ -75,7 +75,14 @@ public:
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
 
-  uint64_t MakeOutputWindow(void *w, bool depth);
+  vector<WindowingSystem> GetSupportedWindowSystems()
+  {
+    vector<WindowingSystem> ret;
+    ret.push_back(eWindowingSystem_Win32);
+    return ret;
+  }
+
+  uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth);
   void DestroyOutputWindow(uint64_t id);
   bool CheckResizeOutputWindow(uint64_t id);
   void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h);
