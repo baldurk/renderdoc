@@ -193,27 +193,27 @@ target_compile_definitions(rdoc ${RDOC_DEFINITIONS})
 target_include_directories(rdoc ${RDOC_INCLUDES})
 
 set(data
-    data/spv/blit.vert
-    data/spv/checkerboard.frag
-    data/spv/debuguniforms.h
-    data/spv/fixedcol.frag
-    data/spv/histogram.comp
-    data/spv/mesh.comp
-    data/spv/mesh.frag
-    data/spv/mesh.geom
-    data/spv/mesh.vert
-    data/spv/minmaxresult.comp
-    data/spv/minmaxtile.comp
-    data/spv/outline.frag
-    data/spv/quadresolve.frag
-    data/spv/quadwrite.frag
-    data/spv/texdisplay.frag
-    data/spv/gl_texsample.h
-    data/spv/vk_texsample.h
-    data/spv/text.frag
-    data/spv/text.vert
-    data/spv/array2ms.comp
-    data/spv/ms2array.comp
+    data/glsl/blit.vert
+    data/glsl/checkerboard.frag
+    data/glsl/debuguniforms.h
+    data/glsl/fixedcol.frag
+    data/glsl/histogram.comp
+    data/glsl/mesh.comp
+    data/glsl/mesh.frag
+    data/glsl/mesh.geom
+    data/glsl/mesh.vert
+    data/glsl/minmaxresult.comp
+    data/glsl/minmaxtile.comp
+    data/glsl/outline.frag
+    data/glsl/quadresolve.frag
+    data/glsl/quadwrite.frag
+    data/glsl/texdisplay.frag
+    data/glsl/gl_texsample.h
+    data/glsl/vk_texsample.h
+    data/glsl/text.frag
+    data/glsl/text.vert
+    data/glsl/array2ms.comp
+    data/glsl/ms2array.comp
     data/sourcecodepro.ttf)
 
 set(data_objects)

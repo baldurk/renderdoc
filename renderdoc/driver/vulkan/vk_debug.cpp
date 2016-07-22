@@ -36,7 +36,7 @@
 #include "vk_core.h"
 
 #define VULKAN 1
-#include "data/spv/debuguniforms.h"
+#include "data/glsl/debuguniforms.h"
 
 const VkDeviceSize STAGE_BUFFER_BYTE_SIZE = 16 * 1024 * 1024ULL;
 
@@ -719,7 +719,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     {
       GenerateGLSLShader(
           sources, eShaderVulkan, "",
-          i == 0 ? GetEmbeddedResource(spv_text_vert) : GetEmbeddedResource(spv_text_frag), 430);
+          i == 0 ? GetEmbeddedResource(glsl_text_vert) : GetEmbeddedResource(glsl_text_frag), 430);
 
       vector<uint32_t> *spirv;
 
@@ -1316,13 +1316,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   RDCCOMPILE_ASSERT(sizeof(TexDisplayUBOData) <= 128, "tex display size");
 
   string shaderSources[] = {
-      GetEmbeddedResource(spv_blit_vert),        GetEmbeddedResource(spv_checkerboard_frag),
-      GetEmbeddedResource(spv_texdisplay_frag),  GetEmbeddedResource(spv_mesh_vert),
-      GetEmbeddedResource(spv_mesh_geom),        GetEmbeddedResource(spv_mesh_frag),
-      GetEmbeddedResource(spv_minmaxtile_comp),  GetEmbeddedResource(spv_minmaxresult_comp),
-      GetEmbeddedResource(spv_histogram_comp),   GetEmbeddedResource(spv_outline_frag),
-      GetEmbeddedResource(spv_quadresolve_frag), GetEmbeddedResource(spv_quadwrite_frag),
-      GetEmbeddedResource(spv_mesh_comp),
+      GetEmbeddedResource(glsl_blit_vert),        GetEmbeddedResource(glsl_checkerboard_frag),
+      GetEmbeddedResource(glsl_texdisplay_frag),  GetEmbeddedResource(glsl_mesh_vert),
+      GetEmbeddedResource(glsl_mesh_geom),        GetEmbeddedResource(glsl_mesh_frag),
+      GetEmbeddedResource(glsl_minmaxtile_comp),  GetEmbeddedResource(glsl_minmaxresult_comp),
+      GetEmbeddedResource(glsl_histogram_comp),   GetEmbeddedResource(glsl_outline_frag),
+      GetEmbeddedResource(glsl_quadresolve_frag), GetEmbeddedResource(glsl_quadwrite_frag),
+      GetEmbeddedResource(glsl_mesh_comp),
   };
 
   SPIRVShaderStage shaderStages[] = {
@@ -1358,7 +1358,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_CacheShaders = true;
 
   {
-    GenerateGLSLShader(sources, eShaderVulkan, "", GetEmbeddedResource(spv_fixedcol_frag), 430,
+    GenerateGLSLShader(sources, eShaderVulkan, "", GetEmbeddedResource(glsl_fixedcol_frag), 430,
                        false);
 
     string err = GetSPIRVBlob(eSPIRVFragment, sources, &m_FixedColSPIRV);

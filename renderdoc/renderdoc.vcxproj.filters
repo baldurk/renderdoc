@@ -64,9 +64,6 @@
     <Filter Include="Hooks">
       <UniqueIdentifier>{3e51a921-b167-4794-937d-e77573a928b8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resources\spv">
-      <UniqueIdentifier>{188ad934-e74f-4805-b74b-167f8760fab6}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OS\Posix">
       <UniqueIdentifier>{410640a4-ebf0-479a-8d08-ae277e2ded84}</UniqueIdentifier>
     </Filter>
@@ -78,6 +75,9 @@
     </Filter>
     <Filter Include="OS\Posix\Apple">
       <UniqueIdentifier>{2d03f185-425a-4de5-8eeb-67dce5e56de9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\glsl">
+      <UniqueIdentifier>{188ad934-e74f-4805-b74b-167f8760fab6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -225,9 +225,6 @@
     <ClInclude Include="common\shader_cache.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="data\spv\debuguniforms.h">
-      <Filter>Resources\spv</Filter>
-    </ClInclude>
     <ClInclude Include="common\custom_assert.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -243,11 +240,14 @@
     <ClInclude Include="data\glsl_shaders.h">
       <Filter>Resources</Filter>
     </ClInclude>
-    <ClInclude Include="data\spv\gl_texsample.h">
-      <Filter>Resources\spv</Filter>
+    <ClInclude Include="data\glsl\debuguniforms.h">
+      <Filter>Resources\glsl</Filter>
     </ClInclude>
-    <ClInclude Include="data\spv\vk_texsample.h">
-      <Filter>Resources\spv</Filter>
+    <ClInclude Include="data\glsl\gl_texsample.h">
+      <Filter>Resources\glsl</Filter>
+    </ClInclude>
+    <ClInclude Include="data\glsl\vk_texsample.h">
+      <Filter>Resources\glsl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -439,59 +439,59 @@
     <None Include="data\hlsl\mesh.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
-    <None Include="data\spv\blit.vert">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\array2ms.comp">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\texdisplay.frag">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\blit.vert">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\checkerboard.frag">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\checkerboard.frag">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\text.frag">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\fixedcol.frag">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\text.vert">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\histogram.comp">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\fixedcol.frag">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\mesh.comp">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\mesh.comp">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\mesh.frag">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\mesh.frag">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\mesh.geom">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\mesh.geom">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\mesh.vert">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\mesh.vert">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\minmaxresult.comp">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\histogram.comp">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\minmaxtile.comp">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\minmaxresult.comp">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\ms2array.comp">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\minmaxtile.comp">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\outline.frag">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\outline.frag">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\quadresolve.frag">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\quadwrite.frag">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\quadwrite.frag">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\quadresolve.frag">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\texdisplay.frag">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\array2ms.comp">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\text.frag">
+      <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\spv\ms2array.comp">
-      <Filter>Resources\spv</Filter>
+    <None Include="data\glsl\text.vert">
+      <Filter>Resources\glsl</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

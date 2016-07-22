@@ -2,7 +2,6 @@
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015-2016 Baldur Karlsson
- * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,40 +24,19 @@
 
 layout (location = 0) out vec4 color_out;
 
+#ifdef OPENGL // OpenGL can't use SPIR-V patching
+uniform vec4 RENDERDOC_Fixed_Color;
+#endif
+
 void main(void)
 {
-	vec4 ret = outline.Inner_Color;
-
-	vec2 rectPos = gl_FragCoord.xy - outline.ViewRect.xy;
-	vec2 rectSize = outline.ViewRect.zw;
- 
-	vec2 ab = mod(rectPos.xy, 32.0f.xx);
-
-	bool checkerVariant = (
-			(ab.x < 16 && ab.y < 16) ||
-			(ab.x > 16 && ab.y > 16)
-		);
-
-	if(outline.Scissor == 0)
-	{
-		if(rectPos.x < 3.0f || rectPos.x > rectSize.x - 3.0f ||
-		   rectPos.y < 3.0f || rectPos.y > rectSize.y - 3.0f)
-		{
-			ret = outline.Border_Color;
-		}
-	}
-	else
-	{
-		if(rectPos.x < 3.0f || rectPos.x > rectSize.x - 3.0f ||
-		   rectPos.y < 3.0f || rectPos.y > rectSize.y - 3.0f)
-		{
-			ret = checkerVariant ? vec4(1, 1, 1, 1) : vec4(0, 0, 0, 1);
-		}
-		else
-		{
-			ret = vec4(0, 0, 0, 0);
-		}
-	}
-
-	color_out = ret;
+#ifdef VULKAN
+    // used to have a shader-replacement pixel shader
+    // that outputs a fixed colour, without needing a
+    // slot in a descriptor set. We re-write the SPIR-V
+    // on the fly to replace these constants
+    color_out = vec4(1.1f, 2.2f, 3.3f, 4.4f);
+#else
+    color_out = RENDERDOC_Fixed_Color;
+#endif
 }

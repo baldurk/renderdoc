@@ -36,7 +36,7 @@
 #include "gl_resources.h"
 
 #define OPENGL 1
-#include "data/spv/debuguniforms.h"
+#include "data/glsl/debuguniforms.h"
 
 GLuint GLReplay::CreateCShaderProgram(const vector<string> &csSources)
 {
@@ -239,7 +239,7 @@ void GLReplay::InitDebugData()
   vector<string> gs;
   vector<string> cs;
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_blit_vert), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
 
   DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
 
@@ -248,7 +248,7 @@ void GLReplay::InitDebugData()
     string defines = string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
     defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(spv_texdisplay_frag), 420);
+    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), 420);
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
   }
@@ -274,7 +274,7 @@ void GLReplay::InitDebugData()
 
   DebugData.quadoverdraw420 = !support450;
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_blit_vert), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
 
   {
     string defines = "";
@@ -287,26 +287,26 @@ void GLReplay::InitDebugData()
       defines += "#define dFdyFine dFdy\n\n";
     }
 
-    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(spv_quadwrite_frag),
+    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_quadwrite_frag),
                        support450 ? 450 : 420);
 
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(empty, fs);
 
-    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_quadresolve_frag), 420);
+    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), 420);
 
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
   }
 
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_checkerboard_frag), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_checkerboard_frag), 420);
   DebugData.checkerProg = CreateShaderProgram(vs, fs);
 
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_fixedcol_frag), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_fixedcol_frag), 420);
 
   DebugData.fixedcolFSProg = CreateShaderProgram(empty, fs);
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_mesh_vert), 420);
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_mesh_frag), 420);
-  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(spv_mesh_geom), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_vert), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_frag), 420);
+  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_geom), 420);
 
   DebugData.meshProg = CreateShaderProgram(vs, fs);
   DebugData.meshgsProg = CreateShaderProgram(vs, fs, gs);
@@ -399,7 +399,8 @@ void GLReplay::InitDebugData()
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(spv_minmaxtile_comp), 420);
+          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_minmaxtile_comp),
+                             420);
 
           DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(cs);
         }
@@ -410,7 +411,7 @@ void GLReplay::InitDebugData()
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(spv_histogram_comp), 420);
+          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_histogram_comp), 420);
 
           DebugData.histogramProgram[idx] = CreateCShaderProgram(cs);
         }
@@ -422,7 +423,7 @@ void GLReplay::InitDebugData()
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(spv_minmaxresult_comp),
+          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_minmaxresult_comp),
                              420);
 
           DebugData.minmaxResultProgram[i] = CreateCShaderProgram(cs);
@@ -448,10 +449,10 @@ void GLReplay::InitDebugData()
   }
 
   {
-    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(spv_ms2array_comp), 420);
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_ms2array_comp), 420);
     DebugData.MS2Array = CreateCShaderProgram(cs);
 
-    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(spv_array2ms_comp), 420);
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_array2ms_comp), 420);
     DebugData.Array2MS = CreateCShaderProgram(cs);
   }
 
@@ -459,7 +460,7 @@ void GLReplay::InitDebugData()
     string defines =
         "#extension GL_ARB_compute_shader : require\n"
         "#extension GL_ARB_shader_storage_buffer_object : require";
-    GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(spv_mesh_comp), 420);
+    GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_mesh_comp), 420);
     DebugData.meshPickProgram = CreateCShaderProgram(cs);
   }
 
@@ -531,8 +532,8 @@ void GLReplay::InitDebugData()
   gl.glVertexAttribPointer(0, 4, eGL_FLOAT, GL_FALSE, sizeof(Vec4f), NULL);
   gl.glEnableVertexAttribArray(0);
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_blit_vert), 420);
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_outline_frag), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_outline_frag), 420);
 
   DebugData.outlineQuadProg = CreateShaderProgram(vs, fs);
 

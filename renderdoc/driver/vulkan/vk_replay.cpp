@@ -32,7 +32,7 @@
 #include "vk_resources.h"
 
 #define VULKAN 1
-#include "data/spv/debuguniforms.h"
+#include "data/glsl/debuguniforms.h"
 
 VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), height(0)
 {

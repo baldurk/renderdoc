@@ -252,12 +252,12 @@
     <ClInclude Include="core\resource_manager.h" />
     <ClInclude Include="core\socket_helpers.h" />
     <ClInclude Include="data\embedded_files.h" />
+    <ClInclude Include="data\glsl\debuguniforms.h" />
+    <ClInclude Include="data\glsl\gl_texsample.h" />
+    <ClInclude Include="data\glsl\vk_texsample.h" />
     <ClInclude Include="data\glsl_shaders.h" />
     <ClInclude Include="data\hlsl\debugcbuffers.h" />
     <ClInclude Include="data\resource.h" />
-    <ClInclude Include="data\spv\debuguniforms.h" />
-    <ClInclude Include="data\spv\gl_texsample.h" />
-    <ClInclude Include="data\spv\vk_texsample.h" />
     <ClInclude Include="data\version.h" />
     <ClInclude Include="hooks\hooks.h" />
     <ClInclude Include="maths\camera.h" />
@@ -378,30 +378,30 @@
     <ResourceCompile Include="data\renderdoc.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="data\glsl\array2ms.comp" />
+    <None Include="data\glsl\blit.vert" />
+    <None Include="data\glsl\checkerboard.frag" />
+    <None Include="data\glsl\fixedcol.frag" />
+    <None Include="data\glsl\histogram.comp" />
+    <None Include="data\glsl\mesh.comp" />
+    <None Include="data\glsl\mesh.frag" />
+    <None Include="data\glsl\mesh.geom" />
+    <None Include="data\glsl\mesh.vert" />
+    <None Include="data\glsl\minmaxresult.comp" />
+    <None Include="data\glsl\minmaxtile.comp" />
+    <None Include="data\glsl\ms2array.comp" />
+    <None Include="data\glsl\outline.frag" />
+    <None Include="data\glsl\quadresolve.frag" />
+    <None Include="data\glsl\quadwrite.frag" />
+    <None Include="data\glsl\texdisplay.frag" />
+    <None Include="data\glsl\text.frag" />
+    <None Include="data\glsl\text.vert" />
     <None Include="data\hlsl\debugcommon.hlsl" />
     <None Include="data\hlsl\debugdisplay.hlsl" />
     <None Include="data\hlsl\debugtext.hlsl" />
     <None Include="data\hlsl\histogram.hlsl" />
     <None Include="data\hlsl\mesh.hlsl" />
     <None Include="data\hlsl\multisample.hlsl" />
-    <None Include="data\spv\array2ms.comp" />
-    <None Include="data\spv\blit.vert" />
-    <None Include="data\spv\checkerboard.frag" />
-    <None Include="data\spv\fixedcol.frag" />
-    <None Include="data\spv\histogram.comp" />
-    <None Include="data\spv\mesh.comp" />
-    <None Include="data\spv\mesh.frag" />
-    <None Include="data\spv\mesh.geom" />
-    <None Include="data\spv\mesh.vert" />
-    <None Include="data\spv\minmaxresult.comp" />
-    <None Include="data\spv\minmaxtile.comp" />
-    <None Include="data\spv\ms2array.comp" />
-    <None Include="data\spv\outline.frag" />
-    <None Include="data\spv\quadresolve.frag" />
-    <None Include="data\spv\quadwrite.frag" />
-    <None Include="data\spv\texdisplay.frag" />
-    <None Include="data\spv\text.frag" />
-    <None Include="data\spv\text.vert" />
     <None Include="os\win32\comexport.def" />
   </ItemGroup>
   <ItemGroup>

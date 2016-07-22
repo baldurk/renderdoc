@@ -29,7 +29,7 @@
 #include "gl_resources.h"
 
 #define OPENGL 1
-#include "data/spv/debuguniforms.h"
+#include "data/glsl/debuguniforms.h"
 
 GLReplay::GLReplay()
 {
