@@ -4928,7 +4928,109 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
   else if(wasms)
   {
     // copy/expand multisampled live texture to array readback texture
-    RDCUNIMPLEMENTED("Saving multisampled textures directly as arrays");
+
+    // multiply array layers by sample count
+    uint32_t numSamples = (uint32_t)imInfo.samples;
+    imCreateInfo.arrayLayers *= numSamples;
+    imCreateInfo.mipLevels = 1;
+    imCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imCreateInfo.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+    imCreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+
+    // create resolve texture
+    vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
+
+    VkMemoryRequirements mrq = {0};
+    vt->GetImageMemoryRequirements(Unwrap(dev), tmpImage, &mrq);
+
+    VkMemoryAllocateInfo allocInfo = {
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+        m_pDriver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+    };
+
+    vkr = vt->AllocateMemory(Unwrap(dev), &allocInfo, NULL, &tmpMemory);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    vkr = vt->BindImageMemory(Unwrap(dev), tmpImage, tmpMemory, 0);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    VkImageMemoryBarrier srcimBarrier = {
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        NULL,
+        0,
+        0,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        srcImage,
+        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+
+    VkImageMemoryBarrier dstimBarrier = {
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        NULL,
+        0,
+        0,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_GENERAL,
+        0,
+        0,    // MULTIDEVICE - need to actually pick the right queue family here maybe?
+        tmpImage,
+        {srcAspectMask, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+
+    // ensure all previous writes have completed
+    srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
+    // before we go copying to array
+    srcimBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
+    {
+      srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
+      srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
+      DoPipelineBarrier(cmd, 1, &srcimBarrier);
+    }
+
+    srcimBarrier.oldLayout = srcimBarrier.newLayout;
+
+    srcimBarrier.srcAccessMask = 0;
+    srcimBarrier.dstAccessMask = 0;
+
+    // move tmp image into transfer destination layout
+    DoPipelineBarrier(cmd, 1, &dstimBarrier);
+
+    vkr = vt->EndCommandBuffer(Unwrap(cmd));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    // expand multisamples out to array
+    GetDebugManager()->CopyTex2DMSToArray(tmpImage, srcImage, imCreateInfo.extent,
+                                          imCreateInfo.arrayLayers, numSamples, imCreateInfo.format);
+
+    // fetch a new command buffer for copy & readback
+    cmd = m_pDriver->GetNextCmd();
+
+    vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    srcimBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    // image layout back to normal
+    for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
+    {
+      srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
+      srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
+      srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
+      DoPipelineBarrier(cmd, 1, &srcimBarrier);
+    }
+
+    // wait for copy to finish before copy to buffer
+    dstimBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    dstimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+    DoPipelineBarrier(cmd, 1, &dstimBarrier);
+
+    srcImage = tmpImage;
   }
 
   VkImageMemoryBarrier srcimBarrier = {

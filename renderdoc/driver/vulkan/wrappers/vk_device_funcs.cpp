@@ -933,6 +933,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
     else
       RDCWARN("vertexPipelineStoresAndAtomics = false, output mesh data will not be available");
 
+    if(availFeatures.shaderStorageImageWriteWithoutFormat)
+      enabledFeatures.shaderStorageImageWriteWithoutFormat = true;
+    else
+      RDCWARN(
+          "shaderStorageImageWriteWithoutFormat = false, save/load from 2DMS textures will not be "
+          "possible");
+
     uint32_t numExts = 0;
 
     VkResult vkr =

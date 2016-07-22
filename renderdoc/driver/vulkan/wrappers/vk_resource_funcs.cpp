@@ -988,6 +988,10 @@ bool WrappedVulkan::Serialise_vkCreateImage(Serialiser *localSerialiser, VkDevic
     info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                   VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
+    // ensure we can cast multisampled images, for copying to arrays
+    if((int)info.samples > 1)
+      info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
     VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &info, NULL, &img);
 
     info.usage = origusage;

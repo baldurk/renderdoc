@@ -126,6 +126,11 @@ public:
   uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y, uint32_t w,
                       uint32_t h);
 
+  void CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent, uint32_t layers,
+                          uint32_t samples, VkFormat fmt);
+  void CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
+                          uint32_t samples, VkFormat fmt);
+
   void CreateCustomShaderTex(uint32_t width, uint32_t height, uint32_t mip);
   void CreateCustomShaderPipeline(ResourceId shader);
 
@@ -228,6 +233,13 @@ public:
   GPUBuffer m_PickPixelReadbackBuffer;
   VkFramebuffer m_PickPixelFB;
   VkRenderPass m_PickPixelRP;
+
+  VkDescriptorSetLayout m_ArrayMSDescSetLayout;
+  VkPipelineLayout m_ArrayMSPipeLayout;
+  VkDescriptorSet m_ArrayMSDescSet;
+  VkPipeline m_Array2MSPipe;
+  VkPipeline m_MS2ArrayPipe;
+  GPUBuffer m_ArrayMSUBO;
 
   VkDescriptorSetLayout m_TextDescSetLayout;
   VkPipelineLayout m_TextPipeLayout;

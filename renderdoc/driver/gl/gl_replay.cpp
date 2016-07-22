@@ -2428,8 +2428,8 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     texType = eGL_TEXTURE_2D_ARRAY;
     texname = tempTex;
     depth = 1;
-    depth = samples;
-    arraysize = samples;
+    depth = arraysize * samples;
+    arraysize = arraysize * samples;
     samples = 1;
   }
 

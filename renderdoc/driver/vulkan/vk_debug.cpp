@@ -271,6 +271,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_PickPixelFB = VK_NULL_HANDLE;
   m_PickPixelRP = VK_NULL_HANDLE;
 
+  m_ArrayMSDescSetLayout = VK_NULL_HANDLE;
+  m_ArrayMSPipeLayout = VK_NULL_HANDLE;
+  m_ArrayMSDescSet = VK_NULL_HANDLE;
+  m_Array2MSPipe = VK_NULL_HANDLE;
+  m_MS2ArrayPipe = VK_NULL_HANDLE;
+
   m_TextDescSetLayout = VK_NULL_HANDLE;
   m_TextPipeLayout = VK_NULL_HANDLE;
   m_TextDescSet = VK_NULL_HANDLE;
@@ -650,7 +656,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   };
 
   // declare a few more misc things that are needed on both paths
-  VkDescriptorBufferInfo bufInfo[6];
+  VkDescriptorBufferInfo bufInfo[7];
   RDCEraseEl(bufInfo);
 
   vector<string> sources;
@@ -1073,6 +1079,32 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   {
     VkDescriptorSetLayoutBinding layoutBinding[] = {
         {
+            0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL,
+        },
+        {
+            1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL,
+        },
+        {
+            2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL,
+        },
+    };
+
+    VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        NULL,
+        0,
+        ARRAY_COUNT(layoutBinding),
+        &layoutBinding[0],
+    };
+
+    vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL,
+                                                 &m_ArrayMSDescSetLayout);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  {
+    VkDescriptorSetLayoutBinding layoutBinding[] = {
+        {
             0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL,
         },
         {
@@ -1229,6 +1261,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_CheckerboardPipeLayout);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  pipeLayoutInfo.pSetLayouts = &m_ArrayMSDescSetLayout;
+
+  vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_ArrayMSPipeLayout);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
   pipeLayoutInfo.pSetLayouts = &m_QuadDescSetLayout;
 
   vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_QuadResolvePipeLayout);
@@ -1256,6 +1293,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   descSetAllocInfo.pSetLayouts = &m_CheckerboardDescSetLayout;
   vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_CheckerboardDescSet);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  descSetAllocInfo.pSetLayouts = &m_ArrayMSDescSetLayout;
+  vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_ArrayMSDescSet);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   descSetAllocInfo.pSetLayouts = &m_TexDisplayDescSetLayout;
@@ -1315,6 +1356,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   RDCCOMPILE_ASSERT(sizeof(TexDisplayUBOData) <= 128, "tex display size");
 
+  m_ArrayMSUBO.Create(driver, dev, 16, 1, 0);
+
   string shaderSources[] = {
       GetEmbeddedResource(glsl_blit_vert),        GetEmbeddedResource(glsl_checkerboard_frag),
       GetEmbeddedResource(glsl_texdisplay_frag),  GetEmbeddedResource(glsl_mesh_vert),
@@ -1322,13 +1365,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       GetEmbeddedResource(glsl_minmaxtile_comp),  GetEmbeddedResource(glsl_minmaxresult_comp),
       GetEmbeddedResource(glsl_histogram_comp),   GetEmbeddedResource(glsl_outline_frag),
       GetEmbeddedResource(glsl_quadresolve_frag), GetEmbeddedResource(glsl_quadwrite_frag),
-      GetEmbeddedResource(glsl_mesh_comp),
+      GetEmbeddedResource(glsl_mesh_comp),        GetEmbeddedResource(glsl_ms2array_comp),
   };
 
   SPIRVShaderStage shaderStages[] = {
       eSPIRVVertex,   eSPIRVFragment, eSPIRVFragment, eSPIRVVertex,  eSPIRVGeometry,
       eSPIRVFragment, eSPIRVCompute,  eSPIRVCompute,  eSPIRVCompute, eSPIRVFragment,
-      eSPIRVFragment, eSPIRVFragment, eSPIRVCompute,
+      eSPIRVFragment, eSPIRVFragment, eSPIRVCompute,  eSPIRVCompute,
   };
 
   enum shaderIdx
@@ -1346,6 +1389,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     QUADRESOLVEFS,
     QUADWRITEFS,
     MESHCS,
+    MS2ARRAYCS,
     NUM_SHADERS,
   };
 
@@ -1642,8 +1686,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     }
   }
 
-  m_CacheShaders = false;
-
   {
     compPipeInfo.stage.module = module[MESHCS];
     compPipeInfo.layout = m_MeshPickLayout;
@@ -1652,6 +1694,17 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
                                               &m_MeshPickPipeline);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
+
+  {
+    compPipeInfo.stage.module = module[MS2ARRAYCS];
+    compPipeInfo.layout = m_ArrayMSPipeLayout;
+
+    vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &compPipeInfo, NULL,
+                                              &m_MS2ArrayPipe);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  m_CacheShaders = false;
 
   m_pDriver->vkDestroyRenderPass(dev, RGBA16RP, NULL);
   m_pDriver->vkDestroyRenderPass(dev, RGBA32RP, NULL);
@@ -2062,6 +2115,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_OverdrawRampUBO.FillDescriptor(bufInfo[3]);
   m_MeshPickUBO.FillDescriptor(bufInfo[4]);
   m_MeshPickResult.FillDescriptor(bufInfo[5]);
+  m_ArrayMSUBO.FillDescriptor(bufInfo[6]);
 
   VkWriteDescriptorSet analysisSetWrites[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_CheckerboardDescSet), 0, 0, 1,
@@ -2076,6 +2130,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufInfo[4], NULL},
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_MeshPickDescSet), 3, 0, 1,
        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufInfo[5], NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 2, 0, 1,
+       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufInfo[6], NULL},
   };
 
   ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(analysisSetWrites), analysisSetWrites,
@@ -2160,6 +2216,12 @@ VulkanDebugManager::~VulkanDebugManager()
   m_pDriver->vkDestroyImageView(dev, m_PickPixelImageView, NULL);
   m_pDriver->vkDestroyImage(dev, m_PickPixelImage, NULL);
   m_pDriver->vkFreeMemory(dev, m_PickPixelImageMem, NULL);
+
+  m_pDriver->vkDestroyDescriptorSetLayout(dev, m_ArrayMSDescSetLayout, NULL);
+  m_pDriver->vkDestroyPipelineLayout(dev, m_ArrayMSPipeLayout, NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_Array2MSPipe, NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_MS2ArrayPipe, NULL);
+  m_ArrayMSUBO.Destroy();
 
   m_pDriver->vkDestroyDescriptorSetLayout(dev, m_TextDescSetLayout, NULL);
   m_pDriver->vkDestroyPipelineLayout(dev, m_TextPipeLayout, NULL);
@@ -2760,6 +2822,127 @@ void VulkanDebugManager::CreateCustomShaderPipeline(ResourceId shader)
   VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                                       &m_CustomTexPipeline);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+}
+
+void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent,
+                                            uint32_t layers, uint32_t samples, VkFormat fmt)
+{
+  if(!m_pDriver->GetDeviceFeatures().shaderStorageImageMultisample ||
+     !m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
+    return;
+
+  if(m_MS2ArrayPipe == VK_NULL_HANDLE)
+    return;
+
+  VkDevice dev = m_Device;
+
+  VkResult vkr = VK_SUCCESS;
+
+  VkImageView srcView, destView;
+
+  VkImageViewCreateInfo viewInfo = {
+      VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      NULL,
+      0,
+      srcMS,
+      VK_IMAGE_VIEW_TYPE_2D,
+      VK_FORMAT_UNDEFINED,
+      {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+       VK_COMPONENT_SWIZZLE_IDENTITY},
+      {
+          VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS,
+      },
+  };
+
+  uint32_t bs = GetByteSize(1, 1, 1, fmt, 0);
+
+  if(bs == 1)
+    viewInfo.format = VK_FORMAT_R8_UINT;
+  else if(bs == 2)
+    viewInfo.format = VK_FORMAT_R16_UINT;
+  else if(bs == 4)
+    viewInfo.format = VK_FORMAT_R32_UINT;
+  else if(bs == 8)
+    viewInfo.format = VK_FORMAT_R32G32_UINT;
+  else if(bs == 16)
+    viewInfo.format = VK_FORMAT_R32G32B32A32_UINT;
+
+  if(viewInfo.format == VK_FORMAT_UNDEFINED)
+  {
+    RDCERR("Can't copy 2D to Array with format %s", ToStr::Get(fmt).c_str());
+    return;
+  }
+
+  if(IsStencilOnlyFormat(fmt))
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+  else if(IsDepthOrStencilFormat(fmt))
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+  vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcView);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  viewInfo.image = destArray;
+  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+
+  vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkDescriptorImageInfo srcdesc = {0};
+  srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  srcdesc.imageView = srcView;
+  srcdesc.sampler = Unwrap(m_PointSampler);    // not used
+
+  VkDescriptorImageInfo destdesc = {0};
+  destdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+  destdesc.imageView = destView;
+  destdesc.sampler = Unwrap(m_PointSampler);    // not used
+
+  VkWriteDescriptorSet writeSet[] = {
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
+       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc, NULL, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 1, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &destdesc, NULL, NULL},
+  };
+
+  ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+
+  uint32_t *data = (uint32_t *)m_ArrayMSUBO.Map(NULL);
+  *data = samples;
+  m_ArrayMSUBO.Unmap();
+
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(m_MS2ArrayPipe));
+  ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                      Unwrap(m_ArrayMSPipeLayout), 0, 1,
+                                      UnwrapPtr(m_ArrayMSDescSet), 0, NULL);
+
+  ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), extent.width, extent.height, layers * samples);
+
+  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+
+  // submit cmds and wait for idle so we can readback
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();
+
+  ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcView, NULL);
+  ObjDisp(dev)->DestroyImageView(Unwrap(dev), destView, NULL);
+}
+
+void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent,
+                                            uint32_t layers, uint32_t samples, VkFormat fmt)
+{
+  if(!m_pDriver->GetDeviceFeatures().shaderStorageImageMultisample ||
+     !m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
+    return;
+
+  if(m_Array2MSPipe == VK_NULL_HANDLE)
+    return;
 }
 
 FloatVector VulkanDebugManager::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg,
