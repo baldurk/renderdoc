@@ -79,8 +79,6 @@ set(sources
     core/resource_manager.cpp
     core/resource_manager.h
     core/socket_helpers.h
-    data/glsl/debuguniforms.h
-    data/glsl/texsample.h
     data/hlsl/debugcbuffers.h
     data/spv/debuguniforms.h
     data/spv/texsample.h
@@ -195,24 +193,6 @@ target_compile_definitions(rdoc ${RDOC_DEFINITIONS})
 target_include_directories(rdoc ${RDOC_INCLUDES})
 
 set(data
-    data/glsl/arraymscopy.comp
-    data/glsl/blit.frag
-    data/glsl/blit.vert
-    data/glsl/checkerboard.frag
-    data/glsl/debuguniforms.h
-    data/glsl/generic.frag
-    data/glsl/generic.vert
-    data/glsl/histogram.comp
-    data/glsl/mesh.comp
-    data/glsl/mesh.frag
-    data/glsl/mesh.geom
-    data/glsl/mesh.vert
-    data/glsl/outline.frag
-    data/glsl/quadoverdraw.frag
-    data/glsl/texdisplay.frag
-    data/glsl/texsample.h
-    data/glsl/text.frag
-    data/glsl/text.vert
     data/spv/blit.vert
     data/spv/checkerboard.frag
     data/spv/debuguniforms.h
@@ -228,7 +208,8 @@ set(data
     data/spv/quadresolve.frag
     data/spv/quadwrite.frag
     data/spv/texdisplay.frag
-    data/spv/texsample.h
+    data/spv/gl_texsample.h
+    data/spv/vk_texsample.h
     data/spv/text.frag
     data/spv/text.vert
     data/spv/array2ms.comp

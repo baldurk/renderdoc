@@ -24,10 +24,12 @@
  ******************************************************************************/
 
 #include "gl_replay.h"
-#include "data/glsl/debuguniforms.h"
 #include "serialise/string_utils.h"
 #include "gl_driver.h"
 #include "gl_resources.h"
+
+#define OPENGL 1
+#include "data/spv/debuguniforms.h"
 
 GLReplay::GLReplay()
 {

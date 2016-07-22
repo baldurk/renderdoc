@@ -34,9 +34,6 @@
     <Filter Include="Resources\hlsl">
       <UniqueIdentifier>{0ecdcd74-a30b-457e-8b22-92bd58405c56}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resources\glsl">
-      <UniqueIdentifier>{889cc549-e49b-430b-9e9b-5a42e7c26b03}</UniqueIdentifier>
-    </Filter>
     <Filter Include="API">
       <UniqueIdentifier>{7d6b0f22-1180-4767-b284-cc87f54ec012}</UniqueIdentifier>
     </Filter>
@@ -156,9 +153,6 @@
     <ClInclude Include="data\hlsl\debugcbuffers.h">
       <Filter>Resources\hlsl</Filter>
     </ClInclude>
-    <ClInclude Include="data\glsl\debuguniforms.h">
-      <Filter>Resources\glsl</Filter>
-    </ClInclude>
     <ClInclude Include="os\win32\win32_hook.h">
       <Filter>OS\Win32</Filter>
     </ClInclude>
@@ -213,9 +207,6 @@
     <ClInclude Include="3rdparty\stb\stb_truetype.h">
       <Filter>3rdparty\stb</Filter>
     </ClInclude>
-    <ClInclude Include="data\glsl\texsample.h">
-      <Filter>Resources\glsl</Filter>
-    </ClInclude>
     <ClInclude Include="serialise\string_utils.h">
       <Filter>Common\Strings</Filter>
     </ClInclude>
@@ -237,9 +228,6 @@
     <ClInclude Include="data\spv\debuguniforms.h">
       <Filter>Resources\spv</Filter>
     </ClInclude>
-    <ClInclude Include="data\spv\texsample.h">
-      <Filter>Resources\spv</Filter>
-    </ClInclude>
     <ClInclude Include="common\custom_assert.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -254,6 +242,12 @@
     </ClInclude>
     <ClInclude Include="data\glsl_shaders.h">
       <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="data\spv\gl_texsample.h">
+      <Filter>Resources\spv</Filter>
+    </ClInclude>
+    <ClInclude Include="data\spv\vk_texsample.h">
+      <Filter>Resources\spv</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -442,56 +436,8 @@
     <None Include="data\hlsl\multisample.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
-    <None Include="data\glsl\blit.frag">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\blit.vert">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\texdisplay.frag">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\checkerboard.frag">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\generic.vert">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\generic.frag">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\mesh.vert">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\text.frag">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\text.vert">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\histogram.comp">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\mesh.frag">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\mesh.geom">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\arraymscopy.comp">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\quadoverdraw.frag">
-      <Filter>Resources\glsl</Filter>
-    </None>
     <None Include="data\hlsl\mesh.hlsl">
       <Filter>Resources\hlsl</Filter>
-    </None>
-    <None Include="data\glsl\mesh.comp">
-      <Filter>Resources\glsl</Filter>
-    </None>
-    <None Include="data\glsl\outline.frag">
-      <Filter>Resources\glsl</Filter>
     </None>
     <None Include="data\spv\blit.vert">
       <Filter>Resources\spv</Filter>

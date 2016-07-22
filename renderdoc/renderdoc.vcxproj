@@ -252,13 +252,12 @@
     <ClInclude Include="core\resource_manager.h" />
     <ClInclude Include="core\socket_helpers.h" />
     <ClInclude Include="data\embedded_files.h" />
-    <ClInclude Include="data\glsl\debuguniforms.h" />
-    <ClInclude Include="data\glsl\texsample.h" />
     <ClInclude Include="data\glsl_shaders.h" />
     <ClInclude Include="data\hlsl\debugcbuffers.h" />
     <ClInclude Include="data\resource.h" />
     <ClInclude Include="data\spv\debuguniforms.h" />
-    <ClInclude Include="data\spv\texsample.h" />
+    <ClInclude Include="data\spv\gl_texsample.h" />
+    <ClInclude Include="data\spv\vk_texsample.h" />
     <ClInclude Include="data\version.h" />
     <ClInclude Include="hooks\hooks.h" />
     <ClInclude Include="maths\camera.h" />
@@ -379,22 +378,6 @@
     <ResourceCompile Include="data\renderdoc.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="data\glsl\arraymscopy.comp" />
-    <None Include="data\glsl\blit.frag" />
-    <None Include="data\glsl\blit.vert" />
-    <None Include="data\glsl\checkerboard.frag" />
-    <None Include="data\glsl\generic.frag" />
-    <None Include="data\glsl\generic.vert" />
-    <None Include="data\glsl\histogram.comp" />
-    <None Include="data\glsl\mesh.comp" />
-    <None Include="data\glsl\mesh.frag" />
-    <None Include="data\glsl\mesh.geom" />
-    <None Include="data\glsl\mesh.vert" />
-    <None Include="data\glsl\outline.frag" />
-    <None Include="data\glsl\quadoverdraw.frag" />
-    <None Include="data\glsl\texdisplay.frag" />
-    <None Include="data\glsl\text.frag" />
-    <None Include="data\glsl\text.vert" />
     <None Include="data\hlsl\debugcommon.hlsl" />
     <None Include="data\hlsl\debugdisplay.hlsl" />
     <None Include="data\hlsl\debugtext.hlsl" />

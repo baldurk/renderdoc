@@ -29,24 +29,6 @@
   extern unsigned char CONCAT(data_, filename)[]; \
   extern int CONCAT(CONCAT(data_, filename), _len);
 
-DECLARE_EMBED(glsl_debuguniforms_h);
-DECLARE_EMBED(glsl_texsample_h);
-DECLARE_EMBED(glsl_blit_vert);
-DECLARE_EMBED(glsl_blit_frag);
-DECLARE_EMBED(glsl_texdisplay_frag);
-DECLARE_EMBED(glsl_checkerboard_frag);
-DECLARE_EMBED(glsl_histogram_comp);
-DECLARE_EMBED(glsl_quadoverdraw_frag);
-DECLARE_EMBED(glsl_arraymscopy_comp);
-DECLARE_EMBED(glsl_mesh_vert);
-DECLARE_EMBED(glsl_mesh_frag);
-DECLARE_EMBED(glsl_mesh_geom);
-DECLARE_EMBED(glsl_mesh_comp);
-DECLARE_EMBED(glsl_generic_vert);
-DECLARE_EMBED(glsl_generic_frag);
-DECLARE_EMBED(glsl_text_frag);
-DECLARE_EMBED(glsl_text_vert);
-DECLARE_EMBED(glsl_outline_frag);
 DECLARE_EMBED(sourcecodepro_ttf);
 DECLARE_EMBED(spv_blit_vert);
 DECLARE_EMBED(spv_checkerboard_frag);
@@ -62,7 +44,8 @@ DECLARE_EMBED(spv_minmaxresult_comp);
 DECLARE_EMBED(spv_histogram_comp);
 DECLARE_EMBED(spv_outline_frag);
 DECLARE_EMBED(spv_debuguniforms_h);
-DECLARE_EMBED(spv_texsample_h);
+DECLARE_EMBED(spv_gl_texsample_h);
+DECLARE_EMBED(spv_vk_texsample_h);
 DECLARE_EMBED(spv_quadresolve_frag);
 DECLARE_EMBED(spv_quadwrite_frag);
 DECLARE_EMBED(spv_mesh_comp);

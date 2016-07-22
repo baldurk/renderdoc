@@ -26,13 +26,16 @@
 #include "gl_driver.h"
 #include <algorithm>
 #include "common/common.h"
-#include "data/glsl/debuguniforms.h"
+#include "data/glsl_shaders.h"
 #include "driver/shaders/spirv/spirv_common.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/vec.h"
 #include "replay/type_helpers.h"
 #include "serialise/string_utils.h"
 #include "stb/stb_truetype.h"
+
+#define OPENGL 1
+#include "data/spv/debuguniforms.h"
 
 const int firstChar = int(' ') + 1;
 const int lastChar = 127;
@@ -1153,7 +1156,7 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
 
       gl.glGenBuffers(1, &GeneralUBO);
       gl.glBindBuffer(eGL_UNIFORM_BUFFER, GeneralUBO);
-      gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(FontUniforms), NULL, eGL_DYNAMIC_DRAW);
+      gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(FontUBOData), NULL, eGL_DYNAMIC_DRAW);
 
       gl.glGenBuffers(1, &StringUBO);
       gl.glBindBuffer(eGL_UNIFORM_BUFFER, StringUBO);
@@ -1167,43 +1170,53 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
        gl.glGetShaderiv && gl.glGetShaderInfoLog && gl.glDeleteShader && gl.glCreateProgram &&
        gl.glAttachShader && gl.glLinkProgram && gl.glGetProgramiv && gl.glGetProgramInfoLog)
     {
-      string textvs = "#version 420 core\n\n";
-      textvs += GetEmbeddedResource(glsl_debuguniforms_h);
-      textvs += GetEmbeddedResource(glsl_text_vert);
-      string textfs = GetEmbeddedResource(glsl_text_frag);
+      vector<string> vs;
+      vector<string> fs;
 
-      GLuint vs = gl.glCreateShader(eGL_VERTEX_SHADER);
-      GLuint fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
+      GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_text_vert), 420);
+      GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_text_frag), 420);
 
-      const char *src = textvs.c_str();
-      gl.glShaderSource(vs, 1, &src, NULL);
-      src = textfs.c_str();
-      gl.glShaderSource(fs, 1, &src, NULL);
+      vector<const char *> vsc;
+      vsc.reserve(vs.size());
+      vector<const char *> fsc;
+      fsc.reserve(fs.size());
 
-      gl.glCompileShader(vs);
-      gl.glCompileShader(fs);
+      for(size_t i = 0; i < vs.size(); i++)
+        vsc.push_back(vs[i].c_str());
+
+      for(size_t i = 0; i < fs.size(); i++)
+        fsc.push_back(fs[i].c_str());
+
+      GLuint vert = gl.glCreateShader(eGL_VERTEX_SHADER);
+      GLuint frag = gl.glCreateShader(eGL_FRAGMENT_SHADER);
+
+      gl.glShaderSource(vert, (GLsizei)vs.size(), &vsc[0], NULL);
+      gl.glShaderSource(frag, (GLsizei)fs.size(), &fsc[0], NULL);
+
+      gl.glCompileShader(vert);
+      gl.glCompileShader(frag);
 
       char buffer[1024] = {0};
       GLint status = 0;
 
-      gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
+      gl.glGetShaderiv(vert, eGL_COMPILE_STATUS, &status);
       if(status == 0)
       {
-        gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
+        gl.glGetShaderInfoLog(vert, 1024, NULL, buffer);
         RDCERR("Shader error: %s", buffer);
       }
 
-      gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
+      gl.glGetShaderiv(frag, eGL_COMPILE_STATUS, &status);
       if(status == 0)
       {
-        gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
+        gl.glGetShaderInfoLog(frag, 1024, NULL, buffer);
         RDCERR("Shader error: %s", buffer);
       }
 
       Program = gl.glCreateProgram();
 
-      gl.glAttachShader(Program, vs);
-      gl.glAttachShader(Program, fs);
+      gl.glAttachShader(Program, vert);
+      gl.glAttachShader(Program, frag);
 
       gl.glLinkProgram(Program);
 
@@ -1214,8 +1227,8 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
         RDCERR("Link error: %s", buffer);
       }
 
-      gl.glDeleteShader(vs);
-      gl.glDeleteShader(fs);
+      gl.glDeleteShader(vert);
+      gl.glDeleteShader(frag);
     }
 
     ready = true;
@@ -1663,8 +1676,8 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
   {
     gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
 
-    FontUniforms *ubo = (FontUniforms *)gl.glMapBufferRange(
-        eGL_UNIFORM_BUFFER, 0, sizeof(FontUniforms), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    FontUBOData *ubo = (FontUBOData *)gl.glMapBufferRange(
+        eGL_UNIFORM_BUFFER, 0, sizeof(FontUBOData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     ubo->TextPosition.x = x;
     ubo->TextPosition.y = y;
 

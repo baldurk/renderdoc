@@ -12,25 +12,6 @@
 #define RESOURCE_multisample_hlsl   106
 #define RESOURCE_mesh_hlsl          107
 
-#define RESOURCE_glsl_blit_vert          201
-#define RESOURCE_glsl_blit_frag          202
-#define RESOURCE_glsl_texdisplay_frag    203
-#define RESOURCE_glsl_checkerboard_frag  204
-#define RESOURCE_glsl_generic_vert       205
-#define RESOURCE_glsl_generic_frag       206
-#define RESOURCE_glsl_mesh_vert          207
-#define RESOURCE_glsl_debuguniforms_h    208
-#define RESOURCE_glsl_text_vert          209
-#define RESOURCE_glsl_text_frag          210
-#define RESOURCE_glsl_texsample_h        211
-#define RESOURCE_glsl_histogram_comp     212
-#define RESOURCE_glsl_mesh_frag          213
-#define RESOURCE_glsl_mesh_geom          214
-#define RESOURCE_glsl_mesh_comp          215
-#define RESOURCE_glsl_arraymscopy_comp   216
-#define RESOURCE_glsl_quadoverdraw_frag  217
-#define RESOURCE_glsl_outline_frag       218
-
 #define RESOURCE_sourcecodepro_ttf  301
 
 #define RESOURCE_spv_blit_vert         401
@@ -47,12 +28,13 @@
 #define RESOURCE_spv_histogram_comp    414
 #define RESOURCE_spv_outline_frag      415
 #define RESOURCE_spv_debuguniforms_h   416
-#define RESOURCE_spv_texsample_h       417
-#define RESOURCE_spv_quadresolve_frag  418
-#define RESOURCE_spv_quadwrite_frag    419
-#define RESOURCE_spv_mesh_comp         420
-#define RESOURCE_spv_array2ms_comp     421
-#define RESOURCE_spv_ms2array_comp     422
+#define RESOURCE_spv_gl_texsample_h    417
+#define RESOURCE_spv_vk_texsample_h    418
+#define RESOURCE_spv_quadresolve_frag  419
+#define RESOURCE_spv_quadwrite_frag    420
+#define RESOURCE_spv_mesh_comp         421
+#define RESOURCE_spv_array2ms_comp     422
+#define RESOURCE_spv_ms2array_comp     423
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

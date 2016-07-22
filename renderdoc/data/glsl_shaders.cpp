@@ -57,9 +57,9 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
   if(shader.find("#include \"texsample.h\"") != string::npos)
   {
     if(type == eShaderVulkan)
-      sources[2] = GetEmbeddedResource(spv_texsample_h);
+      sources[2] = GetEmbeddedResource(spv_vk_texsample_h);
     else if(type == eShaderGLSL)
-      sources[2] = GetEmbeddedResource(glsl_texsample_h);
+      sources[2] = GetEmbeddedResource(spv_gl_texsample_h);
     else
       RDCERR("Unknown type! %d", type);
   }
