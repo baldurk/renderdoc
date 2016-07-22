@@ -761,13 +761,17 @@ namespace renderdocui.Windows
 
         public bool MeshView;
 
-        private int RowOffset
+        public int RowOffset
         {
             get
             {
                 int row = 0;
                 int.TryParse(rowOffset.Text, out row);
                 return row;
+            }
+            set
+            {
+                rowOffset.Text = value.ToString();
             }
         }
 

@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 using System;
+using System.Runtime.InteropServices;
 
 // from replay_enums.h
 
@@ -520,6 +521,14 @@ namespace renderdoc
 
     public static class EnumString
     {
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern UInt32 Topology_VertexOffset(PrimitiveTopology topology, UInt32 prim);
+
+        public static UInt32 GetVertexOffset(this PrimitiveTopology topology, UInt32 primitiveIndex)
+        {
+            return Topology_VertexOffset(topology, primitiveIndex);
+        }
+
         public static string Str(this DebugMessageSource source)
         {
             switch (source)

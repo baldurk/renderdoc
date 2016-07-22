@@ -185,7 +185,7 @@ namespace renderdocui.Windows
 
                 m_Core.GetPipelineStateViewer().Show(dockPanel);
 
-                var bv = new BufferViewer(m_Core, true);
+                var bv = m_Core.GetMeshViewer();
                 bv.InitFromPersistString("");
                 bv.Show(dockPanel);
 
@@ -446,7 +446,7 @@ namespace renderdocui.Windows
             }
             else if (IsPersist(persistString, typeof(BufferViewer).ToString()))
             {
-                var ret = new BufferViewer(m_Core, true);
+                var ret = m_Core.GetMeshViewer();
                 ret.InitFromPersistString(persistString);
                 return ret;
             }
@@ -1571,7 +1571,7 @@ namespace renderdocui.Windows
 
         private void meshOutputToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            BufferViewer b = new BufferViewer(m_Core, true);
+            BufferViewer b = m_Core.GetMeshViewer();
 
             b.InitFromPersistString("");
 

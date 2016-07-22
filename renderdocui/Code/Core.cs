@@ -87,6 +87,7 @@ namespace renderdocui.Code
         private DebugMessages m_DebugMessages = null;
         private TimelineBar m_TimelineBar = null;
         private TextureViewer m_TextureViewer = null;
+        private BufferViewer m_MeshViewer = null;
         private PipelineStateViewer m_PipelineStateViewer = null;
         private StatisticsViewer m_StatisticsViewer = null;
 
@@ -780,6 +781,17 @@ namespace renderdocui.Code
             }
 
             return m_TextureViewer;
+        }
+
+        public BufferViewer GetMeshViewer()
+        {
+            if (m_MeshViewer == null || m_MeshViewer.IsDisposed)
+            {
+                m_MeshViewer = new BufferViewer(this, true);
+                AddLogViewer(m_MeshViewer);
+            }
+
+            return m_MeshViewer;
         }
 
         public PipelineStateViewer GetPipelineStateViewer()

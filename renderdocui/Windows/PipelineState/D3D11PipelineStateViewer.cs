@@ -2119,7 +2119,8 @@ namespace renderdocui.Windows.PipelineState
 
         private void inputLayouts_NodeDoubleClick(TreelistView.Node node)
         {
-            (new BufferViewer(m_Core, true)).Show(m_DockContent.DockPanel);
+            var viewer = m_Core.GetMeshViewer();
+            viewer.Show(m_DockContent.DockPanel);
         }
 
         private D3D11PipelineState.ShaderStage GetStageForSender(object sender)
@@ -2719,7 +2720,8 @@ namespace renderdocui.Windows.PipelineState
 
         private void meshView_Click(object sender, EventArgs e)
         {
-            (new BufferViewer(m_Core, true)).Show(m_DockContent.DockPanel);
+            var viewer = m_Core.GetMeshViewer();
+            viewer.Show(m_DockContent.DockPanel);
         }
 
         private float GetHueForVB(int i)

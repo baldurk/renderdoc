@@ -29,21 +29,22 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Event", "Event")));
-            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Before", "")));
-            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("BeforeCol", "")));
-            TreelistView.TreeListColumn treeListColumn4 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("After", "")));
-            TreelistView.TreeListColumn treeListColumn5 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("AfterCol", "")));
+            TreelistView.TreeListColumn treeListColumn1 = new TreelistView.TreeListColumn("Event", "Event");
+            TreelistView.TreeListColumn treeListColumn2 = new TreelistView.TreeListColumn("Before", "");
+            TreelistView.TreeListColumn treeListColumn3 = new TreelistView.TreeListColumn("BeforeCol", "");
+            TreelistView.TreeListColumn treeListColumn4 = new TreelistView.TreeListColumn("After", "");
+            TreelistView.TreeListColumn treeListColumn5 = new TreelistView.TreeListColumn("AfterCol", "");
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+            this.events = new TreelistView.TreeListView();
             this.historyContext = new System.Windows.Forms.Label();
             this.eventsHidden = new System.Windows.Forms.Label();
             this.rightclickMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.hideFailedEventsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.debugToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.events = new TreelistView.TreeListView();
+            this.jumpToPrimitiveMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tableLayoutPanel1.SuspendLayout();
-            this.rightclickMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.events)).BeginInit();
+            this.rightclickMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // tableLayoutPanel1
@@ -62,50 +63,6 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.Size = new System.Drawing.Size(386, 478);
             this.tableLayoutPanel1.TabIndex = 2;
-            // 
-            // historyContext
-            // 
-            this.historyContext.AutoSize = true;
-            this.historyContext.Location = new System.Drawing.Point(3, 0);
-            this.historyContext.Name = "historyContext";
-            this.historyContext.Size = new System.Drawing.Size(378, 52);
-            this.historyContext.TabIndex = 2;
-            this.historyContext.Text = "***code overwritten preview*** Preview colours displayed in visible range {min} -" +
-    " {max} with {red, blue, green} channels.\r\n\r\nRight click to debug an event, or hi" +
-    "de failed events.";
-            // 
-            // eventsHidden
-            // 
-            this.eventsHidden.AutoSize = true;
-            this.eventsHidden.ForeColor = System.Drawing.Color.Red;
-            this.eventsHidden.Location = new System.Drawing.Point(3, 52);
-            this.eventsHidden.Name = "eventsHidden";
-            this.eventsHidden.Size = new System.Drawing.Size(92, 13);
-            this.eventsHidden.TabIndex = 3;
-            this.eventsHidden.Text = "events are hidden";
-            // 
-            // rightclickMenu
-            // 
-            this.rightclickMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.hideFailedEventsToolStripMenuItem,
-            this.debugToolStripMenuItem});
-            this.rightclickMenu.Name = "rightclickMenu";
-            this.rightclickMenu.Size = new System.Drawing.Size(161, 48);
-            // 
-            // hideFailedEventsToolStripMenuItem
-            // 
-            this.hideFailedEventsToolStripMenuItem.CheckOnClick = true;
-            this.hideFailedEventsToolStripMenuItem.Name = "hideFailedEventsToolStripMenuItem";
-            this.hideFailedEventsToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
-            this.hideFailedEventsToolStripMenuItem.Text = "&Hide failed events";
-            this.hideFailedEventsToolStripMenuItem.CheckedChanged += new System.EventHandler(this.hideFailedEventsToolStripMenuItem_CheckedChanged);
-            // 
-            // debugToolStripMenuItem
-            // 
-            this.debugToolStripMenuItem.Name = "debugToolStripMenuItem";
-            this.debugToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
-            this.debugToolStripMenuItem.Text = "&Debug pixel";
-            this.debugToolStripMenuItem.Click += new System.EventHandler(this.debugToolStripMenuItem_Click);
             // 
             // events
             // 
@@ -142,6 +99,58 @@
             this.events.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.events_NodeDoubleClicked);
             this.events.MouseClick += new System.Windows.Forms.MouseEventHandler(this.events_MouseClick);
             // 
+            // historyContext
+            // 
+            this.historyContext.AutoSize = true;
+            this.historyContext.Location = new System.Drawing.Point(3, 0);
+            this.historyContext.Name = "historyContext";
+            this.historyContext.Size = new System.Drawing.Size(378, 52);
+            this.historyContext.TabIndex = 2;
+            this.historyContext.Text = "***code overwritten preview*** Preview colours displayed in visible range {min} -" +
+    " {max} with {red, blue, green} channels.\r\n\r\nRight click to debug an event, hi" +
+    "de failed events, or jump to the modification's primitive in the mesh view.";
+            // 
+            // eventsHidden
+            // 
+            this.eventsHidden.AutoSize = true;
+            this.eventsHidden.ForeColor = System.Drawing.Color.Red;
+            this.eventsHidden.Location = new System.Drawing.Point(3, 52);
+            this.eventsHidden.Name = "eventsHidden";
+            this.eventsHidden.Size = new System.Drawing.Size(92, 13);
+            this.eventsHidden.TabIndex = 3;
+            this.eventsHidden.Text = "events are hidden";
+            // 
+            // rightclickMenu
+            // 
+            this.rightclickMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.hideFailedEventsToolStripMenuItem,
+            this.jumpToPrimitiveMenuItem,
+            this.debugToolStripMenuItem});
+            this.rightclickMenu.Name = "rightclickMenu";
+            this.rightclickMenu.Size = new System.Drawing.Size(161, 92);
+            // 
+            // hideFailedEventsToolStripMenuItem
+            // 
+            this.hideFailedEventsToolStripMenuItem.CheckOnClick = true;
+            this.hideFailedEventsToolStripMenuItem.Name = "hideFailedEventsToolStripMenuItem";
+            this.hideFailedEventsToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.hideFailedEventsToolStripMenuItem.Text = "&Hide failed events";
+            this.hideFailedEventsToolStripMenuItem.CheckedChanged += new System.EventHandler(this.hideFailedEventsToolStripMenuItem_CheckedChanged);
+            // 
+            // debugToolStripMenuItem
+            // 
+            this.debugToolStripMenuItem.Name = "debugToolStripMenuItem";
+            this.debugToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.debugToolStripMenuItem.Text = "&Debug pixel";
+            this.debugToolStripMenuItem.Click += new System.EventHandler(this.debugToolStripMenuItem_Click);
+            // 
+            // jumpToPrimitiveMenuItem
+            // 
+            this.jumpToPrimitiveMenuItem.Name = "jumpToPrimitiveMenuItem";
+            this.jumpToPrimitiveMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.jumpToPrimitiveMenuItem.Text = "Jump to Primitive";
+            this.jumpToPrimitiveMenuItem.Click += new System.EventHandler(this.jumpToPrimitiveMenuItem_Click);
+            // 
             // PixelHistoryView
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -157,8 +166,8 @@
             this.Leave += new System.EventHandler(this.PixelHistoryView_Leave);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
-            this.rightclickMenu.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.events)).EndInit();
+            this.rightclickMenu.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -172,5 +181,6 @@
         private System.Windows.Forms.ContextMenuStrip rightclickMenu;
         private System.Windows.Forms.ToolStripMenuItem hideFailedEventsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem debugToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem jumpToPrimitiveMenuItem;
     }
 }
