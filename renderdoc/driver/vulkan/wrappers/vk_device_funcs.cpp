@@ -488,7 +488,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
     ObjDisp(instance)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(*pPhysicalDevices),
                                                               &queueCount, NULL);
 
-    if(queueCount < 16)
+    if(queueCount > 16)
     {
       RDCWARN("More than 16 queues");
       queueCount = 16;
