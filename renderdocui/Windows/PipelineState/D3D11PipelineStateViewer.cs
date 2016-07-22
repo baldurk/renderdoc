@@ -260,6 +260,12 @@ namespace renderdocui.Windows.PipelineState
                 (view.ArraySize < tex.arraysize && tex.arraysize > 1))
                 return true;
 
+            // in the case of the swapchain case, types can be different and it won't have shown
+            // up as taking the view's format because the swapchain already has one. Make sure to mark it
+            // as important
+            if (view.Format.compType != FormatComponentType.None && view.Format != tex.format)
+                return true;
+
             return false;
         }
 
@@ -382,7 +388,7 @@ namespace renderdocui.Windows.PipelineState
                                 }
 
                                 // if it's a typeless format, show the format of the view
-                                if (texs[t].format.compType == FormatComponentType.None)
+                                if (texs[t].format != r.Format)
                                 {
                                     format = "Viewed as " + r.Format.ToString();
                                 }
@@ -1109,7 +1115,7 @@ namespace renderdocui.Windows.PipelineState
                                 }
 
                                 // if it's a typeless format, show the format of the view
-                                if (texs[t].format.compType == FormatComponentType.None)
+                                if (texs[t].format != r.Format)
                                 {
                                     format = "Viewed as " + r.Format.ToString();
                                 }
@@ -1382,7 +1388,7 @@ namespace renderdocui.Windows.PipelineState
                                 }
 
                                 // if it's a typeless format, show the format of the view
-                                if (texs[t].format.compType == FormatComponentType.None)
+                                if (texs[t].format != p.Format)
                                 {
                                     format = "Viewed as " + p.Format.ToString();
                                 }
@@ -1482,7 +1488,7 @@ namespace renderdocui.Windows.PipelineState
                                 }
 
                                 // if it's a typeless format, show the format of the view
-                                if (texs[t].format.compType == FormatComponentType.None)
+                                if (texs[t].format != r.Format)
                                 {
                                     format = "Viewed as " + r.Format.ToString();
                                 }
@@ -1596,7 +1602,7 @@ namespace renderdocui.Windows.PipelineState
                         }
 
                         // if it's a typeless format, show the format of the view
-                        if (texs[t].format.compType == FormatComponentType.None)
+                        if (texs[t].format != state.m_OM.DepthTarget.Format)
                         {
                             format = "Viewed as " + state.m_OM.DepthTarget.Format.ToString();
                         }
