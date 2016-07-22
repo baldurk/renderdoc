@@ -1003,6 +1003,8 @@ namespace TreelistView
 		}
 		public static Node FindNodesBottomLeaf(Node node, bool mustBeVisible)
 		{
+			if (node == null)
+				return node;
 			if (mustBeVisible && node.Expanded == false)
 				return node;
 			if (node.HasChildren == false || node.Nodes.LastNode == null)
