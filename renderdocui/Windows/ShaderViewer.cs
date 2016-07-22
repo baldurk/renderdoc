@@ -166,13 +166,20 @@ namespace renderdocui.Windows
                 else if (v.type.descriptor.rows > 0 && v.type.descriptor.cols > 0)
                 {
                     uint numRegs = v.type.descriptor.rows * Math.Max(1, v.type.descriptor.elements);
+                    int regSize = (int)v.type.descriptor.cols;
+
+                    if (!v.type.descriptor.rowMajorStorage && v.type.descriptor.rows > 1 && v.type.descriptor.cols > 1)
+                    {
+                        numRegs = v.type.descriptor.cols;
+                        regSize = (int)v.type.descriptor.rows;
+                    }
 
                     for (uint r = 0; r < numRegs; r++)
                     {
                         var reg = string.Format("{0}[{1}]", stem, v.reg.vec + r);
 
                         int compStart = r == 0 ? (int)v.reg.comp : 0;
-                        int compEnd = compStart + (int)v.type.descriptor.cols;
+                        int compEnd = compStart + regSize;
 
                         var comps = "xyzw".Substring(compStart, compEnd - compStart);
 
