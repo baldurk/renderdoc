@@ -80,8 +80,9 @@ set(sources
     core/resource_manager.h
     core/socket_helpers.h
     data/hlsl/debugcbuffers.h
-    data/spv/debuguniforms.h
-    data/spv/texsample.h
+    data/glsl/debuguniforms.h
+    data/glsl/vk_texsample.h
+    data/glsl/gl_texsample.h
     data/glsl_shaders.cpp
     data/glsl_shaders.h
     data/version.h
