@@ -49,6 +49,8 @@ namespace renderdocui.Windows
 
         private ReplayOutput m_Output = null;
 
+        private Dialogs.TextureGoto m_Goto = null;
+
         private TextureDisplay m_TexDisplay = new TextureDisplay();
 
         private ToolStripControlHost depthStencilToolstrip = null;
@@ -368,6 +370,8 @@ namespace renderdocui.Windows
 
             InitializeComponent();
 
+            m_Goto = new Dialogs.TextureGoto(GotoLocation);
+
             textureList.Font =
                 texturefilter.Font =
                 rangeBlack.Font =
@@ -403,7 +407,7 @@ namespace renderdocui.Windows
             render.Painting = true;
             pixelContext.Painting = true;
 
-            saveTex.Enabled = false;
+            saveTex.Enabled = gotoLocationButton.Enabled = viewTexBuffer.Enabled = false;
 
             DockHandler.GetPersistStringCallback = PersistString;
 
@@ -665,6 +669,30 @@ namespace renderdocui.Windows
         #region Public Functions
 
         private Dictionary<ResourceId, DockContent> lockedTabs = new Dictionary<ResourceId, DockContent>();
+
+        public void GotoLocation(int x, int y)
+        {
+            if(!m_Core.LogLoaded || CurrentTexture == null)
+                return;
+
+            m_PickedPoint = new Point(x, y);
+
+            uint mipHeight = Math.Max(1, CurrentTexture.height >> (int)m_TexDisplay.mip);
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                m_PickedPoint.Y = (int)(mipHeight - 1) - m_PickedPoint.Y;
+            if (m_TexDisplay.FlipY)
+                m_PickedPoint.Y = (int)(mipHeight - 1) - m_PickedPoint.Y;
+
+            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+            {
+                if (m_Output != null)
+                    RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+
+                RT_UpdateAndDisplay(r);
+            });
+
+            UI_UpdateStatusText();
+        }
 
         public void ViewTexture(ResourceId ID, bool focus)
         {
@@ -997,7 +1025,7 @@ namespace renderdocui.Windows
             var outConfig = new OutputConfig();
             outConfig.m_Type = OutputType.TexDisplay;
 
-            saveTex.Enabled = true;
+            saveTex.Enabled = gotoLocationButton.Enabled = viewTexBuffer.Enabled = true;
 
             m_Following = Following.Default;
 
@@ -1061,7 +1089,7 @@ namespace renderdocui.Windows
             m_PrevSize = PointF.Empty;
             m_HighWaterStatusLength = 0;
 
-            saveTex.Enabled = false;
+            saveTex.Enabled = gotoLocationButton.Enabled = viewTexBuffer.Enabled = false;
 
             rwPanel.ClearThumbnails();
             roPanel.ClearThumbnails();
@@ -2616,6 +2644,23 @@ namespace renderdocui.Windows
             this.BeginInvoke(new Action(UI_UpdateStatusText));
         }
 
+        private void ShowGotoPopup()
+        {
+            if (CurrentTexture != null)
+            {
+                Point p = m_PickedPoint;
+
+                uint mipHeight = Math.Max(1, CurrentTexture.height >> (int)m_TexDisplay.mip);
+
+                if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                    p.Y = (int)(mipHeight - 1) - p.Y;
+                if (m_TexDisplay.FlipY)
+                    p.Y = (int)(mipHeight - 1) - p.Y;
+
+                m_Goto.Show(render, p);
+            }
+        }
+
         private void render_KeyDown(object sender, KeyEventArgs e)
         {
             bool nudged = false;
@@ -2644,6 +2689,12 @@ namespace renderdocui.Windows
             }
 
             if (!m_Core.LogLoaded) return;
+
+            if (e.KeyCode == Keys.G && e.Control)
+            {
+                ShowGotoPopup();
+
+            }
 
             if (e.KeyCode == Keys.Up && m_PickedPoint.Y > 0)
             {
@@ -3561,6 +3612,11 @@ namespace renderdocui.Windows
         void textureList_GoIconClick(object sender, GoIconClickEventArgs e)
         {
             ViewTexture(e.ID, false);
+        }
+
+        private void gotoLocationButton_Click(object sender, EventArgs e)
+        {
+            ShowGotoPopup();
         }
 
         #endregion

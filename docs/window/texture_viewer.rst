@@ -238,6 +238,21 @@ This button opens the texture in the :doc:`raw buffer viewer <buffer_viewer>`. T
 
   The buffer viewer may not be able to handle the full number of columns that are appropriate for the full width of a texture, so it is better to limit the number of columns and manually calculate the offset into the table of data.
 
+Goto Location
+~~~~~~~~~~~~~
+
+.. |find| image:: ../imgs/icons/find.png
+
+..
+
+  | |find| Goto pixel location
+
+This button opens a small popup above the main texture view that lets you type in a pixel location to jump to. This is useful if you're investigating a particular issue where you know what pixel the problem will lie on.
+
+.. note::
+
+  This popup is also available with the keyboard shortcut :kbd:`Ctrl-G`.
+
 Zoom Controls
 ~~~~~~~~~~~~~~~~~
 

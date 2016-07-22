@@ -259,6 +259,12 @@
     <Compile Include="Windows\Dialogs\SettingsDialog.Designer.cs">
       <DependentUpon>SettingsDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\Dialogs\TextureGoto.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\TextureGoto.Designer.cs">
+      <DependentUpon>TextureGoto.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\Dialogs\TextureSaveDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -411,6 +417,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\SettingsDialog.resx">
       <DependentUpon>SettingsDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\TextureGoto.resx">
+      <DependentUpon>TextureGoto.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\TextureSaveDialog.resx">
       <DependentUpon>TextureSaveDialog.cs</DependentUpon>

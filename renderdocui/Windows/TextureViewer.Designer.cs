@@ -55,6 +55,8 @@
             this.showEmpty = new System.Windows.Forms.ToolStripMenuItem();
             this.usedSep = new System.Windows.Forms.ToolStripSeparator();
             this.openNewTab = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.imageInLayoutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.usedStartLabel = new System.Windows.Forms.ToolStripMenuItem();
             this.colorDialog = new System.Windows.Forms.ColorDialog();
             this.toolstripMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -149,8 +151,7 @@
             this.pixelContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.highlightedPixelHistoryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.highlightedPixelDebugToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.imageInLayoutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.gotoLocationButton = new System.Windows.Forms.ToolStripButton();
             subSep = new System.Windows.Forms.ToolStripSeparator();
             toolStripLabel2 = new System.Windows.Forms.ToolStripLabel();
             toolStripLabel3 = new System.Windows.Forms.ToolStripLabel();
@@ -220,7 +221,7 @@
             this.usedStartLabel});
             this.rightclickMenu.MaximumSize = new System.Drawing.Size(0, 480);
             this.rightclickMenu.Name = "rightclickMenu";
-            this.rightclickMenu.Size = new System.Drawing.Size(181, 148);
+            this.rightclickMenu.Size = new System.Drawing.Size(181, 126);
             // 
             // showDisabled
             // 
@@ -248,6 +249,17 @@
             this.openNewTab.Size = new System.Drawing.Size(180, 22);
             this.openNewTab.Text = "Open new Locked Tab";
             this.openNewTab.Click += new System.EventHandler(this.resourceContextItem_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
+            // 
+            // imageInLayoutMenuItem
+            // 
+            this.imageInLayoutMenuItem.Name = "imageInLayoutMenuItem";
+            this.imageInLayoutMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.imageInLayoutMenuItem.Text = "Image in layout <X>";
             // 
             // usedStartLabel
             // 
@@ -994,11 +1006,12 @@
             toolStripLabel1,
             this.saveTex,
             this.texListShow,
-            this.viewTexBuffer});
+            this.viewTexBuffer,
+            this.gotoLocationButton});
             this.actionsStrip.Location = new System.Drawing.Point(0, 25);
             this.actionsStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
             this.actionsStrip.Name = "actionsStrip";
-            this.actionsStrip.Size = new System.Drawing.Size(114, 25);
+            this.actionsStrip.Size = new System.Drawing.Size(168, 25);
             this.actionsStrip.TabIndex = 8;
             this.actionsStrip.Text = "toolStrip1";
             // 
@@ -1332,16 +1345,15 @@
             this.highlightedPixelDebugToolStripMenuItem.Text = "Highlighted Pixel &Debug";
             this.highlightedPixelDebugToolStripMenuItem.Click += new System.EventHandler(this.debugPixel_Click);
             // 
-            // imageInLayoutMenuItem
+            // gotoLocationButton
             // 
-            this.imageInLayoutMenuItem.Name = "imageInLayoutMenuItem";
-            this.imageInLayoutMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.imageInLayoutMenuItem.Text = "Image in layout <X>";
-            // 
-            // toolStripSeparator1
-            // 
-            this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
+            this.gotoLocationButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.gotoLocationButton.Image = global::renderdocui.Properties.Resources.find;
+            this.gotoLocationButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.gotoLocationButton.Name = "gotoLocationButton";
+            this.gotoLocationButton.Size = new System.Drawing.Size(23, 22);
+            this.gotoLocationButton.Text = "Goto";
+            this.gotoLocationButton.Click += new System.EventHandler(this.gotoLocationButton_Click);
             // 
             // TextureViewer
             // 
@@ -1507,6 +1519,7 @@
         private System.Windows.Forms.ToolStripButton zoomExactSize;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem imageInLayoutMenuItem;
+        private System.Windows.Forms.ToolStripButton gotoLocationButton;
 
     }
 }

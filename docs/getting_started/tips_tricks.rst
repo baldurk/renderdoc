@@ -97,4 +97,5 @@ This page is a random hodge-podge of different tips and tricks that might not be
        D3DSetBlobPart(strippedBlob->GetBufferPointer(), strippedBlob->GetBufferSize(), D3D_BLOB_PRIVATE_DATA, 0, &path,        pathSize, &annotatedBlob);
        // use annotatedBlob instead of strippedBlob from here on
 
+#. You can hit :kbd:`Ctrl-G` to open a popup that lets you jump to a particular co-ordinate.
 #. More coming soon hopefully :).
