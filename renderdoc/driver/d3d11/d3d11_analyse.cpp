@@ -4805,7 +4805,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
     // defaults (mostly)
     // disable tests/clips and enable scissor as we need it to clip visibility to just our pixel
-    // TODO determine if a pixel would have been scissor clipped.
     D3D11_RASTERIZER_DESC rd = {
         /*FillMode =*/D3D11_FILL_SOLID,
         /*CullMode =*/D3D11_CULL_NONE,
