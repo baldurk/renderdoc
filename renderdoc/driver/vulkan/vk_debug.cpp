@@ -1695,6 +1695,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
+  if(!texelFetchBrokenDriver)
   {
     compPipeInfo.stage.module = module[MS2ARRAYCS];
     compPipeInfo.layout = m_ArrayMSPipeLayout;
