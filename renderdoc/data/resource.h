@@ -51,6 +51,8 @@
 #define RESOURCE_spv_quadresolve_frag  418
 #define RESOURCE_spv_quadwrite_frag    419
 #define RESOURCE_spv_mesh_comp         420
+#define RESOURCE_spv_array2ms_comp     421
+#define RESOURCE_spv_ms2array_comp     422
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

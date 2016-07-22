@@ -38,7 +38,7 @@
 #define OPENGL 1
 #include "data/spv/debuguniforms.h"
 
-GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
+GLuint GLReplay::CreateCShaderProgram(const vector<string> &csSources)
 {
   if(m_pDriver == NULL)
     return 0;
@@ -49,7 +49,12 @@ GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 
   GLuint cs = gl.glCreateShader(eGL_COMPUTE_SHADER);
 
-  gl.glShaderSource(cs, 1, &csSrc, NULL);
+  vector<const char *> srcs;
+  srcs.reserve(csSources.size());
+  for(size_t i = 0; i < csSources.size(); i++)
+    srcs.push_back(csSources[i].c_str());
+
+  gl.glShaderSource(cs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
   gl.glCompileShader(cs);
 
@@ -81,20 +86,6 @@ GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
   gl.glDeleteShader(cs);
 
   return ret;
-}
-
-GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *fsSrc, const char *gsSrc)
-{
-  vector<string> vs;
-  if(vsSrc)
-    vs.push_back(vsSrc);
-  vector<string> fs;
-  if(fsSrc)
-    fs.push_back(fsSrc);
-  vector<string> gs;
-  if(gsSrc)
-    gs.push_back(gsSrc);
-  return CreateShaderProgram(vs, fs, gs);
 }
 
 GLuint GLReplay::CreateShaderProgram(const vector<string> &vs, const vector<string> &fs)
@@ -246,11 +237,9 @@ void GLReplay::InitDebugData()
   vector<string> vs;
   vector<string> fs;
   vector<string> gs;
+  vector<string> cs;
 
   GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_blit_vert), 420);
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_frag), 420);
-
-  DebugData.blitProg = CreateShaderProgram(vs, fs);
 
   DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
 
@@ -311,11 +300,9 @@ void GLReplay::InitDebugData()
   GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_checkerboard_frag), 420);
   DebugData.checkerProg = CreateShaderProgram(vs, fs);
 
-  string genericvsSource = GetEmbeddedResource(glsl_generic_vert);
-  string genericfsSource = GetEmbeddedResource(glsl_generic_frag);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_fixedcol_frag), 420);
 
-  DebugData.genericProg = CreateShaderProgram(genericvsSource.c_str(), genericfsSource.c_str());
-  DebugData.genericFSProg = CreateShaderProgram(NULL, genericfsSource.c_str());
+  DebugData.fixedcolFSProg = CreateShaderProgram(empty, fs);
 
   GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(spv_mesh_vert), 420);
   GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(spv_mesh_frag), 420);
@@ -327,23 +314,6 @@ void GLReplay::InitDebugData()
   gl.glGenProgramPipelines(1, &DebugData.texDisplayPipe);
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.4f);
-
-  {
-    float data[] = {
-        0.0f, -1.0f, 0.0f, 1.0f, 1.0f, -1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
-        0.0f, 1.0f,  0.0f, 0.0f, 0.0f, 1.0f,  0.0f, -1.1f, 0.0f, 1.0f,
-    };
-
-    gl.glGenBuffers(1, &DebugData.outlineStripVB);
-    gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.outlineStripVB);
-    gl.glNamedBufferDataEXT(DebugData.outlineStripVB, sizeof(data), data, eGL_STATIC_DRAW);
-
-    gl.glGenVertexArrays(1, &DebugData.outlineStripVAO);
-    gl.glBindVertexArray(DebugData.outlineStripVAO);
-
-    gl.glVertexAttribPointer(0, 4, eGL_FLOAT, false, 0, (const void *)0);
-    gl.glEnableVertexAttribArray(0);
-  }
 
   gl.glGenSamplers(1, &DebugData.linearSampler);
   gl.glSamplerParameteri(DebugData.linearSampler, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
@@ -408,11 +378,9 @@ void GLReplay::InitDebugData()
         ARRAY_COUNT(DebugData.minmaxTileProgram) >= (TEXDISPLAY_SINT_TEX | TEXDISPLAY_TYPEMASK) + 1,
         "not enough programs");
 
-    string glslheader =
-        "#version 420 core\n\n#extension GL_ARB_compute_shader : require\n#extension "
-        "GL_ARB_shader_storage_buffer_object : require\n";
-    glslheader += GetEmbeddedResource(spv_debuguniforms_h);
-    glslheader += GetEmbeddedResource(glsl_texsample_h);
+    string extensions =
+        "#extension GL_ARB_compute_shader : require\n"
+        "#extension GL_ARB_shader_storage_buffer_object : require\n";
 
     for(int t = 1; t <= RESTYPE_TEXTYPEMAX; t++)
     {
@@ -426,34 +394,38 @@ void GLReplay::InitDebugData()
           idx |= TEXDISPLAY_SINT_TEX;
 
         {
-          string glsl = glslheader;
-          glsl += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
-          glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-          glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
-          glsl += GetEmbeddedResource(spv_minmaxtile_comp);
+          string defines = extensions;
+          defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+          defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+          defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(glsl.c_str());
+          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(spv_minmaxtile_comp), 420);
+
+          DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(cs);
         }
 
         {
-          string glsl = glslheader;
-          glsl += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
-          glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-          glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
-          glsl += GetEmbeddedResource(spv_histogram_comp);
+          string defines = extensions;
+          defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+          defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+          defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          DebugData.histogramProgram[idx] = CreateCShaderProgram(glsl.c_str());
+          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(spv_histogram_comp), 420);
+
+          DebugData.histogramProgram[idx] = CreateCShaderProgram(cs);
         }
 
         if(t == 1)
         {
-          string glsl = glslheader;
-          glsl += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
-          glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-          glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
-          glsl += GetEmbeddedResource(spv_minmaxresult_comp);
+          string defines = extensions;
+          defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+          defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+          defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          DebugData.minmaxResultProgram[i] = CreateCShaderProgram(glsl.c_str());
+          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(spv_minmaxresult_comp),
+                             420);
+
+          DebugData.minmaxResultProgram[i] = CreateCShaderProgram(cs);
         }
       }
     }
@@ -476,21 +448,19 @@ void GLReplay::InitDebugData()
   }
 
   {
-    string glsl = "#version 420 core\n\n#define MS2Array main\n\n";
-    glsl += GetEmbeddedResource(glsl_arraymscopy_comp);
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(spv_ms2array_comp), 420);
+    DebugData.MS2Array = CreateCShaderProgram(cs);
 
-    DebugData.MS2Array = CreateCShaderProgram(glsl.c_str());
-
-    glsl = "#version 420 core\n\n#define Array2MS main\n\n";
-    glsl += GetEmbeddedResource(glsl_arraymscopy_comp);
-
-    DebugData.Array2MS = CreateCShaderProgram(glsl.c_str());
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(spv_array2ms_comp), 420);
+    DebugData.Array2MS = CreateCShaderProgram(cs);
   }
 
   {
-    string glsl = GetEmbeddedResource(glsl_mesh_comp);
-
-    DebugData.meshPickProgram = CreateCShaderProgram(glsl.c_str());
+    string defines =
+        "#extension GL_ARB_compute_shader : require\n"
+        "#extension GL_ARB_shader_storage_buffer_object : require";
+    GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(spv_mesh_comp), 420);
+    DebugData.meshPickProgram = CreateCShaderProgram(cs);
   }
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
@@ -499,12 +469,8 @@ void GLReplay::InitDebugData()
     gl.glGenBuffers(1, &DebugData.pickResultBuf);
     gl.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickResultBuf);
     gl.glNamedBufferStorageEXT(DebugData.pickResultBuf,
-                               sizeof(Vec4f) * DebugRenderData::maxMeshPicks, NULL, GL_MAP_READ_BIT);
-
-    gl.glGenBuffers(1, &DebugData.pickResultCounterBuf);
-    gl.glBindBuffer(eGL_ATOMIC_COUNTER_BUFFER, DebugData.pickResultCounterBuf);
-    gl.glNamedBufferStorageEXT(DebugData.pickResultCounterBuf, sizeof(uint32_t), NULL,
-                               GL_DYNAMIC_STORAGE_BIT);
+                               sizeof(Vec4f) * DebugRenderData::maxMeshPicks + sizeof(uint32_t) * 4,
+                               NULL, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT);
 
     // sized/created on demand
     DebugData.pickVBBuf = DebugData.pickIBBuf = 0;
@@ -619,8 +585,6 @@ void GLReplay::DeleteDebugData()
     gl.glDeleteTextures(1, &DebugData.overlayTex);
   }
 
-  gl.glDeleteProgram(DebugData.blitProg);
-
   if(DebugData.quadoverdrawFSProg)
   {
     gl.glDeleteProgram(DebugData.quadoverdrawFSProg);
@@ -634,13 +598,9 @@ void GLReplay::DeleteDebugData()
   gl.glDeleteProgramPipelines(1, &DebugData.texDisplayPipe);
 
   gl.glDeleteProgram(DebugData.checkerProg);
-  gl.glDeleteProgram(DebugData.genericProg);
-  gl.glDeleteProgram(DebugData.genericFSProg);
+  gl.glDeleteProgram(DebugData.fixedcolFSProg);
   gl.glDeleteProgram(DebugData.meshProg);
   gl.glDeleteProgram(DebugData.meshgsProg);
-
-  gl.glDeleteBuffers(1, &DebugData.outlineStripVB);
-  gl.glDeleteVertexArrays(1, &DebugData.outlineStripVAO);
 
   gl.glDeleteSamplers(1, &DebugData.linearSampler);
   gl.glDeleteSamplers(1, &DebugData.pointSampler);
@@ -760,7 +720,7 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 
   MakeCurrentReplayContext(m_DebugCtx);
 
-  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, DebugData.UBOs[0]);
   HistogramUBOData *cdata =
       (HistogramUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramUBOData),
                                               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -931,7 +891,7 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 
   MakeCurrentReplayContext(m_DebugCtx);
 
-  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, DebugData.UBOs[0]);
   HistogramUBOData *cdata =
       (HistogramUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramUBOData),
                                               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -1041,15 +1001,6 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
 
   gl.glUseProgram(DebugData.meshPickProgram);
 
-  GLint loc = gl.glGetUniformLocation(DebugData.meshPickProgram, "PickCoords");
-  gl.glUniform2f(loc, (float)x, (float)y);
-  loc = gl.glGetUniformLocation(DebugData.meshPickProgram, "PickViewport");
-  gl.glUniform2f(loc, DebugData.outWidth, DebugData.outHeight);
-  loc = gl.glGetUniformLocation(DebugData.meshPickProgram, "PickIdx");
-  gl.glUniform1ui(loc, cfg.position.idxByteWidth ? 1U : 0U);
-  loc = gl.glGetUniformLocation(DebugData.meshPickProgram, "PickNumVerts");
-  gl.glUniform1ui(loc, cfg.position.numVerts);
-
   Matrix4f projMat =
       Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, DebugData.outWidth / DebugData.outHeight);
 
@@ -1080,8 +1031,19 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
     PickMVP = projMat.Mul(camMat.Mul(guessProj.Inverse()));
   }
 
-  loc = gl.glGetUniformLocation(DebugData.meshPickProgram, "PickMVP");
-  gl.glUniformMatrix4fv(loc, 1, GL_FALSE, PickMVP.Data());
+  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+  MeshPickUBOData *cdata =
+      (MeshPickUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshPickUBOData),
+                                             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+  cdata->coords = Vec2f((float)x, (float)y);
+  cdata->viewport = Vec2f(DebugData.outWidth, DebugData.outHeight);
+  cdata->use_indices = cfg.position.idxByteWidth ? 1U : 0U;
+  cdata->numVerts = cfg.position.numVerts;
+  cdata->unproject = cfg.position.unproject;
+  cdata->mvp = PickMVP;
+
+  gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
   GLuint ib = 0;
 
@@ -1179,22 +1141,22 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
     delete[] vbData;
   }
 
-  uint32_t reset = 0;
-  gl.glBindBufferBase(eGL_ATOMIC_COUNTER_BUFFER, 0, DebugData.pickResultCounterBuf);
-  gl.glBufferSubData(eGL_ATOMIC_COUNTER_BUFFER, 0, sizeof(uint32_t), &reset);
-
+  uint32_t reset[4] = {};
   gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.pickResultBuf);
+  gl.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, sizeof(uint32_t) * 4, &reset);
+
   gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 1, DebugData.pickVBBuf);
   gl.glBindBufferRange(
       eGL_SHADER_STORAGE_BUFFER, 2, DebugData.pickIBBuf, (GLintptr)cfg.position.idxoffs,
       (GLsizeiptr)(cfg.position.idxoffs + cfg.position.idxByteWidth * cfg.position.numVerts));
+  gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 3, DebugData.pickResultBuf);
 
-  gl.glDispatchCompute(GLuint(cfg.position.numVerts / 1024 + 1), 1, 1);
+  gl.glDispatchCompute(GLuint(cfg.position.numVerts / 128 + 1), 1, 1);
   gl.glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
   uint32_t numResults = 0;
 
-  gl.glBindBuffer(eGL_COPY_READ_BUFFER, DebugData.pickResultCounterBuf);
+  gl.glBindBuffer(eGL_COPY_READ_BUFFER, DebugData.pickResultBuf);
   gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, sizeof(uint32_t), &numResults);
 
   if(numResults > 0)
@@ -1207,8 +1169,11 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
       float depth;
     };
 
-    PickResult *pickResults =
-        (PickResult *)gl.glMapNamedBufferEXT(DebugData.pickResultBuf, eGL_READ_ONLY);
+    byte *mapped = (byte *)gl.glMapNamedBufferEXT(DebugData.pickResultBuf, eGL_READ_ONLY);
+
+    mapped += sizeof(uint32_t) * 4;
+
+    PickResult *pickResults = (PickResult *)mapped;
 
     PickResult *closest = pickResults;
 
@@ -1344,7 +1309,7 @@ void GLReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, G
   gl.glTextureView(texs[0], eGL_TEXTURE_2D_ARRAY, destArray, fmt, 0, 1, 0, arraySize * samples);
   gl.glTextureView(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, fmt, 0, 1, 0, arraySize);
 
-  gl.glBindImageTexture(0, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
+  gl.glBindImageTexture(1, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
   gl.glActiveTexture(eGL_TEXTURE0);
   gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
   gl.glBindSampler(0, DebugData.pointNoMipSampler);
@@ -1357,8 +1322,13 @@ void GLReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, G
 
   gl.glUseProgram(DebugData.MS2Array);
 
-  GLint loc = gl.glGetUniformLocation(DebugData.MS2Array, "numMultiSamples");
-  gl.glUniform1i(loc, samples);
+  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, DebugData.UBOs[0]);
+  GLint *ubo = (GLint *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(uint32_t),
+                                            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+  *ubo = samples;
+
+  gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
   gl.glDispatchCompute((GLuint)width, (GLuint)height, GLuint(arraySize * samples));
   gl.glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -1712,43 +1682,58 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
 {
   MakeCurrentReplayContext(m_DebugCtx);
 
-  const float xpixdim = 2.0f / w;
-  const float ypixdim = 2.0f / h;
-
-  const float xdim = scale * xpixdim;
-  const float ydim = scale * ypixdim;
-
   WrappedOpenGL &gl = *m_pDriver;
 
-  gl.glUseProgram(DebugData.genericProg);
+  GLint sz = GLint(scale);
 
-  GLint offsetLoc = gl.glGetUniformLocation(DebugData.genericProg, "RENDERDOC_GenericVS_Offset");
-  GLint scaleLoc = gl.glGetUniformLocation(DebugData.genericProg, "RENDERDOC_GenericVS_Scale");
-  GLint colLoc = gl.glGetUniformLocation(DebugData.genericProg, "RENDERDOC_GenericFS_Color");
+  struct rect
+  {
+    GLint x, y;
+    GLint w, h;
+  };
 
-  Vec4f offsetVal(0.0f, 0.0f, 0.0f, 0.0f);
-  Vec4f scaleVal(xdim, ydim, 1.0f, 1.0f);
-  Vec4f colVal(1.0f, 1.0f, 1.0f, 1.0f);
+  rect tl = {GLint(w / 2.0f + 0.5f), GLint(h / 2.0f + 0.5f), 1, 1};
 
-  gl.glUniform4fv(offsetLoc, 1, &offsetVal.x);
-  gl.glUniform4fv(scaleLoc, 1, &scaleVal.x);
-  gl.glUniform4fv(colLoc, 1, &colVal.x);
+  rect scissors[4] = {
+      {tl.x, tl.y, 1, sz},
+      {tl.x + (GLint)sz, tl.y, 1, sz + 1},
+      {tl.x, tl.y, sz, 1},
+      {tl.x, tl.y + (GLint)sz, sz, 1},
+  };
 
-  gl.glDisable(eGL_DEPTH_TEST);
+  // inner
+  gl.glEnable(eGL_SCISSOR_TEST);
+  gl.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+  for(size_t i = 0; i < ARRAY_COUNT(scissors); i++)
+  {
+    gl.glScissor(scissors[i].x, scissors[i].y, scissors[i].w, scissors[i].h);
+    gl.glClear(eGL_COLOR_BUFFER_BIT);
+  }
 
-  gl.glBindVertexArray(DebugData.outlineStripVAO);
-  gl.glDrawArrays(eGL_LINE_STRIP, 0, 5);
+  scissors[0].x--;
+  scissors[1].x++;
+  scissors[2].x--;
+  scissors[3].x--;
 
-  offsetVal = Vec4f(-xpixdim, ypixdim, 0.0f, 0.0f);
-  scaleVal = Vec4f(xdim + xpixdim * 2, ydim + ypixdim * 2, 1.0f, 1.0f);
-  colVal = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+  scissors[0].y--;
+  scissors[1].y--;
+  scissors[2].y--;
+  scissors[3].y++;
 
-  gl.glUniform4fv(offsetLoc, 1, &offsetVal.x);
-  gl.glUniform4fv(scaleLoc, 1, &scaleVal.x);
-  gl.glUniform4fv(colLoc, 1, &colVal.x);
+  scissors[0].h += 2;
+  scissors[1].h += 2;
+  scissors[2].w += 2;
+  scissors[3].w += 2;
 
-  gl.glBindVertexArray(DebugData.outlineStripVAO);
-  gl.glDrawArrays(eGL_LINE_STRIP, 0, 5);
+  // outer
+  gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  for(size_t i = 0; i < ARRAY_COUNT(scissors); i++)
+  {
+    gl.glScissor(scissors[i].x, scissors[i].y, scissors[i].w, scissors[i].h);
+    gl.glClear(eGL_COLOR_BUFFER_BIT);
+  }
+
+  gl.glDisable(eGL_SCISSOR_TEST);
 }
 
 void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint fragProgram)
@@ -1834,7 +1819,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
   // we bind the separable program created for each shader, and copy
   // uniforms and attrib bindings from the 'real' programs, wherever
   // they are.
-  SetupOverlayPipeline(rs.Program, rs.Pipeline, DebugData.genericFSProg);
+  SetupOverlayPipeline(rs.Program, rs.Pipeline, DebugData.fixedcolFSProg);
 
   auto &texDetails = m_pDriver->m_Textures[texid];
 
@@ -1896,9 +1881,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     float black[] = {0.0f, 0.0f, 0.0f, 0.5f};
     gl.glClearBufferfv(eGL_COLOR, 0, black);
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.genericFSProg, "RENDERDOC_GenericFS_Color");
+    GLint colLoc = gl.glGetUniformLocation(DebugData.fixedcolFSProg, "RENDERDOC_Fixed_Color");
     float colVal[] = {0.8f, 0.1f, 0.8f, 1.0f};
-    gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, colVal);
+    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, colVal);
 
     ReplayLog(eventID, eReplay_OnlyDraw);
   }
@@ -1907,9 +1892,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     float wireCol[] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 0.0f};
     gl.glClearBufferfv(eGL_COLOR, 0, wireCol);
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.genericFSProg, "RENDERDOC_GenericFS_Color");
+    GLint colLoc = gl.glGetUniformLocation(DebugData.fixedcolFSProg, "RENDERDOC_Fixed_Color");
     wireCol[3] = 1.0f;
-    gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, wireCol);
+    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, wireCol);
 
     gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
@@ -1969,9 +1954,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
     gl.glClearBufferfv(eGL_COLOR, 0, black);
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.genericFSProg, "RENDERDOC_GenericFS_Color");
+    GLint colLoc = gl.glGetUniformLocation(DebugData.fixedcolFSProg, "RENDERDOC_Fixed_Color");
     float red[] = {1.0f, 0.0f, 0.0f, 1.0f};
-    gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, red);
+    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, red);
 
     ReplayLog(eventID, eReplay_OnlyDraw);
 
@@ -2047,7 +2032,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, rs.DrawFBO);
 
     float green[] = {0.0f, 1.0f, 0.0f, 1.0f};
-    gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, green);
+    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, green);
 
     if(overlay == eTexOverlay_Depth)
     {
@@ -2099,8 +2084,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     col[0] = 1.0f;
     col[3] = 1.0f;
 
-    GLint colLoc = gl.glGetUniformLocation(DebugData.genericFSProg, "RENDERDOC_GenericFS_Color");
-    gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, col);
+    GLint colLoc = gl.glGetUniformLocation(DebugData.fixedcolFSProg, "RENDERDOC_Fixed_Color");
+    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, col);
 
     ReplayLog(eventID, eReplay_OnlyDraw);
 
@@ -2112,7 +2097,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     col[0] = 0.0f;
     col[1] = 1.0f;
 
-    gl.glProgramUniform4fv(DebugData.genericFSProg, colLoc, 1, col);
+    gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, col);
 
     ReplayLog(eventID, eReplay_OnlyDraw);
   }

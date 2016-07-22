@@ -66,5 +66,7 @@ DECLARE_EMBED(spv_texsample_h);
 DECLARE_EMBED(spv_quadresolve_frag);
 DECLARE_EMBED(spv_quadwrite_frag);
 DECLARE_EMBED(spv_mesh_comp);
+DECLARE_EMBED(spv_array2ms_comp);
+DECLARE_EMBED(spv_ms2array_comp);
 
 #undef DECLARE_EMBED

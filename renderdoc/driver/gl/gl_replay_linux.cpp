@@ -178,6 +178,11 @@ void GLReplay::DestroyOutputWindow(uint64_t id)
 
   OutputWindow &outw = it->second;
 
+  MakeCurrentReplayContext(&outw);
+
+  WrappedOpenGL &gl = *m_pDriver;
+  gl.glDeleteFramebuffers(outw.BlitData.readFBO);
+
   glXMakeContextCurrentProc(outw.dpy, None, None, NULL);
   glXDestroyCtxProc(outw.dpy, outw.ctx);
 

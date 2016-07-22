@@ -231,6 +231,8 @@ set(data
     data/spv/texsample.h
     data/spv/text.frag
     data/spv/text.vert
+    data/spv/array2ms.comp
+    data/spv/ms2array.comp
     data/sourcecodepro.ttf)
 
 set(data_objects)

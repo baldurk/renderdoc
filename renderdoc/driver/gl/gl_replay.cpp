@@ -240,6 +240,10 @@ void GLReplay::InitOutputWindow(OutputWindow &outwin)
 
   gl.glGenVertexArrays(1, &outwin.BlitData.emptyVAO);
   gl.glBindVertexArray(outwin.BlitData.emptyVAO);
+
+  gl.glGenFramebuffers(1, &outwin.BlitData.readFBO);
+  gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, outwin.BlitData.readFBO);
+  gl.glReadBuffer(eGL_COLOR_ATTACHMENT0);
 }
 
 bool GLReplay::CheckResizeOutputWindow(uint64_t id)
@@ -337,14 +341,16 @@ void GLReplay::FlipOutputWindow(uint64_t id)
   gl.m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, 0);
   gl.glViewport(0, 0, outw.width, outw.height);
 
-  gl.glUseProgram(DebugData.blitProg);
+  gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, outw.BlitData.readFBO);
 
-  gl.glActiveTexture(eGL_TEXTURE0);
-  gl.glBindTexture(eGL_TEXTURE_2D, outw.BlitData.backbuffer);
+  gl.glFramebufferTexture2D(eGL_READ_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                            outw.BlitData.backbuffer, 0);
+  gl.glReadBuffer(eGL_COLOR_ATTACHMENT0);
+
   gl.glEnable(eGL_FRAMEBUFFER_SRGB);
 
-  gl.glBindVertexArray(outw.BlitData.emptyVAO);
-  gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+  gl.glBlitFramebuffer(0, 0, outw.width, outw.height, 0, 0, outw.width, outw.height,
+                       GL_COLOR_BUFFER_BIT, eGL_NEAREST);
 
   SwapBuffers(&outw);
 }

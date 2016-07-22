@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
- * Copyright (c) 2016 Baldur Karlsson
- * 
+ *
+ * Copyright (c) 2015-2016 Baldur Karlsson
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,55 +22,26 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout(binding = 1, std140) readonly buffer vertex_data
-{
-	vec4 data[];
-} vb;
+//#extension GL_ARB_compute_shader : require
 
-layout(binding = 2, std430) readonly buffer index_data
-{
-	uint data[];
-} ib;
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 3, std140) buffer pickresult_buffer
-{
-	uvec4 counter;
-	uvec4 results[];
-} pickresult;
+layout(binding = 0) uniform usampler2DArray srcArray;
+layout(binding = 1) writeonly uniform uimage2DMSArray dstMS;
 
-layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+layout (binding = 2, std140) uniform multisampleUBO
+{
+    int numMultiSamples;
+} mscopy;
 
 void main()
 {
-	uvec3 tid = gl_GlobalInvocationID;
+	uvec3 id = gl_GlobalInvocationID;
 
-	uint vertid = tid.x;
+	int slice = int(id.z / mscopy.numMultiSamples);
+	int sampleIdx = int(id.z % mscopy.numMultiSamples);
 
-	if(vertid >= meshpick.numVerts)
-		return;
+	uvec4 data = texelFetch(srcArray, ivec3(int(id.x), int(id.y), int(id.z)), 0);
 
-	uint idx = meshpick.use_indices != 0u ? ib.data[vertid] : vertid;
-
-	vec4 pos = vb.data[idx];
-
-	vec4 wpos = meshpick.mvp * pos;
-
-	wpos.xyz /= wpos.www;
-
-#ifdef VULKAN
-	if(meshpick.unproject == 0u)
-		wpos.xy *= vec2(1.0f, -1.0f);
-#else // OPENGL
-	wpos.xy *= vec2(1.0f, -1.0f);
-#endif
-
-	vec2 scr = (wpos.xy + 1.0f) * 0.5f * meshpick.viewport;
-
-	// close to target co-ords? add to list
-	float len = length(scr - meshpick.coords);
-	if(len < 35.0f)
-	{
-		uint result_idx = atomicAdd(pickresult.counter.x, 1u);
-		pickresult.results[result_idx] = uvec4(vertid, idx, floatBitsToUint(len), floatBitsToUint(wpos.z));
-	}
+	imageStore(dstMS, ivec3(int(id.x), int(id.y), slice), sampleIdx, data);
 }

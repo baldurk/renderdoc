@@ -25,8 +25,8 @@
 
 layout (location = 0) out vec4 color_out;
 
-#ifndef VULKAN // OpenGL can't use SPIR-V patching
-uniform vec4 RENDERDOC_GenericFS_Color;
+#ifdef OPENGL // OpenGL can't use SPIR-V patching
+uniform vec4 RENDERDOC_Fixed_Color;
 #endif
 
 void main(void)
@@ -38,6 +38,6 @@ void main(void)
     // on the fly to replace these constants
     color_out = vec4(1.1f, 2.2f, 3.3f, 4.4f);
 #else
-    color_out = RENDERDOC_GenericFS_Color;
+    color_out = RENDERDOC_Fixed_Color;
 #endif
 }

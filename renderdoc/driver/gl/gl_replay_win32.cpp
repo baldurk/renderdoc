@@ -209,6 +209,11 @@ void GLReplay::DestroyOutputWindow(uint64_t id)
 
   OutputWindow &outw = it->second;
 
+  MakeCurrentReplayContext(&outw);
+
+  WrappedOpenGL &gl = *m_pDriver;
+  gl.glDeleteFramebuffers(1, &outw.BlitData.readFBO);
+
   wglMakeCurrentProc(NULL, NULL);
   wglDeleteRC(outw.ctx);
   ReleaseDC(outw.wnd, outw.DC);

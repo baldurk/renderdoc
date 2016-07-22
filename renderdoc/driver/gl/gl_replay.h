@@ -245,6 +245,9 @@ private:
       // for any cases where we need to use the replay context (like
       // re-rendering a draw).
       GLuint replayFBO;
+
+      // read FBO for blit to window
+      GLuint readFBO;
     } BlitData;
 
     int width, height;
@@ -268,10 +271,6 @@ private:
 
     GLuint outlineQuadProg;
 
-    // program that does a blit of texture from input to output,
-    // no transformation or scaling
-    GLuint blitProg;
-
     GLuint texDisplayPipe;
     GLuint texDisplayVSProg;
     GLuint texDisplayProg[3];    // float/uint/sint
@@ -286,7 +285,6 @@ private:
     GLuint pickIBBuf, pickVBBuf;
     uint32_t pickIBSize, pickVBSize;
     GLuint pickResultBuf;
-    GLuint pickResultCounterBuf;
 
     GLuint MS2Array, Array2MS;
 
@@ -298,8 +296,7 @@ private:
 
     GLuint checkerProg;
 
-    GLuint genericProg;
-    GLuint genericFSProg;
+    GLuint fixedcolFSProg;
 
     GLuint meshProg;
     GLuint meshgsProg;
@@ -311,9 +308,6 @@ private:
 
     GLuint axisFrustumBuffer;
     GLuint triHighlightBuffer;
-
-    GLuint outlineStripVB;
-    GLuint outlineStripVAO;
 
     GLuint feedbackObj;
     GLuint feedbackQuery;
@@ -332,6 +326,8 @@ private:
     GLint overlayTexWidth, overlayTexHeight;
 
     GLuint UBOs[2];
+
+    GLuint readFBO;
 
     GLuint emptyVAO;
   } DebugData;
@@ -372,9 +368,6 @@ private:
                              const vector<string> &gs);
   GLuint CreateShaderProgram(const vector<string> &vs, const vector<string> &fs);
   GLuint CreateCShaderProgram(const vector<string> &cs);
-
-  GLuint CreateShaderProgram(const char *vs, const char *fs, const char *gs = NULL);
-  GLuint CreateCShaderProgram(const char *cs);
 
   void InitOutputWindow(OutputWindow &outwin);
   void CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth);

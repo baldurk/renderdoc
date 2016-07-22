@@ -541,6 +541,12 @@
     <None Include="data\spv\quadresolve.frag">
       <Filter>Resources\spv</Filter>
     </None>
+    <None Include="data\spv\array2ms.comp">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\ms2array.comp">
+      <Filter>Resources\spv</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

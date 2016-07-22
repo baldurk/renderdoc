@@ -401,6 +401,7 @@
     <None Include="data\hlsl\histogram.hlsl" />
     <None Include="data\hlsl\mesh.hlsl" />
     <None Include="data\hlsl\multisample.hlsl" />
+    <None Include="data\spv\array2ms.comp" />
     <None Include="data\spv\blit.vert" />
     <None Include="data\spv\checkerboard.frag" />
     <None Include="data\spv\fixedcol.frag" />
@@ -411,6 +412,7 @@
     <None Include="data\spv\mesh.vert" />
     <None Include="data\spv\minmaxresult.comp" />
     <None Include="data\spv\minmaxtile.comp" />
+    <None Include="data\spv\ms2array.comp" />
     <None Include="data\spv\outline.frag" />
     <None Include="data\spv\quadresolve.frag" />
     <None Include="data\spv\quadwrite.frag" />

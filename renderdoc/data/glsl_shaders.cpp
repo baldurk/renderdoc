@@ -47,7 +47,7 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
     sources[0] += shader.substr(begin, extsearch - begin + 1);
   } while(extsearch != string::npos);
 
-  sources[0] += "\n" + defines;
+  sources[0] += "\n" + defines + "\n";
 
   if(uniforms)
     sources[1] = GetEmbeddedResource(spv_debuguniforms_h);
