@@ -101,7 +101,21 @@ namespace renderdocui.Code
         {
             get
             {
-                return format.compByteWidth * format.compCount * matrixdim;
+                uint vecSize = format.compByteWidth * format.compCount;
+
+                if (format.special)
+                {
+                    if (format.specialFormat == SpecialFormat.R5G5B5A1 ||
+                        format.specialFormat == SpecialFormat.R5G6B5 ||
+                        format.specialFormat == SpecialFormat.R4G4B4A4)
+                        vecSize = 2;
+
+                    if (format.specialFormat == SpecialFormat.R10G10B10A2 ||
+                        format.specialFormat == SpecialFormat.R11G11B10)
+                        vecSize = 4;
+                }
+
+                return vecSize * matrixdim;
             }
         }
 

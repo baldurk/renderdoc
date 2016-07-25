@@ -1714,7 +1714,7 @@ namespace renderdocui.Windows
                             var fmt = bufferFormats[el].format;
                             int byteWidth = (int)fmt.compByteWidth;
 
-                            int bytesToRead = (int)(fmt.compByteWidth * fmt.compCount);
+                            int bytesToRead = (int)bufferFormats[el].ByteSize;
 
                             byte[] bytes = read.ReadBytes(bytesToRead);
                             rawWriter.Write(bytes);
