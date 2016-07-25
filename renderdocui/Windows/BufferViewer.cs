@@ -482,6 +482,8 @@ namespace renderdocui.Windows
 
         public void OnLogfileClosed()
         {
+            if (IsDisposed) return;
+
             m_Output = null;
 
             ResetConfig();
@@ -603,6 +605,8 @@ namespace renderdocui.Windows
 
         public void OnEventSelected(UInt32 eventID)
         {
+            if (IsDisposed) return;
+
             // ignore OnEventSelected until we've loaded
             if (!m_Loaded)
                 return;
