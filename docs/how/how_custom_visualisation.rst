@@ -71,7 +71,7 @@ Texture dimensions
 .. code:: c++
 
 	uint4 RENDERDOC_TexDim; // hlsl
-	uvec4 RENDERDOC_TexDim; // glsl
+	uniform uvec4 RENDERDOC_TexDim; // glsl
 
 
 This variable will be filled out with the following values:
@@ -87,7 +87,9 @@ Selected Mip level
 .. highlight:: c++
 .. code:: c++
 
-	uint RENDERDOC_SelectedMip;
+	uint RENDERDOC_SelectedMip; // hlsl
+	uniform uint RENDERDOC_SelectedMip; // glsl
+
 
 This variable will be filled out with the selected mip level in the UI.
 
@@ -97,7 +99,9 @@ Selected Slice/Face
 .. highlight:: c++
 .. code:: c++
 
-	uint RENDERDOC_SelectedSliceFace;
+	uint RENDERDOC_SelectedSliceFace; // hlsl
+	uniform uint RENDERDOC_SelectedSliceFace; // glsl
+
 
 This variable will be filled out with the selected texture array slice (or cubemap face) in the UI.
 
@@ -107,7 +111,9 @@ Selected Multisample sample
 .. highlight:: c++
 .. code:: c++
 
-	int RENDERDOC_SelectedSample;
+	int RENDERDOC_SelectedSample; // hlsl
+	uniform int RENDERDOC_SelectedSample; // glsl
+
 
 This variable will be filled out with the selected multisample sample index as chosen in the UI. If the UI has 'average value' selected, this variable will be negative and with an absolute value equal to the number of samples.
 
@@ -119,7 +125,8 @@ Current texture type
 .. highlight:: c++
 .. code:: c++
 
-	uint RENDERDOC_TextureType;
+	uint RENDERDOC_TextureType; // hlsl
+	uniform uint RENDERDOC_TextureType; // glsl
 
 
 This variable will be set to a given integer value, depending on the type of the current texture being displayed. This can be used to sample from the correct resource.
