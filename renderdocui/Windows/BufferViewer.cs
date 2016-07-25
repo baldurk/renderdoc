@@ -1753,6 +1753,8 @@ namespace renderdocui.Windows
                                         val = (float)(int)elements[i];
                                     else if (o is Int16)
                                         val = (float)(int)elements[i];
+                                    else if (o is double)
+                                        val = (float)(double)elements[i];
                                     else
                                         val = (float)elements[i];
 
