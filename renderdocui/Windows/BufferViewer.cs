@@ -3465,7 +3465,8 @@ namespace renderdocui.Windows
 
                 if (scroll)
                 {
-                    if (g.RowCount > 0 && g.RowCount > primary.FirstDisplayedScrollingRowIndex)
+                    if (g.RowCount > 0 && primary.FirstDisplayedScrollingRowIndex >= 0 &&
+                        g.RowCount > primary.FirstDisplayedScrollingRowIndex)
                         g.FirstDisplayedScrollingRowIndex = primary.FirstDisplayedScrollingRowIndex;
                 }
             }
