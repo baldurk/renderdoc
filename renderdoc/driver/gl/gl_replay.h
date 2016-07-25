@@ -194,8 +194,8 @@ public:
 
   ResourceId RenderOverlay(ResourceId id, FormatComponentType typeHint, TextureDisplayOverlay overlay,
                            uint32_t eventID, const vector<uint32_t> &passEvents);
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                               FormatComponentType typeHint);
+  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
+                               uint32_t sampleIdx, FormatComponentType typeHint);
 
   ResourceId CreateProxyTexture(const FetchTexture &templateTex);
   void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,

@@ -1226,10 +1226,14 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   data->Scale = cfg.scale * mipScale;
 
-  data->SampleIdx = cfg.sampleIdx;
+  int sampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)SampleCount(iminfo.samples));
+
+  sampleIdx = cfg.sampleIdx;
 
   if(cfg.sampleIdx == ~0U)
-    data->SampleIdx = -SampleCount(iminfo.samples);
+    sampleIdx = -SampleCount(iminfo.samples);
+
+  data->SampleIdx = sampleIdx;
 
   data->OutputRes.x = (float)m_DebugWidth;
   data->OutputRes.y = (float)m_DebugHeight;
@@ -1273,7 +1277,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
       Vec4u texDim;
       uint32_t selectedMip;
       uint32_t texType;
-      uint32_t padding[2];
+      uint32_t selectedSliceFace;
+      int32_t selectedSample;
     };
 
     CustomTexDisplayUBOData *customData = (CustomTexDisplayUBOData *)data;
@@ -1283,7 +1288,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     customData->texDim.z = iminfo.extent.depth;
     customData->texDim.w = iminfo.mipLevels;
     customData->selectedMip = cfg.mip;
-    customData->padding[0] = customData->padding[1] = 0;
+    customData->selectedSliceFace = cfg.sliceFace;
+    customData->selectedSample = sampleIdx;
     customData->texType = (uint32_t)textype;
   }
 
@@ -5357,6 +5363,7 @@ void VulkanReplay::FreeCustomShader(ResourceId id)
 }
 
 ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                           uint32_t arrayIdx, uint32_t sampleIdx,
                                            FormatComponentType typeHint)
 {
   if(shader == ResourceId() || texid == ResourceId())
@@ -5383,13 +5390,13 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;
-  disp.sampleIdx = 0;
+  disp.sampleIdx = sampleIdx;
   disp.overlay = eTexOverlay_None;
   disp.rangemin = 0.0f;
   disp.rangemax = 1.0f;
   disp.rawoutput = false;
   disp.scale = 1.0f;
-  disp.sliceFace = 0;
+  disp.sliceFace = arrayIdx;
 
   VkClearValue clearval = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
   VkRenderPassBeginInfo rpbegin = {

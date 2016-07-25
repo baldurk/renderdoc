@@ -2611,6 +2611,7 @@ void GLReplay::BuildCustomShader(string source, string entry, const uint32_t com
 }
 
 ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                       uint32_t arrayIdx, uint32_t sampleIdx,
                                        FormatComponentType typeHint)
 {
   if(shader == ResourceId() || texid == ResourceId())
@@ -2647,13 +2648,13 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;
-  disp.sampleIdx = 0;
+  disp.sampleIdx = sampleIdx;
   disp.overlay = eTexOverlay_None;
   disp.rangemin = 0.0f;
   disp.rangemax = 1.0f;
   disp.rawoutput = false;
   disp.scale = 1.0f;
-  disp.sliceFace = 0;
+  disp.sliceFace = arrayIdx;
 
   RenderTextureInternal(disp, false);
 

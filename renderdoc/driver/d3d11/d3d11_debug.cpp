@@ -3298,11 +3298,13 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   TextureShaderDetails details =
       GetShaderDetails(cfg.texid, cfg.typeHint, cfg.rawoutput ? true : false);
 
-  pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, details.sampleCount - 1);
+  int sampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, details.sampleCount - 1);
 
   // hacky resolve
   if(cfg.sampleIdx == ~0U)
-    pixelData.SampleIdx = -int(details.sampleCount);
+    sampleIdx = -int(details.sampleCount);
+
+  pixelData.SampleIdx = sampleIdx;
 
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return false;
@@ -3415,6 +3417,36 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
                 else
                 {
                   RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %s",
+                          var.name.c_str());
+                }
+              }
+              else if(var.name == "RENDERDOC_SelectedSliceFace")
+              {
+                if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
+                   var.type.descriptor.type == DXBC::VARTYPE_UINT)
+                {
+                  uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+
+                  d[0] = cfg.sliceFace;
+                }
+                else
+                {
+                  RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %s",
+                          var.name.c_str());
+                }
+              }
+              else if(var.name == "RENDERDOC_SelectedSample")
+              {
+                if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
+                   var.type.descriptor.type == DXBC::VARTYPE_INT)
+                {
+                  int32_t *d = (int32_t *)(byteData + var.descriptor.offset);
+
+                  d[0] = cfg.sampleIdx;
+                }
+                else
+                {
+                  RDCWARN("Custom shader: Variable recognised but type wrong, expected int: %s",
                           var.name.c_str());
                 }
               }

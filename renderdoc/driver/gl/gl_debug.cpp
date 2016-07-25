@@ -1475,6 +1475,20 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
     if(loc >= 0)
       gl.glProgramUniform1ui(customProg, loc, cfg.mip);
 
+    loc = gl.glGetUniformLocation(customProg, "RENDERDOC_SelectedSliceFace");
+    if(loc >= 0)
+      gl.glProgramUniform1ui(customProg, loc, cfg.sliceFace);
+
+    loc = gl.glGetUniformLocation(customProg, "RENDERDOC_SelectedSample");
+    if(loc >= 0)
+    {
+      if(cfg.sampleIdx == ~0U)
+        gl.glProgramUniform1i(customProg, loc, -texDetails.samples);
+      else
+        gl.glProgramUniform1i(customProg, loc,
+                              (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)texDetails.samples - 1));
+    }
+
     loc = gl.glGetUniformLocation(customProg, "RENDERDOC_TextureType");
     if(loc >= 0)
       gl.glProgramUniform1ui(customProg, loc, resType);

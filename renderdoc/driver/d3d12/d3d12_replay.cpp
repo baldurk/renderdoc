@@ -475,6 +475,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FormatComponentType type
 }
 
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                          uint32_t arrayIdx, uint32_t sampleIdx,
                                           FormatComponentType typeHint)
 {
   return ResourceId();

@@ -566,7 +566,8 @@ void ReplayOutput::DisplayTex()
   if(m_RenderData.texDisplay.CustomShader != ResourceId())
   {
     m_CustomShaderResourceId = m_pDevice->ApplyCustomShader(
-        m_RenderData.texDisplay.CustomShader, texDisplay.texid, texDisplay.mip, texDisplay.typeHint);
+        m_RenderData.texDisplay.CustomShader, texDisplay.texid, texDisplay.mip,
+        texDisplay.sliceFace, texDisplay.sampleIdx, texDisplay.typeHint);
 
     texDisplay.texid = m_pDevice->GetLiveID(m_CustomShaderResourceId);
     texDisplay.typeHint = eCompType_None;

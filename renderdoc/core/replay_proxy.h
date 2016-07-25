@@ -320,14 +320,15 @@ public:
       m_Proxy->FreeTargetResource(id);
   }
 
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                               FormatComponentType typeHint)
+  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
+                               uint32_t sampleIdx, FormatComponentType typeHint)
   {
     if(m_Proxy)
     {
       EnsureTexCached(texid, 0, mip);
       texid = m_ProxyTextureIds[texid];
-      ResourceId customResourceId = m_Proxy->ApplyCustomShader(shader, texid, mip, typeHint);
+      ResourceId customResourceId =
+          m_Proxy->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx, typeHint);
       m_LocalTextures.insert(customResourceId);
       m_ProxyTextureIds[customResourceId] = customResourceId;
       return customResourceId;

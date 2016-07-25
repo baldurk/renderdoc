@@ -166,6 +166,7 @@ public:
   virtual void BuildCustomShader(string source, string entry, const uint32_t compileFlags,
                                  ShaderStageType type, ResourceId *id, string *errors) = 0;
   virtual ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                       uint32_t arrayIdx, uint32_t sampleIdx,
                                        FormatComponentType typeHint) = 0;
   virtual void FreeCustomShader(ResourceId id) = 0;
 

@@ -194,8 +194,8 @@ public:
   ResourceId RenderOverlay(ResourceId texid, FormatComponentType typeHint,
                            TextureDisplayOverlay overlay, uint32_t eventID,
                            const vector<uint32_t> &passEvents);
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                               FormatComponentType typeHint);
+  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
+                               uint32_t sampleIdx, FormatComponentType typeHint);
 
   // don't need to differentiate arrays as we treat everything
   // as an array (potentially with only one element).

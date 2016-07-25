@@ -1581,9 +1581,11 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FormatComponentType type
 }
 
 ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                          uint32_t arrayIdx, uint32_t sampleIdx,
                                           FormatComponentType typeHint)
 {
-  return m_pDevice->GetDebugManager()->ApplyCustomShader(shader, texid, mip, typeHint);
+  return m_pDevice->GetDebugManager()->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx,
+                                                         typeHint);
 }
 
 bool D3D11Replay::IsRenderOutput(ResourceId id)

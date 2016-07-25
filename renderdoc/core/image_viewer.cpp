@@ -131,10 +131,10 @@ public:
     m_Proxy->BuildCustomShader(source, entry, compileFlags, type, id, errors);
   }
   void FreeCustomShader(ResourceId id) { m_Proxy->FreeTargetResource(id); }
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                               FormatComponentType typeHint)
+  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
+                               uint32_t sampleIdx, FormatComponentType typeHint)
   {
-    return m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, typeHint);
+    return m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, arrayIdx, sampleIdx, typeHint);
   }
   vector<ResourceId> GetTextures() { return m_Proxy->GetTextures(); }
   FetchTexture GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }

@@ -58,6 +58,8 @@ There are several constant parameters available, each detailed below with the va
 		uvec4 TexDim;
 		uint SelectedMip;
 		uint TextureType;
+		uint SelectedSliceFace;
+		int SelectedSample;
 	} RENDERDOC;
 
 In this way you can access the properties as ``RENDERDOC.TexDim`` insetad of ``RENDERDOC_TexDim``.
@@ -88,6 +90,28 @@ Selected Mip level
 	uint RENDERDOC_SelectedMip;
 
 This variable will be filled out with the selected mip level in the UI.
+
+Selected Slice/Face
+```````````````````
+
+.. highlight:: c++
+.. code:: c++
+
+	uint RENDERDOC_SelectedSliceFace;
+
+This variable will be filled out with the selected texture array slice (or cubemap face) in the UI.
+
+Selected Multisample sample
+```````````````````````````
+
+.. highlight:: c++
+.. code:: c++
+
+	int RENDERDOC_SelectedSample;
+
+This variable will be filled out with the selected multisample sample index as chosen in the UI. If the UI has 'average value' selected, this variable will be negative and with an absolute value equal to the number of samples.
+
+So for example in a 4x MSAA texture, the valid values are ``0``, ``1``, ``2``, ``3`` to select a sample, or ``-4`` for 'average value'.
 
 Current texture type
 ````````````````````
