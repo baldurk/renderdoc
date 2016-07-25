@@ -1406,7 +1406,7 @@ namespace renderdocui.Windows
             }
 
             // hide others
-            for (; rwIndex < rwPanel.Thumbnails.Length - 1; rwIndex++)
+            for (; rwIndex < rwPanel.Thumbnails.Length; rwIndex++)
             {
                 rwPanel.Thumbnails[rwIndex].Init();
                 rwPanel.Thumbnails[rwIndex].Visible = false;
@@ -1414,7 +1414,7 @@ namespace renderdocui.Windows
 
             rwPanel.RefreshLayout();
             
-            for (; roIndex < roPanel.Thumbnails.Length - 1; roIndex++)
+            for (; roIndex < roPanel.Thumbnails.Length; roIndex++)
             {
                 roPanel.Thumbnails[roIndex].Init();
                 roPanel.Thumbnails[roIndex].Visible = false;
