@@ -1907,6 +1907,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
       multidraw.indexOffset = (uint32_t)uint64_t(idxOffsArray[i]) & 0xFFFFFFFF;
       multidraw.indexByteWidth = IdxSize;
 
+      multidraw.indexOffset /= IdxSize;
+
       multidraw.name =
           "glMultiDrawElements[" + ToStr::Get(i) + "](" + ToStr::Get(multidraw.numIndices) + ")";
 
@@ -2070,6 +2072,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
       multidraw.numIndices = countArray[i];
       multidraw.indexOffset = (uint32_t)uint64_t(idxOffsArray[i]) & 0xFFFFFFFF;
       multidraw.baseVertex = baseArray[i];
+
+      multidraw.indexOffset /= IdxSize;
 
       multidraw.name = "glMultiDrawElementsBaseVertex[" + ToStr::Get(i) + "](" +
                        ToStr::Get(multidraw.numIndices) + ")";
