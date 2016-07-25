@@ -353,6 +353,8 @@ namespace renderdocui.Windows
                 typeHint = FormatComponentType.None;
             }
 
+            public int displayType; // RGBA, RGBM, Custom
+            public string customShader;
             public bool r, g, b, a;
             public bool depth, stencil;
             public int mip, slice;
@@ -1497,6 +1499,9 @@ namespace renderdocui.Windows
                 m_TextureSettings[m_TexDisplay.texid].b = customBlue.Checked;
                 m_TextureSettings[m_TexDisplay.texid].a = customAlpha.Checked;
 
+                m_TextureSettings[m_TexDisplay.texid].displayType = channels.SelectedIndex;
+                m_TextureSettings[m_TexDisplay.texid].customShader = customShader.Text;
+
                 m_TextureSettings[m_TexDisplay.texid].depth = depthDisplay.Checked;
                 m_TextureSettings[m_TexDisplay.texid].stencil = stencilDisplay.Checked;
 
@@ -1694,6 +1699,10 @@ namespace renderdocui.Windows
                 // if we save certain settings per-texture, restore them (if we have any)
                 if (m_Core.Config.TextureViewer_PerTexSettings && m_TextureSettings.ContainsKey(tex.ID))
                 {
+                    channels.SelectedIndex = m_TextureSettings[tex.ID].displayType;
+
+                    customShader.Text = m_TextureSettings[tex.ID].customShader;
+
                     customRed.Checked = m_TextureSettings[tex.ID].r;
                     customGreen.Checked = m_TextureSettings[tex.ID].g;
                     customBlue.Checked = m_TextureSettings[tex.ID].b;
@@ -1709,6 +1718,10 @@ namespace renderdocui.Windows
                 else if (m_Core.Config.TextureViewer_PerTexSettings)
                 {
                     // if we are using per-tex settings, reset back to RGB
+                    channels.SelectedIndex = 0;
+
+                    customShader.Text = "";
+
                     customRed.Checked = true;
                     customGreen.Checked = true;
                     customBlue.Checked = true;
