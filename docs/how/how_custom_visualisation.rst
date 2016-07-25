@@ -27,18 +27,31 @@ There are several pre-defined inputs that can either be taken as parameters to t
 
 The shader editor when using the UI can be used to insert these snippets for you, with the right type and spelling. For GLSL these snippets are inserted at the top of the file just after any ``#version`` statement.
 
-UV co-ordinates (D3D11 only)
-````````````````````````````
+UV co-ordinates
+```````````````
 
 .. highlight:: c++
 .. code:: c++
 
+	/* HLSL */
 	float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0
 	{
 	  return 1;
 	}
 
-This input is defined as two parameters to the shader entry point. The first defines the usual SV_Position system semantic, and the first two components of the second TEXCOORD0 parameter gives UV co-ordinates from 0 to 1 in each dimension over the size of the texture (or texture slice).
+	/* GLSL */
+	layout (location = 0) in vec2 uv;
+
+	void main() : SV_Target0
+	{
+	  // ...
+	}
+
+This input is defined in HLSL as a second parameter to the shader entry point. The first defines the usual ``SV_Position`` system semantic, and the first two components of the second ``TEXCOORD0`` parameter gives UV co-ordinates from 0 to 1 in each dimension over the size of the texture (or texture slice).
+
+In GLSL it is bound as a ``vec2`` input at location ``0``.
+
+You can also use the auto-generated system co-ordinates - ``SV_Position`` or ``gl_FragCoord`` if you need co-ordinates in ``0`` to ``N,M`` for an ``NxM`` texture.
 
 .. note::
 
