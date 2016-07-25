@@ -294,8 +294,13 @@ namespace renderdocui.Windows
 
                 ResourceFormat fmt = new ResourceFormat(floatTex ? FormatComponentType.Float : texture.format.compType, 4, 4);
 
-                string shadOutVal = "Shader Out\n\n" + ModificationValueString(mod.shaderOut, fmt, depth);
+                string shadOutVal;
                 string postModVal = "Tex After\n\n" + ModificationValueString(mod.postMod, texture.format, depth);
+
+                if (mod.unboundPS)
+                    shadOutVal = "No Pixel\nShader\nBound";
+                else
+                    shadOutVal = "Shader Out\n\n" + ModificationValueString(mod.shaderOut, fmt, depth);
 
                 if (!mod.EventPassed() && hideFailedEventsToolStripMenuItem.Checked)
                     return null;

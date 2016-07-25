@@ -5319,6 +5319,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
       mod.eventID = events[i].eventID;
 
       mod.uavWrite = uavWrite;
+      mod.unboundPS = false;
 
       mod.preMod.col.value_u[0] = (uint32_t)i;
 
@@ -6252,6 +6253,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
         m_pImmediateContext->PSGetShader(&curPS, curInst, &curNumInst);
         m_pImmediateContext->PSSetShader(m_DebugRender.PrimitiveIDPS, NULL, 0);
+
+        if(curPS == NULL)
+          history[h].unboundPS = true;
 
         m_WrappedDevice->ReplayLog(0, history[h].eventID, eReplay_OnlyDraw);
 

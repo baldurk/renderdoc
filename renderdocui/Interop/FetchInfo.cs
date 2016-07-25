@@ -819,6 +819,7 @@ namespace renderdoc
         public UInt32 eventID;
 
         public bool uavWrite;
+        public bool unboundPS;
 
         public UInt32 fragIndex;
         public UInt32 primitiveID;

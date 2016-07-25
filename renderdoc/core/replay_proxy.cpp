@@ -1386,6 +1386,8 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
   Serialise("", el.eventID);
 
   Serialise("", el.uavWrite);
+  Serialise("", el.unboundPS);
+
   Serialise("", el.fragIndex);
   Serialise("", el.primitiveID);
 
@@ -1408,7 +1410,7 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
   Serialise("", el.depthTestFailed);
   Serialise("", el.stencilTestFailed);
 
-  SIZE_CHECK(PixelModification, 120);
+  SIZE_CHECK(PixelModification, 124);
 }
 
 #pragma endregion Data descriptors
