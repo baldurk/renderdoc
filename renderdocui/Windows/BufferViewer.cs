@@ -1722,30 +1722,35 @@ namespace renderdocui.Windows
                             if (bytes.Length != bytesToRead)
                                 continue;
 
+                            object[] elements = null;
+
+                            {
+                                MemoryStream tempStream = new MemoryStream(bytes);
+                                BinaryReader tempReader = new BinaryReader(tempStream);
+
+                                elements = bufferFormats[el].GetObjects(tempReader);
+
+                                tempReader.Dispose();
+                                tempStream.Dispose();
+                            }
+
                             // update min/max for this element
                             {
-                                for (int i = 0; i < fmt.compCount; i++)
+                                for (int i = 0; !outofBounds && i < elements.Length; i++)
                                 {
-                                    float val = 0;
+                                    object o = elements[i];
+                                    float val;
 
-                                    if (fmt.compType == FormatComponentType.Float)
-                                    {
-                                        if (byteWidth == 4)
-                                            val = BitConverter.ToSingle(bytes, i * byteWidth);
-                                        else if (byteWidth == 2)
-                                            val = fmt.ConvertFromHalf(BitConverter.ToUInt16(bytes, i * byteWidth));
-                                    }
+                                    if (o is uint)
+                                        val = (float)(uint)elements[i];
+                                    else if (o is int)
+                                        val = (float)(int)elements[i];
+                                    else if (o is UInt16)
+                                        val = (float)(int)elements[i];
+                                    else if (o is Int16)
+                                        val = (float)(int)elements[i];
                                     else
-                                    {
-                                        if (byteWidth == 4)
-                                            val = (float)BitConverter.ToUInt32(bytes, i * byteWidth);
-                                        else if (byteWidth == 2)
-                                            val = (float)BitConverter.ToUInt16(bytes, i * byteWidth);
-                                        else if (byteWidth == 1)
-                                            val = (float)bytes[i * byteWidth];
-                                    }
-
-                                    if (outofBounds) continue;
+                                        val = (float)elements[i];
 
                                     if (i == 0)
                                     {
