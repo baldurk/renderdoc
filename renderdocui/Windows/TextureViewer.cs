@@ -882,6 +882,8 @@ namespace renderdocui.Windows
             if (m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
             {
                 MessageBox.Show("Selected shader already exists.\nEnter a new name in the textbox.", "Error Creating Shader", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                customShader.Text = "";
+                UI_UpdateChannels();
                 return;
             }
 
@@ -2289,12 +2291,10 @@ namespace renderdocui.Windows
                     if (m_TexDisplay.CustomShader == ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue = null; UI_UpdateStatusText(); }
                     m_TexDisplay.CustomShader = m_CustomShaders[customShader.Text.ToUpperInvariant()];
                     customDelete.Enabled = customEdit.Enabled = true;
-                    customCreate.Enabled = false;
                 }
                 else
                 {
                     customDelete.Enabled = customEdit.Enabled = false;
-                    customCreate.Enabled = true;
                 }
             }
 
