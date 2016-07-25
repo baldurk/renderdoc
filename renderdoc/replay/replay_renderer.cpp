@@ -449,7 +449,7 @@ bool ReplayRenderer::GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t m
 bool ReplayRenderer::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
                                    rdctype::array<byte> *data)
 {
-  if(data == NULL)
+  if(data == NULL || buff == ResourceId())
     return false;
 
   ResourceId liveId = m_pDevice->GetLiveID(buff);
