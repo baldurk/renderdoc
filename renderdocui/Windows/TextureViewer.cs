@@ -1521,6 +1521,8 @@ namespace renderdocui.Windows
             // interpret the texture according to the currently following type.
             if(!CurrentTextureIsLocked)
                 m_TexDisplay.typeHint = m_Following.GetTypeHint(m_Core);
+            else
+                m_TexDisplay.typeHint = FormatComponentType.None;
 
             // if there is no such type or it isn't being followed, use the last seen interpretation
             if (m_TexDisplay.typeHint == FormatComponentType.None && m_TextureSettings.ContainsKey(m_TexDisplay.texid))
