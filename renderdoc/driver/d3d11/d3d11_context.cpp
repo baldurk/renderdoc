@@ -901,18 +901,18 @@ void WrappedID3D11DeviceContext::RefreshDrawcallIDs(DrawcallTreeNode &node)
 
 void WrappedID3D11DeviceContext::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 {
-  if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
-  {
-    m_pDevice->GetImmediateContext()->AddDrawcall(d, hasEvents);
-    return;
-  }
-
-  m_AddedDrawcall = true;
-
   FetchDrawcall draw = d;
 
   if(draw.context == ResourceId())
     draw.context = m_pDevice->GetResourceManager()->GetOriginalID(m_ResourceID);
+
+  if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
+  {
+    m_pDevice->GetImmediateContext()->AddDrawcall(draw, hasEvents);
+    return;
+  }
+
+  m_AddedDrawcall = true;
 
   WrappedID3D11DeviceContext *context =
       (WrappedID3D11DeviceContext *)m_pDevice->GetResourceManager()->GetLiveResource(draw.context);
