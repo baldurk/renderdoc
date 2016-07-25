@@ -1327,10 +1327,10 @@ namespace renderdocui.Windows
             if (!CurrentTextureIsLocked || (CurrentTexture != null && m_TexDisplay.texid != CurrentTexture.ID))
                 UI_OnTextureSelectionChanged();
 
+            if (m_Output == null) return;
+
             UI_CreateThumbnails();
 
-            if (m_Output == null) return;
-            
             BoundResource[] RTs = Following.GetOutputTargets(m_Core);
             BoundResource Depth = Following.GetDepthTarget(m_Core);
 
