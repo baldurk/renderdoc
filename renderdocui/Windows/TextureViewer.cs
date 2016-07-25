@@ -3643,9 +3643,9 @@ namespace renderdocui.Windows
             ToolStripItem item = null;
 
             if (start == end)
-                item = new ToolStripLabel("EID " + start + ": " + usage.Str(m_Core.APIProps.pipelineType));
+                item = new ToolStripMenuItem("EID " + start + ": " + usage.Str(m_Core.APIProps.pipelineType));
             else
-                item = new ToolStripLabel("EID " + start + "-" + end + ": " + usage.Str(m_Core.APIProps.pipelineType));
+                item = new ToolStripMenuItem("EID " + start + "-" + end + ": " + usage.Str(m_Core.APIProps.pipelineType));
 
             item.Click += new EventHandler(resourceContextItem_Click);
             item.Tag = end;
