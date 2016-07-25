@@ -16,6 +16,10 @@ Multisampled textures will be resolved before being passed to your function. Dep
 
 To set up your shader, it's recommended that you use the UI defined in the documentation for the :doc:`../window/texture_viewer`, but you can manually create a ``.hlsl`` or ``.glsl`` file in ``%APPDATA%\RenderDoc\``. The file must contain an entry point ``main()`` that returns float4, and uses any of the below inputs. These shaders are loaded when RenderDoc loads a logfile, and RenderDoc watches for any changes to the files (either externally or in the shader editor in RenderDoc) and automatically reloads them.
 
+.. note::
+
+	Since ``.glsl`` is used for both Vulkan and OpenGL shaders, you can differentiate by the pre-defined macro ``VULKAN`` if you are writing a shader to be used for both.
+
 Predefined inputs
 -----------------
 
