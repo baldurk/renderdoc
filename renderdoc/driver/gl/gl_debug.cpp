@@ -1421,6 +1421,15 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
       cfg.Alpha = false;
     }
 
+    // depth-only, make sure we display it as such
+    if(GetBaseFormat(texDetails.internalFormat) == eGL_DEPTH_COMPONENT)
+    {
+      cfg.Red = true;
+      cfg.Green = false;
+      cfg.Blue = false;
+      cfg.Alpha = false;
+    }
+
     if(!cfg.Red && cfg.Green)
     {
       dsTexMode = eGL_STENCIL_INDEX;
