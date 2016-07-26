@@ -53,16 +53,16 @@ void main()
 
 	vec4 pos = vb.data[idx];
 
+#ifdef VULKAN
+	if(meshpick.unproject == 1u)
+		pos = vec4(pos.x, -pos.y, pos.z, pos.w);
+#endif
+
 	vec4 wpos = meshpick.mvp * pos;
 
 	wpos.xyz /= wpos.www;
 
-#ifdef VULKAN
-	if(meshpick.unproject == 0u)
-		wpos.xy *= vec2(1.0f, -1.0f);
-#else // OPENGL
 	wpos.xy *= vec2(1.0f, -1.0f);
-#endif
 
 	vec2 scr = (wpos.xy + 1.0f) * 0.5f * meshpick.viewport;
 
