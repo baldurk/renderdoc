@@ -1136,7 +1136,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       ShaderVariable ret("", 0U, 0U, 0U, 0U);
 
       for(size_t i = 0; i < 4; i++)
-        ret.value.uv[i] = BitScanReverse((DWORD *)&srcOpers[0].value.uv[i], ~0U);
+      {
+        unsigned char found = BitScanReverse((DWORD *)&ret.value.uv[i], srcOpers[0].value.uv[i]);
+        if(found == 0)
+          ret.value.uv[i] = ~0U;
+      }
 
       s.SetDst(op.operands[0], op, ret);
       break;
@@ -1146,7 +1150,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       ShaderVariable ret("", 0U, 0U, 0U, 0U);
 
       for(size_t i = 0; i < 4; i++)
-        ret.value.uv[i] = BitScanForward((DWORD *)&srcOpers[0].value.uv[i], ~0U);
+      {
+        unsigned char found = BitScanForward((DWORD *)&ret.value.uv[i], srcOpers[0].value.uv[i]);
+        if(found == 0)
+          ret.value.uv[i] = ~0U;
+      }
 
       s.SetDst(op.operands[0], op, ret);
       break;
@@ -1161,7 +1169,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         if(srcOpers[0].value.iv[i] < 0)
           u = ~u;
 
-        ret.value.uv[i] = BitScanReverse((DWORD *)&u, ~0U);
+        unsigned char found = BitScanReverse((DWORD *)&ret.value.uv[i], u);
+
+        if(found == 0)
+          ret.value.uv[i] = ~0U;
       }
 
       s.SetDst(op.operands[0], op, ret);
