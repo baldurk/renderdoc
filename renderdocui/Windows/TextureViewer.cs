@@ -904,8 +904,9 @@ namespace renderdocui.Windows
                 m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
             {
                 src = String.Format(
-                    "#version 420 core{0}" +
-                    "layout (location = 0) out vec4 color_out;{0}" + 
+                    "#version 420 core{0}{0}" +
+                    "layout (location = 0) in vec2 uv;{0}{0}" + 
+                    "layout (location = 0) out vec4 color_out;{0}{0}" + 
                     "void main(){0}" +
                     "{{{0}" +
                     "    color_out = vec4(0,0,0,1);{0}" +

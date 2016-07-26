@@ -46,7 +46,7 @@ UV co-ordinates
 	/* GLSL */
 	layout (location = 0) in vec2 uv;
 
-	void main() : SV_Target0
+	void main()
 	{
 	  // ...
 	}

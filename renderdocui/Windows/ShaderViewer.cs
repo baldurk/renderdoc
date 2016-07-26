@@ -2073,6 +2073,8 @@ namespace renderdocui.Windows
                                         "    uvec4 TexDim;{0}" +
                                         "    uint SelectedMip;{0}" +
                                         "    int TextureType;{0}" +
+                                        "    uint SelectedSliceFace;{0}" +
+                                        "    int SelectedSample;{0}" +
                                         "}} RENDERDOC;{0}{0}", Environment.NewLine));
         }
 
@@ -2102,6 +2104,34 @@ namespace renderdocui.Windows
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_SelectedMip; // selected mip in UI" + Environment.NewLine + Environment.NewLine);
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform uint RENDERDOC_SelectedMip; // selected mip in UI" + Environment.NewLine + Environment.NewLine);
+            CurrentScintilla.CurrentPos = 0;
+        }
+
+        private void selectedSliceFaceGlobalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (CurrentScintilla == null)
+                return;
+
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+                InsertVulkanUBO();
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_SelectedSliceFace; // selected array slice or cubemap face in UI" + Environment.NewLine + Environment.NewLine);
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform uint RENDERDOC_SelectedSliceFace; // selected array slice or cubemap face in UI" + Environment.NewLine + Environment.NewLine);
+            CurrentScintilla.CurrentPos = 0;
+        }
+
+        private void selectedSampleGlobalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (CurrentScintilla == null)
+                return;
+
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+                InsertVulkanUBO();
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "int RENDERDOC_SelectedSample; // selected MSAA sample or -numSamples for resolve. See docs" + Environment.NewLine + Environment.NewLine);
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform int RENDERDOC_SelectedSample; // selected MSAA sample or -numSamples for resolve. See docs" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
 
