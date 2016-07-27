@@ -108,8 +108,12 @@ bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
 
     if(!oneSurfaceTypeSupported)
     {
-      RDCERR("Required at least one of '%s' or '%s' extension to be present",
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+      RDCERR("Require the '%s' extension to be present", VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_XCB_KHR) || defined(VK_USE_PLATFORM_XLIB_KHR)
+      RDCERR("Require either the '%s' or '%s' extension to be present",
              VK_KHR_XCB_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+#endif
       return false;
     }
   }
