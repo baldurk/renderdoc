@@ -55,6 +55,17 @@ bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
       extensionList.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
     bool oneSurfaceTypeSupported = false;
+ 
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+    // don't add duplicates
+    if(supportedExtensions.find(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME) != supportedExtensions.end() &&
+       std::find(extensionList.begin(), extensionList.end(), VK_KHR_ANDROID_SURFACE_EXTENSION_NAME) ==
+           extensionList.end())
+    {
+      extensionList.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+      oneSurfaceTypeSupported = true;
+    }
+#endif
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
     // check if supported
@@ -108,8 +119,14 @@ bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
 
     if(!oneSurfaceTypeSupported)
     {
-      RDCERR("Required at least one of '%s' or '%s' extension to be present",
-             VK_KHR_XCB_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+      RDCERR("Require the '%s' extension to be present",
+             VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_XCB_KHR) || defined(VK_USE_PLATFORM_XLIB_KHR)
+      RDCERR("Require either the '%s' or '%s' extension to be present",
+             VK_KHR_XCB_SURFACE_EXTENSION_NAME,
+             VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+#endif
       return false;
     }
   }
