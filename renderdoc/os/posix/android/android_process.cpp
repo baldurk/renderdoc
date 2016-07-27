@@ -87,6 +87,7 @@ bool debuggerPresent = false;
 void CacheDebuggerPresent()
 {
   FILE *f = FileIO::fopen("/proc/self/status", "r");
+  int ret = 0;
 
   if(f == NULL)
   {

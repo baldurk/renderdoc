@@ -28,7 +28,7 @@
 void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *data)
 {
   RDCASSERT(system == eWindowingSystem_Android, system);
-  wnd = (ANativeWindow *)wn;
+  wnd = (ANativeWindow *)data;
   m_WindowSystem = system;
 }
 
