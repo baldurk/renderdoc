@@ -18,6 +18,7 @@ if(ANDROID)
     list(APPEND RDOC_LIBRARIES
         PRIVATE m
         PRIVATE dl
+        PRIVATE log
         PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 elseif(APPLE)
     list(APPEND RDOC_LIBRARIES
