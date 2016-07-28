@@ -193,7 +193,7 @@ bool WrappedID3D12CommandQueue::Serialise_Signal(ID3D12Fence *pFence, UINT64 Val
   SERIALISE_ELEMENT(ResourceId, Fence, GetResID(pFence));
   SERIALISE_ELEMENT(UINT64, val, Value);
 
-  if(m_State <= EXECUTING)
+  if(m_State <= EXECUTING && GetResourceManager()->HasLiveResource(Fence))
   {
     pFence = GetResourceManager()->GetLiveAs<ID3D12Fence>(Fence);
 
