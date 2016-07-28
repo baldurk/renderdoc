@@ -872,11 +872,17 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(bool applyInitialState)
     GetResourceManager()->SerialiseResourceStates(barriers, m_ResourceStates);
   }
 
-  if(applyInitialState)
+  if(applyInitialState && !barriers.empty())
   {
     // apply initial resource states
-    for(size_t i = 0; i < barriers.size(); i++)
-      barriers[i].Transition.pResource = Unwrap(barriers[i].Transition.pResource);
+    ID3D12GraphicsCommandList *list = GetNewList();
+
+    list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->Close();
+
+    ExecuteLists();
+    FlushLists();
   }
 
   return true;
