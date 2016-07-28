@@ -24,6 +24,7 @@
 
 #include "gl_shader_refl.h"
 #include <algorithm>
+#include "gl_driver.h"
 
 // declare versions of ShaderConstant/ShaderVariableType with vectors
 // to more easily build up the members of nested structures
@@ -169,43 +170,51 @@ void CheckVertexOutputUses(const vector<string> &sources, bool &pointSizeUsed, b
 
 // little utility function that if necessary emulates glCreateShaderProgramv functionality but using
 // glCompileShaderIncludeARB
-static GLuint CreateSepProgram(const GLHookSet &gl, GLenum type, GLsizei numSources,
+static GLuint CreateSepProgram(WrappedOpenGL &gl, GLenum type, GLsizei numSources,
                                const char **sources, GLsizei numPaths, const char **paths)
 {
+  // by the nature of this function, it might fail - we don't want to spew
+  // false positive looking messages into the log.
+  gl.SuppressDebugMessages(true);
+
+  const GLHookSet &real = gl.GetHookset();
+
+  GLuint program = 0;
+
   // definition of glCreateShaderProgramv from the spec
-  GLuint shader = gl.glCreateShader(type);
+  GLuint shader = real.glCreateShader(type);
   if(shader)
   {
-    gl.glShaderSource(shader, numSources, sources, NULL);
+    real.glShaderSource(shader, numSources, sources, NULL);
 
     if(paths == NULL)
-      gl.glCompileShader(shader);
+      real.glCompileShader(shader);
     else
-      gl.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
+      real.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
 
-    GLuint program = gl.glCreateProgram();
+    program = real.glCreateProgram();
     if(program)
     {
       GLint compiled = 0;
 
-      gl.glGetShaderiv(shader, eGL_COMPILE_STATUS, &compiled);
-      gl.glProgramParameteri(program, eGL_PROGRAM_SEPARABLE, GL_TRUE);
+      real.glGetShaderiv(shader, eGL_COMPILE_STATUS, &compiled);
+      real.glProgramParameteri(program, eGL_PROGRAM_SEPARABLE, GL_TRUE);
 
       if(compiled)
       {
-        gl.glAttachShader(program, shader);
-        gl.glLinkProgram(program);
+        real.glAttachShader(program, shader);
+        real.glLinkProgram(program);
 
         // we deliberately leave the shaders attached so this program can be re-linked.
         // they will be cleaned up when the program is deleted
         // gl.glDetachShader(program, shader);
       }
     }
-    gl.glDeleteShader(shader);
-    return program;
+    real.glDeleteShader(shader);
   }
 
-  return 0;
+  gl.SuppressDebugMessages(false);
+  return program;
 }
 
 static bool isspacetab(char c)
@@ -223,7 +232,7 @@ static bool iswhitespace(char c)
   return isspacetab(c) || isnewline(c);
 }
 
-GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<string> sources,
+GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string> sources,
                                   vector<string> *includepaths)
 {
   // in and out blocks are added separately, in case one is there already

@@ -29,7 +29,7 @@
 #include "driver/shaders/spirv/spirv_common.h"
 #include "serialise/string_utils.h"
 
-void WrappedOpenGL::ShaderData::Compile(const GLHookSet &gl)
+void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl)
 {
   bool pointSizeUsed = false, clipDistanceUsed = false;
   if(type == eGL_VERTEX_SHADER)
@@ -48,7 +48,7 @@ void WrappedOpenGL::ShaderData::Compile(const GLHookSet &gl)
   else
   {
     prog = sepProg;
-    MakeShaderReflection(gl, type, sepProg, reflection, pointSizeUsed, clipDistanceUsed);
+    MakeShaderReflection(gl.GetHookset(), type, sepProg, reflection, pointSizeUsed, clipDistanceUsed);
 
     vector<uint32_t> spirvwords;
 
@@ -203,7 +203,7 @@ bool WrappedOpenGL::Serialise_glCompileShader(GLuint shader)
   {
     ResourceId liveId = GetResourceManager()->GetLiveID(id);
 
-    m_Shaders[liveId].Compile(m_Real);
+    m_Shaders[liveId].Compile(*this);
 
     m_Real.glCompileShader(GetResourceManager()->GetLiveResource(id).name);
   }
@@ -228,7 +228,7 @@ void WrappedOpenGL::glCompileShader(GLuint shader)
   }
   else
   {
-    m_Shaders[GetResourceManager()->GetID(ShaderRes(GetCtx(), shader))].Compile(m_Real);
+    m_Shaders[GetResourceManager()->GetID(ShaderRes(GetCtx(), shader))].Compile(*this);
   }
 }
 
@@ -398,7 +398,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
     GLuint real = m_Real.glCreateShaderProgramv(Type, Count, sources);
     // we want a separate program that we can mess about with for making overlays
     // and relink without having to worry about restoring the 'real' program state.
-    GLuint sepprog = MakeSeparableShaderProgram(m_Real, Type, src, NULL);
+    GLuint sepprog = MakeSeparableShaderProgram(*this, Type, src, NULL);
 
     delete[] sources;
 
@@ -418,7 +418,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
     shadDetails.sources.swap(src);
     shadDetails.prog = sepprog;
 
-    shadDetails.Compile(m_Real);
+    shadDetails.Compile(*this);
 
     GetResourceManager()->AddLiveResource(id, res);
   }
@@ -461,7 +461,7 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
     for(GLsizei i = 0; i < count; i++)
       src.push_back(strings[i]);
 
-    GLuint sepprog = MakeSeparableShaderProgram(m_Real, type, src, NULL);
+    GLuint sepprog = MakeSeparableShaderProgram(*this, type, src, NULL);
 
     auto &progDetails = m_Programs[id];
 
@@ -475,7 +475,7 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
     shadDetails.sources.swap(src);
     shadDetails.prog = sepprog;
 
-    shadDetails.Compile(m_Real);
+    shadDetails.Compile(*this);
   }
 
   return real;
@@ -1398,7 +1398,7 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(GLuint shader, GLsizei c
     for(int32_t i = 0; i < Count; i++)
       shadDetails.includepaths.push_back(pathstrings[i]);
 
-    shadDetails.Compile(m_Real);
+    shadDetails.Compile(*this);
 
     m_Real.glCompileShaderIncludeARB(GetResourceManager()->GetLiveResource(id).name, Count,
                                      pathstrings, NULL);
@@ -1437,7 +1437,7 @@ void WrappedOpenGL::glCompileShaderIncludeARB(GLuint shader, GLsizei count,
     for(int32_t i = 0; i < count; i++)
       shadDetails.includepaths.push_back(path[i]);
 
-    shadDetails.Compile(m_Real);
+    shadDetails.Compile(*this);
   }
 }
 

@@ -114,7 +114,6 @@ private:
   friend class GLReplay;
   friend class GLResourceManager;
 
-  const GLHookSet &GetHookset() { return m_Real; }
   vector<DebugMessage> m_DebugMessages;
   void Serialise_DebugMessages();
   vector<DebugMessage> GetDebugMessages();
@@ -123,12 +122,19 @@ private:
   const void *m_RealDebugFuncParam;
   string m_DebugMsgContext;
 
+  bool m_SuppressDebugMessages;
+
   void DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                   const GLchar *message);
   static void APIENTRY DebugSnoopStatic(GLenum source, GLenum type, GLuint id, GLenum severity,
                                         GLsizei length, const GLchar *message, const void *userParam)
   {
-    ((WrappedOpenGL *)userParam)->DebugSnoop(source, type, id, severity, length, message);
+    WrappedOpenGL *me = (WrappedOpenGL *)userParam;
+
+    if(me->m_SuppressDebugMessages)
+      return;
+
+    me->DebugSnoop(source, type, id, severity, length, message);
   }
 
   // checks if the given object has tons of updates. If so it's probably
@@ -276,7 +282,7 @@ private:
     ShaderReflection reflection;
     GLuint prog;
 
-    void Compile(const GLHookSet &gl);
+    void Compile(WrappedOpenGL &gl);
   };
 
   struct ProgramData
@@ -481,6 +487,7 @@ public:
   GLReplay *GetReplay() { return &m_Replay; }
   void *GetCtx();
 
+  const GLHookSet &GetHookset() { return m_Real; }
   void SetDebugMsgContext(const char *context) { m_DebugMsgContext = context; }
   void AddDebugMessage(DebugMessage msg)
   {
@@ -504,6 +511,7 @@ public:
   const DrawcallTreeNode &GetRootDraw() { return m_ParentDrawcall; }
   const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
+  void SuppressDebugMessages(bool suppress) { m_SuppressDebugMessages = suppress; }
   vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
   void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams,
                      bool core, bool attribsCreate);

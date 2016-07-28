@@ -728,6 +728,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Re
 
   m_RealDebugFunc = NULL;
   m_RealDebugFuncParam = NULL;
+  m_SuppressDebugMessages = false;
 
   m_DrawcallStack.push_back(&m_ParentDrawcall);
 
