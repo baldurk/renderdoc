@@ -140,12 +140,6 @@ D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr)
   return res->GetResourceRecord();
 }
 
-template <>
-ResourceId GetResID(D3D12_GPU_VIRTUAL_ADDRESS addr)
-{
-  return WrappedID3D12Resource::GetResIDFromAddr(addr);
-}
-
 WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,
                                                          WrappedID3D12Device *device,
                                                          const D3D12_DESCRIPTOR_HEAP_DESC &desc)

@@ -473,19 +473,23 @@ public:
 
   static std::map<ResourceId, WrappedID3D12Resource *> m_List;
 
-  static ResourceId GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr)
+  static void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
   {
+    id = ResourceId();
+    offs = 0;
+
     if(m_Addresses.empty())
-      return ResourceId();
+      return;
 
     auto it = std::lower_bound(m_Addresses.begin(), m_Addresses.end(), addr);
     if(it == m_Addresses.end())
-      return ResourceId();
+      return;
 
     if(addr < it->start || addr >= it->end)
-      return ResourceId();
+      return;
 
-    return it->id;
+    id = it->id;
+    offs = addr - it->start;
   }
 
   enum
@@ -685,7 +689,3 @@ template <>
 ID3D12DeviceChild *Unwrap(ID3D12DeviceChild *ptr);
 template <>
 D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr);
-
-// specialisations for looking up ID3D12Resource pointer from its D3D12_GPU_VIRTUAL_ADDRESS
-template <>
-ResourceId GetResID(D3D12_GPU_VIRTUAL_ADDRESS addr);

@@ -563,15 +563,23 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootConstantBufferView(
 bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
+  ResourceId id;
+  UINT64 offs = 0;
+
+  if(m_State >= WRITING)
+    WrappedID3D12Resource::GetResIDFromAddr(BufferLocation, id, offs);
+
   SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(UINT, idx, RootParameterIndex);
-  SERIALISE_ELEMENT(ResourceId, buffer, GetResID(BufferLocation));
+  SERIALISE_ELEMENT(ResourceId, buffer, id);
+  SERIALISE_ELEMENT(UINT64, byteOffset, offs);
 
   if(m_State <= READING)
   {
     WrappedID3D12Resource *pRes = GetResourceManager()->GetLiveAs<WrappedID3D12Resource>(buffer);
 
-    GetList(CommandList)->SetGraphicsRootConstantBufferView(idx, pRes->GetGPUVirtualAddress());
+    GetList(CommandList)
+        ->SetGraphicsRootConstantBufferView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
   }
 
   return true;
@@ -587,8 +595,12 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
     SCOPED_SERIALISE_CONTEXT(SET_GFX_ROOT_CBV);
     Serialise_SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation);
 
+    ResourceId id;
+    UINT64 offs = 0;
+    WrappedID3D12Resource::GetResIDFromAddr(BufferLocation, id, offs);
+
     m_ListRecord->AddChunk(scope.Get());
-    m_ListRecord->MarkResourceFrameReferenced(GetResID(BufferLocation), eFrameRef_Read);
+    m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
   }
 }
 
@@ -644,7 +656,13 @@ void WrappedID3D12GraphicsCommandList::IASetIndexBuffer(const D3D12_INDEX_BUFFER
 
     m_ListRecord->AddChunk(scope.Get());
     if(pView)
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(pView->BufferLocation), eFrameRef_Read);
+    {
+      ResourceId id;
+      UINT64 offs = 0;
+      WrappedID3D12Resource::GetResIDFromAddr(pView->BufferLocation, id, offs);
+
+      m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
+    }
   }
 }
 
@@ -678,7 +696,13 @@ void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT N
 
     m_ListRecord->AddChunk(scope.Get());
     for(UINT i = 0; i < NumViews; i++)
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(pViews[i].BufferLocation), eFrameRef_Read);
+    {
+      ResourceId id;
+      UINT64 offs = 0;
+      WrappedID3D12Resource::GetResIDFromAddr(pViews[i].BufferLocation, id, offs);
+
+      m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
+    }
   }
 }
 

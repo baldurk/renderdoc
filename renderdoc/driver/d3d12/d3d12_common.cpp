@@ -471,17 +471,19 @@ void Serialiser::Serialise(const char *name, D3D12_VERTEX_BUFFER_VIEW &el)
   D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData();
 
   ResourceId buffer;
+  UINT64 offs = 0;
 
   if(m_Mode == WRITING)
-    buffer = GetResID(el.BufferLocation);
+    WrappedID3D12Resource::GetResIDFromAddr(el.BufferLocation, buffer, offs);
 
   Serialise("BufferLocation", buffer);
+  Serialise("BufferLocation_Offset", offs);
 
   if(m_Mode == READING)
   {
     ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
     if(res)
-      el.BufferLocation = res->GetGPUVirtualAddress();
+      el.BufferLocation = res->GetGPUVirtualAddress() + offs;
     else
       el.BufferLocation = 0;
   }
@@ -498,17 +500,19 @@ void Serialiser::Serialise(const char *name, D3D12_INDEX_BUFFER_VIEW &el)
   D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData();
 
   ResourceId buffer;
+  UINT64 offs = 0;
 
   if(m_Mode == WRITING)
-    buffer = GetResID(el.BufferLocation);
+    WrappedID3D12Resource::GetResIDFromAddr(el.BufferLocation, buffer, offs);
 
   Serialise("BufferLocation", buffer);
+  Serialise("BufferLocation_Offset", offs);
 
   if(m_Mode == READING)
   {
     ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
     if(res)
-      el.BufferLocation = res->GetGPUVirtualAddress();
+      el.BufferLocation = res->GetGPUVirtualAddress() + offs;
     else
       el.BufferLocation = 0;
   }
@@ -525,17 +529,19 @@ void Serialiser::Serialise(const char *name, D3D12_CONSTANT_BUFFER_VIEW_DESC &el
   D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData();
 
   ResourceId buffer;
+  UINT64 offs = 0;
 
   if(m_Mode == WRITING)
-    buffer = GetResID(el.BufferLocation);
+    WrappedID3D12Resource::GetResIDFromAddr(el.BufferLocation, buffer, offs);
 
   Serialise("BufferLocation", buffer);
+  Serialise("BufferLocation_Offset", offs);
 
   if(m_Mode == READING)
   {
     ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
     if(res)
-      el.BufferLocation = res->GetGPUVirtualAddress();
+      el.BufferLocation = res->GetGPUVirtualAddress() + offs;
     else
       el.BufferLocation = 0;
   }
