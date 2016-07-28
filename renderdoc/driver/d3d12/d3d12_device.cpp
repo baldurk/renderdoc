@@ -272,7 +272,20 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_pInfoQueue->ClearStoredMessages();
 
     if(RenderDoc::Inst().IsReplayApp())
+    {
       m_pInfoQueue->SetMuteDebugOutput(false);
+
+      D3D12_MESSAGE_ID mute[] = {
+          // super spammy, mostly just perf warning, and impossible to fix for our cases
+          D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+      };
+
+      D3D12_INFO_QUEUE_FILTER filter = {};
+      filter.DenyList.NumIDs = ARRAY_COUNT(mute);
+      filter.DenyList.pIDList = mute;
+
+      m_pInfoQueue->AddStorageFilterEntries(&filter);
+    }
   }
   else
   {
