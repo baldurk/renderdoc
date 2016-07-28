@@ -150,6 +150,8 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
     m_pSerialiser = serialiser;
 
     m_ReplayList = new WrappedID3D12GraphicsCommandList(NULL, m_pDevice, m_pSerialiser, state);
+
+    m_ReplayList->SetCommandData(&m_Cmd);
   }
   else
   {
@@ -165,19 +167,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 
   m_QueueRecord = NULL;
 
-  m_RootEventID = 1;
-  m_RootDrawcallID = 1;
-  m_FirstEventID = 0;
-  m_LastEventID = ~0U;
-
-  m_LastCmdListID = ResourceId();
-
-  m_PartialReplayData.resultPartialCmdList = NULL;
-  m_PartialReplayData.outsideCmdList = NULL;
-  m_PartialReplayData.partialParent = ResourceId();
-  m_PartialReplayData.baseEvent = 0;
-
-  m_DrawcallStack.push_back(&m_ParentDrawcall);
+  m_Cmd.m_pSerialiser = m_pSerialiser;
 
   if(!RenderDoc::Inst().IsReplayApp())
   {
@@ -247,20 +237,19 @@ void WrappedID3D12CommandQueue::ClearAfterCapture()
 
 FetchAPIEvent WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
 {
-  for(size_t i = m_Events.size() - 1; i > 0; i--)
+  for(size_t i = m_Cmd.m_Events.size() - 1; i > 0; i--)
   {
-    if(m_Events[i].eventID <= eventID)
-      return m_Events[i];
+    if(m_Cmd.m_Events[i].eventID <= eventID)
+      return m_Cmd.m_Events[i];
   }
 
-  return m_Events[0];
+  return m_Cmd.m_Events[0];
 }
 
 void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chunk)
 {
-  m_CurChunkOffset = offset;
-
-  m_AddedDrawcall = false;
+  m_Cmd.m_CurChunkOffset = offset;
+  m_Cmd.m_AddedDrawcall = false;
 
   switch(chunk)
   {
@@ -316,7 +305,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
       if(m_State == READING)
       {
-        AddEvent(CONTEXT_CAPTURE_FOOTER, "Present()");
+        m_Cmd.AddEvent(CONTEXT_CAPTURE_FOOTER, "Present()");
 
         FetchDrawcall draw;
         draw.name = "Present()";
@@ -324,7 +313,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
         draw.copyDestination = bbid;
 
-        AddDrawcall(draw, true);
+        m_Cmd.AddDrawcall(draw, true);
       }
       break;
     }
@@ -351,11 +340,11 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
   }
   else if(m_State == READING)
   {
-    if(!m_AddedDrawcall)
-      AddEvent(chunk, m_pSerialiser->GetDebugStr());
+    if(!m_Cmd.m_AddedDrawcall)
+      m_Cmd.AddEvent(chunk, m_pSerialiser->GetDebugStr());
   }
 
-  m_AddedDrawcall = false;
+  m_Cmd.m_AddedDrawcall = false;
 }
 
 void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEventID,
@@ -373,12 +362,12 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
 
   m_pSerialiser->PopContext(header);
 
-  m_RootEvents.clear();
+  m_Cmd.m_RootEvents.clear();
 
   if(m_State == EXECUTING)
   {
     FetchAPIEvent ev = GetEvent(startEventID);
-    m_RootEventID = ev.eventID;
+    m_Cmd.m_RootEventID = ev.eventID;
 
     // if not partial, we need to be sure to replay
     // past the command buffer records, so can't
@@ -386,20 +375,20 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     if(partial)
       m_pSerialiser->SetOffset(ev.fileOffset);
 
-    m_FirstEventID = startEventID;
-    m_LastEventID = endEventID;
+    m_Cmd.m_FirstEventID = startEventID;
+    m_Cmd.m_LastEventID = endEventID;
   }
   else if(m_State == READING)
   {
-    m_RootEventID = 1;
-    m_RootDrawcallID = 1;
-    m_FirstEventID = 0;
-    m_LastEventID = ~0U;
+    m_Cmd.m_RootEventID = 1;
+    m_Cmd.m_RootDrawcallID = 1;
+    m_Cmd.m_FirstEventID = 0;
+    m_Cmd.m_LastEventID = ~0U;
   }
 
   for(;;)
   {
-    if(m_State == EXECUTING && m_RootEventID > endEventID)
+    if(m_State == EXECUTING && m_Cmd.m_RootEventID > endEventID)
     {
       // we can just break out if we've done all the events desired.
       // note that the command buffer events aren't 'real' and we just blaze through them
@@ -410,7 +399,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
 
     D3D12ChunkType context = (D3D12ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
 
-    m_LastCmdListID = ResourceId();
+    m_Cmd.m_LastCmdListID = ResourceId();
 
     ProcessChunk(offset, context);
 
@@ -430,16 +419,16 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     // in which case it's up to the calling code to make sure we only
     // replay inside a command buffer (if we crossed command buffer
     // boundaries, the event IDs would no longer match up).
-    if(m_LastCmdListID == ResourceId() || startEventID > 1)
+    if(m_Cmd.m_LastCmdListID == ResourceId() || startEventID > 1)
     {
-      m_RootEventID++;
+      m_Cmd.m_RootEventID++;
 
       if(startEventID > 1)
-        m_pSerialiser->SetOffset(GetEvent(m_RootEventID).fileOffset);
+        m_pSerialiser->SetOffset(GetEvent(m_Cmd.m_RootEventID).fileOffset);
     }
     else
     {
-      m_BakedCmdListInfo[m_LastCmdListID].curEventID++;
+      m_Cmd.m_BakedCmdListInfo[m_Cmd.m_LastCmdListID].curEventID++;
     }
   }
 
@@ -456,117 +445,18 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
       }
     };
 
-    std::sort(m_Events.begin(), m_Events.end(), SortEID());
+    std::sort(m_Cmd.m_Events.begin(), m_Cmd.m_Events.end(), SortEID());
   }
 
-  SAFE_RELEASE(m_PartialReplayData.resultPartialCmdList);
+  for(int p = 0; p < D3D12CommandData::ePartialNum; p++)
+    SAFE_RELEASE(m_Cmd.m_Partial[p].resultPartialCmdList);
 
-  for(auto it = m_RerecordCmds.begin(); it != m_RerecordCmds.end(); ++it)
+  for(auto it = m_Cmd.m_RerecordCmds.begin(); it != m_Cmd.m_RerecordCmds.end(); ++it)
     SAFE_RELEASE(it->second);
 
-  m_RerecordCmds.clear();
+  m_Cmd.m_RerecordCmds.clear();
 
   m_State = READING;
-}
-
-void WrappedID3D12CommandQueue::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
-{
-  m_AddedDrawcall = true;
-
-  FetchDrawcall draw = d;
-  draw.eventID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
-                                                 : m_RootEventID;
-  draw.drawcallID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].drawCount
-                                                    : m_RootDrawcallID;
-
-  for(int i = 0; i < 8; i++)
-    draw.outputs[i] = ResourceId();
-
-  draw.depthOut = ResourceId();
-
-  draw.indexByteWidth = 0;
-  draw.topology = eTopology_Unknown;
-
-  if(m_LastCmdListID != ResourceId())
-  {
-    // TODO fill from m_BakedCmdListInfo[m_LastCmdListID].state
-  }
-
-  if(m_LastCmdListID != ResourceId())
-    m_BakedCmdListInfo[m_LastCmdListID].drawCount++;
-  else
-    m_RootDrawcallID++;
-
-  if(hasEvents)
-  {
-    vector<FetchAPIEvent> &srcEvents = m_LastCmdListID != ResourceId()
-                                           ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
-                                           : m_RootEvents;
-
-    draw.events = srcEvents;
-    srcEvents.clear();
-  }
-
-  // should have at least the root drawcall here, push this drawcall
-  // onto the back's children list.
-  if(!GetDrawcallStack().empty())
-  {
-    D3D12DrawcallTreeNode node(draw);
-
-    node.resourceUsage.swap(m_BakedCmdListInfo[m_LastCmdListID].resourceUsage);
-
-    // TODO add usage
-
-    node.children.insert(node.children.begin(), draw.children.elems,
-                         draw.children.elems + draw.children.count);
-    GetDrawcallStack().back()->children.push_back(node);
-  }
-  else
-    RDCERR("Somehow lost drawcall stack!");
-}
-
-void WrappedID3D12CommandQueue::AddEvent(D3D12ChunkType type, string description)
-{
-  FetchAPIEvent apievent;
-
-  apievent.context = ResourceId();
-  apievent.fileOffset = m_CurChunkOffset;
-  apievent.eventID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
-                                                     : m_RootEventID;
-
-  apievent.eventDesc = description;
-
-  Callstack::Stackwalk *stack = m_pSerialiser->GetLastCallstack();
-  if(stack)
-  {
-    create_array(apievent.callstack, stack->NumLevels());
-    memcpy(apievent.callstack.elems, stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
-  }
-
-  // TODO have real m_EventMessages
-  vector<DebugMessage> m_EventMessages;
-
-  for(size_t i = 0; i < m_EventMessages.size(); i++)
-    m_EventMessages[i].eventID = apievent.eventID;
-
-  if(m_LastCmdListID != ResourceId())
-  {
-    m_BakedCmdListInfo[m_LastCmdListID].curEvents.push_back(apievent);
-
-    vector<DebugMessage> &msgs = m_BakedCmdListInfo[m_LastCmdListID].debugMessages;
-
-    msgs.insert(msgs.end(), m_EventMessages.begin(), m_EventMessages.end());
-  }
-  else
-  {
-    m_RootEvents.push_back(apievent);
-    m_Events.push_back(apievent);
-
-    // TODO m_DebugMessages.insert(m_DebugMessages.end(), m_EventMessages.begin(),
-    // m_EventMessages.end());
-  }
-
-  m_EventMessages.clear();
 }
 
 WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real,
@@ -601,6 +491,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   RDCEraseEl(m_Init);
 
   m_ListRecord = NULL;
+  m_Cmd = NULL;
 
   if(!RenderDoc::Inst().IsReplayApp())
   {
@@ -614,6 +505,10 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
 
     // this is set up in the implicit Reset() right after creation
     m_ListRecord->bakedCommands = NULL;
+  }
+  else
+  {
+    m_Cmd = m_pDevice->GetQueue()->GetCommandData();
   }
 
   m_pDevice->SoftRef();
@@ -671,12 +566,228 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
   return RefCounter12::QueryInterface(riid, ppvObject);
 }
 
-void WrappedID3D12GraphicsCommandList::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
+D3D12CommandData::D3D12CommandData()
 {
-  m_pDevice->GetQueue()->AddDrawcall(d, hasEvents);
+  m_RootEventID = 1;
+  m_RootDrawcallID = 1;
+  m_FirstEventID = 0;
+  m_LastEventID = ~0U;
+
+  m_RootDrawcallStack.push_back(&m_ParentDrawcall);
 }
 
-void WrappedID3D12GraphicsCommandList::AddEvent(D3D12ChunkType type, string description)
+bool D3D12CommandData::ShouldRerecordCmd(ResourceId cmdid)
 {
-  m_pDevice->GetQueue()->AddEvent(type, description);
+  if(m_Partial[Primary].outsideCmdList != NULL)
+    return true;
+
+  D3D12NOTIMP("m_DrawcallCallback");
+  /*
+  if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+    return true;
+    */
+
+  return cmdid == m_Partial[Primary].partialParent || cmdid == m_Partial[Secondary].partialParent;
+}
+
+bool D3D12CommandData::InRerecordRange(ResourceId cmdid)
+{
+  if(m_Partial[Primary].outsideCmdList != NULL)
+    return true;
+
+  D3D12NOTIMP("m_DrawcallCallback");
+  /*
+  if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+    return true;
+    */
+
+  for(int p = 0; p < ePartialNum; p++)
+  {
+    if(cmdid == m_Partial[p].partialParent)
+    {
+      return m_BakedCmdListInfo[m_Partial[p].partialParent].curEventID <=
+             m_LastEventID - m_Partial[p].baseEvent;
+    }
+  }
+
+  return false;
+}
+
+ID3D12GraphicsCommandList *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
+                                                             PartialReplayIndex partialType)
+{
+  if(m_Partial[Primary].outsideCmdList != NULL)
+    return m_Partial[Primary].outsideCmdList;
+
+  D3D12NOTIMP("m_DrawcallCallback");
+  /*
+  if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+  {
+    auto it = m_RerecordCmds.find(cmdid);
+
+    RDCASSERT(it != m_RerecordCmds.end());
+
+    return it->second;
+  }
+  */
+
+  if(partialType != ePartialNum)
+    return m_Partial[partialType].resultPartialCmdList;
+
+  for(int p = 0; p < ePartialNum; p++)
+    if(cmdid == m_Partial[p].partialParent)
+      return m_Partial[p].resultPartialCmdList;
+
+  RDCERR("Calling re-record for invalid command list id");
+
+  return NULL;
+}
+
+void D3D12CommandData::AddEvent(D3D12ChunkType type, string description)
+{
+  FetchAPIEvent apievent;
+
+  apievent.context = ResourceId();
+  apievent.fileOffset = m_CurChunkOffset;
+  apievent.eventID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
+                                                     : m_RootEventID;
+
+  apievent.eventDesc = description;
+
+  Callstack::Stackwalk *stack = m_pSerialiser->GetLastCallstack();
+  if(stack)
+  {
+    create_array(apievent.callstack, stack->NumLevels());
+    memcpy(apievent.callstack.elems, stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
+  }
+
+  // TODO have real m_EventMessages
+  vector<DebugMessage> m_EventMessages;
+
+  for(size_t i = 0; i < m_EventMessages.size(); i++)
+    m_EventMessages[i].eventID = apievent.eventID;
+
+  if(m_LastCmdListID != ResourceId())
+  {
+    m_BakedCmdListInfo[m_LastCmdListID].curEvents.push_back(apievent);
+
+    vector<DebugMessage> &msgs = m_BakedCmdListInfo[m_LastCmdListID].debugMessages;
+
+    msgs.insert(msgs.end(), m_EventMessages.begin(), m_EventMessages.end());
+  }
+  else
+  {
+    m_RootEvents.push_back(apievent);
+    m_Events.push_back(apievent);
+
+    // TODO m_DebugMessages.insert(m_DebugMessages.end(), m_EventMessages.begin(),
+    // m_EventMessages.end());
+  }
+
+  m_EventMessages.clear();
+}
+
+void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
+{
+  m_AddedDrawcall = true;
+
+  FetchDrawcall draw = d;
+  draw.eventID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
+                                                 : m_RootEventID;
+  draw.drawcallID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].drawCount
+                                                    : m_RootDrawcallID;
+
+  for(int i = 0; i < 8; i++)
+    draw.outputs[i] = ResourceId();
+
+  draw.depthOut = ResourceId();
+
+  draw.indexByteWidth = 0;
+  draw.topology = eTopology_Unknown;
+
+  if(m_LastCmdListID != ResourceId())
+  {
+    // TODO fill from m_BakedCmdListInfo[m_LastCmdListID].state
+  }
+
+  if(m_LastCmdListID != ResourceId())
+    m_BakedCmdListInfo[m_LastCmdListID].drawCount++;
+  else
+    m_RootDrawcallID++;
+
+  if(hasEvents)
+  {
+    vector<FetchAPIEvent> &srcEvents = m_LastCmdListID != ResourceId()
+                                           ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
+                                           : m_RootEvents;
+
+    draw.events = srcEvents;
+    srcEvents.clear();
+  }
+
+  // should have at least the root drawcall here, push this drawcall
+  // onto the back's children list.
+  if(!GetDrawcallStack().empty())
+  {
+    D3D12DrawcallTreeNode node(draw);
+
+    node.resourceUsage.swap(m_BakedCmdListInfo[m_LastCmdListID].resourceUsage);
+
+    // TODO add usage
+
+    node.children.insert(node.children.begin(), draw.children.elems,
+                         draw.children.elems + draw.children.count);
+    GetDrawcallStack().back()->children.push_back(node);
+  }
+  else
+    RDCERR("Somehow lost drawcall stack!");
+}
+
+void D3D12CommandData::InsertDrawsAndRefreshIDs(vector<D3D12DrawcallTreeNode> &cmdBufNodes)
+{
+  // assign new drawcall IDs
+  for(size_t i = 0; i < cmdBufNodes.size(); i++)
+  {
+    if(cmdBufNodes[i].draw.flags & eDraw_PopMarker)
+    {
+      RDCASSERT(GetDrawcallStack().size() > 1);
+      if(GetDrawcallStack().size() > 1)
+        GetDrawcallStack().pop_back();
+
+      // Skip - pop marker draws aren't processed otherwise, we just apply them to the drawcall
+      // stack.
+      continue;
+    }
+
+    D3D12DrawcallTreeNode n = cmdBufNodes[i];
+    n.draw.eventID += m_RootEventID;
+    n.draw.drawcallID += m_RootDrawcallID;
+
+    for(int32_t e = 0; e < n.draw.events.count; e++)
+    {
+      n.draw.events[e].eventID += m_RootEventID;
+      m_Events.push_back(n.draw.events[e]);
+    }
+
+    DrawcallUse use(m_Events.back().fileOffset, n.draw.eventID);
+
+    // insert in sorted location
+    auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+    m_DrawcallUses.insert(drawit, use);
+
+    RDCASSERT(n.children.empty());
+
+    for(auto it = n.resourceUsage.begin(); it != n.resourceUsage.end(); ++it)
+    {
+      EventUsage u = it->second;
+      u.eventID += m_RootEventID;
+      m_ResourceUses[it->first].push_back(u);
+    }
+
+    GetDrawcallStack().back()->children.push_back(n);
+
+    // if this is a push marker too, step down the drawcall stack
+    if(cmdBufNodes[i].draw.flags & eDraw_PushMarker)
+      GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
+  }
 }

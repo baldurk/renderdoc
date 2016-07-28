@@ -26,6 +26,7 @@
 
 #include <list>
 #include "common/wrapped_pool.h"
+#include "d3d12_commands.h"
 #include "d3d12_common.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
@@ -67,44 +68,14 @@ struct DummyID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
   }
 };
 
-struct D3D12DrawcallTreeNode
-{
-  D3D12DrawcallTreeNode() {}
-  explicit D3D12DrawcallTreeNode(const FetchDrawcall &d) : draw(d) {}
-  FetchDrawcall draw;
-  vector<D3D12DrawcallTreeNode> children;
-
-  vector<pair<ResourceId, EventUsage> > resourceUsage;
-
-  D3D12DrawcallTreeNode &operator=(const FetchDrawcall &d)
-  {
-    *this = D3D12DrawcallTreeNode(d);
-    return *this;
-  }
-
-  vector<FetchDrawcall> Bake()
-  {
-    vector<FetchDrawcall> ret;
-    if(children.empty())
-      return ret;
-
-    ret.resize(children.size());
-    for(size_t i = 0; i < children.size(); i++)
-    {
-      ret[i] = children[i].draw;
-      ret[i].children = children[i].Bake();
-    }
-
-    return ret;
-  }
-};
-
 class WrappedID3D12GraphicsCommandList;
 
 class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
                                   public RefCounter12<ID3D12CommandQueue>,
                                   public ID3DDevice
 {
+  friend class WrappedID3D12GraphicsCommandList;
+
   WrappedID3D12Device *m_pDevice;
 
   WrappedID3D12GraphicsCommandList *m_ReplayList;
@@ -119,135 +90,10 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   vector<D3D12ResourceRecord *> m_CmdListRecords;
 
-  vector<FetchAPIEvent> m_RootEvents, m_Events;
-  bool m_AddedDrawcall;
-
-  uint64_t m_CurChunkOffset;
-  uint32_t m_RootEventID, m_RootDrawcallID;
-  uint32_t m_FirstEventID, m_LastEventID;
-
-  D3D12DrawcallTreeNode m_ParentDrawcall;
+  // command recording/replay data shared between queues and lists
+  D3D12CommandData m_Cmd;
 
   ResourceId m_BackbufferID;
-
-  void InsertDrawsAndRefreshIDs(vector<D3D12DrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID,
-                                uint32_t baseDrawID);
-
-  struct BakedCmdListInfo
-  {
-    vector<FetchAPIEvent> curEvents;
-    vector<DebugMessage> debugMessages;
-    std::list<D3D12DrawcallTreeNode *> drawStack;
-
-    vector<pair<ResourceId, EventUsage> > resourceUsage;
-
-    struct CmdListState
-    {
-      ResourceId pipeline;
-
-      uint32_t idxWidth;
-      ResourceId ibuffer;
-      vector<ResourceId> vbuffers;
-
-      ResourceId rts[8];
-      ResourceId dsv;
-    } state;
-
-    vector<D3D12_RESOURCE_BARRIER> barriers;
-
-    D3D12DrawcallTreeNode *draw;    // the root draw to copy from when submitting
-    uint32_t eventCount;            // how many events are in this cmd list, for quick skipping
-    uint32_t curEventID;            // current event ID while reading or executing
-    uint32_t drawCount;             // similar to above
-  };
-  map<ResourceId, BakedCmdListInfo> m_BakedCmdListInfo;
-
-  // on replay, the current command list for the last chunk we
-  // handled.
-  ResourceId m_LastCmdListID;
-  int m_CmdListsInProgress;
-
-  // this is a list of uint64_t file offset -> uint32_t EIDs of where each
-  // drawcall is used. E.g. the drawcall at offset 873954 is EID 50. If a
-  // command list is executed more than once, there may be more than
-  // one entry here - the drawcall will be aliased among several EIDs, with
-  // the first one being the 'primary'
-  struct DrawcallUse
-  {
-    DrawcallUse(uint64_t offs, uint32_t eid) : fileOffset(offs), eventID(eid) {}
-    uint64_t fileOffset;
-    uint32_t eventID;
-    bool operator<(const DrawcallUse &o) const
-    {
-      if(fileOffset != o.fileOffset)
-        return fileOffset < o.fileOffset;
-      return eventID < o.eventID;
-    }
-  };
-  vector<DrawcallUse> m_DrawcallUses;
-
-  struct PartialReplayData
-  {
-    // if we're doing a partial replay, by definition only one command
-    // list will be partial at any one time. While replaying through
-    // the command list chunks, the partial command list will be
-    // created as a temporary new command list and when it comes to
-    // the queue that should execute it, it can execute this instead.
-    ID3D12CommandAllocator *resultPartialCmdAllocator;
-    ID3D12GraphicsCommandList *resultPartialCmdList;
-
-    // if we're replaying just a single draw or a particular command
-    // list subsection of command events, we don't go through the
-    // whole original command lists to set up the partial replay,
-    // so we just set this command list
-    ID3D12GraphicsCommandList *outsideCmdList;
-
-    // this records where in the frame a command list was executed,
-    // so that we know if our replay range ends in one of these ranges
-    // we need to construct a partial command list for future
-    // replaying. Note that we always have the complete command list
-    // around - it's the bakeID itself.
-    // Since we only ever record a bakeID once the key is unique - note
-    // that the same command list could be reset multiple times
-    // a frame, so the parent command list ID (the one recorded in
-    // CmdList chunks) is NOT unique.
-    // However, a single baked command list can be executed multiple
-    // times - so we have to have a list of base events
-    // Map from bakeID -> vector<baseEventID>
-    map<ResourceId, vector<uint32_t> > cmdListExecs;
-
-    // This is just the ResourceId of the original parent command list
-    // and it's baked id.
-    // If we are in the middle of a partial replay - allows fast checking
-    // in all CmdList chunks, with the iteration through the above list
-    // only in Reset.
-    // partialParent gets reset to ResourceId() in the Close so that
-    // other baked command lists from the same parent don't pick it up
-    // Also reset each overall replay
-    ResourceId partialParent;
-
-    // If a partial replay is detected, this records the base of the
-    // range. This both allows easily and uniquely identifying it in the
-    // executecmdlists, but also allows the recording to 'rebase' the
-    // last event ID by subtracting this, to know how far to record
-    uint32_t baseEvent;
-  } m_PartialReplayData;
-
-  map<ResourceId, ID3D12GraphicsCommandList *> m_RerecordCmds;
-
-  std::list<D3D12DrawcallTreeNode *> m_DrawcallStack;
-
-  std::list<D3D12DrawcallTreeNode *> &GetDrawcallStack()
-  {
-    if(m_LastCmdListID != ResourceId())
-      return m_BakedCmdListInfo[m_LastCmdListID].drawStack;
-
-    return m_DrawcallStack;
-  }
-
-  bool ShouldRerecordCmd(ResourceId cmdid);
-  bool InRerecordRange(ResourceId cmdid);
-  ID3D12GraphicsCommandList *RerecordCmdList(ResourceId cmdid);
 
   void ProcessChunk(uint64_t offset, D3D12ChunkType context);
 
@@ -267,17 +113,16 @@ public:
   D3D12ResourceRecord *GetResourceRecord() { return m_QueueRecord; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   const vector<D3D12ResourceRecord *> &GetCmdLists() { return m_CmdListRecords; }
-  D3D12DrawcallTreeNode &GetParentDrawcall() { return m_ParentDrawcall; }
+  D3D12DrawcallTreeNode &GetParentDrawcall() { return m_Cmd.m_ParentDrawcall; }
   FetchAPIEvent GetEvent(uint32_t eventID);
-  uint32_t GetMaxEID() { return m_Events.back().eventID; }
+  uint32_t GetMaxEID() { return m_Cmd.m_Events.back().eventID; }
   ResourceId GetBackbufferResourceID() { return m_BackbufferID; }
   void ClearAfterCapture();
 
-  void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
-  void AddEvent(D3D12ChunkType type, string description);
-
   void ReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
 
+  D3D12CommandData *GetCommandData() { return &m_Cmd; }
+  vector<EventUsage> GetUsage(ResourceId id) { return m_Cmd.m_ResourceUses[id]; }
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D12Resource); }

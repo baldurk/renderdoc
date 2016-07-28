@@ -50,28 +50,242 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::CopyTileMappings(
 bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLists,
                                                               ID3D12CommandList *const *ppCommandLists)
 {
-  SERIALISE_ELEMENT(UINT, num, NumCommandLists);
+  SERIALISE_ELEMENT(UINT, numCmds, NumCommandLists);
 
-  std::vector<ResourceId> ids;
+  vector<ResourceId> cmdIds;
+  ID3D12CommandList **cmds = m_State >= WRITING ? NULL : new ID3D12CommandList *[numCmds];
 
   if(m_State >= WRITING)
   {
-    ids.reserve(num);
-    for(UINT i = 0; i < num; i++)
-      ids.push_back(GetResID(ppCommandLists[i]));
+    for(UINT i = 0; i < numCmds; i++)
+    {
+      D3D12ResourceRecord *record = GetRecord(ppCommandLists[i]);
+      RDCASSERT(record->bakedCommands);
+      if(record->bakedCommands)
+        cmdIds.push_back(record->bakedCommands->GetResourceID());
+    }
   }
 
-  m_pSerialiser->Serialise("ppCommandLists", ids);
+  m_pSerialiser->Serialise("ppCommandLists", cmdIds);
 
-  if(m_State <= EXECUTING)
+  if(m_State < WRITING)
   {
-    std::vector<ID3D12CommandList *> unwrappedLists;
-    unwrappedLists.reserve(num);
-    for(UINT i = 0; i < num; i++)
-      unwrappedLists.push_back(Unwrap(GetResourceManager()->GetLiveAs<ID3D12CommandList>(ids[i])));
-
-    m_pReal->ExecuteCommandLists(num, &unwrappedLists[0]);
+    for(UINT i = 0; i < numCmds; i++)
+    {
+      cmds[i] = cmdIds[i] != ResourceId()
+                    ? Unwrap(GetResourceManager()->GetLiveAs<ID3D12CommandList>(cmdIds[i]))
+                    : NULL;
+    }
   }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  D3D12NOTIMP("Serialise_DebugMessages");
+
+  if(m_State == READING)
+  {
+    m_pReal->ExecuteCommandLists(numCmds, cmds);
+
+    for(uint32_t i = 0; i < numCmds; i++)
+    {
+      ResourceId cmd = GetResourceManager()->GetLiveID(cmdIds[i]);
+      m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[cmd].barriers);
+    }
+
+    m_Cmd.AddEvent(EXECUTE_CMD_LISTS, desc);
+
+    // we're adding multiple events, need to increment ourselves
+    m_Cmd.m_RootEventID++;
+
+    string basename = "ExecuteCommandLists(" + ToStr::Get(numCmds) + ")";
+
+    for(uint32_t c = 0; c < numCmds; c++)
+    {
+      string name = StringFormat::Fmt("=> %s[%u]: ID3D12CommandList(%s)", basename.c_str(), c,
+                                      ToStr::Get(cmdIds[c]).c_str());
+
+      // add a fake marker
+      FetchDrawcall draw;
+      draw.name = name;
+      draw.flags |= eDraw_SetMarker;
+      m_Cmd.AddEvent(SET_MARKER, name);
+      m_Cmd.AddDrawcall(draw, true);
+      m_Cmd.m_RootEventID++;
+
+      BakedCmdListInfo &cmdBufInfo = m_Cmd.m_BakedCmdListInfo[cmdIds[c]];
+
+      // insert the baked command buffer in-line into this list of notes, assigning new event and
+      // drawIDs
+      m_Cmd.InsertDrawsAndRefreshIDs(cmdBufInfo.draw->children);
+
+      for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
+      {
+        vector<uint32_t> &submits =
+            m_Cmd.m_Partial[D3D12CommandData::Secondary].cmdListExecs[cmdBufInfo.draw->executedCmds[e]];
+
+        for(size_t s = 0; s < submits.size(); s++)
+          submits[s] += m_Cmd.m_RootEventID;
+      }
+
+      D3D12NOTIMP("Debug Messages");
+      /*
+      for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
+      {
+        m_DebugMessages.push_back(cmdBufInfo.debugMessages[i]);
+        m_DebugMessages.back().eventID += m_RootEventID;
+      }
+      */
+
+      // only primary command buffers can be submitted
+      m_Cmd.m_Partial[D3D12CommandData::Primary].cmdListExecs[cmdIds[c]].push_back(
+          m_Cmd.m_RootEventID);
+
+      m_Cmd.m_RootEventID += cmdBufInfo.eventCount;
+      m_Cmd.m_RootDrawcallID += cmdBufInfo.drawCount;
+
+      name = StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c,
+                               ToStr::Get(cmdIds[c]).c_str());
+      draw.name = name;
+      m_Cmd.AddEvent(SET_MARKER, name);
+      m_Cmd.AddDrawcall(draw, true);
+      m_Cmd.m_RootEventID++;
+    }
+
+    // account for the outer loop thinking we've added one event and incrementing,
+    // since we've done all the handling ourselves this will be off by one.
+    m_Cmd.m_RootEventID--;
+  }
+  else if(m_State == EXECUTING)
+  {
+    // account for the queue submit event
+    m_Cmd.m_RootEventID++;
+
+    uint32_t startEID = m_Cmd.m_RootEventID;
+
+    // advance m_CurEventID to match the events added when reading
+    for(uint32_t c = 0; c < numCmds; c++)
+    {
+      // 2 extra for the virtual labels around the command buffer
+      m_Cmd.m_RootEventID += 2 + m_Cmd.m_BakedCmdListInfo[cmdIds[c]].eventCount;
+      m_Cmd.m_RootDrawcallID += 2 + m_Cmd.m_BakedCmdListInfo[cmdIds[c]].drawCount;
+    }
+
+    // same accounting for the outer loop as above
+    m_Cmd.m_RootEventID--;
+
+    D3D12NOTIMP("m_DrawcallCallback");
+
+    if(numCmds == 0)
+    {
+      // do nothing, don't bother with the logic below
+    }
+    else if(m_Cmd.m_LastEventID <= startEID)
+    {
+#ifdef VERBOSE_PARTIAL_REPLAY
+      RDCDEBUG("Queue Submit no replay %u == %u", m_Cmd.m_LastEventID, startEID);
+#endif
+    }
+    /*
+    else if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+    {
+#ifdef VERBOSE_PARTIAL_REPLAY
+      RDCDEBUG("Queue Submit re-recording from %u", m_RootEventID);
+#endif
+
+      vector<ID3D12CommandList *> rerecordedCmds;
+
+      for(uint32_t c = 0; c < numCmds; c++)
+      {
+        ID3D12CommandList *cmd = RerecordCmdBuf(cmdIds[c]);
+        ResourceId rerecord = GetResID(cmd);
+#ifdef VERBOSE_PARTIAL_REPLAY
+        RDCDEBUG("Queue Submit fully re-recorded replay of %llu, using %llu", cmdIds[c], rerecord);
+#endif
+        rerecordedCmds.push_back(Unwrap(cmd));
+
+        m_pDevice->ApplyBarriers(m_BakedCmdBufferInfo[rerecord].imgbarriers);
+      }
+
+      m_pReal->ExecuteCommandLists((UINT)rerecordedCmds.size(), &rerecordedCmds[0]);
+    }
+    */
+    else if(m_Cmd.m_LastEventID > startEID && m_Cmd.m_LastEventID < m_Cmd.m_RootEventID)
+    {
+#ifdef VERBOSE_PARTIAL_REPLAY
+      RDCDEBUG("Queue Submit partial replay %u < %u", m_Cmd.m_LastEventID, m_Cmd.m_RootEventID);
+#endif
+
+      uint32_t eid = startEID;
+
+      vector<ResourceId> trimmedCmdIds;
+      vector<ID3D12CommandList *> trimmedCmds;
+
+      for(uint32_t c = 0; c < numCmds; c++)
+      {
+        // account for the virtual vkBeginCommandBuffer label at the start of the events here
+        // so it matches up to baseEvent
+        eid++;
+
+        uint32_t end = eid + m_Cmd.m_BakedCmdListInfo[cmdIds[c]].eventCount;
+
+        if(eid == m_Cmd.m_Partial[D3D12CommandData::Primary].baseEvent)
+        {
+          ID3D12GraphicsCommandList *list =
+              m_Cmd.RerecordCmdList(cmdIds[c], D3D12CommandData::Primary);
+          ResourceId partial = GetResID(list);
+#ifdef VERBOSE_PARTIAL_REPLAY
+          RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
+#endif
+          trimmedCmdIds.push_back(partial);
+          trimmedCmds.push_back(Unwrap(list));
+        }
+        else if(m_Cmd.m_LastEventID >= end)
+        {
+#ifdef VERBOSE_PARTIAL_REPLAY
+          RDCDEBUG("Queue Submit full replay %llu", cmdIds[c]);
+#endif
+          trimmedCmdIds.push_back(cmdIds[c]);
+          trimmedCmds.push_back(Unwrap(GetResourceManager()->GetLiveAs<ID3D12CommandList>(cmdIds[c])));
+        }
+        else
+        {
+#ifdef VERBOSE_PARTIAL_REPLAY
+          RDCDEBUG("Queue not submitting %llu", cmdIds[c]);
+#endif
+        }
+
+        // 1 extra to account for the virtual end command buffer label (begin is accounted for
+        // above)
+        eid += 1 + m_Cmd.m_BakedCmdListInfo[cmdIds[c]].eventCount;
+      }
+
+      RDCASSERT(trimmedCmds.size() > 0);
+
+      m_pReal->ExecuteCommandLists((UINT)trimmedCmds.size(), &trimmedCmds[0]);
+
+      for(uint32_t i = 0; i < trimmedCmdIds.size(); i++)
+      {
+        ResourceId cmd = trimmedCmdIds[i];
+        m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[cmd].barriers);
+      }
+    }
+    else
+    {
+#ifdef VERBOSE_PARTIAL_REPLAY
+      RDCDEBUG("Queue Submit full replay %u >= %u", m_Cmd.m_LastEventID, m_Cmd.m_RootEventID);
+#endif
+
+      m_pReal->ExecuteCommandLists(numCmds, cmds);
+
+      for(uint32_t i = 0; i < numCmds; i++)
+      {
+        ResourceId cmd = GetResourceManager()->GetLiveID(cmdIds[i]);
+        m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[cmd].barriers);
+      }
+    }
+  }
+
+  SAFE_DELETE_ARRAY(cmds);
 
   return true;
 }

@@ -229,6 +229,11 @@ ResourceId D3D12Replay::GetLiveID(ResourceId id)
   return m_pDevice->GetResourceManager()->GetLiveID(id);
 }
 
+vector<EventUsage> D3D12Replay::GetUsage(ResourceId id)
+{
+  return m_pDevice->GetQueue()->GetUsage(id);
+}
+
 void D3D12Replay::RenderCheckerboard(Vec3f light, Vec3f dark)
 {
   m_pDevice->GetDebugManager()->RenderCheckerboard(light, dark);
@@ -324,11 +329,6 @@ APIProperties D3D12Replay::GetAPIProperties()
 ShaderReflection *D3D12Replay::GetShader(ResourceId shader, string entryPoint)
 {
   return NULL;
-}
-
-vector<EventUsage> D3D12Replay::GetUsage(ResourceId id)
-{
-  return vector<EventUsage>();
 }
 
 vector<DebugMessage> D3D12Replay::GetDebugMessages()

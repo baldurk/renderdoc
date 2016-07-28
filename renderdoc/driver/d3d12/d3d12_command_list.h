@@ -25,6 +25,7 @@
 #pragma once
 
 #include "common/wrapped_pool.h"
+#include "d3d12_commands.h"
 #include "d3d12_common.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
@@ -85,6 +86,9 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
 {
   WrappedID3D12Device *m_pDevice;
 
+  // command recording/replay data shared between queues and lists
+  D3D12CommandData *m_Cmd;
+
   ResourceId m_ResourceID;
   D3D12ResourceRecord *m_ListRecord;
 
@@ -99,9 +103,6 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
     UINT nodeMask;
     D3D12_COMMAND_LIST_TYPE type;
   } m_Init;
-
-  void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
-  void AddEvent(D3D12ChunkType type, string description);
 
   const char *GetChunkName(uint32_t idx) { return m_pDevice->GetChunkName(idx); }
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
@@ -119,6 +120,7 @@ public:
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
   ID3D12GraphicsCommandList *GetList(ResourceId id);
 
+  void SetCommandData(D3D12CommandData *cmd) { m_Cmd = cmd; }
   void SetInitParams(REFIID riid, UINT nodeMask, D3D12_COMMAND_LIST_TYPE type)
   {
     m_Init.riid = riid;

@@ -197,6 +197,7 @@
     <ClCompile Include="d3d12_resources.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="d3d12_commands.h" />
     <ClInclude Include="d3d12_command_list.h" />
     <ClInclude Include="d3d12_command_queue.h" />
     <ClInclude Include="d3d12_common.h" />

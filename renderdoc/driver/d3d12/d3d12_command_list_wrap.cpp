@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_command_list.h"
+#include "d3d12_command_queue.h"
 
 ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetList(ResourceId id)
 {
@@ -33,8 +34,68 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close()
 {
   SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
 
-  if(m_State <= READING)
-    GetList(CommandList)->Close();
+  ResourceId bakedCmdId;
+
+  if(m_State >= WRITING)
+  {
+    D3D12ResourceRecord *record = GetResourceManager()->GetResourceRecord(CommandList);
+    RDCASSERT(record->bakedCommands);
+    if(record->bakedCommands)
+      bakedCmdId = record->bakedCommands->GetResourceID();
+  }
+
+  SERIALISE_ELEMENT(ResourceId, bakeId, bakedCmdId);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+#ifdef VERBOSE_PARTIAL_REPLAY
+      RDCDEBUG("Ending partial command buffer for %llu baked to %llu", CommandList, bakeId);
+#endif
+
+      list->Close();
+
+      // erase the non-baked reference to this command list so that we don't have
+      // duplicates when it comes time to clean up. See below in in Reset()
+      m_Cmd->m_RerecordCmds.erase(CommandList);
+
+      if(m_Cmd->m_Partial[D3D12CommandData::Primary].partialParent == CommandList)
+        m_Cmd->m_Partial[D3D12CommandData::Primary].partialParent = ResourceId();
+    }
+
+    m_Cmd->m_BakedCmdListInfo[CommandList].curEventID = 0;
+  }
+  else if(m_State == READING)
+  {
+    ID3D12GraphicsCommandList *list = GetList(CommandList);
+
+    GetResourceManager()->RemoveReplacement(CommandList);
+
+    list->Close();
+
+    if(m_State == READING && !m_Cmd->m_BakedCmdListInfo[CommandList].curEvents.empty())
+    {
+      FetchDrawcall draw;
+      draw.name = "API Calls";
+      draw.flags |= eDraw_SetMarker;
+
+      m_Cmd->AddDrawcall(draw, true);
+
+      m_Cmd->m_BakedCmdListInfo[CommandList].curEventID++;
+    }
+
+    {
+      if(m_Cmd->GetDrawcallStack().size() > 1)
+        m_Cmd->GetDrawcallStack().pop_back();
+    }
+
+    m_Cmd->m_BakedCmdListInfo[bakeId].BakeFrom(m_Cmd->m_BakedCmdListInfo[CommandList]);
+  }
 
   return true;
 }
@@ -68,21 +129,128 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
   SERIALISE_ELEMENT(ResourceId, Allocator, GetResID(pAllocator));
   SERIALISE_ELEMENT(ResourceId, State, GetResID(pInitialState));
 
-  if(m_State <= READING)
+  ResourceId bakedCmdId;
+
+  if(m_State >= WRITING)
+  {
+    D3D12ResourceRecord *record = GetResourceManager()->GetResourceRecord(CommandList);
+    RDCASSERT(record->bakedCommands);
+    if(record->bakedCommands)
+      bakedCmdId = record->bakedCommands->GetResourceID();
+  }
+
+  SERIALISE_ELEMENT(ResourceId, bakeId, bakedCmdId);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    const uint32_t length = m_Cmd->m_BakedCmdListInfo[bakeId].eventCount;
+
+    bool partial = false;
+    int partialType = D3D12CommandData::ePartialNum;
+
+    // check for partial execution of this command buffer
+    for(int p = 0; p < D3D12CommandData::ePartialNum; p++)
+    {
+      const vector<uint32_t> &baseEvents = m_Cmd->m_Partial[p].cmdListExecs[bakeId];
+
+      for(auto it = baseEvents.begin(); it != baseEvents.end(); ++it)
+      {
+        if(*it <= m_Cmd->m_LastEventID && m_Cmd->m_LastEventID < (*it + length))
+        {
+#ifdef VERBOSE_PARTIAL_REPLAY
+          RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", *it,
+                   m_Cmd->m_LastEventID, *it + length, CommandList, bakeId);
+#endif
+
+          m_Cmd->m_Partial[p].partialParent = CommandList;
+          m_Cmd->m_Partial[p].baseEvent = *it;
+
+          partial = true;
+          partialType = p;
+        }
+      }
+    }
+
+    D3D12NOTIMP("m_DrawcallCallback");
+    // const bool recordAllCmds = false; // m_DrawcallCallback &&
+    // m_DrawcallCallback->RecordAllCmds()
+
+    if(partial)    // || recordAllCmds
+    {
+      pAllocator = GetResourceManager()->GetLiveAs<ID3D12CommandAllocator>(Allocator);
+      pInitialState =
+          State == ResourceId() ? NULL : GetResourceManager()->GetLiveAs<ID3D12PipelineState>(State);
+
+      // pull all re-recorded commands from our own device and command pool for easier cleanup
+      if(!partial)
+        pAllocator = Unwrap(m_pDevice->GetAlloc());
+
+      ID3D12GraphicsCommandList *list = NULL;
+      HRESULT hr = m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState, riid,
+                                                (void **)&list);
+
+      if(FAILED(hr))
+        RDCERR("Failed on resource serialise-creation, hr: 0x%08x", hr);
+
+      if(partial)
+      {
+        m_Cmd->m_Partial[partialType].resultPartialCmdList = list;
+      }
+      else
+      {
+        // we store under both baked and non baked ID.
+        // The baked ID is the 'real' entry, the non baked is simply so it
+        // can be found in the subsequent serialised commands that ref the
+        // non-baked ID. The baked ID is referenced by the submit itself.
+        //
+        // In vkEndCommandBuffer we erase the non-baked reference, and since
+        // we know you can only be recording a command buffer once at a time
+        // (even if it's baked to several command buffers in the frame)
+        // there's no issue with clashes here.
+        m_Cmd->m_RerecordCmds[bakeId] = list;
+        m_Cmd->m_RerecordCmds[CommandList] = list;
+      }
+    }
+
+    m_Cmd->m_BakedCmdListInfo[CommandList].curEventID = 0;
+  }
+  else if(m_State == READING)
   {
     pAllocator = GetResourceManager()->GetLiveAs<ID3D12CommandAllocator>(Allocator);
     pInitialState =
         State == ResourceId() ? NULL : GetResourceManager()->GetLiveAs<ID3D12PipelineState>(State);
 
-    if(m_State == READING && !GetResourceManager()->HasLiveResource(CommandList))
+    if(!GetResourceManager()->HasLiveResource(bakeId))
     {
       ID3D12GraphicsCommandList *list = NULL;
       m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState, riid, (void **)&list);
 
-      GetResourceManager()->AddLiveResource(CommandList, list);
+      GetResourceManager()->AddLiveResource(bakeId, list);
+
+      // whenever a vkCmd command-building chunk asks for the command buffer, it
+      // will get our baked version.
+      GetResourceManager()->ReplaceResource(CommandList, bakeId);
     }
     else
+    {
       GetList(CommandList)->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
+    }
+
+    {
+      D3D12DrawcallTreeNode *draw = new D3D12DrawcallTreeNode;
+      m_Cmd->m_BakedCmdListInfo[CommandList].draw = draw;
+
+      // On list execute we increment all child events/drawcalls by
+      // m_RootEventID and insert them into the tree.
+      m_Cmd->m_BakedCmdListInfo[CommandList].curEventID = 0;
+      m_Cmd->m_BakedCmdListInfo[CommandList].eventCount = 0;
+      m_Cmd->m_BakedCmdListInfo[CommandList].drawCount = 0;
+
+      m_Cmd->m_BakedCmdListInfo[CommandList].drawStack.push_back(draw);
+    }
   }
 
   return true;
@@ -151,18 +319,43 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
   SERIALISE_ELEMENT(INT, startVtx, BaseVertexLocation);
   SERIALISE_ELEMENT(UINT, startInst, StartInstanceLocation);
 
-  if(m_State <= READING)
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  D3D12NOTIMP("Serialise_DebugMessages");
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+
+      Unwrap(list)->DrawIndexedInstanced(idxCount, instCount, startIdx, startVtx, startInst);
+
+      D3D12NOTIMP("Drawcall callbacks");
+      /*
+      uint32_t eventID = HandlePreCallback(commandBuffer);
+
+      ObjDisp(commandBuffer)
+          ->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs,
+      firstInst);
+
+      if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs,
+                             firstInst);
+        m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+      }*/
+    }
+  }
+  else if(m_State == READING)
   {
     GetList(CommandList)->DrawIndexedInstanced(idxCount, instCount, startIdx, startVtx, startInst);
-  }
 
-  const string desc = m_pSerialiser->GetDebugStr();
+    const string desc = m_pSerialiser->GetDebugStr();
 
-  // TODO - Serialise_DebugMessages();
-
-  if(m_State == READING)
-  {
-    AddEvent(DRAW_INDEXED_INST, desc);
+    m_Cmd->AddEvent(DRAW_INDEXED_INST, desc);
     string name =
         "DrawIndexedInstanced(" + ToStr::Get(idxCount) + ", " + ToStr::Get(instCount) + ")";
 
@@ -176,7 +369,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
 
     draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_UseIBuffer;
 
-    AddDrawcall(draw, true);
+    m_Cmd->AddDrawcall(draw, true);
   }
 
   return true;
@@ -219,13 +412,58 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(ID3D12Resource
   SERIALISE_ELEMENT(UINT64, srcoffs, SrcOffset);
   SERIALISE_ELEMENT(UINT64, num, NumBytes);
 
-  if(m_State <= READING && GetResourceManager()->HasLiveResource(dst) &&
-     GetResourceManager()->HasLiveResource(src))
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
   {
     pDstBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(dst);
     pSrcBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
 
-    GetList(CommandList)->CopyBufferRegion(Unwrap(pDstBuffer), dstoffs, Unwrap(pSrcBuffer), srcoffs, num);
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+      Unwrap(list)->CopyBufferRegion(Unwrap(pDstBuffer), dstoffs, Unwrap(pSrcBuffer), srcoffs, num);
+    }
+  }
+  else if(m_State == READING)
+  {
+    ID3D12GraphicsCommandList *list = GetList(CommandList);
+    pDstBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(dst);
+    pSrcBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
+
+    list->CopyBufferRegion(Unwrap(pDstBuffer), dstoffs, Unwrap(pSrcBuffer), srcoffs, num);
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    {
+      m_Cmd->AddEvent(COPY_BUFFER, desc);
+      string name = "CopyBufferRegion(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
+
+      FetchDrawcall draw;
+      draw.name = name;
+      draw.flags |= eDraw_Copy;
+
+      draw.copySource = src;
+      draw.copyDestination = dst;
+
+      m_Cmd->AddDrawcall(draw, true);
+
+      D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+      if(src == dst)
+      {
+        drawNode.resourceUsage.push_back(
+            std::make_pair(GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventID, eUsage_Copy)));
+      }
+      else
+      {
+        drawNode.resourceUsage.push_back(std::make_pair(
+            GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventID, eUsage_CopySrc)));
+        drawNode.resourceUsage.push_back(std::make_pair(
+            GetResID(pDstBuffer), EventUsage(drawNode.draw.eventID, eUsage_CopyDst)));
+      }
+    }
   }
 
   return true;
@@ -292,8 +530,22 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
   SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(D3D12_PRIMITIVE_TOPOLOGY, topo, PrimitiveTopology);
 
-  if(m_State <= READING)
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
   {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->IASetPrimitiveTopology(topo);
+
+      // m_RenderState.topo = topo;
+    }
+  }
+  else if(m_State == READING)
+  {
+    m_Cmd->m_BakedCmdListInfo[CommandList].state.topo = topo;
+
     GetList(CommandList)->IASetPrimitiveTopology(topo);
   }
 
@@ -320,7 +572,24 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetViewports(UINT NumViewport
   SERIALISE_ELEMENT(UINT, num, NumViewports);
   SERIALISE_ELEMENT_ARR(D3D12_VIEWPORT, views, pViewports, num);
 
-  if(m_State <= READING)
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->RSSetViewports(num, views);
+
+      /*
+      if(m_RenderState.views.size() < first + count)
+        m_RenderState.views.resize(first + count);
+
+      for(uint32_t i = 0; i < count; i++)
+        m_RenderState.views[first + i] = views[i];*/
+    }
+  }
+  else if(m_State == READING)
   {
     GetList(CommandList)->RSSetViewports(num, views);
   }
@@ -351,7 +620,24 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetScissorRects(UINT NumRects
   SERIALISE_ELEMENT(UINT, num, NumRects);
   SERIALISE_ELEMENT_ARR(D3D12_RECT, rects, pRects, num);
 
-  if(m_State <= READING)
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->RSSetScissorRects(num, rects);
+
+      /*
+      if(m_RenderState.scissors.size() < first + count)
+        m_RenderState.scissors.resize(first + count);
+
+      for(uint32_t i = 0; i < count; i++)
+        m_RenderState.scissors[first + i] = scissors[i];*/
+    }
+  }
+  else if(m_State == READING)
   {
     GetList(CommandList)->RSSetScissorRects(num, rects);
   }
@@ -389,7 +675,20 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(ID3D12Pipeline
   SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(ResourceId, pipe, GetResID(pPipelineState));
 
-  if(m_State <= READING)
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      pPipelineState = GetResourceManager()->GetLiveAs<ID3D12PipelineState>(pipe);
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->SetPipelineState(Unwrap(pPipelineState));
+
+      // m_RenderState.pipe = ;
+    }
+  }
+  else if(m_State == READING)
   {
     pPipelineState = GetResourceManager()->GetLiveAs<ID3D12PipelineState>(pipe);
     GetList(CommandList)->SetPipelineState(Unwrap(pPipelineState));
@@ -419,10 +718,93 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(UINT NumBarrier
   SERIALISE_ELEMENT(UINT, num, NumBarriers);
   SERIALISE_ELEMENT_ARR(D3D12_RESOURCE_BARRIER, barriers, pBarriers, num);
 
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
   if(m_State <= READING)
   {
     // TODO filter out any barriers for NULL resources
     GetList(CommandList)->ResourceBarrier(num, barriers);
+  }
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+      Unwrap(list)->ResourceBarrier(num, barriers);
+
+      ResourceId cmd = GetResID(list);
+
+      // need to re-wrap the barriers
+      for(UINT i = 0; i < num; i++)
+      {
+        D3D12_RESOURCE_BARRIER b = barriers[i];
+
+        switch(b.Type)
+        {
+          case D3D12_RESOURCE_BARRIER_TYPE_TRANSITION:
+          {
+            b.Transition.pResource =
+                (ID3D12Resource *)GetResourceManager()->GetWrapper(b.Transition.pResource);
+            break;
+          }
+          case D3D12_RESOURCE_BARRIER_TYPE_ALIASING:
+          {
+            b.Aliasing.pResourceBefore =
+                (ID3D12Resource *)GetResourceManager()->GetWrapper(b.Aliasing.pResourceBefore);
+            b.Aliasing.pResourceAfter =
+                (ID3D12Resource *)GetResourceManager()->GetWrapper(b.Aliasing.pResourceAfter);
+            break;
+          }
+          case D3D12_RESOURCE_BARRIER_TYPE_UAV:
+          {
+            b.UAV.pResource = (ID3D12Resource *)GetResourceManager()->GetWrapper(b.UAV.pResource);
+            break;
+          }
+        }
+
+        m_Cmd->m_BakedCmdListInfo[cmd].barriers.push_back(b);
+      }
+    }
+  }
+  else if(m_State == READING)
+  {
+    ID3D12GraphicsCommandList *list = GetList(CommandList);
+
+    list->ResourceBarrier(num, barriers);
+
+    ResourceId cmd = GetResID(list);
+
+    // need to re-wrap the barriers
+    for(UINT i = 0; i < num; i++)
+    {
+      D3D12_RESOURCE_BARRIER b = barriers[i];
+
+      switch(b.Type)
+      {
+        case D3D12_RESOURCE_BARRIER_TYPE_TRANSITION:
+        {
+          b.Transition.pResource =
+              (ID3D12Resource *)GetResourceManager()->GetWrapper(b.Transition.pResource);
+          break;
+        }
+        case D3D12_RESOURCE_BARRIER_TYPE_ALIASING:
+        {
+          b.Aliasing.pResourceBefore =
+              (ID3D12Resource *)GetResourceManager()->GetWrapper(b.Aliasing.pResourceBefore);
+          b.Aliasing.pResourceAfter =
+              (ID3D12Resource *)GetResourceManager()->GetWrapper(b.Aliasing.pResourceAfter);
+          break;
+        }
+        case D3D12_RESOURCE_BARRIER_TYPE_UAV:
+        {
+          b.UAV.pResource = (ID3D12Resource *)GetResourceManager()->GetWrapper(b.UAV.pResource);
+          break;
+        }
+      }
+
+      m_Cmd->m_BakedCmdListInfo[cmd].barriers.push_back(b);
+    }
   }
 
   return true;
@@ -487,9 +869,21 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
   SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(ResourceId, sig, GetResID(pRootSignature));
 
-  if(m_State <= READING)
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      pRootSignature = GetResourceManager()->GetLiveAs<ID3D12RootSignature>(sig);
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->SetGraphicsRootSignature(Unwrap(pRootSignature));
+    }
+  }
+  else if(m_State == READING)
   {
     pRootSignature = GetResourceManager()->GetLiveAs<ID3D12RootSignature>(sig);
+
     GetList(CommandList)->SetGraphicsRootSignature(Unwrap(pRootSignature));
   }
 
@@ -574,7 +968,20 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
   SERIALISE_ELEMENT(ResourceId, buffer, id);
   SERIALISE_ELEMENT(UINT64, byteOffset, offs);
 
-  if(m_State <= READING)
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      WrappedID3D12Resource *pRes = GetResourceManager()->GetLiveAs<WrappedID3D12Resource>(buffer);
+
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))
+          ->SetGraphicsRootConstantBufferView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
+    }
+  }
+  else if(m_State == READING)
   {
     WrappedID3D12Resource *pRes = GetResourceManager()->GetLiveAs<WrappedID3D12Resource>(buffer);
 
@@ -634,12 +1041,54 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_IN
   SERIALISE_ELEMENT(bool, HasView, pView != NULL);
   SERIALISE_ELEMENT_OPT(D3D12_INDEX_BUFFER_VIEW, view, *pView, HasView);
 
-  if(m_State <= READING)
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
   {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+
+      if(HasView)
+      {
+        Unwrap(list)->IASetIndexBuffer(&view);
+
+        // WrappedID3D12Resource::GetResIDFromAddr(view.BufferLocation, m_RenderState.ibuffer.buf,
+        // m_RenderState.ibuffer.offs);
+        // m_RenderState.ibuffer.bytewidth = (view.Format == DXGI_FORMAT_R32_UINT ? 4 : 2);
+      }
+      else
+      {
+        Unwrap(list)->IASetIndexBuffer(NULL);
+
+        // m_RenderState.ibuffer.buf = ResourceId();
+        // m_RenderState.ibuffer.offs = 0;
+        // m_RenderState.ibuffer.bytewidth = 2;
+      }
+    }
+  }
+  else if(m_State == READING)
+  {
+    ID3D12GraphicsCommandList *list = GetList(CommandList);
+
     if(HasView)
-      GetList(CommandList)->IASetIndexBuffer(&view);
+    {
+      list->IASetIndexBuffer(&view);
+
+      UINT64 dummy = 0;
+      WrappedID3D12Resource::GetResIDFromAddr(
+          view.BufferLocation, m_Cmd->m_BakedCmdListInfo[CommandList].state.ibuffer, dummy);
+      m_Cmd->m_BakedCmdListInfo[CommandList].state.idxWidth =
+          (view.Format == DXGI_FORMAT_R32_UINT ? 4 : 2);
+    }
     else
-      GetList(CommandList)->IASetIndexBuffer(NULL);
+    {
+      list->IASetIndexBuffer(NULL);
+
+      m_Cmd->m_BakedCmdListInfo[CommandList].state.ibuffer = ResourceId();
+      m_Cmd->m_BakedCmdListInfo[CommandList].state.idxWidth = 2;
+    }
   }
 
   return true;
@@ -674,7 +1123,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
   SERIALISE_ELEMENT(UINT, num, NumViews);
   SERIALISE_ELEMENT_ARR(D3D12_VERTEX_BUFFER_VIEW, views, pViews, num);
 
-  if(m_State <= READING)
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->IASetVertexBuffers(start, num, views);
+
+      // m_RenderState.vbuffers = ;
+    }
+  }
+  else if(m_State == READING)
   {
     GetList(CommandList)->IASetVertexBuffers(start, num, views);
   }
@@ -720,6 +1181,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   SERIALISE_ELEMENT(UINT, num, NumRenderTargetDescriptors);
   SERIALISE_ELEMENT(bool, singlehandle, RTsSingleHandleToDescriptorRange != FALSE);
 
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
   UINT numHandles = singlehandle ? 1U : num;
 
   std::vector<PortableHandle> rts;
@@ -739,7 +1203,25 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
                                              ? ToPortableHandle(*pDepthStencilDescriptor)
                                              : PortableHandle(0));
 
-  if(m_State <= READING)
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = FromPortableHandle(GetResourceManager(), dsv);
+
+      D3D12_CPU_DESCRIPTOR_HANDLE *rtHandles = new D3D12_CPU_DESCRIPTOR_HANDLE[numHandles];
+
+      for(UINT i = 0; i < numHandles; i++)
+        rtHandles[i] = FromPortableHandle(GetResourceManager(), rts[i]);
+
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))
+          ->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
+                               dsv.heap != ResourceId() ? &dsvHandle : NULL);
+
+      SAFE_DELETE_ARRAY(rtHandles);
+    }
+  }
+  else if(m_State == READING)
   {
     D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = FromPortableHandle(GetResourceManager(), dsv);
 
@@ -751,6 +1233,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
     GetList(CommandList)
         ->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
                              dsv.heap != ResourceId() ? &dsvHandle : NULL);
+
+    SAFE_DELETE_ARRAY(rtHandles);
   }
 
   return true;
@@ -811,6 +1295,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
   SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
   SERIALISE_ELEMENT(PortableHandle, rtv, ToPortableHandle(RenderTargetView));
 
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
   float Color[4] = {0};
 
   if(m_State >= WRITING)
@@ -821,11 +1308,42 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
   SERIALISE_ELEMENT(UINT, num, NumRects);
   SERIALISE_ELEMENT_ARR(D3D12_RECT, rects, pRects, num);
 
-  if(m_State <= READING)
+  if(m_State == EXECUTING)
+  {
+    RenderTargetView = FromPortableHandle(GetResourceManager(), rtv);
+
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))
+          ->ClearRenderTargetView(RenderTargetView, Color, num, rects);
+    }
+  }
+  else if(m_State == READING)
   {
     RenderTargetView = FromPortableHandle(GetResourceManager(), rtv);
 
     GetList(CommandList)->ClearRenderTargetView(RenderTargetView, Color, num, rects);
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    {
+      m_Cmd->AddEvent(CLEAR_RTV, desc);
+      string name = "ClearRenderTargetView(" + ToStr::Get(Color[0]) + "," + ToStr::Get(Color[1]) +
+                    "," + ToStr::Get(Color[2]) + "," + ToStr::Get(Color[3]) + ")";
+
+      FetchDrawcall draw;
+      draw.name = name;
+      draw.flags |= eDraw_Clear | eDraw_ClearColour;
+
+      m_Cmd->AddDrawcall(draw, true);
+
+      D3D12NOTIMP("Getting image for RTV to mark usage");
+
+      // D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+      // drawNode.resourceUsage.push_back(
+      //    std::make_pair(GetResID(image), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+    }
   }
 
   SAFE_DELETE_ARRAY(rects);

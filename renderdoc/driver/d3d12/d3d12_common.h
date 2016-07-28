@@ -35,7 +35,24 @@
 
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
 // debugbreak.
-#define D3D12NOTIMP(...) RDCDEBUG("D3D12 not implemented - " __VA_ARGS__)
+#define D3D12NOTIMP(...)                                \
+  {                                                     \
+    static bool CONCAT(ignore, __LINE__) = false;       \
+    if(!CONCAT(ignore, __LINE__))                       \
+    {                                                   \
+      RDCDEBUG("D3D12 not implemented - " __VA_ARGS__); \
+      CONCAT(ignore, __LINE__) = true;                  \
+    }                                                   \
+  }
+
+// uncomment this to cause every internal ExecuteCommandLists to immediately call
+// FlushLists(), and to only submit one command list at once to narrow
+// down the cause of device lost errors
+//#define SINGLE_FLUSH_VALIDATE
+
+// uncomment this to get verbose debugging about when/where/why partial command
+// buffer replay is happening
+#define VERBOSE_PARTIAL_REPLAY
 
 UINT GetNumSubresources(const D3D12_RESOURCE_DESC *desc);
 
