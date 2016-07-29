@@ -1563,6 +1563,7 @@ void WrappedVulkan::vkCmdPushConstants(VkCommandBuffer commandBuffer, VkPipeline
                                  values);
 
     record->AddChunk(scope.Get());
+    record->MarkResourceFrameReferenced(GetResID(layout), eFrameRef_Read);
   }
 }
 
