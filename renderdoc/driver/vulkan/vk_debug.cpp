@@ -1417,8 +1417,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   if(m_pDriver->IsNV())
   {
-    // at time of writing, this isn't fixed on nv
-    texelFetchBrokenDriver = true;
+    // at time of writing, this isn't fixed on nv, but since we have a workaround
+    // that is harmless on other IHVs - keep it supported. Once a fixed version is
+    // out we will use this + a version check to stay working on older drivers.
+    // texelFetchBrokenDriver = true;
   }
 
   if(m_pDriver->IsAMD())
