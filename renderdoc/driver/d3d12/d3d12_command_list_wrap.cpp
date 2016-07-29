@@ -55,7 +55,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close()
     {
       ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
 #ifdef VERBOSE_PARTIAL_REPLAY
-      RDCDEBUG("Ending partial command buffer for %llu baked to %llu", CommandList, bakeId);
+      RDCDEBUG("Ending partial command list for %llu baked to %llu", CommandList, bakeId);
 #endif
 
       list->Close();
@@ -151,7 +151,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
     bool partial = false;
     int partialType = D3D12CommandData::ePartialNum;
 
-    // check for partial execution of this command buffer
+    // check for partial execution of this command list
     for(int p = 0; p < D3D12CommandData::ePartialNum; p++)
     {
       const vector<uint32_t> &baseEvents = m_Cmd->m_Partial[p].cmdListExecs[bakeId];
@@ -161,8 +161,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
         if(*it <= m_Cmd->m_LastEventID && m_Cmd->m_LastEventID < (*it + length))
         {
 #ifdef VERBOSE_PARTIAL_REPLAY
-          RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", *it,
-                   m_Cmd->m_LastEventID, *it + length, CommandList, bakeId);
+          RDCDEBUG("Reset - partial detected %u < %u < %u, %llu -> %llu", *it, m_Cmd->m_LastEventID,
+                   *it + length, CommandList, bakeId);
 #endif
 
           m_Cmd->m_Partial[p].partialParent = CommandList;
@@ -206,9 +206,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
         // can be found in the subsequent serialised commands that ref the
         // non-baked ID. The baked ID is referenced by the submit itself.
         //
-        // In vkEndCommandBuffer we erase the non-baked reference, and since
-        // we know you can only be recording a command buffer once at a time
-        // (even if it's baked to several command buffers in the frame)
+        // In Close() we erase the non-baked reference, and since
+        // we know you can only be recording a command list once at a time
+        // (even if it's baked to several command listsin the frame)
         // there's no issue with clashes here.
         m_Cmd->m_RerecordCmds[bakeId] = list;
         m_Cmd->m_RerecordCmds[CommandList] = list;
@@ -230,7 +230,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
 
       GetResourceManager()->AddLiveResource(bakeId, list);
 
-      // whenever a vkCmd command-building chunk asks for the command buffer, it
+      // whenever a command-building chunk asks for the command list, it
       // will get our baked version.
       GetResourceManager()->ReplaceResource(CommandList, bakeId);
     }
@@ -539,7 +539,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
     {
       Unwrap(m_Cmd->RerecordCmdList(CommandList))->IASetPrimitiveTopology(topo);
 
-      // m_RenderState.topo = topo;
+      m_Cmd->m_RenderState.topo = topo;
     }
   }
   else if(m_State == READING)
@@ -581,12 +581,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetViewports(UINT NumViewport
     {
       Unwrap(m_Cmd->RerecordCmdList(CommandList))->RSSetViewports(num, views);
 
-      /*
-      if(m_RenderState.views.size() < first + count)
-        m_RenderState.views.resize(first + count);
+      if(m_Cmd->m_RenderState.views.size() < num)
+        m_Cmd->m_RenderState.views.resize(num);
 
-      for(uint32_t i = 0; i < count; i++)
-        m_RenderState.views[first + i] = views[i];*/
+      for(UINT i = 0; i < num; i++)
+        m_Cmd->m_RenderState.views[i] = views[i];
     }
   }
   else if(m_State == READING)
@@ -629,12 +628,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetScissorRects(UINT NumRects
     {
       Unwrap(m_Cmd->RerecordCmdList(CommandList))->RSSetScissorRects(num, rects);
 
-      /*
-      if(m_RenderState.scissors.size() < first + count)
-        m_RenderState.scissors.resize(first + count);
+      if(m_Cmd->m_RenderState.scissors.size() < num)
+        m_Cmd->m_RenderState.scissors.resize(num);
 
-      for(uint32_t i = 0; i < count; i++)
-        m_RenderState.scissors[first + i] = scissors[i];*/
+      for(UINT i = 0; i < num; i++)
+        m_Cmd->m_RenderState.scissors[i] = rects[i];
     }
   }
   else if(m_State == READING)
@@ -685,7 +683,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(ID3D12Pipeline
       pPipelineState = GetResourceManager()->GetLiveAs<ID3D12PipelineState>(pipe);
       Unwrap(m_Cmd->RerecordCmdList(CommandList))->SetPipelineState(Unwrap(pPipelineState));
 
-      // m_RenderState.pipe = ;
+      m_Cmd->m_RenderState.pipe = GetResID(pPipelineState);
     }
   }
   else if(m_State == READING)
@@ -878,6 +876,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
     {
       pRootSignature = GetResourceManager()->GetLiveAs<ID3D12RootSignature>(sig);
       Unwrap(m_Cmd->RerecordCmdList(CommandList))->SetGraphicsRootSignature(Unwrap(pRootSignature));
+
+      m_Cmd->m_RenderState.graphics.rootsig = GetResID(pRootSignature);
     }
   }
   else if(m_State == READING)
@@ -979,6 +979,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
 
       Unwrap(m_Cmd->RerecordCmdList(CommandList))
           ->SetGraphicsRootConstantBufferView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
+
+      if(m_Cmd->m_RenderState.graphics.sigelems.size() < idx + 1)
+        m_Cmd->m_RenderState.graphics.sigelems.resize(idx + 1);
+
+      m_Cmd->m_RenderState.graphics.sigelems[idx] =
+          D3D12RenderState::SignatureElement(eRootCBV, GetResID(pRes), byteOffset);
     }
   }
   else if(m_State == READING)
@@ -1054,17 +1060,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_IN
       {
         Unwrap(list)->IASetIndexBuffer(&view);
 
-        // WrappedID3D12Resource::GetResIDFromAddr(view.BufferLocation, m_RenderState.ibuffer.buf,
-        // m_RenderState.ibuffer.offs);
-        // m_RenderState.ibuffer.bytewidth = (view.Format == DXGI_FORMAT_R32_UINT ? 4 : 2);
+        WrappedID3D12Resource::GetResIDFromAddr(
+            view.BufferLocation, m_Cmd->m_RenderState.ibuffer.buf, m_Cmd->m_RenderState.ibuffer.offs);
+        m_Cmd->m_RenderState.ibuffer.bytewidth = (view.Format == DXGI_FORMAT_R32_UINT ? 4 : 2);
+        m_Cmd->m_RenderState.ibuffer.size = view.SizeInBytes;
       }
       else
       {
         Unwrap(list)->IASetIndexBuffer(NULL);
 
-        // m_RenderState.ibuffer.buf = ResourceId();
-        // m_RenderState.ibuffer.offs = 0;
-        // m_RenderState.ibuffer.bytewidth = 2;
+        m_Cmd->m_RenderState.ibuffer.buf = ResourceId();
+        m_Cmd->m_RenderState.ibuffer.offs = 0;
+        m_Cmd->m_RenderState.ibuffer.bytewidth = 2;
       }
     }
   }
@@ -1076,9 +1083,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_IN
     {
       list->IASetIndexBuffer(&view);
 
-      UINT64 dummy = 0;
-      WrappedID3D12Resource::GetResIDFromAddr(
-          view.BufferLocation, m_Cmd->m_BakedCmdListInfo[CommandList].state.ibuffer, dummy);
       m_Cmd->m_BakedCmdListInfo[CommandList].state.idxWidth =
           (view.Format == DXGI_FORMAT_R32_UINT ? 4 : 2);
     }
@@ -1086,7 +1090,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_IN
     {
       list->IASetIndexBuffer(NULL);
 
-      m_Cmd->m_BakedCmdListInfo[CommandList].state.ibuffer = ResourceId();
       m_Cmd->m_BakedCmdListInfo[CommandList].state.idxWidth = 2;
     }
   }
@@ -1132,7 +1135,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
     {
       Unwrap(m_Cmd->RerecordCmdList(CommandList))->IASetVertexBuffers(start, num, views);
 
-      // m_RenderState.vbuffers = ;
+      if(m_Cmd->m_RenderState.vbuffers.size() < start + num)
+        m_Cmd->m_RenderState.vbuffers.resize(start + num);
+
+      for(UINT i = 0; i < num; i++)
+      {
+        WrappedID3D12Resource::GetResIDFromAddr(views[i].BufferLocation,
+                                                m_Cmd->m_RenderState.vbuffers[start + i].buf,
+                                                m_Cmd->m_RenderState.vbuffers[start + i].offs);
+
+        m_Cmd->m_RenderState.vbuffers[start + i].stride = views[i].StrideInBytes;
+        m_Cmd->m_RenderState.vbuffers[start + i].size = views[i].SizeInBytes;
+      }
     }
   }
   else if(m_State == READING)
@@ -1218,6 +1232,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
           ->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
                                dsv.heap != ResourceId() ? &dsvHandle : NULL);
 
+      m_Cmd->m_RenderState.rts.resize(num);
+
+      for(UINT i = 0; i < numHandles; i++)
+        m_Cmd->m_RenderState.rts[i] = rts[i];
+
+      m_Cmd->m_RenderState.rtSingle = singlehandle;
+
+      m_Cmd->m_RenderState.dsv = dsv;
+
       SAFE_DELETE_ARRAY(rtHandles);
     }
   }
@@ -1233,6 +1256,48 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
     GetList(CommandList)
         ->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
                              dsv.heap != ResourceId() ? &dsvHandle : NULL);
+
+    RDCEraseEl(m_Cmd->m_BakedCmdListInfo[CommandList].state.dsv);
+    RDCEraseEl(m_Cmd->m_BakedCmdListInfo[CommandList].state.rts);
+
+    if(singlehandle)
+    {
+      WrappedID3D12DescriptorHeap *heap =
+          GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(rts[0].heap);
+
+      const D3D12Descriptor *descs = heap->GetDescriptors() + rts[0].index;
+
+      for(UINT i = 0; i < num; i++)
+      {
+        RDCASSERT(descs[i].GetType() == D3D12Descriptor::TypeRTV);
+        m_Cmd->m_BakedCmdListInfo[CommandList].state.rts[i] = GetResID(descs[i].nonsamp.resource);
+      }
+    }
+    else
+    {
+      for(UINT i = 0; i < num; i++)
+      {
+        WrappedID3D12DescriptorHeap *heap =
+            GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(rts[0].heap);
+
+        const D3D12Descriptor &desc = heap->GetDescriptors()[rts[i].index];
+
+        RDCASSERT(desc.GetType() == D3D12Descriptor::TypeRTV);
+        m_Cmd->m_BakedCmdListInfo[CommandList].state.rts[i] = GetResID(desc.nonsamp.resource);
+      }
+    }
+
+    if(dsv.heap != ResourceId())
+    {
+      WrappedID3D12DescriptorHeap *heap =
+          GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(dsv.heap);
+
+      const D3D12Descriptor &desc = heap->GetDescriptors()[dsv.index];
+
+      RDCASSERT(desc.GetType() == D3D12Descriptor::TypeDSV);
+
+      m_Cmd->m_BakedCmdListInfo[CommandList].state.dsv = GetResID(desc.nonsamp.resource);
+    }
 
     SAFE_DELETE_ARRAY(rtHandles);
   }

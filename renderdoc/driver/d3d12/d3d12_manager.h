@@ -130,7 +130,7 @@ struct D3D12Descriptor
     TypeUndefined,
   };
 
-  DescriptorType GetType()
+  DescriptorType GetType() const
   {
     RDCCOMPILE_ASSERT(sizeof(D3D12Descriptor) <= 64, "D3D12Descriptor has gotten larger");
 
@@ -223,7 +223,7 @@ struct CmdListRecordingInfo
 {
   vector<D3D12_RESOURCE_BARRIER> barriers;
 
-  // a list of all resources dirtied by this command buffer
+  // a list of all resources dirtied by this command list
   set<ResourceId> dirtied;
 
   // bundles executed
@@ -289,6 +289,12 @@ public:
   T *GetLiveAs(ResourceId id)
   {
     return (T *)GetLiveResource(id);
+  }
+
+  template <class T>
+  T *GetCurrentAs(ResourceId id)
+  {
+    return (T *)GetCurrentResource(id);
   }
 
   void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers,

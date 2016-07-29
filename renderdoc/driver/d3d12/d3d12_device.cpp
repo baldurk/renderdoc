@@ -951,7 +951,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
       Serialise_BeginCaptureFrame(false);
 
       // need to hold onto this as it must come right after the capture chunk,
-      // before any command buffers
+      // before any command lists
       m_HeaderChunk = scope.Get();
     }
 
@@ -1082,14 +1082,13 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   {
     const vector<D3D12ResourceRecord *> &cmdListRecords = m_Queue->GetCmdLists();
 
-    RDCDEBUG("Flushing %u command buffer records to file serialiser",
-             (uint32_t)cmdListRecords.size());
+    RDCDEBUG("Flushing %u command list records to file serialiser", (uint32_t)cmdListRecords.size());
 
     for(size_t i = 0; i < cmdListRecords.size(); i++)
     {
       cmdListRecords[i]->Insert(recordlist);
 
-      RDCDEBUG("Adding %u chunks to file serialiser from command buffer %llu",
+      RDCDEBUG("Adding %u chunks to file serialiser from command list %llu",
                (uint32_t)recordlist.size(), cmdListRecords[i]->GetResourceID());
     }
 
@@ -1553,12 +1552,53 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   m_State = EXECUTING;
 
-  if(replayType == eReplay_Full)
-    m_Queue->ReplayLog(EXECUTING, startEventID, endEventID, partial);
-  else if(replayType == eReplay_WithoutDraw)
-    m_Queue->ReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
-  else if(replayType == eReplay_OnlyDraw)
-    m_Queue->ReplayLog(EXECUTING, endEventID, endEventID, partial);
-  else
-    RDCFATAL("Unexpected replay type");
+  {
+    D3D12CommandData &cmd = *m_Queue->GetCommandData();
+
+    if(!partial)
+    {
+      RDCASSERT(cmd.m_Partial[D3D12CommandData::Primary].resultPartialCmdList == NULL);
+      RDCASSERT(cmd.m_Partial[D3D12CommandData::Secondary].resultPartialCmdList == NULL);
+      cmd.m_Partial[D3D12CommandData::Primary].Reset();
+      cmd.m_Partial[D3D12CommandData::Secondary].Reset();
+      cmd.m_RenderState = D3D12RenderState();
+      cmd.m_RenderState.m_ResourceManager = GetResourceManager();
+    }
+
+    // we'll need our own command list if we're replaying just a subsection
+    // of events within a single command list record - always if it's only
+    // one drawcall, or if start event ID is > 0 we assume the outside code
+    // has chosen a subsection that lies within a command list
+    if(partial)
+    {
+      ID3D12GraphicsCommandList *list = cmd.m_Partial[D3D12CommandData::Primary].outsideCmdList =
+          GetNewList();
+
+      cmd.m_RenderState.ApplyState(list);
+    }
+
+    if(replayType == eReplay_Full)
+      m_Queue->ReplayLog(EXECUTING, startEventID, endEventID, partial);
+    else if(replayType == eReplay_WithoutDraw)
+      m_Queue->ReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
+    else if(replayType == eReplay_OnlyDraw)
+      m_Queue->ReplayLog(EXECUTING, endEventID, endEventID, partial);
+    else
+      RDCFATAL("Unexpected replay type");
+
+    if(cmd.m_Partial[D3D12CommandData::Primary].outsideCmdList != NULL)
+    {
+      ID3D12GraphicsCommandList *list = cmd.m_Partial[D3D12CommandData::Primary].outsideCmdList;
+
+      list->Close();
+
+      ExecuteLists();
+
+      cmd.m_Partial[D3D12CommandData::Primary].outsideCmdList = NULL;
+    }
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+    FlushLists(true);
+#endif
+  }
 }

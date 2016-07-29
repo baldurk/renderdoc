@@ -54,6 +54,9 @@
     <ClInclude Include="d3d12_commands.h">
       <Filter>Core IFaces</Filter>
     </ClInclude>
+    <ClInclude Include="d3d12_state.h">
+      <Filter>Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d12_common.cpp">
@@ -88,6 +91,9 @@
     </ClCompile>
     <ClCompile Include="d3d12_debug.cpp">
       <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_state.cpp">
+      <Filter>Util</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

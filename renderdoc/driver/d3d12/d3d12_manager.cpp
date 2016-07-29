@@ -469,8 +469,8 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
       desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
       ID3D12DescriptorHeap *copyheap = NULL;
-      HRESULT hr = m_Device->GetReal()->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap),
-                                                             (void **)&copyheap);
+      HRESULT hr =
+          m_Device->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&copyheap);
 
       if(FAILED(hr))
       {
@@ -480,11 +480,11 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
 
       D3D12_CPU_DESCRIPTOR_HANDLE handle = copyheap->GetCPUDescriptorHandleForHeapStart();
 
-      UINT increment = m_Device->GetDescriptorIncrement(desc.Type);
+      UINT increment = m_Device->GetDescriptorHandleIncrementSize(desc.Type);
 
       for(uint32_t i = 0; i < numElems; i++)
       {
-        descs[i].Create(m_Device->GetReal(), handle);
+        descs[i].Create(m_Device, handle);
 
         handle.ptr += increment;
       }
@@ -599,13 +599,13 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
 
   if(type == Resource_DescriptorHeap)
   {
-    ID3D12DescriptorHeap *dstheap = Unwrap((ID3D12DescriptorHeap *)live);
+    ID3D12DescriptorHeap *dstheap = (ID3D12DescriptorHeap *)live;
     ID3D12DescriptorHeap *srcheap = (ID3D12DescriptorHeap *)data.resource;
 
     if(srcheap)
     {
       // copy the whole heap
-      m_Device->GetReal()->CopyDescriptorsSimple(
+      m_Device->CopyDescriptorsSimple(
           srcheap->GetDesc().NumDescriptors, dstheap->GetCPUDescriptorHandleForHeapStart(),
           srcheap->GetCPUDescriptorHandleForHeapStart(), srcheap->GetDesc().Type);
     }

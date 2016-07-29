@@ -114,7 +114,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
 
       BakedCmdListInfo &cmdBufInfo = m_Cmd.m_BakedCmdListInfo[cmdIds[c]];
 
-      // insert the baked command buffer in-line into this list of notes, assigning new event and
+      // insert the baked command list in-line into this list of notes, assigning new event and
       // drawIDs
       m_Cmd.InsertDrawsAndRefreshIDs(cmdBufInfo.draw->children);
 
@@ -136,7 +136,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       }
       */
 
-      // only primary command buffers can be submitted
+      // only primary command lists can be submitted
       m_Cmd.m_Partial[D3D12CommandData::Primary].cmdListExecs[cmdIds[c]].push_back(
           m_Cmd.m_RootEventID);
 
@@ -165,7 +165,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
     // advance m_CurEventID to match the events added when reading
     for(uint32_t c = 0; c < numCmds; c++)
     {
-      // 2 extra for the virtual labels around the command buffer
+      // 2 extra for the virtual labels around the command list
       m_Cmd.m_RootEventID += 2 + m_Cmd.m_BakedCmdListInfo[cmdIds[c]].eventCount;
       m_Cmd.m_RootDrawcallID += 2 + m_Cmd.m_BakedCmdListInfo[cmdIds[c]].drawCount;
     }
@@ -222,7 +222,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
 
       for(uint32_t c = 0; c < numCmds; c++)
       {
-        // account for the virtual vkBeginCommandBuffer label at the start of the events here
+        // account for the virtual label at the start of the events here
         // so it matches up to baseEvent
         eid++;
 
@@ -254,7 +254,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
 #endif
         }
 
-        // 1 extra to account for the virtual end command buffer label (begin is accounted for
+        // 1 extra to account for the virtual end command list label (begin is accounted for
         // above)
         eid += 1 + m_Cmd.m_BakedCmdListInfo[cmdIds[c]].eventCount;
       }
@@ -340,11 +340,11 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
 
       if(capframe)
       {
-        // pull in frame refs from this baked command buffer
+        // pull in frame refs from this baked command list
         record->bakedCommands->AddResourceReferences(GetResourceManager());
         record->bakedCommands->AddReferencedIDs(refdIDs);
 
-        // ref the parent command buffer by itself, this will pull in the cmd buffer pool
+        // ref the parent command list by itself, this will pull in the cmd buffer pool
         GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 
         // reference all executed bundles as well

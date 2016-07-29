@@ -195,6 +195,7 @@
     <ClCompile Include="d3d12_manager.cpp" />
     <ClCompile Include="d3d12_replay.cpp" />
     <ClCompile Include="d3d12_resources.cpp" />
+    <ClCompile Include="d3d12_state.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d12_commands.h" />
@@ -208,6 +209,7 @@
     <ClInclude Include="..\dx\official\d3d12sdklayers.h" />
     <ClInclude Include="d3d12_replay.h" />
     <ClInclude Include="d3d12_resources.h" />
+    <ClInclude Include="d3d12_state.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\shaders\dxbc\renderdoc_dxbc.vcxproj">

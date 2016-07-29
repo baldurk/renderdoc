@@ -24,9 +24,10 @@
 
 #pragma once
 
-#include "common/common.h"
 #include "api/replay/renderdoc_replay.h"
+#include "common/common.h"
 #include "d3d12_common.h"
+#include "d3d12_state.h"
 
 struct D3D12DrawcallTreeNode
 {
@@ -110,13 +111,9 @@ struct BakedCmdListInfo
 
   struct CmdListState
   {
-    ResourceId pipeline;
-
     D3D12_PRIMITIVE_TOPOLOGY topo;
 
     uint32_t idxWidth;
-    ResourceId ibuffer;
-    vector<ResourceId> vbuffers;
 
     ResourceId rts[8];
     ResourceId dsv;
@@ -139,6 +136,8 @@ struct D3D12CommandData
   ResourceId m_LastCmdListID;
 
   map<ResourceId, BakedCmdListInfo> m_BakedCmdListInfo;
+
+  D3D12RenderState m_RenderState;
 
   enum PartialReplayIndex
   {

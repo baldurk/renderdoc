@@ -845,6 +845,8 @@ void WrappedID3D12Device::CopyDescriptors(
                              NumSrcDescriptorRanges, srcStarts, pSrcDescriptorRangeSizes,
                              DescriptorHeapsType);
 
+  RDCUNIMPLEMENTED("CopyDescriptors does not copy our internal descriptor data");
+
   SAFE_DELETE_ARRAY(dstStarts);
   SAFE_DELETE_ARRAY(srcStarts);
 }
@@ -856,6 +858,21 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
 {
   m_pDevice->CopyDescriptorsSimple(NumDescriptors, Unwrap(DestDescriptorRangeStart),
                                    Unwrap(SrcDescriptorRangeStart), DescriptorHeapsType);
+
+  D3D12Descriptor *src = GetWrapped(SrcDescriptorRangeStart);
+  D3D12Descriptor *dst = GetWrapped(DestDescriptorRangeStart);
+
+  for(UINT i = 0; i < NumDescriptors; i++)
+  {
+    // save these so we can do a straight copy then restore them
+    WrappedID3D12DescriptorHeap *heap = dst[i].samp.heap;
+    uint32_t index = dst[i].samp.idx;
+
+    dst[i] = src[i];
+
+    dst[i].samp.heap = heap;
+    dst[i].samp.idx = index;
+  }
 }
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)

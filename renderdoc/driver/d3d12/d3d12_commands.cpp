@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <algorithm>
+#include "driver/dxgi/dxgi_common.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 
@@ -357,8 +358,13 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
 
   m_pDevice->Serialise_BeginCaptureFrame(!partial);
 
-  m_pDevice->ExecuteLists();
-  m_pDevice->FlushLists();
+  if(readType == READING)
+  {
+    GetResourceManager()->ApplyInitialContents();
+
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+  }
 
   m_pSerialiser->PopContext(header);
 
@@ -370,7 +376,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     m_Cmd.m_RootEventID = ev.eventID;
 
     // if not partial, we need to be sure to replay
-    // past the command buffer records, so can't
+    // past the command list records, so can't
     // skip to the file offset of the first event
     if(partial)
       m_pSerialiser->SetOffset(ev.fileOffset);
@@ -391,7 +397,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     if(m_State == EXECUTING && m_Cmd.m_RootEventID > endEventID)
     {
       // we can just break out if we've done all the events desired.
-      // note that the command buffer events aren't 'real' and we just blaze through them
+      // note that the command list events aren't 'real' and we just blaze through them
       break;
     }
 
@@ -417,7 +423,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     // increment root event ID either if we didn't just replay a cmd
     // buffer event, OR if we are doing a frame sub-section replay,
     // in which case it's up to the calling code to make sure we only
-    // replay inside a command buffer (if we crossed command buffer
+    // replay inside a command list (if we crossed command list
     // boundaries, the event IDs would no longer match up).
     if(m_Cmd.m_LastCmdListID == ResourceId() || startEventID > 1)
     {
@@ -431,9 +437,6 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
       m_Cmd.m_BakedCmdListInfo[m_Cmd.m_LastCmdListID].curEventID++;
     }
   }
-
-  m_pDevice->ExecuteLists();
-  m_pDevice->FlushLists(true);
 
   if(m_State == READING)
   {
@@ -708,6 +711,12 @@ void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
   if(m_LastCmdListID != ResourceId())
   {
     // TODO fill from m_BakedCmdListInfo[m_LastCmdListID].state
+
+    draw.topology = MakePrimitiveTopology(m_BakedCmdListInfo[m_LastCmdListID].state.topo);
+    draw.indexByteWidth = m_BakedCmdListInfo[m_LastCmdListID].state.idxWidth;
+
+    memcpy(draw.outputs, m_BakedCmdListInfo[m_LastCmdListID].state.rts, sizeof(draw.outputs));
+    draw.depthOut = m_BakedCmdListInfo[m_LastCmdListID].state.dsv;
   }
 
   if(m_LastCmdListID != ResourceId())

@@ -90,6 +90,17 @@ string ToStrHelper<false, D3D12ComponentMapping>::Get(const D3D12ComponentMappin
                                                              : Unwrap(rm->GetLiveAs<type>(id)); \
   }
 
+#define SerialiseWrappedObject(type, name, obj)                                                \
+  {                                                                                            \
+    D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData();                          \
+    ResourceId id;                                                                             \
+    if(m_Mode >= WRITING)                                                                      \
+      id = GetResID(obj);                                                                      \
+    Serialise(name, id);                                                                       \
+    if(m_Mode < WRITING)                                                                       \
+      obj = (id == ResourceId() || !rm->HasLiveResource(id)) ? NULL : rm->GetLiveAs<type>(id); \
+  }
+
 template <>
 void Serialiser::Serialise(const char *name, D3D12Descriptor &el)
 {
@@ -131,32 +142,31 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el)
     }
     case D3D12Descriptor::TypeCBV:
     {
-      SerialiseObject(ID3D12Resource, "Resource", el.nonsamp.resource);
       Serialise("Descriptor", el.nonsamp.cbv);
       break;
     }
     case D3D12Descriptor::TypeSRV:
     {
-      SerialiseObject(ID3D12Resource, "Resource", el.nonsamp.resource);
+      SerialiseWrappedObject(ID3D12Resource, "Resource", el.nonsamp.resource);
       Serialise("Descriptor", el.nonsamp.srv);
       break;
     }
     case D3D12Descriptor::TypeRTV:
     {
-      SerialiseObject(ID3D12Resource, "Resource", el.nonsamp.resource);
+      SerialiseWrappedObject(ID3D12Resource, "Resource", el.nonsamp.resource);
       Serialise("Descriptor", el.nonsamp.rtv);
       break;
     }
     case D3D12Descriptor::TypeDSV:
     {
-      SerialiseObject(ID3D12Resource, "Resource", el.nonsamp.resource);
+      SerialiseWrappedObject(ID3D12Resource, "Resource", el.nonsamp.resource);
       Serialise("Descriptor", el.nonsamp.dsv);
       break;
     }
     case D3D12Descriptor::TypeUAV:
     {
-      SerialiseObject(ID3D12Resource, "Resource", el.nonsamp.resource);
-      SerialiseObject(ID3D12Resource, "CounterResource", el.nonsamp.uav.counterResource);
+      SerialiseWrappedObject(ID3D12Resource, "Resource", el.nonsamp.resource);
+      SerialiseWrappedObject(ID3D12Resource, "CounterResource", el.nonsamp.uav.counterResource);
 
       // special case because of extra resource and squeezed descriptor
       D3D12_UNORDERED_ACCESS_VIEW_DESC desc = el.nonsamp.uav.desc.AsDesc();

@@ -148,7 +148,7 @@ WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *r
   realCPUBase = real->GetCPUDescriptorHandleForHeapStart();
   realGPUBase = real->GetGPUDescriptorHandleForHeapStart();
 
-  increment = device->GetDescriptorIncrement(desc.Type);
+  increment = device->GetUnwrappedDescriptorIncrement(desc.Type);
 
   descriptors = new D3D12Descriptor[desc.NumDescriptors];
 

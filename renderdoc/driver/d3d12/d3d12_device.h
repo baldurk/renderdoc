@@ -303,7 +303,7 @@ public:
   WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams *params);
   virtual ~WrappedID3D12Device();
 
-  UINT GetDescriptorIncrement(D3D12_DESCRIPTOR_HEAP_TYPE type)
+  UINT GetUnwrappedDescriptorIncrement(D3D12_DESCRIPTOR_HEAP_TYPE type)
   {
     return m_DescriptorIncrements[type];
   }
