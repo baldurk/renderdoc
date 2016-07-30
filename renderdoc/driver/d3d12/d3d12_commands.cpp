@@ -236,6 +236,8 @@ void WrappedID3D12CommandQueue::ClearAfterCapture()
     m_CmdListRecords[i]->Delete(GetResourceManager());
 
   m_CmdListRecords.clear();
+
+  m_QueueRecord->DeleteChunks();
 }
 
 FetchAPIEvent WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
