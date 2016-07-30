@@ -604,8 +604,7 @@ private:
   bool AddRequiredExtensions(bool instance, vector<string> &extensionList,
                              const std::set<string> &supportedExtensions);
 
-  void InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes, uint32_t baseEventID,
-                                uint32_t baseDrawID);
+  void InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes);
 
   list<VulkanDrawcallTreeNode *> m_DrawcallStack;
 

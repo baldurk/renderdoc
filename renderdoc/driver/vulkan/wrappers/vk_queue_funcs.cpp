@@ -224,7 +224,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
 
       // insert the baked command buffer in-line into this list of notes, assigning new event and
       // drawIDs
-      InsertDrawsAndRefreshIDs(cmdBufInfo.draw->children, m_RootEventID, m_RootDrawcallID);
+      InsertDrawsAndRefreshIDs(cmdBufInfo.draw->children);
 
       for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
       {
@@ -400,8 +400,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
   return true;
 }
 
-void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes,
-                                             uint32_t baseEventID, uint32_t baseDrawID)
+void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes)
 {
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
@@ -418,12 +417,12 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
     }
 
     VulkanDrawcallTreeNode n = cmdBufNodes[i];
-    n.draw.eventID += baseEventID;
-    n.draw.drawcallID += baseDrawID;
+    n.draw.eventID += m_RootEventID;
+    n.draw.drawcallID += m_RootDrawcallID;
 
     for(int32_t e = 0; e < n.draw.events.count; e++)
     {
-      n.draw.events[e].eventID += baseEventID;
+      n.draw.events[e].eventID += m_RootEventID;
       m_Events.push_back(n.draw.events[e]);
     }
 
@@ -438,7 +437,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
     for(auto it = n.resourceUsage.begin(); it != n.resourceUsage.end(); ++it)
     {
       EventUsage u = it->second;
-      u.eventID += baseEventID;
+      u.eventID += m_RootEventID;
       m_ResourceUses[it->first].push_back(u);
     }
 
