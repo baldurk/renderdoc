@@ -514,7 +514,12 @@ void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap
 
   auto it = m_SwapChains.find(swap);
   if(it != m_SwapChains.end())
+  {
+    for(int i = 0; i < swap->GetNumBackbuffers(); i++)
+      GetDebugManager()->FreeRTV(it->second.rtvs[i]);
+
     m_SwapChains.erase(it);
+  }
 }
 
 bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
@@ -623,7 +628,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     }
   }
 
-  if(buffer == 0 && m_State >= WRITING)
+  if(m_State >= WRITING)
   {
     D3D12_CPU_DESCRIPTOR_HANDLE rtv = {};
 
@@ -633,8 +638,9 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     rtvDesc.Texture2D.MipSlice = 0;
     rtvDesc.Texture2D.PlaneSlice = 0;
 
-    D3D12NOTIMP("Creating RTV for rendering to back buffer");
-    // m_pDevice->CreateRenderTargetView(Unwrap(pRes), &rtvDesc, rtv);
+    rtv = GetDebugManager()->AllocRTV();
+
+    CreateRenderTargetView(pRes, NULL, rtv);
 
     m_SwapChains[swap].rtvs[buffer] = rtv;
 
@@ -689,8 +695,6 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
     m_TotalTime += m_FrameTimes.back();
     m_FrameTimer.Restart();
 
-    bool doprint = false;
-
     // update every second
     if(m_TotalTime > 1000.0)
     {
@@ -699,8 +703,6 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
       m_AvgFrametime = 0.0;
 
       m_TotalTime = 0.0;
-
-      doprint = true;
 
       for(size_t i = 0; i < m_FrameTimes.size(); i++)
       {
@@ -720,6 +722,26 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
 
     if(overlay & eRENDERDOC_Overlay_Enabled)
     {
+      SwapPresentInfo &swapInfo = m_SwapChains[swap];
+      D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapInfo.rtvs[swapInfo.lastPresentedBuffer];
+
+      GetDebugManager()->SetOutputDimensions(swapdesc.BufferDesc.Width, swapdesc.BufferDesc.Height,
+                                             swapdesc.BufferDesc.Format);
+
+      ID3D12GraphicsCommandList *list = GetNewList();
+
+      // buffer will be in common for presentation, transition to render target
+      D3D12_RESOURCE_BARRIER barrier = {};
+      barrier.Transition.pResource =
+          (ID3D12Resource *)swap->GetBackbuffers()[swapInfo.lastPresentedBuffer];
+      barrier.Transition.Subresource = 0;
+      barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+      barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+      list->ResourceBarrier(1, &barrier);
+
+      list->OMSetRenderTargets(1, &rtv, FALSE, NULL);
+
       if(activeWindow)
       {
         vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetCaptureKeys();
@@ -763,15 +785,14 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
 
         if(!overlayText.empty())
         {
-          if(doprint)
-            RDCLOG(overlayText.c_str());
+          GetDebugManager()->RenderText(list, 0.0f, y, overlayText.c_str());
           y += 1.0f;
         }
 
         if(overlay & eRENDERDOC_Overlay_CaptureList)
         {
-          if(doprint)
-            RDCLOG("%d Captures saved.", (uint32_t)m_CapturedFrames.size());
+          GetDebugManager()->RenderText(list, 0.0f, y, "%d Captures saved.",
+                                        (uint32_t)m_CapturedFrames.size());
           y += 1.0f;
 
           uint64_t now = Timing::GetUnixTimestamp();
@@ -779,17 +800,16 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
           {
             if(now - m_CapturedFrames[i].captureTime < 20)
             {
-              if(doprint)
-                RDCLOG("Captured frame %d.", m_CapturedFrames[i].frameNumber);
+              GetDebugManager()->RenderText(list, 0.0f, y, "Captured frame %d.",
+                                            m_CapturedFrames[i].frameNumber);
               y += 1.0f;
             }
           }
         }
 
 #if !defined(RELEASE)
-        if(doprint)
-          RDCLOG("%llu chunks - %.2f MB", Chunk::NumLiveChunks(),
-                 float(Chunk::TotalMem()) / 1024.0f / 1024.0f);
+        GetDebugManager()->RenderText(list, 0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(),
+                                      float(Chunk::TotalMem()) / 1024.0f / 1024.0f);
         y += 1.0f;
 #endif
       }
@@ -812,9 +832,16 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
         if(!keys.empty())
           str += " to cycle between swapchains";
 
-        if(doprint)
-          RDCLOG(str.c_str());
+        GetDebugManager()->RenderText(list, 0.0f, 0.0f, str.c_str());
       }
+
+      // transition backbuffer back again
+      std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+      list->ResourceBarrier(1, &barrier);
+
+      list->Close();
+
+      ExecuteLists();
     }
   }
 

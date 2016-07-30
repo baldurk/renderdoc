@@ -30,6 +30,7 @@
 #include "maths/matrix.h"
 #include "maths/vec.h"
 #include "serialise/string_utils.h"
+#include "stb/stb_truetype.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 
@@ -91,6 +92,9 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   m_WrappedDevice = wrapper;
   m_WrappedDevice->InternalRef();
+
+  m_width = m_height = 1;
+  m_BBFmtIdx = BGRA8_BACKBUFFER;
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.0f);
 
@@ -177,45 +181,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   samp.ptr += m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
   m_WrappedDevice->CreateSampler(&sampDesc, samp);
 
-  D3D12_HEAP_PROPERTIES heapProps;
-  heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-  heapProps.CreationNodeMask = 1;
-  heapProps.VisibleNodeMask = 1;
-
-  D3D12_RESOURCE_DESC cbDesc;
-  cbDesc.Alignment = 0;
-  cbDesc.DepthOrArraySize = 1;
-  cbDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-  cbDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-  cbDesc.Format = DXGI_FORMAT_UNKNOWN;
-  cbDesc.Height = 1;
-  cbDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-  cbDesc.MipLevels = 1;
-  cbDesc.SampleDesc.Count = 1;
-  cbDesc.SampleDesc.Quality = 0;
-  cbDesc.Width = sizeof(DebugVertexCBuffer);
-
-  hr = m_WrappedDevice->CreateCommittedResource(
-      &heapProps, D3D12_HEAP_FLAG_NONE, &cbDesc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
-      __uuidof(ID3D12Resource), (void **)&m_GenericVSCbuffer);
-
-  if(FAILED(hr))
-  {
-    RDCERR("Couldn't create m_GenericVSCbuffer! 0x%08x", hr);
-  }
-
-  cbDesc.Width = sizeof(DebugPixelCBufferData);
-
-  hr = m_WrappedDevice->CreateCommittedResource(
-      &heapProps, D3D12_HEAP_FLAG_NONE, &cbDesc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
-      __uuidof(ID3D12Resource), (void **)&m_GenericPSCbuffer);
-
-  if(FAILED(hr))
-  {
-    RDCERR("Couldn't create m_GenericPSCbuffer! 0x%08x", hr);
-  }
+  m_GenericVSCbuffer = MakeCBuffer(sizeof(DebugVertexCBuffer));
+  m_GenericPSCbuffer = MakeCBuffer(sizeof(DebugPixelCBufferData));
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.4f);
 
@@ -277,6 +244,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   hr = m_WrappedDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                             __uuidof(ID3D12RootSignature),
                                             (void **)&m_TexDisplayRootSig);
+
+  SAFE_RELEASE(root);
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.6f);
 
@@ -359,6 +328,275 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   SAFE_RELEASE(CheckerboardPS);
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
+
+  // font rendering
+  {
+    D3D12_HEAP_PROPERTIES uploadHeap;
+    uploadHeap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    uploadHeap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    uploadHeap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    uploadHeap.CreationNodeMask = 1;
+    uploadHeap.VisibleNodeMask = 1;
+
+    D3D12_HEAP_PROPERTIES defaultHeap = uploadHeap;
+    defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+    const int width = FONT_TEX_WIDTH, height = FONT_TEX_HEIGHT;
+
+    D3D12_RESOURCE_DESC bufDesc;
+    bufDesc.Alignment = 0;
+    bufDesc.DepthOrArraySize = 1;
+    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    bufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
+    bufDesc.Height = 1;
+    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    bufDesc.MipLevels = 1;
+    bufDesc.SampleDesc.Count = 1;
+    bufDesc.SampleDesc.Quality = 0;
+    bufDesc.Width = width * height;
+
+    ID3D12Resource *uploadBuf = NULL;
+
+    hr = m_WrappedDevice->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &bufDesc,
+                                                  D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                                  __uuidof(ID3D12Resource), (void **)&uploadBuf);
+
+    if(FAILED(hr))
+      RDCERR("Failed to create uploadBuf %08x", hr);
+
+    D3D12_RESOURCE_DESC texDesc;
+    texDesc.Alignment = 0;
+    texDesc.DepthOrArraySize = 1;
+    texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    texDesc.Format = DXGI_FORMAT_R8_UNORM;
+    texDesc.Height = height;
+    texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    texDesc.MipLevels = 1;
+    texDesc.SampleDesc.Count = 1;
+    texDesc.SampleDesc.Quality = 0;
+    texDesc.Width = width;
+
+    hr = m_WrappedDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &texDesc,
+                                                  D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                                  __uuidof(ID3D12Resource), (void **)&m_Font.Tex);
+
+    if(FAILED(hr))
+      RDCERR("Failed to create m_Font.Tex %08x", hr);
+
+    string font = GetEmbeddedResource(sourcecodepro_ttf);
+    byte *ttfdata = (byte *)font.c_str();
+
+    const int firstChar = int(' ') + 1;
+    const int lastChar = 127;
+    const int numChars = lastChar - firstChar;
+
+    byte *buf = new byte[width * height];
+
+    const float pixelHeight = 20.0f;
+
+    stbtt_bakedchar chardata[numChars];
+    stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
+
+    m_Font.CharSize = pixelHeight;
+    m_Font.CharAspect = chardata->xadvance / pixelHeight;
+
+    stbtt_fontinfo f = {0};
+    stbtt_InitFont(&f, ttfdata, 0);
+
+    int ascent = 0;
+    stbtt_GetFontVMetrics(&f, &ascent, NULL, NULL);
+
+    float maxheight = float(ascent) * stbtt_ScaleForPixelHeight(&f, pixelHeight);
+
+    FillBuffer(uploadBuf, buf, width * height);
+
+    delete[] buf;
+
+    ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+    D3D12_TEXTURE_COPY_LOCATION dst, src;
+
+    dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    dst.pResource = m_Font.Tex;
+    dst.SubresourceIndex = 0;
+
+    src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    src.pResource = uploadBuf;
+    src.PlacedFootprint.Offset = 0;
+    src.PlacedFootprint.Footprint.Width = width;
+    src.PlacedFootprint.Footprint.Height = height;
+    src.PlacedFootprint.Footprint.Depth = 1;
+    src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8_UNORM;
+    src.PlacedFootprint.Footprint.RowPitch = width;
+
+    RDCCOMPILE_ASSERT(
+        (width / D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * D3D12_TEXTURE_DATA_PITCH_ALIGNMENT == width,
+        "Width isn't aligned!");
+
+    list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Transition.pResource = m_Font.Tex;
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+    list->ResourceBarrier(1, &barrier);
+
+    list->Close();
+
+    m_WrappedDevice->ExecuteLists();
+    m_WrappedDevice->FlushLists();
+
+    SAFE_RELEASE(uploadBuf);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE srv;
+    srv = cbvsrvHeap->GetCPUDescriptorHandleForHeapStart();
+
+    // texture display uses the first few, move to font texture slow
+    srv.ptr +=
+        FONT_SRV *
+        m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    m_WrappedDevice->CreateShaderResourceView(m_Font.Tex, NULL, srv);
+
+    Vec4f glyphData[2 * (numChars + 1)];
+
+    m_Font.GlyphData = MakeCBuffer(sizeof(glyphData));
+
+    for(int i = 0; i < numChars; i++)
+    {
+      stbtt_bakedchar *b = chardata + i;
+
+      float x = b->xoff;
+      float y = b->yoff + maxheight;
+
+      glyphData[(i + 1) * 2 + 0] =
+          Vec4f(x / b->xadvance, y / pixelHeight, b->xadvance / float(b->x1 - b->x0),
+                pixelHeight / float(b->y1 - b->y0));
+      glyphData[(i + 1) * 2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
+    }
+
+    FillBuffer(m_Font.GlyphData, &glyphData, sizeof(glyphData));
+
+    for(size_t i = 0; i < ARRAY_COUNT(m_Font.Constants); i++)
+      m_Font.Constants[i] = MakeCBuffer(sizeof(FontCBuffer));
+    m_Font.CharBuffer = MakeCBuffer(FONT_BUFFER_CHARS * sizeof(uint32_t) * 4);
+
+    m_Font.ConstRingIdx = 0;
+
+    rootSig.clear();
+
+    D3D12_ROOT_PARAMETER param = {};
+
+    // m_Font.Constants
+    param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+    param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+    param.Descriptor.ShaderRegister = 0;
+
+    rootSig.push_back(param);
+
+    // m_Font.GlyphData
+    param.Descriptor.ShaderRegister = 1;
+    rootSig.push_back(param);
+
+    // CharBuffer
+    param.Descriptor.ShaderRegister = 2;
+    rootSig.push_back(param);
+
+    D3D12_DESCRIPTOR_RANGE srvrange = {};
+    srvrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    srvrange.BaseShaderRegister = 0;
+    srvrange.NumDescriptors = 1;
+    srvrange.OffsetInDescriptorsFromTableStart = FONT_SRV;
+
+    param.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    param.DescriptorTable.NumDescriptorRanges = 1;
+    param.DescriptorTable.pDescriptorRanges = &srvrange;
+
+    // font SRV
+    rootSig.push_back(param);
+
+    D3D12_DESCRIPTOR_RANGE samplerrange = {};
+    samplerrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+    samplerrange.BaseShaderRegister = 0;
+    samplerrange.NumDescriptors = 2;
+    samplerrange.OffsetInDescriptorsFromTableStart = 0;
+
+    param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    param.DescriptorTable.NumDescriptorRanges = 1;
+    param.DescriptorTable.pDescriptorRanges = &samplerrange;
+
+    // samplers
+    rootSig.push_back(param);
+
+    ID3DBlob *root = MakeRootSig(rootSig);
+
+    RDCASSERT(root);
+
+    hr = m_WrappedDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                              __uuidof(ID3D12RootSignature),
+                                              (void **)&m_Font.RootSig);
+
+    SAFE_RELEASE(root);
+
+    string fullhlsl = "";
+    {
+      string debugShaderCBuf = GetEmbeddedResource(debugcbuffers_h);
+      string textShaderHLSL = GetEmbeddedResource(debugtext_hlsl);
+
+      fullhlsl = debugShaderCBuf + textShaderHLSL;
+    }
+
+    ID3DBlob *TextVS = NULL;
+    ID3DBlob *TextPS = NULL;
+
+    GetShaderBlob(fullhlsl.c_str(), "RENDERDOC_TextVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0",
+                  &TextVS);
+    GetShaderBlob(fullhlsl.c_str(), "RENDERDOC_TextPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0",
+                  &TextPS);
+
+    RDCASSERT(TextVS);
+    RDCASSERT(TextPS);
+
+    pipeDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
+
+    pipeDesc.VS.BytecodeLength = TextVS->GetBufferSize();
+    pipeDesc.VS.pShaderBytecode = TextVS->GetBufferPointer();
+    pipeDesc.PS.BytecodeLength = TextPS->GetBufferSize();
+    pipeDesc.PS.pShaderBytecode = TextPS->GetBufferPointer();
+
+    pipeDesc.pRootSignature = m_Font.RootSig;
+
+    pipeDesc.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
+
+    hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                      (void **)&m_Font.Pipe[BGRA8_BACKBUFFER]);
+
+    if(FAILED(hr))
+      RDCERR("Couldn't create BGRA8 m_Font.Pipe! 0x%08x", hr);
+
+    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                      (void **)&m_Font.Pipe[RGBA8_BACKBUFFER]);
+
+    if(FAILED(hr))
+      RDCERR("Couldn't create RGBA8 m_Font.Pipe! 0x%08x", hr);
+
+    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+    hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                      (void **)&m_Font.Pipe[RGBA16_BACKBUFFER]);
+
+    if(FAILED(hr))
+      RDCERR("Couldn't create RGBA16 m_Font.Pipe! 0x%08x", hr);
+
+    SAFE_RELEASE(TextVS);
+    SAFE_RELEASE(TextPS);
+  }
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 1.0f);
 
@@ -513,6 +751,44 @@ ID3DBlob *D3D12DebugManager::MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &roo
   }
 
   SAFE_RELEASE(errBlob);
+
+  return ret;
+}
+
+ID3D12Resource *D3D12DebugManager::MakeCBuffer(UINT64 size)
+{
+  ID3D12Resource *ret;
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  D3D12_RESOURCE_DESC cbDesc;
+  cbDesc.Alignment = 0;
+  cbDesc.DepthOrArraySize = 1;
+  cbDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  cbDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  cbDesc.Format = DXGI_FORMAT_UNKNOWN;
+  cbDesc.Height = 1;
+  cbDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  cbDesc.MipLevels = 1;
+  cbDesc.SampleDesc.Count = 1;
+  cbDesc.SampleDesc.Quality = 0;
+  cbDesc.Width = size;
+
+  HRESULT hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &cbDesc,
+                                                        D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                                        __uuidof(ID3D12Resource), (void **)&ret);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create cbuffer size %llu! 0x%08x", size, hr);
+    SAFE_RELEASE(ret);
+    return NULL;
+  }
 
   return ret;
 }
@@ -787,7 +1063,7 @@ void D3D12DebugManager::BindOutputWindow(uint64_t id, bool depth)
   if(outw.bb[0] == NULL)
     return;
 
-  SetOutputDimensions(outw.width, outw.height);
+  SetOutputDimensions(outw.width, outw.height, DXGI_FORMAT_UNKNOWN);
 }
 
 bool D3D12DebugManager::IsOutputWindowVisible(uint64_t id)
@@ -850,7 +1126,7 @@ void D3D12DebugManager::FlipOutputWindow(uint64_t id)
   outw.bbIdx %= 2;
 }
 
-void D3D12DebugManager::FillCBuffer(ID3D12Resource *buf, void *data, size_t size)
+void D3D12DebugManager::FillBuffer(ID3D12Resource *buf, void *data, size_t size)
 {
   void *ptr = NULL;
   HRESULT hr = buf->Map(0, NULL, &ptr);
@@ -864,6 +1140,23 @@ void D3D12DebugManager::FillCBuffer(ID3D12Resource *buf, void *data, size_t size
     memcpy(ptr, data, size);
     buf->Unmap(0, NULL);
   }
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::AllocRTV()
+{
+  D3D12_CPU_DESCRIPTOR_HANDLE rtv = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+  rtv.ptr += SIZE_T(m_OutputWindowID) *
+             m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+  m_OutputWindowID++;
+
+  return rtv;
+}
+
+void D3D12DebugManager::FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+  // do nothing for now but could recycle/free-list/etc RTVs
+  D3D12NOTIMP("Not freeing RTV's - will run out");
 }
 
 void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
@@ -888,8 +1181,8 @@ void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
   pixelData.Channels = Vec4f(light.x, light.y, light.z, 0.0f);
   pixelData.WireframeColour = dark;
 
-  FillCBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
-  FillCBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
+  FillBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
+  FillBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
   OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
 
@@ -929,6 +1222,115 @@ void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
     m_WrappedDevice->ExecuteLists();
     m_WrappedDevice->FlushLists();
   }
+}
+
+void D3D12DebugManager::RenderText(ID3D12GraphicsCommandList *list, float x, float y,
+                                   const char *textfmt, ...)
+{
+  static char tmpBuf[4096];
+
+  va_list args;
+  va_start(args, textfmt);
+  StringFormat::vsnprintf(tmpBuf, 4095, textfmt, args);
+  tmpBuf[4095] = '\0';
+  va_end(args);
+
+  RenderTextInternal(list, x, y, tmpBuf);
+}
+
+void D3D12DebugManager::RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y,
+                                           const char *text)
+{
+  if(char *t = strchr((char *)text, '\n'))
+  {
+    *t = 0;
+    RenderTextInternal(list, x, y, text);
+    RenderTextInternal(list, x, y + 1.0f, t + 1);
+    *t = '\n';
+    return;
+  }
+
+  if(strlen(text) == 0)
+    return;
+
+  RDCASSERT(strlen(text) < FONT_MAX_CHARS);
+
+  FontCBuffer data;
+
+  data.TextPosition.x = x;
+  data.TextPosition.y = y;
+
+  data.FontScreenAspect.x = 1.0f / float(GetWidth());
+  data.FontScreenAspect.y = 1.0f / float(GetHeight());
+
+  data.TextSize = m_Font.CharSize;
+  data.FontScreenAspect.x *= m_Font.CharAspect;
+
+  data.CharacterSize.x = 1.0f / float(FONT_TEX_WIDTH);
+  data.CharacterSize.y = 1.0f / float(FONT_TEX_HEIGHT);
+
+  FillBuffer(m_Font.Constants[m_Font.ConstRingIdx], &data, sizeof(FontCBuffer));
+
+  size_t chars = strlen(text);
+
+  size_t charOffset = m_Font.CharOffset;
+
+  if(m_Font.CharOffset + chars >= FONT_BUFFER_CHARS)
+    charOffset = 0;
+
+  m_Font.CharOffset = charOffset + chars;
+
+  unsigned long *texs = NULL;
+  HRESULT hr = m_Font.CharBuffer->Map(0, NULL, (void **)&texs);
+
+  if(FAILED(hr) || texs == NULL)
+  {
+    RDCERR("Failed to map charbuffer %08x", hr);
+    return;
+  }
+
+  texs += charOffset * 4;
+
+  for(size_t i = 0; i < strlen(text); i++)
+    texs[i * 4] = (text[i] - ' ');
+
+  m_Font.CharBuffer->Unmap(0, NULL);
+
+  {
+    list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+    D3D12_VIEWPORT view;
+    view.TopLeftX = 0;
+    view.TopLeftY = 0;
+    view.Width = (float)GetWidth();
+    view.Height = (float)GetHeight();
+    view.MinDepth = 0.0f;
+    view.MaxDepth = 1.0f;
+    list->RSSetViewports(1, &view);
+
+    D3D12_RECT scissor = {0, 0, GetWidth(), GetHeight()};
+    list->RSSetScissorRects(1, &scissor);
+
+    list->SetPipelineState(m_Font.Pipe[m_BBFmtIdx]);
+    list->SetGraphicsRootSignature(m_Font.RootSig);
+
+    // Set the descriptor heap containing the texture srv
+    ID3D12DescriptorHeap *heaps[] = {cbvsrvHeap, samplerHeap};
+    list->SetDescriptorHeaps(2, heaps);
+
+    list->SetGraphicsRootConstantBufferView(
+        0, m_Font.Constants[m_Font.ConstRingIdx]->GetGPUVirtualAddress());
+    list->SetGraphicsRootConstantBufferView(1, m_Font.GlyphData->GetGPUVirtualAddress());
+    list->SetGraphicsRootConstantBufferView(
+        2, m_Font.CharBuffer->GetGPUVirtualAddress() + charOffset * sizeof(Vec4f));
+    list->SetGraphicsRootDescriptorTable(3, cbvsrvHeap->GetGPUDescriptorHandleForHeapStart());
+    list->SetGraphicsRootDescriptorTable(4, samplerHeap->GetGPUDescriptorHandleForHeapStart());
+
+    list->DrawInstanced(4, (uint32_t)strlen(text), 0, 0);
+  }
+
+  m_Font.ConstRingIdx++;
+  m_Font.ConstRingIdx %= ARRAY_COUNT(m_Font.Constants);
 }
 
 bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
@@ -1113,8 +1515,8 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
   m_WrappedDevice->CreateShaderResourceView(resource, &srvDesc, srv);
 
-  FillCBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
-  FillCBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
+  FillBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
+  FillBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
   // transition resource to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
   const vector<D3D12_RESOURCE_STATES> &states =

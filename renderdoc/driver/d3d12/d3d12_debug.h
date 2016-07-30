@@ -36,6 +36,7 @@ class D3D12DebugManager
 {
 public:
   D3D12DebugManager(WrappedID3D12Device *wrapper);
+
   ~D3D12DebugManager();
 
   uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth);
@@ -48,15 +49,27 @@ public:
   bool IsOutputWindowVisible(uint64_t id);
   void FlipOutputWindow(uint64_t id);
 
-  void SetOutputDimensions(int w, int h)
+  void SetOutputDimensions(int w, int h, DXGI_FORMAT fmt)
   {
     m_width = w;
     m_height = h;
+
+    if(fmt == DXGI_FORMAT_B8G8R8A8_UNORM)
+      m_BBFmtIdx = BGRA8_BACKBUFFER;
+    else if(fmt == DXGI_FORMAT_R16G16B16A16_FLOAT)
+      m_BBFmtIdx = RGBA16_BACKBUFFER;
+    else
+      m_BBFmtIdx = RGBA8_BACKBUFFER;
   }
   int GetWidth() { return m_width; }
   int GetHeight() { return m_height; }
+  void RenderText(ID3D12GraphicsCommandList *list, float x, float y, const char *textfmt, ...);
+
   void RenderCheckerboard(Vec3f light, Vec3f dark);
   bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
+
+  D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
+  void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
 private:
   struct OutputWindow
@@ -78,7 +91,57 @@ private:
     int width, height;
   };
 
-  void FillCBuffer(ID3D12Resource *buf, void *data, size_t size);
+  ID3D12Resource *MakeCBuffer(UINT64 size);
+  void FillBuffer(ID3D12Resource *buf, void *data, size_t size);
+
+  static const int FONT_TEX_WIDTH = 256;
+  static const int FONT_TEX_HEIGHT = 128;
+  static const int FONT_MAX_CHARS = 256;
+
+  // how much character space is in the ring buffer
+  static const int FONT_BUFFER_CHARS = 8192;
+
+  // index in SRV heap
+  static const int FONT_SRV = 128;
+
+  // indices for the pipelines, for the three possible backbuffer formats
+  enum
+  {
+    BGRA8_BACKBUFFER = 0,
+    RGBA8_BACKBUFFER,
+    RGBA16_BACKBUFFER,
+    FMTNUM_BACKBUFFER,
+  } m_BBFmtIdx;
+
+  struct FontData
+  {
+    FontData() { RDCEraseMem(this, sizeof(FontData)); }
+    ~FontData()
+    {
+      SAFE_RELEASE(Tex);
+      SAFE_RELEASE(RootSig);
+      SAFE_RELEASE(GlyphData);
+      SAFE_RELEASE(CharBuffer);
+
+      for(size_t i = 0; i < ARRAY_COUNT(Constants); i++)
+        SAFE_RELEASE(Constants[i]);
+      for(int i = 0; i < ARRAY_COUNT(Pipe); i++)
+        SAFE_RELEASE(Pipe[i]);
+    }
+
+    ID3D12Resource *Tex;
+    ID3D12PipelineState *Pipe[FMTNUM_BACKBUFFER];
+    ID3D12RootSignature *RootSig;
+    ID3D12Resource *Constants[20];
+    ID3D12Resource *GlyphData;
+    ID3D12Resource *CharBuffer;
+
+    size_t CharOffset;
+    size_t ConstRingIdx;
+
+    float CharAspect;
+    float CharSize;
+  } m_Font;
 
   ID3D12DescriptorHeap *cbvsrvHeap;
   ID3D12DescriptorHeap *samplerHeap;
@@ -100,6 +163,8 @@ private:
 
   bool m_ShaderCacheDirty, m_CacheShaders;
   map<uint32_t, ID3DBlob *> m_ShaderCache;
+
+  void RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y, const char *text);
 
   string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
                        const char *profile, ID3DBlob **srcblob);
