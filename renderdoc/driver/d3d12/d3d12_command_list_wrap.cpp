@@ -261,15 +261,20 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
 {
   if(m_State >= WRITING)
   {
+    bool firstTime = false;
+
     // reset for new recording
     m_ListRecord->DeleteChunks();
 
     // free parents
     m_ListRecord->FreeParents(GetResourceManager());
 
-    // free any baked commands
+    // free any baked commands. If we don't have any, this is the creation reset
+    // so we return before actually doing the 'real' reset.
     if(m_ListRecord->bakedCommands)
       m_ListRecord->bakedCommands->Delete(GetResourceManager());
+    else
+      firstTime = true;
 
     m_ListRecord->bakedCommands =
         GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
@@ -288,6 +293,9 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
     m_ListRecord->AddParent(GetRecord(pAllocator));
     if(pInitialState)
       m_ListRecord->AddParent(GetRecord(pInitialState));
+
+    if(firstTime)
+      return S_OK;
   }
 
   return m_pReal->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
