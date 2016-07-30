@@ -469,8 +469,10 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
       desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
       ID3D12DescriptorHeap *copyheap = NULL;
-      HRESULT hr =
-          m_Device->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&copyheap);
+      HRESULT hr = m_Device->GetReal()->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap),
+                                                             (void **)&copyheap);
+
+      copyheap = new WrappedID3D12DescriptorHeap(copyheap, m_Device, desc);
 
       if(FAILED(hr))
       {
