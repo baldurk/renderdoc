@@ -397,21 +397,18 @@ private:
     FontData() { RDCEraseMem(this, sizeof(FontData)); }
     ~FontData()
     {
-      SAFE_RELEASE(Layout);
       SAFE_RELEASE(Tex);
       SAFE_RELEASE(CBuffer);
       SAFE_RELEASE(GlyphData);
-      SAFE_RELEASE(PosBuffer);
       SAFE_RELEASE(CharBuffer);
       SAFE_RELEASE(VS);
       SAFE_RELEASE(PS);
     }
 
-    ID3D11InputLayout *Layout;
     ID3D11ShaderResourceView *Tex;
     ID3D11Buffer *CBuffer;
     ID3D11Buffer *GlyphData;
-    ID3D11Buffer *PosBuffer, *CharBuffer;
+    ID3D11Buffer *CharBuffer;
     ID3D11VertexShader *VS;
     ID3D11PixelShader *PS;
 

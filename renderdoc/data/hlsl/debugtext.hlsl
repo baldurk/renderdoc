@@ -37,6 +37,11 @@ cbuffer glyphdata : register(b1)
 	glyph glyphs[127-32];
 };
 
+cbuffer stringdata : register(b2)
+{
+	uint4 chars[256];
+};
+
 struct v2f
 {
 	float4 pos : SV_Position;
@@ -44,17 +49,26 @@ struct v2f
 	float2 glyphuv : GLYPH;
 };
 
-v2f RENDERDOC_TextVS(float3 pos : POSITION, uint tex : GLYPHIDX)
+v2f RENDERDOC_TextVS(uint vid : SV_VertexID, uint inst : SV_InstanceID)
 {
 	v2f OUT = (v2f)0;
 
-	float2 charPos = float2(pos.z + pos.x + TextPosition.x, -pos.y - TextPosition.y);
-	glyph G = glyphs[tex];
-	
+	float2 verts[] = {
+		float2( 0.0,  0.0),
+		float2( 1.0,  0.0),
+		float2( 0.0,  1.0),
+		float2( 1.0,  1.0),
+	};
+
+	float2 pos = verts[vid];
+
+	float2 charPos = float2(float(inst) + pos.x + TextPosition.x, -pos.y - TextPosition.y);
+	glyph G = glyphs[ chars[inst].x ];
+
 	OUT.pos = float4(charPos.xy*2.0f*TextSize*FontScreenAspect.xy + float2(-1, 1), 1, 1);
 	OUT.glyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
 	OUT.tex = G.uvdata * CharacterSize.xyxy;
-	
+
 	return OUT;
 }
 

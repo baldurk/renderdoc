@@ -1365,66 +1365,6 @@ bool D3D11DebugManager::InitFontRendering()
 {
   HRESULT hr = S_OK;
 
-  {
-    D3D11_SUBRESOURCE_DATA initialPos;
-
-    float *buf = new float[(2 + FONT_MAX_CHARS * 4) * 3];
-
-    // tri strip with degenerates to split characters:
-    //
-    // 0--24--68--..
-    // | /|| /|| /
-    // |/ ||/ ||/
-    // 1--35--79--..
-
-    buf[0] = 0.0f;
-    buf[1] = 0.0f;
-    buf[2] = 0.0f;
-
-    buf[3] = 0.0f;
-    buf[4] = 1.0f;
-    buf[5] = 0.0f;
-
-    for(int i = 1; i <= FONT_MAX_CHARS; i++)
-    {
-      buf[i * 12 - 6 + 0] = 1.0f;
-      buf[i * 12 - 6 + 1] = 0.0f;
-      buf[i * 12 - 6 + 2] = float(i - 1);
-
-      buf[i * 12 - 6 + 3] = 1.0f;
-      buf[i * 12 - 6 + 4] = 1.0f;
-      buf[i * 12 - 6 + 5] = float(i - 1);
-
-      buf[i * 12 + 0 + 0] = 0.0f;
-      buf[i * 12 + 0 + 1] = 0.0f;
-      buf[i * 12 + 0 + 2] = float(i);
-
-      buf[i * 12 + 0 + 3] = 0.0f;
-      buf[i * 12 + 0 + 4] = 1.0f;
-      buf[i * 12 + 0 + 5] = float(i);
-    }
-
-    initialPos.pSysMem = buf;
-    initialPos.SysMemPitch = initialPos.SysMemSlicePitch = 0;
-
-    D3D11_BUFFER_DESC bufDesc;
-
-    bufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    bufDesc.Usage = D3D11_USAGE_DEFAULT;
-    bufDesc.ByteWidth = (2 + FONT_MAX_CHARS * 4) * 3 * sizeof(float);
-    bufDesc.CPUAccessFlags = 0;
-    bufDesc.MiscFlags = 0;
-
-    hr = m_pDevice->CreateBuffer(&bufDesc, &initialPos, &m_Font.PosBuffer);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Failed to create font pos buffer %08x", hr);
-    }
-
-    delete[] buf;
-  }
-
   D3D11_TEXTURE2D_DESC desc;
   RDCEraseEl(desc);
 
@@ -1509,19 +1449,7 @@ bool D3D11DebugManager::InitFontRendering()
   FillCBuffer(m_Font.GlyphData, &glyphData, sizeof(glyphData));
 
   m_Font.CBuffer = MakeCBuffer(sizeof(FontCBuffer));
-
-  D3D11_BUFFER_DESC bufDesc;
-
-  bufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-  bufDesc.MiscFlags = 0;
-  bufDesc.Usage = D3D11_USAGE_DYNAMIC;
-  bufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-  bufDesc.ByteWidth = 2 + FONT_MAX_CHARS * 4 * sizeof(uint32_t);
-
-  hr = m_pDevice->CreateBuffer(&bufDesc, NULL, &m_Font.CharBuffer);
-
-  if(FAILED(hr))
-    RDCERR("Failed to create m_Font.CharBuffer %08x", hr);
+  m_Font.CharBuffer = MakeCBuffer((2 + FONT_MAX_CHARS) * sizeof(uint32_t) * 4);
 
   string fullhlsl = "";
   {
@@ -1531,26 +1459,7 @@ bool D3D11DebugManager::InitFontRendering()
     fullhlsl = debugShaderCBuf + textShaderHLSL;
   }
 
-  D3D11_INPUT_ELEMENT_DESC inputDescs[2];
-
-  inputDescs[0].SemanticName = "POSITION";
-  inputDescs[0].SemanticIndex = 0;
-  inputDescs[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-  inputDescs[0].InputSlot = 0;
-  inputDescs[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-  inputDescs[0].AlignedByteOffset = 0;
-  inputDescs[0].InstanceDataStepRate = 0;
-
-  inputDescs[1].SemanticName = "GLYPHIDX";
-  inputDescs[1].SemanticIndex = 0;
-  inputDescs[1].Format = DXGI_FORMAT_R32_UINT;
-  inputDescs[1].InputSlot = 1;
-  inputDescs[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-  inputDescs[1].AlignedByteOffset = 0;
-  inputDescs[1].InstanceDataStepRate = 0;
-
-  m_Font.VS =
-      MakeVShader(fullhlsl.c_str(), "RENDERDOC_TextVS", "vs_4_0", 2, inputDescs, &m_Font.Layout);
+  m_Font.VS = MakeVShader(fullhlsl.c_str(), "RENDERDOC_TextVS", "vs_4_0");
   m_Font.PS = MakePShader(fullhlsl.c_str(), "RENDERDOC_TextPS", "ps_4_0");
 
   return true;
@@ -3201,27 +3110,19 @@ void D3D11DebugManager::RenderTextInternal(float x, float y, const char *text)
   unsigned long *texs = (unsigned long *)mapped.pData;
 
   for(size_t i = 0; i < strlen(text); i++)
-  {
-    texs[i * 4 + 0] = text[i] - ' ';
-    texs[i * 4 + 1] = text[i] - ' ';
-    texs[i * 4 + 2] = text[i] - ' ';
-    texs[i * 4 + 3] = text[i] - ' ';
-  }
-  m_pImmediateContext->Unmap(m_Font.CharBuffer, 0);
+    texs[i * 4] = (text[i] - ' ');
 
-  ID3D11Buffer *bufs[2] = {m_Font.PosBuffer, m_Font.CharBuffer};
-  UINT strides[2] = {3 * sizeof(float), sizeof(long)};
-  UINT offsets[2] = {0, 0};
+  m_pImmediateContext->Unmap(m_Font.CharBuffer, 0);
 
   // can't just clear state because we need to keep things like render targets.
   {
-    m_pImmediateContext->IASetInputLayout(m_Font.Layout);
+    m_pImmediateContext->IASetInputLayout(NULL);
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-    m_pImmediateContext->IASetVertexBuffers(0, 2, bufs, strides, offsets);
 
     m_pImmediateContext->VSSetShader(m_Font.VS, NULL, 0);
     m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_Font.CBuffer);
     m_pImmediateContext->VSSetConstantBuffers(1, 1, &m_Font.GlyphData);
+    m_pImmediateContext->VSSetConstantBuffers(2, 1, &m_Font.CharBuffer);
 
     m_pImmediateContext->HSSetShader(NULL, NULL, 0);
     m_pImmediateContext->DSSetShader(NULL, NULL, 0);
@@ -3247,7 +3148,7 @@ void D3D11DebugManager::RenderTextInternal(float x, float y, const char *text)
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     m_pImmediateContext->OMSetBlendState(m_DebugRender.BlendState, factor, 0xffffffff);
 
-    m_pImmediateContext->Draw((uint32_t)strlen(text) * 4, 0);
+    m_pImmediateContext->DrawInstanced(4, (uint32_t)strlen(text), 0, 0);
   }
 }
 
