@@ -281,6 +281,10 @@ namespace renderdocui.Windows
                 rowRange.Text = DefaultMaxRows.ToString();
 
                 Text = "Buffer Contents";
+
+                // only add log viewer for non-mesh output buffer viewers.
+                // The mesh viewer is added in Core.GetMeshViewer()
+                m_Core.AddLogViewer(this);
             }
             else
             {
@@ -291,8 +295,6 @@ namespace renderdocui.Windows
 
                 Text = "Mesh Output";
             }
-
-            m_Core.AddLogViewer(this);
         }
 
         private void ResetConfig()
