@@ -1116,10 +1116,28 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   FillCBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
   FillCBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
+  // transition resource to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+  const vector<D3D12_RESOURCE_STATES> &states =
+      m_WrappedDevice->GetSubresourceStates(GetResID(resource));
+
+  vector<D3D12_RESOURCE_BARRIER> barriers;
+  barriers.resize(states.size());
+  for(size_t i = 0; i < barriers.size(); i++)
+  {
+    barriers[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barriers[i].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barriers[i].Transition.pResource = resource;
+    barriers[i].Transition.Subresource = (UINT)i;
+    barriers[i].Transition.StateBefore = states[i];
+    barriers[i].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+  }
+
   OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
 
   {
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+    list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
     list->OMSetRenderTargets(1, &outw.rtv, TRUE, NULL);
 
@@ -1151,6 +1169,12 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
     list->OMSetBlendFactor(factor);
 
     list->DrawInstanced(4, 1, 0, 0);
+
+    // transition back to where they were
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+    list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
     list->Close();
 
