@@ -335,8 +335,10 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
       {
         if(*it <= m_LastEventID && m_LastEventID < (*it + length))
         {
+#ifdef VERBOSE_PARTIAL_REPLAY
           RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", *it, m_LastEventID,
                    *it + length, cmdId, bakeId);
+#endif
 
           m_Partial[p].partialParent = cmdId;
           m_Partial[p].baseEvent = *it;
@@ -522,7 +524,9 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser *localSerialiser,
     if(ShouldRerecordCmd(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
+#ifdef VERBOSE_PARTIAL_REPLAY
       RDCDEBUG("Ending partial command buffer for %llu baked to %llu", cmdid, bakeId);
+#endif
 
       bool recordAll = m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds();
 
