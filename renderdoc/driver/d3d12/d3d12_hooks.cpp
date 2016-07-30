@@ -180,6 +180,9 @@ private:
     }
 
     const bool EnableDebugLayer =
+#if 1    // toggle on/off if you want debug layer during replay
+        RenderDoc::Inst().IsReplayApp() ||
+#endif
         (m_EnabledHooks && !reading && RenderDoc::Inst().GetCaptureOptions().APIValidation);
 
     if(EnableDebugLayer)
