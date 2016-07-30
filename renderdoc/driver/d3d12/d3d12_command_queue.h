@@ -33,12 +33,12 @@
 
 class WrappedID3D12CommandQueue;
 
-struct DummyID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
+struct WrappedID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
 {
   WrappedID3D12CommandQueue *m_pQueue;
   ID3D12DebugCommandQueue *m_pReal;
 
-  DummyID3D12DebugCommandQueue() : m_pQueue(NULL), m_pReal(NULL) {}
+  WrappedID3D12DebugCommandQueue() : m_pQueue(NULL), m_pReal(NULL) {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
@@ -86,7 +86,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   Serialiser *m_pSerialiser;
   LogState &m_State;
 
-  DummyID3D12DebugCommandQueue m_DummyDebug;
+  WrappedID3D12DebugCommandQueue m_WrappedDebug;
 
   vector<D3D12ResourceRecord *> m_CmdListRecords;
 

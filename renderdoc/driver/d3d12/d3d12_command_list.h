@@ -32,12 +32,12 @@
 
 class WrappedID3D12GraphicsCommandList;
 
-struct DummyID3D12DebugCommandList : public ID3D12DebugCommandList
+struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList
 {
   WrappedID3D12GraphicsCommandList *m_pList;
   ID3D12DebugCommandList *m_pReal;
 
-  DummyID3D12DebugCommandList() : m_pList(NULL), m_pReal(NULL) {}
+  WrappedID3D12DebugCommandList() : m_pList(NULL), m_pReal(NULL) {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
@@ -95,7 +95,7 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
   Serialiser *m_pSerialiser;
   LogState &m_State;
 
-  DummyID3D12DebugCommandList m_DummyDebug;
+  WrappedID3D12DebugCommandList m_WrappedDebug;
 
   struct
   {

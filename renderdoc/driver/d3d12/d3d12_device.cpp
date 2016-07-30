@@ -318,6 +318,7 @@ WrappedID3D12Device::~WrappedID3D12Device()
   SAFE_DELETE(m_ResourceManager);
 
   SAFE_RELEASE(m_pInfoQueue);
+  SAFE_RELEASE(m_WrappedDebug.m_pDebug);
   SAFE_RELEASE(m_pDevice);
 
   SAFE_DELETE(m_pSerialiser);
