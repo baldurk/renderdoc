@@ -2329,23 +2329,7 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
   else if(!strcmp(pLayerPrefix, "PARAMCHECK"))
     isPARAM = true;
 
-  if(m_State < WRITING)
-  {
-    // All access mask/barrier messages.
-    // These are just too spammy/false positive/unreliable to keep
-    if(isDS && messageCode == 12)
-      return false;
-
-    // Memory is aliased between image and buffer
-    // ignore memory aliasing warning - we make use of the memory in disjoint ways
-    // and copy image data over separately, so our use is safe
-    // no location set for this one, so ignore by code (maybe too coarse)
-    if(isMEM && messageCode == 3)
-      return false;
-
-    RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
-  }
-  else
+  if(m_State >= WRITING)
   {
     ScopedDebugMessageSink *sink = GetDebugMessageSink();
 
@@ -2393,6 +2377,22 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
 
       sink->msgs.push_back(msg);
     }
+  }
+
+  {
+    // All access mask/barrier messages.
+    // These are just too spammy/false positive/unreliable to keep
+    if(isDS && messageCode == 12)
+      return false;
+
+    // Memory is aliased between image and buffer
+    // ignore memory aliasing warning - we make use of the memory in disjoint ways
+    // and copy image data over separately, so our use is safe
+    // no location set for this one, so ignore by code (maybe too coarse)
+    if(isMEM && messageCode == 3)
+      return false;
+
+    RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
   }
 
   return false;
