@@ -4502,7 +4502,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventID)
   GetDebugManager()->InitPostVSBuffers(eventID);
 }
 
-struct InitPostVSCallback : public DrawcallCallback
+struct InitPostVSCallback : public VulkanDrawcallCallback
 {
   InitPostVSCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
       : m_pDriver(vk), m_Events(events)

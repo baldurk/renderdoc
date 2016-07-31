@@ -74,7 +74,7 @@ void VulkanReplay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
     desc.units = eUnits_Absolute;
   }
 }
-struct GPUTimerCallback : public DrawcallCallback
+struct GPUTimerCallback : public VulkanDrawcallCallback
 {
   GPUTimerCallback(WrappedVulkan *vk, VulkanReplay *rp, VkQueryPool qp)
       : m_pDriver(vk), m_pReplay(rp), m_QueryPool(qp)

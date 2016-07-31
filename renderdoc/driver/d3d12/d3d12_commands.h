@@ -83,6 +83,44 @@ struct D3D12DrawcallTreeNode
   }
 };
 
+struct D3D12DrawcallCallback
+{
+  // the three callbacks are used to allow the callback implementor to either
+  // do a modified draw before or after the real thing.
+  //
+  // PreDraw()
+  // do draw call as specified by the log
+  // PostDraw()
+  // if PostDraw() returns true:
+  //   do draw call again
+  //   PostRedraw()
+  //
+  // So either the modification happens in PreDraw, the modified draw happens,
+  // then in PostDraw() the implementation can elect to undo the modifications
+  // and do the real draw by returning true. OR they can do nothing in PreDraw,
+  // do the real draw, then in PostDraw return true to apply the modifications
+  // which are then undone in PostRedraw.
+  virtual void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) = 0;
+  virtual bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) = 0;
+  virtual void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) = 0;
+
+  // same principle as above, but for dispatch calls
+  virtual void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) = 0;
+  virtual bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) = 0;
+  virtual void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) = 0;
+
+  // should we re-record all command lists? this needs to be true if the range
+  // being replayed is larger than one command list (which usually means the
+  // whole frame).
+  virtual bool RecordAllCmds() = 0;
+
+  // if a command list is recorded once and submitted N > 1 times, then the same
+  // drawcall will have several EIDs that refer to it. We'll only do the full
+  // callbacks above for the first EID, then call this function for the others
+  // to indicate that they are the same.
+  virtual void AliasEvent(uint32_t primary, uint32_t alias) = 0;
+};
+
 struct BakedCmdListInfo
 {
   void BakeFrom(BakedCmdListInfo &parent)
@@ -127,11 +165,16 @@ struct BakedCmdListInfo
   uint32_t drawCount;             // similar to above
 };
 
+class WrappedID3D12Device;
+
 struct D3D12CommandData
 {
   D3D12CommandData();
 
+  WrappedID3D12Device *m_pDevice;
   Serialiser *m_pSerialiser;
+
+  D3D12DrawcallCallback *m_DrawcallCallback;
 
   ResourceId m_LastCmdListID;
 
@@ -246,6 +289,11 @@ struct D3D12CommandData
 
     return m_RootDrawcallStack;
   }
+
+  // util function to handle fetching the right eventID, calling any
+  // aliases then calling PreDraw/PreDispatch.
+  uint32_t HandlePreCallback(ID3D12GraphicsCommandList *list, bool dispatch = false,
+                             uint32_t multiDrawOffset = 0);
 
   bool ShouldRerecordCmd(ResourceId cmdid);
   bool InRerecordRange(ResourceId cmdid);

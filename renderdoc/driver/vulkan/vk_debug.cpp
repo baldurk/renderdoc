@@ -3697,7 +3697,7 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 }
 
-struct QuadOverdrawCallback : public DrawcallCallback
+struct QuadOverdrawCallback : public VulkanDrawcallCallback
 {
   QuadOverdrawCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
       : m_pDriver(vk), m_pDebug(vk->GetDebugManager()), m_Events(events), m_PrevState(NULL)

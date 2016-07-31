@@ -174,11 +174,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
       }
     }
 
-    D3D12NOTIMP("m_DrawcallCallback");
-    // const bool recordAllCmds = false; // m_DrawcallCallback &&
-    // m_DrawcallCallback->RecordAllCmds()
-
-    if(partial)    // || recordAllCmds
+    if(partial || (m_Cmd->m_DrawcallCallback && m_Cmd->m_DrawcallCallback->RecordAllCmds()))
     {
       pAllocator = GetResourceManager()->GetLiveAs<ID3D12CommandAllocator>(Allocator);
       pInitialState =
@@ -338,23 +334,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
     {
       ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
 
+      uint32_t eventID = m_Cmd->HandlePreCallback(list);
+
       Unwrap(list)->DrawIndexedInstanced(idxCount, instCount, startIdx, startVtx, startInst);
 
-      D3D12NOTIMP("Drawcall callbacks");
-      /*
-      uint32_t eventID = HandlePreCallback(commandBuffer);
-
-      ObjDisp(commandBuffer)
-          ->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs,
-      firstInst);
-
-      if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+      if(eventID && m_Cmd->m_DrawcallCallback->PostDraw(eventID, list))
       {
-        ObjDisp(commandBuffer)
-            ->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs,
-                             firstInst);
-        m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
-      }*/
+        Unwrap(list)->DrawIndexedInstanced(idxCount, instCount, startIdx, startVtx, startInst);
+        m_Cmd->m_DrawcallCallback->PostRedraw(eventID, list);
+      }
     }
   }
   else if(m_State == READING)

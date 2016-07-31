@@ -173,8 +173,6 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
     // same accounting for the outer loop as above
     m_Cmd.m_RootEventID--;
 
-    D3D12NOTIMP("m_DrawcallCallback");
-
     if(numCmds == 0)
     {
       // do nothing, don't bother with the logic below
@@ -185,30 +183,28 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       RDCDEBUG("Queue Submit no replay %u == %u", m_Cmd.m_LastEventID, startEID);
 #endif
     }
-    /*
-    else if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+    else if(m_Cmd.m_DrawcallCallback && m_Cmd.m_DrawcallCallback->RecordAllCmds())
     {
 #ifdef VERBOSE_PARTIAL_REPLAY
-      RDCDEBUG("Queue Submit re-recording from %u", m_RootEventID);
+      RDCDEBUG("Queue Submit re-recording from %u", m_Cmd.m_RootEventID);
 #endif
 
       vector<ID3D12CommandList *> rerecordedCmds;
 
       for(uint32_t c = 0; c < numCmds; c++)
       {
-        ID3D12CommandList *cmd = RerecordCmdBuf(cmdIds[c]);
+        ID3D12CommandList *cmd = m_Cmd.RerecordCmdList(cmdIds[c]);
         ResourceId rerecord = GetResID(cmd);
 #ifdef VERBOSE_PARTIAL_REPLAY
         RDCDEBUG("Queue Submit fully re-recorded replay of %llu, using %llu", cmdIds[c], rerecord);
 #endif
         rerecordedCmds.push_back(Unwrap(cmd));
 
-        m_pDevice->ApplyBarriers(m_BakedCmdBufferInfo[rerecord].imgbarriers);
+        m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[rerecord].barriers);
       }
 
       m_pReal->ExecuteCommandLists((UINT)rerecordedCmds.size(), &rerecordedCmds[0]);
     }
-    */
     else if(m_Cmd.m_LastEventID > startEID && m_Cmd.m_LastEventID < m_Cmd.m_RootEventID)
     {
 #ifdef VERBOSE_PARTIAL_REPLAY

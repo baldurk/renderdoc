@@ -169,6 +169,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
   m_QueueRecord = NULL;
 
   m_Cmd.m_pSerialiser = m_pSerialiser;
+  m_Cmd.m_pDevice = m_pDevice;
 
   if(!RenderDoc::Inst().IsReplayApp())
   {
@@ -585,16 +586,51 @@ D3D12CommandData::D3D12CommandData()
   m_RootDrawcallStack.push_back(&m_ParentDrawcall);
 }
 
+uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandList *list, bool dispatch,
+                                             uint32_t multiDrawOffset)
+{
+  if(!m_DrawcallCallback)
+    return 0;
+
+  // look up the EID this drawcall came from
+  DrawcallUse use(m_CurChunkOffset, 0);
+  auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+  RDCASSERT(it != m_DrawcallUses.end());
+
+  uint32_t eventID = it->eventID;
+
+  RDCASSERT(eventID != 0);
+
+  // handle all aliases of this drawcall as long as it's not a multidraw
+  const FetchDrawcall *draw = m_pDevice->GetDrawcall(eventID);
+
+  if(draw == NULL || (draw->flags & eDraw_MultiDraw) == 0)
+  {
+    ++it;
+    while(it != m_DrawcallUses.end() && it->fileOffset == m_CurChunkOffset)
+    {
+      m_DrawcallCallback->AliasEvent(eventID, it->eventID);
+      ++it;
+    }
+  }
+
+  eventID += multiDrawOffset;
+
+  if(dispatch)
+    m_DrawcallCallback->PreDispatch(eventID, list);
+  else
+    m_DrawcallCallback->PreDraw(eventID, list);
+
+  return eventID;
+}
+
 bool D3D12CommandData::ShouldRerecordCmd(ResourceId cmdid)
 {
   if(m_Partial[Primary].outsideCmdList != NULL)
     return true;
 
-  D3D12NOTIMP("m_DrawcallCallback");
-  /*
   if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
     return true;
-    */
 
   return cmdid == m_Partial[Primary].partialParent || cmdid == m_Partial[Secondary].partialParent;
 }
@@ -604,11 +640,8 @@ bool D3D12CommandData::InRerecordRange(ResourceId cmdid)
   if(m_Partial[Primary].outsideCmdList != NULL)
     return true;
 
-  D3D12NOTIMP("m_DrawcallCallback");
-  /*
   if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
     return true;
-    */
 
   for(int p = 0; p < ePartialNum; p++)
   {
@@ -628,8 +661,6 @@ ID3D12GraphicsCommandList *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
   if(m_Partial[Primary].outsideCmdList != NULL)
     return m_Partial[Primary].outsideCmdList;
 
-  D3D12NOTIMP("m_DrawcallCallback");
-  /*
   if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
   {
     auto it = m_RerecordCmds.find(cmdid);
@@ -638,7 +669,6 @@ ID3D12GraphicsCommandList *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
 
     return it->second;
   }
-  */
 
   if(partialType != ePartialNum)
     return m_Partial[partialType].resultPartialCmdList;

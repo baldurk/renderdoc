@@ -122,7 +122,7 @@ struct VulkanDrawcallTreeNode
 #undef SERIALISED_PARAMETER
 #define SERIALISED_PARAMETER Serialiser *localSerialiser,
 
-struct DrawcallCallback
+struct VulkanDrawcallCallback
 {
   // the three callbacks are used to allow the callback implementor to either
   // do a modified draw before or after the real thing.
@@ -239,7 +239,7 @@ private:
 
   Threading::CriticalSection m_CapTransitionLock;
 
-  DrawcallCallback *m_DrawcallCallback;
+  VulkanDrawcallCallback *m_DrawcallCallback;
 
   // util function to handle fetching the right eventID, calling any
   // aliases then calling PreDraw/PreDispatch.
@@ -700,7 +700,7 @@ public:
   void FlushQ();
 
   VulkanRenderState &GetRenderState() { return m_RenderState; }
-  void SetDrawcallCB(DrawcallCallback *cb) { m_DrawcallCallback = cb; }
+  void SetDrawcallCB(VulkanDrawcallCallback *cb) { m_DrawcallCallback = cb; }
   VkResult FilterDeviceExtensionProperties(VkPhysicalDevice physDev, uint32_t *pPropertyCount,
                                            VkExtensionProperties *pProperties);
   static VkResult GetProvidedExtensionProperties(uint32_t *pPropertyCount,
