@@ -238,8 +238,6 @@ private:
   D3D12Replay m_Replay;
   D3D12DebugManager *m_DebugManager;
 
-  void LazyInit();
-
   void ProcessChunk(uint64_t offset, D3D12ChunkType context);
 
   unsigned int m_InternalRefcount;
@@ -329,12 +327,7 @@ public:
   }
 
   void SetLogFile(const char *logfile);
-  void SetLogVersion(uint32_t fileversion)
-  {
-    LazyInit();
-    m_InitParams.SerialiseVersion = fileversion;
-  }
-
+  void SetLogVersion(uint32_t fileversion) { m_InitParams.SerialiseVersion = fileversion; }
   D3D12Replay *GetReplay() { return &m_Replay; }
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }

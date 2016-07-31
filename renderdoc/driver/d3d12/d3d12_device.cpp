@@ -594,8 +594,6 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     return tex;
   }
 
-  LazyInit();
-
   ID3D12Resource *pRes = new WrappedID3D12Resource((ID3D12Resource *)realSurface, this);
 
   ResourceId id = GetResID(pRes);
@@ -1287,6 +1285,11 @@ void WrappedID3D12Device::CreateInternalResources()
   m_GPUSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
   m_GPUSyncCounter = 0;
+
+  RDCASSERT(m_DebugManager == NULL);
+
+  if(m_DebugManager == NULL)
+    m_DebugManager = new D3D12DebugManager(this);
 }
 
 void WrappedID3D12Device::DestroyInternalResources()
@@ -1389,12 +1392,6 @@ void WrappedID3D12Device::SetLogFile(const char *logfile)
 
   SAFE_DELETE(m_ResourceManager);
   m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
-}
-
-void WrappedID3D12Device::LazyInit()
-{
-  if(m_DebugManager == NULL)
-    m_DebugManager = new D3D12DebugManager(this);
 }
 
 const FetchDrawcall *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
