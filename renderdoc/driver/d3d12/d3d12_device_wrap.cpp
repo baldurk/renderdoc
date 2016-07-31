@@ -847,6 +847,40 @@ void WrappedID3D12Device::CopyDescriptors(
 
   RDCUNIMPLEMENTED("CopyDescriptors does not copy our internal descriptor data");
 
+  UINT srcRange = 0, dstRange = 0;
+  UINT srcIdx = 0, dstIdx = 0;
+
+  D3D12Descriptor *src = GetWrapped(pSrcDescriptorRangeStarts[0]);
+  D3D12Descriptor *dst = GetWrapped(pDestDescriptorRangeStarts[0]);
+
+  for(; srcRange < NumSrcDescriptorRanges && dstRange < NumDestDescriptorRanges;)
+  {
+    dst[dstIdx].CopyFrom(src[srcIdx]);
+
+    srcIdx++;
+    dstIdx++;
+
+    // move source onto the next range
+    if(srcIdx >= pSrcDescriptorRangeSizes[srcRange])
+    {
+      srcRange++;
+      srcIdx = 0;
+
+      // check srcRange is valid - we might be about to exit the loop from reading off the end
+      if(srcRange < NumSrcDescriptorRanges)
+        src = GetWrapped(pSrcDescriptorRangeStarts[srcRange]);
+    }
+
+    if(dstIdx >= pDestDescriptorRangeSizes[srcRange])
+    {
+      dstRange++;
+      dstIdx = 0;
+
+      if(dstRange < NumDestDescriptorRanges)
+        dst = GetWrapped(pDestDescriptorRangeStarts[srcRange]);
+    }
+  }
+
   SAFE_DELETE_ARRAY(dstStarts);
   SAFE_DELETE_ARRAY(srcStarts);
 }
@@ -863,16 +897,7 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
   D3D12Descriptor *dst = GetWrapped(DestDescriptorRangeStart);
 
   for(UINT i = 0; i < NumDescriptors; i++)
-  {
-    // save these so we can do a straight copy then restore them
-    WrappedID3D12DescriptorHeap *heap = dst[i].samp.heap;
-    uint32_t index = dst[i].samp.idx;
-
-    dst[i] = src[i];
-
-    dst[i].samp.heap = heap;
-    dst[i].samp.idx = index;
-  }
+    dst[i].CopyFrom(src[i]);
 }
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)

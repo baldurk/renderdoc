@@ -145,6 +145,18 @@ void D3D12Descriptor::Create(ID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE hand
   }
 }
 
+void D3D12Descriptor::CopyFrom(const D3D12Descriptor &src)
+{
+  // save these so we can do a straight copy then restore them
+  WrappedID3D12DescriptorHeap *heap = samp.heap;
+  uint32_t index = samp.idx;
+
+  *this = src;
+
+  samp.heap = heap;
+  samp.idx = index;
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE Unwrap(D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
   if(handle.ptr == 0)
