@@ -96,7 +96,7 @@ FetchBuffer D3D12Replay::GetBuffer(ResourceId id)
   D3D12_RESOURCE_DESC desc = it->second->GetDesc();
 
   ret.customName = true;
-  string str = "";    // TODO GetName(it.second);
+  string str = m_pDevice->GetResourceName(ret.ID);
 
   if(str == "")
   {
@@ -174,7 +174,7 @@ FetchTexture D3D12Replay::GetTexture(ResourceId id)
   }
 
   ret.customName = true;
-  string str = "";    // TODO GetName(it.second);
+  string str = m_pDevice->GetResourceName(ret.ID);
 
   if(str == "")
   {

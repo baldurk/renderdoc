@@ -566,6 +566,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *
       WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(fakeBB, this);
       fakeBB = wrapped;
 
+      m_ResourceNames[TexID] = "Swap Chain Buffer";
       fakeBB->SetName(L"Swap Chain Buffer");
 
       GetResourceManager()->AddLiveResource(TexID, fakeBB);
@@ -1230,6 +1231,8 @@ bool WrappedID3D12Device::Serialise_SetResourceName(ID3D12DeviceChild *res, cons
   if(m_State < WRITING && GetResourceManager()->HasLiveResource(resource))
   {
     ID3D12DeviceChild *r = GetResourceManager()->GetLiveResource(resource);
+
+    m_ResourceNames[resource] = name;
 
     r->SetName(StringFormat::UTF82Wide(name).c_str());
   }

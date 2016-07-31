@@ -278,6 +278,8 @@ private:
   map<ResourceId, SubresourceStateVector> m_ResourceStates;
   Threading::CriticalSection m_ResourceStatesLock;
 
+  map<ResourceId, string> m_ResourceNames;
+
   struct SwapPresentInfo
   {
     D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8];
@@ -321,6 +323,7 @@ public:
   FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
+  const string &GetResourceName(ResourceId id) { return m_ResourceNames[id]; }
   vector<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)
   {
     return m_ResourceStates[id];
