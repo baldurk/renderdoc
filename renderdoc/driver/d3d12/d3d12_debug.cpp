@@ -1566,15 +1566,23 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
       m_WrappedDevice->GetSubresourceStates(GetResID(resource));
 
   vector<D3D12_RESOURCE_BARRIER> barriers;
-  barriers.resize(states.size());
-  for(size_t i = 0; i < barriers.size(); i++)
+  barriers.reserve(states.size());
+  for(size_t i = 0; i < states.size(); i++)
   {
-    barriers[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barriers[i].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barriers[i].Transition.pResource = resource;
-    barriers[i].Transition.Subresource = (UINT)i;
-    barriers[i].Transition.StateBefore = states[i];
-    barriers[i].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    D3D12_RESOURCE_BARRIER b;
+
+    // skip unneeded barriers
+    if(states[i] & D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+      continue;
+
+    b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    b.Transition.pResource = resource;
+    b.Transition.Subresource = (UINT)i;
+    b.Transition.StateBefore = states[i];
+    b.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+    barriers.push_back(b);
   }
 
   OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
@@ -1582,7 +1590,8 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   {
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
-    list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
     list->OMSetRenderTargets(1, &outw.rtv, TRUE, NULL);
 
@@ -1619,7 +1628,8 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
     for(size_t i = 0; i < barriers.size(); i++)
       std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
 
-    list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
     list->Close();
 
