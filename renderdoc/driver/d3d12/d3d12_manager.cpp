@@ -401,9 +401,108 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(copyDst, 0, NULL));
       return true;
     }
+    else
+    {
+      D3D12_HEAP_PROPERTIES heapProps;
+      heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
 
-    D3D12NOTIMP("resource init states");
-    return true;
+      D3D12_RESOURCE_DESC bufDesc;
+
+      bufDesc.Alignment = 0;
+      bufDesc.DepthOrArraySize = 1;
+      bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      bufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      bufDesc.Format = DXGI_FORMAT_UNKNOWN;
+      bufDesc.Height = 1;
+      bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      bufDesc.MipLevels = 1;
+      bufDesc.SampleDesc.Count = 1;
+      bufDesc.SampleDesc.Quality = 0;
+      bufDesc.Width = 1;
+
+      UINT numSubresources = desc.MipLevels;
+      if(desc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+        numSubresources *= desc.DepthOrArraySize;
+
+      D3D12_PLACED_SUBRESOURCE_FOOTPRINT *layouts =
+          new D3D12_PLACED_SUBRESOURCE_FOOTPRINT[numSubresources];
+
+      m_Device->GetCopyableFootprints(&desc, 0, numSubresources, 0, layouts, NULL, NULL,
+                                      &bufDesc.Width);
+
+      ID3D12Resource *copyDst = NULL;
+      HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
+          &heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+          __uuidof(ID3D12Resource), (void **)&copyDst);
+
+      if(SUCCEEDED(hr))
+      {
+        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetNewList());
+
+        vector<D3D12_RESOURCE_BARRIER> barriers;
+
+        const vector<D3D12_RESOURCE_STATES> &states = m_Device->GetSubresourceStates(GetResID(r));
+
+        barriers.reserve(states.size());
+
+        for(size_t i = 0; i < states.size(); i++)
+        {
+          if(states[i] & D3D12_RESOURCE_STATE_COPY_SOURCE)
+            continue;
+
+          D3D12_RESOURCE_BARRIER barrier;
+          barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+          barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+          barrier.Transition.pResource = Unwrap(r);
+          barrier.Transition.Subresource = (UINT)i;
+          barrier.Transition.StateBefore = states[i];
+          barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+          barriers.push_back(barrier);
+        }
+
+        // transition to copy dest
+        if(!barriers.empty())
+          list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+        for(UINT i = 0; i < numSubresources; i++)
+        {
+          D3D12_TEXTURE_COPY_LOCATION dst, src;
+
+          src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+          src.pResource = Unwrap(r);
+          src.SubresourceIndex = i;
+
+          dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+          dst.pResource = copyDst;
+          dst.PlacedFootprint = layouts[i];
+
+          list->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+        }
+
+        // transition back
+        for(size_t i = 0; i < barriers.size(); i++)
+          std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+        if(!barriers.empty())
+          list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+        list->Close();
+      }
+      else
+      {
+        RDCERR("Couldn't create readback buffer: 0x%08x", hr);
+      }
+
+      SAFE_DELETE_ARRAY(layouts);
+
+      SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(copyDst, 0, NULL));
+      return true;
+    }
   }
 
   RDCUNIMPLEMENTED("init states");
@@ -432,49 +531,37 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
     }
     else if(type == Resource_Resource)
     {
-      ID3D12Resource *r = (ID3D12Resource *)GetCurrentResource(id);
+      m_Device->ExecuteLists();
+      m_Device->FlushLists();
 
-      D3D12_RESOURCE_DESC desc = r->GetDesc();
+      ID3D12Resource *copiedBuffer = (ID3D12Resource *)initContents.resource;
 
-      m_pSerialiser->Serialise("Dimension", desc.Dimension);
+      byte dummy[4] = {};
+      byte *ptr = NULL;
+      size_t size = 0;
 
-      if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+      HRESULT hr = E_NOINTERFACE;
+
+      if(copiedBuffer)
       {
-        m_Device->ExecuteLists();
-        m_Device->FlushLists();
-
-        ID3D12Resource *copySrc = (ID3D12Resource *)initContents.resource;
-
-        byte dummy[4] = {};
-        byte *ptr = NULL;
-        size_t size = 0;
-
-        HRESULT hr = E_NOINTERFACE;
-
-        if(copySrc)
-        {
-          hr = copySrc->Map(0, NULL, (void **)&ptr);
-          size = (size_t)copySrc->GetDesc().Width;
-        }
-
-        if(FAILED(hr) || ptr == NULL)
-        {
-          size = 4;
-          ptr = dummy;
-
-          RDCERR("Failed to map buffer for readback! 0x%08x", hr);
-        }
-
-        m_pSerialiser->Serialise("NumBytes", size);
-        m_pSerialiser->SerialiseBuffer("BufferData", ptr, size);
-
-        if(SUCCEEDED(hr) && ptr)
-          copySrc->Unmap(0, NULL);
-
-        return true;
+        hr = copiedBuffer->Map(0, NULL, (void **)&ptr);
+        size = (size_t)copiedBuffer->GetDesc().Width;
       }
 
-      D3D12NOTIMP("resource init states");
+      if(FAILED(hr) || ptr == NULL)
+      {
+        size = 4;
+        ptr = dummy;
+
+        RDCERR("Failed to map buffer for readback! 0x%08x", hr);
+      }
+
+      m_pSerialiser->Serialise("NumBytes", size);
+      m_pSerialiser->SerialiseBuffer("BufferData", ptr, size);
+
+      if(SUCCEEDED(hr) && ptr)
+        copiedBuffer->Unmap(0, NULL);
+
       return true;
     }
     else
@@ -534,70 +621,61 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
     }
     else if(type == Resource_Resource)
     {
-      D3D12_RESOURCE_DIMENSION Dimension;
-      m_pSerialiser->Serialise("Dimension", Dimension);
+      uint64_t size = 0;
 
-      if(Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+      m_pSerialiser->Serialise("NumBytes", size);
+
+      D3D12_HEAP_PROPERTIES heapProps;
+      heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
+
+      D3D12_RESOURCE_DESC desc;
+      desc.Alignment = 0;
+      desc.DepthOrArraySize = 1;
+      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      desc.Format = DXGI_FORMAT_UNKNOWN;
+      desc.Height = 1;
+      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      desc.MipLevels = 1;
+      desc.SampleDesc.Count = 1;
+      desc.SampleDesc.Quality = 0;
+      desc.Width = size;
+
+      ID3D12Resource *copySrc = NULL;
+      HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
+          &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+          __uuidof(ID3D12Resource), (void **)&copySrc);
+
+      if(FAILED(hr))
       {
-        uint64_t size = 0;
-
-        m_pSerialiser->Serialise("NumBytes", size);
-
-        D3D12_HEAP_PROPERTIES heapProps;
-        heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-        heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-        heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        heapProps.CreationNodeMask = 1;
-        heapProps.VisibleNodeMask = 1;
-
-        D3D12_RESOURCE_DESC desc;
-        desc.Alignment = 0;
-        desc.DepthOrArraySize = 1;
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-        desc.Format = DXGI_FORMAT_UNKNOWN;
-        desc.Height = 1;
-        desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        desc.MipLevels = 1;
-        desc.SampleDesc.Count = 1;
-        desc.SampleDesc.Quality = 0;
-        desc.Width = size;
-
-        ID3D12Resource *copySrc = NULL;
-        HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
-            &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
-            __uuidof(ID3D12Resource), (void **)&copySrc);
-
-        if(FAILED(hr))
-        {
-          RDCERR("Couldn't create upload buffer: 0x%08x", hr);
-          return false;
-        }
-
-        byte *ptr = NULL;
-        hr = copySrc->Map(0, NULL, (void **)&ptr);
-
-        if(FAILED(hr))
-        {
-          RDCERR("Couldn't map upload buffer: 0x%08x", hr);
-          ptr = NULL;
-        }
-
-        size_t sz = (size_t)size;
-
-        m_pSerialiser->SerialiseBuffer("BufferData", ptr, sz);
-
-        if(SUCCEEDED(hr))
-          copySrc->Unmap(0, NULL);
-        else
-          SAFE_DELETE_ARRAY(ptr);
-
-        SetInitialContents(id, D3D12ResourceManager::InitialContentData(copySrc, 1, NULL));
-
-        return true;
+        RDCERR("Couldn't create upload buffer: 0x%08x", hr);
+        return false;
       }
 
-      D3D12NOTIMP("resource init states");
+      byte *ptr = NULL;
+      hr = copySrc->Map(0, NULL, (void **)&ptr);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't map upload buffer: 0x%08x", hr);
+        ptr = NULL;
+      }
+
+      size_t sz = (size_t)size;
+
+      m_pSerialiser->SerialiseBuffer("BufferData", ptr, sz);
+
+      if(SUCCEEDED(hr))
+        copySrc->Unmap(0, NULL);
+      else
+        SAFE_DELETE_ARRAY(ptr);
+
+      SetInitialContents(id, D3D12ResourceManager::InitialContentData(copySrc, 1, NULL));
+
       return true;
     }
     else
@@ -653,7 +731,6 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
   {
     if(data.num == 1 && data.resource)
     {
-      // buffer
       ID3D12Resource *copyDst = Unwrap((ID3D12Resource *)live);
       ID3D12Resource *copySrc = (ID3D12Resource *)data.resource;
 
@@ -676,44 +753,150 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
           src = NULL;
         }
 
-        hr = copyDst->Map(0, NULL, (void **)&dst);
-
-        if(FAILED(hr))
+        if(copyDst->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
         {
-          RDCERR("Doing CPU-side copy, couldn't map source: 0x%08x", hr);
-          dst = NULL;
-        }
+          hr = copyDst->Map(0, NULL, (void **)&dst);
 
-        if(src && dst)
-          memcpy(dst, src, (size_t)copySrc->GetDesc().Width);
+          if(FAILED(hr))
+          {
+            RDCERR("Doing CPU-side copy, couldn't map source: 0x%08x", hr);
+            dst = NULL;
+          }
+
+          if(src && dst)
+          {
+            memcpy(dst, src, (size_t)copySrc->GetDesc().Width);
+          }
+
+          if(dst)
+            copyDst->Unmap(0, NULL);
+        }
+        else
+        {
+          D3D12_RESOURCE_DESC desc = copyDst->GetDesc();
+
+          UINT numSubresources = desc.MipLevels;
+          if(desc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+            numSubresources *= desc.DepthOrArraySize;
+
+          D3D12_PLACED_SUBRESOURCE_FOOTPRINT *layouts =
+              new D3D12_PLACED_SUBRESOURCE_FOOTPRINT[numSubresources];
+          UINT *numrows = new UINT[numSubresources];
+          UINT64 *rowsizes = new UINT64[numSubresources];
+
+          m_Device->GetCopyableFootprints(&desc, 0, numSubresources, 0, layouts, numrows, rowsizes,
+                                          NULL);
+
+          for(UINT i = 0; i < numSubresources; i++)
+          {
+            hr = copyDst->Map(i, NULL, (void **)&dst);
+
+            if(FAILED(hr))
+            {
+              RDCERR("Doing CPU-side copy, couldn't map source: 0x%08x", hr);
+              dst = NULL;
+            }
+
+            if(src && dst)
+            {
+              byte *bufPtr = src + layouts[i].Offset;
+              byte *texPtr = dst;
+
+              for(UINT d = 0; d < layouts[i].Footprint.Depth; d++)
+              {
+                for(UINT r = 0; r < numrows[i]; r++)
+                {
+                  memcpy(bufPtr, texPtr, rowsizes[i]);
+
+                  bufPtr += layouts[i].Footprint.RowPitch;
+                  texPtr += rowsizes[i];
+                }
+              }
+            }
+
+            if(dst)
+              copyDst->Unmap(0, NULL);
+          }
+
+          delete[] layouts;
+          delete[] numrows;
+          delete[] rowsizes;
+        }
 
         if(src)
           copySrc->Unmap(0, NULL);
-        if(dst)
-          copyDst->Unmap(0, NULL);
       }
       else
       {
         ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetNewList());
 
-        D3D12_RESOURCE_BARRIER barrier;
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = copyDst;
-        barrier.Transition.Subresource = 0;
-        barrier.Transition.StateBefore = m_Device->GetSubresourceStates(GetResID(live))[0];
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+        vector<D3D12_RESOURCE_BARRIER> barriers;
+
+        const vector<D3D12_RESOURCE_STATES> &states = m_Device->GetSubresourceStates(GetResID(live));
+
+        barriers.reserve(states.size());
+
+        for(size_t i = 0; i < states.size(); i++)
+        {
+          if(states[i] & D3D12_RESOURCE_STATE_COPY_DEST)
+            continue;
+
+          D3D12_RESOURCE_BARRIER barrier;
+          barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+          barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+          barrier.Transition.pResource = copyDst;
+          barrier.Transition.Subresource = 0;
+          barrier.Transition.StateBefore = m_Device->GetSubresourceStates(GetResID(live))[0];
+          barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+
+          barriers.push_back(barrier);
+        }
 
         // transition to copy dest
-        if(barrier.Transition.StateBefore != barrier.Transition.StateAfter)
-          list->ResourceBarrier(1, &barrier);
+        if(!barriers.empty())
+          list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
-        list->CopyBufferRegion(copyDst, 0, copySrc, 0, copySrc->GetDesc().Width);
+        if(copyDst->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+        {
+          list->CopyBufferRegion(copyDst, 0, copySrc, 0, copySrc->GetDesc().Width);
+        }
+        else
+        {
+          D3D12_RESOURCE_DESC desc = copyDst->GetDesc();
+
+          UINT numSubresources = desc.MipLevels;
+          if(desc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+            numSubresources *= desc.DepthOrArraySize;
+
+          D3D12_PLACED_SUBRESOURCE_FOOTPRINT *layouts =
+              new D3D12_PLACED_SUBRESOURCE_FOOTPRINT[numSubresources];
+
+          m_Device->GetCopyableFootprints(&desc, 0, numSubresources, 0, layouts, NULL, NULL, NULL);
+
+          for(UINT i = 0; i < numSubresources; i++)
+          {
+            D3D12_TEXTURE_COPY_LOCATION dst, src;
+
+            dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+            dst.pResource = copyDst;
+            dst.SubresourceIndex = i;
+
+            src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+            src.pResource = copySrc;
+            src.PlacedFootprint = layouts[i];
+
+            list->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+          }
+
+          delete[] layouts;
+        }
 
         // transition back to whatever it was before
-        std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
-        if(barrier.Transition.StateBefore != barrier.Transition.StateAfter)
-          list->ResourceBarrier(1, &barrier);
+        for(size_t i = 0; i < barriers.size(); i++)
+          std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+        if(!barriers.empty())
+          list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
         list->Close();
       }
