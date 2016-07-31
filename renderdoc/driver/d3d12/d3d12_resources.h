@@ -492,6 +492,17 @@ public:
     offs = addr - it->start;
   }
 
+  // overload to just return the id in case the offset isn't needed
+  static ResourceId GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr)
+  {
+    ResourceId id;
+    UINT64 offs;
+
+    GetResIDFromAddr(addr, id, offs);
+
+    return id;
+  }
+
   enum
   {
     TypeEnum = Resource_Resource,

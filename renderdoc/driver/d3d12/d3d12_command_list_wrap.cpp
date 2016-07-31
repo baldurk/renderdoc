@@ -1213,13 +1213,8 @@ void WrappedID3D12GraphicsCommandList::IASetIndexBuffer(const D3D12_INDEX_BUFFER
 
     m_ListRecord->AddChunk(scope.Get());
     if(pView)
-    {
-      ResourceId id;
-      UINT64 offs = 0;
-      WrappedID3D12Resource::GetResIDFromAddr(pView->BufferLocation, id, offs);
-
-      m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
-    }
+      m_ListRecord->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pView->BufferLocation), eFrameRef_Read);
   }
 }
 
@@ -1276,13 +1271,8 @@ void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT N
 
     m_ListRecord->AddChunk(scope.Get());
     for(UINT i = 0; i < NumViews; i++)
-    {
-      ResourceId id;
-      UINT64 offs = 0;
-      WrappedID3D12Resource::GetResIDFromAddr(pViews[i].BufferLocation, id, offs);
-
-      m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
-    }
+      m_ListRecord->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pViews[i].BufferLocation), eFrameRef_Read);
   }
 }
 
