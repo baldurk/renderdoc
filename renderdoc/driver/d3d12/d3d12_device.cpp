@@ -840,6 +840,7 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
       list->Close();
 
       ExecuteLists();
+      FlushLists();
     }
   }
 
