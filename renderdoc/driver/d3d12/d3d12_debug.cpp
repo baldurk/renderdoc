@@ -1280,6 +1280,9 @@ void D3D12DebugManager::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
 
   m_Font.CharOffset = charOffset + chars;
 
+  // Is 256 byte alignment on buffer offsets is just fixed, or device-specific?
+  m_Font.CharOffset = AlignUp(m_Font.CharOffset, 256 / sizeof(Vec4f));
+
   unsigned long *texs = NULL;
   HRESULT hr = m_Font.CharBuffer->Map(0, NULL, (void **)&texs);
 
