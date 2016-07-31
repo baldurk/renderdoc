@@ -265,14 +265,8 @@ namespace renderdocui.Windows
 
             SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
 
-            RenderHandle = render.Handle;
+            RecreateRenderPanel();
 
-            render.Painting = true;
-
-            render.MouseWheel += render_MouseWheel;
-            render.MouseWheelHandler = render_MouseWheel;
-            (render as Control).KeyDown += new KeyEventHandler(BufferViewer_KeyDown);
-            (render as Control).KeyUp += new KeyEventHandler(BufferViewer_KeyUp);
             ResetConfig();
 
             MeshView = meshview;
@@ -490,9 +484,38 @@ namespace renderdocui.Windows
 
         #region ILogViewerForm
 
+        void RecreateRenderPanel()
+        {
+            renderTable.Controls.Clear();
+
+            render.Dispose();
+
+            render = new Controls.NoScrollPanel();
+
+            render.Painting = true;
+
+            render.BackColor = Color.Black;
+            render.Dock = DockStyle.Fill;
+            render.Paint += new PaintEventHandler(render_Paint);
+            render.MouseClick += new MouseEventHandler(render_MouseClick);
+            render.MouseDown += new MouseEventHandler(render_MouseDown);
+            render.MouseMove += new MouseEventHandler(render_MouseMove);
+            render.MouseWheel += render_MouseWheel;
+            render.MouseWheelHandler = render_MouseWheel;
+            render.KeyDown += new KeyEventHandler(render_KeyDown);
+            render.KeyUp += new KeyEventHandler(render_KeyUp);
+
+            RenderHandle = render.Handle;
+
+            renderTable.Controls.Add(render, 1, 0);
+            renderTable.Controls.Add(configCamControls, 0, 0);
+        }
+
         public void OnLogfileClosed()
         {
             if (IsDisposed) return;
+
+            RecreateRenderPanel();
 
             m_Output = null;
 
@@ -506,6 +529,8 @@ namespace renderdocui.Windows
         public void OnLogfileLoaded()
         {
             ClearStoredData();
+
+            RecreateRenderPanel();
 
             exportToToolStripMenuItem.Enabled = exportToolItem.Enabled = true;
 
@@ -2375,12 +2400,12 @@ namespace renderdocui.Windows
             });
         }
 
-        void BufferViewer_KeyUp(object sender, KeyEventArgs e)
+        void render_KeyUp(object sender, KeyEventArgs e)
         {
             m_CurrentCamera.KeyUp(sender, e);
         }
 
-        void BufferViewer_KeyDown(object sender, KeyEventArgs e)
+        void render_KeyDown(object sender, KeyEventArgs e)
         {
             m_CurrentCamera.KeyDown(sender, e);
         }

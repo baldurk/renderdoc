@@ -1156,7 +1156,7 @@
             // 
             // renderContainer
             // 
-            this.renderContainer.BackColor = System.Drawing.Color.Maroon;
+            this.renderContainer.BackColor = System.Drawing.Color.Transparent;
             this.renderContainer.Controls.Add(this.render);
             this.renderContainer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.renderContainer.Location = new System.Drawing.Point(0, 0);
@@ -1167,19 +1167,7 @@
             // 
             // render
             // 
-            this.render.BackColor = System.Drawing.Color.Black;
-            this.render.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.render.Location = new System.Drawing.Point(0, 0);
-            this.render.Name = "render";
-            this.render.Size = new System.Drawing.Size(404, 230);
-            this.render.TabIndex = 0;
-            this.render.Paint += new System.Windows.Forms.PaintEventHandler(this.render_Paint);
-            this.render.Layout += new System.Windows.Forms.LayoutEventHandler(this.render_Layout);
-            this.render.MouseClick += new System.Windows.Forms.MouseEventHandler(this.render_MouseClick);
-            this.render.MouseDown += new System.Windows.Forms.MouseEventHandler(this.render_MouseClick);
-            this.render.MouseLeave += new System.EventHandler(this.render_MouseLeave);
-            this.render.MouseMove += new System.Windows.Forms.MouseEventHandler(this.render_MouseMove);
-            this.render.MouseUp += new System.Windows.Forms.MouseEventHandler(this.render_MouseUp);
+            this.render.Name = "render_SETUP_AT_RUNTIME_SEE_CODE";
             // 
             // renderVScroll
             // 
@@ -1219,15 +1207,7 @@
             // 
             // pixelContext
             // 
-            this.pixelContext.BackColor = System.Drawing.Color.Transparent;
-            this.pixelContextPanel.SetColumnSpan(this.pixelContext, 2);
-            this.pixelContext.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pixelContext.Location = new System.Drawing.Point(3, 3);
-            this.pixelContext.Name = "pixelContext";
-            this.pixelContext.Size = new System.Drawing.Size(209, 121);
-            this.pixelContext.TabIndex = 6;
-            this.pixelContext.Paint += new System.Windows.Forms.PaintEventHandler(this.pixelContext_Paint);
-            this.pixelContext.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pixelContext_MouseClick);
+            this.pixelContext.Name = "pixelContext_SETUP_AT_RUNTIME_SEE_CODE";
             // 
             // debugPixelContext
             // 

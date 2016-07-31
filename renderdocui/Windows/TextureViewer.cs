@@ -417,20 +417,16 @@ namespace renderdocui.Windows
 
             mainLayout.Dock = DockStyle.Fill;
 
-            render.Painting = true;
-            pixelContext.Painting = true;
-
             saveTex.Enabled = gotoLocationButton.Enabled = viewTexBuffer.Enabled = false;
 
             DockHandler.GetPersistStringCallback = PersistString;
 
             renderContainer.MouseWheelHandler = render_MouseWheel;
-            render.MouseWheel += render_MouseWheel;
             renderContainer.MouseDown += render_MouseClick;
             renderContainer.MouseMove += render_MouseMove;
 
-            render.KeyHandler = render_KeyDown;
-            pixelContext.KeyHandler = render_KeyDown;
+            RecreateRenderPanel();
+            RecreateContextPanel();
 
             rangeHistogram.RangeUpdated += new EventHandler<RangeHistogramEventArgs>(rangeHistogram_RangeUpdated);
 
@@ -1044,6 +1040,54 @@ namespace renderdocui.Windows
 
         #region ILogViewerForm
 
+        void RecreateRenderPanel()
+        {
+            renderContainer.Controls.Clear();
+
+            render.Dispose();
+
+            render = new NoScrollPanel();
+
+            render.Painting = true;
+
+            render.BackColor = Color.Black;
+            render.Dock = DockStyle.Fill;
+            render.Paint += new PaintEventHandler(this.render_Paint);
+            render.Layout += new LayoutEventHandler(this.render_Layout);
+            render.MouseClick += new MouseEventHandler(this.render_MouseClick);
+            render.MouseDown += new MouseEventHandler(this.render_MouseClick);
+            render.MouseLeave += new EventHandler(this.render_MouseLeave);
+            render.MouseMove += new MouseEventHandler(this.render_MouseMove);
+            render.MouseUp += new MouseEventHandler(this.render_MouseUp);
+            render.MouseWheel += render_MouseWheel;
+            render.KeyHandler = render_KeyDown;
+
+            renderContainer.Controls.Add(render);
+        }
+
+        void RecreateContextPanel()
+        {
+            pixelContextPanel.Controls.Clear();
+
+            pixelContext.Dispose();
+
+            pixelContext = new NoScrollPanel();
+
+            pixelContext.Painting = true;
+
+            pixelContext.BackColor = Color.Transparent;
+            pixelContext.Dock = DockStyle.Fill;
+            pixelContext.Paint += new PaintEventHandler(pixelContext_Paint);
+            pixelContext.MouseClick += new MouseEventHandler(pixelContext_MouseClick);
+            pixelContext.KeyHandler = render_KeyDown;
+
+            pixelContextPanel.Controls.Add(pixelContext, 0, 0);
+            pixelContextPanel.Controls.Add(debugPixelContext, 1, 1);
+            pixelContextPanel.Controls.Add(pixelHistory, 0, 1);
+
+            pixelContextPanel.SetColumnSpan(pixelContext, 2);
+        }
+
         public void OnLogfileLoaded()
         {
             var outConfig = new OutputConfig();
@@ -1055,6 +1099,9 @@ namespace renderdocui.Windows
 
             rwPanel.ClearThumbnails();
             roPanel.ClearThumbnails();
+
+            RecreateRenderPanel();
+            RecreateContextPanel();
 
             m_HighWaterStatusLength = 0;
 
@@ -1117,6 +1164,9 @@ namespace renderdocui.Windows
 
             rwPanel.ClearThumbnails();
             roPanel.ClearThumbnails();
+
+            RecreateRenderPanel();
+            RecreateContextPanel();
 
             texturefilter.SelectedIndex = 0;
 
@@ -1767,9 +1817,6 @@ namespace renderdocui.Windows
             }
 
             UI_UpdateFittedScale();
-
-            //render.Width = (int)(CurrentTexDisplayWidth * m_TexDisplay.scale);
-            //render.Height = (int)(CurrentTexDisplayHeight * m_TexDisplay.scale);
 
             UI_UpdateTextureDetails();
 
