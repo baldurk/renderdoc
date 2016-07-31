@@ -74,8 +74,11 @@ vector<ResourceId> D3D12Replay::GetTextures()
   vector<ResourceId> ret;
 
   for(auto it = WrappedID3D12Resource::m_List.begin(); it != WrappedID3D12Resource::m_List.end(); it++)
-    if(it->second->GetDesc().Dimension != D3D12_RESOURCE_DIMENSION_BUFFER)
+  {
+    if(it->second->GetDesc().Dimension != D3D12_RESOURCE_DIMENSION_BUFFER &&
+       m_pDevice->GetResourceManager()->GetOriginalID(it->first) != it->first)
       ret.push_back(it->first);
+  }
 
   return ret;
 }
