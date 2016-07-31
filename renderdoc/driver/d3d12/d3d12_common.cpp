@@ -73,7 +73,7 @@ string ToStrHelper<false, D3D12ComponentMapping>::Get(const D3D12ComponentMappin
   uint32_t swizzle = (uint32_t)el;
 
   for(int i = 0; i < 4; i++)
-    ret += mapping[D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(swizzle, i)];
+    ret += mapping[D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(i, swizzle)];
 
   return ret;
 }
