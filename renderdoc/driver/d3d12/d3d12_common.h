@@ -216,7 +216,10 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
   D3D12_CHUNK_MACRO(SET_VIEWPORTS, "ID3D12GraphicsCommandList::RSSetViewports")              \
   D3D12_CHUNK_MACRO(SET_SCISSORS, "ID3D12GraphicsCommandList::RSSetScissors")                \
   D3D12_CHUNK_MACRO(SET_PIPE, "ID3D12GraphicsCommandList::SetPipelineState")                 \
+  D3D12_CHUNK_MACRO(SET_DESC_HEAPS, "ID3D12GraphicsCommandList::SetDescriptorHeaps")         \
   D3D12_CHUNK_MACRO(SET_RTVS, "ID3D12GraphicsCommandList::OMSetRenderTargets")               \
+  D3D12_CHUNK_MACRO(SET_GFX_ROOT_TABLE,                                                      \
+                    "ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable")             \
   D3D12_CHUNK_MACRO(SET_GFX_ROOT_SIG, "ID3D12GraphicsCommandList::SetGraphicsRootSignature") \
   D3D12_CHUNK_MACRO(SET_GFX_ROOT_CBV,                                                        \
                     "ID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView")          \

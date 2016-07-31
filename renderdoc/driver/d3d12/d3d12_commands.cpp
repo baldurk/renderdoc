@@ -281,7 +281,11 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
     case SET_SCISSORS: m_ReplayList->Serialise_RSSetScissorRects(0, NULL); break;
     case SET_PIPE: m_ReplayList->Serialise_SetPipelineState(NULL); break;
     case SET_RTVS: m_ReplayList->Serialise_OMSetRenderTargets(0, NULL, FALSE, NULL); break;
+    case SET_DESC_HEAPS: m_ReplayList->Serialise_SetDescriptorHeaps(0, NULL); break;
     case SET_GFX_ROOT_SIG: m_ReplayList->Serialise_SetGraphicsRootSignature(NULL); break;
+    case SET_GFX_ROOT_TABLE:
+      m_ReplayList->Serialise_SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE());
+      break;
     case SET_GFX_ROOT_CBV:
       m_ReplayList->Serialise_SetGraphicsRootConstantBufferView(0, D3D12_GPU_VIRTUAL_ADDRESS());
       break;

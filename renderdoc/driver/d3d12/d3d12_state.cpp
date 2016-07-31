@@ -38,6 +38,8 @@ D3D12RenderState::D3D12RenderState()
 
   m_ResourceManager = NULL;
 
+  heaps.clear();
+
   pipe = graphics.rootsig = compute.rootsig = ResourceId();
   graphics.sigelems.clear();
   compute.sigelems.clear();
@@ -58,6 +60,8 @@ D3D12RenderState &D3D12RenderState::operator=(const D3D12RenderState &o)
   dsv = o.dsv;
 
   pipe = o.pipe;
+
+  heaps = o.heaps;
 
   graphics.rootsig = o.graphics.rootsig;
   graphics.sigelems = o.graphics.sigelems;
@@ -118,15 +122,24 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd)
     cmd->IASetVertexBuffers((UINT)i, 1, &vb);
   }
 
+  std::vector<ID3D12DescriptorHeap *> descHeaps;
+  descHeaps.resize(heaps.size());
+
+  for(size_t i = 0; i < heaps.size(); i++)
+    descHeaps[i] = GetResourceManager()->GetCurrentAs<ID3D12DescriptorHeap>(heaps[i]);
+
+  if(!descHeaps.empty())
+    cmd->SetDescriptorHeaps((UINT)descHeaps.size(), &descHeaps[0]);
+
   if(!rts.empty() || dsv.heap != ResourceId())
   {
     D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
-    D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = FromPortableHandle(GetResourceManager(), dsv);
+    D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
 
     UINT numActualHandles = rtSingle ? 1 : (UINT)rts.size();
 
     for(UINT i = 0; i < numActualHandles; i++)
-      rtHandles[i] = FromPortableHandle(GetResourceManager(), rts[i]);
+      rtHandles[i] = CPUHandleFromPortableHandle(GetResourceManager(), rts[i]);
 
     // need to unwrap here, as FromPortableHandle unwraps too.
     Unwrap(cmd)->OMSetRenderTargets((UINT)rts.size(), rtHandles, rtSingle ? TRUE : FALSE,

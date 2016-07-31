@@ -216,7 +216,11 @@ struct PortableHandle
 class D3D12ResourceManager;
 
 PortableHandle ToPortableHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle);
-D3D12_CPU_DESCRIPTOR_HANDLE FromPortableHandle(D3D12ResourceManager *manager, PortableHandle handle);
+PortableHandle ToPortableHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle);
+D3D12_CPU_DESCRIPTOR_HANDLE CPUHandleFromPortableHandle(D3D12ResourceManager *manager,
+                                                        PortableHandle handle);
+D3D12_GPU_DESCRIPTOR_HANDLE GPUHandleFromPortableHandle(D3D12ResourceManager *manager,
+                                                        PortableHandle handle);
 
 struct D3D12ResourceRecord;
 

@@ -119,6 +119,8 @@ struct D3D12RenderState
     vector<UINT> constants;
   };
 
+  vector<ResourceId> heaps;
+
   struct Pipeline
   {
     ResourceId rootsig;

@@ -840,6 +840,54 @@ void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *
   m_pReal->ExecuteBundle(Unwrap(pCommandList));
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(
+    UINT NumDescriptorHeaps, ID3D12DescriptorHeap *const *ppDescriptorHeaps)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+
+  std::vector<ResourceId> DescriptorHeaps;
+
+  if(m_State >= WRITING)
+  {
+    DescriptorHeaps.resize(NumDescriptorHeaps);
+    for(UINT i = 0; i < NumDescriptorHeaps; i++)
+      DescriptorHeaps[i] = GetResID(ppDescriptorHeaps[i]);
+  }
+
+  m_pSerialiser->Serialise("DescriptorHeaps", DescriptorHeaps);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      std::vector<ID3D12DescriptorHeap *> heaps;
+      heaps.resize(DescriptorHeaps.size());
+      for(size_t i = 0; i < heaps.size(); i++)
+        heaps[i] = Unwrap(GetResourceManager()->GetLiveAs<ID3D12DescriptorHeap>(DescriptorHeaps[i]));
+
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->SetDescriptorHeaps((UINT)heaps.size(), &heaps[0]);
+
+      m_Cmd->m_RenderState.heaps.resize(heaps.size());
+      for(size_t i = 0; i < heaps.size(); i++)
+        m_Cmd->m_RenderState.heaps[i] = GetResourceManager()->GetLiveID(DescriptorHeaps[i]);
+    }
+  }
+  else if(m_State == READING)
+  {
+    std::vector<ID3D12DescriptorHeap *> heaps;
+    heaps.resize(DescriptorHeaps.size());
+    for(size_t i = 0; i < heaps.size(); i++)
+      heaps[i] = Unwrap(GetResourceManager()->GetLiveAs<ID3D12DescriptorHeap>(DescriptorHeaps[i]));
+
+    GetList(CommandList)->SetDescriptorHeaps((UINT)heaps.size(), &heaps[0]);
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeaps,
                                                           ID3D12DescriptorHeap *const *ppDescriptorHeaps)
 {
@@ -848,6 +896,16 @@ void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeap
     heaps[i] = Unwrap(ppDescriptorHeaps[i]);
 
   m_pReal->SetDescriptorHeaps(NumDescriptorHeaps, heaps);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SET_DESC_HEAPS);
+    Serialise_SetDescriptorHeaps(NumDescriptorHeaps, ppDescriptorHeaps);
+
+    m_ListRecord->AddChunk(scope.Get());
+    for(UINT i = 0; i < NumDescriptorHeaps; i++)
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(ppDescriptorHeaps[i]), eFrameRef_Read);
+  }
 
   SAFE_DELETE_ARRAY(heaps);
 }
@@ -906,10 +964,58 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
   m_pReal->SetComputeRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor));
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootDescriptorTable(
+    UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(UINT, idx, RootParameterIndex);
+  SERIALISE_ELEMENT(PortableHandle, Descriptor, ToPortableHandle(BaseDescriptor));
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))
+          ->SetGraphicsRootDescriptorTable(
+              idx, GPUHandleFromPortableHandle(GetResourceManager(), Descriptor));
+
+      WrappedID3D12DescriptorHeap *heap =
+          GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(Descriptor.heap);
+
+      if(m_Cmd->m_RenderState.graphics.sigelems.size() < idx + 1)
+        m_Cmd->m_RenderState.graphics.sigelems.resize(idx + 1);
+
+      m_Cmd->m_RenderState.graphics.sigelems[idx] =
+          D3D12RenderState::SignatureElement(eRootTable, GetResID(heap), (UINT64)Descriptor.index);
+    }
+  }
+  else if(m_State == READING)
+  {
+    GetList(CommandList)
+        ->SetGraphicsRootDescriptorTable(
+            idx, GPUHandleFromPortableHandle(GetResourceManager(), Descriptor));
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
     UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
 {
   m_pReal->SetGraphicsRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor));
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SET_GFX_ROOT_TABLE);
+    Serialise_SetGraphicsRootDescriptorTable(RootParameterIndex, BaseDescriptor);
+
+    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
+                                              eFrameRef_Read);
+  }
 }
 
 void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstant(UINT RootParameterIndex,
@@ -1217,12 +1323,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   {
     if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
     {
-      D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = FromPortableHandle(GetResourceManager(), dsv);
+      D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
 
       D3D12_CPU_DESCRIPTOR_HANDLE *rtHandles = new D3D12_CPU_DESCRIPTOR_HANDLE[numHandles];
 
       for(UINT i = 0; i < numHandles; i++)
-        rtHandles[i] = FromPortableHandle(GetResourceManager(), rts[i]);
+        rtHandles[i] = CPUHandleFromPortableHandle(GetResourceManager(), rts[i]);
 
       Unwrap(m_Cmd->RerecordCmdList(CommandList))
           ->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
@@ -1242,12 +1348,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   }
   else if(m_State == READING)
   {
-    D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = FromPortableHandle(GetResourceManager(), dsv);
+    D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
 
     D3D12_CPU_DESCRIPTOR_HANDLE *rtHandles = new D3D12_CPU_DESCRIPTOR_HANDLE[numHandles];
 
     for(UINT i = 0; i < numHandles; i++)
-      rtHandles[i] = FromPortableHandle(GetResourceManager(), rts[i]);
+      rtHandles[i] = CPUHandleFromPortableHandle(GetResourceManager(), rts[i]);
 
     GetList(CommandList)
         ->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
@@ -1371,7 +1477,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
 
   if(m_State == EXECUTING)
   {
-    RenderTargetView = FromPortableHandle(GetResourceManager(), rtv);
+    RenderTargetView = CPUHandleFromPortableHandle(GetResourceManager(), rtv);
 
     if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
     {
@@ -1381,7 +1487,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
   }
   else if(m_State == READING)
   {
-    RenderTargetView = FromPortableHandle(GetResourceManager(), rtv);
+    RenderTargetView = CPUHandleFromPortableHandle(GetResourceManager(), rtv);
 
     GetList(CommandList)->ClearRenderTargetView(RenderTargetView, Color, num, rects);
 

@@ -185,7 +185,18 @@ PortableHandle ToPortableHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle)
   return PortableHandle(GetResID(desc->samp.heap), desc->samp.idx);
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE FromPortableHandle(D3D12ResourceManager *manager, PortableHandle handle)
+PortableHandle ToPortableHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle)
+{
+  if(handle.ptr == 0)
+    return PortableHandle(0);
+
+  D3D12Descriptor *desc = GetWrapped(handle);
+
+  return PortableHandle(GetResID(desc->samp.heap), desc->samp.idx);
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE CPUHandleFromPortableHandle(D3D12ResourceManager *manager,
+                                                        PortableHandle handle)
 {
   if(handle.heap == ResourceId())
     return D3D12_CPU_DESCRIPTOR_HANDLE();
@@ -196,6 +207,20 @@ D3D12_CPU_DESCRIPTOR_HANDLE FromPortableHandle(D3D12ResourceManager *manager, Po
     return heap->GetCPU(handle.index);
 
   return D3D12_CPU_DESCRIPTOR_HANDLE();
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE GPUHandleFromPortableHandle(D3D12ResourceManager *manager,
+                                                        PortableHandle handle)
+{
+  if(handle.heap == ResourceId())
+    return D3D12_GPU_DESCRIPTOR_HANDLE();
+
+  WrappedID3D12DescriptorHeap *heap = manager->GetLiveAs<WrappedID3D12DescriptorHeap>(handle.heap);
+
+  if(heap)
+    return heap->GetGPU(handle.index);
+
+  return D3D12_GPU_DESCRIPTOR_HANDLE();
 }
 
 // debugging logging for barriers
