@@ -1316,7 +1316,7 @@ void WrappedID3D12Device::GPUSync()
 
 ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
 {
-  ID3D12GraphicsCommandList *ret;
+  ID3D12GraphicsCommandList *ret = NULL;
 
   if(!m_InternalCmds.freecmds.empty())
   {
@@ -1330,12 +1330,15 @@ ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
     HRESULT hr = CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc, NULL,
                                    __uuidof(ID3D12GraphicsCommandList), (void **)&ret);
 
+    RDCASSERTEQUAL(hr, S_OK);
+
+    if(ret == NULL)
+      return NULL;
+
     if(m_State < WRITING)
     {
       GetResourceManager()->AddLiveResource(GetResID(ret), ret);
     }
-
-    RDCASSERTEQUAL(hr, S_OK);
   }
 
   m_InternalCmds.pendingcmds.push_back(ret);
