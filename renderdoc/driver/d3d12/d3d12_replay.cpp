@@ -108,7 +108,8 @@ FetchBuffer D3D12Replay::GetBuffer(ResourceId id)
 
   ret.length = desc.Width;
 
-  // TODO maybe improve these through usage tracking? 'implicit' creation flags
+  D3D12NOTIMP("Buffer creation flags from implicit usage");
+
   ret.creationFlags = eBufferCreate_VB | eBufferCreate_IB | eBufferCreate_CB | eBufferCreate_Indirect;
   if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
     ret.creationFlags |= eBufferCreate_UAV;
@@ -155,7 +156,7 @@ FetchTexture D3D12Replay::GetTexture(ResourceId id)
     case 3: ret.resType = eResType_Texture3D; break;
   }
 
-  // TODO determine this from usage?
+  D3D12NOTIMP("Texture cubemap-ness from implicit usage");
   ret.cubemap = false;    // eResType_TextureCube, eResType_TextureCubeArray
 
   ret.creationFlags = eTextureCreate_SRV;

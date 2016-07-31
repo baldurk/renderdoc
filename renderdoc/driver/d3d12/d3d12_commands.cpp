@@ -715,7 +715,7 @@ void D3D12CommandData::AddEvent(D3D12ChunkType type, string description)
     memcpy(apievent.callstack.elems, stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
   }
 
-  // TODO have real m_EventMessages
+  D3D12NOTIMP("debug messages");
   vector<DebugMessage> m_EventMessages;
 
   for(size_t i = 0; i < m_EventMessages.size(); i++)
@@ -734,7 +734,8 @@ void D3D12CommandData::AddEvent(D3D12ChunkType type, string description)
     m_RootEvents.push_back(apievent);
     m_Events.push_back(apievent);
 
-    // TODO m_DebugMessages.insert(m_DebugMessages.end(), m_EventMessages.begin(),
+    D3D12NOTIMP("debug messages");
+    // m_DebugMessages.insert(m_DebugMessages.end(), m_EventMessages.begin(),
     // m_EventMessages.end());
   }
 
@@ -761,8 +762,6 @@ void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 
   if(m_LastCmdListID != ResourceId())
   {
-    // TODO fill from m_BakedCmdListInfo[m_LastCmdListID].state
-
     draw.topology = MakePrimitiveTopology(m_BakedCmdListInfo[m_LastCmdListID].state.topo);
     draw.indexByteWidth = m_BakedCmdListInfo[m_LastCmdListID].state.idxWidth;
 
@@ -793,7 +792,7 @@ void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 
     node.resourceUsage.swap(m_BakedCmdListInfo[m_LastCmdListID].resourceUsage);
 
-    // TODO add usage
+    D3D12NOTIMP("event usage");
 
     node.children.insert(node.children.begin(), draw.children.elems,
                          draw.children.elems + draw.children.count);

@@ -1420,7 +1420,8 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
   pixelData.FlipY = cfg.FlipY ? 1 : 0;
 
-  // TODO GetShaderDetails(cfg.texid, cfg.typeHint, cfg.rawoutput ? true : false);
+  D3D12NOTIMP("proper texture display");
+  // GetShaderDetails(cfg.texid, cfg.typeHint, cfg.rawoutput ? true : false);
   WrappedID3D12Resource *resource = WrappedID3D12Resource::m_List[cfg.texid];
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
