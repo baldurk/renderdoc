@@ -89,6 +89,8 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
   // command recording/replay data shared between queues and lists
   D3D12CommandData *m_Cmd;
 
+  WrappedID3D12RootSignature *m_CurRootSig;
+
   ResourceId m_ResourceID;
   D3D12ResourceRecord *m_ListRecord;
 
@@ -107,7 +109,9 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
   const char *GetChunkName(uint32_t idx) { return m_pDevice->GetChunkName(idx); }
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList);
+  static const int AllocPoolCount = 8192;
+  static const int AllocMaxByteSize = 2 * 1024 * 1024;
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList, AllocPoolCount, AllocMaxByteSize);
 
   WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real, WrappedID3D12Device *device,
                                    Serialiser *serialiser, LogState &state);

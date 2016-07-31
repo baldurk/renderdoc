@@ -71,6 +71,8 @@ public:
   D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
+  static D3D12RootSignature GetRootSig(const void *data, size_t dataSize);
+
 private:
   struct OutputWindow
   {
@@ -168,7 +170,7 @@ private:
 
   string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
                        const char *profile, ID3DBlob **srcblob);
-  ID3DBlob *MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &rootSig);
+  static ID3DBlob *MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &rootSig);
 
   int m_width, m_height;
 

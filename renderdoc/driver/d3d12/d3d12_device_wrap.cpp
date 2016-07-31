@@ -544,6 +544,8 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
+      wrapped->sig = D3D12DebugManager::GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
+
       record->AddChunk(scope.Get());
     }
     else

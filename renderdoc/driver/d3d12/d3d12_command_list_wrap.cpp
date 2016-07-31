@@ -955,6 +955,9 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootSignature(ID3D12RootSignat
 
     m_ListRecord->AddChunk(scope.Get());
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pRootSignature), eFrameRef_Read);
+
+    // store this so we can look up how many descriptors a given slot references, etc
+    m_CurRootSig = GetWrapped(pRootSignature);
   }
 }
 

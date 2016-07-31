@@ -120,6 +120,37 @@ public:
   }
 };
 
+struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER
+{
+  void MakeFrom(const D3D12_ROOT_PARAMETER &param)
+  {
+    ParameterType = param.ParameterType;
+    ShaderVisibility = param.ShaderVisibility;
+
+    // copy the POD ones first
+    Descriptor = param.Descriptor;
+    Constants = param.Constants;
+
+    if(ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+    {
+      ranges.resize(param.DescriptorTable.NumDescriptorRanges);
+      for(size_t i = 0; i < ranges.size(); i++)
+        ranges[i] = param.DescriptorTable.pDescriptorRanges[i];
+
+      DescriptorTable.NumDescriptorRanges = (UINT)ranges.size();
+      DescriptorTable.pDescriptorRanges = &ranges[0];
+    }
+  }
+
+  vector<D3D12_DESCRIPTOR_RANGE> ranges;
+};
+
+struct D3D12RootSignature
+{
+  vector<D3D12RootSignatureParameter> params;
+  vector<D3D12_STATIC_SAMPLER_DESC> samplers;
+};
+
 #define IMPLEMENT_IUNKNOWN_WITH_REFCOUNTER_CUSTOMQUERY                \
   ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::AddRef(); } \
   ULONG STDMETHODCALLTYPE Release() { return RefCounter12::Release(); }

@@ -712,6 +712,46 @@ string D3D12DebugManager::GetShaderBlob(const char *source, const char *entry,
   return errors;
 }
 
+D3D12RootSignature D3D12DebugManager::GetRootSig(const void *data, size_t dataSize)
+{
+  PFN_D3D12_CREATE_ROOT_SIGNATURE_DESERIALIZER deserializeRootSig =
+      (PFN_D3D12_CREATE_ROOT_SIGNATURE_DESERIALIZER)GetProcAddress(
+          GetModuleHandleA("d3d12.dll"), "D3D12CreateRootSignatureDeserializer");
+
+  if(deserializeRootSig == NULL)
+  {
+    RDCERR("Can't get D3D12CreateRootSignatureDeserializer");
+    return D3D12RootSignature();
+  }
+
+  ID3D12RootSignatureDeserializer *deser = NULL;
+  HRESULT hr =
+      deserializeRootSig(data, dataSize, __uuidof(ID3D12RootSignatureDeserializer), (void **)&deser);
+
+  if(FAILED(hr))
+  {
+    SAFE_RELEASE(deser);
+    RDCERR("Can't get deserializer");
+    return D3D12RootSignature();
+  }
+
+  D3D12RootSignature ret;
+
+  const D3D12_ROOT_SIGNATURE_DESC *desc = deser->GetRootSignatureDesc();
+
+  ret.params.resize(desc->NumParameters);
+
+  for(size_t i = 0; i < ret.params.size(); i++)
+    ret.params[i].MakeFrom(desc->pParameters[i]);
+
+  if(desc->NumStaticSamplers > 0)
+    ret.samplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
+
+  SAFE_RELEASE(deser);
+
+  return ret;
+}
+
 ID3DBlob *D3D12DebugManager::MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &rootSig)
 {
   PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializeRootSig =

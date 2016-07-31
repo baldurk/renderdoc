@@ -505,6 +505,8 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   m_ListRecord = NULL;
   m_Cmd = NULL;
 
+  m_CurRootSig = NULL;
+
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_ListRecord = m_pDevice->GetResourceManager()->AddResourceRecord(m_ResourceID);

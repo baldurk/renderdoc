@@ -582,6 +582,8 @@ class WrappedID3D12RootSignature : public WrappedDeviceChild12<ID3D12RootSignatu
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12RootSignature);
 
+  D3D12RootSignature sig;
+
   enum
   {
     TypeEnum = Resource_RootSignature,
