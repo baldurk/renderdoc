@@ -578,10 +578,19 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
 
 D3D12CommandData::D3D12CommandData()
 {
+  m_CurChunkOffset = 0;
+
   m_RootEventID = 1;
   m_RootDrawcallID = 1;
   m_FirstEventID = 0;
   m_LastEventID = ~0U;
+
+  m_pDevice = NULL;
+  m_pSerialiser = NULL;
+
+  m_DrawcallCallback = NULL;
+
+  m_AddedDrawcall = false;
 
   m_RootDrawcallStack.push_back(&m_ParentDrawcall);
 }
