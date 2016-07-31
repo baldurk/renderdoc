@@ -336,6 +336,45 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
 
       if(capframe)
       {
+        // for each bound descriptor table, mark it referenced as well as all resources currently
+        // bound to it
+        for(auto it = record->bakedCommands->cmdInfo->boundDescs.begin();
+            it != record->bakedCommands->cmdInfo->boundDescs.end(); ++it)
+        {
+          D3D12Descriptor &desc = **it;
+
+          switch(desc.GetType())
+          {
+            case D3D12Descriptor::TypeUndefined:
+            case D3D12Descriptor::TypeSampler:
+              // nothing to do - no resource here
+              break;
+            case D3D12Descriptor::TypeCBV:
+              GetResourceManager()->MarkResourceFrameReferenced(
+                  WrappedID3D12Resource::GetResIDFromAddr(desc.nonsamp.cbv.BufferLocation),
+                  eFrameRef_Read);
+              break;
+            case D3D12Descriptor::TypeSRV:
+              GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc.nonsamp.resource),
+                                                                eFrameRef_Read);
+              break;
+            case D3D12Descriptor::TypeUAV:
+              GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc.nonsamp.resource),
+                                                                eFrameRef_Write);
+              GetResourceManager()->MarkResourceFrameReferenced(
+                  GetResID(desc.nonsamp.uav.counterResource), eFrameRef_Write);
+              break;
+            case D3D12Descriptor::TypeRTV:
+              GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc.nonsamp.resource),
+                                                                eFrameRef_Write);
+              break;
+            case D3D12Descriptor::TypeDSV:
+              GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc.nonsamp.resource),
+                                                                eFrameRef_Write);
+              break;
+          }
+        }
+
         // pull in frame refs from this baked command list
         record->bakedCommands->AddResourceReferences(GetResourceManager());
         record->bakedCommands->AddReferencedIDs(refdIDs);

@@ -1018,6 +1018,38 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
     m_ListRecord->AddChunk(scope.Get());
     m_ListRecord->MarkResourceFrameReferenced(GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
                                               eFrameRef_Read);
+
+    vector<D3D12_DESCRIPTOR_RANGE> &ranges =
+        GetWrapped(m_CurRootSig)->sig.params[RootParameterIndex].ranges;
+
+    D3D12Descriptor *base = GetWrapped(BaseDescriptor);
+
+    UINT prevTableOffset = 0;
+
+    for(size_t i = 0; i < ranges.size(); i++)
+    {
+      D3D12Descriptor *rangeStart = base;
+
+      UINT offset = ranges[i].OffsetInDescriptorsFromTableStart;
+
+      if(ranges[i].OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
+        offset = prevTableOffset;
+
+      rangeStart += offset;
+
+      UINT num = ranges[i].NumDescriptors;
+
+      if(num == UINT_MAX)
+      {
+        // find out how many descriptors are left after rangeStart
+        num = base->samp.heap->GetNumDescriptors() - offset;
+      }
+
+      for(UINT d = 0; d < num; d++)
+        m_ListRecord->cmdInfo->boundDescs.insert(rangeStart + d);
+
+      prevTableOffset = offset + num;
+    }
   }
 }
 

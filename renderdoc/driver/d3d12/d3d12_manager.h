@@ -231,6 +231,11 @@ struct CmdListRecordingInfo
   // a list of all resources dirtied by this command list
   set<ResourceId> dirtied;
 
+  // a list of descriptors that are bound at any point in this command list
+  // used to look up all the frame refs per-descriptor and apply them on queue
+  // submit with latest binding refs.
+  set<D3D12Descriptor *> boundDescs;
+
   // bundles executed
   vector<D3D12ResourceRecord *> bundles;
 };
@@ -253,6 +258,7 @@ struct D3D12ResourceRecord : public ResourceRecord
     SwapChunks(bakedCommands);
     cmdInfo->barriers.swap(bakedCommands->cmdInfo->barriers);
     cmdInfo->dirtied.swap(bakedCommands->cmdInfo->dirtied);
+    cmdInfo->boundDescs.swap(bakedCommands->cmdInfo->boundDescs);
     cmdInfo->bundles.swap(bakedCommands->cmdInfo->bundles);
   }
 

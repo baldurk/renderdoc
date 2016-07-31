@@ -149,11 +149,12 @@ WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *r
   realGPUBase = real->GetGPUDescriptorHandleForHeapStart();
 
   increment = device->GetUnwrappedDescriptorIncrement(desc.Type);
+  numDescriptors = desc.NumDescriptors;
 
-  descriptors = new D3D12Descriptor[desc.NumDescriptors];
+  descriptors = new D3D12Descriptor[numDescriptors];
 
-  RDCEraseMem(descriptors, sizeof(D3D12Descriptor) * desc.NumDescriptors);
-  for(UINT i = 0; i < desc.NumDescriptors; i++)
+  RDCEraseMem(descriptors, sizeof(D3D12Descriptor) * numDescriptors);
+  for(UINT i = 0; i < numDescriptors; i++)
   {
     // only need to set this once, it's aliased between samp and nonsamp
     descriptors[i].samp.heap = this;

@@ -312,6 +312,7 @@ class WrappedID3D12DescriptorHeap : public WrappedDeviceChild12<ID3D12Descriptor
   D3D12_GPU_DESCRIPTOR_HANDLE realGPUBase;
 
   UINT increment;
+  UINT numDescriptors;
 
   D3D12Descriptor *descriptors;
 
@@ -328,6 +329,7 @@ public:
   virtual ~WrappedID3D12DescriptorHeap();
 
   const D3D12Descriptor *GetDescriptors() { return descriptors; }
+  UINT GetNumDescriptors() { return numDescriptors; }
   //////////////////////////////
   // implement ID3D12DescriptorHeap
 
