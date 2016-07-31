@@ -552,26 +552,35 @@ public:
   //////////////////////////////
   // implement ID3D12Resource
 
-  virtual HRESULT STDMETHODCALLTYPE Map(UINT Subresource, const D3D12_RANGE *pReadRange, void **ppData)
-  {
-    return m_pReal->Map(Subresource, pReadRange, ppData);
-  }
-
-  virtual void STDMETHODCALLTYPE Unmap(UINT Subresource, const D3D12_RANGE *pWrittenRange)
-  {
-    return m_pReal->Unmap(Subresource, pWrittenRange);
-  }
-
   virtual D3D12_RESOURCE_DESC STDMETHODCALLTYPE GetDesc() { return m_pReal->GetDesc(); }
   virtual D3D12_GPU_VIRTUAL_ADDRESS STDMETHODCALLTYPE GetGPUVirtualAddress()
   {
     return m_pReal->GetGPUVirtualAddress();
   }
 
+  virtual HRESULT STDMETHODCALLTYPE GetHeapProperties(D3D12_HEAP_PROPERTIES *pHeapProperties,
+                                                      D3D12_HEAP_FLAGS *pHeapFlags)
+  {
+    return m_pReal->GetHeapProperties(pHeapProperties, pHeapFlags);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE Map(UINT Subresource, const D3D12_RANGE *pReadRange, void **ppData)
+  {
+    D3D12NOTIMP("Resource mapping");
+    return m_pReal->Map(Subresource, pReadRange, ppData);
+  }
+
+  virtual void STDMETHODCALLTYPE Unmap(UINT Subresource, const D3D12_RANGE *pWrittenRange)
+  {
+    D3D12NOTIMP("Resource mapping");
+    return m_pReal->Unmap(Subresource, pWrittenRange);
+  }
+
   virtual HRESULT STDMETHODCALLTYPE WriteToSubresource(UINT DstSubresource, const D3D12_BOX *pDstBox,
                                                        const void *pSrcData, UINT SrcRowPitch,
                                                        UINT SrcDepthPitch)
   {
+    D3D12NOTIMP("Resource mapping");
     return m_pReal->WriteToSubresource(DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch);
   }
 
@@ -579,14 +588,9 @@ public:
                                                         UINT DstDepthPitch, UINT SrcSubresource,
                                                         const D3D12_BOX *pSrcBox)
   {
+    D3D12NOTIMP("Resource mapping");
     return m_pReal->ReadFromSubresource(pDstData, DstRowPitch, DstDepthPitch, SrcSubresource,
                                         pSrcBox);
-  }
-
-  virtual HRESULT STDMETHODCALLTYPE GetHeapProperties(D3D12_HEAP_PROPERTIES *pHeapProperties,
-                                                      D3D12_HEAP_FLAGS *pHeapFlags)
-  {
-    return m_pReal->GetHeapProperties(pHeapProperties, pHeapFlags);
   }
 };
 
