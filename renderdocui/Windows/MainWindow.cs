@@ -519,6 +519,15 @@ namespace renderdocui.Windows
                     // file is invalid
                     return false;
                 }
+                catch (Exception)
+                {
+                    MessageBox.Show("Something went seriously wrong trying to load the window layout.\n" +
+                        "Trying to recover now, but you might have to delete the layout file in %APPDATA%/renderdoc.\n",
+                        "Error loading window layout",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                    return false;
+                }
                 return true;
             }
             

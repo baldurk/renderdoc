@@ -608,7 +608,7 @@ namespace WeifenLuo.WinFormsUI.Docking
                 for (int i = 0; i < contents.Length; i++)
                 {
                     IDockContent content = deserializeContent(contents[i].PersistString);
-                    if (content == null)
+                    if (content == null || dockPanel.Contents.IndexOf(content) >= 0)
                         content = new DummyContent();
                     content.DockHandler.DockPanel = dockPanel;
                     content.DockHandler.AutoHidePortion = contents[i].AutoHidePortion;
