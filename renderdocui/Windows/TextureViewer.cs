@@ -613,7 +613,15 @@ namespace renderdocui.Windows
                     strm.Flush();
                     strm.Position = 0;
 
-                    dockPanel.LoadFromXml(strm, new DeserializeDockContent(GetContentFromPersistString));
+                    try
+                    {
+                        dockPanel.LoadFromXml(strm, new DeserializeDockContent(GetContentFromPersistString));
+                    }
+                    catch (System.Exception)
+                    {
+                        // on error, go back to default layout
+                        UI_SetupDocks();
+                    }
                 }
 
                 onloadLayout = "";
