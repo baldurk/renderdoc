@@ -242,6 +242,8 @@ FILE *fopen(const char *filename, const char *mode);
 size_t fread(void *buf, size_t elementSize, size_t count, FILE *f);
 size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f);
 
+std::string getline(FILE *f);
+
 uint64_t ftell64(FILE *f);
 void fseek64(FILE *f, uint64_t offset, int origin);
 
