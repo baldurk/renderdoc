@@ -77,11 +77,11 @@ void handle_cmd(android_app *app, int32_t cmd)
       __android_log_print(ANDROID_LOG_INFO, LOGCAT_TAG,
                           "APP_CMD_INIT_WINDOW: android_state->window: %p", android_state->window);
 
-      char *argv[] = {
+      const char *argv[] = {
           "renderdoccmd", "/sdcard/capture.rdc",
       };
       int argc = sizeof(argv) / sizeof(argv[0]);
-      renderdoccmd(argc, argv);
+      renderdoccmd(argc, (char **)argv);
       break;
     }
     case APP_CMD_TERM_WINDOW:
