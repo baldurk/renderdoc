@@ -106,6 +106,18 @@ INT_PTR CALLBACK CrashHandlerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 
       CheckDlgButton(hDlg, IDC_SENDDUMP, BST_CHECKED);
       CheckDlgButton(hDlg, IDC_SENDLOG, BST_CHECKED);
+
+      {
+        RECT r;
+        GetClientRect(hDlg, &r);
+
+        int xPos = (GetSystemMetrics(SM_CXSCREEN) - r.right) / 2;
+        int yPos = (GetSystemMetrics(SM_CYSCREEN) - r.bottom) / 2;
+
+        SetWindowPos(hDlg, HWND_TOPMOST, xPos, yPos, 0, 0, SWP_NOSIZE);
+      }
+
+      return (INT_PTR)TRUE;
     }
 
     case WM_SHOWWINDOW:
@@ -117,7 +129,7 @@ INT_PTR CALLBACK CrashHandlerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
         int xPos = (GetSystemMetrics(SM_CXSCREEN) - r.right) / 2;
         int yPos = (GetSystemMetrics(SM_CYSCREEN) - r.bottom) / 2;
 
-        SetWindowPos(hDlg, NULL, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+        SetWindowPos(hDlg, HWND_NOTOPMOST, xPos, yPos, 0, 0, SWP_NOSIZE);
       }
 
       return (INT_PTR)TRUE;
