@@ -77,9 +77,66 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
   if(sock == NULL)
     return;
 
-  Serialiser ser("", Serialiser::WRITING, false);
-
   bool newlyReady = true;
+
+  std::vector<std::pair<uint32_t, uint32_t> > listenRanges;
+
+  FILE *f = FileIO::fopen(FileIO::GetAppFolderFilename("replayserver.conf").c_str(), "r");
+
+  while(f && !FileIO::feof(f))
+  {
+    string line = FileIO::getline(f);
+
+    size_t nonws = line.find_first_not_of("\t ");
+
+    // skip blank lines
+    if(nonws == string::npos)
+      continue;
+
+    // skip comments
+    if(line[nonws] == '#')
+      continue;
+
+    uint32_t ip = 0, mask = 0;
+
+    // CIDR notation
+    bool found = Network::ParseIPRangeCIDR(line.c_str() + nonws, ip, mask);
+
+    if(found)
+    {
+      listenRanges.push_back(std::make_pair(ip, mask));
+      continue;
+    }
+
+    RDCLOG("Malformed line '%s'. Expect CIDR notation: aaa.bbb.ccc.ddd/nn", line.c_str());
+  }
+
+  if(f)
+    FileIO::fclose(f);
+
+  if(listenRanges.empty())
+  {
+    RDCLOG("No whitelist IP ranges configured - using default private IP ranges.");
+    RDCLOG(
+        "Create a config file replayserver.conf in ~/.renderdoc or %%APPDATA%%/renderdoc to narrow "
+        "this down or accept connections from more ranges.");
+
+    listenRanges.push_back(std::make_pair(Network::MakeIP(10, 0, 0, 0), 0xff000000));
+    listenRanges.push_back(std::make_pair(Network::MakeIP(172, 16, 0, 0), 0xfff00000));
+    listenRanges.push_back(std::make_pair(Network::MakeIP(192, 168, 0, 0), 0xffff0000));
+  }
+
+  RDCLOG("Allowing connections from:");
+
+  for(size_t i = 0; i < listenRanges.size(); i++)
+  {
+    uint32_t ip = listenRanges[i].first;
+    uint32_t mask = listenRanges[i].second;
+
+    RDCLOG("%u.%u.%u.%u / %u.%u.%u.%u", Network::GetIPOctet(ip, 0), Network::GetIPOctet(ip, 1),
+           Network::GetIPOctet(ip, 2), Network::GetIPOctet(ip, 3), Network::GetIPOctet(mask, 0),
+           Network::GetIPOctet(mask, 1), Network::GetIPOctet(mask, 2), Network::GetIPOctet(mask, 3));
+  }
 
   while(!killReplay)
   {
@@ -106,9 +163,32 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
       continue;
     }
 
-    newlyReady = true;
+    uint32_t ip = client->GetRemoteIP();
 
-    RDCLOG("Connection received.");
+    RDCLOG("Connection received from %u.%u.%u.%u.", Network::GetIPOctet(ip, 0),
+           Network::GetIPOctet(ip, 1), Network::GetIPOctet(ip, 2), Network::GetIPOctet(ip, 3));
+
+    bool valid = false;
+
+    for(size_t i = 0; i < listenRanges.size(); i++)
+    {
+      if(Network::MatchIPMask(ip, listenRanges[i].first, listenRanges[i].second))
+      {
+        valid = true;
+        break;
+      }
+    }
+
+    if(!valid)
+    {
+      RDCLOG("Doesn't match any listen range, closing connection.");
+      SAFE_DELETE(client);
+      continue;
+    }
+
+    Serialiser ser("", Serialiser::WRITING, false);
+
+    newlyReady = true;
 
     map<RDCDriver, string> drivers = RenderDoc::Inst().GetRemoteDrivers();
 
