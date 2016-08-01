@@ -154,6 +154,8 @@ public:
 
   Socket *AcceptClient(bool wait);
 
+  uint32_t GetRemoteIP() const;
+
   bool IsRecvDataWaiting();
 
   bool SendDataBlocking(const void *buf, uint32_t length);
@@ -165,6 +167,31 @@ private:
 
 Socket *CreateServerSocket(const char *addr, uint16_t port, int queuesize);
 Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS);
+
+// ip is packed in HOST byte order
+inline uint32_t GetIPOctet(uint32_t ip, uint32_t octet)
+{
+  uint32_t shift = (3 - octet) * 8;
+  uint32_t mask = 0xff << shift;
+
+  return (ip & mask) >> shift;
+}
+
+// returns ip packed in HOST byte order (ie. little endian)
+inline uint32_t MakeIP(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+{
+  return ((a & 0xff) << 24) | ((b & 0xff) << 16) | ((c & 0xff) << 8) | ((d & 0xff) << 0);
+}
+
+// checks if `ip` matches the given `range` and subnet `mask`
+inline bool MatchIPMask(uint32_t ip, uint32_t range, uint32_t mask)
+{
+  return (ip & mask) == (range & mask);
+}
+
+// parses the null-terminated string at 'str' for CIDR notation IP range
+// aaa.bbb.ccc.ddd/nn
+bool ParseIPRangeCIDR(const char *str, uint32_t &ip, uint32_t &mask);
 
 void Init();
 void Shutdown();

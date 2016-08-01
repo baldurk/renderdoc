@@ -69,6 +69,16 @@ bool Socket::Connected() const
   return (int)socket != -1;
 }
 
+uint32_t Socket::GetRemoteIP() const
+{
+  sockaddr_in addr = {};
+  socklen_t len = sizeof(addr);
+
+  getpeername((int)socket, (sockaddr *)&addr, &len);
+
+  return ntohl(addr.sin_addr.s_addr);
+}
+
 Socket *Socket::AcceptClient(bool wait)
 {
   do
@@ -334,5 +344,26 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 
   RDCWARN("Failed to connect to %S:%d", host, port);
   return NULL;
+}
+
+bool ParseIPRangeCIDR(const char *str, uint32_t &ip, uint32_t &mask)
+{
+  uint32_t a = 0, b = 0, c = 0, d = 0, num = 0;
+
+  int ret = sscanf(str, "%u.%u.%u.%u/%u", &a, &b, &c, &d, &num);
+
+  ip = MakeIP(a, b, c, d);
+
+  if(num == 0)
+  {
+    mask = 0;
+  }
+  else
+  {
+    num = 32 - num;
+    mask = ((~0U) >> num) << num;
+  }
+
+  return ret == 5;
 }
 };
