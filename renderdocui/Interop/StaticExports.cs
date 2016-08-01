@@ -60,7 +60,7 @@ namespace renderdoc
         private static extern void RENDERDOC_GetDefaultCaptureOptions(IntPtr outopts);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RENDERDOC_SpawnReplayHost(IntPtr host, UInt32 port, ref bool killReplay);
+        private static extern void RENDERDOC_BecomeRemoteServer(IntPtr host, UInt32 port, ref bool killReplay);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_TriggerExceptionHandler(IntPtr exceptionPtrs, bool crashed);
@@ -222,11 +222,11 @@ namespace renderdoc
             return new RemoteRenderer(rendPtr);
         }
 
-        public static void SpawnReplayHost(string host, uint port, ref bool killReplay)
+        public static void BecomeRemoteServer(string host, uint port, ref bool killReplay)
         {
             IntPtr host_mem = CustomMarshal.MakeUTF8String(host);
 
-            RENDERDOC_SpawnReplayHost(host_mem, port, ref killReplay);
+            RENDERDOC_BecomeRemoteServer(host_mem, port, ref killReplay);
 
             CustomMarshal.Free(host_mem);
         }

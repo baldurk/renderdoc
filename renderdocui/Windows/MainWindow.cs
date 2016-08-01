@@ -1498,7 +1498,7 @@ namespace renderdocui.Windows
 
             Thread thread = Helpers.NewThread(new ThreadStart(() =>
             {
-                StaticExports.SpawnReplayHost("", 0, ref killReplay);
+                StaticExports.BecomeRemoteServer("", 0, ref killReplay);
             }));
 
             thread.Start();

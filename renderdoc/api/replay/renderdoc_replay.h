@@ -575,9 +575,9 @@ RENDERDOC_EnumerateRemoteConnections(const char *host, uint32_t nextIdent);
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultReplayHostPort();
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
 RENDERDOC_CreateRemoteReplayConnection(const char *host, uint32_t port, RemoteRenderer **rend);
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SpawnReplayHost(const char *listenhost,
-                                                                     uint32_t port,
-                                                                     volatile bool32 *killReplay);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const char *listenhost,
+                                                                        uint32_t port,
+                                                                        volatile bool32 *killReplay);
 
 //////////////////////////////////////////////////////////////////////////
 // Injection/execution capture functions.

@@ -70,7 +70,7 @@ static void ProgressTicker(void *d)
   }
 }
 
-void RenderDoc::BecomeReplayHost(const char *listenhost, uint16_t port, volatile bool32 &killReplay)
+void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volatile bool32 &killReplay)
 {
   Network::Socket *sock = Network::CreateServerSocket(listenhost, port, 1);
 

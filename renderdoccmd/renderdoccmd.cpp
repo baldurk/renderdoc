@@ -386,7 +386,7 @@ struct InjectCommand : public Command
   }
 };
 
-struct ReplayHostCommand : public Command
+struct RemoteServerCommand : public Command
 {
   virtual void AddOptions(cmdline::parser &parser)
   {
@@ -411,7 +411,7 @@ struct ReplayHostCommand : public Command
 
     usingKillSignal = true;
 
-    RENDERDOC_SpawnReplayHost(host.empty() ? NULL : host.c_str(), port, &killSignal);
+    RENDERDOC_BecomeRemoteServer(host.empty() ? NULL : host.c_str(), port, &killSignal);
 
     std::cerr << std::endl << "Cleaning up from replay hosting." << std::endl;
 
@@ -539,7 +539,7 @@ int renderdoccmd(std::vector<std::string> &argv)
     add_command("thumb", new ThumbCommand());
     add_command("capture", new CaptureCommand());
     add_command("inject", new InjectCommand());
-    add_command("replayhost", new ReplayHostCommand());
+    add_command("remoteserver", new RemoteServerCommand());
     add_command("replay", new ReplayCommand());
     add_command("cap32for64", new Cap32For64Command());
 
