@@ -2468,7 +2468,16 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   GetResourceManager()->ClearReferencedResources();
 
   GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
-  GetResourceManager()->MarkResourceFrameReferenced(m_FakeVAOID, eFrameRef_Write);
+
+  GLuint prevVAO = 0;
+  m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
+
+  m_Real.glBindVertexArray(m_FakeVAO);
+
+  GetResourceManager()->MarkVAOReferenced(VertexArrayRes(GetCtx(), m_FakeVAO), eFrameRef_Write);
+
+  m_Real.glBindVertexArray(prevVAO);
+
   GetResourceManager()->PrepareInitialContents();
 
   FreeCaptureData();
