@@ -704,8 +704,8 @@ public:
   void SetDrawcallCB(DrawcallCallback *cb) { m_DrawcallCallback = cb; }
   VkResult FilterDeviceExtensionProperties(VkPhysicalDevice physDev, uint32_t *pPropertyCount,
                                            VkExtensionProperties *pProperties);
-  VkResult GetProvidedExtensionProperties(uint32_t *pPropertyCount,
-                                          VkExtensionProperties *pProperties);
+  static VkResult GetProvidedExtensionProperties(uint32_t *pPropertyCount,
+                                                 VkExtensionProperties *pProperties);
 
   // Device initialization
 

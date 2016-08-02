@@ -233,13 +233,13 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExt
     VkPhysicalDevice physicalDevice, const char *pLayerName, uint32_t *pPropertyCount,
     VkExtensionProperties *pProperties)
 {
-  // if pLayerName is NULL we're calling down through the layer chain to the ICD.
+  // if pLayerName is NULL or not ours we're calling down through the layer chain to the ICD.
   // This is our chance to filter out any reported extensions that we don't support
-  if(pLayerName == NULL)
+  if(physicalDevice != NULL && (pLayerName == NULL || strcmp(pLayerName, RENDERDOC_LAYER_NAME)))
     return CoreDisp(physicalDevice)
         ->FilterDeviceExtensionProperties(physicalDevice, pPropertyCount, pProperties);
 
-  return CoreDisp(physicalDevice)->GetProvidedExtensionProperties(pPropertyCount, pProperties);
+  return WrappedVulkan::GetProvidedExtensionProperties(pPropertyCount, pProperties);
 }
 
 #undef HookInit
