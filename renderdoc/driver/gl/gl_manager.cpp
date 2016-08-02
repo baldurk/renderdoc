@@ -1172,9 +1172,15 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         // the lower levels - this could happen if e.g. a texture is
         // init'd with glTexImage(level = 0), then after we stop tracking
         // it glGenerateMipmap is called
-        {
-          GLuint live = GetLiveResource(Id).name;
 
+        GLuint live = GetLiveResource(Id).name;
+
+        // this is only relevant for non-immutable textures though
+        GLint immut = 0;
+        gl.glGetTextureParameterivEXT(live, textype, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
+
+        if(immut == 0)
+        {
           GLsizei w = (GLsizei)width;
           GLsizei h = (GLsizei)height;
           GLsizei d = (GLsizei)depth;
