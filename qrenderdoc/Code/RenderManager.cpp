@@ -90,7 +90,7 @@ void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
 void RenderManager::run()
 {
   IReplayRenderer *renderer = NULL;
-  IRemoteRenderer *remote = NULL;
+  IRemoteServer *remote = NULL;
 
   if(m_ProxyRenderer < 0)
   {
@@ -98,7 +98,7 @@ void RenderManager::run()
   }
   else
   {
-    m_CreateStatus = RENDERDOC_CreateRemoteReplayConnection(m_ReplayHost.toUtf8(), 0, &remote);
+    m_CreateStatus = RENDERDOC_CreateRemoteServerConnection(m_ReplayHost.toUtf8(), 0, &remote);
 
     if(remote == NULL)
     {

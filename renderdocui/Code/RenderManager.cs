@@ -161,7 +161,7 @@ namespace renderdocui.Code
         ////////////////////////////////////////////
         // Internals
 
-        private void CreateReplayRenderer(ref ReplayRenderer renderer, ref RemoteRenderer remote)
+        private void CreateReplayRenderer(ref ReplayRenderer renderer, ref RemoteServer remote)
         {
             if (m_ProxyRenderer < 0)
             {
@@ -195,7 +195,7 @@ namespace renderdocui.Code
             try
             {
                 ReplayRenderer renderer = null;
-                RemoteRenderer remote = null;
+                RemoteServer remote = null;
                 CreateReplayRenderer(ref renderer, ref remote);
                 if(renderer != null)
                 {

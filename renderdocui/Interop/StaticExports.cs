@@ -202,7 +202,7 @@ namespace renderdoc
             CustomMarshal.Free(host_mem);
         }
 
-        public static RemoteRenderer CreateRemoteReplayConnection(string host, uint port)
+        public static RemoteServer CreateRemoteReplayConnection(string host, uint port)
         {
             IntPtr rendPtr = IntPtr.Zero;
 
@@ -219,7 +219,7 @@ namespace renderdoc
                 throw e;
             }
 
-            return new RemoteRenderer(rendPtr);
+            return new RemoteServer(rendPtr);
         }
 
         public static void BecomeRemoteServer(string host, uint port, ref bool killReplay)

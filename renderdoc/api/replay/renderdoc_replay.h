@@ -474,7 +474,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_ReceiveMessage(TargetCo
 // for C++ expose the interface as a virtual interface
 #ifdef __cplusplus
 
-struct IRemoteRenderer
+struct IRemoteServer
 {
   virtual void Shutdown() = 0;
 
@@ -488,27 +488,27 @@ struct IRemoteRenderer
 #endif
 
 #ifdef RENDERDOC_EXPORTS
-struct RemoteRenderer;
+struct RemoteServer;
 #else
 #ifdef __cplusplus
-typedef IRemoteRenderer RemoteRenderer;
+typedef IRemoteServer RemoteServer;
 #else
-struct RemoteRenderer
+struct RemoteServer
 {
 };
 #endif
 #endif
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteRenderer_Shutdown(RemoteRenderer *remote);
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_Shutdown(RemoteServer *remote);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-RemoteRenderer_LocalProxies(RemoteRenderer *remote, rdctype::array<rdctype::str> *out);
+RemoteServer_LocalProxies(RemoteServer *remote, rdctype::array<rdctype::str> *out);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-RemoteRenderer_RemoteSupportedReplays(RemoteRenderer *remote, rdctype::array<rdctype::str> *out);
+RemoteServer_RemoteSupportedReplays(RemoteServer *remote, rdctype::array<rdctype::str> *out);
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
-RemoteRenderer_CreateProxyRenderer(RemoteRenderer *remote, uint32_t proxyid, const char *logfile,
-                                   float *progress, ReplayRenderer **rend);
+RemoteServer_CreateProxyRenderer(RemoteServer *remote, uint32_t proxyid, const char *logfile,
+                                 float *progress, ReplayRenderer **rend);
 
 //////////////////////////////////////////////////////////////////////////
 // camera
@@ -578,7 +578,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultRemoteServerPort();
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
-RENDERDOC_CreateRemoteReplayConnection(const char *host, uint32_t port, RemoteRenderer **rend);
+RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, RemoteServer **rend);
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const char *listenhost,
                                                                         uint32_t port,
                                                                         volatile bool32 *killReplay);

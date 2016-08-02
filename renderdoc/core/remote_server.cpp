@@ -345,10 +345,10 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
   SAFE_DELETE(sock);
 }
 
-struct RemoteRenderer : public IRemoteRenderer
+struct RemoteServer : public IRemoteServer
 {
 public:
-  RemoteRenderer(Network::Socket *sock) : m_Socket(sock)
+  RemoteServer(Network::Socket *sock) : m_Socket(sock)
   {
     map<RDCDriver, string> m = RenderDoc::Inst().GetReplayDrivers();
 
@@ -386,7 +386,7 @@ public:
     for(auto it = m.begin(); it != m.end(); ++it)
       m_RemoteDrivers.push_back(*it);
   }
-  virtual ~RemoteRenderer() { SAFE_DELETE(m_Socket); }
+  virtual ~RemoteServer() { SAFE_DELETE(m_Socket); }
   void Shutdown() { delete this; }
   bool Connected() { return m_Socket != NULL && m_Socket->Connected(); }
   bool LocalProxies(rdctype::array<rdctype::str> *out)
@@ -518,32 +518,32 @@ private:
   vector<pair<RDCDriver, string> > m_RemoteDrivers;
 };
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteRenderer_Shutdown(RemoteRenderer *remote)
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_Shutdown(RemoteServer *remote)
 {
   remote->Shutdown();
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-RemoteRenderer_LocalProxies(RemoteRenderer *remote, rdctype::array<rdctype::str> *out)
+RemoteServer_LocalProxies(RemoteServer *remote, rdctype::array<rdctype::str> *out)
 {
   return remote->LocalProxies(out);
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-RemoteRenderer_RemoteSupportedReplays(RemoteRenderer *remote, rdctype::array<rdctype::str> *out)
+RemoteServer_RemoteSupportedReplays(RemoteServer *remote, rdctype::array<rdctype::str> *out)
 {
   return remote->RemoteSupportedReplays(out);
 }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
-RemoteRenderer_CreateProxyRenderer(RemoteRenderer *remote, uint32_t proxyid, const char *logfile,
+RemoteServer_CreateProxyRenderer(RemoteServer *remote, uint32_t proxyid, const char *logfile,
                                    float *progress, ReplayRenderer **rend)
 {
   return remote->CreateProxyRenderer(proxyid, logfile, progress, rend);
 }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
-RENDERDOC_CreateRemoteReplayConnection(const char *host, uint32_t port, RemoteRenderer **rend)
+RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, RemoteServer **rend)
 {
   if(rend == NULL)
     return eReplayCreate_InternalError;
@@ -565,7 +565,7 @@ RENDERDOC_CreateRemoteReplayConnection(const char *host, uint32_t port, RemoteRe
       return eReplayCreate_NetworkIOFailed;
   }
 
-  *rend = new RemoteRenderer(sock);
+  *rend = new RemoteServer(sock);
 
   return eReplayCreate_Success;
 }

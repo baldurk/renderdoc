@@ -842,28 +842,28 @@ namespace renderdoc
         }
     };
 
-    public class RemoteRenderer
+    public class RemoteServer
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteRenderer_Shutdown(IntPtr real);
+        private static extern void RemoteServer_Shutdown(IntPtr real);
         
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool RemoteRenderer_LocalProxies(IntPtr real, IntPtr outlist);
+        private static extern bool RemoteServer_LocalProxies(IntPtr real, IntPtr outlist);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool RemoteRenderer_RemoteSupportedReplays(IntPtr real, IntPtr outlist);
+        private static extern bool RemoteServer_RemoteSupportedReplays(IntPtr real, IntPtr outlist);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern ReplayCreateStatus RemoteRenderer_CreateProxyRenderer(IntPtr real, UInt32 proxyid, IntPtr logfile, ref float progress, ref IntPtr rendPtr);
+        private static extern ReplayCreateStatus RemoteServer_CreateProxyRenderer(IntPtr real, UInt32 proxyid, IntPtr logfile, ref float progress, ref IntPtr rendPtr);
 
         private IntPtr m_Real = IntPtr.Zero;
 
-        public RemoteRenderer(IntPtr real) { m_Real = real; }
+        public RemoteServer(IntPtr real) { m_Real = real; }
 
         public void Shutdown()
         {
             if (m_Real != IntPtr.Zero)
             {
-                RemoteRenderer_Shutdown(m_Real);
+                RemoteServer_Shutdown(m_Real);
                 m_Real = IntPtr.Zero;
             }
         }
@@ -871,7 +871,7 @@ namespace renderdoc
         public string[] LocalProxies()
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
-            bool success = RemoteRenderer_LocalProxies(m_Real, mem);
+            bool success = RemoteServer_LocalProxies(m_Real, mem);
 
             string[] ret = null;
 
@@ -886,7 +886,7 @@ namespace renderdoc
         public string[] RemoteSupportedReplays()
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
-            bool success = RemoteRenderer_RemoteSupportedReplays(m_Real, mem);
+            bool success = RemoteServer_RemoteSupportedReplays(m_Real, mem);
 
             string[] ret = null;
 
@@ -904,7 +904,7 @@ namespace renderdoc
 
             IntPtr logfile_mem = CustomMarshal.MakeUTF8String(logfile);
 
-            ReplayCreateStatus ret = RemoteRenderer_CreateProxyRenderer(m_Real, (UInt32)proxyid, logfile_mem, ref progress, ref rendPtr);
+            ReplayCreateStatus ret = RemoteServer_CreateProxyRenderer(m_Real, (UInt32)proxyid, logfile_mem, ref progress, ref rendPtr);
 
             CustomMarshal.Free(logfile_mem);
 
