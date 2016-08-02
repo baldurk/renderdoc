@@ -202,7 +202,7 @@ void WrappedOpenGL::glBindSamplers(GLuint first, GLsizei count, const GLuint *sa
 {
   m_Real.glBindSamplers(first, count, samplers);
 
-  if(m_State >= WRITING)
+  if(m_State == WRITING_CAPFRAME)
   {
     SCOPED_SERIALISE_CONTEXT(BIND_SAMPLERS);
     Serialise_glBindSamplers(first, count, samplers);
