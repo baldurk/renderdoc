@@ -308,8 +308,19 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 
       while(client)
       {
-        if(!proxy->Tick() || killReplay)
+        int packet;
+        Serialiser *data = NULL;
+
+        if(!RecvPacket(client, packet, &data))
         {
+          SAFE_DELETE(data);
+          SAFE_DELETE(client);
+          break;
+        }
+
+        if(!proxy->Tick(packet, data) || killReplay)
+        {
+          SAFE_DELETE(data);
           SAFE_DELETE(client);
         }
       }

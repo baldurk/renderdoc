@@ -341,7 +341,7 @@ public:
     return ResourceId();
   }
 
-  bool Tick();
+  bool Tick(int type, Serialiser *incomingPacket);
 
   vector<ResourceId> GetBuffers();
   FetchBuffer GetBuffer(ResourceId id);

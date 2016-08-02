@@ -1745,7 +1745,7 @@ void ProxySerialiser::EnsureBufCached(ResourceId bufid)
   }
 }
 
-bool ProxySerialiser::Tick()
+bool ProxySerialiser::Tick(int type, Serialiser *incomingPacket)
 {
   if(!m_RemoteServer)
     return true;
@@ -1753,10 +1753,7 @@ bool ProxySerialiser::Tick()
   if(!m_Socket)
     return false;
 
-  ReplayProxyPacket type;
-
-  if(!RecvPacket(m_Socket, type, &m_ToReplaySerialiser))
-    return false;
+  m_ToReplaySerialiser = incomingPacket;
 
   m_FromReplaySerialiser->Rewind();
 
@@ -1842,10 +1839,8 @@ bool ProxySerialiser::Tick()
       DebugThread(0, dummy1, dummy2);
       break;
     }
-    default: RDCERR("Unexpected command"); break;
+    default: RDCERR("Unexpected command"); return false;
   }
-
-  SAFE_DELETE(m_ToReplaySerialiser);
 
   if(!SendPacket(m_Socket, type, *m_FromReplaySerialiser))
     return false;
