@@ -24,6 +24,7 @@
 
 #include <dlfcn.h>
 #include <errno.h>
+#include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -66,6 +67,45 @@ static map<string, string> EnvStringToEnvMap(const char **envstring)
   }
 
   return ret;
+}
+
+static string expandHome(const string &in)
+{
+  string path = trim(in);
+
+  // if it's ~/... then replace with $HOME and return
+  if(path[0] == '~' && path[1] == '/')
+    return string(getenv("HOME")) + path.substr(1);
+
+  // if it's ~user/... then use getpwname
+  if(path[0] == '~')
+  {
+    size_t slash = path.find('/');
+
+    string username;
+
+    if(slash != string::npos)
+    {
+      RDCASSERT(slash > 1);
+      username = path.substr(1, slash - 1);
+    }
+    else
+    {
+      username = path.substr(1);
+    }
+
+    passwd *pwdata = getpwnam(username.c_str());
+
+    if(pwdata)
+    {
+      if(slash != string::npos)
+        return string(pwdata->pw_dir) + path.substr(slash);
+
+      return string(pwdata->pw_dir);
+    }
+  }
+
+  return path;
 }
 
 void Process::RegisterEnvironmentModification(Process::EnvironmentModification modif)
@@ -138,8 +178,16 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   if(!app)
     return (pid_t)0;
 
+  string appName = app;
+  string workDir = (workingDir && workingDir[0]) ? workingDir : dirname(appName);
+
+  // do very limited expansion. wordexp(3) does too much for our needs, so we just expand ~
+  // since that could be quite a common case.
+  appName = expandHome(appName);
+  workDir = expandHome(workDir);
+
   // it is safe to use app directly as execve never modifies argv
-  char *emptyargv[] = {(char *)app, NULL};
+  char *emptyargv[] = {(char *)appName.c_str(), NULL};
   char **argv = emptyargv;
 
   const char *c = cmdLine;
@@ -166,9 +214,9 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
     argc = 0;    // current argument we're fetching
 
     // argv[0] is the application name, by convention
-    size_t len = strlen(app) + 1;
+    size_t len = appName.length() + 1;
     argv[argc] = new char[len];
-    strcpy(argv[argc], app);
+    strcpy(argv[argc], appName.c_str());
 
     argc++;
 
@@ -257,18 +305,10 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   pid_t childPid = fork();
   if(childPid == 0)
   {
-    if(workingDir)
-    {
-      chdir(workingDir);
-    }
-    else
-    {
-      string exedir = app;
-      chdir(dirname(exedir).c_str());
-    }
+    chdir(workDir.c_str());
 
-    execve(app, argv, envp);
-    RDCERR("Failed to execute %s: %s", app, strerror(errno));
+    execve(appName.c_str(), argv, envp);
+    RDCERR("Failed to execute %s: %s", appName.c_str(), strerror(errno));
     exit(0);
   }
 

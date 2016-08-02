@@ -74,3 +74,16 @@ wstring strupper(const wstring &str)
   transform(newstr.begin(), newstr.end(), newstr.begin(), towupper);
   return newstr;
 }
+
+std::string trim(const std::string &str)
+{
+  size_t start = str.find_first_not_of("\t \n");
+  size_t end = str.find_last_not_of("\t \n");
+
+  // no non-whitespace characters, return the empty string
+  if(start == std::string::npos)
+    return "";
+
+  // searching from the start found something, so searching from the end must have too.
+  return str.substr(start, end - start + 1);
+}

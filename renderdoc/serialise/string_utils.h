@@ -37,6 +37,8 @@ std::wstring strlower(const std::wstring &str);
 std::string strupper(const std::string &str);
 std::wstring strupper(const std::wstring &str);
 
+std::string trim(const std::string &str);
+
 uint32_t strhash(const char *str, uint32_t existingHash = 5381);
 
 template <class strType>
