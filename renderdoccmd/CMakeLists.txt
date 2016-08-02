@@ -25,3 +25,5 @@ else()
 endif()
 target_include_directories(renderdoccmd ${includes})
 target_link_libraries(renderdoccmd ${libraries})
+
+install (TARGETS renderdoccmd DESTINATION bin)

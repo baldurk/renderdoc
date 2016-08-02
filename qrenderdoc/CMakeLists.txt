@@ -8,3 +8,5 @@ add_custom_command(OUTPUT QRenderDoc
 	COMMAND qmake "CONFIG+=debug" "DESTDIR=${output_dir}" ${CMAKE_CURRENT_SOURCE_DIR}
 	COMMAND MAKEFLAGS= make --no-print-directory)
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc)
+
+install (PROGRAMS ${output_dir}/qrenderdoc DESTINATION bin)
