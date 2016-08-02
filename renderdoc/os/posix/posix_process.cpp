@@ -172,8 +172,7 @@ void Process::ApplyEnvironmentModification()
   modifications.clear();
 }
 
-static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine,
-                        char *const *envp)
+static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char **envp)
 {
   if(!app)
     return (pid_t)0;
@@ -307,7 +306,10 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   {
     chdir(workDir.c_str());
 
-    execve(appName.c_str(), argv, envp);
+    // in child process, so we can change environment
+    environ = envp;
+    execvp(appName.c_str(), argv);
+
     RDCERR("Failed to execute %s: %s", appName.c_str(), strerror(errno));
     exit(0);
   }
