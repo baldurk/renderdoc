@@ -201,10 +201,10 @@ struct TextureSave
   int jpegQuality;
 };
 
-struct RemoteMessage
+struct TargetControlMessage
 {
-  RemoteMessage() {}
-  RemoteMessageType Type;
+  TargetControlMessage() {}
+  TargetControlMessageType Type;
 
   struct NewCaptureData
   {

@@ -30,9 +30,9 @@ using System.Collections.Generic;
 namespace renderdoc
 {
     [StructLayout(LayoutKind.Sequential)]
-    public class RemoteMessage
+    public class TargetControlMessage
     {
-        public RemoteMessageType Type;
+        public TargetControlMessageType Type;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct NewCaptureData
@@ -919,29 +919,29 @@ namespace renderdoc
         }
     };
 
-    public class RemoteAccess
+    public class TargetControl
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_Shutdown(IntPtr real);
+        private static extern void TargetControl_Shutdown(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr RemoteAccess_GetTarget(IntPtr real);
+        private static extern IntPtr TargetControl_GetTarget(IntPtr real);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr RemoteAccess_GetAPI(IntPtr real);
+        private static extern IntPtr TargetControl_GetAPI(IntPtr real);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt32 RemoteAccess_GetPID(IntPtr real);
+        private static extern UInt32 TargetControl_GetPID(IntPtr real);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr RemoteAccess_GetBusyClient(IntPtr real);
+        private static extern IntPtr TargetControl_GetBusyClient(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_TriggerCapture(IntPtr real, UInt32 numFrames);
+        private static extern void TargetControl_TriggerCapture(IntPtr real, UInt32 numFrames);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_QueueCapture(IntPtr real, UInt32 frameNumber);
+        private static extern void TargetControl_QueueCapture(IntPtr real, UInt32 frameNumber);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_CopyCapture(IntPtr real, UInt32 remoteID, IntPtr localpath);
+        private static extern void TargetControl_CopyCapture(IntPtr real, UInt32 remoteID, IntPtr localpath);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_ReceiveMessage(IntPtr real, IntPtr outmsg);
+        private static extern void TargetControl_ReceiveMessage(IntPtr real, IntPtr outmsg);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern UInt32 RENDERDOC_EnumerateRemoteConnections(IntPtr host, UInt32[] idents);
@@ -949,7 +949,7 @@ namespace renderdoc
         private IntPtr m_Real = IntPtr.Zero;
         private bool m_Connected;
 
-        public RemoteAccess(IntPtr real)
+        public TargetControl(IntPtr real)
         {
             m_Real = real;
 
@@ -963,10 +963,10 @@ namespace renderdoc
             else
             {
                 m_Connected = true;
-                Target = CustomMarshal.PtrToStringUTF8(RemoteAccess_GetTarget(m_Real));
-                API = CustomMarshal.PtrToStringUTF8(RemoteAccess_GetAPI(m_Real));
-                PID = RemoteAccess_GetPID(m_Real);
-                BusyClient = CustomMarshal.PtrToStringUTF8(RemoteAccess_GetBusyClient(m_Real));
+                Target = CustomMarshal.PtrToStringUTF8(TargetControl_GetTarget(m_Real));
+                API = CustomMarshal.PtrToStringUTF8(TargetControl_GetAPI(m_Real));
+                PID = TargetControl_GetPID(m_Real);
+                BusyClient = CustomMarshal.PtrToStringUTF8(TargetControl_GetBusyClient(m_Real));
             }
 
             CaptureExists = false;
@@ -994,25 +994,25 @@ namespace renderdoc
         public void Shutdown()
         {
             m_Connected = false;
-            if (m_Real != IntPtr.Zero) RemoteAccess_Shutdown(m_Real);
+            if (m_Real != IntPtr.Zero) TargetControl_Shutdown(m_Real);
             m_Real = IntPtr.Zero;
         }
 
         public void TriggerCapture(UInt32 numFrames)
         {
-            RemoteAccess_TriggerCapture(m_Real, numFrames);
+            TargetControl_TriggerCapture(m_Real, numFrames);
         }
 
         public void QueueCapture(UInt32 frameNum)
         {
-            RemoteAccess_QueueCapture(m_Real, frameNum);
+            TargetControl_QueueCapture(m_Real, frameNum);
         }
 
         public void CopyCapture(UInt32 id, string localpath)
         {
             IntPtr localpath_mem = CustomMarshal.MakeUTF8String(localpath);
 
-            RemoteAccess_CopyCapture(m_Real, id, localpath_mem);
+            TargetControl_CopyCapture(m_Real, id, localpath_mem);
 
             CustomMarshal.Free(localpath_mem);
         }
@@ -1021,42 +1021,42 @@ namespace renderdoc
         {
             if (m_Real != IntPtr.Zero)
             {
-                RemoteMessage msg = null;
+                TargetControlMessage msg = null;
 
                 {
-                    IntPtr mem = CustomMarshal.Alloc(typeof(RemoteMessage));
+                    IntPtr mem = CustomMarshal.Alloc(typeof(TargetControlMessage));
 
-                    RemoteAccess_ReceiveMessage(m_Real, mem);
+                    TargetControl_ReceiveMessage(m_Real, mem);
 
                     if (mem != IntPtr.Zero)
-                        msg = (RemoteMessage)CustomMarshal.PtrToStructure(mem, typeof(RemoteMessage), true);
+                        msg = (TargetControlMessage)CustomMarshal.PtrToStructure(mem, typeof(TargetControlMessage), true);
 
                     CustomMarshal.Free(mem);
                 }
 
-                if (msg.Type == RemoteMessageType.Disconnected)
+                if (msg.Type == TargetControlMessageType.Disconnected)
                 {
                     m_Connected = false;
-                    RemoteAccess_Shutdown(m_Real);
+                    TargetControl_Shutdown(m_Real);
                     m_Real = IntPtr.Zero;
                 }
-                else if (msg.Type == RemoteMessageType.NewCapture)
+                else if (msg.Type == TargetControlMessageType.NewCapture)
                 {
                     CaptureFile = msg.NewCapture;
                     CaptureExists = true;
                 }
-                else if (msg.Type == RemoteMessageType.CaptureCopied)
+                else if (msg.Type == TargetControlMessageType.CaptureCopied)
                 {
                     CaptureFile.ID = msg.NewCapture.ID;
                     CaptureFile.localpath = msg.NewCapture.localpath;
                     CaptureCopied = true;
                 }
-                else if (msg.Type == RemoteMessageType.RegisterAPI)
+                else if (msg.Type == TargetControlMessageType.RegisterAPI)
                 {
                     API = msg.RegisterAPI.APIName;
                     InfoUpdated = true;
                 }
-                else if (msg.Type == RemoteMessageType.NewChild)
+                else if (msg.Type == TargetControlMessageType.NewChild)
                 {
                     NewChild = msg.NewChild;
                     ChildAdded = true;
@@ -1074,8 +1074,8 @@ namespace renderdoc
         public bool CaptureCopied;
         public bool InfoUpdated;
 
-        public RemoteMessage.NewCaptureData CaptureFile = new RemoteMessage.NewCaptureData();
+        public TargetControlMessage.NewCaptureData CaptureFile = new TargetControlMessage.NewCaptureData();
 
-        public RemoteMessage.NewChildData NewChild = new RemoteMessage.NewChildData();
+        public TargetControlMessage.NewChildData NewChild = new TargetControlMessage.NewChildData();
     };
 };

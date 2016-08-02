@@ -43,7 +43,7 @@ enum PacketType
   ePacket_NewChild,
 };
 
-void RenderDoc::RemoteAccessClientThread(void *s)
+void RenderDoc::TargetControlClientThread(void *s)
 {
   Threading::KeepModuleAlive();
 
@@ -85,7 +85,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 
   while(client)
   {
-    if(RenderDoc::Inst().m_RemoteClientThreadShutdown || (client && !client->Connected()))
+    if(RenderDoc::Inst().m_ControlClientThreadShutdown || (client && !client->Connected()))
     {
       SAFE_DELETE(client);
       break;
@@ -230,7 +230,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
   Threading::ReleaseModuleExitThread();
 }
 
-void RenderDoc::RemoteAccessServerThread(void *s)
+void RenderDoc::TargetControlServerThread(void *s)
 {
   Threading::KeepModuleAlive();
 
@@ -240,9 +240,9 @@ void RenderDoc::RemoteAccessServerThread(void *s)
 
   Threading::ThreadHandle clientThread = 0;
 
-  RenderDoc::Inst().m_RemoteClientThreadShutdown = false;
+  RenderDoc::Inst().m_ControlClientThreadShutdown = false;
 
-  while(!RenderDoc::Inst().m_RemoteServerThreadShutdown)
+  while(!RenderDoc::Inst().m_TargetControlThreadShutdown)
   {
     Network::Socket *client = sock->AcceptClient(false);
 
@@ -305,11 +305,11 @@ void RenderDoc::RemoteAccessServerThread(void *s)
     if(!existingClient.empty() && kick)
     {
       // forcibly close communication thread which will kill the connection
-      RenderDoc::Inst().m_RemoteClientThreadShutdown = true;
+      RenderDoc::Inst().m_ControlClientThreadShutdown = true;
       Threading::JoinThread(clientThread);
       Threading::CloseThread(clientThread);
       clientThread = 0;
-      RenderDoc::Inst().m_RemoteClientThreadShutdown = false;
+      RenderDoc::Inst().m_ControlClientThreadShutdown = false;
       existingClient = "";
     }
 
@@ -322,7 +322,7 @@ void RenderDoc::RemoteAccessServerThread(void *s)
     // if we've claimed client status, spawn a thread to communicate
     if(existingClient.empty() || kick)
     {
-      clientThread = Threading::CreateThread(RemoteAccessClientThread, client);
+      clientThread = Threading::CreateThread(TargetControlClientThread, client);
       continue;
     }
     else
@@ -348,7 +348,7 @@ void RenderDoc::RemoteAccessServerThread(void *s)
     }
   }
 
-  RenderDoc::Inst().m_RemoteClientThreadShutdown = true;
+  RenderDoc::Inst().m_ControlClientThreadShutdown = true;
   // don't join, just close the thread, as we can't wait while in the middle of module unloading
   Threading::CloseThread(clientThread);
   clientThread = 0;
@@ -358,10 +358,10 @@ void RenderDoc::RemoteAccessServerThread(void *s)
   Threading::ReleaseModuleExitThread();
 }
 
-struct RemoteAccess : public IRemoteAccess
+struct TargetControl : public ITargetControl
 {
 public:
-  RemoteAccess(Network::Socket *sock, string clientName, bool forceConnection, bool localhost)
+  TargetControl(Network::Socket *sock, string clientName, bool forceConnection, bool localhost)
       : m_Socket(sock), m_Local(localhost)
   {
     PacketType type;
@@ -412,7 +412,7 @@ public:
     SAFE_DELETE(ser);
   }
 
-  virtual ~RemoteAccess() {}
+  virtual ~TargetControl() {}
   bool Connected() { return m_Socket != NULL && m_Socket->Connected(); }
   void Shutdown()
   {
@@ -465,11 +465,11 @@ public:
     m_CaptureCopies[remoteID] = localpath;
   }
 
-  void ReceiveMessage(RemoteMessage *msg)
+  void ReceiveMessage(TargetControlMessage *msg)
   {
     if(m_Socket == NULL)
     {
-      msg->Type = eRemoteMsg_Disconnected;
+      msg->Type = eTargetControlMsg_Disconnected;
       return;
     }
 
@@ -478,12 +478,12 @@ public:
       if(!m_Socket->Connected())
       {
         SAFE_DELETE(m_Socket);
-        msg->Type = eRemoteMsg_Disconnected;
+        msg->Type = eTargetControlMsg_Disconnected;
       }
       else
       {
         Threading::Sleep(2);
-        msg->Type = eRemoteMsg_Noop;
+        msg->Type = eTargetControlMsg_Noop;
       }
 
       return;
@@ -498,7 +498,7 @@ public:
     {
       SAFE_DELETE(ser);
 
-      msg->Type = eRemoteMsg_Disconnected;
+      msg->Type = eTargetControlMsg_Disconnected;
       return;
     }
     else
@@ -507,7 +507,7 @@ public:
       {
         SAFE_DELETE(ser);
 
-        msg->Type = eRemoteMsg_Noop;
+        msg->Type = eTargetControlMsg_Noop;
         return;
       }
       else if(type == ePacket_Busy)
@@ -520,13 +520,13 @@ public:
         SAFE_DELETE(m_Socket);
 
         RDCLOG("Got busy signal: '%s", existingClient.c_str());
-        msg->Type = eRemoteMsg_Busy;
+        msg->Type = eTargetControlMsg_Busy;
         msg->Busy.ClientName = existingClient;
         return;
       }
       else if(type == ePacket_CopyCapture)
       {
-        msg->Type = eRemoteMsg_CaptureCopied;
+        msg->Type = eTargetControlMsg_CaptureCopied;
 
         ser->Serialise("", msg->NewCapture.ID);
 
@@ -539,7 +539,7 @@ public:
           SAFE_DELETE(ser);
           SAFE_DELETE(m_Socket);
 
-          msg->Type = eRemoteMsg_Disconnected;
+          msg->Type = eTargetControlMsg_Disconnected;
           return;
         }
 
@@ -551,7 +551,7 @@ public:
       }
       else if(type == ePacket_NewChild)
       {
-        msg->Type = eRemoteMsg_NewChild;
+        msg->Type = eTargetControlMsg_NewChild;
 
         ser->Serialise("", msg->NewChild.PID);
         ser->Serialise("", msg->NewChild.ident);
@@ -564,7 +564,7 @@ public:
       }
       else if(type == ePacket_NewCapture)
       {
-        msg->Type = eRemoteMsg_NewCapture;
+        msg->Type = eTargetControlMsg_NewCapture;
 
         ser->Serialise("", msg->NewCapture.ID);
         ser->Serialise("", msg->NewCapture.timestamp);
@@ -594,7 +594,7 @@ public:
       }
       else if(type == ePacket_RegisterAPI)
       {
-        msg->Type = eRemoteMsg_RegisterAPI;
+        msg->Type = eTargetControlMsg_RegisterAPI;
 
         ser->Serialise("", m_API);
         msg->RegisterAPI.APIName = m_API;
@@ -609,7 +609,7 @@ public:
 
     SAFE_DELETE(ser);
 
-    msg->Type = eRemoteMsg_Noop;
+    msg->Type = eTargetControlMsg_Noop;
   }
 
 private:
@@ -627,52 +627,52 @@ private:
   }
 };
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_Shutdown(RemoteAccess *access)
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_Shutdown(TargetControl *control)
 {
-  access->Shutdown();
+  control->Shutdown();
 }
 
-extern "C" RENDERDOC_API const char *RENDERDOC_CC RemoteAccess_GetTarget(RemoteAccess *access)
+extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetTarget(TargetControl *control)
 {
-  return access->GetTarget();
+  return control->GetTarget();
 }
-extern "C" RENDERDOC_API const char *RENDERDOC_CC RemoteAccess_GetAPI(RemoteAccess *access)
+extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetAPI(TargetControl *control)
 {
-  return access->GetAPI();
+  return control->GetAPI();
 }
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RemoteAccess_GetPID(RemoteAccess *access)
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC TargetControl_GetPID(TargetControl *control)
 {
-  return access->GetPID();
+  return control->GetPID();
 }
-extern "C" RENDERDOC_API const char *RENDERDOC_CC RemoteAccess_GetBusyClient(RemoteAccess *access)
+extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetBusyClient(TargetControl *control)
 {
-  return access->GetBusyClient();
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_TriggerCapture(RemoteAccess *access,
-                                                                       uint32_t numFrames)
-{
-  access->TriggerCapture(numFrames);
-}
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_QueueCapture(RemoteAccess *access,
-                                                                     uint32_t frameNumber)
-{
-  access->QueueCapture(frameNumber);
-}
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_CopyCapture(RemoteAccess *access,
-                                                                    uint32_t remoteID,
-                                                                    const char *localpath)
-{
-  access->CopyCapture(remoteID, localpath);
+  return control->GetBusyClient();
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_ReceiveMessage(RemoteAccess *access,
-                                                                       RemoteMessage *msg)
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_TriggerCapture(TargetControl *control,
+                                                                        uint32_t numFrames)
 {
-  access->ReceiveMessage(msg);
+  control->TriggerCapture(numFrames);
+}
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_QueueCapture(TargetControl *control,
+                                                                      uint32_t frameNumber)
+{
+  control->QueueCapture(frameNumber);
+}
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_CopyCapture(TargetControl *control,
+                                                                     uint32_t remoteID,
+                                                                     const char *localpath)
+{
+  control->CopyCapture(remoteID, localpath);
 }
 
-extern "C" RENDERDOC_API RemoteAccess *RENDERDOC_CC RENDERDOC_CreateRemoteAccessConnection(
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_ReceiveMessage(TargetControl *control,
+                                                                        TargetControlMessage *msg)
+{
+  control->ReceiveMessage(msg);
+}
+
+extern "C" RENDERDOC_API TargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(
     const char *host, uint32_t ident, const char *clientName, bool32 forceConnection)
 {
   string s = "localhost";
@@ -686,7 +686,7 @@ extern "C" RENDERDOC_API RemoteAccess *RENDERDOC_CC RENDERDOC_CreateRemoteAccess
   if(sock == NULL)
     return NULL;
 
-  RemoteAccess *remote = new RemoteAccess(sock, clientName, forceConnection != 0, localhost);
+  TargetControl *remote = new TargetControl(sock, clientName, forceConnection != 0, localhost);
 
   if(remote->Connected())
     return remote;

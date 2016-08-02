@@ -619,13 +619,13 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         }
         else
         {
-          if(RenderDoc::Inst().IsRemoteAccessConnected())
+          if(RenderDoc::Inst().IsTargetControlConnected())
           {
-            overlayText += "Connected by " + RenderDoc::Inst().GetRemoteAccessUsername() + ".";
+            overlayText += "Connected by " + RenderDoc::Inst().GetTargetControlUsername() + ".";
           }
           else
           {
-            uint32_t port = RenderDoc::Inst().GetRemoteAccessIdent();
+            uint32_t port = RenderDoc::Inst().GetTargetControlIdent();
             if(port)
               overlayText +=
                   StringFormat::Fmt("Listening for remote access connection on port %i.", port);

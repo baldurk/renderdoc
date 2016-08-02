@@ -497,14 +497,14 @@ enum ReplayCreateStatus
   eReplayCreate_APIHardwareUnsupported,
 };
 
-enum RemoteMessageType
+enum TargetControlMessageType
 {
-  eRemoteMsg_Unknown = 0,
-  eRemoteMsg_Disconnected,
-  eRemoteMsg_Busy,
-  eRemoteMsg_Noop,
-  eRemoteMsg_NewCapture,
-  eRemoteMsg_CaptureCopied,
-  eRemoteMsg_RegisterAPI,
-  eRemoteMsg_NewChild,
+  eTargetControlMsg_Unknown = 0,
+  eTargetControlMsg_Disconnected,
+  eTargetControlMsg_Busy,
+  eTargetControlMsg_Noop,
+  eTargetControlMsg_NewCapture,
+  eTargetControlMsg_CaptureCopied,
+  eTargetControlMsg_RegisterAPI,
+  eTargetControlMsg_NewChild,
 };

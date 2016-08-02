@@ -121,10 +121,10 @@ namespace renderdocui.Windows.Dialogs
 
             string username = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
 
-            StaticExports.EnumerateRemoteConnections(hostname, (UInt32 i) => {
+            StaticExports.EnumerateRemoteTargets(hostname, (UInt32 i) => {
                 try
                 {
-                    var conn = StaticExports.CreateRemoteAccessConnection(hostname, i, username, false);
+                    var conn = StaticExports.CreateTargetControl(hostname, i, username, false);
 
                     if (node.OwnerView.Visible)
                     {

@@ -2251,8 +2251,8 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
           }
           else
           {
-            if(RenderDoc::Inst().IsRemoteAccessConnected())
-              overlayText += "Connected by " + RenderDoc::Inst().GetRemoteAccessUsername() + ".";
+            if(RenderDoc::Inst().IsTargetControlConnected())
+              overlayText += "Connected by " + RenderDoc::Inst().GetTargetControlUsername() + ".";
             else
               overlayText += "No remote access connection.";
           }

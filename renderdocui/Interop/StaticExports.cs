@@ -48,10 +48,10 @@ namespace renderdoc
         private static extern UInt32 RENDERDOC_InjectIntoProcess(UInt32 pid, IntPtr logfile, CaptureOptions opts, bool waitForExit);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr RENDERDOC_CreateRemoteAccessConnection(IntPtr host, UInt32 ident, IntPtr clientName, bool forceConnection);
+        private static extern IntPtr RENDERDOC_CreateTargetControl(IntPtr host, UInt32 ident, IntPtr clientName, bool forceConnection);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt32 RENDERDOC_EnumerateRemoteConnections(IntPtr host, UInt32 nextIdent);
+        private static extern UInt32 RENDERDOC_EnumerateRemoteTargets(IntPtr host, UInt32 nextIdent);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern ReplayCreateStatus RENDERDOC_CreateRemoteReplayConnection(IntPtr host, UInt32 port, ref IntPtr outrend);
@@ -158,12 +158,12 @@ namespace renderdoc
             return ret;
         }
 
-        public static RemoteAccess CreateRemoteAccessConnection(string host, UInt32 ident, string clientName, bool forceConnection)
+        public static TargetControl CreateTargetControl(string host, UInt32 ident, string clientName, bool forceConnection)
         {
             IntPtr host_mem = CustomMarshal.MakeUTF8String(host);
             IntPtr clientName_mem = CustomMarshal.MakeUTF8String(clientName);
 
-            IntPtr rendPtr = RENDERDOC_CreateRemoteAccessConnection(host_mem, ident, clientName_mem, forceConnection);
+            IntPtr rendPtr = RENDERDOC_CreateTargetControl(host_mem, ident, clientName_mem, forceConnection);
 
             CustomMarshal.Free(host_mem);
             CustomMarshal.Free(clientName_mem);
@@ -175,12 +175,12 @@ namespace renderdoc
                 throw e;
             }
 
-            return new RemoteAccess(rendPtr);
+            return new TargetControl(rendPtr);
         }
 
         public delegate void RemoteConnectionFound(UInt32 ident);
 
-        public static void EnumerateRemoteConnections(string host, RemoteConnectionFound callback)
+        public static void EnumerateRemoteTargets(string host, RemoteConnectionFound callback)
         {
             IntPtr host_mem = CustomMarshal.MakeUTF8String(host);
 
@@ -191,7 +191,7 @@ namespace renderdoc
                 // just a sanity check to make sure we don't hit some unexpected case
                 UInt32 prevIdent = nextIdent;
 
-                nextIdent = RENDERDOC_EnumerateRemoteConnections(host_mem, nextIdent);
+                nextIdent = RENDERDOC_EnumerateRemoteTargets(host_mem, nextIdent);
 
                 if (nextIdent == UInt32.MaxValue || prevIdent >= nextIdent)
                     break;

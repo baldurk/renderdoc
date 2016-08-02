@@ -113,12 +113,12 @@ static void TriggerMultiFrameCapture(uint32_t numFrames)
   RenderDoc::Inst().TriggerCapture(numFrames);
 }
 
-static uint32_t IsRemoteAccessConnected()
+static uint32_t IsTargetControlConnected()
 {
-  return RenderDoc::Inst().IsRemoteAccessConnected();
+  return RenderDoc::Inst().IsTargetControlConnected();
 }
 
-static uint32_t LaunchReplayUI(uint32_t connectRemoteAccess, const char *cmdline)
+static uint32_t LaunchReplayUI(uint32_t connectTargetControl, const char *cmdline)
 {
   string replayapp = FileIO::GetReplayAppFilename();
 
@@ -126,9 +126,9 @@ static uint32_t LaunchReplayUI(uint32_t connectRemoteAccess, const char *cmdline
     return 0;
 
   string cmd = cmdline ? cmdline : "";
-  if(connectRemoteAccess)
-    cmd +=
-        StringFormat::Fmt(" --remoteaccess localhost:%u", RenderDoc::Inst().GetRemoteAccessIdent());
+  if(connectTargetControl)
+    cmd += StringFormat::Fmt(" --targetcontrol localhost:%u",
+                             RenderDoc::Inst().GetTargetControlIdent());
 
   return Process::LaunchProcess(replayapp.c_str(), "", cmd.c_str());
 }
@@ -165,22 +165,22 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val);
 uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt);
 float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt);
 
-void RENDERDOC_CC GetAPIVersion_1_1_0(int *major, int *minor, int *patch)
+void RENDERDOC_CC GetAPIVersion_1_1_1(int *major, int *minor, int *patch)
 {
   if(major)
     *major = 1;
   if(minor)
     *minor = 1;
   if(patch)
-    *patch = 0;
+    *patch = 1;
 }
 
-RENDERDOC_API_1_1_0 api_1_1_0;
-void Init_1_1_0()
+RENDERDOC_API_1_1_1 api_1_1_1;
+void Init_1_1_1()
 {
-  RENDERDOC_API_1_1_0 &api = api_1_1_0;
+  RENDERDOC_API_1_1_1 &api = api_1_1_1;
 
-  api.GetAPIVersion = &GetAPIVersion_1_1_0;
+  api.GetAPIVersion = &GetAPIVersion_1_1_1;
 
   api.SetCaptureOptionU32 = &SetCaptureOptionU32;
   api.SetCaptureOptionF32 = &SetCaptureOptionF32;
@@ -205,7 +205,7 @@ void Init_1_1_0()
 
   api.TriggerCapture = &TriggerCapture;
 
-  api.IsRemoteAccessConnected = &IsRemoteAccessConnected;
+  api.IsTargetControlConnected = &IsTargetControlConnected;
   api.LaunchReplayUI = &LaunchReplayUI;
 
   api.SetActiveWindow = &SetActiveWindow;
@@ -238,10 +238,11 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version ver
     ret = 1;                                                       \
   }
 
-  API_VERSION_HANDLE(1_0_0, 1_1_0);
-  API_VERSION_HANDLE(1_0_1, 1_1_0);
-  API_VERSION_HANDLE(1_0_2, 1_1_0);
-  API_VERSION_HANDLE(1_1_0, 1_1_0);
+  API_VERSION_HANDLE(1_0_0, 1_1_1);
+  API_VERSION_HANDLE(1_0_1, 1_1_1);
+  API_VERSION_HANDLE(1_0_2, 1_1_1);
+  API_VERSION_HANDLE(1_1_0, 1_1_1);
+  API_VERSION_HANDLE(1_1_1, 1_1_1);
 
 #undef API_VERSION_HANDLE
 

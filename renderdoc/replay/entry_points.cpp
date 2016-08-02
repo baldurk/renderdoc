@@ -424,8 +424,8 @@ extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz)
   return rdctype::array<char>::allocate((size_t)sz);
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnections(const char *host,
-                                                                                    uint32_t nextIdent)
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *host,
+                                                                                uint32_t nextIdent)
 {
   string s = "localhost";
   if(host != NULL && host[0] != '\0')
@@ -435,11 +435,11 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnecti
   // otherwise we're called with the last successful ident, so increment
   // before continuing to enumerate.
   if(nextIdent == 0)
-    nextIdent = RenderDoc_FirstCaptureNetworkPort;
+    nextIdent = RenderDoc_FirstTargetControlPort;
   else
     nextIdent++;
 
-  for(; nextIdent <= RenderDoc_LastCaptureNetworkPort; nextIdent++)
+  for(; nextIdent <= RenderDoc_LastTargetControlPort; nextIdent++)
   {
     Network::Socket *sock = Network::CreateClientSocket(s.c_str(), (uint16_t)nextIdent, 250);
 
@@ -454,9 +454,9 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnecti
   return ~0U;
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultReplayHostPort()
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultRemoteServerPort()
 {
-  return RenderDoc_ReplayNetworkPort;
+  return RenderDoc_RemoteServerPort;
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const char *listenhost,
@@ -472,7 +472,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const ch
     listenhost = "0.0.0.0";
 
   if(port == 0)
-    port = RENDERDOC_GetDefaultReplayHostPort();
+    port = RENDERDOC_GetDefaultRemoteServerPort();
 
   RenderDoc::Inst().BecomeRemoteServer(listenhost, (uint16_t)port, *killReplay);
 }

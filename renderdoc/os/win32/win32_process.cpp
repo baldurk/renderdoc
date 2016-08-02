@@ -133,10 +133,10 @@ void Process::ApplyEnvironmentModification()
 }
 
 // helpers for various shims and dlls etc, not part of the public API
-extern "C" __declspec(dllexport) void __cdecl RENDERDOC_GetRemoteAccessIdent(uint32_t *ident)
+extern "C" __declspec(dllexport) void __cdecl RENDERDOC_GetTargetControlIdent(uint32_t *ident)
 {
   if(ident)
-    *ident = RenderDoc::Inst().GetRemoteAccessIdent();
+    *ident = RenderDoc::Inst().GetTargetControlIdent();
 }
 
 extern "C" __declspec(dllexport) void __cdecl RENDERDOC_SetCaptureOptions(CaptureOptions *opts)
@@ -521,7 +521,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
 
   uintptr_t loc = FindRemoteDLL(pid, L"renderdoc.dll");
 
-  uint32_t remoteident = 0;
+  uint32_t controlident = 0;
 
   if(loc == 0)
   {
@@ -538,8 +538,8 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
       InjectFunctionCall(hProcess, loc, "RENDERDOC_SetCaptureOptions", (CaptureOptions *)opts,
                          sizeof(CaptureOptions));
 
-    InjectFunctionCall(hProcess, loc, "RENDERDOC_GetRemoteAccessIdent", &remoteident,
-                       sizeof(remoteident));
+    InjectFunctionCall(hProcess, loc, "RENDERDOC_GetTargetControlIdent", &controlident,
+                       sizeof(controlident));
   }
 
   if(waitForExit)
@@ -547,7 +547,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
 
   CloseHandle(hProcess);
 
-  return remoteident;
+  return controlident;
 }
 
 uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine)

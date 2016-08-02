@@ -108,7 +108,7 @@ int GetIdentPort(pid_t childPid)
           }
 
           const int port = std::stoi(portStr);
-          if(port >= RenderDoc_FirstCaptureNetworkPort && port <= RenderDoc_LastCaptureNetworkPort)
+          if(port >= RenderDoc_FirstTargetControlPort && port <= RenderDoc_LastTargetControlPort)
           {
             return port;
           }

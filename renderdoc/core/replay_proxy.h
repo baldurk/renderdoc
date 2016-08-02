@@ -98,7 +98,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 {
 public:
   ProxySerialiser(Network::Socket *sock, IReplayDriver *proxy)
-      : m_Socket(sock), m_Proxy(proxy), m_Remote(NULL), m_ReplayHost(false)
+      : m_Socket(sock), m_Proxy(proxy), m_Remote(NULL), m_RemoteServer(false)
   {
     m_FromReplaySerialiser = NULL;
     m_ToReplaySerialiser = new Serialiser(NULL, Serialiser::WRITING, false);
@@ -106,7 +106,7 @@ public:
   }
 
   ProxySerialiser(Network::Socket *sock, IRemoteDriver *remote)
-      : m_Socket(sock), m_Proxy(NULL), m_Remote(remote), m_ReplayHost(true)
+      : m_Socket(sock), m_Proxy(NULL), m_Remote(remote), m_RemoteServer(true)
   {
     m_ToReplaySerialiser = NULL;
     m_FromReplaySerialiser = new Serialiser(NULL, Serialiser::WRITING, false);
@@ -115,7 +115,7 @@ public:
 
   virtual ~ProxySerialiser();
 
-  bool IsRemoteProxy() { return !m_ReplayHost; }
+  bool IsRemoteProxy() { return !m_RemoteServer; }
   void Shutdown() { delete this; }
   void ReadLogInitialisation() {}
   vector<WindowingSystem> GetSupportedWindowSystems()
@@ -490,7 +490,7 @@ private:
   Serialiser *m_ToReplaySerialiser;
   IReplayDriver *m_Proxy;
   IRemoteDriver *m_Remote;
-  bool m_ReplayHost;
+  bool m_RemoteServer;
 
   bool m_RemoteHasResolver;
 

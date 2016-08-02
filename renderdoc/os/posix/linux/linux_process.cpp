@@ -64,8 +64,8 @@ int GetIdentPort(pid_t childPid)
       int num = sscanf(line, " %d: %x:%x", &socketnum, &hexip, &hexport);
 
       // find open listen socket on 0.0.0.0:port
-      if(num == 3 && hexip == 0 && hexport >= RenderDoc_FirstCaptureNetworkPort &&
-         hexport <= RenderDoc_LastCaptureNetworkPort)
+      if(num == 3 && hexip == 0 && hexport >= RenderDoc_FirstTargetControlPort &&
+         hexport <= RenderDoc_LastTargetControlPort)
       {
         ret = hexport;
         break;

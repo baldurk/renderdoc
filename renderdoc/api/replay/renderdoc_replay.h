@@ -423,7 +423,7 @@ ReplayRenderer_GetTextureData(ReplayRenderer *rend, ResourceId tex, uint32_t arr
 // for C++ expose the interface as a virtual interface
 #ifdef __cplusplus
 
-struct IRemoteAccess
+struct ITargetControl
 {
   virtual void Shutdown() = 0;
 
@@ -436,40 +436,40 @@ struct IRemoteAccess
   virtual void QueueCapture(uint32_t frameNumber) = 0;
   virtual void CopyCapture(uint32_t remoteID, const char *localpath) = 0;
 
-  virtual void ReceiveMessage(RemoteMessage *msg) = 0;
+  virtual void ReceiveMessage(TargetControlMessage *msg) = 0;
 };
 
 #endif
 
 #ifdef RENDERDOC_EXPORTS
-struct RemoteAccess;
+struct TargetControl;
 #else
 #ifdef __cplusplus
-typedef IRemoteAccess RemoteAccess;
+typedef ITargetControl TargetControl;
 #else
-struct RemoteAccess
+struct TargetControl
 {
 };
 #endif
 #endif
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_Shutdown(RemoteAccess *access);
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_Shutdown(TargetControl *control);
 
-extern "C" RENDERDOC_API const char *RENDERDOC_CC RemoteAccess_GetTarget(RemoteAccess *access);
-extern "C" RENDERDOC_API const char *RENDERDOC_CC RemoteAccess_GetAPI(RemoteAccess *access);
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RemoteAccess_GetPID(RemoteAccess *access);
-extern "C" RENDERDOC_API const char *RENDERDOC_CC RemoteAccess_GetBusyClient(RemoteAccess *access);
+extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetTarget(TargetControl *control);
+extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetAPI(TargetControl *control);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC TargetControl_GetPID(TargetControl *control);
+extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetBusyClient(TargetControl *control);
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_TriggerCapture(RemoteAccess *access,
-                                                                       uint32_t numFrames);
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_QueueCapture(RemoteAccess *access,
-                                                                     uint32_t frameNumber);
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_CopyCapture(RemoteAccess *access,
-                                                                    uint32_t remoteID,
-                                                                    const char *localpath);
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_TriggerCapture(TargetControl *control,
+                                                                        uint32_t numFrames);
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_QueueCapture(TargetControl *control,
+                                                                      uint32_t frameNumber);
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_CopyCapture(TargetControl *control,
+                                                                     uint32_t remoteID,
+                                                                     const char *localpath);
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_ReceiveMessage(RemoteAccess *access,
-                                                                       RemoteMessage *msg);
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_ReceiveMessage(TargetControl *control,
+                                                                        TargetControlMessage *msg);
 
 // for C++ expose the interface as a virtual interface
 #ifdef __cplusplus
@@ -564,15 +564,19 @@ extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
 RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, ReplayRenderer **rend);
 
 //////////////////////////////////////////////////////////////////////////
-// Remote access and control
+// Target Control
 //////////////////////////////////////////////////////////////////////////
 
-extern "C" RENDERDOC_API RemoteAccess *RENDERDOC_CC RENDERDOC_CreateRemoteAccessConnection(
+extern "C" RENDERDOC_API TargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(
     const char *host, uint32_t ident, const char *clientName, bool32 forceConnection);
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-RENDERDOC_EnumerateRemoteConnections(const char *host, uint32_t nextIdent);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *host,
+                                                                                uint32_t nextIdent);
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultReplayHostPort();
+//////////////////////////////////////////////////////////////////////////
+// Remote server
+//////////////////////////////////////////////////////////////////////////
+
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultRemoteServerPort();
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
 RENDERDOC_CreateRemoteReplayConnection(const char *host, uint32_t port, RemoteRenderer **rend);
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const char *listenhost,

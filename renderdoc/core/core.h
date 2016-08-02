@@ -248,9 +248,9 @@ public:
   void SetCurrentDriver(RDCDriver driver);
   void GetCurrentDriver(RDCDriver &driver, string &name);
 
-  uint32_t GetRemoteAccessIdent() const { return m_RemoteIdent; }
-  bool IsRemoteAccessConnected();
-  string GetRemoteAccessUsername();
+  uint32_t GetTargetControlIdent() const { return m_RemoteIdent; }
+  bool IsTargetControlConnected();
+  string GetTargetControlUsername();
 
   void Tick();
 
@@ -383,13 +383,13 @@ private:
 
   IFrameCapturer *MatchFrameCapturer(void *dev, void *wnd);
 
-  volatile bool m_RemoteServerThreadShutdown;
-  volatile bool m_RemoteClientThreadShutdown;
+  volatile bool m_TargetControlThreadShutdown;
+  volatile bool m_ControlClientThreadShutdown;
   Threading::CriticalSection m_SingleClientLock;
   string m_SingleClientName;
 
-  static void RemoteAccessServerThread(void *s);
-  static void RemoteAccessClientThread(void *s);
+  static void TargetControlServerThread(void *s);
+  static void TargetControlClientThread(void *s);
 
   ICrashHandler *m_ExHandler;
 };

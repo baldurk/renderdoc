@@ -58,7 +58,7 @@ namespace renderdocui.Windows
         int m_CaptureFrameNum = 0;
         int m_CaptureCounter = 0;
         bool m_Disconnect = false;
-        RemoteAccess m_Connection = null;
+        TargetControl m_Connection = null;
 
         bool m_IgnoreThreadClosed = false;
 
@@ -145,7 +145,7 @@ namespace renderdocui.Windows
             {
                 string username = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
 
-                m_Connection = StaticExports.CreateRemoteAccessConnection(m_Host, m_RemoteIdent, username, true);
+                m_Connection = StaticExports.CreateTargetControl(m_Host, m_RemoteIdent, username, true);
 
                 if (m_Connection.Connected)
                 {

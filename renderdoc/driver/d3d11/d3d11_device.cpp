@@ -3200,8 +3200,8 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
         }
         else
         {
-          if(RenderDoc::Inst().IsRemoteAccessConnected())
-            overlayText += "Connected by " + RenderDoc::Inst().GetRemoteAccessUsername() + ".";
+          if(RenderDoc::Inst().IsTargetControlConnected())
+            overlayText += "Connected by " + RenderDoc::Inst().GetTargetControlUsername() + ".";
           else
             overlayText += "No remote access connection.";
         }

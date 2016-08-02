@@ -100,7 +100,10 @@ namespace renderdocui.Code
 
             for (int i = 0; i < args.Length; i++)
             {
-                if (args[i].ToUpperInvariant() == "--REMOTEACCESS" && i + 1 < args.Length)
+                // accept --remoteaccess for backwards compatibility
+                if (i + 1 < args.Length &&
+                    (args[i].ToUpperInvariant() == "--REMOTEACCESS" ||
+                    args[i].ToUpperInvariant() == "--TARGETCONTROL"))
                 {
                     var regexp = @"^([a-zA-Z0-9_-]+:)?([0-9]+)$";
 

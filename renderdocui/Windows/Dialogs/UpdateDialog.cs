@@ -72,11 +72,11 @@ namespace renderdocui.Windows.Dialogs
                     string runningPrograms = "";
                     int running = 0;
 
-                    renderdoc.StaticExports.EnumerateRemoteConnections("localhost", (UInt32 i) =>
+                    renderdoc.StaticExports.EnumerateRemoteTargets("localhost", (UInt32 i) =>
                     {
                         running++;
 
-                        var conn = renderdoc.StaticExports.CreateRemoteAccessConnection("localhost", i, "updater", false);
+                        var conn = renderdoc.StaticExports.CreateTargetControl("localhost", i, "updater", false);
 
                         if (runningPrograms != "")
                             runningPrograms += "\n";

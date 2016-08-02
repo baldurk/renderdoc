@@ -508,7 +508,7 @@ namespace renderdoc
         APIHardwareUnsupported,
     };
 
-    public enum RemoteMessageType
+    public enum TargetControlMessageType
     {
         Unknown = 0,
         Disconnected,

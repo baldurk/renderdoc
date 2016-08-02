@@ -36,9 +36,9 @@
 // Global constants
 enum
 {
-  RenderDoc_FirstCaptureNetworkPort = 38920,
-  RenderDoc_LastCaptureNetworkPort = RenderDoc_FirstCaptureNetworkPort + 7,
-  RenderDoc_ReplayNetworkPort = 39920,
+  RenderDoc_FirstTargetControlPort = 38920,
+  RenderDoc_LastTargetControlPort = RenderDoc_FirstTargetControlPort + 7,
+  RenderDoc_RemoteServerPort = 39920,
 };
 
 /////////////////////////////////////////////////

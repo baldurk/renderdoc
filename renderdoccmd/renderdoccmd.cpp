@@ -393,7 +393,7 @@ struct RemoteServerCommand : public Command
     parser.add<string>(
         "host", 'h', "The interface to listen on. By default listens on all interfaces", false, "");
     parser.add<uint32_t>("port", 'p', "The port to listen on.", false,
-                         RENDERDOC_GetDefaultReplayHostPort());
+                         RENDERDOC_GetDefaultRemoteServerPort());
   }
   virtual const char *Description()
   {
@@ -429,7 +429,7 @@ struct ReplayCommand : public Command
     parser.add<string>("remote-host", 0,
                        "Instead of replaying locally, replay on this host over the network.", false);
     parser.add<uint32_t>("remote-port", 0, "If --remote-host is set, use this port.", false,
-                         RENDERDOC_GetDefaultReplayHostPort());
+                         RENDERDOC_GetDefaultRemoteServerPort());
   }
   virtual const char *Description()
   {

@@ -202,8 +202,8 @@ RenderDoc::RenderDoc()
 
   m_Overlay = eRENDERDOC_Overlay_Default;
 
-  m_RemoteServerThreadShutdown = false;
-  m_RemoteClientThreadShutdown = false;
+  m_TargetControlThreadShutdown = false;
+  m_ControlClientThreadShutdown = false;
 }
 
 void RenderDoc::Initialise()
@@ -221,14 +221,14 @@ void RenderDoc::Initialise()
   {
     Process::ApplyEnvironmentModification();
 
-    uint32_t port = RenderDoc_FirstCaptureNetworkPort;
+    uint32_t port = RenderDoc_FirstTargetControlPort;
 
     Network::Socket *sock = Network::CreateServerSocket("0.0.0.0", port & 0xffff, 4);
 
     while(sock == NULL)
     {
       port++;
-      if(port > RenderDoc_LastCaptureNetworkPort)
+      if(port > RenderDoc_LastTargetControlPort)
       {
         m_RemoteIdent = 0;
         break;
@@ -241,8 +241,8 @@ void RenderDoc::Initialise()
     {
       m_RemoteIdent = port;
 
-      m_RemoteServerThreadShutdown = false;
-      m_RemoteThread = Threading::CreateThread(RemoteAccessServerThread, (void *)sock);
+      m_TargetControlThreadShutdown = false;
+      m_RemoteThread = Threading::CreateThread(TargetControlServerThread, (void *)sock);
     }
   }
 
@@ -318,7 +318,7 @@ RenderDoc::~RenderDoc()
 
   if(m_RemoteThread)
   {
-    m_RemoteServerThreadShutdown = true;
+    m_TargetControlThreadShutdown = true;
     // On windows we can't join to this thread as it could lead to deadlocks, since we're
     // performing this destructor in the middle of module unloading. However we want to
     // ensure that the thread gets properly tidied up and closes its socket, so wait a little
@@ -346,7 +346,7 @@ void RenderDoc::Shutdown()
   {
     // explicitly wait for thread to shutdown, this call is not from module unloading and
     // we want to be sure everything is gone before we remove our module & hooks
-    m_RemoteServerThreadShutdown = true;
+    m_TargetControlThreadShutdown = true;
     Threading::JoinThread(m_RemoteThread);
     Threading::CloseThread(m_RemoteThread);
     m_RemoteThread = 0;
@@ -455,13 +455,13 @@ bool RenderDoc::EndFrameCapture(void *dev, void *wnd)
   return false;
 }
 
-bool RenderDoc::IsRemoteAccessConnected()
+bool RenderDoc::IsTargetControlConnected()
 {
   SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
   return !RenderDoc::Inst().m_SingleClientName.empty();
 }
 
-string RenderDoc::GetRemoteAccessUsername()
+string RenderDoc::GetTargetControlUsername()
 {
   SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
   return RenderDoc::Inst().m_SingleClientName;
