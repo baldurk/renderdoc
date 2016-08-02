@@ -292,7 +292,7 @@
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\image_viewer.cpp" />
     <ClCompile Include="core\remote_access.cpp" />
-    <ClCompile Include="core\remote_replay.cpp" />
+    <ClCompile Include="core\remote_server.cpp" />
     <ClCompile Include="core\replay_proxy.cpp" />
     <ClCompile Include="core\resource_manager.cpp" />
     <ClCompile Include="data\glsl_shaders.cpp" />

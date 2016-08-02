@@ -74,7 +74,7 @@ set(sources
     core/core.h
     core/crash_handler.h
     core/remote_access.cpp
-    core/remote_replay.cpp
+    core/remote_server.cpp
     core/replay_proxy.cpp
     core/replay_proxy.h
     core/resource_manager.cpp
