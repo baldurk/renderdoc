@@ -35,14 +35,18 @@
 
 using std::pair;
 
-enum PacketType
+enum RemoteServerPacket
 {
-  ePacket_Noop,
-  ePacket_RemoteDriverList,
-  ePacket_CopyCapture,
-  ePacket_LogOpenProgress,
-  ePacket_LogReady,
+  eRemoteServer_Noop,
+  eRemoteServer_RemoteDriverList,
+  eRemoteServer_CopyCapture,
+  eRemoteServer_LogOpenProgress,
+  eRemoteServer_LogReady,
+  eRemoteServer_RemoteServerCount,
 };
+
+RDCCOMPILE_ASSERT((int)eRemoteServer_RemoteServerCount < (int)eReplayProxy_First,
+                  "Remote server and Replay Proxy packets overlap");
 
 struct ProgressLoopData
 {
@@ -62,7 +66,7 @@ static void ProgressTicker(void *d)
     ser.Rewind();
     ser.Serialise("", data->progress);
 
-    if(!SendPacket(data->sock, ePacket_LogOpenProgress, ser))
+    if(!SendPacket(data->sock, eRemoteServer_LogOpenProgress, ser))
     {
       SAFE_DELETE(data->sock);
       break;
@@ -221,7 +225,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
       ser.Serialise("", (*it).second);
     }
 
-    if(!SendPacket(client, ePacket_RemoteDriverList, ser))
+    if(!SendPacket(client, eRemoteServer_RemoteDriverList, ser))
     {
       RDCERR("Network error sending supported driver list");
       SAFE_DELETE(client);
@@ -246,7 +250,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 
     Serialiser *fileRecv = NULL;
 
-    if(!RecvChunkedFile(client, ePacket_CopyCapture, cap_file.c_str(), fileRecv, NULL))
+    if(!RecvChunkedFile(client, eRemoteServer_CopyCapture, cap_file.c_str(), fileRecv, NULL))
     {
       FileIO::Delete(cap_file.c_str());
 
@@ -298,7 +302,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 
       FileIO::Delete(cap_file.c_str());
 
-      SendPacket(client, ePacket_LogReady);
+      SendPacket(client, eRemoteServer_LogReady);
 
       ProxySerialiser *proxy = new ProxySerialiser(client, driver);
 
@@ -342,7 +346,7 @@ public:
       m_Proxies.push_back(*it);
 
     {
-      PacketType type;
+      RemoteServerPacket type;
       Serialiser *ser = NULL;
       GetPacket(type, &ser);
 
@@ -422,7 +426,7 @@ public:
 
     Serialiser ser("", Serialiser::WRITING, false);
 
-    if(!SendChunkedFile(m_Socket, ePacket_CopyCapture, logfile, ser, progress))
+    if(!SendChunkedFile(m_Socket, eRemoteServer_CopyCapture, logfile, ser, progress))
     {
       SAFE_DELETE(m_Socket);
       return eReplayCreate_NetworkIOFailed;
@@ -430,13 +434,13 @@ public:
 
     RDCLOG("Sent file to replay host. Loading...");
 
-    PacketType type = ePacket_Noop;
+    RemoteServerPacket type = eRemoteServer_Noop;
     while(m_Socket)
     {
       Serialiser *progressSer;
       GetPacket(type, &progressSer);
 
-      if(!m_Socket || type != ePacket_LogOpenProgress)
+      if(!m_Socket || type != eRemoteServer_LogOpenProgress)
         break;
 
       progressSer->Serialise("", *progress);
@@ -444,7 +448,7 @@ public:
       RDCLOG("% 3.0f%%...", (*progress) * 100.0f);
     }
 
-    if(!m_Socket || type != ePacket_LogReady)
+    if(!m_Socket || type != eRemoteServer_LogReady)
       return eReplayCreate_NetworkIOFailed;
 
     *progress = 1.0f;
@@ -483,7 +487,7 @@ public:
 private:
   Network::Socket *m_Socket;
 
-  void GetPacket(PacketType &type, Serialiser **ser)
+  void GetPacket(RemoteServerPacket &type, Serialiser **ser)
   {
     vector<byte> payload;
 

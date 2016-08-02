@@ -30,58 +30,62 @@
 #include "serialise/serialiser.h"
 #include "socket_helpers.h"
 
-enum CommandPacketType
+enum ReplayProxyPacket
 {
-  eCommand_SetCtxFilter,
-  eCommand_ReplayLog,
+  // we offset these packet numbers so that it can co-exist
+  // peacefully with remote server packet numbers
+  eReplayProxy_First = 0x1000,
 
-  eCommand_GetPassEvents,
+  eReplayProxy_SetCtxFilter = eReplayProxy_First,
+  eReplayProxy_ReplayLog,
 
-  eCommand_GetTextures,
-  eCommand_GetTexture,
-  eCommand_GetBuffers,
-  eCommand_GetBuffer,
-  eCommand_GetShader,
-  eCommand_GetDebugMessages,
+  eReplayProxy_GetPassEvents,
 
-  eCommand_GetBufferData,
-  eCommand_GetTextureData,
+  eReplayProxy_GetTextures,
+  eReplayProxy_GetTexture,
+  eReplayProxy_GetBuffers,
+  eReplayProxy_GetBuffer,
+  eReplayProxy_GetShader,
+  eReplayProxy_GetDebugMessages,
 
-  eCommand_SavePipelineState,
-  eCommand_GetUsage,
-  eCommand_GetLiveID,
-  eCommand_GetFrameRecord,
-  eCommand_IsRenderOutput,
+  eReplayProxy_GetBufferData,
+  eReplayProxy_GetTextureData,
 
-  eCommand_FreeResource,
-  eCommand_HasResolver,
+  eReplayProxy_SavePipelineState,
+  eReplayProxy_GetUsage,
+  eReplayProxy_GetLiveID,
+  eReplayProxy_GetFrameRecord,
+  eReplayProxy_IsRenderOutput,
 
-  eCommand_FetchCounters,
-  eCommand_EnumerateCounters,
-  eCommand_DescribeCounter,
-  eCommand_FillCBufferVariables,
+  eReplayProxy_FreeResource,
+  eReplayProxy_HasResolver,
 
-  eCommand_InitPostVS,
-  eCommand_InitPostVSVec,
-  eCommand_GetPostVS,
+  eReplayProxy_FetchCounters,
+  eReplayProxy_EnumerateCounters,
+  eReplayProxy_DescribeCounter,
+  eReplayProxy_FillCBufferVariables,
 
-  eCommand_InitStackResolver,
-  eCommand_HasStackResolver,
-  eCommand_GetAddressDetails,
+  eReplayProxy_InitPostVS,
+  eReplayProxy_InitPostVSVec,
+  eReplayProxy_GetPostVS,
 
-  eCommand_BuildTargetShader,
-  eCommand_ReplaceResource,
-  eCommand_RemoveReplacement,
+  eReplayProxy_InitStackResolver,
+  eReplayProxy_HasStackResolver,
+  eReplayProxy_GetAddressDetails,
 
-  eCommand_DebugVertex,
-  eCommand_DebugPixel,
-  eCommand_DebugThread,
+  eReplayProxy_BuildTargetShader,
+  eReplayProxy_ReplaceResource,
+  eReplayProxy_RemoveReplacement,
 
-  eCommand_RenderOverlay,
+  eReplayProxy_DebugVertex,
+  eReplayProxy_DebugPixel,
+  eReplayProxy_DebugThread,
 
-  eCommand_GetAPIProperties,
+  eReplayProxy_RenderOverlay,
 
-  eCommand_PixelHistory,
+  eReplayProxy_GetAPIProperties,
+
+  eReplayProxy_PixelHistory,
 };
 
 // This class implements IReplayDriver and StackResolver. On the local machine where the UI
@@ -435,7 +439,7 @@ public:
   }
 
 private:
-  bool SendReplayCommand(CommandPacketType type);
+  bool SendReplayCommand(ReplayProxyPacket type);
 
   void EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip);
   void EnsureBufCached(ResourceId bufid);

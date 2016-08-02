@@ -1679,7 +1679,7 @@ ProxySerialiser::~ProxySerialiser()
     delete it->second;
 }
 
-bool ProxySerialiser::SendReplayCommand(CommandPacketType type)
+bool ProxySerialiser::SendReplayCommand(ReplayProxyPacket type)
 {
   if(!SendPacket(m_Socket, type, *m_ToReplaySerialiser))
     return false;
@@ -1753,7 +1753,7 @@ bool ProxySerialiser::Tick()
   if(!m_Socket)
     return false;
 
-  CommandPacketType type;
+  ReplayProxyPacket type;
 
   if(!RecvPacket(m_Socket, type, &m_ToReplaySerialiser))
     return false;
@@ -1762,80 +1762,80 @@ bool ProxySerialiser::Tick()
 
   switch(type)
   {
-    case eCommand_SetCtxFilter: SetContextFilter(ResourceId(), 0, 0); break;
-    case eCommand_ReplayLog: ReplayLog(0, (ReplayLogType)0); break;
-    case eCommand_GetPassEvents: GetPassEvents(0); break;
-    case eCommand_GetAPIProperties: GetAPIProperties(); break;
-    case eCommand_GetTextures: GetTextures(); break;
-    case eCommand_GetTexture: GetTexture(ResourceId()); break;
-    case eCommand_GetBuffers: GetBuffers(); break;
-    case eCommand_GetBuffer: GetBuffer(ResourceId()); break;
-    case eCommand_GetShader: GetShader(ResourceId(), ""); break;
-    case eCommand_GetDebugMessages: GetDebugMessages(); break;
-    case eCommand_SavePipelineState: SavePipelineState(); break;
-    case eCommand_GetUsage: GetUsage(ResourceId()); break;
-    case eCommand_GetLiveID: GetLiveID(ResourceId()); break;
-    case eCommand_GetFrameRecord: GetFrameRecord(); break;
-    case eCommand_IsRenderOutput: IsRenderOutput(ResourceId()); break;
-    case eCommand_HasResolver: HasCallstacks(); break;
-    case eCommand_InitStackResolver: InitCallstackResolver(); break;
-    case eCommand_HasStackResolver: GetCallstackResolver(); break;
-    case eCommand_GetAddressDetails: GetAddr(0); break;
-    case eCommand_FreeResource: FreeTargetResource(ResourceId()); break;
-    case eCommand_FetchCounters:
+    case eReplayProxy_SetCtxFilter: SetContextFilter(ResourceId(), 0, 0); break;
+    case eReplayProxy_ReplayLog: ReplayLog(0, (ReplayLogType)0); break;
+    case eReplayProxy_GetPassEvents: GetPassEvents(0); break;
+    case eReplayProxy_GetAPIProperties: GetAPIProperties(); break;
+    case eReplayProxy_GetTextures: GetTextures(); break;
+    case eReplayProxy_GetTexture: GetTexture(ResourceId()); break;
+    case eReplayProxy_GetBuffers: GetBuffers(); break;
+    case eReplayProxy_GetBuffer: GetBuffer(ResourceId()); break;
+    case eReplayProxy_GetShader: GetShader(ResourceId(), ""); break;
+    case eReplayProxy_GetDebugMessages: GetDebugMessages(); break;
+    case eReplayProxy_SavePipelineState: SavePipelineState(); break;
+    case eReplayProxy_GetUsage: GetUsage(ResourceId()); break;
+    case eReplayProxy_GetLiveID: GetLiveID(ResourceId()); break;
+    case eReplayProxy_GetFrameRecord: GetFrameRecord(); break;
+    case eReplayProxy_IsRenderOutput: IsRenderOutput(ResourceId()); break;
+    case eReplayProxy_HasResolver: HasCallstacks(); break;
+    case eReplayProxy_InitStackResolver: InitCallstackResolver(); break;
+    case eReplayProxy_HasStackResolver: GetCallstackResolver(); break;
+    case eReplayProxy_GetAddressDetails: GetAddr(0); break;
+    case eReplayProxy_FreeResource: FreeTargetResource(ResourceId()); break;
+    case eReplayProxy_FetchCounters:
     {
       vector<uint32_t> counters;
       FetchCounters(counters);
       break;
     }
-    case eCommand_EnumerateCounters: EnumerateCounters(); break;
-    case eCommand_DescribeCounter:
+    case eReplayProxy_EnumerateCounters: EnumerateCounters(); break;
+    case eReplayProxy_DescribeCounter:
     {
       CounterDescription desc;
       DescribeCounter(0, desc);
       break;
     }
-    case eCommand_FillCBufferVariables:
+    case eReplayProxy_FillCBufferVariables:
     {
       vector<ShaderVariable> vars;
       vector<byte> data;
       FillCBufferVariables(ResourceId(), "", 0, vars, data);
       break;
     }
-    case eCommand_GetBufferData:
+    case eReplayProxy_GetBufferData:
     {
       vector<byte> dummy;
       GetBufferData(ResourceId(), 0, 0, dummy);
       break;
     }
-    case eCommand_GetTextureData:
+    case eReplayProxy_GetTextureData:
     {
       size_t dummy;
       GetTextureData(ResourceId(), 0, 0, eCompType_None, false, false, 0.0f, 0.0f, dummy);
       break;
     }
-    case eCommand_InitPostVS: InitPostVSBuffers(0); break;
-    case eCommand_InitPostVSVec:
+    case eReplayProxy_InitPostVS: InitPostVSBuffers(0); break;
+    case eReplayProxy_InitPostVSVec:
     {
       vector<uint32_t> dummy;
       InitPostVSBuffers(dummy);
       break;
     }
-    case eCommand_GetPostVS: GetPostVSBuffers(0, 0, eMeshDataStage_Unknown); break;
-    case eCommand_BuildTargetShader:
+    case eReplayProxy_GetPostVS: GetPostVSBuffers(0, 0, eMeshDataStage_Unknown); break;
+    case eReplayProxy_BuildTargetShader:
       BuildTargetShader("", "", 0, eShaderStage_Vertex, NULL, NULL);
       break;
-    case eCommand_ReplaceResource: ReplaceResource(ResourceId(), ResourceId()); break;
-    case eCommand_RemoveReplacement: RemoveReplacement(ResourceId()); break;
-    case eCommand_RenderOverlay:
+    case eReplayProxy_ReplaceResource: ReplaceResource(ResourceId(), ResourceId()); break;
+    case eReplayProxy_RemoveReplacement: RemoveReplacement(ResourceId()); break;
+    case eReplayProxy_RenderOverlay:
       RenderOverlay(ResourceId(), eCompType_None, eTexOverlay_None, 0, vector<uint32_t>());
       break;
-    case eCommand_PixelHistory:
+    case eReplayProxy_PixelHistory:
       PixelHistory(vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0, eCompType_None);
       break;
-    case eCommand_DebugVertex: DebugVertex(0, 0, 0, 0, 0, 0); break;
-    case eCommand_DebugPixel: DebugPixel(0, 0, 0, 0, 0); break;
-    case eCommand_DebugThread:
+    case eReplayProxy_DebugVertex: DebugVertex(0, 0, 0, 0, 0, 0); break;
+    case eReplayProxy_DebugPixel: DebugPixel(0, 0, 0, 0, 0); break;
+    case eReplayProxy_DebugThread:
     {
       uint32_t dummy1[3] = {0};
       uint32_t dummy2[3] = {0};
@@ -1865,7 +1865,7 @@ bool ProxySerialiser::IsRenderOutput(ResourceId id)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_IsRenderOutput))
+    if(!SendReplayCommand(eReplayProxy_IsRenderOutput))
       return ret;
   }
 
@@ -1885,7 +1885,7 @@ APIProperties ProxySerialiser::GetAPIProperties()
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetAPIProperties))
+    if(!SendReplayCommand(eReplayProxy_GetAPIProperties))
       return ret;
   }
 
@@ -1904,7 +1904,7 @@ vector<ResourceId> ProxySerialiser::GetTextures()
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetTextures))
+    if(!SendReplayCommand(eReplayProxy_GetTextures))
       return ret;
   }
 
@@ -1923,7 +1923,7 @@ vector<DebugMessage> ProxySerialiser::GetDebugMessages()
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetDebugMessages))
+    if(!SendReplayCommand(eReplayProxy_GetDebugMessages))
       return ret;
   }
 
@@ -1944,7 +1944,7 @@ FetchTexture ProxySerialiser::GetTexture(ResourceId id)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetTexture))
+    if(!SendReplayCommand(eReplayProxy_GetTexture))
       return ret;
   }
 
@@ -1963,7 +1963,7 @@ vector<ResourceId> ProxySerialiser::GetBuffers()
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetBuffers))
+    if(!SendReplayCommand(eReplayProxy_GetBuffers))
       return ret;
   }
 
@@ -1984,7 +1984,7 @@ FetchBuffer ProxySerialiser::GetBuffer(ResourceId id)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetBuffer))
+    if(!SendReplayCommand(eReplayProxy_GetBuffer))
       return ret;
   }
 
@@ -2004,7 +2004,7 @@ void ProxySerialiser::SavePipelineState()
   }
   else
   {
-    if(!SendReplayCommand(eCommand_SavePipelineState))
+    if(!SendReplayCommand(eReplayProxy_SavePipelineState))
       return;
 
     m_D3D11PipelineState = D3D11PipelineState();
@@ -2029,7 +2029,7 @@ void ProxySerialiser::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint3
   }
   else
   {
-    if(!SendReplayCommand(eCommand_SetCtxFilter))
+    if(!SendReplayCommand(eReplayProxy_SetCtxFilter))
       return;
   }
 }
@@ -2045,7 +2045,7 @@ void ProxySerialiser::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_ReplayLog))
+    if(!SendReplayCommand(eReplayProxy_ReplayLog))
       return;
 
     m_TextureProxyCache.clear();
@@ -2065,7 +2065,7 @@ vector<uint32_t> ProxySerialiser::GetPassEvents(uint32_t eventID)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetPassEvents))
+    if(!SendReplayCommand(eReplayProxy_GetPassEvents))
       return ret;
   }
 
@@ -2086,7 +2086,7 @@ vector<EventUsage> ProxySerialiser::GetUsage(ResourceId id)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetUsage))
+    if(!SendReplayCommand(eReplayProxy_GetUsage))
       return ret;
   }
 
@@ -2105,7 +2105,7 @@ FetchFrameRecord ProxySerialiser::GetFrameRecord()
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetFrameRecord))
+    if(!SendReplayCommand(eReplayProxy_GetFrameRecord))
       return ret;
   }
 
@@ -2126,7 +2126,7 @@ bool ProxySerialiser::HasCallstacks()
   }
   else
   {
-    if(!SendReplayCommand(eCommand_HasResolver))
+    if(!SendReplayCommand(eReplayProxy_HasResolver))
       return ret;
   }
 
@@ -2157,7 +2157,7 @@ ResourceId ProxySerialiser::GetLiveID(ResourceId id)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetLiveID))
+    if(!SendReplayCommand(eReplayProxy_GetLiveID))
       return ret;
   }
 
@@ -2183,7 +2183,7 @@ vector<CounterResult> ProxySerialiser::FetchCounters(const vector<uint32_t> &cou
   }
   else
   {
-    if(!SendReplayCommand(eCommand_FetchCounters))
+    if(!SendReplayCommand(eReplayProxy_FetchCounters))
       return ret;
   }
 
@@ -2202,7 +2202,7 @@ vector<uint32_t> ProxySerialiser::EnumerateCounters()
   }
   else
   {
-    if(!SendReplayCommand(eCommand_EnumerateCounters))
+    if(!SendReplayCommand(eReplayProxy_EnumerateCounters))
       return ret;
   }
 
@@ -2221,7 +2221,7 @@ void ProxySerialiser::DescribeCounter(uint32_t counterID, CounterDescription &de
   }
   else
   {
-    if(!SendReplayCommand(eCommand_DescribeCounter))
+    if(!SendReplayCommand(eReplayProxy_DescribeCounter))
       return;
   }
 
@@ -2245,7 +2245,7 @@ void ProxySerialiser::FillCBufferVariables(ResourceId shader, string entryPoint,
   }
   else
   {
-    if(!SendReplayCommand(eCommand_FillCBufferVariables))
+    if(!SendReplayCommand(eReplayProxy_FillCBufferVariables))
       return;
   }
 
@@ -2271,7 +2271,7 @@ void ProxySerialiser::GetBufferData(ResourceId buff, uint64_t offset, uint64_t l
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetBufferData))
+    if(!SendReplayCommand(eReplayProxy_GetBufferData))
       return;
 
     size_t sz = 0;
@@ -2314,7 +2314,7 @@ byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetTextureData))
+    if(!SendReplayCommand(eReplayProxy_GetTextureData))
       return NULL;
 
     size_t compressedSize;
@@ -2344,7 +2344,7 @@ void ProxySerialiser::InitPostVSBuffers(uint32_t eventID)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_InitPostVS))
+    if(!SendReplayCommand(eReplayProxy_InitPostVS))
       return;
   }
 }
@@ -2359,7 +2359,7 @@ void ProxySerialiser::InitPostVSBuffers(const vector<uint32_t> &events)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_InitPostVSVec))
+    if(!SendReplayCommand(eReplayProxy_InitPostVSVec))
       return;
   }
 }
@@ -2378,7 +2378,7 @@ MeshFormat ProxySerialiser::GetPostVSBuffers(uint32_t eventID, uint32_t instID, 
   }
   else
   {
-    if(!SendReplayCommand(eCommand_GetPostVS))
+    if(!SendReplayCommand(eReplayProxy_GetPostVS))
       return ret;
   }
 
@@ -2407,7 +2407,7 @@ ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, FormatComponentType 
   }
   else
   {
-    if(!SendReplayCommand(eCommand_RenderOverlay))
+    if(!SendReplayCommand(eReplayProxy_RenderOverlay))
       return ret;
   }
 
@@ -2441,7 +2441,7 @@ ShaderReflection *ProxySerialiser::GetShader(ResourceId id, string entryPoint)
     m_ToReplaySerialiser->Serialise("", id);
     m_ToReplaySerialiser->Serialise("", entryPoint);
 
-    if(!SendReplayCommand(eCommand_GetShader))
+    if(!SendReplayCommand(eReplayProxy_GetShader))
       return NULL;
 
     bool hasrefl = false;
@@ -2472,7 +2472,7 @@ void ProxySerialiser::FreeTargetResource(ResourceId id)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_FreeResource))
+    if(!SendReplayCommand(eReplayProxy_FreeResource))
       return;
   }
 }
@@ -2485,7 +2485,7 @@ void ProxySerialiser::InitCallstackResolver()
   }
   else
   {
-    if(!SendReplayCommand(eCommand_InitStackResolver))
+    if(!SendReplayCommand(eReplayProxy_InitStackResolver))
       return;
   }
 }
@@ -2503,7 +2503,7 @@ Callstack::StackResolver *ProxySerialiser::GetCallstackResolver()
   }
   else
   {
-    if(!SendReplayCommand(eCommand_HasStackResolver))
+    if(!SendReplayCommand(eReplayProxy_HasStackResolver))
       return NULL;
   }
 
@@ -2532,7 +2532,7 @@ Callstack::AddressDetails ProxySerialiser::GetAddr(uint64_t addr)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_HasStackResolver))
+    if(!SendReplayCommand(eReplayProxy_HasStackResolver))
       return ret;
   }
 
@@ -2561,7 +2561,7 @@ void ProxySerialiser::BuildTargetShader(string source, string entry, const uint3
   }
   else
   {
-    if(!SendReplayCommand(eCommand_BuildTargetShader))
+    if(!SendReplayCommand(eReplayProxy_BuildTargetShader))
       return;
   }
 
@@ -2588,7 +2588,7 @@ void ProxySerialiser::ReplaceResource(ResourceId from, ResourceId to)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_ReplaceResource))
+    if(!SendReplayCommand(eReplayProxy_ReplaceResource))
       return;
   }
 }
@@ -2603,7 +2603,7 @@ void ProxySerialiser::RemoveReplacement(ResourceId id)
   }
   else
   {
-    if(!SendReplayCommand(eCommand_RemoveReplacement))
+    if(!SendReplayCommand(eReplayProxy_RemoveReplacement))
       return;
   }
 }
@@ -2630,7 +2630,7 @@ vector<PixelModification> ProxySerialiser::PixelHistory(vector<EventUsage> event
   }
   else
   {
-    if(!SendReplayCommand(eCommand_PixelHistory))
+    if(!SendReplayCommand(eReplayProxy_PixelHistory))
       return ret;
   }
 
@@ -2657,7 +2657,7 @@ ShaderDebugTrace ProxySerialiser::DebugVertex(uint32_t eventID, uint32_t vertid,
   }
   else
   {
-    if(!SendReplayCommand(eCommand_DebugVertex))
+    if(!SendReplayCommand(eReplayProxy_DebugVertex))
       return ret;
   }
 
@@ -2683,7 +2683,7 @@ ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t eventID, uint32_t x, uint3
   }
   else
   {
-    if(!SendReplayCommand(eCommand_DebugPixel))
+    if(!SendReplayCommand(eReplayProxy_DebugPixel))
       return ret;
   }
 
@@ -2707,7 +2707,7 @@ ShaderDebugTrace ProxySerialiser::DebugThread(uint32_t eventID, uint32_t groupid
   }
   else
   {
-    if(!SendReplayCommand(eCommand_DebugThread))
+    if(!SendReplayCommand(eReplayProxy_DebugThread))
       return ret;
   }
 
