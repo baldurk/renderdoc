@@ -380,6 +380,10 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
         if(!strncmp(&src[it], "es", 2))
           it += sizeof("es") - 1;
 
+        // how deep are we in an #if. We want to place our definition
+        // outside of any #ifs.
+        int if_depth = 0;
+
         // now skip past comments, and any #directives
         while(it < len)
         {
@@ -401,6 +405,28 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
           // skip preprocessor directives
           if(src[it] == '#')
           {
+            // skip the '#'
+            it++;
+
+            // skip whitespace
+            while(it < len && iswhitespace(src[it]))
+              ++it;
+
+            // if it's an if, then increase our depth
+            // This covers:
+            // #if
+            // #ifdef
+            // #ifndef
+            if(!strncmp(&src[it], "if", 2))
+            {
+              if_depth++;
+            }
+            else if(!strncmp(&src[it], "endif", 5))
+            {
+              if_depth--;
+            }
+            // everything else is #extension or #else or #undef or anything
+
             // keep going until the next newline
             while(it < len && !isnewline(src[it]))
               ++it;
@@ -415,6 +441,9 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
             // keep going until the we reach a */
             while(it + 1 < len && (src[it] != '*' || src[it + 1] != '/'))
               ++it;
+
+            // skip the closing */ too
+            it += 2;
 
             // skip more things
             continue;
@@ -462,8 +491,14 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
             // otherwise just stop here, it's not a precision statement
           }
 
-          // nothing more to skip
-          break;
+          // nothing more to skip, check if we're outside an if
+          if(if_depth == 0)
+            break;
+
+          // if not, this might not be a comment, etc etc. Just skip to the next line
+          // so we can keep going to find the #endif
+          while(it < len && !isnewline(src[it]))
+            ++it;
         }
 
         substituted = src;
