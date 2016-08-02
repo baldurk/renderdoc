@@ -1724,10 +1724,10 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
   rect tl = {GLint(w / 2.0f + 0.5f), GLint(h / 2.0f + 0.5f), 1, 1};
 
   rect scissors[4] = {
-      {tl.x, tl.y, 1, sz},
-      {tl.x + (GLint)sz, tl.y, 1, sz + 1},
+      {tl.x, tl.y - (GLint)sz - 1, 1, sz + 1},
+      {tl.x + (GLint)sz, tl.y - (GLint)sz - 1, 1, sz + 2},
       {tl.x, tl.y, sz, 1},
-      {tl.x, tl.y + (GLint)sz, sz, 1},
+      {tl.x, tl.y - (GLint)sz - 1, sz, 1},
   };
 
   // inner
@@ -1746,8 +1746,8 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
 
   scissors[0].y--;
   scissors[1].y--;
-  scissors[2].y--;
-  scissors[3].y++;
+  scissors[2].y++;
+  scissors[3].y--;
 
   scissors[0].h += 2;
   scissors[1].h += 2;
