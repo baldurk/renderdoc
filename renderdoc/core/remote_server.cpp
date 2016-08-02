@@ -193,6 +193,9 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 
     bool valid = false;
 
+    // always allow connections from localhost
+    valid = Network::MatchIPMask(ip, Network::MakeIP(127, 0, 0, 1), ~0U);
+
     for(size_t i = 0; i < listenRanges.size(); i++)
     {
       if(Network::MatchIPMask(ip, listenRanges[i].first, listenRanges[i].second))
