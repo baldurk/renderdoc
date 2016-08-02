@@ -1362,6 +1362,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   {
     case eGL_RENDERBUFFER:
       resType = RESTYPE_TEX2D;
+      if(texDetails.samples > 1)
+        resType = RESTYPE_TEX2DMS;
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: resType = RESTYPE_TEX1D; break;
@@ -1404,7 +1406,10 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
     gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
 
     texname = texDetails.renderbufferReadTex;
-    target = eGL_TEXTURE_2D;
+    if(resType == RESTYPE_TEX2D)
+      target = eGL_TEXTURE_2D;
+    else
+      target = eGL_TEXTURE_2D_MULTISAMPLE;
   }
 
   MakeCurrentReplayContext(m_DebugCtx);
