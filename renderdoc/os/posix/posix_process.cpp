@@ -69,9 +69,17 @@ static map<string, string> EnvStringToEnvMap(const char **envstring)
   return ret;
 }
 
-static string expandHome(const string &in)
+static string shellExpand(const string &in)
 {
   string path = trim(in);
+
+  // if it begins with ./ then replace with working directory
+  if(path[0] == '.' && path[1] == '/')
+  {
+    char cwd[1024] = {};
+    getcwd(cwd, 1023);
+    return string(cwd) + path.substr(1);
+  }
 
   // if it's ~/... then replace with $HOME and return
   if(path[0] == '~' && path[1] == '/')
@@ -182,8 +190,8 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 
   // do very limited expansion. wordexp(3) does too much for our needs, so we just expand ~
   // since that could be quite a common case.
-  appName = expandHome(appName);
-  workDir = expandHome(workDir);
+  appName = shellExpand(appName);
+  workDir = shellExpand(workDir);
 
   // it is safe to use app directly as execve never modifies argv
   char *emptyargv[] = {(char *)appName.c_str(), NULL};
