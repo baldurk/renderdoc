@@ -290,9 +290,6 @@
     <ClCompile Include="os\win32\win32_network.cpp">
       <Filter>OS\Win32</Filter>
     </ClCompile>
-    <ClCompile Include="core\remote_access.cpp">
-      <Filter>Core\networking</Filter>
-    </ClCompile>
     <ClCompile Include="core\replay_proxy.cpp">
       <Filter>Core\networking</Filter>
     </ClCompile>
@@ -414,6 +411,9 @@
       <Filter>Resources</Filter>
     </ClCompile>
     <ClCompile Include="core\remote_server.cpp">
+      <Filter>Core\networking</Filter>
+    </ClCompile>
+    <ClCompile Include="core\target_control.cpp">
       <Filter>Core\networking</Filter>
     </ClCompile>
   </ItemGroup>

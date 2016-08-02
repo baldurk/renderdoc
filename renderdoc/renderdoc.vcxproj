@@ -291,7 +291,7 @@
     <ClCompile Include="common\dds_readwrite.cpp" />
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\image_viewer.cpp" />
-    <ClCompile Include="core\remote_access.cpp" />
+    <ClCompile Include="core\target_control.cpp" />
     <ClCompile Include="core\remote_server.cpp" />
     <ClCompile Include="core\replay_proxy.cpp" />
     <ClCompile Include="core\resource_manager.cpp" />

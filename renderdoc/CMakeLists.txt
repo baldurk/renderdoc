@@ -73,7 +73,7 @@ set(sources
     core/core.cpp
     core/core.h
     core/crash_handler.h
-    core/remote_access.cpp
+    core/target_control.cpp
     core/remote_server.cpp
     core/replay_proxy.cpp
     core/replay_proxy.h
