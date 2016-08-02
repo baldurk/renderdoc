@@ -93,6 +93,31 @@ string ToStrHelper<false, WindowingSystem>::Get(const WindowingSystem &el)
 }
 
 template <>
+string ToStrHelper<false, ReplayCreateStatus>::Get(const ReplayCreateStatus &el)
+{
+  switch(el)
+  {
+    case eReplayCreate_Success: return "Success";
+    case eReplayCreate_UnknownError: return "Unknown error";
+    case eReplayCreate_InternalError: return "Internal error";
+    case eReplayCreate_NetworkIOFailed: return "Network I/O failed";
+    case eReplayCreate_FileIOFailed: return "File I/O failed";
+    case eReplayCreate_FileIncompatibleVersion: return "File of incompatible version";
+    case eReplayCreate_FileCorrupted: return "File corrupted";
+    case eReplayCreate_APIUnsupported: return "API unsupported";
+    case eReplayCreate_APIInitFailed: return "API initialisation failed";
+    case eReplayCreate_APIIncompatibleVersion: return "API incompatible version";
+    case eReplayCreate_APIHardwareUnsupported: return "API hardware unsupported";
+    default: break;
+  }
+
+  char tostrBuf[256] = {0};
+  StringFormat::snprintf(tostrBuf, 255, "ReplayCreateStatus<%d>", el);
+
+  return tostrBuf;
+}
+
+template <>
 string ToStrHelper<false, RENDERDOC_InputButton>::Get(const RENDERDOC_InputButton &el)
 {
   char alphanumericbuf[2] = {'A', 0};

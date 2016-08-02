@@ -481,8 +481,11 @@ struct IRemoteServer
   virtual bool LocalProxies(rdctype::array<rdctype::str> *out) = 0;
   virtual bool RemoteSupportedReplays(rdctype::array<rdctype::str> *out) = 0;
 
-  virtual ReplayCreateStatus CreateProxyRenderer(uint32_t proxyid, const char *logfile,
-                                                 float *progress, ReplayRenderer **rend) = 0;
+  virtual void CopyCapture(const char *filename, float *progress) = 0;
+
+  virtual ReplayCreateStatus OpenCapture(uint32_t proxyid, const char *logfile, float *progress,
+                                         ReplayRenderer **rend) = 0;
+  virtual void CloseCapture(ReplayRenderer *rend) = 0;
 };
 
 #endif
@@ -507,8 +510,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 RemoteServer_RemoteSupportedReplays(RemoteServer *remote, rdctype::array<rdctype::str> *out);
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
-RemoteServer_CreateProxyRenderer(RemoteServer *remote, uint32_t proxyid, const char *logfile,
-                                 float *progress, ReplayRenderer **rend);
+RemoteServer_OpenCapture(RemoteServer *remote, uint32_t proxyid, const char *logfile,
+                         float *progress, ReplayRenderer **rend);
 
 //////////////////////////////////////////////////////////////////////////
 // camera
