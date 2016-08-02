@@ -29,6 +29,7 @@
 #include "os/os_specific.h"
 #include "replay/replay_renderer.h"
 #include "serialise/serialiser.h"
+#include "serialise/string_utils.h"
 #include "replay_proxy.h"
 #include "socket_helpers.h"
 
