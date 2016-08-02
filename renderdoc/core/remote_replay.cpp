@@ -80,35 +80,48 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
   bool newlyReady = true;
 
   std::vector<std::pair<uint32_t, uint32_t> > listenRanges;
+  bool allowExecution = true;
 
-  FILE *f = FileIO::fopen(FileIO::GetAppFolderFilename("replayserver.conf").c_str(), "r");
+  FILE *f = FileIO::fopen(FileIO::GetAppFolderFilename("remoteserver.conf").c_str(), "r");
 
   while(f && !FileIO::feof(f))
   {
-    string line = FileIO::getline(f);
+    string line = trim(FileIO::getline(f));
 
-    size_t nonws = line.find_first_not_of("\t ");
-
-    // skip blank lines
-    if(nonws == string::npos)
+    if(line == "")
       continue;
 
     // skip comments
-    if(line[nonws] == '#')
+    if(line[0] == '#')
       continue;
 
-    uint32_t ip = 0, mask = 0;
-
-    // CIDR notation
-    bool found = Network::ParseIPRangeCIDR(line.c_str() + nonws, ip, mask);
-
-    if(found)
+    if(line.substr(0, sizeof("whitelist") - 1) == "whitelist")
     {
-      listenRanges.push_back(std::make_pair(ip, mask));
+      uint32_t ip = 0, mask = 0;
+
+      // CIDR notation
+      bool found = Network::ParseIPRangeCIDR(line.c_str() + sizeof("whitelist"), ip, mask);
+
+      if(found)
+      {
+        listenRanges.push_back(std::make_pair(ip, mask));
+        continue;
+      }
+      else
+      {
+        RDCLOG("Couldn't parse IP range from: %s", line.c_str() + sizeof("whitelist"));
+      }
+
+      continue;
+    }
+    else if(line.substr(0, sizeof("noexec") - 1) == "noexec")
+    {
+      allowExecution = false;
+
       continue;
     }
 
-    RDCLOG("Malformed line '%s'. Expect CIDR notation: aaa.bbb.ccc.ddd/nn", line.c_str());
+    RDCLOG("Malformed line '%s'. See documentation for file format.", line.c_str());
   }
 
   if(f)
@@ -118,7 +131,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
   {
     RDCLOG("No whitelist IP ranges configured - using default private IP ranges.");
     RDCLOG(
-        "Create a config file replayserver.conf in ~/.renderdoc or %%APPDATA%%/renderdoc to narrow "
+        "Create a config file remoteserver.conf in ~/.renderdoc or %%APPDATA%%/renderdoc to narrow "
         "this down or accept connections from more ranges.");
 
     listenRanges.push_back(std::make_pair(Network::MakeIP(10, 0, 0, 0), 0xff000000));
@@ -137,6 +150,11 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
            Network::GetIPOctet(ip, 2), Network::GetIPOctet(ip, 3), Network::GetIPOctet(mask, 0),
            Network::GetIPOctet(mask, 1), Network::GetIPOctet(mask, 2), Network::GetIPOctet(mask, 3));
   }
+
+  if(allowExecution)
+    RDCLOG("Allowing execution commands");
+  else
+    RDCLOG("Blocking execution commands");
 
   while(!killReplay)
   {
