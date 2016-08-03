@@ -847,7 +847,10 @@ namespace renderdoc
     public class RemoteServer
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteServer_Shutdown(IntPtr real);
+        private static extern void RemoteServer_ShutdownConnection(IntPtr real);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_ShutdownServerAndConnection(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool RemoteServer_LocalProxies(IntPtr real, IntPtr outlist);
@@ -872,11 +875,20 @@ namespace renderdoc
 
         public RemoteServer(IntPtr real) { m_Real = real; }
 
-        public void Shutdown()
+        public void ShutdownConnection()
         {
             if (m_Real != IntPtr.Zero)
             {
-                RemoteServer_Shutdown(m_Real);
+                RemoteServer_ShutdownConnection(m_Real);
+                m_Real = IntPtr.Zero;
+            }
+        }
+
+        public void ShutdownServerAndConnection()
+        {
+            if (m_Real != IntPtr.Zero)
+            {
+                RemoteServer_ShutdownServerAndConnection(m_Real);
                 m_Real = IntPtr.Zero;
             }
         }

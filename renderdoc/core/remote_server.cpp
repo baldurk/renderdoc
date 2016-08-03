@@ -52,6 +52,7 @@ enum RemoteServerPacket
   eRemoteServer_LogOpened,
   eRemoteServer_CloseLog,
   eRemoteServer_ExecuteAndInject,
+  eRemoteServer_ShutdownServer,
   eRemoteServer_RemoteServerCount,
 };
 
@@ -171,7 +172,9 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 
   RDCLOG("Replay host ready for requests...");
 
-  while(!killReplay)
+  bool shutdownServer = false;
+
+  while(!killReplay && !shutdownServer)
   {
     Network::Socket *client = sock->AcceptClient(false);
 
@@ -301,6 +304,11 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
           RDCLOG("Taking ownership of '%s'.", cap_file.c_str());
 
           tempFiles.push_back(cap_file);
+        }
+        else if(type == eRemoteServer_ShutdownServer)
+        {
+          shutdownServer = true;
+          break;
         }
         else if(type == eRemoteServer_OpenLog)
         {
@@ -436,7 +444,13 @@ public:
       m_Proxies.push_back(*it);
   }
   virtual ~RemoteServer() { SAFE_DELETE(m_Socket); }
-  void Shutdown() { delete this; }
+  void ShutdownConnection() { delete this; }
+  void ShutdownServerAndConnection()
+  {
+    Serialiser sendData("", Serialiser::WRITING, false);
+    Send(eRemoteServer_ShutdownServer, sendData);
+    delete this;
+  }
   bool Connected() { return m_Socket != NULL && m_Socket->Connected(); }
   bool LocalProxies(rdctype::array<rdctype::str> *out)
   {
@@ -680,9 +694,14 @@ private:
   vector<pair<RDCDriver, string> > m_Proxies;
 };
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_Shutdown(RemoteServer *remote)
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ShutdownConnection(RemoteServer *remote)
 {
-  remote->Shutdown();
+  remote->ShutdownConnection();
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ShutdownServerAndConnection(RemoteServer *remote)
+{
+  remote->ShutdownServerAndConnection();
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC

@@ -476,7 +476,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_ReceiveMessage(TargetCo
 
 struct IRemoteServer
 {
-  virtual void Shutdown() = 0;
+  virtual void ShutdownConnection() = 0;
+
+  virtual void ShutdownServerAndConnection() = 0;
 
   virtual bool LocalProxies(rdctype::array<rdctype::str> *out) = 0;
   virtual bool RemoteSupportedReplays(rdctype::array<rdctype::str> *out) = 0;
@@ -506,7 +508,9 @@ struct RemoteServer
 #endif
 #endif
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_Shutdown(RemoteServer *remote);
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ShutdownConnection(RemoteServer *remote);
+extern "C" RENDERDOC_API void RENDERDOC_CC
+RemoteServer_ShutdownServerAndConnection(RemoteServer *remote);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 RemoteServer_LocalProxies(RemoteServer *remote, rdctype::array<rdctype::str> *out);
