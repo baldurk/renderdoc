@@ -90,31 +90,8 @@ void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
 void RenderManager::run()
 {
   IReplayRenderer *renderer = NULL;
-  IRemoteServer *remote = NULL;
 
-  if(m_ProxyRenderer < 0)
-  {
-    m_CreateStatus = RENDERDOC_CreateReplayRenderer(m_Logfile.toUtf8(), m_Progress, &renderer);
-  }
-  else
-  {
-    m_CreateStatus = RENDERDOC_CreateRemoteServerConnection(m_ReplayHost.toUtf8(), 0, &remote);
-
-    if(remote == NULL)
-    {
-      return;
-    }
-
-    m_CreateStatus =
-        remote->CreateProxyRenderer(m_ProxyRenderer, m_Logfile.toUtf8(), m_Progress, &renderer);
-
-    if(renderer == NULL)
-    {
-      remote->Shutdown();
-      remote = NULL;
-      return;
-    }
-  }
+  m_CreateStatus = RENDERDOC_CreateReplayRenderer(m_Logfile.toUtf8(), m_Progress, &renderer);
 
   if(renderer == NULL)
     return;
@@ -176,6 +153,4 @@ void RenderManager::run()
 
   // close the core renderer
   renderer->Shutdown();
-  if(remote)
-    remote->Shutdown();
 }
