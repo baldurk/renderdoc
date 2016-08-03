@@ -2809,7 +2809,7 @@ void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el)
   Serialise("queueCount", el.queueCount);
   if(m_Mode == READING)
     el.pQueuePriorities = NULL;
-  SerialisePODArray("pQueuePriorities", (uint32_t *&)el.pQueuePriorities, el.queueCount);
+  SerialisePODArray("pQueuePriorities", (float *&)el.pQueuePriorities, el.queueCount);
 }
 
 // technically this doesn't need a serialise function as it's POD,
