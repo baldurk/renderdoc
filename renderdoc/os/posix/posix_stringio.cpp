@@ -24,8 +24,10 @@
 
 #include <dlfcn.h>    // for dladdr
 #include <errno.h>
+#include <limits.h>
 #include <pwd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -72,8 +74,8 @@ void CreateParentDirectory(const string &filename)
 
 string GetFullPathname(const string &filename)
 {
-  char path[512] = {0};
-  readlink(filename.c_str(), path, 511);
+  char path[PATH_MAX + 1] = {0};
+  realpath(filename.c_str(), path);
 
   return string(path);
 }
