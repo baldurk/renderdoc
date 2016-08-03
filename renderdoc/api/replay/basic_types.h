@@ -144,6 +144,8 @@ struct str : public rdctype::array<char>
 
   str() : rdctype::array<char>() {}
   str(const str &o) : rdctype::array<char>() { *this = o; }
+  str(const std::string &o) : rdctype::array<char>() { *this = o; }
+  str(const char *const o) : rdctype::array<char>() { *this = o; }
   str &operator=(const str &o)
   {
     // do nothing if we're self-assigning
