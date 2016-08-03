@@ -60,6 +60,12 @@ elseif(UNIX)
     install (FILES ${json_out} DESTINATION share/vulkan/implicit_layer.d)
 endif()
 
+# GCC 6.1 may or may not complain about enum reference casts
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set_source_files_properties(vk_common.cpp
+        PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
+endif()
+
 add_library(rdoc_vulkan OBJECT ${sources})
 target_compile_definitions(rdoc_vulkan ${definitions})
 target_include_directories(rdoc_vulkan ${RDOC_INCLUDES})
