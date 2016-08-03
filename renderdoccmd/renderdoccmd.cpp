@@ -390,6 +390,7 @@ struct RemoteServerCommand : public Command
 {
   virtual void AddOptions(cmdline::parser &parser)
   {
+    parser.add("daemon", 'd', "Go into the background.");
     parser.add<string>(
         "host", 'h', "The interface to listen on. By default listens on all interfaces", false, "");
     parser.add<uint32_t>("port", 'p', "The port to listen on.", false,
@@ -408,6 +409,12 @@ struct RemoteServerCommand : public Command
 
     std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host) << ":"
               << port << "..." << std::endl;
+
+    if(parser.exist("daemon"))
+    {
+      std::cerr << "Detaching." << std::endl;
+      Daemonise();
+    }
 
     usingKillSignal = true;
 
@@ -449,44 +456,52 @@ struct ReplayCommand : public Command
 
     string filename = parser.rest()[0];
 
-    float progress = 0.0f;
-    RemoteRenderer *remote = NULL;
-    ReplayRenderer *renderer = NULL;
-
     if(parser.exist("remote-host"))
     {
       std::cout << "Replaying '" << filename << "' on " << parser.get<string>("remote-host") << ":"
                 << parser.get<uint32_t>("remote-port") << "." << std::endl;
 
-      ReplayCreateStatus status = RENDERDOC_CreateRemoteReplayConnection(
+      RemoteServer *remote = NULL;
+      ReplayCreateStatus status = RENDERDOC_CreateRemoteServerConnection(
           parser.get<string>("remote-host").c_str(), parser.get<uint32_t>("remote-port"), &remote);
 
       if(remote == NULL || status != eReplayCreate_Success)
       {
         std::cerr << "Error: Couldn't connect to " << parser.get<string>("remote-host") << ":"
                   << parser.get<uint32_t>("remote-port") << "." << std::endl;
-        std::cerr << "       Have you run renderdoccmd replayhost ?" << std::endl;
+        std::cerr << "       Have you run renderdoccmd remoteserver on '"
+                  << parser.get<string>("remote-host") << "'?" << std::endl;
         return 1;
       }
 
+      std::cerr << "Copying capture file to remote server" << std::endl;
+
       float progress = 0.0f;
+      rdctype::str remotePath = remote->CopyCapture(filename.c_str(), &progress);
 
       ReplayRenderer *renderer = NULL;
-      status = RemoteRenderer_CreateProxyRenderer(remote, 0, filename.c_str(), &progress, &renderer);
+      status = remote->OpenCapture(~0U, remotePath.elems, &progress, &renderer);
 
       if(status == eReplayCreate_Success)
+      {
         DisplayRendererPreview(renderer, parser.get<uint32_t>("width"),
                                parser.get<uint32_t>("height"));
-      else
-        std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
 
-      ReplayRenderer_Shutdown(renderer);
-      remote->Shutdown();
+        remote->CloseCapture(renderer);
+      }
+      else
+      {
+        std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
+      }
+
+      remote->ShutdownConnection();
     }
     else
     {
       std::cout << "Replaying '" << filename << "' locally.." << std::endl;
 
+      float progress = 0.0f;
+      ReplayRenderer *renderer = NULL;
       ReplayCreateStatus status =
           RENDERDOC_CreateReplayRenderer(filename.c_str(), &progress, &renderer);
 
@@ -496,7 +511,7 @@ struct ReplayCommand : public Command
       else
         std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
 
-      ReplayRenderer_Shutdown(renderer);
+      renderer->Shutdown();
     }
     return 0;
   }

@@ -42,6 +42,10 @@ using std::string;
 
 struct android_app *android_state;
 
+void Daemonise()
+{
+}
+
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {

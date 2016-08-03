@@ -228,6 +228,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
   return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
+void Daemonise()
+{
+  // nothing really to do, windows version of renderdoccmd is already 'detached'
+}
+
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {

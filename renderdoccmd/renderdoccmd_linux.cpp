@@ -38,6 +38,12 @@
 
 using std::string;
 
+void Daemonise()
+{
+  // don't change dir, but close stdin/stdou
+  daemon(1, 0);
+}
+
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {
@@ -214,6 +220,7 @@ int main(int argc, char *argv[])
     glXWaitGL();
 
   signal(SIGINT, sig_handler);
+  signal(SIGTERM, sig_handler);
 
   // do any linux-specific setup here
 
