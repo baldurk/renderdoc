@@ -682,11 +682,37 @@ RemoteServer_RemoteSupportedReplays(RemoteServer *remote, rdctype::array<rdctype
   return remote->RemoteSupportedReplays(out);
 }
 
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
+RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,
+                              const char *cmdLine, const char *logfile, const CaptureOptions *opts)
+{
+  return remote->ExecuteAndInject(app, workingDir, cmdLine, logfile, opts);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(RemoteServer *remote,
+                                                                             const char *filename)
+{
+  return remote->TakeOwnershipCapture(filename);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCapture(RemoteServer *remote,
+                                                                    const char *filename,
+                                                                    float *progress)
+{
+  return remote->CopyCapture(filename, progress);
+}
+
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
 RemoteServer_OpenCapture(RemoteServer *remote, uint32_t proxyid, const char *logfile,
                          float *progress, ReplayRenderer **rend)
 {
   return remote->OpenCapture(proxyid, logfile, progress, rend);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CloseCapture(RemoteServer *remote,
+                                                                     ReplayRenderer *rend)
+{
+  return remote->CloseCapture(rend);
 }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC

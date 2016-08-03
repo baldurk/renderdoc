@@ -513,9 +513,21 @@ RemoteServer_LocalProxies(RemoteServer *remote, rdctype::array<rdctype::str> *ou
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 RemoteServer_RemoteSupportedReplays(RemoteServer *remote, rdctype::array<rdctype::str> *out);
 
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
+RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,
+                              const char *cmdLine, const char *logfile, const CaptureOptions *opts);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(RemoteServer *remote,
+                                                                             const char *filename);
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCapture(RemoteServer *remote,
+                                                                    const char *filename,
+                                                                    float *progress);
+
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
 RemoteServer_OpenCapture(RemoteServer *remote, uint32_t proxyid, const char *logfile,
                          float *progress, ReplayRenderer **rend);
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CloseCapture(RemoteServer *remote,
+                                                                     ReplayRenderer *rend);
 
 //////////////////////////////////////////////////////////////////////////
 // camera
