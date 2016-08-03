@@ -679,12 +679,12 @@ extern "C" RENDERDOC_API TargetControl *RENDERDOC_CC RENDERDOC_CreateTargetContr
   if(host != NULL && host[0] != '\0')
     s = host;
 
-  bool localhost = (s == "localhost");
-
   Network::Socket *sock = Network::CreateClientSocket(s.c_str(), ident & 0xffff, 3000);
 
   if(sock == NULL)
     return NULL;
+
+  bool localhost = Network::GetIPOctet(sock->GetRemoteIP(), 0) == 127;
 
   TargetControl *remote = new TargetControl(sock, clientName, forceConnection != 0, localhost);
 
