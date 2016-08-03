@@ -61,10 +61,9 @@ namespace renderdocui.Code
 
         private AutoResetEvent m_WakeupEvent = new AutoResetEvent(false);
         private Thread m_Thread;
-        private int m_ProxyRenderer = -1;
-        private string m_ReplayHost;
         private string m_Logfile;
         private bool m_Running;
+        private RemoteServer m_Remote;
 
         private List<InvokeHandle> m_renderQueue;
 
@@ -78,13 +77,11 @@ namespace renderdocui.Code
             m_renderQueue = new List<InvokeHandle>();
         }
 
-        public void Init(int proxyRenderer, string replayHost, string logfile)
+        public void Init(string logfile)
         {
             if(Running)
                 return;
 
-            m_ProxyRenderer = proxyRenderer;
-            m_ReplayHost = replayHost;
             m_Logfile = logfile;
 
             LoadProgress = 0.0f;
@@ -102,6 +99,26 @@ namespace renderdocui.Code
         {
             get { return m_Running; }
             set { m_Running = value; m_WakeupEvent.Set(); }
+        }
+
+        public void ConnectToRemoteServer(string hostname)
+        {
+            InitException = null;
+
+            try
+            {
+                m_Remote = StaticExports.CreateRemoteServer(hostname, 0);
+            }
+            catch (ApplicationException ex)
+            {
+                InitException = ex;
+            }
+        }
+
+        public void DisconnectFromRemoteServer()
+        {
+            if (m_Remote != null)
+                m_Remote.ShutdownConnection();
         }
 
         public ApplicationException InitException = null;
@@ -161,16 +178,27 @@ namespace renderdocui.Code
         ////////////////////////////////////////////
         // Internals
 
-        private void CreateReplayRenderer(ref ReplayRenderer renderer)
+        private ReplayRenderer CreateReplayRenderer()
         {
-            renderer = StaticExports.CreateReplayRenderer(m_Logfile, ref LoadProgress);
+            if (m_Remote != null)
+                return m_Remote.OpenCapture(-1, m_Logfile, ref LoadProgress);
+            else
+                return StaticExports.CreateReplayRenderer(m_Logfile, ref LoadProgress);
+        }
+
+        private void DestroyReplayRenderer(ReplayRenderer renderer)
+        {
+            if (m_Remote != null)
+                m_Remote.CloseCapture(renderer);
+            else
+                renderer.Shutdown();
         }
 
         private void RunThread()
         {
             try
             {
-                ReplayRenderer renderer = StaticExports.CreateReplayRenderer(m_Logfile, ref LoadProgress);
+                ReplayRenderer renderer = CreateReplayRenderer();
                 if(renderer != null)
                 {
                     System.Diagnostics.Debug.WriteLine("Renderer created");
@@ -223,7 +251,7 @@ namespace renderdocui.Code
                         m_renderQueue.Clear();
                     }
 
-                    renderer.Shutdown();
+                    DestroyReplayRenderer(renderer);
                 }
             }
             catch (ApplicationException ex)

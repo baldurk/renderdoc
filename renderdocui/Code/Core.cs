@@ -451,15 +451,7 @@ namespace renderdocui.Code
             }
         }
 
-        // loading a local log, no remote replay
         public void LoadLogfile(string logFile, bool temporary)
-        {
-            LoadLogfile(-1, "", logFile, temporary);
-        }
-
-        // when loading a log while replaying remotely, provide the proxy renderer that will be used
-        // as well as the hostname to replay on.
-        public void LoadLogfile(int proxyRenderer, string replayHost, string logFile, bool temporary)
         {
             m_LogFile = logFile;
 
@@ -511,7 +503,7 @@ namespace renderdocui.Code
             thread.Start();
 
             // this function call will block until the log is either loaded, or there's some failure
-            m_Renderer.Init(proxyRenderer, replayHost, logFile);
+            m_Renderer.Init(logFile);
 
             // if the renderer isn't running, we hit a failure case so display an error message
             if (!m_Renderer.Running)
@@ -520,13 +512,8 @@ namespace renderdocui.Code
                 if (m_Renderer.InitException.Data.Contains("status"))
                     errmsg = ((ReplayCreateStatus)m_Renderer.InitException.Data["status"]).Str();
 
-                if(proxyRenderer >= 0)
-                    MessageBox.Show(String.Format("{0}\nFailed to transfer and replay on remote host {1}: {2}.\n\n" +
-                                                    "Check diagnostic log in Help menu for more details.", logFile, replayHost, errmsg),
-                                    "Error opening log", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                else
-                    MessageBox.Show(String.Format("{0}\nFailed to open file for replay: {1}.\n\n" +
-                                                    "Check diagnostic log in Help menu for more details.", logFile, errmsg),
+                MessageBox.Show(String.Format("{0}\nFailed to open file for replay: {1}.\n\n" +
+                                              "Check diagnostic log in Help menu for more details.", logFile, errmsg),
                                     "Error opening log", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                 progressThread = false;

@@ -257,6 +257,8 @@ namespace renderdocui.Windows
 
         public void OnLogfileClosed()
         {
+            contextChooser.Enabled = true;
+
             statusText.Text = "";
             statusIcon.Image = null;
             statusProgress.Visible = false;
@@ -342,6 +344,9 @@ namespace renderdocui.Windows
 
         public void OnLogfileLoaded()
         {
+            // don't allow changing context while log is open
+            contextChooser.Enabled = false;
+
             LogHasErrors = (m_Core.DebugMessages.Count > 0);
 
             m_MessageTick = new System.Threading.Timer(MessageCheck, this as object, 500, System.Threading.Timeout.Infinite);
@@ -583,6 +588,9 @@ namespace renderdocui.Windows
                     prefix += " !DEGRADED PERFORMANCE!";
                 prefix += " - ";
             }
+
+            if (m_RemoteHost != null)
+                prefix += String.Format("Remote: {0} - ", m_RemoteHost.Hostname);
 
             Text = prefix + "RenderDoc ";
             if(OfficialVersion)
@@ -910,9 +918,13 @@ namespace renderdocui.Windows
                 contextChooser.Image = global::renderdocui.Properties.Resources.house;
                 contextChooser.Text = "Replay Context: Local";
 
+                m_Core.Renderer.DisconnectFromRemoteServer();
+
                 m_RemoteHost = null;
 
                 statusText.Text = "";
+
+                SetTitle();
             }
             else
             {
@@ -926,6 +938,8 @@ namespace renderdocui.Windows
                 contextChooser.Enabled = false;
 
                 m_RemoteHost = host;
+
+                SetTitle();
 
                 statusText.Text = "Checking remote server status...";
 
@@ -962,6 +976,12 @@ namespace renderdocui.Windows
                         catch (ApplicationException)
                         {
                         }
+                    }
+
+                    if (host.ServerRunning)
+                    {
+                        m_Core.Renderer.DisconnectFromRemoteServer();
+                        m_Core.Renderer.ConnectToRemoteServer(host.Hostname);
                     }
 
                     this.BeginInvoke(new Action(() =>
