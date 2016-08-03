@@ -230,6 +230,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
       if(killReplay)
         break;
 
+      RemoteServerPacket sendType = eRemoteServer_Noop;
       sendSer.Rewind();
 
       Threading::Sleep(4);
@@ -251,6 +252,8 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
         {
           map<RDCDriver, string> drivers = RenderDoc::Inst().GetRemoteDrivers();
 
+          sendType = eRemoteServer_RemoteDriverList;
+
           uint32_t count = (uint32_t)drivers.size();
           sendSer.Serialise("", count);
 
@@ -260,8 +263,6 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
             sendSer.Serialise("", driver);
             sendSer.Serialise("", (*it).second);
           }
-
-          type = eRemoteServer_RemoteDriverList;
         }
         else if(type == eRemoteServer_CopyCapture)
         {
@@ -288,6 +289,9 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
           tempFiles.push_back(cap_file);
 
           SAFE_DELETE(fileRecv);
+
+          sendType = eRemoteServer_CopyCapture;
+          sendSer.Serialise("path", cap_file);
         }
         else if(type == eRemoteServer_TakeOwnershipCapture)
         {
@@ -341,7 +345,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
             Threading::JoinThread(ticker);
             Threading::CloseThread(ticker);
 
-            type = eRemoteServer_LogOpened;
+            sendType = eRemoteServer_LogOpened;
 
             proxy = new ProxySerialiser(client, driver);
           }
@@ -349,10 +353,9 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
           {
             RDCERR("File needs driver for %s which isn't supported!", driverName.c_str());
 
+            sendType = eRemoteServer_LogOpened;
             ReplayCreateStatus status = eReplayCreate_APIUnsupported;
             sendSer.Serialise("status", status);
-
-            type = eRemoteServer_LogOpened;
           }
         }
         else if(type == eRemoteServer_CloseLog)
@@ -362,8 +365,6 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
           driver = NULL;
 
           SAFE_DELETE(proxy);
-
-          type = eRemoteServer_Noop;
         }
         else if(type == eRemoteServer_ExecuteAndInject)
         {
@@ -378,9 +379,8 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
           uint32_t ident = Process::LaunchAndInjectIntoProcess(
               app.c_str(), workingDir.c_str(), cmdLine.c_str(), logfile.c_str(), &opts, false);
 
+          sendType = eRemoteServer_ExecuteAndInject;
           sendSer.Serialise("ident", ident);
-
-          type = eRemoteServer_ExecuteAndInject;
         }
         else if((int)type >= eReplayProxy_First && proxy)
         {
@@ -394,7 +394,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 
         SAFE_DELETE(recvser);
 
-        if(type != eRemoteServer_Noop && !SendPacket(client, type, sendSer))
+        if(type != eRemoteServer_Noop && !SendPacket(client, sendType, sendSer))
         {
           RDCERR("Network error sending supported driver list");
           break;
@@ -523,7 +523,7 @@ public:
     return ident;
   }
 
-  void CopyCapture(const char *filename, float *progress)
+  rdctype::str CopyCapture(const char *filename, float *progress)
   {
     Serialiser sendData("", Serialiser::WRITING, false);
     Send(eRemoteServer_CopyCapture, sendData);
@@ -537,8 +537,21 @@ public:
     if(!SendChunkedFile(m_Socket, eRemoteServer_CopyCapture, filename, sendData, progress))
     {
       SAFE_DELETE(m_Socket);
-      return;
+      return "";
     }
+
+    RemoteServerPacket type = eRemoteServer_Noop;
+    Serialiser *ser = NULL;
+    Get(type, &ser);
+
+    if(type == eRemoteServer_CopyCapture && ser)
+    {
+      string remotepath;
+      ser->Serialise("path", remotepath);
+      return remotepath;
+    }
+
+    return "";
   }
 
   void TakeOwnershipCapture(const char *filename)
@@ -558,7 +571,7 @@ public:
 
     string logfile = filename;
 
-    if(proxyid >= m_Proxies.size())
+    if(proxyid != ~0U && proxyid >= m_Proxies.size())
     {
       RDCERR("Invalid proxy driver id %d specified for remote renderer", proxyid);
       return eReplayCreate_InternalError;
@@ -568,7 +581,9 @@ public:
     if(progress == NULL)
       progress = &dummy;
 
-    RDCDriver proxydrivertype = m_Proxies[proxyid].first;
+    // if the proxy id is ~0U, then we just don't care so let RenderDoc pick the most
+    // appropriate supported proxy for the current platform.
+    RDCDriver proxydrivertype = proxyid == ~0U ? RDC_Unknown : m_Proxies[proxyid].first;
 
     Serialiser sendData("", Serialiser::WRITING, false);
     sendData.Serialise("logfile", logfile);
@@ -692,14 +707,17 @@ RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(RemoteServer *remote,
                                                                              const char *filename)
 {
-  return remote->TakeOwnershipCapture(filename);
+  remote->TakeOwnershipCapture(filename);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCapture(RemoteServer *remote,
                                                                     const char *filename,
-                                                                    float *progress)
+                                                                    float *progress,
+                                                                    rdctype::str *remotepath)
 {
-  return remote->CopyCapture(filename, progress);
+  rdctype::str path = remote->CopyCapture(filename, progress);
+  if(remotepath)
+    *remotepath = path;
 }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
