@@ -35,6 +35,9 @@
 #include "stb/stb_image.h"
 #include "crash_handler.h"
 
+// from image_viewer.cpp
+ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
+
 // not provided by tinyexr, just do by hand
 bool is_exr_file(FILE *f)
 {
@@ -719,6 +722,10 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
 
 bool RenderDoc::HasReplayDriver(RDCDriver driver) const
 {
+  // Image driver is handled specially and isn't registered in the map
+  if(driver == RDC_Image)
+    return true;
+
   return m_ReplayDriverProviders.find(driver) != m_ReplayDriverProviders.end();
 }
 
@@ -766,6 +773,10 @@ ReplayCreateStatus RenderDoc::CreateReplayDriver(RDCDriver driverType, const cha
   // only valid if logfile is NULL and it will be used as a proxy, not to process a log
   if(driverType == RDC_Unknown && logfile == NULL && !m_ReplayDriverProviders.empty())
     return m_ReplayDriverProviders.begin()->second(logfile, driver);
+
+  // image support is special, handle it here
+  if(driverType == RDC_Image && logfile != NULL)
+    return IMG_CreateReplayDevice(logfile, driver);
 
   if(m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end())
     return m_ReplayDriverProviders[driverType](logfile, driver);

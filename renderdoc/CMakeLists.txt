@@ -71,6 +71,7 @@ set(sources
     common/timing.h
     common/wrapped_pool.h
     core/core.cpp
+    core/image_viewer.cpp
     core/core.h
     core/crash_handler.h
     core/target_control.cpp

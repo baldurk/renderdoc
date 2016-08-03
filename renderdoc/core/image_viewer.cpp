@@ -356,7 +356,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 
     // just in case (we shouldn't have come in here if this weren't true), make sure
     // the format is supported
-    if(ret == 0 || width == 0 || width == ~0U || height == 0 || height == ~0U)
+    if(ret == 0 || width <= 0 || width >= 65536 || height <= 0 || height >= 65536)
     {
       FileIO::fclose(f);
       return eReplayCreate_ImageUnsupported;
@@ -644,5 +644,3 @@ void ImageViewer::RefreshFile()
 
   FileIO::fclose(f);
 }
-
-static DriverRegistration IMGDriverRegistration(RDC_Image, "Image", &IMG_CreateReplayDevice);
