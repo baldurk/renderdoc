@@ -51,16 +51,17 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExt
     VkPhysicalDevice physicalDevice, const char *pLayerName, uint32_t *pPropertyCount,
     VkExtensionProperties *pProperties);
 
-VK_LAYER_EXPORT VkResult VKAPI_CALL vkCaptureEnumerateDeviceLayerProperties(
-    VkPhysicalDevice physicalDevice, uint32_t *pPropertyCount, VkLayerProperties *pProperties)
+VK_LAYER_EXPORT VkResult VKAPI_CALL vkEnumerateDeviceLayerProperties(VkPhysicalDevice physicalDevice,
+                                                                     uint32_t *pPropertyCount,
+                                                                     VkLayerProperties *pProperties)
 {
   return VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties(physicalDevice, pPropertyCount,
                                                                   pProperties);
 }
 
-VK_LAYER_EXPORT VkResult VKAPI_CALL vkCaptureEnumerateDeviceExtensionProperties(
-    VkPhysicalDevice physicalDevice, const char *pLayerName, uint32_t *pPropertyCount,
-    VkExtensionProperties *pProperties)
+VK_LAYER_EXPORT VkResult VKAPI_CALL
+vkEnumerateDeviceExtensionProperties(VkPhysicalDevice physicalDevice, const char *pLayerName,
+                                     uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
 {
   return VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties(physicalDevice, pLayerName,
                                                                       pPropertyCount, pProperties);
