@@ -38,11 +38,11 @@ namespace renderdocui.Windows
 {
     public delegate bool ModalCloseCallback();
 
-    public partial class ModalPopup : Form, ILogLoadProgressListener
+    public partial class ProgressPopup : Form, ILogLoadProgressListener
     {
         ModalCloseCallback m_Callback;
 
-        public ModalPopup(ModalCloseCallback callback, bool realProgress)
+        public ProgressPopup(ModalCloseCallback callback, bool realProgress)
         {
             InitializeComponent();
             m_Callback = callback;

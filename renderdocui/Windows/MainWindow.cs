@@ -1617,7 +1617,7 @@ namespace renderdocui.Windows
         {
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { r.InitResolver(); });
 
-            ModalPopup modal = new ModalPopup(SymbolResolveCallback, false);
+            ProgressPopup modal = new ProgressPopup(SymbolResolveCallback, false);
             modal.SetModalText("Please Wait - Resolving Symbols.");
 
             modal.ShowDialog();

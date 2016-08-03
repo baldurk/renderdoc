@@ -289,11 +289,11 @@
     <Compile Include="Windows\EventBrowser.Designer.cs">
       <DependentUpon>EventBrowser.cs</DependentUpon>
     </Compile>
-    <Compile Include="Windows\Dialogs\ModalPopup.cs">
+    <Compile Include="Windows\Dialogs\ProgressPopup.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Windows\Dialogs\ModalPopup.Designer.cs">
-      <DependentUpon>ModalPopup.cs</DependentUpon>
+    <Compile Include="Windows\Dialogs\ProgressPopup.Designer.cs">
+      <DependentUpon>ProgressPopup.cs</DependentUpon>
     </Compile>
     <Compile Include="Windows\Dialogs\LiveCapture.cs">
       <SubType>Form</SubType>
@@ -433,8 +433,8 @@
     <EmbeddedResource Include="Windows\EventBrowser.resx">
       <DependentUpon>EventBrowser.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Windows\Dialogs\ModalPopup.resx">
-      <DependentUpon>ModalPopup.cs</DependentUpon>
+    <EmbeddedResource Include="Windows\Dialogs\ProgressPopup.resx">
+      <DependentUpon>ProgressPopup.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\LiveCapture.resx">
       <DependentUpon>LiveCapture.cs</DependentUpon>

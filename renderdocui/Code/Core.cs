@@ -474,7 +474,7 @@ namespace renderdocui.Code
 
             // start a modal dialog to prevent the user interacting with the form while the log is loading.
             // We'll close it down when log loading finishes (whether it succeeds or fails)
-            ModalPopup modal = new ModalPopup(LogLoadCallback, true);
+            ProgressPopup modal = new ProgressPopup(LogLoadCallback, true);
 
             Thread modalThread = Helpers.NewThread(new ThreadStart(() =>
             {

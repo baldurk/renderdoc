@@ -1,6 +1,6 @@
 ﻿namespace renderdocui.Windows
 {
-    partial class ModalPopup
+    partial class ProgressPopup
     {
         /// <summary>
         /// Required designer variable.
@@ -75,7 +75,7 @@
             this.progressBar.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
             this.progressBar.TabIndex = 1;
             // 
-            // ModalPopup
+            // ProgressPopup
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -84,7 +84,7 @@
             this.Controls.Add(this.tableLayoutPanel1);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "ModalPopup";
+            this.Name = "ProgressPopup";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
