@@ -35,15 +35,23 @@
 
 using std::pair;
 
+template <>
+string ToStrHelper<false, CaptureOptions>::Get(const CaptureOptions &el)
+{
+  return "<...>";
+}
+
 enum RemoteServerPacket
 {
   eRemoteServer_Noop,
   eRemoteServer_RemoteDriverList,
+  eRemoteServer_TakeOwnershipCapture,
   eRemoteServer_CopyCapture,
-  eRemoteServer_OpenCapture,
+  eRemoteServer_OpenLog,
   eRemoteServer_LogOpenProgress,
   eRemoteServer_LogOpened,
-  eRemoteServer_CloseCapture,
+  eRemoteServer_CloseLog,
+  eRemoteServer_ExecuteAndInject,
   eRemoteServer_RemoteServerCount,
 };
 
@@ -281,7 +289,16 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 
           SAFE_DELETE(fileRecv);
         }
-        else if(type == eRemoteServer_OpenCapture)
+        else if(type == eRemoteServer_TakeOwnershipCapture)
+        {
+          string cap_file;
+          recvser->Serialise("filename", cap_file);
+
+          RDCLOG("Taking ownership of '%s'.", cap_file.c_str());
+
+          tempFiles.push_back(cap_file);
+        }
+        else if(type == eRemoteServer_OpenLog)
         {
           string cap_file;
           recvser->Serialise("filename", cap_file);
@@ -338,7 +355,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
             type = eRemoteServer_LogOpened;
           }
         }
-        else if(type == eRemoteServer_CloseCapture)
+        else if(type == eRemoteServer_CloseLog)
         {
           if(driver)
             driver->Shutdown();
@@ -347,6 +364,23 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
           SAFE_DELETE(proxy);
 
           type = eRemoteServer_Noop;
+        }
+        else if(type == eRemoteServer_ExecuteAndInject)
+        {
+          string app, workingDir, cmdLine, logfile;
+          CaptureOptions opts;
+          recvser->Serialise("app", app);
+          recvser->Serialise("workingDir", workingDir);
+          recvser->Serialise("cmdLine", cmdLine);
+          recvser->Serialise("logfile", logfile);
+          recvser->Serialise("opts", opts);
+
+          uint32_t ident = Process::LaunchAndInjectIntoProcess(
+              app.c_str(), workingDir.c_str(), cmdLine.c_str(), logfile.c_str(), &opts, false);
+
+          sendSer.Serialise("ident", ident);
+
+          type = eRemoteServer_ExecuteAndInject;
         }
         else if((int)type >= eReplayProxy_First && proxy)
         {
@@ -456,6 +490,39 @@ public:
     return true;
   }
 
+  uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+                            const char *logfile, const CaptureOptions *opts)
+  {
+    CaptureOptions capopts = opts ? *opts : CaptureOptions();
+
+    string appstr = app && app[0] ? app : "";
+    string workstr = workingDir && workingDir[0] ? workingDir : "";
+    string cmdstr = cmdLine && cmdLine[0] ? cmdLine : "";
+    string logstr = logfile && logfile[0] ? logfile : "";
+
+    Serialiser sendData("", Serialiser::WRITING, false);
+    sendData.Serialise("app", appstr);
+    sendData.Serialise("workingDir", workstr);
+    sendData.Serialise("cmdLine", cmdstr);
+    sendData.Serialise("logfile", logstr);
+    sendData.Serialise("opts", capopts);
+    Send(eRemoteServer_ExecuteAndInject, sendData);
+
+    RemoteServerPacket type = eRemoteServer_ExecuteAndInject;
+
+    Serialiser *ser = NULL;
+    Get(type, &ser);
+
+    uint32_t ident = 0;
+
+    if(ser)
+      ser->Serialise("ident", ident);
+
+    SAFE_DELETE(ser);
+
+    return ident;
+  }
+
   void CopyCapture(const char *filename, float *progress)
   {
     Serialiser sendData("", Serialiser::WRITING, false);
@@ -472,6 +539,15 @@ public:
       SAFE_DELETE(m_Socket);
       return;
     }
+  }
+
+  void TakeOwnershipCapture(const char *filename)
+  {
+    string logfile = filename;
+
+    Serialiser sendData("", Serialiser::WRITING, false);
+    sendData.Serialise("logfile", logfile);
+    Send(eRemoteServer_TakeOwnershipCapture, sendData);
   }
 
   ReplayCreateStatus OpenCapture(uint32_t proxyid, const char *filename, float *progress,
@@ -496,7 +572,7 @@ public:
 
     Serialiser sendData("", Serialiser::WRITING, false);
     sendData.Serialise("logfile", logfile);
-    Send(eRemoteServer_OpenCapture, sendData);
+    Send(eRemoteServer_OpenLog, sendData);
 
     Serialiser *progressSer = NULL;
     RemoteServerPacket type = eRemoteServer_Noop;
@@ -504,7 +580,7 @@ public:
     {
       Get(type, &progressSer);
 
-      if(!m_Socket || type != eRemoteServer_LogOpenProgress)
+      if(!m_Socket || progressSer == NULL || type != eRemoteServer_LogOpenProgress)
         break;
 
       progressSer->Serialise("", *progress);
@@ -514,11 +590,13 @@ public:
       SAFE_DELETE(progressSer);
     }
 
-    if(!m_Socket || type != eRemoteServer_LogOpened)
+    if(!m_Socket || progressSer == NULL || type != eRemoteServer_LogOpened)
       return eReplayCreate_NetworkIOFailed;
 
     ReplayCreateStatus status = eReplayCreate_Success;
     progressSer->Serialise("status", status);
+
+    SAFE_DELETE(progressSer);
 
     *progress = 1.0f;
 
@@ -559,7 +637,7 @@ public:
   void CloseCapture(ReplayRenderer *rend)
   {
     Serialiser sendData("", Serialiser::WRITING, false);
-    Send(eRemoteServer_CloseCapture, sendData);
+    Send(eRemoteServer_CloseLog, sendData);
 
     rend->Shutdown();
   }

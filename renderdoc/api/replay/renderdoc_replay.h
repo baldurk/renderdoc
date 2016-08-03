@@ -481,6 +481,10 @@ struct IRemoteServer
   virtual bool LocalProxies(rdctype::array<rdctype::str> *out) = 0;
   virtual bool RemoteSupportedReplays(rdctype::array<rdctype::str> *out) = 0;
 
+  virtual uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+                                    const char *logfile, const CaptureOptions *opts) = 0;
+
+  virtual void TakeOwnershipCapture(const char *filename) = 0;
   virtual void CopyCapture(const char *filename, float *progress) = 0;
 
   virtual ReplayCreateStatus OpenCapture(uint32_t proxyid, const char *logfile, float *progress,
