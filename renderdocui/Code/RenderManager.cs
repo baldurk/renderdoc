@@ -161,42 +161,16 @@ namespace renderdocui.Code
         ////////////////////////////////////////////
         // Internals
 
-        private void CreateReplayRenderer(ref ReplayRenderer renderer, ref RemoteServer remote)
+        private void CreateReplayRenderer(ref ReplayRenderer renderer)
         {
-            if (m_ProxyRenderer < 0)
-            {
-                renderer = StaticExports.CreateReplayRenderer(m_Logfile, ref LoadProgress);
-                return;
-            }
-
-            remote = StaticExports.CreateRemoteReplayConnection(m_ReplayHost, 0);
-
-            if(remote == null)
-            {
-                var e = new System.ApplicationException("Failed to connect to remote replay host");
-                e.Data.Add("status", ReplayCreateStatus.UnknownError);
-                throw e;
-            }
-
-            renderer = remote.OpenCapture(m_ProxyRenderer, m_Logfile, ref LoadProgress);
-
-            if(renderer == null)
-            {
-                remote.Shutdown();
-
-                var e = new System.ApplicationException("Failed to connect to remote replay host");
-                e.Data.Add("status", ReplayCreateStatus.UnknownError);
-                throw e;
-            }
+            renderer = StaticExports.CreateReplayRenderer(m_Logfile, ref LoadProgress);
         }
 
         private void RunThread()
         {
             try
             {
-                ReplayRenderer renderer = null;
-                RemoteServer remote = null;
-                CreateReplayRenderer(ref renderer, ref remote);
+                ReplayRenderer renderer = StaticExports.CreateReplayRenderer(m_Logfile, ref LoadProgress);
                 if(renderer != null)
                 {
                     System.Diagnostics.Debug.WriteLine("Renderer created");
@@ -250,7 +224,6 @@ namespace renderdocui.Code
                     }
 
                     renderer.Shutdown();
-                    if (remote != null) remote.Shutdown();
                 }
             }
             catch (ApplicationException ex)

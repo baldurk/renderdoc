@@ -235,23 +235,17 @@
     <Compile Include="Windows\Dialogs\PythonShell.Designer.cs">
       <DependentUpon>PythonShell.cs</DependentUpon>
     </Compile>
-    <Compile Include="Windows\Dialogs\RemoteHostSelect.cs">
+    <Compile Include="Windows\Dialogs\RemoteManager.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Windows\Dialogs\RemoteHostSelect.Designer.cs">
-      <DependentUpon>RemoteHostSelect.cs</DependentUpon>
+    <Compile Include="Windows\Dialogs\RemoteManager.Designer.cs">
+      <DependentUpon>RemoteManager.cs</DependentUpon>
     </Compile>
     <Compile Include="Windows\Dialogs\OrderedListEditor.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Windows\Dialogs\OrderedListEditor.Designer.cs">
       <DependentUpon>OrderedListEditor.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Windows\Dialogs\ReplayHostManager.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Windows\Dialogs\ReplayHostManager.Designer.cs">
-      <DependentUpon>ReplayHostManager.cs</DependentUpon>
     </Compile>
     <Compile Include="Windows\Dialogs\SettingsDialog.cs">
       <SubType>Form</SubType>
@@ -409,11 +403,8 @@
     <EmbeddedResource Include="Windows\Dialogs\OrderedListEditor.resx">
       <DependentUpon>OrderedListEditor.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Windows\Dialogs\RemoteHostSelect.resx">
-      <DependentUpon>RemoteHostSelect.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Windows\Dialogs\ReplayHostManager.resx">
-      <DependentUpon>ReplayHostManager.cs</DependentUpon>
+    <EmbeddedResource Include="Windows\Dialogs\RemoteManager.resx">
+      <DependentUpon>RemoteManager.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\SettingsDialog.resx">
       <DependentUpon>SettingsDialog.cs</DependentUpon>

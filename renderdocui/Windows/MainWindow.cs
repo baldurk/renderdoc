@@ -74,9 +74,6 @@ namespace renderdocui.Windows
 
         private List<LiveCapture> m_LiveCaptures = new List<LiveCapture>();
 
-        private renderdocplugin.ReplayManagerPlugin m_ReplayHost = null;
-        private string m_RemoteReplay = "";
-
         private string InformationalVersion
         {
             get
@@ -267,12 +264,6 @@ namespace renderdocui.Windows
 
             resolveSymbolsToolStripMenuItem.Enabled = false;
             resolveSymbolsToolStripMenuItem.Text = "Resolve Symbols";
-
-            if (m_ReplayHost != null)
-                m_ReplayHost.CloseReplay();
-
-            m_ReplayHost = null;
-            m_RemoteReplay = "";
 
             SetTitle();
         }
@@ -588,8 +579,6 @@ namespace renderdocui.Windows
                 prefix = Path.GetFileName(filename);
                 if (m_Core.APIProps.degraded)
                     prefix += " !DEGRADED PERFORMANCE!";
-                if (m_RemoteReplay.Length > 0)
-                    prefix += String.Format(" (Remote replay on {0})", m_RemoteReplay);
                 prefix += " - ";
             }
 
@@ -623,144 +612,16 @@ namespace renderdocui.Windows
 
             Thread thread = null;
 
-            if (!m_Core.Config.ReplayHosts.ContainsKey(driver) && driver.Trim().Length > 0)
-                m_Core.Config.ReplayHosts.Add(driver, "");
-
             // if driver is empty something went wrong loading the log, let it be handled as usual
-            // below. Otherwise prompt to replay remotely.
-            if (driver.Length > 0 && (!support || m_Core.Config.ReplayHosts[driver].Length > 0))
+            // below. Otherwise indicate that support is missing.
+            if (driver.Length > 0 && !support)
             {
-                string remoteMessage = String.Format("This log was captured with {0}", driver);
+                string remoteMessage = String.Format("This log was captured with {0} and cannot be replayed locally.\n\n", driver);
 
-                if(!support)
-                    remoteMessage += " and cannot be replayed locally.\n";
-                else
-                    remoteMessage += " and your settings say to replay this remotely.\n";
+                remoteMessage += "Try selecting a remote context in the status bar.";
 
-                if (m_Core.Config.ReplayHosts[driver].Length == 0)
-                    remoteMessage += "Do you wish to select a remote host to replay on?\n\n" +
-                                  "You can set up a default host for this driver on the next screen.";
-                else
-                    remoteMessage += String.Format("Would you like to launch replay on remote host {0}?\n\n" +
-                                                    "You can change this default via Tools -> Manage Replay Devices.", m_Core.Config.ReplayHosts[driver]);
-
-                DialogResult res = MessageBox.Show(remoteMessage, "Launch remote replay?", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Exclamation);
-
-                if (res == DialogResult.Yes)
-                {
-                    if (m_Core.Config.ReplayHosts[driver].Length == 0)
-                    {
-                        (new Dialogs.ReplayHostManager(m_Core, this)).ShowDialog();
-
-                        if (m_Core.Config.ReplayHosts[driver].Length == 0)
-                            return;
-                    }
-
-                    m_RemoteReplay = m_Core.Config.ReplayHosts[driver];
-
-                    var plugins = renderdocplugin.PluginHelpers.GetPlugins();
-
-                    // search plugins for to find manager for this driver and launch replay
-                    foreach (var plugin in plugins)
-                    {
-                        var replayman = renderdocplugin.PluginHelpers.GetPluginInterface<renderdocplugin.ReplayManagerPlugin>(plugin);
-
-                        if (replayman != null && replayman.GetTargetType() == driver)
-                        {
-                            var targets = replayman.GetOnlineTargets();
-
-                            if (targets.Contains(m_RemoteReplay))
-                            {
-                                replayman.RunReplay(m_RemoteReplay);
-
-                                // save replay connection so we can close replay
-                                m_ReplayHost = replayman;
-                                break;
-                            }
-                        }
-                    }
-
-                    thread = Helpers.NewThread(new ThreadStart(() =>
-                    {
-                        string[] drivers = new string[0];
-                        try
-                        {
-                            var dummy = StaticExports.CreateRemoteReplayConnection(m_RemoteReplay, 0);
-                            drivers = dummy.RemoteSupportedReplays();
-                            dummy.Shutdown();
-                        }
-                        catch (ApplicationException ex)
-                        {
-                            string errmsg = "Unknown error message";
-                            if (ex.Data.Contains("status"))
-                                errmsg = ((ReplayCreateStatus)ex.Data["status"]).Str();
-
-                            MessageBox.Show(String.Format("Failed to fetch supported drivers on host {0}: {1}.\n\nCheck diagnostic log in Help menu for more details.", m_RemoteReplay, errmsg),
-                                            "Error getting driver list", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        }
-
-                        // no drivers means we didn't connect
-                        if (drivers.Length == 0)
-                        {
-                        }
-                        else
-                        {
-                            bool found = false;
-                            foreach (var d in drivers)
-                                if (d == driver)
-                                    found = true;
-
-                            if (!found)
-                            {
-                                MessageBox.Show(String.Format("Remote host {0} doesn't support {1}.", m_RemoteReplay, driver),
-                                                "Unsupported remote replay", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            }
-                            else
-                            {
-                                string[] proxies = new string[0];
-                                try
-                                {
-                                    var dummy = StaticExports.CreateRemoteReplayConnection("-", 0);
-                                    proxies = dummy.LocalProxies();
-                                    dummy.Shutdown();
-                                }
-                                catch (ApplicationException ex)
-                                {
-                                    string errmsg = "Unknown error message";
-                                    if (ex.Data.Contains("status"))
-                                        errmsg = ((ReplayCreateStatus)ex.Data["status"]).Str();
-
-                                    MessageBox.Show(String.Format("Failed to fetch local proxy drivers: {0}.\n\nCheck diagnostic log in Help menu for more details.", errmsg),
-                                                    "Error getting driver list", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                }
-                                if (proxies.Length > 0)
-                                {
-                                    m_Core.Config.LocalProxy = Helpers.Clamp(m_Core.Config.LocalProxy, 0, proxies.Length - 1);
-
-                                    m_Core.LoadLogfile(m_Core.Config.LocalProxy, m_RemoteReplay, filename, temporary);
-                                    if (m_Core.LogLoaded)
-                                        return;
-                                }
-                            }
-                        }
-
-                        // clean up.
-                        if (m_ReplayHost != null)
-                            m_ReplayHost.CloseReplay();
-                        m_RemoteReplay = "";
-
-                        BeginInvoke(new Action(() =>
-                        {
-                            statusText.Text = "";
-                            statusIcon.Image = null;
-                            statusProgress.Visible = false;
-                        }));
-                    }));
-                }
-                else
-                {
-                    return;
-                }
+                MessageBox.Show(remoteMessage, "Unsupported logfile type", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
             }
             else
             {
@@ -969,7 +830,7 @@ namespace renderdocui.Windows
 
         private void attachToInstanceToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            (new Dialogs.RemoteHostSelect(m_Core, this)).ShowDialog();
+            (new Dialogs.RemoteManager(m_Core, this)).ShowDialog();
         }
 
         private void injectIntoProcessToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1499,26 +1360,9 @@ namespace renderdocui.Windows
             StaticExports.TriggerExceptionHandler(IntPtr.Zero, false);
         }
 
-        private void manageReplayDevicesToolStripMenuItem_Click(object sender, EventArgs e)
+        private void manageRemote_Click(object sender, EventArgs e)
         {
-            (new Dialogs.ReplayHostManager(m_Core, this)).ShowDialog();
-        }
-
-        private void launchReplayHostToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            bool killReplay = false;
-
-            Thread thread = Helpers.NewThread(new ThreadStart(() =>
-            {
-                StaticExports.BecomeRemoteServer("", 0, ref killReplay);
-            }));
-
-            thread.Start();
-
-            MessageBox.Show("Remote Replay is now running. Click OK to close.", "Remote replay",
-                                               MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-            killReplay = true;
+            (new Dialogs.RemoteManager(m_Core, this)).ShowDialog();
         }
 
         private void viewDocsToolStripMenuItem_Click(object sender, EventArgs e)

@@ -37,6 +37,13 @@ using System.Windows.Forms;
 namespace renderdocui.Code
 {
     [Serializable]
+    public class RemoteHost
+    {
+        public string Hostname = "";
+        public string RunCommand = "";
+    }
+
+    [Serializable]
     public class PersistantConfig
     {
         public string LastLogPath = "";
@@ -52,15 +59,9 @@ namespace renderdocui.Code
         public bool TextureViewer_PerTexSettings = true;
         public bool ShaderViewer_FriendlyNaming = true;
 
-        public List<string> RecentHosts = new List<string>();
+        public List<RemoteHost> RemoteHosts = new List<RemoteHost>();
 
         public int LocalProxy = 0;
-
-        [XmlIgnore] // not directly serializable
-        public Dictionary<string, string> ReplayHosts = new Dictionary<string, string>();
-        public List<SerializableKeyValuePair<string, string>> ReplayHostKeyValues = new List<SerializableKeyValuePair<string, string>>();
-
-        public List<SerializableKeyValuePair<string, string>> PreviouslyUsedHosts = new List<SerializableKeyValuePair<string, string>>();
 
         [XmlIgnore] // not directly serializable
         public Dictionary<string, string> ConfigSettings = new Dictionary<string, string>();
@@ -175,10 +176,6 @@ namespace renderdocui.Code
 
             try
             {
-                ReplayHostKeyValues.Clear();
-                foreach (var kv in ReplayHosts)
-                    ReplayHostKeyValues.Add(new SerializableKeyValuePair<string, string>(kv.Key, kv.Value));
-
                 ConfigSettingsValues.Clear();
                 foreach (var kv in ConfigSettings)
                     ConfigSettingsValues.Add(new SerializableKeyValuePair<string, string>(kv.Key, kv.Value));
@@ -202,15 +199,6 @@ namespace renderdocui.Code
             StreamReader reader = File.OpenText(file);
             PersistantConfig c = (PersistantConfig)xs.Deserialize(reader);
             reader.Close();
-
-            foreach (var kv in c.ReplayHostKeyValues)
-            {
-                if (kv.Key != null && kv.Key.Length > 0 &&
-                    kv.Value != null)
-                {
-                    c.ReplayHosts.Add(kv.Key, kv.Value);
-                }
-            }
 
             foreach (var kv in c.ConfigSettingsValues)
             {
