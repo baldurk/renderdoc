@@ -383,11 +383,10 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
           recvser->Serialise("app", app);
           recvser->Serialise("workingDir", workingDir);
           recvser->Serialise("cmdLine", cmdLine);
-          recvser->Serialise("logfile", logfile);
           recvser->Serialise("opts", opts);
 
-          uint32_t ident = Process::LaunchAndInjectIntoProcess(
-              app.c_str(), workingDir.c_str(), cmdLine.c_str(), logfile.c_str(), &opts, false);
+          uint32_t ident = Process::LaunchAndInjectIntoProcess(app.c_str(), workingDir.c_str(),
+                                                               cmdLine.c_str(), "", &opts, false);
 
           sendType = eRemoteServer_ExecuteAndInject;
           sendSer.Serialise("ident", ident);
@@ -507,20 +506,18 @@ public:
   }
 
   uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                            const char *logfile, const CaptureOptions *opts)
+                            const CaptureOptions *opts)
   {
     CaptureOptions capopts = opts ? *opts : CaptureOptions();
 
     string appstr = app && app[0] ? app : "";
     string workstr = workingDir && workingDir[0] ? workingDir : "";
     string cmdstr = cmdLine && cmdLine[0] ? cmdLine : "";
-    string logstr = logfile && logfile[0] ? logfile : "";
 
     Serialiser sendData("", Serialiser::WRITING, false);
     sendData.Serialise("app", appstr);
     sendData.Serialise("workingDir", workstr);
     sendData.Serialise("cmdLine", cmdstr);
-    sendData.Serialise("logfile", logstr);
     sendData.Serialise("opts", capopts);
     Send(eRemoteServer_ExecuteAndInject, sendData);
 
@@ -720,9 +717,9 @@ RemoteServer_RemoteSupportedReplays(RemoteServer *remote, rdctype::array<rdctype
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,
-                              const char *cmdLine, const char *logfile, const CaptureOptions *opts)
+                              const char *cmdLine, const CaptureOptions *opts)
 {
-  return remote->ExecuteAndInject(app, workingDir, cmdLine, logfile, opts);
+  return remote->ExecuteAndInject(app, workingDir, cmdLine, opts);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(RemoteServer *remote,

@@ -858,7 +858,7 @@ namespace renderdoc
         private static extern bool RemoteServer_RemoteSupportedReplays(IntPtr real, IntPtr outlist);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt32 RemoteServer_ExecuteAndInject(IntPtr real, IntPtr app, IntPtr workingDir, IntPtr cmdLine, IntPtr logfile, CaptureOptions opts);
+        private static extern UInt32 RemoteServer_ExecuteAndInject(IntPtr real, IntPtr app, IntPtr workingDir, IntPtr cmdLine, CaptureOptions opts);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RemoteServer_TakeOwnershipCapture(IntPtr real, IntPtr filename);
@@ -923,19 +923,17 @@ namespace renderdoc
             return ret;
         }
 
-        public UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, string logfile, CaptureOptions opts)
+        public UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, CaptureOptions opts)
         {
             IntPtr app_mem = CustomMarshal.MakeUTF8String(app);
             IntPtr workingDir_mem = CustomMarshal.MakeUTF8String(workingDir);
             IntPtr cmdLine_mem = CustomMarshal.MakeUTF8String(cmdLine);
-            IntPtr logfile_mem = CustomMarshal.MakeUTF8String(logfile);
 
-            UInt32 ret = RemoteServer_ExecuteAndInject(m_Real, app_mem, workingDir_mem, cmdLine_mem, logfile_mem, opts);
+            UInt32 ret = RemoteServer_ExecuteAndInject(m_Real, app_mem, workingDir_mem, cmdLine_mem, opts);
 
             CustomMarshal.Free(app_mem);
             CustomMarshal.Free(workingDir_mem);
             CustomMarshal.Free(cmdLine_mem);
-            CustomMarshal.Free(logfile_mem);
 
             return ret;
         }

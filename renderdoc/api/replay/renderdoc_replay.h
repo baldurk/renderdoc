@@ -484,7 +484,7 @@ struct IRemoteServer
   virtual bool RemoteSupportedReplays(rdctype::array<rdctype::str> *out) = 0;
 
   virtual uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                                    const char *logfile, const CaptureOptions *opts) = 0;
+                                    const CaptureOptions *opts) = 0;
 
   virtual void TakeOwnershipCapture(const char *filename) = 0;
   virtual rdctype::str CopyCapture(const char *filename, float *progress) = 0;
@@ -519,7 +519,7 @@ RemoteServer_RemoteSupportedReplays(RemoteServer *remote, rdctype::array<rdctype
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,
-                              const char *cmdLine, const char *logfile, const CaptureOptions *opts);
+                              const char *cmdLine, const CaptureOptions *opts);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(RemoteServer *remote,
                                                                              const char *filename);
