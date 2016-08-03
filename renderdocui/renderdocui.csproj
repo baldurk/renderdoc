@@ -552,6 +552,7 @@
     <EmbeddedResource Include="Resources\glsl.xml" />
     <None Include="Resources\page_white_code.png" />
     <None Include="Resources\down_arrow.png" />
+    <None Include="Resources\house.png" />
     <Content Include="Resources\RightArrow_Green_16x16.png" />
     <Content Include="Resources\icon.ico" />
     <None Include="Resources\page_white_delete.png" />

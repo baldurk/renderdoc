@@ -41,6 +41,30 @@ namespace renderdocui.Code
     {
         public string Hostname = "";
         public string RunCommand = "";
+
+        [XmlIgnore]
+        public bool ServerRunning = false;
+
+        public void Launch()
+        {
+            try
+            {
+                System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo("cmd.exe");
+                startInfo.CreateNoWindow = true;
+                startInfo.UseShellExecute = false;
+                startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                startInfo.Arguments = "/C " + RunCommand;
+                System.Diagnostics.Process cmd = System.Diagnostics.Process.Start(startInfo);
+
+                // wait up to 2s for the command to exit 
+                cmd.WaitForExit(2000);
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(String.Format("Error running command to launch remote server:\n{0}", RunCommand),
+                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
     }
 
     [Serializable]
@@ -207,6 +231,25 @@ namespace renderdocui.Code
                 {
                     c.SetConfigSetting(kv.Key, kv.Value);
                 }
+            }
+
+            // localhost should always be available
+            bool foundLocalhost = false;
+
+            for (int i = 0; i < c.RemoteHosts.Count; i++)
+            {
+                if (c.RemoteHosts[i].Hostname == "localhost")
+                {
+                    foundLocalhost = true;
+                    break;
+                }
+            }
+
+            if (!foundLocalhost)
+            {
+                RemoteHost host = new RemoteHost();
+                host.Hostname = "localhost";
+                c.RemoteHosts.Add(host);
             }
 
             return c;

@@ -29,7 +29,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Text;
@@ -65,15 +64,28 @@ namespace renderdocui.Windows.Dialogs
 
         private static void SetRemoteServerLive(TreelistView.Node node, bool live)
         {
-            node["running"] = live ? RemoteServerLiveText : RemoteServerDeadText;
-            node.Image = live
-                ? global::renderdocui.Properties.Resources.connect
-                : global::renderdocui.Properties.Resources.disconnect;
+            RemoteHost host = node.Tag as RemoteHost;
+
+            host.ServerRunning = live;
+
+            if (host.Hostname == "localhost")
+            {
+                node.Image = null;
+                node["running"] = "";
+            }
+            else
+            {
+                node["running"] = live ? RemoteServerLiveText : RemoteServerDeadText;
+
+                node.Image = live
+                    ? global::renderdocui.Properties.Resources.connect
+                    : global::renderdocui.Properties.Resources.disconnect;
+            }
         }
 
         private static bool IsRemoteServerLive(TreelistView.Node node)
         {
-            return node["running"].ToString() == RemoteServerLiveText;
+            return (node.Tag as RemoteHost).ServerRunning;
         }
 
         public RemoteManager(Core core, MainWindow main)
@@ -90,25 +102,6 @@ namespace renderdocui.Windows.Dialogs
             m_Main = main;
 
             hosts.BeginInit();
-
-            // localhost should always be available
-            bool foundLocalhost = false;
-
-            for (int i = 0; i < m_Core.Config.RemoteHosts.Count; i++)
-            {
-                if (m_Core.Config.RemoteHosts[i].Hostname == "localhost")
-                {
-                    foundLocalhost = true;
-                    break;
-                }
-            }
-
-            if (!foundLocalhost)
-            {
-                RemoteHost host = new RemoteHost();
-                host.Hostname = "localhost";
-                m_Core.Config.RemoteHosts.Add(host);
-            }
 
             foreach (var h in m_Core.Config.RemoteHosts)
                 AddHost(h);
@@ -142,27 +135,11 @@ namespace renderdocui.Windows.Dialogs
             TreelistView.Node node = o as TreelistView.Node;
             RemoteHost host = node.Tag as RemoteHost;
 
-            try
-            {
-                ProcessStartInfo startInfo = new ProcessStartInfo("cmd.exe");
-                startInfo.CreateNoWindow = true;
-                startInfo.UseShellExecute = false;
-                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                startInfo.Arguments = "/C " + host.RunCommand;
-                Process cmd = Process.Start(startInfo);
+            host.Launch();
 
-                // wait up to 2s for the command to exit 
-                cmd.WaitForExit(2000);
-
-                // now refresh this host
-                Thread th = Helpers.NewThread(new ParameterizedThreadStart(LookupHostConnections));
-                th.Start(node);
-            }
-            catch (Exception)
-            {
-                MessageBox.Show(String.Format("Error running command to launch remote server:\n{0}", host.RunCommand),
-                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            // now refresh this host
+            Thread th = Helpers.NewThread(new ParameterizedThreadStart(LookupHostConnections));
+            th.Start(node);
         }
 
         // this function looks up the remote connections and for each one open
@@ -256,8 +233,7 @@ namespace renderdocui.Windows.Dialogs
         // (to stop flooding)
         private void LookupComplete()
         {
-            if(hosts.SelectedNode != null)
-                hosts_AfterSelect(hosts, new TreeViewEventArgs(null));
+            updateConnectButton();
 
             if (lookupsInProgress == 0)
             {
@@ -273,6 +249,31 @@ namespace renderdocui.Windows.Dialogs
             if (hosts.SelectedNode != null &&
                 hosts.SelectedNode.Tag != null)
             {
+                RemoteHost host = hosts.SelectedNode.Tag as RemoteHost;
+
+                if (host != null)
+                {
+                    if (host.Hostname == "localhost")
+                    {
+                        configHostname.Text = "localhost";
+                    }
+                    else
+                    {
+                        configHostname.Enabled = configRunCommand.Enabled = true;
+                        configHostname.Text = host.Hostname;
+                        configRunCommand.Text = host.RunCommand;
+                    }
+                }
+            }
+
+            updateConnectButton();
+        }
+
+        private void updateConnectButton()
+        {
+            if (hosts.SelectedNode != null &&
+                hosts.SelectedNode.Tag != null)
+            {
                 connect.Enabled = true;
                 connect.Text = "Connect";
 
@@ -280,10 +281,6 @@ namespace renderdocui.Windows.Dialogs
 
                 if (host != null)
                 {
-                    configHostname.Enabled = configRunCommand.Enabled = true;
-                    configHostname.Text = host.Hostname;
-                    configRunCommand.Text = host.RunCommand;
-
                     if(IsRemoteServerLive(hosts.SelectedNode))
                     {
                         connect.Text = "Shutdown";
@@ -382,7 +379,7 @@ namespace renderdocui.Windows.Dialogs
                         MessageBox.Show("Error shutting down remote server", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
 
-                    hosts_AfterSelect(hosts, new TreeViewEventArgs(null));
+                    updateConnectButton();
                 }
                 else
                 {
@@ -487,7 +484,6 @@ namespace renderdocui.Windows.Dialogs
                 m_Core.Config.Serialize(Core.ConfigFilename);
                 hosts.BeginUpdate();
                 hosts.SelectedNode["hostname"] = m_Core.Config.RemoteHosts[idx].Hostname;
-                hosts.SelectedNode.Tag = m_Core.Config.RemoteHosts[idx];
                 hosts.EndUpdate();
             }
         }

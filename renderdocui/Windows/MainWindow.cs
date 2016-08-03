@@ -72,6 +72,8 @@ namespace renderdocui.Windows
         private string m_InitRemoteHost;
         private uint m_InitRemoteIdent;
 
+        private RemoteHost m_RemoteHost = null;
+
         private List<LiveCapture> m_LiveCaptures = new List<LiveCapture>();
 
         private string InformationalVersion
@@ -239,7 +241,7 @@ namespace renderdocui.Windows
                     {
                         statusProgress.Visible = false;
                         statusText.Text = "";
-                        statusIcon.Image = null;
+                        statusIcon.Image = global::renderdocui.Properties.Resources.hourglass;
                     }
                     else
                     {
@@ -864,6 +866,120 @@ namespace renderdocui.Windows
             if (res == DialogResult.OK)
             {
                 LoadFromFilename(openDialog.FileName);
+            }
+        }
+
+        private void contextChooser_DropDownOpening(object sender, EventArgs e)
+        {
+            ToolStripItem[] items = new ToolStripItem[m_Core.Config.RemoteHosts.Count];
+
+            int idx = 0;
+
+            for(int i=0; i < m_Core.Config.RemoteHosts.Count; i++)
+            {
+                RemoteHost host = m_Core.Config.RemoteHosts[i];
+
+                // add localhost at the end
+                if (host.Hostname == "localhost")
+                    continue;
+
+                ToolStripItem item = new ToolStripMenuItem();
+
+                item.Image = host.ServerRunning
+                    ? global::renderdocui.Properties.Resources.tick
+                    : global::renderdocui.Properties.Resources.cross;
+                item.Text = host.ServerRunning
+                    ? String.Format("{0} (Online)", host.Hostname)
+                    : String.Format("{0} (Offline)", host.Hostname);
+                item.Click += new EventHandler(switchContext);
+                item.Tag = host;
+
+                items[idx++] = item;
+            }
+
+            items[idx] = localContext;
+
+            contextChooser.DropDownItems.Clear();
+            contextChooser.DropDownItems.AddRange(items);
+        }
+
+        private void switchContext(object sender, EventArgs e)
+        {
+            if(sender == localContext)
+            {
+                contextChooser.Image = global::renderdocui.Properties.Resources.house;
+                contextChooser.Text = "Replay Context: Local";
+
+                m_RemoteHost = null;
+
+                statusText.Text = "";
+            }
+            else
+            {
+                RemoteHost host = (sender as ToolStripMenuItem).Tag as RemoteHost;
+                contextChooser.Text = "Replay Context: " + host.Hostname;
+                contextChooser.Image = host.ServerRunning
+                    ? global::renderdocui.Properties.Resources.connect
+                    : global::renderdocui.Properties.Resources.disconnect;
+
+                // disable until checking is done
+                contextChooser.Enabled = false;
+
+                m_RemoteHost = host;
+
+                statusText.Text = "Checking remote server status...";
+
+                Thread th = Helpers.NewThread(new ThreadStart(() =>
+                {
+                    // see if the server is up
+                    try
+                    {
+                        RemoteServer server = StaticExports.CreateRemoteServer(host.Hostname, 0);
+                        server.ShutdownConnection();
+
+                        // if we got this far without an exception, the server is running
+                        host.ServerRunning = true;
+                    }
+                    catch (ApplicationException)
+                    {
+                    }
+
+                    if (!host.ServerRunning && host.RunCommand != "")
+                    {
+                        this.BeginInvoke(new Action(() => { statusText.Text = "Running remote server command..."; }));
+
+                        host.Launch();
+
+                        // check if it's running now
+                        try
+                        {
+                            RemoteServer server = StaticExports.CreateRemoteServer(host.Hostname, 0);
+                            server.ShutdownConnection();
+
+                            // if we got this far without an exception, the server is running
+                            host.ServerRunning = true;
+                        }
+                        catch (ApplicationException)
+                        {
+                        }
+                    }
+
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        contextChooser.Image = host.ServerRunning
+                            ? global::renderdocui.Properties.Resources.connect
+                            : global::renderdocui.Properties.Resources.disconnect;
+
+                        if (host.ServerRunning)
+                            statusText.Text = "Remote server ready";
+                        else
+                            statusText.Text = "Remote server not running or failed";
+
+                        contextChooser.Enabled = true;
+                    }));
+                }));
+
+                th.Start();
             }
         }
 
