@@ -451,7 +451,7 @@ namespace renderdocui.Code
             }
         }
 
-        public void LoadLogfile(string logFile, bool temporary)
+        public void LoadLogfile(string logFile, bool temporary, bool local)
         {
             m_LogFile = logFile;
 
@@ -503,7 +503,7 @@ namespace renderdocui.Code
             thread.Start();
 
             // this function call will block until the log is either loaded, or there's some failure
-            m_Renderer.Init(logFile);
+            m_Renderer.OpenCapture(logFile);
 
             // if the renderer isn't running, we hit a failure case so display an error message
             if (!m_Renderer.Running)
@@ -598,12 +598,15 @@ namespace renderdocui.Code
             m_LogLoaded = true;
             progressThread = false;
 
-            m_LogWatcher = new FileSystemWatcher(Path.GetDirectoryName(m_LogFile), Path.GetFileName(m_LogFile));
-            m_LogWatcher.EnableRaisingEvents = true;
-            m_LogWatcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.LastAccess | NotifyFilters.LastWrite;
-            m_LogWatcher.Created += new FileSystemEventHandler(OnLogfileChanged);
-            m_LogWatcher.Changed += new FileSystemEventHandler(OnLogfileChanged);
-            m_LogWatcher.SynchronizingObject = m_MainWindow; // callbacks on UI thread please
+            if (local)
+            {
+                m_LogWatcher = new FileSystemWatcher(Path.GetDirectoryName(m_LogFile), Path.GetFileName(m_LogFile));
+                m_LogWatcher.EnableRaisingEvents = true;
+                m_LogWatcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.LastAccess | NotifyFilters.LastWrite;
+                m_LogWatcher.Created += new FileSystemEventHandler(OnLogfileChanged);
+                m_LogWatcher.Changed += new FileSystemEventHandler(OnLogfileChanged);
+                m_LogWatcher.SynchronizingObject = m_MainWindow; // callbacks on UI thread please
+            }
 
             List<ILogViewerForm> logviewers = new List<ILogViewerForm>();
             logviewers.AddRange(m_LogViewers);

@@ -42,7 +42,8 @@ namespace renderdoc
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public byte[] thumbnail;
             [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-            public string localpath;
+            public string path;
+            public bool local;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public NewCaptureData NewCapture;
@@ -1119,7 +1120,7 @@ namespace renderdoc
                 else if (msg.Type == TargetControlMessageType.CaptureCopied)
                 {
                     CaptureFile.ID = msg.NewCapture.ID;
-                    CaptureFile.localpath = msg.NewCapture.localpath;
+                    CaptureFile.path = msg.NewCapture.path;
                     CaptureCopied = true;
                 }
                 else if (msg.Type == TargetControlMessageType.RegisterAPI)

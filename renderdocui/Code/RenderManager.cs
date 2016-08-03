@@ -77,7 +77,7 @@ namespace renderdocui.Code
             m_renderQueue = new List<InvokeHandle>();
         }
 
-        public void Init(string logfile)
+        public void OpenCapture(string logfile)
         {
             if(Running)
                 return;
@@ -93,6 +93,47 @@ namespace renderdocui.Code
             m_Thread.Start();
 
             while (m_Thread.IsAlive && !Running) ;
+        }
+
+        public UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, string logfile, CaptureOptions opts)
+        {
+            if (m_Remote == null)
+            {
+                return StaticExports.ExecuteAndInject(app, workingDir, cmdLine, logfile, opts);
+            }
+            else
+            {
+                return m_Remote.ExecuteAndInject(app, workingDir, cmdLine, opts);
+            }
+        }
+
+        public bool IsRemoteConnected
+        {
+            get
+            {
+                return m_Remote != null;
+            }
+        }
+
+        public void DeleteCapture(string logfile, bool local)
+        {
+            if (Running)
+            {
+                BeginInvoke((ReplayRenderer r) => { DeleteCapture(logfile, local); });
+                return;
+            }
+
+            if (local)
+            {
+                System.IO.File.Delete(logfile);
+            }
+            else
+            {
+                // this will be cleaned up automatically when the remote connection
+                // is closed.
+                if (m_Remote != null)
+                    m_Remote.TakeOwnershipCapture(logfile);
+            }
         }
 
         public bool Running

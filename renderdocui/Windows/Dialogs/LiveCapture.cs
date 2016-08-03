@@ -72,11 +72,11 @@ namespace renderdocui.Windows
             public string api;
             public DateTime timestamp;
 
-            public bool copying;
             public bool saved;
             public bool opened;
 
-            public string localpath;
+            public string path;
+            public bool local;
         };
 
         class ChildProcess
@@ -214,33 +214,20 @@ namespace renderdocui.Windows
                         DateTime timestamp = new DateTime(1970, 1, 1, 0, 0, 0);
                         timestamp = timestamp.AddSeconds(m_Connection.CaptureFile.timestamp).ToLocalTime();
                         byte[] thumb = m_Connection.CaptureFile.thumbnail;
-                        string path = m_Connection.CaptureFile.localpath;
+                        string path = m_Connection.CaptureFile.path;
+                        bool local = m_Connection.CaptureFile.local;
 
-                        if (path.Length == 0 || File.Exists(path))
+                        this.BeginInvoke((MethodInvoker)delegate
                         {
-                            this.BeginInvoke((MethodInvoker)delegate
-                            {
-                                CaptureAdded(capID, m_Connection.Target, m_Connection.API, thumb, timestamp);
-                                if (path.Length > 0)
-                                    CaptureRetrieved(capID, path);
-                            });
-                            m_Connection.CaptureExists = false;
-
-                            if (path.Length == 0)
-                                m_Connection.CopyCapture(capID, m_Core.TempLogFilename("remotecopy_" + m_Connection.Target));
-                        }
+                            CaptureAdded(capID, m_Connection.Target, m_Connection.API, thumb, timestamp, path, local);
+                        });
+                        m_Connection.CaptureExists = false;
                     }
 
                     if (m_Connection.CaptureCopied)
                     {
                         uint capID = m_Connection.CaptureFile.ID;
-                        string path = m_Connection.CaptureFile.localpath;
-
-                        this.BeginInvoke((MethodInvoker)delegate
-                        {
-                            CaptureRetrieved(capID, path);
-                        });
-                        m_Connection.CaptureCopied = false;
+                        string path = m_Connection.CaptureFile.path;
                     }
 
                     if (m_Connection.ChildAdded)
@@ -347,21 +334,8 @@ namespace renderdocui.Windows
                 openMenu.Enabled = openThisCaptureToolStripMenuItem.Enabled =
                 (captures.SelectedItems.Count == 1);
 
-            if (captures.SelectedItems.Count > 0)
-            {
-                foreach(ListViewItem i in captures.SelectedItems)
-                {
-                    var log = i.Tag as CaptureLog;
-
-                    if (log.copying)
-                    {
-                        deleteMenu.Enabled =
-                            saveMenu.Enabled = saveThisCaptureToolStripMenuItem.Enabled =
-                            openMenu.Enabled = openThisCaptureToolStripMenuItem.Enabled = false;
-                        return;
-                    }
-                }
-            }
+            if(captures.SelectedItems.Count == 1)
+                newInstanceToolStripMenuItem.Enabled = (captures.SelectedItems[0].Tag as CaptureLog).local;
         }
 
         private void captures_MouseDoubleClick(object sender, MouseEventArgs e)
@@ -378,27 +352,30 @@ namespace renderdocui.Windows
 
         private void OpenCapture(CaptureLog log)
         {
-            if (!log.copying)
-            {
-                m_Main.LoadLogfile(log.localpath, !log.saved);
-                log.opened = true;
-            }
+            m_Main.LoadLogfile(log.path, !log.saved, log.local);
+            log.opened = true;
         }
 
         private bool SaveCapture(CaptureLog log)
         {
-            if (log.copying) return false;
-
             string path = m_Main.GetSavePath();
 
             // we copy the temp log to the desired path, but the log item remains referring to the temp path.
             // This ensures that if the user deletes the saved path we can still open or re-save it.
             if (path.Length > 0)
             {
+                string localpath = log.path;
+
+                if (!log.local)
+                {
+                    // copy locally first
+                }
+
                 try
                 {
-                    File.Copy(log.localpath, path, true);
+                    File.Copy(localpath, path, true);
                     log.saved = true;
+                    log.path = localpath;
                     m_Core.Config.AddRecentFile(m_Core.Config.RecentLogFiles, path, 10);
                     m_Main.PopulateRecentFiles();
                 }
@@ -463,10 +440,14 @@ namespace renderdocui.Windows
                 {
                     try
                     {
-                        if (log.localpath == m_Core.LogFileName)
+                        if (log.path == m_Core.LogFileName)
+                        {
                             m_Main.OwnTemporaryLog = true;
+                        }
                         else
-                            File.Delete(log.localpath);
+                        {
+                            m_Core.Renderer.DeleteCapture(log.path, log.local);
+                        }
                     }
                     catch (System.Exception)
                     {
@@ -542,15 +523,15 @@ namespace renderdocui.Windows
 
             if (!log.saved)
             {
-                if (log.localpath == m_Core.LogFileName)
+                if (log.path == m_Core.LogFileName)
                 {
-                    m_Main.OwnTemporaryLog = false;
+                    m_Main.OwnTemporaryLog = true;
                     m_Main.CloseLogfile();
                 }
 
                 try
                 {
-                    File.Delete(log.localpath);
+                    m_Core.Renderer.DeleteCapture(log.path, log.local);
                 }
                 catch (System.Exception)
                 {
@@ -575,9 +556,16 @@ namespace renderdocui.Windows
 
                 var temppath = m_Core.TempLogFilename(log.exe);
 
+                if (!log.local)
+                {
+                    MessageBox.Show("Can't open log in new instance with remote server in use", "Cannot open new instance",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
                 try
                 {
-                    File.Copy(log.localpath, temppath);
+                    File.Copy(log.path, temppath);
                 }
                 catch (System.Exception ex)
                 {
@@ -616,7 +604,7 @@ namespace renderdocui.Windows
             }
         }
 
-        private void CaptureAdded(uint ID, string executable, string api, byte[] thumbnail, DateTime timestamp)
+        private void CaptureAdded(uint ID, string executable, string api, byte[] thumbnail, DateTime timestamp, string path, bool local)
         {
             if (thumbnail == null || thumbnail.Length == 0)
             {
@@ -639,30 +627,20 @@ namespace renderdocui.Windows
             log.exe = executable;
             log.api = api;
             log.timestamp = timestamp;
-            log.copying = true;
             log.saved = false;
+            log.path = path;
+            log.local = local;
 
-            var item = new ListViewItem(new string[] { log.exe + " (Copying)", log.api, log.timestamp.ToString() }, thumbs.Images.Count - 1);
+            string title = log.exe;
+            if (!local)
+                title += " (Remote)";
+
+            var item = new ListViewItem(new string[] { title, log.api, log.timestamp.ToString() }, thumbs.Images.Count - 1);
             item.Tag = log;
-            item.SubItems[0].Font = new Font(item.SubItems[0].Font, FontStyle.Italic);
+            if(!local)
+                item.SubItems[0].Font = new Font(item.SubItems[0].Font, FontStyle.Italic);
 
             captures.Items.Add(item);
-        }
-
-        private void CaptureRetrieved(uint ID, string localpath)
-        {
-            foreach (ListViewItem i in captures.Items)
-            {
-                var log = i.Tag as CaptureLog;
-
-                if (log.remoteID == ID && log.copying)
-                {
-                    log.copying = false;
-                    log.localpath = localpath;
-                    i.SubItems[0].Text = log.exe;
-                    i.SubItems[0].Font = new Font(i.SubItems[0].Font, FontStyle.Regular);
-                }
-            }
         }
 
         private void ConnectionClosed()

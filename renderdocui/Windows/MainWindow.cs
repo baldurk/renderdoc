@@ -613,36 +613,43 @@ namespace renderdocui.Windows
 
         #region Capture & Log Loading
 
-        private void LoadLogAsync(string filename, bool temporary)
+        public void LoadLogfile(string filename, bool temporary, bool local)
         {
-            if (m_Core.LogLoading) return;
-
-            string driver = "";
-            bool support = StaticExports.SupportLocalReplay(filename, out driver);
-
-            Thread thread = null;
-
-            // if driver is empty something went wrong loading the log, let it be handled as usual
-            // below. Otherwise indicate that support is missing.
-            if (driver.Length > 0 && !support)
+            if (PromptCloseLog())
             {
-                string remoteMessage = String.Format("This log was captured with {0} and cannot be replayed locally.\n\n", driver);
+                if (m_Core.LogLoading) return;
 
-                remoteMessage += "Try selecting a remote context in the status bar.";
+                string driver = "";
+                bool support = false;
 
-                MessageBox.Show(remoteMessage, "Unsupported logfile type", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                return;
+                if (local)
+                    support = StaticExports.SupportLocalReplay(filename, out driver);
+
+                Thread thread = null;
+
+                // if driver is empty something went wrong loading the log, let it be handled as usual
+                // below. Otherwise indicate that support is missing.
+                if (driver.Length > 0 && !support && local)
+                {
+                    string remoteMessage = String.Format("This log was captured with {0} and cannot be replayed locally.\n\n", driver);
+
+                    remoteMessage += "Try selecting a remote context in the status bar.";
+
+                    MessageBox.Show(remoteMessage, "Unsupported logfile type", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    return;
+                }
+                else
+                {
+                    thread = Helpers.NewThread(new ThreadStart(() => m_Core.LoadLogfile(filename, temporary, local)));
+                }
+
+                thread.Start();
+
+                if(local)
+                    m_Core.Config.LastLogPath = Path.GetDirectoryName(filename);
+
+                statusText.Text = "Loading " + filename + "...";
             }
-            else
-            {
-                thread = Helpers.NewThread(new ThreadStart(() => m_Core.LoadLogfile(filename, temporary)));
-            }
-            
-            thread.Start();
-
-            m_Core.Config.LastLogPath = Path.GetDirectoryName(filename);
-
-            statusText.Text = "Loading " + filename + "...";
         }
 
         public void PopulateRecentFiles()
@@ -713,12 +720,6 @@ namespace renderdocui.Windows
             m_LiveCaptures.Remove(live);
         }
 
-        public void LoadLogfile(string fn, bool temporary)
-        {
-            if (PromptCloseLog())
-                LoadLogAsync(fn, temporary);
-        }
-
         private void OpenCaptureConfigFile(String filename, bool exe)
         {
             if (m_Core.CaptureDialog == null)
@@ -744,7 +745,7 @@ namespace renderdocui.Windows
         {
             if (Path.GetExtension(filename) == ".rdc")
             {
-                LoadLogfile(filename, false);
+                LoadLogfile(filename, false, true);
             }
             else if (Path.GetExtension(filename) == ".cap")
             {
@@ -757,7 +758,7 @@ namespace renderdocui.Windows
             else
             {
                 // not a recognised filetype, see if we can load it anyway
-                LoadLogfile(filename, false);
+                LoadLogfile(filename, false, true);
             }
         }
 
@@ -785,7 +786,7 @@ namespace renderdocui.Windows
 
             string logfile = m_Core.TempLogFilename(Path.GetFileNameWithoutExtension(exe));
 
-            UInt32 ret = StaticExports.ExecuteAndInject(exe, workingDir, cmdLine, logfile, opts);
+            UInt32 ret = m_Core.Renderer.ExecuteAndInject(exe, workingDir, cmdLine, logfile, opts);
 
             if (ret == 0)
             {
@@ -794,7 +795,7 @@ namespace renderdocui.Windows
                 return null;
             }
 
-            var live = new LiveCapture(m_Core, "", ret, this);
+            var live = new LiveCapture(m_Core, m_RemoteHost == null ? "" : m_RemoteHost.Hostname, ret, this);
             ShowLiveCapture(live);
             return live;
         }
@@ -920,6 +921,8 @@ namespace renderdocui.Windows
 
                 m_Core.Renderer.DisconnectFromRemoteServer();
 
+                injectIntoProcessToolStripMenuItem.Enabled = true;
+
                 m_RemoteHost = null;
 
                 statusText.Text = "";
@@ -936,6 +939,8 @@ namespace renderdocui.Windows
 
                 // disable until checking is done
                 contextChooser.Enabled = false;
+
+                injectIntoProcessToolStripMenuItem.Enabled = false;
 
                 m_RemoteHost = host;
 
@@ -1425,7 +1430,7 @@ namespace renderdocui.Windows
 
             if(File.Exists(filename))
             {
-                LoadLogfile(filename, false);
+                LoadLogfile(filename, false, true);
             }
             else
             {

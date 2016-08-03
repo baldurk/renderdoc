@@ -532,9 +532,9 @@ public:
 
         SAFE_DELETE(ser);
 
-        msg->NewCapture.localpath = m_CaptureCopies[msg->NewCapture.ID];
+        msg->NewCapture.path = m_CaptureCopies[msg->NewCapture.ID];
 
-        if(!RecvChunkedFile(m_Socket, ePacket_CopyCapture, msg->NewCapture.localpath.elems, ser, NULL))
+        if(!RecvChunkedFile(m_Socket, ePacket_CopyCapture, msg->NewCapture.path.elems, ser, NULL))
         {
           SAFE_DELETE(ser);
           SAFE_DELETE(m_Socket);
@@ -571,10 +571,8 @@ public:
 
         string path;
         ser->Serialise("", path);
-        msg->NewCapture.localpath = path;
-
-        if(!m_Local)
-          msg->NewCapture.localpath = "";
+        msg->NewCapture.path = path;
+        msg->NewCapture.local = m_Local;
 
         uint32_t thumblen = 0;
         ser->Serialise("", thumblen);

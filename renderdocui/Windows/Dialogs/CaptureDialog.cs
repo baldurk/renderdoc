@@ -268,10 +268,15 @@ namespace renderdocui.Windows.Dialogs
         private void OnCapture()
         {
             string exe = exePath.Text;
-            if (!File.Exists(exe))
+
+            // for non-remote captures, check the executable locally
+            if (!m_Core.Renderer.IsRemoteConnected)
             {
-                MessageBox.Show("Invalid application executable: " + exe, "Invalid executable", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                if (!File.Exists(exe))
+                {
+                    MessageBox.Show("Invalid application executable: " + exe, "Invalid executable", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
             }
 
             string workingDir = "";
@@ -304,9 +309,6 @@ namespace renderdocui.Windows.Dialogs
 
         private void TriggerCapture()
         {
-            //(new LiveCapture()).Show(DockPanel);
-            //return;
-
             if(InjectMode && m_InjectCallback != null)
                 OnInject();
 
@@ -537,6 +539,12 @@ namespace renderdocui.Windows.Dialogs
             catch (ArgumentException)
             {
                 // invalid path or similar
+            }
+
+            // if it's a unix style path, maintain the slash type
+            if (Helpers.CharCount(exePath.Text, '/') > Helpers.CharCount(exePath.Text, '\\'))
+            {
+                workDirPath.Text.Replace('\\', '/');
             }
         }
 

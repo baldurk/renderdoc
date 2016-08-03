@@ -211,7 +211,8 @@ struct TargetControlMessage
     uint32_t ID;
     uint64_t timestamp;
     rdctype::array<byte> thumbnail;
-    rdctype::str localpath;
+    rdctype::str path;
+    bool32 local;
   } NewCapture;
 
   struct RegisterAPIData
