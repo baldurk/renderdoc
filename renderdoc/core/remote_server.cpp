@@ -319,9 +319,14 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 
           RDCDriver driverType = RDC_Unknown;
           string driverName = "";
-          RenderDoc::Inst().FillInitParams(cap_file.c_str(), driverType, driverName, NULL);
+          ReplayCreateStatus status =
+              RenderDoc::Inst().FillInitParams(cap_file.c_str(), driverType, driverName, NULL);
 
-          if(RenderDoc::Inst().HasRemoteDriver(driverType))
+          if(status != eReplayCreate_Success)
+          {
+            RDCERR("Failed to open %s", cap_file.c_str());
+          }
+          else if(RenderDoc::Inst().HasRemoteDriver(driverType))
           {
             ProgressLoopData data;
 
@@ -333,38 +338,35 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 
             Threading::ThreadHandle ticker = Threading::CreateThread(ProgressTicker, &data);
 
-            ReplayCreateStatus status =
-                RenderDoc::Inst().CreateRemoteDriver(driverType, cap_file.c_str(), &driver);
-
-            sendSer.Serialise("status", status);
+            status = RenderDoc::Inst().CreateRemoteDriver(driverType, cap_file.c_str(), &driver);
 
             if(status != eReplayCreate_Success || driver == NULL)
             {
               RDCERR("Failed to create remote driver for driver type %d name %s", driverType,
                      driverName.c_str());
-              continue;
             }
+            else
+            {
+              driver->ReadLogInitialisation();
 
-            driver->ReadLogInitialisation();
+              RenderDoc::Inst().SetProgressPtr(NULL);
 
-            RenderDoc::Inst().SetProgressPtr(NULL);
+              data.killsignal = true;
+              Threading::JoinThread(ticker);
+              Threading::CloseThread(ticker);
 
-            data.killsignal = true;
-            Threading::JoinThread(ticker);
-            Threading::CloseThread(ticker);
-
-            sendType = eRemoteServer_LogOpened;
-
-            proxy = new ProxySerialiser(client, driver);
+              proxy = new ProxySerialiser(client, driver);
+            }
           }
           else
           {
             RDCERR("File needs driver for %s which isn't supported!", driverName.c_str());
 
-            sendType = eRemoteServer_LogOpened;
-            ReplayCreateStatus status = eReplayCreate_APIUnsupported;
-            sendSer.Serialise("status", status);
+            status = eReplayCreate_APIUnsupported;
           }
+
+          sendType = eRemoteServer_LogOpened;
+          sendSer.Serialise("status", status);
         }
         else if(type == eRemoteServer_CloseLog)
         {
