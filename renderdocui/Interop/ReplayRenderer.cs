@@ -285,6 +285,8 @@ namespace renderdoc
 
         private IntPtr m_Real = IntPtr.Zero;
 
+        public IntPtr Real { get { return m_Real; } }
+
         public ReplayRenderer(IntPtr real) { m_Real = real; }
 
         public void Shutdown()
@@ -846,14 +848,25 @@ namespace renderdoc
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RemoteServer_Shutdown(IntPtr real);
-        
+
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool RemoteServer_LocalProxies(IntPtr real, IntPtr outlist);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool RemoteServer_RemoteSupportedReplays(IntPtr real, IntPtr outlist);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern ReplayCreateStatus RemoteServer_CreateProxyRenderer(IntPtr real, UInt32 proxyid, IntPtr logfile, ref float progress, ref IntPtr rendPtr);
+        private static extern UInt32 RemoteServer_ExecuteAndInject(IntPtr real, IntPtr app, IntPtr workingDir, IntPtr cmdLine, IntPtr logfile, CaptureOptions opts);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_TakeOwnershipCapture(IntPtr real, IntPtr filename);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_CopyCapture(IntPtr real, IntPtr filename, ref float progress, IntPtr remotepath);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern ReplayCreateStatus RemoteServer_OpenCapture(IntPtr real, UInt32 proxyid, IntPtr logfile, ref float progress, ref IntPtr rendPtr);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_CloseCapture(IntPtr real, IntPtr rendPtr);
 
         private IntPtr m_Real = IntPtr.Zero;
 
@@ -898,13 +911,56 @@ namespace renderdoc
             return ret;
         }
 
-        public ReplayRenderer CreateProxyRenderer(int proxyid, string logfile, ref float progress)
+        public UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, string logfile, CaptureOptions opts)
+        {
+            IntPtr app_mem = CustomMarshal.MakeUTF8String(app);
+            IntPtr workingDir_mem = CustomMarshal.MakeUTF8String(workingDir);
+            IntPtr cmdLine_mem = CustomMarshal.MakeUTF8String(cmdLine);
+            IntPtr logfile_mem = CustomMarshal.MakeUTF8String(logfile);
+
+            UInt32 ret = RemoteServer_ExecuteAndInject(m_Real, app_mem, workingDir_mem, cmdLine_mem, logfile_mem, opts);
+
+            CustomMarshal.Free(app_mem);
+            CustomMarshal.Free(workingDir_mem);
+            CustomMarshal.Free(cmdLine_mem);
+            CustomMarshal.Free(logfile_mem);
+
+            return ret;
+        }
+
+        public void TakeOwnershipCapture(string filename)
+        {
+            IntPtr filename_mem = CustomMarshal.MakeUTF8String(filename);
+
+            RemoteServer_TakeOwnershipCapture(m_Real, filename_mem);
+
+            CustomMarshal.Free(filename_mem);
+        }
+
+        public string CopyCapture(string filename, ref float progress)
+        {
+            IntPtr remotepath = CustomMarshal.Alloc(typeof(templated_array));
+
+            IntPtr filename_mem = CustomMarshal.MakeUTF8String(filename);
+
+            RemoteServer_CopyCapture(m_Real, filename_mem, ref progress, remotepath);
+
+            CustomMarshal.Free(filename_mem);
+
+            string remote = CustomMarshal.TemplatedArrayToString(remotepath, true);
+
+            CustomMarshal.Free(remotepath);
+
+            return remote;
+        }
+
+        public ReplayRenderer OpenCapture(int proxyid, string logfile, ref float progress)
         {
             IntPtr rendPtr = IntPtr.Zero;
 
             IntPtr logfile_mem = CustomMarshal.MakeUTF8String(logfile);
 
-            ReplayCreateStatus ret = RemoteServer_CreateProxyRenderer(m_Real, (UInt32)proxyid, logfile_mem, ref progress, ref rendPtr);
+            ReplayCreateStatus ret = RemoteServer_OpenCapture(m_Real, proxyid == -1 ? UInt32.MaxValue : (UInt32)proxyid, logfile_mem, ref progress, ref rendPtr);
 
             CustomMarshal.Free(logfile_mem);
 
@@ -916,6 +972,11 @@ namespace renderdoc
             }
 
             return new ReplayRenderer(rendPtr);
+        }
+
+        public void CloseCapture(ReplayRenderer renderer)
+        {
+            RemoteServer_CloseCapture(m_Real, renderer.Real);
         }
     };
 

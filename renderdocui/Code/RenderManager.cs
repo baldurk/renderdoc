@@ -178,7 +178,7 @@ namespace renderdocui.Code
                 throw e;
             }
 
-			renderer = remote.CreateProxyRenderer(m_ProxyRenderer, m_Logfile, ref LoadProgress);
+            renderer = remote.OpenCapture(m_ProxyRenderer, m_Logfile, ref LoadProgress);
 
             if(renderer == null)
             {

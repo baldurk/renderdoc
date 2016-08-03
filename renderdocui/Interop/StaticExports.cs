@@ -54,7 +54,7 @@ namespace renderdoc
         private static extern UInt32 RENDERDOC_EnumerateRemoteTargets(IntPtr host, UInt32 nextIdent);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern ReplayCreateStatus RENDERDOC_CreateRemoteReplayConnection(IntPtr host, UInt32 port, ref IntPtr outrend);
+        private static extern ReplayCreateStatus RENDERDOC_CreateRemoteServerConnection(IntPtr host, UInt32 port, ref IntPtr outrend);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_GetDefaultCaptureOptions(IntPtr outopts);
@@ -202,13 +202,13 @@ namespace renderdoc
             CustomMarshal.Free(host_mem);
         }
 
-        public static RemoteServer CreateRemoteReplayConnection(string host, uint port)
+        public static RemoteServer CreateRemoteServer(string host, uint port)
         {
             IntPtr rendPtr = IntPtr.Zero;
 
             IntPtr host_mem = CustomMarshal.MakeUTF8String(host);
 
-            ReplayCreateStatus ret = RENDERDOC_CreateRemoteReplayConnection(host_mem, port, ref rendPtr);
+            ReplayCreateStatus ret = RENDERDOC_CreateRemoteServerConnection(host_mem, port, ref rendPtr);
 
             CustomMarshal.Free(host_mem);
 
