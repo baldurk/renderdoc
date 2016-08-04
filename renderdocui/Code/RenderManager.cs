@@ -63,7 +63,8 @@ namespace renderdocui.Code
         private Thread m_Thread;
         private string m_Logfile;
         private bool m_Running;
-        private RemoteServer m_Remote;
+        private RemoteHost m_RemoteHost = null;
+        private RemoteServer m_Remote = null;
 
         private List<InvokeHandle> m_renderQueue;
 
@@ -107,14 +108,6 @@ namespace renderdocui.Code
             }
         }
 
-        public bool IsRemoteConnected
-        {
-            get
-            {
-                return m_Remote != null;
-            }
-        }
-
         public void DeleteCapture(string logfile, bool local)
         {
             if (Running)
@@ -142,13 +135,20 @@ namespace renderdocui.Code
             set { m_Running = value; m_WakeupEvent.Set(); }
         }
 
-        public void ConnectToRemoteServer(string hostname)
+        public RemoteHost Remote
+        {
+            get { return m_RemoteHost; }
+        }
+
+        public void ConnectToRemoteServer(RemoteHost host)
         {
             InitException = null;
 
             try
             {
-                m_Remote = StaticExports.CreateRemoteServer(hostname, 0);
+                m_Remote = StaticExports.CreateRemoteServer(host.Hostname, 0);
+                m_RemoteHost = host;
+                m_RemoteHost.Connected = true;
             }
             catch (ReplayCreateException ex)
             {
@@ -158,8 +158,14 @@ namespace renderdocui.Code
 
         public void DisconnectFromRemoteServer()
         {
+            if (m_RemoteHost != null)
+                m_RemoteHost.Connected = false;
+
             if (m_Remote != null)
                 m_Remote.ShutdownConnection();
+
+            m_RemoteHost = null;
+            m_Remote = null;
         }
 
         public ReplayCreateException InitException = null;

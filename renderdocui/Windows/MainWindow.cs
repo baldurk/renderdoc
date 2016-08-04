@@ -72,8 +72,6 @@ namespace renderdocui.Windows
         private string m_InitRemoteHost;
         private uint m_InitRemoteIdent;
 
-        private RemoteHost m_RemoteHost = null;
-
         private List<LiveCapture> m_LiveCaptures = new List<LiveCapture>();
 
         private string InformationalVersion
@@ -589,8 +587,8 @@ namespace renderdocui.Windows
                 prefix += " - ";
             }
 
-            if (m_RemoteHost != null)
-                prefix += String.Format("Remote: {0} - ", m_RemoteHost.Hostname);
+            if (m_Core != null && m_Core.Renderer.Remote != null)
+                prefix += String.Format("Remote: {0} - ", m_Core.Renderer.Remote.Hostname);
 
             Text = prefix + "RenderDoc ";
             if(OfficialVersion)
@@ -795,7 +793,7 @@ namespace renderdocui.Windows
                 return null;
             }
 
-            var live = new LiveCapture(m_Core, m_RemoteHost == null ? "" : m_RemoteHost.Hostname, ret, this);
+            var live = new LiveCapture(m_Core, m_Core.Renderer.Remote == null ? "" : m_Core.Renderer.Remote.Hostname, ret, this);
             ShowLiveCapture(live);
             return live;
         }
@@ -923,8 +921,6 @@ namespace renderdocui.Windows
 
                 injectIntoProcessToolStripMenuItem.Enabled = true;
 
-                m_RemoteHost = null;
-
                 statusText.Text = "";
 
                 SetTitle();
@@ -941,8 +937,6 @@ namespace renderdocui.Windows
                 contextChooser.Enabled = false;
 
                 injectIntoProcessToolStripMenuItem.Enabled = false;
-
-                m_RemoteHost = host;
 
                 SetTitle();
 
@@ -986,7 +980,7 @@ namespace renderdocui.Windows
                     if (host.ServerRunning)
                     {
                         m_Core.Renderer.DisconnectFromRemoteServer();
-                        m_Core.Renderer.ConnectToRemoteServer(host.Hostname);
+                        m_Core.Renderer.ConnectToRemoteServer(host);
                     }
 
                     this.BeginInvoke(new Action(() =>

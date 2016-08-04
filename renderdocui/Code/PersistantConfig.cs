@@ -45,6 +45,12 @@ namespace renderdocui.Code
         [XmlIgnore]
         public bool ServerRunning = false;
 
+        [XmlIgnore]
+        public bool Connected = false;
+
+        [XmlIgnore]
+        public bool Busy = false;
+
         public void Launch()
         {
             try

@@ -62,11 +62,12 @@ namespace renderdocui.Windows.Dialogs
             get { return "No remote server"; }
         }
 
-        private static void SetRemoteServerLive(TreelistView.Node node, bool live)
+        private static void SetRemoteServerLive(TreelistView.Node node, bool live, bool busy)
         {
             RemoteHost host = node.Tag as RemoteHost;
 
             host.ServerRunning = live;
+            host.Busy = busy;
 
             if (host.Hostname == "localhost")
             {
@@ -75,7 +76,14 @@ namespace renderdocui.Windows.Dialogs
             }
             else
             {
-                node["running"] = live ? RemoteServerLiveText : RemoteServerDeadText;
+                string text = live ? RemoteServerLiveText : RemoteServerDeadText;
+
+                if (host.Connected)
+                    text += " (Active Context)";
+                else if (host.Busy)
+                    text += " (Busy)";
+
+                node["running"] = text;
 
                 node.Image = live
                     ? global::renderdocui.Properties.Resources.connect
@@ -162,20 +170,22 @@ namespace renderdocui.Windows.Dialogs
 
             string hostname = node["hostname"] as string;
 
+            RemoteHost host = node.Tag as RemoteHost;
+
             string username = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
 
             try
             {
                 RemoteServer server = StaticExports.CreateRemoteServer(hostname, 0);
-                SetRemoteServerLive(node, true);
+                SetRemoteServerLive(node, true, false);
                 server.ShutdownConnection();
             }
             catch (ReplayCreateException ex)
             {
-                if(ex.Status == ReplayCreateStatus.NetworkRemoteBusy)
-                    SetRemoteServerLive(node, true);
+                if (ex.Status == ReplayCreateStatus.NetworkRemoteBusy)
+                    SetRemoteServerLive(node, true, true);
                 else
-                    SetRemoteServerLive(node, false);
+                    SetRemoteServerLive(node, false, false);
             }
 
             StaticExports.EnumerateRemoteTargets(hostname, (UInt32 i) => {
@@ -284,9 +294,12 @@ namespace renderdocui.Windows.Dialogs
 
                 if (host != null)
                 {
-                    if(IsRemoteServerLive(hosts.SelectedNode))
+                    if(host.ServerRunning)
                     {
                         connect.Text = "Shutdown";
+
+                        if (host.Busy || host.Connected)
+                            connect.Enabled = false;
                     }
                     else
                     {
@@ -360,7 +373,7 @@ namespace renderdocui.Windows.Dialogs
             {
                 RemoteHost host = node.Tag as RemoteHost;
 
-                if (IsRemoteServerLive(node))
+                if (host.ServerRunning)
                 {
                     DialogResult res = MessageBox.Show(String.Format("Are you sure you wish to shut down running remote server on {0}?", host.Hostname),
                                                        "Remote server shutdown", MessageBoxButtons.YesNoCancel);
@@ -374,7 +387,7 @@ namespace renderdocui.Windows.Dialogs
                         RemoteServer server = StaticExports.CreateRemoteServer(host.Hostname, 0);
                         server.ShutdownServerAndConnection();
                         hosts.BeginUpdate();
-                        SetRemoteServerLive(node, false);
+                        SetRemoteServerLive(node, false, false);
                         hosts.EndUpdate();
                     }
                     catch (Exception)

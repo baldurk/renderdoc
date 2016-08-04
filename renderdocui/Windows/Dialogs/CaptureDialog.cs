@@ -270,7 +270,7 @@ namespace renderdocui.Windows.Dialogs
             string exe = exePath.Text;
 
             // for non-remote captures, check the executable locally
-            if (!m_Core.Renderer.IsRemoteConnected)
+            if (m_Core.Renderer.Remote == null)
             {
                 if (!File.Exists(exe))
                 {
