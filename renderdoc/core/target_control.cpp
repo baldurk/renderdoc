@@ -677,7 +677,7 @@ extern "C" RENDERDOC_API TargetControl *RENDERDOC_CC RENDERDOC_CreateTargetContr
   if(host != NULL && host[0] != '\0')
     s = host;
 
-  Network::Socket *sock = Network::CreateClientSocket(s.c_str(), ident & 0xffff, 3000);
+  Network::Socket *sock = Network::CreateClientSocket(s.c_str(), ident & 0xffff, 750);
 
   if(sock == NULL)
     return NULL;

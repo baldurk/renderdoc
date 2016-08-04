@@ -775,7 +775,7 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, RemoteSe
 
   if(s != "-")
   {
-    sock = Network::CreateClientSocket(s.c_str(), (uint16_t)port, 3000);
+    sock = Network::CreateClientSocket(s.c_str(), (uint16_t)port, 750);
 
     if(sock == NULL)
       return eReplayCreate_NetworkIOFailed;
