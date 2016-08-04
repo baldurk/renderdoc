@@ -2418,7 +2418,7 @@ namespace renderdocui.Windows
                 return;
             }
 
-            m_Core.Renderer.Invoke((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
+            m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
         }
 
         private void render_Paint(object sender, PaintEventArgs e)
@@ -2436,7 +2436,7 @@ namespace renderdocui.Windows
             foreach (var prev in roPanel.Thumbnails)
                 if (prev.Unbound) prev.Clear();
 
-            m_Core.Renderer.Invoke((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
+            m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
         }
 
         #endregion
@@ -3225,7 +3225,7 @@ namespace renderdocui.Windows
 
             rangePaintThread = Helpers.NewThread(new ThreadStart(() =>
             {
-                m_Core.Renderer.Invoke((ReplayRenderer r) => { RT_UpdateAndDisplay(r); if (m_Output != null) m_Output.Display(); });
+                m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { RT_UpdateAndDisplay(r); if (m_Output != null) m_Output.Display(); });
                 Thread.Sleep(8);
             }));
             rangePaintThread.Start();

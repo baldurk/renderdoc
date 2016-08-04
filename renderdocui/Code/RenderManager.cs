@@ -52,6 +52,7 @@ namespace renderdocui.Code
             }
 
             public InvokeMethod method;
+            public bool paintInvoke = false;
             volatile public bool processed;
             public Exception ex = null;
         };
@@ -67,6 +68,7 @@ namespace renderdocui.Code
         private RemoteServer m_Remote = null;
 
         private List<InvokeHandle> m_renderQueue;
+        private InvokeHandle m_current = null;
 
         ////////////////////////////////////////////
         // Interface
@@ -228,6 +230,7 @@ namespace renderdocui.Code
             while (m_Thread != null && m_Thread.IsAlive) ;
 
             m_renderQueue = new List<InvokeHandle>();
+            m_current = null;
         }
 
         public float LoadProgress;
@@ -259,6 +262,51 @@ namespace renderdocui.Code
                 throw cmd.ex;
         }
 
+        public void InvokeForPaint(InvokeMethod m)
+        {
+            if (m_Thread == null || !Running)
+                return;
+
+            // special logic for painting invokes. Normally we want these to
+            // go off immediately, but if we have a remote connection active
+            // there could be slow operations on the pipe or currently being
+            // processed.
+            // So we check to see if the paint is likely to finish soon
+            // (0, or only other paint invokes on the queue, nothing active)
+            // and if so do it synchronously. Otherwise we just append to the
+            // queue and return immediately.
+
+            bool waitable = true;
+
+            InvokeHandle cmd = new InvokeHandle(m);
+            cmd.paintInvoke = true;
+
+            lock (m_renderQueue)
+            {
+                InvokeHandle current = m_current;
+
+                if (current != null && !current.paintInvoke)
+                    waitable = false;
+
+                // any non-painting commands on the queue? can't wait
+                for (int i = 0; waitable && i < m_renderQueue.Count; i++)
+                    if (!m_renderQueue[i].paintInvoke)
+                        waitable = false;
+
+                m_renderQueue.Add(cmd);
+            }
+
+            m_WakeupEvent.Set();
+
+            if (!waitable)
+                return;
+
+            while (!cmd.processed) ;
+
+            if (cmd.ex != null)
+                throw cmd.ex;
+        }
+
         private void PushInvoke(InvokeHandle cmd)
         {
             if (m_Thread == null || !Running)
@@ -267,12 +315,12 @@ namespace renderdocui.Code
                 return;
             }
 
-            m_WakeupEvent.Set();
-
             lock (m_renderQueue)
             {
                 m_renderQueue.Add(cmd);
             }
+
+            m_WakeupEvent.Set();
         }
 
         ////////////////////////////////////////////
@@ -305,42 +353,46 @@ namespace renderdocui.Code
                     
                     Running = true;
 
+                    m_current = null;
+
                     while (Running)
                     {
-                        List<InvokeHandle> queue = new List<InvokeHandle>();
                         lock (m_renderQueue)
                         {
-                            foreach (var cmd in m_renderQueue)
-                                queue.Add(cmd);
-
-                            m_renderQueue.Clear();
+                            if (m_renderQueue.Count > 0)
+                            {
+                                m_current = m_renderQueue[0];
+                                m_renderQueue.RemoveAt(0);
+                            }
                         }
 
-                        foreach (var cmd in queue)
+                        if(m_current == null)
                         {
-                            if (cmd.method != null)
+                            m_WakeupEvent.WaitOne(10);
+                            continue;
+                        }
+
+                        if (m_current.method != null)
+                        {
+                            if (CatchExceptions)
                             {
-                                if (CatchExceptions)
+                                try
                                 {
-                                    try
-                                    {
-                                        cmd.method(renderer);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        cmd.ex = ex;
-                                    }
+                                    m_current.method(renderer);
                                 }
-                                else
+                                catch (Exception ex)
                                 {
-                                    cmd.method(renderer);
+                                    m_current.ex = ex;
                                 }
                             }
-
-                            cmd.processed = true;
+                            else
+                            {
+                                m_current.method(renderer);
+                            }
                         }
 
-                        m_WakeupEvent.WaitOne(10);
+                        m_current.processed = true;
+                        m_current = null;
                     }
 
                     lock (m_renderQueue)

@@ -2568,7 +2568,7 @@ namespace renderdocui.Windows
                 return;
             }
 
-            m_Core.Renderer.Invoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r);  if (m_Output != null) m_Output.Display(); });
+            m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
         }
 
         private void BufferViewer_Load(object sender, EventArgs e)
