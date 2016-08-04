@@ -307,8 +307,11 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
         }
         else if(type == eRemoteServer_ShutdownServer)
         {
+          RDCLOG("Requested to shut down.");
+
           shutdownServer = true;
-          break;
+
+          sendType = eRemoteServer_ShutdownServer;
         }
         else if(type == eRemoteServer_OpenLog)
         {
@@ -450,6 +453,10 @@ public:
   {
     Serialiser sendData("", Serialiser::WRITING, false);
     Send(eRemoteServer_ShutdownServer, sendData);
+
+    RemoteServerPacket type = eRemoteServer_Noop;
+    vector<byte> payload;
+    RecvPacket(m_Socket, type, payload);
     delete this;
   }
   bool Connected() { return m_Socket != NULL && m_Socket->Connected(); }
