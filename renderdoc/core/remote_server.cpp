@@ -44,6 +44,7 @@ string ToStrHelper<false, CaptureOptions>::Get(const CaptureOptions &el)
 enum RemoteServerPacket
 {
   eRemoteServer_Noop,
+  eRemoteServer_Handshake,
   eRemoteServer_RemoteDriverList,
   eRemoteServer_TakeOwnershipCapture,
   eRemoteServer_CopyCapture,
@@ -218,6 +219,17 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
       SAFE_DELETE(client);
       continue;
     }
+
+    RemoteServerPacket type = (RemoteServerPacket)RecvPacket(client);
+
+    if(type != eRemoteServer_Handshake)
+    {
+      RDCWARN("Didn't receive proper handshake");
+      SAFE_DELETE(client);
+      continue;
+    }
+
+    SendPacket(client, eRemoteServer_Handshake);
 
     vector<string> tempFiles;
     IRemoteDriver *driver = NULL;
@@ -446,6 +458,17 @@ public:
     m_Proxies.reserve(m.size());
     for(auto it = m.begin(); it != m.end(); ++it)
       m_Proxies.push_back(*it);
+
+    Serialiser sendData("", Serialiser::WRITING, false);
+    SendPacket(m_Socket, eRemoteServer_Handshake);
+
+    RemoteServerPacket type = (RemoteServerPacket)RecvPacket(m_Socket);
+
+    if(type != eRemoteServer_Handshake)
+    {
+      RDCWARN("Didn't get proper handshake");
+      SAFE_DELETE(m_Socket);
+    }
   }
   virtual ~RemoteServer() { SAFE_DELETE(m_Socket); }
   void ShutdownConnection() { delete this; }
