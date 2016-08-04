@@ -25,6 +25,18 @@
 
 #pragma once
 
+inline uint32_t RecvPacket(Network::Socket *sock)
+{
+  if(sock == NULL)
+    return ~0U;
+
+  uint32_t t = 0;
+  if(!sock->RecvDataBlocking(&t, sizeof(t)))
+    return ~0U;
+
+  return t;
+}
+
 template <typename PacketTypeEnum>
 bool RecvPacket(Network::Socket *sock, PacketTypeEnum &type, vector<byte> &payload)
 {
@@ -77,13 +89,8 @@ bool SendPacket(Network::Socket *sock, PacketTypeEnum type)
   if(sock == NULL)
     return false;
 
-  uint32_t payloadLength = 0;
-
   uint32_t t = (uint32_t)type;
   if(!sock->SendDataBlocking(&t, sizeof(t)))
-    return false;
-
-  if(!sock->SendDataBlocking(&payloadLength, sizeof(payloadLength)))
     return false;
 
   return true;
