@@ -1669,7 +1669,7 @@ string ToStrHelper<false, FloatVector>::Get(const FloatVector &el)
 ProxySerialiser::~ProxySerialiser()
 {
   SAFE_DELETE(m_FromReplaySerialiser);
-  SAFE_DELETE(m_ToReplaySerialiser);
+  m_ToReplaySerialiser = NULL;    // we don't own this
 
   if(m_Proxy)
     m_Proxy->Shutdown();
