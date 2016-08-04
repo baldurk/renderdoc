@@ -170,23 +170,9 @@ namespace renderdocui.Windows.Dialogs
 
             string hostname = node["hostname"] as string;
 
-            RemoteHost host = node.Tag as RemoteHost;
-
             string username = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
 
-            try
-            {
-                RemoteServer server = StaticExports.CreateRemoteServer(hostname, 0);
-                SetRemoteServerLive(node, true, false);
-                server.ShutdownConnection();
-            }
-            catch (ReplayCreateException ex)
-            {
-                if (ex.Status == ReplayCreateStatus.NetworkRemoteBusy)
-                    SetRemoteServerLive(node, true, true);
-                else
-                    SetRemoteServerLive(node, false, false);
-            }
+            (node.Tag as RemoteHost).CheckStatus();
 
             StaticExports.EnumerateRemoteTargets(hostname, (UInt32 i) => {
                 try

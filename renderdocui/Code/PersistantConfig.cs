@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Threading;
 using System.Xml;
 using System.Xml.Serialization;
 using renderdoc;
@@ -44,12 +45,34 @@ namespace renderdocui.Code
 
         [XmlIgnore]
         public bool ServerRunning = false;
-
         [XmlIgnore]
         public bool Connected = false;
-
         [XmlIgnore]
         public bool Busy = false;
+
+        public void CheckStatus()
+        {
+            try
+            {
+                RemoteServer server = StaticExports.CreateRemoteServer(Hostname, 0);
+                ServerRunning = true;
+                Busy = false;
+                server.ShutdownConnection();
+            }
+            catch (ReplayCreateException ex)
+            {
+                if (ex.Status == ReplayCreateStatus.NetworkRemoteBusy)
+                {
+                    ServerRunning = true;
+                    Busy = true;
+                }
+                else
+                {
+                    ServerRunning = false;
+                    Busy = false;
+                }
+            }
+        }
 
         public void Launch()
         {

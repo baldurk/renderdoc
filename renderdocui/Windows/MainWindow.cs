@@ -175,6 +175,13 @@ namespace renderdocui.Windows
 
             CheckUpdates();
 
+            Thread remoteStatusThread = Helpers.NewThread(new ThreadStart(() =>
+            {
+                for (int i = 0; i < m_Core.Config.RemoteHosts.Count; i++)
+                    m_Core.Config.RemoteHosts[i].CheckStatus();
+            }));
+            remoteStatusThread.Start();
+
             sendErrorReportToolStripMenuItem.Enabled = OfficialVersion || BetaVersion;
 
             // create default layout if layout failed to load
@@ -912,12 +919,12 @@ namespace renderdocui.Windows
 
         private void switchContext(object sender, EventArgs e)
         {
+            m_Core.Renderer.DisconnectFromRemoteServer();
+
             if(sender == localContext)
             {
                 contextChooser.Image = global::renderdocui.Properties.Resources.house;
                 contextChooser.Text = "Replay Context: Local";
-
-                m_Core.Renderer.DisconnectFromRemoteServer();
 
                 injectIntoProcessToolStripMenuItem.Enabled = true;
 
@@ -945,17 +952,7 @@ namespace renderdocui.Windows
                 Thread th = Helpers.NewThread(new ThreadStart(() =>
                 {
                     // see if the server is up
-                    try
-                    {
-                        RemoteServer server = StaticExports.CreateRemoteServer(host.Hostname, 0);
-                        server.ShutdownConnection();
-
-                        // if we got this far without an exception, the server is running
-                        host.ServerRunning = true;
-                    }
-                    catch (ReplayCreateException)
-                    {
-                    }
+                    host.CheckStatus();
 
                     if (!host.ServerRunning && host.RunCommand != "")
                     {
@@ -964,35 +961,35 @@ namespace renderdocui.Windows
                         host.Launch();
 
                         // check if it's running now
-                        try
-                        {
-                            RemoteServer server = StaticExports.CreateRemoteServer(host.Hostname, 0);
-                            server.ShutdownConnection();
-
-                            // if we got this far without an exception, the server is running
-                            host.ServerRunning = true;
-                        }
-                        catch (ReplayCreateException)
-                        {
-                        }
+                        host.CheckStatus();
                     }
 
-                    if (host.ServerRunning)
+                    if (host.ServerRunning && !host.Busy)
                     {
-                        m_Core.Renderer.DisconnectFromRemoteServer();
                         m_Core.Renderer.ConnectToRemoteServer(host);
                     }
 
                     this.BeginInvoke(new Action(() =>
                     {
-                        contextChooser.Image = host.ServerRunning
+                        contextChooser.Image = (host.ServerRunning && !host.Busy)
                             ? global::renderdocui.Properties.Resources.connect
                             : global::renderdocui.Properties.Resources.disconnect;
 
-                        if (host.ServerRunning)
+                        if (host.Busy)
+                        {
+                            statusText.Text = "Remote server in use elsewhere";
+                        }
+                        else if (host.ServerRunning)
+                        {
                             statusText.Text = "Remote server ready";
+                        }
                         else
-                            statusText.Text = "Remote server not running or failed";
+                        {
+                            if(host.RunCommand != "")
+                                statusText.Text = "Remote server not running or failed to start";
+                            else
+                                statusText.Text = "Remote server not running - no start command configured";
+                        }
 
                         contextChooser.Enabled = true;
                     }));
