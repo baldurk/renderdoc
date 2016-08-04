@@ -977,9 +977,7 @@ namespace renderdoc
 
             if (rendPtr == IntPtr.Zero || ret != ReplayCreateStatus.Success)
             {
-                var e = new System.ApplicationException("Failed to set up local proxy replay with remote connection");
-                e.Data.Add("status", ret);
-                throw e;
+                throw new ReplayCreateException(ret, "Failed to set up local proxy replay with remote connection");
             }
 
             return new ReplayRenderer(rendPtr);

@@ -169,7 +169,7 @@ namespace renderdocui.Windows
                 }
                 else
                 {
-                    throw new ApplicationException();
+                    throw new ReplayCreateException(ReplayCreateStatus.NetworkIOFailed);
                 }
 
                 while (m_Connection.Connected)
@@ -264,7 +264,7 @@ namespace renderdocui.Windows
                     ConnectionClosed();
                 });
             }
-            catch (ApplicationException)
+            catch (ReplayCreateException)
             {
                 this.BeginInvoke((MethodInvoker)delegate
                 {

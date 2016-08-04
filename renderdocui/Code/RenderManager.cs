@@ -150,7 +150,7 @@ namespace renderdocui.Code
             {
                 m_Remote = StaticExports.CreateRemoteServer(hostname, 0);
             }
-            catch (ApplicationException ex)
+            catch (ReplayCreateException ex)
             {
                 InitException = ex;
             }
@@ -162,7 +162,7 @@ namespace renderdocui.Code
                 m_Remote.ShutdownConnection();
         }
 
-        public ApplicationException InitException = null;
+        public ReplayCreateException InitException = null;
 
         public void CloseThreadSync()
         {
@@ -295,7 +295,7 @@ namespace renderdocui.Code
                     DestroyReplayRenderer(renderer);
                 }
             }
-            catch (ApplicationException ex)
+            catch (ReplayCreateException ex)
             {
                 InitException = ex;
             }

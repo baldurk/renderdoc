@@ -29,6 +29,23 @@ using System.Text;
 
 namespace renderdoc
 {
+    public class ReplayCreateException : Exception
+    {
+        public ReplayCreateException(ReplayCreateStatus status)
+            : base(String.Format("Replay creation failure: {0}", status.Str()))
+        {
+            Status = status;
+        }
+
+        public ReplayCreateException(ReplayCreateStatus status, string msg)
+            : base(msg)
+        {
+            Status = status;
+        }
+
+        public ReplayCreateStatus Status;
+    }
+
     class StaticExports
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -111,9 +128,7 @@ namespace renderdoc
 
             if (rendPtr == IntPtr.Zero || ret != ReplayCreateStatus.Success)
             {
-                var e = new System.ApplicationException("Failed to load log for local replay");
-                e.Data.Add("status", ret);
-                throw e;
+                throw new ReplayCreateException(ret, "Failed to load log for local replay");
             }
 
             return new ReplayRenderer(rendPtr);
@@ -170,9 +185,7 @@ namespace renderdoc
 
             if (rendPtr == IntPtr.Zero)
             {
-                var e = new System.ApplicationException("Failed to open remote access connection");
-                e.Data.Add("status", ReplayCreateStatus.UnknownError);
-                throw e;
+                throw new ReplayCreateException(ReplayCreateStatus.NetworkIOFailed, "Failed to open remote access connection");
             }
 
             return new TargetControl(rendPtr);
@@ -214,9 +227,7 @@ namespace renderdoc
 
             if (rendPtr == IntPtr.Zero || ret != ReplayCreateStatus.Success)
             {
-                var e = new System.ApplicationException("Failed to connect to remote replay host");
-                e.Data.Add("status", ret);
-                throw e;
+                throw new ReplayCreateException(ret, "Failed to connect to remote replay host");
             }
 
             return new RemoteServer(rendPtr);

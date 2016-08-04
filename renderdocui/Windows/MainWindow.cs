@@ -959,7 +959,7 @@ namespace renderdocui.Windows
                         // if we got this far without an exception, the server is running
                         host.ServerRunning = true;
                     }
-                    catch (ApplicationException)
+                    catch (ReplayCreateException)
                     {
                     }
 
@@ -978,7 +978,7 @@ namespace renderdocui.Windows
                             // if we got this far without an exception, the server is running
                             host.ServerRunning = true;
                         }
-                        catch (ApplicationException)
+                        catch (ReplayCreateException)
                         {
                         }
                     }

@@ -170,9 +170,12 @@ namespace renderdocui.Windows.Dialogs
                 SetRemoteServerLive(node, true);
                 server.ShutdownConnection();
             }
-            catch (ApplicationException)
+            catch (ReplayCreateException ex)
             {
-                SetRemoteServerLive(node, false);
+                if(ex.Status == ReplayCreateStatus.NetworkRemoteBusy)
+                    SetRemoteServerLive(node, true);
+                else
+                    SetRemoteServerLive(node, false);
             }
 
             StaticExports.EnumerateRemoteTargets(hostname, (UInt32 i) => {
@@ -204,7 +207,7 @@ namespace renderdocui.Windows.Dialogs
 
                     conn.Shutdown();
                 }
-                catch (ApplicationException)
+                catch (ReplayCreateException)
                 {
                 }
             });
