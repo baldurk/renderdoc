@@ -364,18 +364,20 @@ namespace renderdocui.Windows
             // This ensures that if the user deletes the saved path we can still open or re-save it.
             if (path.Length > 0)
             {
-                string localpath = log.path;
-
-                if (!log.local)
-                {
-                    // copy locally first
-                }
-
                 try
                 {
-                    File.Copy(localpath, path, true);
+                    if (log.local)
+                    {
+                        File.Copy(log.path, path, true);
+                    }
+                    else
+                    {
+                        m_Core.Renderer.CopyCaptureFromRemote(log.path, path, this);
+                        m_Core.Renderer.DeleteCapture(log.path, false);
+                    }
+
                     log.saved = true;
-                    log.path = localpath;
+                    log.path = path;
                     m_Core.Config.AddRecentFile(m_Core.Config.RecentLogFiles, path, 10);
                     m_Main.PopulateRecentFiles();
                 }

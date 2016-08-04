@@ -118,7 +118,13 @@ namespace renderdocui.Code
 
             if (local)
             {
-                System.IO.File.Delete(logfile);
+                try
+                {
+                    System.IO.File.Delete(logfile);
+                }
+                catch (Exception)
+                {
+                }
             }
             else
             {
@@ -126,6 +132,51 @@ namespace renderdocui.Code
                 // is closed.
                 if (m_Remote != null)
                     m_Remote.TakeOwnershipCapture(logfile);
+            }
+        }
+
+        public void CopyCaptureFromRemote(string remotepath, string localpath, Form window)
+        {
+            if (m_Remote != null)
+            {
+                bool copied = false;
+                float progress = 0.0f;
+
+                renderdocui.Windows.ProgressPopup modal =
+                    new renderdocui.Windows.ProgressPopup(
+                        (renderdocui.Windows.ModalCloseCallback)(() => { return copied; }),
+                        true);
+                modal.SetModalText("Transferring...");
+
+                Thread progressThread = Helpers.NewThread(new ThreadStart(() =>
+                {
+                    modal.LogfileProgressBegin();
+
+                    while (!copied)
+                    {
+                        Thread.Sleep(2);
+
+                        modal.LogfileProgress(progress);
+                    }
+                }));
+                progressThread.Start();
+
+                BeginInvoke((ReplayRenderer r) =>
+                {
+                    m_Remote.CopyCaptureFromRemote(remotepath, localpath, ref progress);
+
+                    copied = true;
+                });
+
+                modal.ShowDialog(window);
+
+                // if the copy didn't succeed, throw
+                if (!System.IO.File.Exists(localpath))
+                    throw new System.IO.FileNotFoundException("File couldn't be transferred from remote host", remotepath);
+            }
+            else
+            {
+                System.IO.File.Copy(remotepath, localpath, true);
             }
         }
 

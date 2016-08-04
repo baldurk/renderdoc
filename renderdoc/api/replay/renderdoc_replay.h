@@ -487,7 +487,9 @@ struct IRemoteServer
                                     const CaptureOptions *opts) = 0;
 
   virtual void TakeOwnershipCapture(const char *filename) = 0;
-  virtual rdctype::str CopyCapture(const char *filename, float *progress) = 0;
+  virtual rdctype::str CopyCaptureToRemote(const char *filename, float *progress) = 0;
+  virtual void CopyCaptureFromRemote(const char *remotepath, const char *localpath,
+                                     float *progress) = 0;
 
   virtual ReplayCreateStatus OpenCapture(uint32_t proxyid, const char *logfile, float *progress,
                                          ReplayRenderer **rend) = 0;
@@ -523,10 +525,12 @@ RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char 
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(RemoteServer *remote,
                                                                              const char *filename);
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCapture(RemoteServer *remote,
-                                                                    const char *filename,
-                                                                    float *progress,
-                                                                    rdctype::str *remotepath);
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureToRemote(
+    RemoteServer *remote, const char *filename, float *progress, rdctype::str *remotepath);
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureFromRemote(RemoteServer *remote,
+                                                                              const char *remotepath,
+                                                                              const char *localpath,
+                                                                              float *progress);
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
 RemoteServer_OpenCapture(RemoteServer *remote, uint32_t proxyid, const char *logfile,

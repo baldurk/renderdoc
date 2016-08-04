@@ -246,7 +246,7 @@ namespace renderdocui.Windows
                     {
                         statusProgress.Visible = false;
                         statusText.Text = "";
-                        statusIcon.Image = global::renderdocui.Properties.Resources.hourglass;
+                        statusIcon.Image = null;
                     }
                     else
                     {
@@ -1317,7 +1317,7 @@ namespace renderdocui.Windows
 
             if (res == DialogResult.OK)
             {
-                if (!File.Exists(m_Core.LogFileName))
+                if (m_Core.IsLogLocal && !File.Exists(m_Core.LogFileName))
                 {
                     MessageBox.Show("Logfile " + m_Core.LogFileName + " couldn't be found, cannot save.", "File not found",
                                                     MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -1326,9 +1326,17 @@ namespace renderdocui.Windows
 
                 try
                 {
-                    // we copy the (possibly) temp log to the desired path, but the log item remains referring to the original path.
-                    // This ensures that if the user deletes the saved path we can still open or re-save it.
-                    File.Copy(m_Core.LogFileName, saveDialog.FileName, true);
+                    if (m_Core.IsLogLocal)
+                    {
+                        // we copy the (possibly) temp log to the desired path, but the log item remains referring to the original path.
+                        // This ensures that if the user deletes the saved path we can still open or re-save it.
+                        File.Copy(m_Core.LogFileName, saveDialog.FileName, true);
+                    }
+                    else
+                    {
+                        m_Core.Renderer.CopyCaptureFromRemote(m_Core.LogFileName, saveDialog.FileName, this);
+                    }
+
                     m_Core.Config.AddRecentFile(m_Core.Config.RecentLogFiles, saveDialog.FileName, 10);
                     PopulateRecentFiles();
                     SetTitle(saveDialog.FileName);

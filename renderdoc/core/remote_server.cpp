@@ -48,7 +48,8 @@ enum RemoteServerPacket
   eRemoteServer_Busy,
   eRemoteServer_RemoteDriverList,
   eRemoteServer_TakeOwnershipCapture,
-  eRemoteServer_CopyCapture,
+  eRemoteServer_CopyCaptureToRemote,
+  eRemoteServer_CopyCaptureFromRemote,
   eRemoteServer_OpenLog,
   eRemoteServer_LogOpenProgress,
   eRemoteServer_LogOpened,
@@ -196,7 +197,21 @@ static void ActiveRemoteClientThread(void *data)
           sendSer.Serialise("", (*it).second);
         }
       }
-      else if(type == eRemoteServer_CopyCapture)
+      else if(type == eRemoteServer_CopyCaptureFromRemote)
+      {
+        string path;
+        recvser->Serialise("path", path);
+
+        if(!SendChunkedFile(client, eRemoteServer_CopyCaptureFromRemote, path.c_str(), sendSer, NULL))
+        {
+          RDCERR("Network error sending file");
+          SAFE_DELETE(recvser);
+          break;
+        }
+
+        sendSer.Rewind();
+      }
+      else if(type == eRemoteServer_CopyCaptureToRemote)
       {
         string cap_file;
         string dummy, dummy2;
@@ -213,6 +228,7 @@ static void ActiveRemoteClientThread(void *data)
           RDCERR("Network error receiving file");
 
           SAFE_DELETE(fileRecv);
+          SAFE_DELETE(recvser);
           break;
         }
 
@@ -222,7 +238,7 @@ static void ActiveRemoteClientThread(void *data)
 
         SAFE_DELETE(fileRecv);
 
-        sendType = eRemoteServer_CopyCapture;
+        sendType = eRemoteServer_CopyCaptureToRemote;
         sendSer.Serialise("path", cap_file);
       }
       else if(type == eRemoteServer_TakeOwnershipCapture)
@@ -337,6 +353,8 @@ static void ActiveRemoteClientThread(void *data)
       {
         bool ok = proxy->Tick(type, recvser);
 
+        SAFE_DELETE(recvser);
+
         if(!ok)
           break;
 
@@ -345,7 +363,7 @@ static void ActiveRemoteClientThread(void *data)
 
       SAFE_DELETE(recvser);
 
-      if(type != eRemoteServer_Noop && !SendPacket(client, sendType, sendSer))
+      if(sendType != eRemoteServer_Noop && !SendPacket(client, sendType, sendSer))
       {
         RDCERR("Network error sending supported driver list");
         break;
@@ -683,10 +701,32 @@ public:
     return ident;
   }
 
-  rdctype::str CopyCapture(const char *filename, float *progress)
+  void CopyCaptureFromRemote(const char *remotepath, const char *localpath, float *progress)
+  {
+    string path = remotepath;
+    Serialiser sendData("", Serialiser::WRITING, false);
+    sendData.Serialise("path", path);
+    Send(eRemoteServer_CopyCaptureFromRemote, sendData);
+
+    float dummy = 0.0f;
+    if(progress == NULL)
+      progress = &dummy;
+
+    Serialiser *fileRecv = NULL;
+
+    if(!RecvChunkedFile(m_Socket, eRemoteServer_CopyCaptureFromRemote, localpath, fileRecv, progress))
+    {
+      SAFE_DELETE(fileRecv);
+      RDCERR("Network error receiving file");
+      return;
+    }
+    SAFE_DELETE(fileRecv);
+  }
+
+  rdctype::str CopyCaptureToRemote(const char *filename, float *progress)
   {
     Serialiser sendData("", Serialiser::WRITING, false);
-    Send(eRemoteServer_CopyCapture, sendData);
+    Send(eRemoteServer_CopyCaptureToRemote, sendData);
 
     float dummy = 0.0f;
     if(progress == NULL)
@@ -694,7 +734,7 @@ public:
 
     sendData.Rewind();
 
-    if(!SendChunkedFile(m_Socket, eRemoteServer_CopyCapture, filename, sendData, progress))
+    if(!SendChunkedFile(m_Socket, eRemoteServer_CopyCaptureToRemote, filename, sendData, progress))
     {
       SAFE_DELETE(m_Socket);
       return "";
@@ -704,7 +744,7 @@ public:
     Serialiser *ser = NULL;
     Get(type, &ser);
 
-    if(type == eRemoteServer_CopyCapture && ser)
+    if(type == eRemoteServer_CopyCaptureToRemote && ser)
     {
       string remotepath;
       ser->Serialise("path", remotepath);
@@ -875,14 +915,22 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(Rem
   remote->TakeOwnershipCapture(filename);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCapture(RemoteServer *remote,
-                                                                    const char *filename,
-                                                                    float *progress,
-                                                                    rdctype::str *remotepath)
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureToRemote(RemoteServer *remote,
+                                                                            const char *filename,
+                                                                            float *progress,
+                                                                            rdctype::str *remotepath)
 {
-  rdctype::str path = remote->CopyCapture(filename, progress);
+  rdctype::str path = remote->CopyCaptureToRemote(filename, progress);
   if(remotepath)
     *remotepath = path;
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureFromRemote(RemoteServer *remote,
+                                                                              const char *remotepath,
+                                                                              const char *localpath,
+                                                                              float *progress)
+{
+  remote->CopyCaptureFromRemote(remotepath, localpath, progress);
 }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC

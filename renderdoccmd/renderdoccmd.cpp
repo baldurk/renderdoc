@@ -477,7 +477,7 @@ struct ReplayCommand : public Command
       std::cerr << "Copying capture file to remote server" << std::endl;
 
       float progress = 0.0f;
-      rdctype::str remotePath = remote->CopyCapture(filename.c_str(), &progress);
+      rdctype::str remotePath = remote->CopyCaptureToRemote(filename.c_str(), &progress);
 
       ReplayRenderer *renderer = NULL;
       status = remote->OpenCapture(~0U, remotePath.elems, &progress, &renderer);

@@ -864,7 +864,9 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RemoteServer_TakeOwnershipCapture(IntPtr real, IntPtr filename);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteServer_CopyCapture(IntPtr real, IntPtr filename, ref float progress, IntPtr remotepath);
+        private static extern void RemoteServer_CopyCaptureToRemote(IntPtr real, IntPtr filename, ref float progress, IntPtr remotepath);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_CopyCaptureFromRemote(IntPtr real, IntPtr remotepath, IntPtr localpath, ref float progress);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern ReplayCreateStatus RemoteServer_OpenCapture(IntPtr real, UInt32 proxyid, IntPtr logfile, ref float progress, ref IntPtr rendPtr);
@@ -954,7 +956,7 @@ namespace renderdoc
 
             IntPtr filename_mem = CustomMarshal.MakeUTF8String(filename);
 
-            RemoteServer_CopyCapture(m_Real, filename_mem, ref progress, remotepath);
+            RemoteServer_CopyCaptureToRemote(m_Real, filename_mem, ref progress, remotepath);
 
             CustomMarshal.Free(filename_mem);
 
@@ -963,6 +965,17 @@ namespace renderdoc
             CustomMarshal.Free(remotepath);
 
             return remote;
+        }
+
+        public void CopyCaptureFromRemote(string remotepath, string localpath, ref float progress)
+        {
+            IntPtr remotepath_mem = CustomMarshal.MakeUTF8String(remotepath);
+            IntPtr localpath_mem = CustomMarshal.MakeUTF8String(localpath);
+
+            RemoteServer_CopyCaptureFromRemote(m_Real, remotepath_mem, localpath_mem, ref progress);
+
+            CustomMarshal.Free(remotepath_mem);
+            CustomMarshal.Free(localpath_mem);
         }
 
         public ReplayRenderer OpenCapture(int proxyid, string logfile, ref float progress)
