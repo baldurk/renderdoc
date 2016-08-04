@@ -4391,7 +4391,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
       ubo->Inner_Color = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
       ubo->Border_Color = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
       ubo->Scissor = 0;
-      ubo->ViewRect = (Vec4f &)viewport;
+      ubo->ViewRect = Vec4f(viewport.x, viewport.y, viewport.width, viewport.height);
 
       m_OutlineUBO.Unmap();
 
