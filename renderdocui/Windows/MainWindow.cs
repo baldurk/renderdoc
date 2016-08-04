@@ -919,6 +919,19 @@ namespace renderdocui.Windows
 
         private void switchContext(object sender, EventArgs e)
         {
+            foreach (var live in m_LiveCaptures)
+                if (live.CheckAllowClose() == false)
+                    return;
+
+            if (!PromptCloseLog())
+                return;
+
+            foreach (var live in m_LiveCaptures.ToArray())
+            {
+                live.CleanItems();
+                live.Close();
+            }
+
             m_Core.Renderer.DisconnectFromRemoteServer();
 
             if(sender == localContext)
@@ -1249,10 +1262,12 @@ namespace renderdocui.Windows
                 return true;
 
             string deletepath = "";
+            bool loglocal = false;
 
             if (OwnTemporaryLog)
             {
                 string temppath = m_Core.LogFileName;
+                loglocal = m_Core.IsLogLocal;
 
                 DialogResult res = DialogResult.No;
 
@@ -1286,7 +1301,7 @@ namespace renderdocui.Windows
             try
             {
                 if (deletepath.Length > 0)
-                    File.Delete(deletepath);
+                    m_Core.Renderer.DeleteCapture(deletepath, loglocal);
             }
             catch (System.Exception)
             {

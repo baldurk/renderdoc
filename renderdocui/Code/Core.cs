@@ -57,6 +57,7 @@ namespace renderdocui.Code
 
         private PersistantConfig m_Config = null;
 
+        private bool m_LogLocal = false;
         private bool m_LogLoaded = false;
 
         private FileSystemWatcher m_LogWatcher = null;
@@ -116,6 +117,7 @@ namespace renderdocui.Code
         public bool LogLoaded { get { return m_LogLoaded; } }
         public bool LogLoading { get { return m_LogLoadingInProgress; } }
         public string LogFileName { get { return m_LogFile; } set { if (LogLoaded) m_LogFile = value; } }
+        public bool IsLogLocal { get { return m_LogLocal; } set { m_LogLocal = value; } }
 
         public FetchFrameInfo FrameInfo { get { return m_FrameInfo; } }
 
@@ -454,6 +456,8 @@ namespace renderdocui.Code
         public void LoadLogfile(string logFile, bool temporary, bool local)
         {
             m_LogFile = logFile;
+
+            m_LogLocal = local;
 
             m_LogLoadingInProgress = true;
 
