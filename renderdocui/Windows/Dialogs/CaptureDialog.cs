@@ -544,7 +544,7 @@ namespace renderdocui.Windows.Dialogs
             // if it's a unix style path, maintain the slash type
             if (Helpers.CharCount(exePath.Text, '/') > Helpers.CharCount(exePath.Text, '\\'))
             {
-                workDirPath.Text.Replace('\\', '/');
+                workDirPath.Text = workDirPath.Text.Replace('\\', '/');
             }
         }
 
