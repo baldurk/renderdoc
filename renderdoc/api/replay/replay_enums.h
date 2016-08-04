@@ -490,6 +490,7 @@ enum ReplayCreateStatus
   eReplayCreate_InjectionFailed,
   eReplayCreate_IncompatibleProcess,
   eReplayCreate_NetworkIOFailed,
+  eReplayCreate_NetworkRemoteBusy,
   eReplayCreate_FileIOFailed,
   eReplayCreate_FileIncompatibleVersion,
   eReplayCreate_FileCorrupted,

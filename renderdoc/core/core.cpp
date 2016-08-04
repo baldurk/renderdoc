@@ -105,8 +105,9 @@ string ToStrHelper<false, ReplayCreateStatus>::Get(const ReplayCreateStatus &el)
     case eReplayCreate_InternalError: return "Internal error";
     case eReplayCreate_FileNotFound: return "File not found";
     case eReplayCreate_InjectionFailed: return "RenderDoc injection failed";
-    case eReplayCreate_IncompatibleProcess: return "Process is incompatible (likely 64-bit/32-bit issue)";
+    case eReplayCreate_IncompatibleProcess: return "Process is incompatible";
     case eReplayCreate_NetworkIOFailed: return "Network I/O operation failed";
+    case eReplayCreate_NetworkRemoteBusy: return "Remote side of network connection is busy";
     case eReplayCreate_FileIOFailed: return "File I/O failed";
     case eReplayCreate_FileIncompatibleVersion: return "File of incompatible version";
     case eReplayCreate_FileCorrupted: return "File corrupted";
