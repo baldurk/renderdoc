@@ -497,6 +497,9 @@ namespace renderdoc
         Success = 0,
         UnknownError,
         InternalError,
+        FileNotFound,
+        InjectionFailed,
+        IncompatibleProcess,
         NetworkIOFailed,
         FileIOFailed,
         FileIncompatibleVersion,
@@ -581,6 +584,9 @@ namespace renderdoc
                 case ReplayCreateStatus.Success: return "Success";
                 case ReplayCreateStatus.UnknownError: return "Unknown Error";
                 case ReplayCreateStatus.InternalError: return "Internal Error";
+                case ReplayCreateStatus.FileNotFound: return "File not found";
+                case ReplayCreateStatus.InjectionFailed: return "RenderDoc injection failed";
+                case ReplayCreateStatus.IncompatibleProcess: return "Process is incompatible (likely 64-bit/32-bit issue)";
                 case ReplayCreateStatus.NetworkIOFailed: return "Network I/O operation failed";
                 case ReplayCreateStatus.FileIOFailed: return "File I/O operation failed";
                 case ReplayCreateStatus.FileIncompatibleVersion: return "File is of an incompatible version";
