@@ -137,6 +137,71 @@ namespace renderdocui.Code
             }
         }
 
+        public string[] GetRemoteSupport()
+        {
+            if (m_Remote != null)
+                return m_Remote.RemoteSupportedReplays();
+
+            return new string[0];
+        }
+
+        public string CopyCaptureToRemote(string localpath, Form window)
+        {
+            if (m_Remote != null)
+            {
+                bool copied = false;
+                float progress = 0.0f;
+
+                renderdocui.Windows.ProgressPopup modal =
+                    new renderdocui.Windows.ProgressPopup(
+                        (renderdocui.Windows.ModalCloseCallback)(() => { return copied; }),
+                        true);
+                modal.SetModalText("Transferring...");
+
+                Thread progressThread = Helpers.NewThread(new ThreadStart(() =>
+                {
+                    modal.LogfileProgressBegin();
+
+                    while (!copied)
+                    {
+                        Thread.Sleep(2);
+
+                        modal.LogfileProgress(progress);
+                    }
+                }));
+                progressThread.Start();
+
+                string remotepath = "";
+
+                // we should never have the thread running at this point, but let's be safe.
+                if (Running)
+                {
+                    BeginInvoke((ReplayRenderer r) =>
+                    {
+                        remotepath = m_Remote.CopyCaptureToRemote(localpath, ref progress);
+
+                        copied = true;
+                    });
+                }
+                else
+                {
+                    Helpers.NewThread(new ThreadStart(() =>
+                    {
+                        remotepath = m_Remote.CopyCaptureToRemote(localpath, ref progress);
+
+                        copied = true;
+                    })).Start();
+                }
+
+                modal.ShowDialog(window);
+
+                return remotepath;
+            }
+
+            // if we don't have a remote connection we can't copy
+            throw new ApplicationException();
+        }
+
         public void CopyCaptureFromRemote(string remotepath, string localpath, Form window)
         {
             if (m_Remote != null)

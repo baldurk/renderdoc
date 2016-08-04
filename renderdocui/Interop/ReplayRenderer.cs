@@ -950,7 +950,7 @@ namespace renderdoc
             CustomMarshal.Free(filename_mem);
         }
 
-        public string CopyCapture(string filename, ref float progress)
+        public string CopyCaptureToRemote(string filename, ref float progress)
         {
             IntPtr remotepath = CustomMarshal.Alloc(typeof(templated_array));
 

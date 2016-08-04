@@ -627,30 +627,79 @@ namespace renderdocui.Windows
                 string driver = "";
                 bool support = false;
 
+                bool remoteReplay = !local || (m_Core.Renderer.Remote != null && m_Core.Renderer.Remote.Connected);
+
                 if (local)
+                {
                     support = StaticExports.SupportLocalReplay(filename, out driver);
+
+                    if (remoteReplay)
+                    {
+                        support = false;
+
+                        string[] remoteDrivers = m_Core.Renderer.GetRemoteSupport();
+
+                        for (int i = 0; i < remoteDrivers.Length; i++)
+                        {
+                            if (driver == remoteDrivers[i])
+                                support = true;
+                        }
+                    }
+                }
 
                 Thread thread = null;
 
                 // if driver is empty something went wrong loading the log, let it be handled as usual
                 // below. Otherwise indicate that support is missing.
-                if (driver.Length > 0 && !support && local)
+                if (driver.Length > 0 && !support)
                 {
-                    string remoteMessage = String.Format("This log was captured with {0} and cannot be replayed locally.\n\n", driver);
+                    if (remoteReplay)
+                    {
+                        string remoteMessage = String.Format("This log was captured with {0} and cannot be replayed on {1}.\n\n", driver, m_Core.Renderer.Remote.Hostname);
 
-                    remoteMessage += "Try selecting a remote context in the status bar.";
+                        remoteMessage += "Try selecting a different remote context in the status bar.";
 
-                    MessageBox.Show(remoteMessage, "Unsupported logfile type", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                    return;
+                        MessageBox.Show(remoteMessage, "Unsupported logfile type", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                        return;
+                    }
+                    else
+                    {
+                        string remoteMessage = String.Format("This log was captured with {0} and cannot be replayed locally.\n\n", driver);
+
+                        remoteMessage += "Try selecting a remote context in the status bar.";
+
+                        MessageBox.Show(remoteMessage, "Unsupported logfile type", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                        return;
+                    }
                 }
                 else
                 {
+                    if (remoteReplay)
+                    {
+                        try
+                        {
+                            filename = m_Core.Renderer.CopyCaptureToRemote(filename, this);
+
+                            local = false;
+
+                            // some error
+                            if (filename == "")
+                                throw new ApplicationException();
+                        }
+                        catch (Exception)
+                        {
+                            MessageBox.Show("Couldn't copy " + filename + " to remote host for replaying", "Error copying to remote",
+                                                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+                    }
+
                     thread = Helpers.NewThread(new ThreadStart(() => m_Core.LoadLogfile(filename, temporary, local)));
                 }
 
                 thread.Start();
 
-                if(local)
+                if(!remoteReplay)
                     m_Core.Config.LastLogPath = Path.GetDirectoryName(filename);
 
                 statusText.Text = "Loading " + filename + "...";
