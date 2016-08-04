@@ -172,7 +172,11 @@ namespace renderdocui.Windows.Dialogs
 
             string username = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
 
-            (node.Tag as RemoteHost).CheckStatus();
+            RemoteHost host = node.Tag as RemoteHost;
+
+            host.CheckStatus();
+
+            SetRemoteServerLive(node, host.ServerRunning, host.Busy);
 
             StaticExports.EnumerateRemoteTargets(hostname, (UInt32 i) => {
                 try
