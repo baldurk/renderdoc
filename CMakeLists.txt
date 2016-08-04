@@ -28,8 +28,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         -Wextra
         -Werror
         -Wno-unused-variable
-        -Wno-type-limits
         -Wno-unused-parameter
+        -Wno-unused-result
+        -Wno-type-limits
         -Wno-missing-field-initializers
         -Wno-unknown-pragmas
         -Wno-reorder)
