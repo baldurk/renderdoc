@@ -174,7 +174,9 @@ namespace renderdocui.Code
         {
             Running = false;
 
-            while (m_Thread != null && m_Thread.IsAlive) ; 
+            while (m_Thread != null && m_Thread.IsAlive) ;
+
+            m_renderQueue = new List<InvokeHandle>();
         }
 
         public float LoadProgress;

@@ -667,7 +667,6 @@ namespace renderdocui.Code
             m_LogFile = "";
 
             m_Renderer.CloseThreadSync();
-            m_Renderer = new RenderManager();
 
             m_APIProperties = null;
             m_FrameInfo = null;
