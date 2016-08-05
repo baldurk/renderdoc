@@ -264,6 +264,27 @@ uint64_t GetModifiedTimestamp(const string &filename);
 void Copy(const char *from, const char *to, bool allowOverwrite);
 void Delete(const char *path);
 
+enum
+{
+  eFileProp_Directory = 0x1,
+  eFileProp_Hidden = 0x2,
+  eFileProp_Executable = 0x4,
+
+  eFileProp_ErrorUnknown = 0x2000,
+  eFileProp_ErrorAccessDenied = 0x4000,
+  eFileProp_ErrorInvalidPath = 0x8000,
+};
+
+struct FoundFile
+{
+  FoundFile() : flags(0) {}
+  FoundFile(string fn, uint32_t f) : filename(fn), flags(f) {}
+  string filename;
+  uint32_t flags;
+};
+
+vector<FoundFile> GetFilesInDirectory(const char *path);
+
 FILE *fopen(const char *filename, const char *mode);
 
 size_t fread(void *buf, size_t elementSize, size_t count, FILE *f);

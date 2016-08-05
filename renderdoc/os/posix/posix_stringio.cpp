@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <dirent.h>
 #include <dlfcn.h>    // for dladdr
 #include <errno.h>
 #include <limits.h>
@@ -232,6 +233,70 @@ void Copy(const char *from, const char *to, bool allowOverwrite)
 void Delete(const char *path)
 {
   unlink(path);
+}
+
+vector<FoundFile> GetFilesInDirectory(const char *path)
+{
+  vector<FoundFile> ret;
+
+  DIR *d = opendir(path);
+
+  if(d == NULL)
+  {
+    uint32_t flags = eFileProp_ErrorUnknown;
+
+    if(errno == ENOENT)
+      flags = eFileProp_ErrorInvalidPath;
+    else if(errno == EACCES)
+      flags = eFileProp_ErrorAccessDenied;
+
+    ret.push_back(FoundFile(path, flags));
+    return ret;
+  }
+
+  dirent *ent = NULL;
+
+  for(;;)
+  {
+    ent = readdir(d);
+
+    if(!ent)
+      break;
+
+    // skip "." and ".."
+    if(!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, ".."))
+      continue;
+
+    string fullpath = path;
+    fullpath += '/';
+    fullpath += ent->d_name;
+
+    struct ::stat st;
+    int res = stat(fullpath.c_str(), &st);
+
+    // invalid/bad file - skip it
+    if(res != 0)
+      continue;
+
+    uint32_t flags = 0;
+
+    // make directory/executable mutually exclusive for clarity's sake
+    if(S_ISDIR(st.st_mode))
+      flags |= eFileProp_Directory;
+    else if(st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
+      flags |= eFileProp_Executable;
+
+    if(ent->d_name[0] == '.')
+      flags |= eFileProp_Hidden;
+
+    ret.push_back(FoundFile(ent->d_name, flags));
+  }
+
+  // don't care if we hit an error or enumerated all files, just finish
+
+  closedir(d);
+
+  return ret;
 }
 
 FILE *fopen(const char *filename, const char *mode)

@@ -333,6 +333,82 @@ void Delete(const char *path)
   ::DeleteFileW(wpath.c_str());
 }
 
+vector<FoundFile> GetFilesInDirectory(const char *path)
+{
+  vector<FoundFile> ret;
+
+  string pathstr = path;
+
+  // normalise path to windows style
+  for(size_t i = 0; i < pathstr.size(); i++)
+    if(pathstr[i] == '/')
+      pathstr[i] = '\\';
+
+  // remove any trailing slash
+  if(pathstr[pathstr.size() - 1] == '\\')
+    pathstr.resize(pathstr.size() - 1);
+
+  // append '\*' to do the search we want
+  pathstr += "\\*";
+
+  wstring wpath = StringFormat::UTF82Wide(pathstr);
+
+  WIN32_FIND_DATAW findData = {};
+  HANDLE find = FindFirstFileW(wpath.c_str(), &findData);
+
+  if(find == INVALID_HANDLE_VALUE)
+  {
+    DWORD err = GetLastError();
+
+    uint32_t flags = eFileProp_ErrorUnknown;
+
+    if(err == ERROR_FILE_NOT_FOUND)
+      flags = eFileProp_ErrorInvalidPath;
+    else if(err == ERROR_ACCESS_DENIED)
+      flags = eFileProp_ErrorAccessDenied;
+
+    ret.push_back(FoundFile(path, flags));
+    return ret;
+  }
+
+  do
+  {
+    if(findData.cFileName[0] == L'.' && findData.cFileName[1] == 0)
+    {
+      // skip "."
+    }
+    else if(findData.cFileName[0] == L'.' && findData.cFileName[1] == L'.' &&
+            findData.cFileName[2] == 0)
+    {
+      // skip ".."
+    }
+    else
+    {
+      uint32_t flags = 0;
+
+      if(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        flags |= eFileProp_Directory;
+
+      if(findData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)
+        flags |= eFileProp_Hidden;
+
+      if(wcsstr(findData.cFileName, L".EXE") || wcsstr(findData.cFileName, L".exe") ||
+         wcsstr(findData.cFileName, L".Exe"))
+      {
+        flags |= eFileProp_Executable;
+      }
+
+      ret.push_back(FoundFile(StringFormat::Wide2UTF8(findData.cFileName), flags));
+    }
+  } while(FindNextFile(find, &findData) != FALSE);
+
+  // don't care if we hit an error or enumerated all files, just finish
+
+  FindClose(find);
+
+  return ret;
+}
+
 FILE *fopen(const char *filename, const char *mode)
 {
   wstring wfn = StringFormat::UTF82Wide(string(filename));
