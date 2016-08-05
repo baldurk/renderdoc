@@ -533,7 +533,7 @@ namespace renderdocui.Code
                 return;
             }
 
-            if (!temporary)
+            if (!temporary && local)
             {
                 m_Config.AddRecentFile(m_Config.RecentLogFiles, logFile, 10);
 
