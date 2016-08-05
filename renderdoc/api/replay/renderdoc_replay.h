@@ -483,6 +483,9 @@ struct IRemoteServer
   virtual bool LocalProxies(rdctype::array<rdctype::str> *out) = 0;
   virtual bool RemoteSupportedReplays(rdctype::array<rdctype::str> *out) = 0;
 
+  virtual rdctype::str GetHomeFolder() = 0;
+  virtual rdctype::array<DirectoryFile> ListFolder(const char *path) = 0;
+
   virtual uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
                                     const CaptureOptions *opts) = 0;
 
@@ -518,6 +521,11 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 RemoteServer_LocalProxies(RemoteServer *remote, rdctype::array<rdctype::str> *out);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 RemoteServer_RemoteSupportedReplays(RemoteServer *remote, rdctype::array<rdctype::str> *out);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_GetHomeFolder(RemoteServer *remote,
+                                                                      rdctype::str *home);
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ListFolder(
+    RemoteServer *remote, const char *path, rdctype::array<DirectoryFile> *dirlist);
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,

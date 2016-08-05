@@ -30,6 +30,18 @@ using System.Runtime.InteropServices;
 
 namespace renderdoc
 {
+    [Flags]
+    public enum DirectoryFileProperty
+    {
+        Directory = 0x1,
+        Hidden = 0x2,
+        Executable = 0x4,
+
+        ErrorUnknown = 0x2000,
+        ErrorAccessDenied = 0x4000,
+        ErrorInvalidPath = 0x8000,
+    };
+
     public enum VarType
     {
         Float = 0,

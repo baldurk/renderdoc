@@ -34,6 +34,12 @@ struct FloatVector
   float x, y, z, w;
 };
 
+struct DirectoryFile
+{
+  rdctype::str filename;
+  uint32_t flags;
+};
+
 struct ResourceFormat
 {
   ResourceFormat()

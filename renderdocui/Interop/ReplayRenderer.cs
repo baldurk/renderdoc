@@ -859,6 +859,11 @@ namespace renderdoc
         private static extern bool RemoteServer_RemoteSupportedReplays(IntPtr real, IntPtr outlist);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_GetHomeFolder(IntPtr real, IntPtr outfolder);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_ListFolder(IntPtr real, IntPtr path, IntPtr outlist);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern UInt32 RemoteServer_ExecuteAndInject(IntPtr real, IntPtr app, IntPtr workingDir, IntPtr cmdLine, CaptureOptions opts);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -894,6 +899,41 @@ namespace renderdoc
                 RemoteServer_ShutdownServerAndConnection(m_Real);
                 m_Real = IntPtr.Zero;
             }
+        }
+
+        public string GetHomeFolder()
+        {
+            IntPtr homepath_mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            RemoteServer_GetHomeFolder(m_Real, homepath_mem);
+
+            string home = CustomMarshal.TemplatedArrayToString(homepath_mem, true);
+
+            CustomMarshal.Free(homepath_mem);
+
+            // normalise to /s and with no trailing /s
+            home.Replace('\\', '/');
+            if (home[home.Length - 1] == '/')
+                home = home.Remove(0, home.Length - 1);
+
+            return home;
+        }
+
+        public DirectoryFile[] ListFolder(string path)
+        {
+            IntPtr path_mem = CustomMarshal.MakeUTF8String(path);
+            IntPtr out_mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            RemoteServer_ListFolder(m_Real, path_mem, out_mem);
+
+            DirectoryFile[] ret = (DirectoryFile[])CustomMarshal.GetTemplatedArray(out_mem, typeof(DirectoryFile), true);
+
+            CustomMarshal.Free(out_mem);
+            CustomMarshal.Free(path_mem);
+
+            Array.Sort(ret);
+
+            return ret;
         }
 
         public string[] LocalProxies()

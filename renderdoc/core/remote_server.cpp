@@ -41,6 +41,15 @@ string ToStrHelper<false, CaptureOptions>::Get(const CaptureOptions &el)
   return "<...>";
 }
 
+template <>
+void Serialiser::Serialise(const char *name, DirectoryFile &el)
+{
+  ScopedContext scope(this, name, "DirectoryFile", 0, true);
+
+  Serialise("filename", el.filename);
+  Serialise("flags", el.flags);
+}
+
 enum RemoteServerPacket
 {
   eRemoteServer_Noop,
@@ -54,6 +63,8 @@ enum RemoteServerPacket
   eRemoteServer_LogOpenProgress,
   eRemoteServer_LogOpened,
   eRemoteServer_CloseLog,
+  eRemoteServer_HomeDir,
+  eRemoteServer_ListDir,
   eRemoteServer_ExecuteAndInject,
   eRemoteServer_ShutdownServer,
   eRemoteServer_RemoteServerCount,
@@ -195,6 +206,33 @@ static void ActiveRemoteClientThread(void *data)
           RDCDriver driver = it->first;
           sendSer.Serialise("", driver);
           sendSer.Serialise("", (*it).second);
+        }
+      }
+      else if(type == eRemoteServer_HomeDir)
+      {
+        sendType = eRemoteServer_HomeDir;
+
+        string home = FileIO::GetHomeFolderFilename();
+        sendSer.Serialise("", home);
+      }
+      else if(type == eRemoteServer_ListDir)
+      {
+        string path;
+        recvser->Serialise("path", path);
+
+        sendType = eRemoteServer_ListDir;
+
+        vector<FileIO::FoundFile> files = FileIO::GetFilesInDirectory(path.c_str());
+
+        uint32_t count = (uint32_t)files.size();
+        sendSer.Serialise("", count);
+
+        for(uint32_t i = 0; i < count; i++)
+        {
+          DirectoryFile df;
+          df.filename = files[i].filename;
+          df.flags = files[i].flags;
+          sendSer.Serialise("", df);
         }
       }
       else if(type == eRemoteServer_CopyCaptureFromRemote)
@@ -670,6 +708,67 @@ public:
     return true;
   }
 
+  rdctype::str GetHomeFolder()
+  {
+    rdctype::str ret;
+
+    Serialiser sendData("", Serialiser::WRITING, false);
+    Send(eRemoteServer_HomeDir, sendData);
+
+    RemoteServerPacket type = eRemoteServer_HomeDir;
+
+    Serialiser *ser = NULL;
+    Get(type, &ser);
+
+    if(ser)
+    {
+      string home;
+      ser->Serialise("", home);
+
+      ret = home;
+
+      delete ser;
+    }
+
+    return ret;
+  }
+
+  rdctype::array<DirectoryFile> ListFolder(const char *path)
+  {
+    rdctype::array<DirectoryFile> ret;
+
+    string folderPath = path;
+
+    Serialiser sendData("", Serialiser::WRITING, false);
+    sendData.Serialise("", folderPath);
+    Send(eRemoteServer_ListDir, sendData);
+
+    RemoteServerPacket type = eRemoteServer_ListDir;
+
+    Serialiser *ser = NULL;
+    Get(type, &ser);
+
+    if(ser)
+    {
+      uint32_t count = 0;
+      ser->Serialise("", count);
+
+      create_array_uninit(ret, count);
+      for(uint32_t i = 0; i < count; i++)
+        ser->Serialise("", ret[i]);
+
+      delete ser;
+    }
+    else
+    {
+      create_array_uninit(ret, 1);
+      ret.elems[0].filename = path;
+      ret.elems[0].flags = eFileProp_ErrorUnknown;
+    }
+
+    return ret;
+  }
+
   uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
                             const CaptureOptions *opts)
   {
@@ -894,6 +993,22 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 RemoteServer_LocalProxies(RemoteServer *remote, rdctype::array<rdctype::str> *out)
 {
   return remote->LocalProxies(out);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_GetHomeFolder(RemoteServer *remote,
+                                                                      rdctype::str *home)
+{
+  rdctype::str path = remote->GetHomeFolder();
+  if(home)
+    *home = path;
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ListFolder(
+    RemoteServer *remote, const char *path, rdctype::array<DirectoryFile> *dirlist)
+{
+  rdctype::array<DirectoryFile> files = remote->ListFolder(path);
+  if(dirlist)
+    *dirlist = files;
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC

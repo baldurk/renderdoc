@@ -75,6 +75,34 @@ namespace renderdoc
     };
 
     [StructLayout(LayoutKind.Sequential)]
+    public struct DirectoryFile : IComparable<DirectoryFile>
+    {
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+        public string filename;
+        public DirectoryFileProperty flags;
+
+        public override string ToString()
+        {
+            return String.Format("{0} ({1})", filename, flags);
+        }
+
+        public int CompareTo(DirectoryFile o)
+        {
+            // sort directories first
+            bool thisdir = flags.HasFlag(DirectoryFileProperty.Directory);
+            bool odir = o.flags.HasFlag(DirectoryFileProperty.Directory);
+
+            if (thisdir && !odir)
+                return -1;
+            if (!thisdir && odir)
+                return 1;
+
+            // can't have duplicates with same filename, so just compare filenames
+            return filename.CompareTo(o.filename);
+        }
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
     public class ResourceFormat
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]

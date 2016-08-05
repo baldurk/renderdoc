@@ -25,6 +25,17 @@
 
 #pragma once
 
+enum DirectoryFileProperty
+{
+  eFileProp_Directory = 0x1,
+  eFileProp_Hidden = 0x2,
+  eFileProp_Executable = 0x4,
+
+  eFileProp_ErrorUnknown = 0x2000,
+  eFileProp_ErrorAccessDenied = 0x4000,
+  eFileProp_ErrorInvalidPath = 0x8000,
+};
+
 // replay_shader.h
 
 enum VarType
