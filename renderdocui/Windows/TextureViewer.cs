@@ -372,6 +372,17 @@ namespace renderdocui.Windows
 
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+            {
+                dockPanel.Skin = Helpers.MakeHighContrastDockPanelSkin();
+                zoomStrip.Renderer = new ToolStripSystemRenderer();
+                overlayStrip.Renderer = new ToolStripSystemRenderer();
+                subStrip.Renderer = new ToolStripSystemRenderer();
+                rangeStrip.Renderer = new ToolStripSystemRenderer();
+                channelStrip.Renderer = new ToolStripSystemRenderer();
+                actionsStrip.Renderer = new ToolStripSystemRenderer();
+            }
+
             m_Goto = new Dialogs.TextureGoto(GotoLocation);
 
             textureList.Font =

@@ -61,6 +61,14 @@ namespace renderdocui.Windows
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+            {
+                toolStrip1.Renderer = new ToolStripSystemRenderer();
+                jumpStrip.Renderer = new ToolStripSystemRenderer();
+                findStrip.Renderer = new ToolStripSystemRenderer();
+                bookmarkStrip.Renderer = new ToolStripSystemRenderer();
+            }
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             jumpToEID.Font =

@@ -93,6 +93,9 @@ namespace renderdocui.Windows
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+                toolStrip1.Renderer = new ToolStripSystemRenderer();
+
             m_Core = core;
             m_Main = main;
 

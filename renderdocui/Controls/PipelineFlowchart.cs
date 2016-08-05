@@ -256,7 +256,7 @@ namespace renderdocui.Controls
 
             float arrowY = TotalAreaRect.Y + TotalAreaRect.Height / 2;
 
-            using (var pen = new Pen(Brushes.Black, BoxBorderWidth))
+            using (var pen = new Pen(SystemBrushes.WindowFrame, BoxBorderWidth))
             using (var selectedpen = new Pen(Brushes.Red, BoxBorderWidth))
             {
                 for (int i = 0; i < NumGaps; i++)
@@ -267,26 +267,33 @@ namespace renderdocui.Controls
                     float right = TotalAreaRect.X + (i + 1) * (BoxSize.Width + BoxMargin);
                     float left = right - BoxMargin;
 
-                    DrawArrow(dc, Brushes.Black, pen, ArrowHeadSize, arrowY, left, right);
+                    DrawArrow(dc, SystemBrushes.WindowFrame, pen, ArrowHeadSize, arrowY, left, right);
                 }
 
                 for (int i = 0; i < NumItems; i++)
                 {
                     RectangleF boxrect = GetBoxRect(i);
 
-                    var backBrush = Brushes.Gainsboro;
-                    var textBrush = Brushes.Black;
+                    var backBrush = SystemBrushes.Window;
+                    var textBrush = SystemBrushes.WindowText;
                     var outlinePen = pen;
+
+                    if (SystemInformation.HighContrast)
+                    {
+                        backBrush = SystemBrushes.ActiveCaption;
+                        textBrush = SystemBrushes.ActiveCaptionText;
+                    }
 
                     if (!IsStageEnabled(i))
                     {
-                        backBrush = Brushes.DarkGray;
-                        //textBrush = Brushes.Gainsboro;
+                        backBrush = SystemBrushes.InactiveCaption;
+                        textBrush = SystemBrushes.InactiveCaptionText;
                     }
 
                     if (i == m_HoverStage)
                     {
-                        backBrush = Brushes.LightYellow;
+                        backBrush = SystemBrushes.Info;
+                        textBrush = SystemBrushes.InfoText;
                     }
 
                     if (i == SelectedStage)

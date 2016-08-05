@@ -225,6 +225,15 @@ namespace renderdocui.Windows
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+            {
+                dockPanel.Skin = Helpers.MakeHighContrastDockPanelSkin();
+
+                debuggingStrip.Renderer = new ToolStripSystemRenderer();
+                editStrip.Renderer = new ToolStripSystemRenderer();
+                toolStrip1.Renderer = new ToolStripSystemRenderer();
+            }
+
             constantRegs.Font =
                 variableRegs.Font =
                 watchRegs.Font =
@@ -426,6 +435,9 @@ namespace renderdocui.Windows
         public ShaderViewer(Core core, ShaderReflection shader, ShaderStageType stage, ShaderDebugTrace trace, string debugContext)
         {
             InitializeComponent();
+
+            if (SystemInformation.HighContrast)
+                dockPanel.Skin = Helpers.MakeHighContrastDockPanelSkin();
 
             constantRegs.Font =
                 variableRegs.Font =

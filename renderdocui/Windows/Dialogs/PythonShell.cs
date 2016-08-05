@@ -30,6 +30,12 @@ namespace renderdocui.Windows.Dialogs
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+            {
+                toolStrip1.Renderer = new ToolStripSystemRenderer();
+                toolStrip2.Renderer = new ToolStripSystemRenderer();
+            }
+
             shellTable.Dock = DockStyle.Fill;
             scriptTable.Dock = DockStyle.Fill;
 

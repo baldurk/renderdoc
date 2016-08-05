@@ -48,6 +48,9 @@ namespace renderdocui.Controls
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+                toolStrip1.Renderer = new ToolStripSystemRenderer();
+
             m_Core = c;
             Stage = stage;
             Slot = slot;

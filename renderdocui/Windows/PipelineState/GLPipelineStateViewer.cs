@@ -83,6 +83,9 @@ namespace renderdocui.Windows.PipelineState
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+                toolStrip1.Renderer = new ToolStripSystemRenderer();
+
             m_DockContent = c;
 
             inputLayouts.Font = core.Config.PreferredFont;

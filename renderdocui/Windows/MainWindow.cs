@@ -140,6 +140,9 @@ namespace renderdocui.Windows
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+                dockPanel.Skin = Helpers.MakeHighContrastDockPanelSkin();
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             renderdocplugin.PluginHelpers.GetPlugins();

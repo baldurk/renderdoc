@@ -93,6 +93,9 @@ namespace renderdocui.Windows.PipelineState
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+                toolStrip1.Renderer = new ToolStripSystemRenderer();
+
             m_DockContent = c;
 
             inputLayouts.Font = core.Config.PreferredFont;
@@ -236,6 +239,7 @@ namespace renderdocui.Windows.PipelineState
         private void EmptyRow(TreelistView.Node node)
         {
             node.BackColor = Color.FromArgb(255, 70, 70);
+            node.ForeColor = Color.Black;
         }
 
         private void InactiveRow(TreelistView.Node node)
@@ -246,6 +250,7 @@ namespace renderdocui.Windows.PipelineState
         private void ViewDetailsRow(TreelistView.Node node)
         {
             node.BackColor = Color.Aquamarine;
+            node.ForeColor = Color.Black;
             m_ViewDetailNodes.Add(node);
         }
 
@@ -2716,7 +2721,7 @@ namespace renderdocui.Windows.PipelineState
 
         private void meshView_MouseEnter(object sender, EventArgs e)
         {
-            meshView.BackColor = Color.LightGray;
+            meshView.BackColor = SystemColors.ButtonShadow;
         }
 
         private void meshView_MouseLeave(object sender, EventArgs e)
@@ -2767,15 +2772,24 @@ namespace renderdocui.Windows.PipelineState
             Color c = HSLColor(GetHueForVB((int)slot), 1.0f, 0.95f);
 
             if (slot < m_VBNodes.Count)
+            {
                 m_VBNodes[(int)slot].DefaultBackColor = c;
+                m_VBNodes[(int)slot].ForeColor = Color.Black;
+            }
 
             for (int i = 0; i < inputLayouts.Nodes.Count; i++)
             {
                 var n = inputLayouts.Nodes[i];
                 if (IA.layouts[i].InputSlot == slot)
+                {
                     n.DefaultBackColor = c;
+                    n.ForeColor = Color.Black;
+                }
                 else
+                {
                     n.DefaultBackColor = Color.Transparent;
+                    n.ForeColor = Color.Transparent;
+                }
             }
 
             inputLayouts.Invalidate();
@@ -2785,10 +2799,16 @@ namespace renderdocui.Windows.PipelineState
         private void ia_MouseLeave(object sender, EventArgs e)
         {
             foreach (var n in iabuffers.Nodes)
+            {
                 n.DefaultBackColor = Color.Transparent;
+                n.ForeColor = Color.Transparent;
+            }
 
             foreach (var n in inputLayouts.Nodes)
+            {
                 n.DefaultBackColor = Color.Transparent;
+                n.ForeColor = Color.Transparent;
+            }
 
             inputLayouts.Invalidate();
             iabuffers.Invalidate();

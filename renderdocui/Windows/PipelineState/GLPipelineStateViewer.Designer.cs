@@ -1128,7 +1128,8 @@
             // 
             this.vsShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.vsShader.AutoSize = true;
-            this.vsShader.BackColor = System.Drawing.Color.LightGray;
+            this.vsShader.BackColor = System.Drawing.SystemColors.Info;
+            this.vsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.vsShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.vsShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.vsShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
@@ -1502,7 +1503,8 @@
             // 
             this.tcsShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.tcsShader.AutoSize = true;
-            this.tcsShader.BackColor = System.Drawing.Color.LightGray;
+            this.tcsShader.BackColor = System.Drawing.SystemColors.Info;
+            this.tcsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.tcsShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.tcsShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.tcsShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
@@ -1878,7 +1880,8 @@
             // 
             this.tesShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.tesShader.AutoSize = true;
-            this.tesShader.BackColor = System.Drawing.Color.LightGray;
+            this.tesShader.BackColor = System.Drawing.SystemColors.Info;
+            this.tesShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.tesShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.tesShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.tesShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
@@ -2256,7 +2259,8 @@
             // 
             this.gsShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.gsShader.AutoSize = true;
-            this.gsShader.BackColor = System.Drawing.Color.LightGray;
+            this.gsShader.BackColor = System.Drawing.SystemColors.Info;
+            this.gsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.gsShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.gsShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.gsShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
@@ -3442,7 +3446,8 @@
             // 
             this.fsShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.fsShader.AutoSize = true;
-            this.fsShader.BackColor = System.Drawing.Color.LightGray;
+            this.fsShader.BackColor = System.Drawing.SystemColors.Info;
+            this.fsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.fsShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.fsShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.fsShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
@@ -4298,7 +4303,8 @@
             // 
             this.csShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.csShader.AutoSize = true;
-            this.csShader.BackColor = System.Drawing.Color.LightGray;
+            this.csShader.BackColor = System.Drawing.SystemColors.Info;
+            this.csShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.csShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.csShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.csShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);

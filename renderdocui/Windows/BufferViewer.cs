@@ -221,6 +221,14 @@ namespace renderdocui.Windows
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+            {
+                dockPanel.Skin = Helpers.MakeHighContrastDockPanelSkin();
+
+                toolStrip1.Renderer = new ToolStripSystemRenderer();
+                toolStrip2.Renderer = new ToolStripSystemRenderer();
+            }
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             UI_SetupDocks(meshview);
@@ -1349,17 +1357,29 @@ namespace renderdocui.Windows
                     if (e == m_PosElement[(int)type] && active)
                     {
                         if (i != 3 || !input)
+                        {
                             col.DefaultCellStyle.BackColor = Color.SkyBlue;
+                            col.DefaultCellStyle.ForeColor = Color.Black;
+                        }
                         else
+                        {
                             col.DefaultCellStyle.BackColor = Color.LightCyan;
+                            col.DefaultCellStyle.ForeColor = Color.Black;
+                        }
                     }
                     else if (e == m_SecondElement[(int)type] && active && m_MeshDisplay.solidShadeMode == SolidShadeMode.Secondary)
                     {
                         if ((m_MeshDisplay.secondary.showAlpha && i == 3) ||
                             (!m_MeshDisplay.secondary.showAlpha && i != 3))
+                        {
                             col.DefaultCellStyle.BackColor = Color.LightGreen;
+                            col.DefaultCellStyle.ForeColor = Color.Black;
+                        }
                         else
+                        {
                             col.DefaultCellStyle.BackColor = Color.FromArgb(200, 238, 200);
+                            col.DefaultCellStyle.ForeColor = Color.Black;
+                        }
                     }
                     else
                         col.DefaultCellStyle.BackColor = defaultCol;

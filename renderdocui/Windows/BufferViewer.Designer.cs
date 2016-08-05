@@ -630,7 +630,7 @@
             this.vsInBufferView.AllowUserToDeleteRows = false;
             this.vsInBufferView.AllowUserToResizeRows = false;
             this.vsInBufferView.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.DisplayedCells;
-            this.vsInBufferView.BackgroundColor = System.Drawing.Color.White;
+            this.vsInBufferView.BackgroundColor = System.Drawing.SystemColors.Window;
             dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Window;
             dataGridViewCellStyle1.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -678,7 +678,7 @@
             this.vsOutBufferView.AllowUserToDeleteRows = false;
             this.vsOutBufferView.AllowUserToResizeRows = false;
             this.vsOutBufferView.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.DisplayedCells;
-            this.vsOutBufferView.BackgroundColor = System.Drawing.Color.White;
+            this.vsOutBufferView.BackgroundColor = System.Drawing.SystemColors.Window;
             dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Window;
             dataGridViewCellStyle2.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -975,7 +975,7 @@
             this.gsOutBufferView.AllowUserToDeleteRows = false;
             this.gsOutBufferView.AllowUserToResizeRows = false;
             this.gsOutBufferView.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.DisplayedCells;
-            this.gsOutBufferView.BackgroundColor = System.Drawing.Color.White;
+            this.gsOutBufferView.BackgroundColor = System.Drawing.SystemColors.Window;
             dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle3.BackColor = System.Drawing.SystemColors.Window;
             dataGridViewCellStyle3.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));

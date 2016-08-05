@@ -138,7 +138,7 @@ namespace TreelistView
 
 			if (m_owner.NodesSelection.Contains(node) || m_owner.FocusedNode == node)
 			{
-                Color col = m_owner.Focused ? SystemColors.Highlight : SystemColors.ControlLight;
+                Color col = m_owner.Focused ? SystemColors.Highlight : SystemColors.Control;
 
 				if (!Application.RenderWithVisualStyles)
 				{
@@ -160,6 +160,11 @@ namespace TreelistView
             else if (hoverNode == node && m_owner.RowOptions.HoverHighlight)
             {
                 Color col = SystemColors.ControlLight;
+
+                if (SystemInformation.HighContrast)
+                {
+                    col = SystemColors.ButtonHighlight;
+                }
 
                 if (!Application.RenderWithVisualStyles)
                 {

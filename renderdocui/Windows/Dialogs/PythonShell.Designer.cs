@@ -30,31 +30,30 @@
         {
             this.components = new System.ComponentModel.Container();
             System.Windows.Forms.ToolStripContainer toolStripContainer1;
-            System.Windows.Forms.ToolStrip toolStrip1;
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PythonShell));
             this.scriptTable = new System.Windows.Forms.TableLayoutPanel();
             this.scriptSplit = new System.Windows.Forms.SplitContainer();
             this.scriptOutput = new System.Windows.Forms.TextBox();
             this.toolStrip2 = new System.Windows.Forms.ToolStrip();
+            this.newScript = new System.Windows.Forms.ToolStripButton();
             this.openButton = new System.Windows.Forms.ToolStripButton();
             this.saveAs = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.runButton = new System.Windows.Forms.ToolStripButton();
+            this.abortButton = new System.Windows.Forms.ToolStripButton();
             this.shellTable = new System.Windows.Forms.TableLayoutPanel();
             this.interactiveInput = new System.Windows.Forms.TextBox();
             this.interactiveOutput = new System.Windows.Forms.TextBox();
             this.executeCmd = new System.Windows.Forms.Button();
             this.clearCmd = new System.Windows.Forms.Button();
+            this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.shellMode = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.scriptMode = new System.Windows.Forms.ToolStripButton();
             this.saveDialog = new System.Windows.Forms.SaveFileDialog();
             this.openDialog = new System.Windows.Forms.OpenFileDialog();
-            this.newScript = new System.Windows.Forms.ToolStripButton();
             this.linenumTimer = new System.Windows.Forms.Timer(this.components);
-            this.abortButton = new System.Windows.Forms.ToolStripButton();
             toolStripContainer1 = new System.Windows.Forms.ToolStripContainer();
-            toolStrip1 = new System.Windows.Forms.ToolStrip();
             toolStripContainer1.ContentPanel.SuspendLayout();
             toolStripContainer1.TopToolStripPanel.SuspendLayout();
             toolStripContainer1.SuspendLayout();
@@ -64,7 +63,7 @@
             this.scriptSplit.SuspendLayout();
             this.toolStrip2.SuspendLayout();
             this.shellTable.SuspendLayout();
-            toolStrip1.SuspendLayout();
+            this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // toolStripContainer1
@@ -84,7 +83,7 @@
             // 
             // toolStripContainer1.TopToolStripPanel
             // 
-            toolStripContainer1.TopToolStripPanel.Controls.Add(toolStrip1);
+            toolStripContainer1.TopToolStripPanel.Controls.Add(this.toolStrip1);
             // 
             // scriptTable
             // 
@@ -142,6 +141,15 @@
             this.toolStrip2.TabIndex = 2;
             this.toolStrip2.Text = "toolStrip2";
             // 
+            // newScript
+            // 
+            this.newScript.Image = global::renderdocui.Properties.Resources.page_white_edit;
+            this.newScript.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.newScript.Name = "newScript";
+            this.newScript.Size = new System.Drawing.Size(48, 22);
+            this.newScript.Text = "New";
+            this.newScript.Click += new System.EventHandler(this.newScript_Click);
+            // 
             // openButton
             // 
             this.openButton.Image = global::renderdocui.Properties.Resources.folder_page;
@@ -173,6 +181,15 @@
             this.runButton.Size = new System.Drawing.Size(46, 22);
             this.runButton.Text = "Run";
             this.runButton.Click += new System.EventHandler(this.runButton_Click);
+            // 
+            // abortButton
+            // 
+            this.abortButton.Image = global::renderdocui.Properties.Resources.delete;
+            this.abortButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.abortButton.Name = "abortButton";
+            this.abortButton.Size = new System.Drawing.Size(54, 22);
+            this.abortButton.Text = "Abort";
+            this.abortButton.Click += new System.EventHandler(this.abortButton_Click);
             // 
             // shellTable
             // 
@@ -246,16 +263,16 @@
             // 
             // toolStrip1
             // 
-            toolStrip1.Dock = System.Windows.Forms.DockStyle.None;
-            toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStrip1.Dock = System.Windows.Forms.DockStyle.None;
+            this.toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
+            this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.shellMode,
             this.toolStripSeparator1,
             this.scriptMode});
-            toolStrip1.Location = new System.Drawing.Point(3, 0);
-            toolStrip1.Name = "toolStrip1";
-            toolStrip1.Size = new System.Drawing.Size(161, 25);
-            toolStrip1.TabIndex = 0;
+            this.toolStrip1.Location = new System.Drawing.Point(3, 0);
+            this.toolStrip1.Name = "toolStrip1";
+            this.toolStrip1.Size = new System.Drawing.Size(192, 25);
+            this.toolStrip1.TabIndex = 0;
             // 
             // shellMode
             // 
@@ -296,28 +313,10 @@
             this.openDialog.Filter = "Python Scripts (*.py)|*.py";
             this.openDialog.Title = "Open .py script";
             // 
-            // newScript
-            // 
-            this.newScript.Image = global::renderdocui.Properties.Resources.page_white_edit;
-            this.newScript.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.newScript.Name = "newScript";
-            this.newScript.Size = new System.Drawing.Size(48, 22);
-            this.newScript.Text = "New";
-            this.newScript.Click += new System.EventHandler(this.newScript_Click);
-            // 
             // linenumTimer
             // 
             this.linenumTimer.Interval = 500;
             this.linenumTimer.Tick += new System.EventHandler(this.linenumTimer_Tick);
-            // 
-            // abortButton
-            // 
-            this.abortButton.Image = global::renderdocui.Properties.Resources.delete;
-            this.abortButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.abortButton.Name = "abortButton";
-            this.abortButton.Size = new System.Drawing.Size(54, 22);
-            this.abortButton.Text = "Abort";
-            this.abortButton.Click += new System.EventHandler(this.abortButton_Click);
             // 
             // PythonShell
             // 
@@ -347,8 +346,8 @@
             this.toolStrip2.PerformLayout();
             this.shellTable.ResumeLayout(false);
             this.shellTable.PerformLayout();
-            toolStrip1.ResumeLayout(false);
-            toolStrip1.PerformLayout();
+            this.toolStrip1.ResumeLayout(false);
+            this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -376,6 +375,7 @@
         private System.Windows.Forms.ToolStripButton newScript;
         private System.Windows.Forms.Timer linenumTimer;
         private System.Windows.Forms.ToolStripButton abortButton;
+        private System.Windows.Forms.ToolStrip toolStrip1;
 
 
     }

@@ -49,6 +49,9 @@ namespace renderdocui.Windows
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+                toolStrip1.Renderer = new ToolStripSystemRenderer();
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             m_Core = core;

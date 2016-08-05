@@ -416,7 +416,7 @@ namespace renderdocui.Controls
 
             rect.Inflate(-m_Margin, -m_Margin);
 
-            e.Graphics.FillRectangle(Brushes.Black, rect);
+            e.Graphics.FillRectangle(SystemBrushes.ControlText, rect);
 
             rect.Inflate(-m_Border, -m_Border);
 
