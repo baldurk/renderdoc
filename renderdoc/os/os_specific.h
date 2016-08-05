@@ -250,6 +250,7 @@ namespace FileIO
 {
 void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename,
                      string &target);
+string GetHomeFolderFilename();
 string GetAppFolderFilename(const string &filename);
 string GetReplayAppFilename();
 

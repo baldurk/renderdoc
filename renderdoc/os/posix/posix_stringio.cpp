@@ -49,6 +49,14 @@ namespace FileIO
 // in posix/.../..._stringio.cpp
 const char *GetTempRootPath();
 
+string GetHomeFolderFilename()
+{
+  passwd *pw = getpwuid(getuid());
+  const char *homedir = pw->pw_dir;
+
+  return homedir;
+}
+
 void CreateParentDirectory(const string &filename)
 {
   string fn = dirname(filename);
