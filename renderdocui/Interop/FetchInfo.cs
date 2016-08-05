@@ -26,6 +26,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using renderdocui.Code;
 
 namespace renderdoc
 {
@@ -544,16 +545,23 @@ namespace renderdoc
                 );
         }
 
-        public bool ShouldUseWhiteText()
+        public System.Drawing.Color GetTextColor(System.Drawing.Color defaultTextCol)
         {
-            float red = markerColour[0];
-            float green = markerColour[1];
-            float blue = markerColour[2];
-            float alpha = markerColour[3];
+            float backLum = GetColor().GetLuminance();
+            float textLum = defaultTextCol.GetLuminance();
 
-            double luminance = 0.2126 * Math.Pow(red, 2.2) + 0.7152 * Math.Pow(green, 2.2) + 0.0722 * Math.Pow(blue, 2.2);
+            bool backDark = backLum < 0.2f;
+            bool textDark = textLum < 0.2f;
 
-            return luminance < 0.2;
+            // if they're contrasting, use the text colour desired
+            if (backDark != textDark)
+                return defaultTextCol;
+
+            // otherwise pick a contrasting colour
+            if (backDark)
+                return System.Drawing.Color.White;
+            else
+                return System.Drawing.Color.Black;
         }
 
         public UInt32 numIndices;

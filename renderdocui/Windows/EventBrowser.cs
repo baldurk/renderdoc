@@ -277,8 +277,7 @@ namespace renderdocui.Windows
                     if (m_Core.Config.EventBrowser_ColourEventRow)
                     {
                         drawNode.BackColor = drawcall.GetColor();
-                        if (drawcall.ShouldUseWhiteText())
-                            drawNode.ForeColor = Color.White;
+                        drawNode.ForeColor = drawcall.GetTextColor(eventView.ForeColor);
                     }
                 }
             }

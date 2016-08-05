@@ -90,6 +90,11 @@ namespace renderdocui.Code
             return (x + (a - 1)) & (~(a - 1));
         }
 
+        public static float GetLuminance(this System.Drawing.Color c)
+        {
+            return (float)(0.2126 * Math.Pow(c.R * 255.0, 2.2) + 0.7152 * Math.Pow(c.G * 255.0, 2.2) + 0.0722 * Math.Pow(c.B * 255.0, 2.2));
+        }
+
         public static string SafeGetFileName(string filename)
         {
             try

@@ -371,7 +371,7 @@ namespace renderdocui.Windows
                     if (m_Core.Config.EventBrowser_ApplyColours)
                     {
                         sec.color = s[0].GetColor();
-                        sec.textcolor = s[0].ShouldUseWhiteText() ? Color.White : Color.Black;
+                        sec.textcolor = s[0].GetTextColor(Color.Black);
                     }
                     else
                     {
