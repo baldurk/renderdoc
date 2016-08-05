@@ -258,12 +258,24 @@ namespace renderdocui.Code
                 }));
                 progressThread.Start();
 
-                BeginInvoke((ReplayRenderer r) =>
+                if (Running)
                 {
-                    m_Remote.CopyCaptureFromRemote(remotepath, localpath, ref progress);
+                    BeginInvoke((ReplayRenderer r) =>
+                    {
+                        m_Remote.CopyCaptureFromRemote(remotepath, localpath, ref progress);
 
-                    copied = true;
-                });
+                        copied = true;
+                    });
+                }
+                else
+                {
+                    Helpers.NewThread(new ThreadStart(() =>
+                    {
+                        m_Remote.CopyCaptureFromRemote(remotepath, localpath, ref progress);
+
+                        copied = true;
+                    })).Start();
+                }
 
                 modal.ShowDialog(window);
 
