@@ -145,6 +145,36 @@ namespace renderdocui.Code
             return new string[0];
         }
 
+        public delegate void DirectoryBrowseMethod(string path, DirectoryFile[] contents);
+
+        public void GetHomeFolder(DirectoryBrowseMethod cb)
+        {
+            if (m_Remote != null)
+            {
+                if (Running && m_Thread != Thread.CurrentThread)
+                {
+                    BeginInvoke((ReplayRenderer r) => { cb(m_Remote.GetHomeFolder(), null); });
+                    return;
+                }
+
+                cb(m_Remote.GetHomeFolder(), null);
+            }
+        }
+
+        public void ListFolder(string path, DirectoryBrowseMethod cb)
+        {
+            if (m_Remote != null)
+            {
+                if (Running && m_Thread != Thread.CurrentThread)
+                {
+                    BeginInvoke((ReplayRenderer r) => { cb(path, m_Remote.ListFolder(path)); });
+                    return;
+                }
+
+                cb(path, m_Remote.ListFolder(path));
+            }
+        }
+
         public string CopyCaptureToRemote(string localpath, Form window)
         {
             if (m_Remote != null)

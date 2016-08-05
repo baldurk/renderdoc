@@ -365,12 +365,29 @@ namespace renderdocui.Windows.Dialogs
                 // invalid path or similar
             }
 
-            exeBrowser.ShowDialog();
+            if (m_Core.Renderer.Remote == null)
+            {
+                exeBrowser.ShowDialog();
+            }
+            else
+            {
+                VirtualOpenFileDialog remoteBrowser = new VirtualOpenFileDialog(m_Core.Renderer);
+                remoteBrowser.Opened += new EventHandler<FileOpenedEventArgs>(this.virtualExeBrowser_Opened);
+
+                remoteBrowser.ShowDialog(this);
+            }
         }
 
         private void exeBrowser_FileOk(object sender, CancelEventArgs e)
         {
             SetExecutableFilename(exeBrowser.FileName);
+        }
+
+        private void virtualExeBrowser_Opened(object sender, FileOpenedEventArgs e)
+        {
+            exePath.Text = e.FileName;
+
+            UpdateWorkDirHint();
         }
 
         private void exePath_DragEnter(object sender, DragEventArgs e)
@@ -406,14 +423,33 @@ namespace renderdocui.Windows.Dialogs
                 // invalid path or similar
             }
 
-            var res = workDirBrowser.ShowDialog();
-
-            if (res == DialogResult.Yes || res == DialogResult.OK)
+            if (m_Core.Renderer.Remote == null)
             {
-                workDirPath.Text = workDirBrowser.SelectedPath;
-                workDirHint = false;
-                workDirPath.ForeColor = SystemColors.WindowText;
+                var res = workDirBrowser.ShowDialog();
+
+                if (res == DialogResult.Yes || res == DialogResult.OK)
+                {
+                    workDirPath.Text = workDirBrowser.SelectedPath;
+                    workDirHint = false;
+                    workDirPath.ForeColor = SystemColors.WindowText;
+                }
             }
+            else
+            {
+                VirtualOpenFileDialog remoteBrowser = new VirtualOpenFileDialog(m_Core.Renderer);
+                remoteBrowser.Opened += new EventHandler<FileOpenedEventArgs>(this.virtualWorkDirBrowser_Opened);
+
+                remoteBrowser.DirectoryBrowse = true;
+
+                remoteBrowser.ShowDialog(this);
+            }
+        }
+
+        private void virtualWorkDirBrowser_Opened(object sender, FileOpenedEventArgs e)
+        {
+            workDirPath.Text = e.FileName;
+            workDirHint = false;
+            workDirPath.ForeColor = SystemColors.WindowText;
         }
 
         private void workDirPath_TextChanged(object sender, EventArgs e)

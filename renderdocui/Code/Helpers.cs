@@ -132,6 +132,11 @@ namespace renderdocui.Code
             return ret;
         }
 
+        public static bool IsAlpha(this char c)
+        {
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+        }
+
         public static string SafeGetFileName(string filename)
         {
             try

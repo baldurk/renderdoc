@@ -277,6 +277,12 @@
     <Compile Include="Windows\Dialogs\UpdateDialog.Designer.cs">
       <DependentUpon>UpdateDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\Dialogs\VirtualOpenFileDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\VirtualOpenFileDialog.Designer.cs">
+      <DependentUpon>VirtualOpenFileDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\EventBrowser.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -421,6 +427,9 @@
     <EmbeddedResource Include="Windows\Dialogs\UpdateDialog.resx">
       <DependentUpon>UpdateDialog.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\VirtualOpenFileDialog.resx">
+      <DependentUpon>VirtualOpenFileDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Windows\EventBrowser.resx">
       <DependentUpon>EventBrowser.cs</DependentUpon>
     </EmbeddedResource>
@@ -521,6 +530,7 @@
       <Visible>false</Visible>
     </Content>
     <Content Include="Controls\TreeListView\README.txt" />
+    <None Include="Resources\upfolder.png" />
     <None Include="Resources\up_arrow.png" />
     <None Include="Resources\wireframe_mesh.png" />
     <None Include="Resources\zoom.png" />
@@ -553,6 +563,8 @@
     <None Include="Resources\page_white_code.png" />
     <None Include="Resources\down_arrow.png" />
     <None Include="Resources\house.png" />
+    <None Include="Resources\forward.png" />
+    <None Include="Resources\back.png" />
     <Content Include="Resources\RightArrow_Green_16x16.png" />
     <Content Include="Resources\icon.ico" />
     <None Include="Resources\page_white_delete.png" />
