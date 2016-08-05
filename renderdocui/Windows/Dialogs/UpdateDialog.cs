@@ -167,16 +167,16 @@ namespace renderdocui.Windows.Dialogs
                         {
                             progressText.Text = "Installing";
 
-                            File.Copy(Path.Combine(srcpath, "renderdoc.dll"), Path.Combine(dstpath, "renderdoc.dll"), true);
-                            File.Copy(Path.Combine(srcpath, "renderdoccmd.exe"), Path.Combine(dstpath, "renderdoccmd.exe"), true);
-
-                            var process = new Process();
-                            process.StartInfo = new ProcessStartInfo(Path.Combine(dstpath, "renderdoccmd.exe"), "upgrade --path \"" + srcpath.Replace('\\', '/') + "/\"");
-                            process.StartInfo.WorkingDirectory = dstpath;
-                            process.StartInfo.Verb = "runas"; // need to run as admin to have write permissions
-
                             try
                             {
+                                File.Copy(Path.Combine(srcpath, "renderdoc.dll"), Path.Combine(dstpath, "renderdoc.dll"), true);
+                                File.Copy(Path.Combine(srcpath, "renderdoccmd.exe"), Path.Combine(dstpath, "renderdoccmd.exe"), true);
+
+                                var process = new Process();
+                                process.StartInfo = new ProcessStartInfo(Path.Combine(dstpath, "renderdoccmd.exe"), "upgrade --path \"" + srcpath.Replace('\\', '/') + "/\"");
+                                process.StartInfo.WorkingDirectory = dstpath;
+                                process.StartInfo.Verb = "runas"; // need to run as admin to have write permissions
+
                                 process.Start();
                                 Environment.Exit(0);
                             }
