@@ -351,6 +351,26 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
 {
   vector<FoundFile> ret;
 
+  if(path[0] == '/' && path[1] == 0)
+  {
+    DWORD driveMask = GetLogicalDrives();
+
+    for(int i = 0; i < 26; i++)
+    {
+      DWORD mask = (1 << i);
+
+      if(driveMask & mask)
+      {
+        string fn = "A:/";
+        fn[0] = char('A' + i);
+
+        ret.push_back(FoundFile(fn, eFileProp_Directory));
+      }
+    }
+
+    return ret;
+  }
+
   string pathstr = path;
 
   // normalise path to windows style
