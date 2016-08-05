@@ -100,6 +100,8 @@ namespace renderdocui.Windows.Dialogs
         {
             InitializeComponent();
 
+            hosts_AfterSelect(hosts, new TreeViewEventArgs(null));
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             hostname.Font =
@@ -246,7 +248,8 @@ namespace renderdocui.Windows.Dialogs
 
         private void hosts_AfterSelect(object sender, TreeViewEventArgs e)
         {
-            configHostname.Enabled = configRunCommand.Enabled = false;
+            configHostname.Enabled = configRunCommand.Enabled =
+                setHostname.Enabled = setRunCommand.Enabled = false;
             configHostname.Text = configRunCommand.Text = "";
 
             if (hosts.SelectedNode != null &&
@@ -262,7 +265,8 @@ namespace renderdocui.Windows.Dialogs
                     }
                     else
                     {
-                        configHostname.Enabled = configRunCommand.Enabled = true;
+                        configHostname.Enabled = configRunCommand.Enabled =
+                            setHostname.Enabled = setRunCommand.Enabled = true;
                         configHostname.Text = host.Hostname;
                         configRunCommand.Text = host.RunCommand;
                     }
