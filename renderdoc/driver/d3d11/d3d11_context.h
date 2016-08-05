@@ -359,11 +359,7 @@ public:
     return m_pRealContext->GetPrivateData(Name, pDataSize, pData);
   }
 
-  virtual void STDMETHODCALLTYPE GetDevice(ID3D11Device **ppDevice)
-  {
-    *ppDevice = (ID3D11Device *)m_pDevice;
-    (*ppDevice)->AddRef();
-  }
+  virtual void STDMETHODCALLTYPE GetDevice(ID3D11Device **ppDevice);
 
   //////////////////////////////
   // implement ID3D11DeviceContext

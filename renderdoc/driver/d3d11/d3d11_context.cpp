@@ -210,6 +210,12 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
 }
 
+void WrappedID3D11DeviceContext::GetDevice(ID3D11Device **ppDevice)
+{
+  *ppDevice = (ID3D11Device *)m_pDevice;
+  (*ppDevice)->AddRef();
+}
+
 const char *WrappedID3D11DeviceContext::GetChunkName(D3D11ChunkType idx)
 {
   return m_pDevice->GetChunkName(idx);
