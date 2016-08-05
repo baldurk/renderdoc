@@ -875,7 +875,6 @@
             // 
             // pagesTree
             // 
-            this.pagesTree.AlwaysDisplayVScroll = true;
             treeListColumn3.AutoSize = true;
             treeListColumn3.AutoSizeMinSize = 0;
             treeListColumn3.Width = 50;
