@@ -674,7 +674,7 @@ namespace renderdocui.Windows
                 }
                 else
                 {
-                    if (remoteReplay)
+                    if (remoteReplay && local)
                     {
                         try
                         {
