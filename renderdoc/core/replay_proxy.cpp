@@ -1666,7 +1666,7 @@ string ToStrHelper<false, FloatVector>::Get(const FloatVector &el)
 
 #pragma endregion Plain - old data structures
 
-ProxySerialiser::~ProxySerialiser()
+ReplayProxy::~ReplayProxy()
 {
   SAFE_DELETE(m_FromReplaySerialiser);
   m_ToReplaySerialiser = NULL;    // we don't own this
@@ -1679,7 +1679,7 @@ ProxySerialiser::~ProxySerialiser()
     delete it->second;
 }
 
-bool ProxySerialiser::SendReplayCommand(ReplayProxyPacket type)
+bool ReplayProxy::SendReplayCommand(ReplayProxyPacket type)
 {
   if(!SendPacket(m_Socket, type, *m_ToReplaySerialiser))
     return false;
@@ -1694,7 +1694,7 @@ bool ProxySerialiser::SendReplayCommand(ReplayProxyPacket type)
   return true;
 }
 
-void ProxySerialiser::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip)
+void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip)
 {
   TextureCacheEntry entry = {texid, arrayIdx, mip};
 
@@ -1723,7 +1723,7 @@ void ProxySerialiser::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint3
   }
 }
 
-void ProxySerialiser::EnsureBufCached(ResourceId bufid)
+void ReplayProxy::EnsureBufCached(ResourceId bufid)
 {
   if(m_BufferProxyCache.find(bufid) == m_BufferProxyCache.end())
   {
@@ -1745,7 +1745,7 @@ void ProxySerialiser::EnsureBufCached(ResourceId bufid)
   }
 }
 
-bool ProxySerialiser::Tick(int type, Serialiser *incomingPacket)
+bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
 {
   if(!m_RemoteServer)
     return true;
@@ -1848,7 +1848,7 @@ bool ProxySerialiser::Tick(int type, Serialiser *incomingPacket)
   return true;
 }
 
-bool ProxySerialiser::IsRenderOutput(ResourceId id)
+bool ReplayProxy::IsRenderOutput(ResourceId id)
 {
   bool ret = false;
 
@@ -1869,7 +1869,7 @@ bool ProxySerialiser::IsRenderOutput(ResourceId id)
   return ret;
 }
 
-APIProperties ProxySerialiser::GetAPIProperties()
+APIProperties ReplayProxy::GetAPIProperties()
 {
   APIProperties ret;
   RDCEraseEl(ret);
@@ -1889,7 +1889,7 @@ APIProperties ProxySerialiser::GetAPIProperties()
   return ret;
 }
 
-vector<ResourceId> ProxySerialiser::GetTextures()
+vector<ResourceId> ReplayProxy::GetTextures()
 {
   vector<ResourceId> ret;
 
@@ -1908,7 +1908,7 @@ vector<ResourceId> ProxySerialiser::GetTextures()
   return ret;
 }
 
-vector<DebugMessage> ProxySerialiser::GetDebugMessages()
+vector<DebugMessage> ReplayProxy::GetDebugMessages()
 {
   vector<DebugMessage> ret;
 
@@ -1927,7 +1927,7 @@ vector<DebugMessage> ProxySerialiser::GetDebugMessages()
   return ret;
 }
 
-FetchTexture ProxySerialiser::GetTexture(ResourceId id)
+FetchTexture ReplayProxy::GetTexture(ResourceId id)
 {
   FetchTexture ret;
 
@@ -1948,7 +1948,7 @@ FetchTexture ProxySerialiser::GetTexture(ResourceId id)
   return ret;
 }
 
-vector<ResourceId> ProxySerialiser::GetBuffers()
+vector<ResourceId> ReplayProxy::GetBuffers()
 {
   vector<ResourceId> ret;
 
@@ -1967,7 +1967,7 @@ vector<ResourceId> ProxySerialiser::GetBuffers()
   return ret;
 }
 
-FetchBuffer ProxySerialiser::GetBuffer(ResourceId id)
+FetchBuffer ReplayProxy::GetBuffer(ResourceId id)
 {
   FetchBuffer ret;
 
@@ -1988,7 +1988,7 @@ FetchBuffer ProxySerialiser::GetBuffer(ResourceId id)
   return ret;
 }
 
-void ProxySerialiser::SavePipelineState()
+void ReplayProxy::SavePipelineState()
 {
   if(m_RemoteServer)
   {
@@ -2012,7 +2012,7 @@ void ProxySerialiser::SavePipelineState()
   m_FromReplaySerialiser->Serialise("", m_VulkanPipelineState);
 }
 
-void ProxySerialiser::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
+void ReplayProxy::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
 {
   m_ToReplaySerialiser->Serialise("", id);
   m_ToReplaySerialiser->Serialise("", firstDefEv);
@@ -2029,7 +2029,7 @@ void ProxySerialiser::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint3
   }
 }
 
-void ProxySerialiser::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
+void ReplayProxy::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
   m_ToReplaySerialiser->Serialise("", endEventID);
   m_ToReplaySerialiser->Serialise("", replayType);
@@ -2048,7 +2048,7 @@ void ProxySerialiser::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
   }
 }
 
-vector<uint32_t> ProxySerialiser::GetPassEvents(uint32_t eventID)
+vector<uint32_t> ReplayProxy::GetPassEvents(uint32_t eventID)
 {
   vector<uint32_t> ret;
 
@@ -2069,7 +2069,7 @@ vector<uint32_t> ProxySerialiser::GetPassEvents(uint32_t eventID)
   return ret;
 }
 
-vector<EventUsage> ProxySerialiser::GetUsage(ResourceId id)
+vector<EventUsage> ReplayProxy::GetUsage(ResourceId id)
 {
   vector<EventUsage> ret;
 
@@ -2090,7 +2090,7 @@ vector<EventUsage> ProxySerialiser::GetUsage(ResourceId id)
   return ret;
 }
 
-FetchFrameRecord ProxySerialiser::GetFrameRecord()
+FetchFrameRecord ReplayProxy::GetFrameRecord()
 {
   FetchFrameRecord ret;
 
@@ -2109,7 +2109,7 @@ FetchFrameRecord ProxySerialiser::GetFrameRecord()
   return ret;
 }
 
-bool ProxySerialiser::HasCallstacks()
+bool ReplayProxy::HasCallstacks()
 {
   bool ret = false;
 
@@ -2132,7 +2132,7 @@ bool ProxySerialiser::HasCallstacks()
   return ret;
 }
 
-ResourceId ProxySerialiser::GetLiveID(ResourceId id)
+ResourceId ReplayProxy::GetLiveID(ResourceId id)
 {
   if(!m_RemoteServer && m_LiveIDs.find(id) != m_LiveIDs.end())
     return m_LiveIDs[id];
@@ -2166,7 +2166,7 @@ ResourceId ProxySerialiser::GetLiveID(ResourceId id)
   return ret;
 }
 
-vector<CounterResult> ProxySerialiser::FetchCounters(const vector<uint32_t> &counters)
+vector<CounterResult> ReplayProxy::FetchCounters(const vector<uint32_t> &counters)
 {
   vector<CounterResult> ret;
 
@@ -2187,7 +2187,7 @@ vector<CounterResult> ProxySerialiser::FetchCounters(const vector<uint32_t> &cou
   return ret;
 }
 
-vector<uint32_t> ProxySerialiser::EnumerateCounters()
+vector<uint32_t> ReplayProxy::EnumerateCounters()
 {
   vector<uint32_t> ret;
 
@@ -2206,7 +2206,7 @@ vector<uint32_t> ProxySerialiser::EnumerateCounters()
   return ret;
 }
 
-void ProxySerialiser::DescribeCounter(uint32_t counterID, CounterDescription &desc)
+void ReplayProxy::DescribeCounter(uint32_t counterID, CounterDescription &desc)
 {
   m_ToReplaySerialiser->Serialise("", counterID);
 
@@ -2225,8 +2225,8 @@ void ProxySerialiser::DescribeCounter(uint32_t counterID, CounterDescription &de
   return;
 }
 
-void ProxySerialiser::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                                           vector<ShaderVariable> &outvars, const vector<byte> &data)
+void ReplayProxy::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
+                                       vector<ShaderVariable> &outvars, const vector<byte> &data)
 {
   m_ToReplaySerialiser->Serialise("", shader);
   m_ToReplaySerialiser->Serialise("", entryPoint);
@@ -2249,8 +2249,7 @@ void ProxySerialiser::FillCBufferVariables(ResourceId shader, string entryPoint,
   return;
 }
 
-void ProxySerialiser::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
-                                    vector<byte> &retData)
+void ReplayProxy::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
 {
   m_ToReplaySerialiser->Serialise("", buff);
   m_ToReplaySerialiser->Serialise("", offset);
@@ -2276,10 +2275,9 @@ void ProxySerialiser::GetBufferData(ResourceId buff, uint64_t offset, uint64_t l
   }
 }
 
-byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                      FormatComponentType typeHint, bool resolve,
-                                      bool forceRGBA8unorm, float blackPoint, float whitePoint,
-                                      size_t &dataSize)
+byte *ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                  FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
+                                  float blackPoint, float whitePoint, size_t &dataSize)
 {
   m_ToReplaySerialiser->Serialise("", tex);
   m_ToReplaySerialiser->Serialise("", arrayIdx);
@@ -2329,7 +2327,7 @@ byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_
   return NULL;
 }
 
-void ProxySerialiser::InitPostVSBuffers(uint32_t eventID)
+void ReplayProxy::InitPostVSBuffers(uint32_t eventID)
 {
   m_ToReplaySerialiser->Serialise("", eventID);
 
@@ -2344,7 +2342,7 @@ void ProxySerialiser::InitPostVSBuffers(uint32_t eventID)
   }
 }
 
-void ProxySerialiser::InitPostVSBuffers(const vector<uint32_t> &events)
+void ReplayProxy::InitPostVSBuffers(const vector<uint32_t> &events)
 {
   m_ToReplaySerialiser->Serialise("", (vector<uint32_t> &)events);
 
@@ -2359,7 +2357,7 @@ void ProxySerialiser::InitPostVSBuffers(const vector<uint32_t> &events)
   }
 }
 
-MeshFormat ProxySerialiser::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
+MeshFormat ReplayProxy::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
   MeshFormat ret;
 
@@ -2382,9 +2380,9 @@ MeshFormat ProxySerialiser::GetPostVSBuffers(uint32_t eventID, uint32_t instID, 
   return ret;
 }
 
-ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
-                                          TextureDisplayOverlay overlay, uint32_t eventID,
-                                          const vector<uint32_t> &passEvents)
+ResourceId ReplayProxy::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                                      TextureDisplayOverlay overlay, uint32_t eventID,
+                                      const vector<uint32_t> &passEvents)
 {
   ResourceId ret;
 
@@ -2411,7 +2409,7 @@ ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, FormatComponentType 
   return ret;
 }
 
-ShaderReflection *ProxySerialiser::GetShader(ResourceId id, string entryPoint)
+ShaderReflection *ReplayProxy::GetShader(ResourceId id, string entryPoint)
 {
   if(m_RemoteServer)
   {
@@ -2457,7 +2455,7 @@ ShaderReflection *ProxySerialiser::GetShader(ResourceId id, string entryPoint)
   return m_ShaderReflectionCache[key];
 }
 
-void ProxySerialiser::FreeTargetResource(ResourceId id)
+void ReplayProxy::FreeTargetResource(ResourceId id)
 {
   m_ToReplaySerialiser->Serialise("", id);
 
@@ -2472,7 +2470,7 @@ void ProxySerialiser::FreeTargetResource(ResourceId id)
   }
 }
 
-void ProxySerialiser::InitCallstackResolver()
+void ReplayProxy::InitCallstackResolver()
 {
   if(m_RemoteServer)
   {
@@ -2485,7 +2483,7 @@ void ProxySerialiser::InitCallstackResolver()
   }
 }
 
-Callstack::StackResolver *ProxySerialiser::GetCallstackResolver()
+Callstack::StackResolver *ReplayProxy::GetCallstackResolver()
 {
   if(m_RemoteHasResolver)
     return this;
@@ -2515,7 +2513,7 @@ Callstack::StackResolver *ProxySerialiser::GetCallstackResolver()
   return NULL;
 }
 
-Callstack::AddressDetails ProxySerialiser::GetAddr(uint64_t addr)
+Callstack::AddressDetails ReplayProxy::GetAddr(uint64_t addr)
 {
   Callstack::AddressDetails ret;
 
@@ -2538,8 +2536,8 @@ Callstack::AddressDetails ProxySerialiser::GetAddr(uint64_t addr)
   return ret;
 }
 
-void ProxySerialiser::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                                        ShaderStageType type, ResourceId *id, string *errors)
+void ReplayProxy::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
+                                    ShaderStageType type, ResourceId *id, string *errors)
 {
   uint32_t flags = compileFlags;
   m_ToReplaySerialiser->Serialise("", source);
@@ -2572,7 +2570,7 @@ void ProxySerialiser::BuildTargetShader(string source, string entry, const uint3
   }
 }
 
-void ProxySerialiser::ReplaceResource(ResourceId from, ResourceId to)
+void ReplayProxy::ReplaceResource(ResourceId from, ResourceId to)
 {
   m_ToReplaySerialiser->Serialise("", from);
   m_ToReplaySerialiser->Serialise("", to);
@@ -2588,7 +2586,7 @@ void ProxySerialiser::ReplaceResource(ResourceId from, ResourceId to)
   }
 }
 
-void ProxySerialiser::RemoveReplacement(ResourceId id)
+void ReplayProxy::RemoveReplacement(ResourceId id)
 {
   m_ToReplaySerialiser->Serialise("", id);
 
@@ -2603,10 +2601,10 @@ void ProxySerialiser::RemoveReplacement(ResourceId id)
   }
 }
 
-vector<PixelModification> ProxySerialiser::PixelHistory(vector<EventUsage> events, ResourceId target,
-                                                        uint32_t x, uint32_t y, uint32_t slice,
-                                                        uint32_t mip, uint32_t sampleIdx,
-                                                        FormatComponentType typeHint)
+vector<PixelModification> ReplayProxy::PixelHistory(vector<EventUsage> events, ResourceId target,
+                                                    uint32_t x, uint32_t y, uint32_t slice,
+                                                    uint32_t mip, uint32_t sampleIdx,
+                                                    FormatComponentType typeHint)
 {
   vector<PixelModification> ret;
 
@@ -2634,8 +2632,8 @@ vector<PixelModification> ProxySerialiser::PixelHistory(vector<EventUsage> event
   return ret;
 }
 
-ShaderDebugTrace ProxySerialiser::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid,
-                                              uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace ReplayProxy::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid,
+                                          uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
   ShaderDebugTrace ret;
 
@@ -2661,8 +2659,8 @@ ShaderDebugTrace ProxySerialiser::DebugVertex(uint32_t eventID, uint32_t vertid,
   return ret;
 }
 
-ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y,
-                                             uint32_t sample, uint32_t primitive)
+ShaderDebugTrace ReplayProxy::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample,
+                                         uint32_t primitive)
 {
   ShaderDebugTrace ret;
 
@@ -2687,8 +2685,7 @@ ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t eventID, uint32_t x, uint3
   return ret;
 }
 
-ShaderDebugTrace ProxySerialiser::DebugThread(uint32_t eventID, uint32_t groupid[3],
-                                              uint32_t threadid[3])
+ShaderDebugTrace ReplayProxy::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
   ShaderDebugTrace ret;
 

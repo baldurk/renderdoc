@@ -151,7 +151,7 @@ static void ActiveRemoteClientThread(void *data)
 
   vector<string> tempFiles;
   IRemoteDriver *driver = NULL;
-  ProxySerialiser *proxy = NULL;
+  ReplayProxy *proxy = NULL;
 
   Serialiser sendSer("", Serialiser::WRITING, false);
 
@@ -304,7 +304,7 @@ static void ActiveRemoteClientThread(void *data)
             Threading::JoinThread(ticker);
             Threading::CloseThread(ticker);
 
-            proxy = new ProxySerialiser(client, driver);
+            proxy = new ReplayProxy(client, driver);
           }
         }
         else
@@ -832,7 +832,7 @@ public:
 
     ReplayRenderer *ret = new ReplayRenderer();
 
-    ProxySerialiser *proxy = new ProxySerialiser(m_Socket, proxyDriver);
+    ReplayProxy *proxy = new ReplayProxy(m_Socket, proxyDriver);
     status = ret->SetDevice(proxy);
 
     if(status != eReplayCreate_Success)

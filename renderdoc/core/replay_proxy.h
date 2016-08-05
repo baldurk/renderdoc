@@ -94,10 +94,10 @@ enum ReplayProxyPacket
 //
 // This class is also used on the remote replay just so we can re-use the serialisation logic
 // across the network before and after implementing the IRemoteDriver parts.
-class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
+class ReplayProxy : public IReplayDriver, Callstack::StackResolver
 {
 public:
-  ProxySerialiser(Network::Socket *sock, IReplayDriver *proxy)
+  ReplayProxy(Network::Socket *sock, IReplayDriver *proxy)
       : m_Socket(sock), m_Proxy(proxy), m_Remote(NULL), m_RemoteServer(false)
   {
     m_FromReplaySerialiser = NULL;
@@ -105,7 +105,7 @@ public:
     m_RemoteHasResolver = false;
   }
 
-  ProxySerialiser(Network::Socket *sock, IRemoteDriver *remote)
+  ReplayProxy(Network::Socket *sock, IRemoteDriver *remote)
       : m_Socket(sock), m_Proxy(NULL), m_Remote(remote), m_RemoteServer(true)
   {
     m_ToReplaySerialiser = NULL;
@@ -113,7 +113,7 @@ public:
     m_RemoteHasResolver = false;
   }
 
-  virtual ~ProxySerialiser();
+  virtual ~ReplayProxy();
 
   bool IsRemoteProxy() { return !m_RemoteServer; }
   void Shutdown() { delete this; }
