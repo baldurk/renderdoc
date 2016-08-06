@@ -806,7 +806,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
               {
                 for(UINT r = 0; r < numrows[i]; r++)
                 {
-                  memcpy(bufPtr, texPtr, rowsizes[i]);
+                  memcpy(bufPtr, texPtr, (size_t)rowsizes[i]);
 
                   bufPtr += layouts[i].Footprint.RowPitch;
                   texPtr += rowsizes[i];
