@@ -488,7 +488,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     rootSig.clear();
 
-    D3D12_ROOT_PARAMETER param = {};
+    RDCEraseEl(param);
 
     // m_Font.Constants
     param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -505,7 +505,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     param.Descriptor.ShaderRegister = 2;
     rootSig.push_back(param);
 
-    D3D12_DESCRIPTOR_RANGE srvrange = {};
+    RDCEraseEl(srvrange);
     srvrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
     srvrange.BaseShaderRegister = 0;
     srvrange.NumDescriptors = 1;
@@ -519,7 +519,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     // font SRV
     rootSig.push_back(param);
 
-    D3D12_DESCRIPTOR_RANGE samplerrange = {};
+    RDCEraseEl(samplerrange);
     samplerrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
     samplerrange.BaseShaderRegister = 0;
     samplerrange.NumDescriptors = 2;
@@ -532,7 +532,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     // samplers
     rootSig.push_back(param);
 
-    ID3DBlob *root = MakeRootSig(rootSig);
+    root = MakeRootSig(rootSig);
 
     RDCASSERT(root);
 
