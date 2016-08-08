@@ -891,6 +891,9 @@ namespace renderdocui.Windows
                 if (rows * input.Strides[0] < size)
                     rows++;
 
+                if (rows > DefaultMaxRows)
+                    rows = DefaultMaxRows;
+
                 rowRange.Text = rows.ToString();
             }
 
