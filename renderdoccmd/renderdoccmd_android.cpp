@@ -78,7 +78,7 @@ void handle_cmd(android_app *app, int32_t cmd)
                           "APP_CMD_INIT_WINDOW: android_state->window: %p", android_state->window);
 
       const char *argv[] = {
-          "renderdoccmd", "/sdcard/capture.rdc",
+          "renderdoccmd", "replay", "/sdcard/capture.rdc",
       };
       int argc = sizeof(argv) / sizeof(argv[0]);
       renderdoccmd(argc, (char **)argv);

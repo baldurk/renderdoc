@@ -243,5 +243,3 @@ VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
   return ret;
 }
 #endif
-
-const char *VulkanLibraryName = "libvulkan.so.1";

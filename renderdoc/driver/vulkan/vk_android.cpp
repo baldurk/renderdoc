@@ -51,3 +51,5 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
   h = 500;    // FIXME
   RDCLOG("VulkanReplay::GetOutputWindowDimensions: %i, %i", w, h);
 }
+
+const char *VulkanLibraryName = "libvulkan.so";
