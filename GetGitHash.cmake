@@ -6,7 +6,8 @@ function(get_git_hash _git_hash)
       OUTPUT_VARIABLE GIT_HASH
       OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-  else()
+  endif()
+  if(NOT GIT_HASH)
     set(GIT_HASH "NO_GIT_COMMIT_HASH_DEFINED")
   endif()
   set(${_git_hash} "${GIT_HASH}" PARENT_SCOPE)
