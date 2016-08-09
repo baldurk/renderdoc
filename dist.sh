@@ -1,29 +1,30 @@
-#!/bin/bash
+#!/bin/sh
 
 AUTOBUILD=1
 
-if [ $# -ne 1 ] || [ $1 != "autobuild" ]; then
+if [ "$#" -ne 1 ] || [ "$1" != "autobuild" ]; then
 	AUTOBUILD=0
 	echo "=== Building standalone folders. Hit enter when each prompt is satisfied"
 
 	echo "Have you rebuilt the documentation? (cd docs/ && ./make.sh htmlhelp)"
-	read;
+	read NOTHING
 
 	echo "Have you built the python libraries? (cd renderdocui/3rdparty/ironpython/ && ./compilelibs.sh /path/to/IronPython)"
-	read;
+	read NOTHING
 
 	echo "Have you marked the git commit hash in version info? (hash_version.sh)"
-	read;
+	read NOTHING
 
 	echo "Now compile 32-bit and 64-bit Release builds."
-	read;
+	read NOTHING
 
 	echo "=== Building folders"
 fi
 
 # clean any old files lying around and make new structure
 rm -rf dist
-mkdir -p dist/Release{32,64}
+mkdir -p dist/Release32
+mkdir -p dist/Release64
 
 # Copy files from release build in
 cp -R x64/Release/* dist/Release64/
@@ -48,31 +49,46 @@ cp -R dist/Release64 dist/ReleasePDBs64
 cp -R dist/Release32 dist/ReleasePDBs32
 
 # Remove all pdbs except renderdocui.pdb (which we keep so we can get callstack crashes)
-find dist/Release{32,64}/ -iname '*.pdb' -exec rm '{}' \;
+find dist/Release32/ -iname '*.pdb' -exec rm '{}' \;
+find dist/Release64/ -iname '*.pdb' -exec rm '{}' \;
 cp dist/ReleasePDBs32/renderdocui.pdb dist/Release32/
 cp dist/ReleasePDBs64/renderdocui.pdb dist/Release64/
 
 # Remove any build associated files that might have gotten dumped in the folders
-rm -f dist/Release{32,64}/*.{exp,lib,metagen,xml} dist/Release{32,64}/*.vshost.*
+cd dist/Release32/
+rm -f ./*.exp ./*.lib ./*.metagen ./*.xml *.vshost.*
+cd -
+cd dist/Release64/
+rm -f ./*.exp ./*.lib ./*.metagen ./*.xml *.vshost.*
+cd -
 
 # Delete all but xml files from PDB folder as well (large files, and not useful)
-rm -f dist/ReleasePDBs{32,64}/*.{exp,lib,metagen} dist/Release{32,64}/*.vshost.*
+cd dist/ReleasePDBs32/
+rm -f ./*.exp ./*.lib ./*.metagen *.vshost.*
+cd -
+cd dist/ReleasePDBs64/
+rm -f ./*.exp ./*.lib ./*.metagen *.vshost.*
+cd -
 
 # In the 64bit release folder, make an x86 subfolder and copy in renderdoc 32bit
 mkdir -p dist/Release64/x86
 rm -rf dist/Release32/pdblocate/x64 dist/ReleasePDBs32/pdblocate/x64
-cp -R dist/Release32/{d3dcompiler_47.dll,renderdoc.dll,renderdoc.json,renderdocshim32.dll,renderdoccmd.exe,pdblocate} dist/Release64/x86/
+cd dist/Release32/
+cp -R d3dcompiler_47.dll renderdoc.dll renderdoc.json renderdocshim32.dll renderdoccmd.exe pdblocate ../Release64/x86/
+cd -
 mkdir -p dist/ReleasePDBs64/x86
-cp -R dist/ReleasePDBs32/{d3dcompiler_47.dll,renderdoc.dll,renderdoc.json,renderdoc.pdb,renderdocshim32.dll,renderdocshim32.pdb,renderdoccmd.exe,renderdoccmd.pdb,pdblocate} dist/ReleasePDBs64/x86/
+cd dist/ReleasePDBs32/
+cp -R d3dcompiler_47.dll renderdoc.dll renderdoc.json renderdoc.pdb renderdocshim32.dll renderdocshim32.pdb renderdoccmd.exe renderdoccmd.pdb pdblocate ../ReleasePDBs64/x86/
+cd -
 
-if [[ $AUTOBUILD -eq 0 ]]; then
+if [ "$AUTOBUILD" -eq 0 ]; then
 	echo "=== Folders built. Ready to make installer MSIs."
 	echo
 	echo "Hit enter when ready"
-	read;
+	read NOTHING
 fi
 
-VERSION=`egrep "#define RENDERDOC_VERSION_(MAJOR|MINOR)" renderdoc/data/version.h | tr -dc '[0-9\n]' | tr '\n' '.' | egrep -o '[0-9]+\.[0-9]+'`
+VERSION=$(egrep "#define RENDERDOC_VERSION_(MAJOR|MINOR)" renderdoc/data/version.h | tr -dc '[0-9\n]' | tr '\n' '.' | egrep -o '[0-9]+\.[0-9]+')
 
 export RENDERDOC_VERSION="${VERSION}.0"
 
