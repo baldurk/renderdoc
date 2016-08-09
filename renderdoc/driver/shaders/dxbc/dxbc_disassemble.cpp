@@ -421,7 +421,10 @@ void DXBCFile::MakeDisassemblyString()
       for(size_t srcLine = 0; srcLine < srclines.size(); srcLine++)
       {
         if(srclines[srcLine].empty())
+        {
+          dstLine++;
           continue;
+        }
 
         char *c = &srclines[srcLine][0];
         char *end = c + srclines[srcLine].size();
@@ -430,7 +433,11 @@ void DXBCFile::MakeDisassemblyString()
           c++;
 
         if(c + 5 > end)
+        {
+          // blank line, just advance line counter
+          dstLine++;
           continue;
+        }
 
         if(strncmp(c, "#line", 5))
         {
@@ -454,17 +461,28 @@ void DXBCFile::MakeDisassemblyString()
         c += 5;
 
         if(c >= end)
+        {
+          // invalid #line, just advance line counter
+          dstLine++;
           continue;
+        }
 
         while(*c == '\t' || *c == ' ')
           c++;
 
         if(c >= end)
+        {
+          // invalid #line, just advance line counter
+          dstLine++;
           continue;
+        }
 
-        // invalid #line, no line number. Skip/ignore
+        // invalid #line, no line number. Skip/ignore and just advance line counter
         if(*c < '0' || *c > '9')
+        {
+          dstLine++;
           continue;
+        }
 
         size_t newLineNum = 0;
         while(*c >= '0' && *c <= '9')
