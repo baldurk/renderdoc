@@ -112,7 +112,7 @@ if [ $1 == "htmlhelp" ]; then
 	cat $BUILDDIR/htmlhelp/renderdoc.hhc | python remove_lines.py ".html#" | python remove_lines.py "\"index.html\"" > $BUILDDIR/htmlhelp/tmp
 	mv $BUILDDIR/htmlhelp/tmp $BUILDDIR/htmlhelp/renderdoc.hhc
 	if [ -f "${HHCBUILD}" ]; then
-		"C:\Program Files (x86)\HTML Help Workshop\hhc.exe" $BUILDDIR/htmlhelp/renderdoc.hhp
+		"${HHCBUILD}" $BUILDDIR/htmlhelp/renderdoc.hhp
 		echo "Build finished."
 		exit
 	fi

@@ -2,14 +2,22 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
-SPHINXBUILD   = sphinx-build
-PAPER         =
-BUILDDIR      = ../Documentation
+SPHINXOPTS    ?=
+SPHINXBUILD   ?= sphinx-build
+PAPER         ?=
+BUILDDIR      ?= ../Documentation
+HHCBUILD      ?= "/C/Program Files (x86)/HTML Help Workshop/hhc.exe"
 
 # User-friendly check for sphinx-build
 ifeq ($(shell which $(SPHINXBUILD) >/dev/null 2>&1; echo $$?), 1)
-	$(error The '$(SPHINXBUILD)' command was not found. Make sure you have Sphinx installed, then set the SPHINXBUILD environment variable to point to the full path of the '$(SPHINXBUILD)' executable. Alternatively you can add the directory with the executable to your PATH. If you don\'t have Sphinx installed, grab it from http://sphinx-doc.org/)
+$(error The '$(SPHINXBUILD)' command was not found. Make sure you have Sphinx installed, then set the SPHINXBUILD environment variable to point to the full path of the '$(SPHINXBUILD)' executable. Alternatively you can add the directory with the executable to your PATH. If you don\'t have Sphinx installed, grab it from http://sphinx-doc.org/)
+endif
+
+# check for hhc as well
+ifeq ($(shell which $(HHCBUILD) >/dev/null 2>&1; echo $$?), 0)
+HAS_HHCBUILD = 1
+else
+HAS_HHCBUILD = 0
 endif
 
 # Internal variables.
@@ -93,9 +101,17 @@ htmlhelp:
 	# Filter out the auto-generated TOC to remove anchor links and root index.html
 	@cat $(BUILDDIR)/htmlhelp/renderdoc.hhc | python remove_lines.py ".html#" | python remove_lines.py "\"index.html\"" > $(BUILDDIR)/htmlhelp/tmp
 	@mv $(BUILDDIR)/htmlhelp/tmp $(BUILDDIR)/htmlhelp/renderdoc.hhc
-	@echo
-	@echo "Build finished; now you can run HTML Help Workshop with the" \
-	      ".hhp project file in $(BUILDDIR)/htmlhelp."
+ifeq ("$(HAS_HHCBUILD)","1")
+	-$(HHCBUILD) $(BUILDDIR)/htmlhelp/renderdoc.hhp
+	@echo "Build finished."
+else
+	@echo $(HHCBUILD)
+	@echo "Build finished; now you can run HTML Help Workshop with the " \
+				".hhp project file in $(BUILDDIR)/htmlhelp."
+	@echo "For future, you can either install HTML Help Workshop to the " \
+	      "default path [C:\Program Files (x86)\HTML Help Workshop] or " \
+	      "set the variable HHCBUILD to the path to hhc.exe."
+endif
 
 .PHONY: qthelp
 qthelp:

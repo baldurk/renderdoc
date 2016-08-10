@@ -2,8 +2,13 @@
 
 REM Command file for Sphinx documentation
 
+setlocal
+
 if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
+)
+if "%HHCBUILD%" == "" (
+       set "HHCBUILD=C:\Program Files (x86)\HTML Help Workshop\hhc.exe"
 )
 set BUILDDIR=..\Documentation
 set ALLSPHINXOPTS=-d %BUILDDIR%/doctrees %SPHINXOPTS% .
@@ -124,9 +129,17 @@ if "%1" == "htmlhelp" (
 	REM Filter out the auto-generated TOC to remove anchor links and root index.html
 	type %BUILDDIR%\htmlhelp\renderdoc.hhc | python remove_lines.py ".html#" | python remove_lines.py "\"index.html\"" > %BUILDDIR%\htmlhelp\tmp
 	move %BUILDDIR%\htmlhelp\tmp %BUILDDIR%\htmlhelp\renderdoc.hhc
+       if NOT "%HHCBUILD%" == "" (
+               "%HHCBUILD%" %BUILDDIR%\htmlhelp\renderdoc.hhp
+               echo.Build finished.
+               goto end
+       )
 	echo.
 	echo.Build finished; now you can run HTML Help Workshop with the ^
 .hhp project file in %BUILDDIR%/htmlhelp.
+	echo.For future, you can either install HTML Help Workshop to the ^
+default path [C:\Program Files (x86)\HTML Help Workshop] or ^
+set the variable HHCBUILD to the path to hhc.exe.
 	goto end
 )
 
