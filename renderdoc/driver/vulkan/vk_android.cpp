@@ -47,9 +47,13 @@ void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 {
-  w = 500;
-  h = 500;    // FIXME
-  RDCLOG("VulkanReplay::GetOutputWindowDimensions: %i, %i", w, h);
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = m_OutputWindows[id];
+
+  w = ANativeWindow_getWidth(outw.wnd);
+  h = ANativeWindow_getHeight(outw.wnd);
 }
 
 const char *VulkanLibraryName = "libvulkan.so";
