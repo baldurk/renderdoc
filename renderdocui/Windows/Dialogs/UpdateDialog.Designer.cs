@@ -107,6 +107,7 @@
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.updateNotes);
             this.Controls.Add(this.updateVer);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "UpdateDialog";
