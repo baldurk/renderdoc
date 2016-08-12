@@ -417,7 +417,8 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
 
   if(!success)
   {
-    RDCERR("Couldn't determine bitness of process");
+    DWORD err = GetLastError();
+    RDCERR("Couldn't determine bitness of process, err: %08x", err);
     CloseHandle(hProcess);
     return 0;
   }
@@ -433,7 +434,8 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
 
   if(!success)
   {
-    RDCERR("Couldn't determine bitness of self");
+    DWORD err = GetLastError();
+    RDCERR("Couldn't determine bitness of self, err: %08x", err);
     return 0;
   }
 
