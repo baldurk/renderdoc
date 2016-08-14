@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Development|Win32">
       <Configuration>Development</Configuration>
@@ -83,8 +83,8 @@
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\propagateNoContraction.cpp">
-			<WarningLevel>Level3</WarningLevel>
-		</ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\reflection.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
@@ -114,11 +114,11 @@
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslOpMap.cpp">
-			<WarningLevel>Level3</WarningLevel>
-		</ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslParseables.cpp">
-			<WarningLevel>Level3</WarningLevel>
-		</ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslParseHelper.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
@@ -126,8 +126,8 @@
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslTokenStream.cpp">
-			<WarningLevel>Level3</WarningLevel>
-		</ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
@@ -138,8 +138,8 @@
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\Logger.cpp">
-			<WarningLevel>Level3</WarningLevel>
-		</ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
@@ -203,23 +203,27 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
