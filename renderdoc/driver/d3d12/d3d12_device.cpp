@@ -610,6 +610,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     record->DataInSerialiser = false;
     record->SpecialResource = true;
     record->Length = 0;
+    ((WrappedID3D12Resource *)pRes)->SetResourceRecord(record);
 
     SCOPED_LOCK(m_D3DLock);
 
