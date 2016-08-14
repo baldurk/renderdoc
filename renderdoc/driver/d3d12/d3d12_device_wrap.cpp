@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "d3d12_device.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
+#include "d3d12_device.h"
 #include "d3d12_resources.h"
 
 bool WrappedID3D12Device::Serialise_CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *pDesc,
@@ -288,14 +288,14 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
 HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc,
                                                          REFIID riid, void **ppPipelineState)
 {
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC unwrappedDesc = *pDesc;
+  unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
+
   if(ppPipelineState == NULL)
-    return m_pDevice->CreateGraphicsPipelineState(pDesc, riid, NULL);
+    return m_pDevice->CreateGraphicsPipelineState(&unwrappedDesc, riid, NULL);
 
   if(riid != __uuidof(ID3D12PipelineState))
     return E_NOINTERFACE;
-
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC unwrappedDesc = *pDesc;
-  unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
 
   ID3D12PipelineState *real = NULL;
   HRESULT ret = m_pDevice->CreateGraphicsPipelineState(&unwrappedDesc, riid, (void **)&real);
@@ -362,14 +362,17 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
 HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc,
                                                         REFIID riid, void **ppPipelineState)
 {
+  D3D12_COMPUTE_PIPELINE_STATE_DESC unwrappedDesc = *pDesc;
+  unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
+
   if(ppPipelineState == NULL)
-    return m_pDevice->CreateComputePipelineState(pDesc, riid, NULL);
+    return m_pDevice->CreateComputePipelineState(&unwrappedDesc, riid, NULL);
 
   if(riid != __uuidof(ID3D12PipelineState))
     return E_NOINTERFACE;
 
   ID3D12PipelineState *real = NULL;
-  HRESULT ret = m_pDevice->CreateComputePipelineState(pDesc, riid, (void **)&real);
+  HRESULT ret = m_pDevice->CreateComputePipelineState(&unwrappedDesc, riid, (void **)&real);
 
   if(SUCCEEDED(ret))
   {
@@ -530,6 +533,14 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
   if(SUCCEEDED(ret))
   {
     SCOPED_LOCK(m_D3DLock);
+
+    if(GetResourceManager()->HasWrapper(real))
+    {
+      real->Release();
+      *ppvRootSignature = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(real);
+      ((ID3D12RootSignature *)*ppvRootSignature)->AddRef();
+      return ret;
+    }
 
     WrappedID3D12RootSignature *wrapped = new WrappedID3D12RootSignature(real, this);
 
@@ -840,7 +851,7 @@ void WrappedID3D12Device::CopyDescriptors(
   for(UINT i = 0; i < NumDestDescriptorRanges; i++)
     dstStarts[i] = Unwrap(pDestDescriptorRangeStarts[i]);
 
-  for(UINT i = 0; i < NumDestDescriptorRanges; i++)
+  for(UINT i = 0; i < NumSrcDescriptorRanges; i++)
     srcStarts[i] = Unwrap(pSrcDescriptorRangeStarts[i]);
 
   m_pDevice->CopyDescriptors(NumDestDescriptorRanges, dstStarts, pDestDescriptorRangeSizes,
@@ -863,7 +874,7 @@ void WrappedID3D12Device::CopyDescriptors(
     dstIdx++;
 
     // move source onto the next range
-    if(srcIdx >= pSrcDescriptorRangeSizes[srcRange])
+    if(srcIdx >= (pSrcDescriptorRangeSizes ? pSrcDescriptorRangeSizes[srcRange] : 1))
     {
       srcRange++;
       srcIdx = 0;
@@ -873,7 +884,7 @@ void WrappedID3D12Device::CopyDescriptors(
         src = GetWrapped(pSrcDescriptorRangeStarts[srcRange]);
     }
 
-    if(dstIdx >= pDestDescriptorRangeSizes[srcRange])
+    if(dstIdx >= (pDestDescriptorRangeSizes ? pDestDescriptorRangeSizes[srcRange] : 1))
     {
       dstRange++;
       dstIdx = 0;
@@ -963,9 +974,10 @@ void WrappedID3D12Device::GetResourceTiling(
     UINT *pNumSubresourceTilings, UINT FirstSubresourceTilingToGet,
     D3D12_SUBRESOURCE_TILING *pSubresourceTilingsForNonPackedMips)
 {
-  return m_pDevice->GetResourceTiling(
-      pTiledResource, pNumTilesForEntireResource, pPackedMipDesc, pStandardTileShapeForNonPackedMips,
-      pNumSubresourceTilings, FirstSubresourceTilingToGet, pSubresourceTilingsForNonPackedMips);
+  return m_pDevice->GetResourceTiling(Unwrap(pTiledResource), pNumTilesForEntireResource,
+                                      pPackedMipDesc, pStandardTileShapeForNonPackedMips,
+                                      pNumSubresourceTilings, FirstSubresourceTilingToGet,
+                                      pSubresourceTilingsForNonPackedMips);
 }
 
 HRESULT WrappedID3D12Device::SetStablePowerState(BOOL Enable)
