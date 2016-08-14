@@ -812,11 +812,33 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
   for(UINT i = 0; i < NumBarriers; i++)
   {
     barriers[i] = pBarriers[i];
-    barriers[i].Transition.pResource = Unwrap(barriers[i].Transition.pResource);
+    if(barriers[i].Type == D3D12_RESOURCE_BARRIER_TYPE_TRANSITION)
+    {
+      barriers[i].Transition.pResource = Unwrap(barriers[i].Transition.pResource);
 
-    // hack while not all resources are wrapped
-    if(barriers[i].Transition.pResource == NULL)
-      barriers[i].Transition.pResource = pBarriers[i].Transition.pResource;
+      // hack while not all resources are wrapped
+      if(barriers[i].Transition.pResource == NULL)
+        barriers[i].Transition.pResource = pBarriers[i].Transition.pResource;
+    }
+    else if(barriers[i].Type == D3D12_RESOURCE_BARRIER_TYPE_ALIASING)
+    {
+      barriers[i].Aliasing.pResourceBefore = Unwrap(barriers[i].Aliasing.pResourceBefore);
+      barriers[i].Aliasing.pResourceAfter = Unwrap(barriers[i].Aliasing.pResourceAfter);
+
+      // hack while not all resources are wrapped
+      if(barriers[i].Aliasing.pResourceBefore == NULL)
+        barriers[i].Aliasing.pResourceBefore = pBarriers[i].Aliasing.pResourceBefore;
+      if(barriers[i].Aliasing.pResourceAfter == NULL)
+        barriers[i].Aliasing.pResourceAfter = pBarriers[i].Aliasing.pResourceAfter;
+    }
+    else if(barriers[i].Type == D3D12_RESOURCE_BARRIER_TYPE_UAV)
+    {
+      barriers[i].UAV.pResource = Unwrap(barriers[i].UAV.pResource);
+
+      // hack while not all resources are wrapped
+      if(barriers[i].Transition.pResource == NULL)
+        barriers[i].UAV.pResource = pBarriers[i].UAV.pResource;
+    }
   }
 
   m_pReal->ResourceBarrier(NumBarriers, barriers);
@@ -1568,7 +1590,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewUint(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const UINT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap), ViewCPUHandle,
+  m_pReal->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle),
                                         Unwrap(pResource), Values, NumRects, pRects);
 }
 
@@ -1576,7 +1598,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const FLOAT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap), ViewCPUHandle,
+  m_pReal->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle),
                                          Unwrap(pResource), Values, NumRects, pRects);
 }
 
