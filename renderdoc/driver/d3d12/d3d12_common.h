@@ -175,6 +175,10 @@ void Serialiser::Serialise(const char *name, D3D12_VERTEX_BUFFER_VIEW &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_RESOURCE_BARRIER &el);
 template <>
+void Serialiser::Serialise(const char *name, D3D12_HEAP_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_QUERY_HEAP_DESC &el);
+template <>
 void Serialiser::Serialise(const char *name, D3D12_HEAP_PROPERTIES &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_DESCRIPTOR_HEAP_DESC &el);
@@ -192,6 +196,10 @@ template <>
 void Serialiser::Serialise(const char *name, D3D12_UNORDERED_ACCESS_VIEW_DESC &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_CLEAR_VALUE &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_COMMAND_SIGNATURE_DESC &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_INDIRECT_ARGUMENT_DESC &el);
 
 struct D3D12Descriptor;
 template <>
@@ -226,8 +234,14 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
   D3D12_CHUNK_MACRO(CREATE_COMPUTE_PIPE, "ID3D12Device::CreateComputePipeline")              \
   D3D12_CHUNK_MACRO(CREATE_DESCRIPTOR_HEAP, "ID3D12Device::CreateDescriptorHeap")            \
   D3D12_CHUNK_MACRO(CREATE_ROOT_SIG, "ID3D12Device::CreateRootSignature")                    \
+  D3D12_CHUNK_MACRO(CREATE_COMMAND_SIGNATURE, "ID3D12Device::CreateCommandSignature")        \
+                                                                                             \
+  D3D12_CHUNK_MACRO(CREATE_HEAP, "ID3D12Device::CreateHeap")                                 \
+  D3D12_CHUNK_MACRO(CREATE_QUERY_HEAP, "ID3D12Device::CreateQueryHeap")                      \
                                                                                              \
   D3D12_CHUNK_MACRO(CREATE_COMMITTED_RESOURCE, "ID3D12Device::CreateCommittedResource")      \
+  D3D12_CHUNK_MACRO(CREATE_PLACED_RESOURCE, "ID3D12Device::CreatePlacedResource")            \
+  D3D12_CHUNK_MACRO(CREATE_RESERVED_RESOURCE, "ID3D12Device::CreateReservedResource")        \
                                                                                              \
   D3D12_CHUNK_MACRO(CREATE_FENCE, "ID3D12Device::CreateFence")                               \
                                                                                              \

@@ -473,6 +473,68 @@ void Serialiser::Serialise(const char *name, D3D12_COMPUTE_PIPELINE_STATE_DESC &
   }
 }
 
+string ToStrHelper<false, D3D12_INDIRECT_ARGUMENT_TYPE>::Get(const D3D12_INDIRECT_ARGUMENT_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_INDIRECT_ARGUMENT_TYPE<%d>", el);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_INDIRECT_ARGUMENT_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_INDIRECT_ARGUMENT_DESC", 0, true);
+
+  Serialise("Type", el.Type);
+  switch(el.Type)
+  {
+    case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+      Serialise("Slot", el.VertexBuffer.Slot);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+      Serialise("RootParameterIndex", el.Constant.RootParameterIndex);
+      Serialise("DestOffsetIn32BitValues", el.Constant.DestOffsetIn32BitValues);
+      Serialise("Num32BitValuesToSet", el.Constant.Num32BitValuesToSet);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+      Serialise("RootParameterIndex", el.ConstantBufferView.RootParameterIndex);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+      Serialise("RootParameterIndex", el.ShaderResourceView.RootParameterIndex);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+      Serialise("RootParameterIndex", el.UnorderedAccessView.RootParameterIndex);
+      break;
+    default:
+      // all other commands have no additional attributes
+      break;
+  }
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_COMMAND_SIGNATURE_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_COMMAND_SIGNATURE_DESC", 0, true);
+
+  Serialise("ByteStride", el.ByteStride);
+  Serialise("NodeMask", el.NodeMask);
+
+  SerialiseComplexArray("pArgumentDescs", (D3D12_INDIRECT_ARGUMENT_DESC *&)el.pArgumentDescs,
+                        el.NumArgumentDescs);
+}
+
 template <>
 void Serialiser::Serialise(const char *name, D3D12_VERTEX_BUFFER_VIEW &el)
 {
@@ -798,6 +860,26 @@ void Serialiser::Serialise(const char *name, D3D12_RESOURCE_BARRIER &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12_HEAP_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_HEAP_DESC", 0, true);
+
+  Serialise("SizeInBytes", el.SizeInBytes);
+  Serialise("Properties", el.Properties);
+  Serialise("Alignment", el.Alignment);
+  Serialise("Flags", el.Flags);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_QUERY_HEAP_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_QUERY_HEAP_DESC", 0, true);
+
+  Serialise("Type", el.Type);
+  Serialise("Count", el.Count);
+  Serialise("NodeMask", el.NodeMask);
+}
+template <>
 void Serialiser::Serialise(const char *name, D3D12_HEAP_PROPERTIES &el)
 {
   ScopedContext scope(this, name, "D3D12_HEAP_PROPERTIES", 0, true);
@@ -924,6 +1006,20 @@ string ToStrHelper<false, D3D12_HEAP_TYPE>::Get(const D3D12_HEAP_TYPE &el)
   }
 
   return StringFormat::Fmt("D3D12_HEAP_TYPE<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_QUERY_HEAP_TYPE>::Get(const D3D12_QUERY_HEAP_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_OCCLUSION)
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_TIMESTAMP)
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS)
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_SO_STATISTICS)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_QUERY_HEAP_TYPE<%d>", el);
 }
 
 string ToStrHelper<false, D3D12_CPU_PAGE_PROPERTY>::Get(const D3D12_CPU_PAGE_PROPERTY &el)
