@@ -373,12 +373,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
-      D3D12_HEAP_PROPERTIES heapProps;
-      heapProps.Type = D3D12_HEAP_TYPE_READBACK;
-      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-      heapProps.CreationNodeMask = 1;
-      heapProps.VisibleNodeMask = 1;
+      D3D12_HEAP_PROPERTIES heapProps =
+          m_Device->GetReal()->GetCustomHeapProperties(1, D3D12_HEAP_TYPE_READBACK);
 
       ID3D12Resource *copyDst = NULL;
       HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
@@ -403,12 +399,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
     }
     else
     {
-      D3D12_HEAP_PROPERTIES heapProps;
-      heapProps.Type = D3D12_HEAP_TYPE_READBACK;
-      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-      heapProps.CreationNodeMask = 1;
-      heapProps.VisibleNodeMask = 1;
+      D3D12_HEAP_PROPERTIES heapProps =
+          m_Device->GetReal()->GetCustomHeapProperties(1, D3D12_HEAP_TYPE_READBACK);
 
       D3D12_RESOURCE_DESC bufDesc;
 
