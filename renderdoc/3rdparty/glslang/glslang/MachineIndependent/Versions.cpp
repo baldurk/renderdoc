@@ -176,7 +176,6 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_ARB_shader_texture_image_samples] = EBhDisable;
     extensionBehavior[E_GL_ARB_viewport_array]               = EBhDisable;
     extensionBehavior[E_GL_ARB_gpu_shader_int64]             = EBhDisable;
-    extensionBehavior[E_GL_ARB_gl_spirv]                     = EBhDisable;
     extensionBehavior[E_GL_ARB_shader_ballot]                = EBhDisable;
     extensionBehavior[E_GL_ARB_sparse_texture2]              = EBhDisable;
     extensionBehavior[E_GL_ARB_sparse_texture_clamp]         = EBhDisable;
@@ -187,6 +186,13 @@ void TParseVersions::initializeExtensionBehavior()
     // #line and #include
     extensionBehavior[E_GL_GOOGLE_cpp_style_line_directive]          = EBhDisable;
     extensionBehavior[E_GL_GOOGLE_include_directive]                 = EBhDisable;
+
+#ifdef AMD_EXTENSIONS
+    extensionBehavior[E_GL_AMD_shader_ballot]                        = EBhDisable;
+    extensionBehavior[E_GL_AMD_shader_trinary_minmax]                = EBhDisable;
+    extensionBehavior[E_GL_AMD_shader_explicit_vertex_parameter]     = EBhDisable;
+    extensionBehavior[E_GL_AMD_gcn_shader]                           = EBhDisable;
+#endif
 
     // AEP
     extensionBehavior[E_GL_ANDROID_extension_pack_es31a]             = EBhDisable;
@@ -282,12 +288,18 @@ void TParseVersions::getPreamble(std::string& preamble)
             "#define GL_ARB_shader_texture_image_samples 1\n"
             "#define GL_ARB_viewport_array 1\n"
             "#define GL_ARB_gpu_shader_int64 1\n"
-            "#define GL_ARB_gl_spirv 1\n"
             "#define GL_ARB_shader_ballot 1\n"
             "#define GL_ARB_sparse_texture2 1\n"
             "#define GL_ARB_sparse_texture_clamp 1\n"
 //            "#define GL_ARB_cull_distance 1\n"    // present for 4.5, but need extension control over block members
             "#define GL_EXT_shader_non_constant_global_initializers 1\n"
+
+#ifdef AMD_EXTENSIONS
+            "#define GL_AMD_shader_ballot 1\n"
+            "#define GL_AMD_shader_trinary_minmax 1\n"
+            "#define GL_AMD_shader_explicit_vertex_parameter 1\n"
+            "#define GL_AMD_gcn_shader 1\n"
+#endif
             ;
     }
 
@@ -298,14 +310,22 @@ void TParseVersions::getPreamble(std::string& preamble)
             ;
 
     // #define VULKAN XXXX
+    const int numberBufSize = 12;
+    char numberBuf[numberBufSize];
     if (spvVersion.vulkan > 0) {
         preamble += "#define VULKAN ";
-        char number[12];
-        snprintf(number, 12, "%d", spvVersion.vulkan);
-        preamble += number;
+        snprintf(numberBuf, numberBufSize, "%d", spvVersion.vulkan);
+        preamble += numberBuf;
         preamble += "\n";
     }
-    // gl_spirv TODO
+    // #define GL_SPIRV XXXX
+    if (spvVersion.openGl > 0) {
+        preamble += "#define GL_SPIRV ";
+        snprintf(numberBuf, numberBufSize, "%d", spvVersion.openGl);
+        preamble += numberBuf;
+        preamble += "\n";
+    }
+
 }
 
 //

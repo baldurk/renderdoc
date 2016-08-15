@@ -123,8 +123,8 @@ public:
         haveReturnableObjectCode(false),
         appAttributeBindings(0),
         fixedAttributeBindings(0),
-		excludedAttributes(0),
-		excludedCount(0),
+        excludedAttributes(0),
+        excludedCount(0),
         uniformBindings(0) { }
     virtual TLinker* getAsLinker() { return this; }
     virtual ~TLinker() { }
@@ -132,8 +132,8 @@ public:
     virtual bool link(THandleList&) { return false; }
     virtual void setAppAttributeBindings(const ShBindingTable* t)   { appAttributeBindings = t; }
     virtual void setFixedAttributeBindings(const ShBindingTable* t) { fixedAttributeBindings = t; }
-	virtual void getAttributeBindings(ShBindingTable const **t) const = 0;
-	virtual void setExcludedAttributes(const int* attributes, int count) { excludedAttributes = attributes; excludedCount = count; }
+    virtual void getAttributeBindings(ShBindingTable const **t) const = 0;
+    virtual void setExcludedAttributes(const int* attributes, int count) { excludedAttributes = attributes; excludedCount = count; }
     virtual ShBindingTable* getUniformBindings() const  { return uniformBindings; }
     virtual const void* getObjectCode() const { return 0; } // a real compiler would be returning object code here
     virtual TInfoSink& getInfoSink() { return infoSink; }
@@ -145,8 +145,8 @@ protected:
 
     const ShBindingTable* appAttributeBindings;
     const ShBindingTable* fixedAttributeBindings;
-	const int* excludedAttributes;
-	int excludedCount;
+    const int* excludedAttributes;
+    int excludedCount;
     ShBindingTable* uniformBindings;                // created by the linker    
 };
 

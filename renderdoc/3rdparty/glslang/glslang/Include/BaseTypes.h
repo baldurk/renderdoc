@@ -186,6 +186,15 @@ enum TBuiltInVariable {
     EbvSamplePosition,
     EbvSampleMask,
     EbvHelperInvocation,
+#ifdef AMD_EXTENSIONS
+    EbvBaryCoordNoPersp,
+    EbvBaryCoordNoPerspCentroid,
+    EbvBaryCoordNoPerspSample,
+    EbvBaryCoordSmooth,
+    EbvBaryCoordSmoothCentroid,
+    EbvBaryCoordSmoothSample,
+    EbvBaryCoordPullModel,
+#endif
 
     EbvLast
 };
@@ -286,6 +295,15 @@ __inline const char* GetBuiltInVariableString(TBuiltInVariable v)
     case EbvSamplePosition:       return "SamplePosition";
     case EbvSampleMask:           return "SampleMaskIn";
     case EbvHelperInvocation:     return "HelperInvocation";
+#ifdef AMD_EXTENSIONS
+    case EbvBaryCoordNoPersp:           return "BaryCoordNoPersp";
+    case EbvBaryCoordNoPerspCentroid:   return "BaryCoordNoPerspCentroid";
+    case EbvBaryCoordNoPerspSample:     return "BaryCoordNoPerspSample";
+    case EbvBaryCoordSmooth:            return "BaryCoordSmooth";
+    case EbvBaryCoordSmoothCentroid:    return "BaryCoordSmoothCentroid";
+    case EbvBaryCoordSmoothSample:      return "BaryCoordSmoothSample";
+    case EbvBaryCoordPullModel:         return "BaryCoordPullModel";
+#endif
     default:                      return "unknown built-in variable";
     }
 }

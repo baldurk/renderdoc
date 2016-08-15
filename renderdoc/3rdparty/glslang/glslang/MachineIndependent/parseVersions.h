@@ -119,12 +119,12 @@ public:
     TIntermediate& intermediate; // helper for making and hooking up pieces of the parse tree
 
 protected:
+    TMap<TString, TExtensionBehavior> extensionBehavior;    // for each extension string, what its current behavior is set to
     EShMessages messages;        // errors/warnings/rule-sets
     int numErrors;               // number of compile-time errors encountered
     TInputScanner* currentScanner;
 
 private:
-    TMap<TString, TExtensionBehavior> extensionBehavior;    // for each extension string, what its current behavior is set to
     explicit TParseVersions(const TParseVersions&);
     TParseVersions& operator=(const TParseVersions&);
 };

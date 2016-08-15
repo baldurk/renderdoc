@@ -84,6 +84,9 @@ struct TSampler {   // misnomer now; includes images, textures without sampler, 
     bool isCombined()    const { return combined; }
     bool isPureSampler() const { return sampler; }
     bool isTexture()     const { return !sampler && !image; }
+    bool isShadow()      const { return shadow; }
+    bool isArrayed()     const { return arrayed; }
+    bool isMultiSample() const { return ms; }
 
     void clear()
     {
@@ -403,6 +406,9 @@ public:
         smooth       = false;
         flat         = false;
         nopersp      = false;
+#ifdef AMD_EXTENSIONS
+        explicitInterp = false;
+#endif
         patch        = false;
         sample       = false;
         coherent     = false;
@@ -436,6 +442,9 @@ public:
     bool smooth       : 1;
     bool flat         : 1;
     bool nopersp      : 1;
+#ifdef AMD_EXTENSIONS
+    bool explicitInterp : 1;
+#endif
     bool patch        : 1;
     bool sample       : 1;
     bool coherent     : 1;
@@ -451,7 +460,11 @@ public:
     }
     bool isInterpolation() const
     {
+#ifdef AMD_EXTENSIONS
+        return flat || smooth || nopersp || explicitInterp;
+#else
         return flat || smooth || nopersp;
+#endif
     }
     bool isAuxiliary() const
     {
@@ -1080,6 +1093,15 @@ public:
                                     typeName = NewPoolTString(p.userDef->getTypeName().c_str());
                                 }
                             }
+    // for construction of sampler types
+    TType(const TSampler& sampler, TStorageQualifier q = EvqUniform, TArraySizes* as = nullptr) :
+        basicType(EbtSampler), vectorSize(1), matrixCols(0), matrixRows(0), vector1(false),
+        arraySizes(as), structure(nullptr), fieldName(nullptr), typeName(nullptr),
+        sampler(sampler)
+    {
+        qualifier.clear();
+        qualifier.storage = q;
+    }
     // to efficiently make a dereferenced type
     // without ever duplicating the outer structure that will be thrown away
     // and using only shallow copy
@@ -1507,6 +1529,10 @@ public:
             p += snprintf(p, end - p, "flat ");
         if (qualifier.nopersp)
             p += snprintf(p, end - p, "noperspective ");
+#ifdef AMD_EXTENSIONS
+        if (qualifier.explicitInterp)
+            p += snprintf(p, end - p, "__explicitInterpAMD ");
+#endif
         if (qualifier.patch)
             p += snprintf(p, end - p, "patch ");
         if (qualifier.sample)
@@ -1553,6 +1579,13 @@ public:
         if (structure) {
             s.append("{");
             for (size_t i = 0; i < structure->size(); ++i) {
+                if (s.size() > 3 * GlslangMaxTypeLength) {
+                    // If we are getting too long, cut it short,
+                    // just need to draw the line somewhere, as there is no limit to
+                    // how large a struct/block type can get.
+                    s.append("...");
+                    break;
+                }
                 if (! (*structure)[i].type->hiddenMember()) {
                     s.append((*structure)[i].type->getCompleteString());
                     s.append(" ");
@@ -1700,13 +1733,13 @@ protected:
                                // functionality is added.
                                // HLSL does have a 1-component vectors, so this will be true to disambiguate
                                // from a scalar.
-    TSampler sampler;
     TQualifier qualifier;
 
     TArraySizes* arraySizes;    // nullptr unless an array; can be shared across types
     TTypeList* structure;       // nullptr unless this is a struct; can be shared across types
     TString *fieldName;         // for structure field names
     TString *typeName;          // for structure type name
+    TSampler sampler;
 };
 
 } // end namespace glslang

@@ -40,7 +40,7 @@
 
 namespace glslang {
 
-// Use a global end-of-input character, so no tranlation is needed across
+// Use a global end-of-input character, so no translation is needed across
 // layers of encapsulation.  Characters are all 8 bit, and positive, so there is
 // no aliasing of character 255 onto -1, for example.
 const int EndOfInput = -1;
@@ -82,7 +82,8 @@ public:
     int get()
     {
         int ret = peek();
-        if (ret == EndOfInput)  return ret;
+        if (ret == EndOfInput)
+            return ret;
         ++loc[currentSource].column;
         ++logicalSourceLoc.column;
         if (ret == '\n') {
@@ -123,7 +124,8 @@ public:
     void unget()
     {
         // Do not roll back once we've reached the end of the file.
-        if (endOfFileReached) return;
+        if (endOfFileReached)
+            return;
 
         if (currentChar > 0) {
             --currentChar;
@@ -173,9 +175,9 @@ public:
         loc[getLastValidSourceIndex()].name = filename;
     }
 
-    void setFile(const char* filename, size_t i)
+    void setFile(const char* filename, int i)
     {
-        if ((int)i == getLastValidSourceIndex()) {
+        if (i == getLastValidSourceIndex()) {
             logicalSourceLoc.name = filename;
         }
         loc[i].name = filename;
@@ -194,6 +196,12 @@ public:
     {
         logicalSourceLoc.column = col;
         loc[getLastValidSourceIndex()].column = col;
+    }
+
+    void setEndOfInput()
+    {
+        endOfFileReached = true;
+        currentSource = numSources;
     }
 
     const TSourceLoc& getSourceLoc() const
@@ -255,7 +263,7 @@ protected:
     bool singleLogical; // treats the strings as a single logical string.
                         // locations will be reported from the first string.
 
-    // set to true once peak() returns EndOfFile, so that we won't roll back
+    // Set to true once peek() returns EndOfFile, so that we won't roll back
     // once we've reached EndOfFile.
     bool endOfFileReached;
 };

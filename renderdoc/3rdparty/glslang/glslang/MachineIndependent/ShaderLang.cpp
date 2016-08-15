@@ -41,7 +41,7 @@
 // This is the platform independent interface between an OGL driver
 // and the shading language compiler/linker.
 //
-#include <string.h>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <memory>
@@ -81,42 +81,87 @@ TBuiltInParseables* CreateBuiltInParseables(TInfoSink& infoSink, EShSource sourc
 
 // Local mapping functions for making arrays of symbol tables....
 
+const int VersionCount = 15;  // index range in MapVersionToIndex
+
 int MapVersionToIndex(int version)
 {
-        switch (version) {
-        case 100: return  0;
-        case 110: return  1;
-        case 120: return  2;
-        case 130: return  3;
-        case 140: return  4;
-        case 150: return  5;
-        case 300: return  6;
-        case 330: return  7;
-        case 400: return  8;
-        case 410: return  9;
-        case 420: return 10;
-        case 430: return 11;
-        case 440: return 12;
-        case 310: return 13;
-        case 450: return 14;
-        default:       // |
-            return  0; // |
-        }              // |
-}                      // V
-const int VersionCount = 15;  // number of case statements above
+    int index = 0;
+
+    switch (version) {
+    case 100: index =  0; break;
+    case 110: index =  1; break;
+    case 120: index =  2; break;
+    case 130: index =  3; break;
+    case 140: index =  4; break;
+    case 150: index =  5; break;
+    case 300: index =  6; break;
+    case 330: index =  7; break;
+    case 400: index =  8; break;
+    case 410: index =  9; break;
+    case 420: index = 10; break;
+    case 430: index = 11; break;
+    case 440: index = 12; break;
+    case 310: index = 13; break;
+    case 450: index = 14; break;
+    default:              break;
+    }
+
+    assert(index < VersionCount);
+
+    return index;
+}
+
+const int SpvVersionCount = 3;  // index range in MapSpvVersionToIndex
+
+int MapSpvVersionToIndex(const SpvVersion& spvVersion)
+{
+    int index = 0;
+
+    if (spvVersion.openGl > 0)
+        index = 1;
+    else if (spvVersion.vulkan > 0)
+        index = 2;
+
+    assert(index < SpvVersionCount);
+
+    return index;
+}
+
+const int ProfileCount = 4;   // index range in MapProfileToIndex
 
 int MapProfileToIndex(EProfile profile)
 {
+    int index = 0;
+
     switch (profile) {
-    case ENoProfile:             return 0;
-    case ECoreProfile:           return 1;
-    case ECompatibilityProfile:  return 2;
-    case EEsProfile:             return 3;
-    default:                         // |
-        return 0;                    // |
-    }                                // |
-}                                    // V
-const int ProfileCount                = 4;   // number of case statements above
+    case ENoProfile:            index = 0; break;
+    case ECoreProfile:          index = 1; break;
+    case ECompatibilityProfile: index = 2; break;
+    case EEsProfile:            index = 3; break;
+    default:                               break;
+    }
+
+    assert(index < ProfileCount);
+
+    return index;
+}
+
+const int SourceCount = 2;
+
+int MapSourceToIndex(EShSource source)
+{
+    int index = 0;
+
+    switch (source) {
+    case EShSourceGlsl: index = 0; break;
+    case EShSourceHlsl: index = 1; break;
+    default:                       break;
+    }
+
+    assert(index < SourceCount);
+
+    return index;
+}
 
 // only one of these needed for non-ES; ES needs 2 for different precision defaults of built-ins
 enum EPrecisionClass {
@@ -133,8 +178,8 @@ enum EPrecisionClass {
 // Each has a different set of built-ins, and we want to preserve that from
 // compile to compile.
 //
-TSymbolTable* CommonSymbolTable[VersionCount][ProfileCount][EPcCount] = {};
-TSymbolTable* SharedSymbolTables[VersionCount][ProfileCount][EShLangCount] = {};
+TSymbolTable* CommonSymbolTable[VersionCount][SpvVersionCount][ProfileCount][SourceCount][EPcCount] = {};
+TSymbolTable* SharedSymbolTables[VersionCount][SpvVersionCount][ProfileCount][SourceCount][EShLangCount] = {};
 
 TPoolAllocator* PerProcessGPA = 0;
 
@@ -275,8 +320,10 @@ void SetupBuiltinSymbolTable(int version, EProfile profile, const SpvVersion& sp
 
     // See if it's already been done for this version/profile combination
     int versionIndex = MapVersionToIndex(version);
+    int spvVersionIndex = MapSpvVersionToIndex(spvVersion);
     int profileIndex = MapProfileToIndex(profile);
-    if (CommonSymbolTable[versionIndex][profileIndex][EPcGeneral]) {
+    int sourceIndex = MapSourceToIndex(source);
+    if (CommonSymbolTable[versionIndex][spvVersionIndex][profileIndex][sourceIndex][EPcGeneral]) {
         glslang::ReleaseGlobalLock();
 
         return;
@@ -304,17 +351,18 @@ void SetupBuiltinSymbolTable(int version, EProfile profile, const SpvVersion& sp
     // Copy the local symbol tables from the new pool to the global tables using the process-global pool
     for (int precClass = 0; precClass < EPcCount; ++precClass) {
         if (! commonTable[precClass]->isEmpty()) {
-            CommonSymbolTable[versionIndex][profileIndex][precClass] = new TSymbolTable;
-            CommonSymbolTable[versionIndex][profileIndex][precClass]->copyTable(*commonTable[precClass]);
-            CommonSymbolTable[versionIndex][profileIndex][precClass]->readOnly();
+            CommonSymbolTable[versionIndex][spvVersionIndex][profileIndex][sourceIndex][precClass] = new TSymbolTable;
+            CommonSymbolTable[versionIndex][spvVersionIndex][profileIndex][sourceIndex][precClass]->copyTable(*commonTable[precClass]);
+            CommonSymbolTable[versionIndex][spvVersionIndex][profileIndex][sourceIndex][precClass]->readOnly();
         }
     }
     for (int stage = 0; stage < EShLangCount; ++stage) {
         if (! stageTables[stage]->isEmpty()) {
-            SharedSymbolTables[versionIndex][profileIndex][stage] = new TSymbolTable;
-            SharedSymbolTables[versionIndex][profileIndex][stage]->adoptLevels(*CommonSymbolTable[versionIndex][profileIndex][CommonIndex(profile, (EShLanguage)stage)]);
-            SharedSymbolTables[versionIndex][profileIndex][stage]->copyTable(*stageTables[stage]);
-            SharedSymbolTables[versionIndex][profileIndex][stage]->readOnly();
+            SharedSymbolTables[versionIndex][spvVersionIndex][profileIndex][sourceIndex][stage] = new TSymbolTable;
+            SharedSymbolTables[versionIndex][spvVersionIndex][profileIndex][sourceIndex][stage]->adoptLevels(*CommonSymbolTable
+                              [versionIndex][spvVersionIndex][profileIndex][sourceIndex][CommonIndex(profile, (EShLanguage)stage)]);
+            SharedSymbolTables[versionIndex][spvVersionIndex][profileIndex][sourceIndex][stage]->copyTable(*stageTables[stage]);
+            SharedSymbolTables[versionIndex][spvVersionIndex][profileIndex][sourceIndex][stage]->readOnly();
         }    
     }
 
@@ -338,8 +386,8 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
     bool correct = true;
 
     if (source == EShSourceHlsl) {
-        version = 450;         // TODO: GLSL parser is still used for builtins.
-        profile = ENoProfile;
+        version = 450;          // TODO: GLSL parser is still used for builtins.
+        profile = ECoreProfile; // allow doubles in prototype parsing
         return correct;
     }
 
@@ -438,7 +486,11 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
                 infoSink.info.message(EPrefixError, "#version: ES shaders for Vulkan SPIR-V require version 310 or higher");
                 version = 310;
             }
-            // gl_spirv TODO: test versions
+            if (spvVersion.openGl >= 100) {
+                correct = false;
+                infoSink.info.message(EPrefixError, "#version: ES shaders for OpenGL SPIR-V are not supported");
+                version = 310;
+            }
             break;
         case ECompatibilityProfile:
             infoSink.info.message(EPrefixError, "#version: compilation for SPIR-V does not support the compatibility profile");
@@ -449,7 +501,11 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
                 infoSink.info.message(EPrefixError, "#version: Desktop shaders for Vulkan SPIR-V require version 140 or higher");
                 version = 140;
             }
-            // gl_spirv TODO: test versions
+            if (spvVersion.openGl >= 100 && version < 330) {
+                correct = false;
+                infoSink.info.message(EPrefixError, "#version: Desktop shaders for OpenGL SPIR-V require version 330 or higher");
+                version = 330;
+            }
             break;
         }
     }
@@ -593,6 +649,10 @@ bool ProcessDeferred(
     if (messages & EShMsgSpvRules)
         spvVersion.spv = 0x00010000;    // TODO: eventually have this come from the outside
     EShSource source = (messages & EShMsgReadHlsl) ? EShSourceHlsl : EShSourceGlsl;
+    if (messages & EShMsgVulkanRules)
+        spvVersion.vulkan = 100;     // TODO: eventually have this come from the outside
+    else if (spvVersion.spv != 0)
+        spvVersion.openGl = 100;     // TODO: eventually have this come from the outside
     bool goodVersion = DeduceVersionProfile(compiler->infoSink, compiler->getLanguage(), versionNotFirst, defaultVersion, source, version, profile, spvVersion);
     bool versionWillBeError = (versionNotFound || (profile == EEsProfile && version >= 300 && versionNotFirst));
     bool warnVersionNotFirst = false;
@@ -603,10 +663,6 @@ bool ProcessDeferred(
             versionWillBeError = true;
     }
 
-    if (messages & EShMsgVulkanRules)
-        spvVersion.vulkan = 100;     // TODO: eventually have this come from the outside
-    else if (spvVersion.spv != 0)
-        spvVersion.openGl = 100;
     intermediate.setSource(source);
     intermediate.setVersion(version);
     intermediate.setProfile(profile);
@@ -616,7 +672,9 @@ bool ProcessDeferred(
     SetupBuiltinSymbolTable(version, profile, spvVersion, source);
     
     TSymbolTable* cachedTable = SharedSymbolTables[MapVersionToIndex(version)]
+                                                  [MapSpvVersionToIndex(spvVersion)]
                                                   [MapProfileToIndex(profile)]
+                                                  [MapSourceToIndex(source)]
                                                   [compiler->getLanguage()];
     
     // Dynamically allocate the symbol table so we can control when it is deallocated WRT the pool.
@@ -744,6 +802,8 @@ public:
     void setLineNum(int newLineNum) { lastLine = newLineNum; }
 
 private:
+    SourceLineSynchronizer& operator=(const SourceLineSynchronizer&);
+
     // A function for getting the index of the last valid source string we've
     // read tokens from.
     const std::function<int()> getLastSourceIndex;
@@ -768,8 +828,8 @@ struct DoPreprocessing {
     explicit DoPreprocessing(std::string* string): outputString(string) {}
     bool operator()(TParseContextBase& parseContext, TPpContext& ppContext,
                     TInputScanner& input, bool versionWillBeError,
-                    TSymbolTable& , TIntermediate& ,
-                    EShOptimizationLevel , EShMessages )
+                    TSymbolTable&, TIntermediate&,
+                    EShOptimizationLevel, EShMessages)
     {
         // This is a list of tokens that do not require a space before or after.
         static const std::string unNeededSpaceTokens = ";()[]";
@@ -1049,19 +1109,27 @@ void ShDestruct(ShHandle handle)
 int __fastcall ShFinalize()
 {
     for (int version = 0; version < VersionCount; ++version) {
-        for (int p = 0; p < ProfileCount; ++p) {
-            for (int lang = 0; lang < EShLangCount; ++lang) {
-                delete SharedSymbolTables[version][p][lang];
-                SharedSymbolTables[version][p][lang] = 0;
+        for (int spvVersion = 0; spvVersion < SpvVersionCount; ++spvVersion) {
+            for (int p = 0; p < ProfileCount; ++p) {
+                for (int source = 0; source < SourceCount; ++source) {
+                    for (int stage = 0; stage < EShLangCount; ++stage) {
+                        delete SharedSymbolTables[version][spvVersion][p][source][stage];
+                        SharedSymbolTables[version][spvVersion][p][source][stage] = 0;
+                    }
+                }
             }
         }
     }
 
     for (int version = 0; version < VersionCount; ++version) {
-        for (int p = 0; p < ProfileCount; ++p) {
-            for (int pc = 0; pc < EPcCount; ++pc) {
-                delete CommonSymbolTable[version][p][pc];
-                CommonSymbolTable[version][p][pc] = 0;
+        for (int spvVersion = 0; spvVersion < SpvVersionCount; ++spvVersion) {
+            for (int p = 0; p < ProfileCount; ++p) {
+                for (int source = 0; source < SourceCount; ++source) {
+                    for (int pc = 0; pc < EPcCount; ++pc) {
+                        delete CommonSymbolTable[version][spvVersion][p][source][pc];
+                        CommonSymbolTable[version][spvVersion][p][source][pc] = 0;
+                    }
+                }
             }
         }
     }

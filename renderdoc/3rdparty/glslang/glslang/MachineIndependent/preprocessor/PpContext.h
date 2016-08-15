@@ -218,7 +218,7 @@ protected:
     TParseContextBase& parseContext;
 
     // Get the next token from *stack* of input sources, popping input sources
-    // that are out of tokens, down until an input sources is found that has a token.
+    // that are out of tokens, down until an input source is found that has a token.
     // Return EndOfInput when there are no more tokens to be found by doing this.
     int scanToken(TPpToken* ppToken)
     {
@@ -226,7 +226,7 @@ protected:
 
         while (! inputStack.empty()) {
             token = inputStack.back()->scan(ppToken);
-            if (token != EndOfInput)
+            if (token != EndOfInput || inputStack.empty())
                 break;
             popInput();
         }
@@ -487,6 +487,8 @@ protected:
         }
 
     private:
+        TokenizableIncludeFile& operator=(const TokenizableIncludeFile&);
+
         // Stores the prologue for this string.
         const std::string prologue_;
 

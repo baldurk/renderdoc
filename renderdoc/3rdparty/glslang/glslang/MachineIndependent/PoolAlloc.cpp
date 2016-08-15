@@ -53,7 +53,7 @@ void InitializeMemoryPools()
     TThreadMemoryPools* threadData = new TThreadMemoryPools();
     
     threadData->threadPoolAllocator = threadPoolAllocator;
-    	
+
     OS_SetTLSValue(PoolIndex, threadData);
 }
 
@@ -63,7 +63,7 @@ void FreeGlobalPools()
     TThreadMemoryPools* globalPools = static_cast<TThreadMemoryPools*>(OS_GetTLSValue(PoolIndex));    
     if (! globalPools)
         return;
-	
+
     GetThreadPoolAllocator().popAll();
     delete &GetThreadPoolAllocator();       
     delete globalPools;
@@ -149,12 +149,12 @@ TPoolAllocator::TPoolAllocator(int growthIncrement, int allocationAlignment) :
 
 TPoolAllocator::~TPoolAllocator()
 {
-	while (inUseList) {
-	    tHeader* next = inUseList->nextPage;
+    while (inUseList) {
+        tHeader* next = inUseList->nextPage;
         inUseList->~tHeader();
         delete [] reinterpret_cast<char*>(inUseList);
-	    inUseList = next;
-	}
+        inUseList = next;
+    }
 
     //
     // Always delete the free list memory - it can't be being

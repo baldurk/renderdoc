@@ -34,7 +34,7 @@
 
 #include "../Include/InfoSink.h"
 
-#include <string.h>
+#include <cstring>
 
 namespace glslang {
 

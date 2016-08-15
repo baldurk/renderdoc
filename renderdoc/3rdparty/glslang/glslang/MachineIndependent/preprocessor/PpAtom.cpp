@@ -82,10 +82,9 @@ NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
 
 #include "PpContext.h"
 #include "PpTokens.h"
@@ -98,6 +97,32 @@ const struct {
     int val;
     const char* str;
 } tokens[] = {
+
+    { PpAtomAdd,            "+=" },
+    { PpAtomSub,            "-=" },
+    { PpAtomMul,            "*=" },
+    { PpAtomDiv,            "/=" },
+    { PpAtomMod,            "%=" },
+    { PpAtomRight,          ">>" },
+    { PpAtomLeft,           "<<" },
+    { PpAtomAnd,            "&&" },
+    { PpAtomOr,             "||" },
+    { PpAtomXor,            "^^" },
+
+    { PpAtomRightAssign,    ">>=" },
+    { PpAtomLeftAssign,     "<<=" },
+    { PpAtomAndAssign,      "&=" },
+    { PpAtomOrAssign,       "|=" },
+    { PpAtomXorAssign,      "^=" },
+
+    { PpAtomEQ,             "==" },
+    { PpAtomNE,             "!=" },
+    { PpAtomGE,             ">=" },
+    { PpAtomLE,             "<=" },
+
+    { PpAtomDecrement,      "--" },
+    { PpAtomIncrement,      "++" },
+
     { PpAtomDefine,         "define" },
     { PpAtomDefined,        "defined" },
     { PpAtomUndef,          "undef" },
@@ -121,8 +146,7 @@ const struct {
     { PpAtomFileMacro,       "__FILE__" },
     { PpAtomVersionMacro,    "__VERSION__" },
 
-    { PpAtomInclude,        "include" },
-
+    { PpAtomInclude,         "include" },
 };
 
 } // end anonymous namespace

@@ -125,7 +125,7 @@ enum EFixedAtoms {
     PpAtomConstDouble,
     PpAtomConstString,
 
-    // Indentifiers 
+    // Identifiers 
     PpAtomIdentifier,
 
     // preprocessor "keywords"

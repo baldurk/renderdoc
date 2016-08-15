@@ -651,7 +651,7 @@ int TIntermediate::addUsedLocation(const TQualifier& qualifier, const TType& typ
 
     int size;
     if (qualifier.isUniformOrBuffer()) {
-        if (type.isArray())
+        if (type.isExplicitlySizedArray())
             size = type.getCumulativeArraySize();
         else
             size = 1;
@@ -664,29 +664,92 @@ int TIntermediate::addUsedLocation(const TQualifier& qualifier, const TType& typ
             size = computeTypeLocationSize(type);
     }
 
-    TRange locationRange(qualifier.layoutLocation, qualifier.layoutLocation + size - 1);
-    TRange componentRange(0, 3);
-    if (qualifier.hasComponent()) {
-        componentRange.start = qualifier.layoutComponent;
-        componentRange.last = componentRange.start + type.getVectorSize() - 1;
-    }
-    TIoRange range(locationRange, componentRange, type.getBasicType(), qualifier.hasIndex() ? qualifier.layoutIndex : 0);
+    // Locations, and components within locations.
+    //
+    // Almost always, dealing with components means a single location is involved.
+    // The exception is a dvec3. From the spec:
+    //
+    // "A dvec3 will consume all four components of the first location and components 0 and 1 of
+    // the second location. This leaves components 2 and 3 available for other component-qualified
+    // declarations."
+    //
+    // That means, without ever mentioning a component, a component range
+    // for a different location gets specified, if it's not a vertex shader input. (!)
+    // (A vertex shader input will show using only one location, even for a dvec3/4.)
+    //
+    // So, for the case of dvec3, we need two independent ioRanges.
 
-    // check for collisions, except for vertex inputs on desktop
-    if (! (profile != EEsProfile && language == EShLangVertex && qualifier.isPipeInput())) {
-        for (size_t r = 0; r < usedIo[set].size(); ++r) {
-            if (range.overlap(usedIo[set][r])) {
-                // there is a collision; pick one
-                return std::max(locationRange.start, usedIo[set][r].location.start);
-            } else if (locationRange.overlap(usedIo[set][r].location) && type.getBasicType() != usedIo[set][r].basicType) {
-                // aliased-type mismatch
-                typeCollision = true;
-                return std::max(locationRange.start, usedIo[set][r].location.start);
-            }
+    int collision = -1; // no collision
+    if (size == 2 && type.getBasicType() == EbtDouble && type.getVectorSize() == 3 &&
+        (qualifier.isPipeInput() || qualifier.isPipeOutput())) {
+        // Dealing with dvec3 in/out split across two locations.
+        // Need two io-ranges.
+        // The case where the dvec3 doesn't start at component 0 was previously caught as overflow.
+
+        // First range:
+        TRange locationRange(qualifier.layoutLocation, qualifier.layoutLocation);
+        TRange componentRange(0, 3);
+        TIoRange range(locationRange, componentRange, type.getBasicType(), 0);
+
+        // check for collisions
+        collision = checkLocationRange(set, range, type, typeCollision);
+        if (collision < 0) {
+            usedIo[set].push_back(range);
+
+            // Second range:
+            TRange locationRange2(qualifier.layoutLocation + 1, qualifier.layoutLocation + 1);
+            TRange componentRange2(0, 1);
+            TIoRange range2(locationRange2, componentRange2, type.getBasicType(), 0);
+
+            // check for collisions
+            collision = checkLocationRange(set, range2, type, typeCollision);
+            if (collision < 0)
+                usedIo[set].push_back(range2);
+        }
+    } else {
+        // Not a dvec3 in/out split across two locations, generic path.
+        // Need a single IO-range block.
+
+        TRange locationRange(qualifier.layoutLocation, qualifier.layoutLocation + size - 1);
+        TRange componentRange(0, 3);
+        if (qualifier.hasComponent() || type.getVectorSize() > 0) {
+            int consumedComponents = type.getVectorSize() * (type.getBasicType() == EbtDouble ? 2 : 1);
+            if (qualifier.hasComponent())
+                componentRange.start = qualifier.layoutComponent;
+            componentRange.last  = componentRange.start + consumedComponents - 1;
+        }
+
+        // combine location and component ranges
+        TIoRange range(locationRange, componentRange, type.getBasicType(), qualifier.hasIndex() ? qualifier.layoutIndex : 0);
+
+        // check for collisions, except for vertex inputs on desktop
+        if (! (profile != EEsProfile && language == EShLangVertex && qualifier.isPipeInput()))
+            collision = checkLocationRange(set, range, type, typeCollision);
+
+        if (collision < 0)
+            usedIo[set].push_back(range);
+    }
+
+    return collision;
+}
+
+// Compare a new (the passed in) 'range' against the existing set, and see
+// if there are any collisions.
+//
+// Returns < 0 if no collision, >= 0 if collision and the value returned is a colliding value.
+//
+int TIntermediate::checkLocationRange(int set, const TIoRange& range, const TType& type, bool& typeCollision)
+{
+    for (size_t r = 0; r < usedIo[set].size(); ++r) {
+        if (range.overlap(usedIo[set][r])) {
+            // there is a collision; pick one
+            return std::max(range.location.start, usedIo[set][r].location.start);
+        } else if (range.location.overlap(usedIo[set][r].location) && type.getBasicType() != usedIo[set][r].basicType) {
+            // aliased-type mismatch
+            typeCollision = true;
+            return std::max(range.location.start, usedIo[set][r].location.start);
         }
     }
-
-    usedIo[set].push_back(range);
 
     return -1; // no collision
 }
@@ -940,7 +1003,7 @@ int TIntermediate::getBaseAlignment(const TType& type, int& size, int& stride, b
     //      components each, according to rule (4).
     //
     //   6. If the member is an array of S column-major matrices with C columns and
-    //      R rows, the matrix is stored identically to a row of S  C column vectors
+    //      R rows, the matrix is stored identically to a row of S X C column vectors
     //      with R components each, according to rule (4).
     //
     //   7. If the member is a row-major matrix with C columns and R rows, the matrix
@@ -948,7 +1011,7 @@ int TIntermediate::getBaseAlignment(const TType& type, int& size, int& stride, b
     //      according to rule (4).
     //
     //   8. If the member is an array of S row-major matrices with C columns and R
-    //      rows, the matrix is stored identically to a row of S  R row vectors with C
+    //      rows, the matrix is stored identically to a row of S X R row vectors with C
     //      components each, according to rule (4).
     //
     //   9. If the member is a structure, the base alignment of the structure is N , where

@@ -399,6 +399,27 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
         break;
     }
 
+    case EOpAny:
+    {
+        bool result = false;
+        for (int i = 0; i < objectSize; i++) {
+            if (unionArray[i].getBConst())
+                result = true;
+        }
+        newConstArray[0].setBConst(result);
+        break;
+    }
+    case EOpAll:
+    {
+        bool result = true;
+        for (int i = 0; i < objectSize; i++) {
+            if (! unionArray[i].getBConst())
+                result = false;
+        }
+        newConstArray[0].setBConst(result);
+        break;
+    }
+
     // TODO: 3.0 Functionality: unary constant folding: the rest of the ops have to be fleshed out
 
     case EOpPackSnorm2x16:
@@ -412,11 +433,8 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
     case EOpDeterminant:
     case EOpMatrixInverse:
     case EOpTranspose:
-
-    case EOpAny:
-    case EOpAll:
         return 0;
-    
+
     default:
         assert(componentWise);
         break;

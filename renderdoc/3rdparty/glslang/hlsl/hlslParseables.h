@@ -54,6 +54,9 @@ public:
     void identifyBuiltIns(int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TSymbolTable& symbolTable);
     
     void identifyBuiltIns(int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TSymbolTable& symbolTable, const TBuiltInResource &resources);
+
+private:
+    void createMatTimesMat();
 };
 
 } // end namespace glslang

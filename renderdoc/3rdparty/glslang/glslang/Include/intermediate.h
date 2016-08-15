@@ -246,6 +246,12 @@ enum TOperator {
     EOpReflect,
     EOpRefract,
 
+#ifdef AMD_EXTENSIONS
+    EOpMin3,
+    EOpMax3,
+    EOpMid3,
+#endif
+
     EOpDPdx,            // Fragment only
     EOpDPdy,            // Fragment only
     EOpFwidth,          // Fragment only
@@ -259,6 +265,10 @@ enum TOperator {
     EOpInterpolateAtCentroid, // Fragment only
     EOpInterpolateAtSample,   // Fragment only
     EOpInterpolateAtOffset,   // Fragment only
+
+#ifdef AMD_EXTENSIONS
+    EOpInterpolateAtVertex,
+#endif
 
     EOpMatrixTimesMatrix,
     EOpOuterProduct,
@@ -290,6 +300,23 @@ enum TOperator {
     EOpAnyInvocation,
     EOpAllInvocations,
     EOpAllInvocationsEqual,
+
+#ifdef AMD_EXTENSIONS
+    EOpMinInvocations,
+    EOpMaxInvocations,
+    EOpAddInvocations,
+    EOpMinInvocationsNonUniform,
+    EOpMaxInvocationsNonUniform,
+    EOpAddInvocationsNonUniform,
+    EOpSwizzleInvocations,
+    EOpSwizzleInvocationsMasked,
+    EOpWriteInvocation,
+    EOpMbcnt,
+
+    EOpCubeFaceIndex,
+    EOpCubeFaceCoord,
+    EOpTime,
+#endif
 
     EOpAtomicAdd,
     EOpAtomicMin,
@@ -434,6 +461,9 @@ enum TOperator {
     EOpTextureQueryLod,
     EOpTextureQueryLevels,
     EOpTextureQuerySamples,
+
+    EOpSamplingGuardBegin,
+
     EOpTexture,
     EOpTextureProj,
     EOpTextureLod,
@@ -476,7 +506,7 @@ enum TOperator {
     EOpSparseTextureGradOffsetClamp,
 
     EOpSparseTextureGuardEnd,
-
+    EOpSamplingGuardEnd,
     EOpTextureGuardEnd,
 
     //
@@ -523,6 +553,32 @@ enum TOperator {
     EOpF32tof16,                         // HLSL conversion: half of a PackHalf2x16
     EOpF16tof32,                         // HLSL conversion: half of an UnpackHalf2x16
     EOpLit,                              // HLSL lighting coefficient vector
+    EOpTextureBias,                      // HLSL texture bias: will be lowered to EOpTexture
+    EOpAsDouble,                         // slightly different from EOpUint64BitsToDouble
+
+    EOpMethodSample,                     // Texture object methods.  These are translated to existing
+    EOpMethodSampleBias,                 // AST methods, and exist to represent HLSL semantics until that
+    EOpMethodSampleCmp,                  // translation is performed.  See HlslParseContext::decomposeSampleMethods().
+    EOpMethodSampleCmpLevelZero,         // ...
+    EOpMethodSampleGrad,                 // ...
+    EOpMethodSampleLevel,                // ...
+    EOpMethodLoad,                       // ...
+    EOpMethodGetDimensions,              // ...
+    EOpMethodGetSamplePosition,          // ...
+    EOpMethodGather,                     // ...
+    EOpMethodCalculateLevelOfDetail,     // ...
+    EOpMethodCalculateLevelOfDetailUnclamped,     // ...
+
+    // SM5 texture methods
+    EOpMethodGatherRed,                  // These are covered under the above EOpMethodSample comment about
+    EOpMethodGatherGreen,                // translation to existing AST opcodes.  They exist temporarily
+    EOpMethodGatherBlue,                 // because HLSL arguments are slightly different.
+    EOpMethodGatherAlpha,                // ...
+    EOpMethodGatherCmp,                  // ...
+    EOpMethodGatherCmpRed,               // ...
+    EOpMethodGatherCmpGreen,             // ...
+    EOpMethodGatherCmpBlue,              // ...
+    EOpMethodGatherCmpAlpha,             // ...
 };
 
 class TIntermTraverser;
@@ -577,7 +633,10 @@ public:
     virtual const glslang::TIntermSymbol*        getAsSymbolNode()    const { return 0; }
     virtual const glslang::TIntermBranch*        getAsBranchNode()    const { return 0; }
     virtual ~TIntermNode() { }
+
 protected:
+    TIntermNode(const TIntermNode&);
+    TIntermNode& operator=(const TIntermNode&);
     glslang::TSourceLoc loc;
 };
 
@@ -619,6 +678,7 @@ public:
     TString getCompleteString() const { return type.getCompleteString(); }
 
 protected:
+    TIntermTyped& operator=(const TIntermTyped&);
     TType type;
 };
 
@@ -700,6 +760,7 @@ public:
     const TConstUnionArray& getConstArray() const { return constArray; }
     void setConstSubtree(TIntermTyped* subtree) { constSubtree = subtree; }
     TIntermTyped* getConstSubtree() const { return constSubtree; }
+
 protected:
     int id;                      // the unique id of the symbol this node represents
     TString name;                // the name of the symbol this node represents
@@ -719,7 +780,10 @@ public:
     void setLiteral() { literal = true; }
     void setExpression() { literal = false; }
     bool isLiteral() const { return literal; }
+
 protected:
+    TIntermConstantUnion& operator=(const TIntermConstantUnion&);
+
     const TConstUnionArray constArray;
     bool literal;  // true if node represents a literal in the source code
 };
@@ -749,10 +813,26 @@ public:
     virtual bool promote() { return true; }
     bool modifiesState() const;
     bool isConstructor() const;
-    bool isTexture() const { return op > EOpTextureGuardBegin && op < EOpTextureGuardEnd; }
-    bool isImage()   const { return op > EOpImageGuardBegin   && op < EOpImageGuardEnd; }
+    bool isTexture()  const { return op > EOpTextureGuardBegin  && op < EOpTextureGuardEnd; }
+    bool isSampling() const { return op > EOpSamplingGuardBegin && op < EOpSamplingGuardEnd; }
+    bool isImage()    const { return op > EOpImageGuardBegin    && op < EOpImageGuardEnd; }
     bool isSparseTexture() const { return op > EOpSparseTextureGuardBegin && op < EOpSparseTextureGuardEnd; }
     bool isSparseImage()   const { return op == EOpSparseImageLoad; }
+
+    void setOperationPrecision(TPrecisionQualifier p) { operationPrecision = p; }
+    TPrecisionQualifier getOperationPrecision() const { return operationPrecision != EpqNone ?
+                                                                                     operationPrecision :
+                                                                                     type.getQualifier().precision; }
+    TString getCompleteString() const
+    {
+        TString cs = type.getCompleteString();
+        if (getOperationPrecision() != type.getQualifier().precision) {
+            cs += ", operation at ";
+            cs += GetPrecisionQualifierString(getOperationPrecision());
+        }
+
+        return cs;
+    }
 
     // Crack the op into the individual dimensions of texturing operation.
     void crackTexture(TSampler sampler, TCrackedTextureOp& cracked) const
@@ -885,9 +965,15 @@ public:
     }
 
 protected:
-    TIntermOperator(TOperator o) : TIntermTyped(EbtFloat), op(o) {}
-    TIntermOperator(TOperator o, TType& t) : TIntermTyped(t), op(o) {}
+    TIntermOperator(TOperator o) : TIntermTyped(EbtFloat), op(o), operationPrecision(EpqNone) {}
+    TIntermOperator(TOperator o, TType& t) : TIntermTyped(t), op(o), operationPrecision(EpqNone) {}
     TOperator op;
+    // The result precision is in the inherited TType, and is usually meant to be both
+    // the operation precision and the result precision. However, some more complex things,
+    // like built-in function calls, distinguish between the two, in which case non-EqpNone
+    // 'operationPrecision' overrides the result precision as far as operation precision
+    // is concerned.
+    TPrecisionQualifier operationPrecision;
 };
 
 //

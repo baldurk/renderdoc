@@ -44,7 +44,7 @@
 #include "SymbolTable.h"
 #include "propagateNoContraction.h"
 
-#include <float.h>
+#include <cfloat>
 
 namespace glslang {
 
@@ -98,6 +98,8 @@ TIntermSymbol* TIntermediate::addSymbol(const TType& type, const TSourceLoc& loc
 //
 // Returns the added node.
 //
+// Returns nullptr if the working conversions and promotions could not be found.
+//
 TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIntermTyped* right, TSourceLoc loc)
 {
     // No operations work on blocks
@@ -115,6 +117,10 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
         else
             return 0;
     }
+
+    // Convert the children's type shape to be compatible.
+    right = addShapeConversion(op,  left->getType(), right);
+    left  = addShapeConversion(op, right->getType(),  left);
 
     //
     // Need a new node holding things together.  Make
@@ -161,29 +167,38 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
 //
 // Returns the added node.
 //
+// Returns nullptr if the 'right' type could not be converted to match the 'left' type,
+// or the resulting operation cannot be properly promoted.
+//
 TIntermTyped* TIntermediate::addAssign(TOperator op, TIntermTyped* left, TIntermTyped* right, TSourceLoc loc)
 {
     // No block assignment
     if (left->getType().getBasicType() == EbtBlock || right->getType().getBasicType() == EbtBlock)
-        return 0;
+        return nullptr;
 
     //
     // Like adding binary math, except the conversion can only go
     // from right to left.
     //
+
+    // convert base types, nullptr return means not possible
+    right = addConversion(op, left->getType(), right);
+    if (right == nullptr)
+        return nullptr;
+
+    // convert shape
+    right = addShapeConversion(op, left->getType(), right);
+
+    // build the node
     TIntermBinary* node = new TIntermBinary(op);
     if (loc.line == 0)
         loc = left->getLoc();
     node->setLoc(loc);
-
-    TIntermTyped* child = addConversion(op, left->getType(), right);
-    if (child == 0)
-        return 0;
-
     node->setLeft(left);
-    node->setRight(child);
+    node->setRight(right);
+
     if (! node->promote())
-        return 0;
+        return nullptr;
 
     node->updatePrecision();
 
@@ -330,34 +345,10 @@ TIntermTyped* TIntermediate::addBuiltInFunctionCall(const TSourceLoc& loc, TOper
         node->setOperand(child);
         node->setType(returnType);
 
-        // propagate precision up from child
-        if (profile == EEsProfile && returnType.getQualifier().precision == EpqNone && returnType.getBasicType() != EbtBool)
-            node->getQualifier().precision = child->getQualifier().precision;
-
-        // propagate precision down to child
-        if (node->getQualifier().precision != EpqNone)
-            child->propagatePrecision(node->getQualifier().precision);
-
         return node;
     } else {
         // setAggregateOperater() calls fold() for constant folding
         TIntermTyped* node = setAggregateOperator(childNode, op, returnType, loc);
-
-        // if not folded, we'll still have an aggregate node to propagate precision with
-        if (node->getAsAggregate()) {
-            TPrecisionQualifier correctPrecision = returnType.getQualifier().precision;
-            if (correctPrecision == EpqNone && profile == EEsProfile) {
-                // find the maximum precision from the arguments, for the built-in's return precision
-                TIntermSequence& sequence = node->getAsAggregate()->getSequence();
-                for (unsigned int arg = 0; arg < sequence.size(); ++arg)
-                    correctPrecision = std::max(correctPrecision, sequence[arg]->getAsTyped()->getQualifier().precision);
-            }
-
-            // Propagate precision through this node and its children. That algorithm stops
-            // when a precision is found, so start by clearing this subroot precision
-            node->getQualifier().precision = EpqNone;
-            node->propagatePrecision(correctPrecision);
-        }
 
         return node;
     }
@@ -413,6 +404,9 @@ TIntermTyped* TIntermediate::setAggregateOperator(TIntermNode* node, TOperator o
 //
 // Returns a node representing the conversion, which could be the same
 // node passed in if no conversion was needed.
+//
+// Generally, this is focused on basic type conversion, not shape conversion.
+// See addShapeConversion().
 //
 // Return 0 if a conversion can't be done.
 //
@@ -530,7 +524,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
         if (type.getBasicType() == node->getType().getBasicType())
             return node;
 
-        if (canImplicitlyPromote(node->getType().getBasicType(), type.getBasicType()))
+        if (canImplicitlyPromote(node->getType().getBasicType(), type.getBasicType(), op))
             promoteTo = type.getBasicType();
         else
             return 0;
@@ -681,14 +675,87 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
     return newNode;
 }
 
+// Convert the node's shape of type for the given type, as allowed by the
+// operation involved: 'op'.
+//
+// Generally, the AST represents allowed GLSL shapes, so this isn't needed
+// for GLSL.  Bad shapes are caught in conversion or promotion.
+//
+// Return 'node' if no conversion was done. Promotion handles final shape
+// checking.
+//
+TIntermTyped* TIntermediate::addShapeConversion(TOperator op, const TType& type, TIntermTyped* node)
+{
+    // some source languages don't do this
+    switch (source) {
+    case EShSourceHlsl:
+        break;
+    case EShSourceGlsl:
+    default:
+        return node;
+    }
+
+    // some operations don't do this
+    switch (op) {
+    case EOpAssign:
+    case EOpLessThan:
+    case EOpGreaterThan:
+    case EOpLessThanEqual:
+    case EOpGreaterThanEqual:
+        break;
+    default:
+        return node;
+    }
+
+    // structures and arrays don't change shape, either to or from
+    if (node->getType().isStruct() || node->getType().isArray() ||
+        type.isStruct() || type.isArray())
+        return node;
+
+    // The new node that handles the conversion
+    TOperator constructorOp = mapTypeToConstructorOp(type);
+
+    // scalar -> smeared -> vector
+    if (type.isVector() && node->getType().isScalar())
+        return setAggregateOperator(node, constructorOp, type, node->getLoc());
+
+    return node;
+}
+
 //
 // See if the 'from' type is allowed to be implicitly converted to the
 // 'to' type.  This is not about vector/array/struct, only about basic type.
 //
-bool TIntermediate::canImplicitlyPromote(TBasicType from, TBasicType to) const
+bool TIntermediate::canImplicitlyPromote(TBasicType from, TBasicType to, TOperator op) const
 {
     if (profile == EEsProfile || version == 110)
         return false;
+
+    // Some languages allow more general (or potentially, more specific) conversions under some conditions.
+    if (source == EShSourceHlsl) {
+        const bool fromConvertable = (from == EbtFloat || from == EbtDouble || from == EbtInt || from == EbtUint || from == EbtBool);
+        const bool toConvertable = (to == EbtFloat || to == EbtDouble || to == EbtInt || to == EbtUint || to == EbtBool);
+
+        if (fromConvertable && toConvertable) {
+            switch (op) {
+            case EOpAndAssign:               // assignments can perform arbitrary conversions
+            case EOpInclusiveOrAssign:       // ... 
+            case EOpExclusiveOrAssign:       // ... 
+            case EOpAssign:                  // ... 
+            case EOpAddAssign:               // ... 
+            case EOpSubAssign:               // ... 
+            case EOpMulAssign:               // ... 
+            case EOpVectorTimesScalarAssign: // ... 
+            case EOpMatrixTimesScalarAssign: // ... 
+            case EOpDivAssign:               // ... 
+            case EOpModAssign:               // ... 
+            case EOpReturn:                  // function returns can also perform arbitrary conversions
+                return true;
+            default:
+                break;
+            }
+        }
+    }
 
     switch (to) {
     case EbtDouble:
@@ -749,6 +816,150 @@ bool TIntermediate::canImplicitlyPromote(TBasicType from, TBasicType to) const
     default:
         return false;
     }
+}
+
+//
+// Given a type, find what operation would fully construct it.
+//
+TOperator TIntermediate::mapTypeToConstructorOp(const TType& type) const
+{
+    TOperator op = EOpNull;
+
+    switch (type.getBasicType()) {
+    case EbtStruct:
+        op = EOpConstructStruct;
+        break;
+    case EbtSampler:
+        if (type.getSampler().combined)
+            op = EOpConstructTextureSampler;
+        break;
+    case EbtFloat:
+        if (type.isMatrix()) {
+            switch (type.getMatrixCols()) {
+            case 2:
+                switch (type.getMatrixRows()) {
+                case 2: op = EOpConstructMat2x2; break;
+                case 3: op = EOpConstructMat2x3; break;
+                case 4: op = EOpConstructMat2x4; break;
+                default: break; // some compilers want this
+                }
+                break;
+            case 3:
+                switch (type.getMatrixRows()) {
+                case 2: op = EOpConstructMat3x2; break;
+                case 3: op = EOpConstructMat3x3; break;
+                case 4: op = EOpConstructMat3x4; break;
+                default: break; // some compilers want this
+                }
+                break;
+            case 4:
+                switch (type.getMatrixRows()) {
+                case 2: op = EOpConstructMat4x2; break;
+                case 3: op = EOpConstructMat4x3; break;
+                case 4: op = EOpConstructMat4x4; break;
+                default: break; // some compilers want this
+                }
+                break;
+            default: break; // some compilers want this
+            }
+        } else {
+            switch(type.getVectorSize()) {
+            case 1: op = EOpConstructFloat; break;
+            case 2: op = EOpConstructVec2;  break;
+            case 3: op = EOpConstructVec3;  break;
+            case 4: op = EOpConstructVec4;  break;
+            default: break; // some compilers want this
+            }
+        }
+        break;
+    case EbtDouble:
+        if (type.getMatrixCols()) {
+            switch (type.getMatrixCols()) {
+            case 2:
+                switch (type.getMatrixRows()) {
+                case 2: op = EOpConstructDMat2x2; break;
+                case 3: op = EOpConstructDMat2x3; break;
+                case 4: op = EOpConstructDMat2x4; break;
+                default: break; // some compilers want this
+                }
+                break;
+            case 3:
+                switch (type.getMatrixRows()) {
+                case 2: op = EOpConstructDMat3x2; break;
+                case 3: op = EOpConstructDMat3x3; break;
+                case 4: op = EOpConstructDMat3x4; break;
+                default: break; // some compilers want this
+                }
+                break;
+            case 4:
+                switch (type.getMatrixRows()) {
+                case 2: op = EOpConstructDMat4x2; break;
+                case 3: op = EOpConstructDMat4x3; break;
+                case 4: op = EOpConstructDMat4x4; break;
+                default: break; // some compilers want this
+                }
+                break;
+            }
+        } else {
+            switch(type.getVectorSize()) {
+            case 1: op = EOpConstructDouble; break;
+            case 2: op = EOpConstructDVec2;  break;
+            case 3: op = EOpConstructDVec3;  break;
+            case 4: op = EOpConstructDVec4;  break;
+            default: break; // some compilers want this
+            }
+        }
+        break;
+    case EbtInt:
+        switch(type.getVectorSize()) {
+        case 1: op = EOpConstructInt;   break;
+        case 2: op = EOpConstructIVec2; break;
+        case 3: op = EOpConstructIVec3; break;
+        case 4: op = EOpConstructIVec4; break;
+        default: break; // some compilers want this
+        }
+        break;
+    case EbtUint:
+        switch(type.getVectorSize()) {
+        case 1: op = EOpConstructUint;  break;
+        case 2: op = EOpConstructUVec2; break;
+        case 3: op = EOpConstructUVec3; break;
+        case 4: op = EOpConstructUVec4; break;
+        default: break; // some compilers want this
+        }
+        break;
+    case EbtInt64:
+        switch(type.getVectorSize()) {
+        case 1: op = EOpConstructInt64;   break;
+        case 2: op = EOpConstructI64Vec2; break;
+        case 3: op = EOpConstructI64Vec3; break;
+        case 4: op = EOpConstructI64Vec4; break;
+        default: break; // some compilers want this
+        }
+        break;
+    case EbtUint64:
+        switch(type.getVectorSize()) {
+        case 1: op = EOpConstructUint64;  break;
+        case 2: op = EOpConstructU64Vec2; break;
+        case 3: op = EOpConstructU64Vec3; break;
+        case 4: op = EOpConstructU64Vec4; break;
+        default: break; // some compilers want this
+        }
+        break;
+    case EbtBool:
+        switch(type.getVectorSize()) {
+        case 1:  op = EOpConstructBool;  break;
+        case 2:  op = EOpConstructBVec2; break;
+        case 3:  op = EOpConstructBVec3; break;
+        case 4:  op = EOpConstructBVec4; break;
+        default: break; // some compilers want this
+        }
+        break;
+    default:
+        break;
+    }
+
+    return op;
 }
 
 //
@@ -1446,11 +1657,11 @@ bool TIntermBinary::promote()
     case EOpGreaterThan:
     case EOpLessThanEqual:
     case EOpGreaterThanEqual:
-        // Relational comparisons need matching numeric types and will promote to scalar Boolean.
-        if (left->getBasicType() == EbtBool || left->getType().isVector() || left->getType().isMatrix())
+        // Relational comparisons need numeric types and will promote to scalar Boolean.
+        if (left->getBasicType() == EbtBool)
             return false;
-
-        // Fall through
+        setType(TType(EbtBool));
+        break;
 
     case EOpEqual:
     case EOpNotEqual:

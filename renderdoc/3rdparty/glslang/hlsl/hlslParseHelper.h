@@ -47,9 +47,10 @@ public:
                      int version, EProfile, const SpvVersion& spvVersion, EShLanguage, TInfoSink&,
                      bool forwardCompatible = false, EShMessages messages = EShMsgDefault);
     virtual ~HlslParseContext();
+    void initializeExtensionBehavior();
+
     void setLimits(const TBuiltInResource&);
     bool parseShaderStrings(TPpContext&, TInputScanner& input, bool versionWillBeError = false);
-    void getPreamble(std::string&);
 
     void C_DECL error(const TSourceLoc&, const char* szReason, const char* szToken,
         const char* szExtraInfoFormat, ...);
@@ -60,8 +61,8 @@ public:
     void C_DECL ppWarn(const TSourceLoc&, const char* szReason, const char* szToken,
         const char* szExtraInfoFormat, ...);
 
-    void reservedPpErrorCheck(const TSourceLoc&, const char* name, const char* op) { }
-    bool lineContinuationCheck(const TSourceLoc&, bool endOfComment) { return true; }
+    void reservedPpErrorCheck(const TSourceLoc&, const char* /*name*/, const char* /*op*/) { }
+    bool lineContinuationCheck(const TSourceLoc&, bool /*endOfComment*/) { return true; }
     bool lineDirectiveShouldSetNextLine() const { return true; }
     bool builtInName(const TString&);
 
@@ -84,15 +85,23 @@ public:
     TIntermTyped* handleDotDereference(const TSourceLoc&, TIntermTyped* base, const TString& field);
     TFunction* handleFunctionDeclarator(const TSourceLoc&, TFunction& function, bool prototype);
     TIntermAggregate* handleFunctionDefinition(const TSourceLoc&, TFunction&);
+    TIntermNode* handleReturnValue(const TSourceLoc&, TIntermTyped*);
     void handleFunctionArgument(TFunction*, TIntermTyped*& arguments, TIntermTyped* newArg);
     TIntermTyped* handleFunctionCall(const TSourceLoc&, TFunction*, TIntermNode*);
     void decomposeIntrinsic(const TSourceLoc&, TIntermTyped*& node, TIntermNode* arguments);
+    void decomposeSampleMethods(const TSourceLoc&, TIntermTyped*& node, TIntermNode* arguments);
     TIntermTyped* handleLengthMethod(const TSourceLoc&, TFunction*, TIntermNode*);
     void addInputArgumentConversions(const TFunction&, TIntermNode*&) const;
     TIntermTyped* addOutputArgumentConversions(const TFunction&, TIntermAggregate&) const;
     void builtInOpCheck(const TSourceLoc&, const TFunction&, TIntermOperator&);
     TFunction* handleConstructorCall(const TSourceLoc&, const TType&);
     void handleSemantic(TType& type, const TString& semantic);
+    void handlePackOffset(const TSourceLoc&, TType& type, const glslang::TString& location,
+                          const glslang::TString* component);
+    void handleRegister(const TSourceLoc&, TType& type, const glslang::TString* profile, const glslang::TString& desc,
+                        int subComponent);
+
+    TIntermAggregate* handleSamplerTextureCombine(const TSourceLoc& loc, TIntermTyped* argTex, TIntermTyped* argSampler);
 
     bool parseVectorFields(const TSourceLoc&, const TString&, int vecSize, TVectorFields&);
     void assignError(const TSourceLoc&, const char* op, TString left, TString right);
@@ -125,11 +134,12 @@ public:
     void checkNoShaderLayouts(const TSourceLoc&, const TShaderQualifiers&);
 
     const TFunction* findFunction(const TSourceLoc& loc, const TFunction& call, bool& builtIn);
+    void declareTypedef(const TSourceLoc&, TString& identifier, const TType&, TArraySizes* typeArray = 0);
     TIntermNode* declareVariable(const TSourceLoc&, TString& identifier, const TType&, TArraySizes* typeArray = 0, TIntermTyped* initializer = 0);
-    TIntermTyped* addConstructor(const TSourceLoc&, TIntermNode*, const TType&, TOperator);
+    TIntermTyped* addConstructor(const TSourceLoc&, TIntermNode*, const TType&);
     TIntermTyped* constructAggregate(TIntermNode*, const TType&, int, const TSourceLoc&);
     TIntermTyped* constructBuiltIn(const TType&, TOperator, TIntermTyped*, const TSourceLoc&, bool subset);
-    void declareBlock(const TSourceLoc&, TTypeList& typeList, const TString* instanceName = 0, TArraySizes* arraySizes = 0);
+    void declareBlock(const TSourceLoc&, TType&, const TString* instanceName = 0, TArraySizes* arraySizes = 0);
     void fixBlockLocations(const TSourceLoc&, TQualifier&, TTypeList&, bool memberWithLocation, bool memberWithoutLocation);
     void fixBlockXfbOffsets(TQualifier&, TTypeList&);
     void fixBlockUniformOffsets(TQualifier&, TTypeList&);
@@ -146,6 +156,9 @@ public:
     void pushScope()       { symbolTable.push(); }
     void popScope()        { symbolTable.pop(0); }
 
+    void pushSwitchSequence(TIntermSequence* sequence) { switchSequenceStack.push_back(sequence); }
+    void popSwitchSequence() { switchSequenceStack.pop_back(); }
+
 protected:
     void inheritGlobalDefaults(TQualifier& dst) const;
     TVariable* makeInternalVariable(const char* name, const TType&) const;
@@ -153,7 +166,6 @@ protected:
     void declareArray(const TSourceLoc&, TString& identifier, const TType&, TSymbol*&, bool& newDeclaration);
     TIntermNode* executeInitializer(const TSourceLoc&, TIntermTyped* initializer, TVariable* variable);
     TIntermTyped* convertInitializerList(const TSourceLoc&, const TType&, TIntermTyped* initializer);
-    TOperator mapTypeToConstructorOp(const TType&) const;
     TOperator mapAtomicOp(const TSourceLoc& loc, TOperator op, bool isImage);
     void outputMessage(const TSourceLoc&, const char* szReason, const char* szToken,
                        const char* szExtraInfoFormat, TPrefixType prefix,
@@ -165,20 +177,16 @@ protected:
     int structNestingLevel;      // 0 if outside blocks and structures
     int controlFlowNestingLevel; // 0 if outside all flow control
     TList<TIntermSequence*> switchSequenceStack;  // case, node, case, case, node, ...; ensure only one node between cases;   stack of them for nesting
-    TList<int> switchLevel;      // the statementNestingLevel the current switch statement is at, which must match the level of its case statements
     bool inEntrypoint;           // if inside a function, true if the function is the entry point
     bool postMainReturn;         // if inside a function, true if the function is the entry point and this is after a return statement
     const TType* currentFunctionType;  // the return type of the function that's currently being parsed
     bool functionReturnsValue;   // true if a non-void function has a return
-    const TString* blockName;
-    TQualifier currentBlockQualifier;
     TBuiltInResource resources;
     TLimits& limits;
 
     HlslParseContext(HlslParseContext&);
     HlslParseContext& operator=(HlslParseContext&);
 
-    TMap<TString, TExtensionBehavior> extensionBehavior;    // for each extension string, what its current behavior is set to
     static const int maxSamplerIndex = EsdNumDims * (EbtNumTypes * (2 * 2 * 2)); // see computeSamplerTypeIndex()
     bool afterEOF;
     TQualifier globalBufferDefaults;

@@ -1,5 +1,6 @@
 //
 //Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
+//Copyright (C) 2016 LunarG, Inc.
 //All rights reserved.
 //
 //Redistribution and use in source and binary forms, with or without
@@ -47,6 +48,16 @@ class TInfoSink;
 namespace glslang {
 
 struct TVectorFields {
+    TVectorFields() { }
+
+    TVectorFields(int c0, int c1, int c2, int c3) : num(4)
+    {
+        offsets[0] = c0;
+        offsets[1] = c1;
+        offsets[2] = c2;
+        offsets[3] = c3;
+    }
+
     int offsets[4];
     int num;
 };
@@ -172,12 +183,14 @@ public:
     TIntermSymbol* addSymbol(const TVariable&, const TSourceLoc&);
     TIntermSymbol* addSymbol(const TType&, const TSourceLoc&);
     TIntermTyped* addConversion(TOperator, const TType&, TIntermTyped*) const;
+    TIntermTyped* addShapeConversion(TOperator, const TType&, TIntermTyped*);
     TIntermTyped* addBinaryMath(TOperator, TIntermTyped* left, TIntermTyped* right, TSourceLoc);
     TIntermTyped* addAssign(TOperator op, TIntermTyped* left, TIntermTyped* right, TSourceLoc);
     TIntermTyped* addIndex(TOperator op, TIntermTyped* base, TIntermTyped* index, TSourceLoc);
     TIntermTyped* addUnaryMath(TOperator, TIntermTyped* child, TSourceLoc);
     TIntermTyped* addBuiltInFunctionCall(const TSourceLoc& line, TOperator, bool unary, TIntermNode*, const TType& returnType);
-    bool canImplicitlyPromote(TBasicType from, TBasicType to) const;
+    bool canImplicitlyPromote(TBasicType from, TBasicType to, TOperator op = EOpNull) const;
+    TOperator mapTypeToConstructorOp(const TType&) const;
     TIntermAggregate* growAggregate(TIntermNode* left, TIntermNode* right);
     TIntermAggregate* growAggregate(TIntermNode* left, TIntermNode* right, const TSourceLoc&);
     TIntermAggregate* makeAggregate(TIntermNode* node);
@@ -318,6 +331,7 @@ public:
     bool inIoAccessed(const TString& name) const { return ioAccessed.find(name) != ioAccessed.end(); }
 
     int addUsedLocation(const TQualifier&, const TType&, bool& typeCollision);
+    int checkLocationRange(int set, const TIoRange& range, const TType&, bool& typeCollision);
     int addUsedOffsets(int binding, int offset, int numOffsets);
     bool addUsedConstantId(int id);
     int computeTypeLocationSize(const TType&) const;

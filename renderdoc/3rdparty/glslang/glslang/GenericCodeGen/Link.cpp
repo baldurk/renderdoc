@@ -46,7 +46,7 @@ class TGenericLinker : public TLinker {
 public:
     TGenericLinker(EShExecutable e, int dOptions) : TLinker(e, infoSink), debugOptions(dOptions) { }
     bool link(TCompilerList&, TUniformMap*) { return true; }
-	void getAttributeBindings(ShBindingTable const **) const { }
+    void getAttributeBindings(ShBindingTable const **) const { }
     TInfoSink infoSink;
     int debugOptions;
 };

@@ -81,12 +81,10 @@ NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <stdarg.h>
-#include <stdio.h>
 #include <sstream>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
 
 #include "PpContext.h"
 #include "PpTokens.h"
@@ -192,7 +190,7 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
                 do {
                     int oldToken;
                     TPpToken oldPpToken;
-                    TPpToken newPpToken;                    
+                    TPpToken newPpToken;
                     oldToken = ReadToken(symb->mac.body, &oldPpToken);
                     newToken = ReadToken(mac.body, &newPpToken);
                     if (oldToken != newToken || oldPpToken != newPpToken) {
@@ -250,7 +248,7 @@ int TPpContext::CPPelse(int matchelse, TPpToken* ppToken)
         if (token != '#') {
             while (token != '\n' && token != EndOfInput)
                 token = scanToken(ppToken);
-            
+
             if (token == EndOfInput)
                 return token;
 
@@ -495,7 +493,7 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
         if (op < 0 || binop[op].precedence <= precedence)
             break;
         int leftSide = res;
-        
+
         // Setup short-circuiting, needed for ES, unless already in a short circuit.
         // (Once in a short-circuit, can't turn off again, until that whole subexpression is done.
         if (! shortCircuit) {
@@ -756,7 +754,7 @@ int TPpContext::CPPpragma(TPpToken* ppToken)
     else
         parseContext.handlePragma(loc, tokens);
 
-    return token;    
+    return token;
 }
 
 // #version: This is just for error checking: the version and profile are decided before preprocessing starts
@@ -980,7 +978,7 @@ int TPpContext::tMacroInput::scan(TPpToken* ppToken)
 
     if (token == EndOfInput)
         mac->busy = 0;
-        
+
     return token;
 }
 
@@ -1060,7 +1058,7 @@ int TPpContext::MacroExpand(int atom, TPpToken* ppToken, bool expandUndef, bool 
     if (sym->mac.args) {
         token = scanToken(ppToken);
         if (newLineOkay) {
-            while (token == '\n')                
+            while (token == '\n')
                 token = scanToken(ppToken);
         }
         if (token != '(') {

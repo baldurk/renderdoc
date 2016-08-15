@@ -85,11 +85,10 @@ NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define snprintf sprintf_s
 #endif
 
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
 
 #include "PpContext.h"
 #include "PpTokens.h"
@@ -179,15 +178,18 @@ int TPpContext::ReadToken(TokenStream *pTok, TPpToken *ppToken)
     if (ltoken > 127)
         ltoken += 128;
     switch (ltoken) {
-    case '#':        
-        if (lReadByte(pTok) == '#') {
-            parseContext.requireProfile(ppToken->loc, ~EEsProfile, "token pasting (##)");
-            parseContext.profileRequires(ppToken->loc, ~EEsProfile, 130, 0, "token pasting (##)");
-            parseContext.error(ppToken->loc, "token pasting not implemented (internal error)", "##", "");
-            //return PpAtomPaste;
-            return ReadToken(pTok, ppToken);
-        } else
-            lUnreadByte(pTok);
+    case '#':
+        // Check for ##, unless the current # is the last character
+        if (pTok->current < pTok->data.size()) {
+            if (lReadByte(pTok) == '#') {
+                parseContext.requireProfile(ppToken->loc, ~EEsProfile, "token pasting (##)");
+                parseContext.profileRequires(ppToken->loc, ~EEsProfile, 130, 0, "token pasting (##)");
+                parseContext.error(ppToken->loc, "token pasting not implemented (internal error)", "##", "");
+                //return PpAtomPaste;
+                return ReadToken(pTok, ppToken);
+            } else
+                lUnreadByte(pTok);
+        }
         break;
     case PpAtomConstString:
     case PpAtomIdentifier:

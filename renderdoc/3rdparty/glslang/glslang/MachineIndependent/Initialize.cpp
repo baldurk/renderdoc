@@ -801,9 +801,84 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "bvec3 notEqual(u64vec3, u64vec3);"
             "bvec4 notEqual(u64vec4, u64vec4);"
 
+#ifdef AMD_EXTENSIONS
+            "int   findLSB(int64_t);"
+            "ivec2 findLSB(i64vec2);"
+            "ivec3 findLSB(i64vec3);"
+            "ivec4 findLSB(i64vec4);"
+
+            "int   findLSB(uint64_t);"
+            "ivec2 findLSB(u64vec2);"
+            "ivec3 findLSB(u64vec3);"
+            "ivec4 findLSB(u64vec4);"
+
+            "int   findMSB(int64_t);"
+            "ivec2 findMSB(i64vec2);"
+            "ivec3 findMSB(i64vec3);"
+            "ivec4 findMSB(i64vec4);"
+
+            "int   findMSB(uint64_t);"
+            "ivec2 findMSB(u64vec2);"
+            "ivec3 findMSB(u64vec3);"
+            "ivec4 findMSB(u64vec4);"
+#endif
             "\n"
         );
     }
+
+#ifdef AMD_EXTENSIONS
+    // GL_AMD_shader_trinary_minmax
+    if (profile != EEsProfile && version >= 430) {
+        commonBuiltins.append(
+            "float min3(float, float, float);"
+            "vec2  min3(vec2,  vec2,  vec2);"
+            "vec3  min3(vec3,  vec3,  vec3);"
+            "vec4  min3(vec4,  vec4,  vec4);"
+
+            "int   min3(int,   int,   int);"
+            "ivec2 min3(ivec2, ivec2, ivec2);"
+            "ivec3 min3(ivec3, ivec3, ivec3);"
+            "ivec4 min3(ivec4, ivec4, ivec4);"
+
+            "uint  min3(uint,  uint,  uint);"
+            "uvec2 min3(uvec2, uvec2, uvec2);"
+            "uvec3 min3(uvec3, uvec3, uvec3);"
+            "uvec4 min3(uvec4, uvec4, uvec4);"
+
+            "float max3(float, float, float);"
+            "vec2  max3(vec2,  vec2,  vec2);"
+            "vec3  max3(vec3,  vec3,  vec3);"
+            "vec4  max3(vec4,  vec4,  vec4);"
+
+            "int   max3(int,   int,   int);"
+            "ivec2 max3(ivec2, ivec2, ivec2);"
+            "ivec3 max3(ivec3, ivec3, ivec3);"
+            "ivec4 max3(ivec4, ivec4, ivec4);"
+
+            "uint  max3(uint,  uint,  uint);"
+            "uvec2 max3(uvec2, uvec2, uvec2);"
+            "uvec3 max3(uvec3, uvec3, uvec3);"
+            "uvec4 max3(uvec4, uvec4, uvec4);"
+
+            "float mid3(float, float, float);"
+            "vec2  mid3(vec2,  vec2,  vec2);"
+            "vec3  mid3(vec3,  vec3,  vec3);"
+            "vec4  mid3(vec4,  vec4,  vec4);"
+
+            "int   mid3(int,   int,   int);"
+            "ivec2 mid3(ivec2, ivec2, ivec2);"
+            "ivec3 mid3(ivec3, ivec3, ivec3);"
+            "ivec4 mid3(ivec4, ivec4, ivec4);"
+
+            "uint  mid3(uint,  uint,  uint);"
+            "uvec2 mid3(uvec2, uvec2, uvec2);"
+            "uvec3 mid3(uvec3, uvec3, uvec3);"
+            "uvec4 mid3(uvec4, uvec4, uvec4);"
+
+            "\n"
+        );
+    }
+#endif
 
     if ((profile == EEsProfile && version >= 310) ||
         (profile != EEsProfile && version >= 430)) {
@@ -859,25 +934,25 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
     if ((profile == EEsProfile && version >= 300) ||
         (profile != EEsProfile && version >= 330)) {
         commonBuiltins.append(
-            "highp int   floatBitsToInt(highp float value);"
-            "highp ivec2 floatBitsToInt(highp vec2  value);"
-            "highp ivec3 floatBitsToInt(highp vec3  value);"
-            "highp ivec4 floatBitsToInt(highp vec4  value);"
-                     
-            "highp uint  floatBitsToUint(highp float value);"
-            "highp uvec2 floatBitsToUint(highp vec2  value);"
-            "highp uvec3 floatBitsToUint(highp vec3  value);"
-            "highp uvec4 floatBitsToUint(highp vec4  value);"
+            "int   floatBitsToInt(highp float value);"
+            "ivec2 floatBitsToInt(highp vec2  value);"
+            "ivec3 floatBitsToInt(highp vec3  value);"
+            "ivec4 floatBitsToInt(highp vec4  value);"
 
-            "highp float intBitsToFloat(highp int   value);"
-            "highp vec2  intBitsToFloat(highp ivec2 value);"
-            "highp vec3  intBitsToFloat(highp ivec3 value);"
-            "highp vec4  intBitsToFloat(highp ivec4 value);"
+            "uint  floatBitsToUint(highp float value);"
+            "uvec2 floatBitsToUint(highp vec2  value);"
+            "uvec3 floatBitsToUint(highp vec3  value);"
+            "uvec4 floatBitsToUint(highp vec4  value);"
 
-            "highp float uintBitsToFloat(highp uint  value);"
-            "highp vec2  uintBitsToFloat(highp uvec2 value);"
-            "highp vec3  uintBitsToFloat(highp uvec3 value);"
-            "highp vec4  uintBitsToFloat(highp uvec4 value);"
+            "float intBitsToFloat(highp int   value);"
+            "vec2  intBitsToFloat(highp ivec2 value);"
+            "vec3  intBitsToFloat(highp ivec3 value);"
+            "vec4  intBitsToFloat(highp ivec4 value);"
+
+            "float uintBitsToFloat(highp uint  value);"
+            "vec2  uintBitsToFloat(highp uvec2 value);"
+            "vec3  uintBitsToFloat(highp uvec3 value);"
+            "vec4  uintBitsToFloat(highp uvec4 value);"
 
             "\n");
     }
@@ -905,15 +980,15 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
     if ((profile == EEsProfile && version >= 310) ||
         (profile != EEsProfile && version >= 400)) {
         commonBuiltins.append(
-            "highp float frexp(highp float, out highp int);"
-            "highp vec2  frexp(highp vec2,  out highp ivec2);"
-            "highp vec3  frexp(highp vec3,  out highp ivec3);"
-            "highp vec4  frexp(highp vec4,  out highp ivec4);"
+            "float frexp(highp float, out highp int);"
+            "vec2  frexp(highp vec2,  out highp ivec2);"
+            "vec3  frexp(highp vec3,  out highp ivec3);"
+            "vec4  frexp(highp vec4,  out highp ivec4);"
 
-            "highp float ldexp(highp float, highp int);"
-            "highp vec2  ldexp(highp vec2,  highp ivec2);"
-            "highp vec3  ldexp(highp vec3,  highp ivec3);"
-            "highp vec4  ldexp(highp vec4,  highp ivec4);"
+            "float ldexp(highp float, highp int);"
+            "vec2  ldexp(highp vec2,  highp ivec2);"
+            "vec3  ldexp(highp vec3,  highp ivec3);"
+            "vec4  ldexp(highp vec4,  highp ivec4);"
 
             "\n");
     }
@@ -940,7 +1015,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         (profile != EEsProfile && version >= 400)) {
         commonBuiltins.append(
             "highp uint packUnorm2x16(vec2);"
-            "highp vec2 unpackUnorm2x16(highp uint);"
+                  "vec2 unpackUnorm2x16(highp uint);"
             "\n");
     }
 
@@ -948,19 +1023,38 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         (profile != EEsProfile && version >= 420)) {
         commonBuiltins.append(
             "highp uint packSnorm2x16(vec2);"
-            "highp vec2 unpackSnorm2x16(highp uint);"
-            "highp uint packHalf2x16(mediump vec2);"
+            "      vec2 unpackSnorm2x16(highp uint);"
+            "highp uint packHalf2x16(vec2);"
+            "\n");
+    }
+
+    if (profile == EEsProfile && version >= 300) {
+        commonBuiltins.append(
             "mediump vec2 unpackHalf2x16(highp uint);"
+            "\n");
+    } else if (profile != EEsProfile && version >= 420) {
+        commonBuiltins.append(
+            "        vec2 unpackHalf2x16(highp uint);"
             "\n");
     }
 
     if ((profile == EEsProfile && version >= 310) ||
         (profile != EEsProfile && version >= 400)) {
         commonBuiltins.append(
-            "highp   uint packSnorm4x8  (mediump vec4);"
-            "mediump vec4 unpackSnorm4x8(highp   uint);"
-            "highp   uint packUnorm4x8  (mediump vec4);"
-            "mediump vec4 unpackUnorm4x8(highp   uint);"
+            "highp uint packSnorm4x8(vec4);"
+            "highp uint packUnorm4x8(vec4);"
+            "\n");
+    }
+
+    if (profile == EEsProfile && version >= 310) {
+        commonBuiltins.append(
+            "mediump vec4 unpackSnorm4x8(highp uint);"
+            "mediump vec4 unpackUnorm4x8(highp uint);"
+            "\n");
+    } else if (profile != EEsProfile && version >= 400) {
+        commonBuiltins.append(
+                    "vec4 unpackSnorm4x8(highp uint);"
+                    "vec4 unpackUnorm4x8(highp uint);"
             "\n");
     }
 
@@ -1259,7 +1353,6 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
     }
 
     if (spvVersion.vulkan == 0) {
-        // gl_spirv TODO
         //
         // Atomic counter functions.
         //
@@ -1298,6 +1391,24 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "uvec3 bitfieldInsert(uvec3 base, uvec3, int, int);"
             "uvec4 bitfieldInsert(uvec4 base, uvec4, int, int);"
 
+            "\n");
+    }
+
+    if (profile != EEsProfile && version >= 400) {
+        commonBuiltins.append(
+            "  int findLSB(  int);"
+            "ivec2 findLSB(ivec2);"
+            "ivec3 findLSB(ivec3);"
+            "ivec4 findLSB(ivec4);"
+
+            "  int findLSB( uint);"
+            "ivec2 findLSB(uvec2);"
+            "ivec3 findLSB(uvec3);"
+            "ivec4 findLSB(uvec4);"
+
+            "\n");
+    } else if (profile == EEsProfile && version >= 310) {
+        commonBuiltins.append(
             "lowp   int findLSB(  int);"
             "lowp ivec2 findLSB(ivec2);"
             "lowp ivec3 findLSB(ivec3);"
@@ -1313,36 +1424,6 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
 
     if (profile != EEsProfile && version >= 400) {
         commonBuiltins.append(
-            " uint uaddCarry( uint,  uint, out  uint carry);"
-            "uvec2 uaddCarry(uvec2, uvec2, out uvec2 carry);"
-            "uvec3 uaddCarry(uvec3, uvec3, out uvec3 carry);"
-            "uvec4 uaddCarry(uvec4, uvec4, out uvec4 carry);"
-
-            " uint usubBorrow( uint,  uint, out  uint borrow);"
-            "uvec2 usubBorrow(uvec2, uvec2, out uvec2 borrow);"
-            "uvec3 usubBorrow(uvec3, uvec3, out uvec3 borrow);"
-            "uvec4 usubBorrow(uvec4, uvec4, out uvec4 borrow);"
-
-            "void umulExtended( uint,  uint, out  uint, out  uint lsb);"
-            "void umulExtended(uvec2, uvec2, out uvec2, out uvec2 lsb);"
-            "void umulExtended(uvec3, uvec3, out uvec3, out uvec3 lsb);"
-            "void umulExtended(uvec4, uvec4, out uvec4, out uvec4 lsb);"
-
-            "void imulExtended(  int,   int, out   int, out   int lsb);"
-            "void imulExtended(ivec2, ivec2, out ivec2, out ivec2 lsb);"
-            "void imulExtended(ivec3, ivec3, out ivec3, out ivec3 lsb);"
-            "void imulExtended(ivec4, ivec4, out ivec4, out ivec4 lsb);"
-
-            "  int bitfieldReverse(  int);"
-            "ivec2 bitfieldReverse(ivec2);"
-            "ivec3 bitfieldReverse(ivec3);"
-            "ivec4 bitfieldReverse(ivec4);"
-
-            " uint bitfieldReverse( uint);"
-            "uvec2 bitfieldReverse(uvec2);"
-            "uvec3 bitfieldReverse(uvec3);"
-            "uvec4 bitfieldReverse(uvec4);"
-
             "  int bitCount(  int);"
             "ivec2 bitCount(ivec2);"
             "ivec3 bitCount(ivec3);"
@@ -1353,30 +1434,31 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "ivec3 bitCount(uvec3);"
             "ivec4 bitCount(uvec4);"
 
-            "  int findMSB(  int);"
-            "ivec2 findMSB(ivec2);"
-            "ivec3 findMSB(ivec3);"
-            "ivec4 findMSB(ivec4);"
+            "  int findMSB(highp   int);"
+            "ivec2 findMSB(highp ivec2);"
+            "ivec3 findMSB(highp ivec3);"
+            "ivec4 findMSB(highp ivec4);"
 
-            "  int findMSB( uint);"
-            "ivec2 findMSB(uvec2);"
-            "ivec3 findMSB(uvec3);"
-            "ivec4 findMSB(uvec4);"
+            "  int findMSB(highp  uint);"
+            "ivec2 findMSB(highp uvec2);"
+            "ivec3 findMSB(highp uvec3);"
+            "ivec4 findMSB(highp uvec4);"
 
             "\n");
     }
 
-    if (profile == EEsProfile && version >= 310) {
+    if ((profile == EEsProfile && version >= 310) ||
+        (profile != EEsProfile && version >= 400)) {
         commonBuiltins.append(
-            "highp  uint uaddCarry(highp  uint, highp  uint, out lowp  uint carry);"
-            "highp uvec2 uaddCarry(highp uvec2, highp uvec2, out lowp uvec2 carry);"
-            "highp uvec3 uaddCarry(highp uvec3, highp uvec3, out lowp uvec3 carry);"
-            "highp uvec4 uaddCarry(highp uvec4, highp uvec4, out lowp uvec4 carry);"
+            " uint uaddCarry(highp  uint, highp  uint, out lowp  uint carry);"
+            "uvec2 uaddCarry(highp uvec2, highp uvec2, out lowp uvec2 carry);"
+            "uvec3 uaddCarry(highp uvec3, highp uvec3, out lowp uvec3 carry);"
+            "uvec4 uaddCarry(highp uvec4, highp uvec4, out lowp uvec4 carry);"
 
-            "highp  uint usubBorrow(highp  uint, highp  uint, out lowp  uint borrow);"
-            "highp uvec2 usubBorrow(highp uvec2, highp uvec2, out lowp uvec2 borrow);"
-            "highp uvec3 usubBorrow(highp uvec3, highp uvec3, out lowp uvec3 borrow);"
-            "highp uvec4 usubBorrow(highp uvec4, highp uvec4, out lowp uvec4 borrow);"
+            " uint usubBorrow(highp  uint, highp  uint, out lowp  uint borrow);"
+            "uvec2 usubBorrow(highp uvec2, highp uvec2, out lowp uvec2 borrow);"
+            "uvec3 usubBorrow(highp uvec3, highp uvec3, out lowp uvec3 borrow);"
+            "uvec4 usubBorrow(highp uvec4, highp uvec4, out lowp uvec4 borrow);"
 
             "void umulExtended(highp  uint, highp  uint, highp out  uint, out highp  uint lsb);"
             "void umulExtended(highp uvec2, highp uvec2, highp out uvec2, out highp uvec2 lsb);"
@@ -1388,16 +1470,21 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "void imulExtended(highp ivec3, highp ivec3, highp out ivec3, out highp ivec3 lsb);"
             "void imulExtended(highp ivec4, highp ivec4, highp out ivec4, out highp ivec4 lsb);"
 
-            "highp   int bitfieldReverse(highp   int);"
-            "highp ivec2 bitfieldReverse(highp ivec2);"
-            "highp ivec3 bitfieldReverse(highp ivec3);"
-            "highp ivec4 bitfieldReverse(highp ivec4);"
+            "  int bitfieldReverse(highp   int);"
+            "ivec2 bitfieldReverse(highp ivec2);"
+            "ivec3 bitfieldReverse(highp ivec3);"
+            "ivec4 bitfieldReverse(highp ivec4);"
 
-            "highp  uint bitfieldReverse(highp  uint);"
-            "highp uvec2 bitfieldReverse(highp uvec2);"
-            "highp uvec3 bitfieldReverse(highp uvec3);"
-            "highp uvec4 bitfieldReverse(highp uvec4);"
+            " uint bitfieldReverse(highp  uint);"
+            "uvec2 bitfieldReverse(highp uvec2);"
+            "uvec3 bitfieldReverse(highp uvec3);"
+            "uvec4 bitfieldReverse(highp uvec4);"
 
+            "\n");
+    }
+
+    if (profile == EEsProfile && version >= 310) {
+        commonBuiltins.append(
             "lowp   int bitCount(  int);"
             "lowp ivec2 bitCount(ivec2);"
             "lowp ivec3 bitCount(ivec3);"
@@ -1468,6 +1555,161 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
 
             "\n");
     }
+
+#ifdef AMD_EXTENSIONS
+    // GL_AMD_shader_ballot
+    if (profile != EEsProfile && version >= 450) {
+        commonBuiltins.append(
+            "float minInvocationsAMD(float);"
+            "vec2  minInvocationsAMD(vec2);"
+            "vec3  minInvocationsAMD(vec3);"
+            "vec4  minInvocationsAMD(vec4);"
+
+            "int   minInvocationsAMD(int);"
+            "ivec2 minInvocationsAMD(ivec2);"
+            "ivec3 minInvocationsAMD(ivec3);"
+            "ivec4 minInvocationsAMD(ivec4);"
+
+            "uint  minInvocationsAMD(uint);"
+            "uvec2 minInvocationsAMD(uvec2);"
+            "uvec3 minInvocationsAMD(uvec3);"
+            "uvec4 minInvocationsAMD(uvec4);"
+
+            "float maxInvocationsAMD(float);"
+            "vec2  maxInvocationsAMD(vec2);"
+            "vec3  maxInvocationsAMD(vec3);"
+            "vec4  maxInvocationsAMD(vec4);"
+
+            "int   maxInvocationsAMD(int);"
+            "ivec2 maxInvocationsAMD(ivec2);"
+            "ivec3 maxInvocationsAMD(ivec3);"
+            "ivec4 maxInvocationsAMD(ivec4);"
+
+            "uint  maxInvocationsAMD(uint);"
+            "uvec2 maxInvocationsAMD(uvec2);"
+            "uvec3 maxInvocationsAMD(uvec3);"
+            "uvec4 maxInvocationsAMD(uvec4);"
+
+            "float addInvocationsAMD(float);"
+            "vec2  addInvocationsAMD(vec2);"
+            "vec3  addInvocationsAMD(vec3);"
+            "vec4  addInvocationsAMD(vec4);"
+
+            "int   addInvocationsAMD(int);"
+            "ivec2 addInvocationsAMD(ivec2);"
+            "ivec3 addInvocationsAMD(ivec3);"
+            "ivec4 addInvocationsAMD(ivec4);"
+
+            "uint  addInvocationsAMD(uint);"
+            "uvec2 addInvocationsAMD(uvec2);"
+            "uvec3 addInvocationsAMD(uvec3);"
+            "uvec4 addInvocationsAMD(uvec4);"
+
+            "float minInvocationsNonUniformAMD(float);"
+            "vec2  minInvocationsNonUniformAMD(vec2);"
+            "vec3  minInvocationsNonUniformAMD(vec3);"
+            "vec4  minInvocationsNonUniformAMD(vec4);"
+
+            "int   minInvocationsNonUniformAMD(int);"
+            "ivec2 minInvocationsNonUniformAMD(ivec2);"
+            "ivec3 minInvocationsNonUniformAMD(ivec3);"
+            "ivec4 minInvocationsNonUniformAMD(ivec4);"
+
+            "uint  minInvocationsNonUniformAMD(uint);"
+            "uvec2 minInvocationsNonUniformAMD(uvec2);"
+            "uvec3 minInvocationsNonUniformAMD(uvec3);"
+            "uvec4 minInvocationsNonUniformAMD(uvec4);"
+
+            "float maxInvocationsNonUniformAMD(float);"
+            "vec2  maxInvocationsNonUniformAMD(vec2);"
+            "vec3  maxInvocationsNonUniformAMD(vec3);"
+            "vec4  maxInvocationsNonUniformAMD(vec4);"
+
+            "int   maxInvocationsNonUniformAMD(int);"
+            "ivec2 maxInvocationsNonUniformAMD(ivec2);"
+            "ivec3 maxInvocationsNonUniformAMD(ivec3);"
+            "ivec4 maxInvocationsNonUniformAMD(ivec4);"
+
+            "uint  maxInvocationsNonUniformAMD(uint);"
+            "uvec2 maxInvocationsNonUniformAMD(uvec2);"
+            "uvec3 maxInvocationsNonUniformAMD(uvec3);"
+            "uvec4 maxInvocationsNonUniformAMD(uvec4);"
+
+            "float addInvocationsNonUniformAMD(float);"
+            "vec2  addInvocationsNonUniformAMD(vec2);"
+            "vec3  addInvocationsNonUniformAMD(vec3);"
+            "vec4  addInvocationsNonUniformAMD(vec4);"
+
+            "int   addInvocationsNonUniformAMD(int);"
+            "ivec2 addInvocationsNonUniformAMD(ivec2);"
+            "ivec3 addInvocationsNonUniformAMD(ivec3);"
+            "ivec4 addInvocationsNonUniformAMD(ivec4);"
+
+            "uint  addInvocationsNonUniformAMD(uint);"
+            "uvec2 addInvocationsNonUniformAMD(uvec2);"
+            "uvec3 addInvocationsNonUniformAMD(uvec3);"
+            "uvec4 addInvocationsNonUniformAMD(uvec4);"
+
+            "float swizzleInvocationsAMD(float, uvec4);"
+            "vec2  swizzleInvocationsAMD(vec2,  uvec4);"
+            "vec3  swizzleInvocationsAMD(vec3,  uvec4);"
+            "vec4  swizzleInvocationsAMD(vec4,  uvec4);"
+
+            "int   swizzleInvocationsAMD(int,   uvec4);"
+            "ivec2 swizzleInvocationsAMD(ivec2, uvec4);"
+            "ivec3 swizzleInvocationsAMD(ivec3, uvec4);"
+            "ivec4 swizzleInvocationsAMD(ivec4, uvec4);"
+
+            "uint  swizzleInvocationsAMD(uint,  uvec4);"
+            "uvec2 swizzleInvocationsAMD(uvec2, uvec4);"
+            "uvec3 swizzleInvocationsAMD(uvec3, uvec4);"
+            "uvec4 swizzleInvocationsAMD(uvec4, uvec4);"
+
+            "float swizzleInvocationsMaskedAMD(float, uvec3);"
+            "vec2  swizzleInvocationsMaskedAMD(vec2,  uvec3);"
+            "vec3  swizzleInvocationsMaskedAMD(vec3,  uvec3);"
+            "vec4  swizzleInvocationsMaskedAMD(vec4,  uvec3);"
+
+            "int   swizzleInvocationsMaskedAMD(int,   uvec3);"
+            "ivec2 swizzleInvocationsMaskedAMD(ivec2, uvec3);"
+            "ivec3 swizzleInvocationsMaskedAMD(ivec3, uvec3);"
+            "ivec4 swizzleInvocationsMaskedAMD(ivec4, uvec3);"
+
+            "uint  swizzleInvocationsMaskedAMD(uint,  uvec3);"
+            "uvec2 swizzleInvocationsMaskedAMD(uvec2, uvec3);"
+            "uvec3 swizzleInvocationsMaskedAMD(uvec3, uvec3);"
+            "uvec4 swizzleInvocationsMaskedAMD(uvec4, uvec3);"
+
+            "float writeInvocationAMD(float, float, uint);"
+            "vec2  writeInvocationAMD(vec2,  vec2,  uint);"
+            "vec3  writeInvocationAMD(vec3,  vec3,  uint);"
+            "vec4  writeInvocationAMD(vec4,  vec4,  uint);"
+
+            "int   writeInvocationAMD(int,   int,   uint);"
+            "ivec2 writeInvocationAMD(ivec2, ivec2, uint);"
+            "ivec3 writeInvocationAMD(ivec3, ivec3, uint);"
+            "ivec4 writeInvocationAMD(ivec4, ivec4, uint);"
+
+            "uint  writeInvocationAMD(uint,  uint,  uint);"
+            "uvec2 writeInvocationAMD(uvec2, uvec2, uint);"
+            "uvec3 writeInvocationAMD(uvec3, uvec3, uint);"
+            "uvec4 writeInvocationAMD(uvec4, uvec4, uint);"
+
+            "uint mbcntAMD(uint64_t);"
+
+            "\n");
+    }
+
+    // GL_AMD_gcn_shader
+    if (profile != EEsProfile && version >= 450) {
+        commonBuiltins.append(
+            "float cubeFaceIndexAMD(vec3);"
+            "vec2 cubeFaceCoordAMD(vec3);"
+            "uint64_t timeAMD();"
+
+            "\n");
+    }
+#endif
 
     //============================================================================
     //
@@ -1713,6 +1955,29 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
 
             "\n");
     }
+
+#ifdef AMD_EXTENSIONS
+    // GL_AMD_shader_explicit_vertex_parameter
+    if (profile != EEsProfile && version >= 450) {
+        stageBuiltins[EShLangFragment].append(
+            "float interpolateAtVertexAMD(float, uint);"
+            "vec2  interpolateAtVertexAMD(vec2,  uint);"
+            "vec3  interpolateAtVertexAMD(vec3,  uint);"
+            "vec4  interpolateAtVertexAMD(vec4,  uint);"
+
+            "int   interpolateAtVertexAMD(int,   uint);"
+            "ivec2 interpolateAtVertexAMD(ivec2, uint);"
+            "ivec3 interpolateAtVertexAMD(ivec3, uint);"
+            "ivec4 interpolateAtVertexAMD(ivec4, uint);"
+
+            "uint  interpolateAtVertexAMD(uint,  uint);"
+            "uvec2 interpolateAtVertexAMD(uvec2, uint);"
+            "uvec3 interpolateAtVertexAMD(uvec3, uint);"
+            "uvec4 interpolateAtVertexAMD(uvec4, uint);"
+
+            "\n");
+    }
+#endif
 
     //============================================================================
     //
@@ -1986,17 +2251,14 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 "\n");
         }
         if (version >= 130 && spvVersion.vulkan == 0)
-            // gl_spirv TODO
             stageBuiltins[EShLangVertex].append(
                 "int gl_VertexID;"            // needs qualifier fixed later
                 );
         if (version >= 140 && spvVersion.vulkan == 0)
-            // gl_spirv TODO
             stageBuiltins[EShLangVertex].append(
                 "int gl_InstanceID;"          // needs qualifier fixed later
                 );
         if (spvVersion.vulkan >= 100 && version >= 140)
-            // gl_spirv TODO
             stageBuiltins[EShLangVertex].append(
                 "in int gl_VertexIndex;"
                 "in int gl_InstanceIndex;"
@@ -2017,13 +2279,11 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 );
         } else {
             if (spvVersion.vulkan == 0)
-                // gl_spirv TODO
                 stageBuiltins[EShLangVertex].append(
                     "in highp int gl_VertexID;"      // needs qualifier fixed later
                     "in highp int gl_InstanceID;"    // needs qualifier fixed later
                     );
             if (spvVersion.vulkan >= 100)
-                // gl_spirv TODO
                 stageBuiltins[EShLangVertex].append(
                     "in highp int gl_VertexIndex;"
                     "in highp int gl_InstanceIndex;"
@@ -2338,6 +2598,19 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 "in float gl_CullDistance[];"
                 "bool gl_HelperInvocation;"     // needs qualifier fixed later
                 );
+
+#ifdef AMD_EXTENSIONS
+        if (version >= 450)
+            stageBuiltins[EShLangFragment].append(
+                "in vec2 gl_BaryCoordNoPerspAMD;"
+                "in vec2 gl_BaryCoordNoPerspCentroidAMD;"
+                "in vec2 gl_BaryCoordNoPerspSampleAMD;"
+                "in vec2 gl_BaryCoordSmoothAMD;"
+                "in vec2 gl_BaryCoordSmoothCentroidAMD;"
+                "in vec2 gl_BaryCoordSmoothSampleAMD;"
+                "in vec3 gl_BaryCoordPullModelAMD;"
+                );
+#endif
     } else {
         // ES profile
 
@@ -3466,6 +3739,14 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
         s.append(builtInConstant);
     }
 
+#ifdef AMD_EXTENSIONS
+    // GL_AMD_gcn_shader
+    if (profile != EEsProfile && version >= 450) {
+        snprintf(builtInConstant, maxSize, "const int gl_SIMDGroupSizeAMD = 64;");
+        s.append(builtInConstant);
+    }
+#endif
+
     s.append("\n");
 }
 
@@ -3594,6 +3875,33 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("allInvocationsEqualARB", 1, &E_GL_ARB_shader_group_vote);
         }
 
+#ifdef AMD_EXTENSIONS
+        if (profile != EEsProfile) {
+            symbolTable.setFunctionExtensions("minInvocationsAMD",                1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("maxInvocationsAMD",                1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("addInvocationsAMD",                1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("minInvocationsNonUniformAMD",      1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("maxInvocationsNonUniformAMD",      1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("addInvocationsNonUniformAMD",      1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("swizzleInvocationsAMD",            1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("swizzleInvocationsWithPatternAMD", 1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("writeInvocationAMD",               1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("mbcntAMD",                         1, &E_GL_AMD_shader_ballot);
+        }
+
+        if (profile != EEsProfile) {
+            symbolTable.setFunctionExtensions("min3", 1, &E_GL_AMD_shader_trinary_minmax);
+            symbolTable.setFunctionExtensions("max3", 1, &E_GL_AMD_shader_trinary_minmax);
+            symbolTable.setFunctionExtensions("mid3", 1, &E_GL_AMD_shader_trinary_minmax);
+        }
+
+        if (profile != EEsProfile) {
+            symbolTable.setFunctionExtensions("cubeFaceIndexAMD", 1, &E_GL_AMD_gcn_shader);
+            symbolTable.setFunctionExtensions("cubeFaceCoordAMD", 1, &E_GL_AMD_gcn_shader);
+            symbolTable.setFunctionExtensions("timeAMD",          1, &E_GL_AMD_gcn_shader);
+        }
+#endif
+
         // Compatibility variables, vertex only
         if (spvVersion.spv == 0) {
             BuiltInVariable("gl_Color",          EbvColor,          symbolTable);
@@ -3634,13 +3942,14 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
         }
 
         if (spvVersion.vulkan == 0) {
-            // gl_spirv TODO
             SpecialQualifier("gl_VertexID",   EvqVertexId,   EbvVertexId,   symbolTable);
             SpecialQualifier("gl_InstanceID", EvqInstanceId, EbvInstanceId, symbolTable);
         }
 
-        BuiltInVariable("gl_VertexIndex",   EbvVertexIndex,   symbolTable);
-        BuiltInVariable("gl_InstanceIndex", EbvInstanceIndex, symbolTable);
+        if (spvVersion.vulkan >= 100) {
+            BuiltInVariable("gl_VertexIndex",   EbvVertexIndex,   symbolTable);
+            BuiltInVariable("gl_InstanceIndex", EbvInstanceIndex, symbolTable);
+        }
 
         // Fall through
 
@@ -3876,6 +4185,29 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("textureGradClampARB",                1, &E_GL_ARB_sparse_texture_clamp);
             symbolTable.setFunctionExtensions("textureGradOffsetClampARB",          1, &E_GL_ARB_sparse_texture_clamp);
         }
+
+#ifdef AMD_EXTENSIONS
+        // E_GL_AMD_shader_explicit_vertex_parameter
+        if (profile != EEsProfile) {
+            symbolTable.setVariableExtensions("gl_BaryCoordNoPerspAMD",         1, &E_GL_AMD_shader_explicit_vertex_parameter);
+            symbolTable.setVariableExtensions("gl_BaryCoordNoPerspCentroidAMD", 1, &E_GL_AMD_shader_explicit_vertex_parameter);
+            symbolTable.setVariableExtensions("gl_BaryCoordNoPerspSampleAMD",   1, &E_GL_AMD_shader_explicit_vertex_parameter);
+            symbolTable.setVariableExtensions("gl_BaryCoordSmoothAMD",          1, &E_GL_AMD_shader_explicit_vertex_parameter);
+            symbolTable.setVariableExtensions("gl_BaryCoordSmoothCentroidAMD",  1, &E_GL_AMD_shader_explicit_vertex_parameter);
+            symbolTable.setVariableExtensions("gl_BaryCoordSmoothSampleAMD",    1, &E_GL_AMD_shader_explicit_vertex_parameter);
+            symbolTable.setVariableExtensions("gl_BaryCoordPullModelAMD",       1, &E_GL_AMD_shader_explicit_vertex_parameter);
+
+            symbolTable.setFunctionExtensions("interpolateAtVertexAMD",         1, &E_GL_AMD_shader_explicit_vertex_parameter);
+
+            BuiltInVariable("gl_BaryCoordNoPerspAMD",           EbvBaryCoordNoPersp,         symbolTable);
+            BuiltInVariable("gl_BaryCoordNoPerspCentroidAMD",   EbvBaryCoordNoPerspCentroid, symbolTable);
+            BuiltInVariable("gl_BaryCoordNoPerspSampleAMD",     EbvBaryCoordNoPerspSample,   symbolTable);
+            BuiltInVariable("gl_BaryCoordSmoothAMD",            EbvBaryCoordSmooth,          symbolTable);
+            BuiltInVariable("gl_BaryCoordSmoothCentroidAMD",    EbvBaryCoordSmoothCentroid,  symbolTable);
+            BuiltInVariable("gl_BaryCoordSmoothSampleAMD",      EbvBaryCoordSmoothSample,    symbolTable);
+            BuiltInVariable("gl_BaryCoordPullModelAMD",         EbvBaryCoordPullModel,       symbolTable);
+        }
+#endif
 
         symbolTable.setVariableExtensions("gl_FragDepthEXT", 1, &E_GL_EXT_frag_depth);
 
@@ -4210,6 +4542,27 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.relateToOperator("anyInvocationARB",                EOpAnyInvocation);
             symbolTable.relateToOperator("allInvocationsARB",               EOpAllInvocations);
             symbolTable.relateToOperator("allInvocationsEqualARB",          EOpAllInvocationsEqual);
+
+#ifdef AMD_EXTENSIONS
+            symbolTable.relateToOperator("minInvocationsAMD",               EOpMinInvocations);
+            symbolTable.relateToOperator("maxInvocationsAMD",               EOpMaxInvocations);
+            symbolTable.relateToOperator("addInvocationsAMD",               EOpAddInvocations);
+            symbolTable.relateToOperator("minInvocationsNonUniformAMD",     EOpMinInvocationsNonUniform);
+            symbolTable.relateToOperator("maxInvocationsNonUniformAMD",     EOpMaxInvocationsNonUniform);
+            symbolTable.relateToOperator("addInvocationsNonUniformAMD",     EOpAddInvocationsNonUniform);
+            symbolTable.relateToOperator("swizzleInvocationsAMD",           EOpSwizzleInvocations);
+            symbolTable.relateToOperator("swizzleInvocationsMaskedAMD",     EOpSwizzleInvocationsMasked);
+            symbolTable.relateToOperator("writeInvocationAMD",              EOpWriteInvocation);
+            symbolTable.relateToOperator("mbcntAMD",                        EOpMbcnt);
+
+            symbolTable.relateToOperator("min3",    EOpMin3);
+            symbolTable.relateToOperator("max3",    EOpMax3);
+            symbolTable.relateToOperator("mid3",    EOpMid3);
+
+            symbolTable.relateToOperator("cubeFaceIndexAMD",    EOpCubeFaceIndex);
+            symbolTable.relateToOperator("cubeFaceCoordAMD",    EOpCubeFaceCoord);
+            symbolTable.relateToOperator("timeAMD",             EOpTime);
+#endif
         }
     }
 
@@ -4243,7 +4596,12 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
         symbolTable.relateToOperator("interpolateAtCentroid", EOpInterpolateAtCentroid);
         symbolTable.relateToOperator("interpolateAtSample",   EOpInterpolateAtSample);
         symbolTable.relateToOperator("interpolateAtOffset",   EOpInterpolateAtOffset);
+
+#ifdef AMD_EXTENSIONS
+        if (profile != EEsProfile)
+            symbolTable.relateToOperator("interpolateAtVertexAMD", EOpInterpolateAtVertex);
         break;
+#endif
 
     case EShLangCompute:
         symbolTable.relateToOperator("memoryBarrierShared",     EOpMemoryBarrierShared);

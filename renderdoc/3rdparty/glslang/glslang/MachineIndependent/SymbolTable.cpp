@@ -250,7 +250,7 @@ TSymbol::TSymbol(const TSymbol& copyOf)
 }
 
 TVariable::TVariable(const TVariable& copyOf) : TSymbol(copyOf)
-{	
+{
     type.deepCopy(copyOf.type);
     userType = copyOf.userType;
     numExtensions = 0;
@@ -276,7 +276,7 @@ TVariable* TVariable::clone() const
 }
 
 TFunction::TFunction(const TFunction& copyOf) : TSymbol(copyOf)
-{	
+{
     for (unsigned int i = 0; i < copyOf.parameters.size(); ++i) {
         TParameter param;
         parameters.push_back(param);

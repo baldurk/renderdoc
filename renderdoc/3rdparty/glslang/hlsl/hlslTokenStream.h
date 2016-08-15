@@ -43,7 +43,7 @@ namespace glslang {
     class HlslTokenStream {
     public:
         explicit HlslTokenStream(HlslScanContext& scanner)
-            : scanner(scanner), preTokenStackSize(0) { }
+            : scanner(scanner), preTokenStackSize(0), tokenBufferPos(0) { }
         virtual ~HlslTokenStream() { }
 
     public:
@@ -57,22 +57,29 @@ namespace glslang {
         HlslToken token;                  // the token we are currently looking at, but have not yet accepted
 
     private:
+        HlslTokenStream();
+        HlslTokenStream& operator=(const HlslTokenStream&);
+
         HlslScanContext& scanner;         // lexical scanner, to get next token
+
+        // This is the number of tokens we can recedeToken() over.
+        static const int tokenBufferSize = 2;
 
         // Previously scanned tokens, returned for future advances,
         // so logically in front of the token stream.
         // Is logically a stack; needs last in last out semantics.
-        // Currently implemented as a stack of size 1.
-        HlslToken preTokenStack;          
+        // Currently implemented as a stack of size 2.
+        HlslToken preTokenStack[tokenBufferSize];
         int preTokenStackSize;
         void pushPreToken(const HlslToken&);
         HlslToken popPreToken();
 
-        // Previously scanned tokens, not yet return for future advances,
+        // Previously scanned tokens, not yet returned for future advances,
         // but available for that.
         // Is logically a fifo for normal advances, and a stack for recession.
-        // Currently implemented with an intrinsic size of 1.
-        HlslToken tokenBuffer;
+        // Currently implemented with an intrinsic size of 2.
+        HlslToken tokenBuffer[tokenBufferSize];
+        int tokenBufferPos;
         void pushTokenBuffer(const HlslToken&);
         HlslToken popTokenBuffer();
     };

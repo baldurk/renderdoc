@@ -76,10 +76,9 @@ TORT (INCLUDING NEGLIGENCE), STRICT LIABILITY OR OTHERWISE, EVEN IF
 NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 \****************************************************************************/
 
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
 
 #include "PpContext.h"
 

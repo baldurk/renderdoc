@@ -34,7 +34,7 @@
 
 #define SH_EXPORTING
 
-#include <assert.h>
+#include <cassert>
 
 #include "InitializeDll.h"
 #include "../glslang/Include/InitializeGlobals.h"

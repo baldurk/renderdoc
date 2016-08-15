@@ -244,6 +244,8 @@ public:
     bool visitBranch(glslang::TVisit, glslang::TIntermBranch*) override;
 
 protected:
+    TSymbolDefinitionCollectingTraverser& operator=(const TSymbolDefinitionCollectingTraverser&);
+
     // The mapping from symbol node IDs to their defining nodes. This should be
     // populated along traversing the AST.
     NodeMapping& symbol_definition_mapping_;
@@ -548,6 +550,8 @@ public:
     }
 
 protected:
+    TNoContractionAssigneeCheckingTraverser& operator=(const TNoContractionAssigneeCheckingTraverser&);
+
     bool visitBinary(glslang::TVisit, glslang::TIntermBinary* node) override;
     void visitSymbol(glslang::TIntermSymbol* node) override;
 
@@ -648,6 +652,8 @@ public:
     }
 
 protected:
+    TNoContractionPropagator& operator=(const TNoContractionPropagator&);
+
     // Visits an aggregate node. The node can be a initializer list, in which
     // case we need to find the 'precise' or 'precise' containing object node
     // with the access chain record. In other cases, just need to traverse all

@@ -36,7 +36,7 @@
 #define _INFOSINK_INCLUDED_
 
 #include "../Include/Common.h"
-#include <math.h>
+#include <cmath>
 
 namespace glslang {
 

@@ -70,7 +70,8 @@ public:
         source = lang;
         sourceVersion = version;
     }
-    void addSourceExtension(const char* ext) { extensions.push_back(ext); }
+    void addSourceExtension(const char* ext) { sourceExtensions.push_back(ext); }
+    void addExtensions(const char* ext) { extensions.push_back(ext); }
     Id import(const char*);
     void setMemoryModel(spv::AddressingModel addr, spv::MemoryModel mem)
     {
@@ -397,7 +398,12 @@ public:
     void endSwitch(std::vector<Block*>& segmentBB);
 
     struct LoopBlocks {
+        LoopBlocks(Block& head, Block& body, Block& merge, Block& continue_target) :
+            head(head), body(body), merge(merge), continue_target(continue_target) { }
         Block &head, &body, &merge, &continue_target;
+    private:
+        LoopBlocks();
+        LoopBlocks& operator=(const LoopBlocks&);
     };
 
     // Start a new loop and prepare the builder to generate code for it.  Until
@@ -547,6 +553,7 @@ public:
     SourceLanguage source;
     int sourceVersion;
     std::vector<const char*> extensions;
+    std::vector<const char*> sourceExtensions;
     AddressingModel addressModel;
     MemoryModel memoryModel;
     std::set<spv::Capability> capabilities;
