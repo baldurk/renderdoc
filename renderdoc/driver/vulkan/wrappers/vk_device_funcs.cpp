@@ -733,6 +733,9 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
         }
       }
 
+      // only report a single available queue in this family
+      props[best].queueCount = 1;
+
       m_SupportedQueueFamilies[i] = std::make_pair(best, props[best]);
 
       SAFE_DELETE_ARRAY(props);
