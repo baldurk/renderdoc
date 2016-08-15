@@ -2047,6 +2047,9 @@ void WrappedOpenGL::Common_glTextureImage1DEXT(ResourceId texId, GLenum target, 
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 1;
     m_Textures[texId].internalFormat = (GLenum)internalformat;
   }
@@ -2277,6 +2280,9 @@ void WrappedOpenGL::Common_glTextureImage2DEXT(ResourceId texId, GLenum target, 
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 2;
     m_Textures[texId].internalFormat = (GLenum)internalformat;
   }
@@ -2490,6 +2496,9 @@ void WrappedOpenGL::Common_glTextureImage3DEXT(ResourceId texId, GLenum target, 
     m_Textures[texId].depth = depth;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 3;
     m_Textures[texId].internalFormat = (GLenum)internalformat;
   }
@@ -2707,6 +2716,9 @@ void WrappedOpenGL::Common_glCompressedTextureImage1DEXT(ResourceId texId, GLenu
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 1;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -2947,6 +2959,9 @@ void WrappedOpenGL::Common_glCompressedTextureImage2DEXT(ResourceId texId, GLenu
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 2;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -3170,6 +3185,9 @@ void WrappedOpenGL::Common_glCompressedTextureImage3DEXT(ResourceId texId, GLenu
     m_Textures[texId].depth = depth;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 3;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -3334,6 +3352,9 @@ void WrappedOpenGL::Common_glCopyTextureImage1DEXT(GLResourceRecord *record, GLe
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 1;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -3473,6 +3494,9 @@ void WrappedOpenGL::Common_glCopyTextureImage2DEXT(GLResourceRecord *record, GLe
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 2;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -3591,6 +3615,9 @@ void WrappedOpenGL::Common_glTextureStorage1DEXT(ResourceId texId, GLenum target
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 1;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -3710,6 +3737,9 @@ void WrappedOpenGL::Common_glTextureStorage2DEXT(ResourceId texId, GLenum target
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 2;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -3833,6 +3863,9 @@ void WrappedOpenGL::Common_glTextureStorage3DEXT(ResourceId texId, GLenum target
     m_Textures[texId].depth = depth;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 3;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -3962,6 +3995,9 @@ void WrappedOpenGL::Common_glTextureStorage2DMultisampleEXT(ResourceId texId, GL
     m_Textures[texId].samples = samples;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 2;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -4128,6 +4164,9 @@ void WrappedOpenGL::Common_glTextureStorage3DMultisampleEXT(ResourceId texId, GL
     m_Textures[texId].samples = samples;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 3;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -5433,6 +5472,9 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 1;
     m_Textures[texId].internalFormat = internalformat;
   }
@@ -5572,6 +5614,9 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target,
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)
       m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 1;
     m_Textures[texId].internalFormat = internalformat;
   }
