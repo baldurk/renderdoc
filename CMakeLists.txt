@@ -41,7 +41,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(warning_flags
         -Wall
         -Wextra
-        -Werror
         -Wno-unused-variable
         -Wno-unused-parameter
         -Wno-unused-result
@@ -55,6 +54,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
     string(REPLACE ";" " " warning_flags "${warning_flags}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${warning_flags}")
+
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+    endif()
 endif()
 
 add_definitions(-DRENDERDOC_PLATFORM_POSIX)
