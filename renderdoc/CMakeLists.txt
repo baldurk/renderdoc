@@ -221,6 +221,8 @@ set(data
 set(data_objects)
 
 if(UNIX)
+    add_executable(include-bin 3rdparty/include-bin/main.cpp)
+
     foreach(res ${data})
         set(in ${res})
         set(working_dir ${CMAKE_CURRENT_SOURCE_DIR})
@@ -230,7 +232,8 @@ if(UNIX)
         add_custom_command(OUTPUT ${out_src}
             WORKING_DIRECTORY ${working_dir}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${out_src_dir}
-            COMMAND xxd -i ${in} ${out_src}
+            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin ${in} ${out_src}
+            DEPENDS include-bin
             DEPENDS ${res})
 
         list(APPEND data_objects ${out_src})

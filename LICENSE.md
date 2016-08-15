@@ -94,3 +94,7 @@ RenderDoc also uses several external libraries and components which include thei
 - [cmdline](https://github.com/tanakh/cmdline)
   distributed under the New BSD License (3 Clause).
   Copyright 2009, Hideyuki Tanaka
+
+- [include-bin](https://github.com/Marqin/include-bin)
+  distributed under the zlib license.
+  Copyright 2016, Hubert Jarosz
