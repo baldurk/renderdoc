@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <android/log.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include "os/os_specific.h"
 
@@ -63,15 +64,33 @@ namespace FileIO
 {
 const char *GetTempRootPath()
 {
-  return "/sdcard";
+  static string ret;
+  GetExecutableFilename(ret);
+
+  // This folder is writable even if the APK does not have manifest write permissions.
+  ret = "/data/data/" + ret + "/files";
+  return ret.c_str();
 }
 
+// For RenderDocCmd.apk, this returns "org.renderdoc.renderdoccmd"
+// For other APKs, we use it to get the writable temp directory.
 void GetExecutableFilename(string &selfName)
 {
-  char path[512] = {0};
-  readlink("/proc/self/exe", path, 511);
+  char buf[4096];
+  snprintf(buf, sizeof(buf), "/proc/%u/cmdline", getpid());
+  int fd = open(buf, O_RDONLY);
+  if(fd < 0)
+  {
+    return;
+  }
+  ssize_t len = read(fd, buf, sizeof(buf));
+  close(fd);
+  if(len < 0 || len == sizeof(buf))
+  {
+    return;
+  }
 
-  selfName = string(path);
+  selfName = buf;
 }
 };
 
