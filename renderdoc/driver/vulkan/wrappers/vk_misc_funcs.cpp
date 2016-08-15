@@ -766,20 +766,98 @@ VkResult WrappedVulkan::vkGetQueryPoolResults(VkDevice device, VkQueryPool query
                                               queryCount, dataSize, pData, stride, flags);
 }
 
+struct UserDebugCallbackData
+{
+  VkInstance wrappedInstance;
+  VkDebugReportCallbackCreateInfoEXT createInfo;
+  bool muteWarned;
+
+  VkDebugReportCallbackEXT realObject;
+};
+
+VkBool32 VKAPI_PTR UserDebugCallback(VkDebugReportFlagsEXT flags,
+                                     VkDebugReportObjectTypeEXT objectType, uint64_t object,
+                                     size_t location, int32_t messageCode, const char *pLayerPrefix,
+                                     const char *pMessage, void *pUserData)
+{
+  UserDebugCallbackData *user = (UserDebugCallbackData *)pUserData;
+
+  if(RenderDoc::Inst().GetCaptureOptions().DebugOutputMute)
+  {
+    if(user->muteWarned)
+      return false;
+
+    // once only insert a fake message notifying of the muting
+    user->muteWarned = true;
+
+    // we insert as an information message, since some trigger-happy applications might
+    // debugbreak/crash/messagebox/etc on even warnings. This puts us in the same pool
+    // as extremely spammy messages, but there's not much alternative.
+    if(user->createInfo.flags & (VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT))
+    {
+      // use information type if possible, or if it's not accepted but debug is - use debug type.
+      flags = (user->createInfo.flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+                  ? VK_DEBUG_REPORT_INFORMATION_BIT_EXT
+                  : VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+
+      user->createInfo.pfnCallback(flags, VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT,
+                                   (uint64_t)user->wrappedInstance, 1, 1, "RDOC",
+                                   "While debugging through RenderDoc, debug output through "
+                                   "validation layers is suppressed.\n"
+                                   "To show debug output look at the 'DebugOutputMute' capture "
+                                   "option in RenderDoc's API, but "
+                                   "be aware of false positives from the validation layers.",
+                                   user->createInfo.pUserData);
+    }
+
+    return false;
+  }
+
+  return user->createInfo.pfnCallback(flags, objectType, object, location, messageCode,
+                                      pLayerPrefix, pMessage, user->createInfo.pUserData);
+}
+
 VkResult WrappedVulkan::vkCreateDebugReportCallbackEXT(
     VkInstance instance, const VkDebugReportCallbackCreateInfoEXT *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkDebugReportCallbackEXT *pCallback)
 {
-  // don't need to wrap this, as we will create our own independent callback
-  return ObjDisp(instance)->CreateDebugReportCallbackEXT(Unwrap(instance), pCreateInfo, pAllocator,
-                                                         pCallback);
+  // we create an interception object here so that we can dynamically check the state of API
+  // messages
+  // being muted, since it's quite likely that the application will initialise Vulkan (and so create
+  // a debug report callback) before it messes with RenderDoc's API to unmute messages.
+  UserDebugCallbackData *user = new UserDebugCallbackData();
+  user->wrappedInstance = instance;
+  user->createInfo = *pCreateInfo;
+  user->muteWarned = false;
+
+  VkDebugReportCallbackCreateInfoEXT wrappedCreateInfo = *pCreateInfo;
+  wrappedCreateInfo.pfnCallback = &UserDebugCallback;
+  wrappedCreateInfo.pUserData = user;
+
+  VkResult vkr = ObjDisp(instance)->CreateDebugReportCallbackEXT(
+      Unwrap(instance), &wrappedCreateInfo, pAllocator, &user->realObject);
+
+  if(vkr != VK_SUCCESS)
+  {
+    *pCallback = VK_NULL_HANDLE;
+    delete user;
+    return vkr;
+  }
+
+  *pCallback = (VkDebugReportCallbackEXT)user;
+
+  return vkr;
 }
 
 void WrappedVulkan::vkDestroyDebugReportCallbackEXT(VkInstance instance,
                                                     VkDebugReportCallbackEXT callback,
                                                     const VkAllocationCallbacks *pAllocator)
 {
-  return ObjDisp(instance)->DestroyDebugReportCallbackEXT(Unwrap(instance), callback, pAllocator);
+  UserDebugCallbackData *user = (UserDebugCallbackData *)callback;
+
+  ObjDisp(instance)->DestroyDebugReportCallbackEXT(Unwrap(instance), user->realObject, pAllocator);
+
+  delete user;
 }
 
 void WrappedVulkan::vkDebugReportMessageEXT(VkInstance instance, VkDebugReportFlagsEXT flags,
