@@ -37,20 +37,12 @@ using std::make_pair;
 #undef max
 
 #ifdef _MSC_VER
-#pragma warning(push)
 #pragma warning(disable : 4481)    // nonstandard extension used: override specifier 'override'
-#pragma warning(disable : 4510)    // default constructor could not be generated
-#pragma warning( \
-    disable : 4610)    // struct '' can never be instantiated - user defined constructor required
 #endif
 
 #include "3rdparty/glslang/SPIRV/GLSL.std.450.h"
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 // I'm not sure yet if this makes things clearer or worse. On the one hand
 // it is explicit about stores/loads through pointers, but on the other it
