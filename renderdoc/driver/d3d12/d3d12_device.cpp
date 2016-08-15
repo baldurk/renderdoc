@@ -610,6 +610,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     record->DataInSerialiser = false;
     record->SpecialResource = true;
     record->Length = 0;
+    ((WrappedID3D12Resource *)pRes)->SetResourceRecord(record);
 
     SCOPED_LOCK(m_D3DLock);
 
@@ -1392,10 +1393,10 @@ void WrappedID3D12Device::SetLogFile(const char *logfile)
 {
   m_pSerialiser = new Serialiser(logfile, Serialiser::READING, false);
   m_pSerialiser->SetChunkNameLookup(&GetChunkName);
-  m_pSerialiser->SetUserData(m_ResourceManager);
 
   SAFE_DELETE(m_ResourceManager);
   m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
+  m_pSerialiser->SetUserData(m_ResourceManager);
 }
 
 const FetchDrawcall *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
@@ -1430,6 +1431,16 @@ void WrappedID3D12Device::ProcessChunk(uint64_t offset, D3D12ChunkType context)
       Serialise_CreateCommittedResource(NULL, D3D12_HEAP_FLAG_NONE, NULL,
                                         D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
       break;
+    case CREATE_PLACED_RESOURCE:
+      Serialise_CreatePlacedResource(NULL, 0ULL, NULL, D3D12_RESOURCE_STATE_COMMON, NULL, IID(),
+                                     NULL);
+      break;
+    case CREATE_RESERVED_RESOURCE:
+      Serialise_CreateReservedResource(NULL, D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
+      break;
+    case CREATE_HEAP: Serialise_CreateHeap(NULL, IID(), NULL); break;
+    case CREATE_QUERY_HEAP: Serialise_CreateQueryHeap(NULL, IID(), NULL); break;
+    case CREATE_COMMAND_SIGNATURE: Serialise_CreateCommandSignature(NULL, NULL, IID(), NULL); break;
 
     case CREATE_FENCE: Serialise_CreateFence(0, D3D12_FENCE_FLAG_NONE, IID(), NULL); break;
 

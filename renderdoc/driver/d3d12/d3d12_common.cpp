@@ -45,6 +45,65 @@ enum D3D12ComponentMapping
 {
 };
 
+UINT GetResourceNumMipLevels(const D3D12_RESOURCE_DESC *desc)
+{
+  switch(desc->Dimension)
+  {
+    default:
+    case D3D12_RESOURCE_DIMENSION_UNKNOWN:
+      RDCERR("Unexpected resource dimension! %d", desc->Dimension);
+      break;
+    case D3D12_RESOURCE_DIMENSION_BUFFER: return 1;
+    case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
+    {
+      if(desc->MipLevels)
+        return desc->MipLevels;
+      UINT w = RDCMAX(1U, UINT(desc->Width));
+      UINT count = 1;
+      while(w > 1)
+      {
+        ++count;
+        w = RDCMAX(1U, w >> 1U);
+      }
+      return count;
+    }
+    case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+    {
+      if(desc->MipLevels)
+        return desc->MipLevels;
+      UINT w = RDCMAX(1U, UINT(desc->Width));
+      UINT h = RDCMAX(1U, desc->Height);
+      UINT count = 1;
+      while(w > 1 || h > 1)
+      {
+        ++count;
+        w = RDCMAX(1U, w >> 1U);
+        h = RDCMAX(1U, h >> 1U);
+      }
+      return count;
+    }
+    case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+    {
+      if(desc->MipLevels)
+        return desc->MipLevels;
+      UINT w = RDCMAX(1U, UINT(desc->Width));
+      UINT h = RDCMAX(1U, desc->Height);
+      UINT d = RDCMAX(1U, UINT(desc->DepthOrArraySize));
+      UINT count = 1;
+      while(w > 1 || h > 1 || d > 1)
+      {
+        ++count;
+        w = RDCMAX(1U, w >> 1U);
+        h = RDCMAX(1U, h >> 1U);
+        d = RDCMAX(1U, d >> 1U);
+      }
+      return count;
+    }
+  }
+
+  return 1;
+}
+
 UINT GetNumSubresources(const D3D12_RESOURCE_DESC *desc)
 {
   switch(desc->Dimension)
@@ -56,8 +115,8 @@ UINT GetNumSubresources(const D3D12_RESOURCE_DESC *desc)
     case D3D12_RESOURCE_DIMENSION_BUFFER: return 1;
     case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
     case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
-      return RDCMAX((UINT16)1, desc->DepthOrArraySize) * RDCMAX((UINT16)1, desc->MipLevels);
-    case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return RDCMAX((UINT16)1, desc->MipLevels);
+      return RDCMAX((UINT16)1, desc->DepthOrArraySize) * GetResourceNumMipLevels(desc);
+    case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return GetResourceNumMipLevels(desc);
   }
 
   return 1;
@@ -129,7 +188,8 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el)
     }
   }
 
-  // for sampler types, this will be overwritten when serialising the sampler descriptor
+  // for sampler types, this will be overwritten when serialising the sampler
+  // descriptor
   el.nonsamp.type = type;
 
   switch(type)
@@ -473,6 +533,68 @@ void Serialiser::Serialise(const char *name, D3D12_COMPUTE_PIPELINE_STATE_DESC &
   }
 }
 
+string ToStrHelper<false, D3D12_INDIRECT_ARGUMENT_TYPE>::Get(const D3D12_INDIRECT_ARGUMENT_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_INDIRECT_ARGUMENT_TYPE<%d>", el);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_INDIRECT_ARGUMENT_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_INDIRECT_ARGUMENT_DESC", 0, true);
+
+  Serialise("Type", el.Type);
+  switch(el.Type)
+  {
+    case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+      Serialise("Slot", el.VertexBuffer.Slot);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+      Serialise("RootParameterIndex", el.Constant.RootParameterIndex);
+      Serialise("DestOffsetIn32BitValues", el.Constant.DestOffsetIn32BitValues);
+      Serialise("Num32BitValuesToSet", el.Constant.Num32BitValuesToSet);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+      Serialise("RootParameterIndex", el.ConstantBufferView.RootParameterIndex);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+      Serialise("RootParameterIndex", el.ShaderResourceView.RootParameterIndex);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+      Serialise("RootParameterIndex", el.UnorderedAccessView.RootParameterIndex);
+      break;
+    default:
+      // all other commands have no additional attributes
+      break;
+  }
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_COMMAND_SIGNATURE_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_COMMAND_SIGNATURE_DESC", 0, true);
+
+  Serialise("ByteStride", el.ByteStride);
+  Serialise("NodeMask", el.NodeMask);
+
+  SerialiseComplexArray("pArgumentDescs", (D3D12_INDIRECT_ARGUMENT_DESC *&)el.pArgumentDescs,
+                        el.NumArgumentDescs);
+}
+
 template <>
 void Serialiser::Serialise(const char *name, D3D12_VERTEX_BUFFER_VIEW &el)
 {
@@ -798,6 +920,26 @@ void Serialiser::Serialise(const char *name, D3D12_RESOURCE_BARRIER &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12_HEAP_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_HEAP_DESC", 0, true);
+
+  Serialise("SizeInBytes", el.SizeInBytes);
+  Serialise("Properties", el.Properties);
+  Serialise("Alignment", el.Alignment);
+  Serialise("Flags", el.Flags);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_QUERY_HEAP_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_QUERY_HEAP_DESC", 0, true);
+
+  Serialise("Type", el.Type);
+  Serialise("Count", el.Count);
+  Serialise("NodeMask", el.NodeMask);
+}
+template <>
 void Serialiser::Serialise(const char *name, D3D12_HEAP_PROPERTIES &el)
 {
   ScopedContext scope(this, name, "D3D12_HEAP_PROPERTIES", 0, true);
@@ -924,6 +1066,20 @@ string ToStrHelper<false, D3D12_HEAP_TYPE>::Get(const D3D12_HEAP_TYPE &el)
   }
 
   return StringFormat::Fmt("D3D12_HEAP_TYPE<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_QUERY_HEAP_TYPE>::Get(const D3D12_QUERY_HEAP_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_OCCLUSION)
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_TIMESTAMP)
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS)
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_SO_STATISTICS)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_QUERY_HEAP_TYPE<%d>", el);
 }
 
 string ToStrHelper<false, D3D12_CPU_PAGE_PROPERTY>::Get(const D3D12_CPU_PAGE_PROPERTY &el)
