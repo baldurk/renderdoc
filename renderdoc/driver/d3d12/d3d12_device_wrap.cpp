@@ -582,7 +582,9 @@ void WrappedID3D12Device::CreateShaderResourceView(ID3D12Resource *pResource,
                                                    D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
   GetWrapped(DestDescriptor)->Init(pResource, pDesc);
-  return m_pDevice->CreateShaderResourceView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
+  if(!pResource)
+    return;
+  m_pDevice->CreateShaderResourceView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
@@ -591,8 +593,10 @@ void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
                                                     D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
   GetWrapped(DestDescriptor)->Init(pResource, pCounterResource, pDesc);
-  return m_pDevice->CreateUnorderedAccessView(Unwrap(pResource), Unwrap(pCounterResource), pDesc,
-                                              Unwrap(DestDescriptor));
+  if(!pResource)
+    return;
+  m_pDevice->CreateUnorderedAccessView(Unwrap(pResource), Unwrap(pCounterResource), pDesc,
+                                       Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateRenderTargetView(ID3D12Resource *pResource,
@@ -600,7 +604,9 @@ void WrappedID3D12Device::CreateRenderTargetView(ID3D12Resource *pResource,
                                                  D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
   GetWrapped(DestDescriptor)->Init(pResource, pDesc);
-  return m_pDevice->CreateRenderTargetView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
+  if(!pResource)
+    return;
+  m_pDevice->CreateRenderTargetView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateDepthStencilView(ID3D12Resource *pResource,
@@ -608,14 +614,16 @@ void WrappedID3D12Device::CreateDepthStencilView(ID3D12Resource *pResource,
                                                  D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
   GetWrapped(DestDescriptor)->Init(pResource, pDesc);
-  return m_pDevice->CreateDepthStencilView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
+  if(!pResource)
+    return;
+  m_pDevice->CreateDepthStencilView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
                                         D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
   GetWrapped(DestDescriptor)->Init(pDesc);
-  return m_pDevice->CreateSampler(pDesc, Unwrap(DestDescriptor));
+  m_pDevice->CreateSampler(pDesc, Unwrap(DestDescriptor));
 }
 
 bool WrappedID3D12Device::Serialise_CreateCommittedResource(
@@ -747,7 +755,7 @@ bool WrappedID3D12Device::Serialise_CreateReservedResource(
 bool WrappedID3D12Device::Serialise_CreateHeap(const D3D12_HEAP_DESC *pHeapDesc,
                                                REFIID riidResource, void **ppvResource)
 {
-  SERIALISE_ELEMENT(D3D12_HEAP_DESC, desc, *pHeapDesc);
+  SERIALISE_ELEMENT_PTR(D3D12_HEAP_DESC, desc, pHeapDesc);
 
   SERIALISE_ELEMENT(IID, guid, riidResource);
   SERIALISE_ELEMENT(ResourceId, Res, ((WrappedID3D12Heap *)*ppvResource)->GetResourceID());
