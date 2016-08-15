@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "d3d12_device.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
-#include "d3d12_device.h"
 #include "d3d12_resources.h"
 
 bool WrappedID3D12Device::Serialise_CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *pDesc,
@@ -288,15 +288,15 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
 HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc,
                                                          REFIID riid, void **ppPipelineState)
 {
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC unwrappedDesc = *pDesc;
-	unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC unwrappedDesc = *pDesc;
+  unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
 
   if(ppPipelineState == NULL)
     return m_pDevice->CreateGraphicsPipelineState(&unwrappedDesc, riid, NULL);
 
   if(riid != __uuidof(ID3D12PipelineState))
     return E_NOINTERFACE;
-	
+
   ID3D12PipelineState *real = NULL;
   HRESULT ret = m_pDevice->CreateGraphicsPipelineState(&unwrappedDesc, riid, (void **)&real);
 
@@ -534,13 +534,13 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
   {
     SCOPED_LOCK(m_D3DLock);
 
-		if(GetResourceManager()->HasWrapper(real))
-		{
-			real->Release();
-			*ppvRootSignature = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(real);
-			((ID3D12RootSignature *)*ppvRootSignature)->AddRef();
-			return ret;
-		}
+    if(GetResourceManager()->HasWrapper(real))
+    {
+      real->Release();
+      *ppvRootSignature = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(real);
+      ((ID3D12RootSignature *)*ppvRootSignature)->AddRef();
+      return ret;
+    }
 
     WrappedID3D12RootSignature *wrapped = new WrappedID3D12RootSignature(real, this);
 
