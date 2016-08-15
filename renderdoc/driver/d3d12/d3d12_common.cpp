@@ -45,6 +45,65 @@ enum D3D12ComponentMapping
 {
 };
 
+UINT GetResourceNumMipLevels(const D3D12_RESOURCE_DESC *desc)
+{
+  switch(desc->Dimension)
+  {
+    default:
+    case D3D12_RESOURCE_DIMENSION_UNKNOWN:
+      RDCERR("Unexpected resource dimension! %d", desc->Dimension);
+      break;
+    case D3D12_RESOURCE_DIMENSION_BUFFER: return 1;
+    case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
+    {
+      if(desc->MipLevels)
+        return desc->MipLevels;
+      UINT w = RDCMAX(1U, UINT(desc->Width));
+      UINT count = 1;
+      while(w > 1)
+      {
+        ++count;
+        w = RDCMAX(1U, w >> 1U);
+      }
+      return count;
+    }
+    case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+    {
+      if(desc->MipLevels)
+        return desc->MipLevels;
+      UINT w = RDCMAX(1U, UINT(desc->Width));
+      UINT h = RDCMAX(1U, desc->Height);
+      UINT count = 1;
+      while(w > 1 || h > 1)
+      {
+        ++count;
+        w = RDCMAX(1U, w >> 1U);
+        h = RDCMAX(1U, h >> 1U);
+      }
+      return count;
+    }
+    case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+    {
+      if(desc->MipLevels)
+        return desc->MipLevels;
+      UINT w = RDCMAX(1U, UINT(desc->Width));
+      UINT h = RDCMAX(1U, desc->Height);
+      UINT d = RDCMAX(1U, UINT(desc->DepthOrArraySize));
+      UINT count = 1;
+      while(w > 1 || h > 1 || d > 1)
+      {
+        ++count;
+        w = RDCMAX(1U, w >> 1U);
+        h = RDCMAX(1U, h >> 1U);
+        d = RDCMAX(1U, d >> 1U);
+      }
+      return count;
+    }
+  }
+
+  return 1;
+}
+
 UINT GetNumSubresources(const D3D12_RESOURCE_DESC *desc)
 {
   switch(desc->Dimension)
@@ -56,8 +115,8 @@ UINT GetNumSubresources(const D3D12_RESOURCE_DESC *desc)
     case D3D12_RESOURCE_DIMENSION_BUFFER: return 1;
     case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
     case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
-      return RDCMAX((UINT16)1, desc->DepthOrArraySize) * RDCMAX((UINT16)1, desc->MipLevels);
-    case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return RDCMAX((UINT16)1, desc->MipLevels);
+      return RDCMAX((UINT16)1, desc->DepthOrArraySize) * GetResourceNumMipLevels(desc);
+    case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return GetResourceNumMipLevels(desc);
   }
 
   return 1;
@@ -129,7 +188,8 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el)
     }
   }
 
-  // for sampler types, this will be overwritten when serialising the sampler descriptor
+  // for sampler types, this will be overwritten when serialising the sampler
+  // descriptor
   el.nonsamp.type = type;
 
   switch(type)
