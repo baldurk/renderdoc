@@ -844,7 +844,7 @@ VkResult WrappedVulkan::vkCreateDebugReportCallbackEXT(
     return vkr;
   }
 
-  *pCallback = (VkDebugReportCallbackEXT)user;
+  *pCallback = (VkDebugReportCallbackEXT)(uint64_t)user;
 
   return vkr;
 }
@@ -853,7 +853,7 @@ void WrappedVulkan::vkDestroyDebugReportCallbackEXT(VkInstance instance,
                                                     VkDebugReportCallbackEXT callback,
                                                     const VkAllocationCallbacks *pAllocator)
 {
-  UserDebugCallbackData *user = (UserDebugCallbackData *)callback;
+  UserDebugCallbackData *user = (UserDebugCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(callback);
 
   ObjDisp(instance)->DestroyDebugReportCallbackEXT(Unwrap(instance), user->realObject, pAllocator);
 
