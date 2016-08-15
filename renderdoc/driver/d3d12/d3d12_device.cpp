@@ -1393,10 +1393,10 @@ void WrappedID3D12Device::SetLogFile(const char *logfile)
 {
   m_pSerialiser = new Serialiser(logfile, Serialiser::READING, false);
   m_pSerialiser->SetChunkNameLookup(&GetChunkName);
-  m_pSerialiser->SetUserData(m_ResourceManager);
 
   SAFE_DELETE(m_ResourceManager);
   m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
+  m_pSerialiser->SetUserData(m_ResourceManager);
 }
 
 const FetchDrawcall *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
