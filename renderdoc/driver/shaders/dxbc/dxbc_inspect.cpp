@@ -1228,7 +1228,7 @@ void DXBCFile::GuessResources()
         cb.name = desc.name;
 
         cb.descriptor.name = cb.name;
-        cb.descriptor.byteSize = numVecs * 4;
+        cb.descriptor.byteSize = numVecs * 4 * sizeof(float);
         cb.descriptor.type = CBuffer::Descriptor::TYPE_CBUFFER;
         cb.descriptor.flags = 0;
         cb.descriptor.numVars = numVecs;
