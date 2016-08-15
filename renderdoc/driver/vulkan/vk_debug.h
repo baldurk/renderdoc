@@ -244,7 +244,10 @@ public:
   VkDescriptorSetLayout m_TextDescSetLayout;
   VkPipelineLayout m_TextPipeLayout;
   VkDescriptorSet m_TextDescSet;
-  VkPipeline m_TextPipeline[2];    // 0 - RGBA8, 1 - BGRA8
+
+  // 0 - RGBA8_SRGB, 1 - BGRA8, 2 - RGBA8_SRGB, 3 - BGRA8
+  VkPipeline m_TextPipeline[4];
+
   GPUBuffer m_TextGeneralUBO;
   GPUBuffer m_TextGlyphUBO;
   GPUBuffer m_TextStringUBO;
