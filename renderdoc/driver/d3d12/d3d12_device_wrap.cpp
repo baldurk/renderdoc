@@ -1266,7 +1266,7 @@ void WrappedID3D12Device::CopyDescriptors(
                              NumSrcDescriptorRanges, srcStarts, pSrcDescriptorRangeSizes,
                              DescriptorHeapsType);
 
-	D3D12NOTIMP("CopyDescriptors does not copy our internal descriptor data");
+  D3D12NOTIMP("CopyDescriptors does not copy our internal descriptor data");
 
   UINT srcRange = 0, dstRange = 0;
   UINT srcIdx = 0, dstIdx = 0;
