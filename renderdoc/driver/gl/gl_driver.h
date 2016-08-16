@@ -342,7 +342,7 @@ private:
   bool HasSuccessfulCapture(CaptureFailReason &reason)
   {
     reason = m_FailureReason;
-    return m_SuccessfulCapture && m_ContextRecord->NumChunks() > 3;
+    return m_SuccessfulCapture && m_ContextRecord->NumChunks() > 0;
   }
   void AttemptCapture();
   bool Serialise_BeginCaptureFrame(bool applyInitialState);
