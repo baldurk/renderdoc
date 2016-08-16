@@ -74,6 +74,50 @@ extern const char *VulkanLibraryName;
 extern const uint32_t AMD_PCI_ID;
 extern const uint32_t NV_PCI_ID;
 
+class VkDriverInfo
+{
+public:
+  bool IsAMD() { return m_Vendor == AMD; }
+  bool IsNV() { return m_Vendor == NV; }
+  uint32_t Major() { return m_Major; }
+  uint32_t Minor() { return m_Minor; }
+  uint32_t Patch() { return m_Patch; }
+  VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
+  {
+    if(physProps.vendorID == AMD_PCI_ID)
+      m_Vendor = AMD;
+    else if(physProps.vendorID == NV_PCI_ID)
+      m_Vendor = NV;
+
+    m_Major = VK_VERSION_MAJOR(physProps.driverVersion);
+    m_Minor = VK_VERSION_MINOR(physProps.driverVersion);
+    m_Patch = VK_VERSION_PATCH(physProps.driverVersion);
+
+    // nvidia uses its own version packing:
+    //   10 |  8  |        8       |       6
+    // major|minor|secondary_branch|tertiary_branch
+    if(IsNV())
+    {
+      m_Major = ((uint32_t)(physProps.driverVersion) >> (8 + 8 + 6)) & 0x3ff;
+      m_Minor = ((uint32_t)(physProps.driverVersion) >> (8 + 6)) & 0x0ff;
+
+      uint32_t secondary = ((uint32_t)(physProps.driverVersion) >> 6) & 0x0ff;
+      uint32_t tertiary = physProps.driverVersion & 0x03f;
+
+      m_Patch = (secondary << 8) | tertiary;
+    }
+  }
+
+private:
+  enum
+  {
+    AMD,
+    NV,
+  } m_Vendor;
+
+  uint32_t m_Major, m_Minor, m_Patch;
+};
+
 // structure for casting to easily iterate and template specialising Serialise
 struct VkGenericStruct
 {

@@ -1433,61 +1433,36 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     RDCASSERT(err.empty() && m_FixedColSPIRV);
   }
 
-  // the newest AMD driver (at time of committing) has texelFetch fixed,
-  // but it came out recently so I want a short transition period with the
-  // workaround in place while people update. So we just check if we're
-  // on AMD and look at the modified date of amdvlk32/64.dll. Cheeky!
+  // A workaround for a couple of bugs, removing texelFetch use from shaders.
+  // It means broken functionality but at least no instant crashes
   bool texelFetchBrokenDriver = false;
 
-  if(m_pDriver->IsNV())
+  VkDriverInfo driverVersion = m_pDriver->GetDriverVersion();
+
+  if(driverVersion.IsNV())
   {
-    // at time of writing, this isn't fixed on nv, but since we have a workaround
-    // that is harmless on other IHVs - keep it supported. Once a fixed version is
-    // out we will use this + a version check to stay working on older drivers.
-    // texelFetchBrokenDriver = true;
+    // drivers before 372.54 did not handle a glslang bugfix about separated samplers,
+    // and disabling texelFetch works as a workaround.
+
+    if(driverVersion.Major() < 372 || (driverVersion.Major() == 372 && driverVersion.Minor() < 54))
+      texelFetchBrokenDriver = true;
   }
 
-  if(m_pDriver->IsAMD())
+  if(driverVersion.IsAMD())
   {
-    // assume it's broken
-    texelFetchBrokenDriver = true;
+    // for AMD the bugfix version isn't clear as version numbering wasn't strong for a while, but
+    // any driver that reports a version of >= 1.0.0 is fine, as previous versions all reported
+    // 0.9.0 as the version.
 
-#if defined(RENDERDOC_PLATFORM_WIN32)
+    if(driverVersion.Major() < 1)
+      texelFetchBrokenDriver = true;
+  }
 
-#if defined(RDC64BIT)
-    const char *moduleName = "amdvlk64.dll";
-#else
-    const char *moduleName = "amdvlk32.dll";
-#endif
-
-    // can't check version number reported as it's fixed at 0.9.0, so
-    // we go by module modified timestamp
-    HMODULE mod = GetModuleHandleA(moduleName);
-    if(mod)
-    {
-      wchar_t curFile[512] = {};
-      GetModuleFileNameW(mod, curFile, 512);
-
-      string vlkPath = StringFormat::Wide2UTF8(wstring(curFile));
-
-      uint64_t timestamp = FileIO::GetModifiedTimestamp(vlkPath);
-
-      // Any driver with modified date after this time (2016-04-17)
-      // should be fine.
-      const uint64_t referenceTimestamp = 1460880000;
-
-      if(timestamp > referenceTimestamp)
-        texelFetchBrokenDriver = false;
-      else
-        RDCWARN(
-            "Detected an older AMD driver, enabling workaround - try updating to the latest "
-            "version");
-    }
-    else
-    {
-      RDCWARN("AMD device detected but can't find %s loaded", moduleName);
-    }
-#endif
+  if(texelFetchBrokenDriver)
+  {
+    RDCWARN(
+        "Detected an older driver, enabling texelFetch workaround - try updating to the latest "
+        "version");
   }
 
   for(size_t i = 0; i < ARRAY_COUNT(module); i++)

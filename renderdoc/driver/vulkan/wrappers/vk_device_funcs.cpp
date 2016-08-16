@@ -434,28 +434,6 @@ void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCal
   m_Instance = VK_NULL_HANDLE;
 }
 
-static void GetVulkanDriverVersion(const VkPhysicalDeviceProperties &physProps, uint32_t &major,
-                                   uint32_t &minor, uint32_t &patch)
-{
-  major = VK_VERSION_MAJOR(physProps.driverVersion);
-  minor = VK_VERSION_MINOR(physProps.driverVersion);
-  patch = VK_VERSION_PATCH(physProps.driverVersion);
-
-  // nvidia uses its own version packing:
-  //   10 |  8  |        8       |       6
-  // major|minor|secondary_branch|tertiary_branch
-  if(physProps.vendorID == NV_PCI_ID)
-  {
-    major = ((uint32_t)(physProps.driverVersion) >> (8 + 8 + 6)) & 0x3ff;
-    minor = ((uint32_t)(physProps.driverVersion) >> (8 + 6)) & 0x0ff;
-
-    uint32_t secondary = ((uint32_t)(physProps.driverVersion) >> 6) & 0x0ff;
-    uint32_t tertiary = physProps.driverVersion & 0x03f;
-
-    patch = (secondary << 8) | tertiary;
-  }
-}
-
 bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerialiser,
                                                          VkInstance instance,
                                                          uint32_t *pPhysicalDeviceCount,
@@ -563,22 +541,22 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
     memcpy(storedMap, memIdxMap, sizeof(memIdxMap));
     m_MemIdxMaps[physIndex] = storedMap;
 
-    uint32_t major = 0, minor = 0, patch = 0;
-    GetVulkanDriverVersion(physProps, major, minor, patch);
+    VkDriverInfo capturedVersion(physProps);
 
     RDCLOG("Captured log describes physical device %u:", physIndex);
-    RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName, major, minor, patch,
+    RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName,
+           capturedVersion.Major(), capturedVersion.Minor(), capturedVersion.Patch(),
            physProps.vendorID, physProps.deviceID);
 
     ObjDisp(pd)->GetPhysicalDeviceProperties(Unwrap(pd), &physProps);
     ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &memProps);
     ObjDisp(pd)->GetPhysicalDeviceFeatures(Unwrap(pd), &physFeatures);
 
-    GetVulkanDriverVersion(physProps, major, minor, patch);
+    VkDriverInfo runningVersion(physProps);
 
     RDCLOG("Replaying on physical device %u:", physIndex);
-    RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName, major, minor, patch,
-           physProps.vendorID, physProps.deviceID);
+    RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName, runningVersion.Major(),
+           runningVersion.Minor(), runningVersion.Patch(), physProps.vendorID, physProps.deviceID);
   }
 
   return true;

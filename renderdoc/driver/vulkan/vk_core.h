@@ -353,8 +353,7 @@ private:
 
   const VkPhysicalDeviceFeatures &GetDeviceFeatures() { return m_PhysicalDeviceData.features; }
   const VkPhysicalDeviceProperties &GetDeviceProps() { return m_PhysicalDeviceData.props; }
-  bool IsAMD() { return m_PhysicalDeviceData.props.vendorID == AMD_PCI_ID; }
-  bool IsNV() { return m_PhysicalDeviceData.props.vendorID == NV_PCI_ID; }
+  VkDriverInfo GetDriverVersion() { return VkDriverInfo(m_PhysicalDeviceData.props); }
   const VkFormatProperties &GetFormatProperties(VkFormat f)
   {
     return m_PhysicalDeviceData.fmtprops[f];
