@@ -4371,7 +4371,11 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   if(sample == ~0U)
     data->HistogramSample = -iminfo.samples;
   data->HistogramMin = minval;
-  data->HistogramMax = maxval;
+
+  // The calculation in the shader normalises each value between min and max, then multiplies by the
+  // number of buckets.
+  // But any value equal to HistogramMax must go into NUM_BUCKETS-1, so add a small delta.
+  data->HistogramMax = maxval + maxval * 1e-6f;
 
   uint32_t chans = 0;
   if(channels[0])

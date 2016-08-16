@@ -1755,7 +1755,12 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
   if(sample == ~0U)
     cdata.HistogramSample = -int(details.sampleCount);
   cdata.HistogramMin = minval;
-  cdata.HistogramMax = maxval;
+
+  // The calculation in the shader normalises each value between min and max, then multiplies by the
+  // number of buckets.
+  // But any value equal to HistogramMax must go into NUM_BUCKETS-1, so add a small delta.
+  cdata.HistogramMax = maxval + maxval * 1e-6f;
+
   cdata.HistogramChannels = 0;
   if(channels[0])
     cdata.HistogramChannels |= 0x1;
