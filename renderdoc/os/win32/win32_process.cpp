@@ -35,15 +35,24 @@
 
 using std::string;
 
+static wstring lowercase(wstring in)
+{
+  wstring ret;
+  ret.resize(in.size());
+  for(size_t i = 0; i < ret.size(); i++)
+    ret[i] = towlower(in[i]);
+  return ret;
+}
+
 static vector<Process::EnvironmentModification> &GetEnvModifications()
 {
   static vector<Process::EnvironmentModification> envCallbacks;
   return envCallbacks;
 }
 
-static map<string, string> EnvStringToEnvMap(const wchar_t *envstring)
+static map<wstring, string> EnvStringToEnvMap(const wchar_t *envstring)
 {
-  map<string, string> ret;
+  map<wstring, string> ret;
 
   const wchar_t *e = envstring;
 
@@ -57,7 +66,8 @@ static map<string, string> EnvStringToEnvMap(const wchar_t *envstring)
     name.assign(e, equals);
     value = equals + 1;
 
-    ret[StringFormat::Wide2UTF8(name)] = StringFormat::Wide2UTF8(value);
+    // set all names to lower case so we can do case-insensitive lookups
+    ret[lowercase(name)] = StringFormat::Wide2UTF8(value);
 
     e += name.size();     // jump to =
     e++;                  // advance past it
@@ -82,7 +92,7 @@ void Process::ApplyEnvironmentModification()
 {
   // turn environment string to a UTF-8 map
   LPWCH envStrings = GetEnvironmentStringsW();
-  map<string, string> currentEnv = EnvStringToEnvMap(envStrings);
+  map<wstring, string> currentEnv = EnvStringToEnvMap(envStrings);
   FreeEnvironmentStringsW(envStrings);
   vector<EnvironmentModification> &modifications = GetEnvModifications();
 
@@ -90,7 +100,19 @@ void Process::ApplyEnvironmentModification()
   {
     EnvironmentModification &m = modifications[i];
 
-    string value = currentEnv[m.name];
+    // set all names to lower case so we can do case-insensitive lookups, but
+    // preserve the original name so that added variables maintain the same case
+    wstring name = StringFormat::UTF82Wide(m.name);
+    wstring lowername = lowercase(name);
+
+    string value;
+
+    auto it = currentEnv.find(lowername);
+    if(it != currentEnv.end())
+    {
+      value = it->second;
+      name = lowername;
+    }
 
     switch(m.type)
     {
@@ -124,8 +146,7 @@ void Process::ApplyEnvironmentModification()
       default: RDCERR("Unexpected environment modification type");
     }
 
-    SetEnvironmentVariableW(StringFormat::UTF82Wide(m.name).c_str(),
-                            StringFormat::UTF82Wide(value).c_str());
+    SetEnvironmentVariableW(name.c_str(), StringFormat::UTF82Wide(value).c_str());
   }
 
   // these have been applied to the current process
