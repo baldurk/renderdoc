@@ -287,8 +287,17 @@ namespace renderdocui.Windows.Dialogs
             }
 
             string workingDir = "";
-            if (Directory.Exists(RealWorkDir))
+
+            // for non-remote captures, check the directory locally
+            if (m_Core.Renderer.Remote == null)
+            {
+                if (Directory.Exists(RealWorkDir))
+                    workingDir = RealWorkDir;
+            }
+            else
+            {
                 workingDir = RealWorkDir;
+            }
 
             string cmdLine = cmdline.Text;
 
