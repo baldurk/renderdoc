@@ -46,18 +46,6 @@ namespace FileIO
 // in posix/.../..._stringio.cpp
 const char *GetTempRootPath();
 
-string GetAppFolderFilename(const string &filename)
-{
-  passwd *pw = getpwuid(getuid());
-  const char *homedir = pw->pw_dir;
-
-  string ret = string(homedir) + "/.renderdoc/";
-
-  mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
-  return ret + filename;
-}
-
 void CreateParentDirectory(const string &filename)
 {
   string fn = dirname(filename);
