@@ -624,4 +624,23 @@ void WriteOutput(int channel, const char *str)
   else if(channel == OSUtility::Output_StdErr)
     fwprintf(stderr, L"%ls", wstr.c_str());
 }
+
+uint64_t GetMachineIdent()
+{
+  uint64_t ret = MachineIdent_Windows;
+
+#if defined(_M_ARM) || defined(__arm__)
+  ret |= MachineIdent_Arch_ARM;
+#else
+  ret |= MachineIdent_Arch_x86;
+#endif
+
+#if defined(RDC64BIT)
+  ret |= MachineIdent_64bit;
+#else
+  ret |= MachineIdent_32bit;
+#endif
+
+  return ret;
+}
 };

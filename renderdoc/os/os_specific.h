@@ -376,6 +376,41 @@ enum
   Output_StdErr
 };
 void WriteOutput(int channel, const char *str);
+
+enum MachineIdentBits
+{
+  MachineIdent_Windows = 0x00000001,
+  MachineIdent_Linux = 0x00000002,
+  MachineIdent_macOS = 0x00000004,
+  MachineIdent_Android = 0x00000008,
+  MachineIdent_iOS = 0x00000010,
+  // unused bits 0x20, 0x40, 0x80
+  MachineIdent_OS_Mask = 0x000000ff,
+
+  MachineIdent_Arch_x86 = 0x00000100,
+  MachineIdent_Arch_ARM = 0x00000200,
+  // unused bits 0x400, 0x800
+  MachineIdent_Arch_Mask = 0x00000f00,
+
+  MachineIdent_32bit = 0x00001000,
+  MachineIdent_64bit = 0x00002000,
+  MachineIdent_Width_Mask = (MachineIdent_64bit | MachineIdent_32bit),
+
+  // unused bits 0x4000, 0x8000
+
+  // not filled out as yet but reserved for future use
+  MachineIdent_GPU_ARM = 0x00010000,
+  MachineIdent_GPU_AMD = 0x00020000,
+  MachineIdent_GPU_IMG = 0x00040000,
+  MachineIdent_GPU_Intel = 0x00080000,
+  MachineIdent_GPU_NV = 0x00100000,
+  MachineIdent_GPU_QUALCOMM = 0x00200000,
+  MachineIdent_GPU_Samsung = 0x00400000,
+  MachineIdent_GPU_Verisilicon = 0x00800000,
+  MachineIdent_GPU_Mask = 0x0fff0000,
+};
+
+uint64_t GetMachineIdent();
 };
 
 namespace Bits
