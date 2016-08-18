@@ -222,6 +222,18 @@ const char *GetTempRootPath()
   return "/tmp";
 }
 
+string GetAppFolderFilename(const string &filename)
+{
+  passwd *pw = getpwuid(getuid());
+  const char *homedir = pw->pw_dir;
+
+  string ret = string(homedir) + "/.renderdoc/";
+
+  mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+  return ret + filename;
+}
+
 void GetExecutableFilename(string &selfName)
 {
   char path[512] = {0};
