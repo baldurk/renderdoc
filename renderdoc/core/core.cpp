@@ -319,7 +319,10 @@ RenderDoc::~RenderDoc()
   if(m_RemoteThread)
   {
     m_RemoteServerThreadShutdown = true;
-    // don't join, just close the thread, as we can't wait while in the middle of module unloading
+    // On windows we can't join to this thread as it could lead to deadlocks, since we're
+    // performing this destructor in the middle of module unloading. However we want to
+    // ensure that the thread gets properly tidied up and closes its socket, so wait a little
+    // while to give it time to notice the shutdown signal and close itself.
     Threading::Sleep(50);
     Threading::CloseThread(m_RemoteThread);
     m_RemoteThread = 0;
