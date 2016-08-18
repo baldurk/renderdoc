@@ -523,3 +523,18 @@ enum TargetControlMessageType
   eTargetControlMsg_RegisterAPI,
   eTargetControlMsg_NewChild,
 };
+
+enum EnvironmentModificationType
+{
+  eEnvMod_Set,
+  eEnvMod_Append,
+  eEnvMod_Prepend,
+};
+
+enum EnvironmentSeparator
+{
+  eEnvSep_Platform,
+  eEnvSep_SemiColon,
+  eEnvSep_Colon,
+  eEnvSep_None,
+};

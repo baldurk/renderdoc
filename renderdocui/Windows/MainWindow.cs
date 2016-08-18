@@ -833,14 +833,14 @@ namespace renderdocui.Windows
             return "";
         }
 
-        private LiveCapture OnCaptureTrigger(string exe, string workingDir, string cmdLine, CaptureOptions opts)
+        private LiveCapture OnCaptureTrigger(string exe, string workingDir, string cmdLine, EnvironmentModification[] env, CaptureOptions opts)
         {
             if (!PromptCloseLog())
                 return null;
 
             string logfile = m_Core.TempLogFilename(Path.GetFileNameWithoutExtension(exe));
 
-            UInt32 ret = m_Core.Renderer.ExecuteAndInject(exe, workingDir, cmdLine, logfile, opts);
+            UInt32 ret = m_Core.Renderer.ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
 
             if (ret == 0)
             {

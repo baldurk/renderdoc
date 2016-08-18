@@ -303,7 +303,7 @@ struct CaptureCommand : public Command
 
     uint32_t ident = RENDERDOC_ExecuteAndInject(
         executable.c_str(), workingDir.empty() ? "" : workingDir.c_str(),
-        cmdLine.empty() ? "" : cmdLine.c_str(), logFile.empty() ? "" : logFile.c_str(), &opts,
+        cmdLine.empty() ? "" : cmdLine.c_str(), NULL, logFile.empty() ? "" : logFile.c_str(), &opts,
         parser.exist("wait-for-exit"));
 
     if(ident == 0)

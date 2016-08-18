@@ -487,7 +487,7 @@ struct IRemoteServer
   virtual rdctype::array<DirectoryFile> ListFolder(const char *path) = 0;
 
   virtual uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                                    const CaptureOptions *opts) = 0;
+                                    void *env, const CaptureOptions *opts) = 0;
 
   virtual void TakeOwnershipCapture(const char *filename) = 0;
   virtual rdctype::str CopyCaptureToRemote(const char *filename, float *progress) = 0;
@@ -529,7 +529,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ListFolder(
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,
-                              const char *cmdLine, const CaptureOptions *opts);
+                              const char *cmdLine, void *env, const CaptureOptions *opts);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(RemoteServer *remote,
                                                                              const char *filename);
@@ -628,7 +628,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartGlobalHook(const char 
                                                                      const char *logfile,
                                                                      const CaptureOptions *opts);
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine, void *env,
                            const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(
     uint32_t pid, const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
@@ -647,3 +647,11 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetCommitHash();
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name);
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name,
                                                                       const char *value);
+
+extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_MakeEnvironmentModificationList(int numElems);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetEnvironmentModification(
+    void *mem, int idx, const char *variable, const char *value, EnvironmentModificationType type,
+    EnvironmentSeparator separator);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeEnvironmentModificationList(void *mem);

@@ -52,17 +52,17 @@ enum ModificationType
   eEnvModification_Replace = 0,
 
   // prepend/append options will replace if there is no existing variable
-  eEnvModification_Append,             // append with no separators
-  eEnvModification_AppendColon,        // append, separated by colons
-  eEnvModification_AppendSemiColon,    // append, separated by semi-colons
   eEnvModification_AppendPlatform,     // append, separated by colons for linux & semi-colons for
                                        // windows
+  eEnvModification_AppendSemiColon,    // append, separated by semi-colons
+  eEnvModification_AppendColon,        // append, separated by colons
+  eEnvModification_Append,             // append with no separators
 
-  eEnvModification_Prepend,             // prepend with no separators
-  eEnvModification_PrependColon,        // prepend, separated by colons
-  eEnvModification_PrependSemiColon,    // prepend, separated by semi-colons
   eEnvModification_PrependPlatform,     // prepend, separated by colons for linux & semi-colons for
                                         // windows
+  eEnvModification_PrependSemiColon,    // prepend, separated by semi-colons
+  eEnvModification_PrependColon,        // prepend, separated by colons
+  eEnvModification_Prepend,             // prepend with no separators
 };
 struct EnvironmentModification
 {
@@ -84,8 +84,8 @@ uint32_t InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptio
                            bool waitForExit);
 uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdLine);
 uint32_t LaunchAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
-                                    const char *logfile, const CaptureOptions *opts,
-                                    bool waitForExit);
+                                    EnvironmentModification *env, const char *logfile,
+                                    const CaptureOptions *opts, bool waitForExit);
 void *LoadModule(const char *module);
 void *GetFunctionAddress(void *module, const char *function);
 uint32_t GetCurrentPID();

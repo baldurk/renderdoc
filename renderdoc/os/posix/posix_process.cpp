@@ -361,8 +361,9 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 }
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
-                                             const char *cmdLine, const char *logfile,
-                                             const CaptureOptions *opts, bool waitForExit)
+                                             const char *cmdLine, EnvironmentModification *envList,
+                                             const char *logfile, const CaptureOptions *opts,
+                                             bool waitForExit)
 {
   if(app == NULL || app[0] == 0)
   {
@@ -374,6 +375,22 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   char **currentEnvironment = GetCurrentEnvironment();
   map<string, string> env = EnvStringToEnvMap((const char **)currentEnvironment);
   vector<EnvironmentModification> &modifications = GetEnvModifications();
+
+  if(envList)
+  {
+    for(;;)
+    {
+      EnvironmentModification e = *envList;
+      e.name = trim(e.name);
+
+      if(e.name == "")
+        break;
+
+      modifications.push_back(e);
+
+      envList++;
+    }
+  }
 
   if(logfile == NULL)
     logfile = "";

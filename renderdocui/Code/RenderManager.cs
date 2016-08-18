@@ -98,15 +98,15 @@ namespace renderdocui.Code
             while (m_Thread.IsAlive && !Running) ;
         }
 
-        public UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, string logfile, CaptureOptions opts)
+        public UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, EnvironmentModification[] env, string logfile, CaptureOptions opts)
         {
             if (m_Remote == null)
             {
-                return StaticExports.ExecuteAndInject(app, workingDir, cmdLine, logfile, opts);
+                return StaticExports.ExecuteAndInject(app, workingDir, cmdLine, env, logfile, opts);
             }
             else
             {
-                return m_Remote.ExecuteAndInject(app, workingDir, cmdLine, opts);
+                return m_Remote.ExecuteAndInject(app, workingDir, cmdLine, env, opts);
             }
         }
 

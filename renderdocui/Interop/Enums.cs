@@ -536,6 +536,21 @@ namespace renderdoc
         NewChild,
     };
 
+    public enum EnvironmentModificationType
+    {
+        Set,
+        Append,
+        Prepend,
+    };
+
+    public enum EnvironmentSeparator
+    {
+        Platform,
+        SemiColon,
+        Colon,
+        None,
+    };
+
     public static class EnumString
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -860,6 +875,20 @@ namespace renderdoc
                 case FormatComponentType.SScaled: return "SScaled";
                 case FormatComponentType.Depth: return "Depth/Stencil";
                 case FormatComponentType.Double: return "Double";
+                default: break;
+            }
+
+            return "Unknown";
+        }
+
+        public static string Str(this EnvironmentSeparator sep)
+        {
+            switch (sep)
+            {
+                case EnvironmentSeparator.Platform: return "Platform style";
+                case EnvironmentSeparator.SemiColon: return "Semi-colon (;)";
+                case EnvironmentSeparator.Colon: return "Colon (:)";
+                case EnvironmentSeparator.None: return "No Separator";
                 default: break;
             }
 

@@ -53,7 +53,10 @@ namespace renderdocui.Windows.Dialogs
             public string Executable = "";
             public string WorkingDir = "";
             public string CmdLine = "";
+            public EnvironmentModification[] Environment = new EnvironmentModification[0];
         }
+
+        private EnvironmentModification[] m_EnvModifications = new EnvironmentModification[0];
 
         private bool workDirHint = true;
 
@@ -68,6 +71,8 @@ namespace renderdocui.Windows.Dialogs
             exePath.Text = settings.Executable;
             workDirPath.Text = settings.WorkingDir;
             cmdline.Text = settings.CmdLine;
+
+            SetEnvironmentModifications(settings.Environment);
 
             workDirPath_Leave(null, null);
 
@@ -108,6 +113,8 @@ namespace renderdocui.Windows.Dialogs
             ret.Executable = exePath.Text;
             ret.WorkingDir = RealWorkDir;
             ret.CmdLine = cmdline.Text;
+
+            ret.Environment = m_EnvModifications;
 
             ret.Options.AllowFullscreen = AllowFullscreen.Checked;
             ret.Options.AllowVSync = AllowVSync.Checked;
@@ -195,7 +202,7 @@ namespace renderdocui.Windows.Dialogs
 
         #region Callbacks
 
-        public delegate LiveCapture OnCaptureMethod(string exe, string workingDir, string cmdLine, CaptureOptions opts);
+        public delegate LiveCapture OnCaptureMethod(string exe, string workingDir, string cmdLine, EnvironmentModification[] env, CaptureOptions opts);
         public delegate LiveCapture OnInjectMethod(UInt32 PID, string name, CaptureOptions opts);
 
         private OnCaptureMethod m_CaptureCallback = null;
@@ -285,7 +292,7 @@ namespace renderdocui.Windows.Dialogs
 
             string cmdLine = cmdline.Text;
 
-            var live = m_CaptureCallback(exe, workingDir, cmdLine, GetSettings().Options);
+            var live = m_CaptureCallback(exe, workingDir, cmdLine, GetSettings().Environment, GetSettings().Options);
 
             if (queueFrameCap.Checked && live != null)
                 live.QueueCapture((int)queuedCapFrame.Value);
@@ -450,6 +457,36 @@ namespace renderdocui.Windows.Dialogs
             workDirPath.Text = e.FileName;
             workDirHint = false;
             workDirPath.ForeColor = SystemColors.WindowText;
+        }
+
+        private void setEnv_Click(object sender, EventArgs e)
+        {
+            EnvironmentEditor envEditor = new EnvironmentEditor();
+
+            foreach (var mod in m_EnvModifications)
+                envEditor.AddModification(mod, true);
+
+            DialogResult res = envEditor.ShowDialog(this);
+
+            if (res == DialogResult.OK)
+                SetEnvironmentModifications(envEditor.Modifications);
+        }
+
+        private void SetEnvironmentModifications(EnvironmentModification[] modifications)
+        {
+            m_EnvModifications = modifications;
+
+            string envModText = "";
+
+            foreach (var mod in modifications)
+            {
+                if (envModText != "")
+                    envModText += ", ";
+
+                envModText += mod.GetDescription();
+            }
+
+            environmentDisplay.Text = envModText;
         }
 
         private void workDirPath_TextChanged(object sender, EventArgs e)

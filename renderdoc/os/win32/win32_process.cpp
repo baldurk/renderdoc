@@ -171,6 +171,35 @@ extern "C" __declspec(dllexport) void __cdecl RENDERDOC_SetLogFile(const char *l
   if(log)
     RenderDoc::Inst().SetLogFile(log);
 }
+
+static Process::EnvironmentModification tempEnvMod;
+
+extern "C" __declspec(dllexport) void __cdecl RENDERDOC_EnvModName(const char *name)
+{
+  if(name)
+    tempEnvMod.name = name;
+}
+
+extern "C" __declspec(dllexport) void __cdecl RENDERDOC_EnvModValue(const char *value)
+{
+  if(value)
+    tempEnvMod.value = value;
+}
+
+extern "C" __declspec(dllexport) void __cdecl RENDERDOC_EnvMod(Process::ModificationType *type)
+{
+  if(type)
+  {
+    tempEnvMod.type = *type;
+    Process::RegisterEnvironmentModification(tempEnvMod);
+  }
+}
+
+extern "C" __declspec(dllexport) void __cdecl RENDERDOC_ApplyEnvMods(void *ignored)
+{
+  Process::ApplyEnvironmentModification();
+}
+
 void InjectDLL(HANDLE hProcess, wstring libName)
 {
   wchar_t dllPath[MAX_PATH + 1] = {0};
@@ -591,8 +620,9 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 }
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
-                                             const char *cmdLine, const char *logfile,
-                                             const CaptureOptions *opts, bool waitForExit)
+                                             const char *cmdLine, EnvironmentModification *env,
+                                             const char *logfile, const CaptureOptions *opts,
+                                             bool waitForExit)
 {
   void *func = GetProcAddress(GetModuleHandleA("renderdoc.dll"), "RENDERDOC_SetLogFile");
 
@@ -607,17 +637,52 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   if(pi.dwProcessId == 0)
     return 0;
 
-  // don't need it
-  CloseHandle(pi.hProcess);
-
   uint32_t ret = InjectIntoProcess(pi.dwProcessId, logfile, opts, false);
 
   if(ret == 0)
   {
     ResumeThread(pi.hThread);
     CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
     return 0;
   }
+
+  if(env)
+  {
+    uintptr_t loc = FindRemoteDLL(pi.dwProcessId, L"renderdoc.dll");
+
+    if(loc == 0)
+    {
+      RDCERR("Can't locate renderdoc.dll in remote PID %d", pi.dwProcessId);
+    }
+    else
+    {
+      for(;;)
+      {
+        string name = trim(env->name);
+        string value = env->value;
+        ModificationType type = env->type;
+
+        if(name == "")
+          break;
+
+        InjectFunctionCall(pi.hProcess, loc, "RENDERDOC_EnvModName", (void *)name.c_str(),
+                           name.size() + 1);
+        InjectFunctionCall(pi.hProcess, loc, "RENDERDOC_EnvModValue", (void *)value.c_str(),
+                           value.size() + 1);
+        InjectFunctionCall(pi.hProcess, loc, "RENDERDOC_EnvMod", &type, sizeof(type));
+
+        env++;
+      }
+
+      // parameter is unused
+      InjectFunctionCall(pi.hProcess, loc, "RENDERDOC_ApplyEnvMods", env,
+                         sizeof(EnvironmentModification));
+    }
+  }
+
+  // done with it
+  CloseHandle(pi.hProcess);
 
   ResumeThread(pi.hThread);
 

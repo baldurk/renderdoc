@@ -29,6 +29,45 @@ using System.Collections.Generic;
 
 namespace renderdoc
 {
+    // this isn't an Interop struct, since it needs to be passed C# -> C++ and
+    // it's not POD which we don't support. It's here just as a utility container
+    public class EnvironmentModification
+    {
+        public string variable;
+        public string value;
+
+        public EnvironmentModificationType type;
+        public EnvironmentSeparator separator;
+
+        public string GetTypeString()
+        {
+            string ret;
+
+            if (type == EnvironmentModificationType.Append)
+                ret = String.Format("Append, {0}", separator.Str());
+            else if (type == EnvironmentModificationType.Prepend)
+                ret = String.Format("Prepend, {0}", separator.Str());
+            else
+                ret = "Set";
+
+            return ret;
+        }
+
+        public string GetDescription()
+        {
+            string ret;
+
+            if (type == EnvironmentModificationType.Append)
+                ret = String.Format("Append {0} with {1} using {2}", variable, value, separator.Str());
+            else if (type == EnvironmentModificationType.Prepend)
+                ret = String.Format("Prepend {0} with {1} using {2}", variable, value, separator.Str());
+            else
+                ret = String.Format("Set {0} to {1}", variable, value);
+
+            return ret;
+        }
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public class TargetControlMessage
     {
@@ -864,7 +903,7 @@ namespace renderdoc
         private static extern void RemoteServer_ListFolder(IntPtr real, IntPtr path, IntPtr outlist);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt32 RemoteServer_ExecuteAndInject(IntPtr real, IntPtr app, IntPtr workingDir, IntPtr cmdLine, CaptureOptions opts);
+        private static extern UInt32 RemoteServer_ExecuteAndInject(IntPtr real, IntPtr app, IntPtr workingDir, IntPtr cmdLine, IntPtr env, CaptureOptions opts);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RemoteServer_TakeOwnershipCapture(IntPtr real, IntPtr filename);
@@ -878,6 +917,17 @@ namespace renderdoc
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RemoteServer_CloseCapture(IntPtr real, IntPtr rendPtr);
+
+        // static exports for lists of environment modifications
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr RENDERDOC_MakeEnvironmentModificationList(int numElems);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_SetEnvironmentModification(IntPtr mem, int idx, IntPtr variable, IntPtr value,
+                                                                        EnvironmentModificationType type, EnvironmentSeparator separator);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_FreeEnvironmentModificationList(IntPtr mem);
 
         private IntPtr m_Real = IntPtr.Zero;
 
@@ -966,13 +1016,28 @@ namespace renderdoc
             return ret;
         }
 
-        public UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, CaptureOptions opts)
+        public UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, EnvironmentModification[] env, CaptureOptions opts)
         {
             IntPtr app_mem = CustomMarshal.MakeUTF8String(app);
             IntPtr workingDir_mem = CustomMarshal.MakeUTF8String(workingDir);
             IntPtr cmdLine_mem = CustomMarshal.MakeUTF8String(cmdLine);
 
-            UInt32 ret = RemoteServer_ExecuteAndInject(m_Real, app_mem, workingDir_mem, cmdLine_mem, opts);
+            IntPtr env_mem = RENDERDOC_MakeEnvironmentModificationList(env.Length);
+
+            for (int i = 0; i < env.Length; i++)
+            {
+                IntPtr var_mem = CustomMarshal.MakeUTF8String(env[i].variable);
+                IntPtr val_mem = CustomMarshal.MakeUTF8String(env[i].value);
+
+                RENDERDOC_SetEnvironmentModification(env_mem, i, var_mem, val_mem, env[i].type, env[i].separator);
+
+                CustomMarshal.Free(var_mem);
+                CustomMarshal.Free(val_mem);
+            }
+
+            UInt32 ret = RemoteServer_ExecuteAndInject(m_Real, app_mem, workingDir_mem, cmdLine_mem, env_mem, opts);
+
+            RENDERDOC_FreeEnvironmentModificationList(env_mem);
 
             CustomMarshal.Free(app_mem);
             CustomMarshal.Free(workingDir_mem);

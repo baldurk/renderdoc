@@ -252,6 +252,33 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char
   RenderDoc::Inst().SetConfigSetting(name, value);
 }
 
+extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_MakeEnvironmentModificationList(int numElems)
+{
+  return new Process::EnvironmentModification[numElems + 1];    // last one is a terminator
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetEnvironmentModification(
+    void *mem, int idx, const char *variable, const char *value, EnvironmentModificationType type,
+    EnvironmentSeparator separator)
+{
+  Process::EnvironmentModification *mods = (Process::EnvironmentModification *)mem;
+
+  Process::ModificationType modType = Process::eEnvModification_Replace;
+
+  if(type == eEnvMod_Append)
+    modType = Process::ModificationType(Process::eEnvModification_AppendPlatform + (int)separator);
+  if(type == eEnvMod_Prepend)
+    modType = Process::ModificationType(Process::eEnvModification_PrependPlatform + (int)separator);
+
+  mods[idx] = Process::EnvironmentModification(modType, variable, value);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeEnvironmentModificationList(void *mem)
+{
+  Process::EnvironmentModification *mods = (Process::EnvironmentModification *)mem;
+  delete[] mods;
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text)
 {
   RDCLOG("%s", text);
@@ -336,10 +363,11 @@ RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, ReplayRende
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine, void *env,
                            const char *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
-  return Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine, logfile, opts,
+  return Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine,
+                                             (Process::EnvironmentModification *)env, logfile, opts,
                                              waitForExit != 0);
 }
 

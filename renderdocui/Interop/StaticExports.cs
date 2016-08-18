@@ -58,7 +58,7 @@ namespace renderdoc
         private static extern void RENDERDOC_StartGlobalHook(IntPtr pathmatch, IntPtr logfile, CaptureOptions opts);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt32 RENDERDOC_ExecuteAndInject(IntPtr app, IntPtr workingDir, IntPtr cmdLine,
+        private static extern UInt32 RENDERDOC_ExecuteAndInject(IntPtr app, IntPtr workingDir, IntPtr cmdLine, IntPtr env,
                                                                     IntPtr logfile, CaptureOptions opts, bool waitForExit);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -99,6 +99,16 @@ namespace renderdoc
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool RENDERDOC_GetThumbnail(IntPtr filename, byte[] outmem, ref UInt32 len);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr RENDERDOC_MakeEnvironmentModificationList(int numElems);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_SetEnvironmentModification(IntPtr mem, int idx, IntPtr variable, IntPtr value,
+                                                                        EnvironmentModificationType type, EnvironmentSeparator separator);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_FreeEnvironmentModificationList(IntPtr mem);
 
         public static bool SupportLocalReplay(string logfile, out string driverName)
         {
@@ -145,14 +155,29 @@ namespace renderdoc
             CustomMarshal.Free(pathmatch_mem);
         }
 
-        public static UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, string logfile, CaptureOptions opts)
+        public static UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, EnvironmentModification[] env, string logfile, CaptureOptions opts)
         {
             IntPtr app_mem = CustomMarshal.MakeUTF8String(app);
             IntPtr workingDir_mem = CustomMarshal.MakeUTF8String(workingDir);
             IntPtr cmdLine_mem = CustomMarshal.MakeUTF8String(cmdLine);
             IntPtr logfile_mem = CustomMarshal.MakeUTF8String(logfile);
 
-            UInt32 ret = RENDERDOC_ExecuteAndInject(app_mem, workingDir_mem, cmdLine_mem, logfile_mem, opts, false);
+            IntPtr env_mem = RENDERDOC_MakeEnvironmentModificationList(env.Length);
+
+            for(int i=0; i < env.Length; i++)
+            {
+                IntPtr var_mem = CustomMarshal.MakeUTF8String(env[i].variable);
+                IntPtr val_mem = CustomMarshal.MakeUTF8String(env[i].value);
+
+                RENDERDOC_SetEnvironmentModification(env_mem, i, var_mem, val_mem, env[i].type, env[i].separator);
+
+                CustomMarshal.Free(var_mem);
+                CustomMarshal.Free(val_mem);
+            }
+
+            UInt32 ret = RENDERDOC_ExecuteAndInject(app_mem, workingDir_mem, cmdLine_mem, env_mem, logfile_mem, opts, false);
+
+            RENDERDOC_FreeEnvironmentModificationList(env_mem);
 
             CustomMarshal.Free(app_mem);
             CustomMarshal.Free(workingDir_mem);

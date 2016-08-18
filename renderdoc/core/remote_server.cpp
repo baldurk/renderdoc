@@ -50,6 +50,22 @@ void Serialiser::Serialise(const char *name, DirectoryFile &el)
   Serialise("flags", el.flags);
 }
 
+template <>
+string ToStrHelper<false, Process::ModificationType>::Get(const Process::ModificationType &el)
+{
+  return "<...>";
+}
+
+template <>
+void Serialiser::Serialise(const char *name, Process::EnvironmentModification &el)
+{
+  ScopedContext scope(this, name, "Process::EnvironmentModification", 0, true);
+
+  Serialise("type", el.type);
+  Serialise("name", el.name);
+  Serialise("value", el.value);
+}
+
 enum RemoteServerPacket
 {
   eRemoteServer_Noop,
@@ -372,17 +388,26 @@ static void ActiveRemoteClientThread(void *data)
         recvser->Serialise("cmdLine", cmdLine);
         recvser->Serialise("opts", opts);
 
+        uint64_t envListSize = 0;
+        Process::EnvironmentModification *env = NULL;
+        recvser->Serialise("envListSize", envListSize);
+
+        if(envListSize > 0)
+          recvser->SerialiseComplexArray("env", env, envListSize);
+
         uint32_t ident = eReplayCreate_NetworkIOFailed;
 
         if(threadData->allowExecution)
         {
           ident = Process::LaunchAndInjectIntoProcess(app.c_str(), workingDir.c_str(),
-                                                      cmdLine.c_str(), "", &opts, false);
+                                                      cmdLine.c_str(), env, "", &opts, false);
         }
         else
         {
           RDCWARN("Requested to execute program - disallowing based on configuration");
         }
+
+        SAFE_DELETE_ARRAY(env);
 
         sendType = eRemoteServer_ExecuteAndInject;
         sendSer.Serialise("ident", ident);
@@ -769,7 +794,7 @@ public:
     return ret;
   }
 
-  uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+  uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine, void *env,
                             const CaptureOptions *opts)
   {
     CaptureOptions capopts = opts ? *opts : CaptureOptions();
@@ -778,11 +803,35 @@ public:
     string workstr = workingDir && workingDir[0] ? workingDir : "";
     string cmdstr = cmdLine && cmdLine[0] ? cmdLine : "";
 
+    Process::EnvironmentModification *envList = (Process::EnvironmentModification *)env;
+
     Serialiser sendData("", Serialiser::WRITING, false);
     sendData.Serialise("app", appstr);
     sendData.Serialise("workingDir", workstr);
     sendData.Serialise("cmdLine", cmdstr);
     sendData.Serialise("opts", capopts);
+
+    uint64_t envListSize = 0;
+    if(envList)
+    {
+      Process::EnvironmentModification *it = envList;
+      for(;;)
+      {
+        if(it->name == "")
+          break;
+        envListSize++;
+        it++;
+      }
+
+      // include terminator
+      envListSize++;
+    }
+
+    sendData.Serialise("envListSize", envListSize);
+
+    if(envListSize > 0)
+      sendData.SerialiseComplexArray("env", envList, envListSize);
+
     Send(eRemoteServer_ExecuteAndInject, sendData);
 
     RemoteServerPacket type = eRemoteServer_ExecuteAndInject;
@@ -1019,9 +1068,9 @@ RemoteServer_RemoteSupportedReplays(RemoteServer *remote, rdctype::array<rdctype
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,
-                              const char *cmdLine, const CaptureOptions *opts)
+                              const char *cmdLine, void *env, const CaptureOptions *opts)
 {
-  return remote->ExecuteAndInject(app, workingDir, cmdLine, opts);
+  return remote->ExecuteAndInject(app, workingDir, cmdLine, env, opts);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(RemoteServer *remote,
