@@ -353,6 +353,8 @@ void RenderDoc::RemoteAccessServerThread(void *s)
   Threading::CloseThread(clientThread);
   clientThread = 0;
 
+  SAFE_DELETE(sock);
+
   Threading::ReleaseModuleExitThread();
 }
 

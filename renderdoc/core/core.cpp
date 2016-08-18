@@ -320,6 +320,7 @@ RenderDoc::~RenderDoc()
   {
     m_RemoteServerThreadShutdown = true;
     // don't join, just close the thread, as we can't wait while in the middle of module unloading
+    Threading::Sleep(50);
     Threading::CloseThread(m_RemoteThread);
     m_RemoteThread = 0;
   }

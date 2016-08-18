@@ -622,7 +622,14 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
           if(RenderDoc::Inst().IsRemoteAccessConnected())
             overlayText += "Connected by " + RenderDoc::Inst().GetRemoteAccessUsername() + ".";
           else
-            overlayText += "No remote access connection.";
+          {
+            uint32_t port = RenderDoc::Inst().GetRemoteAccessIdent();
+            if(port)
+              overlayText +=
+                  StringFormat::Fmt("Listening for remote access connection on port %i.", port);
+            else
+              overlayText += "No remote access socket.";
+          }
         }
 
         if(overlay & eRENDERDOC_Overlay_FrameNumber)

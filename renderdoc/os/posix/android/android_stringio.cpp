@@ -72,6 +72,11 @@ const char *GetTempRootPath()
   return ret.c_str();
 }
 
+string GetAppFolderFilename(const string &filename)
+{
+  return GetTempRootPath() + filename;
+}
+
 // For RenderDocCmd.apk, this returns "org.renderdoc.renderdoccmd"
 // For other APKs, we use it to get the writable temp directory.
 void GetExecutableFilename(string &selfName)
