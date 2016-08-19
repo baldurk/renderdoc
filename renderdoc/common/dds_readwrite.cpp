@@ -734,7 +734,8 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 
   // special case a couple of formats to write out non-DX10 style, for
   // backwards compatibility
-  if(data.format.compByteWidth == 1 && data.format.compCount == 4)
+  if(data.format.compByteWidth == 1 && data.format.compCount == 4 &&
+     data.format.compType == eCompType_UNorm)
   {
     header.ddspf.dwFlags = DDPF_RGBA;
     header.ddspf.dwRGBBitCount = 32;
@@ -742,6 +743,9 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
     header.ddspf.dwGBitMask = 0x0000ff00;
     header.ddspf.dwBBitMask = 0x00ff0000;
     header.ddspf.dwABitMask = 0xff000000;
+
+    if(data.format.bgraOrder)
+      std::swap(header.ddspf.dwRBitMask, header.ddspf.dwBBitMask);
   }
   else if(data.format.specialFormat == eSpecial_BC1)
   {
@@ -956,6 +960,9 @@ dds_data load_dds_from_file(FILE *f)
     ret.format.compCount = header.ddspf.dwRGBBitCount / 8;
     ret.format.compType = eCompType_UNorm;
     ret.format.special = false;
+
+    if(header.ddspf.dwBBitMask < header.ddspf.dwRBitMask)
+      ret.format.bgraOrder = true;
   }
 
   uint32_t bytesPerPixel = 1;
