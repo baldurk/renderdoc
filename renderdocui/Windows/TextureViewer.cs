@@ -1598,9 +1598,6 @@ namespace renderdocui.Windows
             if (m_TexDisplay.typeHint == FormatComponentType.None && m_TextureSettings.ContainsKey(m_TexDisplay.texid))
                 m_TexDisplay.typeHint = m_TextureSettings[m_TexDisplay.texid].typeHint;
 
-            m_CurPixelValue = null;
-            m_CurRealValue = null;
-
             // try to maintain the pan in the new texture. If the new texture
             // is approx an integer multiple of the old texture, just changing
             // the scale will keep everything the same. This is useful for
@@ -1833,6 +1830,9 @@ namespace renderdocui.Windows
 
                 if (tex.ID != ResourceId.Null)
                 {
+                    if (m_Output != null)
+                        RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+
                     var us = r.GetUsage(tex.ID);
 
                     var tb = m_Core.TimelineBar;
@@ -1844,6 +1844,11 @@ namespace renderdocui.Windows
                             tb.HighlightResource(tex.ID, tex.name, us);
                         }));
                     }
+                }
+                else
+                {
+                    m_CurPixelValue = null;
+                    m_CurRealValue = null;
                 }
             });
         }
