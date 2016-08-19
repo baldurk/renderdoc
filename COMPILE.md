@@ -32,13 +32,13 @@ Requirements are linking against -lX11 and -lGL. For qrenderdoc you need qt5 alo
 This is the apt-get line you'd need to install the requirements on Ubuntu 14.04:
 
 ```
-sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev cmake vim-common
+sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev cmake
 ```
 
 For Archlinux (as of 2016.08.04) you'll need:
 
 ```
-sudo pacman -S libx11 libx11-xcb xcb-util-keysyms mesa mesa-libgl qt5-base qt5-x11extras cmake vim
+sudo pacman -S libx11 libx11-xcb xcb-util-keysyms mesa mesa-libgl qt5-base qt5-x11extras cmake
 ```
 
 If you know the required packages for another distribution, please share (or pull request this file!)
