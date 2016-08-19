@@ -403,7 +403,8 @@ namespace renderdoc
         public static string PtrToStringUTF8(IntPtr elems, int count)
         {
             byte[] buffer = new byte[count];
-            Marshal.Copy(elems, buffer, 0, buffer.Length);
+            if (count > 0)
+                Marshal.Copy(elems, buffer, 0, buffer.Length);
             return System.Text.Encoding.UTF8.GetString(buffer);
         }
 
