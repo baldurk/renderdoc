@@ -634,6 +634,66 @@ namespace renderdocui.Windows
                 {
                     support = StaticExports.SupportLocalReplay(filename, out driver, out machineIdent);
 
+                    // if the return value suggests remote replay, and it's not already selected, AND the user hasn't
+                    // previously chosen to always replay locally without being prompted, ask if they'd prefer to
+                    // switch to a remote context for replaying.
+                    if (support == ReplaySupport.SuggestRemote && !remoteReplay && !m_Core.Config.AlwaysReplayLocally)
+                    {
+                        var dialog = new Dialogs.SuggestRemoteDialog(driver, machineIdent);
+
+                        FillRemotesToolStrip(dialog.RemoteItems, false);
+
+                        dialog.ShowDialog();
+
+                        if (dialog.Result == Dialogs.SuggestRemoteDialog.SuggestRemoteResult.Cancel)
+                        {
+                            return;
+                        }
+                        else if (dialog.Result == Dialogs.SuggestRemoteDialog.SuggestRemoteResult.Remote)
+                        {
+                            // we only get back here from the dialog once the context switch has begun,
+                            // so contextChooser will have been disabled.
+                            // Check once to see if it's enabled before even popping up the dialog in case
+                            // it has finished already. Otherwise pop up a waiting dialog until it completes
+                            // one way or another, then process the result.
+
+                            if (!contextChooser.Enabled)
+                            {
+                                ProgressPopup modal = new ProgressPopup((ModalCloseCallback)delegate
+                                {
+                                    return contextChooser.Enabled;
+                                }, false);
+                                modal.SetModalText("Please Wait - Checking remote connection...");
+
+                                modal.ShowDialog();
+                            }
+
+                            remoteReplay = (m_Core.Renderer.Remote != null && m_Core.Renderer.Remote.Connected);
+
+                            if (!remoteReplay)
+                            {
+                                string remoteMessage = "Failed to make a connection to the remote server.\n\n";
+
+                                remoteMessage += "More information may be available in the status bar.";
+
+                                MessageBox.Show(remoteMessage, "Couldn't connect to remote server", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            // nothing to do - we just continue replaying locally
+                            // however we need to check if the user selected 'always replay locally' and
+                            // set that bit as sticky in the config
+                            if (dialog.AlwaysReplayLocally)
+                            {
+                                m_Core.Config.AlwaysReplayLocally = true;
+
+                                m_Core.Config.Serialize(Core.ConfigFilename);
+                            }
+                        }
+                    }
+
                     if (remoteReplay)
                     {
                         support = ReplaySupport.Unsupported;
@@ -933,13 +993,13 @@ namespace renderdocui.Windows
             }
         }
 
-        private void contextChooser_DropDownOpening(object sender, EventArgs e)
+        private void FillRemotesToolStrip(ToolStripItemCollection strip, bool includeLocalhost)
         {
             ToolStripItem[] items = new ToolStripItem[m_Core.Config.RemoteHosts.Count];
 
             int idx = 0;
 
-            for(int i=0; i < m_Core.Config.RemoteHosts.Count; i++)
+            for (int i = 0; i < m_Core.Config.RemoteHosts.Count; i++)
             {
                 RemoteHost host = m_Core.Config.RemoteHosts[i];
 
@@ -961,14 +1021,27 @@ namespace renderdocui.Windows
                 items[idx++] = item;
             }
 
-            items[idx] = localContext;
+            if(includeLocalhost && idx < items.Length)
+                items[idx] = localContext;
 
-            contextChooser.DropDownItems.Clear();
-            contextChooser.DropDownItems.AddRange(items);
+            strip.Clear();
+            foreach(ToolStripItem item in items)
+                if(item != null)
+                    strip.Add(item);
+        }
+
+        private void contextChooser_DropDownOpening(object sender, EventArgs e)
+        {
+            FillRemotesToolStrip(contextChooser.DropDownItems, true);
         }
 
         private void switchContext(object sender, EventArgs e)
         {
+            ToolStripItem item = sender as ToolStripItem;
+
+            if(item == null)
+                return;
+
             foreach (var live in m_LiveCaptures)
                 if (live.CheckAllowClose() == false)
                     return;
@@ -984,7 +1057,7 @@ namespace renderdocui.Windows
 
             m_Core.Renderer.DisconnectFromRemoteServer();
 
-            if(sender == localContext)
+            if (item.Tag == null)
             {
                 contextChooser.Image = global::renderdocui.Properties.Resources.house;
                 contextChooser.Text = "Replay Context: Local";
@@ -997,7 +1070,7 @@ namespace renderdocui.Windows
             }
             else
             {
-                RemoteHost host = (sender as ToolStripMenuItem).Tag as RemoteHost;
+                RemoteHost host = item.Tag as RemoteHost;
                 contextChooser.Text = "Replay Context: " + host.Hostname;
                 contextChooser.Image = host.ServerRunning
                     ? global::renderdocui.Properties.Resources.connect

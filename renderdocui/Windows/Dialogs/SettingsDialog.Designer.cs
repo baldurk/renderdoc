@@ -43,6 +43,7 @@
             System.Windows.Forms.Label label3;
             System.Windows.Forms.Label label11;
             System.Windows.Forms.Label label15;
+            System.Windows.Forms.Label label18;
             System.Windows.Forms.TableLayoutPanel tableLayoutPanel6;
             System.Windows.Forms.Label label19;
             System.Windows.Forms.GroupBox groupBox2;
@@ -52,9 +53,12 @@
             System.Windows.Forms.GroupBox groupBox4;
             System.Windows.Forms.Label label8;
             System.Windows.Forms.Label label9;
-            TreelistView.TreeListColumn treeListColumn3 = new TreelistView.TreeListColumn("Section", "Section");
             System.Windows.Forms.Label label16;
             System.Windows.Forms.Label label17;
+            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Section", "Section")));
+            this.ok = new System.Windows.Forms.Button();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.settingsTabs = new renderdocui.Controls.TablessControl();
             this.generalTab = new System.Windows.Forms.TabPage();
             this.AllowGlobalHook = new System.Windows.Forms.CheckBox();
@@ -67,6 +71,7 @@
             this.CheckUpdate_AllowChecks = new System.Windows.Forms.CheckBox();
             this.browseCaptureDirectory = new System.Windows.Forms.Button();
             this.Font_PreferMonospaced = new System.Windows.Forms.CheckBox();
+            this.AlwaysReplayLocally = new System.Windows.Forms.CheckBox();
             this.corePage = new System.Windows.Forms.TabPage();
             this.groupBox5 = new System.Windows.Forms.GroupBox();
             this.chooseSearchPaths = new System.Windows.Forms.Button();
@@ -82,12 +87,9 @@
             this.tableLayoutPanel5 = new System.Windows.Forms.TableLayoutPanel();
             this.EventBrowser_TimeUnit = new System.Windows.Forms.ComboBox();
             this.EventBrowser_HideEmpty = new System.Windows.Forms.CheckBox();
-            this.pagesTree = new TreelistView.TreeListView();
-            this.ok = new System.Windows.Forms.Button();
-            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.EventBrowser_ApplyColours = new System.Windows.Forms.CheckBox();
             this.EventBrowser_ColourEventRow = new System.Windows.Forms.CheckBox();
+            this.pagesTree = new TreelistView.TreeListView();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             groupBox1 = new System.Windows.Forms.GroupBox();
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
@@ -101,6 +103,7 @@
             label3 = new System.Windows.Forms.Label();
             label11 = new System.Windows.Forms.Label();
             label15 = new System.Windows.Forms.Label();
+            label18 = new System.Windows.Forms.Label();
             tableLayoutPanel6 = new System.Windows.Forms.TableLayoutPanel();
             label19 = new System.Windows.Forms.Label();
             groupBox2 = new System.Windows.Forms.GroupBox();
@@ -150,8 +153,23 @@
             tableLayoutPanel1.RowCount = 2;
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            tableLayoutPanel1.Size = new System.Drawing.Size(580, 353);
+            tableLayoutPanel1.Size = new System.Drawing.Size(580, 363);
             tableLayoutPanel1.TabIndex = 1;
+            // 
+            // ok
+            // 
+            this.ok.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.ok.Location = new System.Drawing.Point(502, 337);
+            this.ok.Name = "ok";
+            this.ok.Size = new System.Drawing.Size(75, 23);
+            this.ok.TabIndex = 100;
+            this.ok.Text = "OK";
+            this.ok.UseVisualStyleBackColor = true;
+            this.ok.Click += new System.EventHandler(this.ok_Click);
+            // 
+            // browserCaptureDialog
+            // 
+            this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             // 
             // settingsTabs
             // 
@@ -166,7 +184,7 @@
             this.settingsTabs.Multiline = true;
             this.settingsTabs.Name = "settingsTabs";
             this.settingsTabs.SelectedIndex = 0;
-            this.settingsTabs.Size = new System.Drawing.Size(400, 318);
+            this.settingsTabs.Size = new System.Drawing.Size(400, 328);
             this.settingsTabs.TabIndex = 0;
             // 
             // generalTab
@@ -175,7 +193,7 @@
             this.generalTab.Location = new System.Drawing.Point(42, 4);
             this.generalTab.Name = "generalTab";
             this.generalTab.Padding = new System.Windows.Forms.Padding(3);
-            this.generalTab.Size = new System.Drawing.Size(354, 310);
+            this.generalTab.Size = new System.Drawing.Size(354, 320);
             this.generalTab.TabIndex = 0;
             this.generalTab.Text = "General";
             this.generalTab.UseVisualStyleBackColor = true;
@@ -186,7 +204,7 @@
             groupBox1.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox1.Location = new System.Drawing.Point(3, 3);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new System.Drawing.Size(348, 304);
+            groupBox1.Size = new System.Drawing.Size(348, 314);
             groupBox1.TabIndex = 0;
             groupBox1.TabStop = false;
             groupBox1.Text = "General";
@@ -216,10 +234,12 @@
             tableLayoutPanel2.Controls.Add(this.browseCaptureDirectory, 1, 6);
             tableLayoutPanel2.Controls.Add(label15, 0, 9);
             tableLayoutPanel2.Controls.Add(this.Font_PreferMonospaced, 1, 9);
+            tableLayoutPanel2.Controls.Add(label18, 0, 10);
+            tableLayoutPanel2.Controls.Add(this.AlwaysReplayLocally, 1, 10);
             tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
             tableLayoutPanel2.Location = new System.Drawing.Point(3, 16);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
-            tableLayoutPanel2.RowCount = 11;
+            tableLayoutPanel2.RowCount = 12;
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
@@ -229,9 +249,10 @@
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            tableLayoutPanel2.Size = new System.Drawing.Size(342, 285);
+            tableLayoutPanel2.Size = new System.Drawing.Size(342, 295);
             tableLayoutPanel2.TabIndex = 0;
             // 
             // AllowGlobalHook
@@ -545,13 +566,40 @@
             this.Font_PreferMonospaced.UseVisualStyleBackColor = true;
             this.Font_PreferMonospaced.CheckedChanged += new System.EventHandler(this.Font_PreferMonospaced_CheckedChanged);
             // 
+            // label18
+            // 
+            label18.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label18.AutoSize = true;
+            label18.Location = new System.Drawing.Point(3, 251);
+            label18.Name = "label18";
+            label18.Size = new System.Drawing.Size(240, 20);
+            label18.TabIndex = 19;
+            label18.Text = "Always replay logs locally, never prompt about it";
+            label18.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.toolTip.SetToolTip(label18, resources.GetString("label18.ToolTip"));
+            // 
+            // AlwaysReplayLocally
+            // 
+            this.AlwaysReplayLocally.AutoSize = true;
+            this.AlwaysReplayLocally.Checked = true;
+            this.AlwaysReplayLocally.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.AlwaysReplayLocally.Location = new System.Drawing.Point(249, 254);
+            this.AlwaysReplayLocally.Name = "AlwaysReplayLocally";
+            this.AlwaysReplayLocally.Size = new System.Drawing.Size(15, 14);
+            this.AlwaysReplayLocally.TabIndex = 20;
+            this.toolTip.SetToolTip(this.AlwaysReplayLocally, resources.GetString("AlwaysReplayLocally.ToolTip"));
+            this.AlwaysReplayLocally.UseVisualStyleBackColor = true;
+            this.AlwaysReplayLocally.CheckedChanged += new System.EventHandler(this.AlwaysReplayLocally_CheckedChanged);
+            // 
             // corePage
             // 
             this.corePage.Controls.Add(this.groupBox5);
             this.corePage.Location = new System.Drawing.Point(42, 4);
             this.corePage.Name = "corePage";
             this.corePage.Padding = new System.Windows.Forms.Padding(3);
-            this.corePage.Size = new System.Drawing.Size(354, 310);
+            this.corePage.Size = new System.Drawing.Size(354, 320);
             this.corePage.TabIndex = 4;
             this.corePage.Text = "Core";
             this.corePage.UseVisualStyleBackColor = true;
@@ -562,7 +610,7 @@
             this.groupBox5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox5.Location = new System.Drawing.Point(3, 3);
             this.groupBox5.Name = "groupBox5";
-            this.groupBox5.Size = new System.Drawing.Size(348, 304);
+            this.groupBox5.Size = new System.Drawing.Size(348, 314);
             this.groupBox5.TabIndex = 0;
             this.groupBox5.TabStop = false;
             this.groupBox5.Text = "Core";
@@ -589,7 +637,7 @@
             tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            tableLayoutPanel6.Size = new System.Drawing.Size(342, 285);
+            tableLayoutPanel6.Size = new System.Drawing.Size(342, 295);
             tableLayoutPanel6.TabIndex = 1;
             // 
             // chooseSearchPaths
@@ -623,7 +671,7 @@
             this.texViewTab.Location = new System.Drawing.Point(42, 4);
             this.texViewTab.Name = "texViewTab";
             this.texViewTab.Padding = new System.Windows.Forms.Padding(3);
-            this.texViewTab.Size = new System.Drawing.Size(354, 310);
+            this.texViewTab.Size = new System.Drawing.Size(354, 320);
             this.texViewTab.TabIndex = 1;
             this.texViewTab.Text = "Texture Viewer";
             this.texViewTab.UseVisualStyleBackColor = true;
@@ -634,7 +682,7 @@
             groupBox2.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox2.Location = new System.Drawing.Point(3, 3);
             groupBox2.Name = "groupBox2";
-            groupBox2.Size = new System.Drawing.Size(348, 304);
+            groupBox2.Size = new System.Drawing.Size(348, 314);
             groupBox2.TabIndex = 0;
             groupBox2.TabStop = false;
             groupBox2.Text = "Texture Viewer";
@@ -655,7 +703,7 @@
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel3.Size = new System.Drawing.Size(342, 285);
+            this.tableLayoutPanel3.Size = new System.Drawing.Size(342, 295);
             this.tableLayoutPanel3.TabIndex = 0;
             // 
             // TextureViewer_ResetRange
@@ -717,7 +765,7 @@
             this.shadViewTab.Location = new System.Drawing.Point(42, 4);
             this.shadViewTab.Name = "shadViewTab";
             this.shadViewTab.Padding = new System.Windows.Forms.Padding(3);
-            this.shadViewTab.Size = new System.Drawing.Size(354, 310);
+            this.shadViewTab.Size = new System.Drawing.Size(354, 320);
             this.shadViewTab.TabIndex = 2;
             this.shadViewTab.Text = "Shader Viewer";
             this.shadViewTab.UseVisualStyleBackColor = true;
@@ -728,7 +776,7 @@
             groupBox3.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox3.Location = new System.Drawing.Point(3, 3);
             groupBox3.Name = "groupBox3";
-            groupBox3.Size = new System.Drawing.Size(348, 304);
+            groupBox3.Size = new System.Drawing.Size(348, 314);
             groupBox3.TabIndex = 0;
             groupBox3.TabStop = false;
             groupBox3.Text = "Shader Viewer";
@@ -746,7 +794,7 @@
             this.tableLayoutPanel4.RowCount = 2;
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel4.Size = new System.Drawing.Size(342, 285);
+            this.tableLayoutPanel4.Size = new System.Drawing.Size(342, 295);
             this.tableLayoutPanel4.TabIndex = 1;
             // 
             // ShaderViewer_FriendlyNaming
@@ -781,7 +829,7 @@
             this.eventTab.Location = new System.Drawing.Point(42, 4);
             this.eventTab.Name = "eventTab";
             this.eventTab.Padding = new System.Windows.Forms.Padding(3);
-            this.eventTab.Size = new System.Drawing.Size(354, 310);
+            this.eventTab.Size = new System.Drawing.Size(354, 320);
             this.eventTab.TabIndex = 3;
             this.eventTab.Text = "Event Browser";
             this.eventTab.UseVisualStyleBackColor = true;
@@ -792,7 +840,7 @@
             groupBox4.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox4.Location = new System.Drawing.Point(3, 3);
             groupBox4.Name = "groupBox4";
-            groupBox4.Size = new System.Drawing.Size(348, 304);
+            groupBox4.Size = new System.Drawing.Size(348, 314);
             groupBox4.TabIndex = 1;
             groupBox4.TabStop = false;
             groupBox4.Text = "Event Browser";
@@ -819,7 +867,7 @@
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel5.Size = new System.Drawing.Size(342, 285);
+            this.tableLayoutPanel5.Size = new System.Drawing.Size(342, 295);
             this.tableLayoutPanel5.TabIndex = 0;
             // 
             // label8
@@ -872,42 +920,6 @@
         "or drawcalls will be completely removed");
             this.EventBrowser_HideEmpty.UseVisualStyleBackColor = true;
             this.EventBrowser_HideEmpty.CheckedChanged += new System.EventHandler(this.EventBrowser_HideEmpty_CheckedChanged);
-            // 
-            // pagesTree
-            // 
-            treeListColumn3.AutoSize = true;
-            treeListColumn3.AutoSizeMinSize = 0;
-            treeListColumn3.Width = 50;
-            this.pagesTree.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn3});
-            this.pagesTree.ColumnsOptions.HeaderHeight = 1;
-            this.pagesTree.Cursor = System.Windows.Forms.Cursors.Arrow;
-            this.pagesTree.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pagesTree.Location = new System.Drawing.Point(3, 3);
-            this.pagesTree.MultiSelect = false;
-            this.pagesTree.Name = "pagesTree";
-            this.pagesTree.RowOptions.ShowHeader = false;
-            this.pagesTree.Size = new System.Drawing.Size(168, 318);
-            this.pagesTree.TabIndex = 0;
-            this.pagesTree.ViewOptions.ShowGridLines = false;
-            this.pagesTree.ViewOptions.ShowLine = false;
-            this.pagesTree.ViewOptions.ShowPlusMinus = false;
-            this.pagesTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.pagesTree_AfterSelect);
-            // 
-            // ok
-            // 
-            this.ok.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.ok.Location = new System.Drawing.Point(502, 327);
-            this.ok.Name = "ok";
-            this.ok.Size = new System.Drawing.Size(75, 23);
-            this.ok.TabIndex = 100;
-            this.ok.Text = "OK";
-            this.ok.UseVisualStyleBackColor = true;
-            this.ok.Click += new System.EventHandler(this.ok_Click);
-            // 
-            // browserCaptureDialog
-            // 
-            this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             // 
             // label16
             // 
@@ -962,11 +974,32 @@
             this.EventBrowser_ColourEventRow.UseVisualStyleBackColor = true;
             this.EventBrowser_ColourEventRow.CheckedChanged += new System.EventHandler(this.EventBrowser_ColourEventRow_CheckedChanged);
             // 
+            // pagesTree
+            // 
+            treeListColumn1.AutoSize = true;
+            treeListColumn1.AutoSizeMinSize = 0;
+            treeListColumn1.Width = 50;
+            this.pagesTree.Columns.AddRange(new TreelistView.TreeListColumn[] {
+            treeListColumn1});
+            this.pagesTree.ColumnsOptions.HeaderHeight = 1;
+            this.pagesTree.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.pagesTree.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pagesTree.Location = new System.Drawing.Point(3, 3);
+            this.pagesTree.MultiSelect = false;
+            this.pagesTree.Name = "pagesTree";
+            this.pagesTree.RowOptions.ShowHeader = false;
+            this.pagesTree.Size = new System.Drawing.Size(168, 328);
+            this.pagesTree.TabIndex = 0;
+            this.pagesTree.ViewOptions.ShowGridLines = false;
+            this.pagesTree.ViewOptions.ShowLine = false;
+            this.pagesTree.ViewOptions.ShowPlusMinus = false;
+            this.pagesTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.pagesTree_AfterSelect);
+            // 
             // SettingsDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(580, 353);
+            this.ClientSize = new System.Drawing.Size(580, 363);
             this.Controls.Add(tableLayoutPanel1);
             this.MinimumSize = new System.Drawing.Size(500, 300);
             this.Name = "SettingsDialog";
@@ -1038,5 +1071,6 @@
         private System.Windows.Forms.Button chooseSearchPaths;
         private System.Windows.Forms.CheckBox EventBrowser_ApplyColours;
         private System.Windows.Forms.CheckBox EventBrowser_ColourEventRow;
+        private System.Windows.Forms.CheckBox AlwaysReplayLocally;
     }
 }

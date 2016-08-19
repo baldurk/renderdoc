@@ -112,6 +112,7 @@ namespace renderdocui.Code
         public bool TextureViewer_PerTexSettings = true;
         public bool ShaderViewer_FriendlyNaming = true;
 
+        public bool AlwaysReplayLocally = false;
         public List<RemoteHost> RemoteHosts = new List<RemoteHost>();
 
         public int LocalProxy = 0;

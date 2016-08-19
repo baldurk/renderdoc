@@ -259,6 +259,12 @@
     <Compile Include="Windows\Dialogs\SettingsDialog.Designer.cs">
       <DependentUpon>SettingsDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\Dialogs\SuggestRemoteDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\SuggestRemoteDialog.Designer.cs">
+      <DependentUpon>SuggestRemoteDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\Dialogs\TextureGoto.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -423,6 +429,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\SettingsDialog.resx">
       <DependentUpon>SettingsDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\SuggestRemoteDialog.resx">
+      <DependentUpon>SuggestRemoteDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\TextureGoto.resx">
       <DependentUpon>TextureGoto.cs</DependentUpon>

@@ -64,6 +64,8 @@ namespace renderdocui.Windows.Dialogs
             CheckUpdate_AllowChecks.Checked = m_Core.Config.CheckUpdate_AllowChecks;
             Font_PreferMonospaced.Checked = m_Core.Config.Font_PreferMonospaced;
 
+            AlwaysReplayLocally.Checked = m_Core.Config.AlwaysReplayLocally;
+
             AllowGlobalHook.Checked = m_Core.Config.AllowGlobalHook;
             
             {
@@ -176,6 +178,13 @@ namespace renderdocui.Windows.Dialogs
 
             if (m_Core.CaptureDialog != null)
                 m_Core.CaptureDialog.UpdateGlobalHook();
+        }
+
+        private void AlwaysReplayLocally_CheckedChanged(object sender, EventArgs e)
+        {
+            m_Core.Config.AlwaysReplayLocally = AlwaysReplayLocally.Checked;
+
+            m_Core.Config.Serialize(Core.ConfigFilename);
         }
 
         private void EventBrowser_TimeUnit_SelectionChangeCommitted(object sender, EventArgs e)
