@@ -311,7 +311,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
       RDCERR(
           "EXR file detected, but couldn't load with ParseMultiChannelEXRHeaderFromMemory %d: '%s'",
           ret, err);
-      return eReplayCreate_APIUnsupported;
+      return eReplayCreate_ImageUnsupported;
     }
   }
   else if(stbi_is_hdr_from_file(f))
@@ -325,7 +325,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
     {
       FileIO::fclose(f);
       RDCERR("HDR file recognised, but couldn't load with stbi_loadf_from_file");
-      return eReplayCreate_FileCorrupted;
+      return eReplayCreate_ImageUnsupported;
     }
 
     free(data);
@@ -339,7 +339,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
     {
       FileIO::fclose(f);
       RDCERR("DDS file recognised, but couldn't load");
-      return eReplayCreate_FileCorrupted;
+      return eReplayCreate_ImageUnsupported;
     }
 
     for(int i = 0; i < read_data.slices * read_data.mips; i++)
@@ -359,7 +359,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
     if(ret == 0 || width == 0 || width == ~0U || height == 0 || height == ~0U)
     {
       FileIO::fclose(f);
-      return eReplayCreate_APIUnsupported;
+      return eReplayCreate_ImageUnsupported;
     }
 
     byte *data = stbi_load_from_file(f, &ignore, &ignore, &ignore, 4);
@@ -368,7 +368,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
     {
       FileIO::fclose(f);
       RDCERR("File recognised, but couldn't load with stbi_load_from_file");
-      return eReplayCreate_FileCorrupted;
+      return eReplayCreate_ImageUnsupported;
     }
 
     free(data);

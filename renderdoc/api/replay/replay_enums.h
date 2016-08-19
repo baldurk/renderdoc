@@ -490,6 +490,7 @@ enum ReplayCreateStatus
   eReplayCreate_FileIOFailed,
   eReplayCreate_FileIncompatibleVersion,
   eReplayCreate_FileCorrupted,
+  eReplayCreate_ImageUnsupported,
   eReplayCreate_APIUnsupported,
   eReplayCreate_APIInitFailed,
   eReplayCreate_APIIncompatibleVersion,

@@ -501,6 +501,7 @@ namespace renderdoc
         FileIOFailed,
         FileIncompatibleVersion,
         FileCorrupted,
+        ImageUnsupported,
         APIUnsupported,
         APIInitFailed,
         APIIncompatibleVersion,
@@ -582,11 +583,12 @@ namespace renderdoc
                 case ReplayCreateStatus.InternalError: return "Internal Error";
                 case ReplayCreateStatus.NetworkIOFailed: return "Network I/O operation failed";
                 case ReplayCreateStatus.FileIOFailed: return "File I/O operation failed";
-                case ReplayCreateStatus.FileIncompatibleVersion: return "Logfile is of an incompatible version";
-                case ReplayCreateStatus.FileCorrupted: return "Logfile data is corrupted";
-                case ReplayCreateStatus.APIUnsupported: return "API used in logfile is not supported";
+                case ReplayCreateStatus.FileIncompatibleVersion: return "File is of an incompatible version";
+                case ReplayCreateStatus.FileCorrupted: return "File is corrupted or unrecognisable format";
+                case ReplayCreateStatus.ImageUnsupported: return "The contents or format of the image is not supported";
+                case ReplayCreateStatus.APIUnsupported: return "API used is not supported";
                 case ReplayCreateStatus.APIInitFailed: return "Replay API failed to initialise";
-                case ReplayCreateStatus.APIIncompatibleVersion: return "API-specific data used in logfile is of an incompatible version";
+                case ReplayCreateStatus.APIIncompatibleVersion: return "API-specific data used is of an incompatible version";
                 case ReplayCreateStatus.APIHardwareUnsupported: return "Your hardware or software configuration doesn't meet this API's minimum requirements";
             }
 

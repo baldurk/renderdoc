@@ -525,7 +525,7 @@ namespace renderdocui.Code
                                                     "Check diagnostic log in Help menu for more details.", logFile, replayHost, errmsg),
                                     "Error opening log", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 else
-                    MessageBox.Show(String.Format("{0}\nFailed to open logfile for replay: {1}.\n\n" +
+                    MessageBox.Show(String.Format("{0}\nFailed to open file for replay: {1}.\n\n" +
                                                     "Check diagnostic log in Help menu for more details.", logFile, errmsg),
                                     "Error opening log", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
