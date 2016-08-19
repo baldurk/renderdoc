@@ -180,6 +180,7 @@ public:
     eSectionType_Unknown = 0,
     eSectionType_FrameCapture,       // renderdoc/internal/framecapture
     eSectionType_ResolveDatabase,    // renderdoc/internal/resolvedb
+    eSectionType_MachineID,          // renderdoc/internal/machineid
     eSectionType_FrameBookmarks,     // renderdoc/ui/bookmarks
     eSectionType_Notes,              // renderdoc/ui/notes
     eSectionType_Num,
@@ -280,6 +281,22 @@ public:
   // get callstack resolver, created with the DB in the file
   Callstack::StackResolver *GetCallstackResolver() { return m_pResolver; }
   void SetCallstack(uint64_t *levels, size_t numLevels);
+
+  uint64_t GetSavedMachineIdent()
+  {
+    Section *id = m_KnownSections[eSectionType_MachineID];
+
+    // section might not be present on older captures (or if it was stripped out
+    // by someone over-eager to remove information)
+    if(id != NULL && id->data.size() >= sizeof(uint64_t))
+    {
+      uint64_t ident = 0;
+      memcpy(&ident, &id->data[0], sizeof(ident));
+      return ident;
+    }
+
+    return 0;
+  }
 
   // get the callstack associated with the last scope
   Callstack::Stackwalk *GetLastCallstack()

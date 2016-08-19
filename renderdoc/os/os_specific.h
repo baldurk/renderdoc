@@ -411,6 +411,7 @@ enum MachineIdentBits
 };
 
 uint64_t GetMachineIdent();
+string MakeMachineIdentString(uint64_t ident);
 };
 
 namespace Bits

@@ -625,24 +625,25 @@ namespace renderdocui.Windows
                 if (m_Core.LogLoading) return;
 
                 string driver = "";
-                bool support = false;
+                string machineIdent = "";
+                ReplaySupport support = ReplaySupport.Unsupported;
 
                 bool remoteReplay = !local || (m_Core.Renderer.Remote != null && m_Core.Renderer.Remote.Connected);
 
                 if (local)
                 {
-                    support = StaticExports.SupportLocalReplay(filename, out driver);
+                    support = StaticExports.SupportLocalReplay(filename, out driver, out machineIdent);
 
                     if (remoteReplay)
                     {
-                        support = false;
+                        support = ReplaySupport.Unsupported;
 
                         string[] remoteDrivers = m_Core.Renderer.GetRemoteSupport();
 
                         for (int i = 0; i < remoteDrivers.Length; i++)
                         {
                             if (driver == remoteDrivers[i])
-                                support = true;
+                                support = ReplaySupport.Supported;
                         }
                     }
                 }
@@ -651,7 +652,7 @@ namespace renderdocui.Windows
 
                 // if driver is empty something went wrong loading the log, let it be handled as usual
                 // below. Otherwise indicate that support is missing.
-                if (driver.Length > 0 && !support)
+                if (driver.Length > 0 && support == ReplaySupport.Unsupported)
                 {
                     if (remoteReplay)
                     {

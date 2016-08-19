@@ -49,7 +49,7 @@ namespace renderdoc
     class StaticExports
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool RENDERDOC_SupportLocalReplay(IntPtr logfile, IntPtr outdriver);
+        private static extern ReplaySupport RENDERDOC_SupportLocalReplay(IntPtr logfile, IntPtr outdriver, IntPtr outident);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern ReplayCreateStatus RENDERDOC_CreateReplayRenderer(IntPtr logfile, ref float progress, ref IntPtr rendPtr);
@@ -110,19 +110,23 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_FreeEnvironmentModificationList(IntPtr mem);
 
-        public static bool SupportLocalReplay(string logfile, out string driverName)
+        public static ReplaySupport SupportLocalReplay(string logfile, out string driverName, out string recordMachineIdent)
         {
-            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+            IntPtr name_mem = CustomMarshal.Alloc(typeof(templated_array));
+            IntPtr ident_mem = CustomMarshal.Alloc(typeof(templated_array));
 
             IntPtr logfile_mem = CustomMarshal.MakeUTF8String(logfile);
 
-            bool ret = RENDERDOC_SupportLocalReplay(logfile_mem, mem);
+            ReplaySupport ret = RENDERDOC_SupportLocalReplay(logfile_mem, name_mem, ident_mem);
 
             CustomMarshal.Free(logfile_mem);
 
-            driverName = CustomMarshal.TemplatedArrayToString(mem, true);
+            driverName = CustomMarshal.TemplatedArrayToString(name_mem, true);
+            recordMachineIdent = CustomMarshal.TemplatedArrayToString(ident_mem, true);
 
-            CustomMarshal.Free(mem);
+            CustomMarshal.Free(name_mem);
+            CustomMarshal.Free(ident_mem);
+
             return ret;
         }
 

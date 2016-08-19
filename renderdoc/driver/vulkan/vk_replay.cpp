@@ -5557,8 +5557,10 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
   VkInitParams initParams;
   RDCDriver driverType = RDC_Vulkan;
   string driverName = "VulkanReplay";
+  uint64_t machineIdent = 0;
   if(logfile)
-    RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, (RDCInitParams *)&initParams);
+    RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
+                                     (RDCInitParams *)&initParams);
 
   if(initParams.SerialiseVersion != VkInitParams::VK_SERIALISE_VERSION)
   {

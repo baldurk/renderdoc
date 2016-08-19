@@ -265,9 +265,10 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   GLInitParams initParams;
   RDCDriver driverType = RDC_OpenGL;
   string driverName = "OpenGL";
+  uint64_t machineIdent = 0;
   if(logfile)
   {
-    auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName,
+    auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
                                                    (RDCInitParams *)&initParams);
     if(status != eReplayCreate_Success)
       return status;

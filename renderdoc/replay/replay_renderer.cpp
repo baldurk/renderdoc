@@ -1552,7 +1552,9 @@ ReplayCreateStatus ReplayRenderer::CreateDevice(const char *logfile)
 
   RDCDriver driverType = RDC_Unknown;
   string driverName = "";
-  auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, NULL);
+  uint64_t fileMachineIdent = 0;
+  auto status =
+      RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, fileMachineIdent, NULL);
 
   if(driverType == RDC_Unknown || driverName == "" || status != eReplayCreate_Success)
   {

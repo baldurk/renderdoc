@@ -1978,10 +1978,11 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver *
   D3D11InitParams initParams;
   RDCDriver driverFileType = RDC_D3D11;
   string driverName = "D3D11";
+  uint64_t machineIdent = 0;
   if(logfile)
   {
     auto status = RenderDoc::Inst().FillInitParams(logfile, driverFileType, driverName,
-                                                   (RDCInitParams *)&initParams);
+                                                   machineIdent, (RDCInitParams *)&initParams);
     if(status != eReplayCreate_Success)
       return status;
   }

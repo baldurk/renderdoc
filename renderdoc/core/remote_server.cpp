@@ -322,8 +322,9 @@ static void ActiveRemoteClientThread(void *data)
 
         RDCDriver driverType = RDC_Unknown;
         string driverName = "";
-        ReplayCreateStatus status =
-            RenderDoc::Inst().FillInitParams(cap_file.c_str(), driverType, driverName, NULL);
+        uint64_t fileMachineIdent = 0;
+        ReplayCreateStatus status = RenderDoc::Inst().FillInitParams(
+            cap_file.c_str(), driverType, driverName, fileMachineIdent, NULL);
 
         if(status != eReplayCreate_Success)
         {

@@ -633,7 +633,8 @@ Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *par
 }
 
 ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &driverType,
-                                             string &driverName, RDCInitParams *params)
+                                             string &driverName, uint64_t &fileMachineIdent,
+                                             RDCInitParams *params)
 {
   Serialiser ser(logFile, Serialiser::READING, true);
 
@@ -659,6 +660,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
       {
         driverType = RDC_Image;
         driverName = "Image";
+        fileMachineIdent = 0;
         return eReplayCreate_Success;
       }
     }
@@ -677,6 +679,8 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
   }
 
   ser.Rewind();
+
+  fileMachineIdent = ser.GetSavedMachineIdent();
 
   {
     int chunkType = ser.PushContext(NULL, NULL, 1, false);

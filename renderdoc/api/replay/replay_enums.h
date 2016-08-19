@@ -492,6 +492,13 @@ enum CounterUnits
   eUnits_Percentage,
 };
 
+enum ReplaySupport
+{
+  eReplaySupport_Unsupported,
+  eReplaySupport_Supported,
+  eReplaySupport_SuggestRemote,
+};
+
 enum ReplayCreateStatus
 {
   eReplayCreate_Success = 0,

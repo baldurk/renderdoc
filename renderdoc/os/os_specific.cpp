@@ -127,3 +127,44 @@ string Callstack::AddressDetails::formattedString(const char *commonPath)
 
   return fmt;
 }
+
+string OSUtility::MakeMachineIdentString(uint64_t ident)
+{
+  string ret = "";
+
+  if(ident & MachineIdent_Windows)
+    ret += "Windows ";
+  else if(ident & MachineIdent_Linux)
+    ret += "Linux ";
+  else if(ident & MachineIdent_macOS)
+    ret += "macOS ";
+  else if(ident & MachineIdent_Android)
+    ret += "Android ";
+  else if(ident & MachineIdent_iOS)
+    ret += "iOS ";
+
+  if(ident & MachineIdent_Arch_x86)
+    ret += "x86 ";
+  else if(ident & MachineIdent_Arch_ARM)
+    ret += "ARM ";
+
+  if(ident & MachineIdent_32bit)
+    ret += "32-bit ";
+  else if(ident & MachineIdent_64bit)
+    ret += "64-bit ";
+
+  switch(ident & MachineIdent_GPU_Mask)
+  {
+    case MachineIdent_GPU_ARM: ret += "ARM GPU "; break;
+    case MachineIdent_GPU_AMD: ret += "AMD GPU "; break;
+    case MachineIdent_GPU_IMG: ret += "Imagination GPU "; break;
+    case MachineIdent_GPU_Intel: ret += "Intel GPU "; break;
+    case MachineIdent_GPU_NV: ret += "nVidia GPU "; break;
+    case MachineIdent_GPU_QUALCOMM: ret += "QUALCOMM GPU "; break;
+    case MachineIdent_GPU_Samsung: ret += "Samsung GPU "; break;
+    case MachineIdent_GPU_Verisilicon: ret += "Verisilicon GPU "; break;
+    default: break;
+  }
+
+  return ret;
+}

@@ -229,7 +229,7 @@ public:
   }
 
   ReplayCreateStatus FillInitParams(const char *logfile, RDCDriver &driverType, string &driverName,
-                                    RDCInitParams *params);
+                                    uint64_t &fileMachineIdent, RDCInitParams *params);
 
   void RegisterReplayProvider(RDCDriver driver, const char *name, ReplayDriverProvider provider);
   void RegisterRemoteProvider(RDCDriver driver, const char *name, RemoteDriverProvider provider);

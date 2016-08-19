@@ -315,20 +315,38 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(voi
   }
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_SupportLocalReplay(const char *logfile,
-                                                                          rdctype::str *driver)
+extern "C" RENDERDOC_API ReplaySupport RENDERDOC_CC RENDERDOC_SupportLocalReplay(
+    const char *logfile, rdctype::str *driver, rdctype::str *recordMachineIdent)
 {
   if(logfile == NULL)
-    return false;
+    return eReplaySupport_Unsupported;
 
   RDCDriver driverType = RDC_Unknown;
   string driverName = "";
-  RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, NULL);
+  uint64_t fileMachineIdent = 0;
+  RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, fileMachineIdent, NULL);
 
   if(driver)
     *driver = driverName;
 
-  return RenderDoc::Inst().HasReplayDriver(driverType);
+  bool supported = RenderDoc::Inst().HasReplayDriver(driverType);
+
+  if(!supported)
+    return eReplaySupport_Unsupported;
+
+  if(fileMachineIdent != 0)
+  {
+    uint64_t machineIdent = OSUtility::GetMachineIdent();
+
+    if(recordMachineIdent)
+      *recordMachineIdent = OSUtility::MakeMachineIdentString(fileMachineIdent);
+
+    if((machineIdent & OSUtility::MachineIdent_OS_Mask) !=
+       (fileMachineIdent & OSUtility::MachineIdent_OS_Mask))
+      return eReplaySupport_SuggestRemote;
+  }
+
+  return eReplaySupport_Supported;
 }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC

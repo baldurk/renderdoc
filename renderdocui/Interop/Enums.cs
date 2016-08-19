@@ -504,6 +504,13 @@ namespace renderdoc
         Percentage,
     };
 
+    public enum ReplaySupport
+    {
+        Unsupported,
+        Supported,
+        SuggestRemote,
+    };
+
     public enum ReplayCreateStatus
     {
         Success = 0,

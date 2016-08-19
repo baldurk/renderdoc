@@ -1450,6 +1450,24 @@ void Serialiser::FlushToDisk()
       SAFE_DELETE_ARRAY(symbolDB);
     }
 
+    // write the machine identifier as an ASCII section
+    {
+      const char sectionName[] = "renderdoc/internal/machineid";
+
+      uint64_t machineID = OSUtility::GetMachineIdent();
+
+      BinarySectionHeader section = {0};
+      section.isASCII = 0;                                // redundant but explicit
+      section.sectionNameLength = sizeof(sectionName);    // includes null terminator
+      section.sectionType = eSectionType_MachineID;
+      section.sectionFlags = eSectionFlag_None;
+      section.sectionLength = sizeof(machineID);
+
+      FileIO::fwrite(&section, 1, offsetof(BinarySectionHeader, name), binFile);
+      FileIO::fwrite(sectionName, 1, sizeof(sectionName), binFile);
+      FileIO::fwrite(&machineID, 1, sizeof(machineID), binFile);
+    }
+
     FileIO::fclose(binFile);
   }
 }

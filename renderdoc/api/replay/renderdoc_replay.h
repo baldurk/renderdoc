@@ -594,8 +594,8 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(PrimitiveTo
 // Takes the filename of the log. Returns NULL in the case of any error.
 //////////////////////////////////////////////////////////////////////////
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_SupportLocalReplay(const char *logfile,
-                                                                          rdctype::str *driverName);
+extern "C" RENDERDOC_API ReplaySupport RENDERDOC_CC RENDERDOC_SupportLocalReplay(
+    const char *logfile, rdctype::str *driverName, rdctype::str *recordMachineIdent);
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
 RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, ReplayRenderer **rend);
 
