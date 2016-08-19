@@ -197,7 +197,7 @@ static void ActiveRemoteClientThread(void *data)
 
     if(client->IsRecvDataWaiting())
     {
-      RemoteServerPacket type;
+      type = eRemoteServer_Noop;
       Serialiser *recvser = NULL;
 
       if(!RecvPacket(client, type, &recvser))
@@ -219,8 +219,8 @@ static void ActiveRemoteClientThread(void *data)
 
         for(auto it = drivers.begin(); it != drivers.end(); ++it)
         {
-          RDCDriver driver = it->first;
-          sendSer.Serialise("", driver);
+          RDCDriver driverType = it->first;
+          sendSer.Serialise("", driverType);
           sendSer.Serialise("", (*it).second);
         }
       }
@@ -332,15 +332,15 @@ static void ActiveRemoteClientThread(void *data)
         }
         else if(RenderDoc::Inst().HasRemoteDriver(driverType))
         {
-          ProgressLoopData data;
+          ProgressLoopData progressData;
 
-          data.sock = client;
-          data.killsignal = false;
-          data.progress = 0.0f;
+          progressData.sock = client;
+          progressData.killsignal = false;
+          progressData.progress = 0.0f;
 
-          RenderDoc::Inst().SetProgressPtr(&data.progress);
+          RenderDoc::Inst().SetProgressPtr(&progressData.progress);
 
-          Threading::ThreadHandle ticker = Threading::CreateThread(ProgressTicker, &data);
+          Threading::ThreadHandle ticker = Threading::CreateThread(ProgressTicker, &progressData);
 
           status = RenderDoc::Inst().CreateRemoteDriver(driverType, cap_file.c_str(), &driver);
 
@@ -355,7 +355,7 @@ static void ActiveRemoteClientThread(void *data)
 
             RenderDoc::Inst().SetProgressPtr(NULL);
 
-            data.killsignal = true;
+            progressData.killsignal = true;
             Threading::JoinThread(ticker);
             Threading::CloseThread(ticker);
 
