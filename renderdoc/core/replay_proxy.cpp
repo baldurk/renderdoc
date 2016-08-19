@@ -2293,14 +2293,15 @@ byte *ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, typeHint, resolve, forceRGBA8unorm,
                                           blackPoint, whitePoint, dataSize);
 
-    byte *compressed = new byte[dataSize + 512];
+    byte *compressed = new byte[LZ4_COMPRESSBOUND(dataSize)];
 
-    size_t compressedSize =
-        (size_t)LZ4_compress((const char *)data, (char *)compressed, (int)dataSize);
+    uint32_t uncompressedSize = (uint32_t)dataSize;
+    uint32_t compressedSize =
+        (uint32_t)LZ4_compress((const char *)data, (char *)compressed, (int)uncompressedSize);
 
-    m_FromReplaySerialiser->Serialise("", dataSize);
+    m_FromReplaySerialiser->Serialise("", uncompressedSize);
     m_FromReplaySerialiser->Serialise("", compressedSize);
-    m_FromReplaySerialiser->RawWriteBytes(compressed, compressedSize);
+    m_FromReplaySerialiser->RawWriteBytes(compressed, (size_t)compressedSize);
 
     delete[] data;
     delete[] compressed;
@@ -2310,14 +2311,17 @@ byte *ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     if(!SendReplayCommand(eReplayProxy_GetTextureData))
       return NULL;
 
-    size_t compressedSize;
+    uint32_t uncompressedSize = 0;
+    uint32_t compressedSize = 0;
 
-    m_FromReplaySerialiser->Serialise("", dataSize);
+    m_FromReplaySerialiser->Serialise("", uncompressedSize);
     m_FromReplaySerialiser->Serialise("", compressedSize);
+
+    dataSize = (size_t)uncompressedSize;
 
     byte *ret = new byte[dataSize + 512];
 
-    byte *compressed = (byte *)m_FromReplaySerialiser->RawReadBytes(compressedSize);
+    byte *compressed = (byte *)m_FromReplaySerialiser->RawReadBytes((size_t)compressedSize);
 
     LZ4_decompress_fast((const char *)compressed, (char *)ret, (int)dataSize);
 
