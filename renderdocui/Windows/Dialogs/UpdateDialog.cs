@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using renderdocui.Code;
 using System.Diagnostics;
+using renderdoc;
 
 namespace renderdocui.Windows.Dialogs
 {
@@ -23,6 +24,7 @@ namespace renderdocui.Windows.Dialogs
 
         internal const int BCM_SETSHIELD = 0x160C; // Button needs elevation
 
+        string m_NewVer = "";
         string m_URL = "";
         int m_Size = 0;
 
@@ -36,17 +38,35 @@ namespace renderdocui.Windows.Dialogs
             string[] response_split = core.Config.CheckUpdate_UpdateResponse.Split('\n');
 
             progressText.Text = "";
+            progressBar.Visible = false;
 
-            updateVer.Text = String.Format("Update Available - v{0}", response_split[0]);
+            Text = updateVer.Text = String.Format("Update Available - v{0}", response_split[0]);
+            m_NewVer = response_split[0];
             m_URL = response_split[1];
             int.TryParse(response_split[2], out m_Size);
 
             string notes = "";
             for(int i=3; i < response_split.Length; i++)
                 notes += response_split[i] + Environment.NewLine;
-            updateNotes.Text = notes.Trim();
+
+            try
+            {
+                updateNotes.Rtf = notes.Trim();
+            }
+            catch (Exception)
+            {
+                // most likely invalid formatting, so fall back to a sensible default
+                updateNotes.Rtf = @"{\rtf1\ansi\fs36\sa200\sl276\slmult1RenderDoc v" + m_NewVer + @" \fs16" +
+                    @"\par A new version of RenderDoc is available and it's recommended that you update.}";
+            }
 
             updateNotes.Select(0, 0);
+
+            updateMetadata.Text = "v" + StaticExports.GetVersionString() +
+                Environment.NewLine + Environment.NewLine +
+                String.Format("v{0}", response_split[0]) +
+                Environment.NewLine + Environment.NewLine +
+                String.Format("{0:0.00} MB", (float)m_Size/1024.0f/1024.0f);
         }
 
         void SetDownloadProgress(int bytes_received)
@@ -62,6 +82,9 @@ namespace renderdocui.Windows.Dialogs
 
             if (result == DialogResult.Yes)
             {
+                progressBar.Visible = true;
+                updateMetadata.Visible = metaDataLabel.Visible = false;
+
                 progressText.Text = "Preparing";
 
                 close.Enabled = false;
@@ -198,6 +221,16 @@ namespace renderdocui.Windows.Dialogs
         private void close_Click(object sender, EventArgs e)
         {
             Close();
+        }
+
+        private void updateNotes_LinkClicked(object sender, LinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start(e.LinkText);
+        }
+
+        private void rlsNotes_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start(String.Format("https://github.com/baldurk/renderdoc/releases/tag/v{0}", m_NewVer));
         }
     }
 }

@@ -1260,7 +1260,7 @@ namespace renderdocui.Windows
             var updateThread = Helpers.NewThread(new ThreadStart(() =>
             {
                 // spawn thread to check update
-                WebRequest g = HttpWebRequest.Create(String.Format("https://renderdoc.org/getupdateurl/{0}/{1}", IntPtr.Size == 4 ? "32" : "64", versionCheck));
+                WebRequest g = HttpWebRequest.Create(String.Format("https://renderdoc.org/getupdateurl/{0}/{1}?rtfnotes=1", IntPtr.Size == 4 ? "32" : "64", versionCheck));
 
                 UpdateResult result = UpdateResult.Disabled;
 
