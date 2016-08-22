@@ -1990,6 +1990,12 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
   D3D11_BUFFER_DESC desc;
   buffer->GetDesc(&desc);
 
+  if(offs >= desc.ByteWidth)
+  {
+    // can't read past the end of the buffer, return empty
+    return;
+  }
+
   if(len == 0)
   {
     len = desc.ByteWidth - offs;
@@ -1997,7 +2003,8 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
 
   if(len > 0 && offs + len > desc.ByteWidth)
   {
-    RDCWARN("Attempting to read off the end of the array. Will be clamped");
+    RDCWARN("Attempting to read off the end of the buffer (%llu %llu). Will be clamped (%u)",
+            offset, length, desc.ByteWidth);
     len = RDCMIN(len, desc.ByteWidth - offs);
   }
 

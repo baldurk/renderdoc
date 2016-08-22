@@ -3334,15 +3334,24 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
     return;
   }
 
-  if(len == 0)
+  uint64_t bufsize = m_pDriver->m_CreationInfo.m_Buffer[buff].size;
+
+  if(offset >= bufsize)
   {
-    len = m_pDriver->m_CreationInfo.m_Buffer[buff].size - offset;
+    // can't read past the end of the buffer, return empty
+    return;
   }
 
-  if(len > 0 && VkDeviceSize(offset + len) > m_pDriver->m_CreationInfo.m_Buffer[buff].size)
+  if(len == 0)
   {
-    RDCWARN("Attempting to read off the end of the array. Will be clamped");
-    len = RDCMIN(len, m_pDriver->m_CreationInfo.m_Buffer[buff].size - offset);
+    len = bufsize - offset;
+  }
+
+  if(len > 0 && VkDeviceSize(offset + len) > bufsize)
+  {
+    RDCWARN("Attempting to read off the end of the buffer (%llu %llu). Will be clamped (%llu)",
+            offset, len, bufsize);
+    len = RDCMIN(len, bufsize - offset);
   }
 
   ret.resize((size_t)len);
