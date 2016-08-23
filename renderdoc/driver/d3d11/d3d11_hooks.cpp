@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "driver/d3d11/d3d11_device.h"
+#include "driver/dx/official/amd/AmdDxExtApi.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "hooks/hooks.h"
 
@@ -65,6 +66,14 @@ public:
     success &= CreateDeviceAndSwapChain.Initialize("D3D11CreateDeviceAndSwapChain", DLL_NAME,
                                                    D3D11CreateDeviceAndSwapChain_hook);
 
+// these are not required for success, but opportunistic to prevent AMD extensions from
+// activating and causing later crashes when not replayed correctly
+#if defined(RDC64BIT)
+    AmdCreate11.Initialize("AmdDxExtCreate11", "atidxx64.dll", AmdCreate11_hook);
+#else
+    AmdCreate11.Initialize("AmdDxExtCreate11", "atidxx32.dll", AmdCreate11_hook);
+#endif
+
     if(!success)
       return false;
 
@@ -97,6 +106,9 @@ private:
 
   Hook<PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN> CreateDeviceAndSwapChain;
   Hook<PFN_D3D11_CREATE_DEVICE> CreateDevice;
+
+  // optional extension hooks
+  Hook<PFNAmdDxExtCreate11> AmdCreate11;
 
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
   bool m_InsideCreate;
@@ -289,6 +301,16 @@ private:
                                              ppDevice, pFeatureLevel, ppImmediateContext);
 
     return ret;
+  }
+
+  static HRESULT __cdecl AmdCreate11_hook(ID3D11Device *pDevice, IAmdDxExt **ppExt)
+  {
+    RDCLOG("Attempt to create AMD extension interface via AmdDxExtCreate11 was blocked.");
+
+    if(ppExt)
+      *ppExt = NULL;
+
+    return S_FALSE;
   }
 };
 

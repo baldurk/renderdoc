@@ -206,6 +206,9 @@
     <ClCompile Include="d3d9_hooks.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\dx\official\amd\AmdDxExt.h" />
+    <ClInclude Include="..\dx\official\amd\AmdDxExtApi.h" />
+    <ClInclude Include="..\dx\official\amd\AmdDxExtIface.h" />
     <ClInclude Include="d3d11_common.h" />
     <ClInclude Include="d3d11_context.h" />
     <ClInclude Include="d3d11_debug.h" />
@@ -214,7 +217,7 @@
     <ClInclude Include="d3d11_renderstate.h" />
     <ClInclude Include="d3d11_replay.h" />
     <ClInclude Include="d3d11_resources.h" />
-		<ClInclude Include="..\dx\official\d3d11.h" />
+    <ClInclude Include="..\dx\official\d3d11.h" />
     <ClInclude Include="..\dx\official\d3d11_1.h" />
     <ClInclude Include="..\dx\official\d3d11_2.h" />
     <ClInclude Include="..\dx\official\d3d11_3.h" />
