@@ -191,6 +191,8 @@ public:
     if(m_Proxy)
     {
       EnsureTexCached(texid, sliceFace, mip);
+      if(texid == ResourceId() || m_ProxyTextureIds[texid] == ResourceId())
+        return false;
       return m_Proxy->GetMinMax(m_ProxyTextureIds[texid], sliceFace, mip, sample, typeHint, minval,
                                 maxval);
     }
@@ -205,6 +207,8 @@ public:
     if(m_Proxy)
     {
       EnsureTexCached(texid, sliceFace, mip);
+      if(texid == ResourceId() || m_ProxyTextureIds[texid] == ResourceId())
+        return false;
       return m_Proxy->GetHistogram(m_ProxyTextureIds[texid], sliceFace, mip, sample, typeHint,
                                    minval, maxval, channels, histogram);
     }
@@ -217,6 +221,8 @@ public:
     if(m_Proxy)
     {
       EnsureTexCached(cfg.texid, cfg.sliceFace, cfg.mip);
+      if(cfg.texid == ResourceId() || m_ProxyTextureIds[cfg.texid] == ResourceId())
+        return false;
       cfg.texid = m_ProxyTextureIds[cfg.texid];
       return m_Proxy->RenderTexture(cfg);
     }
@@ -230,6 +236,8 @@ public:
     if(m_Proxy)
     {
       EnsureTexCached(texture, sliceFace, mip);
+      if(texture == ResourceId() || m_ProxyTextureIds[texture] == ResourceId())
+        return;
       m_Proxy->PickPixel(m_ProxyTextureIds[texture], x, y, sliceFace, mip, sample, typeHint, pixel);
     }
   }
@@ -241,6 +249,9 @@ public:
       MeshDisplay proxiedCfg = cfg;
 
       EnsureBufCached(proxiedCfg.position.buf);
+      if(proxiedCfg.position.buf == ResourceId() ||
+         m_ProxyBufferIds[proxiedCfg.position.buf] == ResourceId())
+        return;
       proxiedCfg.position.buf = m_ProxyBufferIds[proxiedCfg.position.buf];
 
       if(proxiedCfg.second.buf != ResourceId())
@@ -282,6 +293,9 @@ public:
       MeshDisplay proxiedCfg = cfg;
 
       EnsureBufCached(proxiedCfg.position.buf);
+      if(proxiedCfg.position.buf == ResourceId() ||
+         m_ProxyBufferIds[proxiedCfg.position.buf] == ResourceId())
+        return ~0U;
       proxiedCfg.position.buf = m_ProxyBufferIds[proxiedCfg.position.buf];
 
       if(proxiedCfg.second.buf != ResourceId())
@@ -330,6 +344,8 @@ public:
     if(m_Proxy)
     {
       EnsureTexCached(texid, 0, mip);
+      if(texid == ResourceId() || m_ProxyTextureIds[texid] == ResourceId())
+        return ResourceId();
       texid = m_ProxyTextureIds[texid];
       ResourceId customResourceId =
           m_Proxy->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx, typeHint);

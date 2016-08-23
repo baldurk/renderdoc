@@ -1681,6 +1681,9 @@ ReplayProxy::~ReplayProxy()
 
 bool ReplayProxy::SendReplayCommand(ReplayProxyPacket type)
 {
+  if(!m_Socket->Connected())
+    return false;
+
   if(!SendPacket(m_Socket, type, *m_ToReplaySerialiser))
     return false;
 
@@ -1696,6 +1699,9 @@ bool ReplayProxy::SendReplayCommand(ReplayProxyPacket type)
 
 void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip)
 {
+  if(!m_Socket->Connected())
+    return;
+
   TextureCacheEntry entry = {texid, arrayIdx, mip};
 
   if(m_LocalTextures.find(texid) != m_LocalTextures.end())
@@ -1725,6 +1731,9 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t 
 
 void ReplayProxy::EnsureBufCached(ResourceId bufid)
 {
+  if(!m_Socket->Connected())
+    return;
+
   if(m_BufferProxyCache.find(bufid) == m_BufferProxyCache.end())
   {
     if(m_ProxyBufferIds.find(bufid) == m_ProxyBufferIds.end())
@@ -1750,7 +1759,7 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
   if(!m_RemoteServer)
     return true;
 
-  if(!m_Socket)
+  if(!m_Socket || !m_Socket->Connected())
     return false;
 
   m_ToReplaySerialiser = incomingPacket;
@@ -2140,6 +2149,9 @@ ResourceId ReplayProxy::GetLiveID(ResourceId id)
   if(!m_RemoteServer && m_LocalTextures.find(id) != m_LocalTextures.end())
     return id;
 
+  if(!m_Socket->Connected())
+    return ResourceId();
+
   ResourceId ret;
 
   RDCASSERT(m_RemoteServer || m_ToReplaySerialiser->GetSize() == 0);
@@ -2309,13 +2321,22 @@ byte *ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   else
   {
     if(!SendReplayCommand(eReplayProxy_GetTextureData))
+    {
+      dataSize = 0;
       return NULL;
+    }
 
     uint32_t uncompressedSize = 0;
     uint32_t compressedSize = 0;
 
     m_FromReplaySerialiser->Serialise("", uncompressedSize);
     m_FromReplaySerialiser->Serialise("", compressedSize);
+
+    if(uncompressedSize == 0 || compressedSize == 0)
+    {
+      dataSize = 0;
+      return NULL;
+    }
 
     dataSize = (size_t)uncompressedSize;
 

@@ -482,13 +482,16 @@ bool ReplayRenderer::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t 
     return false;
   }
 
-  size_t sz;
+  size_t sz = 0;
   byte *bytes =
       m_pDevice->GetTextureData(liveId, arrayIdx, mip, eCompType_None, false, false, 0.0f, 0.0f, sz);
 
-  create_array_init(*data, sz, bytes);
+  if(sz == 0 || bytes == NULL)
+    create_array_uninit(*data, 0);
+  else
+    create_array_init(*data, sz, bytes);
 
-  delete[] bytes;
+  SAFE_DELETE_ARRAY(bytes);
 
   return true;
 }
