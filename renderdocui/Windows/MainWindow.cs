@@ -167,6 +167,9 @@ namespace renderdocui.Windows
 
             m_Core.AddLogViewer(this);
             m_Core.AddLogProgressListener(this);
+
+            m_MessageTick = new System.Threading.Timer(MessageCheck, this as object, 500, 500);
+            m_RemoteProbe = new System.Threading.Timer(RemoteProbe, this as object, 2500, 2500);
         }
 
         private void MainWindow_Load(object sender, EventArgs e)
@@ -268,13 +271,38 @@ namespace renderdocui.Windows
             statusIcon.Image = null;
             statusProgress.Visible = false;
 
-            m_MessageTick.Dispose();
-            m_MessageTick = null;
-
             resolveSymbolsToolStripMenuItem.Enabled = false;
             resolveSymbolsToolStripMenuItem.Text = "Resolve Symbols";
 
             SetTitle();
+
+            // if the remote sever disconnected during log replay, resort back to a 'disconnected' state
+            if (m_Core.Renderer.Remote != null && !m_Core.Renderer.Remote.ServerRunning)
+            {
+                statusText.Text = "Remote server disconnected. To attempt to reconnect please select it again.";
+                contextChooser.Text = "Replay Context: Local";
+                m_Core.Renderer.DisconnectFromRemoteServer();
+            }
+        }
+
+        private static void RemoteProbe(object m)
+        {
+            if (!(m is MainWindow)) return;
+
+            var me = (MainWindow)m;
+
+            // perform a probe of known remote hosts to see if they're running or not
+            if (!me.m_Core.LogLoading && !me.m_Core.LogLoaded)
+            {
+                foreach (var host in me.m_Core.Config.RemoteHosts)
+                {
+                    // don't mess with a host we're connected to - this is handled anyway
+                    if (host.Connected)
+                        continue;
+
+                    host.CheckStatus();
+                }
+            }
         }
 
         private static void MessageCheck(object m)
@@ -289,8 +317,33 @@ namespace renderdocui.Windows
                 {
                     DebugMessage[] msgs = r.GetDebugMessages();
 
+                    bool disconnected = false;
+
+                    if(me.m_Core.Renderer.Remote != null)
+                    {
+                        bool prev = me.m_Core.Renderer.Remote.ServerRunning;
+
+                        me.m_Core.Renderer.PingRemote();
+
+                        if(prev != me.m_Core.Renderer.Remote.ServerRunning)
+                            disconnected = true;
+                    }
+
                     me.BeginInvoke(new Action(() =>
                     {
+                        // if we just got disconnected while replaying a log, alert the user.
+                        if (disconnected)
+                        {
+                            MessageBox.Show("Remote server disconnected during replaying of this capture.\n" +
+                                "The replay will now be non-functional. To restore you will have to close the capture, allow\n" +
+                                "RenderDoc to reconnect and load the capture again",
+                                "Remote server disconnected",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+
+                        if (me.m_Core.Renderer.Remote != null && !me.m_Core.Renderer.Remote.ServerRunning)
+                            me.contextChooser.Image = global::renderdocui.Properties.Resources.cross;
+
                         if (msgs.Length > 0)
                         {
                             me.m_Core.AddMessages(msgs);
@@ -310,12 +363,27 @@ namespace renderdocui.Windows
                     }));
                 });
             }
+            else if(!me.m_Core.LogLoaded && !me.m_Core.LogLoading)
+            {
+                if (me.m_Core.Renderer.Remote != null)
+                    me.m_Core.Renderer.PingRemote();
 
-            if (me == null) return;
-            if (me.m_MessageTick != null) me.m_MessageTick.Change(500, System.Threading.Timeout.Infinite);
+                me.BeginInvoke(new Action(() =>
+                {
+                    if (me.m_Core.Renderer.Remote != null && !me.m_Core.Renderer.Remote.ServerRunning)
+                    {
+                        me.contextChooser.Image = global::renderdocui.Properties.Resources.cross;
+                        me.contextChooser.Text = "Replay Context: Local";
+                        me.statusText.Text = "Remote server disconnected. To attempt to reconnect please select it again.";
+
+                        me.m_Core.Renderer.DisconnectFromRemoteServer();
+                    }
+                }));
+            }
         }
 
         private System.Threading.Timer m_MessageTick = null;
+        private System.Threading.Timer m_RemoteProbe = null;
         private bool m_MessageAlternate = false;
 
         private bool LogHasErrors
@@ -353,8 +421,6 @@ namespace renderdocui.Windows
             contextChooser.Enabled = false;
 
             LogHasErrors = (m_Core.DebugMessages.Count > 0);
-
-            m_MessageTick = new System.Threading.Timer(MessageCheck, this as object, 500, System.Threading.Timeout.Infinite);
 
             statusProgress.Visible = false;
 
@@ -1011,12 +1077,19 @@ namespace renderdocui.Windows
 
                 ToolStripItem item = new ToolStripMenuItem();
 
-                item.Image = host.ServerRunning
+                item.Image = host.ServerRunning && !host.VersionMismatch
                     ? global::renderdocui.Properties.Resources.tick
                     : global::renderdocui.Properties.Resources.cross;
-                item.Text = host.ServerRunning
-                    ? String.Format("{0} (Online)", host.Hostname)
-                    : String.Format("{0} (Offline)", host.Hostname);
+                if (host.Connected)
+                    item.Text = String.Format("{0} (Connected)", host.Hostname);
+                else if (host.ServerRunning && host.VersionMismatch)
+                    item.Text = String.Format("{0} (Bad Version)", host.Hostname);
+                else if (host.ServerRunning && host.Busy)
+                    item.Text = String.Format("{0} (Busy)", host.Hostname);
+                else if (host.ServerRunning)
+                    item.Text = String.Format("{0} (Online)", host.Hostname);
+                else
+                    item.Text = String.Format("{0} (Offline)", host.Hostname);
                 item.Click += new EventHandler(switchContext);
                 item.Tag = host;
 

@@ -893,6 +893,9 @@ namespace renderdoc
         private static extern void RemoteServer_ShutdownServerAndConnection(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool RemoteServer_Ping(IntPtr real);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool RemoteServer_LocalProxies(IntPtr real, IntPtr outlist);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool RemoteServer_RemoteSupportedReplays(IntPtr real, IntPtr outlist);
@@ -984,6 +987,11 @@ namespace renderdoc
             Array.Sort(ret);
 
             return ret;
+        }
+
+        public bool Ping()
+        {
+            return RemoteServer_Ping(m_Real);
         }
 
         public string[] LocalProxies()

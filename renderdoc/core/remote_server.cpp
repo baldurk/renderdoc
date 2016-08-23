@@ -75,6 +75,7 @@ enum RemoteServerPacket
   eRemoteServer_VersionMismatch,
   eRemoteServer_Busy,
 
+  eRemoteServer_Ping,
   eRemoteServer_RemoteDriverList,
   eRemoteServer_TakeOwnershipCapture,
   eRemoteServer_CopyCaptureToRemote,
@@ -244,6 +245,10 @@ static void ActiveRemoteClientThread(void *data)
       {
         SAFE_DELETE(recvser);
         continue;
+      }
+      else if(type == eRemoteServer_Ping)
+      {
+        sendType = eRemoteServer_Ping;
       }
       else if(type == eRemoteServer_RemoteDriverList)
       {
@@ -721,6 +726,23 @@ public:
     delete this;
   }
   bool Connected() { return m_Socket != NULL && m_Socket->Connected(); }
+  bool Ping()
+  {
+    if(!Connected())
+      return false;
+
+    Serialiser sendData("", Serialiser::WRITING, false);
+    Send(eRemoteServer_Ping, sendData);
+
+    RemoteServerPacket type = eRemoteServer_Noop;
+    Serialiser *ser = NULL;
+    Get(type, &ser);
+
+    SAFE_DELETE(ser);
+
+    return type == eRemoteServer_Ping;
+  }
+
   bool LocalProxies(rdctype::array<rdctype::str> *out)
   {
     if(out == NULL)
@@ -1076,6 +1098,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ShutdownConnection(Remot
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ShutdownServerAndConnection(RemoteServer *remote)
 {
   remote->ShutdownServerAndConnection();
+}
+
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteServer_Ping(RemoteServer *remote)
+{
+  return remote->Ping();
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
