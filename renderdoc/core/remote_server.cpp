@@ -676,8 +676,10 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
     }
   }
 
-  if(activeClientData && activeClientData->socket == NULL)
+  if(activeClientData && activeClientData->socket != NULL)
   {
+    activeClientData->killThread = true;
+
     Threading::JoinThread(activeClientData->thread);
     Threading::CloseThread(activeClientData->thread);
 
