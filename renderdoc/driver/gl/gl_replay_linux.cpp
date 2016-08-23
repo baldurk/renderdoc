@@ -113,8 +113,6 @@ uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool dep
                              8,
                              GLX_BLUE_SIZE,
                              8,
-                             GLX_ALPHA_SIZE,
-                             8,
                              GLX_DOUBLEBUFFER,
                              True,
                              GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB,
@@ -128,6 +126,22 @@ uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool dep
     XCloseDisplay(dpy);
     RDCERR("Couldn't choose default framebuffer config");
     return eReplayCreate_APIInitFailed;
+  }
+
+  if(draw != 0)
+  {
+    // Choose FB config with a GLX_VISUAL_ID that matches the X screen.
+    VisualID visualid_correct = DefaultVisual(dpy, DefaultScreen(dpy))->visualid;
+    for(int i = 0; i < numCfgs; i++)
+    {
+      int visualid;
+      glXGetFBConfigAttrib(dpy, fbcfg[i], GLX_VISUAL_ID, &visualid);
+      if((VisualID)visualid == visualid_correct)
+      {
+        fbcfg[0] = fbcfg[i];
+        break;
+      }
+    }
   }
 
   int attribs[64] = {0};
