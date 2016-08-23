@@ -66,11 +66,15 @@ void Serialiser::Serialise(const char *name, Process::EnvironmentModification &e
   Serialise("value", el.value);
 }
 
+static const uint32_t RemoteServerProtocolVersion = 1;
+
 enum RemoteServerPacket
 {
   eRemoteServer_Noop,
   eRemoteServer_Handshake,
+  eRemoteServer_VersionMismatch,
   eRemoteServer_Busy,
+
   eRemoteServer_RemoteDriverList,
   eRemoteServer_TakeOwnershipCapture,
   eRemoteServer_CopyCaptureToRemote,
@@ -140,16 +144,31 @@ static void InactiveRemoteClientThread(void *data)
 
   // this thread just handles receiving the handshake and sending a busy signal without blocking the
   // server thread
-  RemoteServerPacket type = (RemoteServerPacket)RecvPacket(threadData->socket);
+  RemoteServerPacket type = eRemoteServer_Noop;
+  Serialiser *recvser = NULL;
 
-  if(type != eRemoteServer_Handshake)
+  if(!RecvPacket(threadData->socket, type, &recvser) || type != eRemoteServer_Handshake)
   {
     RDCWARN("Didn't receive proper handshake");
     SAFE_DELETE(threadData->socket);
     return;
   }
 
-  SendPacket(threadData->socket, eRemoteServer_Busy);
+  uint32_t version = 0;
+  recvser->Serialise("version", version);
+
+  SAFE_DELETE(recvser);
+
+  if(version != RemoteServerProtocolVersion)
+  {
+    RDCLOG("Connection using protocol %u, but we are running %u", version,
+           RemoteServerProtocolVersion);
+    SendPacket(threadData->socket, eRemoteServer_VersionMismatch);
+  }
+  else
+  {
+    SendPacket(threadData->socket, eRemoteServer_Busy);
+  }
 
   SAFE_DELETE(threadData->socket);
 
@@ -165,16 +184,34 @@ static void ActiveRemoteClientThread(void *data)
 
   uint32_t ip = client->GetRemoteIP();
 
-  RemoteServerPacket type = (RemoteServerPacket)RecvPacket(client);
+  RemoteServerPacket type = eRemoteServer_Noop;
+  Serialiser *handshakeSer = NULL;
 
-  if(type != eRemoteServer_Handshake)
+  if(!RecvPacket(threadData->socket, type, &handshakeSer) || type != eRemoteServer_Handshake)
   {
     RDCWARN("Didn't receive proper handshake");
     SAFE_DELETE(client);
     return;
   }
 
-  SendPacket(client, eRemoteServer_Handshake);
+  uint32_t version = 0;
+  handshakeSer->Serialise("version", version);
+
+  SAFE_DELETE(handshakeSer);
+
+  if(version != RemoteServerProtocolVersion)
+  {
+    RDCLOG("Connection using protocol %u, but we are running %u", version,
+           RemoteServerProtocolVersion);
+    SendPacket(threadData->socket, eRemoteServer_VersionMismatch);
+    SAFE_DELETE(client);
+    return;
+  }
+  else
+  {
+    // handshake and continue
+    SendPacket(threadData->socket, eRemoteServer_Handshake);
+  }
 
   vector<string> tempFiles;
   IRemoteDriver *driver = NULL;
@@ -1135,7 +1172,9 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, RemoteSe
   }
 
   Serialiser sendData("", Serialiser::WRITING, false);
-  SendPacket(sock, eRemoteServer_Handshake);
+  uint32_t version = RemoteServerProtocolVersion;
+  sendData.Serialise("version", version);
+  SendPacket(sock, eRemoteServer_Handshake, sendData);
 
   RemoteServerPacket type = (RemoteServerPacket)RecvPacket(sock);
 
@@ -1143,6 +1182,12 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, RemoteSe
   {
     SAFE_DELETE(sock);
     return eReplayCreate_NetworkRemoteBusy;
+  }
+
+  if(type == eRemoteServer_VersionMismatch)
+  {
+    SAFE_DELETE(sock);
+    return eReplayCreate_NetworkVersionMismatch;
   }
 
   if(type != eRemoteServer_Handshake)

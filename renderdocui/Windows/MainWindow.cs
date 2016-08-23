@@ -1111,7 +1111,11 @@ namespace renderdocui.Windows
                             ? global::renderdocui.Properties.Resources.connect
                             : global::renderdocui.Properties.Resources.disconnect;
 
-                        if (host.Busy)
+                        if (host.VersionMismatch)
+                        {
+                            statusText.Text = "Remote server is not running RenderDoc " + VersionString;
+                        }
+                        else if (host.Busy)
                         {
                             statusText.Text = "Remote server in use elsewhere";
                         }

@@ -80,6 +80,8 @@ namespace renderdocui.Windows.Dialogs
 
                 if (host.Connected)
                     text += " (Active Context)";
+                else if (host.VersionMismatch)
+                    text += " (Version Mismatch)";
                 else if (host.Busy)
                     text += " (Busy)";
 

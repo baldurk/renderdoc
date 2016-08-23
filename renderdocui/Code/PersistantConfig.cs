@@ -49,6 +49,8 @@ namespace renderdocui.Code
         public bool Connected = false;
         [XmlIgnore]
         public bool Busy = false;
+        [XmlIgnore]
+        public bool VersionMismatch = false;
 
         public void CheckStatus()
         {
@@ -56,7 +58,7 @@ namespace renderdocui.Code
             {
                 RemoteServer server = StaticExports.CreateRemoteServer(Hostname, 0);
                 ServerRunning = true;
-                Busy = false;
+                VersionMismatch = Busy = false;
                 server.ShutdownConnection();
             }
             catch (ReplayCreateException ex)
@@ -65,6 +67,12 @@ namespace renderdocui.Code
                 {
                     ServerRunning = true;
                     Busy = true;
+                }
+                else if (ex.Status == ReplayCreateStatus.NetworkVersionMismatch)
+                {
+                    ServerRunning = true;
+                    Busy = true;
+                    VersionMismatch = true;
                 }
                 else
                 {

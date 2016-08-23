@@ -509,6 +509,7 @@ enum ReplayCreateStatus
   eReplayCreate_IncompatibleProcess,
   eReplayCreate_NetworkIOFailed,
   eReplayCreate_NetworkRemoteBusy,
+  eReplayCreate_NetworkVersionMismatch,
   eReplayCreate_FileIOFailed,
   eReplayCreate_FileIncompatibleVersion,
   eReplayCreate_FileCorrupted,

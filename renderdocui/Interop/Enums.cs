@@ -521,6 +521,7 @@ namespace renderdoc
         IncompatibleProcess,
         NetworkIOFailed,
         NetworkRemoteBusy,
+        NetworkVersionMismatch,
         FileIOFailed,
         FileIncompatibleVersion,
         FileCorrupted,
@@ -624,6 +625,7 @@ namespace renderdoc
                 case ReplayCreateStatus.IncompatibleProcess: return "Process is incompatible (likely 64-bit/32-bit issue)";
                 case ReplayCreateStatus.NetworkIOFailed: return "Network I/O operation failed";
                 case ReplayCreateStatus.NetworkRemoteBusy: return "Remote side of network connection is busy";
+                case ReplayCreateStatus.NetworkVersionMismatch: return "Version mismatch between network clients";
                 case ReplayCreateStatus.FileIOFailed: return "File I/O operation failed";
                 case ReplayCreateStatus.FileIncompatibleVersion: return "File is of an incompatible version";
                 case ReplayCreateStatus.FileCorrupted: return "File is corrupted or unrecognisable format";
