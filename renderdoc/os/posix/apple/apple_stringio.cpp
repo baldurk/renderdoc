@@ -39,10 +39,6 @@ bool PlatformHasKeyInput()
   return false;
 }
 
-void CloneDisplay(Display *dpy)
-{
-}
-
 void AddInputWindow(void *wnd)
 {
 }

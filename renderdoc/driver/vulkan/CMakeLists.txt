@@ -46,9 +46,13 @@ if(ANDROID)
 elseif(UNIX)
     list(APPEND sources vk_posix.cpp vk_linux.cpp)
 
-    list(APPEND definitions
-        PRIVATE -DVK_USE_PLATFORM_XCB_KHR
-        PRIVATE -DVK_USE_PLATFORM_XLIB_KHR)
+    if(ENABLE_XLIB)
+        add_definitions(-DVK_USE_PLATFORM_XLIB_KHR)
+    endif()
+
+    if(ENABLE_XCB)
+        add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
+    endif()
 
     set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
     set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture.json)

@@ -24,7 +24,6 @@
  ******************************************************************************/
 
 #include "renderdoccmd.h"
-#include <X11/Xlib-xcb.h>
 #include <iconv.h>
 #include <locale.h>
 #include <signal.h>
@@ -32,8 +31,10 @@
 #include <unistd.h>
 #include <string>
 
-#define RENDERDOC_WINDOWING_XLIB 1
-#define RENDERDOC_WINDOWING_XCB 1
+#if defined(RENDERDOC_WINDOWING_XLIB)
+#include <X11/Xlib-xcb.h>
+#endif
+
 #include <replay/renderdoc_replay.h>
 
 using std::string;
@@ -47,6 +48,10 @@ void Daemonise()
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {
+// we only have the preview implemented for platforms that have xlib & xcb. It's unlikely
+// a meaningful platform exists with only one, and at the time of writing no other windowing
+// systems are supported on linux for the replay
+#if defined(RENDERDOC_WINDOWING_XLIB) && defined(RENDERDOC_WINDOWING_XCB)
   // need to create a hybrid setup xlib and xcb in case only one or the other is supported.
   // We'll prefer xcb
 
@@ -196,12 +201,19 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
 
     usleep(100000);
   }
+#else
+  std::cerr << "No supporting windowing systems defined at build time (xlib and xcb)" << std::endl;
+#endif
 }
+
+#if defined(RENDERDOC_SUPPORT_GL)
 
 // symbol defined in libGL but not librenderdoc.
 // Forces link of libGL after renderdoc (otherwise all symbols would
 // be resolved and libGL wouldn't link, meaning dlsym(RTLD_NEXT) would fai
 extern "C" void glXWaitGL();
+
+#endif
 
 void sig_handler(int signo)
 {
@@ -215,9 +227,13 @@ int main(int argc, char *argv[])
 {
   std::setlocale(LC_CTYPE, "");
 
+#if defined(RENDERDOC_SUPPORT_GL)
+
   volatile bool never_run = false;
   if(never_run)
     glXWaitGL();
+
+#endif
 
   signal(SIGINT, sig_handler);
   signal(SIGTERM, sig_handler);

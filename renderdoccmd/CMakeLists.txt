@@ -11,11 +11,25 @@ elseif(ANDROID)
 elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
 
-    find_package(OpenGL REQUIRED)
-    list(APPEND includes PRIVATE ${OPENGL_INCLUDE_DIR})
-    list(APPEND libraries PRIVATE ${OPENGL_gl_LIBRARY})
+    if(ENABLE_GL)
+        add_definitions(-DRENDERDOC_SUPPORT_GL)
 
-    list(APPEND libraries PRIVATE -lxcb -lX11 -lX11-xcb)
+        find_package(OpenGL REQUIRED)
+        list(APPEND includes PRIVATE ${OPENGL_INCLUDE_DIR})
+        list(APPEND libraries PRIVATE ${OPENGL_gl_LIBRARY})
+    endif()
+
+    if(ENABLE_XLIB)
+        list(APPEND libraries PRIVATE -lX11)
+    endif()
+
+    if(ENABLE_XCB)
+        list(APPEND libraries PRIVATE -lxcb)
+    endif()
+
+    if(ENABLE_XLIB AND ENABLE_XCB)
+        list(APPEND libraries PRIVATE -lX11-xcb)
+    endif()
 endif()
 
 if(ANDROID)

@@ -29,8 +29,6 @@
 
 #define LOGCAT_TAG "renderdoc"
 
-typedef int Display;
-
 namespace Keyboard
 {
 void Init()
@@ -40,10 +38,6 @@ void Init()
 bool PlatformHasKeyInput()
 {
   return false;
-}
-
-void CloneDisplay(Display *dpy)
-{
 }
 
 void AddInputWindow(void *wnd)

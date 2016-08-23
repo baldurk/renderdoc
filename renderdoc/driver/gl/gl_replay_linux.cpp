@@ -23,8 +23,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#define RENDERDOC_WINDOWING_XLIB 1
-
 #include "gl_replay.h"
 #include <dlfcn.h>
 #include "gl_driver.h"
@@ -77,10 +75,16 @@ uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool dep
 
   if(system == eWindowingSystem_Xlib)
   {
+#if defined(RENDERDOC_WINDOWING_XLIB)
     XlibWindowData *xlib = (XlibWindowData *)data;
 
     dpy = xlib->display;
     draw = xlib->window;
+#else
+    RDCERR(
+        "Xlib windowing system data passed in, but support is not compiled in. GL must have xlib "
+        "support compiled in");
+#endif
   }
   else if(system == eWindowingSystem_Unknown)
   {

@@ -23,11 +23,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#if defined(RENDERDOC_PLATFORM_LINUX)
-#define RENDERDOC_WINDOWING_XLIB 1
-#define RENDERDOC_WINDOWING_XCB 1
-#endif
-
 #include "common/common.h"
 #include "maths/matrix.h"
 #include "serialise/string_utils.h"
@@ -38,10 +33,22 @@ static uint64_t GetHandle(WindowingSystem system, void *data)
 #if defined(RENDERDOC_PLATFORM_LINUX)
 
   if(system == eWindowingSystem_Xlib)
+  {
+#if defined(RENDERDOC_WINDOWING_XLIB)
     return (uint64_t)((XlibWindowData *)data)->window;
+#else
+    RDCERR("Xlib windowing system data passed in, but support is not compiled in");
+#endif
+  }
 
   if(system == eWindowingSystem_XCB)
+  {
+#if defined(RENDERDOC_WINDOWING_XCB)
     return (uint64_t)((XCBWindowData *)data)->window;
+#else
+    RDCERR("XCB windowing system data passed in, but support is not compiled in");
+#endif
+  }
 
   RDCERR("Unrecognised window system %d", system);
 

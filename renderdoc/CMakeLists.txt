@@ -29,23 +29,34 @@ elseif(APPLE)
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)
-    find_package(X11 REQUIRED)
-
-    # This should be fixed and moved to FindXCB.cmake
-    pkg_check_modules(PC_XCB REQUIRED xcb xcb-keysyms)
-    set(XCB_INCLUDE_DIRS)
-    set(XCB_LIBRARIES xcb xcb-keysyms)
-
-    list(APPEND RDOC_INCLUDES
-        PRIVATE ${X11_X11_INCLUDE_PATH}
-        PRIVATE ${XCB_INCLUDE_DIRS})
 
     list(APPEND RDOC_LIBRARIES
         PRIVATE m
         PRIVATE dl
-        PRIVATE ${CMAKE_THREAD_LIBS_INIT}
-        PRIVATE ${X11_X11_LIB}
-        PRIVATE ${XCB_LIBRARIES})
+        PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+
+    if(ENABLE_XLIB)
+        find_package(X11 REQUIRED)
+
+        list(APPEND RDOC_INCLUDES
+            PRIVATE ${X11_X11_INCLUDE_PATH})
+
+        list(APPEND RDOC_LIBRARIES
+            PRIVATE ${X11_X11_LIB})
+    endif()
+
+    if(ENABLE_XCB)
+        # This should be fixed and moved to FindXCB.cmake
+        pkg_check_modules(PC_XCB REQUIRED xcb xcb-keysyms)
+        set(XCB_INCLUDE_DIRS)
+        set(XCB_LIBRARIES xcb xcb-keysyms)
+
+        list(APPEND RDOC_INCLUDES
+            PRIVATE ${XCB_INCLUDE_DIRS})
+
+        list(APPEND RDOC_LIBRARIES
+            PRIVATE ${XCB_LIBRARIES})
+    endif()
 endif()
 
 set(sources

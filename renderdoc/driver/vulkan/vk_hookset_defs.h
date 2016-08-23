@@ -58,7 +58,7 @@
               const VkAndroidSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *, \
               pAllocator, VkSurfaceKHR *, pSurface);
 
-#elif defined(VK_USE_PLATFORM_XCB_KHR) || defined(VK_USE_PLATFORM_XLIB_KHR)
+#else
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
 

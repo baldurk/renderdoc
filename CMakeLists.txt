@@ -31,6 +31,9 @@ option(ENABLE_VULKAN "Enable Vulkan driver" ON)
 option(ENABLE_RENDERDOCCMD "Enable renderdoccmd" ON)
 option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
 
+option(ENABLE_XLIB "Enable xlib windowing support" ON)
+option(ENABLE_XCB "Enable xcb windowing support" ON)
+
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
@@ -68,6 +71,14 @@ elseif(APPLE)
     add_definitions(-DRENDERDOC_PLATFORM_APPLE)
 elseif(UNIX)
     add_definitions(-DRENDERDOC_PLATFORM_LINUX)
+
+    if(ENABLE_XLIB)
+        add_definitions(-DRENDERDOC_WINDOWING_XLIB)
+    endif()
+
+    if(ENABLE_XCB)
+        add_definitions(-DRENDERDOC_WINDOWING_XCB)
+    endif()
 endif()
 
 add_subdirectory(renderdoc)

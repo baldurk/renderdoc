@@ -22,8 +22,15 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#if defined(RENDERDOC_WINDOWING_XLIB)
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XCB)
+#include <xcb/xcb_keysyms.h>
+#endif
+
 #include <errno.h>
 #include <iconv.h>
 #include <pwd.h>
@@ -33,7 +40,6 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#include <xcb/xcb_keysyms.h>
 #include "api/app/renderdoc_app.h"
 #include "common/threading.h"
 #include "os/os_specific.h"
@@ -49,8 +55,14 @@ void Init()
 
 bool PlatformHasKeyInput()
 {
+#if defined(RENDERDOC_WINDOWING_XCB) || defined(RENDERDOC_WINDOWING_XLIB)
   return true;
+#else
+  return false;
+#endif
 }
+
+#if defined(RENDERDOC_WINDOWING_XLIB)
 
 Display *CurrentXDisplay = NULL;
 
@@ -60,24 +72,6 @@ void CloneDisplay(Display *dpy)
     return;
 
   CurrentXDisplay = XOpenDisplay(XDisplayString(dpy));
-}
-
-xcb_connection_t *connection;
-xcb_key_symbols_t *symbols;
-
-void UseConnection(xcb_connection_t *conn)
-{
-  connection = conn;
-  symbols = xcb_key_symbols_alloc(conn);
-}
-
-void AddInputWindow(void *wnd)
-{
-  // TODO check against this drawable & parent window being focused in GetKeyState
-}
-
-void RemoveInputWindow(void *wnd)
-{
 }
 
 bool GetXlibKeyState(int key)
@@ -137,6 +131,28 @@ bool GetXlibKeyState(int key)
   uint8_t keyByte = (uint8_t)keyState[byteIdx];
 
   return (keyByte & bitMask) != 0;
+}
+
+#else
+
+// if RENDERDOC_WINDOWING_XLIB is not defined
+
+bool GetXlibKeyState(int key)
+{
+  return false;
+}
+
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XCB)
+
+xcb_connection_t *connection;
+xcb_key_symbols_t *symbols;
+
+void UseConnection(xcb_connection_t *conn)
+{
+  connection = conn;
+  symbols = xcb_key_symbols_alloc(conn);
 }
 
 bool GetXCBKeyState(int key)
@@ -207,6 +223,26 @@ bool GetXCBKeyState(int key)
   free(keys);
 
   return ret;
+}
+
+#else
+
+// if RENDERDOC_WINDOWING_XCB is not defined
+
+bool GetXCBKeyState(int key)
+{
+  return false;
+}
+
+#endif
+
+void AddInputWindow(void *wnd)
+{
+  // TODO check against this drawable & parent window being focused in GetKeyState
+}
+
+void RemoveInputWindow(void *wnd)
+{
 }
 
 bool GetKeyState(int key)

@@ -22,9 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#define RENDERDOC_WINDOWING_XLIB 1
-#define RENDERDOC_WINDOWING_XCB 1
-
 #include "api/replay/renderdoc_replay.h"
 
 #include "vk_core.h"
@@ -34,22 +31,32 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *d
 {
   m_WindowSystem = system;
 
+#if defined(RENDERDOC_WINDOWING_XLIB)
   if(system == eWindowingSystem_Xlib)
   {
     XlibWindowData *xdata = (XlibWindowData *)data;
     xlib.display = xdata->display;
     xlib.window = xdata->window;
+    return;
   }
-  else if(system == eWindowingSystem_XCB)
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XCB)
+  if(system == eWindowingSystem_XCB)
   {
     XCBWindowData *xdata = (XCBWindowData *)data;
     xcb.connection = xdata->connection;
     xcb.window = xdata->window;
+    return;
   }
+#endif
+
+  RDCERR("Unrecognised/unsupported window system %d", system);
 }
 
 void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 {
+#if defined(RENDERDOC_WINDOWING_XLIB)
   if(m_WindowSystem == eWindowingSystem_Xlib)
   {
     VkXlibSurfaceCreateInfoKHR createInfo;
@@ -62,8 +69,13 @@ void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 
     VkResult vkr = ObjDisp(inst)->CreateXlibSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    return;
   }
-  else if(m_WindowSystem == eWindowingSystem_XCB)
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XCB)
+  if(m_WindowSystem == eWindowingSystem_XCB)
   {
     VkXcbSurfaceCreateInfoKHR createInfo;
 
@@ -75,7 +87,12 @@ void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 
     VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    return;
   }
+#endif
+
+  RDCERR("Unrecognised/unsupported window system %d", m_WindowSystem);
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
@@ -85,6 +102,7 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
   OutputWindow &outw = m_OutputWindows[id];
 
+#if defined(RENDERDOC_WINDOWING_XLIB)
   if(outw.m_WindowSystem == eWindowingSystem_Xlib)
   {
     XWindowAttributes attr = {};
@@ -92,8 +110,13 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
     w = (int32_t)attr.width;
     h = (int32_t)attr.height;
+
+    return;
   }
-  else if(outw.m_WindowSystem == eWindowingSystem_XCB)
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XCB)
+  if(outw.m_WindowSystem == eWindowingSystem_XCB)
   {
     xcb_get_geometry_cookie_t geomCookie =
         xcb_get_geometry(outw.xcb.connection, outw.xcb.window);    // window is a xcb_drawable_t
@@ -103,7 +126,12 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
     h = (int32_t)geom->height;
 
     free(geom);
+
+    return;
   }
+#endif
+
+  RDCERR("Unrecognised/unsupported window system %d", outw.m_WindowSystem);
 }
 
 const char *VulkanLibraryName = "libvulkan.so.1";

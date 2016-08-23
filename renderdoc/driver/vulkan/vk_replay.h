@@ -43,17 +43,46 @@
 
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 
-#define WINDOW_HANDLE_DECL        \
-  struct                          \
-  {                               \
-    Display *display;             \
-    Drawable window;              \
-  } xlib;                         \
+#if defined(RENDERDOC_WINDOWING_XLIB)
+
+#define WINDOW_HANDLE_XLIB \
+  struct                   \
+  {                        \
+    Display *display;      \
+    Drawable window;       \
+  } xlib;
+
+#else
+
+#define WINDOW_HANDLE_XLIB \
+  struct                   \
+  {                        \
+  } xlib;
+
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XCB)
+
+#define WINDOW_HANDLE_XCB         \
   struct                          \
   {                               \
     xcb_connection_t *connection; \
     xcb_window_t window;          \
   } xcb;
+
+#else
+
+#define WINDOW_HANDLE_XCB \
+  struct                  \
+  {                       \
+  } xcb;
+
+#endif
+
+#define WINDOW_HANDLE_DECL \
+  WINDOW_HANDLE_XLIB       \
+  WINDOW_HANDLE_XCB
+
 #define WINDOW_HANDLE_INIT \
   RDCEraseEl(xlib);        \
   RDCEraseEl(xcb);

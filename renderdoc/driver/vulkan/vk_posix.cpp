@@ -109,12 +109,23 @@ bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
     if(!oneSurfaceTypeSupported)
     {
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
+
       RDCERR("Require the '%s' extension to be present", VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+      return false;
+
 #elif defined(VK_USE_PLATFORM_XCB_KHR) || defined(VK_USE_PLATFORM_XLIB_KHR)
+
       RDCERR("Require either the '%s' or '%s' extension to be present",
              VK_KHR_XCB_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
-#endif
       return false;
+
+#else
+
+      // No windowing system support compiled in - allow this to continue,
+      // but this will only work for headless replay (which is feasible on some platforms)
+      return true;
+
+#endif
     }
   }
   else if(device)
