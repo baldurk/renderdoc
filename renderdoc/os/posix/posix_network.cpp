@@ -342,7 +342,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
     return new Socket((ptrdiff_t)s);
   }
 
-  RDCWARN("Failed to connect to %S:%d", host, port);
+  RDCWARN("Failed to connect to %s:%d", host, port);
   return NULL;
 }
 
